@@ -4,7 +4,13 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register, SlateElement, useFocused, useSelected } from "./register";
+import {
+  register,
+  SlateElement,
+  useFocused,
+  useProcessLinks,
+  useSelected,
+} from "./register";
 import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../util";
 import { startswith, endswith } from "smc-util/misc";
 import { toSlate as toSlateImage } from "./image";
@@ -48,6 +54,7 @@ const Element = ({ attributes, children, element }) => {
   const border =
     focused && selected ? `1px solid ${FOCUSED_COLOR}` : `1px solid white`;
   const html = ((element.html as string) ?? "").trim();
+  const ref = useProcessLinks([html]);
   const is_comment = startswith(html, "<!--") && endswith(html, "-->");
 
   if (element.type == "html_inline") {
@@ -72,7 +79,7 @@ const Element = ({ attributes, children, element }) => {
     // for userSelect below, see
     // https://github.com/ianstormtaylor/slate/issues/3723#issuecomment-761566218
     return (
-      <div {...attributes}>
+      <div {...attributes} ref={ref}>
         <div
           style={{
             border,

@@ -90,8 +90,10 @@ function insert_image(mode: string, opts: Options): string {
   return s;
 }
 
-export async function get_insert_image_opts_from_user(): Promise<undefined | Options> {
-  return await show_react_modal((cb) => {
+export async function get_insert_image_opts_from_user(): Promise<
+  undefined | Options
+> {
+  const opts = await show_react_modal((cb) => {
     return (
       <Modal
         title={
@@ -146,6 +148,14 @@ export async function get_insert_image_opts_from_user(): Promise<undefined | Opt
       </Modal>
     );
   });
+  // if width or height are numbers, append pixel units.
+  for (const x of ["width", "height"]) {
+    if (opts[x] && opts[x].match(/^[\.0-9]+$/)) {
+      opts[x] += "px";
+    }
+  }
+
+  return opts;
 }
 
 CodeMirror.defineExtension("insert_image", async function (): Promise<void> {

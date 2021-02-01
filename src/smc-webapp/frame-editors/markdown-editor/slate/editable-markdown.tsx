@@ -102,6 +102,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return ed;
     }, []);
 
+    // todo move to our own context-based hook!
+    (editor as any).project_id = project_id;
+    (editor as any).path = path;
+
     const editorMarkdownValueRef = useRef<string | undefined>(undefined);
     const hasUnsavedChangesRef = useRef<boolean>(false);
     // const [editorValue, setEditorValue] = useState<Descendant[]>([]);

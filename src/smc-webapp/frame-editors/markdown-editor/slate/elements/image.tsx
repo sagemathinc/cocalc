@@ -4,7 +4,13 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register, SlateElement, useFocused, useSelected } from "./register";
+import {
+  register,
+  SlateElement,
+  useFocused,
+  useProcessLinks,
+  useSelected,
+} from "./register";
 import { dict } from "smc-util/misc";
 import { FOCUSED_COLOR } from "../util";
 
@@ -94,8 +100,10 @@ register({
     const border =
       focused && selected ? `3px solid ${FOCUSED_COLOR}` : `3px solid white`;
 
+    const ref = useProcessLinks([src]);
+
     return (
-      <span {...attributes}>
+      <span {...attributes} ref={ref}>
         <img
           contentEditable={false}
           src={src}

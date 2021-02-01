@@ -25,7 +25,7 @@ import {
 } from "../../../../app-framework";
 import * as CodeMirror from "codemirror";
 import { FOCUSED_COLOR } from "../util";
-import { useFocused, useSelected, useSlate, useCollapsed } from "./register";
+import { useFocused, useSelected, useSlate, useCollapsed } from "./hooks";
 
 const STYLE = {
   width: "100%",

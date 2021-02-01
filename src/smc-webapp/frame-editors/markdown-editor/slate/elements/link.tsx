@@ -4,7 +4,7 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register, SlateElement } from "./register";
+import { register, SlateElement, useProcessLinks } from "./register";
 import { dict } from "smc-util/misc";
 import { open_new_tab } from "../../../../misc-page";
 const linkify = require("linkify-it")();
@@ -38,19 +38,21 @@ register({
   Element: ({ attributes, children, element }) => {
     const node = element as Link;
     const { url, title } = node;
+    const ref = useProcessLinks([url]);
     return (
-      <a
-        {...attributes}
-        href={url}
-        title={title}
-        onDoubleClick={() => {
-          if (url) {
-            open_new_tab(url);
-          }
-        }}
-      >
-        {children}
-      </a>
+      <span {...attributes} ref={ref}>
+        <a
+          href={url}
+          title={title}
+          onDoubleClick={() => {
+            if (url) {
+              open_new_tab(url);
+            }
+          }}
+        >
+          {children}
+        </a>
+      </span>
     );
   },
 

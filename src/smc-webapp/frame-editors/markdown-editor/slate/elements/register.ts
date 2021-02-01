@@ -3,26 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export {
-  RenderElementProps,
-  useFocused,
-  useSelected,
-  useSlate,
-} from "../slate-react";
+export { RenderElementProps } from "../slate-react";
+export * from "./hooks";
 
 import { React } from "../../../../app-framework";
-import { RenderElementProps, useSlate } from "../slate-react";
-import { Element, Range } from "slate";
+import { RenderElementProps } from "../slate-react";
+import { Element } from "slate";
 import { State as MarkdownParserState, Token } from "../markdown-to-slate";
 import { Info } from "../slate-to-markdown";
 import { ChildInfo } from "../element-to-markdown";
-
-// Whether or not the current selection exists and is collapsed (i.e., not
-// a range).
-export const useCollapsed = () => {
-  const editor = useSlate();
-  return editor.selection != null && Range.isCollapsed(editor.selection);
-};
 
 export interface SlateElement {
   tight?: boolean;
