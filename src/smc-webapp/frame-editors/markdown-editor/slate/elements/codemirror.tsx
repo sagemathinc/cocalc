@@ -47,6 +47,7 @@ interface Props {
   onBlur?: () => void;
   options?: { [option: string]: any };
   isInline?: boolean; // impacts how cursor moves out of codemirror.
+  style?: CSS;
 }
 
 export const SlateCodeMirror: React.FC<Props> = React.memo(
@@ -59,6 +60,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     onBlur,
     options,
     isInline,
+    style,
   }) => {
     const focused = useFocused();
     const selected = useSelected();
@@ -159,6 +161,11 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         options.extraKeys["Esc"] = onEscape;
       }
 
+      options.extraKeys["Tab"] = (cm) => {
+        const spaces = Array(cm.getOption("indentUnit") + 1).join(" ");
+        cm.replaceSelection(spaces);
+      };
+
       cursorHandlers(options, editor, isInline);
 
       const cm = (cmRef.current = CodeMirror.fromTextArea(node, options));
@@ -215,6 +222,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           ...{
             border: `2px solid ${isFocused ? FOCUSED_COLOR : "#cfcfcf"}`,
           },
+          ...style,
         }}
         className="smc-vfill"
       >

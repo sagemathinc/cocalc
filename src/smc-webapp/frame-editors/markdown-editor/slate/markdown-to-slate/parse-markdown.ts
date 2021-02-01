@@ -69,8 +69,20 @@ function process_math_tokens(tokens: Token[], math): void {
   }
 }
 
-export function parse_markdown(markdown: string, obj: object = {}): Token[] {
+export function parse_markdown(
+  markdown: string,
+  obj: object = {}
+): { tokens: Token[]; meta?: string } {
   const t0 = new Date().valueOf();
+
+  let meta: undefined | string = undefined;
+  if (markdown.slice(0, 3) == "---") {
+    // YAML metadata header
+    const j = markdown.indexOf("---", 3);
+    meta = markdown.slice(4, j - 1);
+    markdown = markdown.slice(j + 4);
+  }
+
   markdown = math_escape(markdown);
   let [text, math] = remove_math(markdown, {
     open: "`" + MATH_ESCAPE,
@@ -78,9 +90,10 @@ export function parse_markdown(markdown: string, obj: object = {}): Token[] {
     display_open: "\n```\n" + MATH_ESCAPE,
     display_close: MATH_ESCAPE + "\n```\n",
   });
+
   const tokens: Token[] = markdown_it.parse(text, obj);
   process_math_tokens(tokens, math);
-  (window as any).tokens = tokens;
+  (window as any).parse_markdown = { tokens, meta };
   console.log("time: parse_markdown", new Date().valueOf() - t0, " ms");
-  return tokens;
+  return { tokens, meta };
 }

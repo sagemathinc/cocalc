@@ -11,6 +11,9 @@
 // IMPORTANT: You must import the entire module **and** separately import
 // the type; otherwise the code in the module to register it is not run.
 
+import { Meta } from "./meta";
+import "./meta";
+
 import { Checkbox } from "./checkbox";
 import "./checkbox";
 
@@ -67,6 +70,7 @@ import { Marks } from "../markdown-to-slate/handle-marks";
 declare module "slate" {
   export interface CustomTypes {
     Element:
+      | Meta
       | Checkbox
       | Emoji
       | Hashtag

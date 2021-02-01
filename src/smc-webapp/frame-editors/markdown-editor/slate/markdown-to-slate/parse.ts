@@ -20,6 +20,7 @@ import { handlers } from "./register";
 import { State, Token } from "./types";
 import { parse_markdown } from "./parse-markdown";
 import { ensureDocNonempty } from "../padding";
+import { createMetaNode } from "../elements/meta";
 
 export function parse(token: Token, state: State): Descendant[] {
   //console.log("parse", JSON.stringify({ token, state }));
@@ -39,10 +40,13 @@ export function parse(token: Token, state: State): Descendant[] {
 export function markdown_to_slate(markdown: string): Descendant[] {
   // Parse the markdown:
   const t0 = new Date().valueOf();
-  const tokens = parse_markdown(markdown);
+  const { tokens, meta } = parse_markdown(markdown);
   //console.log({ tokens });
 
   const doc: Descendant[] = [];
+  if (meta != null) {
+    doc.push(createMetaNode(meta));
+  }
   const state: State = { marks: {}, nesting: 0 };
   for (const token of tokens) {
     for (const node of parse(token, state)) {
