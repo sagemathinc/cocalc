@@ -22,11 +22,11 @@ import { parse_markdown } from "./parse-markdown";
 import { ensureDocNonempty } from "../padding";
 
 export function parse(token: Token, state: State): Descendant[] {
-  console.log("parse", JSON.stringify({ token, state }));
+  //console.log("parse", JSON.stringify({ token, state }));
   for (const handler of handlers) {
     const nodes: Descendant[] | undefined = handler({ token, state });
     if (nodes != null) {
-      console.log("parse got ", nodes);
+      //console.log("parse got ", nodes);
       return nodes;
     }
   }

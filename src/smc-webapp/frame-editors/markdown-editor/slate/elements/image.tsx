@@ -15,8 +15,52 @@ export interface Image extends SlateElement {
   src: string;
   alt?: string;
   title?: string;
-  width?: string;
-  height?: string;
+  width?: string | number;
+  height?: string | number;
+}
+
+export function toSlate({ type, children, token }) {
+  switch (type) {
+    // IMPORTANT: this only gets called with type != 'image'
+    // because of explicit code in ./html.tsx.
+    case "html_inline":
+    case "html_block":
+      // token.content will be a string like this:
+      //    <img src='https://wstein.org/bella-and-william.jpg' width=200px title='my pup' />
+      // easiest way to parse this is with jquery (not by hand).
+      const elt = $(token.content);
+      const node = {
+        type: "image",
+        children,
+        isInline: true,
+        isVoid: true,
+        src: elt.attr("src") ?? "",
+        alt: elt.attr("alt") ?? "",
+        title: elt.attr("title") ?? "",
+        width: elt.attr("width"),
+        height: elt.attr("height"),
+      } as any;
+      if (type == "html_inline") {
+        return node;
+      }
+      return {
+        type: "paragraph",
+        children: [{ text: "" }, node, { text: "" }],
+      };
+    case "image":
+      const attrs = dict(token.attrs as any);
+      return {
+        type: "image",
+        children,
+        isInline: true,
+        isVoid: true,
+        src: attrs.src,
+        alt: attrs.alt,
+        title: attrs.title,
+      };
+    default:
+      throw Error("bug");
+  }
 }
 
 register({
@@ -27,10 +71,17 @@ register({
     const src = node.src ?? "";
     const alt = node.alt ?? "";
     let title = node.title ?? "";
-    if (title.length > 0) {
-      title = ` \"${title}\"`;
+    const width = node.width;
+    const height = node.height;
+    if (!width && !height) {
+      if (title.length > 0) {
+        title = ` \"${title}\"`;
+      }
+      return `![${alt}](${src}${title})`;
+    } else {
+      // width or height require using html instead, unfortunately...
+      return `<img alt='${alt}' src='${src}' width=${width} height=${height} title='${title}'/>`;
     }
-    return `![${alt}](${src}${title})`;
   },
 
   Element: ({ attributes, children, element }) => {
@@ -50,23 +101,17 @@ register({
           src={src}
           alt={alt}
           title={title}
-          style={{ maxWidth: "100%", border }}
+          style={{
+            maxWidth: "100%",
+            border,
+            height: node.height,
+            width: node.width,
+          }}
         />
         {children}
       </span>
     );
   },
 
-  toSlate: ({ type, children, token }) => {
-    const attrs = dict(token.attrs as any);
-    return {
-      type,
-      children,
-      isInline: true,
-      isVoid: true,
-      src: attrs.src,
-      alt: attrs.alt,
-      title: attrs.title,
-    };
-  },
+  toSlate,
 });

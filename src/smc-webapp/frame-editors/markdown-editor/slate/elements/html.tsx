@@ -4,9 +4,10 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register, SlateElement, useFocused, useSelected  } from "./register";
+import { register, SlateElement, useFocused, useSelected } from "./register";
 import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../util";
 import { startswith, endswith } from "smc-util/misc";
+import { toSlate as toSlateImage } from "./image";
 
 export interface HtmlInline extends SlateElement {
   type: "html_inline";
@@ -22,7 +23,11 @@ export interface HtmlBlock extends SlateElement {
   html: string;
 }
 
-function toSlate({ token, children }) {
+function toSlate({ type, token, children }) {
+  // Special case of images -- we use a completely different function.
+  if (startswith(token.content, "<img ")) {
+    return toSlateImage({ type, token, children });
+  }
   return {
     type: token.type,
     isVoid: true,
