@@ -338,7 +338,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             value={editorValue}
             onChange={(newEditorValue) => {
               try {
-                console.log("onChange", (editor as any).applyingOperations);
                 // Track where the last editor selection was,
                 // since this is very useful to know, e.g., for
                 // understanding cursor movement, format fallback, etc.
