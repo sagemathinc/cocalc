@@ -210,6 +210,9 @@ export class SyncDoc extends EventEmitter {
 
   private ephemeral: boolean = false;
 
+  private sync_is_disabled: boolean = false;
+  private delay_sync_timer: any;
+
   constructor(opts: SyncOpts) {
     super();
     if (opts.string_id === undefined) {
@@ -2687,14 +2690,49 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  /*Merge remote patches and live version to create new live version,
+  /* Disable and enable sync.   When disabled we still
+     collect patches from upstream (but do not apply them
+     locally), and changes we make are broadcast into
+     the patch stream.   When we re-enable sync, all
+     patches are put together in the stream and
+     everything is synced as normal.  This is useful, e.g.,
+     to make it so a user **actively** editing a document is
+     not interrupted by being forced to sync (in particular,
+     by the 'before-change' event that they use to update
+     the live document).
+
+     Also, delay_sync will delay syncing local with upstream
+     for the given number of ms.  Calling it regularly while
+     user is actively editing to avoid them being bothered
+     by upstream patches getting merged in.
+  */
+
+  public disable_sync(): void {
+    this.sync_is_disabled = true;
+  }
+
+  public enable_sync(): void {
+    this.sync_is_disabled = false;
+    this.sync_remote_and_doc();
+  }
+
+  public delay_sync(timeout_ms = 2000): void {
+    clearTimeout(this.delay_sync_timer);
+    this.disable_sync();
+    this.delay_sync_timer = setTimeout(() => {
+      this.enable_sync();
+    }, timeout_ms);
+  }
+
+  /*
+    Merge remote patches and live version to create new live version,
     which is equal to result of applying all patches.
 
     Only returns once any newly created patches have
     been sent out.
-    */
+  */
   private async sync_remote_and_doc(): Promise<void> {
-    if (this.last == null || this.doc == null) {
+    if (this.last == null || this.doc == null || this.sync_is_disabled) {
       return;
     }
 
