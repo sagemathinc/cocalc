@@ -54,7 +54,7 @@ const USE_WINDOWING = true;
 // blocks around the cursor, which handles 99% of cases.   On the other hand,
 // in those cases when somebody opens say Moby Dick (with 2000+ blocks),
 // it also works at all (rather than just locking the browser!).
-const OVERSCAN_ROW_COUNT = 100;
+const OVERSCAN_ROW_COUNT = 50;
 //const USE_WINDOWING = false;
 
 const STYLE = {
@@ -143,7 +143,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     function onKeyDown(e) {
       if (read_only) return;
       // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
-      if (e.key == " " && (e.shiftKey || e.ctrlKey || e.metaKey)) {
+      if (
+        e.key == " " &&
+        (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey)
+      ) {
         // @ts-ignore - that true below is "unsanctioned"
         editor.insertText(" ", true); // true so try to autoformat
         e.preventDefault();
