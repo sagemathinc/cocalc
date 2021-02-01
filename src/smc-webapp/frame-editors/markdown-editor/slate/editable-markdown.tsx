@@ -43,10 +43,7 @@ import { applyOperations } from "./operations";
 
 // (??) A bit longer is better, due to escaping of markdown and multiple users
 // with one user editing source and the other editing with slate.
-// const SAVE_DEBOUNCE_MS = 2000;
-// Actually, I think the right way to fix this issue is to not merge in upstream
-// changes until the active editor (in any way) pauses for 2s (say), and that
-// does NOT mean we need to stop saving here.
+// const SAVE_DEBOUNCE_MS = 1500;
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 
 // Set this to false for testing.
@@ -288,9 +285,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, []);
 
     useEffect(() => {
-      // NOTE: if we comment this if out and disable escaping, then
-      // one can type markdown in the slatejs side and it gets converted
-      // to rendered... which is fun but really unpredictable and confusing.
       if (value == editorMarkdownValueRef.current) {
         // Setting to current value, so no-op.
         return;
@@ -299,6 +293,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       editorMarkdownValueRef.current = value;
       const nextEditorValue = markdown_to_slate(value);
       const operations = slateDiff(editor.children, nextEditorValue);
+      // Applying this operation below will immediately trigger
+      // an onChange, which it is best to ignore to save time and
+      // also so we don't update the source editor (and other browsers)
+      // with a view with things like loan $'s escaped.'
+      (editor as any).ignoreNextOnChange = true;
       applyOperations(editor, operations);
     }, [value]);
 
@@ -338,45 +337,51 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             editor={editor}
             value={editorValue}
             onChange={(newEditorValue) => {
-              // Track where the last editor selection was,
-              // since this is very useful to know, e.g., for
-              // understanding cursor movement, format fallback, etc.
-              // @ts-ignore
-              if (editor.lastSelection == null && editor.selection != null) {
-                // initialize
+              try {
+                console.log("onChange", (editor as any).applyingOperations);
+                // Track where the last editor selection was,
+                // since this is very useful to know, e.g., for
+                // understanding cursor movement, format fallback, etc.
                 // @ts-ignore
-                editor.lastSelection = editor.curSelection = editor.selection;
-              }
-              // @ts-ignore
-              if (!isEqual(editor.selection, editor.curSelection)) {
-                // @ts-ignore
-                editor.lastSelection = editor.curSelection;
-                if (editor.selection != null) {
+                if (editor.lastSelection == null && editor.selection != null) {
+                  // initialize
                   // @ts-ignore
-                  editor.curSelection = editor.selection;
+                  editor.lastSelection = editor.curSelection = editor.selection;
                 }
-              }
-              if (editorValue === newEditorValue) {
-                // Editor didn't actually change value so nothing to do.
-                return;
-              }
-              if (!(editor as any).applyingOperations) {
-                hasUnsavedChangesRef.current = true;
-                editorMarkdownValueRef.current = undefined; // markdown value now not known.
-              }
-              setEditorValue(newEditorValue);
+                // @ts-ignore
+                if (!isEqual(editor.selection, editor.curSelection)) {
+                  // @ts-ignore
+                  editor.lastSelection = editor.curSelection;
+                  if (editor.selection != null) {
+                    // @ts-ignore
+                    editor.curSelection = editor.selection;
+                  }
+                }
 
-              if (!is_current) {
-                // Do not save when editor not current since user could be typing
-                // into another editor of the same underlying document.   This will
-                // cause bugs (e.g., type, switch from slate to codemirror, type, and
-                // see what you typed into codemirror disappear). E.g., this
-                // happens due to a spurious change when the editor is defocused.
+                if (editorValue === newEditorValue) {
+                  // Editor didn't actually change value so nothing to do.
+                  return;
+                }
 
-                return;
-              }
-              if (!(editor as any).applyingOperations) {
+                if (!(editor as any).ignoreNextOnChange) {
+                  hasUnsavedChangesRef.current = true;
+                  // markdown value now not known.
+                  editorMarkdownValueRef.current = undefined;
+                }
+                setEditorValue(newEditorValue);
+
+                if (!is_current) {
+                  // Do not save when editor not current since user could be typing
+                  // into another editor of the same underlying document.   This will
+                  // cause bugs (e.g., type, switch from slate to codemirror, type, and
+                  // see what you typed into codemirror disappear). E.g., this
+                  // happens due to a spurious change when the editor is defocused.
+
+                  return;
+                }
                 saveValueDebounce();
+              } finally {
+                (editor as any).ignoreNextOnChange = false;
               }
             }}
           >
