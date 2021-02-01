@@ -26,6 +26,7 @@ register({
     return (
       <div {...attributes}>
         <hr
+          contentEditable={false}
           style={{
             border: focused && selected ? `1px solid ${FOCUSED_COLOR}` : 0,
             height: "1px",

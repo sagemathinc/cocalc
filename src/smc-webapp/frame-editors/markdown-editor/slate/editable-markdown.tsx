@@ -145,7 +145,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
       if (e.key == " " && (e.shiftKey || e.ctrlKey || e.metaKey)) {
         // @ts-ignore - that true below is "unsanctioned"
-        editor.insertText(" ", true); // true so no format
+        editor.insertText(" ", true); // true so try to autoformat
         e.preventDefault();
         return;
       }

@@ -136,8 +136,8 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
 export const withAutoFormat = (editor) => {
   const { deleteBackward, insertText } = editor;
 
-  editor.insertText = (text, noFormat?) => {
-    if (noFormat) {
+  editor.insertText = (text, autoFormat?) => {
+    if (!autoFormat) {
       insertText(text);
       return;
     }
