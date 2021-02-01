@@ -26,7 +26,10 @@ const MAP = {
   $: "\\$",
 } as const;
 
-export function markdownEscape(s: string): string {
+export function markdownEscape(
+  s: string,
+  isFirstChild: boolean = false
+): string {
   // some keys from the map above are purposely missing here, since overescaping
   // makes the generated markdown ugly.
 
@@ -37,6 +40,11 @@ export function markdownEscape(s: string): string {
   s = s.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, (link) =>
     link.replace(/[\[\]]/g, (m) => MAP[m])
   );
+
+  if (isFirstChild) {
+    // Escape three dashes at start of line mod whitespace (which is hr).
+    s = s.replace(/^\s*---/, (m) => m.replace("---", "\\-\\-\\-"));
+  }
 
   // Escape multiple spaces in a row so they don't just collapse to one space.
   s = s.replace(/\s+/g, escape_whitespace);

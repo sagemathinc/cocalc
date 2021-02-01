@@ -120,9 +120,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return editorMarkdownValueRef.current;
     }, []);
 
-    const saveValue = useCallback(() => {
-      if (!hasUnsavedChangesRef.current) {
+    const saveValue = useCallback((force?) => {
+      if (!force && !hasUnsavedChangesRef.current) {
         return;
+      }
+      if (force) {
+        editorMarkdownValueRef.current = undefined;
       }
       hasUnsavedChangesRef.current = false;
       actions.set_value(editor_markdown_value());
@@ -143,12 +146,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     function onKeyDown(e) {
       if (read_only) return;
       // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
-      if (
-        e.key == " " &&
-        (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey)
-      ) {
-        // @ts-ignore - that true below is "unsanctioned"
-        editor.insertText(" ", true); // true so try to autoformat
+      if (e.key == " ") {
+        const autoformat = !(e.shiftKey || e.ctrlKey || e.metaKey || e.altKey);
+        // @ts-ignore - that second argument below is "unsanctioned"
+        editor.insertText(" ", autoformat);
         e.preventDefault();
         return;
       }

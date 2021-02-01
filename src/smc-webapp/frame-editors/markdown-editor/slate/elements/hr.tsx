@@ -29,7 +29,8 @@ register({
           contentEditable={false}
           style={{
             border: focused && selected ? `1px solid ${FOCUSED_COLOR}` : 0,
-            height: "1px",
+            height: "2px",
+            padding: focused && selected ? "5px" : undefined,
             background: "#333",
             backgroundImage: "linear-gradient(to right, #ccc, #333, #ccc)",
           }}

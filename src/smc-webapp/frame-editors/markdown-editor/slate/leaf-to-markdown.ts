@@ -18,7 +18,7 @@ export function serializeLeaf(node: Text, info: Info): string {
   into slatej, and have it autoconvert to rendered (e.g., backticks --> code).
   */
   if (!info.no_escape && !node.code && info.parent["type"] != "code_block") {
-    text = markdownEscape(text);
+    text = markdownEscape(text, info.index == 0);
   }
 
   const marks: { left: string; right?: string }[] = [];

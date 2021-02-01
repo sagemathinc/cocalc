@@ -18,7 +18,7 @@ vertical space (which would appear as &nbsp;'s) in the markdonw file itself.
 import { Editor, Text, Descendant } from "slate";
 import { startswith, endswith } from "smc-util/misc";
 
-const PARAGRAPH = {
+export const PARAGRAPH = {
   type: "paragraph",
   children: [{ text: "" }],
 } as Descendant;
