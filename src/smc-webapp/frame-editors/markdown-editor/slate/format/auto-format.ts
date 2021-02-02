@@ -42,7 +42,7 @@ import { len } from "smc-util/misc";
 import { markdown_to_slate } from "../markdown-to-slate";
 import { applyOperations } from "../operations";
 import { slateDiff } from "../slate-diff";
-import { PARAGRAPH } from "../padding";
+import { emptyParagraph } from "../padding";
 import { getRules } from "../elements";
 
 async function markdownReplace(editor: Editor): Promise<boolean> {
@@ -51,12 +51,15 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
   const [node, path] = Editor.node(editor, selection.focus);
   if (!Text.isText(node)) return false;
 
+  /*
+  // This feels frustrating.
   if (selection.focus.offset < node.text.trimRight().length) {
     // must be at the *end* of the text node (mod whitespace)
     // Doing autoformat any time there is a space anywhere
     // is less predictable.
     return false;
   }
+  */
 
   const pos = path[path.length - 1]; // position among siblings.
 
@@ -151,7 +154,7 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
     // We put an empty paragraphs after, so that formatting
     // is preserved (otherwise it gets stripped); also docs
     // ending in void block elements are difficult to use.
-    Transforms.insertFragment(editor, [...doc, PARAGRAPH]);
+    Transforms.insertFragment(editor, [...doc, emptyParagraph()]);
 
     // Normally just move the cursor beyond what was just
     // inserted, though sometimes it makes more sense to

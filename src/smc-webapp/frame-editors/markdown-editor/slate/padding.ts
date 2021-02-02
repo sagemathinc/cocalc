@@ -15,13 +15,23 @@ vertical space (which would appear as &nbsp;'s) in the markdonw file itself.
 
 */
 
-import { Editor, Text, Descendant } from "slate";
-import { startswith, endswith } from "smc-util/misc";
+import { Descendant } from "slate";
 
-export const PARAGRAPH = {
-  type: "paragraph",
-  children: [{ text: "" }],
-} as Descendant;
+export function emptyParagraph() {
+  return {
+    type: "paragraph",
+    children: [{ text: "" }],
+  } as Descendant;
+}
+
+export function ensureDocNonempty(doc: Descendant[]): void {
+  if (doc.length == 0) {
+    doc.push(emptyParagraph());
+  }
+}
+
+/*
+import { startswith, endswith } from "smc-util/misc";
 
 function isTextParagraph(node: Descendant | undefined): boolean {
   return (
@@ -32,21 +42,15 @@ function isTextParagraph(node: Descendant | undefined): boolean {
   );
 }
 
-export function ensureDocNonempty(doc: Descendant[]): void {
-  if (doc.length == 0) {
-    doc.push(PARAGRAPH);
-  }
-}
 
 // It is very important that the following two functions
 // basically do the same thing.
-
 export function ensureDocPadding(doc: Descendant[]): void {
   if (!isTextParagraph(doc[0])) {
-    doc.unshift(PARAGRAPH);
+    doc.unshift(emptyParagraph());
   }
   if (!isTextParagraph(doc[doc.length - 1])) {
-    doc.push(PARAGRAPH);
+    doc.push(emptyParagraph());
   }
 }
 
@@ -55,14 +59,14 @@ export function ensureEditorPadding(editor: Editor): void {
     editor.apply({
       type: "insert_node",
       path: [0],
-      node: PARAGRAPH,
+      node: emptyParagraph(),
     });
   }
   if (!isTextParagraph(editor.children[editor.children.length - 1])) {
     editor.apply({
       type: "insert_node",
       path: [editor.children.length],
-      node: PARAGRAPH,
+      node: emptyParagraph(),
     });
   }
 }
@@ -88,3 +92,4 @@ export function trimPaddingFromMarkdown(s: string): string {
   }
   return s;
 }
+*/

@@ -10,7 +10,7 @@
 import { Element, Node, Transforms } from "slate";
 import { isElementOfType } from "../elements";
 import { formatText } from "./format-text";
-import { PARAGRAPH } from "../padding";
+import { emptyParagraph } from "../padding";
 
 export function keyFormat(editor, e): boolean {
   if (formatText(editor, e)) {
@@ -35,7 +35,7 @@ export function keyFormat(editor, e): boolean {
       const fragment = editor.getFragment();
       const x = fragment?.[0];
       if (isElementOfType(x, "heading")) {
-        Transforms.insertNodes(editor, [PARAGRAPH], {
+        Transforms.insertNodes(editor, [emptyParagraph()], {
           match: (node) => isElementOfType(node, "heading"),
         });
         return true;

@@ -48,11 +48,12 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       return {
         direction: "col",
         type: "node",
+        pos: 0.6666,
         first: {
-          type: "cm",
+          type: "slate",
         },
         second: {
-          type: "slate",
+          type: "cm",
         },
       };
     }

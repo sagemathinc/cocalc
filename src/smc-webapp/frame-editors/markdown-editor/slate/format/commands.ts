@@ -13,7 +13,7 @@ import { delay } from "awaiting";
 import { insertLink } from "./insert-link";
 import { insertImage } from "./insert-image";
 import { insertSpecialChar } from "./insert-special-char";
-import { PARAGRAPH } from "../padding";
+import { emptyParagraph } from "../padding";
 
 export function formatSelectedText(editor: Editor, mark: string): void {
   if (!editor.selection) return; // nothing to do.
@@ -220,7 +220,7 @@ function insertSnippet(editor: ReactEditor, name: string): boolean {
   }
   if (markdown == null) return false;
   const doc = markdown_to_slate(markdown.trim(), true);
-  Transforms.insertNodes(editor, [...doc, PARAGRAPH]);
+  Transforms.insertNodes(editor, [...doc, emptyParagraph()]);
   return true;
 }
 

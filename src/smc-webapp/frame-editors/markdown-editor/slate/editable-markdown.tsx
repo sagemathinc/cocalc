@@ -22,7 +22,7 @@ import { Actions } from "../actions";
 import { MAX_WIDTH_NUM } from "../../options";
 import { use_font_size_scaling } from "../../frame-tree/hooks";
 import { Path } from "../../frame-tree/path";
-
+import { emptyParagraph } from "./padding";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
 import { Element } from "./element";
@@ -266,7 +266,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           // markdown value now not known.
           editorMarkdownValueRef.current = undefined;
         }
+
         setEditorValue(newEditorValue);
+        ensureParagraphAtEnd(editor);
 
         if (!is_current) {
           // Do not save when editor not current since user could be typing
@@ -347,3 +349,27 @@ const withIsInline = (editor) => {
 
   return editor;
 };
+
+async function ensureParagraphAtEnd(editor: Editor) {
+  await delay(0);
+  const { children } = editor;
+  console.log("ensureParagraphAtEnd", children);
+  const top = children[0];
+  if (top != null && top["type"] != "paragraph" && top["type"] != "meta") {
+    // put a paragraph at the top
+    editor.apply({
+      type: "insert_node",
+      path: [0],
+      node: emptyParagraph(),
+    });
+  }
+  const bottom = children[children.length - 1];
+  if (bottom != null && bottom["type"] != "paragraph") {
+    // put a paragraph at the bottom
+    editor.apply({
+      type: "insert_node",
+      path: [children.length],
+      node: emptyParagraph(),
+    });
+  }
+}
