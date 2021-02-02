@@ -50,6 +50,7 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
   if (!selection) return false;
   const [node, path] = Editor.node(editor, selection.focus);
   if (!Text.isText(node)) return false;
+  const cursorAtEnd = selection.focus.offset == node.text.length;
 
   const pos = path[path.length - 1]; // position among siblings.
 
@@ -77,13 +78,6 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
     return false;
   }
 
-  /*const isFirstChild = path[path.length - 1] == 0;
-  if (!isFirstChild && !isInline) {
-    // Do not do any formatting if not the first child (beginning of line).
-    // e.g., we don't want typing:   "**foo** ---" to make a hr.
-    return false;
-  }*/
-
   // Do an immediate save so that it is easy and possible
   // to undo exactly the result of auto format, in case user
   // doesn't like it.
@@ -96,18 +90,21 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
   // **INLINE CASE**
   if (isInline) {
     const children = doc[0].children;
-    // Add whitespace to the beginning of the first node.
+    // Add matching whitespace to the beginning of the first node
+    // since generating doc excludes that.
     for (let i = 0; i < node.text.length; i++) {
-      if (node.text[i] == " ") {
-        children[0].text = " " + children[0].text;
+      if (node.text[i].trim() == "") {
+        children[0].text = node.text[i] + children[0].text;
       } else {
         break;
       }
     }
-    // Add one space at the end.
+    // Add a space at the end.
     if (len(children[children.length - 1]) == 1) {
+      // text node with NO marks, i.e., it is plain text.
       children[children.length - 1]["text"] += " ";
     } else {
+      // last node has marks so we append another node.
       children.push({ text: " " });
     }
 
@@ -127,11 +124,12 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
     applyOperations(editor, operations);
     await delay(0);
 
-    // Move the cursor to be after all our new nodes.
+    // Move the cursor to the right position.
     const new_path = [...path];
     new_path[new_path.length - 1] += children.length - 1;
     const new_cursor = {
-      offset: children[children.length - 1]["text"].length,
+      // the "1" below is because we want to be *in* the next block, not before the start of it.
+      offset: cursorAtEnd ? children[children.length - 1]["text"].length : 1,
       path: new_path,
     };
     Transforms.setSelection(editor, {
