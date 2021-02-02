@@ -2,23 +2,31 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { Operation, Editor, Transforms } from "slate";
+import { Editor, Operation, Point, Transforms } from "slate";
+import { isEqual } from "lodash";
 
 export function applyOperations(editor: Editor, operations: Operation[]): void {
   if (operations.length == 0) return;
   const t0 = new Date().valueOf();
+  const cursor: { focus: Point | null } = {
+    focus: editor.selection?.focus ?? null,
+  };
   try {
     (editor as any).applyingOperations = true; // TODO: not sure if this is at all necessary...
 
-    // IMPORTANT: we use transform to apply all but the last operation,
-    // then use editor.apply for the very last operation.  Why?
-    // Because editor.apply normalize the document and does a bunch of
+    // IMPORTANT: we use transform to apply operations.  Why?
+    // Because editor.apply normalizes the document and does a bunch of
     // other things which can easily make it so the operations
-    // are no longer valid, e.g., their paths are wrong, etc.
-    // Obviously, it is also much better to not normalize every single
+    // in our list are no longer valid, e.g., their paths are wrong, etc.
+    // Obviously, it is also much faster to not normalize every single
     // time too.
     for (const op of operations) {
       //console.log("apply ", op);
+
+      // Should skip due to just removing whitespace right
+      // before the user's cursor:
+      if (skipCursor(cursor, op)) continue;
+
       Transforms.transform(editor, op);
     }
 
@@ -43,6 +51,39 @@ export function applyOperations(editor: Editor, operations: Operation[]): void {
   } finally {
     (editor as any).applyingOperations = false;
   }
+}
+
+/*
+There is one special case that is unavoidable without making the
+plain text file really ugly.     If you type "foo " in slate (with the space),
+this converts to "foo " in Markdown (with the space).  But
+markdown-it converts this back to [...{text:"foo"}]
+without the space at the end of the line!  Without modifying
+how we apply diffs, the only solution to this problem would
+be to emit "foo&#32;" which technically works, but is REALLY ugly.
+So if we do not do the following operation in some cases
+when the path is to the focused cursor.
+
+  {type: "remove_text", text:"[whitespace]", path, offset}
+
+NOTE: not doing this transform doesn't mess up paths of
+subsequent ops since all this did was change some whitespace
+in a single text node, hence doesn't mutate any paths.
+*/
+function skipCursor(cursor: { focus: Point | null }, op): boolean {
+  const { focus } = cursor;
+  if (focus == null) return false;
+  if (
+    op.type == "remove_text" &&
+    isEqual(focus.path, op.path) &&
+    op.text.trim() == "" &&
+    op.text.length + op.offset == focus.offset
+  ) {
+    console.log("skipping!");
+    return true;
+  }
+  cursor.focus = Point.transform(focus, op);
+  return false;
 }
 
 /*

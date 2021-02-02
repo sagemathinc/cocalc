@@ -83,8 +83,7 @@ export function slateDiff(
           for (const op of handleChangeTextNodes(
             nodes,
             nextNodes,
-            path.concat([index]),
-            index == doc1.length - 1
+            path.concat([index])
           )) {
             operations.push(op);
           }

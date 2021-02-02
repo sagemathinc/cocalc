@@ -5,6 +5,8 @@
 
 // Component that allows WYSIWYG editing of markdown.
 
+const EXPENSIVE_DEBUG = true; // EXTRA SLOW -- turn off before release!
+
 import { Editor, createEditor, Descendant, Node, Transforms } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
@@ -206,14 +208,34 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
 
       editorMarkdownValueRef.current = value;
+      const previousEditorValue = editor.children;
       const nextEditorValue = markdown_to_slate(value);
-      const operations = slateDiff(editor.children, nextEditorValue);
+      const operations = slateDiff(previousEditorValue, nextEditorValue);
       // Applying this operation below will immediately trigger
       // an onChange, which it is best to ignore to save time and
       // also so we don't update the source editor (and other browsers)
       // with a view with things like loan $'s escaped.'
       (editor as any).ignoreNextOnChange = true;
       applyOperations(editor, operations);
+      if (EXPENSIVE_DEBUG) {
+        const stringify = require("json-stable-stringify");
+        // We use JSON rather than isEqual here, since {foo:undefined}
+        // is not equal to {}, but they JSON the same, and this is
+        // fine for our purposes.
+        if (stringify(editor.children) != stringify(nextEditorValue)) {
+          console.log(
+            "**BUG!  slateDiff did not properly transform editor! See window.diffBug **"
+          );
+          (window as any).diffBug = {
+            previousEditorValue,
+            nextEditorValue,
+            editorValue: editor.children,
+            operations,
+            stringify,
+            slateDiff,
+          };
+        }
+      }
     }, [value]);
 
     (window as any).z = {
@@ -222,6 +244,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       Node,
       ReactEditor,
       Editor,
+      slateDiff,
     };
 
     const [rowStyle, setRowStyle] = useState<CSS>({});

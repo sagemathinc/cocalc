@@ -77,12 +77,12 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
     return false;
   }
 
-  const isFirstChild = path[path.length - 1] == 0;
+  /*const isFirstChild = path[path.length - 1] == 0;
   if (!isFirstChild && !isInline) {
     // Do not do any formatting if not the first child (beginning of line).
     // e.g., we don't want typing:   "**foo** ---" to make a hr.
     return false;
-  }
+  }*/
 
   // Do an immediate save so that it is easy and possible
   // to undo exactly the result of auto format, in case user

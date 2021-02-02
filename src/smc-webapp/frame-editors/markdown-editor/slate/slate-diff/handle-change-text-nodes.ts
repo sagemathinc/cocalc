@@ -5,36 +5,15 @@
 
 import { Operation, Text } from "slate";
 import { nextPath, splitTextNodes } from "./split-text-nodes";
-import { copy_without } from "smc-util/misc";
-import { isEqual } from "lodash";
 
 // Transform some text nodes into some other text nodes.
 export function handleChangeTextNodes(
   nodes: Text[],
   nextNodes: Text[],
-  path: number[],
-  isLast: boolean
+  path: number[]
 ): Operation[] {
   if (nodes.length == 0) throw Error("must have at least one nodes");
   if (nextNodes.length == 0) throw Error("must have at least one nextNodes");
-
-  if (
-    isLast &&
-    nodes.length == 1 &&
-    nextNodes.length == 1 &&
-    nodes[0].text.trimRight() == nextNodes[0].text.trimRight() &&
-    isEqual(
-      copy_without(nodes[0], ["text"]),
-      copy_without(nextNodes[0], ["text"])
-    )
-  ) {
-    // NOTE regarding the trim -- for something like
-    //   {text: "a "} |--> {text: "a"}
-    // we do NOT make any change, since this happens naturally when
-    // typing a sentence and making the change would delete whitespace
-    // as you type.
-    return [];
-  }
 
   const operations: Operation[] = [];
 
@@ -55,16 +34,6 @@ export function handleChangeTextNodes(
   for (const op of splitTextNodes(node, nextNodes, path)) {
     operations.push(op);
   }
-
-  /*
-  console.log({
-    node,
-    nodes,
-    nextNodes,
-    path,
-    isLast,
-    operations,
-  });*/
 
   return operations;
 }
