@@ -51,16 +51,6 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
   const [node, path] = Editor.node(editor, selection.focus);
   if (!Text.isText(node)) return false;
 
-  /*
-  // This feels frustrating.
-  if (selection.focus.offset < node.text.trimRight().length) {
-    // must be at the *end* of the text node (mod whitespace)
-    // Doing autoformat any time there is a space anywhere
-    // is less predictable.
-    return false;
-  }
-  */
-
   const pos = path[path.length - 1]; // position among siblings.
 
   const doc = markdown_to_slate(node.text.trim(), true) as any;
@@ -79,6 +69,13 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
     doc.length == 1 &&
     doc[0].type == "paragraph" &&
     Text.isText(doc[0].children[0]);
+
+  if (!isInline && selection.focus.offset < node.text.trimRight().length) {
+    // must be at the *end* of the text node (mod whitespace)
+    // Doing autoformat any time there is a space anywhere
+    // is less predictable.
+    return false;
+  }
 
   const isFirstChild = path[path.length - 1] == 0;
   if (!isFirstChild && !isInline) {
@@ -143,16 +140,14 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
     });
   } else {
     // **NON-INLINE CASE**
-
     // Select what is being replaced so it will get deleted when the
     // insert happens.
     Transforms.select(editor, {
       anchor: { path, offset: 0 },
       focus: { path, offset: Math.max(0, node.text.length - 1) },
     });
-
-    // We put an empty paragraphs after, so that formatting
-    // is preserved (otherwise it gets stripped); also docs
+    // We put an empty paragraph after, so that formatting
+    // is preserved (otherwise it gets stripped); also some documents
     // ending in void block elements are difficult to use.
     Transforms.insertFragment(editor, [...doc, emptyParagraph()]);
 

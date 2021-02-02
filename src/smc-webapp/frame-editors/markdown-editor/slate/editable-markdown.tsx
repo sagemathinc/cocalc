@@ -353,9 +353,8 @@ const withIsInline = (editor) => {
 async function ensureParagraphAtEnd(editor: Editor) {
   await delay(0);
   const { children } = editor;
-  console.log("ensureParagraphAtEnd", children);
   const top = children[0];
-  if (top != null && top["type"] != "paragraph" && top["type"] != "meta") {
+  if (top != null && top["type"] != "meta" && editor.isVoid(top as any)) {
     // put a paragraph at the top
     editor.apply({
       type: "insert_node",
@@ -364,7 +363,7 @@ async function ensureParagraphAtEnd(editor: Editor) {
     });
   }
   const bottom = children[children.length - 1];
-  if (bottom != null && bottom["type"] != "paragraph") {
+  if (bottom != null && editor.isVoid(bottom as any)) {
     // put a paragraph at the bottom
     editor.apply({
       type: "insert_node",
