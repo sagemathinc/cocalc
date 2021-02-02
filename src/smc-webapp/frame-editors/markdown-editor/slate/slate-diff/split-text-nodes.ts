@@ -88,85 +88,53 @@ export function splitTextNodes(
   }
 
   // Set properties on initial text to be those for split[0], if necessary.
-  let properties = getProperties(split[0], node);
-  if (len(properties) > 0) {
+  const newProperties = getProperties(split[0], node);
+  if (len(newProperties) > 0) {
     operations.push({
       type: "set_node",
       path,
       properties: getProperties(node),
-      newProperties: properties,
+      newProperties,
     });
   }
-
+  let properties = getProperties(split[0]);
   // Rest of the operations to split up node as required.
   let splitPath = path;
   for (let i = 0; i < split.length - 1; i++) {
     const part = split[i];
     const nextPart = split[i + 1];
-    const prevProperties = properties;
-    properties = getProperties(nextPart, properties);
-    for (const op of splitNode({
+    const newProperties = getProperties(nextPart, properties);
+
+    operations.push({
+      type: "split_node",
       path: splitPath,
       position: part.text.length,
-      properties: prevProperties,
-      newProperties: properties,
-    })) {
-      operations.push(op);
-    }
+      properties: newProperties,
+    });
+
     splitPath = nextPath(splitPath);
+    properties = getProperties(nextPart);
   }
   return operations;
 }
 
 /*
-Annoying fact: the set_node api lets you delete properties by setting
+NOTE: the set_node api lets you delete properties by setting
 them to null, but the split_node api doesn't (I guess Ian forgot to
 implement that... or there is a good reason).  So if there are any
-property deletes, then we have to also do a set_node.   Maybe the reason
-is just to keep the operations simple and minimal...
+property deletes, then we have to also do a set_node... or just be
+ok with undefined values.  For text where values are treated as
+booleans, this is fine and that's what we do.   Maybe the reason
+is just to keep the operations simple and minimal.
+Also setting to undefined / false-ish for a *text* node property
+is equivalent to not having it regarding everything else.
 */
-function splitNode({
-  path,
-  position,
-  properties,
-  newProperties,
-}: {
-  path: number[];
-  position: number;
-  properties: any;
-  newProperties: any;
-}): Operation[] {
-  const operations: Operation[] = [];
-  const deletes: any = {};
-  for (const prop in newProperties) {
-    if (newProperties[prop] === undefined) {
-      deletes[prop] = undefined;
-      delete newProperties[prop];
-    }
-  }
 
-  operations.push({
-    type: "split_node",
-    path,
-    position,
-    properties: newProperties,
-  });
-
-  if (len(deletes) > 0) {
-    operations.push({
-      type: "set_node",
-      path: nextPath(path),
-      properties,
-      newProperties: deletes,
-    });
-  }
-
-  return operations;
-}
 
 // Get object that will set the properties of before
 // to equal the properties of node, in terms of the
-// slatejs set_node operation.
+// slatejs set_node operation.  If before is not given,
+// just gives all the non-text propers of goal.
 function getProperties(goal: Text, before?: Text): any {
   const props: any = {};
   for (const x in goal) {
