@@ -87,14 +87,9 @@ export class FormatBar extends Component<Props, {}> {
     return (
       <ButtonGroup key={"insert"}>
         {this.render_button(
-          "equation",
-          "Insert inline LaTeX math",
-          <span>$</span>
-        )}
-        {this.render_button(
-          "display_equation",
-          "Insert displayed LaTeX math",
-          <span>$$</span>
+          "format_code",
+          "Insert block of source code",
+          "stream"
         )}
         {this.render_button(
           "insertunorderedlist",
@@ -105,6 +100,16 @@ export class FormatBar extends Component<Props, {}> {
           "insertorderedlist",
           "Insert ordered list",
           "list-ol"
+        )}
+        {this.render_button(
+          "equation",
+          "Insert inline LaTeX math",
+          <span>$</span>
+        )}
+        {this.render_button(
+          "display_equation",
+          "Insert displayed LaTeX math",
+          <span>$$</span>
         )}
         {this.render_button(
           "quote",

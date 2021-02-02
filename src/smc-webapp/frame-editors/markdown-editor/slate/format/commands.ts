@@ -193,6 +193,11 @@ export async function formatAction(
       return;
     }
 
+    if (cmd == "format_code") {
+      insertMarkdown(editor, "\n```\n```\n");
+      return;
+    }
+
     if (startswith(cmd, "format_heading_")) {
       // single digit is fine, since headings only go up to level 6.
       const level = parseInt(cmd[cmd.length - 1]);
@@ -219,9 +224,13 @@ function insertSnippet(editor: ReactEditor, name: string): boolean {
     markdown = "1. ";
   }
   if (markdown == null) return false;
-  const doc = markdown_to_slate(markdown.trim(), true);
-  Transforms.insertNodes(editor, [...doc, emptyParagraph()]);
+  insertMarkdown(editor, markdown.trim());
   return true;
+}
+
+function insertMarkdown(editor: ReactEditor, markdown: string) {
+  const doc = markdown_to_slate(markdown, true);
+  Transforms.insertNodes(editor, [...doc, emptyParagraph()]);
 }
 
 function transformToEquation(editor: Editor, display: boolean): void {
