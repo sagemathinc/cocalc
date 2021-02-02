@@ -76,15 +76,11 @@ const Element = ({ attributes, children, element }) => {
         </div>
       );
     }
-    // for userSelect below, see
-    // https://github.com/ianstormtaylor/slate/issues/3723#issuecomment-761566218
     return (
-      <div {...attributes} ref={ref}>
+      <div {...attributes}>
         <div
-          style={{
-            border,
-            userSelect: "none",
-          }}
+          ref={ref}
+          style={{ border }}
           contentEditable={false}
           dangerouslySetInnerHTML={{ __html: html }}
         ></div>

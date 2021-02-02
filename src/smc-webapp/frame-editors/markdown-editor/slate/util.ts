@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { capitalize, is_whitespace } from "smc-util/misc";
+import { capitalize, is_whitespace, replace_all } from "smc-util/misc";
 
 // Note: this markdown_escape is based on https://github.com/edwmurph/escape-markdown/blob/master/index.js
 
@@ -23,6 +23,7 @@ const MAP = {
   "<": "&lt;",
   ">": "&gt;",
   "&": "&amp;",
+  "\xa0": "&nbsp;", // *silent* nbsp's are VERY annoying.
   $: "\\$",
 } as const;
 
@@ -34,7 +35,7 @@ export function markdownEscape(
   // makes the generated markdown ugly.
 
   // The 1-character replacements we make in any text.
-  s = s.replace(/[\\_`<>$&|]/g, (m) => MAP[m]);
+  s = s.replace(/[\\_`<>$&\u00A0|]/g, (m) => MAP[m]);
 
   // Links - we do this to avoid escaping [ and ] when not necessary.
   s = s.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, (link) =>
@@ -44,6 +45,9 @@ export function markdownEscape(
   if (isFirstChild) {
     // Escape three dashes at start of line mod whitespace (which is hr).
     s = s.replace(/^\s*---/, (m) => m.replace("---", "\\-\\-\\-"));
+
+    // Escape # signs at start of line (headers).
+    s = s.replace(/^\s*#+/, (m) => replace_all(m, "#", "\\#"));
   }
 
   // Escape multiple spaces in a row so they don't just collapse to one space.

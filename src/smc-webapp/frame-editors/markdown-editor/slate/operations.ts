@@ -17,12 +17,15 @@ export function applyOperations(editor: Editor, operations: Operation[]): void {
     // are no longer valid, e.g., their paths are wrong, etc.
     // Obviously, it is also much better to not normalize every single
     // time too.
-    for (const op of operations.slice(0, operations.length - 1)) {
+    for (const op of operations) {
       //console.log("apply ", op);
       Transforms.transform(editor, op);
     }
+
+    Editor.normalize(editor);
+
     //console.log("apply last ", operations[operations.length - 1]);
-    editor.apply(operations[operations.length - 1]);
+    // editor.apply(operations[operations.length - 1]);
     console.log(
       `time: apply ${operations.length} operations`,
       new Date().valueOf() - t0,
@@ -33,7 +36,6 @@ export function applyOperations(editor: Editor, operations: Operation[]): void {
     (editor as any).applyingOperations = false;
   }
 }
-
 
 /*
 function transformPoint(

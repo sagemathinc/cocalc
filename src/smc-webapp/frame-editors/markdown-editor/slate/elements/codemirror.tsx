@@ -35,7 +35,6 @@ const STYLE = {
   borderRadius: "5px",
   lineHeight: "1.21429em",
   marginBottom: "1em", // consistent with <p> tag.
-  userSelect: "none", // see https://github.com/ianstormtaylor/slate/issues/3723#issuecomment-761566218
 } as CSS;
 
 interface Props {

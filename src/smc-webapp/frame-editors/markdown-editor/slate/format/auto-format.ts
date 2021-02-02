@@ -49,6 +49,14 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
   if (!selection) return false;
   const [node, path] = Editor.node(editor, selection.focus);
   if (!Text.isText(node)) return false;
+
+  if (selection.focus.offset < node.text.trimRight().length) {
+    // must be at the *end* of the text node (mod whitespace)
+    // Doing autoformat any time there is a space anywhere
+    // is less predictable.
+    return false;
+  }
+
   const pos = path[path.length - 1]; // position among siblings.
 
   const doc = markdown_to_slate(node.text.trim(), true) as any;

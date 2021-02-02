@@ -13,6 +13,7 @@ import { delay } from "awaiting";
 import { insertLink } from "./insert-link";
 import { insertImage } from "./insert-image";
 import { insertSpecialChar } from "./insert-special-char";
+import { PARAGRAPH } from "../padding";
 
 export function formatSelectedText(editor: Editor, mark: string): void {
   if (!editor.selection) return; // nothing to do.
@@ -118,85 +119,88 @@ export async function formatAction(
 ): Promise<void> {
   // console.log("formatAction", cmd, args);
   await restoreSelection(editor);
+  try {
+    if (
+      cmd == "bold" ||
+      cmd == "italic" ||
+      cmd == "underline" ||
+      cmd == "strikethrough" ||
+      cmd == "code" ||
+      cmd == "sup" ||
+      cmd == "sub"
+    ) {
+      formatSelectedText(editor, cmd);
+      return;
+    }
 
-  if (
-    cmd == "bold" ||
-    cmd == "italic" ||
-    cmd == "underline" ||
-    cmd == "strikethrough" ||
-    cmd == "code" ||
-    cmd == "sup" ||
-    cmd == "sub"
-  ) {
-    formatSelectedText(editor, cmd);
-    return;
-  }
+    if (cmd == "color") {
+      // args = #aa00bc (the hex color)
+      unformatSelectedText(editor, { prefix: "color:" });
+      formatSelectedText(editor, `color:${args.toLowerCase()}`);
+      return;
+    }
 
-  if (cmd == "color") {
-    // args = #aa00bc (the hex color)
-    unformatSelectedText(editor, { prefix: "color:" });
-    formatSelectedText(editor, `color:${args.toLowerCase()}`);
-    return;
-  }
+    if (cmd == "font_family") {
+      unformatSelectedText(editor, { prefix: "font-family:" });
+      formatSelectedText(editor, `font-family:${args.toLowerCase()}`);
+      return;
+    }
 
-  if (cmd == "font_family") {
-    unformatSelectedText(editor, { prefix: "font-family:" });
-    formatSelectedText(editor, `font-family:${args.toLowerCase()}`);
-    return;
-  }
+    if (startswith(cmd, "font_size")) {
+      unformatSelectedText(editor, { prefix: "font-size:" });
+      formatSelectedText(editor, `font-size:${args.toLowerCase()}`);
+      return;
+    }
 
-  if (startswith(cmd, "font_size")) {
-    unformatSelectedText(editor, { prefix: "font-size:" });
-    formatSelectedText(editor, `font-size:${args.toLowerCase()}`);
-    return;
-  }
+    if (cmd == "equation") {
+      transformToEquation(editor, false);
+      return;
+    }
 
-  if (cmd == "equation") {
-    transformToEquation(editor, false);
-    return;
-  }
+    if (cmd == "comment") {
+      transformToComment(editor);
+      return;
+    }
 
-  if (cmd == "comment") {
-    transformToComment(editor);
-    return;
-  }
+    if (cmd == "display_equation") {
+      transformToEquation(editor, true);
+      return;
+    }
 
-  if (cmd == "display_equation") {
-    transformToEquation(editor, true);
-    return;
-  }
+    if (
+      cmd == "insertunorderedlist" ||
+      cmd == "insertorderedlist" ||
+      cmd == "table" ||
+      cmd == "horizontalRule" ||
+      cmd == "quote"
+    ) {
+      insertSnippet(editor, cmd);
+      return;
+    }
 
-  if (
-    cmd == "insertunorderedlist" ||
-    cmd == "insertorderedlist" ||
-    cmd == "table" ||
-    cmd == "horizontalRule" ||
-    cmd == "quote"
-  ) {
-    insertSnippet(editor, cmd);
-    return;
-  }
+    if (cmd == "link") {
+      insertLink(editor);
+      return;
+    }
 
-  if (cmd == "link") {
-    insertLink(editor);
-    return;
-  }
+    if (cmd == "image") {
+      insertImage(editor);
+      return;
+    }
 
-  if (cmd == "image") {
-    insertImage(editor);
-    return;
-  }
+    if (cmd == "SpecialChar") {
+      insertSpecialChar(editor);
+      return;
+    }
 
-  if (cmd == "SpecialChar") {
-    insertSpecialChar(editor);
-    return;
-  }
-
-  if (startswith(cmd, "format_heading_")) {
-    // single digit is fine, since headings only go up to level 6.
-    const level = parseInt(cmd[cmd.length - 1]);
-    formatHeading(editor, level);
-    return;
+    if (startswith(cmd, "format_heading_")) {
+      // single digit is fine, since headings only go up to level 6.
+      const level = parseInt(cmd[cmd.length - 1]);
+      formatHeading(editor, level);
+      return;
+    }
+  } finally {
+    ReactEditor.focus(editor);
   }
 
   console.log("WARNING -- slate.format_action not implemented", {
@@ -206,11 +210,17 @@ export async function formatAction(
   });
 }
 
-function insertSnippet(editor: Editor, name: string): boolean {
-  const markdown = commands.md[name]?.wrap?.left;
+function insertSnippet(editor: ReactEditor, name: string): boolean {
+  let markdown = commands.md[name]?.wrap?.left;
+  if (name == "insertunorderedlist") {
+    // better for a wysiwyg editor...
+    markdown = "- ";
+  } else if (name == "insertorderedlist") {
+    markdown = "1. ";
+  }
   if (markdown == null) return false;
-  const nodes = markdown_to_slate(markdown.trim());
-  Transforms.insertNodes(editor, nodes);
+  const doc = markdown_to_slate(markdown.trim(), true);
+  Transforms.insertNodes(editor, [...doc, PARAGRAPH]);
   return true;
 }
 

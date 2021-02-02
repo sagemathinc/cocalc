@@ -38,6 +38,13 @@ export const markdown_it = new MarkdownIt(OPTIONS);
 usePlugins(markdown_it, PLUGINS);
 
 /*
+export function markdownParser() {
+  const m = new MarkdownIt(OPTIONS);
+  usePlugins(m, PLUGINS);
+  return m;
+}*/
+
+/*
 Inject line numbers for sync.
  - We track only headings and paragraphs, at any level.
  - TODO Footnotes content causes jumps. Level limit filters it automatically.
