@@ -39,4 +39,6 @@ register({
     }
     return mark_block(children, h).trim() + "\n\n";
   },
+
+  rules: { autoFocus: true },
 });

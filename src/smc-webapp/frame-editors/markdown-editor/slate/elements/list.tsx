@@ -71,4 +71,6 @@ register({
     }
     return s;
   },
+
+  rules: { autoFocus: true },
 });

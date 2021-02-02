@@ -45,6 +45,12 @@ type childInfoHookFunction = (opts: {
   childInfo: ChildInfo;
 }) => void;
 
+// Rules of behavior for slate specific slate types.
+interface Rules {
+  // autoFocus: if true, block element gets focused on creation in some cases.
+  autoFocus?: boolean;
+}
+
 interface Handler {
   // if array, register handlers for each entry
   slateType: string | string[];
@@ -60,6 +66,8 @@ interface Handler {
 
   childInfoHook?: childInfoHookFunction;
   fromSlate: slateToMarkdownFunction;
+
+  rules?: Rules;
 }
 
 const renderer: { [slateType: string]: React.FC<RenderElementProps> } = {};
@@ -70,6 +78,7 @@ const slateToMarkdown: {
   [slateType: string]: slateToMarkdownFunction;
 } = {};
 const childInfoHooks: { [slateType: string]: childInfoHookFunction } = {};
+const rules: { [slateType: string]: Rules } = {};
 
 export function register(h: Handler): void {
   const t = typeof h.slateType == "string" ? [h.slateType] : h.slateType;
@@ -78,6 +87,10 @@ export function register(h: Handler): void {
       throw Error(`render for slateType '${slateType}' already registered!`);
     }
     renderer[slateType] = h.Element;
+
+    if (h.rules != null) {
+      rules[slateType] = h.rules;
+    }
 
     const x = h.markdownType ?? slateType;
     const types = typeof x == "string" ? [x] : x;
@@ -137,4 +150,8 @@ export function getChildInfoHook(
   slateType: string
 ): childInfoHookFunction | undefined {
   return childInfoHooks[slateType];
+}
+
+export function getRules(slateType: string): Rules | undefined {
+  return rules[slateType];
 }

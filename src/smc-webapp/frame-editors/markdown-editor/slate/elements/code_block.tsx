@@ -96,4 +96,5 @@ register({
   fromSlate,
   Element,
   toSlate,
+  rules: { autoFocus: true },
 });

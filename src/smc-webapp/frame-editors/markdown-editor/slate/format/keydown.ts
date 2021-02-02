@@ -10,6 +10,7 @@
 import { Element, Node, Transforms } from "slate";
 import { isElementOfType } from "../elements";
 import { formatText } from "./format-text";
+import { PARAGRAPH } from "../padding";
 
 export function keyFormat(editor, e): boolean {
   if (formatText(editor, e)) {
@@ -23,7 +24,7 @@ export function keyFormat(editor, e): boolean {
     editor.insertText(" ", autoformat);
     return true;
   }
-  if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+  if (!e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
     if (e.key == "Tab") {
       // Markdown doesn't have a notion of tabs in text...
       // Putting in four spaces for now, but we'll probably change this...
@@ -33,6 +34,12 @@ export function keyFormat(editor, e): boolean {
     if (e.key == "Enter") {
       const fragment = editor.getFragment();
       const x = fragment?.[0];
+      if (isElementOfType(x, "heading")) {
+        Transforms.insertNodes(editor, [PARAGRAPH], {
+          match: (node) => isElementOfType(node, "heading"),
+        });
+        return true;
+      }
       if (isElementOfType(x, ["bullet_list", "ordered_list"])) {
         Transforms.insertNodes(
           editor,

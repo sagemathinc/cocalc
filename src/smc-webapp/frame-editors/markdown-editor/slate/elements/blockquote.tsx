@@ -23,4 +23,8 @@ register({
   toSlate: ({ type, children }) => {
     return { type, children };
   },
+
+  rules: {
+    autoFocus: true,
+  },
 });

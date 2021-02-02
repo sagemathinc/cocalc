@@ -43,6 +43,7 @@ import { markdown_to_slate } from "../markdown-to-slate";
 import { applyOperations } from "../operations";
 import { slateDiff } from "../slate-diff";
 import { PARAGRAPH } from "../padding";
+import { getRules } from "../elements";
 
 async function markdownReplace(editor: Editor): Promise<boolean> {
   const { selection } = editor;
@@ -156,14 +157,9 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
     // inserted, though sometimes it makes more sense to
     // focus it.
     const type = doc[0].type;
-    if (
-      // TODO -- would be better if this was part of the elements/register system...
-      type.indexOf("list") != -1 ||
-      type == "code_block" ||
-      type == "heading"
-    ) {
-      // do not move cursor since usually we want to edit it!
-    } else {
+    const rules = getRules(type);
+    if (!rules?.autoFocus) {
+      // move cursor out of the newly created block element.
       Transforms.move(editor, { distance: 1 });
     }
   }

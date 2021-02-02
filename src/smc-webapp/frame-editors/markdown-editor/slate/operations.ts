@@ -22,7 +22,15 @@ export function applyOperations(editor: Editor, operations: Operation[]): void {
       Transforms.transform(editor, op);
     }
 
-    Editor.normalize(editor);
+    // We also apply one **empty** operation which causes the editor to
+    // normalize itself and do a bunch of other things, including flushing
+    // updates.
+    editor.apply({
+      type: "set_node",
+      path: [0],
+      properties: {},
+      newProperties: {},
+    });
 
     //console.log("apply last ", operations[operations.length - 1]);
     // editor.apply(operations[operations.length - 1]);
