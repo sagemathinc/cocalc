@@ -4,4 +4,5 @@
  */
 
 export { withAutoFormat } from "./auto-format";
-export { formatAction, formatSelectedText } from "./commands";
+export { formatAction } from "./commands";
+export { keyFormat } from "./keydown";

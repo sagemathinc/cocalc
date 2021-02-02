@@ -5,14 +5,7 @@
 
 // Component that allows WYSIWYG editing of markdown.
 
-import {
-  Editor,
-  createEditor,
-  Descendant,
-  Node,
-  Transforms,
-  Element as SlateElement,
-} from "slate";
+import { Editor, createEditor, Descendant, Node, Transforms } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
 import {
@@ -20,7 +13,6 @@ import {
   React,
   useCallback,
   useEffect,
-  //useIsMountedRef,
   useMemo,
   useRef,
   useState,
@@ -33,10 +25,9 @@ import { Path } from "../../frame-tree/path";
 
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
-import { isElementOfType } from "./elements";
 import { Element } from "./element";
 import { Leaf } from "./leaf";
-import { withAutoFormat, formatSelectedText } from "./format";
+import { withAutoFormat, keyFormat } from "./format";
 
 import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";
@@ -144,70 +135,15 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     );
 
     function onKeyDown(e) {
-      if (read_only) return;
-      // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
-      if (e.key == " ") {
-        const autoformat = !(e.shiftKey || e.ctrlKey || e.metaKey || e.altKey);
-        // @ts-ignore - that second argument below is "unsanctioned"
-        editor.insertText(" ", autoformat);
+      if (read_only) {
         e.preventDefault();
         return;
       }
-      if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
-        if (e.key == "Tab") {
-          // Markdown doesn't have a notion of tabs in text...
-          // Putting in four spaces for now, but we'll probably change this...
-          editor.insertText("    ");
-          e.preventDefault();
-          return;
-        }
-        if (e.key == "Enter") {
-          const fragment = editor.getFragment();
-          const x = fragment?.[0];
-          if (isElementOfType(x, ["bullet_list", "ordered_list"])) {
-            Transforms.insertNodes(
-              editor,
-              [{ type: "list_item", children: [{ text: "" }] } as SlateElement],
-              {
-                match: (node) => isElementOfType(node, "list_item"),
-              }
-            );
-            e.preventDefault();
-            return;
-          }
-        }
+      if (keyFormat(editor, e)) {
+        e.preventDefault();
+        return;
       }
-      if (e.shiftKey && e.key == "Enter") {
-        // In a table, the only option is to insert a <br/>.
-        const fragment = editor.getFragment();
-        if (isElementOfType(fragment?.[0], "table")) {
-          const br = {
-            isInline: true,
-            isVoid: true,
-            type: "html_inline",
-            html: "<br />",
-            children: [{ text: " " }],
-          } as Node;
-          Transforms.insertNodes(editor, [br]);
-          // Also, move cursor forward so it is *after* the br.
-          Transforms.move(editor, { distance: 1 });
-          e.preventDefault();
-          return;
-        }
 
-        // Not in a table, so insert a hard break instead of a new
-        // paragraph like enter creates.
-        Transforms.insertNodes(editor, [
-          {
-            type: "hardbreak",
-            isInline: true,
-            isVoid: false,
-            children: [{ text: "\n" }],
-          } as Node,
-        ]);
-        e.preventDefault();
-        return;
-      }
       if ((e.ctrlKey || e.metaKey) && e.keyCode == 83) {
         actions.save(true);
         e.preventDefault();
@@ -235,31 +171,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         e.preventDefault();
         ReactEditor.focus(editor);
         return;
-      }
-      if (handleFormatCommands(e)) {
-        return;
-      }
-    }
-
-    function handleFormatCommands(e) {
-      if (!(e.ctrlKey || e.metaKey)) {
-        return;
-      }
-
-      switch (e.key) {
-        case "b":
-        case "i":
-        case "u":
-        case "x":
-          if (e.key == "x" && !e.shiftKey) return;
-          e.preventDefault();
-          formatSelectedText(
-            editor,
-            { b: "bold", i: "italic", u: "underline", x: "strikethrough" }[
-              e.key
-            ]
-          );
-          return true;
       }
     }
 
@@ -324,6 +235,54 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       });
     }, [editor, scaling]);
 
+    const onChange = (newEditorValue) => {
+      try {
+        // Track where the last editor selection was,
+        // since this is very useful to know, e.g., for
+        // understanding cursor movement, format fallback, etc.
+        // @ts-ignore
+        if (editor.lastSelection == null && editor.selection != null) {
+          // initialize
+          // @ts-ignore
+          editor.lastSelection = editor.curSelection = editor.selection;
+        }
+        // @ts-ignore
+        if (!isEqual(editor.selection, editor.curSelection)) {
+          // @ts-ignore
+          editor.lastSelection = editor.curSelection;
+          if (editor.selection != null) {
+            // @ts-ignore
+            editor.curSelection = editor.selection;
+          }
+        }
+
+        if (editorValue === newEditorValue) {
+          // Editor didn't actually change value so nothing to do.
+          return;
+        }
+
+        if (!(editor as any).ignoreNextOnChange) {
+          hasUnsavedChangesRef.current = true;
+          // markdown value now not known.
+          editorMarkdownValueRef.current = undefined;
+        }
+        setEditorValue(newEditorValue);
+
+        if (!is_current) {
+          // Do not save when editor not current since user could be typing
+          // into another editor of the same underlying document.   This will
+          // cause bugs (e.g., type, switch from slate to codemirror, type, and
+          // see what you typed into codemirror disappear). E.g., this
+          // happens due to a spurious change when the editor is defocused.
+
+          return;
+        }
+        saveValueDebounce();
+      } finally {
+        (editor as any).ignoreNextOnChange = false;
+      }
+    };
+
     return (
       <div
         className="smc-vfill"
@@ -337,57 +296,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             fontSize: font_size,
           }}
         >
-          <Slate
-            editor={editor}
-            value={editorValue}
-            onChange={(newEditorValue) => {
-              try {
-                // Track where the last editor selection was,
-                // since this is very useful to know, e.g., for
-                // understanding cursor movement, format fallback, etc.
-                // @ts-ignore
-                if (editor.lastSelection == null && editor.selection != null) {
-                  // initialize
-                  // @ts-ignore
-                  editor.lastSelection = editor.curSelection = editor.selection;
-                }
-                // @ts-ignore
-                if (!isEqual(editor.selection, editor.curSelection)) {
-                  // @ts-ignore
-                  editor.lastSelection = editor.curSelection;
-                  if (editor.selection != null) {
-                    // @ts-ignore
-                    editor.curSelection = editor.selection;
-                  }
-                }
-
-                if (editorValue === newEditorValue) {
-                  // Editor didn't actually change value so nothing to do.
-                  return;
-                }
-
-                if (!(editor as any).ignoreNextOnChange) {
-                  hasUnsavedChangesRef.current = true;
-                  // markdown value now not known.
-                  editorMarkdownValueRef.current = undefined;
-                }
-                setEditorValue(newEditorValue);
-
-                if (!is_current) {
-                  // Do not save when editor not current since user could be typing
-                  // into another editor of the same underlying document.   This will
-                  // cause bugs (e.g., type, switch from slate to codemirror, type, and
-                  // see what you typed into codemirror disappear). E.g., this
-                  // happens due to a spurious change when the editor is defocused.
-
-                  return;
-                }
-                saveValueDebounce();
-              } finally {
-                (editor as any).ignoreNextOnChange = false;
-              }
-            }}
-          >
+          <Slate editor={editor} value={editorValue} onChange={onChange}>
             <Editable
               className={USE_WINDOWING ? "smc-vfill" : undefined}
               readOnly={read_only}
