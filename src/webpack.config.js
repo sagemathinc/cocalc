@@ -471,10 +471,10 @@ if (PRODMODE) {
 } else {
   hashname = "[path][name].nocache.[ext]";
 }
-const pngconfig = `name=${hashname}&limit=16000&mimetype=image/png`;
-const svgconfig = `name=${hashname}&limit=16000&mimetype=image/svg+xml`;
-const icoconfig = `name=${hashname}&mimetype=image/x-icon`;
-const woffconfig = `name=${hashname}&mimetype=application/font-woff`;
+const pngconfig = { name: hashname, limit: 16000, mimetype: "image/png" };
+const svgconfig = { name: hashname, limit: 16000, mimetype: "image/svg+xml" };
+const icoconfig = { name: hashname, mimetype: "image/x-icon" };
+const woffconfig = { name: hashname, mimetype: "application/font-woff" };
 
 // publicPath: either locally, or a CDN, see https://github.com/webpack/docs/wiki/configuration#outputpublicpath
 // In order to use the CDN, copy all files from the `OUTPUT` directory over there.
