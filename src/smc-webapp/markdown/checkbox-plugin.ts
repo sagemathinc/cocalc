@@ -48,6 +48,7 @@ function checkboxReplace(_md, _options) {
   }
 
   function splitTextToken(original, Token) {
+    if (original.markup != "") return null; // don't make checkboxes, e.g., inside of `code` like `R[x]`.
     const text = original.content;
     const match = text.match(pattern);
     if (match === null) {
