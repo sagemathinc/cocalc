@@ -11,6 +11,7 @@ import { Element, Node, Transforms } from "slate";
 import { isElementOfType } from "../elements";
 import { formatText } from "./format-text";
 import { emptyParagraph } from "../padding";
+import { indentListItem } from "./indent";
 
 export function keyFormat(editor, e): boolean {
   if (formatText(editor, e)) {
@@ -24,8 +25,13 @@ export function keyFormat(editor, e): boolean {
     editor.insertText(" ", autoformat);
     return true;
   }
+
   if (!e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
     if (e.key == "Tab") {
+      if (indentListItem(editor)) {
+        return true;
+      }
+
       // Markdown doesn't have a notion of tabs in text...
       // Putting in four spaces for now, but we'll probably change this...
       editor.insertText("    ");

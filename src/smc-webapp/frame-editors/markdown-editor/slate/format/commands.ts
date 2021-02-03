@@ -4,7 +4,7 @@
  */
 
 import { is_array, startswith } from "smc-util/misc";
-import { Editor, Element, Node, Text, Transforms } from "slate";
+import { Editor, Element, Node, Text, Range, Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import { markdown_to_slate } from "../markdown-to-slate";
 import { commands } from "../../../../editors/editor-button-bar";
@@ -15,11 +15,66 @@ import { insertImage } from "./insert-image";
 import { insertSpecialChar } from "./insert-special-char";
 import { emptyParagraph } from "../padding";
 
+// Replaces {text:"foo bl[cursor]ah stuff xxx"} by
+// {text:"foo "} {text:"bl[cursor]ah"} {text:"stuff xxx"}
+// which is not normalized.  This is a step in doing
+// something else.  Returns length of word.
+function splitCurrentWord(editor: Editor): number {
+  if (editor.selection == null) {
+    return 0; // nothing to do -- no current word.
+  }
+  const { focus } = editor.selection;
+  const [node, path] = Editor.node(editor, focus);
+  if (!Text.isText(node)) {
+    // not implemented except for in text nodes...
+    return 0;
+  }
+  const { offset } = focus;
+  if (!node.text[offset - 1]?.trim() || !node.text[offset]?.trim()) {
+    // cursor is on the edge of a word (in this node)
+    // TODO: much more work to do due to adjacent text nodes, e.g.,
+    //     foo[cursor]**blah**
+    return 0;
+  }
+
+  let start = offset;
+  while (start > 0 && node.text[start - 1].trim() != "") {
+    start -= 1;
+  }
+  let end = offset;
+  while (end < node.text.length - 1 && node.text[end + 1].trim() != "") {
+    end += 1;
+  }
+  if (start == end) return 0;
+  Transforms.transform(editor, {
+    type: "split_node",
+    path,
+    position: end + 1,
+    properties: {},
+  });
+  Transforms.transform(editor, {
+    type: "split_node",
+    path,
+    position: start,
+    properties: {},
+  });
+  return end - start;
+}
+
 export function formatSelectedText(editor: Editor, mark: string): void {
   if (!editor.selection) return; // nothing to do.
+  if (Range.isCollapsed(editor.selection)) {
+    if (!splitCurrentWord(editor)) {
+      // empty word or edge of word -- do not change.
+      return;
+    }
+  }
+
+  // This formats exactly the current selection or node, even if it
+  // spans many nodes, etc.
   Transforms.setNodes(
     editor,
-    { [mark]: !isAlreadyMarked(editor, mark) },
+    { [mark]: !isAlreadyMarked(editor, mark) ? true : undefined },
     { match: (node) => Text.isText(node), split: true }
   );
 }
