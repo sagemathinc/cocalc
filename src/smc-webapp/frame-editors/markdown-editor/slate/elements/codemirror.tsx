@@ -44,6 +44,7 @@ interface Props {
   onShiftEnter?: () => void;
   onEscape?: () => void;
   onBlur?: () => void;
+  onFocus?: () => void;
   options?: { [option: string]: any };
   isInline?: boolean; // impacts how cursor moves out of codemirror.
   style?: CSS;
@@ -57,6 +58,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     onShiftEnter,
     onEscape,
     onBlur,
+    onFocus,
     options,
     isInline,
     style,
@@ -129,24 +131,18 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       }
     }, [selected, focused, options]);
 
+    // If the info line changes update the mode.
+    useEffect(() => {
+      cmRef.current?.setOption("mode", infoToMode(info));
+    }, [info]);
+
     useEffect(() => {
       const node: HTMLTextAreaElement = ReactDOM.findDOMNode(
         textareaRef.current
       );
       if (node == null) return;
       if (options == null) options = {};
-      if (info) {
-        if (info[0] == "{") {
-          // Rmarkdown format -- looks like {r stuff,engine=python,stuff}.
-          // https://github.com/yihui/knitr-examples/blob/master/023-engine-python.Rmd
-          // TODO: For now just do this, but find a spec and parse in the future...
-          info = "r";
-        }
-        const spec = file_associations[info];
-        options.mode = spec?.opts.mode ?? info; // if nothing in file associations, maybe info is the mode, e.g. "python".
-      } else {
-        options.mode = "txt";
-      }
+      options.mode = infoToMode(info);
 
       if (options.extraKeys == null) {
         options.extraKeys = {};
@@ -181,7 +177,12 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         cm.on("blur", onBlur);
       }
 
+      if (onFocus != null) {
+        cm.on("focus", onFocus);
+      }
+
       cm.on("blur", () => setIsFocused(false));
+
       cm.on("focus", async () => {
         setIsFocused(true);
         await delay(1);
@@ -305,4 +306,19 @@ function isLessThan(p1: number[], p2: number[]): boolean {
     }
   }
   return false;
+}
+
+function infoToMode(info) {
+  if (info) {
+    if (info[0] == "{") {
+      // Rmarkdown format -- looks like {r stuff,engine=python,stuff}.
+      // https://github.com/yihui/knitr-examples/blob/master/023-engine-python.Rmd
+      // TODO: For now just do this, but find a spec and parse in the future...
+      info = "r";
+    }
+    const spec = file_associations[info];
+    return spec?.opts.mode ?? info; // if nothing in file associations, maybe info is the mode, e.g. "python".
+  } else {
+    return "txt";
+  }
 }

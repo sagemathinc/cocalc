@@ -3,16 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../../../app-framework";
+import { CSS, React, useState } from "../../../../app-framework";
 import { Element as Element0, Transforms } from "slate";
 import {
   register,
   SlateElement,
   RenderElementProps,
+  useCollapsed,
+  useSelected,
   useSlate,
 } from "./register";
 import { SlateCodeMirror } from "./codemirror";
 import { ensure_ends_in_newline, indent } from "../util";
+import { delay } from "awaiting";
 
 export interface CodeBlock extends SlateElement {
   type: "code_block";
@@ -29,19 +32,53 @@ const Element: React.FC<RenderElementProps> = ({
 }) => {
   if (element.type != "code_block") throw Error("bug");
   const editor = useSlate();
+  const selected = useSelected();
+  const collapsed = useCollapsed();
+
+  const [showInfo, setShowInfo] = useState<boolean>(selected && collapsed); // show the info input
+  const [focusInfo, setFocusInfo] = useState<boolean>(false); // focus the info input
 
   return (
     <div {...attributes}>
-      <SlateCodeMirror
-        options={{ lineWrapping: true /*, lineNumbers: true*/ }}
-        value={element.value}
-        info={element.info}
-        onChange={(value) => {
-          Transforms.setNodes(editor, { value } as any, {
-            match: (node) => node["type"] == "code_block",
-          });
-        }}
-      />
+      <div contentEditable={false}>
+        <SlateCodeMirror
+          options={{ lineWrapping: true /*, lineNumbers: true*/ }}
+          value={element.value}
+          info={element.info}
+          onChange={(value) => {
+            Transforms.setNodes(editor, { value } as any, {
+              match: (node) => node["type"] == "code_block",
+            });
+          }}
+          onFocus={async () => {
+            await delay(1);  // must be a little longer than the onBlur below.
+            setShowInfo(true);
+          }}
+          onBlur={async () => {
+            await delay(0);
+            if (!focusInfo) {
+              setShowInfo(false);
+            }
+          }}
+        />
+        {(showInfo || focusInfo) && (
+          <InfoEditor
+            value={element.info}
+            onFocus={() => {
+              setFocusInfo(true);
+            }}
+            onBlur={() => {
+              setShowInfo(false);
+              setFocusInfo(false);
+            }}
+            onChange={(info) => {
+              Transforms.setNodes(editor, { info } as any, {
+                match: (node) => node["type"] == "code_block",
+              });
+            }}
+          />
+        )}
+      </div>
       {children}
     </div>
   );
@@ -98,3 +135,44 @@ register({
   toSlate,
   rules: { autoFocus: true },
 });
+
+// The info editor.
+
+const INFO_STYLE = {
+  float: "right",
+  position: "relative",
+  width: "10em",
+  border: "1px solid #ccc",
+  borderRadius: "5px",
+  marginTop: "-3em",
+  color: "#666",
+  background: "#fafafa",
+  padding: "0 5px",
+  fontSize: "12px",
+} as CSS;
+
+interface InfoProps {
+  onFocus: () => void;
+  onBlur: () => void;
+  onChange: (string) => void;
+  value: string;
+}
+
+const InfoEditor: React.FC<InfoProps> = ({
+  onBlur,
+  onChange,
+  onFocus,
+  value,
+}) => {
+  return (
+    <textarea
+      style={INFO_STYLE}
+      rows={1}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={"Language..."}
+    />
+  );
+};
