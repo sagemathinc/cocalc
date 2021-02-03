@@ -11,7 +11,7 @@ import { Element, Node, Transforms } from "slate";
 import { isElementOfType } from "../elements";
 import { formatText } from "./format-text";
 import { emptyParagraph } from "../padding";
-import { indentListItem } from "./indent";
+import { indentListItem, unindentListItem } from "./indent";
 
 export function keyFormat(editor, e): boolean {
   if (formatText(editor, e)) {
@@ -24,6 +24,26 @@ export function keyFormat(editor, e): boolean {
     // @ts-ignore - that second argument below is "unsanctioned"
     editor.insertText(" ", autoformat);
     return true;
+  }
+
+  if (e.key == "Tab") {
+    if (e.shiftKey) {
+      if (unindentListItem(editor)) {
+        return true;
+      }
+      // for now... but maybe remove it later
+      editor.insertText("    ");
+      return true;
+    } else {
+      if (indentListItem(editor)) {
+        return true;
+      }
+
+      // Markdown doesn't have a notion of tabs in text, so
+      // putting in four spaces for now, but is this optimal?
+      editor.insertText("    ");
+      return true;
+    }
   }
 
   if (!e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {

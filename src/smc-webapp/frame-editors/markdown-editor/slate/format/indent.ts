@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Editor, Element, Transforms } from "slate";
+import { Editor, Element, Text, Transforms } from "slate";
 
 function findParentOfType(
   editor,
@@ -41,7 +41,7 @@ export function indentListItem(editor: Editor): boolean {
   // markdown so does NOT convert back properly!
   Transforms.wrapNodes(
     editor,
-    { type: "bullet_list", tight: true, children: [] } as Element,
+    { type: "bullet_list", children: [], tight: true } as Element,
     { at: path }
   );
   // We must also move that new bullet list we just created
@@ -50,9 +50,25 @@ export function indentListItem(editor: Editor): boolean {
   to[to.length - 1] -= 1; // nonnegative because of check above.
   // Need to find how many children the previous list item has
   // so we know where to position it.
-  const [prev] = Editor.node(editor, { path: to, offset: 0 });
-  if (prev == null || !Element.isElement(prev)) return false;
+  const [prev, prevPath] = Editor.node(editor, { path: to, offset: 0 });
+  if (prev == null || !Element.isElement(prev)) {
+    return false;
+  }
+  if (Text.isText((prev as any).children?.[0])) {
+    // The children of the previous list item are inline nodes,
+    // so we *can't* put our new list_item (a block element)
+    // next to them.  We must thus wrap them all in a paragraph first.
+    Transforms.wrapNodes(
+      editor,
+      { type: "paragraph", tight: true, children: [] } as Element,
+      { at: prevPath.concat([0]), mode: "lowest" }
+    );
+  }
   to.push(prev.children.length);
   Transforms.moveNodes(editor, { at: path, to });
   return true;
+}
+
+export function unindentListItem(editor: Editor): boolean {
+  return false;
 }
