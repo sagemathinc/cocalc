@@ -291,7 +291,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         }
 
         setEditorValue(newEditorValue);
-        ensureParagraphAtEnd(editor);
+        ensureParagraphAtTopAndBottom(editor);
 
         if (!is_current) {
           // Do not save when editor not current since user could be typing
@@ -373,11 +373,16 @@ const withIsInline = (editor) => {
   return editor;
 };
 
-async function ensureParagraphAtEnd(editor: Editor) {
+async function ensureParagraphAtTopAndBottom(editor: Editor) {
   await delay(0);
   const { children } = editor;
   const top = children[0];
-  if (top != null && top["type"] != "meta" && editor.isVoid(top as any)) {
+  if (
+    top != null &&
+    top["type"] != "meta" &&
+    top["type"] != "paragraph" &&
+    top["type"] != "heading"
+  ) {
     // put a paragraph at the top
     editor.apply({
       type: "insert_node",
@@ -386,7 +391,11 @@ async function ensureParagraphAtEnd(editor: Editor) {
     });
   }
   const bottom = children[children.length - 1];
-  if (bottom != null && editor.isVoid(bottom as any)) {
+  if (
+    bottom != null &&
+    bottom["type"] != "paragraph" &&
+    bottom["type"] != "heading"
+  ) {
     // put a paragraph at the bottom
     editor.apply({
       type: "insert_node",
