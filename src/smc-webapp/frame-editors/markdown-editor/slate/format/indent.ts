@@ -68,7 +68,7 @@ export function indentListItem(editor: Editor): boolean {
             // Combined with moving the cursor back below, this results
             // in one weird trailing space, which has no ill effects.
             empty_hack = true;
-            s = "- &#32;";
+            s = "- &#32;\n";
           }
           return "  " + s;
         },
