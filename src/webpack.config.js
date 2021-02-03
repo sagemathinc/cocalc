@@ -524,8 +524,8 @@ module.exports = {
   output: {
     path: OUTPUT,
     publicPath,
-    filename: PRODMODE ? "[name]-[fullhash].cacheme.js" : "[name].nocache.js",
-    chunkFilename: PRODMODE ? "[id]-[fullhash].cacheme.js" : "[id].nocache.js",
+    filename: PRODMODE ? "[name]-[hash].cacheme.js" : "[name].nocache.js",
+    chunkFilename: PRODMODE ? "[id]-[hash].cacheme.js" : "[id].nocache.js",
     hashFunction: "sha256",
   },
 
