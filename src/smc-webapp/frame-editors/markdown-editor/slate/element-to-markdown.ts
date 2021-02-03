@@ -36,5 +36,10 @@ export function serializeElement(node: Element, info: Info): string {
   }
   let children = v.join("");
   const slateToMarkdown = getSlateToMarkdown(node["type"]);
-  return slateToMarkdown({ node, children, info, childInfo });
+  const md = slateToMarkdown({ node, children, info, childInfo });
+  if (info.hook) {
+    const h = info.hook(node, md);
+    if (h != null) return h;
+  }
+  return md;
 }

@@ -3,7 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Editor, Element, Text, Transforms } from "slate";
+import { Editor, Element, Transforms } from "slate";
+import { slate_to_markdown } from "../slate-to-markdown";
+import { markdown_to_slate } from "../markdown-to-slate";
+import { slateDiff } from "../slate-diff";
+import { applyOperations } from "../operations";
+
+const SENTINEL = "\uFE30";
 
 function findParentOfType(
   editor,
@@ -17,58 +23,93 @@ function findParentOfType(
   }
 }
 
-// Indenting a list item.
-// - In Markdown this only makes sense to indent exactly one level.
-//   There's no notion of indenting two levels.
-// - We can't indent the very first item of a list (since then there)
-//   is no parent item.
+function changeViaMarkdown(
+  editor,
+  hooks: {
+    nodeHook?: (Node, string) => string | undefined;
+    markdownHook?: (string) => string;
+  }
+): boolean {
+  let md = slate_to_markdown(editor.children, { hook: hooks.nodeHook });
+  if (hooks.markdownHook != null) {
+    const md2 = hooks.markdownHook(md);
+    if (md2 == null) {
+      return false;
+    } else {
+      md = md2;
+    }
+  }
+  const doc = markdown_to_slate(md);
+  const operations = slateDiff(editor.children, doc);
+  applyOperations(editor, operations);
+  return true;
+}
+
 export function indentListItem(editor: Editor): boolean {
-  // Find list_item containing the cursor.
   const x = findParentOfType(editor, "list_item");
   if (x == null) {
     // no list item containing cursor...
     return false;
   }
-  const [, path] = x;
-  if (path[path.length - 1] == 0) {
-    // first item in a list -- can't indent it (not meaningful
-    // in markdown)
-    return false;
+  const [node] = x;
+  let empty_hack: boolean = false;
+  if (node.children)
+    if (
+      !changeViaMarkdown(editor, {
+        nodeHook: (elt, s) => {
+          if (elt !== node) return;
+          if (s.trim() == "-") {
+            // Markdown interprets an indented list with nothing in
+            // the first item as making the previous line a header.
+            // However, people might like to hit tab to indent the
+            // first sub-list-item before they start typing.  The only
+            // technically correct normalized way to deal with this is to make
+            // a list item with an nbsp in it.
+            // Combined with moving the cursor back below, this results
+            // in one weird trailing space, which has no ill effects.
+            empty_hack = true;
+            s = "- &#32;";
+          }
+          return "  " + s;
+        },
+      })
+    ) {
+      return false;
+    }
+  if (empty_hack) {
+    // delete that blank space we had to add due to limitations in markdown.
+    editor.deleteBackward("character");
   }
-
-  // Wrap the item in a new bullet_list.  Just doing this
-  // will look right in the editor, but has no meaning in
-  // markdown so does NOT convert back properly!
-  Transforms.wrapNodes(
-    editor,
-    { type: "bullet_list", children: [], tight: true } as Element,
-    { at: path }
-  );
-  // We must also move that new bullet list we just created
-  // to be the last child of the previous list item.
-  const to = [...path];
-  to[to.length - 1] -= 1; // nonnegative because of check above.
-  // Need to find how many children the previous list item has
-  // so we know where to position it.
-  const [prev, prevPath] = Editor.node(editor, { path: to, offset: 0 });
-  if (prev == null || !Element.isElement(prev)) {
-    return false;
-  }
-  if (Text.isText((prev as any).children?.[0])) {
-    // The children of the previous list item are inline nodes,
-    // so we *can't* put our new list_item (a block element)
-    // next to them.  We must thus wrap them all in a paragraph first.
-    Transforms.wrapNodes(
-      editor,
-      { type: "paragraph", tight: true, children: [] } as Element,
-      { at: prevPath.concat([0]), mode: "lowest" }
-    );
-  }
-  to.push(prev.children.length);
-  Transforms.moveNodes(editor, { at: path, to });
   return true;
 }
 
 export function unindentListItem(editor: Editor): boolean {
-  return false;
+  const x = findParentOfType(editor, "list_item");
+  if (x == null) {
+    // no list item containing cursor...
+    return false;
+  }
+  const [node] = x;
+  if (
+    !changeViaMarkdown(editor, {
+      nodeHook: (elt, s) => {
+        if (elt !== node) return;
+        return SENTINEL + s;
+      },
+      markdownHook: (md) => {
+        const i = md.indexOf(SENTINEL);
+        if (i == -1) return false;
+        if (md.slice(i - 2, i) != "  ") {
+          // not spaces - no-op
+          return undefined;
+        }
+        return md.slice(0, i - 2) + md.slice(i + 1);
+      },
+    })
+  )
+    return false;
+
+  // move cursor back to line we just unindented.
+  Transforms.move(editor, { distance: 1, unit: "line" });
+  return true;
 }

@@ -11,6 +11,7 @@ export interface Info {
   parent: Node; // the parent of the node being serialized
   index?: number; // index of this node among its siblings
   no_escape: boolean; // if true, do not escape text in this node.
+  hook?: (Node, string) => undefined | string;
 }
 
 export function serialize(node: Node, info: Info): string {
@@ -27,12 +28,16 @@ export function serialize(node: Node, info: Info): string {
 
 export function slate_to_markdown(
   slate: Node[],
-  options?: { no_escape?: boolean }
+  options?: { no_escape?: boolean; hook?: (Node, string) => undefined | string }
 ): string {
   const t = new Date().valueOf();
   const markdown = slate
     .map((node) =>
-      serialize(node, { parent: node, no_escape: !!options?.no_escape })
+      serialize(node, {
+        parent: node,
+        no_escape: !!options?.no_escape,
+        hook: options?.hook,
+      })
     )
     .join("");
   // not doing this for now, since it is causing more trouble than it is worth...
@@ -42,3 +47,4 @@ export function slate_to_markdown(
   console.log("slate_to_markdown", { slate, markdown });
   return markdown;
 }
+
