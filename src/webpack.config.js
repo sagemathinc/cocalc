@@ -524,8 +524,8 @@ module.exports = {
   output: {
     path: OUTPUT,
     publicPath,
-    filename: PRODMODE ? "[name]-[hash].cacheme.js" : "[name].nocache.js",
-    chunkFilename: PRODMODE ? "[id]-[hash].cacheme.js" : "[id].nocache.js",
+    filename: PRODMODE ? "[name]-[fullhash].cacheme.js" : "[name].nocache.js",
+    chunkFilename: PRODMODE ? "[id]-[fullhash].cacheme.js" : "[id].nocache.js",
     hashFunction: "sha256",
   },
 
@@ -593,27 +593,50 @@ module.exports = {
           `sass-loader?${cssConfig}&indentedSyntax`,
         ],
       },
-      { test: /\.png$/, loader: `file-loader?${pngconfig}` },
-      { test: /\.ico$/, loader: `file-loader?${icoconfig}` },
-      { test: /\.svg(\?[a-z0-9\.-=]+)?$/, loader: `url-loader?${svgconfig}` },
-      { test: /\.(jpg|jpeg|gif)$/, loader: `file-loader?name=${hashname}` },
+      {
+        test: /\.png$/,
+        use: [{ loader: "file-loader", options: pngconfig }],
+      },
+      {
+        test: /\.ico$/,
+        use: [{ loader: "file-loader", options: icoconfig }],
+      },
+      {
+        test: /\.svg(\?[a-z0-9\.-=]+)?$/,
+        use: [{ loader: "url-loader", options: svgconfig }],
+      },
+      {
+        test: /\.(jpg|jpeg|gif)$/,
+        use: [{ loader: "file-loader", options: { name: hashname } }],
+      },
       {
         test: /\.html$/,
         include: [path.resolve(__dirname, "smc-webapp")],
-        use: ["raw-loader", "html-minify-loader?conservativeCollapse"],
+        use: [
+          { loader: "raw-loader" },
+          {
+            loader: "html-minify-loader",
+            options: { conservativeCollapse: true },
+          },
+        ],
       },
       { test: /\.hbs$/, loader: "handlebars-loader" },
       {
         test: /\.woff(2)?(\?[a-z0-9\.-=]+)?$/,
-        loader: `url-loader?${woffconfig}`,
+        use: [{ loader: "url-loader", options: woffconfig }],
       },
       {
         test: /\.ttf(\?[a-z0-9\.-=]+)?$/,
-        loader: "url-loader?limit=10000&mimetype=application/octet-stream",
+        use: [
+          {
+            loader: "url-loader",
+            options: { limit: 10000, mimetype: "application/octet-stream" },
+          },
+        ],
       },
       {
         test: /\.eot(\?[a-z0-9\.-=]+)?$/,
-        loader: `file-loader?name=${hashname}`,
+        use: [{ loader: "file-loader", options: { name: hashname } }],
       },
       // ---
       {
