@@ -27,7 +27,17 @@ export function applyOperations(editor: Editor, operations: Operation[]): void {
       // before the user's cursor:
       if (skipCursor(cursor, op)) continue;
 
-      Transforms.transform(editor, op);
+      if (op.type == "set_node") {
+        // Unfortunately, using the set_node operation results -- when
+        // that empty editor.apply set_node is called below -- in the
+        // target node being unmounted and recreated.  This totally breaks
+        // stateful void elements like code editors, so instead we
+        // use setNodes.  It might be more expensive, but it seems to
+        // work fine.
+        Transforms.setNodes(editor, op.newProperties, { at: op.path });
+      } else {
+        Transforms.transform(editor, op);
+      }
     }
 
     // We also apply one **empty** operation which causes the editor to
@@ -79,7 +89,6 @@ function skipCursor(cursor: { focus: Point | null }, op): boolean {
     op.text.trim() == "" &&
     op.text.length + op.offset == focus.offset
   ) {
-    console.log("skipping!");
     return true;
   }
   cursor.focus = Point.transform(focus, op);
