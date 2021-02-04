@@ -69,5 +69,11 @@ export function serializeLeaf(node: Text, info: Info): string {
   for (const mark of marks) {
     text = markInlineText(text, mark.left, mark.right);
   }
+
+  if (info.hook != null) {
+    const h = info.hook(node, text);
+    if (h != null) return h;
+  }
+
   return text;
 }

@@ -1560,7 +1560,8 @@ export class Actions<
     line: number,
     cursor?: boolean,
     focus?: boolean,
-    id?: string // if given scroll this particular frame
+    id?: string, // if given scroll this particular frame
+    ch?: number // specific character in line
   ): Promise<void> {
     if (this._syncstring == null || this._syncstring.is_fake) {
       // give up -- don't even have a syncstring...
@@ -1635,7 +1636,7 @@ export class Actions<
     if (line > doc.lineCount()) {
       line = doc.lineCount();
     }
-    const pos = { line: line - 1, ch: 0 };
+    const pos = { line: line - 1, ch: ch ?? 0 };
     const info = cm.getScrollInfo();
     cm.scrollIntoView(pos, info.clientHeight / 2);
     if (focus) {

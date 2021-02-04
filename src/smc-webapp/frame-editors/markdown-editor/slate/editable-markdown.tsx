@@ -33,6 +33,7 @@ import { withAutoFormat, keyFormat } from "./format";
 
 import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";
+import { slatePointToMarkdown, indexToPosition } from "./sync";
 
 // (??) A bit longer is better, due to escaping of markdown and multiple users
 // with one user editing source and the other editing with slate.
@@ -67,6 +68,7 @@ interface Props {
   value: string;
   reload_images: boolean;
   is_current?: boolean;
+  is_fullscreen?: boolean;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -79,6 +81,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     project_id,
     path,
     is_current,
+    is_fullscreen,
   }) => {
     //const isMountedRef = useIsMountedRef();
 
@@ -238,12 +241,16 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    /* (window as any).z = {
+    /*
+    const { Transforms, Editor } = require("./slate-react");
+    (window as any).z = {
       editor,
       Transforms,
       ReactEditor,
       Editor,
       slateDiff,
+      slatePointToMarkdown,
+      indexToPosition,
     };*/
 
     const [rowStyle, setRowStyle] = useState<CSS>({});
@@ -256,6 +263,38 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         background: "white",
       });
     }, [editor, scaling]);
+
+    async function inverseSearch() {
+      if (is_fullscreen) {
+        // if user is fullscreen assume they just want to WYSIWYG edit
+        // and double click is to select.
+        return;
+      }
+      // delay to give double click a chance to change current focus.
+      // This takes surprisingly long!
+      let t = 0;
+      while (editor.selection == null) {
+        await delay(50);
+        t += 50;
+        if (t > 2000) return; // give up
+      }
+      const point = editor.selection?.anchor;
+      if (point == null) {
+        return;
+      }
+      const { index, markdown } = slatePointToMarkdown(editor, point);
+      if (index == -1) return;
+      const pos = indexToPosition({ index, markdown });
+      if (pos?.line != null) {
+        actions.programmatical_goto_line(
+          pos.line + 1, // 1 based (TODO: could use codemirror option)
+          true,
+          false, // it is REALLY annoying to switch focus to be honest, e.g., because double click to select a word is common in WYSIWYG editing.  If change this to true, make sure to put an extra always 50ms delay above due to focus even order.
+          undefined,
+          pos.ch
+        );
+      }
+    }
 
     const onChange = (newEditorValue) => {
       try {
@@ -328,6 +367,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               renderLeaf={Leaf}
               onKeyDown={!read_only ? onKeyDown : undefined}
               onBlur={saveValue}
+              onDoubleClick={inverseSearch}
               style={
                 USE_WINDOWING
                   ? undefined

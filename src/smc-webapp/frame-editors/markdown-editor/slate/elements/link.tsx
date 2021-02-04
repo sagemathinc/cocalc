@@ -44,7 +44,7 @@ register({
         <a
           href={url}
           title={title}
-          onDoubleClick={() => {
+          onClick={() => {
             if (url) {
               open_new_tab(url);
             }

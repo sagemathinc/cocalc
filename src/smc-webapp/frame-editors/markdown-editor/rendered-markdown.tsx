@@ -99,7 +99,6 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
   function goto_source_line(event) {
     let elt = event.target;
-    (window as any).elt = elt;
     while (elt != null && elt.dataset?.sourceLine == null) {
       elt = elt.parentElement;
     }

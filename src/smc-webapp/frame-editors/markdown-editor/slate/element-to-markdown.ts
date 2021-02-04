@@ -37,7 +37,7 @@ export function serializeElement(node: Element, info: Info): string {
   let children = v.join("");
   const slateToMarkdown = getSlateToMarkdown(node["type"]);
   const md = slateToMarkdown({ node, children, info, childInfo });
-  if (info.hook) {
+  if (info.hook != null) {
     const h = info.hook(node, md);
     if (h != null) return h;
   }
