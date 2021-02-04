@@ -19,8 +19,9 @@ import { emptyParagraph } from "../padding";
 // Expand collapsed selection to range containing exactly the
 // current word, even if selection potentially spans multiple
 // text nodes.  If cursor is not *inside* a word (being on edge
-// is not inside) then this does nothing.
-function selectCurrentWord(editor: Editor) {
+// is not inside) then returns undefined.  Otherwise, returns
+// the Range containing the current word.
+function currentWord(editor: Editor): Range | undefined {
   if (editor.selection == null || !Range.isCollapsed(editor.selection)) {
     return; // nothing to do -- no current word.
   }
@@ -99,75 +100,26 @@ function selectCurrentWord(editor: Editor) {
   }
 
   const path0 = path.slice(0, path.length - 1);
-  Transforms.setSelection(editor, {
+  return {
     anchor: { path: path0.concat([start.i]), offset: start.offset },
     focus: { path: path0.concat([end.i]), offset: end.offset },
-  });
+  };
 }
-
-/*
-// Replaces {text:"foo bl[cursor]ah stuff xxx"} by
-// {text:"foo "} {text:"bl[cursor]ah"} {text:"stuff xxx"}
-// which is not normalized.  This is a step in doing
-// something else.  Returns length of word.
-function splitCurrentWord(editor: Editor): number {
-  if (editor.selection == null) {
-    return 0; // nothing to do -- no current word.
-  }
-  const { focus } = editor.selection;
-  const [node, path] = Editor.node(editor, focus);
-  if (!Text.isText(node)) {
-    // not implemented except for in text nodes...
-    return 0;
-  }
-  const { offset } = focus;
-  if (!node.text[offset - 1]?.trim() || !node.text[offset]?.trim()) {
-    // cursor is on the edge of a word (in this node)
-    // TODO: much more work to do due to adjacent text nodes, e.g.,
-    //     foo[cursor]**blah**
-    return 0;
-  }
-
-  let start = offset;
-  while (start > 0 && node.text[start - 1].trim() != "") {
-    start -= 1;
-  }
-  let end = offset;
-  while (end < node.text.length - 1 && node.text[end + 1].trim() != "") {
-    end += 1;
-  }
-  if (start == end) return 0;
-  Transforms.transform(editor, {
-    type: "split_node",
-    path,
-    position: end + 1,
-    properties: {},
-  });
-  Transforms.transform(editor, {
-    type: "split_node",
-    path,
-    position: start,
-    properties: {},
-  });
-  return end - start;
-}
-*/
 
 export function formatSelectedText(editor: ReactEditor, mark: string) {
   const { selection } = editor;
   if (selection == null) return; // nothing to do.
   if (Range.isCollapsed(selection)) {
     // select current word (which may partly span multiple text nodes!)
-    selectCurrentWord(editor);
-    // format it since now selected
-    Transforms.setNodes(
-      editor,
-      { [mark]: !isAlreadyMarked(editor, mark) ? true : undefined },
-      { match: (node) => Text.isText(node), split: true }
-    );
-    // restore cursor and focus (which could be lost by format action above).
-    // TODO: this is horribly wrong since selection has to get transformed...
-    //Transforms.setSelection(editor, selection);
+    const at = currentWord(editor);
+    if (at != null) {
+      (editor as any).saveValue(true);
+      Transforms.setNodes(
+        editor,
+        { [mark]: !isAlreadyMarked(editor, mark) ? true : undefined },
+        { at, split: true, match: (node) => Text.isText(node) }
+      );
+    }
     return;
   }
 
