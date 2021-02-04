@@ -42,7 +42,7 @@ export function markdown_to_slate(
   no_meta?: boolean
 ): Descendant[] {
   // Parse the markdown:
-  const t0 = new Date().valueOf();
+  // const t0 = new Date().valueOf();
   const { tokens, meta } = parse_markdown(markdown, no_meta);
 
   const doc: Descendant[] = [];
@@ -58,7 +58,7 @@ export function markdown_to_slate(
 
   ensureDocNonempty(doc);
 
-  console.log("time: markdown_to_slate", new Date().valueOf() - t0, "ms");
+  // console.log("time: markdown_to_slate", new Date().valueOf() - t0, "ms");
   // console.log({ markdown_to_slate: JSON.stringify(doc) });
 
   return doc;

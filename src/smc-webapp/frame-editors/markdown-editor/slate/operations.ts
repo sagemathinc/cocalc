@@ -7,7 +7,7 @@ import { isEqual } from "lodash";
 
 export function applyOperations(editor: Editor, operations: Operation[]): void {
   if (operations.length == 0) return;
-  const t0 = new Date().valueOf();
+  // const t0 = new Date().valueOf();
   const cursor: { focus: Point | null } = {
     focus: editor.selection?.focus ?? null,
   };
@@ -42,12 +42,12 @@ export function applyOperations(editor: Editor, operations: Operation[]): void {
 
     //console.log("apply last ", operations[operations.length - 1]);
     // editor.apply(operations[operations.length - 1]);
-    console.log(
+    /* console.log(
       `time: apply ${operations.length} operations`,
       new Date().valueOf() - t0,
       "ms"
-    );
-    (window as any).operations = operations;
+    );*/
+    // (window as any).operations = operations;
   } finally {
     (editor as any).applyingOperations = false;
   }

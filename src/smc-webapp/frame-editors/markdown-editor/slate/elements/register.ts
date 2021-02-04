@@ -116,7 +116,7 @@ export function register(h: Handler): void {
 
 export function getRender(slateType: string): React.FC<RenderElementProps> {
   if (renderer[slateType] == null) {
-    console.log(`getRender: using generic plugin for type '${slateType}'`);
+    console.log(`WARNING -- getRender: using generic plugin for type '${slateType}'; this is NOT likely to work.`);
     return renderer["generic"];
   }
   return renderer[slateType];

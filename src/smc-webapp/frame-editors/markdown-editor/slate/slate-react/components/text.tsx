@@ -75,19 +75,6 @@ const MemoizedText = React.memo(Text, (prev, next) => {
     next.renderLeaf === prev.renderLeaf &&
     next.isLast === prev.isLast &&
     next.text === prev.text;
-  
-  /*
-  console.log("MemoizedText cmp", {
-    prev,
-    next,
-    is_equal,
-    c: [
-      next.parent === prev.parent,
-      next.isLast === prev.isLast,
-      next.renderLeaf === prev.renderLeaf,
-      next.text === prev.text,
-    ],
-  });*/
   return is_equal;
 });
 

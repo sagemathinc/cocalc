@@ -33,7 +33,7 @@ export function slateDiff(
   doc1: Node[],
   path: number[] = []
 ): Operation[] {
-  const t0 = path.length == 0 ? new Date().valueOf() : 0;
+  // const t0 = path.length == 0 ? new Date().valueOf() : 0;
   const string_mapping = new StringCharMapping();
   const s0 = docToStrings(doc0);
   const s1 = docToStrings(doc1);
@@ -151,9 +151,9 @@ export function slateDiff(
     }
     throw Error("BUG");
   }
-  if (path.length == 0) {
+  /* if (path.length == 0) {
     console.log("time: slateDiff", new Date().valueOf() - t0, "ms");
-  }
+  }*/
 
   return operations;
 }

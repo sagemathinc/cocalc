@@ -5,9 +5,9 @@
 
 // Component that allows WYSIWYG editing of markdown.
 
-const EXPENSIVE_DEBUG = true; // EXTRA SLOW -- turn off before release!
+const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
-import { Editor, createEditor, Descendant, Node, Transforms } from "slate";
+import { Editor, createEditor, Descendant } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
 import {
@@ -238,14 +238,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    (window as any).z = {
+    /* (window as any).z = {
       editor,
       Transforms,
-      Node,
       ReactEditor,
       Editor,
       slateDiff,
-    };
+    };*/
 
     const [rowStyle, setRowStyle] = useState<CSS>({});
 

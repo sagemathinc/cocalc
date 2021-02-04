@@ -73,7 +73,7 @@ export function parse_markdown(
   markdown: string,
   no_meta?: boolean
 ): { tokens: Token[]; meta?: string } {
-  const t0 = new Date().valueOf();
+  // const t0 = new Date().valueOf();
 
   let meta: undefined | string = undefined;
   if (!no_meta && markdown.slice(0, 3) == "---") {
@@ -93,7 +93,7 @@ export function parse_markdown(
 
   const tokens: Token[] = markdown_it.parse(text, {});
   process_math_tokens(tokens, math);
-  (window as any).parse_markdown = { tokens, meta };
-  console.log("time: parse_markdown", new Date().valueOf() - t0, " ms");
+  // (window as any).parse_markdown = { tokens, meta };
+  // console.log("time: parse_markdown", new Date().valueOf() - t0, " ms");
   return { tokens, meta };
 }
