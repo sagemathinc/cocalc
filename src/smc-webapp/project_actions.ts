@@ -2406,7 +2406,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
     }
     table.set(obj);
-    table.save();
 
     if (log) {
       this.log({
