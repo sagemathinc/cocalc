@@ -196,7 +196,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     // from upstream.
     useEffect(() => {
       function before_change() {
-        if (ReactEditor.isFocused(editor)) {
+        // Important -- ReactEditor.isFocused(editor)  is *false* when
+        // you're editing some inline void elements (e.g., code blocks),
+        // since the focus leaves slate and goes to codemirror (say).
+        if (ReactEditor.isFocused(editor) || is_current) {
           actions.set_value(editor_markdown_value());
         }
       }
