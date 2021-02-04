@@ -103,19 +103,21 @@ register({
     const ref = useProcessLinks([src]);
 
     return (
-      <span {...attributes} ref={ref}>
-        <img
-          contentEditable={false}
-          src={src}
-          alt={alt}
-          title={title}
-          style={{
-            maxWidth: "100%",
-            border,
-            height: node.height,
-            width: node.width,
-          }}
-        />
+      <span {...attributes}>
+        <span ref={ref}>
+          <img
+            contentEditable={false}
+            src={src}
+            alt={alt}
+            title={title}
+            style={{
+              maxWidth: "100%",
+              border,
+              height: node.height,
+              width: node.width,
+            }}
+          />
+        </span>
         {children}
       </span>
     );

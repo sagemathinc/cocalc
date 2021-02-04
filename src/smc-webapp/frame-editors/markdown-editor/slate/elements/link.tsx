@@ -40,18 +40,20 @@ register({
     const { url, title } = node;
     const ref = useProcessLinks([url]);
     return (
-      <span {...attributes} ref={ref}>
-        <a
-          href={url}
-          title={title}
-          onClick={() => {
-            if (url) {
-              open_new_tab(url);
-            }
-          }}
-        >
-          {children}
-        </a>
+      <span {...attributes}>
+        <span ref={ref}>
+          <a
+            href={url}
+            title={title}
+            onClick={() => {
+              if (url) {
+                open_new_tab(url);
+              }
+            }}
+          >
+            {children}
+          </a>
+        </span>
       </span>
     );
   },
