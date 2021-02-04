@@ -3,7 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React, useState } from "../../../../app-framework";
+import {
+  CSS,
+  React,
+  useState,
+  useIsMountedRef,
+} from "../../../../app-framework";
 import { Element as Element0, Transforms } from "slate";
 import {
   register,
@@ -34,6 +39,7 @@ const Element: React.FC<RenderElementProps> = ({
   const editor = useSlate();
   const selected = useSelected();
   const collapsed = useCollapsed();
+  const isMountedRef = useIsMountedRef();
 
   const [showInfo, setShowInfo] = useState<boolean>(selected && collapsed); // show the info input
   const [focusInfo, setFocusInfo] = useState<boolean>(false); // focus the info input
@@ -42,7 +48,7 @@ const Element: React.FC<RenderElementProps> = ({
     <div {...attributes}>
       <div contentEditable={false}>
         <SlateCodeMirror
-          options={{ lineWrapping: true /*, lineNumbers: true*/ }}
+          options={{ lineWrapping: true }}
           value={element.value}
           info={element.info}
           onChange={(value) => {
@@ -51,11 +57,13 @@ const Element: React.FC<RenderElementProps> = ({
             });
           }}
           onFocus={async () => {
-            await delay(1);  // must be a little longer than the onBlur below.
+            await delay(1); // must be a little longer than the onBlur below.
+            if (!isMountedRef.current) return;
             setShowInfo(true);
           }}
           onBlur={async () => {
             await delay(0);
+            if (!isMountedRef.current) return;
             if (!focusInfo) {
               setShowInfo(false);
             }
