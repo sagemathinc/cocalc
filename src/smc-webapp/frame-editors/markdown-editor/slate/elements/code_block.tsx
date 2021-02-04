@@ -69,7 +69,7 @@ const Element: React.FC<RenderElementProps> = ({
             }
           }}
         />
-        {(showInfo || focusInfo) && (
+        {element.fence && (showInfo || focusInfo) && (
           <InfoEditor
             value={element.info}
             onFocus={() => {
