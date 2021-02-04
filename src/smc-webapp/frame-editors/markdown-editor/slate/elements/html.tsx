@@ -12,7 +12,7 @@ import {
   useSelected,
 } from "./register";
 import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../util";
-import { startswith, endswith } from "smc-util/misc";
+import { startswith, /*endswith*/ } from "smc-util/misc";
 import { toSlate as toSlateImage } from "./image";
 
 export interface HtmlInline extends SlateElement {
@@ -55,7 +55,9 @@ const Element = ({ attributes, children, element }) => {
     focused && selected ? `1px solid ${FOCUSED_COLOR}` : `1px solid white`;
   const html = ((element.html as string) ?? "").trim();
   const ref = useProcessLinks([html]);
-  const is_comment = startswith(html, "<!--") && endswith(html, "-->");
+  // this feels ugly in practice, and we have the source so not doing it.
+  const is_comment = false;
+  // const is_comment = startswith(html, "<!--") && endswith(html, "-->");
 
   if (element.type == "html_inline") {
     return (
