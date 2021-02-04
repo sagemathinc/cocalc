@@ -106,6 +106,19 @@ function currentWord(editor: Editor): Range | undefined {
   };
 }
 
+
+function isMarkActive(editor: Editor, mark: string): boolean {
+  return !!Editor.marks(editor)?.[mark];
+}
+
+function toggleMark(editor: Editor, mark: string): void {
+  if (isMarkActive(editor, mark)) {
+    Editor.removeMark(editor, mark);
+  } else {
+    Editor.addMark(editor, mark, true);
+  }
+}
+
 export function formatSelectedText(editor: ReactEditor, mark: string) {
   const { selection } = editor;
   if (selection == null) return; // nothing to do.
@@ -120,6 +133,9 @@ export function formatSelectedText(editor: ReactEditor, mark: string) {
         { at, split: true, match: (node) => Text.isText(node) }
       );
     }
+    // No current word.
+    // Set thing so if you start typing it has the given mark (or doesn't).
+    toggleMark(editor, mark);
     return;
   }
 
