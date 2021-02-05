@@ -68,9 +68,9 @@ export function indentListItem(editor: Editor): boolean {
             // Combined with moving the cursor back below, this results
             // in one weird trailing space, which has no ill effects.
             empty_hack = true;
-            s = "- &#32;\n";
+            s = "- &nbsp;\n";
           }
-          return "  " + s;
+          return "    " + s;
         },
       })
     ) {
@@ -99,11 +99,11 @@ export function unindentListItem(editor: Editor): boolean {
       markdownHook: (md) => {
         const i = md.indexOf(SENTINEL);
         if (i == -1) return false;
-        if (md.slice(i - 2, i) != "  ") {
+        if (md.slice(i - 4, i) != "    ") {
           // not spaces - no-op
           return undefined;
         }
-        return md.slice(0, i - 2) + md.slice(i + 1);
+        return md.slice(0, i - 4) + md.slice(i + 1);
       },
     })
   )

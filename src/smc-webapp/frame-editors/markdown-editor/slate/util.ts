@@ -90,10 +90,11 @@ export function indent(s: string, n: number): string {
 }
 
 export function li_indent(s: string): string {
-  // indent all but the first line by 2.
+  // indent all but the first line by 4 spaces.
+  // See https://stackoverflow.com/questions/53866598/markdown-list-indentation-with-3-spaces-or-4-spaces-what-is-the-standard#:~:text=So%20for%20ordered%20lists%2C%20you,hit%20the%20list%20marker%2010.
   const i = s.indexOf("\n");
   if (i != -1 && i != s.length - 1) {
-    return s.slice(0, i + 1) + indent(s.slice(i + 1), 2);
+    return s.slice(0, i + 1) + indent(s.slice(i + 1), 4);
   } else {
     return s;
   }
