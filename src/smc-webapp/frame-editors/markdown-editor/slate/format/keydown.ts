@@ -13,7 +13,7 @@ import { formatText } from "./format-text";
 import { emptyParagraph } from "../padding";
 import { indentListItem, unindentListItem } from "./indent";
 import { toggleCheckbox } from "../elements/checkbox";
-import { selectAll } from "./misc";
+import { backspaceVoid, selectAll } from "./misc";
 import { IS_MACOS } from "smc-webapp/feature";
 
 export function keyFormat(editor, e): boolean {
@@ -22,6 +22,15 @@ export function keyFormat(editor, e): boolean {
   if (formatText(editor, e)) {
     // control+b, etc. to format selected text.
     return true;
+  }
+
+  if (e.key == "Backspace" || e.key == "Delete") {
+    // Special case -- deleting (certain?) void elements. See
+    //   https://github.com/ianstormtaylor/slate/issues/3875
+    // for discussion of why we must implement this ourselves.
+    if (backspaceVoid(editor)) {
+      return true;
+    }
   }
 
   // Select all

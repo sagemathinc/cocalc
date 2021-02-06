@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Editor, Transforms } from "slate";
+import { Editor, Range, Transforms } from "slate";
 
 export function selectAll(editor: Editor): void {
   const first = Editor.first(editor, []);
@@ -13,4 +13,17 @@ export function selectAll(editor: Editor): void {
     anchor: { path: first[1], offset: 0 },
     focus: { path: last[1], offset },
   });
+}
+
+export function backspaceVoid(editor: Editor): boolean {
+  console.log("backspaceVoid", 0);
+  if (editor.selection == null || !Range.isCollapsed(editor.selection)) {
+    return false;
+  }
+  const { value } = Editor.nodes(editor, {
+    match: (node) => Editor.isVoid(editor, node),
+  }).next();
+  if (value == null) return false;
+  Transforms.delete(editor, { at: value[1] });
+  return true;
 }
