@@ -66,8 +66,7 @@ const Element = ({ attributes, children, element }) => {
   const is_comment = false;
   // const is_comment = startswith(html, "<!--") && endswith(html, "-->");
 
-  // mode for editing the raw html (off by default); only supported for
-  // non-inline right now.
+  // mode for editing the raw html
   const [editMode, setEditMode] = useState<boolean>(false);
   const editor = useSlate();
   function renderEditMode() {
@@ -99,7 +98,13 @@ const Element = ({ attributes, children, element }) => {
   if (element.type == "html_inline") {
     return (
       <span {...attributes}>
-        <code style={{ color: is_comment ? "#a50" : "#aaa", border }}>
+        {renderEditMode()}
+        <code
+          style={{ color: is_comment ? "#a50" : "#aaa", border }}
+          onClick={() => {
+            setEditMode(true);
+          }}
+        >
           {html}
         </code>
         {is_br(html) && <br />}
