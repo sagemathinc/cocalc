@@ -12,6 +12,7 @@ import { isElementOfType } from "../elements";
 import { formatText } from "./format-text";
 import { emptyParagraph } from "../padding";
 import { indentListItem, unindentListItem } from "./indent";
+import { toggleCheckbox } from "../elements/checkbox";
 
 export function keyFormat(editor, e): boolean {
   if (formatText(editor, e)) {
@@ -20,9 +21,15 @@ export function keyFormat(editor, e): boolean {
   }
   // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
   if (e.key == " ") {
-    const autoformat = !(e.shiftKey || e.ctrlKey || e.metaKey || e.altKey);
+    const noModifiers = !(e.shiftKey || e.ctrlKey || e.metaKey || e.altKey);
+
+    if (noModifiers && toggleCheckbox(editor)) {
+      // we toggled a selected textbox. Done.
+      return true;
+    }
+
     // @ts-ignore - that second argument below is "unsanctioned"
-    editor.insertText(" ", autoformat);
+    editor.insertText(" ", noModifiers);
     return true;
   }
 

@@ -5,7 +5,7 @@
 
 import { React } from "../../../../app-framework";
 import { FOCUSED_COLOR } from "../util";
-import { Transforms } from "slate";
+import { Editor, Transforms } from "slate";
 import {
   SlateElement,
   register,
@@ -76,3 +76,23 @@ register({
 
   fromSlate: ({ node }) => `[${node.value ? "x" : " "}]`,
 });
+
+// Call this function to toggle the checked state of the checkbox...
+// if it is currently selected.  This is called elsewhere in our
+// code when user hits the space bar, thus making it possible to
+// toggle checkboxes from the keyboard.  Returns true if it toggles
+// a checkbox and false otherwise.
+export function toggleCheckbox(editor: Editor): boolean {
+  const checkbox = Editor.nodes(editor, {
+    match: (node) => node["type"] == "checkbox",
+    mode: "lowest",
+  }).next().value;
+  if (checkbox != null && checkbox[0]["type"] == "checkbox") {
+    // toggle checkbox checked state
+    const value = !checkbox[0]["value"];
+    // @ts-ignore
+    Transforms.setNodes(editor, { value }, { at: checkbox[1] });
+    return true;
+  }
+  return false;
+}
