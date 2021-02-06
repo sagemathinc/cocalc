@@ -129,8 +129,8 @@ const Element = ({ attributes, children, element }) => {
             setEditMode(true);
           }}
         >
-          {renderEditMode()}
           <div ref={ref} dangerouslySetInnerHTML={{ __html: html }}></div>
+          {renderEditMode()}
         </div>
         {children}
       </div>
