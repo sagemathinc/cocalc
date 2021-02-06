@@ -9,8 +9,10 @@ declare const DEBUG: boolean;
 
 let IS_MOBILE,
   IS_TOUCH,
+  IS_CHROME,
   IS_IPAD,
   IS_IOS,
+  IS_FIREFOX,
   IS_SAFARI,
   IS_MACOS,
   isMobile,
@@ -97,6 +99,10 @@ if ((global as any).window != undefined) {
   $.browser.edge = /edge\/\d./i.test(user_agent);
 
   IS_SAFARI = !!$.browser?.safari;
+
+  IS_FIREFOX = !!$.browser?.firefox;
+
+  IS_CHROME = !!$.browser?.chrome;
 
   IS_MACOS = (navigator.platform ?? "").toLowerCase().includes("mac");
 
@@ -202,6 +208,8 @@ export {
   IS_IPAD,
   IS_IOS,
   IS_SAFARI,
+  IS_FIREFOX,
+  IS_CHROME,
   IS_MACOS,
   isMobile,
   is_responsive_mode,

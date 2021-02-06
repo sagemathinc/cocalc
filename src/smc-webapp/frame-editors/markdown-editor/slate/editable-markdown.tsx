@@ -7,6 +7,7 @@
 
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
+import { IS_FIREFOX } from "../../../feature";
 import { Editor, createEditor, Descendant } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
@@ -40,16 +41,24 @@ import { slatePointToMarkdown, indexToPosition } from "./sync";
 // const SAVE_DEBOUNCE_MS = 1500;
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 
-// Set this to false for testing.
-const USE_WINDOWING = true;
+// Whether or not to use windowing.
+// I'm going to disable this by default (for production
+// releases), but re-enable it frequently for development.
+let USE_WINDOWING = false;
 // We set this to be as large as possible, since it might be a while until
 // we fully implement cursor/selection handling and windowing properly. In
-// the meantime, this will make everything work 100% with at least 300
+// the meantime, this will make everything work 100% with at least OVERSCAN_ROW_COUNT
 // blocks around the cursor, which handles 99% of cases.   On the other hand,
 // in those cases when somebody opens say Moby Dick (with 2000+ blocks),
 // it also works at all (rather than just locking the browser!).
-const OVERSCAN_ROW_COUNT = 50;
-//const USE_WINDOWING = false;
+const OVERSCAN_ROW_COUNT = 75;
+if (USE_WINDOWING && IS_FIREFOX) {
+  // Windowing on Firefox results in TONS of problems all over the place, whereas it
+  // works fine with Safari and Chrome.  So no matter what we always disable it on
+  // Firefox.   See https://github.com/sagemathinc/cocalc/issues/5204 where both
+  // problems are caused by windowing.
+  USE_WINDOWING = false;
+}
 
 const STYLE = {
   width: "100%",
@@ -243,7 +252,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         }
       }
     }, [value]);
-
 
     /*
     const { Transforms, Editor } = require("slate");
