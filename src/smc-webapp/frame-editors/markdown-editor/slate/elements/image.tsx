@@ -86,19 +86,11 @@ register({
       return `![${alt}](${src}${title})`;
     } else {
       // width or height require using html instead, unfortunately...
-      if (width) {
-        width = `width="${width}"`;
-      }
-      if (height) {
-        height = `height="${height}"`;
-      }
-      if (title) {
-        title = `title="${title}"`;
-      }
-      src = `src="${src}"`;
-      if (alt) {
-        alt = `alt="${alt}"`;
-      }
+      width = width ? ` width="${width}"` : "";
+      height = height ? ` height="${height}"` : "";
+      title = title ? ` title="${title}"` : "";
+      src = src ? `src="${src}"` : "";
+      alt = alt ? ` alt="${alt}"` : "";
       // Important: this **must** start with '<img ' right now
       // due to our fairly naive parsing code for html blocks.
       return `<img ${src} ${alt} ${width} ${height} ${title}/>`;
