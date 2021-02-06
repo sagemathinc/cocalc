@@ -9,27 +9,21 @@ import {
   Options,
 } from "smc-webapp/codemirror/extensions/insert-special-char";
 import { alert_message } from "smc-webapp/alerts";
-import { restoreSelection } from "./commands";
+import { restoreSelectionAndFocus } from "./commands";
 
 export async function insertSpecialChar(editor): Promise<void> {
   let opts: Options | undefined = undefined;
-  console.log(0);
   try {
     try {
-      console.log(1);
       opts = await get_insert_special_char_from_user();
-      console.log(2, opts);
     } catch (err) {
       alert_message({ type: "error", message: err.errorFields[0]?.errors });
       return;
     }
     if (opts == null) return; // user canceled.
   } finally {
-    console.log(3);
-    // The above dialog breaks focus, so we always restore it.
-    await restoreSelection(editor);
+    // The above dialog breaks focus and possibly selection, so we always restore it.
+    await restoreSelectionAndFocus(editor);
   }
-
-  console.log(4, editor, opts.char);
   Transforms.insertText(editor, opts.char);
 }

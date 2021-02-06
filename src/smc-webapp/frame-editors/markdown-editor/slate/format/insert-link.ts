@@ -9,7 +9,7 @@ import {
   Options,
 } from "smc-webapp/codemirror/extensions/insert-link";
 import { alert_message } from "smc-webapp/alerts";
-import { restoreSelection, selectionToText } from "./commands";
+import { restoreSelectionAndFocus, selectionToText } from "./commands";
 
 export async function insertLink(editor): Promise<void> {
   let opts: Options | undefined = undefined;
@@ -26,7 +26,7 @@ export async function insertLink(editor): Promise<void> {
     if (opts == null) return; // user canceled.
   } finally {
     // The above dialog breaks focus, so we always restore it.
-    await restoreSelection(editor);
+    await restoreSelectionAndFocus(editor);
   }
 
   const node = {

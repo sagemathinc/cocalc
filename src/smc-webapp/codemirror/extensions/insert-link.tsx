@@ -101,7 +101,13 @@ export async function get_insert_link_opts_from_user(
             target: false,
             title: "",
           }}
-          onFinish={(values) => cb(undefined, values)}
+          onFinish={(values) => {
+            // empty displayed text really doesn't work well (since can't see the link).
+            if (!values.displayed_text) values.displayed_text = values.title;
+            if (!values.displayed_text) values.displayed_text = values.url;
+            if (!values.displayed_text) values.displayed_text = "link";
+            cb(undefined, values);
+          }}
           onFinishFailed={(err) => cb(err)}
         >
           <Form.Item

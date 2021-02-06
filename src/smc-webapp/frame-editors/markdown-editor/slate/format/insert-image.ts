@@ -9,7 +9,7 @@ import {
   Options,
 } from "smc-webapp/codemirror/extensions/insert-image";
 import { alert_message } from "smc-webapp/alerts";
-import { restoreSelection } from "./commands";
+import { restoreSelectionAndFocus } from "./commands";
 
 export async function insertImage(editor): Promise<void> {
   let opts: Options | undefined = undefined;
@@ -23,7 +23,7 @@ export async function insertImage(editor): Promise<void> {
     if (opts == null) return; // user canceled.
   } finally {
     // The above dialog breaks focus, so we always restore it.
-    await restoreSelection(editor);
+    await restoreSelectionAndFocus(editor);
   }
 
   const node = {

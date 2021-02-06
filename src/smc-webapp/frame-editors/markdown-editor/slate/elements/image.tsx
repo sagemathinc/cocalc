@@ -74,11 +74,11 @@ register({
 
   fromSlate: ({ node }) => {
     // ![ALT](https://wstein.org/bella-and-william.jpg "title")
-    const src = node.src ?? "";
-    const alt = node.alt ?? "";
+    let src = node.src ?? "";
+    let alt = node.alt ?? "";
     let title = node.title ?? "";
-    const width = node.width;
-    const height = node.height;
+    let width = node.width;
+    let height = node.height;
     if (!width && !height) {
       if (title.length > 0) {
         title = ` \"${title}\"`;
@@ -86,7 +86,22 @@ register({
       return `![${alt}](${src}${title})`;
     } else {
       // width or height require using html instead, unfortunately...
-      return `<img alt='${alt}' src='${src}' width=${width} height=${height} title='${title}'/>`;
+      if (width) {
+        width = `width="${width}"`;
+      }
+      if (height) {
+        height = `height="${height}"`;
+      }
+      if (title) {
+        title = `title="${title}"`;
+      }
+      src = `src="${src}"`;
+      if (alt) {
+        alt = `alt="${alt}"`;
+      }
+      // Important: this **must** start with '<img ' right now
+      // due to our fairly naive parsing code for html blocks.
+      return `<img ${src} ${alt} ${width} ${height} ${title}/>`;
     }
   },
 
