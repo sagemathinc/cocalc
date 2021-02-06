@@ -5,7 +5,7 @@
 
 import { isEqual } from "lodash";
 import { is_array, startswith } from "smc-util/misc";
-import { Editor, Element, Node, Text, Range, Transforms } from "slate";
+import { Editor, Element, Node, Point, Text, Range, Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import { markdown_to_slate } from "../markdown-to-slate";
 import { commands } from "../../../../editors/editor-button-bar";
@@ -220,6 +220,14 @@ function findMarkedFragmentWithPrefix(
     return findMarkedFragmentWithPrefix(fragment.children, prefix);
   }
   return;
+}
+
+// TODO: make this part of a focus/last selection plugin.
+export function getFocus(editor: Editor): Point {
+  return (
+    editor.selection?.focus ??
+    (editor as any).lastSelection?.focus ?? { path: [0, 0], offset: 0 }
+  );
 }
 
 export async function setSelectionAndFocus(
