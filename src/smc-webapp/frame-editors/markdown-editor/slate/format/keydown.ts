@@ -13,12 +13,24 @@ import { formatText } from "./format-text";
 import { emptyParagraph } from "../padding";
 import { indentListItem, unindentListItem } from "./indent";
 import { toggleCheckbox } from "../elements/checkbox";
+import { selectAll } from "./misc";
+import { IS_MACOS } from "smc-webapp/feature";
 
 export function keyFormat(editor, e): boolean {
   if (formatText(editor, e)) {
     // control+b, etc. to format selected text.
     return true;
   }
+  if (e.key == "a" && ((IS_MACOS && e.metaKey) || (!IS_MACOS && e.ctrlKey))) {
+    // On Firefox doing browser select all selects too much (e.g., the
+    // react-windowed list), and this causes crashes.  Note that this
+    // selectAll here right now does NOT fix the problem with large
+    // documents where select all fails (due to missing DOM nodes not
+    // in the window).  The select now happens but other things break.
+    selectAll(editor);
+    return true;
+  }
+
   // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
   if (e.key == " ") {
     const noModifiers = !(e.shiftKey || e.ctrlKey || e.metaKey || e.altKey);

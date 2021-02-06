@@ -111,9 +111,8 @@ register({
 
     return (
       <span {...attributes}>
-        <span ref={ref}>
+        <span ref={ref} contentEditable={false}>
           <img
-            contentEditable={false}
             src={src}
             alt={alt}
             title={title}

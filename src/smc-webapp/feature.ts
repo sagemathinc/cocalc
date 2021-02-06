@@ -12,6 +12,7 @@ let IS_MOBILE,
   IS_IPAD,
   IS_IOS,
   IS_SAFARI,
+  IS_MACOS,
   isMobile,
   get_browser,
   get_mobile,
@@ -96,6 +97,8 @@ if ((global as any).window != undefined) {
   $.browser.edge = /edge\/\d./i.test(user_agent);
 
   IS_SAFARI = !!$.browser?.safari;
+
+  IS_MACOS = (navigator.platform ?? "").toLowerCase().includes("mac");
 
   get_browser = function () {
     for (const k in $.browser) {
@@ -199,6 +202,7 @@ export {
   IS_IPAD,
   IS_IOS,
   IS_SAFARI,
+  IS_MACOS,
   isMobile,
   is_responsive_mode,
   get_browser,
