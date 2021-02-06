@@ -3,17 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../../../app-framework";
+import { React, useState } from "../../../../app-framework";
 import {
   register,
   SlateElement,
   useFocused,
   useProcessLinks,
   useSelected,
+  useSlate,
 } from "./register";
 import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../util";
-import { startswith, /*endswith*/ } from "smc-util/misc";
+import { startswith /*endswith*/ } from "smc-util/misc";
 import { toSlate as toSlateImage } from "./image";
+import { SlateCodeMirror } from "./codemirror";
+import { Transforms } from "slate";
 
 export interface HtmlInline extends SlateElement {
   type: "html_inline";
@@ -30,8 +33,12 @@ export interface HtmlBlock extends SlateElement {
 }
 
 function toSlate({ type, token, children }) {
-  // Special case of images -- we use a completely different function.
-  if (startswith(token.content, "<img ")) {
+  // Special case of images (one line, img tag);
+  // we use a completely different function.
+  if (
+    startswith(token.content, "<img ") &&
+    token.content.trim().split("\n").length <= 1
+  ) {
     return toSlateImage({ type, token, children });
   }
   return {
@@ -59,6 +66,36 @@ const Element = ({ attributes, children, element }) => {
   const is_comment = false;
   // const is_comment = startswith(html, "<!--") && endswith(html, "-->");
 
+  // mode for editing the raw html (off by default); only supported for
+  // non-inline right now.
+  const [editMode, setEditMode] = useState<boolean>(false);
+  const editor = useSlate();
+  function renderEditMode() {
+    if (!editMode) return;
+    return (
+      <div style={{ boxShadow: "8px 8px 4px #888" }}>
+        <SlateCodeMirror
+          value={html}
+          onChange={(html) => {
+            Transforms.setNodes(editor, { html } as any, {
+              match: (node) =>
+                node["type"] == "html_block" || node["type"] == "html_inline",
+            });
+          }}
+          onBlur={() => setEditMode(false)}
+          info="html"
+          options={{
+            lineWrapping: true,
+            autofocus: true,
+            autoCloseTags: true,
+            smartIndent: true,
+          }}
+          isInline={element["type"] == "html_inline"}
+        />
+      </div>
+    );
+  }
+
   if (element.type == "html_inline") {
     return (
       <span {...attributes}>
@@ -81,11 +118,15 @@ const Element = ({ attributes, children, element }) => {
     return (
       <div {...attributes}>
         <div
-          ref={ref}
           style={{ border }}
           contentEditable={false}
-          dangerouslySetInnerHTML={{ __html: html }}
-        ></div>
+          onDoubleClick={() => {
+            setEditMode(true);
+          }}
+        >
+          {renderEditMode()}
+          <div ref={ref} dangerouslySetInnerHTML={{ __html: html }}></div>
+        </div>
         {children}
       </div>
     );

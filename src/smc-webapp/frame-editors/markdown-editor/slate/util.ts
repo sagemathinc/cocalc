@@ -226,3 +226,7 @@ export function string_to_style(style: string): any {
 }
 
 export const DEFAULT_CHILDREN = [{ text: "" }];
+
+export function removeBlankLines(s: string): string {
+  return s.replace(/^\s*\n/gm, "");
+}

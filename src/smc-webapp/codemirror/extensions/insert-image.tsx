@@ -148,13 +148,14 @@ export async function get_insert_image_opts_from_user(): Promise<
       </Modal>
     );
   });
-  // if width or height are numbers, append pixel units.
-  for (const x of ["width", "height"]) {
-    if (opts[x] && opts[x].match(/^[\.0-9]+$/)) {
-      opts[x] += "px";
+  if (opts != null) {
+    // if width or height are numbers, append pixel units.
+    for (const x of ["width", "height"]) {
+      if (opts[x] && opts[x].match(/^[\.0-9]+$/)) {
+        opts[x] += "px";
+      }
     }
   }
-
   return opts;
 }
 

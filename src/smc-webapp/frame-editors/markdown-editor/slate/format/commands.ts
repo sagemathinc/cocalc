@@ -9,7 +9,7 @@ import { Editor, Element, Node, Text, Range, Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import { markdown_to_slate } from "../markdown-to-slate";
 import { commands } from "../../../../editors/editor-button-bar";
-import { DEFAULT_CHILDREN } from "../util";
+import { DEFAULT_CHILDREN, removeBlankLines } from "../util";
 import { delay } from "awaiting";
 import { insertLink } from "./insert-link";
 import { insertImage } from "./insert-image";
@@ -105,7 +105,6 @@ function currentWord(editor: Editor): Range | undefined {
     focus: { path: path0.concat([end.i]), offset: end.offset },
   };
 }
-
 
 function isMarkActive(editor: Editor, mark: string): boolean {
   return !!Editor.marks(editor)?.[mark];
@@ -363,7 +362,7 @@ function transformToEquation(editor: Editor, display: boolean): void {
     value = "x^2"; // placeholder math
   } else {
     // eliminate blank lines which break math apart
-    value = value.replace(/^\s*\n/gm, "");
+    value = removeBlankLines(value);
   }
   let node: Node;
   if (display) {

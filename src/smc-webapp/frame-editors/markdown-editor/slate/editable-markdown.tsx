@@ -244,7 +244,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    /*
     const { Transforms, Editor } = require("slate");
     (window as any).z = {
       editor,
@@ -255,7 +254,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       slatePointToMarkdown,
       indexToPosition,
     };
-    */
 
     const [rowStyle, setRowStyle] = useState<CSS>({});
 
