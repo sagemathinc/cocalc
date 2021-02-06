@@ -222,16 +222,28 @@ function findMarkedFragmentWithPrefix(
   return;
 }
 
-export async function restoreSelection(editor: ReactEditor): Promise<void> {
+export async function setSelectionAndFocus(
+  editor: ReactEditor,
+  selection
+): Promise<void> {
+  // This delay is critical since otherwise the focus itself
+  // also sets the selection cancelling out the setSelection below.
+  // Note: firefox + focus/selection + slate is extremely broken
+  // and I have no idea how to fix it yet
+  //     https://github.com/sagemathinc/cocalc/issues/5204
+  ReactEditor.focus(editor);
+  await delay(1);
+  Transforms.setSelection(editor, selection);
+}
+
+export async function restoreSelectionAndFocus(
+  editor: ReactEditor
+): Promise<void> {
   let selection = editor.selection;
   if (selection == null) {
     selection = (editor as any).lastSelection;
     if (selection == null) return;
-    ReactEditor.focus(editor);
-    // This delay is critical since otherwise the focus itself
-    // also sets the selection cancelling out the setSelection below.
-    await delay(0);
-    Transforms.setSelection(editor, selection);
+    await setSelectionAndFocus(editor, selection);
   }
 }
 
@@ -241,7 +253,7 @@ export async function formatAction(
   args
 ): Promise<void> {
   // console.log("formatAction", cmd, args);
-  await restoreSelection(editor);
+  await restoreSelectionAndFocus(editor);
   try {
     if (
       cmd == "bold" ||
