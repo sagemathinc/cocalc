@@ -14,7 +14,7 @@
 
 import { Markdown } from "smc-webapp/r_misc";
 import { is_different, path_split } from "smc-util/misc";
-import { throttle } from "underscore";
+import { debounce } from "lodash";
 import { React, ReactDOM, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { MAX_WIDTH_NUM } from "../options";
@@ -135,7 +135,7 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
       <div
         style={style}
         ref={scroll}
-        onScroll={throttle(() => on_scroll(), 250)}
+        onScroll={debounce(() => on_scroll(), 200)}
         /* this cocalc-editor-div class is needed for a safari hack only */
         className={"cocalc-editor-div"}
       >

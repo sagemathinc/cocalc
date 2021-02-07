@@ -9,6 +9,7 @@ const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
 import { IS_FIREFOX } from "../../../feature";
 
+import { EditorState } from "../../frame-tree/types";
 import { Editor, createEditor, Descendant } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
@@ -68,6 +69,7 @@ const STYLE = {
   border: "1px solid lightgrey",
   overflow: "auto",
   boxShadow: "1px 1px 15px 1px #aaa",
+  opacity: 0, // changed to 1 after initial scroll to avoid flicker
 } as CSS;
 
 interface Props {
@@ -81,6 +83,7 @@ interface Props {
   reload_images: boolean;
   is_current?: boolean;
   is_fullscreen?: boolean;
+  editor_state?: EditorState;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -94,6 +97,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     path,
     is_current,
     is_fullscreen,
+    editor_state,
   }) => {
     const editor: ReactEditor = useMemo(() => {
       const cur = actions.getSlateEditor(id);
@@ -108,6 +112,27 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     // todo move to our own context-based hook!
     (editor as any).project_id = project_id;
     (editor as any).path = path;
+
+    const scrollRef = useRef<HTMLDivElement | null>(null);
+    const restoreScroll = async () => {
+      const scroll = editor_state?.get("scroll");
+      if (!scroll || scrollRef.current == null) return;
+      const elt = $(scrollRef.current);
+      // wait until render happens
+      await new Promise(requestAnimationFrame);
+      elt.scrollTop(scroll);
+      await delay(0);
+      elt.css("opacity", 1);
+      // do any scrolling after image loads
+      elt.find("img").on("load", function () {
+        elt.scrollTop(scroll);
+      });
+    };
+    useEffect(() => {
+      if (value != "Loading...") {
+        restoreScroll();
+      }
+    }, [value]);
 
     const editorMarkdownValueRef = useRef<string | undefined>(undefined);
     const hasUnsavedChangesRef = useRef<boolean>(false);
@@ -233,6 +258,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // with a view with things like loan $'s escaped.'
       (editor as any).ignoreNextOnChange = true;
       applyOperations(editor, operations);
+
       if (EXPENSIVE_DEBUG) {
         const stringify = require("json-stable-stringify");
         // We use JSON rather than isEqual here, since {foo:undefined}
@@ -404,6 +430,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             ...STYLE,
             fontSize: font_size,
           }}
+          ref={scrollRef}
+          onScroll={debounce(() => {
+            const scroll = scrollRef.current?.scrollTop;
+            if (scroll != null) {
+              actions.save_editor_state(id, { scroll });
+            }
+          }, 200)}
         >
           {slate}
         </div>

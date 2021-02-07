@@ -70,7 +70,7 @@ export function indentListItem(editor: Editor): boolean {
             empty_hack = true;
             s = "- &nbsp;\n";
           }
-          return "    " + s;
+          return "   " + s;
         },
       })
     ) {
