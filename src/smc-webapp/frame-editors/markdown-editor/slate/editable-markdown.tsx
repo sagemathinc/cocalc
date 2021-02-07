@@ -69,7 +69,6 @@ const STYLE = {
   border: "1px solid lightgrey",
   overflow: "auto",
   boxShadow: "1px 1px 15px 1px #aaa",
-  opacity: 0, // changed to 1 after initial scroll to avoid flicker
 } as CSS;
 
 interface Props {
@@ -116,13 +115,14 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const restoreScroll = async () => {
       const scroll = editor_state?.get("scroll");
-      if (!scroll || scrollRef.current == null) return;
+      if (!scroll || scrollRef.current == null) {
+        return;
+      }
       const elt = $(scrollRef.current);
       // wait until render happens
       await new Promise(requestAnimationFrame);
       elt.scrollTop(scroll);
       await delay(0);
-      elt.css("opacity", 1);
       // do any scrolling after image loads
       elt.find("img").on("load", function () {
         elt.scrollTop(scroll);
