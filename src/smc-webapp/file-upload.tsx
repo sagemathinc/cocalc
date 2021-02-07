@@ -153,6 +153,7 @@ interface FileUploadWrapperProps {
   style?: React.CSSProperties; // css styles to apply to the containing div
   dropzone_ref?: DropzoneRef; // gets set to underlying Dropzone instance
   close_preview_ref?: { current: Function | null }; // set to function to close the preview
+  className?: string;
 }
 
 export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
@@ -383,7 +384,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
   }
 
   return (
-    <div style={props.style} ref={zone_ref}>
+    <div style={props.style} ref={zone_ref} className={props.className}>
       {!props.disabled ? render_preview() : undefined}
       {props.children}
     </div>

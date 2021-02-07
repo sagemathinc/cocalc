@@ -8,6 +8,7 @@
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
 import { IS_FIREFOX } from "../../../feature";
+
 import { Editor, createEditor, Descendant } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
@@ -31,6 +32,8 @@ import { markdown_to_slate } from "./markdown-to-slate";
 import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { withAutoFormat, keyFormat } from "./format";
+
+import { useUpload, withUpload } from "./upload";
 
 import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";
@@ -92,13 +95,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     is_current,
     is_fullscreen,
   }) => {
-    //const isMountedRef = useIsMountedRef();
-
     const editor: ReactEditor = useMemo(() => {
       const cur = actions.getSlateEditor(id);
       if (cur != null) return cur;
-      const ed = withAutoFormat(
-        withIsInline(withIsVoid(withReact(createEditor())))
+      const ed = withUpload(
+        withAutoFormat(withIsInline(withIsVoid(withReact(createEditor()))))
       );
       actions.registerSlateEditor(id, ed);
       return ed;
@@ -361,7 +362,37 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     };
 
-    return (
+    let slate = (
+      <Slate editor={editor} value={editorValue} onChange={onChange}>
+        <Editable
+          className={USE_WINDOWING ? "smc-vfill" : undefined}
+          readOnly={read_only}
+          renderElement={Element}
+          renderLeaf={Leaf}
+          onKeyDown={!read_only ? onKeyDown : undefined}
+          onBlur={saveValue}
+          onDoubleClick={inverseSearch}
+          style={
+            USE_WINDOWING
+              ? undefined
+              : {
+                  maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
+                  minWidth: "80%",
+                  margin: "0 auto",
+                  padding: "70px",
+                  background: "white",
+                }
+          }
+          windowing={
+            USE_WINDOWING
+              ? { rowStyle, overscanRowCount: OVERSCAN_ROW_COUNT }
+              : undefined
+          }
+        />
+      </Slate>
+    );
+
+    let body = (
       <div
         className="smc-vfill"
         style={{ overflow: "auto", backgroundColor: "white" }}
@@ -374,36 +405,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             fontSize: font_size,
           }}
         >
-          <Slate editor={editor} value={editorValue} onChange={onChange}>
-            <Editable
-              className={USE_WINDOWING ? "smc-vfill" : undefined}
-              readOnly={read_only}
-              renderElement={Element}
-              renderLeaf={Leaf}
-              onKeyDown={!read_only ? onKeyDown : undefined}
-              onBlur={saveValue}
-              onDoubleClick={inverseSearch}
-              style={
-                USE_WINDOWING
-                  ? undefined
-                  : {
-                      maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
-                      minWidth: "80%",
-                      margin: "0 auto",
-                      padding: "70px",
-                      background: "white",
-                    }
-              }
-              windowing={
-                USE_WINDOWING
-                  ? { rowStyle, overscanRowCount: OVERSCAN_ROW_COUNT }
-                  : undefined
-              }
-            />
-          </Slate>
+          {slate}
         </div>
       </div>
     );
+    return useUpload(project_id, path, editor, body);
   }
 );
 

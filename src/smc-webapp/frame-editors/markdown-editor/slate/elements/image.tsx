@@ -79,7 +79,13 @@ register({
     let title = node.title ?? "";
     let width = node.width;
     let height = node.height;
-    if (!width && !height) {
+    if (!width && !height && !src.match(/\s/)) {
+      // no width, no height and src has no spaces in it!
+      // Our markdown processes doesn't work when the
+      // image url has a space (or at least it is a pain
+      // to escape it), and using quotes doesn't easily
+      // workaround that so we just use an img take when
+      // src has whitespace (below).
       if (title.length > 0) {
         title = ` \"${title}\"`;
       }

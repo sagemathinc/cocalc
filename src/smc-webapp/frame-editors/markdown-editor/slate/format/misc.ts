@@ -16,7 +16,6 @@ export function selectAll(editor: Editor): void {
 }
 
 export function backspaceVoid(editor: Editor): boolean {
-  console.log("backspaceVoid", 0);
   if (editor.selection == null || !Range.isCollapsed(editor.selection)) {
     return false;
   }

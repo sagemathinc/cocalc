@@ -24,6 +24,7 @@ export async function insertImage(editor): Promise<void> {
   const node = {
     type: "image",
     isInline: true,
+    isVoid: true,
     src: opts.url,
     title: opts.title,
     height: opts.height,
