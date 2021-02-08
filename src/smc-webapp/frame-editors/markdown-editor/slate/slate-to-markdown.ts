@@ -5,7 +5,6 @@
 import { Node, Element, Text } from "slate";
 import { serializeLeaf } from "./leaf-to-markdown";
 import { serializeElement } from "./element-to-markdown";
-//import { trimPaddingFromMarkdown } from "./padding";
 
 export interface Info {
   parent: Node; // the parent of the node being serialized

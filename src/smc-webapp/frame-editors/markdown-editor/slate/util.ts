@@ -23,7 +23,6 @@ const MAP = {
   "<": "&lt;",
   ">": "&gt;",
   "&": "&amp;",
-  "\xa0": "&nbsp;", // *silent* nbsp's are VERY annoying.
   $: "\\$",
 } as const;
 

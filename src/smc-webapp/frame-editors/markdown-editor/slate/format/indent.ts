@@ -10,6 +10,7 @@ import { slateDiff } from "../slate-diff";
 import { applyOperations } from "../operations";
 
 const SENTINEL = "\uFE30";
+const LIST_INDENT = "    "; // 4 spaces -- needed to support numbered lists properly
 
 function findParentOfType(
   editor,
@@ -52,33 +53,25 @@ export function indentListItem(editor: Editor): boolean {
     return false;
   }
   const [node] = x;
-  let empty_hack: boolean = false;
-  if (node.children)
+  if (node.children) {
     if (
       !changeViaMarkdown(editor, {
         nodeHook: (elt, s) => {
           if (elt !== node) return;
           if (s.trim() == "-") {
-            // Markdown interprets an indented list with nothing in
+            // Markdown interprets an indented *tight* list with nothing in
             // the first item as making the previous line a header.
-            // However, people might like to hit tab to indent the
-            // first sub-list-item before they start typing.  The only
-            // technically correct normalized way to deal with this is to make
-            // a list item with an nbsp in it.
-            // Combined with moving the cursor back below, this results
-            // in one weird trailing space, which has no ill effects.
-            empty_hack = true;
-            s = "- &nbsp;\n";
+            // In this case, we switch to a non-tight list.  It's the only
+            // way with markdown... sorry.
+            return "\n" + LIST_INDENT + s;
+          } else {
+            return LIST_INDENT + s;
           }
-          return "   " + s;
         },
       })
     ) {
       return false;
     }
-  if (empty_hack) {
-    // delete that blank space we had to add due to limitations in markdown.
-    editor.deleteBackward("character");
   }
   return true;
 }

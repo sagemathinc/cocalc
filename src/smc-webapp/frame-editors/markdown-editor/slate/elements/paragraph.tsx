@@ -32,11 +32,8 @@ register({
 
   fromSlate: ({ node, children }) => {
     if (children.trim() == "" && !node.tight) {
-      // We put in an invisible space paragraph, which parses back fine
-      // from markdown and preserves looking like an extra paragraph.
-      // This is a pretty solid simple fix to the "vertical whitespace"
-      // problem with markdown...  right?
-      return "&nbsp;\n\n";
+      // NOTE: vertical space will get lost.  That's the nature of markdown.
+      return "\n\n";
     }
     return `${children}${node.tight ? "\n" : "\n\n"}`;
   },

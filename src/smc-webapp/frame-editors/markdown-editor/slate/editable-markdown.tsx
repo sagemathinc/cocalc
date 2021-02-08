@@ -10,7 +10,7 @@ const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 import { IS_FIREFOX } from "../../../feature";
 
 import { EditorState } from "../../frame-tree/types";
-import { Editor, createEditor, Descendant } from "slate";
+import { createEditor, Descendant } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
 import {
@@ -27,7 +27,6 @@ import { Actions } from "../actions";
 import { MAX_WIDTH_NUM } from "../../options";
 import { use_font_size_scaling } from "../../frame-tree/hooks";
 import { Path } from "../../frame-tree/path";
-import { emptyParagraph } from "./padding";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
 import { Element } from "./element";
@@ -371,7 +370,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         }
 
         setEditorValue(newEditorValue);
-        ensureParagraphAtTopAndBottom(editor);
 
         if (!is_current) {
           // Do not save when editor not current since user could be typing
@@ -465,35 +463,3 @@ const withIsInline = (editor) => {
 
   return editor;
 };
-
-async function ensureParagraphAtTopAndBottom(editor: Editor) {
-  await delay(0);
-  const { children } = editor;
-  const top = children[0];
-  if (
-    top != null &&
-    top["type"] != "meta" &&
-    top["type"] != "paragraph" &&
-    top["type"] != "heading"
-  ) {
-    // put a paragraph at the top
-    editor.apply({
-      type: "insert_node",
-      path: [0],
-      node: emptyParagraph(),
-    });
-  }
-  const bottom = children[children.length - 1];
-  if (
-    bottom != null &&
-    bottom["type"] != "paragraph" &&
-    bottom["type"] != "heading"
-  ) {
-    // put a paragraph at the bottom
-    editor.apply({
-      type: "insert_node",
-      path: [children.length],
-      node: emptyParagraph(),
-    });
-  }
-}
