@@ -70,9 +70,13 @@ smc_compute = (opts) =>
         args    : required
         timeout : TIMEOUT
         cb      : required
+    env = undefined
     if DEV
         winston.debug("dev_smc_compute: running #{misc.to_json(opts.args)}")
         os_path = require('path')
+        # 2021: we have to be explicit to smc_compute where it's modules are now.
+        # prior to encapsulating the global "/cocalc/..." setup, this would have picked up the global installation.
+        env = {PYTHONPATH: os_path.join(process.env.SMC_ROOT, 'smc_pyutil/')}
         command = os_path.join(process.env.SMC_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
         PROJECT_PATH = conf.project_path()
         v = ['--dev', "--projects", PROJECT_PATH]
@@ -95,6 +99,7 @@ smc_compute = (opts) =>
         timeout : opts.timeout
         bash    : false
         path    : process.cwd()
+        env     : env
         cb      : (err, output) =>
             #winston.debug(misc.to_safe_str(output))
             winston.debug("smc_compute: finished running #{opts.args.join(' ')} -- #{err}")
