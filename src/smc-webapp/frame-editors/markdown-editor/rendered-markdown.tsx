@@ -19,9 +19,10 @@ import { React, ReactDOM, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { MAX_WIDTH_NUM } from "../options";
 import { EditorState } from "../frame-tree/types";
+import { Actions } from "./actions";
 
 interface Props {
-  actions: any;
+  actions: Actions;
   id: string;
   path: string;
   project_id: string;

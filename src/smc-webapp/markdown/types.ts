@@ -1,0 +1,17 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+export interface Token {
+  hidden?: boolean; // See https://markdown-it.github.io/markdown-it/#Token.prototype.hidden
+  type: string;
+  tag?: string;
+  attrs?: string[][];
+  children?: Token[];
+  content: string;
+  block?: boolean;
+  markup?: string;
+  checked?: boolean;
+  info?: string;
+}

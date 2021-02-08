@@ -10,6 +10,7 @@ Top-level react component for editing markdown documents
 import { createEditor } from "../frame-tree/editor";
 import { RenderedMarkdown } from "./rendered-markdown";
 import { EditableMarkdown } from "./slate/editable-markdown";
+import { TableOfContents } from "./table-of-contents";
 import { set } from "smc-util/misc";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
@@ -28,6 +29,7 @@ const EDITOR_SPEC = {
       "increase_font_size",
       "save",
       "time_travel",
+      "show_table_of_contents",
       //"replace",
       //"find",
       //"goto_line",
@@ -49,6 +51,7 @@ const EDITOR_SPEC = {
       "increase_font_size",
       "save",
       "time_travel",
+      "show_table_of_contents",
       "replace",
       "find",
       "goto_line",
@@ -74,6 +77,13 @@ const EDITOR_SPEC = {
       "undo", // need these because button bars at top let you do something even in rendered only view.
       "redo",
     ]),
+  },
+  markdown_table_of_contents: {
+    short: "Contents",
+    name: "Table of Contents",
+    icon: "align-right",
+    component: TableOfContents,
+    buttons: set(["decrease_font_size", "increase_font_size"]),
   },
   terminal,
   settings: SETTINGS_SPEC,

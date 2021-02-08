@@ -3,35 +3,27 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { delay } from "awaiting";
 import { React, useRedux } from "../../app-framework";
-import { JupyterEditorActions } from "./actions";
 import { TableOfContents as TOC, TableOfContentsEntryList } from "../../r_misc";
+import { Actions } from "./actions";
 
 interface Props {
   font_size: number;
-  actions: JupyterEditorActions;
+  actions: Actions;
 }
 
 export const TableOfContents: React.FC<Props> = React.memo(
   ({ font_size, actions }) => {
     const contents: TableOfContentsEntryList | undefined = useRedux([
-      actions.jupyter_actions.name,
+      actions.name,
       "contents",
     ]);
-
-    async function jump_to_cell(id: string, extra): Promise<void> {
-      actions.jump_to_cell(id, extra);
-      // stupid hack due to rendering/windowing delays...
-      await delay(100);
-      actions.jump_to_cell(id, extra);
-    }
 
     return (
       <TOC
         contents={contents}
         style={{ fontSize: `${font_size - 4}px` }}
-        scrollTo={({ id, extra }) => jump_to_cell(id, extra)}
+        scrollTo={actions.scrollToHeading.bind(actions)}
       />
     );
   }

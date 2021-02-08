@@ -11,6 +11,9 @@ in other code directly, e.g, in supporting use of the slate editor.
 ```
 */
 
+export * from "./types";
+export * from "./table-of-contents";
+
 import * as MarkdownIt from "markdown-it";
 import * as emojiPlugin from "markdown-it-emoji";
 import { checkboxPlugin } from "./checkbox-plugin";
@@ -20,7 +23,7 @@ const MarkdownItFrontMatter = require("markdown-it-front-matter");
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
 import { remove_math, replace_math } from "smc-util/mathjax-utils"; // from project Jupyter
 
-const OPTIONS: MarkdownIt.Options = {
+export const OPTIONS: MarkdownIt.Options = {
   html: true,
   typographer: false,
   linkify: true,

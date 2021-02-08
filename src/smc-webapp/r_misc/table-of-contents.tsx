@@ -7,21 +7,21 @@ import { List } from "immutable";
 import { Icon, Loading } from "./index";
 import { CSS, React, TypedMap } from "../app-framework";
 
-interface Entry {
+export interface TableOfContentsEntry {
   id: string; // id that is unique across the table of contents
   value: string; // contents of the heading
   level?: 1 | 2 | 3 | 4 | 5 | 6; // optional heading size/level
   icon?: string; // font awesome icon name -- default "minus" (a dash)
   number?: number[]; // section numbering, so for "- 1.2.4  A Subsction" this would be [1,2,4].
-  align?: string; // this is just passed back to the scrollTo function to provide extra info about how to scroll to this heading.
+  extra?: any; // this is just passed back to the scrollTo function to provide extra info about how to scroll to this heading.
 }
 
-export type TableOfContentsEntry = TypedMap<Entry>;
-export type TableOfContentsEntryList = List<TableOfContentsEntry>;
+export type TableOfContentsEntryMap = TypedMap<TableOfContentsEntry>;
+export type TableOfContentsEntryList = List<TableOfContentsEntryMap>;
 
 interface Props {
   contents?: TableOfContentsEntryList; // an immutable.js List of entries, as above.
-  scrollTo?: (id: string, align?: string | undefined) => void;
+  scrollTo?: (TableOfContentsEntry) => void;
   style?: CSS;
 }
 
@@ -63,7 +63,7 @@ export const TableOfContents: React.FC<Props> = React.memo(
       return <Loading theme="medium" />;
     }
 
-    function renderEntry(entry: TableOfContentsEntry): JSX.Element {
+    function renderEntry(entry: TableOfContentsEntryMap): JSX.Element {
       let number = entry.get("number");
       let value = entry.get("value");
       if (number != null) {
@@ -72,11 +72,7 @@ export const TableOfContents: React.FC<Props> = React.memo(
       return (
         <div
           key={entry.get("id")}
-          onClick={
-            scrollTo != null
-              ? () => scrollTo(entry.get("id"), entry.get("align"))
-              : undefined
-          }
+          onClick={scrollTo != null ? () => scrollTo(entry.toJS()) : undefined}
           style={{
             cursor: "pointer",
             paddingLeft: `${entry.get("level", 1) * 2}em`,
