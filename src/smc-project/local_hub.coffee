@@ -101,6 +101,9 @@ blobs = require('./blobs')
 # Tame processes if they use a lot of CPU
 autorenice = require('./autorenice')
 
+# configure the project hub based on how it is run
+project_setup = require('./project_setup')
+
 # Client for connecting back to a hub
 {Client} = require('./client')
 
@@ -365,36 +368,12 @@ start_server = (tcp_port, raw_port, cb) ->
         cb(err)
     )
 
-# Contains additional environment variables. Base 64 encoded JSON of {[key:string]:string}.
-set_extra_env = ->
-    if not process.env.COCALC_EXTRA_ENV
-        winston.debug("set_extra_env: nothing provided")
-        return
-    try
-        env64 = process.env.COCALC_EXTRA_ENV
-        raw = Buffer.from(env64, 'base64').toString('utf8')
-        winston.debug("set_extra_env: #{raw}")
-        data = JSON.parse(raw)
-        if typeof data == 'object'
-            for k, v of data
-                if typeof v != 'string' or v.length == 0
-                    winston.debug("set_extra_env: ignoring key #{k}, value is not a string or length 0")
-                    continue
-                process.env[k] = v
-    catch err
-        # we report and ignore errors
-        winston.debug("ERROR set_extra_env -- cannot process '#{process.env.COCALC_EXTRA_ENV}' -- #{err}")
-
-
 # Final steps: kucalc specific setup, environment variable cleanup, and then we issue the "start_server" command …
 
 if program.kucalc
     winston.debug("running in kucalc")
     kucalc.IN_KUCALC = true
-    # clean environment to get rid of nvm and other variables
-    process.env.PATH = process.env.PATH.split(':').filter(((x) -> not x.startsWith('/cocalc/nvm'))).join(':')
-    for name in ['NODE_PATH', 'NODE_ENV', 'NODE_VERSION', 'NVM_CD_FLAGS', 'NVM_DIR', 'NVM_BIN', 'DEBUG']
-        delete process.env[name]
+    project_setup.cleanup()
 
     if program.test_firewall
         kucalc.init_gce_firewall_test(winston)
@@ -405,7 +384,11 @@ else
 if process.env.COCALC_PROJECT_AUTORENICE? or program.kucalc
     autorenice.activate(process.env.COCALC_PROJECT_AUTORENICE)
 
-set_extra_env()
+# this is only relevant for kucalc
+if process.env.COCALC_PROJECT_CONFIG
+    project_setup.configure(process.env.COCALC_PROJECT_CONFIG)
+
+project_setup.set_extra_env()
 
 start_server program.tcp_port, program.raw_port, (err) ->
     if err
