@@ -188,11 +188,14 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     await delay(0);
     if (this._state === "closed") return;
     this.set_active_id(id, true);
-    this.updateTableOfContents();
+    this.updateTableOfContents(true);
   }
 
-  public updateTableOfContents(): void {
-    if (!this.get_matching_frame({ type: "markdown_table_of_contents" })) {
+  public updateTableOfContents(force: boolean = false): void {
+    if (
+      !force &&
+      !this.get_matching_frame({ type: "markdown_table_of_contents" })
+    ) {
       // There is no table of contents frame so don't update that info.
       return;
     }
