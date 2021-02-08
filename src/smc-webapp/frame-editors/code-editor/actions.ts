@@ -841,8 +841,7 @@ export class Actions<
     this.store.emit("new-frame", { id, type });
   }
 
-  // raises an exception if the node does not exist; always
-  // call _has_frame_node first.
+  // Return undefined if the node with given id does not exist
   public _get_frame_node(id: string): Map<string, any> | undefined {
     return tree_ops.get_node(this._get_tree(), id);
   }
