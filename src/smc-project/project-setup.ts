@@ -8,21 +8,37 @@ This configures the project hub based on an environment variable or other data.
 */
 
 import * as debug from "debug";
-const L = debug("project:autorenice");
+const L = debug("project:project-setup");
 import { setPriority } from "os";
 
-export function configure(conf_enc) {
-  L(`configure(${conf_enc.slice(0, 30)})...`);
+// 19 is the minimum, we keep it 1 above that.
+export const DEFAULT_FREE_PROCS_NICENESS = 18;
+
+// this is for kucalc projects only
+export function is_free_project(): boolean {
+  const conf_enc = process.env.COCALC_PROJECT_CONFIG;
+  if (conf_enc == null) {
+    L("No COCALC_PROJECT_CONFIG env variable");
+    return false;
+  }
   try {
+    L(`configure(${conf_enc.slice(0, 30)}...)`);
     const conf_raw = Buffer.from(conf_enc, "base64").toString("utf8");
     const conf = JSON.parse(conf_raw);
-    if (conf?.quota?.member_host === false) {
-      L(`member_host is false -- renicing everything`);
-      setPriority(process.pid, 18);
-    }
+    const ifp = conf?.quota?.member_host === false;
+    L(`is_free_project: ${ifp}`);
+    return ifp;
   } catch (err) {
     // we report and ignore errors
-    return L(`ERROR configure -- cannot process '${conf_enc}' -- ${err}`);
+    L(`ERROR configure -- cannot process '${conf_enc}' -- ${err}`);
+    return false;
+  }
+}
+
+export function configure() {
+  if (is_free_project()) {
+    L(`member_host is false -- renicing everything`);
+    setPriority(process.pid, DEFAULT_FREE_PROCS_NICENESS);
   }
 }
 
@@ -61,6 +77,7 @@ export function set_extra_env(): void {
 // this should happen before set_extra_env
 export function cleanup(): void {
   // clean environment to get rid of nvm and other variables
+  if (process.env.PATH == null) return;
   process.env.PATH = process.env.PATH.split(":")
     .filter((x) => !x.startsWith("/cocalc/nvm"))
     .join(":");

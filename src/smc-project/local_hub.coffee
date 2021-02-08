@@ -102,7 +102,7 @@ blobs = require('./blobs')
 autorenice = require('./autorenice')
 
 # configure the project hub based on how it is run
-project_setup = require('./project_setup')
+project_setup = require('./project-setup')
 
 # Client for connecting back to a hub
 {Client} = require('./client')
@@ -385,9 +385,7 @@ if process.env.COCALC_PROJECT_AUTORENICE? or program.kucalc
     autorenice.activate(process.env.COCALC_PROJECT_AUTORENICE)
 
 # this is only relevant for kucalc
-if process.env.COCALC_PROJECT_CONFIG
-    project_setup.configure(process.env.COCALC_PROJECT_CONFIG)
-
+project_setup.configure()
 project_setup.set_extra_env()
 
 start_server program.tcp_port, program.raw_port, (err) ->

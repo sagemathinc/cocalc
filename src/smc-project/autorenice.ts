@@ -15,6 +15,7 @@ import { setPriority } from "os";
 import { delay } from "awaiting";
 import { ProjectInfoServer, get_ProjectInfoServer } from "./project-info";
 import { ProjectInfo, Processes, Process } from "./project-info/types";
+import { is_free_project, DEFAULT_FREE_PROCS_NICENESS } from "./project-setup";
 
 // only for testing, see bottom
 if (require.main === module) {
@@ -42,6 +43,7 @@ interface Opts {
 
 class ProcessRenicer {
   private readonly verbose: boolean;
+  private readonly free_project: boolean;
   private readonly project_info: ProjectInfoServer;
   private readonly config: string;
   private timestamp?: number;
@@ -49,6 +51,7 @@ class ProcessRenicer {
 
   constructor(opts?: Opts) {
     const { verbose = false, config = "1" } = opts ?? {};
+    this.free_project = is_free_project();
     this.verbose = verbose;
     this.config = config;
     L("config", this.config);
@@ -99,6 +102,7 @@ class ProcessRenicer {
   }
 
   private adjust_proc(proc: Process) {
+    // special case: free project processes have a low default priority
     const old_nice = proc.stat.nice;
     const new_nice = this.nice(proc.stat);
     if (old_nice < new_nice) {
@@ -113,6 +117,11 @@ class ProcessRenicer {
   }
 
   private nice(stat) {
+    // for free projects we do not bother with actual usage – just down prioritize all of them
+    if (this.free_project) {
+      return DEFAULT_FREE_PROCS_NICENESS;
+    }
+
     const { utime, stime, cutime, cstime } = stat;
     const self = utime + stime;
     const child = cutime + cstime;
