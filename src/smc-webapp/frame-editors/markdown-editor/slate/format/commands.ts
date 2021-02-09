@@ -22,10 +22,11 @@ import { emptyParagraph } from "../padding";
 // is not inside) then returns undefined.  Otherwise, returns
 // the Range containing the current word.
 function currentWord(editor: Editor): Range | undefined {
-  if (editor.selection == null || !Range.isCollapsed(editor.selection)) {
+  const selection = getSelection(editor);
+  if (selection == null || !Range.isCollapsed(selection)) {
     return; // nothing to do -- no current word.
   }
-  const { focus } = editor.selection;
+  const { focus } = selection;
   const [node, path] = Editor.node(editor, focus);
   if (!Text.isText(node)) {
     // focus must be in a text node.
@@ -119,7 +120,7 @@ function toggleMark(editor: Editor, mark: string): void {
 }
 
 export function formatSelectedText(editor: ReactEditor, mark: string) {
-  const { selection } = editor;
+  const selection = getSelection(editor);
   if (selection == null) return; // nothing to do.
   if (Range.isCollapsed(selection)) {
     // select current word (which may partly span multiple text nodes!)
@@ -143,7 +144,7 @@ export function formatSelectedText(editor: ReactEditor, mark: string) {
   Transforms.setNodes(
     editor,
     { [mark]: !isAlreadyMarked(editor, mark) ? true : undefined },
-    { match: (node) => Text.isText(node), split: true }
+    { at: selection, match: (node) => Text.isText(node), split: true }
   );
 }
 
@@ -151,6 +152,8 @@ function unformatSelectedText(
   editor: Editor,
   options: { prefix?: string }
 ): void {
+  const at = getSelection(editor);
+  if (at == null) return; // nothing to do.
   if (options.prefix) {
     // Remove all formatting of the selected text
     // that begins with the given prefix.
@@ -160,7 +163,7 @@ function unformatSelectedText(
       Transforms.setNodes(
         editor,
         { [mark]: false },
-        { match: (node) => Text.isText(node), split: true }
+        { at, match: (node) => Text.isText(node), split: true }
       );
     }
   }
@@ -456,14 +459,16 @@ function fragmentToMarkdown(fragment): string {
 */
 
 function formatHeading(editor, level: number): void {
+  const at = getSelection(editor);
   Transforms.unwrapNodes(editor, {
     match: (node) => node["type"] == "heading",
     mode: "all",
+    at,
   });
   if (level == 0) return; // paragraph mode -- no heading.
   Transforms.wrapNodes(
     editor,
     { type: "heading", level, children: DEFAULT_CHILDREN } as Element,
-    { match: (node) => Editor.isBlock(editor, node) }
+    { at, match: (node) => Editor.isBlock(editor, node) }
   );
 }
