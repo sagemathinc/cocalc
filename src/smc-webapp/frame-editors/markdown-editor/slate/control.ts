@@ -92,14 +92,45 @@ export function ensureCursorNotVoid(editor: ReactEditor, up: boolean = false) {
   }
 }
 
-export function moveCursorToBeginningOfBlock(editor: Editor): void {
-  const selection = editor.selection;
-  if (selection == null || !Range.isCollapsed(selection)) {
-    return;
+export function moveCursorToBeginningOfBlock(
+  editor: Editor,
+  path?: number[]
+): void {
+  if (path == null) {
+    const selection = editor.selection;
+    if (selection == null || !Range.isCollapsed(selection)) {
+      return;
+    }
+    path = selection.focus.path;
   }
-  const path = [...selection.focus.path];
-  if (path.length == 0) return;
-  path[path.length - 1] = 0;
+  if (path.length > 1) {
+    path = [...path]; // make mutable copy
+    path[path.length - 1] = 0;
+  }
   const focus = { path, offset: 0 };
   Transforms.setSelection(editor, { focus, anchor: focus });
+}
+
+export function moveCursorToEndOfBlock(editor: Editor, path?: number[]): void {
+  // This is sort of silly -- we move cursor to the beginning, then move
+  // cursor 1 line, which meoves it to the end... unless line is empty, in
+  // which case we move it back.  Obviously this could be done more directly,
+  // but it is a bit complicated and nice to reuse what's in slate; also maybe
+  // slate has this already and when I find it just swap it in.
+  moveCursorToBeginningOfBlock(editor, path);
+  const { selection } = editor;
+  if (selection == null) return;
+  Transforms.move(editor, { distance: 1, unit: "line" });
+  const newSelection = editor.selection;
+  if (newSelection == null) return;
+  let a = selection.focus.path;
+  let b = newSelection.focus.path;
+  if (a.length != b.length) return;
+  if (a.length > 1) {
+    a = a.slice(0, a.length - 1);
+    b = b.slice(0, b.length - 1);
+  }
+  if (a[a.length - 1] < b[b.length - 1]) {
+    Transforms.setSelection(editor, selection);
+  }
 }

@@ -44,6 +44,7 @@ import { applyOperations } from "../operations";
 import { slateDiff } from "../slate-diff";
 import { emptyParagraph } from "../padding";
 import { getRules } from "../elements";
+import { moveCursorToEndOfBlock } from "../control";
 
 async function markdownReplace(editor: Editor): Promise<boolean> {
   const { selection } = editor;
@@ -54,7 +55,10 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
 
   const pos = path[path.length - 1]; // position among siblings.
 
-  const doc = markdown_to_slate(node.text.trim(), true) as any;
+  const text = node.text.trim();
+  if (text.length == 0) return false;
+
+  const doc = markdown_to_slate(text, true) as any;
   if (
     doc.length == 1 &&
     doc[0].type == "paragraph" &&
@@ -148,6 +152,7 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
     // is preserved (otherwise it gets stripped); also some documents
     // ending in void block elements are difficult to use.
     Transforms.insertFragment(editor, [...doc, emptyParagraph()]);
+    await new Promise(requestAnimationFrame);
 
     // Normally just move the cursor beyond what was just
     // inserted, though sometimes it makes more sense to
@@ -157,6 +162,8 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
     if (!rules?.autoFocus) {
       // move cursor out of the newly created block element.
       Transforms.move(editor, { distance: 1 });
+    } else {
+      moveCursorToEndOfBlock(editor, selection.focus.path);
     }
   }
   // @ts-ignore
