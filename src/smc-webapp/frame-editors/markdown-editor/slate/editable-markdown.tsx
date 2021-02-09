@@ -150,20 +150,17 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return editorMarkdownValueRef.current;
     }, []);
 
-    const saveValue = useCallback(
-      (force?) => {
-        if (!force && (!hasUnsavedChangesRef.current || !is_current)) {
-          return;
-        }
-        if (force) {
-          editorMarkdownValueRef.current = undefined;
-        }
-        hasUnsavedChangesRef.current = false;
-        actions.set_value(editor_markdown_value());
-        actions.ensure_syncstring_is_saved();
-      },
-      [is_current]
-    );
+    const saveValue = useCallback((force?) => {
+      if (!force && !hasUnsavedChangesRef.current) {
+        return;
+      }
+      if (force) {
+        editorMarkdownValueRef.current = undefined;
+      }
+      hasUnsavedChangesRef.current = false;
+      actions.set_value(editor_markdown_value());
+      actions.ensure_syncstring_is_saved();
+    }, []);
 
     // @ts-ignore
     editor.saveValue = saveValue;
