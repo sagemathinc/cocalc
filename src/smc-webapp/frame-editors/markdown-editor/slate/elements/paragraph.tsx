@@ -31,9 +31,13 @@ register({
   },
 
   fromSlate: ({ node, children }) => {
-    if (children.trim() == "" && !node.tight) {
-      // NOTE: vertical space will get lost.  That's the nature of markdown.
-      return "\n\n";
+    if (children.trim() == "") {
+      // We discard empty paragraphs entirely, since that's just
+      // what markdown does. Also, to make void blocks easier to
+      // work with, we sometimes automatically add blank paragraphs
+      // above or below them, and it is silly if those result in
+      // lots of meaningless blank lines in the md file.
+      return "";
     }
     return `${children}${node.tight ? "\n" : "\n\n"}`;
   },
