@@ -8,7 +8,6 @@
 */
 
 import { Editor } from "slate";
-import { indentListItem, unindentListItem } from "../format/indent";
 import { moveCursorUp, moveCursorDown } from "../control";
 import { getHandler } from "./register";
 
@@ -20,26 +19,6 @@ export function keyDownHandler(editor, e): boolean {
 
   // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
   const unmodified = !(e.shiftKey || e.ctrlKey || e.metaKey || e.altKey);
-
-  if (e.key == "Tab") {
-    if (e.shiftKey) {
-      if (unindentListItem(editor)) {
-        return true;
-      }
-      // for now... but maybe remove it later
-      editor.insertText("    ");
-      return true;
-    } else {
-      if (indentListItem(editor)) {
-        return true;
-      }
-
-      // Markdown doesn't have a notion of tabs in text, so
-      // putting in four spaces for now, but is this optimal?
-      editor.insertText("    ");
-      return true;
-    }
-  }
 
   if (unmodified) {
     if (e.key == "ArrowDown") {
@@ -55,17 +34,6 @@ export function keyDownHandler(editor, e): boolean {
         return false;
       }
       moveCursorUp(editor, true);
-      return true;
-    }
-
-    if (e.key == "Tab") {
-      if (indentListItem(editor)) {
-        return true;
-      }
-
-      // Markdown doesn't have a notion of tabs in text...
-      // Putting in four spaces for now, but we'll probably change this...
-      editor.insertText("    ");
       return true;
     }
   }

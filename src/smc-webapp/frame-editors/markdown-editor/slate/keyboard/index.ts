@@ -9,3 +9,4 @@ import "./backspace";
 import "./enter";
 import "./select-all";
 import "./spacebar";
+import "./tab";
