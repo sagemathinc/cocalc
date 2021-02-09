@@ -7,17 +7,17 @@
 
 */
 
-import { Editor, Element, Node, Transforms } from "slate";
-import { isElementOfType } from "../elements";
-import { formatText } from "./format-text";
-import { emptyParagraph } from "../padding";
-import { indentListItem, unindentListItem } from "./indent";
+import { Editor } from "slate";
+import { formatText } from "../format/format-text";
+import { indentListItem, unindentListItem } from "../format/indent";
 import { toggleCheckbox } from "../elements/checkbox";
-import { backspaceVoid, selectAll } from "./misc";
+import { selectAll } from "../format/misc";
 import { IS_MACOS } from "smc-webapp/feature";
 import { moveCursorUp, moveCursorDown } from "../control";
+import { enterKey } from "./enter";
+import { backspaceKey } from "./backspace";
 
-export function keyFormat(editor, e): boolean {
+export function keyDownHandler(editor, e): boolean {
   // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
   const unmodified = !(e.shiftKey || e.ctrlKey || e.metaKey || e.altKey);
 
@@ -30,9 +30,7 @@ export function keyFormat(editor, e): boolean {
     // Special case -- deleting (certain?) void elements. See
     //   https://github.com/ianstormtaylor/slate/issues/3875
     // for discussion of why we must implement this ourselves.
-    if (backspaceVoid(editor)) {
-      return true;
-    }
+    return backspaceKey(editor);
   }
 
   // Select all
@@ -79,6 +77,10 @@ export function keyFormat(editor, e): boolean {
     }
   }
 
+  if (e.key == "Enter") {
+    return enterKey(editor, e, unmodified);
+  }
+
   if (unmodified) {
     if (e.key == "ArrowDown") {
       if (!Editor.isVoid(editor, editor.getFragment()[0])) {
@@ -106,55 +108,6 @@ export function keyFormat(editor, e): boolean {
       editor.insertText("    ");
       return true;
     }
-    if (e.key == "Enter") {
-      const fragment = editor.getFragment();
-      const x = fragment?.[0];
-      if (isElementOfType(x, "heading")) {
-        Transforms.insertNodes(editor, [emptyParagraph()], {
-          match: (node) => isElementOfType(node, "heading"),
-        });
-        return true;
-      }
-      if (isElementOfType(x, ["bullet_list", "ordered_list"])) {
-        Transforms.insertNodes(
-          editor,
-          [{ type: "list_item", children: [{ text: "" }] } as Element],
-          {
-            match: (node) => isElementOfType(node, "list_item"),
-          }
-        );
-        return true;
-      }
-    }
-  }
-  if (e.shiftKey && e.key == "Enter") {
-    // In a table, the only option is to insert a <br/>.
-    const fragment = editor.getFragment();
-    if (isElementOfType(fragment?.[0], "table")) {
-      const br = {
-        isInline: true,
-        isVoid: true,
-        type: "html_inline",
-        html: "<br />",
-        children: [{ text: " " }],
-      } as Node;
-      Transforms.insertNodes(editor, [br]);
-      // Also, move cursor forward so it is *after* the br.
-      Transforms.move(editor, { distance: 1 });
-      return true;
-    }
-
-    // Not in a table, so insert a hard break instead of a new
-    // paragraph like enter creates.
-    Transforms.insertNodes(editor, [
-      {
-        type: "hardbreak",
-        isInline: true,
-        isVoid: false,
-        children: [{ text: "\n" }],
-      } as Node,
-    ]);
-    return true;
   }
   return false;
 }

@@ -31,7 +31,8 @@ import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
 import { Element } from "./element";
 import { Leaf } from "./leaf";
-import { withAutoFormat, keyFormat } from "./format";
+import { withAutoFormat } from "./format";
+import { keyDownHandler } from "./keyboard";
 
 import { useUpload, withUpload } from "./upload";
 
@@ -178,7 +179,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         e.preventDefault();
         return;
       }
-      if (keyFormat(editor, e)) {
+      if (keyDownHandler(editor, e)) {
         e.preventDefault();
         return;
       }
