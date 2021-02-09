@@ -90,16 +90,19 @@ function insert_image(mode: string, opts: Options): string {
   return s;
 }
 
-export async function get_insert_image_opts_from_user(): Promise<
-  undefined | Options
-> {
+export async function get_insert_image_opts_from_user(
+  note = ""
+): Promise<undefined | Options> {
   const opts = await show_react_modal((cb) => {
     return (
       <Modal
         title={
-          <h3>
-            <Icon name="image" /> Insert Image
-          </h3>
+          <div>
+            <h3>
+              <Icon name="image" /> Insert Image
+            </h3>
+            {note}
+          </div>
         }
         visible={true}
         footer={<Button onClick={() => cb()}>Cancel</Button>}

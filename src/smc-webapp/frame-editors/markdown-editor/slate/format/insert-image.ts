@@ -14,7 +14,9 @@ import { getSelection } from "./commands";
 export async function insertImage(editor): Promise<void> {
   let opts: Options | undefined = undefined;
   try {
-    opts = await get_insert_image_opts_from_user();
+    opts = await get_insert_image_opts_from_user(
+      "NOTE: You can also drag-and-drop and paste into the Editable panel."
+    );
   } catch (err) {
     alert_message({ type: "error", message: err.errorFields[0]?.errors });
     return;
