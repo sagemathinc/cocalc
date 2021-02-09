@@ -307,9 +307,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, [editor, scaling]);
 
     async function inverseSearch() {
-      if (is_fullscreen) {
-        // if user is fullscreen assume they just want to WYSIWYG edit
+      if (is_fullscreen || !actions.get_matching_frame({ type: "cm" })) {
+        // - if user is fullscreen assume they just want to WYSIWYG edit
         // and double click is to select.
+        // - if no source view, also don't do anything.  We only let
+        // double click do something when there is an open source view,
+        // since double click is used for selecting.
         return;
       }
       // delay to give double click a chance to change current focus.
