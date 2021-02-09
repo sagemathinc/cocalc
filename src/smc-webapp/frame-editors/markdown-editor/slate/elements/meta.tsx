@@ -23,8 +23,8 @@ output:
 import { React } from "smc-webapp//app-framework";
 import { register, SlateElement, useSlate } from "./register";
 import { SlateCodeMirror } from "./codemirror";
-import { Transforms } from "slate";
 import { A } from "smc-webapp/r_misc";
+import { useSetElement } from "./set-element";
 
 export interface Meta extends SlateElement {
   type: "meta";
@@ -49,6 +49,7 @@ register({
   Element: ({ attributes, children, element }) => {
     if (element.type != "meta") throw Error("bug");
     const editor = useSlate();
+    const setElement = useSetElement(editor, element);
 
     return (
       <div {...attributes}>
@@ -66,9 +67,7 @@ register({
             options={{ lineWrapping: true }}
             value={element.value}
             onChange={(value) => {
-              Transforms.setNodes(editor, { value } as any, {
-                match: (node) => node["type"] == "meta",
-              });
+              setElement({ value });
             }}
           />
           <code>---</code>

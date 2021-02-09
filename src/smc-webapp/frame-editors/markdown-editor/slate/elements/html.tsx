@@ -16,7 +16,7 @@ import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../util";
 import { startswith /*endswith*/ } from "smc-util/misc";
 import { toSlate as toSlateImage } from "./image";
 import { SlateCodeMirror } from "./codemirror";
-import { Transforms } from "slate";
+import { useSetElement } from "./set-element";
 
 export interface HtmlInline extends SlateElement {
   type: "html_inline";
@@ -69,6 +69,9 @@ const Element = ({ attributes, children, element }) => {
   // mode for editing the raw html
   const [editMode, setEditMode] = useState<boolean>(false);
   const editor = useSlate();
+
+  const setElement = useSetElement(editor, element);
+
   function renderEditMode() {
     if (!editMode) return;
     return (
@@ -76,10 +79,7 @@ const Element = ({ attributes, children, element }) => {
         <SlateCodeMirror
           value={html}
           onChange={(html) => {
-            Transforms.setNodes(editor, { html } as any, {
-              match: (node) =>
-                node["type"] == "html_block" || node["type"] == "html_inline",
-            });
+            setElement({ html });
           }}
           onBlur={() => setEditMode(false)}
           info="html"

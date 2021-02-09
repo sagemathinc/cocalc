@@ -150,17 +150,20 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return editorMarkdownValueRef.current;
     }, []);
 
-    const saveValue = useCallback((force?) => {
-      if (!force && !hasUnsavedChangesRef.current) {
-        return;
-      }
-      if (force) {
-        editorMarkdownValueRef.current = undefined;
-      }
-      hasUnsavedChangesRef.current = false;
-      actions.set_value(editor_markdown_value());
-      actions.ensure_syncstring_is_saved();
-    }, []);
+    const saveValue = useCallback(
+      (force?) => {
+        if (!force && (!hasUnsavedChangesRef.current || !is_current)) {
+          return;
+        }
+        if (force) {
+          editorMarkdownValueRef.current = undefined;
+        }
+        hasUnsavedChangesRef.current = false;
+        actions.set_value(editor_markdown_value());
+        actions.ensure_syncstring_is_saved();
+      },
+      [is_current]
+    );
 
     // @ts-ignore
     editor.saveValue = saveValue;
@@ -279,20 +282,21 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    ///*
-    const { Transforms, Editor } = require("slate");
+    /*
+    const { Transforms, Editor, Node } = require("slate");
     // not using (window as any) to cause a TS error, so
     // I don't forget to comment this out!
     window.z = {
       editor,
       Transforms,
       ReactEditor,
+      Node,
       Editor,
       slateDiff,
       slatePointToMarkdown,
       indexToPosition,
     };
-    //*/
+    */
 
     const [rowStyle, setRowStyle] = useState<CSS>({});
 

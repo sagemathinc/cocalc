@@ -9,7 +9,7 @@ import {
   useState,
   useIsMountedRef,
 } from "../../../../app-framework";
-import { Element as Element0, Transforms } from "slate";
+import { Element as Element0 } from "slate";
 import {
   register,
   SlateElement,
@@ -21,6 +21,7 @@ import {
 import { SlateCodeMirror } from "./codemirror";
 import { ensure_ends_in_newline, indent } from "../util";
 import { delay } from "awaiting";
+import { useSetElement } from "./set-element";
 
 export interface CodeBlock extends SlateElement {
   type: "code_block";
@@ -44,6 +45,8 @@ const Element: React.FC<RenderElementProps> = ({
   const [showInfo, setShowInfo] = useState<boolean>(selected && collapsed); // show the info input
   const [focusInfo, setFocusInfo] = useState<boolean>(false); // focus the info input
 
+  const setElement = useSetElement(editor, element);
+
   return (
     <div {...attributes}>
       <div contentEditable={false}>
@@ -52,9 +55,8 @@ const Element: React.FC<RenderElementProps> = ({
           value={element.value}
           info={element.info}
           onChange={(value) => {
-            Transforms.setNodes(editor, { value } as any, {
-              match: (node) => node["type"] == "code_block",
-            });
+            //setElement(editor, elementRef.current, { value });
+            setElement({ value });
           }}
           onFocus={async () => {
             await delay(1); // must be a little longer than the onBlur below.
@@ -80,9 +82,7 @@ const Element: React.FC<RenderElementProps> = ({
               setFocusInfo(false);
             }}
             onChange={(info) => {
-              Transforms.setNodes(editor, { info } as any, {
-                match: (node) => node["type"] == "code_block",
-              });
+              setElement({ info });
             }}
           />
         )}

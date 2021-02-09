@@ -15,6 +15,7 @@ import {
   RenderElementProps,
 } from "./register";
 import { Checkbox as AntdCheckbox } from "antd";
+import { useSetElement } from "./set-element";
 
 export interface Checkbox extends SlateElement {
   type: "checkbox";
@@ -32,6 +33,7 @@ const Element: React.FC<RenderElementProps> = ({
   const focused = useFocused();
   const selected = useSelected();
   const editor = useSlate();
+  const setElement = useSetElement(editor, element);
 
   const border =
     focused && selected ? `1px solid ${FOCUSED_COLOR}` : `1px solid white`;
@@ -46,9 +48,7 @@ const Element: React.FC<RenderElementProps> = ({
         }}
         checked={!!element.value}
         onChange={(e) => {
-          Transforms.setNodes(editor, { value: e.target.checked } as any, {
-            match: (node) => node["type"] == "checkbox",
-          });
+          setElement({ value: e.target.checked });
         }}
       />
       {children}

@@ -4,7 +4,7 @@
  */
 
 import { React } from "../../../../app-framework";
-import { Transforms, Element as Element0 } from "slate";
+import { Element as Element0 } from "slate";
 import {
   register,
   SlateElement,
@@ -12,6 +12,7 @@ import {
   useSlate,
 } from "./register";
 import { SlateMath } from "./math-widget";
+import { useSetElement } from "./set-element";
 
 export interface DisplayMath extends SlateElement {
   type: "display_math";
@@ -36,16 +37,15 @@ const Element: React.FC<RenderElementProps> = ({
     throw Error("bug");
   }
   const editor = useSlate();
+  const setElement = useSetElement(editor, element);
+
   return (
     <span {...attributes}>
       <SlateMath
         value={element.value}
         isInline={!!element["isInline"]}
         onChange={(value) => {
-          Transforms.setNodes(editor, { value } as any, {
-            match: (node) =>
-              node["type"] == "inline_math" || node["type"] == "display_math",
-          });
+          setElement({ value });
         }}
       />
       {children}
