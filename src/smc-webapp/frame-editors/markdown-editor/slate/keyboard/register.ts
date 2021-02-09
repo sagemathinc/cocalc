@@ -5,6 +5,8 @@
 
 // Plugin system for keyboarding handlers.
 
+export { IS_MACOS } from "smc-webapp/feature";
+
 import { Editor } from "slate";
 
 interface Key {

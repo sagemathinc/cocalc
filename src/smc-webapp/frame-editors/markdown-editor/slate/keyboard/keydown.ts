@@ -9,9 +9,6 @@
 
 import { Editor } from "slate";
 import { indentListItem, unindentListItem } from "../format/indent";
-import { toggleCheckbox } from "../elements/checkbox";
-import { selectAll } from "../format/misc";
-import { IS_MACOS } from "smc-webapp/feature";
 import { moveCursorUp, moveCursorDown } from "../control";
 import { getHandler } from "./register";
 
@@ -23,30 +20,6 @@ export function keyDownHandler(editor, e): boolean {
 
   // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
   const unmodified = !(e.shiftKey || e.ctrlKey || e.metaKey || e.altKey);
-
-  // Select all
-  if (e.key == "a" && ((IS_MACOS && e.metaKey) || (!IS_MACOS && e.ctrlKey))) {
-    // On Firefox with windowing enabled,
-    // doing browser select all selects too much (e.g., the
-    // react-windowed list), and this causes crashes.  Note that this
-    // selectAll here only partly addresses the problem with windowing
-    // and large documents where select all fails (due to missing DOM
-    // nodes not in the window).  The select now happens but other
-    // things break.
-    selectAll(editor);
-    return true;
-  }
-
-  if (e.key == " ") {
-    if (unmodified && toggleCheckbox(editor)) {
-      // we toggled a selected textbox. Done.
-      return true;
-    }
-
-    // @ts-ignore - that second argument below is "unsanctioned"
-    editor.insertText(" ", unmodified);
-    return true;
-  }
 
   if (e.key == "Tab") {
     if (e.shiftKey) {

@@ -7,3 +7,5 @@ export { keyDownHandler } from "./keydown";
 
 import "./backspace";
 import "./enter";
+import "./select-all";
+import "./spacebar";
