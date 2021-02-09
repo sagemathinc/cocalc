@@ -5,3 +5,5 @@
 
 export { withAutoFormat } from "./auto-format";
 export { formatAction } from "./commands";
+
+import "./format-text";  // plugin

@@ -8,7 +8,6 @@
 */
 
 import { Editor } from "slate";
-import { formatText } from "../format/format-text";
 import { indentListItem, unindentListItem } from "../format/indent";
 import { toggleCheckbox } from "../elements/checkbox";
 import { selectAll } from "../format/misc";
@@ -24,11 +23,6 @@ export function keyDownHandler(editor, e): boolean {
 
   // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
   const unmodified = !(e.shiftKey || e.ctrlKey || e.metaKey || e.altKey);
-
-  if (formatText(editor, e)) {
-    // control+b, etc. to format selected text.
-    return true;
-  }
 
   // Select all
   if (e.key == "a" && ((IS_MACOS && e.metaKey) || (!IS_MACOS && e.ctrlKey))) {

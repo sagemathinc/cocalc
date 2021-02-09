@@ -4,32 +4,21 @@
  */
 
 import { formatSelectedText } from "./commands";
+import { register } from "../keyboard/register";
 
-export function formatText(editor, e): boolean {
-  if (!(e.ctrlKey || e.metaKey)) {
-    return false;
-  }
+function format(mark: string) {
+  return (editor) => {
+    formatSelectedText(editor, mark);
+    return true;
+  };
+}
 
-  switch (e.key) {
-    case "b":
-    case "i":
-    case "u":
-    case "x":
-    case "c":
-      if (e.key == "x" && !e.shiftKey) return false;
-      if (e.key == "c" && !e.shiftKey) return false;
-      formatSelectedText(
-        editor,
-        {
-          b: "bold",
-          i: "italic",
-          u: "underline",
-          x: "strikethrough",
-          c: "code",
-        }[e.key]
-      );
-      return true;
-  }
+for (const mod of ["ctrl", "meta"]) {
+  register({ key: "b", [mod]: true }, format("bold"));
+  register({ key: "i", [mod]: true }, format("italic"));
+  register({ key: "u", [mod]: true }, format("underline"));
+  register({ key: "x", shift: true, [mod]: true }, format("strikethrough"));
 
-  return false;
+  // TODO: This code one is undocumented and I just made it up.
+  register({ key: "c", shift: true, [mod]: true }, format("code"));
 }
