@@ -34,7 +34,7 @@ export function markdownEscape(
   // makes the generated markdown ugly.
 
   // The 1-character replacements we make in any text.
-  s = s.replace(/[\\_`<>$&\u00A0|]/g, (m) => MAP[m]);
+  s = s.replace(/[\\_`<>$&|]/g, (m) => MAP[m]);
 
   // Links - we do this to avoid escaping [ and ] when not necessary.
   s = s.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, (link) =>
