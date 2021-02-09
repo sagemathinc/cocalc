@@ -230,6 +230,13 @@ export function getFocus(editor: Editor): Point {
   );
 }
 
+export function getSelection(editor: Editor): Range {
+  return (
+    editor.selection ??
+    (editor as any).lastSelection ?? { path: [0, 0], offset: 0 }
+  );
+}
+
 export async function setSelectionAndFocus(
   editor: ReactEditor,
   selection
@@ -424,7 +431,7 @@ export function selectionToText(editor: Editor): string {
   // This is just directly using DOM API, not slatejs, so
   // could run into a subtle problem e.g., due to windowing.
   // However, that's very unlikely given our application.
-  return getSelection()?.toString() ?? "";
+  return window.getSelection()?.toString() ?? "";
 
   // The following is complicated but doesn't work in general.
   /*

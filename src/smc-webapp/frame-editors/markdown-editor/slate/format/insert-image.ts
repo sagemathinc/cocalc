@@ -9,7 +9,7 @@ import {
   Options,
 } from "smc-webapp/codemirror/extensions/insert-image";
 import { alert_message } from "smc-webapp/alerts";
-import { getFocus } from "./commands";
+import { getSelection } from "./commands";
 
 export async function insertImage(editor): Promise<void> {
   let opts: Options | undefined = undefined;
@@ -31,5 +31,5 @@ export async function insertImage(editor): Promise<void> {
     width: opts.width,
     children: [{ text: "" }],
   } as Element;
-  Transforms.insertFragment(editor, [node], { at: getFocus(editor) });
+  Transforms.insertFragment(editor, [node], { at: getSelection(editor) });
 }

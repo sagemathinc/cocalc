@@ -9,7 +9,7 @@ import {
   Options,
 } from "smc-webapp/codemirror/extensions/insert-link";
 import { alert_message } from "smc-webapp/alerts";
-import { getFocus, selectionToText } from "./commands";
+import { getSelection, selectionToText } from "./commands";
 
 export async function insertLink(editor): Promise<void> {
   let opts: Options | undefined = undefined;
@@ -28,5 +28,5 @@ export async function insertLink(editor): Promise<void> {
     title: opts.title,
     children: [{ text: opts.displayed_text }],
   } as Element;
-  Transforms.insertFragment(editor, [node], { at: getFocus(editor) });
+  Transforms.insertFragment(editor, [node], { at: getSelection(editor) });
 }

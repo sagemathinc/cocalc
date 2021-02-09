@@ -19,8 +19,8 @@ import { time_travel } from "../time-travel-editor/editor";
 
 const EDITOR_SPEC = {
   slate: {
-    short: "Edit",
-    name: "Editable",
+    short: "Editable",
+    name: "Editable View",
     icon: "pen",
     component: EditableMarkdown,
     buttons: set([
@@ -41,7 +41,7 @@ const EDITOR_SPEC = {
     ]),
   },
   cm: {
-    short: "Code",
+    short: "Source",
     name: "Source Code",
     icon: "code",
     component: CodemirrorEditor,
