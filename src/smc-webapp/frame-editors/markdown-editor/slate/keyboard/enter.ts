@@ -5,21 +5,12 @@
 
 // What happens when you hit the enter key.
 
-import { Editor, Element, Node, Transforms } from "slate";
+import { Element, Node, Transforms } from "slate";
 import { isElementOfType } from "../elements";
 import { emptyParagraph } from "../padding";
+import { register } from "./register";
 
-export function enterKey(editor: Editor, e, unmodified: boolean): boolean {
-  if (unmodified) {
-    return unmodifiedEnter(editor);
-  }
-  if (e.shiftKey) {
-    return shiftEnter(editor);
-  }
-  return false;
-}
-
-function shiftEnter(editor): boolean {
+register({ key: "Enter", shift: true }, (editor) => {
   // In a table, the only option is to insert a <br/>.
   const fragment = editor.getFragment();
   if (isElementOfType(fragment?.[0], "table")) {
@@ -47,9 +38,9 @@ function shiftEnter(editor): boolean {
     } as Node,
   ]);
   return true;
-}
+});
 
-function unmodifiedEnter(editor: Editor): boolean {
+register({ key: "Enter" }, (editor) => {
   const fragment = editor.getFragment();
   const x = fragment?.[0];
   if (isElementOfType(x, "heading")) {
@@ -70,4 +61,4 @@ function unmodifiedEnter(editor: Editor): boolean {
     return true;
   }
   return false;
-}
+});

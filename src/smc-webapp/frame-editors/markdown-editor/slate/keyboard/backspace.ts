@@ -3,9 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// What happens when you hit the backspace/delete key.
+/*
+What happens when you hit the backspace/delete key.
+
+  - deleting (certain?) void elements. See
+     https://github.com/ianstormtaylor/slate/issues/3875
+    for discussion of why we must implement this ourselves.
+*/
 
 import { Editor, Range, Transforms } from "slate";
+import { register } from "./register";
 
 export function backspaceKey(editor: Editor): boolean {
   if (editor.selection == null || !Range.isCollapsed(editor.selection)) {
@@ -23,3 +30,6 @@ export function backspaceKey(editor: Editor): boolean {
   Transforms.delete(editor, { at: value[1] });
   return true;
 }
+
+register({ key: "Backspace" }, backspaceKey);
+register({ key: "Delete" }, backspaceKey);

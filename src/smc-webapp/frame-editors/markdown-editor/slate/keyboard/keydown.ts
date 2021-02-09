@@ -14,23 +14,20 @@ import { toggleCheckbox } from "../elements/checkbox";
 import { selectAll } from "../format/misc";
 import { IS_MACOS } from "smc-webapp/feature";
 import { moveCursorUp, moveCursorDown } from "../control";
-import { enterKey } from "./enter";
-import { backspaceKey } from "./backspace";
+import { getHandler } from "./register";
 
 export function keyDownHandler(editor, e): boolean {
+  const handler = getHandler(e);
+  if (handler != null) {
+    return handler(editor);
+  }
+
   // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
   const unmodified = !(e.shiftKey || e.ctrlKey || e.metaKey || e.altKey);
 
   if (formatText(editor, e)) {
     // control+b, etc. to format selected text.
     return true;
-  }
-
-  if (e.key == "Backspace" || e.key == "Delete") {
-    // Special case -- deleting (certain?) void elements. See
-    //   https://github.com/ianstormtaylor/slate/issues/3875
-    // for discussion of why we must implement this ourselves.
-    return backspaceKey(editor);
   }
 
   // Select all
@@ -75,10 +72,6 @@ export function keyDownHandler(editor, e): boolean {
       editor.insertText("    ");
       return true;
     }
-  }
-
-  if (e.key == "Enter") {
-    return enterKey(editor, e, unmodified);
   }
 
   if (unmodified) {
