@@ -7,7 +7,7 @@
 
 */
 
-import { Element, Node, Transforms } from "slate";
+import { Editor, Element, Node, Transforms } from "slate";
 import { isElementOfType } from "../elements";
 import { formatText } from "./format-text";
 import { emptyParagraph } from "../padding";
@@ -15,9 +15,11 @@ import { indentListItem, unindentListItem } from "./indent";
 import { toggleCheckbox } from "../elements/checkbox";
 import { backspaceVoid, selectAll } from "./misc";
 import { IS_MACOS } from "smc-webapp/feature";
+import { moveCursorUp, moveCursorDown } from "../control";
 
 export function keyFormat(editor, e): boolean {
   // console.log("onKeyDown", { keyCode: e.keyCode, key: e.key });
+  const unmodified = !(e.shiftKey || e.ctrlKey || e.metaKey || e.altKey);
 
   if (formatText(editor, e)) {
     // control+b, etc. to format selected text.
@@ -47,15 +49,13 @@ export function keyFormat(editor, e): boolean {
   }
 
   if (e.key == " ") {
-    const noModifiers = !(e.shiftKey || e.ctrlKey || e.metaKey || e.altKey);
-
-    if (noModifiers && toggleCheckbox(editor)) {
+    if (unmodified && toggleCheckbox(editor)) {
       // we toggled a selected textbox. Done.
       return true;
     }
 
     // @ts-ignore - that second argument below is "unsanctioned"
-    editor.insertText(" ", noModifiers);
+    editor.insertText(" ", unmodified);
     return true;
   }
 
@@ -79,7 +79,23 @@ export function keyFormat(editor, e): boolean {
     }
   }
 
-  if (!e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+  if (unmodified) {
+    if (e.key == "ArrowDown") {
+      if (!Editor.isVoid(editor, editor.getFragment()[0])) {
+        return false;
+      }
+      moveCursorDown(editor, true);
+      return true;
+    }
+
+    if (e.key == "ArrowUp") {
+      if (!Editor.isVoid(editor, editor.getFragment()[0])) {
+        return false;
+      }
+      moveCursorUp(editor, true);
+      return true;
+    }
+
     if (e.key == "Tab") {
       if (indentListItem(editor)) {
         return true;

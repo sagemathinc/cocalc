@@ -92,7 +92,7 @@ const Element: React.FC<RenderElementProps> = ({
   );
 };
 
-function toSlate({ token, children }) {
+function toSlate({ token }) {
   // fence =block of code with ``` around it, but not indented.
   let value = token.content;
   // We remove the last carriage return (right before ```), since it
@@ -110,7 +110,7 @@ function toSlate({ token, children }) {
     fence: token.type == "fence",
     value,
     info,
-    children,
+    children: [{ text: " " }],
   } as Element0;
 }
 

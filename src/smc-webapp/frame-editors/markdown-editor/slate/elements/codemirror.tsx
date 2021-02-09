@@ -11,7 +11,7 @@ TODO: a lot!
  and so much more!
 */
 
-import { Editor, Range, Transforms } from "slate";
+import { Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import { file_associations } from "../../../../file-associations";
 import {
@@ -26,6 +26,11 @@ import {
 import * as CodeMirror from "codemirror";
 import { FOCUSED_COLOR } from "../util";
 import { useFocused, useSelected, useSlate, useCollapsed } from "./hooks";
+import {
+  moveCursorDown,
+  moveCursorToBeginningOfBlock,
+  moveCursorUp,
+} from "../control";
 
 const STYLE = {
   width: "100%",
@@ -234,18 +239,6 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
   }
 );
 
-function moveCursorToBeginningOfBlock(editor: Editor): void {
-  const selection = editor.selection;
-  if (selection == null || !Range.isCollapsed(selection)) {
-    return;
-  }
-  const path = [...selection.focus.path];
-  if (path.length == 0) return;
-  path[path.length - 1] = 0;
-  const focus = { path, offset: 0 };
-  Transforms.setSelection(editor, { focus, anchor: focus });
-}
-
 function cursorHandlers(options, editor, isInline: boolean | undefined): void {
   const exitDown = (cm) => {
     const cur = cm.getCursor();
@@ -255,8 +248,8 @@ function cursorHandlers(options, editor, isInline: boolean | undefined): void {
     const line = cm.getLine(n);
     const line_length = line?.length;
     if (cur_line === n && cur_ch === line_length) {
-      Transforms.move(editor, { distance: 1, unit: "line" });
       ReactEditor.focus(editor);
+      moveCursorDown(editor, true);
       return true;
     } else {
       return false;
@@ -266,11 +259,11 @@ function cursorHandlers(options, editor, isInline: boolean | undefined): void {
   options.extraKeys["Up"] = (cm) => {
     const cur = cm.getCursor();
     if (cur?.line === cm.firstLine() && cur?.ch == 0) {
-      Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
+      ReactEditor.focus(editor);
+      moveCursorUp(editor, true);
       if (!isInline) {
         moveCursorToBeginningOfBlock(editor);
       }
-      ReactEditor.focus(editor);
     } else {
       CodeMirror.commands.goLineUp(cm);
     }

@@ -279,7 +279,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    /*
+    ///*
     const { Transforms, Editor } = require("slate");
     // not using (window as any) to cause a TS error, so
     // I don't forget to comment this out!
@@ -292,7 +292,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       slatePointToMarkdown,
       indexToPosition,
     };
-    */
+    //*/
 
     const [rowStyle, setRowStyle] = useState<CSS>({});
 
