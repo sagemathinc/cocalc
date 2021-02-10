@@ -24,10 +24,7 @@ export function scrollToHeading(editor: ReactEditor, n: number) {
   // didn't find it.
 }
 
-export function moveCursorDown(
-  editor: ReactEditor,
-  force: boolean = false
-): void {
+export function moveCursorDown(editor: Editor, force: boolean = false): void {
   const focus = editor.selection?.focus;
   if (focus == null) return;
   Transforms.move(editor, { distance: 1, unit: "line" });
@@ -48,10 +45,7 @@ export function moveCursorDown(
   ensureCursorNotVoid(editor);
 }
 
-export function moveCursorUp(
-  editor: ReactEditor,
-  force: boolean = false
-): void {
+export function moveCursorUp(editor: Editor, force: boolean = false): void {
   const focus = editor.selection?.focus;
   if (focus == null) return;
   Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
@@ -71,7 +65,7 @@ export function moveCursorUp(
   ensureCursorNotVoid(editor, true);
 }
 
-export function ensureCursorNotVoid(editor: ReactEditor, up: boolean = false) {
+export function ensureCursorNotVoid(editor: Editor, up: boolean = false) {
   if (!Editor.isVoid(editor, editor.getFragment()[0])) return;
   // cursor in a void element, so insert a blank paragraph at
   // cursor and put cursor back.

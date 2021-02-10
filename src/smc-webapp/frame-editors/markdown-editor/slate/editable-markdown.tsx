@@ -32,7 +32,7 @@ import { markdown_to_slate } from "./markdown-to-slate";
 import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { withAutoFormat } from "./format";
-import { keyDownHandler } from "./keyboard";
+import { getHandler as getKeyboardHandler } from "./keyboard";
 
 import { useUpload, withUpload } from "./upload";
 
@@ -179,9 +179,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         e.preventDefault();
         return;
       }
-      if (keyDownHandler(editor, e)) {
-        e.preventDefault();
-        return;
+      const handler = getKeyboardHandler(e);
+      if (handler != null) {
+        if (handler(editor)) {
+          e.preventDefault();
+          // key was handled.
+          return;
+        }
       }
 
       if ((e.ctrlKey || e.metaKey) && e.keyCode == 83) {
