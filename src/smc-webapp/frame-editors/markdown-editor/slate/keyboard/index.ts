@@ -7,6 +7,7 @@ export { getHandler } from "./register";
 
 import "./backspace";
 import "./enter";
+import "./shift-enter";
 import "./select-all";
 import "./spacebar";
 import "./tab";
