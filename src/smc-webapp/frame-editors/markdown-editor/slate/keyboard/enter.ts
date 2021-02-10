@@ -13,6 +13,7 @@ import { register } from "./register";
 register({ key: "Enter" }, ({ editor }) => {
   const fragment = editor.getFragment();
   const x = fragment?.[0];
+
   if (isElementOfType(x, "heading")) {
     // If you hit enter in a heading,
     Transforms.insertNodes(editor, [emptyParagraph()], {
@@ -20,6 +21,7 @@ register({ key: "Enter" }, ({ editor }) => {
     });
     return true;
   }
+
   if (isElementOfType(x, ["bullet_list", "ordered_list"])) {
     Transforms.insertNodes(
       editor,

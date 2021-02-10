@@ -152,6 +152,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return editorMarkdownValueRef.current;
     }, []);
 
+
+    function setSyncstringFromSlate() {
+      actions.set_value(editor_markdown_value());
+    }
+
     const saveValue = useCallback((force?) => {
       if (!force && !hasUnsavedChangesRef.current) {
         return;
@@ -160,7 +165,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         editorMarkdownValueRef.current = undefined;
       }
       hasUnsavedChangesRef.current = false;
-      actions.set_value(editor_markdown_value());
+      setSyncstringFromSlate();
+
       actions.ensure_syncstring_is_saved();
     }, []);
 
@@ -197,7 +203,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           // just switched from focused to not and there was
           // an unsaved change, so save state.
           hasUnsavedChangesRef.current = false;
-          actions.set_value(editor_markdown_value());
+          setSyncstringFromSlate();
           actions.ensure_syncstring_is_saved();
         }
       }
@@ -212,7 +218,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         // you're editing some inline void elements (e.g., code blocks),
         // since the focus leaves slate and goes to codemirror (say).
         if (ReactEditor.isFocused(editor) || is_current) {
-          actions.set_value(editor_markdown_value());
+          setSyncstringFromSlate();
         }
       }
       actions.get_syncstring().on("before-change", before_change);
