@@ -136,6 +136,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const editorMarkdownValueRef = useRef<string | undefined>(undefined);
     const hasUnsavedChangesRef = useRef<boolean>(false);
+
     // const [editorValue, setEditorValue] = useState<Descendant[]>([]);
     const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
       markdown_to_slate(value)
@@ -181,40 +182,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
       const handler = getKeyboardHandler(e);
       if (handler != null) {
-        if (handler(editor)) {
+        const extra = { actions, id, hasUnsavedChangesRef };
+        if (handler({ editor, extra })) {
           e.preventDefault();
           // key was handled.
           return;
         }
-      }
-
-      if ((e.ctrlKey || e.metaKey) && e.keyCode == 83) {
-        actions.save(true);
-        e.preventDefault();
-        return;
-      }
-      if ((e.ctrlKey && e.keyCode == 188) || (e.metaKey && e.keyCode == 189)) {
-        actions.change_font_size(-1);
-        e.preventDefault();
-        return;
-      }
-      if ((e.ctrlKey && e.keyCode == 190) || (e.metaKey && e.keyCode == 187)) {
-        actions.change_font_size(+1);
-        e.preventDefault();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.keyCode == 90) {
-        if (e.shiftKey) {
-          // redo
-          actions.redo(id);
-        } else {
-          // undo
-          actions.undo(id);
-        }
-        hasUnsavedChangesRef.current = false;
-        e.preventDefault();
-        ReactEditor.focus(editor);
-        return;
       }
     }
 
@@ -402,7 +375,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           readOnly={read_only}
           renderElement={Element}
           renderLeaf={Leaf}
-          onKeyDown={!read_only ? onKeyDown : undefined}
+          onKeyDown={onKeyDown}
           onBlur={saveValue}
           onDoubleClick={inverseSearch}
           style={

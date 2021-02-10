@@ -11,3 +11,4 @@ import "./select-all";
 import "./spacebar";
 import "./tab";
 import "./arrow-keys";
+import "./actions";

@@ -14,7 +14,7 @@ What happens when you hit the backspace/delete key.
 import { Editor, Range, Transforms } from "slate";
 import { register } from "./register";
 
-export function backspaceKey(editor: Editor): boolean {
+function backspaceKey({ editor }) {
   if (editor.selection == null || !Range.isCollapsed(editor.selection)) {
     // default handler
     return false;
@@ -31,5 +31,4 @@ export function backspaceKey(editor: Editor): boolean {
   return true;
 }
 
-register({ key: "Backspace" }, backspaceKey);
-register({ key: "Delete" }, backspaceKey);
+register([{ key: "Backspace" }, { key: "Delete" }], backspaceKey);

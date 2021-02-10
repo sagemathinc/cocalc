@@ -10,7 +10,7 @@ What happens when you hit the space bar.
 import { toggleCheckbox } from "../elements/checkbox";
 import { register } from "./register";
 
-register({ key: " " }, (editor) => {
+register({ key: " " }, ({editor}) => {
   if (toggleCheckbox(editor)) {
     return true;
   }

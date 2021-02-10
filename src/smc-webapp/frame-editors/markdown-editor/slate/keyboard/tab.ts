@@ -10,7 +10,7 @@ What happens when you hit the tab key.
 import { register } from "./register";
 import { indentListItem, unindentListItem } from "../format/indent";
 
-register({ key: "Tab", shift: true }, (editor) => {
+register({ key: "Tab", shift: true }, ({editor}) => {
   if (unindentListItem(editor)) {
     return true;
   }
@@ -19,7 +19,7 @@ register({ key: "Tab", shift: true }, (editor) => {
   return true;
 });
 
-register({ key: "Tab" }, (editor) => {
+register({ key: "Tab" }, ({editor}) => {
   if (indentListItem(editor)) {
     return true;
   }

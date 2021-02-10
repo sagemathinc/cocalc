@@ -14,7 +14,7 @@ import { register, IS_MACOS } from "./register";
 // nodes not in the window).  The select now happens but other
 // things break.
 
-function selectAll(editor: Editor): boolean {
+register({ key: "a", meta: IS_MACOS, ctrl: !IS_MACOS }, ({ editor }) => {
   const first = Editor.first(editor, []);
   const last = Editor.last(editor, []);
   const offset = last[0]["text"]?.length ?? 0;
@@ -23,6 +23,4 @@ function selectAll(editor: Editor): boolean {
     focus: { path: last[1], offset },
   });
   return true;
-}
-
-register({ key: "a", meta: IS_MACOS, ctrl: !IS_MACOS }, selectAll);
+});

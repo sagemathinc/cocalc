@@ -10,7 +10,7 @@ import { isElementOfType } from "../elements";
 import { emptyParagraph } from "../padding";
 import { register } from "./register";
 
-register({ key: "Enter", shift: true }, (editor) => {
+register({ key: "Enter", shift: true }, ({ editor }) => {
   // In a table, the only option is to insert a <br/>.
   const fragment = editor.getFragment();
   if (isElementOfType(fragment?.[0], "table")) {
@@ -40,7 +40,7 @@ register({ key: "Enter", shift: true }, (editor) => {
   return true;
 });
 
-register({ key: "Enter" }, (editor) => {
+register({ key: "Enter" }, ({ editor }) => {
   const fragment = editor.getFragment();
   const x = fragment?.[0];
   if (isElementOfType(x, "heading")) {

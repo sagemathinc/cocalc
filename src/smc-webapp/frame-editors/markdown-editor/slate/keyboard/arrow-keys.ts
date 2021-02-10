@@ -11,7 +11,7 @@ import { Editor } from "slate";
 import { register } from "./register";
 import { moveCursorUp, moveCursorDown } from "../control";
 
-register({ key: "ArrowDown" }, (editor) => {
+register({ key: "ArrowDown" }, ({editor}) => {
   if (!Editor.isVoid(editor, editor.getFragment()[0])) {
     return false;
   }
@@ -19,7 +19,7 @@ register({ key: "ArrowDown" }, (editor) => {
   return true;
 });
 
-register({ key: "ArrowUp" }, (editor) => {
+register({ key: "ArrowUp" }, ({editor}) => {
   if (!Editor.isVoid(editor, editor.getFragment()[0])) {
     return false;
   }

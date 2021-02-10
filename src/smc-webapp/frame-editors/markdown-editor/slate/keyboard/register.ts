@@ -28,11 +28,21 @@ function KeyToString(k: Key): string {
 
 // Function that returns true if it handles the key
 // or false-ish to fallback to default behavior.
-export type KeyHandler = (editor: Editor) => boolean;
+export type KeyHandler = (opts: { editor: Editor; extra?: any }) => boolean;
 
 const keyHandlers: { [x: string]: KeyHandler } = {};
 
-export function register(key: Partial<Key>, handler: KeyHandler): void {
+export function register(
+  key: Partial<Key> | Partial<Key>[],
+  handler: KeyHandler
+): void {
+  if (key[0] != null) {
+    for (const k of key as Partial<Key>[]) {
+      register(k, handler);
+    }
+    return;
+  }
+
   const s = KeyToString(key as Key);
   if (keyHandlers[s] != null) {
     throw Error(`BUG: there is already a handler registered for ${s}`);
@@ -41,5 +51,6 @@ export function register(key: Partial<Key>, handler: KeyHandler): void {
 }
 
 export function getHandler(event): KeyHandler | undefined {
+  // console.log(event.key);
   return keyHandlers[EventToString(event)];
 }
