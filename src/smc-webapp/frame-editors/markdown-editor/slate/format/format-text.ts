@@ -7,7 +7,7 @@ import { formatSelectedText } from "./commands";
 import { register } from "../keyboard/register";
 
 function format(mark: string) {
-  return (editor) => {
+  return ({ editor }) => {
     formatSelectedText(editor, mark);
     return true;
   };

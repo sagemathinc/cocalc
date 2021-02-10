@@ -236,7 +236,10 @@ export function getFocus(editor: Editor): Point {
 export function getSelection(editor: Editor): Range {
   return (
     editor.selection ??
-    (editor as any).lastSelection ?? { path: [0, 0], offset: 0 }
+    (editor as any).lastSelection ?? {
+      focus: { path: [0, 0], offset: 0 },
+      anchor: { path: [0, 0], offset: 0 },
+    }
   );
 }
 
