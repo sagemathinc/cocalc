@@ -388,7 +388,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             USE_WINDOWING
               ? undefined
               : {
-                  maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
                   minWidth: "80%",
                   padding: "70px",
                   background: "white",
