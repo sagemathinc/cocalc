@@ -41,6 +41,8 @@ export function slate_to_markdown(
       lastChild: i == slate.length - 1,
     });
   }
+  // this makes whitespace at top/bottom consistent with prettier
+  markdown = markdown.trim() + "\n";
 
   //console.log("time: slate_to_markdown ", new Date().valueOf() - t, "ms");
   //console.log("slate_to_markdown", { slate, markdown });
