@@ -64,7 +64,7 @@ register({
     let s = children;
     if (
       s[s.length - 2] != "\n" &&
-      !(info.parent.type == "list_item" && node.tight)
+      !(info.parent?.type == "list_item" && node.tight)
     ) {
       // lists should end with two new lines, unless parent is an item in a tight list.
       s += "\n";

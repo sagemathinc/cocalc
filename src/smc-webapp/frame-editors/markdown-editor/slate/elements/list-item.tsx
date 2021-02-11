@@ -28,8 +28,8 @@ register({
 });
 
 function item({ children, info }): string {
-  if (info?.parent == null) {
-    // should never happen
+  if (info.parent == null) {
+    // should never happen for list *items*.
     return `- ${children}`;
   } else if (info.parent.type == "bullet_list") {
     return `- ${children}`;
