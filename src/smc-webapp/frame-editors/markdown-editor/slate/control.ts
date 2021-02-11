@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Editor, Range, Transforms } from "slate";
+import { Editor, Range, Transforms, Point } from "slate";
 import { ReactEditor } from "./slate-react";
 import { isEqual } from "lodash";
 
@@ -105,9 +105,31 @@ export function moveCursorToBeginningOfBlock(
   Transforms.setSelection(editor, { focus, anchor: focus });
 }
 
+export function isAtEndOfBlock(editor: Editor, at?: Point): boolean {
+  if (at == null) {
+    at = editor.selection?.focus;
+    if (at == null) return false;
+  }
+  const after = Editor.after(editor, at);
+  if (after == null) {
+    // at end of the entire document, so definitely at the end of the block
+    return true;
+  }
+  if (isEqual(after.path, at.path)) {
+    // next point is in the same node, so can't be at the end (not
+    // even the end of this node).
+    return false;
+  }
+  const n = Math.min(after.path.length, at.path.length);
+  if (isEqual(at.path.slice(0, n - 1), after.path.slice(0, n - 1))) {
+    return false;
+  }
+  return true;
+}
+
 export function moveCursorToEndOfBlock(editor: Editor, path?: number[]): void {
   // This is sort of silly -- we move cursor to the beginning, then move
-  // cursor 1 line, which meoves it to the end... unless line is empty, in
+  // cursor 1 line, which moves it to the end... unless line is empty, in
   // which case we move it back.  Obviously this could be done more directly,
   // but it is a bit complicated and nice to reuse what's in slate; also maybe
   // slate has this already and when I find it just swap it in.
