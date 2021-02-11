@@ -30,7 +30,7 @@ register({
     return <p {...attributes}>{children}</p>;
   },
 
-  fromSlate: ({ node, children }) => {
+  fromSlate: ({ node, children, info }) => {
     if (children.trim() == "") {
       // We discard empty paragraphs entirely, since that's just
       // what markdown does. Also, to make void blocks easier to
@@ -39,6 +39,6 @@ register({
       // lots of meaningless blank lines in the md file.
       return "";
     }
-    return `${children}${node.tight ? "\n" : "\n\n"}`;
+    return `${children}${info.lastChild ? "\n" : node.tight ? "\n" : "\n\n"}`;
   },
 });

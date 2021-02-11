@@ -40,6 +40,11 @@ import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";
 import { slatePointToMarkdown, indexToPosition } from "./sync";
 
+const { diff_match_patch } = require("smc-util/dmp");
+export const dmp = new diff_match_patch();
+dmp.Diff_Timeout = 0.2;
+dmp.Patch_Margin = 10;
+
 // (??) A bit longer is better, due to escaping of markdown and multiple users
 // with one user editing source and the other editing with slate.
 // const SAVE_DEBOUNCE_MS = 1500;
@@ -141,6 +146,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
       markdown_to_slate(value)
     );
+    const lastSetEditorValueRef = useRef<Descendant[]>(editorValue);
+    const lastSetValueRef = useRef<string>(value);
+    const lastNormalizedValueRef = useRef<string>(
+      slate_to_markdown(editorValue)
+    );
 
     const scaling = use_font_size_scaling(font_size);
 
@@ -152,9 +162,44 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return editorMarkdownValueRef.current;
     }, []);
 
-
     function setSyncstringFromSlate() {
-      actions.set_value(editor_markdown_value());
+      editor_markdown_value();
+      // actions.set_value(editor_markdown_value());
+
+      const last: string = lastNormalizedValueRef.current;
+
+      // local = the current value of the editor as markdown
+      const local: string = slate_to_markdown(editor.children);
+
+      if (last == local) return; // definitely nothing changed.
+
+      // remote = current value of the syncstring
+      const remote: string = actions.get_syncstring().to_str();
+
+      const patch = dmp.patch_make(last, local);
+      const [new_remote, x] = dmp.patch_apply(patch, remote);
+      console.log({
+        x,
+        last,
+        local,
+        remote,
+        new_remote,
+        patch: JSON.stringify(patch),
+      });
+      lastSetEditorValueRef.current = editor.children;
+      lastSetValueRef.current = new_remote;
+      lastNormalizedValueRef.current = local;
+      /*for (const a of x) {
+        if (a) {
+          // patch did not apply cleanly, so allow to update editor
+          // to match what we got.
+          console.log("WARNING: patch didn't apply cleanly enough, so double checking");
+          lastSetValueRef.current = "";
+          break;
+        }
+      }
+      */
+      actions.set_value(new_remote);
     }
 
     const saveValue = useCallback((force?) => {
@@ -226,7 +271,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, []);
 
     useEffect(() => {
-      if (value == editorMarkdownValueRef.current) {
+      if (
+        value == editorMarkdownValueRef.current ||
+        value == lastSetValueRef.current
+      ) {
         // Setting to current value, so no-op.
         return;
       }
@@ -239,8 +287,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // an onChange, which it is best to ignore to save time and
       // also so we don't update the source editor (and other browsers)
       // with a view with things like loan $'s escaped.'
-      (editor as any).ignoreNextOnChange = true;
-      applyOperations(editor, operations);
+      if (operations.length > 0) {
+        console.log("operations = ", operations);
+        (editor as any).ignoreNextOnChange = true;
+        applyOperations(editor, operations);
+      }
+      lastSetEditorValueRef.current = editor.children;
 
       if (EXPENSIVE_DEBUG) {
         const stringify = require("json-stable-stringify");
@@ -263,7 +315,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    /*
+    ///*
     const { Transforms, Editor, Node } = require("slate");
     // not using (window as any) to cause a TS error, so
     // I don't forget to comment this out!
@@ -277,7 +329,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       slatePointToMarkdown,
       indexToPosition,
     };
-    */
+    //*/
 
     const [rowStyle, setRowStyle] = useState<CSS>({});
 

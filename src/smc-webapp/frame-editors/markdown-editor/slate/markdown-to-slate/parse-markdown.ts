@@ -93,7 +93,7 @@ export function parse_markdown(
 
   const tokens: Token[] = markdown_it.parse(text, {});
   process_math_tokens(tokens, math);
-  // (window as any).parse_markdown = { tokens, meta };
+  // window.parse_markdown = { tokens, meta };
   // console.log("time: parse_markdown", new Date().valueOf() - t0, " ms");
   return { tokens, meta };
 }
