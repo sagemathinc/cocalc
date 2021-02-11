@@ -66,7 +66,6 @@ if (USE_WINDOWING && IS_FIREFOX) {
 
 const STYLE = {
   width: "100%",
-  border: "1px solid lightgrey",
   overflow: "auto",
   boxShadow: "1px 1px 15px 1px #aaa",
 } as CSS;
@@ -394,6 +393,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
                   margin: "0 auto",
                   padding: "70px",
                   background: "white",
+                  overflow:
+                    "auto" /* Critical: see https://github.com/ianstormtaylor/slate/issues/3706 */,
                 }
           }
           windowing={
