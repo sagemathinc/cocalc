@@ -390,11 +390,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               : {
                   maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
                   minWidth: "80%",
-                  margin: "0 auto",
                   padding: "70px",
                   background: "white",
                   overflow:
-                    "auto" /* Critical: see https://github.com/ianstormtaylor/slate/issues/3706 */,
+                    "auto" /* for this overflow, see https://github.com/ianstormtaylor/slate/issues/3706 */,
                 }
           }
           windowing={
