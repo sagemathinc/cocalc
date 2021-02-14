@@ -5,11 +5,20 @@
 
 import { isEqual } from "lodash";
 import { is_array, startswith } from "smc-util/misc";
-import { Editor, Element, Node, Point, Text, Range, Transforms } from "slate";
+import {
+  Editor,
+  Element,
+  Location,
+  Node,
+  Point,
+  Text,
+  Range,
+  Transforms,
+} from "slate";
 import { ReactEditor } from "../slate-react";
 import { markdown_to_slate } from "../markdown-to-slate";
 import { commands } from "../../../../editors/editor-button-bar";
-import { DEFAULT_CHILDREN, removeBlankLines } from "../util";
+import { removeBlankLines } from "../util";
 import { delay } from "awaiting";
 import { insertLink } from "./insert-link";
 import { insertImage } from "./insert-image";
@@ -323,12 +332,16 @@ export async function formatAction(
       return;
     }
 
+    if (cmd == "quote") {
+      formatQuote(editor);
+      return;
+    }
+
     if (
       cmd == "insertunorderedlist" ||
       cmd == "insertorderedlist" ||
       cmd == "table" ||
-      cmd == "horizontalRule" ||
-      cmd == "quote"
+      cmd == "horizontalRule"
     ) {
       insertSnippet(editor, cmd);
       return;
@@ -469,9 +482,85 @@ function formatHeading(editor, level: number): void {
     at,
   });
   if (level == 0) return; // paragraph mode -- no heading.
-  Transforms.wrapNodes(
-    editor,
-    { type: "heading", level, children: DEFAULT_CHILDREN } as Element,
-    { at, match: (node) => Editor.isBlock(editor, node) }
-  );
+  Transforms.wrapNodes(editor, { type: "heading", level } as Element, {
+    at,
+    match: (node) => Editor.isBlock(editor, node),
+  });
+}
+
+function matchingNodes(editor, options): Element[] {
+  const v: Element[] = [];
+  for (const x of Editor.nodes(editor, options)) {
+    const elt = x[0];
+    if (Element.isElement(elt)) {
+      // **this specifically excludes including the entire editor
+      // as a matching node**
+      v.push(elt);
+    }
+  }
+  return v;
+}
+
+function containingBlocks(editor: Editor, at: Location): Element[] {
+  return matchingNodes(editor, {
+    at,
+    mode: "lowest",
+    match: (node) => Editor.isBlock(editor, node),
+  });
+}
+
+function isExactlyInBlocksOfType(
+  editor: Editor,
+  at: Location,
+  type: string
+): boolean {
+  // Get the blocks of the given type containing at:
+  const blocksOfType = matchingNodes(editor, {
+    at,
+    mode: "lowest",
+    match: (node) => node["type"] == type,
+  });
+  if (blocksOfType.length == 0) {
+    return false;
+  }
+  // The content in at *might* be exactly contained
+  // in blocks of the given type.  To decide, first
+  // get the blocks containing at:
+  let blocks: Element[] = containingBlocks(editor, at);
+
+  // This is complicated, of course mainly due
+  // to multiple blocks.
+  for (const blockOfType of blocksOfType) {
+    const { children } = blockOfType;
+    if (!isEqual(children, blocks.slice(0, children.length))) {
+      return false;
+    } else {
+      blocks = blocks.slice(children.length);
+    }
+  }
+  return true;
+}
+
+// Toggle whether or not the selection is quoted.
+function formatQuote(editor): void {
+  const at = getSelection(editor);
+
+  // The selected text *might* be exactly contained
+  // in a blockquote (or multiple of them).  If so, we remove it.
+  // If not we wrap everything in a new block quote.
+  if (isExactlyInBlocksOfType(editor, at, "blockquote")) {
+    // Unquote the selected text (just removes ones level of quoting).
+    Transforms.unwrapNodes(editor, {
+      match: (node) => node["type"] == "blockquote",
+      mode: "lowest",
+      at,
+    });
+  } else {
+    // Quote the blocks containing the selection.
+    Transforms.wrapNodes(editor, { type: "blockquote" } as Element, {
+      at,
+      match: (node) => Editor.isBlock(editor, node),
+      mode: "lowest",
+    });
+  }
 }
