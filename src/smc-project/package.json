@@ -46,7 +46,6 @@
     "prometheus-gc-stats": "^0.6.2",
     "request": "^2.88.0",
     "serve-index": "^1.9.1",
-    "start-stop-daemon": "^0.1.1",
     "temp": "^0.9.1",
     "tmp": "0.0.33",
     "ts-node": "=7.0.0",
