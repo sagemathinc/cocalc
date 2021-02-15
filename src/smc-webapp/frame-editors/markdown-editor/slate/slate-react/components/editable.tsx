@@ -13,7 +13,6 @@ import {
 //import { HistoryEditor } from "slate-history";
 //import * as throttle from "lodash/throttle";
 import { throttle } from "lodash";
-import scrollIntoView from "scroll-into-view-if-needed";
 
 import Children from "./children";
 import { WindowingParams } from "./children";
@@ -187,8 +186,9 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     try {
       newDomRange = selection && ReactEditor.toDOMRange(editor, selection);
     } catch (err) {
-      // To get this to happen, try select all and doubling the "large document" example on
-      // slatejs to get to over 300 cells. The select all again and get this.
+      // To get this to happen (when react-window is enabled!), try
+      // select all and doubling the "large document" example on
+      // slatejs to get to over 300 cells. Then select all again and get this.
       /*
       console.log(
         "TODO: deal with toDOMRange when selection is not contained in the visible window. Just resetting for now.",
@@ -215,12 +215,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           newDomRange.endOffset
         );
       }
-      const leafEl = newDomRange.startContainer.parentElement!;
-      const el = ReactEditor.toDOMNode(editor, editor);
-      scrollIntoView(leafEl, {
-        scrollMode: "if-needed",
-        boundary: el,
-      });
+      editor.scrollCaretIntoView();
     } else {
       domSelection.removeAllRanges();
     }

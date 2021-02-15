@@ -214,5 +214,52 @@ export const withReact = <T extends Editor>(editor: T) => {
     });
   };
 
+  e.scrollCaretIntoView = () => {
+    /* Scroll so Caret is visible.  I tested several editors, and
+     I think reasonable behavior is:
+      - If caret is full visible on the screen, do nothing.
+      - If caret is not visible, scroll so caret is at
+        top or bottom. Word and Pages do this but with an extra line;
+        CodeMirror does *exactly this*; some editors like Prosemirror
+        and Typora scroll the caret to the middle of the screen,
+        which is weird.  Since most of cocalc is codemirror, being
+        consistent with that seems best.  The implementation is also
+        very simple.
+
+     This code below is based on what is
+         https://github.com/ianstormtaylor/slate/pull/4023
+     except that PR seems buggy and does the wrong thing, so I
+     had to rewrite it.
+
+     I think properly implementing this is very important since it is
+     critical to keep users from feeling *lost* when using the editor.
+     If their cursor scrolls off the screen, especially in a very long line,
+     they might move the cursor back or forward one space to make it visible
+     again.  In slate with #4023, if you make a single LONG line (that spans
+     more than a page with no formatting), then scroll the cursor out of view,
+     then move the cursor, you often still don't see the cursor. That's
+     because it just scrolls that entire leaf into view, not the cursor
+     itself.
+  */
+    requestAnimationFrame(() => {
+      const { selection } = e;
+      if (!selection) return;
+      if (!Range.isCollapsed(selection)) return;
+      const domSelection = ReactEditor.toDOMRange(e, selection);
+      if (!domSelection) return;
+      const selectionRect = domSelection.getBoundingClientRect();
+      const editorEl = ReactEditor.toDOMNode(e, e);
+      const editorRect = editorEl.getBoundingClientRect();
+      if (selectionRect.top < editorRect.top) {
+        editorEl.scrollTop =
+          editorEl.scrollTop - (editorRect.top - selectionRect.top);
+      } else if (selectionRect.bottom - editorRect.top > editorRect.height) {
+        editorEl.scrollTop =
+          editorEl.scrollTop -
+          (editorRect.height - (selectionRect.bottom - editorRect.top));
+      }
+    });
+  };
+
   return e;
 };
