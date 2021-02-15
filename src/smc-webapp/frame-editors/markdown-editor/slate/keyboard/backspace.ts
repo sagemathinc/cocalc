@@ -11,7 +11,7 @@ What happens when you hit the backspace/delete key.
     for discussion of why we must implement this ourselves.
 */
 
-import { Editor, Range, Transforms } from "slate";
+import { Editor, Point, Range } from "slate";
 import { register } from "./register";
 
 function backspaceKey({ editor }) {
@@ -19,16 +19,35 @@ function backspaceKey({ editor }) {
     // default handler
     return false;
   }
-  // Check if there's a void node at cursor (e.g., checkbox) and if so delete it.
-  const { value } = Editor.nodes(editor, {
-    match: (node) => Editor.isVoid(editor, node),
-  }).next();
-  if (value == null) {
-    // No void -- fall back to default behavior.
-    return false;
+
+  // In slatejs you can't delete various block elements at the beginning of the
+  // document. This is yet another **BUG IN SLATE**, which we workaround by
+  // inserting an empty node at the beginning of the document.  This does not
+  // seem to be reported upstream, and I'm not even bothering since there's
+  // so many bugs like this we have to workaround.   Morever, if this bug is
+  // fixed upstream, it breaks our workaround!  Sigh.
+  if (isAtStart(editor.selection.focus)) {
+    editor.apply({
+      type: "insert_node",
+      path: [0],
+      node: { type: "paragraph", children: [{ text: "" }] },
+    });
+    Editor.deleteBackward(editor);
   }
-  Transforms.delete(editor, { at: value[1] });
+
+  // This seems to work perfectly in all cases, including working around the
+  // void delete bug in Slate:
+  //     https://github.com/ianstormtaylor/slate/issues/3875
+
+  Editor.deleteBackward(editor);
   return true;
 }
 
 register([{ key: "Backspace" }, { key: "Delete" }], backspaceKey);
+
+function isAtStart(loc: Point): boolean {
+  for (const n of loc.path) {
+    if (n != 0) return false;
+  }
+  return loc.offset == 0;
+}
