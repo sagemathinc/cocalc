@@ -17,7 +17,6 @@ import { is_different, path_split } from "smc-util/misc";
 import { debounce } from "lodash";
 import { React, ReactDOM, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
-import { MAX_WIDTH_NUM } from "../options";
 import { EditorState } from "../frame-tree/types";
 import { Actions } from "./actions";
 import { Path } from "../frame-tree/path";
@@ -122,7 +121,6 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
   };
   const style_inner: CSS = {
     ...{
-      maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
       margin: "0 auto",
       padding: "50px 75px",
       backgroundColor: "white",
@@ -137,11 +135,7 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
   return (
     <div className="smc-vfill" style={{ backgroundColor: "#eee" }}>
-      <Path
-        is_current={is_current}
-        path={path}
-        project_id={project_id}
-      />
+      <Path is_current={is_current} path={path} project_id={project_id} />
       <div
         style={style}
         ref={scroll}
