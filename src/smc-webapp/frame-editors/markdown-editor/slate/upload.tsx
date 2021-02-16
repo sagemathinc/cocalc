@@ -5,7 +5,7 @@
 
 import { Editor, Transforms } from "slate";
 import { ReactEditor } from "./slate-react";
-import { React, useRef } from "../../../app-framework";
+import { React, useActions, useRef } from "../../../app-framework";
 import { Dropzone, FileUploadWrapper } from "../../../file-upload";
 import { join } from "path";
 import { aux_file, path_split } from "smc-util/misc";
@@ -54,9 +54,14 @@ export function useUpload(
 ): JSX.Element {
   const dropzoneRef = useRef<Dropzone>(null);
   (editor as any).dropzoneRef = dropzoneRef;
+  const actions = useActions(project_id, path);
 
   const updloadEventHandlers = {
+    sending: ({ name }) => {
+      actions.set_status(`Uploading ${name}...`);
+    },
     complete: (file: { type: string; name: string; status: string }) => {
+      actions.set_status("");
       let node;
       if (file.type.indexOf("image") == -1) {
         node = {
@@ -80,6 +85,8 @@ export function useUpload(
     },
   };
 
+  // Note: using show_upload={false} since showing the upload right in the
+  // wysiwyg editor is really disconcerting.
   return (
     <FileUploadWrapper
       className="smc-vfill"
@@ -88,6 +95,7 @@ export function useUpload(
       event_handlers={updloadEventHandlers}
       style={{ height: "100%", width: "100%" }}
       dropzone_ref={dropzoneRef}
+      show_upload={false}
     >
       {body}
     </FileUploadWrapper>
