@@ -216,4 +216,15 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     if (editor == null) return;
     scrollToHeading(editor, parseInt(entry.id));
   }
+
+  // for rendered markdown, switch frame type so that this rendered view
+  // is instead editable.
+  public edit(id: string): void {
+    if (this.is_public) return;
+    this.set_frame_type(id, "slate");
+  }
+
+  public readonly_view(id: string): void {
+    this.set_frame_type(id, "markdown");
+  }
 }

@@ -1240,7 +1240,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   }
 
   function render_shell(): Rendered {
-    if (!is_visible("shell")) {
+    if (!is_visible("shell") || is_public) {
       return;
     }
     return (
@@ -1252,6 +1252,38 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       >
         <Icon name={"terminal"} />{" "}
         <VisibleMDLG>{button_text("shell")}</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  function render_edit(): Rendered {
+    if (!is_visible("edit") || is_public) {
+      return;
+    }
+    return (
+      <Button
+        key={"edit"}
+        bsSize={button_size()}
+        onClick={() => props.actions["edit"]?.(props.id)}
+        title={button_title("shell", "Switch to editing this content directly")}
+      >
+        <Icon name={"pencil"} /> <VisibleMDLG>Edit</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  function render_readonly_view(): Rendered {
+    if (!is_visible("readonly_view") || is_public) {
+      return;
+    }
+    return (
+      <Button
+        key={"readonly-view"}
+        bsSize={button_size()}
+        onClick={() => props.actions["readonly_view"]?.(props.id)}
+        title={button_title("shell", "Switch to readonly view of this content")}
+      >
+        <Icon name={"lock"} /> <VisibleMDLG>{button_text("view")}</VisibleMDLG>
       </Button>
     );
   }
@@ -1314,11 +1346,13 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     v.push(render_edit_init_script());
     v.push(render_clear());
     v.push(render_count_words());
-    v.push(render_table_of_contents());
     v.push(render_kick_other_users_out());
     v.push(render_format());
     v.push(render_shell());
+    v.push(render_edit());
+    v.push(render_readonly_view());
     v.push(render_print());
+    v.push(render_table_of_contents());
     v.push(render_guide(labels));
     v.push(render_help(labels));
 
