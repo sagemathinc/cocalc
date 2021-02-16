@@ -848,7 +848,9 @@ command_line = () ->
                     if err and program.dev
                         process.exit(1)
             else
-                throw Error("daemon mode not supported")
+                # TODO get rid of start-stop-daemon
+                daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
+                daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)
 
 
 if process.argv.length > 1
