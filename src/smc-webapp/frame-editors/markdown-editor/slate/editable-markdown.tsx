@@ -217,7 +217,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         // Important -- ReactEditor.isFocused(editor)  is *false* when
         // you're editing some inline void elements (e.g., code blocks),
         // since the focus leaves slate and goes to codemirror (say).
-        if (ReactEditor.isFocused(editor) || is_current) {
+        if (ReactEditor.isFocused(editor) && is_current) {
           setSyncstringFromSlate();
         }
       }

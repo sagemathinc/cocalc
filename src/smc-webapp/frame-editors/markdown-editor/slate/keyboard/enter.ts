@@ -10,6 +10,7 @@ import { isElementOfType } from "../elements";
 import { emptyParagraph } from "../padding";
 import { register } from "./register";
 import { isAtEndOfBlock, moveCursorToBeginningOfBlock } from "../control";
+import { hardbreak } from "../elements/linebreak";
 
 register({ key: "Enter" }, ({ editor }) => {
   const fragment = editor.getFragment();
@@ -20,6 +21,15 @@ register({ key: "Enter" }, ({ editor }) => {
     Transforms.insertNodes(editor, [emptyParagraph()], {
       match: (node) => isElementOfType(node, "heading"),
     });
+    return true;
+  }
+
+  if (isElementOfType(x, "paragraph")) {
+    // If you hit enter in a paragraph, the default behavior is creating
+    // another empty paragraph, which just gets ignored by markdown.
+    // So don't do it, as it's confusing.  Instead we just insert
+    // a hard break (same as shift-enter).
+    Transforms.insertNodes(editor, [hardbreak()]);
     return true;
   }
 

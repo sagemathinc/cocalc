@@ -66,8 +66,19 @@ export function moveCursorUp(editor: Editor, force: boolean = false): void {
 }
 
 export function blocksCursor(editor, up: boolean = false): boolean {
-  const elt = editor.getFragment()[0];
-  if (Editor.isVoid(editor, elt)) return true;
+  if (editor.selection == null || !Range.isCollapsed(editor.selection)) {
+    return false;
+  }
+
+  let elt;
+  try {
+    elt = editor.getFragment()[0];
+  } catch (_) {
+    return false;
+  }
+  if (Editor.isVoid(editor, elt)) {
+    return true;
+  }
 
   // Several non-void elements also block the cursor,
   // in the sense that you can't move the cursor immediately
@@ -90,14 +101,20 @@ export function blocksCursor(editor, up: boolean = false): boolean {
 export function ensureCursorNotBlocked(editor: Editor, up: boolean = false) {
   if (!blocksCursor(editor, !up)) return;
   // cursor in a void element, so insert a blank paragraph at
-  // cursor and put cursor back.
+  // cursor and put cursor in that blank paragraph.
   const { selection } = editor;
   if (selection == null) return;
+  const path = [selection.focus.path[0] + (up ? +1 : 0)];
   editor.apply({
     type: "insert_node",
-    path: [selection.focus.path[0] + (up ? +1 : 0)],
+    path,
     node: { type: "paragraph", children: [{ text: "" }] },
   });
+  Transforms.setSelection(editor, {
+    focus: { path, offset: 0 },
+    anchor: { path, offset: 0 },
+  });
+  /*
   if (up) {
     Transforms.move(editor, { distance: 1, unit: "line" });
   } else {
@@ -106,6 +123,7 @@ export function ensureCursorNotBlocked(editor: Editor, up: boolean = false) {
       Transforms.setSelection(editor, selection);
     }
   }
+  */
 }
 
 export function moveCursorToBeginningOfBlock(
