@@ -211,7 +211,7 @@ export const HTML: React.FC<Props> = (props) => {
         id={props.id}
         contentEditable={true}
         key={Math.random()}
-        className={props.className}
+        className={`${props.className ?? ""} cocalc-html-component`}
         dangerouslySetInnerHTML={render_html()}
         style={props.style}
         onClick={props.onClick}
@@ -225,7 +225,7 @@ export const HTML: React.FC<Props> = (props) => {
         id={props.id}
         contentEditable={false}
         key={Math.random()}
-        className={props.className}
+        className={`${props.className ?? ""} cocalc-html-component`}
         dangerouslySetInnerHTML={render_html()}
         style={props.style}
         onClick={props.onClick}
