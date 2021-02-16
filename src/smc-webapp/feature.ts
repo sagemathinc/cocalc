@@ -20,7 +20,10 @@ let IS_MOBILE,
   get_mobile,
   is_responsive_mode;
 
-if ((global as any).window != undefined) {
+if (
+  (global as any).window != undefined &&
+  (global as any).navigator != undefined
+) {
   // In a web browser.
   const window: any = (global as any).window;
   const navigator = window.navigator;
