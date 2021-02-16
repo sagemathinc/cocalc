@@ -48,6 +48,8 @@ import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 // Whether or not to use windowing.
 // I'm going to disable this by default (for production
 // releases), but re-enable it frequently for development.
+// There are a LOT of missing features when using windowing,
+// including subtle issues with selection, scroll state, etc.
 let USE_WINDOWING = false;
 // We set this to be as large as possible, since it might be a while until
 // we fully implement cursor/selection handling and windowing properly. In
@@ -58,7 +60,7 @@ let USE_WINDOWING = false;
 const OVERSCAN_ROW_COUNT = 75;
 if (USE_WINDOWING && IS_FIREFOX) {
   // Windowing on Firefox results in TONS of problems all over the place, whereas it
-  // works fine with Safari and Chrome.  So no matter what we always disable it on
+  // works "better" with Safari and Chrome.  So no matter what we always disable it on
   // Firefox.   See https://github.com/sagemathinc/cocalc/issues/5204 where both
   // problems are caused by windowing.
   USE_WINDOWING = false;
@@ -384,6 +386,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           onKeyDown={onKeyDown}
           onBlur={saveValue}
           onDoubleClick={inverseSearch}
+          divref={scrollRef}
+          onScroll={debounce(() => {
+            const scroll = scrollRef.current?.scrollTop;
+            if (scroll != null) {
+              actions.save_editor_state(id, { scroll });
+            }
+          }, 200)}
           style={
             USE_WINDOWING
               ? undefined
@@ -416,13 +425,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             ...STYLE,
             fontSize: font_size,
           }}
-          ref={scrollRef}
-          onScroll={debounce(() => {
-            const scroll = scrollRef.current?.scrollTop;
-            if (scroll != null) {
-              actions.save_editor_state(id, { scroll });
-            }
-          }, 200)}
         >
           {slate}
         </div>

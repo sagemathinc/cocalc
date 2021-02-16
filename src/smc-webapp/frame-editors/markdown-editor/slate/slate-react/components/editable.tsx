@@ -96,6 +96,7 @@ export type EditableProps = {
   renderLeaf?: React.FC<RenderLeafProps>;
   as?: React.ElementType;
   windowing?: WindowingParams;
+  divref?;
 } & React.TextareaHTMLAttributes<HTMLDivElement>;
 
 /**
@@ -117,7 +118,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     ...attributes
   } = props;
   const editor = useSlate();
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = props.divref ?? useRef<HTMLDivElement>(null);
 
   // Update internal state on each render.
   IS_READ_ONLY.set(editor, readOnly);
