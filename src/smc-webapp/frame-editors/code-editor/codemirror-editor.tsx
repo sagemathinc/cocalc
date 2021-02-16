@@ -263,12 +263,12 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     options.extraKeys["Cmd-/"] = "toggleComment";
     options.extraKeys["Ctrl-/"] = "toggleComment";
 
-    // Needed e.g., for vim ":w" support; obviously this is global, so be careful.
+    // Needed e.g., for vim ":w" support; this is global,
+    // so be careful.
     if ((CodeMirror as any).commands.save == null) {
       (CodeMirror as any).commands.save = (cm: any) => {
-        props.actions.explicit_save();
-        if (cm._actions) {
-          cm._actions.save(true);
+        if (cm.cocalc_actions != null) {
+          cm.cocalc_actions.explicit_save();
         }
       };
     }
