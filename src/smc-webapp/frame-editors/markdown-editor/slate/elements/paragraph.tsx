@@ -4,7 +4,13 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register, SlateElement } from "./register";
+import {
+  register,
+  SlateElement,
+  useFocused,
+  useSelected,
+  useCollapsed,
+} from "./register";
 
 export interface Paragraph extends SlateElement {
   type: "paragraph";
@@ -24,6 +30,29 @@ register({
 
   Element: ({ attributes, children, element }) => {
     if (element.type != "paragraph") throw Error("bug");
+
+    // All this complexity is because we only show empty paragraphs
+    // when the cursor is in them, since we create them dynamically in
+    // order to work around a fundamental shortcoming in the design
+    // of slatejs wrt cursor navigation (e.g., you can't move the cursor
+    // between block voids or before various elements at the beginning
+    // of a document such as bulleted lists).
+    const focused = useFocused();
+    const selected = useSelected();
+    const collapsed = useCollapsed();
+    const isEmpty =
+      element.children.length == 1 && element.children[0]["text"] == "";
+    if (isEmpty && !(collapsed && focused && selected)) {
+      // Only show empty paragraph if selection is collapsed, editor is
+      // focused, and para is selected.
+      return (
+        <span {...attributes} style={{ position: "absolute" }}>
+          {children}
+        </span>
+      );
+    }
+
+    // normal paragraph rendering:
     if (element.tight) {
       return <span {...attributes}>{children}</span>;
     }

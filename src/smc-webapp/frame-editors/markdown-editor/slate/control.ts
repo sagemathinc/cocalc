@@ -42,7 +42,7 @@ export function moveCursorDown(editor: Editor, force: boolean = false): void {
     Transforms.move(editor, { distance: 1, unit: "line" });
     return;
   }
-  ensureCursorNotVoid(editor);
+  ensureCursorNotBlocked(editor);
 }
 
 export function moveCursorUp(editor: Editor, force: boolean = false): void {
@@ -62,11 +62,33 @@ export function moveCursorUp(editor: Editor, force: boolean = false): void {
     });
     Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
   }
-  ensureCursorNotVoid(editor, true);
+  ensureCursorNotBlocked(editor, true);
 }
 
-export function ensureCursorNotVoid(editor: Editor, up: boolean = false) {
-  if (!Editor.isVoid(editor, editor.getFragment()[0])) return;
+export function blocksCursor(editor, up: boolean = false): boolean {
+  const elt = editor.getFragment()[0];
+  if (Editor.isVoid(editor, elt)) return true;
+
+  // Several non-void elements also block the cursor,
+  // in the sense that you can't move the cursor immediately
+  // before/after them.
+  // TODO: instead of listing here, should be part of registration
+  // system in ../elements.
+  if (
+    editor.selection != null &&
+    ((up && isAtBeginningOfBlock(editor)) || (!up && isAtEndOfBlock(editor))) &&
+    (elt.type == "blockquote" ||
+      elt.type == "ordered_list" ||
+      elt.type == "bullet_list")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+export function ensureCursorNotBlocked(editor: Editor, up: boolean = false) {
+  if (!blocksCursor(editor, !up)) return;
   // cursor in a void element, so insert a blank paragraph at
   // cursor and put cursor back.
   const { selection } = editor;
@@ -103,6 +125,18 @@ export function moveCursorToBeginningOfBlock(
   }
   const focus = { path, offset: 0 };
   Transforms.setSelection(editor, { focus, anchor: focus });
+}
+
+function isAtBeginningOfBlock(editor: Editor, at?: Point): boolean {
+  if (at == null) {
+    at = editor.selection?.focus;
+    if (at == null) return false;
+  }
+  if (at.offset != 0) return false;
+  for (const i of at.path.slice(1)) {
+    if (i != 0) return false;
+  }
+  return true;
 }
 
 export function isAtEndOfBlock(editor: Editor, at?: Point): boolean {
