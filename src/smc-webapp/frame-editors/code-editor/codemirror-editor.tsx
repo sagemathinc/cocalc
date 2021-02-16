@@ -263,16 +263,6 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     options.extraKeys["Cmd-/"] = "toggleComment";
     options.extraKeys["Ctrl-/"] = "toggleComment";
 
-    // Needed e.g., for vim ":w" support; this is global,
-    // so be careful.
-    if ((CodeMirror as any).commands.save == null) {
-      (CodeMirror as any).commands.save = (cm: any) => {
-        if (cm.cocalc_actions != null) {
-          cm.cocalc_actions.explicit_save();
-        }
-      };
-    }
-
     const cm: CodeMirror.Editor = (editor_actions() as any)._cm[props.id];
     if (cm != undefined) {
       // Reuse existing codemirror editor, rather
@@ -488,3 +478,11 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
 });
 
 CodemirrorEditor.defaultProps = { value: "" };
+
+// Needed e.g., for vim ":w" support; this is global,
+// so be careful.
+if ((CodeMirror as any).commands.save == null) {
+  (CodeMirror as any).commands.save = (cm: any) => {
+    cm.cocalc_actions?.explicit_save();
+  };
+}

@@ -14,7 +14,7 @@ import { register, IS_MACOS } from "./register";
 // nodes not in the window).  The select now happens but other
 // things break.
 
-register({ key: "a", meta: IS_MACOS, ctrl: !IS_MACOS }, ({ editor }) => {
+export function selectAll(editor: Editor) {
   const first = Editor.first(editor, []);
   const last = Editor.last(editor, []);
   const offset = last[0]["text"]?.length ?? 0;
@@ -22,5 +22,9 @@ register({ key: "a", meta: IS_MACOS, ctrl: !IS_MACOS }, ({ editor }) => {
     anchor: { path: first[1], offset: 0 },
     focus: { path: last[1], offset },
   });
+}
+
+register({ key: "a", meta: IS_MACOS, ctrl: !IS_MACOS }, ({ editor }) => {
+  selectAll(editor);
   return true;
 });

@@ -110,8 +110,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, []);
 
     // todo move to our own context-based hook!
-    (editor as any).project_id = project_id;
-    (editor as any).path = path;
+    (editor as any).cocalc_context = { project_id, path, id };
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const restoreScroll = async () => {
