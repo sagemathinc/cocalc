@@ -252,6 +252,12 @@ export function getSelection(editor: Editor): Range {
   );
 }
 
+// get range that's the selection collapsed to the focus point.
+export function getCollapsedSelection(editor: Editor): Range {
+  const focus = getSelection(editor)?.focus;
+  return { focus, anchor: focus };
+}
+
 export async function setSelectionAndFocus(
   editor: ReactEditor,
   selection
@@ -259,11 +265,13 @@ export async function setSelectionAndFocus(
   // This delay is critical since otherwise the focus itself
   // also sets the selection cancelling out the setSelection below.
   // Note: firefox + focus/selection + slate is extremely broken
+  // with react-window (which we are very likely not using anyways),
   // and I have no idea how to fix it yet
   //     https://github.com/sagemathinc/cocalc/issues/5204
   ReactEditor.focus(editor);
   await delay(1);
   Transforms.setSelection(editor, selection);
+  ReactEditor.focus(editor);
 }
 
 export async function restoreSelectionAndFocus(
@@ -451,41 +459,65 @@ export function selectionToText(editor: Editor): string {
   // could run into a subtle problem e.g., due to windowing.
   // However, that's very unlikely given our application.
   return window.getSelection()?.toString() ?? "";
-
-  // The following is complicated but doesn't work in general.
-  /*
-  let fragment = Editor.fragment(editor, editor.selection);
-  while (Element.isElement(fragment[0])) {
-    fragment = fragment[0].children;
-  }
-  return fragmentToMarkdown(fragment);
-  */
 }
 
-/*
-function selectionToMarkdown(editor: Editor): string {
-  if (!editor.selection) return "";
-  return fragmentToMarkdown(Editor.fragment(editor, editor.selection));
-}
-*/
-/*
-function fragmentToMarkdown(fragment): string {
-  return slate_to_markdown(fragment, { no_escape: true });
-}
-*/
-
-function formatHeading(editor, level: number): void {
-  const at = getSelection(editor);
-  Transforms.unwrapNodes(editor, {
-    match: (node) => node["type"] == "heading",
-    mode: "all",
-    at,
-  });
-  if (level == 0) return; // paragraph mode -- no heading.
-  Transforms.wrapNodes(editor, { type: "heading", level } as Element, {
-    at,
+// Setting heading at a given point to a certain level.
+// level = 0 -- not a heading
+// levels = 1 to 6 -- normal headings.
+// The code below is complicated, because there are numerous subtle
+// cases that can arise and we have to both create and remove
+// being a heading.
+async function formatHeading(editor, level: number): Promise<void> {
+  const at = getCollapsedSelection(editor);
+  const options = {
     match: (node) => Editor.isBlock(editor, node),
-  });
+    mode: "highest" as "highest",
+    at,
+  };
+  const fragment = Editor.fragment(editor, at);
+  const type = fragment[0]?.["type"];
+  if (type != "heading" && type != "paragraph") {
+    // Markdown doesn't let most things be in headers.
+    // Technicall markdown allows for headers as entries in other
+    // things like lists, but we're not supporting this here, since
+    // that just seems really annoying.
+    return;
+  }
+  try {
+    if (type == "heading") {
+      // mutate the type to what's request
+      if (level == 0) {
+        if (Editor.isBlock(editor, fragment[0]["children"]?.[0])) {
+          // descendant of heading is a block, so we can just unwrap,
+          // which we *can't* do if it were an inline node (e.g., text).
+          Transforms.unwrapNodes(editor, {
+            match: (node) => node["type"] == "heading",
+            mode: "highest",
+            at,
+          });
+          return;
+        }
+        // change header to paragraph
+        Transforms.setNodes(
+          editor,
+          { type: "paragraph", level: undefined } as Partial<Element>,
+          options
+        );
+      } else {
+        // change header level
+        Transforms.setNodes(editor, { level } as Partial<Element>, options);
+      }
+      return;
+    }
+    if (level == 0) return; // paragraph mode -- no heading.
+    Transforms.wrapNodes(
+      editor,
+      { type: "heading", level } as Element,
+      options
+    );
+  } finally {
+    setSelectionAndFocus(editor, at);
+  }
 }
 
 function matchingNodes(editor, options): Element[] {
