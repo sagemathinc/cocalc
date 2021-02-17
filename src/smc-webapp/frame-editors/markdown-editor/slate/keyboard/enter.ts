@@ -9,7 +9,11 @@ import { Element, Transforms } from "slate";
 import { isElementOfType } from "../elements";
 import { emptyParagraph } from "../padding";
 import { register } from "./register";
-import { isAtEndOfBlock, moveCursorToBeginningOfBlock } from "../control";
+import {
+  isAtBeginningOfBlock,
+  isAtEndOfBlock,
+  moveCursorToBeginningOfBlock,
+} from "../control";
 import { hardbreak } from "../elements/linebreak";
 
 register({ key: "Enter" }, ({ editor }) => {
@@ -34,7 +38,8 @@ register({ key: "Enter" }, ({ editor }) => {
   }
 
   if (isElementOfType(x, ["bullet_list", "ordered_list"])) {
-    const atEnd = isAtEndOfBlock(editor);
+    const atEnd = isAtEndOfBlock(editor, { mode: "lowest" });
+    const atBeginning = isAtBeginningOfBlock(editor, { mode: "lowest" });
     Transforms.insertNodes(
       editor,
       [{ type: "list_item", children: [{ text: "" }] } as Element],
@@ -43,16 +48,23 @@ register({ key: "Enter" }, ({ editor }) => {
         mode: "lowest",
       }
     );
-    if (!atEnd) {
-      // In this case slate splits the list item so we end up
-      // with an extra blank one.
-      // First move cursor down one line
-      Transforms.removeNodes(editor, {
-        match: (node) => isElementOfType(node, "list_item"),
-      });
+    if (atBeginning) {
+      // done
       Transforms.move(editor, { distance: 1, unit: "line" });
-      moveCursorToBeginningOfBlock(editor);
+      return true;
     }
+    if (atEnd) {
+      // done
+      return true;
+    }
+    // Note at beginning or end, so above insertNodes actually
+    // splits the list item so we end up
+    // with an extra blank one, which we now remove.
+    Transforms.removeNodes(editor, {
+      match: (node) => isElementOfType(node, "list_item"),
+    });
+    Transforms.move(editor, { distance: 1, unit: "line" });
+    moveCursorToBeginningOfBlock(editor);
     return true;
   }
   return false;

@@ -87,7 +87,8 @@ export function blocksCursor(editor, up: boolean = false): boolean {
   // system in ../elements.
   if (
     editor.selection != null &&
-    ((up && isAtBeginningOfBlock(editor)) || (!up && isAtEndOfBlock(editor))) &&
+    ((up && isAtBeginningOfBlock(editor, { mode: "highest" })) ||
+      (!up && isAtEndOfBlock(editor, { mode: "highest" }))) &&
     (elt.type == "blockquote" ||
       elt.type == "ordered_list" ||
       elt.type == "bullet_list")
@@ -114,16 +115,6 @@ export function ensureCursorNotBlocked(editor: Editor, up: boolean = false) {
     focus: { path, offset: 0 },
     anchor: { path, offset: 0 },
   });
-  /*
-  if (up) {
-    Transforms.move(editor, { distance: 1, unit: "line" });
-  } else {
-    if (selection != null) {
-      // typescript wants this check
-      Transforms.setSelection(editor, selection);
-    }
-  }
-  */
 }
 
 export function moveCursorToBeginningOfBlock(
@@ -145,19 +136,39 @@ export function moveCursorToBeginningOfBlock(
   Transforms.setSelection(editor, { focus, anchor: focus });
 }
 
-function isAtBeginningOfBlock(editor: Editor, at?: Point): boolean {
+// True if point is at the beginning of the containing block
+// that it is in (or top level block if mode='highest').
+export function isAtBeginningOfBlock(
+  editor: Editor,
+  options: { at?: Point; mode?: "lowest" | "highest" }
+): boolean {
+  let { at, mode } = options;
+  if (mode == null) mode = "lowest";
   if (at == null) {
     at = editor.selection?.focus;
     if (at == null) return false;
   }
   if (at.offset != 0) return false;
-  for (const i of at.path.slice(1)) {
-    if (i != 0) return false;
+  if (mode == "lowest") {
+    // easy special case.
+    return at.path[at.path.length - 1] == 0;
   }
-  return true;
+  const before = Editor.before(editor, at);
+  if (before == null) {
+    // at beginning of the entire document, so definitely at the beginning of the block
+    return true;
+  }
+  return before.path[0] < at.path[0];
 }
 
-export function isAtEndOfBlock(editor: Editor, at?: Point): boolean {
+// True if point is at the end of the containing block
+// that it is in (or top level block if mode='highest')
+export function isAtEndOfBlock(
+  editor: Editor,
+  options: { at?: Point; mode?: "lowest" | "highest" }
+): boolean {
+  let { at, mode } = options;
+  if (mode == null) mode = "lowest";
   if (at == null) {
     at = editor.selection?.focus;
     if (at == null) return false;
@@ -172,11 +183,16 @@ export function isAtEndOfBlock(editor: Editor, at?: Point): boolean {
     // even the end of this node).
     return false;
   }
-  const n = Math.min(after.path.length, at.path.length);
-  if (isEqual(at.path.slice(0, n - 1), after.path.slice(0, n - 1))) {
-    return false;
+  if (mode == "highest") {
+    // next path needs to start with a new number.
+    return after.path[0] > at.path[0];
+  } else {
+    const n = Math.min(after.path.length, at.path.length);
+    if (isEqual(at.path.slice(0, n - 1), after.path.slice(0, n - 1))) {
+      return false;
+    }
+    return true;
   }
-  return true;
 }
 
 export function moveCursorToEndOfBlock(editor: Editor, path?: number[]): void {
