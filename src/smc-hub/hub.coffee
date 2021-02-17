@@ -751,7 +751,6 @@ add_user_to_project = (project_id, email_address, cb) ->
 
 command_line = () ->
     program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
-    daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
     default_db = process.env.PGHOST ? 'localhost'
 
     program.usage('[start/stop/restart/status/nodaemon] [options]')
@@ -849,6 +848,8 @@ command_line = () ->
                     if err and program.dev
                         process.exit(1)
             else
+                # TODO get rid of start-stop-daemon
+                daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
                 daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)
 
 
