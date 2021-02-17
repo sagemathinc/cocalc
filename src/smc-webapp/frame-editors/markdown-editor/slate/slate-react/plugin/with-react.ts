@@ -245,6 +245,17 @@ export const withReact = <T extends Editor>(editor: T) => {
       const { selection } = e;
       if (!selection) return;
       if (!Range.isCollapsed(selection)) return;
+
+      // Important: there's no good way to do this when the focused
+      // element is void, and the naive code leads to bad problems,
+      // e.g., with several images, when you click on one things jump
+      // around randomly and you sometimes can't scroll the image into view.
+      // Better to just do nothing in case of voids.
+      for (const [node] of Editor.nodes(e, { at: selection.focus })) {
+        if (Editor.isVoid(e, node)) {
+          return;
+        }
+      }
       const domSelection = ReactEditor.toDOMRange(e, selection);
       if (!domSelection) return;
       const selectionRect = domSelection.getBoundingClientRect();
