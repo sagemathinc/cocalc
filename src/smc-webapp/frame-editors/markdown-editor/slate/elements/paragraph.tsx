@@ -56,7 +56,14 @@ register({
     if (element.tight) {
       return <span {...attributes}>{children}</span>;
     }
-    return <p {...attributes}>{children}</p>;
+    // I'm just using a div instead of a p because you can't have
+    // any div's inside of a p, and things like image resize use
+    // div's under the hood in the implementation.
+    return (
+      <div {...attributes} style={{ marginBottom: "1em" }}>
+        {children}
+      </div>
+    );
   },
 
   fromSlate: ({ node, children, info }) => {

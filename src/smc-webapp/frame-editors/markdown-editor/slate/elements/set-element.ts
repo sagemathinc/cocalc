@@ -5,18 +5,37 @@
 
 import { useRef } from "../../../../app-framework";
 import { Editor, Element, Transforms } from "slate";
+import { rangeAll } from "../keyboard/select-all";
 
 export function setElement(
   editor: Editor,
   element: Element,
   obj: object
 ): void {
+  // Usually when setElement is called, the element we are searching for is right
+  // near the selection, so this first search finds it.
   for (const [, path] of Editor.nodes(editor, {
     match: (node) => node === element,
   })) {
     Transforms.setNodes(editor, obj, { at: path });
-    break; // we only want the first one (there are no others, but setNode doesn't have a short circuit option)
+    return; // we only want the first one (there are no others, but setNode doesn't have a short circuit option)
   }
+
+  // Searching at the selection failed, so we try searching the entire document instead.
+  // This has to work.
+  for (const [, path] of Editor.nodes(editor, {
+    match: (node) => node === element,
+    at: rangeAll(editor),
+  })) {
+    Transforms.setNodes(editor, obj, { at: path });
+    return;
+  }
+
+  console.log(
+    "WARNING: setElement unable to find element in document",
+    element,
+    obj
+  );
 }
 
 export function useSetElement(editor: Editor, element: Element): (obj) => void {

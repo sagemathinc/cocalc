@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Editor, Transforms } from "slate";
+import { Editor, Range, Transforms } from "slate";
 import { register, IS_MACOS } from "./register";
 
 // On Firefox with windowing enabled,
@@ -14,14 +14,18 @@ import { register, IS_MACOS } from "./register";
 // nodes not in the window).  The select now happens but other
 // things break.
 
-export function selectAll(editor: Editor) {
+export function rangeAll(editor: Editor): Range {
   const first = Editor.first(editor, []);
   const last = Editor.last(editor, []);
-  const offset = last[0]["text"]?.length ?? 0;
-  Transforms.setSelection(editor, {
+  const offset = last[0]["text"]?.length ?? 0; // TODO: not 100% that this is right
+  return {
     anchor: { path: first[1], offset: 0 },
     focus: { path: last[1], offset },
-  });
+  };
+}
+
+export function selectAll(editor: Editor) {
+  Transforms.setSelection(editor, rangeAll(editor));
 }
 
 register({ key: "a", meta: IS_MACOS, ctrl: !IS_MACOS }, ({ editor }) => {

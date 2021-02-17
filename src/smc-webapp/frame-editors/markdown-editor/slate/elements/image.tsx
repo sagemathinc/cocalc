@@ -3,16 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../../../app-framework";
+import { React, useRef, useState } from "../../../../app-framework";
 import {
   register,
   SlateElement,
   useFocused,
   useProcessLinks,
   useSelected,
+  useSlate,
 } from "./register";
+import { useSetElement } from "./set-element";
 import { dict } from "smc-util/misc";
 import { FOCUSED_COLOR } from "../util";
+import { Resizable } from "re-resizable";
 
 export interface Image extends SlateElement {
   type: "image";
@@ -107,28 +110,71 @@ register({
     const node = element as Image;
     const { src, alt, title } = node;
 
+    const [width, setWidth] = useState<number | undefined>(undefined);
+    const [height, setHeight] = useState<number | undefined>(undefined);
+
     const focused = useFocused();
     const selected = useSelected();
-
     const border =
-      focused && selected ? `3px solid ${FOCUSED_COLOR}` : `3px solid white`;
+      focused && selected ? `3px solid ${FOCUSED_COLOR}` : undefined;
 
     const ref = useProcessLinks([src]);
+    const imageRef = useRef<any>(null);
+
+    const editor = useSlate();
+    const setElement = useSetElement(editor, element);
 
     return (
       <span {...attributes}>
         <span ref={ref} contentEditable={false}>
-          <img
-            src={src}
-            alt={alt}
-            title={title}
+          <Resizable
+            maxWidth="100%"
             style={{
-              maxWidth: "100%",
+              display: "inline-block",
+              background: "#f0f0f0",
               border,
-              height: node.height,
-              width: node.width,
             }}
-          />
+            lockAspectRatio={true}
+            size={
+              width != null && height != null
+                ? {
+                    width,
+                    height,
+                  }
+                : undefined
+            }
+            onResizeStop={(_e, _direction, _ref, d) => {
+              if (width == null || height == null) return;
+              const new_width = width + d.width;
+              const new_height = height + d.height;
+              setElement({
+                height: `${new_height}px`,
+                width: `${new_width}px`,
+              });
+              setWidth(new_width);
+              setHeight(new_height);
+            }}
+          >
+            <img
+              onLoad={() => {
+                const elt = $(imageRef.current);
+                const width = elt.width() ?? 0;
+                const height = elt.height() ?? 0;
+                setWidth(width);
+                setHeight(height);
+              }}
+              ref={imageRef}
+              src={src}
+              alt={alt}
+              title={title}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "100%",
+                height: node.height,
+                width: node.width,
+              }}
+            />
+          </Resizable>
         </span>
         {children}
       </span>
