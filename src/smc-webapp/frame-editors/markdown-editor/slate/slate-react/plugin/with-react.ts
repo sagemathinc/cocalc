@@ -256,7 +256,13 @@ export const withReact = <T extends Editor>(editor: T) => {
           return;
         }
       }
-      const domSelection = ReactEditor.toDOMRange(e, selection);
+      let domSelection;
+      try {
+        domSelection = ReactEditor.toDOMRange(e, selection);
+      } catch (_err) {
+        // harmless to just not do this in case of failure.
+        return;
+      }
       if (!domSelection) return;
       const selectionRect = domSelection.getBoundingClientRect();
       const editorEl = ReactEditor.toDOMNode(e, e);
