@@ -121,7 +121,7 @@ class MetricsRecorder
         metrics = (m for _, m of exports.client_metrics)
 
         registry = prom_client.AggregatorRegistry.aggregate(metrics)
-        return registry.metrics()
+        return await registry.metrics()
 
     metrics: =>
         ###
@@ -129,8 +129,8 @@ class MetricsRecorder
         (was a dict that should be JSON, now it is for prometheus)
         it's only called by hub_http_server for the /metrics endpoint
         ###
-        hub     = prom_client.register.metrics()
-        clients = @client_metrics()
+        hub     = await prom_client.register.metrics()
+        clients = await @client_metrics()
         return hub + clients
 
     register_collector: (collector) =>
