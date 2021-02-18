@@ -1,8 +1,13 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Markdown editor
 
 Stage 1 -- enough to replace current chat input:
-  - [ ] @mentions (via completion dialog) -the collabs on this project
+  - [x] @mentions (via completion dialog) -the collabs on this project
      - [ ] type to search/restrict from list of collabs
      - [x] get rid of the "enable_mentions" account pref flag and data -- always have it
      - [x] write new better more generic completions widget support
@@ -65,8 +70,6 @@ import {
   path_split,
   trunc_middle,
   trunc,
-  timestamp_cmp,
-  cmp,
 } from "smc-util/misc";
 import { IS_MOBILE } from "../../feature";
 import { A } from "../../r_misc";
@@ -80,11 +83,11 @@ import {
   useTypedRedux,
   redux,
 } from "../../app-framework";
-import { Avatar } from "../../account/avatar/avatar";
 import { Dropzone, FileUploadWrapper } from "../../file-upload";
 import { alert_message } from "../../alerts";
 import { Complete, Item } from "./complete";
 import { submit_mentions } from "./mentions";
+import { mentionableUsers } from "./mentionable-users";
 
 const BLURED_STYLE: React.CSSProperties = {
   border: "1px solid rgb(204,204,204)", // focused will be rgb(112, 178, 230);
@@ -542,51 +545,9 @@ export const MarkdownInput: React.FC<Props> = ({
     if (project_id == null) {
       throw Error("project_id and path must be set if enableMentions is set.");
     }
-    const users = redux
-      .getStore("projects")
-      .getIn(["project_map", project_id, "users"]);
-    const last_active = redux
-      .getStore("projects")
-      .getIn(["project_map", project_id, "last_active"]);
-    if (users == null || last_active == null) return; // e.g., for an admin
-    const my_account_id = redux.getStore("account").get("account_id");
-    const project_users: {
-      account_id: string;
-      last_active: Date | undefined;
-    }[] = [];
-    for (const [account_id] of users) {
-      project_users.push({
-        account_id,
-        last_active: last_active.get(account_id),
-      });
-    }
-    project_users.sort((a, b) => {
-      // always push self to bottom...
-      if (a.account_id == my_account_id) {
-        return 1;
-      }
-      if (b.account_id == my_account_id) {
-        return -1;
-      }
-      if (a == null || b == null) return cmp(a.account_id, b.account_id);
-      if (a == null && b != null) return 1;
-      if (a != null && b == null) return -1;
-      return timestamp_cmp(a, b, "last_active");
-    });
-
-    const users_store = redux.getStore("users");
-    const v: Item[] = [];
-    for (const { account_id } of project_users) {
-      const name = trunc_middle(users_store.get_name(account_id), 64);
-      const elt = (
-        <span>
-          <Avatar account_id={account_id} size={24} /> {name}
-        </span>
-      );
-      v.push({ value: account_id, elt, search: name.toLowerCase() });
-    }
+    const v = mentionableUsers(project_id);
     if (v.length == 0) {
-      // nobody to mention.
+      // nobody to mention (e.g., admin doesn't have this)
       return;
     }
     set_mentions(v);
