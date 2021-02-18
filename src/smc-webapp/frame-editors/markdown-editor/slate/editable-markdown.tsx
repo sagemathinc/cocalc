@@ -39,6 +39,7 @@ import { useUpload, withUpload } from "./upload";
 import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";
 import { slatePointToMarkdown, indexToPosition } from "./sync";
+import { insertMention, useMentions } from "./slate-mentions";
 
 // (??) A bit longer is better, due to escaping of markdown and multiple users
 // with one user editing source and the other editing with slate.
@@ -112,6 +113,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     // todo move to our own context-based hook!
     (editor as any).cocalc_context = { project_id, path, id };
 
+    const mentions = useMentions({
+      editor,
+      insertMention,
+    });
+
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const restoreScroll = async () => {
       const scroll = editor_state?.get("scroll");
@@ -137,7 +143,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const editorMarkdownValueRef = useRef<string | undefined>(undefined);
     const hasUnsavedChangesRef = useRef<boolean>(false);
 
-    // const [editorValue, setEditorValue] = useState<Descendant[]>([]);
     const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
       markdown_to_slate(value)
     );
@@ -185,6 +190,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         e.preventDefault();
         return;
       }
+
+      mentions.onKeyDown(e);
+      if (e.defaultPrevented) return;
+
       const handler = getKeyboardHandler(e);
       if (handler != null) {
         const extra = { actions, id, hasUnsavedChangesRef };
@@ -308,7 +317,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         t += 50;
         if (t > 2000) return; // give up
       }
-      const point = editor.selection?.anchor;  // using anchor since double click selects word.
+      const point = editor.selection?.anchor; // using anchor since double click selects word.
       if (point == null) {
         return;
       }
@@ -360,6 +369,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
         setEditorValue(newEditorValue);
 
+        // Update mentions state whenever editor actually changes.
+        // This may pop up the mentions selector.
+        mentions.onChange();
+
         if (!is_current) {
           // Do not save when editor not current since user could be typing
           // into another editor of the same underlying document.   This will
@@ -409,6 +422,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               : undefined
           }
         />
+        {mentions.Mentions}
       </Slate>
     );
 
