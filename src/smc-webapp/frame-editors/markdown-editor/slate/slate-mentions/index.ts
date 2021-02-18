@@ -5,6 +5,8 @@
 
 // Adapted from https://github.com/ianstormtaylor/slate/blob/master/site/examples/mentions.tsx
 
+import { Transforms } from "slate";
+
 export const insertMention = (editor, name) => {
   Transforms.insertText(editor, "@" + name);
 };
