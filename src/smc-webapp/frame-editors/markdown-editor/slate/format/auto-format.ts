@@ -42,9 +42,8 @@ import { len } from "smc-util/misc";
 import { markdown_to_slate } from "../markdown-to-slate";
 import { applyOperations } from "../operations";
 import { slateDiff } from "../slate-diff";
-import { emptyParagraph } from "../padding";
 import { getRules } from "../elements";
-import { moveCursorToEndOfBlock } from "../control";
+import { moveCursorToEndOfElement } from "../control";
 
 async function markdownReplace(editor: Editor): Promise<boolean> {
   const { selection } = editor;
@@ -58,7 +57,9 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
   const text = node.text.trim();
   if (text.length == 0) return false;
 
-  const doc = markdown_to_slate(text, true) as any;
+  // make a copy to avoid any caching issues (??).
+  const doc = [...(markdown_to_slate(text, true) as any)];
+
   if (
     doc.length == 1 &&
     doc[0].type == "paragraph" &&
@@ -75,6 +76,8 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
     doc[0].type == "paragraph" &&
     Text.isText(doc[0].children[0]);
 
+  // window.autoformat = { text, doc, isInline };
+
   if (!isInline && selection.focus.offset < node.text.trimRight().length) {
     // must be at the *end* of the text node (mod whitespace)
     // Doing autoformat any time there is a space anywhere
@@ -89,7 +92,7 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
   editor.saveValue(true);
   // Wait for next time to finish before applying operations below; if
   // we don't do this, then things get all messed up.
-  await delay(0);
+  await new Promise(requestAnimationFrame);
 
   // **INLINE CASE**
   if (isInline) {
@@ -126,7 +129,7 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
       shift_path(op, pos);
     }
     applyOperations(editor, operations);
-    await delay(0);
+    await new Promise(requestAnimationFrame);
 
     // Move the cursor to the right position.
     const new_path = [...path];
@@ -151,8 +154,9 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
     // We put an empty paragraph after, so that formatting
     // is preserved (otherwise it gets stripped); also some documents
     // ending in void block elements are difficult to use.
-    Transforms.insertFragment(editor, [...doc, emptyParagraph()]);
+    Transforms.insertNodes(editor, doc);
     await new Promise(requestAnimationFrame);
+    moveCursorToEndOfElement(editor, doc[0]);
 
     // Normally just move the cursor beyond what was just
     // inserted, though sometimes it makes more sense to
@@ -162,8 +166,6 @@ async function markdownReplace(editor: Editor): Promise<boolean> {
     if (!rules?.autoFocus) {
       // move cursor out of the newly created block element.
       Transforms.move(editor, { distance: 1 });
-    } else {
-      moveCursorToEndOfBlock(editor, selection.focus.path);
     }
   }
   // @ts-ignore

@@ -11,12 +11,19 @@ const SENTINEL = "\uFE30";
 // corresponding index into the corresponding markdown document,
 // along with the version of the markdown file that was used for
 // this determination.
-// Returns undefined if it fails to work for some reason.
+// Returns index of -1 if it fails to work for some reason, e.g.,
+// the point doesn't exist in the document.
 export function slatePointToMarkdown(
   editor: Editor,
   point: Point
 ): { index: number; markdown: string } {
-  const [node] = Editor.node(editor, point);
+  let node;
+  try {
+    [node] = Editor.node(editor, point);
+  } catch (err) {
+    // There is no guarantee that point is valid when this is called.
+    return { index: -1, markdown: "" };
+  }
 
   let markdown = slate_to_markdown(editor.children, {
     hook: (elt, s) => {

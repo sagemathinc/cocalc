@@ -308,7 +308,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         t += 50;
         if (t > 2000) return; // give up
       }
-      const point = editor.selection?.anchor;
+      const point = editor.selection?.anchor;  // using anchor since double click selects word.
       if (point == null) {
         return;
       }
