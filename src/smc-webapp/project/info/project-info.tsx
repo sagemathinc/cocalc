@@ -105,6 +105,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
     const [modal, set_modal] = useState<string | Process | undefined>(
       undefined
     );
+    const [show_bug, set_show_bug] = useState(false);
 
     React.useMemo(() => {
       if (project_map == null) return;
@@ -134,6 +135,12 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
     React.useEffect(() => {
       set_disconnected(chan == null || sync == null);
     }, [sync, chan]);
+
+    // used in render_not_loading_info()
+    React.useEffect(() => {
+      const timer = setTimeout(() => set_show_bug(true), 5000);
+      return () => clearTimeout(timer);
+    }, []);
 
     async function connect() {
       set_status("connecting…");
@@ -527,11 +534,42 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
       }
     }
 
+    // TODO remove this after https://github.com/sagemathinc/cocalc/issues/5081 is fixed
+    function render_not_loading_info() {
+      return (
+        <>
+          <div>
+            <Loading />
+          </div>
+          {show_bug && (
+            <Alert
+              type="info"
+              message={
+                <div>
+                  <p>
+                    If the Table of Processes does not load, you probably hit{" "}
+                    <A
+                      href={"https://github.com/sagemathinc/cocalc/issues/5081"}
+                    >
+                      Issue #5081
+                    </A>
+                    . You have to restart the project to make it work again.
+                  </p>
+                  {render_restart_project()}
+                </div>
+              }
+            />
+          )}
+        </>
+      );
+    }
+
     // mimic a table of processes program like htop – with tailored descriptions for cocalc
     function render_top() {
       if (ptree == null) {
         if (project_state === "running" && error == null) {
-          return <Loading />;
+          // return <Loading />;
+          return render_not_loading_info();
         } else {
           return null;
         }
