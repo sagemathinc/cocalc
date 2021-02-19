@@ -282,7 +282,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, [value]);
 
     /*
-    const { Transforms, Editor, Node } = require("slate");
+    const { Editor, Node } = require("slate");
     // not using (window as any) to cause a TS error, so
     // I don't forget to comment this out!
     window.z = {

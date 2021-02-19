@@ -22,8 +22,12 @@ register({
     return <li {...attributes}>{children}</li>;
   },
 
-  fromSlate: ({ children, info }) => {
-    return ensure_ends_in_newline(li_indent(item({ children, info })));
+  fromSlate: ({ children, info, node }) => {
+    let s = ensure_ends_in_newline(li_indent(item({ children, info })));
+    if (!node.children[0]?.tight) {
+      s += "\n";
+    }
+    return s;
   },
 });
 
