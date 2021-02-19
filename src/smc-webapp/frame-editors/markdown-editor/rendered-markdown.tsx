@@ -121,10 +121,9 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
   };
   const style_inner: CSS = {
     ...{
-      margin: "0 auto",
-      padding: "50px 75px",
+      padding: "70px",
       backgroundColor: "white",
-      border: "1px solid lightgrey",
+      overflowY: "auto",
     },
     ...{
       // transform: scale() and transformOrigin: "0 0" or "center 0"
@@ -141,9 +140,9 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
         ref={scroll}
         onScroll={debounce(() => on_scroll(), 200)}
         /* this cocalc-editor-div class is needed for a safari hack only */
-        className={"cocalc-editor-div"}
+        className={"cocalc-editor-div smc-vfill"}
       >
-        <div style={style_inner}>
+        <div style={style_inner} className="smc-vfill">
           <Markdown
             line_numbers={true}
             onDoubleClick={goto_source_line}
