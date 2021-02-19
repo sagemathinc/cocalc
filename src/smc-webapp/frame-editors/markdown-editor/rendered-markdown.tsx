@@ -17,9 +17,9 @@ import { is_different, path_split } from "smc-util/misc";
 import { debounce } from "lodash";
 import { React, ReactDOM, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
-import { MAX_WIDTH_NUM } from "../options";
 import { EditorState } from "../frame-tree/types";
 import { Actions } from "./actions";
+import { Path } from "../frame-tree/path";
 
 interface Props {
   actions: Actions;
@@ -31,6 +31,7 @@ interface Props {
   value: string;
   editor_state: EditorState;
   reload_images: boolean;
+  is_current: boolean;
 }
 
 function should_memoize(prev, next): boolean {
@@ -42,6 +43,7 @@ function should_memoize(prev, next): boolean {
     "read_only",
     "value",
     "reload_images",
+    "is_current",
   ]);
 }
 
@@ -55,6 +57,7 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
     value,
     editor_state,
     reload_images,
+    is_current,
   } = props;
 
   const scroll = React.useRef<HTMLDivElement>(null);
@@ -118,7 +121,6 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
   };
   const style_inner: CSS = {
     ...{
-      maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
       margin: "0 auto",
       padding: "50px 75px",
       backgroundColor: "white",
@@ -133,6 +135,7 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
   return (
     <div className="smc-vfill" style={{ backgroundColor: "#eee" }}>
+      <Path is_current={is_current} path={path} project_id={project_id} />
       <div
         style={style}
         ref={scroll}

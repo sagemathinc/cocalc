@@ -32,7 +32,12 @@ export function serializeElement(node: Element, info: Info): string {
   }
   const v: string[] = [];
   for (let index = 0; index < node.children.length; index++) {
-    v.push(serialize(node.children[index], { ...childInfo, ...{ index } }));
+    v.push(
+      serialize(node.children[index], {
+        ...childInfo,
+        ...{ index, lastChild: index == node.children.length - 1 },
+      })
+    );
   }
   let children = v.join("");
   const slateToMarkdown = getSlateToMarkdown(node["type"]);

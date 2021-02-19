@@ -25,12 +25,20 @@ import {
 } from "../../../../app-framework";
 import * as CodeMirror from "codemirror";
 import { FOCUSED_COLOR } from "../util";
-import { useFocused, useSelected, useSlate, useCollapsed } from "./hooks";
+import {
+  useActions,
+  useFocused,
+  useID,
+  useSelected,
+  useSlate,
+  useCollapsed,
+} from "./hooks";
 import {
   moveCursorDown,
   moveCursorToBeginningOfBlock,
   moveCursorUp,
 } from "../control";
+import { selectAll } from "../keyboard/select-all";
 
 const STYLE = {
   width: "100%",
@@ -72,6 +80,8 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     const selected = useSelected();
     const editor = useSlate();
     const collapsed = useCollapsed();
+    const actions = useActions();
+    const id = useID();
 
     const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
     const [isFocused, setIsFocused] = useState<boolean>(!!options?.autofocus);
@@ -168,6 +178,24 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         cm.replaceSelection(spaces);
       };
 
+      // We make it so doing select all when not everything is
+      // selected selects everything in this local Codemirror.
+      // Doing it *again* then selects the entire external slate editor.
+      options.extraKeys["Cmd-A"] = options.extraKeys["Ctrl-A"] = (cm) => {
+        if (cm.getSelection() != cm.getValue()) {
+          // not everything is selected (or editor is empty), so
+          // select everything.
+          CodeMirror.commands.selectAll(cm);
+        } else {
+          // everything selected, so now select all editor content.
+          // NOTE that this only makes sense if we change focus
+          // to the enclosing select editor, thus loosing the
+          // cm editor focus, which is a bit weird.
+          ReactEditor.focus(editor);
+          selectAll(editor);
+        }
+      };
+
       cursorHandlers(options, editor, isInline);
 
       const cm = (cmRef.current = CodeMirror.fromTextArea(node, options));
@@ -193,6 +221,15 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         await delay(1);
         cm.focus();
       });
+
+      (cm as any).undo = () => {
+        actions.undo(id);
+      };
+      (cm as any).redo = () => {
+        actions.redo(id);
+      };
+      // This enables other functionality (e.g., save).
+      (cm as any).cocalc_actions = actions;
 
       // Make it so editor height matches text.
       const css: any = {

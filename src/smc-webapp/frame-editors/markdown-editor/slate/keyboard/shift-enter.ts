@@ -8,6 +8,7 @@
 import { Node, Transforms } from "slate";
 import { isElementOfType } from "../elements";
 import { register } from "./register";
+import { hardbreak } from "../elements/linebreak";
 
 register({ key: "Enter", shift: true }, ({ editor }) => {
   // In a table, the only option is to insert a <br/>.
@@ -27,14 +28,7 @@ register({ key: "Enter", shift: true }, ({ editor }) => {
   }
 
   // Not in a table, so insert a hard break instead of a new
-  // paragraph like enter creates.
-  Transforms.insertNodes(editor, [
-    {
-      type: "hardbreak",
-      isInline: true,
-      isVoid: false,
-      children: [{ text: "\n" }],
-    } as Node,
-  ]);
+  // paragraph...
+  Transforms.insertNodes(editor, [hardbreak()]);
   return true;
 });

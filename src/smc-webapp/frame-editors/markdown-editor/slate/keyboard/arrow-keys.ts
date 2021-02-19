@@ -7,22 +7,17 @@
 What happens when you hit arrow keys.
 */
 
-import { Editor } from "slate";
 import { register } from "./register";
-import { moveCursorUp, moveCursorDown } from "../control";
+import { blocksCursor, moveCursorUp, moveCursorDown } from "../control";
 
-register({ key: "ArrowDown" }, ({editor}) => {
-  if (!Editor.isVoid(editor, editor.getFragment()[0])) {
-    return false;
-  }
+register({ key: "ArrowDown" }, ({ editor }) => {
+  if (!blocksCursor(editor, false)) return false;
   moveCursorDown(editor, true);
   return true;
 });
 
-register({ key: "ArrowUp" }, ({editor}) => {
-  if (!Editor.isVoid(editor, editor.getFragment()[0])) {
-    return false;
-  }
+register({ key: "ArrowUp" }, ({ editor }) => {
+  if (!blocksCursor(editor, true)) return false;
   moveCursorUp(editor, true);
   return true;
 });

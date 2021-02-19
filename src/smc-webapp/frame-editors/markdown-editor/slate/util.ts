@@ -23,6 +23,7 @@ const MAP = {
   "<": "&lt;",
   ">": "&gt;",
   "&": "&amp;",
+  "\xa0": "&nbsp;", // we do this so that the markdown nbsp's are explicit
   $: "\\$",
 } as const;
 
@@ -34,7 +35,7 @@ export function markdownEscape(
   // makes the generated markdown ugly.
 
   // The 1-character replacements we make in any text.
-  s = s.replace(/[\\_`<>$&|]/g, (m) => MAP[m]);
+  s = s.replace(/[\\_`<>$&\xa0|]/g, (m) => MAP[m]);
 
   // Links - we do this to avoid escaping [ and ] when not necessary.
   s = s.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, (link) =>
@@ -89,11 +90,13 @@ export function indent(s: string, n: number): string {
 }
 
 export function li_indent(s: string): string {
-  // indent all but the first line by 4 spaces.
-  // See https://stackoverflow.com/questions/53866598/markdown-list-indentation-with-3-spaces-or-4-spaces-what-is-the-standard#:~:text=So%20for%20ordered%20lists%2C%20you,hit%20the%20list%20marker%2010.
+  // indent all but the first line by 2 spaces.
+  // There are some cases where more than 2 spaces may be needed, but we're not
+  // dealing with those yet.  See
+  // https://stackoverflow.com/questions/53866598/markdown-list-indentation-with-3-spaces-or-4-spaces-what-is-the-standard#:~:text=So%20for%20ordered%20lists%2C%20you,hit%20the%20list%20marker%2010.
   const i = s.indexOf("\n");
   if (i != -1 && i != s.length - 1) {
-    return s.slice(0, i + 1) + indent(s.slice(i + 1), 4);
+    return s.slice(0, i + 1) + indent(s.slice(i + 1), 2);
   } else {
     return s;
   }

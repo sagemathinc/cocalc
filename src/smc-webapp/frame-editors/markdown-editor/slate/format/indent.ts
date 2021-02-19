@@ -10,7 +10,7 @@ import { slateDiff } from "../slate-diff";
 import { applyOperations } from "../operations";
 
 const SENTINEL = "\uFE30";
-const LIST_INDENT = "    "; // 4 spaces -- needed to support numbered lists properly
+const LIST_INDENT = "  "; // 2 spaces
 
 function findParentOfType(
   editor,
@@ -92,11 +92,11 @@ export function unindentListItem(editor: Editor): boolean {
       markdownHook: (md) => {
         const i = md.indexOf(SENTINEL);
         if (i == -1) return false;
-        if (md.slice(i - 4, i) != "    ") {
+        if (md.slice(i - LIST_INDENT.length, i) != LIST_INDENT) {
           // not spaces - no-op
           return undefined;
         }
-        return md.slice(0, i - 4) + md.slice(i + 1);
+        return md.slice(0, i - LIST_INDENT.length) + md.slice(i + 1);
       },
     })
   )

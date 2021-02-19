@@ -159,6 +159,9 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       if (id == null) throw Error("no active frame");
     }
     if (this.frame_actions[id] != null) {
+      if (this.frame_actions[id].is_closed()) {
+        return undefined;
+      }
       return this.frame_actions[id];
     }
     const node = this._get_frame_node(id);

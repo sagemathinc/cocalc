@@ -25,13 +25,20 @@ register({
     };
   },
 
+  // A softbreak creates a new line without creating
+  // a new paragraph.
   Element: ({ attributes, children }) => (
     <span {...attributes}>
       <span style={{ whiteSpace: "normal" }}>{children}</span>
     </span>
   ),
 
-  fromSlate: () => "\n",
+  fromSlate: ({ children }) => {
+    // Just in case somehow the children were edited
+    // (it doesn't seem they can be), we still won't
+    // loose information:
+    return children;
+  },
 });
 
 export interface Hardbreak extends SlateElement {
@@ -52,7 +59,13 @@ export function hardbreak() {
 register({
   slateType: "hardbreak",
 
-  fromSlate: () => "  \n",
+  fromSlate: ({ children }) => {
+    // IMPORTANT: the children of a hardbreak can get their
+    // texted edited, so it's important to actually include
+    // the children here, or text just disappears in conversion
+    // to source:
+    return "  " + children;
+  },
 
   Element: ({ attributes, children }) => (
     <span {...attributes}>

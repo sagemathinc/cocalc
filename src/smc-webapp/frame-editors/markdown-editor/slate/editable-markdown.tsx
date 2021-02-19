@@ -48,6 +48,8 @@ import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 // Whether or not to use windowing.
 // I'm going to disable this by default (for production
 // releases), but re-enable it frequently for development.
+// There are a LOT of missing features when using windowing,
+// including subtle issues with selection, scroll state, etc.
 let USE_WINDOWING = false;
 // We set this to be as large as possible, since it might be a while until
 // we fully implement cursor/selection handling and windowing properly. In
@@ -58,7 +60,7 @@ let USE_WINDOWING = false;
 const OVERSCAN_ROW_COUNT = 75;
 if (USE_WINDOWING && IS_FIREFOX) {
   // Windowing on Firefox results in TONS of problems all over the place, whereas it
-  // works fine with Safari and Chrome.  So no matter what we always disable it on
+  // works "better" with Safari and Chrome.  So no matter what we always disable it on
   // Firefox.   See https://github.com/sagemathinc/cocalc/issues/5204 where both
   // problems are caused by windowing.
   USE_WINDOWING = false;
@@ -66,7 +68,6 @@ if (USE_WINDOWING && IS_FIREFOX) {
 
 const STYLE = {
   width: "100%",
-  border: "1px solid lightgrey",
   overflow: "auto",
   boxShadow: "1px 1px 15px 1px #aaa",
 } as CSS;
@@ -109,8 +110,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, []);
 
     // todo move to our own context-based hook!
-    (editor as any).project_id = project_id;
-    (editor as any).path = path;
+    (editor as any).cocalc_context = { project_id, path, id };
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const restoreScroll = async () => {
@@ -152,6 +152,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return editorMarkdownValueRef.current;
     }, []);
 
+    function setSyncstringFromSlate() {
+      actions.set_value(editor_markdown_value());
+    }
+
     const saveValue = useCallback((force?) => {
       if (!force && !hasUnsavedChangesRef.current) {
         return;
@@ -160,7 +164,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         editorMarkdownValueRef.current = undefined;
       }
       hasUnsavedChangesRef.current = false;
-      actions.set_value(editor_markdown_value());
+      setSyncstringFromSlate();
+
       actions.ensure_syncstring_is_saved();
     }, []);
 
@@ -197,7 +202,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           // just switched from focused to not and there was
           // an unsaved change, so save state.
           hasUnsavedChangesRef.current = false;
-          actions.set_value(editor_markdown_value());
+          setSyncstringFromSlate();
           actions.ensure_syncstring_is_saved();
         }
       }
@@ -211,8 +216,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         // Important -- ReactEditor.isFocused(editor)  is *false* when
         // you're editing some inline void elements (e.g., code blocks),
         // since the focus leaves slate and goes to codemirror (say).
-        if (ReactEditor.isFocused(editor) || is_current) {
-          actions.set_value(editor_markdown_value());
+        if (ReactEditor.isFocused(editor) && is_current) {
+          setSyncstringFromSlate();
         }
       }
       actions.get_syncstring().on("before-change", before_change);
@@ -233,8 +238,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // an onChange, which it is best to ignore to save time and
       // also so we don't update the source editor (and other browsers)
       // with a view with things like loan $'s escaped.'
-      (editor as any).ignoreNextOnChange = true;
-      applyOperations(editor, operations);
+      if (operations.length > 0) {
+        (editor as any).ignoreNextOnChange = true;
+        applyOperations(editor, operations);
+      }
 
       if (EXPENSIVE_DEBUG) {
         const stringify = require("json-stable-stringify");
@@ -301,7 +308,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         t += 50;
         if (t > 2000) return; // give up
       }
-      const point = editor.selection?.anchor;
+      const point = editor.selection?.anchor;  // using anchor since double click selects word.
       if (point == null) {
         return;
       }
@@ -378,15 +385,22 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           onKeyDown={onKeyDown}
           onBlur={saveValue}
           onDoubleClick={inverseSearch}
+          divref={scrollRef}
+          onScroll={debounce(() => {
+            const scroll = scrollRef.current?.scrollTop;
+            if (scroll != null) {
+              actions.save_editor_state(id, { scroll });
+            }
+          }, 200)}
           style={
             USE_WINDOWING
               ? undefined
               : {
-                  maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
                   minWidth: "80%",
-                  margin: "0 auto",
                   padding: "70px",
                   background: "white",
+                  overflow:
+                    "auto" /* for this overflow, see https://github.com/ianstormtaylor/slate/issues/3706 */,
                 }
           }
           windowing={
@@ -410,13 +424,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             ...STYLE,
             fontSize: font_size,
           }}
-          ref={scrollRef}
-          onScroll={debounce(() => {
-            const scroll = scrollRef.current?.scrollTop;
-            if (scroll != null) {
-              actions.save_editor_state(id, { scroll });
-            }
-          }, 200)}
         >
           {slate}
         </div>

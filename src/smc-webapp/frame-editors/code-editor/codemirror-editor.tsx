@@ -143,7 +143,15 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     (cmRef.current as any).spellcheck_highlight(words.toJS());
   }
 
+  const firstFontSizeUpdateRef = useRef<boolean>(true);
   function cm_update_font_size(): void {
+    if (firstFontSizeUpdateRef.current) {
+      // Do not update the first time, since that conflicts
+      // with restoring the editor state.  See
+      //   https://github.com/sagemathinc/cocalc/issues/5211
+      firstFontSizeUpdateRef.current = false;
+      return;
+    }
     if (cmRef.current == null) return;
     // It's important to move the scroll position upon zooming -- otherwise the cursor line
     // move UP/DOWN after zoom, which is very annoying.
@@ -254,16 +262,6 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     options.extraKeys["Tab"] = tab_key;
     options.extraKeys["Cmd-/"] = "toggleComment";
     options.extraKeys["Ctrl-/"] = "toggleComment";
-
-    // Needed e.g., for vim ":w" support; obviously this is global, so be careful.
-    if ((CodeMirror as any).commands.save == null) {
-      (CodeMirror as any).commands.save = (cm: any) => {
-        props.actions.explicit_save();
-        if (cm._actions) {
-          cm._actions.save(true);
-        }
-      };
-    }
 
     const cm: CodeMirror.Editor = (editor_actions() as any)._cm[props.id];
     if (cm != undefined) {
@@ -480,3 +478,11 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
 });
 
 CodemirrorEditor.defaultProps = { value: "" };
+
+// Needed e.g., for vim ":w" support; this is global,
+// so be careful.
+if ((CodeMirror as any).commands.save == null) {
+  (CodeMirror as any).commands.save = (cm: any) => {
+    cm.cocalc_actions?.explicit_save();
+  };
+}

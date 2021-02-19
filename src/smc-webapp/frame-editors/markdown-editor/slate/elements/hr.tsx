@@ -51,5 +51,5 @@ register({
     );
   },
 
-  fromSlate: () => "\n---\n\n",
+  fromSlate: () => "---\n\n",
 });

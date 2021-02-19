@@ -38,6 +38,7 @@ const EDITOR_SPEC = {
       //"copy",
       "undo",
       "redo",
+      "readonly_view", // change frame to readonly view (for now, at least).
     ]),
   },
   cm: {
@@ -72,10 +73,12 @@ const EDITOR_SPEC = {
       "print",
       "decrease_font_size",
       "increase_font_size",
-      "save",
+      "show_table_of_contents",
       "time_travel",
       "undo", // need these because button bars at top let you do something even in rendered only view.
+      "save",
       "redo",
+      "edit", // change frame to editable slate
     ]),
   },
   markdown_table_of_contents: {

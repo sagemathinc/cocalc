@@ -153,7 +153,7 @@ exports.init_express_http_server = (opts) ->
         metricsRecorder = MetricsRecorder.get()
         if metricsRecorder?
             # res.send(JSON.stringify(opts.metricsRecorder.get(), null, 2))
-            res.send(metricsRecorder.metrics())
+            res.send(await metricsRecorder.metrics())
         else
             res.send(JSON.stringify(error:'Metrics recorder not initialized.'))
 

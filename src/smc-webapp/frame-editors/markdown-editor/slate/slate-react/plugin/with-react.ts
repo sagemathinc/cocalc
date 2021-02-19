@@ -5,6 +5,7 @@ import { ReactEditor } from "./react-editor";
 import { Key } from "../utils/key";
 import { EDITOR_TO_ON_CHANGE, NODE_TO_KEY } from "../utils/weak-maps";
 import { isDOMText, getPlainText } from "../utils/dom";
+import { findCurrentLineRange } from "../utils/lines";
 
 /**
  * `withReact` adds React and DOM specific behaviors to the editor.
@@ -12,7 +13,35 @@ import { isDOMText, getPlainText } from "../utils/dom";
 
 export const withReact = <T extends Editor>(editor: T) => {
   const e = editor as T & ReactEditor;
-  const { apply, onChange } = e;
+  const { apply, onChange, deleteBackward } = e;
+
+  e.deleteBackward = (unit) => {
+    if (unit !== "line") {
+      return deleteBackward(unit);
+    }
+
+    if (editor.selection && Range.isCollapsed(editor.selection)) {
+      const parentBlockEntry = Editor.above(editor, {
+        match: (n) => Editor.isBlock(editor, n),
+        at: editor.selection,
+      });
+
+      if (parentBlockEntry) {
+        const [, parentBlockPath] = parentBlockEntry;
+        const parentElementRange = Editor.range(
+          editor,
+          parentBlockPath,
+          editor.selection.anchor
+        );
+
+        const currentLineRange = findCurrentLineRange(e, parentElementRange);
+
+        if (!Range.isCollapsed(currentLineRange)) {
+          Transforms.delete(editor, { at: currentLineRange });
+        }
+      }
+    }
+  };
 
   e.apply = (op: Operation) => {
     const matches: [Path, Key][] = [];
@@ -182,6 +211,70 @@ export const withReact = <T extends Editor>(editor: T) => {
       }
 
       onChange();
+    });
+  };
+
+  e.scrollCaretIntoView = () => {
+    /* Scroll so Caret is visible.  I tested several editors, and
+     I think reasonable behavior is:
+      - If caret is full visible on the screen, do nothing.
+      - If caret is not visible, scroll so caret is at
+        top or bottom. Word and Pages do this but with an extra line;
+        CodeMirror does *exactly this*; some editors like Prosemirror
+        and Typora scroll the caret to the middle of the screen,
+        which is weird.  Since most of cocalc is codemirror, being
+        consistent with that seems best.  The implementation is also
+        very simple.
+
+     This code below is based on what is
+         https://github.com/ianstormtaylor/slate/pull/4023
+     except that PR seems buggy and does the wrong thing, so I
+     had to rewrite it.
+
+     I think properly implementing this is very important since it is
+     critical to keep users from feeling *lost* when using the editor.
+     If their cursor scrolls off the screen, especially in a very long line,
+     they might move the cursor back or forward one space to make it visible
+     again.  In slate with #4023, if you make a single LONG line (that spans
+     more than a page with no formatting), then scroll the cursor out of view,
+     then move the cursor, you often still don't see the cursor. That's
+     because it just scrolls that entire leaf into view, not the cursor
+     itself.
+  */
+    requestAnimationFrame(() => {
+      const { selection } = e;
+      if (!selection) return;
+      if (!Range.isCollapsed(selection)) return;
+
+      // Important: there's no good way to do this when the focused
+      // element is void, and the naive code leads to bad problems,
+      // e.g., with several images, when you click on one things jump
+      // around randomly and you sometimes can't scroll the image into view.
+      // Better to just do nothing in case of voids.
+      for (const [node] of Editor.nodes(e, { at: selection.focus })) {
+        if (Editor.isVoid(e, node)) {
+          return;
+        }
+      }
+      let domSelection;
+      try {
+        domSelection = ReactEditor.toDOMRange(e, selection);
+      } catch (_err) {
+        // harmless to just not do this in case of failure.
+        return;
+      }
+      if (!domSelection) return;
+      const selectionRect = domSelection.getBoundingClientRect();
+      const editorEl = ReactEditor.toDOMNode(e, e);
+      const editorRect = editorEl.getBoundingClientRect();
+      if (selectionRect.top < editorRect.top) {
+        editorEl.scrollTop =
+          editorEl.scrollTop - (editorRect.top - selectionRect.top);
+      } else if (selectionRect.bottom - editorRect.top > editorRect.height) {
+        editorEl.scrollTop =
+          editorEl.scrollTop -
+          (editorRect.height - (selectionRect.bottom - editorRect.top));
+      }
     });
   };
 

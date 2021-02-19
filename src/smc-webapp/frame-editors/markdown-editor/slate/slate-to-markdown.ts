@@ -7,10 +7,11 @@ import { serializeLeaf } from "./leaf-to-markdown";
 import { serializeElement } from "./element-to-markdown";
 
 export interface Info {
-  parent: Node; // the parent of the node being serialized
+  parent?: Node; // the parent of the node being serialized (if there is a parent)
   index?: number; // index of this node among its siblings
   no_escape: boolean; // if true, do not escape text in this node.
   hook?: (Node, string) => undefined | string;
+  lastChild: boolean; // true if this is the last child among its siblings.
 }
 
 export function serialize(node: Node, info: Info): string {
@@ -31,18 +32,19 @@ export function slate_to_markdown(
 ): string {
   // const t = new Date().valueOf();
 
-  const markdown = slate
-    .map((node) =>
-      serialize(node, {
-        parent: node,
-        no_escape: !!options?.no_escape,
-        hook: options?.hook,
-      })
-    )
-    .join("");
+  let markdown = "";
+  for (let i = 0; i < slate.length; i++) {
+    markdown += serialize(slate[i], {
+      no_escape: !!options?.no_escape,
+      hook: options?.hook,
+      index: i,
+      lastChild: i == slate.length - 1,
+    });
+  }
+  // this makes whitespace at top/bottom consistent with prettier
+  markdown = markdown.trim() + "\n";
 
   //console.log("time: slate_to_markdown ", new Date().valueOf() - t, "ms");
   //console.log("slate_to_markdown", { slate, markdown });
   return markdown;
 }
-

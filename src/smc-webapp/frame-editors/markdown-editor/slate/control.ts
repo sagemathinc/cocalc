@@ -3,9 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Editor, Range, Transforms } from "slate";
+import { Editor, Element, Range, Transforms, Point } from "slate";
 import { ReactEditor } from "./slate-react";
 import { isEqual } from "lodash";
+import { rangeAll } from "./keyboard/select-all";
 
 // Scroll to the n-th heading in the document
 export function scrollToHeading(editor: ReactEditor, n: number) {
@@ -42,7 +43,7 @@ export function moveCursorDown(editor: Editor, force: boolean = false): void {
     Transforms.move(editor, { distance: 1, unit: "line" });
     return;
   }
-  ensureCursorNotVoid(editor);
+  ensureCursorNotBlocked(editor);
 }
 
 export function moveCursorUp(editor: Editor, force: boolean = false): void {
@@ -62,28 +63,115 @@ export function moveCursorUp(editor: Editor, force: boolean = false): void {
     });
     Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
   }
-  ensureCursorNotVoid(editor, true);
+  ensureCursorNotBlocked(editor, true);
 }
 
-export function ensureCursorNotVoid(editor: Editor, up: boolean = false) {
-  if (!Editor.isVoid(editor, editor.getFragment()[0])) return;
+export function blocksCursor(editor, up: boolean = false): boolean {
+  if (editor.selection == null || !Range.isCollapsed(editor.selection)) {
+    return false;
+  }
+
+  let elt;
+  try {
+    elt = editor.getFragment()[0];
+  } catch (_) {
+    return false;
+  }
+  if (Editor.isVoid(editor, elt)) {
+    return true;
+  }
+
+  // Several non-void elements also block the cursor,
+  // in the sense that you can't move the cursor immediately
+  // before/after them.
+  // TODO: instead of listing here, should be part of registration
+  // system in ../elements.
+  if (
+    editor.selection != null &&
+    ((up && isAtBeginningOfBlock(editor, { mode: "highest" })) ||
+      (!up && isAtEndOfBlock(editor, { mode: "highest" }))) &&
+    (elt.type == "blockquote" ||
+      elt.type == "ordered_list" ||
+      elt.type == "bullet_list")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+export function ensureCursorNotBlocked(editor: Editor, up: boolean = false) {
+  if (!blocksCursor(editor, !up)) return;
   // cursor in a void element, so insert a blank paragraph at
-  // cursor and put cursor back.
+  // cursor and put cursor in that blank paragraph.
   const { selection } = editor;
   if (selection == null) return;
+  const path = [selection.focus.path[0] + (up ? +1 : 0)];
   editor.apply({
     type: "insert_node",
-    path: [selection.focus.path[0] + (up ? +1 : 0)],
+    path,
     node: { type: "paragraph", children: [{ text: "" }] },
   });
-  if (up) {
-    Transforms.move(editor, { distance: 1, unit: "line" });
-  } else {
-    if (selection != null) {
-      // typescript wants this check
-      Transforms.setSelection(editor, selection);
-    }
+  Transforms.setSelection(editor, {
+    focus: { path, offset: 0 },
+    anchor: { path, offset: 0 },
+  });
+}
+
+// Find path to a given element.
+export function findElement(
+  editor: Editor,
+  element: Element
+): number[] | undefined {
+  // Usually when called, the element we are searching for is right
+  // near the selection, so this first search finds it.
+  for (const [, path] of Editor.nodes(editor, {
+    match: (node) => node === element,
+  })) {
+    return path;
   }
+  // Searching at the selection failed, so we try searching the
+  // entire document instead.
+  // This has to work unless element isn't in the document (which
+  // is of course possible).
+  for (const [, path] of Editor.nodes(editor, {
+    match: (node) => node === element,
+    at: rangeAll(editor),
+  })) {
+    return path;
+  }
+}
+
+export function moveCursorToElement(editor: Editor, element: Element): void {
+  const path = findElement(editor, element);
+  if (path == null) return;
+  const point = { path, offset: 0 };
+  Transforms.setSelection(editor, { anchor: point, focus: point });
+}
+
+// Move cursor to the end of a top-level non-inline element.
+export function moveCursorToEndOfElement(
+  editor: Editor,
+  element: Element // non-line element
+): void {
+  // Find the element
+  const path = findElement(editor, element);
+  if (path == null) return;
+  // Create location at start of the element
+  const at = { path, offset: 0 };
+  // Move to block "after" where the element is.  This is
+  // sort of random in that it might be at the end of the
+  // element, or it might be in the next block.  E.g.,
+  // for "# fo|o**bar**" it is in the next block, but for
+  // "# foo**b|ar**" it is at the end of the current block!?
+  // We work around this bug by moving back 1 character
+  // in case we moved to the next top-level block.
+  let end = Editor.after(editor, at, { unit: "block" });
+  if (end == null) return;
+  if (end.path[0] != path[0]) {
+    end = Editor.before(editor, end);
+  }
+  Transforms.setSelection(editor, { anchor: end, focus: end });
 }
 
 export function moveCursorToBeginningOfBlock(
@@ -105,26 +193,63 @@ export function moveCursorToBeginningOfBlock(
   Transforms.setSelection(editor, { focus, anchor: focus });
 }
 
-export function moveCursorToEndOfBlock(editor: Editor, path?: number[]): void {
-  // This is sort of silly -- we move cursor to the beginning, then move
-  // cursor 1 line, which meoves it to the end... unless line is empty, in
-  // which case we move it back.  Obviously this could be done more directly,
-  // but it is a bit complicated and nice to reuse what's in slate; also maybe
-  // slate has this already and when I find it just swap it in.
-  moveCursorToBeginningOfBlock(editor, path);
-  const { selection } = editor;
-  if (selection == null) return;
-  Transforms.move(editor, { distance: 1, unit: "line" });
-  const newSelection = editor.selection;
-  if (newSelection == null) return;
-  let a = selection.focus.path;
-  let b = newSelection.focus.path;
-  if (a.length != b.length) return;
-  if (a.length > 1) {
-    a = a.slice(0, a.length - 1);
-    b = b.slice(0, b.length - 1);
+// True if point is at the beginning of the containing block
+// that it is in (or top level block if mode='highest').
+export function isAtBeginningOfBlock(
+  editor: Editor,
+  options: { at?: Point; mode?: "lowest" | "highest" }
+): boolean {
+  let { at, mode } = options;
+  if (mode == null) mode = "lowest";
+  if (at == null) {
+    at = editor.selection?.focus;
+    if (at == null) return false;
   }
-  if (a[a.length - 1] < b[b.length - 1]) {
-    Transforms.setSelection(editor, selection);
+  if (at.offset != 0) return false;
+  if (mode == "lowest") {
+    // easy special case.
+    return at.path[at.path.length - 1] == 0;
+  }
+  const before = Editor.before(editor, at);
+  if (before == null) {
+    // at beginning of the entire document, so definitely at the beginning of the block
+    return true;
+  }
+  return before.path[0] < at.path[0];
+}
+
+// True if point is at the end of the containing block
+// that it is in (or top level block if mode='highest')
+export function isAtEndOfBlock(
+  editor: Editor,
+  options: { at?: Point; mode?: "lowest" | "highest" }
+): boolean {
+  let { at, mode } = options;
+  if (mode == null) mode = "lowest";
+  if (at == null) {
+    at = editor.selection?.focus;
+    if (at == null) return false;
+  }
+  const after = Editor.after(editor, at);
+  if (after == null) {
+    // at end of the entire document, so definitely at the end of the block
+    return true;
+  }
+  if (isEqual(after.path, at.path)) {
+    // next point is in the same node, so can't be at the end (not
+    // even the end of this node).
+    return false;
+  }
+  if (mode == "highest") {
+    // next path needs to start with a new number.
+    return after.path[0] > at.path[0];
+  } else {
+    const n = Math.min(after.path.length, at.path.length);
+    if (isEqual(at.path.slice(0, n - 1), after.path.slice(0, n - 1))) {
+      return false;
+    }
+    return true;
   }
 }
+
+
