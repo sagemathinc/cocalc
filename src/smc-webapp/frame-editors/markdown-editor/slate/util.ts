@@ -50,24 +50,7 @@ export function markdownEscape(
     s = s.replace(/^\s*#+/, (m) => replace_all(m, "#", "\\#"));
   }
 
-  // Escape multiple spaces in a row so they don't just collapse to one space.
-  s = s.replace(/\s+/g, escape_whitespace);
-
   return s;
-}
-
-// The input string s consists of 1 or more whitespace characters.
-// The output is escaped so the whitespace from *spaces* is preserved
-// be making all but the first space be a non breaking space in the
-// text document.  We use *unicode* rather than &nbsp; so that it is
-// rendered like a space in codemirror.  See
-//    https://stackoverflow.com/questions/6046263/how-to-indent-a-few-lines-in-markdown-markup/53112628#53112628
-function escape_whitespace(s: string): string {
-  let t = s[0];
-  for (let i = 1; i < s.length; i++) {
-    t += s[i] == " " ? "\u00a0" : s[i];
-  }
-  return t;
 }
 
 export function indent(s: string, n: number): string {
