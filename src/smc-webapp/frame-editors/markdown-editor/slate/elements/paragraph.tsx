@@ -52,12 +52,22 @@ register({
       );
     }
 
-    // normal paragraph rendering:
-    if (element.tight) {
-      return <span {...attributes}>{children}</span>;
+    if (hasImageAsChild(element)) {
+      // We use a div in this case, since our image renderer resize functionality
+      // (via the re-resizer packages) uses divs, and divs are not allowed inside
+      // of paragraphs.
+      return <div {...attributes}>{children}</div>;
     }
 
-    return <p {...attributes}>{children}</p>;
+    // Normal paragraph rendering.
+    return (
+      <p
+        {...attributes}
+        style={element.tight ? { marginBottom: 0 } : undefined}
+      >
+        {children}
+      </p>
+    );
 
     /*
     // I wish I could just use a div instead of a p because
@@ -90,3 +100,10 @@ register({
     return `${children}${info.lastChild ? "\n" : node.tight ? "\n" : "\n\n"}`;
   },
 });
+
+function hasImageAsChild(element): boolean {
+  for (const x of element.children) {
+    if (x["type"] == "image") return true;
+  }
+  return false;
+}

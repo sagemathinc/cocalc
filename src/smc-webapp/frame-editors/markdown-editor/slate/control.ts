@@ -7,6 +7,7 @@ import { Editor, Element, Range, Transforms, Point } from "slate";
 import { ReactEditor } from "./slate-react";
 import { isEqual } from "lodash";
 import { rangeAll } from "./keyboard/select-all";
+import { emptyParagraph } from "./padding";
 
 // Scroll to the n-th heading in the document
 export function scrollToHeading(editor: ReactEditor, n: number) {
@@ -38,7 +39,7 @@ export function moveCursorDown(editor: Editor, force: boolean = false): void {
     editor.apply({
       type: "insert_node",
       path: [editor.children.length],
-      node: { type: "paragraph", children: [{ text: "" }] },
+      node: emptyParagraph(),
     });
     Transforms.move(editor, { distance: 1, unit: "line" });
     return;
@@ -59,7 +60,7 @@ export function moveCursorUp(editor: Editor, force: boolean = false): void {
     editor.apply({
       type: "insert_node",
       path: [0],
-      node: { type: "paragraph", children: [{ text: "" }] },
+      node: emptyParagraph(),
     });
     Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
   }
@@ -251,5 +252,3 @@ export function isAtEndOfBlock(
     return true;
   }
 }
-
-
