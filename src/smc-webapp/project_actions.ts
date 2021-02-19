@@ -48,7 +48,7 @@ import { ensure_project_running } from "./project/project-start-warning";
 import { download_file, open_new_tab, open_popup_window } from "./misc-page";
 
 const BAD_FILENAME_CHARACTERS = "\\";
-const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
+const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
 const BANNED_FILE_TYPES = ["doc", "docx", "pdf", "sws"];
 
 const FROM_WEB_TIMEOUT_S = 45;

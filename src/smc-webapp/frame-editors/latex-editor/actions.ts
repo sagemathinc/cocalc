@@ -43,7 +43,7 @@ import { server_time, ExecOutput } from "../generic/client";
 import { clean } from "./clean";
 import { LatexParser, IProcessedLatexLog } from "./latex-log-parser";
 import { update_gutters } from "./gutters";
-import { pdf_path } from "./util";
+import { ensureTargetPathIsCorrect, pdf_path } from "./util";
 import { KNITR_EXTS } from "./constants";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { FrameTree } from "../frame-tree/types";
@@ -58,7 +58,6 @@ import {
   startswith,
   change_filename_extension,
   sha1,
-  endswith,
 } from "smc-util/misc";
 import { IBuildSpecs } from "./build";
 import { open_new_tab } from "../../misc-page";
@@ -343,12 +342,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
     }
 
-    // Make sure the filename is correct.
-    const filename = path_split(this.path).tail;
-    if (!endswith(cmd, " " + filename)) {
-      const i = cmd.lastIndexOf(" ");
-      cmd = cmd.slice(0, i + 1) + filename;
-    }
+    console.log("before", { cmd });
+    cmd = ensureTargetPathIsCorrect(cmd, path_split(this.path).tail);
+    console.log("after", { cmd });
 
     // We also focus on setting -deps for latexmk
     if (!cmd.trim().startsWith("latexmk")) return cmd;

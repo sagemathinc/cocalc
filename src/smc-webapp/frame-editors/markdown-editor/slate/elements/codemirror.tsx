@@ -339,6 +339,7 @@ function isLessThan(p1: number[], p2: number[]): boolean {
 }
 
 function infoToMode(info) {
+  info = info?.trim().toLowerCase();
   if (info) {
     if (info[0] == "{") {
       // Rmarkdown format -- looks like {r stuff,engine=python,stuff}.
