@@ -44,6 +44,9 @@ import "./heading";
 import { HtmlBlock, HtmlInline } from "./html";
 import "./html";
 
+import { Mention } from "./mention";
+import "./mention";
+
 import { Table, THead, TBody, TR, TD, TH } from "./table";
 import "./table";
 
@@ -84,6 +87,7 @@ declare module "slate" {
       | Heading
       | HtmlBlock
       | HtmlInline
+      | Mention
       | Table
       | THead
       | TBody

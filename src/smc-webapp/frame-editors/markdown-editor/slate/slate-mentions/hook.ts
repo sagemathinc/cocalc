@@ -14,7 +14,7 @@ import { Complete, Item } from "smc-webapp/editors/markdown-input/complete";
 interface Options {
   editor: ReactEditor;
   insertMention: (Editor, string) => void;
-  matchingNames?: (search: string) => (string | JSX.Element)[]; // use fake test data if not given.
+  matchingUsers?: (search: string) => (string | JSX.Element)[]; // use fake test data if not given.
 }
 
 interface MentionsControl {
@@ -26,14 +26,14 @@ interface MentionsControl {
 export const useMentions: (Options) => MentionsControl = ({
   editor,
   insertMention,
-  matchingNames,
+  matchingUsers,
 }) => {
   const [target, setTarget] = useState<Range | undefined>();
   const [search, setSearch] = useState("");
 
   const items: Item[] = useMemo(() => {
-    return matchingNames != null
-      ? matchingNames(search)
+    return matchingUsers != null
+      ? matchingUsers(search)
       : CHARACTERS.filter((c) =>
           c.toLowerCase().startsWith(search.toLowerCase())
         ).map((value) => {
@@ -43,7 +43,7 @@ export const useMentions: (Options) => MentionsControl = ({
 
   const onKeyDown = useCallback(
     (event) => {
-      if (!target) return;
+      if (target == null) return;
       switch (event.key) {
         case "ArrowDown":
         case "ArrowUp":
@@ -69,12 +69,11 @@ export const useMentions: (Options) => MentionsControl = ({
       const before = wordBefore && Editor.before(editor, wordBefore);
       const beforeRange = before && Editor.range(editor, before, start);
       const beforeText = beforeRange && Editor.string(editor, beforeRange);
-      const beforeMatch = beforeText && beforeText.match(/^@(\w+)$/);
+      const beforeMatch = beforeText && beforeText.match(/^@(\w*)$/);
       const after = Editor.after(editor, start);
       const afterRange = Editor.range(editor, start, after);
       const afterText = Editor.string(editor, afterRange);
       const afterMatch = afterText.match(/^(\s|$)/);
-
       if (beforeMatch && afterMatch) {
         setTarget(beforeRange);
         setSearch(beforeMatch[1]);

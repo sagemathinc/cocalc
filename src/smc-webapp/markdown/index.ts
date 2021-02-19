@@ -18,6 +18,7 @@ import * as MarkdownIt from "markdown-it";
 import * as emojiPlugin from "markdown-it-emoji";
 import { checkboxPlugin } from "./checkbox-plugin";
 import { hashtagPlugin } from "./hashtag-plugin";
+import { mentionPlugin } from "./mentions-plugin";
 
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
@@ -29,7 +30,8 @@ export const OPTIONS: MarkdownIt.Options = {
   linkify: true,
 };
 
-const PLUGINS = [emojiPlugin, checkboxPlugin, hashtagPlugin];
+const PLUGINS = [emojiPlugin, checkboxPlugin, hashtagPlugin, mentionPlugin];
+const PLUGINS_NO_HASHTAGS = [emojiPlugin, checkboxPlugin, mentionPlugin];
 
 function usePlugins(m, plugins) {
   for (const plugin of plugins) {
@@ -141,7 +143,7 @@ export function markdown_to_html_frontmatter(s: string): MD2html {
 // This is needed right now for todo list (*ONLY* because they use an
 // old approach to parsing hashtags).
 const markdown_it_no_hashtags = new MarkdownIt(OPTIONS);
-usePlugins(markdown_it, [emojiPlugin, checkboxPlugin]);
+usePlugins(markdown_it, PLUGINS_NO_HASHTAGS);
 
 export function markdown_to_html(
   s: string,

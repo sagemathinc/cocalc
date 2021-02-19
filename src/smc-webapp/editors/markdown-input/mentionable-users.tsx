@@ -9,7 +9,7 @@ import { Item } from "./complete";
 import { trunc_middle, timestamp_cmp, cmp } from "smc-util/misc";
 import { Avatar } from "../../account/avatar/avatar";
 
-export function mentionableUsers(project_id: string): Item[] {
+export function mentionableUsers(project_id: string, search?: string): Item[] {
   const users = redux
     .getStore("projects")
     .getIn(["project_map", project_id, "users"]);
@@ -45,13 +45,16 @@ export function mentionableUsers(project_id: string): Item[] {
   const users_store = redux.getStore("users");
   const v: Item[] = [];
   for (const { account_id } of project_users) {
-    const name = trunc_middle(users_store.get_name(account_id), 64);
+    const fullname = users_store.get_name(account_id);
+    const s = fullname.toLowerCase();
+    if (search != null && s.indexOf(search) == -1) continue;
+    const name = trunc_middle(fullname, 64);
     const elt = (
       <span>
         <Avatar account_id={account_id} size={24} /> {name}
       </span>
     );
-    v.push({ value: account_id, elt, search: name.toLowerCase() });
+    v.push({ value: account_id, elt, search: s });
   }
   return v;
 }

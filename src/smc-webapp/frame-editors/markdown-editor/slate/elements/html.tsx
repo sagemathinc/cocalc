@@ -13,7 +13,7 @@ import {
   useSlate,
 } from "./register";
 import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../util";
-import { startswith /*endswith*/ } from "smc-util/misc";
+import { startswith } from "smc-util/misc";
 import { toSlate as toSlateImage } from "./image";
 import { SlateCodeMirror } from "./codemirror";
 import { useSetElement } from "./set-element";

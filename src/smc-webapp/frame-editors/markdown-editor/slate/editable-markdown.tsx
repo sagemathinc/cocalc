@@ -10,7 +10,7 @@ const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 import { IS_FIREFOX } from "../../../feature";
 
 import { EditorState } from "../../frame-tree/types";
-import { createEditor, Descendant } from "slate";
+import { createEditor, Descendant, Transforms } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
 import {
@@ -39,7 +39,11 @@ import { useUpload, withUpload } from "./upload";
 import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";
 import { slatePointToMarkdown, indexToPosition } from "./sync";
-import { insertMention, useMentions } from "./slate-mentions";
+
+import { useMentions } from "./slate-mentions";
+import { mentionableUsers } from "../../../editors/markdown-input/mentionable-users";
+import { createMention } from "./elements/mention";
+import { submit_mentions } from "../../../editors/markdown-input/mentions";
 
 // (??) A bit longer is better, due to escaping of markdown and multiple users
 // with one user editing source and the other editing with slate.
@@ -115,7 +119,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const mentions = useMentions({
       editor,
-      insertMention,
+      insertMention: (editor, account_id) => {
+        Transforms.insertNodes(editor, [createMention(account_id)]);
+        submit_mentions(project_id, path, [{ account_id, description: "" }]);
+      },
+      matchingUsers: (search) => mentionableUsers(project_id, search),
     });
 
     const scrollRef = useRef<HTMLDivElement | null>(null);

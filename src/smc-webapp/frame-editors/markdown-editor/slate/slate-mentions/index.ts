@@ -7,8 +7,9 @@
 
 import { Transforms } from "slate";
 
-export const insertMention = (editor, name) => {
-  Transforms.insertText(editor, "@" + name);
+// A super naive version for testing.
+export const insertMention = (editor, value) => {
+  Transforms.insertText(editor, "@" + value);
 };
 
 export { useMentions } from "./hook";
