@@ -8,12 +8,13 @@
 import { Editor, Range, Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import * as React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Mentions } from "./component";
+import { useCallback, useMemo, useState } from "react";
+import { Complete, Item } from "smc-webapp/editors/markdown-input/complete";
 
 interface Options {
   editor: ReactEditor;
   insertMention: (Editor, string) => void;
+  matchingNames?: (search: string) => (string | JSX.Element)[]; // use fake test data if not given.
 }
 
 interface MentionsControl {
@@ -25,47 +26,30 @@ interface MentionsControl {
 export const useMentions: (Options) => MentionsControl = ({
   editor,
   insertMention,
+  matchingNames,
 }) => {
   const [target, setTarget] = useState<Range | undefined>();
-  const [index, setIndex] = useState(0);
   const [search, setSearch] = useState("");
-  const divref = useRef<HTMLDivElement | null>();
 
-  const chars = CHARACTERS.filter((c) =>
-    c.toLowerCase().startsWith(search.toLowerCase())
-  ).slice(0, 10);
-
-  useEffect(() => {
-    if (target && chars.length > 0) {
-      const el = divref.current;
-      if (el == null) return;
-      const domRange = ReactEditor.toDOMRange(editor, target);
-      const rect = domRange.getBoundingClientRect();
-      el.style.top = `${rect.top + window.pageYOffset + 24}px`;
-      el.style.left = `${rect.left + window.pageXOffset}px`;
-    }
-  }, [chars.length, editor, index, search, target]);
+  const items: Item[] = useMemo(() => {
+    return matchingNames != null
+      ? matchingNames(search)
+      : CHARACTERS.filter((c) =>
+          c.toLowerCase().startsWith(search.toLowerCase())
+        ).map((value) => {
+          return { value };
+        });
+  }, [search]);
 
   const onKeyDown = useCallback(
     (event) => {
       if (!target) return;
       switch (event.key) {
         case "ArrowDown":
-          event.preventDefault();
-          const prevIndex = index >= chars.length - 1 ? 0 : index + 1;
-          setIndex(prevIndex);
-          break;
         case "ArrowUp":
-          event.preventDefault();
-          const nextIndex = index <= 0 ? chars.length - 1 : index - 1;
-          setIndex(nextIndex);
-          break;
         case "Tab":
         case "Enter":
           event.preventDefault();
-          Transforms.select(editor, target);
-          insertMention(editor, chars[index]);
-          setTarget(undefined);
           break;
         case "Escape":
           event.preventDefault();
@@ -73,10 +57,11 @@ export const useMentions: (Options) => MentionsControl = ({
           break;
       }
     },
-    [index, search, target]
+    [target]
   );
 
-  const onChange = useCallback(() => {
+  const onChange = useCallback(async () => {
+    await new Promise(requestAnimationFrame);
     const { selection } = editor;
     if (selection && Range.isCollapsed(selection)) {
       const [start] = Range.edges(selection);
@@ -93,7 +78,6 @@ export const useMentions: (Options) => MentionsControl = ({
       if (beforeMatch && afterMatch) {
         setTarget(beforeRange);
         setSearch(beforeMatch[1]);
-        setIndex(0);
         return;
       }
     }
@@ -101,10 +85,43 @@ export const useMentions: (Options) => MentionsControl = ({
     setTarget(undefined);
   }, [editor]);
 
+  const renderMentions = useCallback(() => {
+    if (target == null) return;
+    let domRange;
+    try {
+      domRange = ReactEditor.toDOMRange(editor, target);
+    } catch (_err) {
+      // target gets set by the onChange handler above, so editor could
+      // have changed by the time we call toDOMRange here, making
+      // the target no longer meaningful.  Thus this try/catch is
+      // completely reasonable (alternatively, when we deduce the target,
+      // we also immediately set the domRange in a ref).
+      return;
+    }
+
+    const onSelect = async (value) => {
+      Transforms.select(editor, target);
+      insertMention(editor, value);
+      setTarget(undefined);
+      ReactEditor.focus(editor);
+    };
+
+    const rect = domRange.getBoundingClientRect();
+    return React.createElement(Complete, {
+      items,
+      onSelect,
+      onCancel: () => setTarget(undefined),
+      position: {
+        top: rect.bottom,
+        left: rect.left + rect.width,
+      },
+    });
+  }, [search, target]);
+
   return {
     onChange,
     onKeyDown,
-    Mentions: target && React.createElement(Mentions, { chars, divref, index }),
+    Mentions: renderMentions(),
   };
 };
 

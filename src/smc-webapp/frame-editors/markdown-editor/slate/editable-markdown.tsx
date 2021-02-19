@@ -422,7 +422,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               : undefined
           }
         />
-        {mentions.Mentions}
       </Slate>
     );
 
@@ -439,6 +438,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             fontSize: font_size,
           }}
         >
+          {mentions.Mentions}
           {slate}
         </div>
       </div>
