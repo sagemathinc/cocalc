@@ -8,9 +8,6 @@ I started with a copy of jupyter/complete.tsx, and will rewrite it
 to be much more generically usable here, then hopefully use this
 for jupyter, code editors, (etc.'s) complete.  E.g., I already
 rewrote this to use the Antd dropdown, which is more dynamic.
-
-TODOS:
- - [ ] Make it scroll selected item into view when you're using the keyboard to navigate.
 */
 
 import {
@@ -95,10 +92,14 @@ export const Complete: React.FC<Props> = ({
         case 38: // up arrow
           if (selected_ref.current >= 1) {
             set_selected(selected_ref.current - 1);
+            // @ts-ignore
+            $(".ant-menu-item-selected").scrollintoview();
           }
           break;
         case 40: // down arrow
           set_selected(selected_ref.current + 1);
+          // @ts-ignore
+          $(".ant-menu-item-selected").scrollintoview();
           break;
       }
     },
