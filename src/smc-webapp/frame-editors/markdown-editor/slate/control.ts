@@ -113,9 +113,10 @@ export function ensureCursorNotBlocked(editor: Editor, up: boolean = false) {
     path,
     node: { type: "paragraph", children: [{ text: "" }] },
   });
+  const focus = { path: path.concat([0]), offset: 0 };
   Transforms.setSelection(editor, {
-    focus: { path, offset: 0 },
-    anchor: { path, offset: 0 },
+    focus,
+    anchor: focus,
   });
 }
 
