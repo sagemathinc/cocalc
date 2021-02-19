@@ -6,10 +6,11 @@
 import { List } from "immutable";
 import { Icon, Loading } from "./index";
 import { CSS, React, TypedMap } from "../app-framework";
+import { Markdown } from "./markdown";
 
 export interface TableOfContentsEntry {
   id: string; // id that is unique across the table of contents
-  value: string; // contents of the heading
+  value: string; // contents of the heading -- a 1-line string formatted using markdown (will be rendered using markdown)
   level?: 1 | 2 | 3 | 4 | 5 | 6; // optional heading size/level
   icon?: string; // font awesome icon name -- default "minus" (a dash)
   number?: number[]; // section numbering, so for "- 1.2.4  A Subsction" this would be [1,2,4].
@@ -39,9 +40,17 @@ export const TableOfContents: React.FC<Props> = React.memo(
             name={icon}
             style={{ width: "30px", display: "inline-block" }}
           />{" "}
-          <a>{value}</a>
+          <a style={{ display: "inline-block", marginBottom: "-1em" }}>
+            <Markdown value={value} />
+          </a>
         </>
       );
+      // NOTE: the weird style for the a above is so the markdown
+      // paragraph wrapper doesn't end up on a new line; it also removes
+      // the extra 1em space at the bottom of that paragraph.   We could
+      // redo this more cleanly by possibly using a special markdown
+      // component that omits that top-level paragraph wrapping (and uses
+      // react/slate?).
 
       switch (level) {
         case 1:
@@ -95,7 +104,8 @@ export const TableOfContents: React.FC<Props> = React.memo(
       <div
         style={{
           overflowY: "auto",
-          margin: "15px",
+          height: "100%",
+          paddingTop: "15px",
           ...style,
         }}
       >
