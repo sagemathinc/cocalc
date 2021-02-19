@@ -115,8 +115,7 @@ register({
 
     const focused = useFocused();
     const selected = useSelected();
-    const border =
-      focused && selected ? `3px solid ${FOCUSED_COLOR}` : undefined;
+    const border = `2px solid ${focused && selected ? FOCUSED_COLOR : "white"}`;
 
     const ref = useProcessLinks([src]);
     const imageRef = useRef<any>(null);

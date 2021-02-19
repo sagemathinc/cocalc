@@ -22,29 +22,20 @@ register({
     const focused = useFocused();
     const selected = useSelected();
 
-    // See https://css-tricks.com/examples/hrs/ for the cool style...
+    // The borderTop on the hr is just "fighting back" against a dumb thing
+    // that is imposed by bootstrap3... (it's in scaffolding.less).  Someday
+    // we'll get rid of bootstrap css entirely!
     return (
       <div {...attributes}>
         <div
           contentEditable={false}
           style={{
-            border:
-              focused && selected
-                ? `2px solid ${FOCUSED_COLOR}`
-                : "2px solid white",
-            height: "13px",
-            padding: "2px 10px",
-            borderRadius: "5px",
+            border: `2px solid ${
+              focused && selected ? FOCUSED_COLOR : "white"
+            }`,
           }}
         >
-          <hr
-            style={{
-              margin: 0,
-              height: "3px",
-              background: "#333",
-              backgroundImage: "linear-gradient(to right, #ccc, #333, #ccc)",
-            }}
-          />
+          <hr style={{ borderTop: "1px solid #aaa" }} />
         </div>
         {children}
       </div>
