@@ -10,7 +10,6 @@ import { Element } from "slate";
 export interface Softbreak extends SlateElement {
   type: "softbreak";
   isInline: true;
-  isVoid: false;
 }
 
 register({
@@ -20,7 +19,6 @@ register({
     return {
       type: "softbreak",
       isInline: true,
-      isVoid: false,
       children: [{ text: "\n" }],
     };
   },
@@ -44,14 +42,12 @@ register({
 export interface Hardbreak extends SlateElement {
   type: "hardbreak";
   isInline: true;
-  isVoid: false;
 }
 
 export function hardbreak() {
   return {
     type: "hardbreak",
     isInline: true,
-    isVoid: false,
     children: [{ text: "\n" }],
   } as Element;
 }
