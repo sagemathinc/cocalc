@@ -15,7 +15,7 @@ export async function insertImage(editor): Promise<void> {
   let opts: Options | undefined = undefined;
   try {
     opts = await get_insert_image_opts_from_user(
-      "NOTE: You can also drag-and-drop and paste into the Editable panel."
+      "In addition to inserting images using a URL here, you can both drag-and-drop and paste image files directly into the Editable panel, and drag to resize images, rather than entering a width or height below."
     );
   } catch (err) {
     alert_message({ type: "error", message: err.errorFields[0]?.errors });
