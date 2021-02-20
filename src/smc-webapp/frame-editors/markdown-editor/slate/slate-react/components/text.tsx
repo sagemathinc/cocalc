@@ -27,16 +27,20 @@ const Text = (props: {
   const editor = useSlateStatic();
   const ref = useRef<HTMLSpanElement>(null);
   const leaves = SlateText.decorations(text, decorations);
-  const key = ReactEditor.findKey(editor, text);
   const children: JSX.Element[] = [];
+  const key = ReactEditor.findKey(editor, text);
 
   for (let i = 0; i < leaves.length; i++) {
     const leaf = leaves[i];
+    // We need to use a key specifically for each leaf,
+    // otherwise when doing incremental search it doesn't
+    // properly update (which makes perfect sense).
+    const leaf_key = ReactEditor.findKey(editor, leaf);
 
     children.push(
       <Leaf
         isLast={isLast && i === leaves.length - 1}
-        key={`${key.id}-${i}`}
+        key={leaf_key.id}
         leaf={leaf}
         text={text}
         parent={parent}
@@ -71,10 +75,11 @@ const MemoizedText = React.memo(Text, (prev, next) => {
   // https://github.com/ianstormtaylor/slate/issues/4056#issuecomment-768059323
 
   const is_equal =
-    /* next.parent === prev.parent && */
+    // next.parent === prev.parent &&
     next.renderLeaf === prev.renderLeaf &&
     next.isLast === prev.isLast &&
-    next.text === prev.text;
+    next.text === prev.text &&
+    next.decorations === prev.decorations;
   return is_equal;
 });
 

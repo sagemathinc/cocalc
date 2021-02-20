@@ -18,7 +18,7 @@ const CODE_STYLE = {
 
 export const Leaf: React.FC<RenderLeafProps> = React.memo(
   ({ attributes, children, leaf }) => {
-    //console.log("Leaf ", { attributes, children, leaf });
+    // console.log("Leaf ", { attributes, children, leaf });
     if (leaf.bold) {
       children = <strong>{children}</strong>;
     }
@@ -64,6 +64,10 @@ export const Leaf: React.FC<RenderLeafProps> = React.memo(
           <span style={{ fontSize: mark.split(":")[1] }}>{children}</span>
         );
       }
+    }
+    if (leaf.search) {
+      // Search highlighting of text nodes.
+      children = <span style={{ backgroundColor: "#ffeeba" }}>{children}</span>;
     }
 
     return <span {...attributes}>{children}</span>;

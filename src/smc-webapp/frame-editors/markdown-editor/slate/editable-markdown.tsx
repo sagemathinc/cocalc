@@ -45,6 +45,9 @@ import { mentionableUsers } from "../../../editors/markdown-input/mentionable-us
 import { createMention } from "./elements/mention";
 import { submit_mentions } from "../../../editors/markdown-input/mentions";
 
+import { useSearch } from "./search";
+import { EditBar } from "./edit-bar";
+
 // (??) A bit longer is better, due to escaping of markdown and multiple users
 // with one user editing source and the other editing with slate.
 // const SAVE_DEBOUNCE_MS = 1500;
@@ -74,7 +77,6 @@ if (USE_WINDOWING && IS_FIREFOX) {
 const STYLE = {
   width: "100%",
   overflow: "auto",
-  boxShadow: "1px 1px 15px 1px #aaa",
 } as CSS;
 
 interface Props {
@@ -125,6 +127,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       },
       matchingUsers: (search) => mentionableUsers(project_id, search),
     });
+
+    const search = useSearch();
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const restoreScroll = async () => {
@@ -344,6 +348,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }
 
     const onChange = (newEditorValue) => {
+      // console.log("onChange", newEditorValue);
       try {
         // Track where the last editor selection was,
         // since this is very useful to know, e.g., for
@@ -406,6 +411,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           onKeyDown={onKeyDown}
           onBlur={saveValue}
           onDoubleClick={inverseSearch}
+          decorate={search.decorate}
           divref={scrollRef}
           onScroll={debounce(() => {
             const scroll = scrollRef.current?.scrollTop;
@@ -439,6 +445,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         style={{ overflow: "auto", backgroundColor: "white" }}
       >
         <Path is_current={is_current} path={path} project_id={project_id} />
+        <EditBar Search={search.Search} isCurrent={is_current} />
         <div
           className="smc-vfill"
           style={{

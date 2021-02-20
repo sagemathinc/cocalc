@@ -16,6 +16,7 @@ export interface Marks {
   tt?: boolean;
   code?: boolean;
   small?: boolean;
+  search?: boolean;  // search highlighting...
 }
 
 // Map from prefix of markdown token types to Slate marks.
