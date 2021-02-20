@@ -115,11 +115,17 @@ export const ReactEditor = {
    * Focus the editor.
    */
 
-  focus(editor: ReactEditor): void {
+  focus(editor: ReactEditor, force: boolean = false): void {
     const el = ReactEditor.toDOMNode(editor, editor);
     IS_FOCUSED.set(editor, true);
 
     if (window.document.activeElement !== el) {
+      el.focus({ preventScroll: true });
+    } else if (force) {
+      // This is needed when everything looses focus
+      // in some weird cases (e.g., when inserting a
+      // checkbox in an empty document).
+      el.blur();
       el.focus({ preventScroll: true });
     }
   },

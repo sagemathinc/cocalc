@@ -11,7 +11,7 @@ What happens when you hit the backspace/delete key.
     for discussion of why we must implement this ourselves.
 */
 
-import { Editor, Point, Range } from "slate";
+import { Point, Range, Transforms } from "slate";
 import { register } from "./register";
 
 function backspaceKey({ editor }) {
@@ -32,14 +32,17 @@ function backspaceKey({ editor }) {
       path: [0],
       node: { type: "paragraph", children: [{ text: "" }] },
     });
-    Editor.deleteBackward(editor);
+    Transforms.delete(editor, {
+      reverse: true,
+    });
   }
 
   // This seems to work perfectly in all cases, including working around the
   // void delete bug in Slate:
   //     https://github.com/ianstormtaylor/slate/issues/3875
-
-  Editor.deleteBackward(editor);
+  // Note also that voids:true is very important, since otherwise, things sometimes
+  // get skipped!
+  editor.deleteBackward();
   return true;
 }
 

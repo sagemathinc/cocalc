@@ -43,7 +43,7 @@ const Element: React.FC<RenderElementProps> = ({
       <AntdCheckbox
         style={{
           border,
-          padding: "0 0.2em",
+          padding: "0 0.2em 0.2em 0.2em",
           verticalAlign: "middle",
         }}
         checked={!!element.value}
