@@ -39,9 +39,6 @@ function checkboxReplace(_md, _options) {
     before_token.content = before;
 
     const after_token = new Token("text", "", 0);
-    if (after[0] != " ") {
-      after = " " + after;
-    }
     after_token.content = after;
     index += 1;
     return [before_token, checkbox_token, after_token];

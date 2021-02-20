@@ -75,6 +75,8 @@ async function markdownReplace(editor: ReactEditor): Promise<boolean> {
 
   // make a copy to avoid any caching issues (??).
   const doc = [...(markdown_to_slate(text, true) as any)];
+  // console.log("autoformat doc = ");
+  // console.log(JSON.stringify(doc, undefined, 2));
 
   if (
     doc.length == 1 &&
