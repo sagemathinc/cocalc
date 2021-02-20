@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Range, Editor, Point, Transforms } from "slate";
+import { Range, Editor, Element, Point, Transforms } from "slate";
 
 export const withDeleteBackward = (editor) => {
   const { deleteBackward } = editor;
@@ -16,6 +16,37 @@ export const withDeleteBackward = (editor) => {
       const match = Editor.above(editor, {
         match: (n) => Editor.isBlock(editor, n),
       });
+
+      if (match) {
+        const [block, path] = match;
+        const start = Editor.start(editor, path);
+
+        if (
+          !Editor.isEditor(block) &&
+          Element.isElement(block) &&
+          block.type !== "paragraph" &&
+          Point.equals(selection.anchor, start)
+        ) {
+          const newProperties: Partial<Element> = {
+            type: "paragraph",
+          };
+          Transforms.setNodes(editor, newProperties);
+
+          if (block.type === "list_item") {
+            Transforms.unwrapNodes(editor, {
+              match: (n) =>
+                !Editor.isEditor(n) &&
+                Element.isElement(n) &&
+                n.type === "bullet_list",
+              split: true,
+            });
+          }
+
+          return;
+        }
+      }
+
+      /*
 
       if (match) {
         const [block, path] = match;
@@ -35,6 +66,7 @@ export const withDeleteBackward = (editor) => {
           }
         }
       }
+      */
 
       deleteBackward(...args);
     }
