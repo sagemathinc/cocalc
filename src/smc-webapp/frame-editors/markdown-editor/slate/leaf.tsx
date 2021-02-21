@@ -6,6 +6,8 @@
 import { CSS, React } from "../../../app-framework";
 import { RenderLeafProps } from "./slate-react";
 import { startswith } from "smc-util/misc";
+import { Cursor } from "smc-webapp/jupyter/cursors";
+//import { useOtherCursors } from "./cursors";
 
 // CODE_STYLE -- copied from GitHub
 const CODE_STYLE = {
@@ -18,7 +20,19 @@ const CODE_STYLE = {
 
 export const Leaf: React.FC<RenderLeafProps> = React.memo(
   ({ attributes, children, leaf }) => {
-    // console.log("Leaf ", { attributes, children, leaf });
+    if ((leaf as any).cursor != null) {
+      children = (
+        <span>
+          <span contentEditable={false}>
+            <Cursor
+              name={(leaf as any).cursor.name}
+              color={(leaf as any).cursor.color}
+            />
+          </span>
+          {children}
+        </span>
+      );
+    }
     if (leaf.bold) {
       children = <strong>{children}</strong>;
     }
@@ -67,7 +81,8 @@ export const Leaf: React.FC<RenderLeafProps> = React.memo(
     }
     if (leaf.search) {
       // Search highlighting of text nodes.
-      children = <span style={{ backgroundColor: "#ffeeba" }}>{children}</span>;
+      // Same color as CodeMirror's default.
+      children = <span style={{ backgroundColor: "#ffa" }}>{children}</span>;
     }
 
     return <span {...attributes}>{children}</span>;

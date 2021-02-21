@@ -8,6 +8,7 @@
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
 import { IS_FIREFOX } from "../../../feature";
+import { Map } from "immutable";
 
 import { EditorState } from "../../frame-tree/types";
 import { createEditor, Descendant, Transforms } from "slate";
@@ -48,7 +49,11 @@ import { submit_mentions } from "../../../editors/markdown-input/mentions";
 import { useSearch } from "./search";
 import { EditBar } from "./edit-bar";
 
-import { useCursors } from "./cursors";
+import {
+  useBroadcastCursors,
+  OtherCursorsContext,
+  useCursorDecorator,
+} from "./cursors";
 
 // (??) A bit longer is better, due to escaping of markdown and multiple users
 // with one user editing source and the other editing with slate.
@@ -93,6 +98,7 @@ interface Props {
   is_current?: boolean;
   is_fullscreen?: boolean;
   editor_state?: EditorState;
+  cursors: Map<string, any>;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -107,6 +113,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     is_current,
     is_fullscreen,
     editor_state,
+    cursors,
   }) => {
     const editor: ReactEditor = useMemo(() => {
       const cur = actions.getSlateEditor(id);
@@ -132,10 +139,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const search = useSearch();
 
-    const cursors = useCursors({
+    const broadcastCursors = useBroadcastCursors({
       editor,
       broadcastCursors: (x) => actions.set_cursor_locs(x),
     });
+    const cursorDecorator = useCursorDecorator({ editor, cursors });
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const restoreScroll = async () => {
@@ -292,7 +300,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    /*
+    ///*
     const { Editor, Node } = require("slate");
     // not using (window as any) to cause a TS error, so
     // I don't forget to comment this out!
@@ -302,11 +310,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       ReactEditor,
       Node,
       Editor,
-      slateDiff,
-      slatePointToMarkdown,
-      indexToPosition,
     };
-    */
+    //*/
 
     const [rowStyle, setRowStyle] = useState<CSS>({});
 
@@ -352,7 +357,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }
 
     const onChange = (newEditorValue) => {
-      cursors.onChange();
+      broadcastCursors();
       // console.log("onChange", newEditorValue);
       try {
         // Track where the last editor selection was,
@@ -407,41 +412,43 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     };
 
     let slate = (
-      <Slate editor={editor} value={editorValue} onChange={onChange}>
-        <Editable
-          className={USE_WINDOWING ? "smc-vfill" : undefined}
-          readOnly={read_only}
-          renderElement={Element}
-          renderLeaf={Leaf}
-          onKeyDown={onKeyDown}
-          onBlur={saveValue}
-          onDoubleClick={inverseSearch}
-          decorate={search.decorate}
-          divref={scrollRef}
-          onScroll={debounce(() => {
-            const scroll = scrollRef.current?.scrollTop;
-            if (scroll != null) {
-              actions.save_editor_state(id, { scroll });
+      <OtherCursorsContext.Provider value={cursors}>
+        <Slate editor={editor} value={editorValue} onChange={onChange}>
+          <Editable
+            className={USE_WINDOWING ? "smc-vfill" : undefined}
+            readOnly={read_only}
+            renderElement={Element}
+            renderLeaf={Leaf}
+            onKeyDown={onKeyDown}
+            onBlur={saveValue}
+            onDoubleClick={inverseSearch}
+            decorate={cursorDecorator /*search.decorate*/}
+            divref={scrollRef}
+            onScroll={debounce(() => {
+              const scroll = scrollRef.current?.scrollTop;
+              if (scroll != null) {
+                actions.save_editor_state(id, { scroll });
+              }
+            }, 200)}
+            style={
+              USE_WINDOWING
+                ? undefined
+                : {
+                    minWidth: "80%",
+                    padding: "70px",
+                    background: "white",
+                    overflow:
+                      "auto" /* for this overflow, see https://github.com/ianstormtaylor/slate/issues/3706 */,
+                  }
             }
-          }, 200)}
-          style={
-            USE_WINDOWING
-              ? undefined
-              : {
-                  minWidth: "80%",
-                  padding: "70px",
-                  background: "white",
-                  overflow:
-                    "auto" /* for this overflow, see https://github.com/ianstormtaylor/slate/issues/3706 */,
-                }
-          }
-          windowing={
-            USE_WINDOWING
-              ? { rowStyle, overscanRowCount: OVERSCAN_ROW_COUNT }
-              : undefined
-          }
-        />
-      </Slate>
+            windowing={
+              USE_WINDOWING
+                ? { rowStyle, overscanRowCount: OVERSCAN_ROW_COUNT }
+                : undefined
+            }
+          />
+        </Slate>
+      </OtherCursorsContext.Provider>
     );
 
     let body = (

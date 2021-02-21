@@ -1040,7 +1040,6 @@ export class Actions<
   // Set the location of all of OUR cursors.  This is entirely
   // so the information can propogate to other users via the syncstring.
   set_cursor_locs(locs: any[]): void {
-    console.log("set_cursor_locs", locs);
     if (!this._syncstring) {
       return; // not currently valid.
     }

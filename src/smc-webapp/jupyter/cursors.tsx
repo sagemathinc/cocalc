@@ -43,7 +43,7 @@ interface CursorState {
 }
 
 export class Cursor extends Component<CursorProps, CursorState> {
-  private _mounted: any; // TODO: dont do this
+  private _mounted: any; // TODO: don't do this
   private _timer: any;
 
   constructor(props, context) {

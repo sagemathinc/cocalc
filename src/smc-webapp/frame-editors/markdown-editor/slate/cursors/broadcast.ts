@@ -3,33 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/*
-- Display of other user's cursors
-- Broadcast of own cursor.
+// Broadcast of own cursor.
 
-One complication is that there's both a plain source code
-view and an editable view, and clients could be using either,
-so we want to show cursors in both places.
-
-TODO:
-
-- [ ] display cursors in slate editor (not just source)
-   - [ ] a way to display them
-   - [ ] convert coordinates from markdown to slate
-        - will also be useful for implementing forward search
-
-- [ ] special cases for working with void elements
-   - [ ] code blocks
-   - [ ] checkboxes
-   - [ ] images, etc?
-*/
+// NOTE: We use plural "cursors" here in the optimistic hope that
+// we'll somehow implement a notion of multiple cursors for slate.
+// Hmm, that already exists for a single code cell, doesn't it, due
+// to codemirror.
 
 import { debounce } from "lodash";
 import * as CodeMirror from "codemirror";
 import { useCallback, useRef } from "react";
 import { Point } from "slate";
-import { ReactEditor } from "./slate-react";
-import { slatePointToMarkdownPosition } from "./sync";
+import { ReactEditor } from "../slate-react";
+import { slatePointToMarkdownPosition } from "../sync";
 
 // Cursor broadcast can be expensive since we convert the cursor
 // from slate coordinates to markdown coordinates each time,
@@ -42,7 +28,7 @@ interface Options {
   broadcastCursors: (locs: any[]) => void;
 }
 
-export const useCursors: (Options) => { onChange: () => void } = ({
+export const useBroadcastCursors: (Options) => () => void = ({
   editor,
   broadcastCursors,
 }) => {
@@ -82,5 +68,5 @@ export const useCursors: (Options) => { onChange: () => void } = ({
     update();
   };
 
-  return { onChange };
+  return onChange;
 };
