@@ -3,9 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import * as CodeMirror from "codemirror";
 import { Editor, Point } from "slate";
 import { slate_to_markdown } from "./slate-to-markdown";
 const SENTINEL = "\uFE30";
+
+export function slatePointToMarkdownPosition(
+  editor: Editor,
+  point: Point | undefined
+): CodeMirror.Position | undefined {
+  if (point == null) return undefined; // easy special case not handled below.
+  const { index, markdown } = slatePointToMarkdown(editor, point);
+  if (index == -1) return;
+  return indexToPosition({ index, markdown });
+}
 
 // Given a location in a slatejs document, return the
 // corresponding index into the corresponding markdown document,
@@ -44,7 +55,7 @@ export function indexToPosition({
 }: {
   index: number;
   markdown: string;
-}): { line: number; ch: number } {
+}): CodeMirror.Position | undefined {
   let n = 0;
   const lines = markdown.split("\n");
   for (let line = 0; line < lines.length; line++) {
@@ -57,5 +68,5 @@ export function indexToPosition({
     n = next;
   }
   // not found...?
-  return { line: 0, ch: 0 };
+  return undefined; // just being explicit here.
 }

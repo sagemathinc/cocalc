@@ -38,7 +38,7 @@ import { useUpload, withUpload } from "./upload";
 
 import { slateDiff } from "./slate-diff";
 import { applyOperations } from "./operations";
-import { slatePointToMarkdown, indexToPosition } from "./sync";
+import { slatePointToMarkdownPosition } from "./sync";
 
 import { useMentions } from "./slate-mentions";
 import { mentionableUsers } from "../../../editors/markdown-input/mentionable-users";
@@ -47,6 +47,8 @@ import { submit_mentions } from "../../../editors/markdown-input/mentions";
 
 import { useSearch } from "./search";
 import { EditBar } from "./edit-bar";
+
+import { useCursors } from "./cursors";
 
 // (??) A bit longer is better, due to escaping of markdown and multiple users
 // with one user editing source and the other editing with slate.
@@ -129,6 +131,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     });
 
     const search = useSearch();
+
+    const cursors = useCursors({
+      editor,
+      broadcastCursors: (x) => actions.set_cursor_locs(x),
+    });
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const restoreScroll = async () => {
@@ -325,7 +332,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // This takes surprisingly long!
       let t = 0;
       while (editor.selection == null) {
-        await delay(50);
+        await delay(1);
         t += 50;
         if (t > 2000) return; // give up
       }
@@ -333,21 +340,19 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       if (point == null) {
         return;
       }
-      const { index, markdown } = slatePointToMarkdown(editor, point);
-      if (index == -1) return;
-      const pos = indexToPosition({ index, markdown });
-      if (pos?.line != null) {
-        actions.programmatical_goto_line(
-          pos.line + 1, // 1 based (TODO: could use codemirror option)
-          true,
-          false, // it is REALLY annoying to switch focus to be honest, e.g., because double click to select a word is common in WYSIWYG editing.  If change this to true, make sure to put an extra always 50ms delay above due to focus even order.
-          undefined,
-          pos.ch
-        );
-      }
+      const pos = slatePointToMarkdownPosition(editor, point);
+      if (pos == null) return;
+      actions.programmatical_goto_line(
+        pos.line + 1, // 1 based (TODO: could use codemirror option)
+        true,
+        false, // it is REALLY annoying to switch focus to be honest, e.g., because double click to select a word is common in WYSIWYG editing.  If change this to true, make sure to put an extra always 50ms delay above due to focus even order.
+        undefined,
+        pos.ch
+      );
     }
 
     const onChange = (newEditorValue) => {
+      cursors.onChange();
       // console.log("onChange", newEditorValue);
       try {
         // Track where the last editor selection was,
