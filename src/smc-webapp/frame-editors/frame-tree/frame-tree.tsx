@@ -57,6 +57,7 @@ import { TimeTravelActions } from "../time-travel-editor/actions";
 import { EditorSpec, EditorDescription, EditorState, NodeDesc } from "./types";
 import { Actions } from "../code-editor/actions";
 import { cm as cm_spec } from "../code-editor/editor";
+import { FrameContext } from "./frame-context";
 
 const drag_offset = feature.IS_TOUCH ? 5 : 2;
 
@@ -361,15 +362,23 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       return <div>{mesg}</div>;
     }
     return (
-      <div
-        className={"smc-vfill"}
-        onClick={() => this.props.actions.set_active_id(desc.get("id"), true)}
-        onTouchStart={() => this.props.actions.set_active_id(desc.get("id"))}
-        style={spec != null ? spec.style : undefined}
+      <FrameContext.Provider
+        value={{
+          id: desc.get("id"),
+          project_id: this.props.project_id,
+          path: this.props.path,
+        }}
       >
-        {this.render_titlebar(desc, spec, editor_actions)}
-        {this.render_leaf(desc, component, spec, editor_actions)}
-      </div>
+        <div
+          className={"smc-vfill"}
+          onClick={() => this.props.actions.set_active_id(desc.get("id"), true)}
+          onTouchStart={() => this.props.actions.set_active_id(desc.get("id"))}
+          style={spec != null ? spec.style : undefined}
+        >
+          {this.render_titlebar(desc, spec, editor_actions)}
+          {this.render_leaf(desc, component, spec, editor_actions)}
+        </div>
+      </FrameContext.Provider>
     );
   }
 

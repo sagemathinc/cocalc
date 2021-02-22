@@ -11,7 +11,7 @@ import { IS_FIREFOX } from "../../../feature";
 import { Map } from "immutable";
 
 import { EditorState } from "../../frame-tree/types";
-import { createEditor, Descendant, Transforms } from "slate";
+import { createEditor, Descendant, Range, Transforms } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
 import {
@@ -59,6 +59,15 @@ import {
 // with one user editing source and the other editing with slate.
 // const SAVE_DEBOUNCE_MS = 1500;
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
+
+export interface SlateEditor extends ReactEditor {
+  ignoreNextOnChange?: boolean;
+  saveValue: (force?) => void;
+  dropzoneRef?: any;
+  applyingOperations?: boolean;
+  lastSelection?: Range;
+  curSelection?: Range;
+}
 
 // Whether or not to use windowing.
 // I'm going to disable this by default (for production
@@ -115,18 +124,29 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     editor_state,
     cursors,
   }) => {
-    const editor: ReactEditor = useMemo(() => {
+    const editor = useMemo(() => {
       const cur = actions.getSlateEditor(id);
       if (cur != null) return cur;
       const ed = withUpload(
         withAutoFormat(withIsInline(withIsVoid(withReact(createEditor()))))
-      );
+      ) as SlateEditor;
       actions.registerSlateEditor(id, ed);
-      return ed;
-    }, []);
 
-    // todo move to our own context-based hook!
-    (editor as any).cocalc_context = { project_id, path, id };
+      ed.saveValue = (force?) => {
+        if (!force && !hasUnsavedChangesRef.current) {
+          return;
+        }
+        if (force) {
+          editorMarkdownValueRef.current = undefined;
+        }
+        hasUnsavedChangesRef.current = false;
+        setSyncstringFromSlate();
+
+        actions.ensure_syncstring_is_saved();
+      };
+
+      return ed as SlateEditor;
+    }, []);
 
     const mentions = useMentions({
       editor,
@@ -188,27 +208,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       actions.set_value(editor_markdown_value());
     }
 
-    const saveValue = useCallback((force?) => {
-      if (!force && !hasUnsavedChangesRef.current) {
-        return;
-      }
-      if (force) {
-        editorMarkdownValueRef.current = undefined;
-      }
-      hasUnsavedChangesRef.current = false;
-      setSyncstringFromSlate();
-
-      actions.ensure_syncstring_is_saved();
-    }, []);
-
-    // @ts-ignore
-    editor.saveValue = saveValue;
-
     // We don't want to do saveValue too much, since it presumably can be slow,
     // especially if the document is large. By debouncing, we only do this when
     // the user pauses typing for a moment. Also, this avoids making too many commits.
     const saveValueDebounce = useMemo(
-      () => debounce(() => saveValue(), SAVE_DEBOUNCE_MS),
+      () => debounce(editor.saveValue, SAVE_DEBOUNCE_MS),
       []
     );
 
@@ -275,7 +279,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // also so we don't update the source editor (and other browsers)
       // with a view with things like loan $'s escaped.'
       if (operations.length > 0) {
-        (editor as any).ignoreNextOnChange = true;
+        editor.ignoreNextOnChange = true;
         applyOperations(editor, operations);
       }
 
@@ -384,7 +388,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           return;
         }
 
-        if (!(editor as any).ignoreNextOnChange) {
+        if (!editor.ignoreNextOnChange) {
           hasUnsavedChangesRef.current = true;
           // markdown value now not known.
           editorMarkdownValueRef.current = undefined;
@@ -407,7 +411,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         }
         saveValueDebounce();
       } finally {
-        (editor as any).ignoreNextOnChange = false;
+        editor.ignoreNextOnChange = false;
       }
     };
 
@@ -428,7 +432,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             renderElement={Element}
             renderLeaf={Leaf}
             onKeyDown={onKeyDown}
-            onBlur={saveValue}
+            onBlur={editor.saveValue}
             onDoubleClick={inverseSearch}
             decorate={decorate}
             divref={scrollRef}

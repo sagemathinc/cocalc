@@ -4,8 +4,12 @@
  */
 import { Editor, Operation, Point } from "slate";
 import { isEqual } from "lodash";
+import { SlateEditor } from "./editable-markdown";
 
-export function applyOperations(editor: Editor, operations: Operation[]): void {
+export function applyOperations(
+  editor: SlateEditor,
+  operations: Operation[]
+): void {
   if (operations.length == 0) return;
 
   // window.operations = operations;
@@ -18,7 +22,7 @@ export function applyOperations(editor: Editor, operations: Operation[]): void {
   };
 
   try {
-    (editor as any).applyingOperations = true; // TODO: not sure if this is at all necessary...
+    editor.applyingOperations = true; // TODO: not sure if this is at all necessary...
 
     Editor.withoutNormalizing(editor, () => {
       for (const op of operations) {
@@ -38,7 +42,7 @@ export function applyOperations(editor: Editor, operations: Operation[]): void {
       "ms"
     );*/
   } finally {
-    (editor as any).applyingOperations = false;
+    editor.applyingOperations = false;
   }
 }
 

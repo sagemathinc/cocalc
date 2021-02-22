@@ -24,13 +24,14 @@ import { insertLink } from "./insert-link";
 import { insertImage } from "./insert-image";
 import { insertSpecialChar } from "./insert-special-char";
 import { emptyParagraph } from "../padding";
+import { SlateEditor } from "../editable-markdown";
 
 // Expand collapsed selection to range containing exactly the
 // current word, even if selection potentially spans multiple
 // text nodes.  If cursor is not *inside* a word (being on edge
 // is not inside) then returns undefined.  Otherwise, returns
 // the Range containing the current word.
-function currentWord(editor: Editor): Range | undefined {
+function currentWord(editor: SlateEditor): Range | undefined {
   const selection = getSelection(editor);
   if (selection == null || !Range.isCollapsed(selection)) {
     return; // nothing to do -- no current word.
@@ -128,14 +129,14 @@ function toggleMark(editor: Editor, mark: string): void {
   }
 }
 
-export function formatSelectedText(editor: ReactEditor, mark: string) {
+export function formatSelectedText(editor: SlateEditor, mark: string) {
   const selection = getSelection(editor);
   if (selection == null) return; // nothing to do.
   if (Range.isCollapsed(selection)) {
     // select current word (which may partly span multiple text nodes!)
     const at = currentWord(editor);
     if (at != null) {
-      (editor as any).saveValue(true);
+      editor.saveValue(true);
       Transforms.setNodes(
         editor,
         { [mark]: !isAlreadyMarked(editor, mark) ? true : undefined },
@@ -158,7 +159,7 @@ export function formatSelectedText(editor: ReactEditor, mark: string) {
 }
 
 function unformatSelectedText(
-  editor: Editor,
+  editor: SlateEditor,
   options: { prefix?: string }
 ): void {
   const at = getSelection(editor);
@@ -235,17 +236,17 @@ function findMarkedFragmentWithPrefix(
 }
 
 // TODO: make this part of a focus/last selection plugin.
-export function getFocus(editor: Editor): Point {
+export function getFocus(editor: SlateEditor): Point {
   return (
     editor.selection?.focus ??
-    (editor as any).lastSelection?.focus ?? { path: [0, 0], offset: 0 }
+    editor.lastSelection?.focus ?? { path: [0, 0], offset: 0 }
   );
 }
 
-export function getSelection(editor: Editor): Range {
+export function getSelection(editor: SlateEditor): Range {
   return (
     editor.selection ??
-    (editor as any).lastSelection ?? {
+    editor.lastSelection ?? {
       focus: { path: [0, 0], offset: 0 },
       anchor: { path: [0, 0], offset: 0 },
     }
@@ -253,7 +254,7 @@ export function getSelection(editor: Editor): Range {
 }
 
 // get range that's the selection collapsed to the focus point.
-export function getCollapsedSelection(editor: Editor): Range {
+export function getCollapsedSelection(editor: SlateEditor): Range {
   const focus = getSelection(editor)?.focus;
   return { focus, anchor: focus };
 }
@@ -275,18 +276,18 @@ export async function setSelectionAndFocus(
 }
 
 export async function restoreSelectionAndFocus(
-  editor: ReactEditor
+  editor: SlateEditor
 ): Promise<void> {
   let selection = editor.selection;
   if (selection == null) {
-    selection = (editor as any).lastSelection;
-    if (selection == null) return;
-    await setSelectionAndFocus(editor, selection);
+    const sel = editor.lastSelection;
+    if (sel == null) return;
+    await setSelectionAndFocus(editor, sel);
   }
 }
 
 export async function formatAction(
-  editor: ReactEditor,
+  editor: SlateEditor,
   cmd: string,
   args
 ): Promise<void> {

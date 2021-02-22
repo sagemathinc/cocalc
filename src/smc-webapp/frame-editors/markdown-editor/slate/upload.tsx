@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Editor, Transforms } from "slate";
-import { ReactEditor } from "./slate-react";
+import { Transforms } from "slate";
+import { SlateEditor } from "./editable-markdown";
 import { React, useActions, useRef } from "../../../app-framework";
 import { Dropzone, FileUploadWrapper } from "../../../file-upload";
 import { join } from "path";
@@ -12,11 +12,11 @@ import { aux_file, path_split } from "smc-util/misc";
 const AUX_FILE_EXT = "upload";
 import { getFocus } from "./format/commands";
 
-export const withUpload = (editor: ReactEditor) => {
+export const withUpload = (editor: SlateEditor) => {
   const { insertData } = editor;
 
   editor.insertData = (data) => {
-    if ((editor as any).dropzoneRef?.current == null) {
+    if (editor.dropzoneRef?.current == null) {
       // fallback
       insertData(data);
       return;
@@ -28,7 +28,7 @@ export const withUpload = (editor: ReactEditor) => {
         const file = item.getAsFile();
         if (file != null) {
           const blob = file.slice(0, -1, item.type);
-          (editor as any).dropzoneRef?.current?.addFile(
+          editor.dropzoneRef?.current?.addFile(
             new File([blob], `paste-${Math.random()}`, { type: item.type })
           );
         }
@@ -49,11 +49,11 @@ function uploadTarget(path: string, file: { name: string }): string {
 export function useUpload(
   project_id: string,
   path: string,
-  editor: Editor,
+  editor: SlateEditor,
   body: JSX.Element
 ): JSX.Element {
   const dropzoneRef = useRef<Dropzone>(null);
-  (editor as any).dropzoneRef = dropzoneRef;
+  editor.dropzoneRef = dropzoneRef;
   const actions = useActions(project_id, path);
 
   const updloadEventHandlers = {

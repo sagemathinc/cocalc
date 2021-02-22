@@ -17,7 +17,7 @@ import {
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
 import { scrollToHeading } from "./slate/control";
-import { ReactEditor as SlateEditor } from "./slate/slate-react";
+import { SlateEditor } from "./slate/editable-markdown";;
 import { formatAction as slateFormatAction } from "./slate/format";
 import { TableOfContentsEntryList, TableOfContentsEntry } from "../../r_misc";
 import { fromJS } from "immutable";

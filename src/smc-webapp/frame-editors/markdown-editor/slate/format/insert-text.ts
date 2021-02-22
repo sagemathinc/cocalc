@@ -37,6 +37,7 @@ import { slateDiff } from "../slate-diff";
 import { getRules } from "../elements";
 import { moveCursorToEndOfElement } from "../control";
 import { ReactEditor } from "../slate-react";
+import { SlateEditor } from "../editable-markdown";
 
 export const withInsertText = (editor) => {
   const { insertText } = editor;
@@ -61,7 +62,7 @@ export const withInsertText = (editor) => {
   return editor;
 };
 
-async function markdownReplace(editor: ReactEditor): Promise<boolean> {
+async function markdownReplace(editor: SlateEditor): Promise<boolean> {
   const { selection } = editor;
   if (!selection) return false;
   const [node, path] = Editor.node(editor, selection.focus);

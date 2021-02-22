@@ -28,11 +28,11 @@ import { FOCUSED_COLOR } from "../util";
 import {
   useActions,
   useFocused,
-  useID,
   useSelected,
   useSlate,
   useCollapsed,
 } from "./hooks";
+import { useFrameContext } from "../../../frame-tree/frame-context";
 import {
   moveCursorDown,
   moveCursorToBeginningOfBlock,
@@ -81,7 +81,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     const editor = useSlate();
     const collapsed = useCollapsed();
     const actions = useActions();
-    const id = useID();
+    const { id } = useFrameContext();
 
     const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
     const [isFocused, setIsFocused] = useState<boolean>(!!options?.autofocus);
