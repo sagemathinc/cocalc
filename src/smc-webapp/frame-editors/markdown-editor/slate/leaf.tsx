@@ -21,13 +21,11 @@ const CODE_STYLE = {
 export const Leaf: React.FC<RenderLeafProps> = React.memo(
   ({ attributes, children, leaf }) => {
     if ((leaf as any).cursor != null) {
+      const { name, color, paddingText } = (leaf as any).cursor;
       children = (
         <span>
           <span contentEditable={false}>
-            <Cursor
-              name={(leaf as any).cursor.name}
-              color={(leaf as any).cursor.color}
-            />
+            <Cursor name={name} color={color} paddingText={paddingText} />
           </span>
           {children}
         </span>

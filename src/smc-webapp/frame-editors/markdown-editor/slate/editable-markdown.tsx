@@ -52,7 +52,7 @@ import { EditBar } from "./edit-bar";
 import {
   useBroadcastCursors,
   OtherCursorsContext,
-  useCursorDecorator,
+  useCursorDecorate,
 } from "./cursors";
 
 // (??) A bit longer is better, due to escaping of markdown and multiple users
@@ -143,7 +143,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       editor,
       broadcastCursors: (x) => actions.set_cursor_locs(x),
     });
-    const cursorDecorator = useCursorDecorator({ editor, cursors });
+    const cursorDecorate = useCursorDecorate({ editor, cursors });
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const restoreScroll = async () => {
@@ -300,7 +300,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    ///*
+    /*
     const { Editor, Node } = require("slate");
     // not using (window as any) to cause a TS error, so
     // I don't forget to comment this out!
@@ -311,7 +311,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       Node,
       Editor,
     };
-    //*/
+    */
 
     const [rowStyle, setRowStyle] = useState<CSS>({});
 
@@ -411,6 +411,14 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     };
 
+    // We do the cursor decorate and if there is no cursor,
+    // then we do the search one.  TODO: somehow combine...
+    const decorate = (x) => {
+      const ranges = cursorDecorate(x);
+      if (ranges.length > 0) return ranges;
+      return search.decorate(x);
+    };
+
     let slate = (
       <OtherCursorsContext.Provider value={cursors}>
         <Slate editor={editor} value={editorValue} onChange={onChange}>
@@ -422,7 +430,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             onKeyDown={onKeyDown}
             onBlur={saveValue}
             onDoubleClick={inverseSearch}
-            decorate={cursorDecorator /*search.decorate*/}
+            decorate={decorate}
             divref={scrollRef}
             onScroll={debounce(() => {
               const scroll = scrollRef.current?.scrollTop;

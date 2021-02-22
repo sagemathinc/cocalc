@@ -9,6 +9,8 @@ import { createContext, useContext, useMemo } from "react";
 import { Map } from "immutable";
 import { useSlateStatic } from "../slate-react";
 import { Editor, Node, Point, Text } from "slate";
+import { getProfile } from "smc-webapp/jupyter/cursors";
+import { redux } from "smc-webapp/app-framework";
 
 export const OtherCursorsContext = createContext<Map<string, any> | null>(null);
 
@@ -26,6 +28,7 @@ export const useOtherCursors = () => {
   const nodeToCursors: WeakMap<Node, OtherCursor[]> = new WeakMap();
 
   if (cursors != null) {
+    const user_map = redux.getStore("users").get("user_map");
     for (const account_id in cursors) {
       for (const cursor of cursors[account_id] ?? []) {
         if (cursor.slate != null) {
@@ -41,11 +44,10 @@ export const useOtherCursors = () => {
             // TODO: find nearest valid leaf?
             continue;
           }
+          const { name, color } = getProfile(account_id, user_map);
           nodeToCursors.set(
             leaf,
-            (nodeToCursors.get(leaf) ?? []).concat([
-              { offset, name: "Bella Well", color: "red" },
-            ])
+            (nodeToCursors.get(leaf) ?? []).concat([{ offset, name, color }])
           );
         }
       }
@@ -55,7 +57,7 @@ export const useOtherCursors = () => {
   return nodeToCursors;
 };
 
-export const useCursorDecorator = ({
+export const useCursorDecorate = ({
   editor,
   cursors,
 }: {
@@ -67,6 +69,7 @@ export const useCursorDecorator = ({
 
     const cursors0 = cursors?.toJS();
     if (cursors0 != null) {
+      const user_map = redux.getStore("users").get("user_map");
       for (const account_id in cursors0) {
         for (const cursor of cursors0[account_id] ?? []) {
           if (cursor.slate != null) {
@@ -82,11 +85,10 @@ export const useCursorDecorator = ({
               // TODO: find nearest valid leaf?
               continue;
             }
+            const { name, color } = getProfile(account_id, user_map);
             nodeToCursors.set(
               leaf,
-              (nodeToCursors.get(leaf) ?? []).concat([
-                { offset, name: "Bella Well", color: "red" }, // todo: fake for now.
-              ])
+              (nodeToCursors.get(leaf) ?? []).concat([{ offset, name, color }])
             );
           }
         }
@@ -97,18 +99,30 @@ export const useCursorDecorator = ({
       const ranges: {
         anchor: Point;
         focus: Point;
-        cursor: { name: string; color: string };
+        cursor: { name: string; color: string; paddingText?: string };
       }[] = [];
       if (!Text.isText(node)) return ranges;
       const c = nodeToCursors.get(node);
       if (c == null) return ranges;
       for (const cur of c) {
         const { offset, name, color } = cur;
-        ranges.push({
-          anchor: { path, offset },
-          focus: { path, offset: offset + 1 },
-          cursor: { name, color },
-        });
+        if (offset < node.text.length - 1) {
+          ranges.push({
+            anchor: { path, offset },
+            focus: { path, offset: offset + 1 },
+            cursor: { name, color },
+          });
+        } else {
+          ranges.push({
+            anchor: { path, offset: offset - 1 },
+            focus: { path, offset: offset },
+            cursor: {
+              name,
+              color,
+              paddingText: node.text[node.text.length - 1],
+            },
+          });
+        }
         // TODO: just the first for now.
         break;
       }

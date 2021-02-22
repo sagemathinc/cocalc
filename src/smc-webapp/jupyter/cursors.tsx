@@ -9,8 +9,8 @@ React component that represents cursors of other users.
 
 // How long until another user's cursor is no longer displayed, if they don't move.
 // (NOTE: might take a little longer since we use a long interval.)
-const CURSOR_TIME_MS = 20000;
-const HIDE_NAME_TIMEOUT_MS = 3000;
+const CURSOR_TIME_MS = 45000;
+const HIDE_NAME_TIMEOUT_MS = 5000;
 
 import { Map } from "immutable";
 import {
@@ -36,6 +36,7 @@ interface CursorProps {
   color: string;
   top?: string; // doesn't change
   time?: number;
+  paddingText?: string; // paddingText -- only used in slate to move cursor over one letter to place cursor at end of text
 }
 
 interface CursorState {
@@ -59,7 +60,7 @@ export class Cursor extends Component<CursorProps, CursorState> {
       this.show_name(HIDE_NAME_TIMEOUT_MS);
     }
     return (
-      is_different(this.props, nextProps, ["name", "color"]) ||
+      is_different(this.props, nextProps, ["name", "color", "paddingText"]) ||
       this.state.show_name !== nextState.show_name
     );
   }
@@ -103,6 +104,55 @@ export class Cursor extends Component<CursorProps, CursorState> {
     }
   }
 
+  public renderCursor(): Rendered {
+    if (!this.props.paddingText) {
+      return (
+        <>
+          <span
+            style={{
+              width: 0,
+              height: "1em",
+              borderLeft: "2px solid",
+              position: "absolute",
+            }}
+          />
+          <span
+            style={{
+              width: "6px",
+              left: "-2px",
+              top: "-2px",
+              height: "6px",
+              position: "absolute",
+              backgroundColor: this.props.color,
+            }}
+          />
+        </>
+      );
+    }
+
+    return (
+      <>
+        <span
+          style={{
+            height: "1em",
+            borderRight: "2px solid",
+            position: "absolute",
+          }}
+        >
+          {this.renderPaddingText()}
+        </span>
+      </>
+    );
+  }
+
+  public renderPaddingText() {
+    if (this.props.paddingText) {
+      return (
+        <span style={{ color: "transparent" }}>{this.props.paddingText}</span>
+      );
+    }
+  }
+
   public render(): Rendered {
     return (
       <span
@@ -118,24 +168,7 @@ export class Cursor extends Component<CursorProps, CursorState> {
         onTouchStart={() => this.show_name()}
         onTouchEnd={() => this.show_name(HIDE_NAME_TIMEOUT_MS)}
       >
-        <span
-          style={{
-            width: 0,
-            height: "1em",
-            borderLeft: "2px solid",
-            position: "absolute",
-          }}
-        />
-        <span
-          style={{
-            width: "6px",
-            left: "-2px",
-            top: "-2px",
-            height: "6px",
-            position: "absolute",
-            backgroundColor: this.props.color,
-          }}
-        />
+        {this.renderCursor()}
         {this.state.show_name ? (
           <span
             style={{
@@ -152,6 +185,7 @@ export class Cursor extends Component<CursorProps, CursorState> {
               opacity: 0.8,
             }}
           >
+            {this.renderPaddingText()}
             {this.props.name}
           </span>
         ) : undefined}
@@ -411,3 +445,18 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
 }
 
 export const Cursors = rclass(Cursors0);
+
+export function getProfile(
+  account_id,
+  user_map
+): { color: string; name: string } {
+  if (user_map == null) return UNKNOWN_USER_PROFILE;
+  const user = user_map.get(account_id);
+  if (user == null) return UNKNOWN_USER_PROFILE;
+  const color = user.getIn(["profile", "color"], "rgb(170,170,170)");
+  const name = trunc_middle(
+    user.get("first_name", "") + " " + user.get("last_name", ""),
+    60
+  );
+  return { color, name };
+}
