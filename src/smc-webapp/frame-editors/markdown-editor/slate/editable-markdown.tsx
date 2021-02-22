@@ -49,11 +49,7 @@ import { submit_mentions } from "../../../editors/markdown-input/mentions";
 import { useSearch } from "./search";
 import { EditBar } from "./edit-bar";
 
-import {
-  useBroadcastCursors,
-  OtherCursorsContext,
-  useCursorDecorate,
-} from "./cursors";
+import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 
 // (??) A bit longer is better, due to escaping of markdown and multiple users
 // with one user editing source and the other editing with slate.
@@ -424,43 +420,41 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     };
 
     let slate = (
-      <OtherCursorsContext.Provider value={cursors}>
-        <Slate editor={editor} value={editorValue} onChange={onChange}>
-          <Editable
-            className={USE_WINDOWING ? "smc-vfill" : undefined}
-            readOnly={read_only}
-            renderElement={Element}
-            renderLeaf={Leaf}
-            onKeyDown={onKeyDown}
-            onBlur={editor.saveValue}
-            onDoubleClick={inverseSearch}
-            decorate={decorate}
-            divref={scrollRef}
-            onScroll={debounce(() => {
-              const scroll = scrollRef.current?.scrollTop;
-              if (scroll != null) {
-                actions.save_editor_state(id, { scroll });
-              }
-            }, 200)}
-            style={
-              USE_WINDOWING
-                ? undefined
-                : {
-                    minWidth: "80%",
-                    padding: "70px",
-                    background: "white",
-                    overflow:
-                      "auto" /* for this overflow, see https://github.com/ianstormtaylor/slate/issues/3706 */,
-                  }
+      <Slate editor={editor} value={editorValue} onChange={onChange}>
+        <Editable
+          className={USE_WINDOWING ? "smc-vfill" : undefined}
+          readOnly={read_only}
+          renderElement={Element}
+          renderLeaf={Leaf}
+          onKeyDown={onKeyDown}
+          onBlur={editor.saveValue}
+          onDoubleClick={inverseSearch}
+          decorate={decorate}
+          divref={scrollRef}
+          onScroll={debounce(() => {
+            const scroll = scrollRef.current?.scrollTop;
+            if (scroll != null) {
+              actions.save_editor_state(id, { scroll });
             }
-            windowing={
-              USE_WINDOWING
-                ? { rowStyle, overscanRowCount: OVERSCAN_ROW_COUNT }
-                : undefined
-            }
-          />
-        </Slate>
-      </OtherCursorsContext.Provider>
+          }, 200)}
+          style={
+            USE_WINDOWING
+              ? undefined
+              : {
+                  minWidth: "80%",
+                  padding: "70px",
+                  background: "white",
+                  overflow:
+                    "auto" /* for this overflow, see https://github.com/ianstormtaylor/slate/issues/3706 */,
+                }
+          }
+          windowing={
+            USE_WINDOWING
+              ? { rowStyle, overscanRowCount: OVERSCAN_ROW_COUNT }
+              : undefined
+          }
+        />
+      </Slate>
     );
 
     let body = (
