@@ -241,6 +241,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     if (cm == null) return;
     const slate_id = this.show_focused_frame_of_type("slate");
     if (slate_id == null) return;
+    this.set_active_id(id); // keep focus on the cm
     let editor = this.getSlateEditor(slate_id);
     if (editor == null) {
       // if slate frame just created, have to wait until after it gets
