@@ -25,7 +25,13 @@ interface Options {
   debounce: number; // time in ms.
 }
 
-export const useSearch = (options?: Options) => {
+export interface SearchHook {
+  decorate: ([node, path]) => { anchor: Point; focus: Point; search: true }[];
+  Search: JSX.Element;
+  search: string;
+}
+
+export const useSearch: (Options?) => SearchHook = (options?) => {
   const [search, setSearch] = useState<string>("");
 
   const decorate = useMemo(() => {

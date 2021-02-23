@@ -17,7 +17,7 @@ import {
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
 import { scrollToHeading } from "./slate/control";
-import { SlateEditor } from "./slate/editable-markdown";;
+import { SlateEditor } from "./slate/editable-markdown";
 import { formatAction as slateFormatAction } from "./slate/format";
 import { TableOfContentsEntryList, TableOfContentsEntry } from "../../r_misc";
 import { fromJS } from "immutable";
@@ -226,5 +226,16 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
 
   public readonly_view(id: string): void {
     this.set_frame_type(id, "markdown");
+  }
+
+  sync(id: string): void {
+    const node = this._get_frame_node(id);
+    if (!node) return;
+    switch (node.get("type")) {
+      case "cm":
+        return;
+      case "slate":
+        return;
+    }
   }
 }

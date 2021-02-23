@@ -39,6 +39,7 @@ const EDITOR_SPEC = {
       "undo",
       "redo",
       "readonly_view", // change frame to readonly view (for now, at least).
+      //"sync",
     ]),
   },
   cm: {
@@ -62,6 +63,7 @@ const EDITOR_SPEC = {
       "undo",
       "redo",
       "format",
+      //"sync",
     ]),
   },
   markdown: {

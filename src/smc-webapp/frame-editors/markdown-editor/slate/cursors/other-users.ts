@@ -6,10 +6,12 @@
 // Support display of other user's cursors
 
 import { useMemo } from "react";
+import { Map } from "immutable";
 import { Editor, Node, Point, Text } from "slate";
 import { getProfile } from "smc-webapp/jupyter/cursors";
 import { redux } from "smc-webapp/app-framework";
 import { markdownPositionToSlatePoint } from "../sync";
+import { SearchHook } from "../search";
 
 interface OtherCursor {
   offset: number;
@@ -21,11 +23,20 @@ export const useCursorDecorate = ({
   editor,
   value,
   cursors,
+  search, // passed in since can only have one decorate function.
 }: {
   editor: Editor;
   value: string;
-  cursors;
+  cursors: Map<string, any>;
+  search: SearchHook;
+  // NOTE: Passing search in is really ugly but we are doing it because slate
+  // can only have one decorate function at once and both search and cursors
+  // use decorate at once.  **NOTE/TODO:** if a text node has a search result in
+  // it **and** a cursor, then only the search is shown.
 }) => {
+  // NOTE: It is VERY important to only update this decorate function
+  // when things really change. Otherwise every Text node in the slate editor
+  // will get re-rendereded (forced by the decorate function changing identity).
   return useMemo(() => {
     const nodeToCursors: WeakMap<Node, OtherCursor[]> = new WeakMap();
 
@@ -62,6 +73,12 @@ export const useCursorDecorate = ({
     }
 
     return ([node, path]) => {
+      // We do the search decorate and if there is no search,
+      // then we do the cursor.  TODO: maybe combine, though if
+      // you are searching, seeing cursors blocking search results
+      // could be annoying.
+      const s = search.decorate([node, path]);
+      if (s.length > 0) return s;
       const ranges: {
         anchor: Point;
         focus: Point;
@@ -91,11 +108,13 @@ export const useCursorDecorate = ({
             },
           });
         }
-        // TODO: just the first for now.
+        // TODO: We are just showing the first user cursor for now, even if
+        // they have multiple cursors (only happens if they are using source view)
+        // or there are multiple users editing that text node.
         break;
       }
 
       return ranges;
     };
-  }, [cursors, value]);
+  }, [cursors, value, search.search]);
 };

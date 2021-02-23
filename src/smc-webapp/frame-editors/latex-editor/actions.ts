@@ -1271,7 +1271,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       // Clicked the sync button from within an editor
       this.forward_search(cm, editor_actions.path);
     } else {
-      // Clicked button associated to a a preview pane;
+      // Clicked button associated to a preview pane;
       // let the preview pane do the work.
       this.setState({ sync: id });
     }

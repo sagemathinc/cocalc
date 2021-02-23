@@ -159,7 +159,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       editor,
       broadcastCursors: (x) => actions.set_cursor_locs(x),
     });
-    const cursorDecorate = useCursorDecorate({ editor, cursors, value });
+    const cursorDecorate = useCursorDecorate({
+      editor,
+      cursors,
+      value,
+      search,
+    });
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const restoreScroll = async () => {
@@ -411,14 +416,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     };
 
-    // We do the cursor decorate and if there is no cursor,
-    // then we do the search one.  TODO: somehow combine...
-    const decorate = (x) => {
-      const ranges = cursorDecorate(x);
-      if (ranges.length > 0) return ranges;
-      return search.decorate(x);
-    };
-
     let slate = (
       <Slate editor={editor} value={editorValue} onChange={onChange}>
         <Editable
@@ -429,7 +426,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           onKeyDown={onKeyDown}
           onBlur={editor.saveValue}
           onDoubleClick={inverseSearch}
-          decorate={decorate}
+          decorate={cursorDecorate}
           divref={scrollRef}
           onScroll={debounce(() => {
             const scroll = scrollRef.current?.scrollTop;

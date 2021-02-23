@@ -27,6 +27,8 @@ const { ButtonGroup, Button } = require("react-bootstrap");
 
 import { get_default_font_size } from "../generic/client";
 
+import { IS_MACOS } from "../../feature";
+
 import {
   r_join,
   Icon,
@@ -516,7 +518,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     return (
       <Button
         key={"sync"}
-        title={"Synchronize views (alt+enter)"}
+        title={`Synchronize views (${IS_MACOS ? "⌘" : "Alt"} + Enter)`}
         bsSize={button_size()}
         onClick={() => props.actions.sync?.(props.id, props.editor_actions)}
       >
