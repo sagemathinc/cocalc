@@ -4,10 +4,11 @@
  */
 
 import * as CodeMirror from "codemirror";
-import { Editor, Point } from "slate";
+import { Descendant, Editor, Point } from "slate";
 import { ReactEditor } from "./slate-react";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
+import { isWhitespaceParagraph } from "./padding";
 const SENTINEL = "\uFE30";
 
 export function slatePointToMarkdownPosition(
@@ -114,18 +115,20 @@ function findSentinel(doc: any[]): Point | undefined {
 export function markdownPositionToSlatePoint({
   markdown,
   pos,
+  editor,
 }: {
   markdown: string;
   pos: CodeMirror.Position | undefined;
+  editor: Editor;
 }): Point | undefined {
   if (pos == null) return undefined;
   const m = insertSentinel(pos, markdown);
   if (m == null) {
     return undefined;
   }
-  const doc = markdown_to_slate(m);
+  const doc: Descendant[] = markdown_to_slate(m);
   let point = findSentinel(doc);
-  if (point != null) return point;
+  if (point != null) return normalizePoint(editor, doc, point);
   if (pos.ch == 0) return undefined;
 
   // try again at beginning of line, e.g., putting a sentinel
@@ -134,10 +137,64 @@ export function markdownPositionToSlatePoint({
   return markdownPositionToSlatePoint({
     markdown,
     pos: { line: pos.line, ch: 0 },
+    editor,
   });
 }
 
 export function scrollIntoView(editor: ReactEditor, point: Point): void {
   const [node] = Editor.node(editor, point);
   ReactEditor.toDOMNode(editor, node).scrollIntoView({ block: "center" });
+}
+
+function normalizePoint(
+  editor: Editor,
+  doc: Descendant[],
+  point: Point
+): Point | undefined {
+  // On the slate side at the top level we create blank paragraph to make it possible to
+  // move the cursor before/after various block elements.  In practice this seems to nicely
+  // workaround a lot of maybe fundamental bugs/issues with Slate, like those
+  // hinted at here:  https://github.com/ianstormtaylor/slate/issues/3469
+  // But it means we also have to account for this when mapping from markdown
+  // coordinates to slate coordinates, or other user cursors and forward search
+  // will be completely broken.  These disappear when generating markdown from
+  // slate, so cause no trouble in the other direction.
+  if (doc.length < editor.children.length) {
+    // only an issue when lengths are different; in the common special case they
+    // are the same (e.g., maybe slate only used to view, not edit), then this
+    // can't be an issue.
+    let i = 0,
+      j = 0;
+    while (i <= point.path[0]) {
+      if (
+        isWhitespaceParagraph(editor.children[j]) &&
+        !isWhitespaceParagraph(doc[i])
+      ) {
+        point.path[0] += 1;
+        j += 1;
+        continue;
+      }
+      i += 1;
+      j += 1;
+    }
+  }
+
+  // If position is at the very end of a line with marking our process to find it
+  // creates a new text node, so cursor gets lost, so we move back 1 position
+  // and try that.  This is a heuristic to make one common edge case work.
+  try {
+    Editor.node(editor, point);
+  } catch (_err) {
+    point.path[point.path.length - 1] -= 1;
+    if (point.path[point.path.length - 1] >= 0) {
+      try {
+        // this goes to the end of it or raises an exception if
+        // there's no point here.
+        return Editor.after(editor, point, { unit: "line" });
+      } catch (_err) {
+        return undefined;
+      }
+    }
+  }
+  return point;
 }

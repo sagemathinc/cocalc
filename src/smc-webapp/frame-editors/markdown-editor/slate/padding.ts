@@ -6,10 +6,20 @@
 import { Descendant } from "slate";
 
 export function emptyParagraph() {
+  // returns a new object each time.
   return {
     type: "paragraph",
     children: [{ text: "" }],
   } as Descendant;
+}
+
+export function isWhitespaceParagraph(node: Descendant | undefined): boolean {
+  return (
+    node != null &&
+    node["type"] == "paragraph" &&
+    node["children"]?.length == 1 &&
+    node["children"][0]?.text?.trim() == ""
+  );
 }
 
 export function ensureDocNonempty(doc: Descendant[]): void {

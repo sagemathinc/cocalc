@@ -49,6 +49,7 @@ export const useCursorDecorate = ({
           const loc = markdownPositionToSlatePoint({
             markdown: value,
             pos: { line: cursor.y, ch: cursor.x },
+            editor,
           });
           if (loc == null) continue;
           const { path, offset } = loc;

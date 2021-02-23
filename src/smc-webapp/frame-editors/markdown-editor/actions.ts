@@ -254,6 +254,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     let point = markdownPositionToSlatePoint({
       markdown: cm.getValue(),
       pos: cm.getDoc().getCursor(),
+      editor,
     });
     if (point == null) return;
     try {
