@@ -5,6 +5,11 @@
 
 // Component that allows WYSIWYG editing of markdown.
 
+// important: I made this type **wrong** so I don't
+// forget to comment this out.
+//const DEBUG: string = true;
+const DEBUG = false;
+
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
 import { IS_FIREFOX } from "../../../feature";
@@ -17,7 +22,6 @@ import { debounce, isEqual } from "lodash";
 import {
   CSS,
   React,
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -64,6 +68,9 @@ export interface SlateEditor extends ReactEditor {
   lastSelection?: Range;
   curSelection?: Range;
   inverseSearch: (boolean?) => Promise<void>;
+  hasUnsavedChanges?: boolean;
+  markdownValue?: string;
+  getMarkdownValue: () => string;
 }
 
 // Whether or not to use windowing.
@@ -121,6 +128,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     editor_state,
     cursors,
   }) => {
+    const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
+      markdown_to_slate(value)
+    );
+
     const editor = useMemo(() => {
       const cur = actions.getSlateEditor(id);
       if (cur != null) return cur;
@@ -129,14 +140,22 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       ) as SlateEditor;
       actions.registerSlateEditor(id, ed);
 
+      ed.getMarkdownValue = () => {
+        if (ed.markdownValue != null && !ed.hasUnsavedChanges) {
+          return ed.markdownValue;
+        }
+        ed.markdownValue = slate_to_markdown(ed.children);
+        return ed.markdownValue;
+      };
+
       ed.saveValue = (force?) => {
-        if (!force && !hasUnsavedChangesRef.current) {
+        if (!force && !editor.hasUnsavedChanges) {
           return;
         }
         if (force) {
-          editorMarkdownValueRef.current = undefined;
+          editor.markdownValue = undefined;
         }
-        hasUnsavedChangesRef.current = false;
+        editor.hasUnsavedChanges = false;
         setSyncstringFromSlate();
 
         actions.ensure_syncstring_is_saved();
@@ -189,32 +208,17 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    const editorMarkdownValueRef = useRef<string | undefined>(undefined);
-    const hasUnsavedChangesRef = useRef<boolean>(false);
-
-    const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
-      markdown_to_slate(value)
-    );
-
     const scaling = use_font_size_scaling(font_size);
 
-    const editor_markdown_value = useCallback(() => {
-      if (editorMarkdownValueRef.current != null) {
-        return editorMarkdownValueRef.current;
-      }
-      editorMarkdownValueRef.current = slate_to_markdown(editor.children);
-      return editorMarkdownValueRef.current;
-    }, []);
-
     function setSyncstringFromSlate() {
-      actions.set_value(editor_markdown_value());
+      actions.set_value(editor.getMarkdownValue());
     }
 
     // We don't want to do saveValue too much, since it presumably can be slow,
     // especially if the document is large. By debouncing, we only do this when
     // the user pauses typing for a moment. Also, this avoids making too many commits.
     const saveValueDebounce = useMemo(
-      () => debounce(editor.saveValue, SAVE_DEBOUNCE_MS),
+      () => debounce(() => editor.saveValue(), SAVE_DEBOUNCE_MS),
       []
     );
 
@@ -229,7 +233,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
       const handler = getKeyboardHandler(e);
       if (handler != null) {
-        const extra = { actions, id, hasUnsavedChangesRef };
+        const extra = { actions, id };
         if (handler({ editor, extra })) {
           e.preventDefault();
           // key was handled.
@@ -240,10 +244,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     useEffect(() => {
       if (!is_current) {
-        if (hasUnsavedChangesRef.current) {
+        if (editor.hasUnsavedChanges) {
           // just switched from focused to not and there was
           // an unsaved change, so save state.
-          hasUnsavedChangesRef.current = false;
+          editor.hasUnsavedChanges = false;
           setSyncstringFromSlate();
           actions.ensure_syncstring_is_saved();
         }
@@ -267,12 +271,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, []);
 
     useEffect(() => {
-      if (value == editorMarkdownValueRef.current) {
+      if (value == editor.markdownValue) {
         // Setting to current value, so no-op.
         return;
       }
 
-      editorMarkdownValueRef.current = value;
+      editor.markdownValue = value;
       const previousEditorValue = editor.children;
       const nextEditorValue = markdown_to_slate(value);
       const operations = slateDiff(previousEditorValue, nextEditorValue);
@@ -306,18 +310,16 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    /*
-    const { Editor, Node } = require("slate");
-    // not using (window as any) to cause a TS error, so
-    // I don't forget to comment this out!
-    window.z = {
-      editor,
-      Transforms,
-      ReactEditor,
-      Node,
-      Editor,
-    };
-    */
+    if (DEBUG) {
+      const { Editor, Node } = require("slate");
+      (window as any).z = {
+        editor,
+        Transforms,
+        ReactEditor,
+        Node,
+        Editor,
+      };
+    }
 
     const [rowStyle, setRowStyle] = useState<CSS>({});
 
@@ -370,7 +372,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const onChange = (newEditorValue) => {
       broadcastCursors();
-      // console.log("onChange", newEditorValue);
       try {
         // Track where the last editor selection was,
         // since this is very useful to know, e.g., for
@@ -397,9 +398,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         }
 
         if (!editor.ignoreNextOnChange) {
-          hasUnsavedChangesRef.current = true;
+          editor.hasUnsavedChanges = true;
           // markdown value now not known.
-          editorMarkdownValueRef.current = undefined;
+          editor.markdownValue = undefined;
         }
 
         setEditorValue(newEditorValue);

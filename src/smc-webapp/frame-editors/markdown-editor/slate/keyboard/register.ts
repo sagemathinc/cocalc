@@ -8,6 +8,7 @@
 export { IS_MACOS } from "smc-webapp/feature";
 
 import { SlateEditor } from "../editable-markdown";
+import { Actions } from "../../actions";
 
 interface Key {
   key: string;
@@ -30,7 +31,7 @@ function KeyToString(k: Key): string {
 // or false-ish to fallback to default behavior.
 export type KeyHandler = (opts: {
   editor: SlateEditor;
-  extra?: any;
+  extra?: { actions:Actions; id: string };
 }) => boolean;
 
 const keyHandlers: { [x: string]: KeyHandler } = {};

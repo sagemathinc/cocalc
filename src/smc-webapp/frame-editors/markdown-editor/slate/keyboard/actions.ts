@@ -47,10 +47,10 @@ register(
     { key: "z", meta: true },
     { key: "z", ctrl: true },
   ],
-  ({ extra }) => {
+  ({ editor, extra }) => {
     if (extra == null) return false;
     extra.actions.undo(extra.id);
-    extra.hasUnsavedChangesRef.current = false;
+    editor.hasUnsavedChanges = false;
     //ReactEditor.focus(editor);
     return true;
   }
@@ -61,10 +61,10 @@ register(
     { key: "z", meta: true, shift: true },
     { key: "z", ctrl: true, shift: true },
   ],
-  ({ extra }) => {
+  ({ editor, extra }) => {
     if (extra == null) return false;
     extra.actions.redo(extra.id);
-    extra.hasUnsavedChangesRef.current = false;
+    editor.hasUnsavedChanges = false;
     //ReactEditor.focus(editor);
     return true;
   }
