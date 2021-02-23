@@ -39,7 +39,7 @@ export const useCursorDecorate = ({
             markdown: value,
             pos: { line: cursor.y, ch: cursor.x },
           });
-          if (loc = = null) continue;
+          if (loc == null) continue;
           const { path, offset } = loc;
           // TODO: for now we're ONLY implementing cursors for leafs,
           // and ignoring everything else.
