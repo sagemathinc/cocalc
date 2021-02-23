@@ -216,7 +216,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           newDomRange.endOffset
         );
       }
-      editor.scrollCaretIntoView();
     } else {
       domSelection.removeAllRanges();
     }

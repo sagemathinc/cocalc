@@ -9,6 +9,7 @@ import { useMemo } from "react";
 import { Editor, Node, Point, Text } from "slate";
 import { getProfile } from "smc-webapp/jupyter/cursors";
 import { redux } from "smc-webapp/app-framework";
+import { markdownPositionToSlatePoint } from "../sync";
 
 interface OtherCursor {
   offset: number;
@@ -18,9 +19,11 @@ interface OtherCursor {
 
 export const useCursorDecorate = ({
   editor,
+  value,
   cursors,
 }: {
   editor: Editor;
+  value: string;
   cursors;
 }) => {
   return useMemo(() => {
@@ -31,25 +34,29 @@ export const useCursorDecorate = ({
       const user_map = redux.getStore("users").get("user_map");
       for (const account_id in cursors0) {
         for (const cursor of cursors0[account_id] ?? []) {
-          if (cursor.slate != null) {
-            const { path, offset } = cursor.slate;
-            // TODO: for now we're ONLY implementing cursors for leafs,
-            // and ignoring everything else.
-            let leaf;
-            try {
-              leaf = Editor.leaf(editor, { path, offset })[0];
-            } catch (_err) {
-              // failing is expected since the document can change from
-              // when the cursor was reported.
-              // TODO: find nearest valid leaf?
-              continue;
-            }
-            const { name, color } = getProfile(account_id, user_map);
-            nodeToCursors.set(
-              leaf,
-              (nodeToCursors.get(leaf) ?? []).concat([{ offset, name, color }])
-            );
+          // TODO -- insanely inefficient!
+          const loc = markdownPositionToSlatePoint({
+            markdown: value,
+            pos: { line: cursor.y, ch: cursor.x },
+          });
+          if (loc = = null) continue;
+          const { path, offset } = loc;
+          // TODO: for now we're ONLY implementing cursors for leafs,
+          // and ignoring everything else.
+          let leaf;
+          try {
+            leaf = Editor.leaf(editor, { path, offset })[0];
+          } catch (_err) {
+            // failing is expected since the document can change from
+            // when the cursor was reported.
+            // TODO: find nearest valid leaf?
+            continue;
           }
+          const { name, color } = getProfile(account_id, user_map);
+          nodeToCursors.set(
+            leaf,
+            (nodeToCursors.get(leaf) ?? []).concat([{ offset, name, color }])
+          );
         }
       }
     }
@@ -90,5 +97,5 @@ export const useCursorDecorate = ({
 
       return ranges;
     };
-  }, [cursors]);
+  }, [cursors, value]);
 };

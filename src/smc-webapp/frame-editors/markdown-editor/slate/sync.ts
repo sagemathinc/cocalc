@@ -6,6 +6,7 @@
 import * as CodeMirror from "codemirror";
 import { Editor, Point } from "slate";
 import { slate_to_markdown } from "./slate-to-markdown";
+import { markdown_to_slate } from "./markdown-to-slate";
 const SENTINEL = "\uFE30";
 
 export function slatePointToMarkdownPosition(
@@ -69,4 +70,47 @@ export function indexToPosition({
   }
   // not found...?
   return undefined; // just being explicit here.
+}
+
+function insertSentinel(pos: CodeMirror.Position, markdown: string): string {
+  const v = markdown.split("\n");
+  const s = v[pos.line];
+  if (s == null) {
+    return markdown + SENTINEL;
+  }
+  v[pos.line] = s.slice(0, pos.ch) + SENTINEL + s.slice(pos.ch);
+  return v.join("\n");
+}
+
+function findSentinel(doc: any[]): Point | undefined {
+  let j = 0;
+  for (const node of doc) {
+    if (node.text != null) {
+      const offset = node.text.indexOf(SENTINEL);
+      if (offset != -1) {
+        return { path: [j], offset };
+      }
+    }
+    if (node.children != null) {
+      const x = findSentinel(node.children);
+      if (x != null) {
+        return { path: [j].concat(x.path), offset: x.offset };
+      }
+    }
+    j += 1;
+  }
+}
+
+export function markdownPositionToSlatePoint({
+  markdown,
+  pos,
+}: {
+  markdown: string;
+  pos: CodeMirror.Position | undefined;
+}): Point | undefined {
+  if (pos == null) return undefined;
+  const m = insertSentinel(pos, markdown);
+  if (m == null) return undefined;
+  const doc = markdown_to_slate(m);
+  return findSentinel(doc);
 }

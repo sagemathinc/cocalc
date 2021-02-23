@@ -189,17 +189,18 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       // so nothing to do.
       return;
     }
-    const locs = cmRef.current
-      .getDoc()
-      .listSelections()
-      .map((c) => ({ x: c.anchor.ch, y: c.anchor.line }));
-    // side_effect is whether or not the cursor move is being caused by an
-    // external setValueNoJump, so just a side effect of something another user did.
+    // side_effect is whether or not the cursor move is being
+    // caused by an  external setValueNoJump, so just a side
+    // effect of something another user did.
     const side_effect = (cmRef.current as any)._setValueNoJump;
     if (side_effect) {
       // cursor movement is a side effect of upstream change, so ignore.
       return;
     }
+    const locs = cmRef.current
+      .getDoc()
+      .listSelections()
+      .map((c) => ({ x: c.anchor.ch, y: c.anchor.line }));
     editor_actions()?.set_cursor_locs(locs);
   }
 

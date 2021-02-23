@@ -159,7 +159,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       editor,
       broadcastCursors: (x) => actions.set_cursor_locs(x),
     });
-    const cursorDecorate = useCursorDecorate({ editor, cursors });
+    const cursorDecorate = useCursorDecorate({ editor, cursors, value });
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const restoreScroll = async () => {
