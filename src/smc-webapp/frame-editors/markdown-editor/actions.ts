@@ -22,6 +22,11 @@ import { formatAction as slateFormatAction } from "./slate/format";
 import { TableOfContentsEntryList, TableOfContentsEntry } from "../../r_misc";
 import { fromJS } from "immutable";
 import { parseTableOfContents } from "../../markdown";
+import {
+  markdownPositionToSlatePoint,
+  slatePointToMarkdownPosition,
+  scrollIntoView as scrollSlateIntoView,
+} from "./slate/sync";
 
 interface MarkdownEditorState extends CodeEditorState {
   custom_pdf_error_message: string; // currently used only in rmd editor, but we could easily add pdf output to the markdown editor
@@ -228,13 +233,65 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     this.set_frame_type(id, "markdown");
   }
 
-  sync(id: string): void {
+  private async sync_cm_to_slate(
+    id: string,
+    editor_actions: Actions
+  ): Promise<void> {
+    const cm = editor_actions._cm[id];
+    if (cm == null) return;
+    const slate_id = this.show_focused_frame_of_type("slate");
+    if (slate_id == null) return;
+    let editor = this.getSlateEditor(slate_id);
+    if (editor == null) {
+      // if slate frame just created, have to wait until after it gets
+      // rendered for the actual editor to get registered.
+      await delay(1);
+      editor = this.getSlateEditor(slate_id);
+    }
+    if (editor == null) return;
+    // important to get markdown from cm and not syncstring to get latest version.
+    let point = markdownPositionToSlatePoint({
+      markdown: cm.getValue(),
+      pos: cm.getDoc().getCursor(),
+    });
+    if (point == null) return;
+    try {
+      scrollSlateIntoView(editor, point);
+    } catch (err) {
+      // This will happen sometimes.
+      // TODO: in fact, frequently due to inserting blank paragraphs
+      // to make navigation easier... :-(
+      console.log("point not found", point);
+    }
+  }
+
+  private sync_slate_to_cm(id: string) {
+    const editor = this.getSlateEditor(id);
+    if (editor == null) return;
+    const point = editor.selection?.focus;
+    if (point == null) {
+      return;
+    }
+    const pos = slatePointToMarkdownPosition(editor, point);
+    if (pos == null) return;
+    this.programmatical_goto_line(
+      pos.line + 1, // 1 based (TODO: could use codemirror option)
+      true,
+      false,
+      undefined,
+      pos.ch
+    );
+  }
+
+  public async sync(id: string, editor_actions: Actions): Promise<void> {
     const node = this._get_frame_node(id);
     if (!node) return;
     switch (node.get("type")) {
-      case "cm":
-        return;
       case "slate":
+        this.sync_slate_to_cm(id);
+        return;
+      case "cm":
+        this.sync_cm_to_slate(id, editor_actions);
         return;
     }
   }

@@ -201,7 +201,8 @@ function shift_path(op: Operation, shift: number): void {
 // This is pretty scary, but I need it especially in the weird case
 // where you insert a checkbox in an empty document and everything
 // looses focus.
-async function focusEditorAt(editor: ReactEditor, point: Point): Promise<void> {
+// This is a SCARY function so please don't export it.
+export async function focusEditorAt(editor: ReactEditor, point: Point): Promise<void> {
   const sel = { focus: point, anchor: point };
   Transforms.setSelection(editor, sel);
   let n = 0;
@@ -215,4 +216,5 @@ async function focusEditorAt(editor: ReactEditor, point: Point): Promise<void> {
     await delay(n);
     n += 1;
   }
+  editor.scrollCaretIntoView();
 }

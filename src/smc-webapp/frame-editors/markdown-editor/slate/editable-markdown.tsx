@@ -63,6 +63,7 @@ export interface SlateEditor extends ReactEditor {
   applyingOperations?: boolean;
   lastSelection?: Range;
   curSelection?: Range;
+  inverseSearch: (boolean?) => Promise<void>;
 }
 
 // Whether or not to use windowing.
@@ -329,10 +330,16 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       });
     }, [editor, scaling]);
 
-    async function inverseSearch() {
-      if (is_fullscreen || !actions.get_matching_frame({ type: "cm" })) {
+    editor.inverseSearch = async function inverseSearch(
+      force?: boolean
+    ): Promise<void> {
+      if (
+        !force &&
+        (is_fullscreen || !actions.get_matching_frame({ type: "cm" }))
+      ) {
         // - if user is fullscreen assume they just want to WYSIWYG edit
-        // and double click is to select.
+        // and double click is to select.  They can use sync button to
+        // force opening source panel.
         // - if no source view, also don't do anything.  We only let
         // double click do something when there is an open source view,
         // since double click is used for selecting.
@@ -359,7 +366,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         undefined,
         pos.ch
       );
-    }
+    };
 
     const onChange = (newEditorValue) => {
       broadcastCursors();
@@ -425,7 +432,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           renderLeaf={Leaf}
           onKeyDown={onKeyDown}
           onBlur={editor.saveValue}
-          onDoubleClick={inverseSearch}
+          onDoubleClick={editor.inverseSearch}
           decorate={cursorDecorate}
           divref={scrollRef}
           onScroll={debounce(() => {

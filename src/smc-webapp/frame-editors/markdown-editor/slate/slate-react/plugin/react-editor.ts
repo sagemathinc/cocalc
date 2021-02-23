@@ -29,7 +29,7 @@ import {
 export interface ReactEditor extends Editor {
   insertData: (data: DataTransfer) => void;
   setFragmentData: (data: DataTransfer) => void;
-  scrollCaretIntoView: () => void;
+  scrollCaretIntoView: (options?: { middle?: boolean }) => void;
 }
 
 export const ReactEditor = {

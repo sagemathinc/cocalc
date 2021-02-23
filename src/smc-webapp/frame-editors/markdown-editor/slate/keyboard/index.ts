@@ -13,3 +13,4 @@ import "./spacebar";
 import "./tab";
 import "./arrow-keys";
 import "./actions";
+import "./sync";

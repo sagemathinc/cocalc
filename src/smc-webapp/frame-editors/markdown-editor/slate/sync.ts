@@ -5,6 +5,7 @@
 
 import * as CodeMirror from "codemirror";
 import { Editor, Point } from "slate";
+import { ReactEditor } from "./slate-react";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
 const SENTINEL = "\uFE30";
@@ -101,6 +102,15 @@ function findSentinel(doc: any[]): Point | undefined {
   }
 }
 
+// Convert a markdown string and point in it (in codemirror {line,ch})
+// to corresponding slate editor coordinates.
+// TODO/Huge CAVEAT -- right now we add in some blank paragraphs to the
+// slate document to make it possible to do something things with the cursor,
+// get before the first bullet point or code block in a document.  These paragraphs
+// are unknown to this conversion function... so if there are any then things are
+// off as a result.   Obviously, we need to get rid of the code (in control.ts) that
+// adds these and come up with a better approach to make cursors and source<-->editable sync
+// work perfectly.
 export function markdownPositionToSlatePoint({
   markdown,
   pos,
@@ -110,7 +120,24 @@ export function markdownPositionToSlatePoint({
 }): Point | undefined {
   if (pos == null) return undefined;
   const m = insertSentinel(pos, markdown);
-  if (m == null) return undefined;
+  if (m == null) {
+    return undefined;
+  }
   const doc = markdown_to_slate(m);
-  return findSentinel(doc);
+  let point = findSentinel(doc);
+  if (point != null) return point;
+  if (pos.ch == 0) return undefined;
+
+  // try again at beginning of line, e.g., putting a sentinel
+  // in middle of an html fragment not likely to work, but beginning
+  // of line highly likely to work.
+  return markdownPositionToSlatePoint({
+    markdown,
+    pos: { line: pos.line, ch: 0 },
+  });
+}
+
+export function scrollIntoView(editor: ReactEditor, point: Point): void {
+  const [node] = Editor.node(editor, point);
+  ReactEditor.toDOMNode(editor, node).scrollIntoView({ block: "center" });
 }

@@ -7,7 +7,7 @@
 
 export { IS_MACOS } from "smc-webapp/feature";
 
-import { Editor } from "slate";
+import { SlateEditor } from "../editable-markdown";
 
 interface Key {
   key: string;
@@ -28,7 +28,10 @@ function KeyToString(k: Key): string {
 
 // Function that returns true if it handles the key
 // or false-ish to fallback to default behavior.
-export type KeyHandler = (opts: { editor: Editor; extra?: any }) => boolean;
+export type KeyHandler = (opts: {
+  editor: SlateEditor;
+  extra?: any;
+}) => boolean;
 
 const keyHandlers: { [x: string]: KeyHandler } = {};
 

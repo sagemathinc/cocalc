@@ -26,6 +26,10 @@ export function scrollToHeading(editor: ReactEditor, n: number) {
   // didn't find it.
 }
 
+export function setCursor(editor: ReactEditor, point: Point) {
+  Transforms.setSelection(editor, { anchor: point, focus: point });
+}
+
 export function moveCursorDown(editor: Editor, force: boolean = false): void {
   const focus = editor.selection?.focus;
   if (focus == null) return;
