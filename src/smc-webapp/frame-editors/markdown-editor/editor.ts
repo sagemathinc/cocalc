@@ -21,7 +21,7 @@ const EDITOR_SPEC = {
   slate: {
     short: "Editable",
     name: "Editable View",
-    icon: "pen",
+    icon: "pencil",
     component: EditableMarkdown,
     buttons: set([
       //"print",
@@ -67,9 +67,9 @@ const EDITOR_SPEC = {
     ]),
   },
   markdown: {
-    short: "Readonly",
-    name: "Readonly View",
-    icon: "eye",
+    short: "Locked",
+    name: "Locked View",
+    icon: "lock",
     component: RenderedMarkdown,
     buttons: set([
       "print",

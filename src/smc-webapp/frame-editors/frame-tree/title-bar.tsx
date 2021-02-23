@@ -1267,9 +1267,9 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         key={"edit"}
         bsSize={button_size()}
         onClick={() => props.actions["edit"]?.(props.id)}
-        title={button_title("shell", "Switch to editing this content directly")}
+        title={button_title("shell", "Click to edit file directly here")}
       >
-        <Icon name={"pencil"} /> <VisibleMDLG>Edit</VisibleMDLG>
+        <Icon name={"lock"} /> <VisibleMDLG>Locked</VisibleMDLG>
       </Button>
     );
   }
@@ -1283,9 +1283,9 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         key={"readonly-view"}
         bsSize={button_size()}
         onClick={() => props.actions["readonly_view"]?.(props.id)}
-        title={button_title("shell", "Switch to readonly view of this content")}
+        title={button_title("shell", "Click to switch to readonly view")}
       >
-        <Icon name={"lock"} /> <VisibleMDLG>{button_text("view")}</VisibleMDLG>
+        <Icon name={"pencil"} /> <VisibleMDLG>Editable</VisibleMDLG>
       </Button>
     );
   }
