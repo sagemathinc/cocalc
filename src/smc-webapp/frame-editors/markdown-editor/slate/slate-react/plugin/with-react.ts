@@ -214,7 +214,7 @@ export const withReact = <T extends Editor>(editor: T) => {
     });
   };
 
-  e.scrollCaretIntoView = () => {
+  e.scrollCaretIntoView = (options?: { middle?: boolean }) => {
     /* Scroll so Caret is visible.  I tested several editors, and
      I think reasonable behavior is:
       - If caret is full visible on the screen, do nothing.
@@ -267,13 +267,22 @@ export const withReact = <T extends Editor>(editor: T) => {
       const selectionRect = domSelection.getBoundingClientRect();
       const editorEl = ReactEditor.toDOMNode(e, e);
       const editorRect = editorEl.getBoundingClientRect();
-      if (selectionRect.top < editorRect.top) {
+      const EXTRA = options?.middle
+        ? editorRect.height / 2
+        : editorRect.height > 100
+        ? 20
+        : 0; // this much more than the min possible to get it on screen.
+
+      if (selectionRect.top < editorRect.top + EXTRA) {
         editorEl.scrollTop =
-          editorEl.scrollTop - (editorRect.top - selectionRect.top);
-      } else if (selectionRect.bottom - editorRect.top > editorRect.height) {
+          editorEl.scrollTop - (editorRect.top + EXTRA - selectionRect.top);
+      } else if (
+        selectionRect.bottom - editorRect.top >
+        editorRect.height - EXTRA
+      ) {
         editorEl.scrollTop =
           editorEl.scrollTop -
-          (editorRect.height - (selectionRect.bottom - editorRect.top));
+          (editorRect.height - EXTRA - (selectionRect.bottom - editorRect.top));
       }
     });
   };
