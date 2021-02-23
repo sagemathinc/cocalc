@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export { useFocused, useSelected, useSlate } from "../slate-react";
+export { useFocused, useSelected } from "../slate-react";
 
 import {
   ReactDOM,
@@ -12,10 +12,18 @@ import {
   useActions as useReduxActions,
 } from "../../../../app-framework";
 import { Range } from "slate";
-import { useSlate } from "../slate-react";
 import { path_split } from "smc-util/misc";
 import { Actions } from "../../actions";
 import { useFrameContext } from "../../../frame-tree/frame-context";
+import { useSlate as useSlate0 } from "../slate-react";
+import { SlateEditor } from "../editable-markdown";
+
+// Exactly like the normal useSlate hook, except return type is
+// SlateEditor, which we know since we're only using this in CoCalc
+// where we only use our enhanced type.
+export const useSlate = () => {
+  return useSlate0() as SlateEditor;
+};
 
 // Whether or not the current selection exists and is collapsed (i.e., not
 // a range).
@@ -48,4 +56,3 @@ export function useActions(): Actions {
   const { project_id, path } = useFrameContext();
   return useReduxActions(project_id, path);
 }
-
