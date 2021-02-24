@@ -842,7 +842,7 @@ export class JupyterKernel
 
   async save_ipynb_file(): Promise<void> {
     if (this._actions != null) {
-      await callback(this._actions.save_ipynb_file);
+      await this._actions.save_ipynb_file();
     } else {
       throw Error("save_ipynb_file -- ERROR: actions not known");
     }

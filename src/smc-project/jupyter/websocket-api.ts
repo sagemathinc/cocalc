@@ -35,7 +35,8 @@ export async function handle_request(
   }
   switch (endpoint) {
     case "save_ipynb_file":
-      return kernel.save_ipynb_file();
+      await kernel.save_ipynb_file();
+      return {};
     case "signal":
       kernel.signal(query.signal);
       return {};
