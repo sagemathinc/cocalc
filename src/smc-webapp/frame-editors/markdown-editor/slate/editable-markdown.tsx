@@ -16,7 +16,7 @@ import { IS_FIREFOX } from "../../../feature";
 import { Map } from "immutable";
 
 import { EditorState } from "../../frame-tree/types";
-import { createEditor, Descendant, Range, Transforms } from "slate";
+import { createEditor, Descendant, Editor, Range, Transforms } from "slate";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
 import {
@@ -51,7 +51,7 @@ import { createMention } from "./elements/mention";
 import { submit_mentions } from "../../../editors/markdown-input/mentions";
 
 import { useSearch } from "./search";
-import { EditBar } from "./edit-bar";
+import { EditBar, Marks } from "./edit-bar";
 
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 
@@ -174,6 +174,15 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     });
 
     const search = useSearch();
+
+    const [marks, setMarks] = useState<Marks>(Editor.marks(editor) ?? {});
+    function updateMarks() {
+      if (!ReactEditor.isFocused(editor)) {
+        setMarks({});
+      } else {
+        setMarks(Editor.marks(editor) ?? {});
+      }
+    }
 
     const broadcastCursors = useBroadcastCursors({
       editor,
@@ -372,6 +381,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const onChange = (newEditorValue) => {
       broadcastCursors();
+      updateMarks();
       try {
         // Track where the last editor selection was,
         // since this is very useful to know, e.g., for
@@ -432,8 +442,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           renderElement={Element}
           renderLeaf={Leaf}
           onKeyDown={onKeyDown}
-          onBlur={editor.saveValue}
+          onBlur={() => {
+            editor.saveValue();
+            updateMarks();
+          }}
           onDoubleClick={editor.inverseSearch}
+          onFocus={updateMarks}
           decorate={cursorDecorate}
           divref={scrollRef}
           onScroll={debounce(() => {
@@ -468,7 +482,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         style={{ overflow: "auto", backgroundColor: "white" }}
       >
         <Path is_current={is_current} path={path} project_id={project_id} />
-        <EditBar Search={search.Search} isCurrent={is_current} />
+        <EditBar
+          Search={search.Search}
+          isCurrent={is_current}
+          marks={marks}
+          editor={editor}
+        />
         <div
           className="smc-vfill"
           style={{
