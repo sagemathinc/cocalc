@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { IS_ANDROID } from "smc-webapp/feature";
 import * as React from "react";
 import { Button } from "antd";
 import { Icon } from "smc-webapp/r_misc";
@@ -56,11 +57,17 @@ export const EditBar: React.FC<Props> = ({
     // put first since float right.
     return <div style={{ float: "right" }}>{Search}</div>;
   }
+
+  function renderAndroidWarning() {
+    return <span>Android not supported</span>;
+  }
+
   function renderBody() {
     return (
       <>
         {renderSearch()}
-        {renderButtons()}
+        {IS_ANDROID && renderAndroidWarning()}
+        {!IS_ANDROID && renderButtons()}
       </>
     );
   }
