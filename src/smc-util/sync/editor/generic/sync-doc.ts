@@ -637,12 +637,15 @@ export class SyncDoc extends EventEmitter {
      the file to disk periodically. */
   private init_project_autosave(): void {
     // Do not autosave sagews until we resolve
-    // https://github.com/sagemathinc/cocalc/issues/974
+    //   https://github.com/sagemathinc/cocalc/issues/974
+    // Similarly, do not autosave ipynb because of
+    //   https://github.com/sagemathinc/cocalc/issues/5216
     if (
       !LOCAL_HUB_AUTOSAVE_S ||
       !this.client.is_project() ||
       this.project_autosave_timer ||
-      endswith(this.path, ".sagews")
+      endswith(this.path, ".sagews") ||
+      endswith(this.path, ".ipynb.sage-jupyter2")
     ) {
       return;
     }
