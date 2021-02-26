@@ -51,8 +51,6 @@ export const withInsertText = (editor) => {
 
     if (text === " " && selection && Range.isCollapsed(selection)) {
       insertText(text);
-      // This is fundamentally different than
-      // https://www.slatejs.org/examples/markdown-shortcuts
       markdownReplace(editor);
       return;
     }
@@ -66,12 +64,22 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
   const { selection } = editor;
   if (!selection) return false;
   const [node, path] = Editor.node(editor, selection.focus);
+  // Must be a text node
   if (!Text.isText(node)) return false;
-  const cursorAtEnd = selection.focus.offset == node.text.length;
+  // Cursor must be at the end of the text node (except for whitespace):
+  if (selection.focus.offset < node.text.trimRight().length) return false;
 
   const pos = path[path.length - 1]; // position among siblings.
 
-  const text = node.text.trim();
+  // Find the first whitespace from the end after triming whitespace.
+  // This is what we autoformat on, since it is the most predictable,
+  // and doesn't suddenly do something with text earlier in the sentence
+  // that the user already explicitly decided not to autoformat.
+  let text = node.text;
+  const start = text.lastIndexOf(" ", text.trimRight().length - 1);
+  if (start != -1) {
+    text = text.slice(start + 1).trim();
+  }
   if (text.length == 0) return false;
 
   // make a copy to avoid any caching issues (??).
@@ -84,7 +92,7 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
     doc[0].type == "paragraph" &&
     doc[0].children.length == 1 &&
     Text.isText(doc[0].children[0]) &&
-    doc[0].children[0].text.trim() == node.text.trim()
+    doc[0].children[0].text.trim() == text.trim()
   ) {
     // No "auto format" action since no real change.
     return false;
@@ -94,15 +102,6 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
     doc.length == 1 &&
     doc[0].type == "paragraph" &&
     Text.isText(doc[0].children[0]);
-
-  // window.autoformat = { text, doc, isInline };
-
-  if (!isInline && selection.focus.offset < node.text.trimRight().length) {
-    // must be at the *end* of the text node (mod whitespace)
-    // Doing autoformat any time there is a space anywhere
-    // is less predictable.
-    return false;
-  }
 
   // Do an immediate save so that it is easy and possible
   // to undo exactly the result of auto format, in case user
@@ -116,17 +115,23 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
   // **INLINE CASE**
   if (isInline) {
     const children = doc[0].children;
-    // Add matching whitespace to the beginning of the first node
-    // since generating doc excludes that.
-    for (let i = 0; i < node.text.length; i++) {
-      if (node.text[i].trim() == "") {
-        children[0].text = node.text[i] + children[0].text;
-      } else {
-        break;
+    if (start != -1) {
+      if (children[0]["text"] === "") {
+        // In case the first node in children is empty text, remove that,
+        // since otherwise it will get normalized away after doing this,
+        // and that throws the cursor computation off below, causing a crash.
+        children.shift();
       }
+      // Add text from before starting point back, since we excluded it above.
+      const first = { ...node };
+      first.text = node.text.slice(0, start + 1);
+      children.unshift(first);
     }
     // Add a space at the end.
-    if (len(children[children.length - 1]) == 1) {
+    if (
+      len(children[children.length - 1]) == 1 &&
+      children[children.length - 1]["text"] != null
+    ) {
       // text node with NO marks, i.e., it is plain text.
       children[children.length - 1]["text"] += " ";
     } else {
@@ -142,22 +147,21 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
       path.slice(0, path.length - 1)
     );
 
-    // Adjust the last entry in path to account for fact that
-    // node might not be first sibling.
+    // Adjust the last entry in path for each operation computed
+    // above to account for fact that node might not be first sibling.
     for (const op of operations) {
       shift_path(op, pos);
     }
+
     applyOperations(editor, operations);
     // Move the cursor to the right position.  It's very important to
     // do this immediately after applying the operations, since otherwise
     // the cursor will be in an invalid position right when
-    // scrollCaretIntoView is called, which causes a crash.
+    // scrollCaretIntoView and other things are called, which causes a crash.
     const new_path = [...path];
     new_path[new_path.length - 1] += children.length - 1;
     const new_cursor = {
-      // the "1" below is because we want to be *in* the next block,
-      // not before the start of it.
-      offset: cursorAtEnd ? children[children.length - 1]["text"].length : 1,
+      offset: children[children.length - 1]["text"].length,
       path: new_path,
     };
     await focusEditorAt(editor, new_cursor);
@@ -166,7 +170,7 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
     // Select what is being replaced so it will get deleted when the
     // insert happens.
     Transforms.select(editor, {
-      anchor: { path, offset: 0 },
+      anchor: { path, offset: start == -1 ? 0 : start },
       focus: { path, offset: Math.max(0, node.text.length - 1) },
     });
     // We put an empty paragraph after, so that formatting
@@ -202,7 +206,10 @@ function shift_path(op: Operation, shift: number): void {
 // where you insert a checkbox in an empty document and everything
 // looses focus.
 // This is a SCARY function so please don't export it.
-export async function focusEditorAt(editor: ReactEditor, point: Point): Promise<void> {
+export async function focusEditorAt(
+  editor: ReactEditor,
+  point: Point
+): Promise<void> {
   const sel = { focus: point, anchor: point };
   Transforms.setSelection(editor, sel);
   let n = 0;
