@@ -76,10 +76,33 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
   // and doesn't suddenly do something with text earlier in the sentence
   // that the user already explicitly decided not to autoformat.
   let text = node.text;
-  const start = text.lastIndexOf(" ", text.trimRight().length - 1);
-  if (start != -1) {
-    text = text.slice(start + 1).trim();
+  let start = text.lastIndexOf(" ", text.trimRight().length - 1);
+  // However, there are some cases where we extend the range of
+  // the autofocus further:
+  //    - "[ ]" for checkboxes.
+  //    - formatting, e.g., "consider `foo bar`".
+  //    - NOTE: I'm not including math ($ or $$) here, since it is very
+  //      annoying if you trying to type USD amounts, and people can
+  //      create their inline formula with no spaces, then edit it.
+  const text0 = text.trimRight();
+  if (text0.endsWith("]")) {
+    const i = text.lastIndexOf("[");
+    if (i != -1) {
+      start = Math.min(i - 1, start);
+    }
+  } else {
+    for (const mark of ["`", "**", "*", "_", "~~"]) {
+      if (text0.endsWith(mark)) {
+        const i = text.lastIndexOf(mark, text0.length - mark.length - 1);
+        if (i != -1) {
+          start = Math.min(i - 1, start);
+          break;
+        }
+      }
+    }
   }
+
+  text = text.slice(start + 1).trim();
   if (text.length == 0) return false;
 
   // make a copy to avoid any caching issues (??).
