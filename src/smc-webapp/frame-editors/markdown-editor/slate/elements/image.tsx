@@ -113,7 +113,6 @@ register({
   },
 
   Element: ({ attributes, children, element }) => {
-    console.log("render: ", element);
     const node = element as Image;
     const { src, alt, title } = node;
 
