@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useRef, useState } from "../../../../app-framework";
+import { React, useEffect, useRef, useState } from "../../../../app-framework";
 import {
   register,
   SlateElement,
@@ -72,6 +72,12 @@ export function toSlate({ type, children, token }) {
   }
 }
 
+function toFloat(s: number | string | undefined): number | undefined {
+  if (s == null) return s;
+  if (typeof s == "string" && s.endsWith("%")) return undefined;
+  return typeof s == "number" ? s : parseFloat(s);
+}
+
 register({
   slateType: "image",
 
@@ -107,11 +113,23 @@ register({
   },
 
   Element: ({ attributes, children, element }) => {
+    console.log("render: ", element);
     const node = element as Image;
     const { src, alt, title } = node;
 
-    const [width, setWidth] = useState<number | undefined>(undefined);
-    const [height, setHeight] = useState<number | undefined>(undefined);
+    const [width, setWidth] = useState<number | undefined>(toFloat(node.width));
+    const [height, setHeight] = useState<number | undefined>(
+      toFloat(node.height)
+    );
+
+    useEffect(() => {
+      if (node.width && width != toFloat(node.width)) {
+        setWidth(toFloat(node.width));
+      }
+      if (node.height && height != toFloat(node.height)) {
+        setHeight(toFloat(node.height));
+      }
+    }, [element]);
 
     const focused = useFocused();
     const selected = useSelected();
@@ -170,8 +188,8 @@ register({
               style={{
                 maxWidth: "100%",
                 maxHeight: "100%",
-                height: node.height,
-                width: node.width,
+                height: height ?? node.height,
+                width: width ?? node.width,
               }}
             />
           </Resizable>
