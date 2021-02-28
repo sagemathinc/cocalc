@@ -126,6 +126,12 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
     doc[0].type == "paragraph" &&
     Text.isText(doc[0].children[0]);
 
+  if (!isInline && start >= 1) {
+    // block level autocomplete must start at beginning of node. Otherwise, e.g.,
+    // typing "Tuesday - Thursday" would make a list item.
+    return false;
+  }
+
   // Do an immediate save so that it is easy and possible
   // to undo exactly the result of auto format, in case user
   // doesn't like it.
