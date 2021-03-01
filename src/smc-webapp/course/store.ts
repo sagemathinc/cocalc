@@ -97,6 +97,7 @@ export type AssignmentRecord = TypedMap<{
   nbgrader_scores?: {
     [student_id: string]: { [ipynb: string]: NotebookScores | string };
   };
+  nbgrader_score_ids?: { [ipynb: string]: string[] };
 }>;
 
 export type AssignmentsMap = Map<string, AssignmentRecord>;
@@ -441,10 +442,17 @@ export class CourseStore extends Store<CourseState> {
     student_id: string
   ): { [ipynb: string]: NotebookScores | string } | undefined {
     const { assignment } = this.resolve({ assignment_id });
-    if (assignment == null) return undefined;
-    const x = assignment.getIn(["nbgrader_scores", student_id]);
-    if (x == null) return undefined;
-    return x.toJS();
+    return assignment?.getIn(["nbgrader_scores", student_id])?.toJS();
+  }
+
+  public get_nbgrader_score_ids(
+    assignment_id: string
+  ): { [ipynb: string]: string[] } | undefined {
+    // TODO: if the score id's aren't known, we could parse the ipynb
+    // file and compute them at this point.  This would only be to make these
+    // be available for old course files.
+    const { assignment } = this.resolve({ assignment_id });
+    return assignment?.get("nbgrader_score_ids")?.toJS();
   }
 
   public get_comments(assignment_id: string, student_id: string): string {

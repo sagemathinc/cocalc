@@ -1425,6 +1425,9 @@ ${details}
     assignment_id: string,
     student_id: string,
     scores: { [filename: string]: NotebookScores | string },
+    nbgrader_score_ids:
+      | { [filename: string]: string[] }
+      | undefined = undefined,
     commit: boolean = true
   ): void {
     const assignment_data = this.course_actions.get_one({
@@ -1441,6 +1444,7 @@ ${details}
         table: "assignments",
         assignment_id,
         nbgrader_scores,
+        ...(nbgrader_score_ids != null ? { nbgrader_score_ids } : undefined),
       },
       commit
     );
@@ -1488,6 +1492,7 @@ ${details}
       assignment_id,
       student_id,
       scores,
+      undefined,
       commit
     );
 
@@ -1723,10 +1728,15 @@ ${details}
     // preserve any manually entered scores, rather than overwrite them.
     const prev_scores = store.get_nbgrader_scores(assignment_id, student_id);
 
+    const nbgrader_score_ids: { [filename: string]: string[] } = {};
+
     for (const filename in result) {
       const r = result[filename];
       if (r == null) continue;
       if (r.output == null) continue;
+      if (r.ids != null) {
+        nbgrader_score_ids[filename] = r.ids;
+      }
 
       // Depending on instructor options, write the graded version of
       // the notebook to disk, so the student can see why their grade
@@ -1765,6 +1775,7 @@ ${details}
       assignment_id,
       student_id,
       scores,
+      nbgrader_score_ids,
       commit
     );
   }

@@ -14,9 +14,11 @@ import { NotebookScores, Score } from "../../jupyter/nbgrader/autograde";
 import { get_nbgrader_score } from "../store";
 import { CourseActions } from "../actions";
 import { autograded_filename } from "../util";
+import { keys } from "smc-util/misc";
 
 interface Props {
   nbgrader_scores: { [ipynb: string]: NotebookScores | string };
+  nbgrader_score_ids?: { [ipynb: string]: string[] };
   assignment_id: string;
   student_id: string;
   name: string;
@@ -108,7 +110,8 @@ export class NbgraderScores extends Component<Props, State> {
       );
     }
     const v: Rendered[] = [];
-    for (const id in scores) {
+    for (const id of this.props.nbgrader_score_ids?.[filename] ??
+      keys(scores)) {
       v.push(this.render_score(filename, id, scores[id]));
     }
     const style = { padding: "5px" };

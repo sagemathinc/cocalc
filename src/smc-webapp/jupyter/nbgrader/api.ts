@@ -7,8 +7,6 @@ import { project_api } from "../../frame-editors/generic/client";
 import { redux } from "../../app-framework";
 
 import { create_autograde_ipynb } from "./autograde";
-{
-}
 
 export interface NBGraderAPIOptions {
   // Project will try to evaluate/autograde for this many milliseconds;
@@ -39,14 +37,15 @@ export interface NBGraderAPIOptions {
 }
 
 export interface NBGraderAPIResponse {
-  output: any; // no clue yet.
+  output: any; // TODO
+  ids: string[]; // the ordered id's of the test cells; order is the order in which they occur in the notebook.
 }
 
 export async function nbgrader(
   opts: NBGraderAPIOptions
 ): Promise<NBGraderAPIResponse> {
   // console.log("nbgrader", opts);
-  const autograde_ipynb = create_autograde_ipynb(
+  const { autograde_ipynb, ids } = create_autograde_ipynb(
     opts.instructor_ipynb,
     opts.student_ipynb
   );
@@ -65,7 +64,7 @@ export async function nbgrader(
   });
   // console.log("jupyter_run_notebook returned with ", graded_ipynb);
 
-  return { output: graded_ipynb };
+  return { output: graded_ipynb, ids };
 }
 
 export async function jupyter_strip_notebook(

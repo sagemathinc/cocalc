@@ -1770,6 +1770,9 @@ class StudentListForAssignment extends Component<
           this.props.assignment.get("assignment_id"),
           student_id
         )}
+        nbgrader_score_ids={store.get_nbgrader_score_ids(
+          this.props.assignment.get("assignment_id")
+        )}
         comments={store.get_comments(
           this.props.assignment.get("assignment_id"),
           student_id

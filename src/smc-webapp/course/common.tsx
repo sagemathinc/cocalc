@@ -192,6 +192,7 @@ interface StudentAssignmentInfoProps {
     last_return_graded?: LastCopyInfo;
   };
   nbgrader_scores?: { [ipynb: string]: NotebookScores | string };
+  nbgrader_score_ids?: { [ipynb: string]: string[] };
   is_editing: boolean;
   nbgrader_run_info?: NBgraderRunInfo;
 }
@@ -364,6 +365,7 @@ export class StudentAssignmentInfo extends Component<
           show_all={this.props.is_editing}
           set_show_all={() => this.set_edited_feedback()}
           nbgrader_scores={this.props.nbgrader_scores}
+          nbgrader_score_ids={this.props.nbgrader_score_ids}
           name={this.props.name}
           student_id={this.props.student.get("student_id")}
           assignment_id={this.props.assignment.get("assignment_id")}
