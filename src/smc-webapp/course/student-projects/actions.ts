@@ -214,12 +214,36 @@ export class StudentProjectsActions {
       return;
     }
     const store = this.get_store();
-    // Set license key if known; remove if not.
+    if (store == null) return;
+    // Set license key if known
     const site_license_id = store.getIn(["settings", "site_license_id"]);
-    // EASY case.
-    // NOTE/TODO: if students were to add their own extra license, this is
-    // going to remove it.
-    await actions.set_site_license(student_project_id, site_license_id);
+    if (site_license_id) {
+      await actions.set_site_license(student_project_id, site_license_id);
+    }
+  }
+
+  private async remove_project_license(
+    student_project_id: string
+  ): Promise<void> {
+    const actions = redux.getActions("projects");
+    await actions.set_site_license(student_project_id, "");
+  }
+
+  public async remove_all_project_licenses(): Promise<void> {
+    const id = this.course_actions.set_activity({
+      desc: "Removing all student project licenses...",
+    });
+    try {
+      const store = this.get_store();
+      if (store == null) return;
+      for (const student of store.get_students().valueSeq().toArray()) {
+        const student_project_id = student.get("project_id");
+        if (student_project_id == null) continue;
+        await this.remove_project_license(student_project_id);
+      }
+    } finally {
+      this.course_actions.set_activity({ id });
+    }
   }
 
   private async configure_project_visibility(
@@ -234,9 +258,7 @@ export class StudentProjectsActions {
     }
     // Make project not visible to any collaborator on the course project.
     const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
+    if (store == null) return;
     const users = redux
       .getStore("projects")
       .get_users(store.get("course_project_id"));
