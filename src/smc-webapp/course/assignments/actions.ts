@@ -476,8 +476,10 @@ You can find the comments they made in the folders below.\
             }
           }
           for (const id of ids) {
-            const t = `${s[id]?.score ?? 0}`;
-            details += `| ${id.padEnd(10)}| ${t.padEnd(10)}|\n`;
+            if (s[id] != null) {
+              const t = `${s[id]?.score ?? 0}`;
+              details += `| ${id.padEnd(10)}| ${t.padEnd(10)}|\n`;
+            }
           }
         }
       }

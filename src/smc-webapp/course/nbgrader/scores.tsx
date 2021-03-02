@@ -118,7 +118,9 @@ export class NbgraderScores extends Component<Props, State> {
     }
 
     for (const id of ids) {
-      v.push(this.render_score(filename, id, scores[id]));
+      if (scores[id] != null) {
+        v.push(this.render_score(filename, id, scores[id]));
+      }
     }
 
     const style = { padding: "5px" };
