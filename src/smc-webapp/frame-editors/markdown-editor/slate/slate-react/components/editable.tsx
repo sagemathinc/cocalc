@@ -679,8 +679,15 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               ReactEditor.setFragmentData(editor, event.clipboardData);
               const { selection } = editor;
 
-              if (selection && Range.isExpanded(selection)) {
-                Editor.deleteFragment(editor);
+              if (selection) {
+                if (Range.isExpanded(selection)) {
+                  Editor.deleteFragment(editor);
+                } else {
+                  const node = Node.parent(editor, selection.anchor.path);
+                  if (Editor.isVoid(editor, node)) {
+                    Transforms.delete(editor);
+                  }
+                }
               }
             }
           },
