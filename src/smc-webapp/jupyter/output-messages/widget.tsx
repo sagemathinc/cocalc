@@ -429,6 +429,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
         cls += " widget-box widget-vbox";
         break;
       case "GridBoxView":
+      case "GridBoxModel":
         cls += " widget-gridbox";
         break;
     }
