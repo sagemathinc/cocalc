@@ -175,7 +175,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const search = useSearch();
 
-    const [marks, setMarks] = useState<Marks>(Editor.marks(editor) ?? {});
+    const [marks, setMarks] = useState<Marks>(getMarks(editor));
     const updateMarks = useMemo(() => {
       const f = () => {
         // NOTE: important to debounce, and that this update happens
@@ -186,7 +186,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         if (!ReactEditor.isFocused(editor)) {
           setMarks({});
         } else {
-          setMarks(Editor.marks(editor) ?? {});
+          setMarks(getMarks(editor));
         }
       };
       // We debounce to avoid any performance implications while typing and
@@ -532,3 +532,16 @@ const withIsInline = (editor) => {
 
   return editor;
 };
+
+// This keeps crashing for me so I'm
+// wrapping it in try/catch.  It's only
+// used for display purposes in the toolbar so hiding
+// failures is not "evil".
+function getMarks(editor) {
+  try {
+    return Editor.marks(editor) ?? {};
+  } catch (err) {
+    console.log("Editor.marks", err);
+    return {};
+  }
+}

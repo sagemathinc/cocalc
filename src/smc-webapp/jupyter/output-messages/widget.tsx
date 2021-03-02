@@ -416,7 +416,11 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       );
       i += 1;
     }
-    // todo -- this is hackish; fix later.
+    // todo -- this is hackish; fix later.  Moreover,
+    // this does not magically make all these containers
+    // works, e.g., GridBoxModel doesn't properly lay
+    // things out in general.  See
+    //   
     let cls = "jupyter-widgets widget-container";
     switch (this.model.name) {
       case "BoxModel":

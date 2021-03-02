@@ -118,7 +118,13 @@ function currentWord(editor: SlateEditor): Range | undefined {
 }
 
 function isMarkActive(editor: Editor, mark: string): boolean {
-  return !!Editor.marks(editor)?.[mark];
+  try {
+    return !!Editor.marks(editor)?.[mark];
+  } catch (err) {
+    // see comment in getMarks...
+    console.log("Editor.marks", err);
+    return false;
+  }
 }
 
 function toggleMark(editor: Editor, mark: string): void {
