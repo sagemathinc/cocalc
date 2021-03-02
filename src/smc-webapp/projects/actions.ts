@@ -704,7 +704,13 @@ export class ProjectsActions extends Actions<ProjectsState> {
     ) {
       throw Error("invalid project_id or license_id");
     }
-    const info = await site_license_public_info(license_id);
+    let info;
+    try {
+      info = await site_license_public_info(license_id);
+    } catch (err) {
+      // happens if the license is not valid.
+      info = { title: `${err}` };
+    }
     if (!info) return;
     const quota: Quota | undefined = info.quota;
     const title: string = info.title ?? "";
