@@ -176,18 +176,23 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const search = useSearch();
 
     const [marks, setMarks] = useState<Marks>(Editor.marks(editor) ?? {});
-    async function updateMarks() {
-      // just want to do this update sometime in the near future.
-      // Don't do it in the update loop where it is requested
-      // since that causes issues, e.g.., try to move cursor out
-      // of a code block.
-      await delay(10);
-      if (!ReactEditor.isFocused(editor)) {
-        setMarks({});
-      } else {
-        setMarks(Editor.marks(editor) ?? {});
-      }
-    }
+    const updateMarks = useMemo(() => {
+      const f = () => {
+        // NOTE: important to debounce, and that this update happens
+        // sometime in the near future and not immediately on any change!
+        // Don't do it in the update loop where it is requested
+        // since that causes issues, e.g.., try to move cursor out
+        // of a code block.
+        if (!ReactEditor.isFocused(editor)) {
+          setMarks({});
+        } else {
+          setMarks(Editor.marks(editor) ?? {});
+        }
+      };
+      // We debounce to avoid any performance implications while typing and
+      // for the reason mentioned in the NOTE above.
+      return debounce(f, 200);
+    }, []);
 
     const broadcastCursors = useBroadcastCursors({
       editor,
