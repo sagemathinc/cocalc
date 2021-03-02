@@ -179,7 +179,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   deserialize_state(model: base.DOMWidgetModel, state: ModelState): ModelState {
-    // NOTE: this is a reimplementation of soemthing in
+    // NOTE: this is a reimplementation of soemething in
     //     ipywidgets/packages/base/src/widget.ts
     // but we untagle unpacking and deserializing, which is
     // mixed up there.

@@ -334,6 +334,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       case "HBoxModel":
       case "VBoxModel":
       case "GridBoxView":
+      case "GridBoxModel":
       case "BoxModel":
         return this.render_react_box_view();
       default:
