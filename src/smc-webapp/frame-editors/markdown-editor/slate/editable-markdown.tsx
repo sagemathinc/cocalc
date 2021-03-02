@@ -456,7 +456,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             editor.saveValue();
             updateMarks();
           }}
-          onDoubleClick={editor.inverseSearch}
           onFocus={updateMarks}
           decorate={cursorDecorate}
           divref={scrollRef}
