@@ -46,7 +46,7 @@ collab = require('./postgres/collab')
 {sync_site_license_subscriptions} = require('./postgres/site-license/sync-subscriptions')
 {add_license_to_project, remove_license_from_project} = require('./postgres/site-license/add-remove')
 
-{permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
+{permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
 {get_remember_me} = require('./postgres/remember-me')
 {get_personal_user} = require('./postgres/personal')
@@ -3142,6 +3142,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async function
     permanently_unlink_all_deleted_projects_of_user: (account_id_or_email_address) =>
         return await permanently_unlink_all_deleted_projects_of_user(@, account_id_or_email_address)
+
+    # async function
+    unlink_old_deleted_projects: () =>
+        return await unlink_old_deleted_projects(@)
 
     # async function
     unlist_all_public_paths: (account_id, is_owner) =>
