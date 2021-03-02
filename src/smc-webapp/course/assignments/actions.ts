@@ -456,6 +456,7 @@ You can find the comments they made in the folders below.\
       assignment_id,
       student_id
     );
+    const nbgrader_score_ids = store.get_nbgrader_score_ids(assignment_id);
     if (nbgrader_scores) {
       const { score, points, error } = get_nbgrader_score(nbgrader_scores);
       const summary = error ? "error" : `${score}/${points}`;
@@ -468,8 +469,14 @@ You can find the comments they made in the folders below.\
           details += `ERROR: ${s}\n\n`;
         } else {
           details += `| Problem   | Score     |\n|:----------|:----------|\n`;
+          const ids: string[] = nbgrader_score_ids?.[filename] ?? [];
           for (const id in s) {
-            const t = `${s[id].score}`;
+            if (!ids.includes(id)) {
+              ids.push(id);
+            }
+          }
+          for (const id of ids) {
+            const t = `${s[id]?.score ?? 0}`;
             details += `| ${id.padEnd(10)}| ${t.padEnd(10)}|\n`;
           }
         }

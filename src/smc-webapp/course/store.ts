@@ -448,11 +448,13 @@ export class CourseStore extends Store<CourseState> {
   public get_nbgrader_score_ids(
     assignment_id: string
   ): { [ipynb: string]: string[] } | undefined {
-    // TODO: if the score id's aren't known, we could parse the ipynb
-    // file and compute them at this point.  This would only be to make these
-    // be available for old course files.
     const { assignment } = this.resolve({ assignment_id });
-    return assignment?.get("nbgrader_score_ids")?.toJS();
+    const ids = assignment?.get("nbgrader_score_ids")?.toJS();
+    if (ids != null) return ids;
+    // If the score id's aren't known, so we try to parse the ipynb
+    // file and compute them.  We still allow for the possibility
+    // that this fails and return undefined in that case.
+    // TODO
   }
 
   public get_comments(assignment_id: string, student_id: string): string {
