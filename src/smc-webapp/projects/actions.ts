@@ -698,18 +698,23 @@ export class ProjectsActions extends Actions<ProjectsState> {
     license_id: string,
     action: "add" | "remove"
   ): Promise<void> {
-    if (
-      !is_valid_uuid_string(project_id) ||
-      !is_valid_uuid_string(license_id)
-    ) {
-      throw Error("invalid project_id or license_id");
+    if (!is_valid_uuid_string(project_id)) {
+      throw Error(`invalid project_id "${project_id}"`);
     }
     let info;
-    try {
-      info = await site_license_public_info(license_id);
-    } catch (err) {
-      // happens if the license is not valid.
-      info = { title: `${err}` };
+    if (!license_id) {
+      info = { title: "All licenses" };
+      action = "remove";
+    } else {
+      if (!is_valid_uuid_string(license_id)) {
+        throw Error(`invalid license_id "${license_id}"`);
+      }
+      try {
+        info = await site_license_public_info(license_id);
+      } catch (err) {
+        // happens if the license is not valid.
+        info = { title: `${err}` };
+      }
     }
     if (!info) return;
     const quota: Quota | undefined = info.quota;
