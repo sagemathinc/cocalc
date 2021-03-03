@@ -50,3 +50,22 @@ async function get_account_id(
     })
   ).account_id;
 }
+
+/*
+This deletes all projects older than the given number of days, from the perspective of a user.
+Another task has to run to actually get rid of the data, etc.
+*/
+export async function unlink_old_deleted_projects(
+  db: PostgreSQL,
+  age_d = 30
+): Promise<void> {
+  await callback2(db._query, {
+    query: "UPDATE projects",
+    set: { users: null },
+    where: [
+      "deleted  = true",
+      "users IS NOT NULL",
+      `last_edited <= NOW() - '${age_d} days'::INTERVAL`,
+    ],
+  });
+}
