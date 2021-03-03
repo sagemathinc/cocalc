@@ -20,8 +20,8 @@ Internally which of the above is stored in a single string, with the following p
 
 */
 
+import { React, Rendered } from "../../app-framework";
 import { MenuItem, MenuDivider, DropdownMenu } from "smc-webapp/r_misc";
-import { React, Rendered, Component } from "../../app-framework";
 import { is_different } from "smc-util/misc";
 import { DICTS, dict_desc } from "./aspell-dicts";
 
@@ -31,54 +31,52 @@ interface Props {
   available: boolean;
 }
 
-export class SpellCheck extends Component<Props, {}> {
-  shouldComponentUpdate(props): boolean {
-    return is_different(this.props, props, ["value", "available"]);
-  }
+export const SpellCheck: React.FC<Props> = React.memo(
+  (props: Props) => {
+    const { value, set, available } = props;
 
-  render_other_items(): Rendered[] {
-    const v: Rendered[] = [];
-    for (const lang of DICTS) {
-      v.push(<MenuItem key={lang}>{dict_desc(lang)}</MenuItem>);
-      if (lang == "disabled") {
-        v.push(<MenuDivider key={"div"} />);
+    function render_other_items(): Rendered[] {
+      const v: Rendered[] = [];
+      for (const lang of DICTS) {
+        v.push(<MenuItem key={lang}>{dict_desc(lang)}</MenuItem>);
+        if (lang == "disabled") {
+          v.push(<MenuDivider key={"div"} />);
+        }
+      }
+      return v;
+    }
+
+    function render_dropdown(): Rendered {
+      return (
+        <DropdownMenu
+          title={dict_desc(value)}
+          onClick={(lang) => set(lang)}
+          button={true}
+        >
+          {render_other_items()}
+        </DropdownMenu>
+      );
+    }
+
+    function render_updates() {
+      switch (value) {
+        case "browser":
+          return " (updates immediately)";
+        case "disabled":
+          return "";
+        default:
+          return " (updates on save to disk)";
       }
     }
-    return v;
-  }
 
-  render_dropdown(): Rendered {
-    return (
-      <DropdownMenu
-        title={dict_desc(this.props.value)}
-        onClick={(lang) => this.props.set(lang)}
-        button={true}
-      >
-        {this.render_other_items()}
-      </DropdownMenu>
-    );
-  }
-
-  private render_updates() {
-    switch (this.props.value) {
-      case "browser":
-        return " (updates immediately)";
-      case "disabled":
-        return "";
-      default:
-        return " (updates on save to disk)";
-    }
-  }
-
-  render(): Rendered {
     const style = { fontSize: "11pt", paddingRight: "10px" };
-    if (this.props.available) {
+    if (available) {
       return (
         <div>
           <span style={style}>
-            <b>Spellcheck language</b> for this file{this.render_updates()}:
+            <b>Spellcheck language</b> for this file{render_updates()}:
           </span>
-          {this.render_dropdown()}
+          {render_dropdown()}
         </div>
       );
     } else {
@@ -90,5 +88,6 @@ export class SpellCheck extends Component<Props, {}> {
         </div>
       );
     }
-  }
-}
+  },
+  (prev, next) => !is_different(prev, next, ["value", "available"])
+);
