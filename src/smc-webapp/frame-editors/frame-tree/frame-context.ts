@@ -12,17 +12,20 @@
 // frame, and probably more as we need it.
 
 import { createContext, useContext } from "react";
+import { Actions } from "../code-editor/actions";
 
 interface IFrameContext {
   id: string;
   project_id: string;
   path: string;
+  actions: Actions;
 }
 
 export const FrameContext = createContext<IFrameContext>({
   id: "",
   project_id: "",
   path: "",
+  actions: ({} as unknown) as Actions, // why is there a default context... we always set it?
 });
 
 export const useFrameContext = () => {

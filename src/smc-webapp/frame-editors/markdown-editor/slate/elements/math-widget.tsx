@@ -3,7 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useEffect, useMemo, useState } from "../../../../app-framework";
+import {
+  React,
+  useEffect,
+  useFrameContext,
+  useMemo,
+  useState,
+} from "../../../../app-framework";
 import { macros } from "../../../../jquery-plugins/math-katex";
 import { renderToString } from "katex";
 import { startswith } from "smc-util/misc";
@@ -12,7 +18,6 @@ import * as LRU from "lru-cache";
 import { useFocused, useSelected } from "../slate-react";
 import { useCollapsed } from "../elements/register";
 import { FOCUSED_COLOR } from "../util";
-import { delay } from "awaiting";
 
 const cache = new LRU({ max: 300 });
 
@@ -25,6 +30,7 @@ interface Props {
 export const SlateMath: React.FC<Props> = React.memo(
   ({ value, onChange, isInline }) => {
     const [editMode, setEditMode] = useState<boolean>(false);
+    const frameContext = useFrameContext();
 
     const { err, __html } = useMemo(() => mathToHtml(value, isInline), [value]);
 
@@ -60,10 +66,12 @@ export const SlateMath: React.FC<Props> = React.memo(
     function renderLaTeX() {
       return (
         <span
-          onClick={async () => {
+          onClick={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             // switch to edit mode when you click on it.
-            await delay(0);
             setEditMode?.(true);
+            frameContext.actions.set_active_id(frameContext.id);
           }}
         >
           {err ? (

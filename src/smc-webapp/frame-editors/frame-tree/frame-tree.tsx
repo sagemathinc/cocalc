@@ -367,6 +367,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           id: desc.get("id"),
           project_id: this.props.project_id,
           path: this.props.path,
+          actions: editor_actions,
         }}
       >
         <div

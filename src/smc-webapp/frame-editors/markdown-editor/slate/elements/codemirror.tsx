@@ -20,6 +20,7 @@ import {
   ReactDOM,
   useCallback,
   useEffect,
+  useFrameContext,
   useRef,
   useState,
 } from "../../../../app-framework";
@@ -32,7 +33,6 @@ import {
   useSlate,
   useCollapsed,
 } from "./hooks";
-import { useFrameContext } from "../../../frame-tree/frame-context";
 import {
   moveCursorDown,
   moveCursorToBeginningOfBlock,

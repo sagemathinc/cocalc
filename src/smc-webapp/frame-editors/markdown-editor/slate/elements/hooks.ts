@@ -8,13 +8,13 @@ export { useFocused, useSelected } from "../slate-react";
 import {
   ReactDOM,
   useEffect,
+  useFrameContext,
   useRef,
   useActions as useReduxActions,
 } from "../../../../app-framework";
 import { Range } from "slate";
 import { path_split } from "smc-util/misc";
 import { Actions } from "../../actions";
-import { useFrameContext } from "../../../frame-tree/frame-context";
 import { useSlate as useSlate0 } from "../slate-react";
 import { SlateEditor } from "../editable-markdown";
 
