@@ -37,6 +37,9 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
   const [value, set_value] = useState<string>(
     props.value ?? props.default_value ?? ""
   );
+  // if value changes, we update as well!
+  React.useEffect(() => set_value(props.value ?? ""), [props.value]);
+
   const [ctrl_down, set_ctrl_down] = useState<boolean>(false);
 
   const input_ref = useRef(null);

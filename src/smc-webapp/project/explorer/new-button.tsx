@@ -3,13 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import { React } from "../../app-framework";
 import { Configuration } from "./explorer";
 import { EXTs as ALL_FILE_BUTTON_TYPES } from "./file-listing/utils";
-import { Icon } from "../../r_misc";
+import { Button } from "antd";
+import { Icon, MenuItem, MenuDivider, DropdownMenu } from "../../r_misc";
 import { ProjectActions } from "smc-webapp/project_store";
-
-const { MenuItem, SplitButton } = require("react-bootstrap");
+//import { MenuItem, SplitButton } from "react-bootstrap";
 
 interface Props {
   file_search: string;
@@ -21,14 +21,20 @@ interface Props {
   disabled: boolean;
 }
 
-export class NewButton extends React.Component<Props> {
-  static defaultProps = {
-    file_search: "",
-  };
+export const NewButton: React.FC<Props> = (props: Props) => {
+  const {
+    file_search = "",
+    /*current_path,*/
+    actions,
+    create_folder,
+    create_file,
+    configuration,
+    disabled,
+  } = props;
 
-  new_file_button_types() {
-    if (this.props.configuration != undefined) {
-      const { disabled_ext } = this.props.configuration.get("main", {
+  function new_file_button_types() {
+    if (configuration != undefined) {
+      const { disabled_ext } = configuration.get("main", {
         disabled_ext: undefined,
       });
       if (disabled_ext != undefined) {
@@ -40,12 +46,7 @@ export class NewButton extends React.Component<Props> {
     return ALL_FILE_BUTTON_TYPES;
   }
 
-  // Rendering doesnt rely on props...
-  shouldComponentUpdate() {
-    return false;
-  }
-
-  file_dropdown_icon(): JSX.Element {
+  function file_dropdown_icon(): JSX.Element {
     return (
       <span style={{ whiteSpace: "nowrap" }}>
         <Icon name="plus-circle" /> New
@@ -53,11 +54,11 @@ export class NewButton extends React.Component<Props> {
     );
   }
 
-  file_dropdown_item(i: number, ext: string): JSX.Element {
+  function file_dropdown_item(ext: string): JSX.Element {
     const { file_options } = require("../../editor");
     const data = file_options("x." + ext);
     return (
-      <MenuItem eventKey={i} key={i} onClick={() => this.choose_extension(ext)}>
+      <MenuItem key={ext}>
         <Icon name={data.icon} />{" "}
         <span style={{ textTransform: "capitalize" }}>{data.name} </span>{" "}
         <span style={{ color: "#666" }}>(.{ext})</span>
@@ -65,57 +66,63 @@ export class NewButton extends React.Component<Props> {
     );
   }
 
-  choose_extension(ext: string): void {
-    if (this.props.file_search.length === 0) {
+  function choose_extension(ext: string): void {
+    if (file_search.length === 0) {
       // Tell state to render an error in file search
-      this.props.actions.ask_filename(ext);
+      actions.ask_filename(ext);
     } else {
-      this.props.create_file(ext);
+      create_file(ext);
     }
   }
 
-  on_create_folder_button_clicked = () : void => {
-    if (this.props.file_search.length === 0) {
-      this.props.actions.ask_filename('/');
+  function on_create_folder_button_clicked(): void {
+    if (file_search.length === 0) {
+      actions.ask_filename("/");
     } else {
-      this.props.create_folder();
+      create_folder();
+    }
+  }
+
+  function on_dropdown_entry_clicked(key: string) {
+    switch (key) {
+      case "folder":
+        on_create_folder_button_clicked();
+        break;
+      default:
+        choose_extension(key);
     }
   }
 
   // Go to new file tab if no file is specified
-  on_create_button_clicked = (): void => {
-    if (this.props.file_search.length === 0) {
-      this.props.actions.set_active_tab('new');
-    } else if (
-      this.props.file_search[this.props.file_search.length - 1] === "/"
-    ) {
-      this.props.create_folder();
+  function on_create_button_clicked(): void {
+    if (file_search.length === 0) {
+      actions.set_active_tab("new");
+    } else if (file_search[file_search.length - 1] === "/") {
+      create_folder();
     } else {
-      this.props.create_file();
+      create_file();
     }
-  };
+  }
 
-  render(): JSX.Element {
-    // console.log("ProjectFilesNew configuration", @props.configuration?.toJS())
-    return (
-      <SplitButton
-        id={"new_file_dropdown"}
-        title={this.file_dropdown_icon()}
-        onClick={this.on_create_button_clicked}
-        disabled={this.props.disabled}
+  // console.log("ProjectFilesNew configuration", configuration?.toJS())
+
+  return (
+    <Button.Group>
+      <Button onClick={on_create_button_clicked} disabled={disabled}>
+        {file_dropdown_icon()}{" "}
+      </Button>
+
+      <DropdownMenu
+        title={""}
+        onClick={on_dropdown_entry_clicked}
+        button={true}
       >
-        {this.new_file_button_types().map((ext, index) => {
-          return this.file_dropdown_item(index, ext);
-        })}
-        <MenuItem divider />
-        <MenuItem
-          eventKey="folder"
-          key="folder"
-          onSelect={this.on_create_folder_button_clicked}
-        >
+        {new_file_button_types().map(file_dropdown_item)}
+        <MenuDivider />
+        <MenuItem key="folder">
           <Icon name="folder" /> Folder
         </MenuItem>
-      </SplitButton>
-    );
-  }
-}
+      </DropdownMenu>
+    </Button.Group>
+  );
+};
