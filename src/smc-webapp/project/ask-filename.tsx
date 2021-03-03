@@ -27,7 +27,7 @@ interface Props {
   other_settings: any;
 }
 
-export const AskNewFilename: React.FC<Props> = (props: Props) => {
+export const AskNewFilename: React.FC<Props> = React.memo((props: Props) => {
   const {
     actions,
     ext_selection,
@@ -141,4 +141,4 @@ export const AskNewFilename: React.FC<Props> = (props: Props) => {
       </Col>
     </Row>
   );
-};
+});
