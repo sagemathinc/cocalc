@@ -74,7 +74,7 @@ export function describe_quota(quota: Quota, short?: boolean): string {
     v.push(`${quota.dedicated_ram}GB dedicated RAM`);
   }
   if (quota.dedicated_cpu) {
-    v.push(`${quota.dedicated_cpu}GB dedicated CPU`);
+    v.push(`${quota.dedicated_cpu} dedicated CPU`);
   }
   if (quota.member) {
     v.push("member" + (short ? "" : " hosting"));
