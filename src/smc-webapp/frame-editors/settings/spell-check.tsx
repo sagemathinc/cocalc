@@ -20,7 +20,7 @@ Internally which of the above is stored in a single string, with the following p
 
 */
 
-import { DropdownButton, MenuItem } from "react-bootstrap";
+import { MenuItem, MenuDivider, DropdownMenu } from "smc-webapp/r_misc";
 import { React, Rendered, Component } from "../../app-framework";
 import { is_different } from "smc-util/misc";
 import { DICTS, dict_desc } from "./aspell-dicts";
@@ -38,15 +38,10 @@ export class SpellCheck extends Component<Props, {}> {
 
   render_other_items(): Rendered[] {
     const v: Rendered[] = [];
-    const set = (lang) => this.props.set(lang);
     for (const lang of DICTS) {
-      v.push(
-        <MenuItem key={lang} eventKey={lang} onSelect={set}>
-          {dict_desc(lang)}
-        </MenuItem>
-      );
+      v.push(<MenuItem key={lang}>{dict_desc(lang)}</MenuItem>);
       if (lang == "disabled") {
-        v.push(<MenuItem divider key={"div"} />);
+        v.push(<MenuDivider key={"div"} />);
       }
     }
     return v;
@@ -54,9 +49,13 @@ export class SpellCheck extends Component<Props, {}> {
 
   render_dropdown(): Rendered {
     return (
-      <DropdownButton title={dict_desc(this.props.value)} id="other">
+      <DropdownMenu
+        title={dict_desc(this.props.value)}
+        onClick={(lang) => this.props.set(lang)}
+        button={true}
+      >
         {this.render_other_items()}
-      </DropdownButton>
+      </DropdownMenu>
     );
   }
 
