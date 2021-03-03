@@ -330,6 +330,9 @@ async function stripe_create_subscription(
 
   const options = {
     customer,
+    // see https://github.com/sagemathinc/cocalc/issues/5234 for
+    // why this payment_behavior.
+    payment_behavior: "error_if_incomplete" as "error_if_incomplete",
     items: [{ price, quantity }],
     tax_percent: tax_percent
       ? Math.round(tax_percent * 100 * 100) / 100
