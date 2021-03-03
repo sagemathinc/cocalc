@@ -5,7 +5,7 @@
 
 import { Menu, Dropdown, Button } from "antd";
 import { DownOutlined } from "@ant-design/icons";
-import { CSS,  React } from "../app-framework";
+import { CSS, React } from "../app-framework";
 import { IS_TOUCH } from "../feature";
 
 interface Props {

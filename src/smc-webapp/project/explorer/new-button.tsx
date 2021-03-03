@@ -54,11 +54,11 @@ export const NewButton: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function file_dropdown_item(i: number, ext: string): JSX.Element {
+  function file_dropdown_item(ext: string): JSX.Element {
     const { file_options } = require("../../editor");
     const data = file_options("x." + ext);
     return (
-      <MenuItem eventKey={i} key={i} onClick={() => choose_extension(ext)}>
+      <MenuItem key={ext}>
         <Icon name={data.icon} />{" "}
         <span style={{ textTransform: "capitalize" }}>{data.name} </span>{" "}
         <span style={{ color: "#666" }}>(.{ext})</span>
@@ -75,16 +75,26 @@ export const NewButton: React.FC<Props> = (props: Props) => {
     }
   }
 
-  const on_create_folder_button_clicked = (): void => {
+  function on_create_folder_button_clicked(): void {
     if (file_search.length === 0) {
       actions.ask_filename("/");
     } else {
       create_folder();
     }
-  };
+  }
+
+  function on_dropdown_entry_clicked(key: string) {
+    switch (key) {
+      case "folder":
+        on_create_folder_button_clicked();
+        break;
+      default:
+        choose_extension(key);
+    }
+  }
 
   // Go to new file tab if no file is specified
-  const on_create_button_clicked = (): void => {
+  function on_create_button_clicked(): void {
     if (file_search.length === 0) {
       actions.set_active_tab("new");
     } else if (file_search[file_search.length - 1] === "/") {
@@ -92,7 +102,9 @@ export const NewButton: React.FC<Props> = (props: Props) => {
     } else {
       create_file();
     }
-  };
+  }
+
+  // console.log("ProjectFilesNew configuration", configuration?.toJS())
 
   return (
     <Button.Group>
@@ -100,41 +112,17 @@ export const NewButton: React.FC<Props> = (props: Props) => {
         {file_dropdown_icon()}{" "}
       </Button>
 
-      <DropdownMenu title={""} onClick={on_create_button_clicked} button={true}>
-        {new_file_button_types().map((ext, index) =>
-          file_dropdown_item(index, ext)
-        )}
+      <DropdownMenu
+        title={""}
+        onClick={on_dropdown_entry_clicked}
+        button={true}
+      >
+        {new_file_button_types().map(file_dropdown_item)}
         <MenuDivider />
-        <MenuItem
-          eventKey="folder"
-          key="folder"
-          onSelect={on_create_folder_button_clicked}
-        >
+        <MenuItem key="folder">
           <Icon name="folder" /> Folder
         </MenuItem>
       </DropdownMenu>
     </Button.Group>
   );
-
-  // console.log("ProjectFilesNew configuration", @props.configuration?.toJS())
-  // return (
-  //   <SplitButton
-  //     id={"new_file_dropdown"}
-  //     title={file_dropdown_icon()}
-  //     onClick={on_create_button_clicked}
-  //     disabled={disabled}
-  //   >
-  //     {new_file_button_types().map((ext, index) =>
-  //       file_dropdown_item(index, ext)
-  //     )}
-  //     <MenuItem divider />
-  //     <MenuItem
-  //       eventKey="folder"
-  //       key="folder"
-  //       onSelect={on_create_folder_button_clicked}
-  //     >
-  //       <Icon name="folder" /> Folder
-  //     </MenuItem>
-  //   </SplitButton>
-  // );
 };
