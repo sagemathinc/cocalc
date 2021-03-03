@@ -32,14 +32,7 @@ import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-i
 import { SiteLicenseInput } from "../../site-licenses/input";
 import { PurchaseOneLicenseLink } from "../../site-licenses/purchase";
 import { ShowSupportLink } from "../../support";
-import {
-  A,
-  Icon,
-  Loading,
-  NoUpgrades,
-  Tip,
-  UPGRADE_ERROR_STYLE,
-} from "../../r_misc";
+import { A, Icon, Loading, Tip, UPGRADE_ERROR_STYLE } from "../../r_misc";
 import { UpgradeRestartWarning } from "../../upgrade-restart-warning";
 import {
   Button,
@@ -340,8 +333,8 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
 
     const purchased_upgrades = account_store.get_total_upgrades();
     if (is_zero_map(purchased_upgrades)) {
-      // user has no upgrades on their account
-      return <NoUpgrades cancel={() => set_upgrade_quotas(false)} />;
+      // user has no upgrades on their account -- show nothing here.
+      return;
     }
 
     const course_store = get_store();

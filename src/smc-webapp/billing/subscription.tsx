@@ -92,11 +92,11 @@ export const Subscription: React.FC<Props> = ({ subscription, style }) => {
         <Col md={1}>
           {cancellable ? (
             <Button
-              style={{ float: "right", fontSize: "11px" }}
+              style={{ float: "right" }}
               disabled={cancelling}
               onClick={() => set_confirm_cancel(true)}
             >
-              {cancelling ? "Cancelling..." : "End..."}
+              {cancelling ? "Cancelling..." : "Cancel..."}
             </Button>
           ) : undefined}
         </Col>

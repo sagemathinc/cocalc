@@ -158,41 +158,52 @@ export class AddSubscription extends Component<Props, State> {
   }
 
   private render_subscription_grid(): Rendered {
-    if (this.is_deprecated()) {
-      return (
-        <Well
-          style={{
-            fontSize: "12pt",
-            background: "white",
-            margin: "auto",
-            maxWidth: "800px",
+    const deprecated = (
+      <Well
+        style={{
+          fontSize: "12pt",
+          background: "white",
+          margin: "0px auto 15px",
+          maxWidth: "800px",
+        }}
+      >
+        Please{" "}
+        <a
+          onClick={() => {
+            redux.getActions("account").setState({ active_page: "licenses" });
           }}
         >
-          Please{" "}
-          <a
-            onClick={() => {
-              redux
-                .getActions("billing")
-                ?.setState({ subscription_list_state: "buy_license" });
-            }}
-          >
-            purchase one of our new much more flexible licenses instead.
-          </a>{" "}
-          The new licenses let you specify exactly how many students you have,
-          when the course starts and ends, and how much memory, disk space, and
-          cpu each student gets.
-          <br />
-          <br />
-          If for some reason you need to purchase one of the old course package,
-          please contact <HelpEmailLink />.
-        </Well>
-      );
+          purchase a much more flexible license instead...
+        </a>{" "}
+        {this.is_deprecated() ? (
+          <div>
+            The new licenses let you specify exactly how many students you have,
+            when the course starts and ends, and how much memory, disk space,
+            and cpu each student gets.
+            <br />
+            <br />
+            If for some reason you need to purchase one of the old course
+            package, please contact <HelpEmailLink />.
+          </div>
+        ) : (
+          <div>
+            It is still possible to buy one of the subscriptions below, but we
+            strongly recommend against it.
+          </div>
+        )}
+      </Well>
+    );
+    if (this.is_deprecated()) {
+      return deprecated;
     }
     return (
-      <SubscriptionGrid
-        periods={[this.state.selected_button]}
-        selected_plan={this.props.selected_plan}
-      />
+      <div>
+        {deprecated}
+        <SubscriptionGrid
+          periods={[this.state.selected_button]}
+          selected_plan={this.props.selected_plan}
+        />
+      </div>
     );
   }
 

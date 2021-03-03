@@ -22,7 +22,6 @@ import {
   round2,
 } from "smc-util/misc";
 import { PROJECT_UPGRADES } from "smc-util/schema";
-import { NoUpgrades } from "./no-upgrades";
 import {
   Alert,
   Button,
@@ -35,10 +34,18 @@ import {
 } from "../antd-bootstrap";
 import { Button as OldButton } from "react-bootstrap";
 import { UpgradeRestartWarning } from "../upgrade-restart-warning";
-import { UPGRADE_ERROR_STYLE } from "./no-upgrades";
 import { Tip } from "./tip";
 import { Checkbox } from "antd";
 import { Icon } from "./icon";
+
+export const UPGRADE_ERROR_STYLE = {
+  color: "white",
+  background: "red",
+  padding: "1ex",
+  borderRadius: "3px",
+  fontWeight: "bold",
+  marginBottom: "1em",
+} as CSS;
 
 type UpgradeQuotas = any;
 
@@ -421,7 +428,7 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
 
   if (is_zero_map(props.upgrades_you_can_use)) {
     // user has no upgrades on their account
-    return <NoUpgrades cancel={props.cancel_upgrading} />;
+    return <span></span>;
   } else {
     const {
       limits,
