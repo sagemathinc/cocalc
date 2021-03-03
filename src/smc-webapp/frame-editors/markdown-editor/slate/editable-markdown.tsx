@@ -7,7 +7,7 @@
 
 // important: I made this type **wrong** so I don't
 // forget to comment this out.
-//const DEBUG: string = true;
+//const DEBUG: string = true; // do not delete "string"!
 const DEBUG = false;
 
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
@@ -469,6 +469,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
             USE_WINDOWING
               ? undefined
               : {
+                  position: "relative", // CRITICAL!!! Without this, editor will sometimes scroll the entire frame off the screen.  Do NOT delete position:'relative'.  5+ hours of work to figure this out!  Note that this isn't needed when using windowing above.
                   minWidth: "80%",
                   padding: "70px",
                   background: "white",
