@@ -5,7 +5,7 @@
 
 import { Menu, Dropdown, Button } from "antd";
 import { DownOutlined } from "@ant-design/icons";
-import { CSS, Component, React } from "../app-framework";
+import { CSS,  React } from "../app-framework";
 import { IS_TOUCH } from "../feature";
 
 interface Props {
@@ -17,33 +17,55 @@ interface Props {
   button?: boolean; // show menu as a *Button* (disabled on touch devices -- https://github.com/sagemathinc/cocalc/issues/5113)
   hide_down?: boolean;
   maxHeight?: string;
+  children: React.ReactNode;
 }
 
 const STYLE = { margin: "6px 10px", cursor: "pointer" } as CSS;
 
-export class DropdownMenu extends Component<Props> {
-  on_click(e): void {
-    if (this.props.onClick !== undefined) {
-      this.props.onClick(e.key);
+export const DropdownMenu: React.FC<Props> = (props: Props) => {
+  const {
+    title,
+    id,
+    onClick,
+    style,
+    disabled,
+    button,
+    hide_down,
+    maxHeight,
+    children,
+  } = props;
+
+  function on_click(e): void {
+    if (onClick !== undefined) {
+      onClick(e.key);
     }
   }
 
-  render_body() {
-    if (this.props.button && !IS_TOUCH) {
+  function render_title() {
+    if (title !== "") {
       return (
-        <Button
-          style={this.props.style}
-          disabled={this.props.disabled}
-          id={this.props.id}
-        >
-          {this.props.title} {!this.props.hide_down && <DownOutlined />}
+        <>
+          {title} {!hide_down && <DownOutlined />}
+        </>
+      );
+    } else {
+      // emtpy string implies to only show the downward caret sign
+      return <DownOutlined />;
+    }
+  }
+
+  function render_body() {
+    if (button && !IS_TOUCH) {
+      return (
+        <Button style={style} disabled={disabled} id={id}>
+          {render_title()}
         </Button>
       );
     } else {
-      if (this.props.disabled) {
+      if (disabled) {
         return (
           <span
-            id={this.props.id}
+            id={id}
             style={{
               ...{
                 color: "#777",
@@ -52,46 +74,46 @@ export class DropdownMenu extends Component<Props> {
               ...STYLE,
             }}
           >
-            <span style={this.props.style}>{this.props.title}</span>
+            <span style={style}>{title}</span>
           </span>
         );
       } else {
         return (
-          <span style={{ ...STYLE, ...this.props.style }} id={this.props.id}>
-            {this.props.title}
+          <span style={{ ...STYLE, ...style }} id={id}>
+            {title}
           </span>
         );
       }
     }
   }
 
-  render() {
-    const body = this.render_body();
-    if (this.props.disabled) {
-      return body;
-    }
-    const menu = (
-      <Menu
-        onClick={this.on_click.bind(this)}
-        style={{
-          maxHeight: this.props.maxHeight ? this.props.maxHeight : "70vH",
-          overflow: "auto",
-        }}
-      >
-        {this.props.children}
-      </Menu>
-    );
-    return (
-      <Dropdown
-        overlay={menu}
-        trigger={!this.props.button ? ["click"] : undefined}
-        placement={"bottomLeft"}
-      >
-        {body}
-      </Dropdown>
-    );
+  const body = render_body();
+  if (disabled) {
+    return body;
   }
-}
+
+  const menu = (
+    <Menu
+      onClick={on_click.bind(this)}
+      style={{
+        maxHeight: maxHeight ? maxHeight : "70vH",
+        overflow: "auto",
+      }}
+    >
+      {children}
+    </Menu>
+  );
+
+  return (
+    <Dropdown
+      overlay={menu}
+      trigger={!button ? ["click"] : undefined}
+      placement={"bottomLeft"}
+    >
+      {body}
+    </Dropdown>
+  );
+};
 
 // NOTE: we wrap and put in a fake onItemHover to work around this bug:
 //     https://github.com/react-component/menu/issues/142
