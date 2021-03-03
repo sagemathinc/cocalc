@@ -63,7 +63,7 @@
     "node-pre-gyp": "^0.17.0",
     "postcss-loader": "^3.0.0",
     "prettier": "^2.1.1",
-    "pug": "^2.0.4",
+    "pug": "^3.0.1",
     "pug-loader": "^2.4.0",
     "react-test-renderer": "^16.5.2",
     "sass": "^1.32.5",
