@@ -17,7 +17,7 @@ licenses for different purposes (e.g., one license for faculty and one license
 for students).
 */
 
-import { is_valid_uuid_string } from "../misc";
+import { is_valid_uuid_string, plural } from "../misc";
 import { Table } from "./types";
 import { SCHEMA } from "./index";
 import { TypedMap } from "../../smc-webapp/app-framework/TypedMap";
@@ -65,7 +65,7 @@ export function describe_quota(quota: Quota, short?: boolean): string {
     v.push(`${quota.ram}GB RAM`);
   }
   if (quota.cpu) {
-    v.push(`${quota.cpu}CPU`);
+    v.push(`${quota.cpu} shared ${plural(quota.cpu, "CPU")}`);
   }
   if (quota.disk) {
     v.push(`${quota.disk}GB disk`);
@@ -74,7 +74,9 @@ export function describe_quota(quota: Quota, short?: boolean): string {
     v.push(`${quota.dedicated_ram}GB dedicated RAM`);
   }
   if (quota.dedicated_cpu) {
-    v.push(`${quota.dedicated_cpu} dedicated CPU`);
+    v.push(
+      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "CPU")}`
+    );
   }
   if (quota.member) {
     v.push("member" + (short ? "" : " hosting"));
