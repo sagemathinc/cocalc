@@ -4,19 +4,19 @@
  */
 
 import { React, useTypedRedux, useActions } from "../../app-framework";
-import { PathSegmentLink } from "./path-segment-link";
-import { Icon } from "../../r_misc";
 import { trunc_middle } from "smc-util/misc";
-import { Breadcrumb } from "react-bootstrap";
+import { HomeOutlined } from "@ant-design/icons";
+import { Breadcrumb } from "antd";
+import { PathSegmentLink } from "./path-segment-link";
 
-// This path consists of several PathSegmentLinks
-export function PathNavigator({
-  project_id,
-  style,
-}: {
+interface Props {
   project_id: string;
   style?: React.CSSProperties;
-}): JSX.Element {
+}
+
+// This path consists of several PathSegmentLinks
+export const PathNavigator: React.FC<Props> = React.memo((props: Props) => {
+  const { project_id, style } = props;
   const current_path = useTypedRedux({ project_id }, "current_path");
   const history_path = useTypedRedux({ project_id }, "history_path");
   const actions = useActions({ project_id });
@@ -24,13 +24,14 @@ export function PathNavigator({
   function make_path(): JSX.Element[] {
     const v: JSX.Element[] = [];
     v.push(
-      <PathSegmentLink
-        path=""
-        display={<Icon name="home" />}
-        full_name={""}
-        key={0}
-        on_click={() => actions?.open_directory("", true, false)}
-      />
+      // yes, must be called as a normal function
+      PathSegmentLink({
+        path: "",
+        display: <HomeOutlined />,
+        full_name: "",
+        key: 0,
+        on_click: () => actions?.open_directory("", true, false),
+      })
     );
 
     const is_root = current_path[0] === "/";
@@ -43,15 +44,16 @@ export function PathNavigator({
       const is_current = i === current_path_depth;
       const is_history = i > current_path_depth;
       v.push(
-        <PathSegmentLink
-          path={history_segments.slice(0, +i + 1 || undefined).join("/")}
-          display={trunc_middle(segment, 15)}
-          full_name={segment}
-          key={i + 1}
-          on_click={(path) => actions?.open_directory(path, true, false)}
-          active={is_current}
-          history={is_history}
-        />
+        // yes, must be called as a normal function
+        PathSegmentLink({
+          path: history_segments.slice(0, i + 1 || undefined).join("/"),
+          display: trunc_middle(segment, 15),
+          full_name: segment,
+          key: i + 1,
+          on_click: (path) => actions?.open_directory(path, true, false),
+          active: is_current,
+          history: is_history,
+        })
       );
     });
     return v;
@@ -60,10 +62,8 @@ export function PathNavigator({
   // Background color below is so that things look good even for
   // multiline long paths.
   return (
-    <Breadcrumb
-      style={{ ...{ marginBottom: "0", backgroundColor: "inherit" }, ...style }}
-    >
+    <Breadcrumb style={style} className="cc-path-navigator">
       {make_path()}
     </Breadcrumb>
   );
-}
+});

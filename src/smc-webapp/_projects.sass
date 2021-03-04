@@ -80,13 +80,28 @@
   > .dropdown.btn-group
     display: flex
 
-.cc-project-files-path
-  .breadcrumb
-    .active
-      font-weight: bold
+.cc-project-files-path-nav
+  min-width: 35vw
+  > div
+    background-color: $COL_GRAY_LLL
+    border-radius: 3px
 
-.cc-project-files-path
-  background: #eee
+.cc-path-navigator
+  flex: 5 1 auto
+  margin-bottom: 15px
+  max-width: 50vw
+  padding: 5px 10px
+
+.cc-path-navigator > span
+  cursor: pointer
+  color: $COL_BS_BLUE_TEXT
+
+.cc-path-navigator-history
+  color: $COL_GRAY
+.cc-path-navigator-active
+  font-weight: bold
+  color: black
+.cc-path-navigator-basic
 
 .cc-custom-image-desc
   h1
