@@ -95,6 +95,21 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
     get_mime({ project_id, path, set_mime, set_err, set_snippet });
   }, []);
 
+  React.useEffect(() => {
+    if (mime == "inode/directory" && actions != null) {
+      (async () => {
+        // It is actually a directory so we know what to do.
+        // See https://github.com/sagemathinc/cocalc/issues/5212
+        actions.open_directory(path);
+        // We delay before closing this file, since closing the file causes a
+        // state change to this component at the same time
+        // as updating (which is a WARNING).
+        await delay(1);
+        actions.close_file(path);
+      })();
+    }
+  }, [mime]);
+
   function render_ext() {
     return (
       <Text strong>
