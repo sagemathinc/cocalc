@@ -620,16 +620,7 @@ export const Explorer = rclass(
               {this.render_new_file()}
             </div>
           )}
-          <div
-            className="cc-project-files-path"
-            style={{
-              flex: "5 1 auto",
-              marginRight: "10px",
-              marginBottom: "15px",
-            }}
-          >
-            <PathNavigator project_id={this.props.project_id} />
-          </div>
+          <PathNavigator project_id={this.props.project_id} />
           {!public_view && (
             <>
               <div
