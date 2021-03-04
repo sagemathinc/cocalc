@@ -4,10 +4,10 @@
  */
 
 import { React, useTypedRedux, useActions } from "../../app-framework";
-import { PathSegmentLink } from "./path-segment-link";
 import { trunc_middle } from "smc-util/misc";
 import { HomeOutlined } from "@ant-design/icons";
 import { Breadcrumb } from "antd";
+import { PathSegmentLink } from "./path-segment-link";
 
 interface Props {
   project_id: string;
@@ -24,13 +24,14 @@ export const PathNavigator: React.FC<Props> = React.memo((props: Props) => {
   function make_path(): JSX.Element[] {
     const v: JSX.Element[] = [];
     v.push(
-      <PathSegmentLink
-        path=""
-        display={<HomeOutlined />}
-        full_name={""}
-        key={0}
-        on_click={() => actions?.open_directory("", true, false)}
-      />
+      // yes, must be called as a normal function
+      PathSegmentLink({
+        path: "",
+        display: <HomeOutlined />,
+        full_name: "",
+        key: 0,
+        on_click: () => actions?.open_directory("", true, false),
+      })
     );
 
     const is_root = current_path[0] === "/";
@@ -43,15 +44,16 @@ export const PathNavigator: React.FC<Props> = React.memo((props: Props) => {
       const is_current = i === current_path_depth;
       const is_history = i > current_path_depth;
       v.push(
-        <PathSegmentLink
-          path={history_segments.slice(0, +i + 1 || undefined).join("/")}
-          display={trunc_middle(segment, 15)}
-          full_name={segment}
-          key={i + 1}
-          on_click={(path) => actions?.open_directory(path, true, false)}
-          active={is_current}
-          history={is_history}
-        />
+        // yes, must be called as a normal function
+        PathSegmentLink({
+          path: history_segments.slice(0, i + 1 || undefined).join("/"),
+          display: trunc_middle(segment, 15),
+          full_name: segment,
+          key: i + 1,
+          on_click: (path) => actions?.open_directory(path, true, false),
+          active: is_current,
+          history: is_history,
+        })
       );
     });
     return v;
