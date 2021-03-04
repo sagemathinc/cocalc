@@ -40,17 +40,7 @@ export const PathSegmentLink: React.FC<Props> = React.memo(
       }
     }
 
-    function style() {
-      // if (history) {
-      //   return { cursor: "pointer", color: "#c0c0c0" };
-      // } else if (active) {
-      //   return {
-      //     cursor: "pointer",
-      //     color: COLORS.BS_BLUE_BGRND,
-      //     fontWeight: "bold",
-      //   };
-      // }
-      // return { cursor: "pointer" };
+    function cls() {
       if (history) {
         return "cc-path-navigator-history";
       } else if (active) {
@@ -61,7 +51,7 @@ export const PathSegmentLink: React.FC<Props> = React.memo(
     }
 
     return (
-      <Breadcrumb.Item onClick={() => on_click(path)} className={style()}>
+      <Breadcrumb.Item onClick={() => on_click(path)} className={cls()}>
         {render_content()}
       </Breadcrumb.Item>
     );
