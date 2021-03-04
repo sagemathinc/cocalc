@@ -973,7 +973,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   open_directory(path, change_history = true, show_files = true): void {
     path = normalize(path);
-    this._ensure_project_is_open((err) => {
+    this._ensure_project_is_open(async (err) => {
       if (err) {
         // TODO!
         console.log(
@@ -1064,9 +1064,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const opts: FetchDirectoryListingOpts = defaults(opts_args, {
       path: store.get("current_path"),
-      force: false,
+      force: false, // WARNING: THINK VERY HARD BEFORE YOU USE force
       cb: undefined,
-    }); // WARNING: THINK VERY HARD BEFORE YOU USE THIS
+    });
 
     if (opts.force && opts.path != null) {
       // always update our interest.
@@ -2212,10 +2212,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
       return;
     }
+    this.fetch_directory_listing({ path: p });
     if (switch_over) {
       this.open_directory(p);
-    } else {
-      this.fetch_directory_listing();
     }
     // Log directory creation to the event log.  / at end of path says it is a directory.
     this.log({ event: "file_action", action: "created", files: [p + "/"] });
@@ -2779,6 +2778,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       project_id: this.project_id,
       command: "mkdir",
       args: ["-p", path],
+    });
+    // WARNING: If we don't do this sync, the
+    // create_folder/open_directory code gets messed up
+    // (with the backend watcher stuff) and the directory
+    // gets stuck "Loading...".  Anyway, this is a good idea
+    // to ensure the directory is fully created and usable.
+    // And no, I don't like having to do this.
+    await webapp_client.exec({
+      project_id: this.project_id,
+      command: "sync",
     });
   }
 
