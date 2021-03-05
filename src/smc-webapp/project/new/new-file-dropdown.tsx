@@ -3,10 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
-import { Icon } from "../../r_misc";
-import { SplitButton, MenuItem } from "react-bootstrap";
+import { React } from "../../app-framework";
+import { Button } from "antd";
+import { Icon, MenuItem, DropdownMenu } from "../../r_misc";
 import { file_associations } from "../../file-associations";
+import { COLORS } from "smc-util/theme";
 import * as misc from "smc-util/misc";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -16,65 +17,37 @@ interface Props {
   create_file: (ext?: string) => void;
 }
 
-const file_type_list = function (list: string[], exclude: boolean): string[] {
-  const extensions: string[] = [];
-  const file_types_so_far = {};
-  for (const ext of list) {
-    if (!ext) {
-      continue;
-    }
-    const data = file_associations[ext];
-    if (exclude && data.exclude_from_menu) {
-      continue;
-    }
-    if (data.name != undefined && !file_types_so_far[data.name]) {
-      file_types_so_far[data.name] = true;
-      extensions.push(ext);
-    }
-  }
-  return extensions;
-};
+export const NewFileDropdown: React.FC<Props> = React.memo((props: Props) => {
+  const { create_file } = props;
 
-function FileDropDownItem({
-  ext,
-  on_select,
-}: {
-  ext: string;
-  on_select: () => void;
-}): JSX.Element {
-  const data = file_options("x." + ext);
-  const text = (
-    <>
-      <span style={{ textTransform: "capitalize" }}>{data.name}</span>
-      <span style={{ color: "#666" }}>(.{ext})</span>
-    </>
-  );
-  return (
-    <MenuItem className={"dropdown-menu-left"} onSelect={on_select}>
-      <Icon name={data.icon} /> {text}
-    </MenuItem>
-  );
-}
+  const new_file_button_types = React.useMemo((): string[] => {
+    const list = misc.keys(file_associations).sort();
+    const extensions: string[] = [];
+    const file_types_so_far = {};
+    for (const ext of list) {
+      if (!ext) continue;
+      const data = file_associations[ext];
+      if (data.exclude_from_menu) continue;
+      if (data.name != undefined && !file_types_so_far[data.name]) {
+        file_types_so_far[data.name] = true;
+        extensions.push(ext);
+      }
+    }
+    return extensions;
+  }, misc.keys(file_associations));
 
-export const NewFileDropdown = React.memo(function NewFileDropdown({
-  create_file,
-}: Props) {
-  const new_file_button_types = file_type_list(
-    misc.keys(file_associations).sort(),
-    true
-  );
-
-  const dropdown_buttons: JSX.Element[] = [];
-  for (const i in new_file_button_types) {
-    const ext = new_file_button_types[i];
-    dropdown_buttons.push(
-      <FileDropDownItem
-        key={i}
-        ext={ext}
-        on_select={(): void => {
-          create_file(ext);
-        }}
-      />
+  function dropdown_item(ext: string) {
+    const data = file_options("x." + ext);
+    const text = (
+      <>
+        <span style={{ textTransform: "capitalize" }}>{data.name}</span>{" "}
+        <span style={{ color: COLORS.GRAY }}>(.{ext})</span>
+      </>
+    );
+    return (
+      <MenuItem className={"dropdown-menu-left"} key={ext}>
+        <Icon name={data.icon} /> {text}
+      </MenuItem>
     );
   }
 
@@ -83,19 +56,17 @@ export const NewFileDropdown = React.memo(function NewFileDropdown({
       className={"pull-right dropdown-splitbutton-left"}
       style={{ marginRight: "5px" }}
     >
-      <SplitButton
-        id={"new_file_dropdown"}
-        title={
+      <Button.Group>
+        <Button onClick={() => create_file()}>
           <span>
             <Icon name="file" /> More file types...
           </span>
-        }
-        onClick={(): void => {
-          create_file();
-        }}
-      >
-        {dropdown_buttons}
-      </SplitButton>
+        </Button>
+
+        <DropdownMenu onClick={(ext) => create_file(ext)} button={true}>
+          {new_file_button_types.map(dropdown_item)}
+        </DropdownMenu>
+      </Button.Group>
     </span>
   );
 });

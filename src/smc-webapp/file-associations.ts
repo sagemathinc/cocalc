@@ -153,6 +153,7 @@ file_associations["noext-dockerfile"] = {
   icon: "fa-ship",
   opts: { mode: "dockerfile", indent_unit: 2, tab_size: 2 },
   name: "Dockerfile",
+  exclude_from_menu: true,
 };
 
 file_associations["tex"] = {
