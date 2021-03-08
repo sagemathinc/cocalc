@@ -12,8 +12,8 @@ between them.  I think this is acceptable, since it is unlikely
 for people to do that.
 */
 
-import { React, Component, Rendered } from "../../app-framework";
-import { DropdownButton, MenuItem } from "react-bootstrap";
+import { React } from "../../app-framework";
+import { MenuItem, DropdownMenu } from "../../r_misc";
 
 import { LICENSES } from "./licenses";
 
@@ -23,23 +23,18 @@ interface Props {
   disabled?: boolean;
 }
 
-interface State {
-  license: string;
-}
+export const License: React.FC<Props> = React.memo((props: Props) => {
+  const { license, set_license, disabled = false } = props;
 
-export class License extends Component<Props, State> {
-  constructor(props, state) {
-    super(props, state);
-    this.state = { license: props.license };
+  const [sel_license, set_sel_license] = React.useState(license);
+
+  function select(license: string): void {
+    set_sel_license(license);
+    set_license(license);
   }
 
-  private select(license: string): void {
-    this.setState({ license });
-    this.props.set_license(license);
-  }
-
-  private displayed_license(): string {
-    const x = LICENSES[this.state.license];
+  function displayed_license(): string {
+    const x = LICENSES[sel_license];
     if (x == null) {
       // corrupt data?
       return LICENSES["other"];
@@ -48,24 +43,23 @@ export class License extends Component<Props, State> {
     }
   }
 
-  public render(): Rendered {
-    const v: Rendered[] = [];
-    for (const key in LICENSES) {
-      v.push(
-        <MenuItem key={key} eventKey={key} active={key === this.state.license}>
-          {LICENSES[key]}
-        </MenuItem>
-      );
-    }
-    return (
-      <DropdownButton
-        bsStyle={"default"}
-        title={this.displayed_license()}
-        id={"license-menu"}
-        onSelect={this.select.bind(this)}
-      >
-        {v}
-      </DropdownButton>
-    );
+  function render_items() {
+    return Object.keys(LICENSES).map((key) => (
+      <MenuItem key={key} eventKey={key} active={key === sel_license}>
+        {LICENSES[key]}
+      </MenuItem>
+    ));
   }
-}
+
+  return (
+    <DropdownMenu
+      title={displayed_license()}
+      id={"license-menu"}
+      onClick={select}
+      disabled={disabled}
+      button={true}
+    >
+      {render_items()}
+    </DropdownMenu>
+  );
+});
