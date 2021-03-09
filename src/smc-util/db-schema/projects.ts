@@ -394,3 +394,76 @@ Table({
     invite_requests: true,
   }, // {account_id:{timestamp:?, message:?}, ...}
 });
+
+/*
+Table to get/set the datastore config in addons.
+
+The main idea is to set/update/delete entries in the dict addons.datastore.[key] = {...}
+*/
+Table({
+  name: "project_datastore",
+  rules: {
+    virtual: "projects",
+    primary_key: "project_id",
+    user_query: {
+      set: {
+        fields: {
+          project_id: true,
+          addons: true,
+        },
+        async instead_of_change(
+          _db,
+          _old_value,
+          new_val,
+          account_id,
+          cb
+        ): Promise<void> {
+          try {
+            // query should set addons.datastore.[new key] = config, such that we see here
+            // new_val = {"project_id":"...","addons":{"datastore":{"key3":{"type":"xxx", ...}}}}
+            // which will be merged into the existing addons.datastore dict
+            // to delete an entry, set addons.datastore.[existing key] = null
+            // await db.project_datastore_set(new_val.project_id, new_val.addons.datastore)
+            console.log("project_datastore::set", JSON.stringify(new_val));
+            cb();
+          } catch (err) {
+            cb(err);
+          }
+        },
+      },
+      get: {
+        fields: {
+          project_id: true,
+          addons: true,
+        },
+        async instead_of_query(_db, opts, cb): Promise<void> {
+          try {
+            if (opts.multi) {
+              throw Error("'multi' is not implemented");
+            }
+            try {
+              console.log("project_storage::get", JSON.stringify(opts));
+              // const result = await database....
+              // this is the structure we want to send back
+              // important: the config dicts for each key must not expose secret credentials!
+              // check if opts.query.addons === null ?!
+              // await db.project_datastore_get(opts.query.project_id)
+              const fake_data = {
+                addons: { datastore: { key1: { type: 1 }, key2: { type: 2 } } },
+              };
+              cb(undefined, fake_data);
+            } catch (err) {
+              cb(err);
+            }
+          } catch (err) {
+            cb(err);
+          }
+        },
+      },
+    },
+  },
+  fields: {
+    project_id: true,
+    addons: true,
+  },
+});
