@@ -23,6 +23,7 @@ import { Customer, ProjectMap, UserMap } from "smc-webapp/todo-types";
 import { Project } from "./types";
 import { SSHPanel } from "./ssh";
 import { Environment } from "./environment";
+import { Datastore } from "./datastore";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import { SettingBox } from "../../r_misc";
 import { AddCollaborators } from "../../collaborators";
@@ -216,6 +217,7 @@ export const Body = rclass<ReactProps>(
                 key="environment"
                 project_id={this.props.project_id}
               />
+              <Datastore key="datastore" project_id={this.props.project_id} />
               <ProjectCapabilities
                 name={this.props.name}
                 key={"capabilities"}

@@ -423,8 +423,8 @@ Table({
             // new_val = {"project_id":"...","addons":{"datastore":{"key3":{"type":"xxx", ...}}}}
             // which will be merged into the existing addons.datastore dict
             // to delete an entry, set addons.datastore.[existing key] = null
-            // await db.project_datastore_set(new_val.project_id, new_val.addons.datastore)
-            console.log("project_datastore::set", JSON.stringify(new_val));
+            // await db.project_datastore_set(account_id, new_val.project_id, new_val.addons.datastore)
+            console.log("project_datastore::set", JSON.stringify(new_val.addons.datastore), account_id, new_val.project_id);
             cb();
           } catch (err) {
             cb(err);

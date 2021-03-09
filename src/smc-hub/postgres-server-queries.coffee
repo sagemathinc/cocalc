@@ -45,6 +45,7 @@ collab = require('./postgres/collab')
 {matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
 {sync_site_license_subscriptions} = require('./postgres/site-license/sync-subscriptions')
 {add_license_to_project, remove_license_from_project} = require('./postgres/site-license/add-remove')
+{project_datastore_set, project_datastore_get} = require('./postgres/project-queries')
 
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
@@ -3119,6 +3120,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     site_license_public_info: (license_id) =>
         return await site_license_public_info(@, license_id)
 
+    # async function
     site_license_manager_set: (license_id, info) =>
         return await site_license_manager_set(@, license_id, info)
 
@@ -3126,18 +3128,29 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     update_site_license_usage_log: =>
         return await update_site_license_usage_log(@)
 
-        # async function
+    # async function
     matching_site_licenses: (...args) =>
         return await matching_site_licenses(@, ...args)
 
+    # async function
     manager_site_licenses: (...args) =>
         return await manager_site_licenses(@, ...args)
 
+    # async function
     add_license_to_project: (...args) =>
         return await add_license_to_project(@, ...args)
 
+    # async function
     remove_license_from_project: (...args) =>
         return await remove_license_from_project(@, ...args)
+
+    # async function
+    project_datastore_set: (...args) =>
+        return await project_datastore_set(@, ...args)
+
+    # async function
+    project_datastore_get: (...args) =>
+        return await project_datastore_get(@, ...args)
 
     # async function
     permanently_unlink_all_deleted_projects_of_user: (account_id_or_email_address) =>

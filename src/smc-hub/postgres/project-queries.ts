@@ -37,3 +37,15 @@ export async function project_has_network_access(
   }
   return false;
 }
+
+export async function project_datastore_set(
+  _db: PostgreSQL,
+  _project_id: string
+): Promise<void> {}
+
+export async function project_datastore_get(
+  _db: PostgreSQL,
+  _project_id: string
+): Promise<any> {
+  return {};
+}
