@@ -1986,8 +1986,20 @@ export class SyncDoc extends EventEmitter {
       // so we do it (unless of course syncstring is still
       // being initialized).
       try {
+        // Uncomment the following to test simulating a
+        // random failure in save_to_disk:
+        // if (Math.random() < 0.5) throw Error("CHAOS MONKEY!"); // FOR TESTING ONLY.
         await this.save_to_disk();
       } catch (err) {
+        // CRITICAL: we must unset this.syncstring_save_state (and set the save state);
+        // otherwise, it stays as "requested" and this if statement would never get
+        // run again, thus completely breaking saving this doc to disk.
+        // It is normal behavior that *sometimes* this.save_to_disk might
+        // throw an exception, e.g., if the file is temporarily deleted
+        // or save it called before everything is initialized, or file
+        // is temporarily set readonly, or maybe there is a filesystem error.
+        this.syncstring_save_state = "done";
+        await this.set_save({ state: "done", error: `${err}` });
         dbg(`ERROR saving to disk in handle_syncstring_save_state-- ${err}`);
       }
     } else {
@@ -2360,16 +2372,11 @@ export class SyncDoc extends EventEmitter {
     const dbg = this.dbg("save_to_disk");
     if (this.client.is_deleted(this.path, this.project_id)) {
       dbg("not saving to disk because deleted");
+      await this.set_save({ state: "done", error: "" });
       return;
     }
+
     dbg("initiating the save");
-    /* dbg(`live="${this.to_str()}"`);
-    this.show_history({log:dbg});
-    const x = this.patches_table.get();
-    if (x != null) {
-      dbg(`patches_table=${JSON.stringify(x.toJS())}`);
-    }
-    */
     if (!this.has_unsaved_changes()) {
       dbg("no unsaved changes, so don't save");
       // CRITICAL: this optimization is assumed by

@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// THIS IS STILL JUST A STUB.
+
 import {
   NBGraderAPIOptions,
   NBGraderAPIResponse,
@@ -13,7 +15,7 @@ export async function nbgrader(
   logger,
   opts: NBGraderAPIOptions
 ): Promise<NBGraderAPIResponse> {
-  logger.debug("nbgrader", opts);
+  logger.debug("nbgrader STUB", opts);
   client = client;
-  return { output: opts };
+  return { output: opts, ids: [] };
 }
