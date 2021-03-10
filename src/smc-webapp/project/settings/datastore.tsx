@@ -15,7 +15,7 @@ import {
   DeleteOutlined,
   PlusCircleOutlined,
 } from "@ant-design/icons";
-import { Button, Table, Typography } from "antd";
+import { Button, Table, Typography, Form, Input, Checkbox } from "antd";
 import { Space as AntdSpace } from "antd";
 import { ErrorDisplay, SettingBox, Space } from "../../r_misc";
 // import * as jsonic from "jsonic";
@@ -28,6 +28,7 @@ interface ConfigCommon {
 
 interface ConfigGCS extends ConfigCommon {
   type: "gcs";
+  bucket: string;
 }
 
 interface ConfigS3 extends ConfigCommon {
@@ -45,12 +46,14 @@ function raw2configs(raw: { [key: string]: Config }): Config[] {
     if (v.type === "s3") {
       v.about = `Key ID: ${v.keyid}\nBucket: ${v.bucket}`;
     } else {
-      v.about = "";
+      v.about = `Bucket: ${v.bucket}`;
     }
     ret.push(v);
   }
   return ret;
 }
+
+const READONLY_DEFAULT = false;
 
 interface Props {
   project_id: string;
@@ -73,23 +76,34 @@ export const Datastore: React.FC<Props> = (props: Props) => {
   //   return to_json(env?.toJS()) == editing;
   // }, [env, editing]);
   const [configs, set_configs] = useState<Config[]>([]);
+  const [form_readonly, set_form_readonly] = useState<boolean>(
+    READONLY_DEFAULT
+  );
+  const [form_gcs] = Form.useForm();
+  const [form_s3] = Form.useForm();
 
   async function add(type: Config["type"]): Promise<void> {
     if (type == "s3") {
       set_new_config({ type: "s3", key: "", keyid: "", bucket: "" });
     } else if (type == "gcs") {
-      set_new_config({ type: "gcs", key: "" });
+      set_new_config({ type: "gcs", key: "", bucket: "" });
     }
     set_edited(true);
+    set_form_readonly(READONLY_DEFAULT);
   }
 
-  const instructions = edited ? (
-    <Typography.Text type="secondary">
-      Restart your project for these changes to take effect.
-    </Typography.Text>
-  ) : (
-    ""
-  );
+  function render_instructions() {
+    if (!edited) return null;
+
+    return (
+      <>
+        <Space />
+        <Typography.Text type="secondary">
+          Restart your project for these changes to take effect.
+        </Typography.Text>
+      </>
+    );
+  }
 
   async function get() {
     const query = {
@@ -155,12 +169,9 @@ export const Datastore: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_controlls() {
+  function render_controls() {
     return (
-      <AntdSpace>
-        <Button icon={<ReloadOutlined />} onClick={reload}>
-          Reload
-        </Button>
+      <AntdSpace style={{ marginBottom: "10px" }}>
         <Button
           icon={<PlusCircleOutlined />}
           onClick={() => add("gcs")}
@@ -169,6 +180,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         >
           GCS
         </Button>
+
         <Button
           icon={<PlusCircleOutlined />}
           onClick={() => add("s3")}
@@ -177,23 +189,109 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         >
           AWS S3
         </Button>
+
+        <Button icon={<ReloadOutlined />} onClick={reload}>
+          Reload
+        </Button>
       </AntdSpace>
     );
   }
 
-  function render_new_gcs() {
+  const form_layout = { labelCol: { span: 4 }, wrapperCol: { span: 14 } };
+  const form_layout_tail = {
+    wrapperCol: { offset: 4, span: 14 },
+  };
+
+  function render_form_bottom() {
     return (
-      <pre style={{ fontSize: "80%" }}>
-        {JSON.stringify(new_config, null, 2)}
-      </pre>
+      <>
+        <Form.Item label="Read-only" name="readonly">
+          <Checkbox
+            checked={form_readonly}
+            onChange={(e) => set_form_readonly(e.target.checked)}
+          />
+        </Form.Item>
+        <Form.Item {...form_layout_tail}>
+          <AntdSpace>
+            <Button type="primary" htmlType="submit">
+              Save
+            </Button>
+            <Button onClick={() => set_new_config(null)}>Cancel</Button>
+          </AntdSpace>
+        </Form.Item>
+      </>
+    );
+  }
+
+  function render_form_name() {
+    return (
+      <Form.Item
+        label="Name"
+        name="name"
+        required
+        tooltip="Name for mounting it, must be lowercase alphanumeric."
+      >
+        <Input placeholder="" />
+      </Form.Item>
+    );
+  }
+
+  function render_new_gcs() {
+    const creds_help =
+      "JSON formatted content of the service account credentials...";
+    return (
+      <Form
+        {...form_layout}
+        form={form_gcs}
+        onFinish={(values: any) => {
+          values.readonly = form_readonly;
+          window.alert(`save ${JSON.stringify(values)}`);
+        }}
+      >
+        {render_form_name()}
+        <Form.Item label="Bucket" name="bucket" required tooltip="The bucket">
+          <Input placeholder="" />
+        </Form.Item>
+        <Form.Item
+          label="Credentials"
+          name="secret"
+          required
+          tooltip={creds_help}
+        >
+          <Input.TextArea rows={5} placeholder={creds_help} />
+        </Form.Item>
+        {render_form_bottom()}
+      </Form>
     );
   }
 
   function render_new_s3() {
     return (
-      <pre style={{ fontSize: "80%" }}>
-        {JSON.stringify(new_config, null, 2)}
-      </pre>
+      <Form
+        {...form_layout}
+        form={form_s3}
+        onFinish={(values: any) => {
+          values.readonly = form_readonly;
+          window.alert(`save ${JSON.stringify(values)}`);
+        }}
+      >
+        {render_form_name()}
+        <Form.Item label="Bucket" name="bucket" required tooltip="The bucket">
+          <Input placeholder="" />
+        </Form.Item>
+        <Form.Item label="Key ID" name="keyid" required tooltip="The Key ID">
+          <Input placeholder="" />
+        </Form.Item>
+        <Form.Item
+          label="Secret"
+          name="secret"
+          required
+          tooltip="The secret key"
+        >
+          <Input placeholder="" />
+        </Form.Item>
+        {render_form_bottom()}
+      </Form>
     );
   }
 
@@ -203,15 +301,6 @@ export const Datastore: React.FC<Props> = (props: Props) => {
       <>
         {new_config.type === "s3" && render_new_s3()}
         {new_config.type === "gcs" && render_new_gcs()}
-        <AntdSpace>
-          <Button
-            type="primary"
-            onClick={() => window.alert(`save ${JSON.stringify(new_config)}`)}
-          >
-            Save
-          </Button>
-          <Button onClick={() => set_new_config(null)}>Cancel</Button>
-        </AntdSpace>
       </>
     );
   }
@@ -221,10 +310,9 @@ export const Datastore: React.FC<Props> = (props: Props) => {
       <>
         {false && <pre>{JSON.stringify(configs, null, 2)}</pre>}
         {false && <Space />}
-        {render_controlls()}
-        <Space />
+        {render_controls()}
         {render_new_config()}
-        {instructions}
+        {render_instructions()}
         <Space />
         {render_list()}
       </>
