@@ -217,7 +217,9 @@ export const Body = rclass<ReactProps>(
                 key="environment"
                 project_id={this.props.project_id}
               />
-              <Datastore key="datastore" project_id={this.props.project_id} />
+              {this.props.kucalc === KUCALC_COCALC_COM && (
+                <Datastore key="datastore" project_id={this.props.project_id} />
+              )}
               <ProjectCapabilities
                 name={this.props.name}
                 key={"capabilities"}

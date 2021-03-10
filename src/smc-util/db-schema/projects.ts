@@ -424,7 +424,12 @@ Table({
             // which will be merged into the existing addons.datastore dict
             // to delete an entry, set addons.datastore.[existing key] = null
             // await db.project_datastore_set(account_id, new_val.project_id, new_val.addons.datastore)
-            console.log("project_datastore::set", JSON.stringify(new_val.addons.datastore), account_id, new_val.project_id);
+            console.log(
+              "project_datastore::set",
+              JSON.stringify(new_val.addons.datastore),
+              account_id,
+              new_val.project_id
+            );
             cb();
           } catch (err) {
             cb(err);
@@ -436,22 +441,19 @@ Table({
           project_id: true,
           addons: true,
         },
-        async instead_of_query(_db, opts, cb): Promise<void> {
+        async instead_of_query(db, opts, cb): Promise<void> {
           try {
             if (opts.multi) {
               throw Error("'multi' is not implemented");
             }
             try {
-              console.log("project_storage::get", JSON.stringify(opts));
-              // const result = await database....
-              // this is the structure we want to send back
               // important: the config dicts for each key must not expose secret credentials!
               // check if opts.query.addons === null ?!
-              // await db.project_datastore_get(opts.query.project_id)
-              const fake_data = {
-                addons: { datastore: { key1: { type: 1 }, key2: { type: 2 } } },
-              };
-              cb(undefined, fake_data);
+              const data = await db.project_datastore_get(
+                opts.account_id,
+                opts.query.project_id
+              );
+              cb(undefined, data);
             } catch (err) {
               cb(err);
             }

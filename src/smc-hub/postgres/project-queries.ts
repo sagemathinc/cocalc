@@ -3,9 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { omit } from "lodash";
 import { PostgreSQL } from "./types";
-
 import { callback2 } from "../smc-util/async-utils";
+import { query } from "./query";
 
 export async function project_has_network_access(
   db: PostgreSQL,
@@ -44,8 +45,30 @@ export async function project_datastore_set(
 ): Promise<void> {}
 
 export async function project_datastore_get(
-  _db: PostgreSQL,
-  _project_id: string
+  db: PostgreSQL,
+  account_id: string,
+  project_id: string
 ): Promise<any> {
-  return {};
+  try {
+    const q: { users: any; addons: any } = await query({
+      db,
+      table: "projects",
+      select: ["addons", "users"],
+      where: { project_id },
+      one: true,
+    });
+    // TODO is this test necessary? given this comes from db-schema/projects.ts ?
+    if (q.users[account_id] == null) throw Error(`access denied`);
+    const ds = {};
+    if (q.addons.datastore != null) {
+      for (const [k, v] of Object.entries(q.addons.datastore)) {
+        ds[k] = omit(v, "secret");
+      }
+    }
+    return {
+      addons: { datastore: ds },
+    };
+  } catch (err) {
+    return { type: "error", error: err };
+  }
 }
