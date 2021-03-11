@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
@@ -16,14 +16,16 @@ import {
   PlusCircleOutlined,
 } from "@ant-design/icons";
 import { Button, Table, Typography, Form, Input, Checkbox } from "antd";
-import { Space as AntdSpace } from "antd";
+import { Space as AntdSpace, Alert, Switch } from "antd";
 import { ErrorDisplay, SettingBox, Space } from "../../r_misc";
+import { unreachable } from "smc-util/misc";
 // import * as jsonic from "jsonic";
 
 interface ConfigCommon {
-  key: string; // "key" for Antd table
-  about?: string;
+  key: string; // [a-z0-9-_]; "key" for Antd table, otherwise "name"
+  about?: string; // populated with a string for the user to see
   readonly?: boolean;
+  mountpoint?: string; // [a-z0-9-_]
 }
 
 interface ConfigGCS extends ConfigCommon {
@@ -37,16 +39,49 @@ interface ConfigS3 extends ConfigCommon {
   bucket: string;
 }
 
-type Config = ConfigS3 | ConfigGCS;
+interface ConfigSSHFS extends ConfigCommon {
+  type: "sshfs";
+  user: string;
+  host: string;
+  path?: string; // remote path, defaults to /home/user
+}
 
+type Config = ConfigS3 | ConfigGCS | ConfigSSHFS;
+
+const rule_required = [
+  { required: true, message: "This is a required field." },
+];
+
+const rule_alphanum = [
+  rule_required[0],
+  {
+    pattern: /^[0-9a-z-_.]+$/,
+    message:
+      'Must be lowercase alphanumeric and no spaces, i.e. a-z, 0-9, "-", "." and "_" are allowed.',
+  },
+];
+
+// convert the configuration from the DB to fields for the table
 function raw2configs(raw: { [key: string]: Config }): Config[] {
   const ret: Config[] = [];
   for (const [k, v] of Object.entries(raw)) {
     v.key = k;
-    if (v.type === "s3") {
-      v.about = `Key ID: ${v.keyid}\nBucket: ${v.bucket}`;
-    } else {
-      v.about = `Bucket: ${v.bucket}`;
+    switch (v.type) {
+      case "s3":
+        v.about = `Key ID: ${v.keyid}\nBucket: ${v.bucket}`;
+        break;
+      case "gcs":
+        v.about = `Bucket: ${v.bucket}`;
+        break;
+      case "sshfs":
+        v.about = [
+          `User: ${v.user}`,
+          `Host: ${v.host}`,
+          `Path: ${v.path ?? ""}`,
+        ].join("\n");
+        break;
+      default:
+        unreachable(v);
     }
     ret.push(v);
   }
@@ -68,6 +103,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
   const [loading, set_loading] = useState<boolean>(false);
   const [error, set_error] = useState<string>("");
   const [new_config, set_new_config] = useState<Config | null>(null);
+  const [show_help, set_show_help] = useState<boolean>(false);
   const editing = new_config != null;
   // const actions = useActions({ project_id });
   const is_mounted_ref = useIsMountedRef();
@@ -81,12 +117,27 @@ export const Datastore: React.FC<Props> = (props: Props) => {
   );
   const [form_gcs] = Form.useForm();
   const [form_s3] = Form.useForm();
+  const [form_sshfs] = Form.useForm();
 
   async function add(type: Config["type"]): Promise<void> {
-    if (type == "s3") {
-      set_new_config({ type: "s3", key: "", keyid: "", bucket: "" });
-    } else if (type == "gcs") {
-      set_new_config({ type: "gcs", key: "", bucket: "" });
+    switch (type) {
+      case "s3":
+        set_new_config({ type: "s3", key: "", keyid: "", bucket: "" });
+        break;
+      case "gcs":
+        set_new_config({ type: "gcs", key: "", bucket: "" });
+        break;
+      case "sshfs":
+        set_new_config({
+          type: "sshfs",
+          key: "",
+          user: "",
+          host: "",
+          path: "",
+        });
+        break;
+      default:
+        unreachable(type);
     }
     set_edited(true);
     set_form_readonly(READONLY_DEFAULT);
@@ -96,12 +147,14 @@ export const Datastore: React.FC<Props> = (props: Props) => {
     if (!edited) return null;
 
     return (
-      <>
-        <Space />
-        <Typography.Text type="secondary">
-          Restart your project for these changes to take effect.
-        </Typography.Text>
-      </>
+      <Alert
+        type={"warning"}
+        message={
+          <Typography.Text type="warning">
+            Restart your project for these changes to take effect.
+          </Typography.Text>
+        }
+      />
     );
   }
 
@@ -174,6 +227,15 @@ export const Datastore: React.FC<Props> = (props: Props) => {
       <AntdSpace style={{ marginBottom: "10px" }}>
         <Button
           icon={<PlusCircleOutlined />}
+          onClick={() => add("sshfs")}
+          type={"primary"}
+          disabled={editing}
+        >
+          SSHFS
+        </Button>
+
+        <Button
+          icon={<PlusCircleOutlined />}
           onClick={() => add("gcs")}
           type={"primary"}
           disabled={editing}
@@ -190,16 +252,30 @@ export const Datastore: React.FC<Props> = (props: Props) => {
           AWS S3
         </Button>
 
-        <Button icon={<ReloadOutlined />} onClick={reload}>
-          Reload
-        </Button>
+        <Form.Item label="Help:" style={{ marginBottom: 0 }}>
+          <Switch checked={show_help} onChange={(val) => set_show_help(val)} />
+        </Form.Item>
       </AntdSpace>
     );
   }
 
-  const form_layout = { labelCol: { span: 4 }, wrapperCol: { span: 14 } };
+  function render_help() {
+    if (!show_help) return;
+    return (
+      <Alert
+        type="info"
+        message={
+          <div>
+            <h1>Help</h1>help help
+          </div>
+        }
+      />
+    );
+  }
+
+  const form_layout = { labelCol: { span: 6 }, wrapperCol: { span: 18 } };
   const form_layout_tail = {
-    wrapperCol: { offset: 4, span: 14 },
+    wrapperCol: { offset: 6, span: 18 },
   };
 
   function render_form_bottom() {
@@ -228,70 +304,135 @@ export const Datastore: React.FC<Props> = (props: Props) => {
       <Form.Item
         label="Name"
         name="name"
-        required
-        tooltip="Name for mounting it, must be lowercase alphanumeric."
+        rules={rule_alphanum}
+        tooltip={"Name of the datastore."}
       >
         <Input placeholder="" />
       </Form.Item>
     );
   }
 
-  function render_new_gcs() {
-    const creds_help =
-      "JSON formatted content of the service account credentials...";
+  function ConfigForm(props) {
+    // failed err looks like that:
+    // {"values":{"name":""},
+    //  "errorFields":[
+    //    {"name":["name"],"errors":["Name, must be lowercase alphanumeric, [a-z0-9-_]."]},
+    //    {"name":["bucket"],"errors":["Name of the S3 bucket"]}
+    // ],"outOfDate":false}
     return (
       <Form
         {...form_layout}
-        form={form_gcs}
+        form={props.form}
         onFinish={(values: any) => {
           values.readonly = form_readonly;
-          window.alert(`save ${JSON.stringify(values)}`);
+          window.alert(`save ${props.type} ${JSON.stringify(values)}`);
         }}
+        onFinishFailed={(err) =>
+          window.alert(`Form problem: ${JSON.stringify(err)}`)
+        }
       >
+        {props.children}
+      </Form>
+    );
+  }
+
+  function render_new_gcs() {
+    const creds_help =
+      "JSON formatted content of the service account credentials...";
+    const msg_bucket = "Name of the S3 bucket";
+    return (
+      <ConfigForm form={form_gcs} type={"gcs"}>
         {render_form_name()}
-        <Form.Item label="Bucket" name="bucket" required tooltip="The bucket">
-          <Input placeholder="" />
+        <Form.Item
+          label="Bucket"
+          name="bucket"
+          rules={rule_alphanum}
+          tooltip={msg_bucket}
+        >
+          <Input placeholder="name-of-bucket-01" />
         </Form.Item>
         <Form.Item
           label="Credentials"
           name="secret"
-          required
+          rules={rule_required}
           tooltip={creds_help}
         >
           <Input.TextArea rows={5} placeholder={creds_help} />
         </Form.Item>
         {render_form_bottom()}
-      </Form>
+      </ConfigForm>
     );
   }
 
   function render_new_s3() {
     return (
-      <Form
-        {...form_layout}
-        form={form_s3}
-        onFinish={(values: any) => {
-          values.readonly = form_readonly;
-          window.alert(`save ${JSON.stringify(values)}`);
-        }}
-      >
+      <ConfigForm form={form_s3} type={"s3"}>
         {render_form_name()}
-        <Form.Item label="Bucket" name="bucket" required tooltip="The bucket">
-          <Input placeholder="" />
+        <Form.Item
+          label="Bucket"
+          name="bucket"
+          rules={rule_alphanum}
+          tooltip="The bucket"
+        >
+          <Input placeholder="name-of-bucket-01" />
         </Form.Item>
-        <Form.Item label="Key ID" name="keyid" required tooltip="The Key ID">
-          <Input placeholder="" />
+        <Form.Item
+          label="Key ID"
+          name="keyid"
+          rules={rule_required}
+          tooltip="The Key ID"
+        >
+          <Input placeholder="AFiwFw892...." />
         </Form.Item>
         <Form.Item
           label="Secret"
           name="secret"
-          required
+          rules={rule_required}
           tooltip="The secret key"
+        >
+          <Input placeholder="fie$kf2&ifw..." />
+        </Form.Item>
+        {render_form_bottom()}
+      </ConfigForm>
+    );
+  }
+
+  function render_new_sshfs() {
+    const pk_help =
+      "This must be a passphrase-less private key, which allows to connect to the remove OpenSSH server.";
+    const pk_example =
+      "-----BEGIN OPENSSH PRIVATE KEY-----\naNmQfie...\n...\n...\n-----END OPENSSH PRIVATE KEY-----";
+    return (
+      <ConfigForm form={form_sshfs} type={"sshfs"}>
+        {render_form_name()}
+        <Form.Item
+          label="User"
+          name="user"
+          rules={rule_required}
+          tooltip="The username in [user]@[host]"
+        >
+          <Input placeholder="foo..." />
+        </Form.Item>
+        <Form.Item
+          label="Host"
+          name="host"
+          rules={rule_required}
+          tooltip="The host in [user]@[host]"
+        >
+          <Input placeholder="login.server.edu" />
+        </Form.Item>
+        <Form.Item
+          label="Path"
+          name="path"
+          tooltip="The remote path to mount, defaults to '/home/[user]'"
         >
           <Input placeholder="" />
         </Form.Item>
+        <Form.Item label="Private Key" name="secret" required tooltip={pk_help}>
+          <Input.TextArea rows={5} placeholder={pk_example} />
+        </Form.Item>
         {render_form_bottom()}
-      </Form>
+      </ConfigForm>
     );
   }
 
@@ -301,6 +442,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
       <>
         {new_config.type === "s3" && render_new_s3()}
         {new_config.type === "gcs" && render_new_gcs()}
+        {new_config.type === "sshfs" && render_new_sshfs()}
       </>
     );
   }
@@ -311,6 +453,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         {false && <pre>{JSON.stringify(configs, null, 2)}</pre>}
         {false && <Space />}
         {render_controls()}
+        {render_help()}
         {render_new_config()}
         {render_instructions()}
         <Space />
@@ -319,18 +462,28 @@ export const Datastore: React.FC<Props> = (props: Props) => {
     );
   }
 
-  return (
-    <SettingBox
-      title={
+  function render_title() {
+    return (
+      <>
         <span>
           Datastore
           <sup>
             <i>beta</i>
           </sup>
         </span>
-      }
-      icon="bars"
-    >
+        <Button
+          icon={<ReloadOutlined />}
+          onClick={reload}
+          style={{ float: "right", marginTop: "-7px" }}
+        >
+          Refresh
+        </Button>
+      </>
+    );
+  }
+
+  return (
+    <SettingBox title={render_title()} icon="database">
       {error != "" ? <ErrorDisplay error={error} /> : undefined}
       {render_body()}
     </SettingBox>
