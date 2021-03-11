@@ -45,7 +45,7 @@ collab = require('./postgres/collab')
 {matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
 {sync_site_license_subscriptions} = require('./postgres/site-license/sync-subscriptions')
 {add_license_to_project, remove_license_from_project} = require('./postgres/site-license/add-remove')
-{project_datastore_set, project_datastore_get} = require('./postgres/project-queries')
+{project_datastore_set, project_datastore_get, project_datastore_del} = require('./postgres/project-queries')
 
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
@@ -3151,6 +3151,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async function
     project_datastore_get: (...args) =>
         return await project_datastore_get(@, ...args)
+
+    # async function
+    project_datastore_del: (...args) =>
+        return await project_datastore_del(@, ...args)
 
     # async function
     permanently_unlink_all_deleted_projects_of_user: (account_id_or_email_address) =>

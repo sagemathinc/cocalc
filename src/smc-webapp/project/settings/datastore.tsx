@@ -14,15 +14,17 @@ import {
   ReloadOutlined,
   DeleteOutlined,
   PlusCircleOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import { Button, Table, Typography, Form, Input, Checkbox } from "antd";
-import { Space as AntdSpace, Alert, Switch } from "antd";
+import { Space as AntdSpace, Alert, Switch, Popconfirm } from "antd";
 import { ErrorDisplay, SettingBox, Space } from "../../r_misc";
 import { unreachable } from "smc-util/misc";
 // import * as jsonic from "jsonic";
 
 interface ConfigCommon {
-  key: string; // [a-z0-9-_]; "key" for Antd table, otherwise "name"
+  name: string; // [a-z0-9-_]
+  key?: string; // equal to name, for antd only
   about?: string; // populated with a string for the user to see
   readonly?: boolean;
   mountpoint?: string; // [a-z0-9-_]
@@ -62,10 +64,11 @@ const rule_alphanum = [
 ];
 
 // convert the configuration from the DB to fields for the table
-function raw2configs(raw: { [key: string]: Config }): Config[] {
+function raw2configs(raw: { [name: string]: Config }): Config[] {
   const ret: Config[] = [];
   for (const [k, v] of Object.entries(raw)) {
-    v.key = k;
+    v.name = k;
+    v.key = k; // for antd, to have unique rows
     switch (v.type) {
       case "s3":
         v.about = `Key ID: ${v.keyid}\nBucket: ${v.bucket}`;
@@ -122,15 +125,15 @@ export const Datastore: React.FC<Props> = (props: Props) => {
   async function add(type: Config["type"]): Promise<void> {
     switch (type) {
       case "s3":
-        set_new_config({ type: "s3", key: "", keyid: "", bucket: "" });
+        set_new_config({ type: "s3", name: "", keyid: "", bucket: "" });
         break;
       case "gcs":
-        set_new_config({ type: "gcs", key: "", bucket: "" });
+        set_new_config({ type: "gcs", name: "", bucket: "" });
         break;
       case "sshfs":
         set_new_config({
           type: "sshfs",
-          key: "",
+          name: "",
           user: "",
           host: "",
           path: "",
@@ -150,7 +153,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
       <Alert
         type={"warning"}
         message={
-          <Typography.Text type="warning">
+          <Typography.Text strong>
             Restart your project for these changes to take effect.
           </Typography.Text>
         }
@@ -158,6 +161,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
     );
   }
 
+  // retrieve all datastore configurations – post-processing in reload()
   async function get() {
     const query = {
       project_datastore: {
@@ -168,9 +172,47 @@ export const Datastore: React.FC<Props> = (props: Props) => {
     return (await webapp_client.query({ query })).query.project_datastore;
   }
 
+  // send the new data to the database
+  async function set(config: any) {
+    if (config.name == "delete") {
+      set_error(`Sorry, you can't name the datastore "delete"`);
+      return;
+    }
+    // the hub will process the config, we just have to do this here to send it
+    const query = {
+      project_datastore: {
+        project_id,
+        addons: { datastore: config },
+      },
+    };
+    const res = await webapp_client.query({ query });
+    if (res.event == "error") {
+      set_error(`Problem saving information: ${res.error}`);
+    } else {
+      set_new_config(null); // hide form
+      reload(); // refresh what we just saved ...
+    }
+  }
+
+  async function delete_config(name: string) {
+    const query = {
+      project_datastore: {
+        project_id,
+        addons: { datastore: { delete: name } },
+      },
+    };
+    const res = await webapp_client.query({ query });
+    if (res.event == "error") {
+      set_error(`Problem deleting: ${res.error}`);
+    } else {
+      reload(); // refresh what we just modified ...
+    }
+  }
+
   async function reload() {
     try {
       set_loading(true);
+      set_error("");
       const raw = await get();
       if (!is_mounted_ref.current) return;
       if (raw.type === "error") {
@@ -194,11 +236,29 @@ export const Datastore: React.FC<Props> = (props: Props) => {
     reload();
   }, []);
 
+  React.useEffect(() => {
+    if (new_config == null) return;
+    const conf = Object.assign({}, new_config);
+    switch (new_config.type) {
+      case "s3":
+        form_s3.setFieldsValue(conf);
+        break;
+      case "gcs":
+        form_gcs.setFieldsValue(conf);
+        break;
+      case "sshfs":
+        form_sshfs.setFieldsValue(conf);
+        break;
+      default:
+        unreachable(new_config);
+    }
+  }, [new_config]);
+
   function render_list() {
     return (
       <Table<Config> dataSource={configs} loading={loading} pagination={false}>
         <Table.Column<Config> key="type" title="Type" dataIndex="type" />
-        <Table.Column<Config> key="key" title="Name" dataIndex="key" />
+        <Table.Column<Config> key="name" title="Name" dataIndex="name" />
         <Table.Column<Config>
           key="about"
           title="About"
@@ -208,14 +268,24 @@ export const Datastore: React.FC<Props> = (props: Props) => {
           )}
         />
         <Table.Column<Config>
-          key="remove"
-          title="Remove"
-          dataIndex="remove"
+          key="actions"
+          title="Actions"
+          dataIndex="actions"
           render={(_, record) => (
-            <Button
-              onClick={() => window.alert(`remove ${record.key}`)}
-              icon={<DeleteOutlined />}
-            ></Button>
+            <AntdSpace>
+              <Button
+                onClick={() => set_new_config(record)}
+                icon={<EditOutlined />}
+              ></Button>
+              <Popconfirm
+                title={`Delete ${record.name}?`}
+                onConfirm={() => delete_config(record.name)}
+                okText="Yes"
+                cancelText="No"
+              >
+                <Button icon={<DeleteOutlined />}></Button>
+              </Popconfirm>
+            </AntdSpace>
           )}
         />
       </Table>
@@ -319,13 +389,16 @@ export const Datastore: React.FC<Props> = (props: Props) => {
     //    {"name":["name"],"errors":["Name, must be lowercase alphanumeric, [a-z0-9-_]."]},
     //    {"name":["bucket"],"errors":["Name of the S3 bucket"]}
     // ],"outOfDate":false}
+    //
+    // save {"name":"n","user":"asdf","host":"host","path":"/my/path","secret":"private\nkey","readonly":false}
     return (
       <Form
         {...form_layout}
         form={props.form}
         onFinish={(values: any) => {
           values.readonly = form_readonly;
-          window.alert(`save ${props.type} ${JSON.stringify(values)}`);
+          values.type = props.type;
+          set(values);
         }}
         onFinishFailed={(err) =>
           window.alert(`Form problem: ${JSON.stringify(err)}`)
@@ -422,13 +495,18 @@ export const Datastore: React.FC<Props> = (props: Props) => {
           <Input placeholder="login.server.edu" />
         </Form.Item>
         <Form.Item
-          label="Path"
+          label="Remote path"
           name="path"
-          tooltip="The remote path to mount, defaults to '/home/[user]'"
+          tooltip="The full remote path to mount, defaults to '/home/[user]'"
         >
           <Input placeholder="" />
         </Form.Item>
-        <Form.Item label="Private Key" name="secret" required tooltip={pk_help}>
+        <Form.Item
+          label="Private Key"
+          name="secret"
+          rules={rule_required}
+          tooltip={pk_help}
+        >
           <Input.TextArea rows={5} placeholder={pk_example} />
         </Form.Item>
         {render_form_bottom()}
