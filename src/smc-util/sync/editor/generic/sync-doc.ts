@@ -241,6 +241,11 @@ export class SyncDoc extends EventEmitter {
     }
     this._from_str = opts.from_str;
 
+    // Initialize to time when we create the syncstring, so we don't
+    // see our own cursor when we refresh the browser (before we move
+    // to update this).
+    this.cursor_last_time = this.client?.server_time();
+
     reuse_in_flight_methods(this, [
       "save",
       "save_to_disk",
