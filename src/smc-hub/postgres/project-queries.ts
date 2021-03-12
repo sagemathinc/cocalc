@@ -9,6 +9,8 @@ import { callback2 } from "../smc-util/async-utils";
 import { query } from "./query";
 import * as debug from "debug";
 const L = debug("hub:project-queries");
+import { DUMMY_SECRET } from "../../smc-webapp/project/settings/const";
+import { DatastoreConfig } from "../../smc-webapp/project/settings/types";
 
 export async function project_has_network_access(
   db: PostgreSQL,
@@ -41,26 +43,20 @@ export async function project_has_network_access(
   return false;
 }
 
-export async function project_datastore_set(
-  db: PostgreSQL,
-  account_id: string,
-  project_id: string,
-  config: any
-): Promise<void> {
-  // config = {"name":"f","user":"f","host":"f","path":"w","secret":"asdf\n\nasdf","readonly":false}
+interface GetDSOpts {
+  db: PostgreSQL;
+  account_id: string;
+  project_id: string;
+}
 
-  L("project_datastore_set", config);
-
-  if (config.name == null) throw Error("configuration 'name' is not defined");
-  if (typeof config.type !== "string")
-    throw Error(
-      "configuration 'type' is not defined (must be 'gcs', 'sshfs', ...)"
-    );
-
-  const q: { users: any } = await query({
+async function get_datastore(
+  opts: GetDSOpts
+): Promise<{ [key: string]: DatastoreConfig }> {
+  const { db, account_id, project_id } = opts;
+  const q: { users: any; addons: any } = await query({
     db,
     table: "projects",
-    select: ["users"],
+    select: ["addons", "users"],
     where: { project_id },
     one: true,
   });
@@ -68,14 +64,42 @@ export async function project_datastore_set(
   // TODO is this test necessary? given this comes from db-schema/projects.ts ?
   if (q.users[account_id] == null) throw Error(`access denied`);
 
-  const ds = omit(config, "name", "secret");
-  ds.secret = Buffer.from(config.secret ?? "").toString("base64");
+  return q.addons.datastore;
+}
+
+export async function project_datastore_set(
+  db: PostgreSQL,
+  account_id: string,
+  project_id: string,
+  config: any
+): Promise<void> {
+  // L("project_datastore_set", config);
+
+  if (config.name == null) throw Error("configuration 'name' is not defined");
+  if (typeof config.type !== "string")
+    throw Error(
+      "configuration 'type' is not defined (must be 'gcs', 'sshfs', ...)"
+    );
+
+  const conf_new = omit(config, "name", "secret");
+  const ds_prev = await get_datastore({ db, account_id, project_id });
+  // if a user wants to update the settings, they don't need to have the secret
+  // an empty value or the dummy text signals to keep the secret as it is...
+  if (
+    ds_prev != null &&
+    ds_prev[config.name] != null &&
+    (config.secret === DUMMY_SECRET || config.secret === "")
+  ) {
+    conf_new.secret = ds_prev[config.name].secret;
+  } else {
+    conf_new.secret = Buffer.from(config.secret ?? "").toString("base64");
+  }
 
   await query({
     db,
     query: "UPDATE projects",
     where: { "project_id = $::UUID": project_id },
-    jsonb_merge: { addons: { datastore: { [config.name]: ds } } },
+    jsonb_merge: { addons: { datastore: { [config.name]: conf_new } } },
   });
 }
 
@@ -90,20 +114,8 @@ export async function project_datastore_del(
     throw Error("Datastore name not properly set.");
   }
 
-  const q: { users: any; addons: any } = await query({
-    db,
-    table: "projects",
-    select: ["addons", "users"],
-    where: { project_id },
-    one: true,
-  });
-
-  // TODO is this test necessary? given this comes from db-schema/projects.ts ?
-  if (q.users[account_id] == null) throw Error(`access denied`);
-
-  const ds = q.addons.datastore;
+  const ds = await get_datastore({ db, account_id, project_id });
   delete ds[name];
-
   await query({
     db,
     query: "UPDATE projects",
@@ -118,18 +130,9 @@ export async function project_datastore_get(
   project_id: string
 ): Promise<any> {
   try {
-    const q: { users: any; addons: any } = await query({
-      db,
-      table: "projects",
-      select: ["addons", "users"],
-      where: { project_id },
-      one: true,
-    });
-    // TODO is this test necessary? given this comes from db-schema/projects.ts ?
-    if (q.users[account_id] == null) throw Error(`access denied`);
-    const ds = {};
-    if (q.addons.datastore != null) {
-      for (const [k, v] of Object.entries(q.addons.datastore)) {
+    const ds = await get_datastore({ db, account_id, project_id });
+    if (ds != null) {
+      for (const [k, v] of Object.entries(ds)) {
         ds[k] = omit(v, "secret");
       }
     }

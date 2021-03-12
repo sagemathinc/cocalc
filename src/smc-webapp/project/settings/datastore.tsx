@@ -22,34 +22,8 @@ import { Space as AntdSpace, Alert, Switch, Popconfirm } from "antd";
 import { ErrorDisplay, SettingBox, Space } from "../../r_misc";
 import { unreachable } from "smc-util/misc";
 // import * as jsonic from "jsonic";
-
-interface ConfigCommon {
-  name: string; // [a-z0-9-_]
-  key?: string; // equal to name, for antd only
-  about?: string; // populated with a string for the user to see
-  readonly?: boolean;
-  mountpoint?: string; // [a-z0-9-_]
-}
-
-interface ConfigGCS extends ConfigCommon {
-  type: "gcs";
-  bucket: string;
-}
-
-interface ConfigS3 extends ConfigCommon {
-  type: "s3";
-  keyid: string;
-  bucket: string;
-}
-
-interface ConfigSSHFS extends ConfigCommon {
-  type: "sshfs";
-  user: string;
-  host: string;
-  path?: string; // remote path, defaults to /home/user
-}
-
-type Config = ConfigS3 | ConfigGCS | ConfigSSHFS;
+import { DUMMY_SECRET } from "./const";
+import { DatastoreConfig as Config } from "./types";
 
 const rule_required = [
   { required: true, message: "This is a required field." },
@@ -72,7 +46,7 @@ function raw2configs(raw: { [name: string]: Config }): Config[] {
     v.key = k; // for antd, to have unique rows
     switch (v.type) {
       case "s3":
-        v.about = `Key ID: ${v.keyid}\nBucket: ${v.bucket}`;
+        v.about = [`Key ID: ${v.keyid}`, `Bucket: ${v.bucket}`].join("\n");
         break;
       case "gcs":
         v.about = `Bucket: ${v.bucket}`;
@@ -103,7 +77,6 @@ export const Datastore: React.FC<Props> = (props: Props) => {
   const state = useProjectState(project_id);
   const has_internet = useProjectHasInternetAccess(project_id);
   const is_running = state.get("state") === "running";
-  // const env = useRedux(["projects", "project_map", project_id, "env"]);
   const [needs_restart, set_needs_restart] = useState<boolean>(false);
   const [loading, set_loading] = useState<boolean>(false);
   const [error, set_error] = useState<string>("");
@@ -126,17 +99,18 @@ export const Datastore: React.FC<Props> = (props: Props) => {
   }, [is_running]);
 
   async function add(type: Config["type"]): Promise<void> {
+    const common = { name: "", secret: "" };
     switch (type) {
       case "s3":
-        set_new_config({ type: "s3", name: "", keyid: "", bucket: "" });
+        set_new_config({ ...common, type: "s3", keyid: "", bucket: "" });
         break;
       case "gcs":
-        set_new_config({ type: "gcs", name: "", bucket: "" });
+        set_new_config({ ...common, type: "gcs", bucket: "" });
         break;
       case "sshfs":
         set_new_config({
+          ...common,
           type: "sshfs",
-          name: "",
           user: "",
           host: "",
           path: "",
@@ -240,23 +214,30 @@ export const Datastore: React.FC<Props> = (props: Props) => {
     reload();
   }, []);
 
+  // when we change the new_config data, we also want to reflect that in the corresponding form values
   React.useEffect(() => {
     if (new_config == null) return;
-    const conf = Object.assign({}, new_config);
     switch (new_config.type) {
       case "s3":
-        form_s3.setFieldsValue(conf);
+        form_s3.setFieldsValue(new_config);
         break;
       case "gcs":
-        form_gcs.setFieldsValue(conf);
+        form_gcs.setFieldsValue(new_config);
         break;
       case "sshfs":
-        form_sshfs.setFieldsValue(conf);
+        form_sshfs.setFieldsValue(new_config);
         break;
       default:
         unreachable(new_config);
     }
   }, [new_config]);
+
+  function edit(record) {
+    if (record == null) return;
+    const conf: Config = Object.assign({}, record);
+    conf.secret = DUMMY_SECRET;
+    set_new_config(conf);
+  }
 
   function render_list() {
     return (
@@ -278,7 +259,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
           render={(_, record) => (
             <AntdSpace>
               <Button
-                onClick={() => set_new_config(record)}
+                onClick={() => edit(record)}
                 icon={<EditOutlined />}
               ></Button>
               <Popconfirm
@@ -340,7 +321,13 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         type="info"
         message={
           <div>
-            <h1>Help</h1>help help
+            <h3>Help</h3>
+            <p></p>
+            <p>
+              When editing, the secret stays hidden. Keep the dummy text{" "}
+              <Typography.Text code>{DUMMY_SECRET}</Typography.Text> as it is to
+              keep it – otherwise replace it with a new value.
+            </p>
           </div>
         }
       />
@@ -433,7 +420,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
 
   function render_new_gcs() {
     const creds_help =
-      "JSON formatted content of the service account credentials...";
+      "JSON formatted content of the service account credentials file.";
     const msg_bucket = "Name of the S3 bucket";
     return (
       <ConfigForm form={form_gcs} type={"gcs"}>

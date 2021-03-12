@@ -3,6 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// This configures the datastore configuration for student and the shared project.
+// basically: if it is "true", the datastore config of the teacher project is looked up when the project starts
+// and used to configure it in read-only mode. In the future, a natural extension is to explicitly list the datastores
+// that should be inherited, or configure the readonly property. but for now, it's just true or false.
+
 import { React, useTypedRedux, useState } from "../../app-framework";
 import { ConfigurationActions } from "./actions";
 import { Card, Typography, Switch, Form, Button } from "antd";
@@ -30,13 +35,11 @@ export const DatastoreConfig: React.FC<Props> = (props: Props) => {
   }
 
   React.useEffect(() => {
-    if (next_val != inherit && !need_save) {
-      set_need_save(true);
-    }
+    set_need_save(next_val != inherit);
   }, [next_val, inherit]);
 
   function save() {
-    actions.set_datastore(inherit);
+    actions.set_datastore(next_val);
   }
 
   // this selector only make sense for cocalc.com
@@ -44,21 +47,23 @@ export const DatastoreConfig: React.FC<Props> = (props: Props) => {
 
   function render_control() {
     return (
-      <div>
+      <Form layout="inline">
         <Form.Item label="Inherit Datastores:" style={{ marginBottom: 0 }}>
           <Switch
-            checked={inherit}
+            checked={next_val}
             onChange={(val) => on_inherit_change(val)}
           />
         </Form.Item>
-        <Button
-          disabled={!need_save}
-          type={need_save ? "primary" : "default"}
-          onClick={save}
-        >
-          Save
-        </Button>
-      </div>
+        <Form.Item>
+          <Button
+            disabled={!need_save}
+            type={need_save ? "primary" : "default"}
+            onClick={save}
+          >
+            Save
+          </Button>
+        </Form.Item>
+      </Form>
     );
   }
 
