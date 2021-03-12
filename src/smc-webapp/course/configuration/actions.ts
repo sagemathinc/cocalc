@@ -15,6 +15,7 @@ import {
   SoftwareEnvironmentState,
   derive_project_img_name,
 } from "../../custom-software/selector";
+import { Datastore } from "../../projects/actions";
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
@@ -229,6 +230,13 @@ export class ConfigurationActions {
   public set_nbgrader_parallel(nbgrader_parallel: number): void {
     this.set({
       nbgrader_parallel,
+      table: "settings",
+    });
+  }
+
+  public set_datastore(datastore: Datastore): void {
+    this.set({
+      datastore,
       table: "settings",
     });
   }

@@ -29,6 +29,8 @@ import { allow_project_to_run } from "../project/client-side-throttle";
 import { site_license_public_info } from "../site-licenses/util";
 import { Quota } from "smc-util/db-schema/site-licenses";
 
+export type Datastore = boolean | string[] | undefined;
+
 // Define projects actions
 export class ProjectsActions extends Actions<ProjectsState> {
   private async projects_table_set(
@@ -225,7 +227,8 @@ export class ProjectsActions extends Actions<ProjectsState> {
     path: string,
     pay: Date | "",
     account_id: string,
-    email_address: string
+    email_address: string,
+    datastore: Datastore
   ): Promise<void> {
     if (!(await this.have_project(project_id))) {
       const msg = `Can't set course info -- you are not a collaborator on project '${project_id}'.`;
@@ -239,6 +242,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       pay,
       account_id,
       email_address,
+      datastore,
     };
     // json_stable -- I'm tired and this needs to just work for comparing.
     if (json_stable(course_info) === json_stable(course)) {

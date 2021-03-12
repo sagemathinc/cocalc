@@ -50,6 +50,7 @@ import { upgrades } from "smc-util/upgrade-spec";
 import { StudentProjectsStartStopPanel } from "./start-stop-panel";
 import { DisableStudentCollaboratorsPanel } from "./disable-collaborators";
 import { StudentProjectSoftwareEnvironment } from "./student-project-software-environment";
+import { DatastoreConfig } from "./datastore-config"
 
 const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
@@ -649,6 +650,8 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             />
             <br />
             <Parallel name={name} />
+            <br />
+            <DatastoreConfig actions={actions.configuration} datastore = {settings.get("datastore")} />
           </Col>
         </Row>
       </div>

@@ -4,8 +4,8 @@
  */
 
 import { DirectoryListingEntry } from "smc-util/types";
-
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
+import { Datastore } from "../projects/actions";
 
 export interface SyncDBRecordBase {
   table: string;
@@ -32,6 +32,7 @@ export interface SyncDBRecordSettings {
   nbgrader_parallel?: number; // how many students to grade in parallel
   custom_image?: string; // if falsy use default environment; if true-ish, use this software image for student projects. it should be called compute_image or software_image
   inherit_compute_image?: boolean; // if true (default), set the compute_image of student projects to the one of the project hosting the course
+  datastore?: Datastore;
 }
 
 // This is closely related to store.AssignmentRecord...

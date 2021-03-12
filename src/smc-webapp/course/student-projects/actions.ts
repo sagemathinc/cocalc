@@ -19,6 +19,7 @@ import { UpgradeGoal } from "../types";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
 import { site_license_public_info } from "../../site-licenses/util";
+import { Datastore } from "../../projects/actions";
 
 export class StudentProjectsActions {
   private course_actions: CourseActions;
@@ -412,6 +413,9 @@ export class StudentProjectsActions {
       // pay *must* be a Date, not just a string timestamp... or "" for not paying.
       pay = new Date(pay);
     }
+
+    const datastore: Datastore = store.get_datastore();
+
     const actions = redux.getActions("projects");
     const id = this.course_actions.set_activity({
       desc: "Updating project course info...",
@@ -430,7 +434,8 @@ export class StudentProjectsActions {
           store.get("course_filename"),
           pay,
           student_account_id,
-          student_email_address
+          student_email_address,
+          datastore
         );
       }
     } finally {
