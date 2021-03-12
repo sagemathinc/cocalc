@@ -9,7 +9,8 @@ Datastore (kucalc only!)
 
 import { React, useState, useIsMountedRef } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
-// import { useProjectState } from "../page/project-state-hook";
+import { useProjectState } from "../page/project-state-hook";
+import { useProjectHasInternetAccess } from "./has-internet-access-hook";
 import {
   ReloadOutlined,
   DeleteOutlined,
@@ -99,28 +100,30 @@ interface Props {
 
 export const Datastore: React.FC<Props> = (props: Props) => {
   const { project_id } = props;
-  // const state = useProjectState(project_id);
-  // const is_running = state.get("state") === "running";
+  const state = useProjectState(project_id);
+  const has_internet = useProjectHasInternetAccess(project_id);
+  const is_running = state.get("state") === "running";
   // const env = useRedux(["projects", "project_map", project_id, "env"]);
-  const [edited, set_edited] = useState<boolean>(false);
+  const [needs_restart, set_needs_restart] = useState<boolean>(false);
   const [loading, set_loading] = useState<boolean>(false);
   const [error, set_error] = useState<string>("");
   const [new_config, set_new_config] = useState<Config | null>(null);
   const [show_help, set_show_help] = useState<boolean>(false);
   const editing = new_config != null;
-  // const actions = useActions({ project_id });
   const is_mounted_ref = useIsMountedRef();
-  // const [saving, set_saving] = useState<boolean>(false);
-  // const disabled = useMemo(() => {
-  //   return to_json(env?.toJS()) == editing;
-  // }, [env, editing]);
   const [configs, set_configs] = useState<Config[]>([]);
   const [form_readonly, set_form_readonly] = useState<boolean>(
     READONLY_DEFAULT
   );
+
   const [form_gcs] = Form.useForm();
   const [form_s3] = Form.useForm();
   const [form_sshfs] = Form.useForm();
+
+  React.useEffect(() => {
+    // if there is a change to that project running again, we clear the restart warning
+    if (is_running) set_needs_restart(false);
+  }, [is_running]);
 
   async function add(type: Config["type"]): Promise<void> {
     switch (type) {
@@ -142,12 +145,12 @@ export const Datastore: React.FC<Props> = (props: Props) => {
       default:
         unreachable(type);
     }
-    set_edited(true);
+    set_needs_restart(true);
     set_form_readonly(READONLY_DEFAULT);
   }
 
   function render_instructions() {
-    if (!edited) return null;
+    if (!needs_restart) return null;
 
     return (
       <Alert
@@ -194,7 +197,8 @@ export const Datastore: React.FC<Props> = (props: Props) => {
     }
   }
 
-  async function delete_config(name: string) {
+  // delete one particular configuration with the given name
+  async function del(name: string) {
     const query = {
       project_datastore: {
         project_id,
@@ -279,7 +283,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
               ></Button>
               <Popconfirm
                 title={`Delete ${record.name}?`}
-                onConfirm={() => delete_config(record.name)}
+                onConfirm={() => del(record.name)}
                 okText="Yes"
                 cancelText="No"
               >
@@ -337,6 +341,24 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         message={
           <div>
             <h1>Help</h1>help help
+          </div>
+        }
+      />
+    );
+  }
+
+  function render_internet_warning() {
+    if (has_internet) return;
+    return (
+      <Alert
+        type="error"
+        message={
+          <div>
+            <h3>No internet access</h3>
+            <p>
+              You need to have your project upgraded in order to activate the
+              "internet access" quota. Otherwise you can't access datastores.
+            </p>
           </div>
         }
       />
@@ -563,6 +585,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
   return (
     <SettingBox title={render_title()} icon="database">
       {error != "" ? <ErrorDisplay error={error} /> : undefined}
+      {render_internet_warning()}
       {render_body()}
     </SettingBox>
   );

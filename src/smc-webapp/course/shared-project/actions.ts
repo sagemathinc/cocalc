@@ -13,6 +13,7 @@ import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 
 import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
+import { Datastore } from "../../projects/actions";
 
 export class SharedProjectActions {
   private actions: CourseActions;
@@ -172,6 +173,26 @@ export class SharedProjectActions {
       store.get("settings").get("custom_image") ?? DEFAULT_COMPUTE_IMAGE;
     const actions = redux.getProjectActions(shared_project_id);
     await actions.set_compute_image(img_id);
+  }
+
+  public async set_datastore(): Promise<void> {
+    const store = this.get_store();
+    const shared_project_id = store.get_shared_project_id();
+    if (!shared_project_id) {
+      return; // no shared project
+    }
+    const datastore: Datastore = store.get_datastore();
+    const actions = redux.getActions("projects");
+    await actions.set_project_course_info(
+      shared_project_id,
+      store.get("course_project_id"),
+      store.get("course_filename"),
+      "", // pay
+      null, // account_id
+      null, // email_address
+      datastore,
+      true // shared project
+    );
   }
 
   // set the shared project id in our syncdb

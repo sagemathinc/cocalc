@@ -226,9 +226,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
     course_project_id: string,
     path: string,
     pay: Date | "",
-    account_id: string,
-    email_address: string,
-    datastore: Datastore
+    account_id: string | null,
+    email_address: string | null,
+    datastore: Datastore,
+    shared: boolean = false
   ): Promise<void> {
     if (!(await this.have_project(project_id))) {
       const msg = `Can't set course info -- you are not a collaborator on project '${project_id}'.`;
@@ -236,14 +237,18 @@ export class ProjectsActions extends Actions<ProjectsState> {
       return;
     }
     const course_info = store.get_course_info(project_id)?.toJS();
-    const course = {
+    const course: any = {
       project_id: course_project_id,
       path,
       pay,
-      account_id,
-      email_address,
       datastore,
+      shared,
     };
+    // null for shared project, otherwise student project
+    if (account_id != null && email_address != null) {
+      course.account_id = account_id;
+      course.email_address = email_address;
+    }
     // json_stable -- I'm tired and this needs to just work for comparing.
     if (json_stable(course_info) === json_stable(course)) {
       // already set as required; do nothing

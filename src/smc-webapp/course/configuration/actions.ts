@@ -235,9 +235,8 @@ export class ConfigurationActions {
   }
 
   public set_datastore(datastore: Datastore): void {
-    this.set({
-      datastore,
-      table: "settings",
-    });
+    this.set({ datastore, table: "settings" });
+    this.course_actions.student_projects.configure_all_projects();
+    this.course_actions.shared_project.set_datastore();
   }
 }
