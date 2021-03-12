@@ -403,7 +403,14 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     this.keyhandler_initialized = true;
     this.terminal.attachCustomKeyEventHandler((event) => {
-      //console.log("key", event);
+      /*
+      console.log("key", {
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey,
+        key: event.key,
+      });
+      */
       // record that terminal is being actively used.
       this.last_active = new Date().valueOf();
       this.ignore_terminal_data = false;
@@ -420,7 +427,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       if (
         (event.ctrlKey || event.metaKey) &&
         event.shiftKey &&
-        event.key === "<"
+        (event.key === "<" || event.key == ",")
       ) {
         this.actions.decrease_font_size(this.id);
         return false;
@@ -429,7 +436,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       if (
         (event.ctrlKey || event.metaKey) &&
         event.shiftKey &&
-        event.key === ">"
+        (event.key === ">" || event.key == ".")
       ) {
         this.actions.increase_font_size(this.id);
         return false;
