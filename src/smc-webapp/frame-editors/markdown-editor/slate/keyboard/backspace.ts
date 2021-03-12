@@ -11,12 +11,16 @@ What happens when you hit the backspace/delete key.
     for discussion of why we must implement this ourselves.
 */
 
-import { Point, Range, Transforms } from "slate";
+import { Editor, Point, Range, Transforms } from "slate";
 import { register } from "./register";
 
 function backspaceKey({ editor }) {
   if (editor.selection == null || !Range.isCollapsed(editor.selection)) {
     // default handler
+    // However, we add a fake invisible mark on all text in the range first which
+    // workarounds this **horrendous** bug:
+    //    https://github.com/ianstormtaylor/slate/issues/4121
+    Editor.addMark(editor, "issue4121", true);
     return false;
   }
 
