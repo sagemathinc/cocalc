@@ -209,9 +209,15 @@ export const ReactEditor = {
    */
 
   toDOMNode(editor: ReactEditor, node: Node): HTMLElement {
-    const domNode = Editor.isEditor(node)
-      ? EDITOR_TO_ELEMENT.get(editor)
-      : KEY_TO_ELEMENT.get(ReactEditor.findKey(editor, node));
+    // IMPORTANT/FORK/NOTE: When profiling I found that
+    // using Editor.isEditor(node) here was taking a LOT of
+    // cpu time, so I changed to use ===, which is instant.
+    // This provided a dramatic improvement when typing in
+    // large documents.
+    const domNode =
+      editor === node
+        ? EDITOR_TO_ELEMENT.get(editor)
+        : KEY_TO_ELEMENT.get(ReactEditor.findKey(editor, node));
 
     if (!domNode) {
       throw new Error(
