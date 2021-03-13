@@ -7,6 +7,7 @@ import { startswith } from "smc-util/misc";
 import { register } from "./register";
 
 export interface Marks {
+  text: string;
   italic?: boolean;
   bold?: boolean;
   strikethrough?: boolean;
