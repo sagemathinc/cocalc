@@ -17,6 +17,7 @@ import { Map } from "immutable";
 
 import { EditorState } from "../../frame-tree/types";
 import { createEditor, Descendant, Editor, Range, Transforms } from "slate";
+import "./patches";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
 import {
@@ -85,7 +86,7 @@ let USE_WINDOWING = false;
 // blocks around the cursor, which handles 99% of cases.   On the other hand,
 // in those cases when somebody opens say Moby Dick (with 2000+ blocks),
 // it also works at all (rather than just locking the browser!).
-const OVERSCAN_ROW_COUNT = 75;
+const OVERSCAN_ROW_COUNT = 10;
 if (USE_WINDOWING && IS_FIREFOX) {
   // Windowing on Firefox results in TONS of problems all over the place, whereas it
   // works "better" with Safari and Chrome.  So no matter what we always disable it on
