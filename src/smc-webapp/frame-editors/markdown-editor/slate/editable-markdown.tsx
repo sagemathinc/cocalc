@@ -7,12 +7,11 @@
 
 // important: I made this type **wrong** so I don't
 // forget to comment this out.
-//const DEBUG: string = true; // do not delete "string"!
-const DEBUG = false;
+const DEBUG: string = true; // do not delete "string"!
+//const DEBUG = false;
 
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
-import { IS_FIREFOX } from "../../../feature";
 import { Map } from "immutable";
 
 import { EditorState } from "../../frame-tree/types";
@@ -74,23 +73,31 @@ export interface SlateEditor extends ReactEditor {
   getMarkdownValue: () => string;
 }
 
-// Whether or not to use windowing.
+// Whether or not to use windowing (=only rendering visible elements).
 // I'm going to disable this by default (for production
 // releases), but re-enable it frequently for development.
 // There are a LOT of missing features when using windowing,
 // including subtle issues with selection, scroll state, etc.
 let USE_WINDOWING = false;
-// We set this to be as large as possible, since it might be a while until
-// we fully implement cursor/selection handling and windowing properly. In
-// the meantime, this will make everything work 100% with at least OVERSCAN_ROW_COUNT
-// blocks around the cursor, which handles 99% of cases.   On the other hand,
-// in those cases when somebody opens say Moby Dick (with 2000+ blocks),
-// it also works at all (rather than just locking the browser!).
-const OVERSCAN_ROW_COUNT = 10;
+
+// Why window?  Unfortunately, due to how slate is designed, actually editing
+// text is "unusable" for even medium size documents
+// without using windowing. E.g., with say 200 top level blocks,
+// just trying to enter random characters quickly on a superfast laptop
+// shows nothing until you pause for a moment.  Totally unacceptable.
+// This is for lots of reasons, including things like decorations being
+// recomputed, caching not really working, DOM being expensive.
+// Even click-dragging and selecting a range breaks often due to
+// things being slow.
+// In contrast, with windowing, everything is **buttery smooth**.
+const OVERSCAN_ROW_COUNT = 3;
+
+import { IS_FIREFOX } from "../../../feature";
 if (USE_WINDOWING && IS_FIREFOX) {
   // Windowing on Firefox results in TONS of problems all over the place, whereas it
-  // works "better" with Safari and Chrome.  So no matter what we always disable it on
-  // Firefox.   See https://github.com/sagemathinc/cocalc/issues/5204 where both
+  // works "better" with Safari and Chrome.  So until we fix these (and we will),
+  // we disable windowing with Firefox.
+  // See https://github.com/sagemathinc/cocalc/issues/5204 where both
   // problems are caused by windowing.
   USE_WINDOWING = false;
 }

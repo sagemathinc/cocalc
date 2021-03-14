@@ -11,7 +11,6 @@ merely influences slates state, rather than completely determining it.
 
 import { useCallback } from "react";
 import { useIsomorphicLayoutEffect } from "../hooks/use-isomorphic-layout-effect";
-import { throttle } from "lodash";
 import { ReactEditor } from "..";
 import { EDITOR_TO_ELEMENT, IS_FOCUSED } from "../utils/weak-maps";
 import { Range, Transforms } from "slate";
@@ -19,12 +18,15 @@ import { hasEditableTarget, isTargetInsideVoid } from "./dom-utils";
 import { IS_FIREFOX } from "../utils/environment";
 
 export const useUpdateDOMSelection = ({ editor, state }) => {
-  // Whenever the editor updates, make sure the DOM selection state is in sync.
-  useIsomorphicLayoutEffect(() => {
+  // Make sure the DOM selection
+  // state is set to the editor selection.
+  const updateDOMSelection = () => {
+    // console.log("useUpdateDOMSelection");
     const { selection } = editor;
     const domSelection = window.getSelection();
 
     if (state.isComposing || !domSelection || !ReactEditor.isFocused(editor)) {
+      // console.log("useUpdateDOMSelection: early return");
       return;
     }
 
@@ -32,6 +34,7 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
 
     // If the DOM selection is properly unset, we're done.
     if (!selection && !hasDomSelection) {
+      // console.log("useUpdateDOMSelection: no selection");
       return;
     }
 
@@ -52,6 +55,7 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
       selection &&
       Range.equals(ReactEditor.toSlateRange(editor, domSelection), selection)
     ) {
+      // console.log("useUpdateDOMSelection: already correct");
       return;
     }
 
@@ -62,20 +66,12 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
     try {
       newDomRange = selection && ReactEditor.toDOMRange(editor, selection);
     } catch (err) {
-      // To get this to happen (when react-window is enabled!), try
-      // select all and doubling the "large document" example on
-      // slatejs to get to over 300 cells. Then select all again and get this.
-      /*
-      console.log(
-        "TODO: deal with toDOMRange when selection is not contained in the visible window. Just resetting for now.",
-        selection,
-        err
-      );
-      */
+      // console.log("TODO: toDOMRange when selection is not visible.", err);
       newDomRange = undefined;
     }
 
     if (newDomRange) {
+      // console.log("useUpdateDOMSelection: setting newDomRange", newDomRange);
       if (Range.isBackward(selection!)) {
         domSelection.setBaseAndExtent(
           newDomRange.endContainer,
@@ -92,6 +88,7 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
         );
       }
     } else {
+      // console.log("useUpdateDOMSelection: removeAllRanges");
       domSelection.removeAllRanges();
     }
 
@@ -109,7 +106,14 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
 
       state.isUpdatingSelection = false;
     });
-  });
+  };
+
+  // Always update DOM when editor updates.
+  useIsomorphicLayoutEffect(updateDOMSelection);
+
+  // We also return this so it can be called on scroll, which is needed
+  // for windowing.
+  return updateDOMSelection;
 };
 
 export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
@@ -118,44 +122,45 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
   // and non-standard so it doesn't fire until after a selection has been
   // released. This causes issues in situations where another change happens
   // while a selection is being dragged.
-  const onDOMSelectionChange = useCallback(
-    throttle(() => {
-      if (!readOnly && !state.isComposing && !state.isUpdatingSelection) {
-        const { activeElement } = window.document;
-        const el = ReactEditor.toDOMNode(editor, editor);
-        const domSelection = window.getSelection();
+  const onDOMSelectionChange = useCallback(() => {
+    if (!readOnly && !state.isComposing && !state.isUpdatingSelection) {
+      const { activeElement } = window.document;
+      const el = ReactEditor.toDOMNode(editor, editor);
+      const domSelection = window.getSelection();
+      //console.log("onDOMSelectionChange", { activeElement, el, domSelection });
 
-        if (activeElement === el) {
-          state.latestElement = activeElement;
-          IS_FOCUSED.set(editor, true);
-        } else {
-          IS_FOCUSED.delete(editor);
-        }
-
-        if (!domSelection) {
-          return Transforms.deselect(editor);
-        }
-
-        const { anchorNode, focusNode } = domSelection;
-
-        const anchorNodeSelectable =
-          hasEditableTarget(editor, anchorNode) ||
-          isTargetInsideVoid(editor, anchorNode);
-
-        const focusNodeSelectable =
-          hasEditableTarget(editor, focusNode) ||
-          isTargetInsideVoid(editor, focusNode);
-
-        if (anchorNodeSelectable && focusNodeSelectable) {
-          const range = ReactEditor.toSlateRange(editor, domSelection);
-          Transforms.select(editor, range);
-        } else {
-          Transforms.deselect(editor);
-        }
+      if (activeElement === el) {
+        state.latestElement = activeElement;
+        IS_FOCUSED.set(editor, true);
+      } else {
+        IS_FOCUSED.delete(editor);
       }
-    }, 100),
-    [readOnly]
-  );
+
+      if (!domSelection) {
+        //console.log("onDOMSelectionChange - no selection so deselect");
+        return Transforms.deselect(editor);
+      }
+
+      const { anchorNode, focusNode } = domSelection;
+
+      const anchorNodeSelectable =
+        hasEditableTarget(editor, anchorNode) ||
+        isTargetInsideVoid(editor, anchorNode);
+
+      const focusNodeSelectable =
+        hasEditableTarget(editor, focusNode) ||
+        isTargetInsideVoid(editor, focusNode);
+
+      if (anchorNodeSelectable && focusNodeSelectable) {
+        const range = ReactEditor.toSlateRange(editor, domSelection);
+        //console.log("onDOMSelectionChange -- select", { domSelection, range });
+        Transforms.select(editor, range);
+      } else {
+        //console.log("onDOMSelectionChange -- deselect");
+        Transforms.deselect(editor);
+      }
+    }
+  }, [readOnly]);
 
   // Attach a native DOM event handler for `selectionchange`, because React's
   // built-in `onSelect` handler doesn't fire for all selection changes. It's a

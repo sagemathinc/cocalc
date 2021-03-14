@@ -320,7 +320,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     };
   }, [onDOMBeforeInput]);
 
-  useUpdateDOMSelection({ editor, state });
+  const updateDOMSelection = useUpdateDOMSelection({ editor, state });
   useDOMSelectionChange({ editor, state, readOnly });
 
   const decorations = decorate([editor, []]);
@@ -870,6 +870,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           renderLeaf={renderLeaf}
           selection={editor.selection}
           windowing={windowing}
+          onScroll={updateDOMSelection}
         />
       </Component>
     </ReadOnlyContext.Provider>
