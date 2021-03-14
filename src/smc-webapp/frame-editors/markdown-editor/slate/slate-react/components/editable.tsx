@@ -11,8 +11,6 @@ import {
   Path,
 } from "slate";
 //import { HistoryEditor } from "slate-history";
-//import * as throttle from "lodash/throttle";
-import { throttle } from "lodash";
 
 import Children from "./children";
 import { WindowingParams } from "./children";
@@ -29,7 +27,6 @@ import { useSlate } from "../hooks/use-slate";
 import { useIsomorphicLayoutEffect } from "../hooks/use-isomorphic-layout-effect";
 import {
   DOMElement,
-  DOMNode,
   isDOMElement,
   isDOMNode,
   DOMStaticRange,
@@ -43,6 +40,9 @@ import {
   IS_FOCUSED,
   PLACEHOLDER_SYMBOL,
 } from "../utils/weak-maps";
+
+import { useOnDOMSelectionChange } from "./selection-sync";
+import { hasEditableTarget, hasTarget } from "./dom-utils";
 
 // COMPAT: Firefox/Edge Legacy don't support the `beforeinput` event
 // Chrome Legacy doesn't support `beforeinput` correctly
@@ -411,65 +411,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     };
   }, [onDOMBeforeInput]);
 
-  // Listen on the native `selectionchange` event to be able to update any time
-  // the selection changes. This is required because React's `onSelect` is leaky
-  // and non-standard so it doesn't fire until after a selection has been
-  // released. This causes issues in situations where another change happens
-  // while a selection is being dragged.
-  const onDOMSelectionChange = useCallback(
-    throttle(() => {
-      if (!readOnly && !state.isComposing && !state.isUpdatingSelection) {
-        const { activeElement } = window.document;
-        const el = ReactEditor.toDOMNode(editor, editor);
-        const domSelection = window.getSelection();
-
-        if (activeElement === el) {
-          state.latestElement = activeElement;
-          IS_FOCUSED.set(editor, true);
-        } else {
-          IS_FOCUSED.delete(editor);
-        }
-
-        if (!domSelection) {
-          return Transforms.deselect(editor);
-        }
-
-        const { anchorNode, focusNode } = domSelection;
-
-        const anchorNodeSelectable =
-          hasEditableTarget(editor, anchorNode) ||
-          isTargetInsideVoid(editor, anchorNode);
-
-        const focusNodeSelectable =
-          hasEditableTarget(editor, focusNode) ||
-          isTargetInsideVoid(editor, focusNode);
-
-        if (anchorNodeSelectable && focusNodeSelectable) {
-          const range = ReactEditor.toSlateRange(editor, domSelection);
-          Transforms.select(editor, range);
-        } else {
-          Transforms.deselect(editor);
-        }
-      }
-    }, 100),
-    [readOnly]
-  );
-
-  // Attach a native DOM event handler for `selectionchange`, because React's
-  // built-in `onSelect` handler doesn't fire for all selection changes. It's a
-  // leaky polyfill that only fires on keypresses or clicks. Instead, we want to
-  // fire for any change to the selection inside the editor. (2019/11/04)
-  // https://github.com/facebook/react/issues/5785
-  useIsomorphicLayoutEffect(() => {
-    window.document.addEventListener("selectionchange", onDOMSelectionChange);
-
-    return () => {
-      window.document.removeEventListener(
-        "selectionchange",
-        onDOMSelectionChange
-      );
-    };
-  }, [onDOMSelectionChange]);
+  useOnDOMSelectionChange({ editor, state, readOnly });
 
   const decorations = decorate([editor, []]);
 
@@ -1030,43 +972,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
 
 const defaultDecorate = () => [];
 
-/**
- * Check if the target is in the editor.
- */
 
-const hasTarget = (
-  editor: ReactEditor,
-  target: EventTarget | null
-): target is DOMNode => {
-  return isDOMNode(target) && ReactEditor.hasDOMNode(editor, target);
-};
-
-/**
- * Check if the target is editable and in the editor.
- */
-
-const hasEditableTarget = (
-  editor: ReactEditor,
-  target: EventTarget | null
-): target is DOMNode => {
-  return (
-    isDOMNode(target) &&
-    ReactEditor.hasDOMNode(editor, target, { editable: true })
-  );
-};
-
-/**
- * Check if the target is inside void and in the editor.
- */
-
-const isTargetInsideVoid = (
-  editor: ReactEditor,
-  target: EventTarget | null
-): boolean => {
-  const slateNode =
-    hasTarget(editor, target) && ReactEditor.toSlateNode(editor, target);
-  return Editor.isVoid(editor, slateNode);
-};
 
 /**
  * Check if an event is overrided by a handler.
