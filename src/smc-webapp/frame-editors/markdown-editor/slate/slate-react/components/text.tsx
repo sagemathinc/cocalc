@@ -22,8 +22,10 @@ const Text = (props: {
   parent: Element;
   renderLeaf?: React.FC<RenderLeafProps>;
   text: SlateText;
+  isPreview?: boolean;
 }) => {
-  const { decorations, isLast, parent, renderLeaf, text } = props;
+  const { decorations, isLast, parent, renderLeaf, text, isPreview } = props;
+ // console.log('render Text', text, isPreview);
   const editor = useSlateStatic();
   const ref = useRef<HTMLSpanElement>(null);
   const leaves = SlateText.decorations(text, decorations);
@@ -45,6 +47,7 @@ const Text = (props: {
         text={text}
         parent={parent}
         renderLeaf={renderLeaf}
+        isPreview={isPreview}
       />
     );
   }
@@ -74,6 +77,11 @@ const MemoizedText = React.memo(Text, (prev, next) => {
   // in element.tsx. See my comment here:
   // https://github.com/ianstormtaylor/slate/issues/4056#issuecomment-768059323
 
+  if (next.isPreview != prev.isPreview) return false;
+  if (next.isPreview) {
+    return true;
+    //return next.text == prev.text;
+  }
   const is_equal =
     // next.parent === prev.parent &&
     next.renderLeaf === prev.renderLeaf &&

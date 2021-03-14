@@ -14,6 +14,7 @@ const Leaf = (props: {
   parent: Element;
   renderLeaf?: React.FC<RenderLeafProps>;
   text: Text;
+  isPreview?: boolean;
 }) => {
   const {
     leaf,
@@ -21,6 +22,7 @@ const Leaf = (props: {
     text,
     parent,
     renderLeaf = (props: RenderLeafProps) => <DefaultLeaf {...props} />,
+    isPreview,
   } = props;
 
   let children = (
@@ -61,10 +63,20 @@ const Leaf = (props: {
     "data-slate-leaf": true,
   };
 
-  return React.createElement(renderLeaf, { attributes, children, leaf, text });
+  return React.createElement(renderLeaf, {
+    attributes,
+    children,
+    leaf,
+    text,
+    isPreview,
+  });
 };
 
 const MemoizedLeaf = React.memo(Leaf, (prev, next) => {
+  if (next.isPreview != prev.isPreview) return false;
+  if (next.isPreview) {
+    return prev.text === next.text;
+  }
   return (
     next.parent === prev.parent &&
     next.isLast === prev.isLast &&

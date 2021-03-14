@@ -86,12 +86,12 @@ let USE_WINDOWING = false;
 // blocks around the cursor, which handles 99% of cases.   On the other hand,
 // in those cases when somebody opens say Moby Dick (with 2000+ blocks),
 // it also works at all (rather than just locking the browser!).
-const OVERSCAN_ROW_COUNT = 10;
-if (USE_WINDOWING && IS_FIREFOX) {
-  // Windowing on Firefox results in TONS of problems all over the place, whereas it
-  // works "better" with Safari and Chrome.  So no matter what we always disable it on
-  // Firefox.   See https://github.com/sagemathinc/cocalc/issues/5204 where both
-  // problems are caused by windowing.
+const OVERSCAN_ROW_COUNT = 1;
+if (USE_WINDOWING && IS_FIREFOX && !DEBUG) {
+  // Windowing on Firefox results in TONS of problems all over the place,
+  // whereas it works "better" with Safari and Chrome.  So for now no
+  // matter what we always disable it on Firefox.   See e.g., https://github.com/sagemathinc/cocalc/issues/5204
+  // where both problems are caused by windowing.
   USE_WINDOWING = false;
 }
 
@@ -331,13 +331,14 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, [value]);
 
     if (DEBUG) {
-      const { Editor, Node } = require("slate");
+      const { Editor, Element, Node } = require("slate");
       (window as any).z = {
         editor,
         Transforms,
         ReactEditor,
         Node,
         Editor,
+        Element,
       };
     }
 

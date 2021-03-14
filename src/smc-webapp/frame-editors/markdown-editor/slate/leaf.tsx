@@ -19,7 +19,11 @@ const CODE_STYLE = {
 } as CSS;
 
 export const Leaf: React.FC<RenderLeafProps> = React.memo(
-  ({ attributes, children, leaf }) => {
+  ({ attributes, children, leaf, isPreview }) => {
+    if (isPreview) {
+      return <span {...attributes}>{children}</span>;
+    }
+
     if ((leaf as any).cursor != null) {
       const { name, color, paddingText } = (leaf as any).cursor;
       children = (

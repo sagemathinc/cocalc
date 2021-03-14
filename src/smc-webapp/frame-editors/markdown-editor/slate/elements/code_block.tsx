@@ -35,8 +35,16 @@ const Element: React.FC<RenderElementProps> = ({
   attributes,
   children,
   element,
+  isPreview,
 }) => {
   if (element.type != "code_block") throw Error("bug");
+  if (isPreview) {
+    return (
+      <div {...attributes}>
+        <pre contentEditable={false}>{element.value}</pre>
+      </div>
+    );
+  }
   const editor = useSlate();
   const selected = useSelected();
   const collapsed = useCollapsed();

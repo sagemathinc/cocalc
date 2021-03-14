@@ -27,6 +27,7 @@ interface Props {
   renderLeaf?: React.FC<RenderLeafProps>;
   selection: Range | null;
   windowing?: WindowingParams;
+  isPreview?: boolean;
 }
 
 const Children: React.FC<Props> = ({
@@ -37,6 +38,7 @@ const Children: React.FC<Props> = ({
   renderLeaf,
   selection,
   windowing,
+  isPreview,
 }) => {
   const editor = useSlateStatic();
   let path;
@@ -50,15 +52,60 @@ const Children: React.FC<Props> = ({
     );
     return <></>;
   }
+  const cursor = selection?.focus?.path?.[0] ?? 0;
   const isLeafBlock =
     Element.isElement(node) &&
     !editor.isInline(node) &&
     Editor.hasInlines(editor, node);
 
-  const renderChild = ({ index }) => {
+  const renderChild = ({
+    index,
+    isPreview,
+  }: {
+    index: number;
+    isPreview?: boolean;
+  }) => {
     const n = node.children[index] as Descendant;
-    const p = path.concat(index);
     const key = ReactEditor.findKey(editor, n);
+    if (isPreview) {
+      if (Element.isElement(n)) {
+        return (
+          <ElementComponent
+            selection={null}
+            decorations={[]}
+            decorate={() => []}
+            element={n}
+            key={key.id}
+            renderElement={({ attributes, children }) => {
+              return (
+                <div {...attributes} style={{ color: "#ccc" }}>
+                  {children}
+                </div>
+              );
+            }}
+            renderLeaf={({ attributes, children }) => {
+              return <span {...attributes}>{children}</span>;
+            }}
+            isPreview={true}
+          />
+        );
+      } else {
+        return (
+          <TextComponent
+            decorations={[]}
+            key={key.id}
+            isLast={isLeafBlock && index === node.children.length - 1}
+            parent={node as Element}
+            renderLeaf={({ attributes, children }) => {
+              return <span {...attributes}>{children}</span>;
+            }}
+            text={n}
+            isPreview={true}
+          />
+        );
+      }
+    }
+    const p = path.concat(index);
     const range = Editor.range(editor, p);
     const ds = decorate([n, p]);
 
@@ -80,6 +127,7 @@ const Children: React.FC<Props> = ({
           renderElement={renderElement}
           renderLeaf={renderLeaf}
           selection={selection && Range.intersection(range, selection)}
+          isPreview={false}
         />
       );
     } else {
@@ -91,6 +139,7 @@ const Children: React.FC<Props> = ({
           parent={node as Element}
           renderLeaf={renderLeaf}
           text={n}
+          isPreview={false}
         />
       );
     }
@@ -123,22 +172,36 @@ const Children: React.FC<Props> = ({
       />
     );
   } else {
-    //const t0 = new Date().valueOf();
+    // const t0 = new Date().valueOf();
     // anything else -- just render the children
     const children: JSX.Element[] = [];
     for (let index = 0; index < node.children.length; index++) {
-      children.push(renderChild({ index }));
+      children.push(
+        renderChild({
+          index,
+          isPreview:
+            isPreview || (path.length == 0 && Math.abs(cursor - index) > 2),
+        })
+      );
     }
-    /* console.log(
+    /*
+    console.log(
       "update children for ",
       node.children.length,
       " nodes in ",
       new Date().valueOf() - t0,
       "ms"
-    );*/
+    );
+    */
 
     return <>{children}</>;
   }
 };
 
-export default Children;
+const MemoizedChildren = React.memo(Children, (prev, next) => {
+  if (next.isPreview != prev.isPreview) return false;
+  if (next.isPreview) return true;
+  return false;
+});
+
+export default MemoizedChildren;

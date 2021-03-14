@@ -28,6 +28,7 @@ const Element = (props: {
   renderElement?: React.FC<RenderElementProps>;
   renderLeaf?: React.FC<RenderLeafProps>;
   selection: Range | null;
+  isPreview?: boolean;
 }) => {
   const {
     decorate,
@@ -36,7 +37,9 @@ const Element = (props: {
     renderElement = (p: RenderElementProps) => <DefaultElement {...p} />,
     renderLeaf,
     selection,
+    isPreview,
   } = props;
+//  console.log('render Element', element, isPreview);
   const ref = useRef<HTMLElement>(null);
   const editor = useSlateStatic();
   const readOnly = useReadOnly();
@@ -51,6 +54,7 @@ const Element = (props: {
       renderElement={renderElement}
       renderLeaf={renderLeaf}
       selection={selection}
+      isPreview={isPreview}
     />
   );
 
@@ -126,12 +130,23 @@ const Element = (props: {
 
   return (
     <SelectedContext.Provider value={!!selection}>
-      {React.createElement(renderElement, { attributes, children, element })}
+      {React.createElement(renderElement, {
+        attributes,
+        children,
+        element,
+        isPreview,
+      })}
     </SelectedContext.Provider>
   );
 };
 
 const MemoizedElement = React.memo(Element, (prev, next) => {
+  if (next.isPreview != prev.isPreview) return false;
+  if (next.isPreview) {
+    return true;
+    //console.log("isPreview true", prev, next, prev.element === next.element);
+    return prev.element === next.element;
+  }
   const is_equal =
     prev.decorate === next.decorate &&
     prev.element === next.element &&
@@ -142,7 +157,7 @@ const MemoizedElement = React.memo(Element, (prev, next) => {
       (!!prev.selection &&
         !!next.selection &&
         Range.equals(prev.selection, next.selection)));
-  //console.log("MemoizedElement", { prev, next, is_equal });
+  // console.log("MemoizedElement", { prev, next, is_equal});
   return is_equal;
 });
 

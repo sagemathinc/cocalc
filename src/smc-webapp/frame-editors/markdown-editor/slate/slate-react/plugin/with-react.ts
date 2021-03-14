@@ -6,6 +6,7 @@ import { Key } from "../utils/key";
 import { EDITOR_TO_ON_CHANGE, NODE_TO_KEY } from "../utils/weak-maps";
 import { isDOMText, getPlainText } from "../utils/dom";
 import { findCurrentLineRange } from "../utils/lines";
+import { debounce } from "lodash";
 
 /**
  * `withReact` adds React and DOM specific behaviors to the editor.
@@ -219,7 +220,7 @@ export const withReact = <T extends Editor>(editor: T) => {
     });
   };
 
-  e.scrollCaretIntoView = (options?: { middle?: boolean }) => {
+  e.scrollCaretIntoView = debounce((options?: { middle?: boolean }) => {
     /* Scroll so Caret is visible.  I tested several editors, and
      I think reasonable behavior is:
       - If caret is full visible on the screen, do nothing.
@@ -290,7 +291,7 @@ export const withReact = <T extends Editor>(editor: T) => {
           (editorRect.height - EXTRA - (selectionRect.bottom - editorRect.top));
       }
     });
-  };
+  }, 250);
 
   return e;
 };

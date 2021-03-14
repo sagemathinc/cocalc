@@ -66,6 +66,7 @@ export interface RenderElementProps {
     dir?: "rtl";
     ref: any;
   };
+  isPreview?: boolean;
 }
 
 /**
@@ -79,6 +80,7 @@ export interface RenderLeafProps {
   attributes: {
     "data-slate-leaf": true;
   };
+  isPreview?: boolean;
 }
 
 /**
@@ -190,13 +192,11 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
       // To get this to happen (when react-window is enabled!), try
       // select all and doubling the "large document" example on
       // slatejs to get to over 300 cells. Then select all again and get this.
-      /*
       console.log(
         "TODO: deal with toDOMRange when selection is not contained in the visible window. Just resetting for now.",
         selection,
         err
       );
-      */
       newDomRange = undefined;
     }
 
