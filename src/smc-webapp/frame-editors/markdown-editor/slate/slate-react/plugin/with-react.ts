@@ -15,6 +15,8 @@ export const withReact = <T extends Editor>(editor: T) => {
   const e = editor as T & ReactEditor;
   const { apply, onChange, deleteBackward } = e;
 
+  e.windowedListRef = { current: null };
+
   e.deleteBackward = (unit) => {
     if (unit !== "line") {
       return deleteBackward(unit);

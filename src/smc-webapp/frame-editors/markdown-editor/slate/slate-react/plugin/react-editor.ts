@@ -30,9 +30,11 @@ export interface ReactEditor extends Editor {
   insertData: (data: DataTransfer) => void;
   setFragmentData: (data: DataTransfer) => void;
   scrollCaretIntoView: (options?: { middle?: boolean }) => void;
+  windowedListRef: { current: any };
 }
 
 export const ReactEditor = {
+
   /**
    * Find a key for a Slate node.
    */
@@ -287,6 +289,9 @@ export const ReactEditor = {
    *
    * there is no way to create a reverse DOM Range using Range.setStart/setEnd
    * according to https://dom.spec.whatwg.org/#concept-range-bp-set.
+   *
+   * IMPORTANT: This is the part of the slate range that is actually rendered
+   * in the visible virtualized window, in case of windowing.
    */
 
   toDOMRange(editor: ReactEditor, range: Range): DOMRange {

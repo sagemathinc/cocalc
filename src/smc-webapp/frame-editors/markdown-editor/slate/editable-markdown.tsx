@@ -7,8 +7,8 @@
 
 // important: I made this type **wrong** so I don't
 // forget to comment this out.
-const DEBUG: string = true; // do not delete "string"!
-//const DEBUG = false;
+//const DEBUG: string = true; // do not delete "string"!
+const DEBUG = false;
 
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
@@ -78,7 +78,7 @@ export interface SlateEditor extends ReactEditor {
 // releases), but re-enable it frequently for development.
 // There are a LOT of missing features when using windowing,
 // including subtle issues with selection, scroll state, etc.
-let USE_WINDOWING = false;
+let USE_WINDOWING = true;
 
 // Why window?  Unfortunately, due to how slate is designed, actually editing
 // text is "unusable" for even medium size documents
@@ -90,7 +90,9 @@ let USE_WINDOWING = false;
 // Even click-dragging and selecting a range breaks often due to
 // things being slow.
 // In contrast, with windowing, everything is **buttery smooth**.
-const OVERSCAN_ROW_COUNT = 3;
+// Making this overscan small makes things even faster, and also
+// minimizes interference when two users are editing at once.
+const OVERSCAN_ROW_COUNT = 0;
 
 import { IS_FIREFOX } from "../../../feature";
 if (USE_WINDOWING && IS_FIREFOX) {
@@ -197,9 +199,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           setMarks(getMarks(editor));
         }
       };
-      // We debounce to avoid any performance implications while typing and
+      // We debounce to avoid performance implications while typing and
       // for the reason mentioned in the NOTE above.
-      return debounce(f, 200);
+      return debounce(f, 500);
     }, []);
 
     const broadcastCursors = useBroadcastCursors({
@@ -542,15 +544,13 @@ const withIsInline = (editor) => {
   return editor;
 };
 
-// This keeps crashing for me so I'm
-// wrapping it in try/catch.  It's only
-// used for display purposes in the toolbar so hiding
-// failures is not "evil".
 function getMarks(editor) {
   try {
     return Editor.marks(editor) ?? {};
   } catch (err) {
-    console.log("Editor.marks", err);
+    // If the selection is at a non-leaf node somehow,
+    // then marks aren't defined and raises an error.
+    //console.log("Editor.marks", err);
     return {};
   }
 }

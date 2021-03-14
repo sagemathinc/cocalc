@@ -116,6 +116,8 @@ const Children: React.FC<Props> = ({
     // top level and using windowing!
     return (
       <WindowedList
+        ref={editor.windowedListRef}
+        render_info={true}
         row_count={node.children.length}
         row_renderer={renderChild}
         overscan_row_count={windowing.overscanRowCount ?? 10}
