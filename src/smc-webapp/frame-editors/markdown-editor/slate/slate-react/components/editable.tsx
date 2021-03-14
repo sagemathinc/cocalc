@@ -41,7 +41,8 @@ import {
   PLACEHOLDER_SYMBOL,
 } from "../utils/weak-maps";
 
-import { useOnDOMSelectionChange } from "./selection-sync";
+import { useDOMSelectionChange, useUpdateDOMSelection } from "./selection-sync";
+
 import { hasEditableTarget, hasTarget } from "./dom-utils";
 
 // COMPAT: Firefox/Edge Legacy don't support the `beforeinput` event
@@ -142,98 +143,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     } else {
       NODE_TO_ELEMENT.delete(editor);
     }
-  });
-
-  // Whenever the editor updates, make sure the DOM selection state is in sync.
-  useIsomorphicLayoutEffect(() => {
-    const { selection } = editor;
-    const domSelection = window.getSelection();
-
-    if (state.isComposing || !domSelection || !ReactEditor.isFocused(editor)) {
-      return;
-    }
-
-    const hasDomSelection = domSelection.type !== "None";
-
-    // If the DOM selection is properly unset, we're done.
-    if (!selection && !hasDomSelection) {
-      return;
-    }
-
-    // verify that the dom selection is in the editor
-    const editorElement = EDITOR_TO_ELEMENT.get(editor)!;
-    let hasDomSelectionInEditor = false;
-    if (
-      editorElement.contains(domSelection.anchorNode) &&
-      editorElement.contains(domSelection.focusNode)
-    ) {
-      hasDomSelectionInEditor = true;
-    }
-
-    // If the DOM selection is in the editor and the editor selection is already correct, we're done.
-    if (
-      hasDomSelection &&
-      hasDomSelectionInEditor &&
-      selection &&
-      Range.equals(ReactEditor.toSlateRange(editor, domSelection), selection)
-    ) {
-      return;
-    }
-
-    // Otherwise the DOM selection is out of sync, so update it.
-    state.isUpdatingSelection = true;
-
-    let newDomRange;
-    try {
-      newDomRange = selection && ReactEditor.toDOMRange(editor, selection);
-    } catch (err) {
-      // To get this to happen (when react-window is enabled!), try
-      // select all and doubling the "large document" example on
-      // slatejs to get to over 300 cells. Then select all again and get this.
-      /*
-      console.log(
-        "TODO: deal with toDOMRange when selection is not contained in the visible window. Just resetting for now.",
-        selection,
-        err
-      );
-      */
-      newDomRange = undefined;
-    }
-
-    if (newDomRange) {
-      if (Range.isBackward(selection!)) {
-        domSelection.setBaseAndExtent(
-          newDomRange.endContainer,
-          newDomRange.endOffset,
-          newDomRange.startContainer,
-          newDomRange.startOffset
-        );
-      } else {
-        domSelection.setBaseAndExtent(
-          newDomRange.startContainer,
-          newDomRange.startOffset,
-          newDomRange.endContainer,
-          newDomRange.endOffset
-        );
-      }
-    } else {
-      domSelection.removeAllRanges();
-    }
-
-    setTimeout(() => {
-      // COMPAT: In Firefox, it's not enough to create a range, you also need
-      // to focus the contenteditable element too. (2016/11/16)
-      if (newDomRange && IS_FIREFOX) {
-        try {
-          const el = ReactEditor.toDOMNode(editor, editor);
-          el.focus();
-        } catch (err) {
-          console.log("WARNING: failed to find DOMNode to focus on firefox");
-        }
-      }
-
-      state.isUpdatingSelection = false;
-    });
   });
 
   // The autoFocus TextareaHTMLAttribute doesn't do anything on a div, so it
@@ -411,7 +320,8 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     };
   }, [onDOMBeforeInput]);
 
-  useOnDOMSelectionChange({ editor, state, readOnly });
+  useUpdateDOMSelection({ editor, state });
+  useDOMSelectionChange({ editor, state, readOnly });
 
   const decorations = decorate([editor, []]);
 
@@ -971,8 +881,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
  */
 
 const defaultDecorate = () => [];
-
-
 
 /**
  * Check if an event is overrided by a handler.
