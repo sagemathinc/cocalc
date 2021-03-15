@@ -193,10 +193,13 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
       ) {
         Transforms.select(editor, range);
       } else {
-        // Tricky case: non collapsed and using windowing and selection is not already null
+        // Tricky case: non collapsed and using windowing and selection is not already null.
+
         const { selection } = editor;
         Transforms.select(editor, {
-          anchor: selection.anchor,
+          anchor: isInDOM(selection.anchor, editor)
+            ? range.anchor
+            : selection.anchor,
           focus: range.focus,
         });
       }
@@ -252,4 +255,13 @@ function clipPoint(point: Point, info): Point {
     return { path: [overscanStopIndex], offset: 0 };
   }
   return point;
+}
+
+function isInDOM(point: Point, editor): boolean {
+  const info = editor.windowedListRef.current?.render_info;
+  if (info == null) return true;
+  const { overscanStartIndex, overscanStopIndex } = info;
+  return (
+    point.path[0] >= overscanStartIndex && point.path[0] <= overscanStopIndex
+  );
 }
