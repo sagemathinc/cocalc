@@ -11,26 +11,25 @@ import { React, useState, useIsMountedRef } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
 import { useProjectState } from "../page/project-state-hook";
 import { useProjectHasInternetAccess } from "./has-internet-access-hook";
-import {
-  ReloadOutlined,
-  DeleteOutlined,
-  PlusCircleOutlined,
-  EditOutlined,
-} from "@ant-design/icons";
+import { ReloadOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusCircleOutlined, EditOutlined } from "@ant-design/icons";
 import { Button, Table, Typography, Form, Input, Checkbox } from "antd";
 import { Space as AntdSpace, Alert, Switch, Popconfirm } from "antd";
-import { ErrorDisplay, SettingBox, Space } from "../../r_misc";
+import { ErrorDisplay, SettingBox, Space, Icon, Tip, A } from "../../r_misc";
 import { unreachable } from "smc-util/misc";
-// import * as jsonic from "jsonic";
 import { DUMMY_SECRET } from "./const";
 import { DatastoreConfig as Config } from "./types";
 
-const rule_required = [
+const SECRET_TOOLTIP = `\nSecrets can't be edited. Either keep "${DUMMY_SECRET}" as it is to retain the current value, or enter a new secret to replace the existing one.`;
+
+const DOC = "https://doc.cocalc.com/project-settings.html#datastore";
+
+const RULE_REQUIRED = [
   { required: true, message: "This is a required field." },
 ];
 
-const rule_alphanum = [
-  rule_required[0],
+const RULE_ALPHANUM = [
+  RULE_REQUIRED[0],
   {
     pattern: /^[0-9a-z-_.]+$/,
     message:
@@ -119,7 +118,6 @@ export const Datastore: React.FC<Props> = (props: Props) => {
       default:
         unreachable(type);
     }
-    set_needs_restart(true);
     set_form_readonly(READONLY_DEFAULT);
   }
 
@@ -166,8 +164,14 @@ export const Datastore: React.FC<Props> = (props: Props) => {
     if (res.event == "error") {
       set_error(`Problem saving information: ${res.error}`);
     } else {
+      set_needs_restart(true);
       set_new_config(null); // hide form
       reload(); // refresh what we just saved ...
+    }
+
+    // if we *edit* an entry, get rid of the old one
+    if (new_config?.name /* not "" */ && new_config.name != config.name) {
+      del(new_config.name);
     }
   }
 
@@ -183,6 +187,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
     if (res.event == "error") {
       set_error(`Problem deleting: ${res.error}`);
     } else {
+      set_needs_restart(true);
       reload(); // refresh what we just modified ...
     }
   }
@@ -237,19 +242,44 @@ export const Datastore: React.FC<Props> = (props: Props) => {
     const conf: Config = Object.assign({}, record);
     conf.secret = DUMMY_SECRET;
     set_new_config(conf);
+    set_form_readonly(conf.readonly ?? READONLY_DEFAULT);
+  }
+
+  function render_list_ro_title() {
+    return (
+      <Tip
+        title="Read-only"
+        tip="An open lock indicates the datastore will be mounted with read/write rights, while a closed lock means it will be mounted with read-only options."
+      >
+        <Icon name="edit" />
+      </Tip>
+    );
   }
 
   function render_list() {
     return (
       <Table<Config> dataSource={configs} loading={loading} pagination={false}>
+        <Table.Column<Config>
+          key="name"
+          title={"Name"}
+          dataIndex="name"
+          render={(name) => <Typography.Text strong>{name}</Typography.Text>}
+        />
         <Table.Column<Config> key="type" title="Type" dataIndex="type" />
-        <Table.Column<Config> key="name" title="Name" dataIndex="name" />
         <Table.Column<Config>
           key="about"
           title="About"
           dataIndex="about"
           render={(about) => (
             <div style={{ whiteSpace: "pre", fontSize: "80%" }}>{about}</div>
+          )}
+        />
+        <Table.Column<Config>
+          key="readonly"
+          title={render_list_ro_title()}
+          dataIndex="readonly"
+          render={(_, record) => (
+            <Icon name={record.readonly ?? false ? "lock" : "lock-open"} />
           )}
         />
         <Table.Column<Config>
@@ -321,12 +351,22 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         type="info"
         message={
           <div>
-            <h3>Help</h3>
-            <p></p>
+            <p>
+              A datastore is an external collection of files or file-like
+              objects. It can be mounted into a CoCalc project, if it has access
+              to the internet (quota "internet") by entering the proper
+              configuration. If everything works out fine, you can access the
+              data at "/data/[name]". As a convenience, it's possible to let a
+              symlink point from the project's home directory to the "/data"
+              directory.
+            </p>
             <p>
               When editing, the secret stays hidden. Keep the dummy text{" "}
               <Typography.Text code>{DUMMY_SECRET}</Typography.Text> as it is to
-              keep it – otherwise replace it with a new value.
+              keep it – otherwise it gets replaced by the new value.
+            </p>
+            <p>
+              More information: <A href={DOC}>Project Settings / Datastore</A>
             </p>
           </div>
         }
@@ -357,7 +397,14 @@ export const Datastore: React.FC<Props> = (props: Props) => {
     wrapperCol: { offset: 6, span: 18 },
   };
 
+  function cancel() {
+    set_new_config(null);
+    set_error("");
+  }
+
   function render_form_bottom() {
+    // TODO: in general, I don't know to back the readonly boolean with the form
+    // that's why this is a control setting a state, and some extras around it
     return (
       <>
         <Form.Item label="Read-only" name="readonly">
@@ -371,7 +418,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
             <Button type="primary" htmlType="submit">
               Save
             </Button>
-            <Button onClick={() => set_new_config(null)}>Cancel</Button>
+            <Button onClick={cancel}>Cancel</Button>
           </AntdSpace>
         </Form.Item>
       </>
@@ -383,23 +430,23 @@ export const Datastore: React.FC<Props> = (props: Props) => {
       <Form.Item
         label="Name"
         name="name"
-        rules={rule_alphanum}
-        tooltip={"Name of the datastore."}
+        rules={RULE_ALPHANUM}
+        tooltip={"Name of the datastore.\nIt will be mounted at /data/[name]"}
       >
         <Input placeholder="" />
       </Form.Item>
     );
   }
 
+  function process_failure(err: { errorFields: { name; errors: string[] }[] }) {
+    //console.log("process_failure", err);
+    const msg: string[] = err.errorFields?.map(
+      ({ name, errors }) => `- ${name}: ${errors.join(" ")}`
+    );
+    set_error(msg.join("\n"));
+  }
+
   function ConfigForm(props) {
-    // failed err looks like that:
-    // {"values":{"name":""},
-    //  "errorFields":[
-    //    {"name":["name"],"errors":["Name, must be lowercase alphanumeric, [a-z0-9-_]."]},
-    //    {"name":["bucket"],"errors":["Name of the S3 bucket"]}
-    // ],"outOfDate":false}
-    //
-    // save {"name":"n","user":"asdf","host":"host","path":"/my/path","secret":"private\nkey","readonly":false}
     return (
       <Form
         {...form_layout}
@@ -409,9 +456,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
           values.type = props.type;
           set(values);
         }}
-        onFinishFailed={(err) =>
-          window.alert(`Form problem: ${JSON.stringify(err)}`)
-        }
+        onFinishFailed={process_failure}
       >
         {props.children}
       </Form>
@@ -428,7 +473,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         <Form.Item
           label="Bucket"
           name="bucket"
-          rules={rule_alphanum}
+          rules={RULE_ALPHANUM}
           tooltip={msg_bucket}
         >
           <Input placeholder="name-of-bucket-01" />
@@ -436,8 +481,8 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         <Form.Item
           label="Credentials"
           name="secret"
-          rules={rule_required}
-          tooltip={creds_help}
+          rules={RULE_REQUIRED}
+          tooltip={creds_help + SECRET_TOOLTIP}
         >
           <Input.TextArea rows={5} placeholder={creds_help} />
         </Form.Item>
@@ -453,7 +498,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         <Form.Item
           label="Bucket"
           name="bucket"
-          rules={rule_alphanum}
+          rules={RULE_ALPHANUM}
           tooltip="The bucket"
         >
           <Input placeholder="name-of-bucket-01" />
@@ -461,7 +506,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         <Form.Item
           label="Key ID"
           name="keyid"
-          rules={rule_required}
+          rules={RULE_REQUIRED}
           tooltip="The Key ID"
         >
           <Input placeholder="AFiwFw892...." />
@@ -469,8 +514,8 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         <Form.Item
           label="Secret"
           name="secret"
-          rules={rule_required}
-          tooltip="The secret key"
+          rules={RULE_REQUIRED}
+          tooltip={"The secret key" + SECRET_TOOLTIP}
         >
           <Input placeholder="fie$kf2&ifw..." />
         </Form.Item>
@@ -490,7 +535,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         <Form.Item
           label="User"
           name="user"
-          rules={rule_required}
+          rules={RULE_REQUIRED}
           tooltip="The username in [user]@[host]"
         >
           <Input placeholder="foo..." />
@@ -498,7 +543,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         <Form.Item
           label="Host"
           name="host"
-          rules={rule_required}
+          rules={RULE_REQUIRED}
           tooltip="The host in [user]@[host]"
         >
           <Input placeholder="login.server.edu" />
@@ -513,8 +558,8 @@ export const Datastore: React.FC<Props> = (props: Props) => {
         <Form.Item
           label="Private Key"
           name="secret"
-          rules={rule_required}
-          tooltip={pk_help}
+          rules={RULE_REQUIRED}
+          tooltip={pk_help + SECRET_TOOLTIP}
         >
           <Input.TextArea rows={5} placeholder={pk_example} />
         </Form.Item>
