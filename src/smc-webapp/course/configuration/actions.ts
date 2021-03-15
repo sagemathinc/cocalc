@@ -9,6 +9,7 @@ Actions involving configuration of the course.
 
 import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
 import { CourseActions } from "../actions";
+import { store as projects_store } from "../../projects/store";
 import { redux } from "../../app-framework";
 import { reuseInFlight } from "async-await-utils/hof";
 import {
@@ -161,12 +162,42 @@ export class ConfigurationActions {
     });
   }
 
+  public async configure_nbgrader_grade_project(
+    project_id: string
+  ): Promise<void> {
+    const store = this.course_actions.get_store();
+
+    // make sure the course config for that nbgrader project (mainly for the datastore!) is set
+    const datastore: Datastore = store.get_datastore();
+    const projects_actions = redux.getActions("projects");
+
+    // if for some reason this is a student project, we don't want to reconfigure it
+    const course_info: any = projects_store.get_course_info(project_id)?.toJS();
+    if (course_info?.type == null || course_info.type == "nbgrader") {
+      await projects_actions.set_project_course_info(
+        project_id,
+        store.get("course_project_id"),
+        store.get("course_filename"),
+        "", // pay
+        null, // account_id
+        null, // email_address
+        datastore,
+        "nbgrader" // type of project
+      );
+    }
+  }
+
   // project_id is a uuid *or* empty string.
-  public set_nbgrader_grade_project(project_id: string): void {
+  public async set_nbgrader_grade_project(project_id: string): Promise<void> {
     this.set({
       nbgrader_grade_project: project_id,
       table: "settings",
     });
+
+    // not empty string → configure that grading project
+    if (project_id) {
+      await this.configure_nbgrader_grade_project(project_id);
+    }
   }
 
   public set_nbgrader_cell_timeout_ms(nbgrader_cell_timeout_ms: number): void {
@@ -238,5 +269,14 @@ export class ConfigurationActions {
     this.set({ datastore, table: "settings" });
     this.course_actions.student_projects.configure_all_projects();
     this.course_actions.shared_project.set_datastore();
+
+    const store = this.course_actions.get_store();
+    const nbgrader_grade_project: string | undefined = store.getIn([
+      "settings",
+      "nbgrader_grade_project",
+    ]);
+    if (nbgrader_grade_project) {
+      this.configure_nbgrader_grade_project(nbgrader_grade_project);
+    }
   }
 }

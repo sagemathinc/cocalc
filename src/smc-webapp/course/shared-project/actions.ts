@@ -191,7 +191,7 @@ export class SharedProjectActions {
       null, // account_id
       null, // email_address
       datastore,
-      true // shared project
+      "shared" // type of project
     );
   }
 

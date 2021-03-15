@@ -1585,6 +1585,10 @@ ${details}
       // grade in the path where we collected their work.
       student_path =
         assignment.get("collect_path") + "/" + student.get("student_id");
+
+      this.course_actions.configuration.configure_nbgrader_grade_project(
+        grade_project_id
+      );
     } else {
       if (student_project_id == null) {
         // This would happen if maybe instructor deletes student project at

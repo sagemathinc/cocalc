@@ -229,7 +229,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     account_id: string | null,
     email_address: string | null,
     datastore: Datastore,
-    shared: boolean = false
+    type: "student" | "shared" | "nbgrader"
   ): Promise<void> {
     if (!(await this.have_project(project_id))) {
       const msg = `Can't set course info -- you are not a collaborator on project '${project_id}'.`;
@@ -242,9 +242,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
       path,
       pay,
       datastore,
-      shared,
+      type,
     };
-    // null for shared project, otherwise student project
+    // null for shared/nbgrader project, otherwise student project
     if (account_id != null && email_address != null) {
       course.account_id = account_id;
       course.email_address = email_address;

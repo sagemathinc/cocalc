@@ -435,7 +435,8 @@ export class StudentProjectsActions {
           pay,
           student_account_id,
           student_email_address,
-          datastore
+          datastore,
+          "student" // type of project
         );
       }
     } finally {
