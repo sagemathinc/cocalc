@@ -643,18 +643,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
             ) {
               return;
             }
-            if (!ReactEditor.selectionIsInDOM(editor)) {
-              // In case of windowing, if you type something when the cursor is not
-              // in the DOM, then without doing something like this, that text would
-              // get inserted in completely the wrong place in the document.
-              editor.scrollCaretIntoView();
-              if (event.key.length == 1) {
-                // user likely typed a character
-                editor.insertText(event.key);
-              }
-              event.preventDefault();
-              return;
-            }
 
             const { nativeEvent } = event;
             const { selection } = editor;
@@ -851,6 +839,23 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
 
                 return;
               }
+            }
+
+            if (
+              !event.altKey &&
+              !event.ctrlKey &&
+              !event.metaKey &&
+              event.key.length == 1 &&
+              !ReactEditor.selectionIsInDOM(editor)
+            ) {
+              // In case of windowing, if you type something when the cursor is not
+              // in the DOM, then without doing something like this, that text would
+              // get inserted in completely the wrong place in the document.
+              editor.scrollCaretIntoView();
+              // user likely typed a character so insert it
+              editor.insertText(event.key);
+              event.preventDefault();
+              return;
             }
           },
           [readOnly, attributes.onKeyDown]
