@@ -637,205 +637,219 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         onKeyDown={useCallback(
           (event: React.KeyboardEvent<HTMLDivElement>) => {
             if (
-              !readOnly &&
-              hasEditableTarget(editor, event.target) &&
-              !isEventHandled(event, attributes.onKeyDown)
+              readOnly ||
+              !hasEditableTarget(editor, event.target) ||
+              isEventHandled(event, attributes.onKeyDown)
             ) {
-              const { nativeEvent } = event;
-              const { selection } = editor;
+              return;
+            }
+            if (!ReactEditor.selectionIsInDOM(editor)) {
+              // In case of windowing, if you type something when the cursor is not
+              // in the DOM, then without doing something like this, that text would
+              // get inserted in completely the wrong place in the document.
+              editor.scrollCaretIntoView();
+              if (event.key.length == 1) {
+                // user likely typed a character
+                editor.insertText(event.key);
+              }
+              event.preventDefault();
+              return;
+            }
 
-              // COMPAT: Since we prevent the default behavior on
-              // `beforeinput` events, the browser doesn't think there's ever
-              // any history stack to undo or redo, so we have to manage these
-              // hotkeys ourselves. (2019/11/06)
-              if (Hotkeys.isRedo(nativeEvent)) {
-                event.preventDefault();
+            const { nativeEvent } = event;
+            const { selection } = editor;
 
-                /*
+            // COMPAT: Since we prevent the default behavior on
+            // `beforeinput` events, the browser doesn't think there's ever
+            // any history stack to undo or redo, so we have to manage these
+            // hotkeys ourselves. (2019/11/06)
+            if (Hotkeys.isRedo(nativeEvent)) {
+              event.preventDefault();
+
+              /*
                 if (HistoryEditor.isHistoryEditor(editor)) {
                   editor.redo();
                 }
                 */
 
-                return;
-              }
+              return;
+            }
 
-              if (Hotkeys.isUndo(nativeEvent)) {
-                event.preventDefault();
+            if (Hotkeys.isUndo(nativeEvent)) {
+              event.preventDefault();
 
-                /*
+              /*
                 if (HistoryEditor.isHistoryEditor(editor)) {
                   editor.undo();
                 }*/
 
+              return;
+            }
+
+            // COMPAT: Certain browsers don't handle the selection updates
+            // properly. In Chrome, the selection isn't properly extended.
+            // And in Firefox, the selection isn't properly collapsed.
+            // (2017/10/17)
+            if (Hotkeys.isMoveLineBackward(nativeEvent)) {
+              event.preventDefault();
+              Transforms.move(editor, { unit: "line", reverse: true });
+              return;
+            }
+
+            if (Hotkeys.isMoveLineForward(nativeEvent)) {
+              event.preventDefault();
+              Transforms.move(editor, { unit: "line" });
+              return;
+            }
+
+            if (Hotkeys.isExtendLineBackward(nativeEvent)) {
+              event.preventDefault();
+              Transforms.move(editor, {
+                unit: "line",
+                edge: "focus",
+                reverse: true,
+              });
+              return;
+            }
+
+            if (Hotkeys.isExtendLineForward(nativeEvent)) {
+              event.preventDefault();
+              Transforms.move(editor, { unit: "line", edge: "focus" });
+              return;
+            }
+
+            // COMPAT: If a void node is selected, or a zero-width text node
+            // adjacent to an inline is selected, we need to handle these
+            // hotkeys manually because browsers won't be able to skip over
+            // the void node with the zero-width space not being an empty
+            // string.
+            if (Hotkeys.isMoveBackward(nativeEvent)) {
+              event.preventDefault();
+
+              if (selection && Range.isCollapsed(selection)) {
+                Transforms.move(editor, { reverse: true });
+              } else {
+                Transforms.collapse(editor, { edge: "start" });
+              }
+
+              return;
+            }
+
+            if (Hotkeys.isMoveForward(nativeEvent)) {
+              event.preventDefault();
+
+              if (selection && Range.isCollapsed(selection)) {
+                Transforms.move(editor);
+              } else {
+                Transforms.collapse(editor, { edge: "end" });
+              }
+
+              return;
+            }
+
+            if (Hotkeys.isMoveWordBackward(nativeEvent)) {
+              event.preventDefault();
+              Transforms.move(editor, { unit: "word", reverse: true });
+              return;
+            }
+
+            if (Hotkeys.isMoveWordForward(nativeEvent)) {
+              event.preventDefault();
+              Transforms.move(editor, { unit: "word" });
+              return;
+            }
+
+            // COMPAT: Certain browsers don't support the `beforeinput` event, so we
+            // fall back to guessing at the input intention for hotkeys.
+            // COMPAT: In iOS, some of these hotkeys are handled in the
+            if (!HAS_BEFORE_INPUT_SUPPORT) {
+              // We don't have a core behavior for these, but they change the
+              // DOM if we don't prevent them, so we have to.
+              if (
+                Hotkeys.isBold(nativeEvent) ||
+                Hotkeys.isItalic(nativeEvent) ||
+                Hotkeys.isTransposeCharacter(nativeEvent)
+              ) {
+                event.preventDefault();
                 return;
               }
 
-              // COMPAT: Certain browsers don't handle the selection updates
-              // properly. In Chrome, the selection isn't properly extended.
-              // And in Firefox, the selection isn't properly collapsed.
-              // (2017/10/17)
-              if (Hotkeys.isMoveLineBackward(nativeEvent)) {
+              if (Hotkeys.isSplitBlock(nativeEvent)) {
                 event.preventDefault();
-                Transforms.move(editor, { unit: "line", reverse: true });
+                Editor.insertBreak(editor);
                 return;
               }
 
-              if (Hotkeys.isMoveLineForward(nativeEvent)) {
-                event.preventDefault();
-                Transforms.move(editor, { unit: "line" });
-                return;
-              }
-
-              if (Hotkeys.isExtendLineBackward(nativeEvent)) {
-                event.preventDefault();
-                Transforms.move(editor, {
-                  unit: "line",
-                  edge: "focus",
-                  reverse: true,
-                });
-                return;
-              }
-
-              if (Hotkeys.isExtendLineForward(nativeEvent)) {
-                event.preventDefault();
-                Transforms.move(editor, { unit: "line", edge: "focus" });
-                return;
-              }
-
-              // COMPAT: If a void node is selected, or a zero-width text node
-              // adjacent to an inline is selected, we need to handle these
-              // hotkeys manually because browsers won't be able to skip over
-              // the void node with the zero-width space not being an empty
-              // string.
-              if (Hotkeys.isMoveBackward(nativeEvent)) {
+              if (Hotkeys.isDeleteBackward(nativeEvent)) {
                 event.preventDefault();
 
-                if (selection && Range.isCollapsed(selection)) {
-                  Transforms.move(editor, { reverse: true });
+                if (selection && Range.isExpanded(selection)) {
+                  Editor.deleteFragment(editor);
                 } else {
-                  Transforms.collapse(editor, { edge: "start" });
+                  Editor.deleteBackward(editor);
                 }
 
                 return;
               }
 
-              if (Hotkeys.isMoveForward(nativeEvent)) {
+              if (Hotkeys.isDeleteForward(nativeEvent)) {
                 event.preventDefault();
 
-                if (selection && Range.isCollapsed(selection)) {
-                  Transforms.move(editor);
+                if (selection && Range.isExpanded(selection)) {
+                  Editor.deleteFragment(editor);
                 } else {
-                  Transforms.collapse(editor, { edge: "end" });
+                  Editor.deleteForward(editor);
                 }
 
                 return;
               }
 
-              if (Hotkeys.isMoveWordBackward(nativeEvent)) {
+              if (Hotkeys.isDeleteLineBackward(nativeEvent)) {
                 event.preventDefault();
-                Transforms.move(editor, { unit: "word", reverse: true });
+
+                if (selection && Range.isExpanded(selection)) {
+                  Editor.deleteFragment(editor);
+                } else {
+                  Editor.deleteBackward(editor, { unit: "line" });
+                }
+
                 return;
               }
 
-              if (Hotkeys.isMoveWordForward(nativeEvent)) {
+              if (Hotkeys.isDeleteLineForward(nativeEvent)) {
                 event.preventDefault();
-                Transforms.move(editor, { unit: "word" });
+
+                if (selection && Range.isExpanded(selection)) {
+                  Editor.deleteFragment(editor);
+                } else {
+                  Editor.deleteForward(editor, { unit: "line" });
+                }
+
                 return;
               }
 
-              // COMPAT: Certain browsers don't support the `beforeinput` event, so we
-              // fall back to guessing at the input intention for hotkeys.
-              // COMPAT: In iOS, some of these hotkeys are handled in the
-              if (!HAS_BEFORE_INPUT_SUPPORT) {
-                // We don't have a core behavior for these, but they change the
-                // DOM if we don't prevent them, so we have to.
-                if (
-                  Hotkeys.isBold(nativeEvent) ||
-                  Hotkeys.isItalic(nativeEvent) ||
-                  Hotkeys.isTransposeCharacter(nativeEvent)
-                ) {
-                  event.preventDefault();
-                  return;
+              if (Hotkeys.isDeleteWordBackward(nativeEvent)) {
+                event.preventDefault();
+
+                if (selection && Range.isExpanded(selection)) {
+                  Editor.deleteFragment(editor);
+                } else {
+                  Editor.deleteBackward(editor, { unit: "word" });
                 }
 
-                if (Hotkeys.isSplitBlock(nativeEvent)) {
-                  event.preventDefault();
-                  Editor.insertBreak(editor);
-                  return;
+                return;
+              }
+
+              if (Hotkeys.isDeleteWordForward(nativeEvent)) {
+                event.preventDefault();
+
+                if (selection && Range.isExpanded(selection)) {
+                  Editor.deleteFragment(editor);
+                } else {
+                  Editor.deleteForward(editor, { unit: "word" });
                 }
 
-                if (Hotkeys.isDeleteBackward(nativeEvent)) {
-                  event.preventDefault();
-
-                  if (selection && Range.isExpanded(selection)) {
-                    Editor.deleteFragment(editor);
-                  } else {
-                    Editor.deleteBackward(editor);
-                  }
-
-                  return;
-                }
-
-                if (Hotkeys.isDeleteForward(nativeEvent)) {
-                  event.preventDefault();
-
-                  if (selection && Range.isExpanded(selection)) {
-                    Editor.deleteFragment(editor);
-                  } else {
-                    Editor.deleteForward(editor);
-                  }
-
-                  return;
-                }
-
-                if (Hotkeys.isDeleteLineBackward(nativeEvent)) {
-                  event.preventDefault();
-
-                  if (selection && Range.isExpanded(selection)) {
-                    Editor.deleteFragment(editor);
-                  } else {
-                    Editor.deleteBackward(editor, { unit: "line" });
-                  }
-
-                  return;
-                }
-
-                if (Hotkeys.isDeleteLineForward(nativeEvent)) {
-                  event.preventDefault();
-
-                  if (selection && Range.isExpanded(selection)) {
-                    Editor.deleteFragment(editor);
-                  } else {
-                    Editor.deleteForward(editor, { unit: "line" });
-                  }
-
-                  return;
-                }
-
-                if (Hotkeys.isDeleteWordBackward(nativeEvent)) {
-                  event.preventDefault();
-
-                  if (selection && Range.isExpanded(selection)) {
-                    Editor.deleteFragment(editor);
-                  } else {
-                    Editor.deleteBackward(editor, { unit: "word" });
-                  }
-
-                  return;
-                }
-
-                if (Hotkeys.isDeleteWordForward(nativeEvent)) {
-                  event.preventDefault();
-
-                  if (selection && Range.isExpanded(selection)) {
-                    Editor.deleteFragment(editor);
-                  } else {
-                    Editor.deleteForward(editor, { unit: "word" });
-                  }
-
-                  return;
-                }
+                return;
               }
             }
           },
