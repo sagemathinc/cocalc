@@ -7,7 +7,7 @@
 
 // important: I made this type **wrong** so I don't
 // forget to comment this out.
-//const DEBUG: string = true; // do not delete "string"!
+// const DEBUG: string = true; // do not delete "string"!
 const DEBUG = false;
 
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
@@ -92,7 +92,7 @@ let USE_WINDOWING = true;
 // In contrast, with windowing, everything is **buttery smooth**.
 // Making this overscan small makes things even faster, and also
 // minimizes interference when two users are editing at once.
-const OVERSCAN_ROW_COUNT = 0;
+const OVERSCAN_ROW_COUNT = 1;
 
 import { IS_FIREFOX } from "../../../feature";
 if (USE_WINDOWING && IS_FIREFOX) {

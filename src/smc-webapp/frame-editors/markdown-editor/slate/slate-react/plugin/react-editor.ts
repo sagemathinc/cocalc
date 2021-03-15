@@ -29,12 +29,11 @@ import {
 export interface ReactEditor extends Editor {
   insertData: (data: DataTransfer) => void;
   setFragmentData: (data: DataTransfer) => void;
-  scrollCaretIntoView: (options?: { middle?: boolean }) => void;
+  scrollCaretIntoView: (options?: { middle?: boolean }) => Promise<void>;
   windowedListRef: { current: any };
 }
 
 export const ReactEditor = {
-
   /**
    * Find a key for a Slate node.
    */
@@ -542,5 +541,24 @@ export const ReactEditor = {
       : ReactEditor.toSlatePoint(editor, [focusNode, focusOffset]);
 
     return { anchor, focus };
+  },
+
+  selectionIsInDOM(editor: ReactEditor): boolean {
+    const { selection } = editor;
+    if (selection == null) return true;
+    const info = editor.windowedListRef.current?.render_info;
+    if (info == null) return true;
+    const { overscanStartIndex, overscanStopIndex } = info;
+    if (
+      selection.anchor.path[0] < overscanStartIndex ||
+      selection.anchor.path[0] > overscanStopIndex
+    )
+      return false;
+    if (
+      selection.focus.path[0] < overscanStartIndex ||
+      selection.focus.path[0] > overscanStopIndex
+    )
+      return false;
+    return true;
   },
 };

@@ -221,7 +221,7 @@ export const withReact = <T extends Editor>(editor: T) => {
     });
   };
 
-  e.scrollCaretIntoView = (options?: { middle?: boolean }) => {
+  e.scrollCaretIntoView = async (options?: { middle?: boolean }) => {
     /* Scroll so Caret is visible.  I tested several editors, and
      I think reasonable behavior is:
       - If caret is full visible on the screen, do nothing.
@@ -248,77 +248,78 @@ export const withReact = <T extends Editor>(editor: T) => {
      because it just scrolls that entire leaf into view, not the cursor
      itself.
   */
-    requestAnimationFrame(async () => {
-      const { selection } = e;
-      if (!selection) return;
-      if (!Range.isCollapsed(selection)) return;
+    await new Promise(requestAnimationFrame);
+    const { selection } = e;
+    if (!selection) return;
+    if (!Range.isCollapsed(selection)) return;
 
-      // Important: there's no good way to do this when the focused
-      // element is void, and the naive code leads to bad problems,
-      // e.g., with several images, when you click on one, things jump
-      // around randomly and you sometimes can't scroll the image into view.
-      // Better to just do nothing in case of voids.
-      for (const [node] of Editor.nodes(e, { at: selection.focus })) {
-        if (Editor.isVoid(e, node)) {
-          return;
-        }
-      }
-
-      // In case we're using windowing, scroll the block with the cursor
-      // into the DOM first.
-      let windowed: boolean = e.windowedListRef.current != null;
-      if (windowed) {
-        const info = e.windowedListRef.current.render_info;
-        const index = selection.focus.path[0];
-        if (info != null && index != null) {
-          const { overscanStartIndex, overscanStopIndex } = info;
-          if (index < overscanStartIndex || index > overscanStopIndex) {
-            e.windowedListRef.current.scrollToItem(index);
-            // now wait until the actual scroll happens before
-            // doing the measuring below, or it could be wrong.
-            await new Promise(requestAnimationFrame);
-          }
-        }
-      }
-
-      let domSelection;
-      try {
-        domSelection = ReactEditor.toDOMRange(e, selection);
-      } catch (_err) {
-        // harmless to just not do this in case of failure.
+    // Important: there's no good way to do this when the focused
+    // element is void, and the naive code leads to bad problems,
+    // e.g., with several images, when you click on one, things jump
+    // around randomly and you sometimes can't scroll the image into view.
+    // Better to just do nothing in case of voids.
+    for (const [node] of Editor.nodes(e, { at: selection.focus })) {
+      if (Editor.isVoid(e, node)) {
         return;
       }
-      if (!domSelection) return;
-      const selectionRect = domSelection.getBoundingClientRect();
-      const editorEl = ReactEditor.toDOMNode(e, e);
-      const editorRect = editorEl.getBoundingClientRect();
-      const EXTRA = options?.middle
-        ? editorRect.height / 2
-        : editorRect.height > 100
-        ? 20
-        : 0; // this much more than the min possible to get it on screen.
+    }
 
-      let offset: number = 0;
-      if (selectionRect.top < editorRect.top + EXTRA) {
-        offset = editorRect.top + EXTRA - selectionRect.top;
-      } else if (
-        selectionRect.bottom - editorRect.top >
-        editorRect.height - EXTRA
-      ) {
-        offset =
-          editorRect.height - EXTRA - (selectionRect.bottom - editorRect.top);
-      }
-      if (offset) {
-        if (windowed) {
-          e.windowedListRef.current.list_ref?.current?.scrollTo(
-            e.windowedListRef.current?.scroll_info.scrollOffset - offset
-          );
-        } else {
-          editorEl.scrollTop = editorEl.scrollTop - offset;
+    // In case we're using windowing, scroll the block with the cursor
+    // into the DOM first.
+    let windowed: boolean = e.windowedListRef.current != null;
+    if (windowed) {
+      const info = e.windowedListRef.current.render_info;
+      const index = selection.focus.path[0];
+      if (info != null && index != null) {
+        const { overscanStartIndex, overscanStopIndex } = info;
+        if (index < overscanStartIndex || index > overscanStopIndex) {
+          e.windowedListRef.current.scrollToItem(index);
+          // now wait until the actual scroll happens before
+          // doing the measuring below, or it could be wrong.
+          await new Promise(requestAnimationFrame);
         }
       }
-    });
+    }
+
+    let domSelection;
+    try {
+      domSelection = ReactEditor.toDOMRange(e, selection);
+    } catch (_err) {
+      // harmless to just not do this in case of failure.
+      return;
+    }
+    if (!domSelection) return;
+    const selectionRect = domSelection.getBoundingClientRect();
+    const editorEl = ReactEditor.toDOMNode(e, e);
+    const editorRect = editorEl.getBoundingClientRect();
+    const EXTRA = options?.middle
+      ? editorRect.height / 2
+      : editorRect.height > 100
+      ? 20
+      : 0; // this much more than the min possible to get it on screen.
+
+    let offset: number = 0;
+    if (selectionRect.top < editorRect.top + EXTRA) {
+      offset = editorRect.top + EXTRA - selectionRect.top;
+    } else if (
+      selectionRect.bottom - editorRect.top >
+      editorRect.height - EXTRA
+    ) {
+      offset =
+        editorRect.height - EXTRA - (selectionRect.bottom - editorRect.top);
+    }
+    if (offset) {
+      if (windowed) {
+        e.windowedListRef.current.list_ref?.current?.scrollTo(
+          e.windowedListRef.current?.scroll_info.scrollOffset - offset
+        );
+      } else {
+        editorEl.scrollTop = editorEl.scrollTop - offset;
+      }
+    }
   };
+
+
 
   return e;
 };
