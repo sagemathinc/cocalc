@@ -236,7 +236,7 @@ export const withReact = <T extends Editor>(editor: T) => {
      This code below is based on what is
          https://github.com/ianstormtaylor/slate/pull/4023
      except that PR seems buggy and does the wrong thing, so I
-     had to rewrite it.
+     had to rewrite it.  I also wrote a version for windowing.
 
      I think properly implementing this is very important since it is
      critical to keep users from feeling *lost* when using the editor.
@@ -248,14 +248,14 @@ export const withReact = <T extends Editor>(editor: T) => {
      because it just scrolls that entire leaf into view, not the cursor
      itself.
   */
-    requestAnimationFrame(() => {
+    requestAnimationFrame(async () => {
       const { selection } = e;
       if (!selection) return;
       if (!Range.isCollapsed(selection)) return;
 
       // Important: there's no good way to do this when the focused
       // element is void, and the naive code leads to bad problems,
-      // e.g., with several images, when you click on one things jump
+      // e.g., with several images, when you click on one, things jump
       // around randomly and you sometimes can't scroll the image into view.
       // Better to just do nothing in case of voids.
       for (const [node] of Editor.nodes(e, { at: selection.focus })) {
@@ -263,6 +263,24 @@ export const withReact = <T extends Editor>(editor: T) => {
           return;
         }
       }
+
+      // In case we're using windowing, scroll the block with the cursor
+      // into the DOM first.
+      let windowed: boolean = e.windowedListRef.current != null;
+      if (windowed) {
+        const info = e.windowedListRef.current.render_info;
+        const index = selection.focus.path[0];
+        if (info != null && index != null) {
+          const { overscanStartIndex, overscanStopIndex } = info;
+          if (index < overscanStartIndex || index > overscanStopIndex) {
+            e.windowedListRef.current.scrollToItem(index);
+            // now wait until the actual scroll happens before
+            // doing the measuring below, or it could be wrong.
+            await new Promise(requestAnimationFrame);
+          }
+        }
+      }
+
       let domSelection;
       try {
         domSelection = ReactEditor.toDOMRange(e, selection);
@@ -280,16 +298,24 @@ export const withReact = <T extends Editor>(editor: T) => {
         ? 20
         : 0; // this much more than the min possible to get it on screen.
 
+      let offset: number = 0;
       if (selectionRect.top < editorRect.top + EXTRA) {
-        editorEl.scrollTop =
-          editorEl.scrollTop - (editorRect.top + EXTRA - selectionRect.top);
+        offset = editorRect.top + EXTRA - selectionRect.top;
       } else if (
         selectionRect.bottom - editorRect.top >
         editorRect.height - EXTRA
       ) {
-        editorEl.scrollTop =
-          editorEl.scrollTop -
-          (editorRect.height - EXTRA - (selectionRect.bottom - editorRect.top));
+        offset =
+          editorRect.height - EXTRA - (selectionRect.bottom - editorRect.top);
+      }
+      if (offset) {
+        if (windowed) {
+          e.windowedListRef.current.list_ref?.current?.scrollTo(
+            e.windowedListRef.current?.scroll_info.scrollOffset - offset
+          );
+        } else {
+          editorEl.scrollTop = editorEl.scrollTop - offset;
+        }
       }
     });
   };
