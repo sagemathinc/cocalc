@@ -31,6 +31,10 @@ export function serializeLeaf(node: Text, info: Info): string {
 
     const marks: { left: string; right?: string }[] = [];
     // Proper markdown annotation.
+    if (node.code) {
+      // code *must* be first, since in markdown ~~`var`~~ is completely different than `~~var~~`.
+      marks.push({ left: "`" });
+    }
     if (node.bold) {
       marks.push({ left: "**" });
     }
@@ -39,9 +43,6 @@ export function serializeLeaf(node: Text, info: Info): string {
     }
     if (node.strikethrough) {
       marks.push({ left: "~~" });
-    }
-    if (node.code) {
-      marks.push({ left: "`" });
     }
     if (node.tt) {
       // tt is deprecated, so we don't want to encourage it; we automatically

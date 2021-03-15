@@ -7,16 +7,16 @@
 
 // important: I made this type **wrong** so I don't
 // forget to comment this out.
-//const DEBUG: string = true; // do not delete "string"!
+// const DEBUG: string = true; // do not delete "string"!
 const DEBUG = false;
 
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
-import { IS_FIREFOX } from "../../../feature";
 import { Map } from "immutable";
 
 import { EditorState } from "../../frame-tree/types";
 import { createEditor, Descendant, Editor, Range, Transforms } from "slate";
+import "./patches";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
 import {
@@ -26,6 +26,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useIsMountedRef,
 } from "../../../app-framework";
 import { Actions } from "../actions";
 
@@ -73,26 +74,40 @@ export interface SlateEditor extends ReactEditor {
   getMarkdownValue: () => string;
 }
 
-// Whether or not to use windowing.
+// Whether or not to use windowing (=only rendering visible elements).
 // I'm going to disable this by default (for production
 // releases), but re-enable it frequently for development.
 // There are a LOT of missing features when using windowing,
 // including subtle issues with selection, scroll state, etc.
-let USE_WINDOWING = false;
-// We set this to be as large as possible, since it might be a while until
-// we fully implement cursor/selection handling and windowing properly. In
-// the meantime, this will make everything work 100% with at least OVERSCAN_ROW_COUNT
-// blocks around the cursor, which handles 99% of cases.   On the other hand,
-// in those cases when somebody opens say Moby Dick (with 2000+ blocks),
-// it also works at all (rather than just locking the browser!).
-const OVERSCAN_ROW_COUNT = 75;
+// IMPORTANT: Do not set this to false unless you want to make
+// slate editing **basically unusable** at scale beyond a few pages!!
+let USE_WINDOWING = true;
+
+// Why window?  Unfortunately, due to how slate is designed, actually editing
+// text is "unusable" for even medium size documents
+// without using windowing. E.g., with say 200 top level blocks,
+// just trying to enter random characters quickly on a superfast laptop
+// shows nothing until you pause for a moment.  Totally unacceptable.
+// This is for lots of reasons, including things like decorations being
+// recomputed, caching not really working, DOM being expensive.
+// Even click-dragging and selecting a range breaks often due to
+// things being slow.
+// In contrast, with windowing, everything is **buttery smooth**.
+// Making this overscan small makes things even faster, and also
+// minimizes interference when two users are editing at once.
+const OVERSCAN_ROW_COUNT = 1;
+
+/*
+import { IS_FIREFOX } from "../../../feature";
 if (USE_WINDOWING && IS_FIREFOX) {
   // Windowing on Firefox results in TONS of problems all over the place, whereas it
-  // works "better" with Safari and Chrome.  So no matter what we always disable it on
-  // Firefox.   See https://github.com/sagemathinc/cocalc/issues/5204 where both
+  // works "better" with Safari and Chrome.  So until we fix these (and we will),
+  // we disable windowing with Firefox.
+  // See https://github.com/sagemathinc/cocalc/issues/5204 where both
   // problems are caused by windowing.
   USE_WINDOWING = false;
 }
+*/
 
 const STYLE = {
   width: "100%",
@@ -128,6 +143,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     editor_state,
     cursors,
   }) => {
+    const isMountedRef = useIsMountedRef();
     const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
       markdown_to_slate(value)
     );
@@ -178,6 +194,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const [marks, setMarks] = useState<Marks>(getMarks(editor));
     const updateMarks = useMemo(() => {
       const f = () => {
+        if (!isMountedRef.current) return;
         // NOTE: important to debounce, and that this update happens
         // sometime in the near future and not immediately on any change!
         // Don't do it in the update loop where it is requested
@@ -189,9 +206,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           setMarks(getMarks(editor));
         }
       };
-      // We debounce to avoid any performance implications while typing and
+      // We debounce to avoid performance implications while typing and
       // for the reason mentioned in the NOTE above.
-      return debounce(f, 200);
+      return debounce(f, 500);
     }, []);
 
     const broadcastCursors = useBroadcastCursors({
@@ -343,6 +360,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const [rowStyle, setRowStyle] = useState<CSS>({});
 
     useEffect(() => {
+      if (!isMountedRef.current) return;
       setRowStyle({
         maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
         margin: "auto",
@@ -390,6 +408,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     };
 
     const onChange = (newEditorValue) => {
+      if (!isMountedRef.current) return;
       broadcastCursors();
       updateMarks();
       try {
@@ -534,15 +553,13 @@ const withIsInline = (editor) => {
   return editor;
 };
 
-// This keeps crashing for me so I'm
-// wrapping it in try/catch.  It's only
-// used for display purposes in the toolbar so hiding
-// failures is not "evil".
 function getMarks(editor) {
   try {
     return Editor.marks(editor) ?? {};
   } catch (err) {
-    console.log("Editor.marks", err);
+    // If the selection is at a non-leaf node somehow,
+    // then marks aren't defined and raises an error.
+    //console.log("Editor.marks", err);
     return {};
   }
 }

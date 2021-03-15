@@ -8,8 +8,10 @@
 import { Editor, Range, Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import * as React from "react";
+import { useIsMountedRef } from "smc-webapp/app-framework";
 import { useCallback, useMemo, useState } from "react";
 import { Complete, Item } from "smc-webapp/editors/markdown-input/complete";
+import { debounce } from "lodash";
 
 interface Options {
   editor: ReactEditor;
@@ -30,6 +32,7 @@ export const useMentions: (Options) => MentionsControl = ({
 }) => {
   const [target, setTarget] = useState<Range | undefined>();
   const [search, setSearch] = useState("");
+  const isMountedRef = useIsMountedRef();
 
   const items: Item[] = useMemo(() => {
     return matchingUsers(search);
@@ -54,29 +57,36 @@ export const useMentions: (Options) => MentionsControl = ({
     [target]
   );
 
-  const onChange = useCallback(async () => {
-    await new Promise(requestAnimationFrame);
-    const { selection } = editor;
-    if (selection && Range.isCollapsed(selection)) {
-      const [start] = Range.edges(selection);
-      const wordBefore = Editor.before(editor, start, { unit: "word" });
-      const before = wordBefore && Editor.before(editor, wordBefore);
-      const beforeRange = before && Editor.range(editor, before, start);
-      const beforeText = beforeRange && Editor.string(editor, beforeRange);
-      const beforeMatch = beforeText && beforeText.match(/^@(\w*)$/);
-      const after = Editor.after(editor, start);
-      const afterRange = Editor.range(editor, start, after);
-      const afterText = Editor.string(editor, afterRange);
-      const afterMatch = afterText.match(/^(\s|$)/);
-      if (beforeMatch && afterMatch) {
-        setTarget(beforeRange);
-        setSearch(beforeMatch[1]);
-        return;
+  // we debounce this onChange, since it is VERY expensive and can make typing feel
+  // very laggy on a large document!
+  const onChange = useCallback(
+    debounce(async () => {
+      if (!isMountedRef.current) return;
+      await new Promise(requestAnimationFrame);
+      if (!isMountedRef.current) return;
+      const { selection } = editor;
+      if (selection && Range.isCollapsed(selection)) {
+        const [start] = Range.edges(selection);
+        const wordBefore = Editor.before(editor, start, { unit: "word" });
+        const before = wordBefore && Editor.before(editor, wordBefore);
+        const beforeRange = before && Editor.range(editor, before, start);
+        const beforeText = beforeRange && Editor.string(editor, beforeRange);
+        const beforeMatch = beforeText && beforeText.match(/^@(\w*)$/);
+        const after = Editor.after(editor, start);
+        const afterRange = Editor.range(editor, start, after);
+        const afterText = Editor.string(editor, afterRange);
+        const afterMatch = afterText.match(/^(\s|$)/);
+        if (beforeMatch && afterMatch) {
+          setTarget(beforeRange);
+          setSearch(beforeMatch[1]);
+          return;
+        }
       }
-    }
 
-    setTarget(undefined);
-  }, [editor]);
+      setTarget(undefined);
+    }, 250),
+    [editor]
+  );
 
   const renderMentions = useCallback(() => {
     if (target == null) return;
@@ -92,7 +102,7 @@ export const useMentions: (Options) => MentionsControl = ({
       return;
     }
 
-    const onSelect = async (value) => {
+    const onSelect = (value) => {
       Transforms.select(editor, target);
       insertMention(editor, value);
       setTarget(undefined);

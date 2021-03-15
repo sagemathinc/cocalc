@@ -27,6 +27,7 @@ interface Props {
   renderLeaf?: React.FC<RenderLeafProps>;
   selection: Range | null;
   windowing?: WindowingParams;
+  onScroll?: () => void; // called after scrolling when windowing is true.
 }
 
 const Children: React.FC<Props> = ({
@@ -37,6 +38,7 @@ const Children: React.FC<Props> = ({
   renderLeaf,
   selection,
   windowing,
+  onScroll,
 }) => {
   const editor = useSlateStatic();
   let path;
@@ -114,12 +116,15 @@ const Children: React.FC<Props> = ({
     // top level and using windowing!
     return (
       <WindowedList
+        ref={editor.windowedListRef}
+        render_info={true}
         row_count={node.children.length}
         row_renderer={renderChild}
         overscan_row_count={windowing.overscanRowCount ?? 10}
         estimated_row_size={windowing.estimatedRowSize ?? 32}
         row_key={(index) => `${index}`}
         row_style={windowing.rowStyle}
+        on_scroll={onScroll}
       />
     );
   } else {

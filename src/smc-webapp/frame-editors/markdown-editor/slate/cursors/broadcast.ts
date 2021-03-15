@@ -62,7 +62,7 @@ export const useBroadcastCursors: (Options) => () => void = ({
       focusPointRef.current != null &&
       Point.equals(newFocus, focusPointRef.current)
     ) {
-      // cursor focus didn't change (or not collapsed)
+      // cursor didn't change (or not collapsed)
       return;
     }
     focusPointRef.current = newFocus;

@@ -353,6 +353,14 @@ export class WindowedList extends Component<Props, State> {
     });
   }
 
+  public scrollToItem(index: number, align?): void {
+    this.list_ref.current?.scrollToItem(index, align);
+  }
+
+  public scrollTo(offset: number): void {
+    this.list_ref.current?.scrollTo(offset);
+  }
+
   public render(): Rendered {
     let on_scroll: undefined | ((info: ListOnScrollProps) => void) = undefined;
     if (this.props.cache_id != null || this.props.on_scroll != null) {

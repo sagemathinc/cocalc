@@ -29,7 +29,8 @@ import {
 export interface ReactEditor extends Editor {
   insertData: (data: DataTransfer) => void;
   setFragmentData: (data: DataTransfer) => void;
-  scrollCaretIntoView: (options?: { middle?: boolean }) => void;
+  scrollCaretIntoView: (options?: { middle?: boolean }) => Promise<void>;
+  windowedListRef: { current: any };
 }
 
 export const ReactEditor = {
@@ -209,9 +210,15 @@ export const ReactEditor = {
    */
 
   toDOMNode(editor: ReactEditor, node: Node): HTMLElement {
-    const domNode = Editor.isEditor(node)
-      ? EDITOR_TO_ELEMENT.get(editor)
-      : KEY_TO_ELEMENT.get(ReactEditor.findKey(editor, node));
+    // IMPORTANT/FORK/NOTE: When profiling I found that
+    // using Editor.isEditor(node) here was taking a LOT of
+    // cpu time, so I changed to use ===, which is instant.
+    // This provided a dramatic improvement when typing in
+    // large documents.
+    const domNode =
+      editor === node
+        ? EDITOR_TO_ELEMENT.get(editor)
+        : KEY_TO_ELEMENT.get(ReactEditor.findKey(editor, node));
 
     if (!domNode) {
       throw new Error(
@@ -281,6 +288,9 @@ export const ReactEditor = {
    *
    * there is no way to create a reverse DOM Range using Range.setStart/setEnd
    * according to https://dom.spec.whatwg.org/#concept-range-bp-set.
+   *
+   * IMPORTANT: This is the part of the slate range that is actually rendered
+   * in the visible virtualized window, in case of windowing.
    */
 
   toDOMRange(editor: ReactEditor, range: Range): DOMRange {
@@ -531,5 +541,24 @@ export const ReactEditor = {
       : ReactEditor.toSlatePoint(editor, [focusNode, focusOffset]);
 
     return { anchor, focus };
+  },
+
+  selectionIsInDOM(editor: ReactEditor): boolean {
+    const { selection } = editor;
+    if (selection == null) return true;
+    const info = editor.windowedListRef.current?.render_info;
+    if (info == null) return true;
+    const { overscanStartIndex, overscanStopIndex } = info;
+    if (
+      selection.anchor.path[0] < overscanStartIndex ||
+      selection.anchor.path[0] > overscanStopIndex
+    )
+      return false;
+    if (
+      selection.focus.path[0] < overscanStartIndex ||
+      selection.focus.path[0] > overscanStopIndex
+    )
+      return false;
+    return true;
   },
 };

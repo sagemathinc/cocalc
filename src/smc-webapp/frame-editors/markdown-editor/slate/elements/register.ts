@@ -8,12 +8,13 @@ export * from "./hooks";
 
 import { React } from "../../../../app-framework";
 import { RenderElementProps } from "../slate-react";
-import { Element } from "slate";
+import { Descendant, Element } from "slate";
 import { State as MarkdownParserState, Token } from "../markdown-to-slate";
 import { Info } from "../slate-to-markdown";
 import { ChildInfo } from "../element-to-markdown";
 
 export interface SlateElement {
+  children: Descendant[];
   tight?: boolean;
 }
 

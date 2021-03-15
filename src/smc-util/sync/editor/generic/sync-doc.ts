@@ -63,6 +63,7 @@ import {
   is_date,
   ISO_to_Date,
   minutes_ago,
+  server_minutes_ago,
 } from "../../../misc";
 import { Evaluator } from "./evaluator";
 import { IpywidgetsState } from "./ipywidgets-state";
@@ -240,6 +241,11 @@ export class SyncDoc extends EventEmitter {
       }
     }
     this._from_str = opts.from_str;
+
+    // Initialize to time when we create the syncstring, so we don't
+    // see our own cursor when we refresh the browser (before we move
+    // to update this).
+    this.cursor_last_time = this.client?.server_time();
 
     reuse_in_flight_methods(this, [
       "save",
@@ -1507,6 +1513,13 @@ export class SyncDoc extends EventEmitter {
       this.cursor_last_time >= map.getIn([account_id, "time"])
     ) {
       map = map.delete(account_id);
+    }
+    // Remove any old cursors, where "old" is more than 1 minute old; this is never useful.
+    const cutoff = server_minutes_ago(1);
+    for (const [a] of map as any) {
+      if (map.getIn([a, "time"]) < cutoff) {
+        map = map.delete(a);
+      }
     }
     return map;
   }

@@ -27,7 +27,7 @@ export function handleNoChildren({ token, state }) {
       // and our code adds those back in all cases anyways.
       return [];
     }
-    return [{ text: token.content, code: true }];
+    return [mark({ text: token.content, code: true }, state.marks)];
   }
 
   if (token.type == "text" || token.type == "inline") {
