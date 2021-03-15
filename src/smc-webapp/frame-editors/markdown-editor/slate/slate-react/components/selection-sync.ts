@@ -180,7 +180,20 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
     if (anchorNodeSelectable && focusNodeSelectable) {
       const range = ReactEditor.toSlateRange(editor, domSelection);
       // console.log("onDOMSelectionChange -- select", { domSelection, range });
-      Transforms.select(editor, range);
+      if (
+        editor.windowedListRef?.current == null ||
+        Range.isCollapsed(range) ||
+        editor.selection == null
+      ) {
+        Transforms.select(editor, range);
+      } else {
+        // Tricky case: non collapsed and using windowing and selection is not already null
+        const { selection } = editor;
+        Transforms.select(editor, {
+          anchor: selection.anchor,
+          focus: range.focus,
+        });
+      }
     } else {
       // console.log("onDOMSelectionChange -- deselect");
       Transforms.deselect(editor);
