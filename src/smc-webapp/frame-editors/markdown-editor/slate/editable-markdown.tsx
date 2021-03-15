@@ -79,6 +79,8 @@ export interface SlateEditor extends ReactEditor {
 // releases), but re-enable it frequently for development.
 // There are a LOT of missing features when using windowing,
 // including subtle issues with selection, scroll state, etc.
+// IMPORTANT: Do not set this to false unless you want to make
+// slate editing **basically unusable** at scale beyond a few pages!!
 let USE_WINDOWING = true;
 
 // Why window?  Unfortunately, due to how slate is designed, actually editing
@@ -95,6 +97,7 @@ let USE_WINDOWING = true;
 // minimizes interference when two users are editing at once.
 const OVERSCAN_ROW_COUNT = 1;
 
+/*
 import { IS_FIREFOX } from "../../../feature";
 if (USE_WINDOWING && IS_FIREFOX) {
   // Windowing on Firefox results in TONS of problems all over the place, whereas it
@@ -104,6 +107,7 @@ if (USE_WINDOWING && IS_FIREFOX) {
   // problems are caused by windowing.
   USE_WINDOWING = false;
 }
+*/
 
 const STYLE = {
   width: "100%",
