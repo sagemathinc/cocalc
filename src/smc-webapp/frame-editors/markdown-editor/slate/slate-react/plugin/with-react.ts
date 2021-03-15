@@ -6,6 +6,7 @@ import { Key } from "../utils/key";
 import { EDITOR_TO_ON_CHANGE, NODE_TO_KEY } from "../utils/weak-maps";
 import { isDOMText, getPlainText } from "../utils/dom";
 import { findCurrentLineRange } from "../utils/lines";
+import { getWindowedSelection } from "../components/selection-sync";
 
 /**
  * `withReact` adds React and DOM specific behaviors to the editor.
@@ -94,7 +95,7 @@ export const withReact = <T extends Editor>(editor: T) => {
   };
 
   e.setFragmentData = (data: DataTransfer) => {
-    const { selection } = e;
+    const selection = getWindowedSelection(e);
 
     if (!selection) {
       return;
@@ -318,8 +319,6 @@ export const withReact = <T extends Editor>(editor: T) => {
       }
     }
   };
-
-
 
   return e;
 };

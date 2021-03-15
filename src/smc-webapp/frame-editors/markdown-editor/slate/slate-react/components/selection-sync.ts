@@ -49,14 +49,20 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
     }
 
     // If the DOM selection is in the editor and the editor selection is already correct, we're done.
-    if (
-      hasDomSelection &&
-      hasDomSelectionInEditor &&
-      selection &&
-      Range.equals(ReactEditor.toSlateRange(editor, domSelection), selection)
-    ) {
-      // console.log("useUpdateDOMSelection: already correct");
-      return;
+    try {
+      if (
+        hasDomSelection &&
+        hasDomSelectionInEditor &&
+        selection &&
+        Range.equals(ReactEditor.toSlateRange(editor, domSelection), selection)
+      ) {
+        // console.log("useUpdateDOMSelection: already correct");
+        return;
+      }
+    } catch (_err) {
+      // ReactEditor.toSlateRange(editor, domSelection) can often raise
+      // an error when using windowing.
+      // Above is just an optimization so that's OK.
     }
 
     let newDomRange;
@@ -217,7 +223,7 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
   }, [onDOMSelectionChange]);
 };
 
-function getWindowedSelection(editor: ReactEditor): Selection | null {
+export function getWindowedSelection(editor: ReactEditor): Selection | null {
   const { selection } = editor;
   if (
     selection == null ||
