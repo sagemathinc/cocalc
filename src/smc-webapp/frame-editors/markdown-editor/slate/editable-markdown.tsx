@@ -26,6 +26,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useIsMountedRef,
 } from "../../../app-framework";
 import { Actions } from "../actions";
 
@@ -138,6 +139,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     editor_state,
     cursors,
   }) => {
+    const isMountedRef = useIsMountedRef();
     const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
       markdown_to_slate(value)
     );
@@ -188,6 +190,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const [marks, setMarks] = useState<Marks>(getMarks(editor));
     const updateMarks = useMemo(() => {
       const f = () => {
+        if (!isMountedRef.current) return;
         // NOTE: important to debounce, and that this update happens
         // sometime in the near future and not immediately on any change!
         // Don't do it in the update loop where it is requested
@@ -353,6 +356,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const [rowStyle, setRowStyle] = useState<CSS>({});
 
     useEffect(() => {
+      if (!isMountedRef.current) return;
       setRowStyle({
         maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
         margin: "auto",
@@ -400,6 +404,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     };
 
     const onChange = (newEditorValue) => {
+      if (!isMountedRef.current) return;
       broadcastCursors();
       updateMarks();
       try {
