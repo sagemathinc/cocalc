@@ -61,6 +61,8 @@ import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 // const SAVE_DEBOUNCE_MS = 1500;
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
 
+import { delay } from "awaiting";
+
 export interface SlateEditor extends ReactEditor {
   ignoreNextOnChange?: boolean;
   saveValue: (force?) => void;
@@ -211,6 +213,30 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return debounce(f, 500);
     }, []);
 
+    const updateScrollState = useMemo(
+      () =>
+        debounce(() => {
+          const scroll = scrollRef.current?.scrollTop;
+          if (scroll != null) {
+            actions.save_editor_state(id, { scroll });
+          }
+        }, 500),
+      []
+    );
+
+    const updateWindowedScrollState = useMemo(
+      () =>
+        debounce(() => {
+          if (!USE_WINDOWING) return;
+          const scroll =
+            editor.windowedListRef.current?.render_info?.visibleStartIndex;
+          if (scroll != null) {
+            actions.save_editor_state(id, { scroll });
+          }
+        }, 500),
+      []
+    );
+
     const broadcastCursors = useBroadcastCursors({
       editor,
       broadcastCursors: (x) => actions.set_cursor_locs(x),
@@ -225,7 +251,24 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const restoreScroll = async () => {
       const scroll = editor_state?.get("scroll");
-      if (!scroll || scrollRef.current == null) {
+      if (scroll == null) return;
+
+      // First test for windowing support
+      if (USE_WINDOWING) {
+        await new Promise(requestAnimationFrame);
+        if (editor.windowedListRef.current == null) {
+        }
+        // Standard embarassing hacks due to waiting to load and measure cells...
+        editor.windowedListRef.current?.scrollToItem(scroll, "start");
+        await delay(10);
+        editor.windowedListRef.current?.scrollToItem(scroll, "start");
+        await delay(500);
+        editor.windowedListRef.current?.scrollToItem(scroll, "start");
+        return;
+      }
+
+      // No windowing
+      if (scrollRef.current == null) {
         return;
       }
       const elt = $(scrollRef.current);
@@ -478,12 +521,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           onFocus={updateMarks}
           decorate={cursorDecorate}
           divref={scrollRef}
-          onScroll={debounce(() => {
-            const scroll = scrollRef.current?.scrollTop;
-            if (scroll != null) {
-              actions.save_editor_state(id, { scroll });
-            }
-          }, 200)}
+          onScroll={
+            USE_WINDOWING ? updateWindowedScrollState : updateScrollState
+          }
           style={
             USE_WINDOWING
               ? undefined

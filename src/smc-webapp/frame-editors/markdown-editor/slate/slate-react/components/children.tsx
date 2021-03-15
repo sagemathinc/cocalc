@@ -48,6 +48,7 @@ const Children: React.FC<Props> = ({
     console.log(
       "TODO: unable to find path to node! So not rendering...",
       node,
+      editor.children,
       err
     );
     return <></>;

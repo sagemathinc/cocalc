@@ -889,7 +889,10 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           renderLeaf={renderLeaf}
           selection={editor.selection}
           windowing={windowing}
-          onScroll={updateDOMSelection}
+          onScroll={() => {
+            updateDOMSelection();
+            props.onScroll?.({} as any);
+          }}
         />
       </Component>
     </ReadOnlyContext.Provider>
