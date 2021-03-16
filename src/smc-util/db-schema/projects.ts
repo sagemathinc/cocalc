@@ -406,7 +406,7 @@ Table({
     virtual: "projects",
     primary_key: "project_id",
     user_query: {
-      set: {
+      set: { // this also deals with delete requests
         fields: {
           project_id: true,
           addons: true,
@@ -419,6 +419,7 @@ Table({
           cb
         ): Promise<void> {
           try {
+            // to delete an entry, pretend to set the datastore = {delete: [name]}
             if (typeof new_val.addons.datastore.delete === "string") {
               await db.project_datastore_del(
                 account_id,
@@ -430,8 +431,6 @@ Table({
               // query should set addons.datastore.[new key] = config, such that we see here
               // new_val = {"project_id":"...","addons":{"datastore":{"key3":{"type":"xxx", ...}}}}
               // which will be merged into the existing addons.datastore dict
-              // to delete an entry, set addons.datastore.[existing key] = null
-              //console.log("project_datastore SET", JSON.stringify(new_val));
               const res = await db.project_datastore_set(
                 account_id,
                 new_val.project_id,
@@ -445,13 +444,11 @@ Table({
         },
       },
       get: {
-        // this also deals with delete requests
         fields: {
           project_id: true,
           addons: true,
         },
         async instead_of_query(db, opts, cb): Promise<void> {
-          // console.log("project_datastore GET", JSON.stringify(opts.query));
           if (opts.multi) {
             throw Error("'multi' is not implemented");
           }
