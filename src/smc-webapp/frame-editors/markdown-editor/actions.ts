@@ -192,7 +192,6 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     await delay(0);
     if (this._state === "closed") return;
     this.set_active_id(id, true);
-    this.updateTableOfContents(true);
   }
 
   public updateTableOfContents(force: boolean = false): void {
@@ -204,7 +203,6 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       return;
     }
     const contents = fromJS(parseTableOfContents(this._syncstring.to_str()));
-
     this.setState({ contents });
   }
 
