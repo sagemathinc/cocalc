@@ -256,8 +256,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // First test for windowing support
       if (USE_WINDOWING) {
         await new Promise(requestAnimationFrame);
-        if (editor.windowedListRef.current == null) {
-        }
         // Standard embarassing hacks due to waiting to load and measure cells...
         editor.windowedListRef.current?.scrollToItem(scroll, "start");
         await delay(10);

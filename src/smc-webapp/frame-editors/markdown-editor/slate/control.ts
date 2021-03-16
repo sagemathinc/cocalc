@@ -8,17 +8,44 @@ import { ReactEditor } from "./slate-react";
 import { isEqual } from "lodash";
 import { rangeAll } from "./keyboard/select-all";
 import { emptyParagraph } from "./padding";
+import { delay } from "awaiting";
 
 // Scroll to the n-th heading in the document
-export function scrollToHeading(editor: ReactEditor, n: number) {
+export async function scrollToHeading(
+  editor: ReactEditor,
+  n: number
+): Promise<void> {
   let i = 0;
   for (const x of Editor.nodes(editor, {
     at: { path: [], offset: 0 },
     match: (node) => node["type"] == "heading",
   })) {
     if (i == n) {
-      const elt = ReactEditor.toDOMNode(editor, x[0]);
-      elt.scrollIntoView(true);
+      if (!ReactEditor.isUsingWindowing(editor)) {
+        // easy case
+        ReactEditor.toDOMNode(editor, x[0]).scrollIntoView(true);
+        return;
+      }
+      // Do if a few times, in case rendering/measuring changes sizes...
+      // TODO: This sucks, of course!
+      // Note that if clicking on table of contents opened the slate editor,
+      // then it's going to be getting it's scroll reset to where it was last
+      // used at the exact same time that we're trying to move the scroll here.
+      // Yes, this is dumb and the two fight each other.
+      for (const d of [1, 50, 1000]) {
+        try {
+          ReactEditor.scrollIntoDOM(editor, x[1]);
+          // wait for scroll to actually happen resulting in something in the DOM.
+          await new Promise(requestAnimationFrame);
+          ReactEditor.toDOMNode(editor, x[0]).scrollIntoView(true);
+        } catch (_err) {
+          console.log("WARNING: still not in DOM", _err);
+          // There is no guarantee that something else didn't happen to remove the element
+          // from the DOM while we're waiting for it, hence this is OK.
+          return;
+        }
+        await delay(d);
+      }
       return;
     }
     i += 1;
