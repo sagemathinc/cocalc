@@ -30,8 +30,6 @@ import {
 } from "../../../app-framework";
 import { Actions } from "../actions";
 
-import { MAX_WIDTH_NUM } from "../../options";
-import { use_font_size_scaling } from "../../frame-tree/hooks";
 import { Path } from "../../frame-tree/path";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
@@ -285,8 +283,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    const scaling = use_font_size_scaling(font_size);
-
     function setSyncstringFromSlate() {
       actions.set_value(editor.getMarkdownValue());
     }
@@ -397,18 +393,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         Editor,
       };
     }
-
-    const [rowStyle, setRowStyle] = useState<CSS>({});
-
-    useEffect(() => {
-      if (!isMountedRef.current) return;
-      setRowStyle({
-        maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
-        margin: "auto",
-        padding: "0 50px",
-        background: "white",
-      });
-    }, [editor, scaling]);
 
     editor.inverseSearch = async function inverseSearch(
       force?: boolean
@@ -536,7 +520,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           }
           windowing={
             USE_WINDOWING
-              ? { rowStyle, overscanRowCount: OVERSCAN_ROW_COUNT }
+              ? {
+                  rowStyle: {
+                    padding: "0 70px",
+                  },
+                  overscanRowCount: OVERSCAN_ROW_COUNT,
+                }
               : undefined
           }
         />
