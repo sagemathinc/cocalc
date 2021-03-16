@@ -30,8 +30,6 @@ import {
 } from "../../../app-framework";
 import { Actions } from "../actions";
 
-import { MAX_WIDTH_NUM } from "../../options";
-import { use_font_size_scaling } from "../../frame-tree/hooks";
 import { Path } from "../../frame-tree/path";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
@@ -60,6 +58,8 @@ import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 // with one user editing source and the other editing with slate.
 // const SAVE_DEBOUNCE_MS = 1500;
 import { SAVE_DEBOUNCE_MS } from "../../code-editor/const";
+
+import { delay } from "awaiting";
 
 export interface SlateEditor extends ReactEditor {
   ignoreNextOnChange?: boolean;
@@ -211,6 +211,30 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       return debounce(f, 500);
     }, []);
 
+    const updateScrollState = useMemo(
+      () =>
+        debounce(() => {
+          const scroll = scrollRef.current?.scrollTop;
+          if (scroll != null) {
+            actions.save_editor_state(id, { scroll });
+          }
+        }, 500),
+      []
+    );
+
+    const updateWindowedScrollState = useMemo(
+      () =>
+        debounce(() => {
+          if (!USE_WINDOWING) return;
+          const scroll =
+            editor.windowedListRef.current?.render_info?.visibleStartIndex;
+          if (scroll != null) {
+            actions.save_editor_state(id, { scroll });
+          }
+        }, 500),
+      []
+    );
+
     const broadcastCursors = useBroadcastCursors({
       editor,
       broadcastCursors: (x) => actions.set_cursor_locs(x),
@@ -225,7 +249,22 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const restoreScroll = async () => {
       const scroll = editor_state?.get("scroll");
-      if (!scroll || scrollRef.current == null) {
+      if (scroll == null) return;
+
+      // First test for windowing support
+      if (USE_WINDOWING) {
+        await new Promise(requestAnimationFrame);
+        // Standard embarassing hacks due to waiting to load and measure cells...
+        editor.windowedListRef.current?.scrollToItem(scroll, "start");
+        await delay(10);
+        editor.windowedListRef.current?.scrollToItem(scroll, "start");
+        await delay(500);
+        editor.windowedListRef.current?.scrollToItem(scroll, "start");
+        return;
+      }
+
+      // No windowing
+      if (scrollRef.current == null) {
         return;
       }
       const elt = $(scrollRef.current);
@@ -243,8 +282,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         restoreScroll();
       }
     }, [value]);
-
-    const scaling = use_font_size_scaling(font_size);
 
     function setSyncstringFromSlate() {
       actions.set_value(editor.getMarkdownValue());
@@ -357,18 +394,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       };
     }
 
-    const [rowStyle, setRowStyle] = useState<CSS>({});
-
-    useEffect(() => {
-      if (!isMountedRef.current) return;
-      setRowStyle({
-        maxWidth: `${(1 + (scaling - 1) / 2) * MAX_WIDTH_NUM}px`,
-        margin: "auto",
-        padding: "0 50px",
-        background: "white",
-      });
-    }, [editor, scaling]);
-
     editor.inverseSearch = async function inverseSearch(
       force?: boolean
     ): Promise<void> {
@@ -478,12 +503,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           onFocus={updateMarks}
           decorate={cursorDecorate}
           divref={scrollRef}
-          onScroll={debounce(() => {
-            const scroll = scrollRef.current?.scrollTop;
-            if (scroll != null) {
-              actions.save_editor_state(id, { scroll });
-            }
-          }, 200)}
+          onScroll={
+            USE_WINDOWING ? updateWindowedScrollState : updateScrollState
+          }
           style={
             USE_WINDOWING
               ? undefined
@@ -498,7 +520,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           }
           windowing={
             USE_WINDOWING
-              ? { rowStyle, overscanRowCount: OVERSCAN_ROW_COUNT }
+              ? {
+                  rowStyle: {
+                    padding: "0 70px",
+                  },
+                  overscanRowCount: OVERSCAN_ROW_COUNT,
+                }
               : undefined
           }
         />

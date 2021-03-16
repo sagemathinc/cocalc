@@ -543,6 +543,10 @@ export const ReactEditor = {
     return { anchor, focus };
   },
 
+  isUsingWindowing(editor: ReactEditor): boolean {
+    return editor.windowedListRef.current != null;
+  },
+
   selectionIsInDOM(editor: ReactEditor): boolean {
     const { selection } = editor;
     if (selection == null) return true;
@@ -552,13 +556,29 @@ export const ReactEditor = {
     if (
       selection.anchor.path[0] < overscanStartIndex ||
       selection.anchor.path[0] > overscanStopIndex
-    )
+    ) {
       return false;
+    }
     if (
       selection.focus.path[0] < overscanStartIndex ||
       selection.focus.path[0] > overscanStopIndex
-    )
+    ) {
       return false;
+    }
     return true;
+  },
+
+  scrollIntoDOM(editor: ReactEditor, path: Path) {
+    const info = editor.windowedListRef.current?.render_info;
+    if (info == null) {
+      // not using windowing so everything is always in the DOM.
+      return;
+    }
+    const { overscanStartIndex, overscanStopIndex } = info;
+    if (path[0] >= overscanStartIndex && path[0] <= overscanStopIndex) {
+      return;
+    }
+    // This makes it so the path is to something in the DOM.
+    editor.windowedListRef.current.scrollToItem(path[0]);
   },
 };

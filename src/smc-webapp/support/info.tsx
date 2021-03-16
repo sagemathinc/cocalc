@@ -62,7 +62,12 @@ export const SupportInfo: React.FC = () => {
         save until you receive a confirmation email. You can also check the
         status of your ticket under "Support" in your account settings. We
         typically respond to support requests from paying customers very
-        quickly.
+        quickly.{" "}
+        <i>
+          NOTE: unless you have specifically purchased a support contract, we
+          are under no contractual obligation to respond to support requests,
+          and reserve the right to close them unanswered.
+        </i>
       </p>
     );
     if (hide_extra_info) return how;
