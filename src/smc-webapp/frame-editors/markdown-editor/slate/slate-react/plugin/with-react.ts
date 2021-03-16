@@ -7,6 +7,7 @@ import { EDITOR_TO_ON_CHANGE, NODE_TO_KEY } from "../utils/weak-maps";
 import { isDOMText, getPlainText } from "../utils/dom";
 import { findCurrentLineRange } from "../utils/lines";
 import { getWindowedSelection } from "../components/selection-sync";
+import { IS_FIREFOX } from "../utils/environment";
 
 /**
  * `withReact` adds React and DOM specific behaviors to the editor.
@@ -252,7 +253,7 @@ export const withReact = <T extends Editor>(editor: T) => {
     await new Promise(requestAnimationFrame);
     const { selection } = e;
     if (!selection) return;
-    if (!Range.isCollapsed(selection)) return;
+    //if (!Range.isCollapsed(selection)) return;
 
     // Important: there's no good way to do this when the focused
     // element is void, and the naive code leads to bad problems,
@@ -265,7 +266,7 @@ export const withReact = <T extends Editor>(editor: T) => {
       }
     }
 
-    // In case we're using windowing, scroll the block with the cursor
+    // In case we're using windowing, scroll the block with the focus
     // into the DOM first.
     let windowed: boolean = e.windowedListRef.current != null;
     if (windowed) {
@@ -284,7 +285,10 @@ export const withReact = <T extends Editor>(editor: T) => {
 
     let domSelection;
     try {
-      domSelection = ReactEditor.toDOMRange(e, selection);
+      domSelection = ReactEditor.toDOMRange(e, {
+        anchor: selection.focus,
+        focus: selection.focus,
+      });
     } catch (_err) {
       // harmless to just not do this in case of failure.
       return;
@@ -296,8 +300,11 @@ export const withReact = <T extends Editor>(editor: T) => {
     const EXTRA = options?.middle
       ? editorRect.height / 2
       : editorRect.height > 100
-      ? 20
-      : 0; // this much more than the min possible to get it on screen.
+      ? IS_FIREFOX
+        ? 60
+        : 20 // need more room on Firefox since we do custom cursor movement
+      : // when using windowing, which doesn't work without enough space.
+        0; // this much more than the min possible to get it on screen.
 
     let offset: number = 0;
     if (selectionRect.top < editorRect.top + EXTRA) {

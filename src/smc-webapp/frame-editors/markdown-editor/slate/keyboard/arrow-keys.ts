@@ -10,11 +10,23 @@ What happens when you hit arrow keys.
 import { register } from "./register";
 import { blocksCursor, moveCursorUp, moveCursorDown } from "../control";
 import { ReactEditor } from "../slate-react";
+import { IS_FIREFOX } from "smc-webapp/feature";
 
-register({ key: "ArrowDown" }, ({ editor }) => {
+const down = ({ editor, shift }) => {
   if (ReactEditor.selectionIsInDOM(editor)) {
     // just work in the usual way
-    if (!blocksCursor(editor, false)) return false;
+    if (!blocksCursor(editor, false)) {
+      if (IS_FIREFOX && ReactEditor.isUsingWindowing(editor)) {
+        // We sometimes programatically move the cursor since on some platforms
+        // (e.g., firefox with react-window that uses position absolute)
+        // cursor movement is broken.
+        ReactEditor.moveDOMCursorLineFirefox(editor, true, shift);
+        return true;
+      } else {
+        // built in cursor movement works fine
+        return false;
+      }
+    }
     moveCursorDown(editor, true);
     return true;
   } else {
@@ -29,15 +41,36 @@ register({ key: "ArrowDown" }, ({ editor }) => {
     editor.scrollCaretIntoView();
     return true;
   }
-});
+};
 
-register({ key: "ArrowUp" }, ({ editor }) => {
+register({ key: "ArrowDown" }, down);
+
+const up = ({ editor, shift }) => {
   if (ReactEditor.selectionIsInDOM(editor)) {
-    if (!blocksCursor(editor, true)) return false;
+    if (!blocksCursor(editor, true)) {
+      if (IS_FIREFOX && ReactEditor.isUsingWindowing(editor)) {
+        ReactEditor.moveDOMCursorLineFirefox(editor, false, shift);
+        return true;
+      } else {
+        // built in cursor movement works fine
+        return false;
+      }
+    }
     moveCursorUp(editor, true);
     return true;
   } else {
     editor.scrollCaretIntoView();
     return true;
   }
-});
+};
+
+register({ key: "ArrowUp" }, up);
+
+if (IS_FIREFOX) {
+  register({ key: "ArrowUp", shift: true }, ({ editor }) =>
+    up({ editor, shift: true })
+  );
+  register({ key: "ArrowDown", shift: true }, ({ editor }) =>
+    down({ editor, shift: true })
+  );
+}
