@@ -14,7 +14,7 @@ import { useProjectHasInternetAccess } from "./has-internet-access-hook";
 import { ReloadOutlined, DeleteOutlined } from "@ant-design/icons";
 import { PlusCircleOutlined, EditOutlined } from "@ant-design/icons";
 import { Button, Table, Typography, Form, Input, Checkbox } from "antd";
-import { Space as AntdSpace, Alert, Switch, Popconfirm } from "antd";
+import { Space as AntdSpace, Alert, Switch, Popconfirm, Tooltip } from "antd";
 import { ErrorDisplay, SettingBox, Space, Icon, Tip, A } from "../../r_misc";
 import { unreachable } from "smc-util/misc";
 import { DUMMY_SECRET } from "./const";
@@ -31,9 +31,9 @@ const RULE_REQUIRED = [
 const RULE_ALPHANUM = [
   RULE_REQUIRED[0],
   {
-    pattern: /^[0-9a-z-_.]+$/,
+    pattern: /^[0-9a-z-_.]{1,63}$/,
     message:
-      'Must be lowercase alphanumeric and no spaces, i.e. a-z, 0-9, "-", "." and "_" are allowed.',
+      'Must be lowercase alphanumeric and no spaces, i.e. a-z, 0-9, "-", "." and "_" are allowed. Max. 63 characters long.',
   },
 ];
 
@@ -54,7 +54,7 @@ function raw2configs(raw: { [name: string]: Config }): Config[] {
         v.about = [
           `User: ${v.user}`,
           `Host: ${v.host}`,
-          `Path: ${v.path ?? ""}`,
+          `Path: ${v.path ?? `/user/${v.user}`}`,
         ].join("\n");
         break;
       default:
@@ -71,7 +71,7 @@ interface Props {
   project_id: string;
 }
 
-export const Datastore: React.FC<Props> = (props: Props) => {
+export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   const { project_id } = props;
   const state = useProjectState(project_id);
   const has_internet = useProjectHasInternetAccess(project_id);
@@ -94,7 +94,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
 
   React.useEffect(() => {
     // if there is a change to that project running again, we clear the restart warning
-    if (is_running) set_needs_restart(false);
+    if (is_running && needs_restart) set_needs_restart(false);
   }, [is_running]);
 
   async function add(type: Config["type"]): Promise<void> {
@@ -263,6 +263,7 @@ export const Datastore: React.FC<Props> = (props: Props) => {
           key="name"
           title={"Name"}
           dataIndex="name"
+          ellipsis={true}
           render={(name) => <Typography.Text strong>{name}</Typography.Text>}
         />
         <Table.Column<Config> key="type" title="Type" dataIndex="type" />
@@ -288,17 +289,21 @@ export const Datastore: React.FC<Props> = (props: Props) => {
           dataIndex="actions"
           render={(_, record) => (
             <AntdSpace>
-              <Button
-                onClick={() => edit(record)}
-                icon={<EditOutlined />}
-              ></Button>
+              <Tooltip title={`Modify ${record.name}'s configuration.`}>
+                <Button
+                  onClick={() => edit(record)}
+                  icon={<EditOutlined />}
+                ></Button>
+              </Tooltip>
               <Popconfirm
                 title={`Delete ${record.name}?`}
                 onConfirm={() => del(record.name)}
                 okText="Yes"
                 cancelText="No"
               >
-                <Button icon={<DeleteOutlined />}></Button>
+                <Tooltip title={`Delete ${record.name}`}>
+                  <Button icon={<DeleteOutlined />}></Button>{" "}
+                </Tooltip>
               </Popconfirm>
             </AntdSpace>
           )}
@@ -621,4 +626,4 @@ export const Datastore: React.FC<Props> = (props: Props) => {
       {render_body()}
     </SettingBox>
   );
-};
+});
