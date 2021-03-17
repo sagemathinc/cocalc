@@ -610,7 +610,7 @@ export const ReactEditor = {
       node = caret.offsetNode;
       offset = caret.offset;
     } else {
-      // not supported -- I don't know of a browser like this though...
+      // not supported
       return;
     }
 
@@ -621,6 +621,17 @@ export const ReactEditor = {
       // This would happen, e.g., if we tried to move the cursor outside of the editor.
       return;
     }
+
+    // If the focus point is a text node in a void element, move focus to
+    // that void element. This happens e.g. when moving onto a void element
+    // and if we don't fix it, then the cursor disappears and is stuck.
+    const p = Node.parent(editor, focus.path);
+    if (Editor.isVoid(editor, p)) {
+      console.log("landed in a void");
+      focus.path = Path.parent(focus.path);
+      focus.offset = 0;
+    }
+
     if (
       Math.abs(selection.focus.path[0] - focus.path[0]) > 1 ||
       Point.equals(selection.focus, focus)

@@ -384,12 +384,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, [value]);
 
     if (DEBUG) {
-      const { Editor, Node } = require("slate");
+      const { Editor, Node, Path } = require("slate");
       (window as any).z = {
         editor,
         Transforms,
         ReactEditor,
         Node,
+        Path,
         Editor,
       };
     }
