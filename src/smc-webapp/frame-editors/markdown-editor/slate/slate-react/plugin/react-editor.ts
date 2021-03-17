@@ -627,7 +627,6 @@ export const ReactEditor = {
     // and if we don't fix it, then the cursor disappears and is stuck.
     const p = Node.parent(editor, focus.path);
     if (Editor.isVoid(editor, p)) {
-      console.log("landed in a void");
       focus.path = Path.parent(focus.path);
       focus.offset = 0;
     }
