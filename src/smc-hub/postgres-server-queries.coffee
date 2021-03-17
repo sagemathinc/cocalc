@@ -26,6 +26,10 @@ misc2_node = require('smc-util-node/misc2_node')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
+# IDK why, but if that import line is down below, where the other "./postgres/*" imports are, building manage
+# fails with: remember-me.ts(15,31): error TS2307: Cannot find module 'async-await-utils/hof' or its corresponding type declarations.
+{get_remember_me} = require('./postgres/remember-me')
+
 {SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('smc-util/schema')
 
 { DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images")
@@ -49,7 +53,6 @@ collab = require('./postgres/collab')
 
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
-{get_remember_me} = require('./postgres/remember-me')
 {get_personal_user} = require('./postgres/personal')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
