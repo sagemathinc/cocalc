@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { IS_ANDROID, IS_FIREFOX } from "smc-webapp/feature";
+import { IS_ANDROID } from "smc-webapp/feature";
 import * as React from "react";
 import { Button } from "antd";
 import { Icon } from "smc-webapp/r_misc";
@@ -66,21 +66,12 @@ export const EditBar: React.FC<Props> = ({
     );
   }
 
-  function renderFirefoxWarning() {
-    return (
-      <span style={WARNING_STYLE}>
-        Firefox markdown editor NOT fully supported
-      </span>
-    );
-  }
-
   function renderBody() {
     return (
       <>
         {renderSearch()}
         {IS_ANDROID && renderAndroidWarning()}
-        {IS_FIREFOX && renderFirefoxWarning()}
-        {!IS_ANDROID && !IS_FIREFOX && renderButtons()}
+        {!IS_ANDROID && renderButtons()}
       </>
     );
   }

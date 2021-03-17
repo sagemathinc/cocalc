@@ -95,7 +95,7 @@ let USE_WINDOWING = true;
 // In contrast, with windowing, everything is **buttery smooth**.
 // Making this overscan small makes things even faster, and also
 // minimizes interference when two users are editing at once.
-const OVERSCAN_ROW_COUNT = 1;
+const OVERSCAN_ROW_COUNT = 3;
 
 /*
 import { IS_FIREFOX } from "../../../feature";
@@ -384,12 +384,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, [value]);
 
     if (DEBUG) {
-      const { Editor, Node } = require("slate");
+      const { Editor, Node, Path } = require("slate");
       (window as any).z = {
         editor,
         Transforms,
         ReactEditor,
         Node,
+        Path,
         Editor,
       };
     }

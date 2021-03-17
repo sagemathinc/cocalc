@@ -34,6 +34,7 @@ register({ key: "Enter" }, ({ editor }) => {
     // So don't do it, as it's confusing.  Instead we just insert
     // a hard break (same as shift-enter).
     Transforms.insertNodes(editor, [hardbreak()]);
+    Transforms.move(editor, { distance: 1 });
     return true;
   }
 

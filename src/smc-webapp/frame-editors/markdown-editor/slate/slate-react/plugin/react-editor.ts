@@ -581,4 +581,72 @@ export const ReactEditor = {
     // This makes it so the path is to something in the DOM.
     editor.windowedListRef.current.scrollToItem(path[0]);
   },
+
+  // Attempt to move the cursor up or down one line on
+  // Firefox. This hossible code should only be used when windowing is being used,
+  // and is needed because windowing uses absolute positioning, which
+  // totally breaks firefox.  Another approach to this problem might be
+  // to change react-window to turn off absolutely positioning, move
+  // the cursor, then turn absolute positioning back on...
+  async moveDOMCursorLineFirefox(
+    editor: ReactEditor,
+    reverse: boolean = false,
+    shift: boolean = false
+  ) {
+    const { selection } = editor;
+    if (selection == null) return; // no cursor
+    await editor.scrollCaretIntoView();
+    const range = ReactEditor.toDOMRange(editor, {
+      anchor: selection.focus,
+      focus: selection.focus,
+    });
+    const rect = range.getBoundingClientRect();
+    let node, offset;
+    const AMOUNT = 22;
+    const delta = reverse ? -AMOUNT - rect.height : AMOUNT; // TODO!
+    if (document.caretPositionFromPoint != null) {
+      const caret = document.caretPositionFromPoint(rect.x, rect.y - delta);
+      if (caret == null) return;
+      node = caret.offsetNode;
+      offset = caret.offset;
+    } else {
+      // not supported
+      return;
+    }
+
+    let focus;
+    try {
+      focus = ReactEditor.toSlatePoint(editor, [node, offset]);
+    } catch (_err) {
+      // This would happen, e.g., if we tried to move the cursor outside of the editor.
+      return;
+    }
+
+    // If the focus point is a text node in a void element, move focus to
+    // that void element. This happens e.g. when moving onto a void element
+    // and if we don't fix it, then the cursor disappears and is stuck.
+    const p = Node.parent(editor, focus.path);
+    if (Editor.isVoid(editor, p)) {
+      focus.path = Path.parent(focus.path);
+      focus.offset = 0;
+    }
+
+    if (
+      Math.abs(selection.focus.path[0] - focus.path[0]) > 1 ||
+      Point.equals(selection.focus, focus)
+    ) {
+      // something went awry, so we fallback to the slate internal
+      // move code, which doesn't know about the DOM, but is better
+      // than nothing.
+      const edge = shift && !Range.isCollapsed(selection) ? "focus" : undefined;
+      Transforms.move(editor, { distance: 1, unit: "line", reverse, edge });
+      return;
+    }
+    if (!shift && Range.isCollapsed(selection)) {
+      Transforms.setSelection(editor, { anchor: focus, focus });
+    } else {
+      // only change focus point
+      Transforms.setSelection(editor, { focus });
+    }
+  },
 };

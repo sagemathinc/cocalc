@@ -4,12 +4,13 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register, SlateElement } from "./register";
+import { register, SlateElement, useFocused, useSelected } from "./register";
 import { Element } from "slate";
 
 export interface Softbreak extends SlateElement {
   type: "softbreak";
   isInline: true;
+  isVoid: true;
 }
 
 register({
@@ -19,17 +20,32 @@ register({
     return {
       type: "softbreak",
       isInline: true,
-      children: [{ text: "\n" }],
+      isVoid: true,
+      children: [{ text: "" }],
     };
   },
 
   // A softbreak creates a new line without creating
   // a new paragraph.
-  Element: ({ attributes, children }) => (
-    <span {...attributes}>
-      <span style={{ whiteSpace: "normal" }}>{children}</span>
-    </span>
-  ),
+  Element: ({ attributes, children }) => {
+    const focused = useFocused();
+    const selected = useSelected();
+    return (
+      <span {...attributes}>
+        <span
+          style={{
+            whiteSpace: "normal",
+            borderRight: selected && focused ? "1px solid #333" : undefined,
+            color: selected && focused ? "lightgrey" : undefined,
+          }}
+          contentEditable={false}
+        >
+          {selected && focused ? "↵" : " "}
+        </span>
+        {children}
+      </span>
+    );
+  },
 
   fromSlate: ({ children }) => {
     // Just in case somehow the children were edited
@@ -42,13 +58,15 @@ register({
 export interface Hardbreak extends SlateElement {
   type: "hardbreak";
   isInline: true;
+  isVoid: true;
 }
 
 export function hardbreak() {
   return {
     type: "hardbreak",
     isInline: true,
-    children: [{ text: "\n" }],
+    isVoid: true,
+    children: [{ text: "" }],
   } as Element;
 }
 
@@ -56,18 +74,28 @@ register({
   slateType: "hardbreak",
 
   fromSlate: ({ children }) => {
-    // IMPORTANT: the children of a hardbreak can get their
-    // texted edited, so it's important to actually include
-    // the children here, or text just disappears in conversion
-    // to source:
-    return "  " + children;
+    return children + "  \n";
   },
 
-  Element: ({ attributes, children }) => (
-    <span {...attributes}>
-      <span style={{ whiteSpace: "pre" }}>{children}</span>
-    </span>
-  ),
+  Element: ({ attributes, children }) => {
+    const focused = useFocused();
+    const selected = useSelected();
+    return (
+      <span {...attributes}>
+        <span
+          style={{
+            whiteSpace: "pre",
+            borderRight: selected && focused ? "1px solid #333" : undefined,
+            color: selected && focused ? "lightgrey" : undefined,
+          }}
+          contentEditable={false}
+        >
+          {selected && focused ? "↵\n" : "\n"}
+        </span>
+        {children}
+      </span>
+    );
+  },
 
   toSlate: hardbreak,
 });
