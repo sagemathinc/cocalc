@@ -827,4 +827,67 @@ describe("default quota", () => {
     expect(q1.privileged).toBe(false);
     expect(q1.network).toBe(true);
   });
+
+  it("cap site_license upgrades by max_upgrades /1", () => {
+    const site_license = {
+      "1234-5678-asdf-yxcv": {
+        quota: {
+          ram: 3000,
+          dedicated_ram: 3000,
+          cpu: 3,
+          dedicated_cpu: 2,
+          disk: 2000,
+          always_running: true,
+          member: true,
+          user: "academic",
+        },
+      },
+      "9876-5432-1098-6543": {
+        quota: {
+          ram: 4000,
+          dedicated_ram: 2000,
+          cpu: 2,
+          dedicated_cpu: 1,
+          disk: 4000,
+          always_running: false,
+          member: true,
+          user: "academic",
+        },
+      },
+    };
+    const users = {
+      user1: {
+        upgrades: {
+          memory: 1313,
+        },
+      },
+    };
+    const site_settings = {
+      max_upgrades: {
+        member_host: false,
+        network: false,
+        always_running: false,
+        disk_quota: 5000,
+        mintime: 999,
+        cpu_shares: 4,
+        cores: 2,
+        memory_request: 4000,
+        memory_limit: 5000,
+      },
+    };
+
+    const q = quota({}, users, site_license, site_settings);
+    expect(q).toEqual({
+      network: false, // user upgrade not allowed
+      member_host: false, // user upgrade not allowed
+      always_running: false, // user upgrade not allowed
+      memory_request: 200, // lower cap is 200
+      memory_limit: 1000, // should be 555, but global minimum trump this
+      cpu_request: 0.02, // lower cap is 0.02
+      cpu_limit: 0.44,
+      privileged: false,
+      idle_timeout: 999,
+      disk_quota: 333,
+    });
+  });
 });
