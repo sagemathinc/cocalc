@@ -153,6 +153,12 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
       set_error(`Sorry, you can't name the datastore "delete"`);
       return;
     }
+    // we have to check if the name isn't ""
+    const name_change = new_config?.name && new_config.name != config.name;
+    // if we edit a datastore's name, we have to pick the secret from the one that's going to be deleted
+    if (new_config != null && name_change) {
+      config.__old_name = new_config.name;
+    }
     // the hub will process the config, we just have to do this here to send it
     const query = {
       project_datastore: {
@@ -170,7 +176,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     }
 
     // if we *edit* an entry, get rid of the old one
-    if (new_config?.name /* not "" */ && new_config.name != config.name) {
+    if (new_config != null && name_change) {
       del(new_config.name);
     }
   }
