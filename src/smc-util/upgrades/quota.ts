@@ -99,7 +99,6 @@ interface Settings {
   idle_timeout?: number;
   cpu_shares?: string;
   always_running?: number;
-  quota?: SiteLicenseQuota; // TODO refactor this, "quota" isn't part of Settings at all
 }
 
 interface Upgrades {
@@ -129,8 +128,14 @@ interface SiteSettingsDefaultQuotas {
   disk_quota: number; // overrides DEFAULT_QUOTAS.disk_quota
 }
 
+interface SiteLicenseQuotaSetting {
+  quota: SiteLicenseQuota;
+}
+
+type QuotaSetting = Settings | SiteLicenseQuotaSetting;
+
 type SiteLicenses = {
-  [license_id: string]: Settings;
+  [license_id: string]: QuotaSetting;
 };
 
 /*
@@ -204,23 +209,25 @@ function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
   return quota;
 }
 
-function isSiteLicenseQuota(slq: Settings): slq is { quota: SiteLicenseQuota } {
-  return slq != null && slq.quota != null;
+function isSiteLicenseQuotaSetting(
+  slq?: QuotaSetting
+): slq is SiteLicenseQuotaSetting {
+  return slq != null && (slq as SiteLicenseQuotaSetting).quota != null;
 }
 
-function isSettingsQuota(slq: Settings): slq is Settings {
+function isSettingsQuota(slq?: QuotaSetting): slq is Settings {
+  if (slq == null || (slq as SiteLicenseQuotaSetting).quota != null)
+    return false;
   return (
-    slq != null &&
-    slq.quota == null &&
-    (slq.network != null ||
-      slq.member_host != null ||
-      slq.disk_quota != null ||
-      slq.memory_limit != null ||
-      slq.memory_request != null ||
-      slq.privileged != null ||
-      slq.idle_timeout != null ||
-      slq.cpu_shares != null ||
-      slq.always_running != null)
+    (slq as Settings).network != null ||
+    (slq as Settings).member_host != null ||
+    (slq as Settings).disk_quota != null ||
+    (slq as Settings).memory_limit != null ||
+    (slq as Settings).memory_request != null ||
+    (slq as Settings).privileged != null ||
+    (slq as Settings).idle_timeout != null ||
+    (slq as Settings).cpu_shares != null ||
+    (slq as Settings).always_running != null
   );
 }
 
@@ -236,7 +243,7 @@ function select_site_licenses(
   const only_ar = {};
   let any_always_running = false;
   for (const [key, val] of Object.entries(site_licenses)) {
-    const is_ar = isSiteLicenseQuota(val)
+    const is_ar = isSiteLicenseQuotaSetting(val)
       ? val.quota.always_running === true
       : (val.always_running ?? 0) === 1;
     any_always_running ||= is_ar;
@@ -499,23 +506,23 @@ export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
 // includes member hosting, since otherwise you can cheat and get
 // very cheap cpu/memory/always running.  Disk is fine.
 export function site_licenses_quota(
-  site_licenses: {
-    [license_id: string]: Settings;
-  },
+  site_licenses: SiteLicenses,
   max_upgrades: SiteSettingsQuotas["max_upgrades"]
 ): Quota {
   const total_quota: Quota = {};
   // We do member separately first, since we don't count ram and cpu upgrades
   // for a *nonmember* license if member is set.
   for (const license_id in site_licenses) {
-    if (site_licenses[license_id]?.quota?.member) {
+    const upgr = site_licenses[license_id];
+    if (!isSiteLicenseQuotaSetting(upgr)) continue;
+    if (upgr.quota.member) {
       total_quota.member_host = true;
     }
   }
 
   for (const license_id in site_licenses) {
     const license = site_licenses[license_id];
-    if (license == null) continue;
+    if (!isSiteLicenseQuotaSetting(license)) continue;
     const quota: SiteLicenseQuota | undefined = license.quota;
     if (quota == null || len(quota) == 0) continue;
 
