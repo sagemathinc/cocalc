@@ -491,11 +491,11 @@ describe("default quota", () => {
     const site_license = {
       "1234-5678-asdf-yxcv": {
         quota: {
-          ram: 2000,
-          dedicated_ram: 1000,
+          ram: 2,
+          dedicated_ram: 1,
           cpu: 1,
           dedicated_cpu: 0.5,
-          disk: 1234,
+          disk: 3,
           always_running: true,
           member: true,
           user: "academic",
@@ -826,6 +826,32 @@ describe("default quota", () => {
     expect(q1.always_running).toBe(true);
     expect(q1.privileged).toBe(false);
     expect(q1.network).toBe(true);
+  });
+
+  it("site_license always_running do not mix", () => {
+    const site_license = {
+      a: {
+        quota: {
+          ram: 4,
+          always_running: false,
+        },
+      },
+      b: {
+        quota: {
+          ram:2,
+          always_running: true,
+        },
+      },
+      c: {
+        quota: {
+          ram: 1,
+          always_running: true,
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_license);
+    expect(q.always_running).toBe(true);
+    expect(q.memory_limit).toBe(3000);
   });
 
   it("cap site_license upgrades by max_upgrades /1", () => {
