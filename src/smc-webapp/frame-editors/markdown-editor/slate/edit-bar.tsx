@@ -3,14 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { IS_ANDROID } from "smc-webapp/feature";
 import * as React from "react";
 import { Button } from "antd";
 import { Icon } from "smc-webapp/r_misc";
 import { formatAction } from "./format";
 import { SlateEditor } from "./editable-markdown";
-
-const WARNING_STYLE = { padding: "5px", color: "white", background: "darkred" };
 
 export interface Marks {
   [mark: string]: boolean | undefined;
@@ -60,18 +57,11 @@ export const EditBar: React.FC<Props> = ({
     return <div style={{ float: "right" }}>{Search}</div>;
   }
 
-  function renderAndroidWarning() {
-    return (
-      <span style={WARNING_STYLE}>Android markdown editing NOT supported</span>
-    );
-  }
-
   function renderBody() {
     return (
       <>
         {renderSearch()}
-        {IS_ANDROID && renderAndroidWarning()}
-        {!IS_ANDROID && renderButtons()}
+        {renderButtons()}
       </>
     );
   }

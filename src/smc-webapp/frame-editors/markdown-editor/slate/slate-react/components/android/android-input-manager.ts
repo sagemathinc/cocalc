@@ -1,11 +1,13 @@
-import {ReactEditor} from "../../plugin/react-editor";
-import {Editor, Node as SlateNode, Path, Range, Transforms} from "slate";
-import {Diff, diffText} from "./diff-text";
-import {DOMNode} from "../../utils/dom";
-import {EDITOR_TO_ON_CHANGE, EDITOR_TO_RESTORE_DOM} from "../../utils/weak-maps";
-import * as ReactDOM from "react-dom";
+import { ReactEditor } from "../../plugin/react-editor";
+import { Editor, Node as SlateNode, Path, Range, Transforms } from "slate";
+import { Diff, diffText } from "./diff-text";
+import { DOMNode } from "../../utils/dom";
+import {
+  EDITOR_TO_ON_CHANGE,
+  EDITOR_TO_RESTORE_DOM,
+} from "../../utils/weak-maps";
 
-const debug = console.debug
+const debug = console.debug;
 
 /**
  * Unicode String for a ZERO_WIDTH_SPACE
@@ -13,13 +15,7 @@ const debug = console.debug
  * @type {String}
  */
 
-const ZERO_WIDTH_SPACE = String.fromCharCode(65279)
-
-/**
- * https://github.com/facebook/draft-js/commit/cda13cb8ff9c896cdb9ff832d1edeaa470d3b871
- */
-// @ts-ignore
-const flushControlled = ReactDOM.unstable_flushControlled;
+const ZERO_WIDTH_SPACE = String.fromCharCode(65279);
 
 function restoreDOM(editor: ReactEditor) {
   const onRestoreDOM = EDITOR_TO_RESTORE_DOM.get(editor);
@@ -35,11 +31,15 @@ function flushController(editor: ReactEditor): void {
   }
 }
 
+// Note that official slate-android referenced
+// https://github.com/facebook/draft-js/commit/cda13cb8ff9c896cdb9ff832d1edeaa470d3b871
+// and used ReactDOM.unstable_flushControlled, but that no longer exists in
+// React 17.x
+
 function renderSync(editor: ReactEditor, fn: () => void) {
-  flushControlled(() => {
-    fn()
-    flushController(editor)
-  })
+  console.log("renderSync");
+  fn();
+  flushController(editor);
 }
 
 /**
@@ -55,29 +55,33 @@ function renderSync(editor: ReactEditor, fn: () => void) {
  * @param {Boolean} isLastNode
  */
 
-function fixTextAndOffset(prevText: string, prevOffset = 0, isLastNode = false) {
-  let nextOffset = prevOffset
-  let nextText = prevText
-  let index = 0
+function fixTextAndOffset(
+  prevText: string,
+  prevOffset = 0,
+  isLastNode = false
+) {
+  let nextOffset = prevOffset;
+  let nextText = prevText;
+  let index = 0;
 
   while (index !== -1) {
-    index = nextText.indexOf(ZERO_WIDTH_SPACE, index)
-    if (index === -1) break
-    if (nextOffset > index) nextOffset--
-    nextText = `${nextText.slice(0, index)}${nextText.slice(index + 1)}`
+    index = nextText.indexOf(ZERO_WIDTH_SPACE, index);
+    if (index === -1) break;
+    if (nextOffset > index) nextOffset--;
+    nextText = `${nextText.slice(0, index)}${nextText.slice(index + 1)}`;
   }
 
   // remove the last newline if we are in the last node of a block
-  const lastChar = nextText.charAt(nextText.length - 1)
+  const lastChar = nextText.charAt(nextText.length - 1);
 
-  if (isLastNode && lastChar === '\n') {
-    nextText = nextText.slice(0, -1)
+  if (isLastNode && lastChar === "\n") {
+    nextText = nextText.slice(0, -1);
   }
 
-  const maxOffset = nextText.length
+  const maxOffset = nextText.length;
 
-  if (nextOffset > maxOffset) nextOffset = maxOffset
-  return { text: nextText, offset: nextOffset }
+  if (nextOffset > maxOffset) nextOffset = maxOffset;
+  return { text: nextText, offset: nextOffset };
 }
 
 /**
@@ -93,36 +97,35 @@ function fixTextAndOffset(prevText: string, prevOffset = 0, isLastNode = false) 
  */
 
 export class AndroidInputManager {
-
   /**
    * A MutationObserver that flushes to the method `flush`
    *
    * @type {MutationObserver}
    */
 
-  private readonly observer: MutationObserver
+  private readonly observer: MutationObserver;
 
-  private rootEl?: HTMLElement = undefined
+  private rootEl?: HTMLElement = undefined;
 
   /**
    * Object that keeps track of the most recent state
    */
 
-  private lastPath?: Path = undefined
-  private lastDiff?: Diff = undefined
-  private lastRange?: Range = undefined
-  private lastDomNode?: Node = undefined
+  private lastPath?: Path = undefined;
+  private lastDiff?: Diff = undefined;
+  private lastRange?: Range = undefined;
+  private lastDomNode?: Node = undefined;
 
   constructor(private editor: ReactEditor) {
-    this.observer = new MutationObserver(this.flush)
+    this.observer = new MutationObserver(this.flush);
   }
 
   onDidMount = () => {
-    this.connect()
+    this.connect();
   };
 
   onDidUpdate = () => {
-    this.connect()
+    this.connect();
   };
 
   /**
@@ -130,57 +133,57 @@ export class AndroidInputManager {
    */
 
   connect = () => {
-    debug('connect')
+    debug("connect");
 
-    const rootEl = ReactEditor.toDOMNode(this.editor, this.editor)
-    if (this.rootEl === rootEl) return
-    this.rootEl = rootEl
+    const rootEl = ReactEditor.toDOMNode(this.editor, this.editor);
+    if (this.rootEl === rootEl) return;
+    this.rootEl = rootEl;
 
-    debug('connect:run')
+    debug("connect:run");
 
-    this.observer.disconnect()
+    this.observer.disconnect();
     this.observer.observe(rootEl, {
       childList: true,
       characterData: true,
       attributes: true,
       subtree: true,
       characterDataOldValue: true,
-    })
-  }
+    });
+  };
 
   onWillUnmount = () => {
-    this.disconnect()
-  }
+    this.disconnect();
+  };
 
   disconnect = () => {
-    debug('disconnect')
-    this.observer.disconnect()
-    this.rootEl = undefined
-  }
+    debug("disconnect");
+    this.observer.disconnect();
+    this.rootEl = undefined;
+  };
 
   onRender = () => {
-    this.disconnect()
-    this.clearDiff()
+    this.disconnect();
+    this.clearDiff();
   };
 
   private clearDiff = () => {
-    debug('clearDiff')
-    this.bufferedMutations.length = 0
-    this.lastPath = undefined
-    this.lastDiff = undefined
-  }
+    debug("clearDiff");
+    this.bufferedMutations.length = 0;
+    this.lastPath = undefined;
+    this.lastDiff = undefined;
+  };
 
   /**
    * Clear the `last` properties related to an action only
    */
 
   private clearAction = () => {
-    debug('clearAction')
+    debug("clearAction");
 
-    this.bufferedMutations.length = 0
-    this.lastDiff = undefined
-    this.lastDomNode = undefined
-  }
+    this.bufferedMutations.length = 0;
+    this.lastDiff = undefined;
+    this.lastDomNode = undefined;
+  };
 
   /**
    * Apply the last `diff`
@@ -198,48 +201,48 @@ export class AndroidInputManager {
    */
 
   private applyDiff = () => {
-    debug('applyDiff')
-    if (this.lastPath === undefined || this.lastDiff === undefined) return
-    debug('applyDiff:run')
+    debug("applyDiff");
+    if (this.lastPath === undefined || this.lastDiff === undefined) return;
+    debug("applyDiff:run");
     let range: Range = {
-      anchor: {path: this.lastPath, offset: this.lastDiff.start},
-      focus: {path: this.lastPath, offset: this.lastDiff.end}
+      anchor: { path: this.lastPath, offset: this.lastDiff.start },
+      focus: { path: this.lastPath, offset: this.lastDiff.end },
     };
 
-    Transforms.insertText(this.editor, this.lastDiff.insertText, {at: range});
-  }
+    Transforms.insertText(this.editor, this.lastDiff.insertText, { at: range });
+  };
 
   /**
    * Handle `enter` that splits block
    */
 
   private splitBlock = () => {
-    debug('splitBlock')
+    debug("splitBlock");
 
     renderSync(this.editor, () => {
-      this.applyDiff()
+      this.applyDiff();
 
       if (this.lastRange !== undefined) {
-        Transforms.select(this.editor, this.lastRange)
+        Transforms.select(this.editor, this.lastRange);
       } else {
-        debug('splitBlock:NO-SELECTION')
+        debug("splitBlock:NO-SELECTION");
       }
 
-      Transforms.splitNodes(this.editor, {at: this.lastRange, always: true})
-      ReactEditor.focus(this.editor)
+      Transforms.splitNodes(this.editor, { at: this.lastRange, always: true });
+      ReactEditor.focus(this.editor);
 
-      this.clearAction()
-      flushController(this.editor)
-      restoreDOM(this.editor)
-    })
-  }
+      this.clearAction();
+      flushController(this.editor);
+      restoreDOM(this.editor);
+    });
+  };
 
   /**
    * Handle `backspace` that merges blocks
    */
 
   private mergeBlock = () => {
-    debug('mergeBlock')
+    debug("mergeBlock");
 
     /**
      * The delay is required because hitting `enter`, `enter` then `backspace`
@@ -258,27 +261,27 @@ export class AndroidInputManager {
 
     window.requestAnimationFrame(() => {
       renderSync(this.editor, () => {
-        this.applyDiff()
+        this.applyDiff();
 
-        Transforms.select(this.editor, this.lastRange!)
-        Editor.deleteBackward(this.editor)
-        ReactEditor.focus(this.editor)
+        Transforms.select(this.editor, this.lastRange!);
+        Editor.deleteBackward(this.editor);
+        ReactEditor.focus(this.editor);
 
-        this.clearAction()
-        flushController(this.editor)
-        restoreDOM(this.editor)
-      })
-    })
-  }
+        this.clearAction();
+        flushController(this.editor);
+        restoreDOM(this.editor);
+      });
+    });
+  };
 
   /**
    * The requestId used to the save selection
    */
 
-  private onSelectTimeoutId: number | null = null
-  private bufferedMutations: MutationRecord[] = []
-  private startActionFrameId: number | null = null
-  private isFlushing = false
+  private onSelectTimeoutId: number | null = null;
+  private bufferedMutations: MutationRecord[] = [];
+  private startActionFrameId: number | null = null;
+  private isFlushing = false;
 
   /**
    * Mark the beginning of an action. The action happens when the
@@ -291,26 +294,26 @@ export class AndroidInputManager {
   private startAction = () => {
     debug("startAction");
     if (this.onSelectTimeoutId) {
-      window.cancelAnimationFrame(this.onSelectTimeoutId)
-      this.onSelectTimeoutId = null
+      window.cancelAnimationFrame(this.onSelectTimeoutId);
+      this.onSelectTimeoutId = null;
     }
 
-    this.isFlushing = true
+    this.isFlushing = true;
 
     if (this.startActionFrameId) {
-      window.cancelAnimationFrame(this.startActionFrameId)
+      window.cancelAnimationFrame(this.startActionFrameId);
     }
 
     this.startActionFrameId = window.requestAnimationFrame((): void => {
       if (this.bufferedMutations.length > 0) {
-        this.flushAction(this.bufferedMutations)
+        this.flushAction(this.bufferedMutations);
       }
 
-      this.startActionFrameId = null
-      this.bufferedMutations.length = 0
-      this.isFlushing = false
+      this.startActionFrameId = null;
+      this.bufferedMutations.length = 0;
+      this.isFlushing = false;
     });
-  }
+  };
 
   /**
    * Handle MutationObserver flush
@@ -319,10 +322,10 @@ export class AndroidInputManager {
    */
 
   flush = (mutations: MutationRecord[]) => {
-    debug('flush')
-    this.bufferedMutations.push(...mutations)
-    this.startAction()
-  }
+    debug("flush");
+    this.bufferedMutations.push(...mutations);
+    this.startAction();
+  };
 
   /**
    * Handle a `requestAnimationFrame` long batch of mutations.
@@ -331,19 +334,23 @@ export class AndroidInputManager {
    */
 
   private flushAction = (mutations: MutationRecord[]) => {
-    debug('flushAction', mutations.length, mutations)
+    debug("flushAction", mutations.length, mutations);
 
-    const removedNodes = mutations.filter(mutation => mutation.removedNodes.length > 0).length
-    const addedNodes = mutations.filter(mutation => mutation.addedNodes.length > 0).length
+    const removedNodes = mutations.filter(
+      (mutation) => mutation.removedNodes.length > 0
+    ).length;
+    const addedNodes = mutations.filter(
+      (mutation) => mutation.addedNodes.length > 0
+    ).length;
 
     if (removedNodes > addedNodes) {
-      this.mergeBlock()
+      this.mergeBlock();
     } else if (addedNodes > removedNodes) {
-      this.splitBlock()
+      this.splitBlock();
     } else {
-      this.resolveDOMNode(mutations[0].target.parentNode!)
+      this.resolveDOMNode(mutations[0].target.parentNode!);
     }
-  }
+  };
 
   /**
    * Takes a DOM Node and resolves it against Slate's Document.
@@ -355,61 +362,65 @@ export class AndroidInputManager {
    */
 
   private resolveDOMNode = (domNode: DOMNode) => {
-    debug('resolveDOMNode')
     let node;
     try {
-      node = ReactEditor.toSlateNode(this.editor, domNode)
-    } catch (e) {
+      node = ReactEditor.toSlateNode(this.editor, domNode);
+    } catch (_e) {
       // not in react model yet.
       return;
     }
-    const path = ReactEditor.findPath(this.editor, node)
-    const prevText = SlateNode.string(node)
+    const path = ReactEditor.findPath(this.editor, node);
+    if (path.length == 0) {
+      return; // the whole editor.
+    }
+    const prevText = SlateNode.string(node);
 
     // COMPAT: If this is the last leaf, and the DOM text ends in a new line,
     // we will have added another new line in <Leaf>'s render method to account
     // for browsers collapsing a single trailing new lines, so remove it.
-    const [block] = Editor.parent(this.editor, ReactEditor.findPath(this.editor, node))
-    const isLastNode =  block.children[block.children.length - 1] === node
+    let block;
+    [block] = Editor.parent(this.editor, path);
+    const isLastNode = block.children[block.children.length - 1] === node;
 
-    const fix = fixTextAndOffset(domNode.textContent!, 0, isLastNode)
+    if (domNode.textContent == null) return;
+    const fix = fixTextAndOffset(domNode.textContent, 0, isLastNode);
 
-    const nextText = fix.text
+    const nextText = fix.text;
 
-    debug('resolveDOMNode:pre:post', prevText, nextText)
+    debug("resolveDOMNode:pre:post", prevText, nextText);
 
     // If the text is no different, there is no diff.
     if (nextText === prevText) {
-      this.lastDiff = undefined
-      return
+      this.lastDiff = undefined;
+      return;
     }
 
-    const diff = diffText(prevText, nextText)
+    const diff = diffText(prevText, nextText);
     if (diff === null) {
-      this.lastDiff = undefined
-      return
+      this.lastDiff = undefined;
+      return;
     }
 
-    this.lastPath = path
-    this.lastDiff = diff
+    this.lastPath = path;
+    this.lastDiff = diff;
 
-    debug('resolveDOMNode:diff', this.lastDiff)
-  }
+    debug("resolveDOMNode:diff", this.lastDiff);
+  };
 
   /**
    * handle `onCompositionStart`
    */
 
   onCompositionStart = () => {
-    debug('onCompositionStart')
-  }
+    debug("onCompositionStart");
+  };
 
   /**
    * handle `onCompositionEnd`
    */
 
   onCompositionEnd = () => {
-    debug('onCompositionEnd')
+    debug("onCompositionEnd");
 
     /**
      * The timing on the `setTimeout` with `20` ms is sensitive.
@@ -424,29 +435,29 @@ export class AndroidInputManager {
 
     window.setTimeout(() => {
       if (this.lastDiff !== undefined) {
-        debug('onCompositionEnd:applyDiff')
+        debug("onCompositionEnd:applyDiff");
 
         renderSync(this.editor, () => {
-          this.applyDiff()
+          this.applyDiff();
 
-          const domRange = window.getSelection()!.getRangeAt(0)
-          const domText = domRange.startContainer.textContent!
-          const offset = domRange.startOffset
+          const domRange = window.getSelection()!.getRangeAt(0);
+          const domText = domRange.startContainer.textContent!;
+          const offset = domRange.startOffset;
 
-          const fix = fixTextAndOffset(domText, offset)
+          const fix = fixTextAndOffset(domText, offset);
 
-          let range = ReactEditor.toSlateRange(this.editor, domRange)
+          let range = ReactEditor.toSlateRange(this.editor, domRange);
           range = {
             ...range,
             anchor: {
               ...range.anchor,
-              offset: fix.offset
+              offset: fix.offset,
             },
             focus: {
               ...range.focus,
-              offset: fix.offset
-            }
-          }
+              offset: fix.offset,
+            },
+          };
 
           /**
            * We must call `restoreDOM` even though this is applying a `diff` which
@@ -459,15 +470,15 @@ export class AndroidInputManager {
            * `enter` in such a scenario.
            */
 
-          Transforms.select(this.editor, range)
-          ReactEditor.focus(this.editor)
+          Transforms.select(this.editor, range);
+          ReactEditor.focus(this.editor);
 
-          this.clearAction()
-          restoreDOM(this.editor)
-        })
+          this.clearAction();
+          restoreDOM(this.editor);
+        });
       }
-    }, 20)
-  }
+    }, 20);
+  };
 
   /**
    * Handle `onSelect` event
@@ -479,45 +490,59 @@ export class AndroidInputManager {
    */
 
   onSelect = () => {
-    debug('onSelect:try')
+    debug("onSelect:try");
 
     if (this.onSelectTimeoutId !== null) {
-      window.cancelAnimationFrame(this.onSelectTimeoutId)
-      this.onSelectTimeoutId = null
+      window.cancelAnimationFrame(this.onSelectTimeoutId);
+      this.onSelectTimeoutId = null;
     }
 
     // Don't capture the last selection if the selection was made during the
     // flushing of DOM mutations. This means it is all part of one user action.
-    if (this.isFlushing) return
+    if (this.isFlushing) return;
 
     this.onSelectTimeoutId = window.requestAnimationFrame(() => {
-      debug('onSelect:save-selection')
+      debug("onSelect:save-selection");
 
-      const domSelection = window.getSelection()
+      const domSelection = window.getSelection();
       if (
         domSelection === null ||
-        domSelection.anchorNode === null || domSelection.anchorNode.textContent === null ||
-        domSelection.focusNode === null || domSelection.focusNode.textContent === null
-      ) return
+        domSelection.anchorNode === null ||
+        domSelection.anchorNode.textContent === null ||
+        domSelection.focusNode === null ||
+        domSelection.focusNode.textContent === null
+      )
+        return;
 
-      const {offset: anchorOffset} = fixTextAndOffset(domSelection.anchorNode.textContent, domSelection.anchorOffset)
-      const {offset: focusOffset} = fixTextAndOffset(domSelection.focusNode!.textContent!, domSelection.focusOffset)
-      let range = ReactEditor.toSlateRange(this.editor, domSelection)
+      const { offset: anchorOffset } = fixTextAndOffset(
+        domSelection.anchorNode.textContent,
+        domSelection.anchorOffset
+      );
+      const { offset: focusOffset } = fixTextAndOffset(
+        domSelection.focusNode!.textContent!,
+        domSelection.focusOffset
+      );
+      let range;
+      try {
+        range = ReactEditor.toSlateRange(this.editor, domSelection);
+      } catch (_e) {
+        return;
+      }
       range = {
         focus: {
           path: range.focus.path,
-          offset: focusOffset
+          offset: focusOffset,
         },
         anchor: {
           path: range.anchor.path,
-          offset: anchorOffset
-        }
-      }
+          offset: anchorOffset,
+        },
+      };
 
-      debug('onSelect:save-data', {
+      debug("onSelect:save-data", {
         domSelection: normalizeDOMSelection(domSelection),
-        range: range
-      })
+        range: range,
+      });
 
       // If the `domSelection` has moved into a new node, then reconcile with
       // `applyDiff`
@@ -526,28 +551,28 @@ export class AndroidInputManager {
         this.lastDomNode !== domSelection.anchorNode &&
         this.lastDiff !== undefined
       ) {
-        debug('onSelect:applyDiff', this.lastDiff)
-        this.applyDiff()
-        Transforms.select(this.editor, range)
+        debug("onSelect:applyDiff", this.lastDiff);
+        this.applyDiff();
+        Transforms.select(this.editor, range);
 
-        this.clearAction()
-        flushController(this.editor)
-        restoreDOM(this.editor)
+        this.clearAction();
+        flushController(this.editor);
+        restoreDOM(this.editor);
       }
 
-      this.lastRange = range
-      this.lastDomNode = domSelection.anchorNode
-    })
-  }
+      this.lastRange = range;
+      this.lastDomNode = domSelection.anchorNode;
+    });
+  };
 }
 
 function normalizeDOMSelection(selection: Selection) {
-  return ({
+  return {
     anchorNode: selection.anchorNode,
     anchorOffset: selection.anchorOffset,
     focusNode: selection.focusNode,
-    focusOffset: selection.focusOffset
-  })
+    focusOffset: selection.focusOffset,
+  };
 }
 
-export default AndroidInputManager
+export default AndroidInputManager;

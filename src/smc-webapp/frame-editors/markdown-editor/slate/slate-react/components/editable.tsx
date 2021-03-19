@@ -57,6 +57,6 @@ export type EditableProps = {
  * Editable.
  */
 
-export const Editable: React.FC<EditableProps> = IS_ANDROID
+export const Editable: React.FC<EditableProps> = (IS_ANDROID || true)
   ? AndroidEditable
   : DefaultEditable;

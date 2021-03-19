@@ -1,33 +1,47 @@
-import * as React from "react"
-import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {Descendant, Editor, Node, Range, Transforms,} from 'slate'
-import {throttle} from 'lodash'
-import scrollIntoView from 'scroll-into-view-if-needed'
+import * as React from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Descendant, Editor, Node, Range, Transforms } from "slate";
+import { throttle } from "lodash";
 
-import Children from './children'
-import {IS_CHROME_LEGACY, IS_EDGE_LEGACY, IS_FIREFOX, IS_SAFARI,} from '../utils/environment'
-import {ReactEditor} from '..'
-import {ReadOnlyContext} from '../hooks/use-read-only'
-import {useSlate} from '../hooks/use-slate'
-import {useIsomorphicLayoutEffect} from '../hooks/use-isomorphic-layout-effect'
+import Children from "./children";
+import {
+  IS_CHROME_LEGACY,
+  IS_EDGE_LEGACY,
+  IS_FIREFOX,
+  IS_SAFARI,
+} from "../utils/environment";
+import { ReactEditor } from "..";
+import { ReadOnlyContext } from "../hooks/use-read-only";
+import { useSlate } from "../hooks/use-slate";
+import { useIsomorphicLayoutEffect } from "../hooks/use-isomorphic-layout-effect";
 import {
   DOMElement,
   DOMNode,
   getDefaultView,
   isDOMNode,
   isPlainTextOnlyPaste,
-} from '../utils/dom'
+} from "../utils/dom";
 import {
   EDITOR_TO_ELEMENT,
-  EDITOR_TO_RESTORE_DOM, EDITOR_TO_WINDOW,
+  EDITOR_TO_RESTORE_DOM,
+  EDITOR_TO_WINDOW,
   ELEMENT_TO_NODE,
   IS_FOCUSED,
   IS_READ_ONLY,
   NODE_TO_ELEMENT,
   PLACEHOLDER_SYMBOL,
-} from '../utils/weak-maps'
-import {AndroidInputManager} from "./android";
-import {EditableProps} from "./editable";
+} from "../utils/weak-maps";
+import { AndroidInputManager } from "./android";
+import { EditableProps } from "./editable";
+
+//import { useDOMSelectionChange, useUpdateDOMSelection } from "./selection-sync";
 
 // COMPAT: Firefox/Edge Legacy don't support the `beforeinput` event
 // Chrome Legacy doesn't support `beforeinput` correctly
@@ -35,7 +49,7 @@ const HAS_BEFORE_INPUT_SUPPORT = !(
   IS_FIREFOX ||
   IS_EDGE_LEGACY ||
   IS_CHROME_LEGACY
-)
+);
 
 /**
  * Editable.
@@ -43,6 +57,7 @@ const HAS_BEFORE_INPUT_SUPPORT = !(
 
 export const AndroidEditable = (props: EditableProps): JSX.Element => {
   const {
+    windowing,
     autoFocus,
     decorate = defaultDecorate,
     onDOMBeforeInput: propsOnDOMBeforeInput,
@@ -51,15 +66,15 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
     renderElement,
     renderLeaf,
     style = {},
-    as: Component = 'div',
+    as: Component = "div",
     ...attributes
-  } = props
-  const editor = useSlate()
-  const ref = useRef<HTMLDivElement>(null)
+  } = props;
+  const editor = useSlate();
+  const ref = useRef<HTMLDivElement>(null);
   let inputManager = useMemo(() => new AndroidInputManager(editor), [editor]);
 
   // Update internal state on each render.
-  IS_READ_ONLY.set(editor, readOnly)
+  IS_READ_ONLY.set(editor, readOnly);
 
   // Keep track of some state for the event handler logic.
   const state = useMemo(
@@ -69,56 +84,56 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
       latestElement: null as DOMElement | null,
     }),
     []
-  )
+  );
 
   // Update element-related weak maps with the DOM element ref.
   useIsomorphicLayoutEffect(() => {
-    let window
+    let window;
     if (ref.current && (window = getDefaultView(ref.current))) {
-      EDITOR_TO_WINDOW.set(editor, window)
-      EDITOR_TO_ELEMENT.set(editor, ref.current)
-      NODE_TO_ELEMENT.set(editor, ref.current)
-      ELEMENT_TO_NODE.set(ref.current, editor)
+      EDITOR_TO_WINDOW.set(editor, window);
+      EDITOR_TO_ELEMENT.set(editor, ref.current);
+      NODE_TO_ELEMENT.set(editor, ref.current);
+      ELEMENT_TO_NODE.set(ref.current, editor);
     } else {
-      NODE_TO_ELEMENT.delete(editor)
+      NODE_TO_ELEMENT.delete(editor);
     }
-  })
+  });
 
   // Update element-related weak maps with the DOM element ref.
   useIsomorphicLayoutEffect(() => {
     if (ref.current) {
-      EDITOR_TO_ELEMENT.set(editor, ref.current)
-      NODE_TO_ELEMENT.set(editor, ref.current)
-      ELEMENT_TO_NODE.set(ref.current, editor)
+      EDITOR_TO_ELEMENT.set(editor, ref.current);
+      NODE_TO_ELEMENT.set(editor, ref.current);
+      ELEMENT_TO_NODE.set(ref.current, editor);
     } else {
-      NODE_TO_ELEMENT.delete(editor)
+      NODE_TO_ELEMENT.delete(editor);
     }
-  })
+  });
 
   // Whenever the editor updates, make sure the DOM selection state is in sync.
   useIsomorphicLayoutEffect(() => {
-    const { selection } = editor
-    const domSelection = window.getSelection()
+    const { selection } = editor;
+    const domSelection = window.getSelection();
 
     if (state.isComposing || !domSelection || !ReactEditor.isFocused(editor)) {
-      return
+      return;
     }
 
-    const hasDomSelection = domSelection.type !== 'None'
+    const hasDomSelection = domSelection.type !== "None";
 
     // If the DOM selection is properly unset, we're done.
     if (!selection && !hasDomSelection) {
-      return
+      return;
     }
 
     // verify that the dom selection is in the editor
-    const editorElement = EDITOR_TO_ELEMENT.get(editor)!
-    let hasDomSelectionInEditor = false
+    const editorElement = EDITOR_TO_ELEMENT.get(editor)!;
+    let hasDomSelectionInEditor = false;
     if (
       editorElement.contains(domSelection.anchorNode) &&
       editorElement.contains(domSelection.focusNode)
     ) {
-      hasDomSelectionInEditor = true
+      hasDomSelectionInEditor = true;
     }
 
     // If the DOM selection is in the editor and the editor selection is already correct, we're done.
@@ -128,14 +143,19 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
       selection &&
       Range.equals(ReactEditor.toSlateRange(editor, domSelection), selection)
     ) {
-      return
+      return;
     }
 
     // Otherwise the DOM selection is out of sync, so update it.
-    const el = ReactEditor.toDOMNode(editor, editor)
-    state.isUpdatingSelection = true
+    const el = ReactEditor.toDOMNode(editor, editor);
+    state.isUpdatingSelection = true;
 
-    const newDomRange = selection && ReactEditor.toDOMRange(editor, selection)
+    let newDomRange;
+    try {
+      newDomRange = selection && ReactEditor.toDOMRange(editor, selection);
+    } catch (_err) {
+      newDomRange = undefined;
+    }
 
     if (newDomRange) {
       if (Range.isBackward(selection!)) {
@@ -144,60 +164,55 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
           newDomRange.endOffset,
           newDomRange.startContainer,
           newDomRange.startOffset
-        )
+        );
       } else {
         domSelection.setBaseAndExtent(
           newDomRange.startContainer,
           newDomRange.startOffset,
           newDomRange.endContainer,
           newDomRange.endOffset
-        )
+        );
       }
-      const leafEl = newDomRange.startContainer.parentElement!
-      scrollIntoView(leafEl, {
-        scrollMode: 'if-needed',
-        boundary: el,
-      })
     } else {
-      domSelection.removeAllRanges()
+      domSelection.removeAllRanges();
     }
 
     setTimeout(() => {
       // COMPAT: In Firefox, it's not enough to create a range, you also need
       // to focus the contenteditable element too. (2016/11/16)
       if (newDomRange && IS_FIREFOX) {
-        el.focus()
+        el.focus();
       }
 
-      state.isUpdatingSelection = false
-    })
-  })
+      state.isUpdatingSelection = false;
+    });
+  });
 
   useLayoutEffect(() => {
     inputManager.onDidMount();
     return () => {
       inputManager.onWillUnmount();
-    }
-  }, [])
+    };
+  }, []);
 
-  const prevValue = useRef<Descendant[]>([])
+  const prevValue = useRef<Descendant[]>([]);
   if (prevValue.current !== editor.children) {
-    console.debug("onRender")
-    inputManager.onRender()
-    prevValue.current = editor.children
+    console.debug("slate-anrdoid: onRender");
+    inputManager.onRender();
+    prevValue.current = editor.children;
   }
 
   useLayoutEffect(() => {
-    inputManager.onDidUpdate()
-  })
+    inputManager.onDidUpdate();
+  });
 
   // The autoFocus TextareaHTMLAttribute doesn't do anything on a div, so it
   // needs to be manually focused.
   useEffect(() => {
     if (ref.current && autoFocus) {
-      ref.current.focus()
+      ref.current.focus();
     }
-  }, [autoFocus])
+  }, [autoFocus]);
 
   // Listen on the native `selectionchange` event to be able to update any time
   // the selection changes. This is required because React's `onSelect` is leaky
@@ -207,47 +222,47 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
   const onDOMSelectionChange = useCallback(
     throttle(() => {
       if (!readOnly && !state.isComposing && !state.isUpdatingSelection) {
-        inputManager.onSelect()
+        inputManager.onSelect();
 
-        const { activeElement } = window.document
-        const el = ReactEditor.toDOMNode(editor, editor)
-        const domSelection = window.getSelection()
+        const { activeElement } = window.document;
+        const el = ReactEditor.toDOMNode(editor, editor);
+        const domSelection = window.getSelection();
 
         if (activeElement === el) {
-          state.latestElement = activeElement
-          IS_FOCUSED.set(editor, true)
+          state.latestElement = activeElement;
+          IS_FOCUSED.set(editor, true);
         } else {
-          IS_FOCUSED.delete(editor)
+          IS_FOCUSED.delete(editor);
         }
 
         if (!domSelection) {
-          return Transforms.deselect(editor)
+          return Transforms.deselect(editor);
         }
 
-        const { anchorNode, focusNode } = domSelection
+        const { anchorNode, focusNode } = domSelection;
 
         const anchorNodeSelectable =
           hasEditableTarget(editor, anchorNode) ||
-          isTargetInsideVoid(editor, anchorNode)
+          isTargetInsideVoid(editor, anchorNode);
 
         const focusNodeSelectable =
           hasEditableTarget(editor, focusNode) ||
-          isTargetInsideVoid(editor, focusNode)
+          isTargetInsideVoid(editor, focusNode);
 
         if (anchorNodeSelectable && focusNodeSelectable) {
           try {
-            const range = ReactEditor.toSlateRange(editor, domSelection)
-            Transforms.select(editor, range)
+            const range = ReactEditor.toSlateRange(editor, domSelection);
+            Transforms.select(editor, range);
           } catch (e) {
             // expected if the value hasn't been updated yet
           }
         } else {
-          Transforms.deselect(editor)
+          Transforms.deselect(editor);
         }
       }
     }, 100),
     [readOnly]
-  )
+  );
 
   // Attach a native DOM event handler for `selectionchange`, because React's
   // built-in `onSelect` handler doesn't fire for all selection changes. It's a
@@ -255,43 +270,46 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
   // fire for any change to the selection inside the editor. (2019/11/04)
   // https://github.com/facebook/react/issues/5785
   useIsomorphicLayoutEffect(() => {
-    window.document.addEventListener('selectionchange', onDOMSelectionChange)
+    window.document.addEventListener("selectionchange", onDOMSelectionChange);
 
     return () => {
       window.document.removeEventListener(
-        'selectionchange',
+        "selectionchange",
         onDOMSelectionChange
-      )
-    }
-  }, [onDOMSelectionChange])
+      );
+    };
+  }, [onDOMSelectionChange]);
 
-  const decorations = decorate([editor, []])
+  //const updateDOMSelection = useUpdateDOMSelection({ editor, state });
+  //useDOMSelectionChange({ editor, state, readOnly });
+
+  const decorations = decorate([editor, []]);
 
   if (
     placeholder &&
     editor.children.length === 1 &&
     Array.from(Node.texts(editor)).length === 1 &&
-    Node.string(editor) === ''
+    Node.string(editor) === ""
   ) {
-    const start = Editor.start(editor, [])
+    const start = Editor.start(editor, []);
     decorations.push({
       [PLACEHOLDER_SYMBOL]: true,
       placeholder,
       anchor: start,
       focus: start,
-    } as Range)
+    } as Range);
   }
 
   const [contentKey, setContentKey] = useState(0);
 
   const onRestoreDOM = useCallback(() => {
-    setContentKey(prev => prev + 1)
-  }, [contentKey])
-  EDITOR_TO_RESTORE_DOM.set(editor, onRestoreDOM)
+    setContentKey((prev) => prev + 1);
+  }, [contentKey]);
+  EDITOR_TO_RESTORE_DOM.set(editor, onRestoreDOM);
   useEffect(() => {
     return () => {
-      EDITOR_TO_RESTORE_DOM.delete(editor)
-    }
+      EDITOR_TO_RESTORE_DOM.delete(editor);
+    };
   }, []);
 
   return (
@@ -302,7 +320,7 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
         // behaviors so we have to disable it like editor. (2017/04/24)
         data-gramm={false}
         key={contentKey}
-        role={readOnly ? undefined : 'textbox'}
+        role={readOnly ? undefined : "textbox"}
         {...attributes}
         // COMPAT: Certain browsers don't support the `beforeinput` event, so we'd
         // have to use hacks to make these replacement-based features work.
@@ -322,11 +340,11 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
         ref={ref}
         style={{
           // Prevent the default outline styles.
-          outline: 'none',
+          outline: "none",
           // Preserve adjacent whitespace and new lines.
-          whiteSpace: 'pre-wrap',
+          whiteSpace: "pre-wrap",
           // Allow words to break if they are too long.
-          wordWrap: 'break-word',
+          wordWrap: "break-word",
           // Allow for passed-in styles to override anything.
           ...style,
         }}
@@ -346,25 +364,23 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
           },
           [readOnly]
         )}
-        onBlur={useCallback(
-          (_event: React.FocusEvent<HTMLDivElement>) => {
-          },
-          [readOnly, attributes.onBlur]
-        )}
-        onClick={useCallback(
-          (_event: React.MouseEvent<HTMLDivElement>) => {
-          },
-          [readOnly, attributes.onClick]
-        )}
+        onBlur={useCallback((_event: React.FocusEvent<HTMLDivElement>) => {}, [
+          readOnly,
+          attributes.onBlur,
+        ])}
+        onClick={useCallback((_event: React.MouseEvent<HTMLDivElement>) => {}, [
+          readOnly,
+          attributes.onClick,
+        ])}
         onCompositionEnd={useCallback(
           (event: React.CompositionEvent<HTMLDivElement>) => {
             if (
               hasEditableTarget(editor, event.target) &&
               !isEventHandled(event, attributes.onCompositionEnd)
             ) {
-              state.isComposing = false
+              state.isComposing = false;
 
-              inputManager.onCompositionEnd()
+              inputManager.onCompositionEnd();
             }
           },
           [attributes.onCompositionEnd]
@@ -375,7 +391,7 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
               hasEditableTarget(editor, event.target) &&
               !isEventHandled(event, attributes.onCompositionStart)
             ) {
-              state.isComposing = true
+              state.isComposing = true;
 
               inputManager.onCompositionStart();
             }
@@ -388,8 +404,8 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
               hasEditableTarget(editor, event.target) &&
               !isEventHandled(event, attributes.onCopy)
             ) {
-              event.preventDefault()
-              ReactEditor.setFragmentData(editor, event.clipboardData)
+              event.preventDefault();
+              ReactEditor.setFragmentData(editor, event.clipboardData);
             }
           },
           [attributes.onCopy]
@@ -401,12 +417,12 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
               hasEditableTarget(editor, event.target) &&
               !isEventHandled(event, attributes.onCut)
             ) {
-              event.preventDefault()
-              ReactEditor.setFragmentData(editor, event.clipboardData)
-              const { selection } = editor
+              event.preventDefault();
+              ReactEditor.setFragmentData(editor, event.clipboardData);
+              const { selection } = editor;
 
               if (selection && Range.isExpanded(selection)) {
-                Editor.deleteFragment(editor)
+                Editor.deleteFragment(editor);
               }
             }
           },
@@ -421,10 +437,10 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
               // Only when the target is void, call `preventDefault` to signal
               // that drops are allowed. Editable content is droppable by
               // default, and calling `preventDefault` hides the cursor.
-              const node = ReactEditor.toSlateNode(editor, event.target)
+              const node = ReactEditor.toSlateNode(editor, event.target);
 
               if (Editor.isVoid(editor, node)) {
-                event.preventDefault()
+                event.preventDefault();
               }
             }
           },
@@ -436,18 +452,18 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
               hasTarget(editor, event.target) &&
               !isEventHandled(event, attributes.onDragStart)
             ) {
-              const node = ReactEditor.toSlateNode(editor, event.target)
-              const path = ReactEditor.findPath(editor, node)
-              const voidMatch = Editor.void(editor, { at: path })
+              const node = ReactEditor.toSlateNode(editor, event.target);
+              const path = ReactEditor.findPath(editor, node);
+              const voidMatch = Editor.void(editor, { at: path });
 
               // If starting a drag on a void node, make sure it is selected
               // so that it shows up in the selection's fragment.
               if (voidMatch) {
-                const range = Editor.range(editor, path)
-                Transforms.select(editor, range)
+                const range = Editor.range(editor, path);
+                Transforms.select(editor, range);
               }
 
-              ReactEditor.setFragmentData(editor, event.dataTransfer)
+              ReactEditor.setFragmentData(editor, event.dataTransfer);
             }
           },
           [attributes.onDragStart]
@@ -467,11 +483,11 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
                 !HAS_BEFORE_INPUT_SUPPORT ||
                 (!IS_SAFARI && event.dataTransfer.files.length > 0)
               ) {
-                event.preventDefault()
-                const range = ReactEditor.findEventRange(editor, event)
-                const data = event.dataTransfer
-                Transforms.select(editor, range)
-                ReactEditor.insertData(editor, data)
+                event.preventDefault();
+                const range = ReactEditor.findEventRange(editor, event);
+                const data = event.dataTransfer;
+                Transforms.select(editor, range);
+                ReactEditor.insertData(editor, data);
               }
             }
           },
@@ -485,26 +501,24 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
               hasEditableTarget(editor, event.target) &&
               !isEventHandled(event, attributes.onFocus)
             ) {
-              const el = ReactEditor.toDOMNode(editor, editor)
-              state.latestElement = window.document.activeElement
+              const el = ReactEditor.toDOMNode(editor, editor);
+              state.latestElement = window.document.activeElement;
 
               // COMPAT: If the editor has nested editable elements, the focus
               // can go to them. In Firefox, this must be prevented because it
               // results in issues with keyboard navigation. (2017/03/30)
               if (IS_FIREFOX && event.target !== el) {
-                el.focus()
-                return
+                el.focus();
+                return;
               }
 
-              IS_FOCUSED.set(editor, true)
+              IS_FOCUSED.set(editor, true);
             }
           },
           [readOnly, attributes.onFocus]
         )}
         onKeyDown={useCallback(
-          (_event: React.KeyboardEvent<HTMLDivElement>) => {
-
-          },
+          (_event: React.KeyboardEvent<HTMLDivElement>) => {},
           [readOnly, attributes.onKeyDown]
         )}
         onPaste={useCallback(
@@ -521,8 +535,8 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
                 isPlainTextOnlyPaste(event.nativeEvent)) &&
               !readOnly
             ) {
-              event.preventDefault()
-              ReactEditor.insertData(editor, event.clipboardData)
+              event.preventDefault();
+              ReactEditor.insertData(editor, event.clipboardData);
             }
           },
           [readOnly, attributes.onPaste]
@@ -535,17 +549,22 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
           renderElement={renderElement}
           renderLeaf={renderLeaf}
           selection={editor.selection}
+          windowing={windowing}
+          onScroll={() => {
+            //updateDOMSelection();
+            props.onScroll?.({} as any);
+          }}
         />
       </Component>
     </ReadOnlyContext.Provider>
-  )
-}
+  );
+};
 
 /**
  * A default memoized decorate function.
  */
 
-const defaultDecorate = () => []
+const defaultDecorate = () => [];
 
 /**
  * Check if the target is in the editor.
@@ -555,8 +574,8 @@ const hasTarget = (
   editor: ReactEditor,
   target: EventTarget | null
 ): target is DOMNode => {
-  return isDOMNode(target) && ReactEditor.hasDOMNode(editor, target)
-}
+  return isDOMNode(target) && ReactEditor.hasDOMNode(editor, target);
+};
 
 /**
  * Check if the target is editable and in the editor.
@@ -569,8 +588,8 @@ const hasEditableTarget = (
   return (
     isDOMNode(target) &&
     ReactEditor.hasDOMNode(editor, target, { editable: true })
-  )
-}
+  );
+};
 
 /**
  * Check if the target is inside void and in the editor.
@@ -581,9 +600,9 @@ const isTargetInsideVoid = (
   target: EventTarget | null
 ): boolean => {
   const slateNode =
-    hasTarget(editor, target) && ReactEditor.toSlateNode(editor, target)
-  return Editor.isVoid(editor, slateNode)
-}
+    hasTarget(editor, target) && ReactEditor.toSlateNode(editor, target);
+  return Editor.isVoid(editor, slateNode);
+};
 
 /**
  * Check if an event is overrided by a handler.
@@ -596,9 +615,9 @@ const isEventHandled = <
   handler?: (event: EventType) => void
 ) => {
   if (!handler) {
-    return false
+    return false;
   }
 
-  handler(event)
-  return event.isDefaultPrevented() || event.isPropagationStopped()
-}
+  handler(event);
+  return event.isDefaultPrevented() || event.isPropagationStopped();
+};
