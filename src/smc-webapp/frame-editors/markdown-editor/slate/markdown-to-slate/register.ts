@@ -9,6 +9,7 @@ import { State, Token } from "./types";
 type Handler = (opts: {
   token: Token;
   state: State;
+  cache?;
 }) => Descendant[] | undefined;
 
 export const handlers: Handler[] = [];

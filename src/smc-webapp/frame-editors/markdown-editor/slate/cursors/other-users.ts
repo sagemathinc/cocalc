@@ -12,6 +12,7 @@ import { getProfile } from "smc-webapp/jupyter/cursors";
 import { redux } from "smc-webapp/app-framework";
 import { markdownPositionToSlatePoint } from "../sync";
 import { SearchHook } from "../search";
+import { SlateEditor } from "../editable-markdown";
 
 interface OtherCursor {
   offset: number;
@@ -25,7 +26,7 @@ export const useCursorDecorate = ({
   cursors,
   search, // passed in since can only have one decorate function.
 }: {
-  editor: Editor;
+  editor: SlateEditor;
   value: string;
   cursors: Map<string, any>;
   search: SearchHook;
