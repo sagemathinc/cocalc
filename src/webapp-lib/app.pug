@@ -49,6 +49,16 @@ html(lang="en")
         function smcLoadStatus(msg) {
         try { document.getElementById("smc-startup-banner-status").innerHTML = msg; } catch(e) {}}
 
+    script(type="text/javascript").
+        if ("serviceWorker" in navigator) {
+          window.addEventListener("load", function() {
+            navigator.serviceWorker
+              .register("./webapp/serviceWorker.js")
+              .catch(err => console.log("service worker not registered", err))
+          })
+        }
+
+
     //- Hidden div to accurately determine if page is in responsive mode
     div.webapp-responsive-mode-test
 

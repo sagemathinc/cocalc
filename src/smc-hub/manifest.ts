@@ -18,13 +18,13 @@ export function send(res: Response, custom: Custom, base_url: string) {
 
   res.header("Content-Type", "application/json");
 
-  const base_app = `https://${config.dns}` + join("/", base_url, "app");
+  const base_app = join("/", base_url, "app");
 
   const manifest = {
     name: config.site_name,
     short_name: config.site_name,
     start_url: `${base_app}?utm_medium=manifest`,
-    scope: base_app,
+    scope: join("/", base_url),
     display: "minimal-ui",
     background_color: "#fbb635",
     theme_color: "#4474c0",
