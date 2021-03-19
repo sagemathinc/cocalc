@@ -45,6 +45,9 @@ import { useDOMSelectionChange, useUpdateDOMSelection } from "./selection-sync";
 
 import { hasEditableTarget, hasTarget } from "./dom-utils";
 
+import Keyboard from "react-simple-keyboard";
+import "react-simple-keyboard/build/css/index.css";
+
 // COMPAT: Firefox/Edge Legacy don't support the `beforeinput` event
 // Chrome Legacy doesn't support `beforeinput` correctly
 const HAS_BEFORE_INPUT_SUPPORT = !(
@@ -891,6 +894,33 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           }}
         />
       </Component>
+      <div
+        contentEditable={false}
+        style={{ position: "fixed", left: 0, bottom: 0, right: 0 }}
+      >
+        <Keyboard
+          onKeyPress={(key) => {
+            console.log(key);
+            if (key[0] != "{") {
+              editor.insertText(key);
+              return;
+            }
+            switch (key) {
+              case "{space}":
+                editor.insertText(" ");
+                break;
+              case "{enter}":
+                editor.insertText("\n");
+                break;
+              case "{bksp}":
+                Editor.deleteBackward(editor);
+                break;
+              default:
+                console.log("TODO", key);
+            }
+          }}
+        />
+      </div>
     </ReadOnlyContext.Provider>
   );
 };
