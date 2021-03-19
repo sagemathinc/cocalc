@@ -12,6 +12,7 @@ export interface Info {
   no_escape: boolean; // if true, do not escape text in this node.
   hook?: (Node, string) => undefined | string;
   lastChild: boolean; // true if this is the last child among its siblings.
+  cache?;
 }
 
 export function serialize(node: Node, info: Info): string {
@@ -28,7 +29,11 @@ export function serialize(node: Node, info: Info): string {
 
 export function slate_to_markdown(
   slate: Node[],
-  options?: { no_escape?: boolean; hook?: (Node, string) => undefined | string }
+  options?: {
+    no_escape?: boolean;
+    hook?: (Node, string) => undefined | string;
+    cache?;
+  }
 ): string {
   // const t = new Date().valueOf();
 
@@ -39,6 +44,7 @@ export function slate_to_markdown(
       hook: options?.hook,
       index: i,
       lastChild: i == slate.length - 1,
+      cache: options?.cache,
     });
   }
   // this makes whitespace at top/bottom consistent with prettier

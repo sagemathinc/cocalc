@@ -1986,7 +1986,9 @@ export class SyncDoc extends EventEmitter {
       this.emit("save-to-disk", time);
     }
     const dbg = this.dbg("handle_syncstring_save_state");
-    dbg();
+    dbg(
+      `state=${state}; this.syncstring_save_state=${this.syncstring_save_state}; this.state=${state}`
+    );
     if (
       this.state === "ready" &&
       this.client.is_project() &&
@@ -2011,12 +2013,27 @@ export class SyncDoc extends EventEmitter {
         // throw an exception, e.g., if the file is temporarily deleted
         // or save it called before everything is initialized, or file
         // is temporarily set readonly, or maybe there is a filesystem error.
+        // Of course, the finally below will also take care of this.  However,
+        // it's nice to record the error here.
         this.syncstring_save_state = "done";
         await this.set_save({ state: "done", error: `${err}` });
         dbg(`ERROR saving to disk in handle_syncstring_save_state-- ${err}`);
+      } finally {
+        // No matter what, after the above code is run,
+        // the save state in the table better be "done".
+        // We triple check that here, though of course
+        // we believe the logic in save_to_disk and above
+        // should always accomplish this.
+        dbg("had to set the state to done in finally block");
+        if (
+          this.state === "ready" &&
+          (this.syncstring_save_state != "done" ||
+            this.syncstring_table_get_one().getIn(["save", "state"]) != "done")
+        ) {
+          this.syncstring_save_state = "done";
+          await this.set_save({ state: "done", error: "" });
+        }
       }
-    } else {
-      this.syncstring_save_state = state; // only used in the if above
     }
   }
 
@@ -2394,6 +2411,7 @@ export class SyncDoc extends EventEmitter {
       dbg("no unsaved changes, so don't save");
       // CRITICAL: this optimization is assumed by
       // autosave, etc.
+      await this.set_save({ state: "done", error: "" });
       return;
     }
 
@@ -2423,8 +2441,8 @@ export class SyncDoc extends EventEmitter {
       }
     }
 
-    dbg("now wait for the save to disk to finish");
     if (this.client.is_user()) {
+      dbg("now wait for the save to disk to finish");
       this.assert_is_ready("save_to_disk - waiting to finish");
       await this.wait_for_save_to_disk_done();
     }

@@ -14,4 +14,5 @@ export interface Token {
   markup?: string;
   checked?: boolean;
   info?: string;
+  map?: number[]; // source map: pair of 0-based line numbers of source that produced this token.
 }

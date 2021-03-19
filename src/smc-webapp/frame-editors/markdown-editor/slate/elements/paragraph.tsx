@@ -19,13 +19,19 @@ export interface Paragraph extends SlateElement {
 register({
   slateType: "paragraph",
 
-  toSlate: ({ token, children }) => {
+  toSlate: ({ token, children, markdown, cache }) => {
     // We include a tight property when hidden is true, since that's the
-    // hack that markdown-it uses for parsing tight lights.
-    return {
+    // hack that markdown-it uses for parsing tight lists.
+    const x = {
       ...{ type: "paragraph", children },
       ...(token.hidden ? { tight: true } : {}),
-    };
+    } as Paragraph;
+
+    if (markdown != null && cache != null) {
+      cache[JSON.stringify(x)] = markdown;
+    }
+
+    return x;
   },
 
   Element: ({ attributes, children, element }) => {
@@ -90,12 +96,19 @@ register({
 
   fromSlate: ({ node, children, info }) => {
     if (children.trim() == "") {
-      // We discard empty paragraphs entirely, since that's just
+      // We discard empty paragraphs entirely, since that's
       // what markdown does. Also, to make void blocks easier to
       // work with, we sometimes automatically add blank paragraphs
       // above or below them, and it is silly if those result in
       // lots of meaningless blank lines in the md file.
       return "";
+    }
+
+    if (info.cache != null) {
+      const c = info.cache[JSON.stringify(node)];
+      if (c != null) {
+        children = c;
+      }
     }
     return `${children}${info.lastChild ? "\n" : node.tight ? "\n" : "\n\n"}`;
   },

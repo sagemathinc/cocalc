@@ -72,6 +72,7 @@ export interface SlateEditor extends ReactEditor {
   hasUnsavedChanges?: boolean;
   markdownValue?: string;
   getMarkdownValue: () => string;
+  syncCache?: any;
 }
 
 // Whether or not to use windowing (=only rendering visible elements).
@@ -144,9 +145,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     cursors,
   }) => {
     const isMountedRef = useIsMountedRef();
-    const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
-      markdown_to_slate(value)
-    );
 
     const editor = useMemo(() => {
       const cur = actions.getSlateEditor(id);
@@ -160,7 +158,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         if (ed.markdownValue != null && !ed.hasUnsavedChanges) {
           return ed.markdownValue;
         }
-        ed.markdownValue = slate_to_markdown(ed.children);
+        ed.markdownValue = slate_to_markdown(ed.children, {
+          cache: ed.syncCache,
+        });
         return ed.markdownValue;
       };
 
@@ -177,8 +177,14 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         actions.ensure_syncstring_is_saved();
       };
 
+      ed.syncCache = {};
+
       return ed as SlateEditor;
     }, []);
+
+    const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
+      markdown_to_slate(value, false, editor.syncCache)
+    );
 
     const mentions = useMentions({
       editor,
@@ -351,7 +357,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
       editor.markdownValue = value;
       const previousEditorValue = editor.children;
-      const nextEditorValue = markdown_to_slate(value);
+
+      // we only use the latest version of the document
+      // for caching purposes.
+      editor.syncCache = {};
+      const nextEditorValue = markdown_to_slate(value, false, editor.syncCache);
+
       const operations = slateDiff(previousEditorValue, nextEditorValue);
       // Applying this operation below will immediately trigger
       // an onChange, which it is best to ignore to save time and
