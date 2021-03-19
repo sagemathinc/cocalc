@@ -1,6 +1,7 @@
-import React, {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react'
-import {Descendant, Editor, Element, Node, NodeEntry, Range, Text, Transforms,} from 'slate'
-import throttle from 'lodash/throttle'
+import * as React from "react"
+import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Descendant, Editor, Node, Range, Transforms,} from 'slate'
+import {throttle} from 'lodash'
 import scrollIntoView from 'scroll-into-view-if-needed'
 
 import Children from './children'
@@ -12,8 +13,6 @@ import {useIsomorphicLayoutEffect} from '../hooks/use-isomorphic-layout-effect'
 import {
   DOMElement,
   DOMNode,
-  DOMRange,
-  DOMStaticRange,
   getDefaultView,
   isDOMNode,
   isPlainTextOnlyPaste,
@@ -280,7 +279,7 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
       placeholder,
       anchor: start,
       focus: start,
-    })
+    } as Range)
   }
 
   const [contentKey, setContentKey] = useState(0);
@@ -348,12 +347,12 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
           [readOnly]
         )}
         onBlur={useCallback(
-          (event: React.FocusEvent<HTMLDivElement>) => {
+          (_event: React.FocusEvent<HTMLDivElement>) => {
           },
           [readOnly, attributes.onBlur]
         )}
         onClick={useCallback(
-          (event: React.MouseEvent<HTMLDivElement>) => {
+          (_event: React.MouseEvent<HTMLDivElement>) => {
           },
           [readOnly, attributes.onClick]
         )}
@@ -503,7 +502,7 @@ export const AndroidEditable = (props: EditableProps): JSX.Element => {
           [readOnly, attributes.onFocus]
         )}
         onKeyDown={useCallback(
-          (event: React.KeyboardEvent<HTMLDivElement>) => {
+          (_event: React.KeyboardEvent<HTMLDivElement>) => {
 
           },
           [readOnly, attributes.onKeyDown]

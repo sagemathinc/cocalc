@@ -3,7 +3,7 @@ import {Editor, Node as SlateNode, Path, Range, Transforms} from "slate";
 import {Diff, diffText} from "./diff-text";
 import {DOMNode} from "../../utils/dom";
 import {EDITOR_TO_ON_CHANGE, EDITOR_TO_RESTORE_DOM} from "../../utils/weak-maps";
-import ReactDOM from "react-dom";
+import * as ReactDOM from "react-dom";
 
 const debug = console.debug
 

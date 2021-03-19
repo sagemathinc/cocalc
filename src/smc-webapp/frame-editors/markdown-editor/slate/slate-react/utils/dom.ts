@@ -175,3 +175,13 @@ export const getPlainText = (domNode: DOMNode) => {
 
   return text;
 };
+
+/**
+ * Returns the host window of a DOM node
+ */
+
+export const getDefaultView = (value: any): Window | null => {
+  return (
+    (value && value.ownerDocument && value.ownerDocument.defaultView) || null
+  )
+}
