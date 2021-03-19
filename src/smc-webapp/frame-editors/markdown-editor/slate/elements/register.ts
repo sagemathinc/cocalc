@@ -24,6 +24,7 @@ export interface markdownToSlateOptions {
   state: MarkdownParserState;
   children: Node[];
   isEmpty: boolean;
+  markdown?: string;
 }
 
 export interface slateToMarkdownOptions {
@@ -31,6 +32,7 @@ export interface slateToMarkdownOptions {
   children: string;
   info: Info;
   childInfo: ChildInfo;
+  cache?;
 }
 
 type markdownToSlateFunction = (markdownToSlateOptions) => Element | undefined;
@@ -117,7 +119,9 @@ export function register(h: Handler): void {
 
 export function getRender(slateType: string): React.FC<RenderElementProps> {
   if (renderer[slateType] == null) {
-    console.log(`WARNING -- getRender: using generic plugin for type '${slateType}'; this is NOT likely to work.`);
+    console.log(
+      `WARNING -- getRender: using generic plugin for type '${slateType}'; this is NOT likely to work.`
+    );
     return renderer["generic"];
   }
   return renderer[slateType];

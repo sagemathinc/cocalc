@@ -25,4 +25,5 @@ export interface State {
   contents?: Token[];
   attrs?: string[][];
   block?: boolean;
+  markdown?: string;
 }

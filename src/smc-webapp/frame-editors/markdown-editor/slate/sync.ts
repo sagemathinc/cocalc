@@ -10,9 +10,10 @@ import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
 import { isWhitespaceParagraph } from "./padding";
 const SENTINEL = "\uFE30";
+import { SlateEditor } from "./editable-markdown";
 
 export function slatePointToMarkdownPosition(
-  editor: Editor,
+  editor: SlateEditor,
   point: Point | undefined
 ): CodeMirror.Position | undefined {
   if (point == null) return undefined; // easy special case not handled below.
@@ -28,7 +29,7 @@ export function slatePointToMarkdownPosition(
 // Returns index of -1 if it fails to work for some reason, e.g.,
 // the point doesn't exist in the document.
 export function slatePointToMarkdown(
-  editor: Editor,
+  editor: SlateEditor,
   point: Point
 ): { index: number; markdown: string } {
   let node;
@@ -44,6 +45,7 @@ export function slatePointToMarkdown(
       if (elt !== node) return;
       return s.slice(0, point.offset) + SENTINEL + s.slice(point.offset);
     },
+    cache: editor.syncCache,
   });
   const index = markdown.indexOf(SENTINEL);
   if (index != -1) {
@@ -119,14 +121,14 @@ export function markdownPositionToSlatePoint({
 }: {
   markdown: string;
   pos: CodeMirror.Position | undefined;
-  editor: Editor;
+  editor: SlateEditor;
 }): Point | undefined {
   if (pos == null) return undefined;
   const m = insertSentinel(pos, markdown);
   if (m == null) {
     return undefined;
   }
-  const doc: Descendant[] = markdown_to_slate(m);
+  const doc: Descendant[] = markdown_to_slate(m, false, editor.syncCache);
   let point = findSentinel(doc);
   if (point != null) return normalizePoint(editor, doc, point);
   if (pos.ch == 0) return undefined;
