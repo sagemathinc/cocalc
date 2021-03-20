@@ -57,7 +57,6 @@ Table({
           course: null,
           // if the value is not set, we have to use the old default prior to summer 2020 (Ubuntu 18.04, not 20.04!)
           compute_image: FALLBACK_COMPUTE_IMAGE,
-          addons: null,
           created: null,
           env: null,
         },
