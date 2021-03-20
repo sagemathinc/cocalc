@@ -261,7 +261,7 @@ export const withReact = <T extends Editor>(editor: T) => {
       await new Promise(requestAnimationFrame);
       const { selection } = e;
       if (!selection) return;
-      //if (!Range.isCollapsed(selection)) return;
+      if (!Range.isCollapsed(selection)) return;
 
       // Important: there's no good way to do this when the focused
       // element is void, and the naive code leads to bad problems,

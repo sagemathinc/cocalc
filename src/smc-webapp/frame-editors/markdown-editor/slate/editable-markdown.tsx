@@ -82,7 +82,7 @@ export interface SlateEditor extends ReactEditor {
 // including subtle issues with selection, scroll state, etc.
 // IMPORTANT: Do not set this to false unless you want to make
 // slate editing **basically unusable** at scale beyond a few pages!!
-let USE_WINDOWING = true;
+const USE_WINDOWING = true;
 
 // Why window?  Unfortunately, due to how slate is designed, actually editing
 // text is "unusable" for even medium size documents

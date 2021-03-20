@@ -128,7 +128,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
   const state = useMemo(
     () => ({
       isComposing: false,
-      isUpdatingSelection: false,
       latestElement: null as DOMElement | null,
     }),
     []
@@ -393,7 +392,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           (event: React.FocusEvent<HTMLDivElement>) => {
             if (
               readOnly ||
-              state.isUpdatingSelection ||
               !hasEditableTarget(editor, event.target) ||
               isEventHandled(event, attributes.onBlur)
             ) {
@@ -623,7 +621,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           (event: React.FocusEvent<HTMLDivElement>) => {
             if (
               !readOnly &&
-              !state.isUpdatingSelection &&
               hasEditableTarget(editor, event.target) &&
               !isEventHandled(event, attributes.onFocus)
             ) {

@@ -94,7 +94,7 @@ const MarkButton: React.FC<MarkButtonProps> = ({ mark, active, editor }) => {
         color: "#666",
         backgroundColor: active ? "#ccc" : undefined,
         height: "26px",
-        padding: "0 5px",
+        padding: "0 10px",
       }}
       onClick={() => formatAction(editor, mark, [])}
     >

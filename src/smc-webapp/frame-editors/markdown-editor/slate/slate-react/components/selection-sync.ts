@@ -15,21 +15,25 @@ import { ReactEditor } from "..";
 import { EDITOR_TO_ELEMENT, IS_FOCUSED } from "../utils/weak-maps";
 import { Point, Range, Selection, Transforms } from "slate";
 import { hasEditableTarget, isTargetInsideVoid } from "./dom-utils";
-import { IS_FIREFOX } from "../utils/environment";
 
 export const useUpdateDOMSelection = ({ editor, state }) => {
-  // Make sure the DOM selection
-  // state is set to the editor selection.
+  // Ensure that the DOM selection state is set to the editor selection.
+  // Note that whenever the DOM gets updated (e.g., with every keystroke when editing)
+  // the DOM selection gets completely reset (because react replaces the selected text
+  // by new text), so this setting of the selection usually happens, and happens
+  // **a lot**.
   const updateDOMSelection = () => {
-    //console.log("useUpdateDOMSelection");
-    const selection = getWindowedSelection(editor);
-    const domSelection = window.getSelection();
-
-    if (state.isComposing || !domSelection || !ReactEditor.isFocused(editor)) {
+    if (state.isComposing || !ReactEditor.isFocused(editor)) {
       // console.log("useUpdateDOMSelection: early return");
       return;
     }
 
+    const domSelection = window.getSelection();
+
+    if (!domSelection) {
+      return;
+    }
+    const selection = getWindowedSelection(editor);
     const hasDomSelection = domSelection.type !== "None";
 
     // If the DOM selection is properly unset, we're done.
@@ -48,7 +52,8 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
       hasDomSelectionInEditor = true;
     }
 
-    // If the DOM selection is in the editor and the editor selection is already correct, we're done.
+    // If the DOM selection is in the editor and the editor selection
+    // is already correct, we're done.
     try {
       if (
         hasDomSelection &&
@@ -63,21 +68,27 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
       // ReactEditor.toSlateRange(editor, domSelection) can often raise
       // an error when using windowing.
       // Above is just an optimization so that's OK.
+      console.log("WARNING -- ", _err);
     }
+    /*
+    console.log(
+      "fixing selection: ",
+      JSON.stringify({
+        slate: selection,
+        dom: ReactEditor.toSlateRange(editor, domSelection),
+      })
+    );
+    */
 
     let newDomRange;
+    // The DOM selection is out of sync, so update it.
+
     try {
-      // The DOM selection is out of sync, so update it.
-
-      // Ensure that setting the DOM selection doesn't cause update of slate's selection.
-      state.isUpdatingSelection = true;
-
-      try {
-        newDomRange = selection && ReactEditor.toDOMRange(editor, selection);
-      } catch (err) {
-        // This happens e.g., if you set the selection to a point that isn't valid
-        // in the document.  TODO: Our autoformat code annoyingly does this sometimes.
-        /*
+      newDomRange = selection && ReactEditor.toDOMRange(editor, selection);
+    } catch (err) {
+      // This happens e.g., if you set the selection to a point that isn't valid
+      // in the document.  TODO: Our autoformat code annoyingly does this sometimes.
+      /*
         console.log(
           "BUG: toDOMRange in selection failed",
           JSON.stringify({
@@ -87,52 +98,26 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
           err
         );
         */
-        newDomRange = undefined;
-      }
+      newDomRange = undefined;
+    }
 
-      if (newDomRange) {
-        // console.log("useUpdateDOMSelection: setting newDomRange", newDomRange);
-        if (Range.isBackward(selection!)) {
-          domSelection.setBaseAndExtent(
-            newDomRange.endContainer,
-            newDomRange.endOffset,
-            newDomRange.startContainer,
-            newDomRange.startOffset
-          );
-        } else {
-          domSelection.setBaseAndExtent(
-            newDomRange.startContainer,
-            newDomRange.startOffset,
-            newDomRange.endContainer,
-            newDomRange.endOffset
-          );
-        }
+    if (newDomRange) {
+      // console.log("useUpdateDOMSelection: setting newDomRange", newDomRange);
+      if (Range.isBackward(selection!)) {
+        domSelection.setBaseAndExtent(
+          newDomRange.endContainer,
+          newDomRange.endOffset,
+          newDomRange.startContainer,
+          newDomRange.startOffset
+        );
+      } else {
+        domSelection.setBaseAndExtent(
+          newDomRange.startContainer,
+          newDomRange.startOffset,
+          newDomRange.endContainer,
+          newDomRange.endOffset
+        );
       }
-    } finally {
-      // We use try/finally, because it is critical that there's code that will
-      // unset isUpdatingSelection.
-      if (state.selectionTimeout) {
-        // There is already one set, so we cancel that
-        // and set a new one.  It's important to do this, otherwise,
-        // we can easily cancel out an upcoming update lock.
-        clearTimeout(state.selectionTimeout);
-      }
-
-      state.selectionTimeout = setTimeout(() => {
-        delete state.selectionTimeout; // so don't think there is one set.
-        // COMPAT: In Firefox, it's not enough to create a range, you also need
-        // to focus the contenteditable element too. (2016/11/16)
-        if (newDomRange && IS_FIREFOX) {
-          try {
-            const el = ReactEditor.toDOMNode(editor, editor);
-            el.focus();
-          } catch (err) {
-            console.log("WARNING: failed to find DOMNode to focus on firefox");
-          }
-        }
-
-        state.isUpdatingSelection = false;
-      });
     }
   };
 
@@ -152,8 +137,7 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
   // while a selection is being dragged.
 
   const onDOMSelectionChange = useCallback(() => {
-    // console.log("selectionchange");
-    if (readOnly || state.isComposing || state.isUpdatingSelection) {
+    if (readOnly || state.isComposing) {
       return;
     }
     const { activeElement } = window.document;
@@ -170,10 +154,11 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
 
     if (!domSelection) {
       // console.log("onDOMSelectionChange - no selection so deselect");
-      return Transforms.deselect(editor);
+      Transforms.deselect(editor);
+      return;
     }
 
-    const { anchorNode, focusNode } = domSelection;
+    const { anchorNode, focusNode, isCollapsed } = domSelection;
 
     const anchorNodeSelectable =
       hasEditableTarget(editor, anchorNode) ||
@@ -185,23 +170,21 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
 
     if (anchorNodeSelectable && focusNodeSelectable) {
       const range = ReactEditor.toSlateRange(editor, domSelection);
+      const { selection } = editor;
       // console.log("onDOMSelectionChange -- select", { domSelection, range });
       if (
-        editor.windowedListRef?.current == null ||
-        Range.isCollapsed(range) ||
-        editor.selection == null
+        editor.windowedListRef?.current != null &&
+        !isCollapsed &&
+        selection != null
       ) {
-        Transforms.select(editor, range);
-      } else {
-        // Tricky case: non collapsed and using windowing and selection is not already null.
+        // Trickier case: non-collapsed and using windowing and selection is not already null.
+        range.anchor = isInDOM(selection.anchor, editor)
+          ? range.anchor
+          : selection.anchor;
+      }
 
-        const { selection } = editor;
-        Transforms.select(editor, {
-          anchor: isInDOM(selection.anchor, editor)
-            ? range.anchor
-            : selection.anchor,
-          focus: range.focus,
-        });
+      if (selection == null || !Range.equals(selection, range)) {
+        Transforms.select(editor, range);
       }
     } else {
       // console.log("onDOMSelectionChange -- deselect");
