@@ -22,10 +22,10 @@ import { parse_markdown } from "./parse-markdown";
 import { ensureDocNonempty } from "../padding";
 import { createMetaNode } from "../elements/meta";
 
-export function parse(token: Token, state: State): Descendant[] {
+export function parse(token: Token, state: State, cache?): Descendant[] {
   //console.log("parse", JSON.stringify({ token, state }));
   for (const handler of handlers) {
-    const nodes: Descendant[] | undefined = handler({ token, state });
+    const nodes: Descendant[] | undefined = handler({ token, state, cache });
     if (nodes != null) {
       //console.log("parse got ", nodes);
       return nodes;
@@ -39,12 +39,12 @@ export function parse(token: Token, state: State): Descendant[] {
 
 export function markdown_to_slate(
   markdown: string,
-  no_meta?: boolean
+  no_meta?: boolean,
+  cache?
 ): Descendant[] {
   // Parse the markdown:
   // const t0 = new Date().valueOf();
   const { tokens, meta } = parse_markdown(markdown, no_meta);
-  // window.tokens = tokens;
 
   const doc: Descendant[] = [];
   if (meta != null) {
@@ -52,7 +52,7 @@ export function markdown_to_slate(
   }
   const state: State = { marks: {}, nesting: 0 };
   for (const token of tokens) {
-    for (const node of parse(token, state)) {
+    for (const node of parse(token, state, cache)) {
       doc.push(node);
     }
   }

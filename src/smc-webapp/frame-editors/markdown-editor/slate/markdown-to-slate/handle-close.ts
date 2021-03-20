@@ -9,7 +9,7 @@ import { getMarkdownToSlate } from "../elements";
 import { register } from "./register";
 import { parse } from "./parse";
 
-function handleClose({ token, state }) {
+function handleClose({ token, state, cache }) {
   if (!state.close_type) return;
   if (state.contents == null) {
     throw Error("bug -- state.contents must not be null");
@@ -42,8 +42,9 @@ function handleClose({ token, state }) {
       // We use all_tight to make it so if one node is marked tight, then all are.
       // This is useful to better render nested markdown lists.
       let all_tight: boolean = false;
+      let markdown = "";
       for (const token2 of state.contents) {
-        for (const node of parse(token2, child_state)) {
+        for (const node of parse(token2, child_state, cache)) {
           if (node["tight"]) {
             all_tight = true;
           }
@@ -53,6 +54,7 @@ function handleClose({ token, state }) {
           isEmpty = false;
           children.push(node);
         }
+        markdown += child_state.markdown ?? "";
       }
       if (isEmpty) {
         // it is illegal for the children to be empty.
@@ -70,6 +72,8 @@ function handleClose({ token, state }) {
         children,
         state,
         isEmpty,
+        markdown,
+        cache,
       });
       if (node == null) {
         return [];

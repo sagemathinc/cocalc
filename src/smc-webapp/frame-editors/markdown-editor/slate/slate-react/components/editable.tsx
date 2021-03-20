@@ -343,10 +343,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
   return (
     <ReadOnlyContext.Provider value={readOnly}>
       <Component
-        // COMPAT: The Grammarly Chrome extension works by changing the DOM
-        // out from under `contenteditable` elements, which leads to weird
-        // behaviors so we have to disable it like editor. (2017/04/24)
-        data-gramm={false}
         role={readOnly ? undefined : "textbox"}
         {...attributes}
         // COMPAT: Certain browsers don't support the `beforeinput` event, so we'd
@@ -485,6 +481,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               !isEventHandled(event, attributes.onCompositionEnd)
             ) {
               state.isComposing = false;
+              // console.log(`onCompositionEnd :'${event.data}'`);
 
               // COMPAT: In Chrome, `beforeinput` events for compositions
               // aren't correct and never fire the "insertFromComposition"
@@ -504,10 +501,22 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               !isEventHandled(event, attributes.onCompositionStart)
             ) {
               state.isComposing = true;
+              // console.log("onCompositionStart");
             }
           },
           [attributes.onCompositionStart]
         )}
+        /* onCompositionUpdate={useCallback(
+          (event: React.CompositionEvent<HTMLDivElement>) => {
+            if (
+              hasEditableTarget(editor, event.target) &&
+              !isEventHandled(event, attributes.onCompositionStart)
+            ) {
+              // console.log(`onCompositionUpdate :'${event.data}'`);
+            }
+          },
+          [attributes.onCompositionStart]
+        )}*/
         onCopy={useCallback(
           (event: React.ClipboardEvent<HTMLDivElement>) => {
             if (
@@ -637,6 +646,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         onKeyDown={useCallback(
           (event: React.KeyboardEvent<HTMLDivElement>) => {
             if (
+              state.isComposing ||
               readOnly ||
               !hasEditableTarget(editor, event.target) ||
               isEventHandled(event, attributes.onKeyDown)
@@ -882,6 +892,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         )}
       >
         <Children
+          isComposing={state.isComposing}
           decorate={decorate}
           decorations={decorations}
           node={editor}
