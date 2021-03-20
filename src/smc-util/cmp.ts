@@ -159,3 +159,10 @@ function is_different_verbose(
 }
 
 export const is_different_array = (a, b) => !isEqual(a, b);
+
+// See https://stackoverflow.com/questions/22266826/how-can-i-do-a-shallow-comparison-of-the-properties-of-two-objects-with-javascri/22266891#22266891
+export const shallowCompare = (obj1, obj2) =>
+  Object.keys(obj1).length === Object.keys(obj2).length &&
+  Object.keys(obj1).every(
+    (key) => obj2.hasOwnProperty(key) && obj1[key] === obj2[key]
+  );

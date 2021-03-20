@@ -37,6 +37,7 @@ export {
   field_cmp,
   is_different,
   is_different_array,
+  shallowCompare,
 } from "./cmp";
 
 export {
