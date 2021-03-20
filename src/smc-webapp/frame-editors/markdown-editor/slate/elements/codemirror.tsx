@@ -160,6 +160,8 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       if (options == null) options = {};
       options.mode = infoToMode(info);
 
+      options.inputStyle = "contenteditable";
+
       if (options.extraKeys == null) {
         options.extraKeys = {};
       }
