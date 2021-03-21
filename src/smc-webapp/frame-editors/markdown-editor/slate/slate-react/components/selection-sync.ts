@@ -7,6 +7,12 @@ the DOM outside the visible window, hence full sync no longer makes
 sense -- instead the slate selection is the sole source of truth, and
 the DOM just partly reflects that, and user manipulation of the DOM
 merely influences slates state, rather than completely determining it.
+
+I spent forever (!) trying various strategies involving locks and
+timeouts, which could never work perfectly on many different
+platforms. This simple algorithm evidently does, and involves *NO*
+asynchronous code or locks at all!  Also, there are no platform
+specific hacks at all.
 */
 
 import { useCallback } from "react";
@@ -23,7 +29,7 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
   // by new text), so this setting of the selection usually happens, and happens
   // **a lot**.
   const updateDOMSelection = () => {
-    if (state.isComposing || !ReactEditor.isFocused(editor)) {
+    if (state.isComposing) {
       // console.log("useUpdateDOMSelection: early return");
       return;
     }
@@ -43,14 +49,10 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
     }
 
     // verify that the DOM selection is in the editor
-    const editorElement = EDITOR_TO_ELEMENT.get(editor)!;
-    let hasDomSelectionInEditor = false;
-    if (
-      editorElement.contains(domSelection.anchorNode) &&
-      editorElement.contains(domSelection.focusNode)
-    ) {
-      hasDomSelectionInEditor = true;
-    }
+    const editorElement = EDITOR_TO_ELEMENT.get(editor);
+    const hasDomSelectionInEditor =
+      editorElement?.contains(domSelection.anchorNode) &&
+      editorElement?.contains(domSelection.focusNode);
 
     if (!selection) {
       // need to clear selection
@@ -59,19 +61,24 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
         // so we just clear it.
         domSelection.removeAllRanges();
       }
-      // Not sure what to do here.
       return;
     }
     let newDomRange;
     try {
       newDomRange = ReactEditor.toDOMRange(editor, selection);
     } catch (err) {
-      // This error happens e.g., if you set the selection to a point that isn't valid
-      // in the document.  TODO: Our autoformat code annoyingly does this sometimes.
+      // This error happens e.g., if you set the selection to a
+      // point that isn't valid in the document.  TODO: Our
+      // autoformat code perhaps stupidly does this sometimes,
+      // at least when working on it.
+      // It's better to just give up in this case, rather than
+      // crash the entire cocalc.  The user will click somewhere
+      // and be good to go again.
       return;
     }
-    // Compare the new DOM range we want, to what's actually selected.  If they are
-    // the same, done.  If different, we change the selection in the DOM.
+
+    // Flip orientation of newDomRange if selection is backward,
+    // since setBaseAndExtent (which we use below) is not oriented.
     if (Range.isBackward(selection)) {
       newDomRange = {
         endContainer: newDomRange.startContainer,
@@ -81,24 +88,21 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
       };
     }
 
+    // Compare the new DOM range we want to what's actually
+    // selected.  If they are the same, done.  If different,
+    // we change the selection in the DOM.
     if (
       domSelection.anchorNode?.isEqualNode(newDomRange.startContainer) &&
       domSelection.focusNode?.isEqualNode(newDomRange.endContainer) &&
       domSelection.anchorOffset === newDomRange.startOffset &&
       domSelection.focusOffset === newDomRange.endOffset
     ) {
-      // It's correct already.
+      // It's correct already -- we're done.
       // console.log("useUpdateDOMSelection: selection already correct");
       return;
     }
 
-    // Acutally make the change.
-    /* console.log(
-      "useUpdateDOMSelection: changing newDomRange",
-      newDomRange,
-      "  was",
-      { node: domSelection.focusNode, offset: domSelection.focusOffset }
-    );*/
+    // Finally, make the change:
     domSelection.setBaseAndExtent(
       newDomRange.startContainer,
       newDomRange.startOffset,
@@ -107,11 +111,15 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
     );
   };
 
-  // Always update DOM when editor updates.
+  // Always ensure DOM selection gets set to slate selection
+  // right after the editor updates.  This is especially important
+  // because the react update sets parts of the contenteditable
+  // area, and can easily mess up or reset the cursor, so we have
+  // to immediately set it back.
   useIsomorphicLayoutEffect(updateDOMSelection);
 
-  // We also return this so it can be called on scroll, which is needed
-  // for windowing.
+  // We also return this function, so can be called on scroll,
+  // which is needed to support windowing.
   return updateDOMSelection;
 };
 
@@ -122,34 +130,14 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
   // released. This causes issues in situations where another change happens
   // while a selection is being dragged.
 
-  const onMouseUp = useCallback(() => {
-    state.selection.mousedown = false;
-  }, []);
-  const onMouseDown = useCallback(() => {
-    state.selection.mousedown = true;
-  }, []);
-  const onKeyUp = useCallback((event) => {
-    if (event.key == "Shift") {
-      state.selection.shiftdown = false;
-    }
-  }, []);
-  const onKeyDown = useCallback((event) => {
-    if (event.key == "Shift") {
-      state.selection.shiftdown = true;
-    }
-  }, []);
-
   const onDOMSelectionChange = useCallback(() => {
-    // console.log("onDOMSelectionChange", state.selection.mousedown);
+    // console.log("onDOMSelectionChange");
     if (readOnly || state.isComposing) {
       return;
     }
-    if (!state.selection.mousedown && !state.selection.shiftdown) return;
+
     const { activeElement } = window.document;
     const el = ReactEditor.toDOMNode(editor, editor);
-    const domSelection = window.getSelection();
-    // console.log("onDOMSelectionChange", { activeElement, el, domSelection });
-
     if (activeElement === el) {
       state.latestElement = activeElement;
       IS_FOCUSED.set(editor, true);
@@ -157,45 +145,45 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
       IS_FOCUSED.delete(editor);
     }
 
+    const domSelection = window.getSelection();
     if (!domSelection) {
       // console.log("onDOMSelectionChange - no selection so deselect");
       Transforms.deselect(editor);
       return;
     }
+    const { anchorNode, focusNode } = domSelection;
 
-    const { anchorNode, focusNode, isCollapsed } = domSelection;
+    if (!isSelectable(editor, anchorNode) || !isSelectable(editor, focusNode)) {
+      Transforms.deselect(editor);
+      return;
+    }
 
-    const anchorNodeSelectable =
-      hasEditableTarget(editor, anchorNode) ||
-      isTargetInsideVoid(editor, anchorNode);
-
-    const focusNodeSelectable =
-      hasEditableTarget(editor, focusNode) ||
-      isTargetInsideVoid(editor, focusNode);
-
-    if (anchorNodeSelectable && focusNodeSelectable) {
-      const range = ReactEditor.toSlateRange(editor, domSelection);
-      const { selection } = editor;
-      // console.log("onDOMSelectionChange -- select", { domSelection, range });
-      if (
-        editor.windowedListRef?.current != null &&
-        !isCollapsed &&
-        selection != null
-      ) {
-        // Trickier case: non-collapsed and using windowing and selection
-        // is not already null.   We just preserve the internal slate anchor
-        // in this case.  This works because the only time you move the anchor
-        // is when you're starting a new selection, which starts out not
-        // collapsed.
+    const range = ReactEditor.toSlateRange(editor, domSelection);
+    const { selection } = editor;
+    const info = editor.windowedListRef?.current?.render_info;
+    if (info != null) {
+      // Trickier case due to windowing.  We check if the DOM selection
+      // changed due to the windowing system removing rows from the DOM.
+      // In such cases, we end up with the DOM selection going outside
+      // the visible range (it's in the part that is rendered but not
+      // visible), so in that case, we just extend that side of the
+      // DOM selection to where it was before.
+      if (range.anchor.path[0] < info.visibleStartIndex) {
         range.anchor = selection.anchor;
       }
-
-      if (selection == null || !Range.equals(selection, range)) {
-        Transforms.select(editor, range);
+      if (range.focus.path[0] < info.visibleStartIndex) {
+        range.focus = selection.focus;
       }
-    } else {
-      // console.log("onDOMSelectionChange -- deselect");
-      Transforms.deselect(editor);
+      if (range.anchor.path[0] > info.visibleStopIndex) {
+        range.anchor = selection.anchor;
+      }
+      if (range.focus.path[0] > info.visibleStopIndex) {
+        range.focus = selection.focus;
+      }
+    }
+
+    if (selection == null || !Range.equals(selection, range)) {
+      Transforms.select(editor, range);
     }
   }, [readOnly]);
 
@@ -206,19 +194,11 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
   // https://github.com/facebook/react/issues/5785
   useIsomorphicLayoutEffect(() => {
     window.document.addEventListener("selectionchange", onDOMSelectionChange);
-    window.document.addEventListener("mousedown", onMouseDown);
-    window.document.addEventListener("mouseup", onMouseUp);
-    window.document.addEventListener("keydown", onKeyDown);
-    window.document.addEventListener("keyup", onKeyUp);
     return () => {
       window.document.removeEventListener(
         "selectionchange",
         onDOMSelectionChange
       );
-      window.document.removeEventListener("mousedown", onMouseDown);
-      window.document.removeEventListener("mouseup", onMouseUp);
-      window.document.removeEventListener("keydown", onKeyDown);
-      window.document.removeEventListener("keyup", onKeyUp);
     };
   }, [onDOMSelectionChange]);
 };
@@ -252,4 +232,8 @@ function clipPoint(point: Point, info): Point {
     return { path: [overscanStopIndex], offset: 0 };
   }
   return point;
+}
+
+function isSelectable(editor, node): boolean {
+  return hasEditableTarget(editor, node) || isTargetInsideVoid(editor, node);
 }
