@@ -302,7 +302,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, [value]);
 
     function setSyncstringFromSlate() {
-      actions.set_value(editor.getMarkdownValue());
+      const v = editor.getMarkdownValue();
+      actions.set_value(v);
     }
 
     // We don't want to do saveValue too much, since it presumably can be slow,

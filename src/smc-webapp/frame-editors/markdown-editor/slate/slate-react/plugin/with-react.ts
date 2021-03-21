@@ -158,6 +158,8 @@ export const withReact = <T extends Editor>(editor: T) => {
       }
     }
 
+    (e as any).saveValue?.(true);
+
     if (fragment) {
       const decoded = decodeURIComponent(window.atob(fragment));
       const parsed = JSON.parse(decoded) as Node[];
