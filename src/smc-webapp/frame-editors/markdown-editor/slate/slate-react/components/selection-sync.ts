@@ -29,10 +29,10 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
     }
 
     const domSelection = window.getSelection();
-
     if (!domSelection) {
       return;
     }
+
     const selection = getWindowedSelection(editor);
     const hasDomSelection = domSelection.type !== "None";
 
@@ -52,73 +52,59 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
       hasDomSelectionInEditor = true;
     }
 
-    // If the DOM selection is in the editor and the editor selection
-    // is already correct, we're done.
-    try {
-      if (
-        hasDomSelection &&
-        hasDomSelectionInEditor &&
-        selection &&
-        Range.equals(ReactEditor.toSlateRange(editor, domSelection), selection)
-      ) {
-        // console.log("useUpdateDOMSelection: already correct");
-        return;
+    if (!selection) {
+      // need to clear selection
+      if (hasDomSelectionInEditor) {
+        // the current nontrivial selection is inside the editor,
+        // so we just clear it.
+        domSelection.removeAllRanges();
       }
-    } catch (_err) {
-      // ReactEditor.toSlateRange(editor, domSelection) can often raise
-      // an error when using windowing.
-      // Above is just an optimization so that's OK.
-      console.log("WARNING -- ", _err);
+      // Not sure what to do here.
+      return;
     }
-    /*
-    console.log(
-      "fixing selection: ",
-      JSON.stringify({
-        slate: selection,
-        dom: ReactEditor.toSlateRange(editor, domSelection),
-      })
-    );
-    */
-
     let newDomRange;
-    // The DOM selection is out of sync, so update it.
-
     try {
-      newDomRange = selection && ReactEditor.toDOMRange(editor, selection);
+      newDomRange = ReactEditor.toDOMRange(editor, selection);
     } catch (err) {
-      // This happens e.g., if you set the selection to a point that isn't valid
+      // This error happens e.g., if you set the selection to a point that isn't valid
       // in the document.  TODO: Our autoformat code annoyingly does this sometimes.
-      /*
-        console.log(
-          "BUG: toDOMRange in selection failed",
-          JSON.stringify({
-            selection,
-            info: editor.windowedListRef?.current?.render_info,
-          }),
-          err
-        );
-        */
-      newDomRange = undefined;
+      return;
+    }
+    // Compare the new DOM range we want, to what's actually selected.  If they are
+    // the same, done.  If different, we change the selection in the DOM.
+    if (Range.isBackward(selection)) {
+      newDomRange = {
+        endContainer: newDomRange.startContainer,
+        endOffset: newDomRange.startOffset,
+        startContainer: newDomRange.endContainer,
+        startOffset: newDomRange.endOffset,
+      };
     }
 
-    if (newDomRange) {
-      // console.log("useUpdateDOMSelection: setting newDomRange", newDomRange);
-      if (Range.isBackward(selection!)) {
-        domSelection.setBaseAndExtent(
-          newDomRange.endContainer,
-          newDomRange.endOffset,
-          newDomRange.startContainer,
-          newDomRange.startOffset
-        );
-      } else {
-        domSelection.setBaseAndExtent(
-          newDomRange.startContainer,
-          newDomRange.startOffset,
-          newDomRange.endContainer,
-          newDomRange.endOffset
-        );
-      }
+    if (
+      domSelection.anchorNode?.isEqualNode(newDomRange.startContainer) &&
+      domSelection.focusNode?.isEqualNode(newDomRange.endContainer) &&
+      domSelection.anchorOffset === newDomRange.startOffset &&
+      domSelection.focusOffset === newDomRange.endOffset
+    ) {
+      // It's correct already.
+      // console.log("useUpdateDOMSelection: selection already correct");
+      return;
     }
+
+    // Acutally make the change.
+    /* console.log(
+      "useUpdateDOMSelection: changing newDomRange",
+      newDomRange,
+      "  was",
+      { node: domSelection.focusNode, offset: domSelection.focusOffset }
+    );*/
+    domSelection.setBaseAndExtent(
+      newDomRange.startContainer,
+      newDomRange.startOffset,
+      newDomRange.endContainer,
+      newDomRange.endOffset
+    );
   };
 
   // Always update DOM when editor updates.
@@ -136,10 +122,29 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
   // released. This causes issues in situations where another change happens
   // while a selection is being dragged.
 
+  const onMouseUp = useCallback(() => {
+    state.selection.mousedown = false;
+  }, []);
+  const onMouseDown = useCallback(() => {
+    state.selection.mousedown = true;
+  }, []);
+  const onKeyUp = useCallback((event) => {
+    if (event.key == "Shift") {
+      state.selection.shiftdown = false;
+    }
+  }, []);
+  const onKeyDown = useCallback((event) => {
+    if (event.key == "Shift") {
+      state.selection.shiftdown = true;
+    }
+  }, []);
+
   const onDOMSelectionChange = useCallback(() => {
+    // console.log("onDOMSelectionChange", state.selection.mousedown);
     if (readOnly || state.isComposing) {
       return;
     }
+    if (!state.selection.mousedown && !state.selection.shiftdown) return;
     const { activeElement } = window.document;
     const el = ReactEditor.toDOMNode(editor, editor);
     const domSelection = window.getSelection();
@@ -177,10 +182,12 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
         !isCollapsed &&
         selection != null
       ) {
-        // Trickier case: non-collapsed and using windowing and selection is not already null.
-        range.anchor = isInDOM(selection.anchor, editor)
-          ? range.anchor
-          : selection.anchor;
+        // Trickier case: non-collapsed and using windowing and selection
+        // is not already null.   We just preserve the internal slate anchor
+        // in this case.  This works because the only time you move the anchor
+        // is when you're starting a new selection, which starts out not
+        // collapsed.
+        range.anchor = selection.anchor;
       }
 
       if (selection == null || !Range.equals(selection, range)) {
@@ -199,12 +206,19 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
   // https://github.com/facebook/react/issues/5785
   useIsomorphicLayoutEffect(() => {
     window.document.addEventListener("selectionchange", onDOMSelectionChange);
-
+    window.document.addEventListener("mousedown", onMouseDown);
+    window.document.addEventListener("mouseup", onMouseUp);
+    window.document.addEventListener("keydown", onKeyDown);
+    window.document.addEventListener("keyup", onKeyUp);
     return () => {
       window.document.removeEventListener(
         "selectionchange",
         onDOMSelectionChange
       );
+      window.document.removeEventListener("mousedown", onMouseDown);
+      window.document.removeEventListener("mouseup", onMouseUp);
+      window.document.removeEventListener("keydown", onKeyDown);
+      window.document.removeEventListener("keyup", onKeyUp);
     };
   }, [onDOMSelectionChange]);
 };
@@ -238,13 +252,4 @@ function clipPoint(point: Point, info): Point {
     return { path: [overscanStopIndex], offset: 0 };
   }
   return point;
-}
-
-function isInDOM(point: Point, editor): boolean {
-  const info = editor.windowedListRef.current?.render_info;
-  if (info == null) return true;
-  const { overscanStartIndex, overscanStopIndex } = info;
-  return (
-    point.path[0] >= overscanStartIndex && point.path[0] <= overscanStopIndex
-  );
 }

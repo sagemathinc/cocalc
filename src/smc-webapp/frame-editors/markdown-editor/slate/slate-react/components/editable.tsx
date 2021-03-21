@@ -125,10 +125,15 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
   IS_READ_ONLY.set(editor, readOnly);
 
   // Keep track of some state for the event handler logic.
-  const state = useMemo(
+  const state: {
+    isComposing: boolean;
+    latestElement: DOMElement | null;
+    selection: { mousedown: boolean; shiftdown: boolean };
+  } = useMemo(
     () => ({
       isComposing: false,
       latestElement: null as DOMElement | null,
+      selection: { mousedown: false, shiftdown: false },
     }),
     []
   );
