@@ -224,7 +224,7 @@ export const withReact = <T extends Editor>(editor: T) => {
     });
   };
 
-  e.scrollCaretIntoView = async (options?: { middle?: boolean }) => {
+  e.scrollCaretIntoView = (options?: { middle?: boolean }) => {
     if (IS_ANDROID || IS_IOS) {
       // With touch input it is very confusing trying to scroll to a cursor,
       // which just doesn't make sense, because you aren't navigating with
@@ -258,7 +258,6 @@ export const withReact = <T extends Editor>(editor: T) => {
      itself.
   */
     try {
-      await new Promise(requestAnimationFrame);
       const { selection } = e;
       if (!selection) return;
       if (!Range.isCollapsed(selection)) return;
@@ -286,7 +285,8 @@ export const withReact = <T extends Editor>(editor: T) => {
             e.windowedListRef.current.scrollToItem(index);
             // now wait until the actual scroll happens before
             // doing the measuring below, or it could be wrong.
-            await new Promise(requestAnimationFrame);
+            e.scrollCaretAfterNextScroll = true;
+            return;
           }
         }
       }

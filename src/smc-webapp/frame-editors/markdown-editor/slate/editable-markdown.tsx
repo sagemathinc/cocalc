@@ -96,6 +96,8 @@ const USE_WINDOWING = true;
 // In contrast, with windowing, everything is **buttery smooth**.
 // Making this overscan small makes things even faster, and also
 // minimizes interference when two users are editing at once.
+// ** This must be at least 1 or our algorithm for maintaining the
+// DOM selection state will not work.**
 const OVERSCAN_ROW_COUNT = 3;
 
 /*
@@ -309,6 +311,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
       mentions.onKeyDown(e);
       if (e.defaultPrevented) return;
+
+      if (!ReactEditor.isFocused(editor)) {
+        // E.g., when typing into a codemirror editor embedded
+        // in slate, we get the keystrokes, but at the same time
+        // the (contenteditable) editor itself is not focused.
+        return;
+      }
 
       const handler = getKeyboardHandler(e);
       if (handler != null) {

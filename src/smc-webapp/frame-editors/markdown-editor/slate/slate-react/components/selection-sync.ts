@@ -29,7 +29,7 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
   // by new text), so this setting of the selection usually happens, and happens
   // **a lot**.
   const updateDOMSelection = () => {
-    if (state.isComposing) {
+    if (state.isComposing || !ReactEditor.isFocused(editor)) {
       // console.log("useUpdateDOMSelection: early return");
       return;
     }
