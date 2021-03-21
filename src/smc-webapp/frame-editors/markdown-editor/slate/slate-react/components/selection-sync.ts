@@ -158,25 +158,27 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
 
     const range = ReactEditor.toSlateRange(editor, domSelection);
     const { selection } = editor;
-    const info = editor.windowedListRef?.current?.render_info;
-    if (info != null) {
-      // Trickier case due to windowing.  We check if the DOM selection
-      // changed due to the windowing system removing rows from the DOM.
-      // In such cases, we end up with the DOM selection going outside
-      // the visible range (it's in the part that is rendered but not
-      // visible), so in that case, we just extend that side of the
-      // DOM selection to where it was before.
-      if (range.anchor.path[0] < info.visibleStartIndex) {
-        range.anchor = selection.anchor;
-      }
-      if (range.focus.path[0] < info.visibleStartIndex) {
-        range.focus = selection.focus;
-      }
-      if (range.anchor.path[0] > info.visibleStopIndex) {
-        range.anchor = selection.anchor;
-      }
-      if (range.focus.path[0] > info.visibleStopIndex) {
-        range.focus = selection.focus;
+    if (selection != null) {
+      const info = editor.windowedListRef?.current?.render_info;
+      if (info != null) {
+        // Trickier case due to windowing.  We check if the DOM selection
+        // changed due to the windowing system removing rows from the DOM.
+        // In such cases, we end up with the DOM selection going outside
+        // the visible range (it's in the part that is rendered but not
+        // visible), so in that case, we just extend that side of the
+        // DOM selection to where it was before.
+        if (range.anchor.path[0] < info.visibleStartIndex) {
+          range.anchor = selection.anchor;
+        }
+        if (range.focus.path[0] < info.visibleStartIndex) {
+          range.focus = selection.focus;
+        }
+        if (range.anchor.path[0] > info.visibleStopIndex) {
+          range.anchor = selection.anchor;
+        }
+        if (range.focus.path[0] > info.visibleStopIndex) {
+          range.focus = selection.focus;
+        }
       }
     }
 

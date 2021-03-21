@@ -255,7 +255,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     });
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
+    const didRestoreRef = useRef<boolean>(false);
     const restoreScroll = async () => {
+      if (didRestoreRef.current) return; // so we only ever do this once.
+      didRestoreRef.current = true;
+
       const scroll = editor_state?.get("scroll");
       if (scroll == null) return;
 
@@ -285,6 +289,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         elt.scrollTop(scroll);
       });
     };
+
     useEffect(() => {
       if (value != "Loading...") {
         restoreScroll();
