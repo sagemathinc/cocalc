@@ -72,6 +72,7 @@ export interface SlateEditor extends ReactEditor {
   hasUnsavedChanges?: boolean;
   markdownValue?: string;
   getMarkdownValue: () => string;
+  getSourceValue: (fragment?) => string;
   syncCache?: any;
 }
 
@@ -155,6 +156,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         withAutoFormat(withIsInline(withIsVoid(withReact(createEditor()))))
       ) as SlateEditor;
       actions.registerSlateEditor(id, ed);
+
+      ed.getSourceValue = (fragment?) => {
+        return fragment ? slate_to_markdown(fragment) : ed.getMarkdownValue();
+      };
 
       ed.getMarkdownValue = () => {
         if (ed.markdownValue != null && !ed.hasUnsavedChanges) {
