@@ -336,6 +336,7 @@ export const withReact = <T extends Editor>(editor: T) => {
     } catch (_e) {
       // The only side effect we are hiding is that the cursor might not
       // scroll into view, which is way better than crashing everything.
+      // console.log("WARNING: failed to scroll cursor into view", e);
     }
   };
 

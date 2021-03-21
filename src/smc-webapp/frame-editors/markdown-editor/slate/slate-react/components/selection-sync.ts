@@ -147,14 +147,12 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
 
     const domSelection = window.getSelection();
     if (!domSelection) {
-      // console.log("onDOMSelectionChange - no selection so deselect");
       Transforms.deselect(editor);
       return;
     }
     const { anchorNode, focusNode } = domSelection;
 
     if (!isSelectable(editor, anchorNode) || !isSelectable(editor, focusNode)) {
-      Transforms.deselect(editor);
       return;
     }
 
