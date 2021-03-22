@@ -150,10 +150,12 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
   const state: {
     isComposing: boolean;
     latestElement: DOMElement | null;
+    shiftKey: boolean;
   } = useMemo(
     () => ({
       isComposing: false,
       latestElement: null as DOMElement | null,
+      shiftKey: false,
     }),
     []
   );
@@ -657,8 +659,12 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           },
           [readOnly, attributes.onFocus]
         )}
+        onKeyUp={useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+          state.shiftKey = event.shiftKey;
+        }, [])}
         onKeyDown={useCallback(
           (event: React.KeyboardEvent<HTMLDivElement>) => {
+            state.shiftKey = event.shiftKey;
             if (
               state.isComposing ||
               !shouldHandle({ event, name: "onKeyDown", notReadOnly: true })
