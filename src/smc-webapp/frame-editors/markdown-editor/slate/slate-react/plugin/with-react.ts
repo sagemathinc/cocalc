@@ -4,10 +4,9 @@ import { Editor, Node, Path, Operation, Transforms, Range } from "slate";
 import { ReactEditor } from "./react-editor";
 import { Key } from "../utils/key";
 import { EDITOR_TO_ON_CHANGE, NODE_TO_KEY } from "../utils/weak-maps";
-import { isDOMText, getPlainText } from "../utils/dom";
 import { findCurrentLineRange } from "../utils/lines";
-import { getWindowedSelection } from "../components/selection-sync";
 import { IS_FIREFOX } from "../utils/environment";
+import { IS_ANDROID, IS_IOS } from "smc-webapp/feature";
 
 /**
  * `withReact` adds React and DOM specific behaviors to the editor.
@@ -96,92 +95,70 @@ export const withReact = <T extends Editor>(editor: T) => {
   };
 
   e.setFragmentData = (data: DataTransfer) => {
-    const selection = getWindowedSelection(e);
+    const { selection } = e;
 
     if (!selection) {
       return;
     }
 
-    const [start, end] = Range.edges(selection);
+    const [start] = Range.edges(selection);
     const startVoid = Editor.void(e, { at: start.path });
-    const endVoid = Editor.void(e, { at: end.path });
-
     if (Range.isCollapsed(selection) && !startVoid) {
       return;
     }
 
-    // Create a fake selection so that we can add a Base64-encoded copy of the
-    // fragment to the HTML, to decode on future pastes.
-    const domRange = ReactEditor.toDOMRange(e, selection);
-    let contents = domRange.cloneContents();
-    let attach = contents.childNodes[0] as HTMLElement;
-
-    // Make sure attach is non-empty, since empty nodes will not get copied.
-    contents.childNodes.forEach((node) => {
-      if (node.textContent && node.textContent.trim() !== "") {
-        attach = node as HTMLElement;
-      }
-    });
-
-    // COMPAT: If the end node is a void node, we need to move the end of the
-    // range from the void node's spacer span, to the end of the void node's
-    // content, since the spacer is before void's content in the DOM.
-    if (endVoid) {
-      const [voidNode] = endVoid;
-      const r = domRange.cloneRange();
-      const domNode = ReactEditor.toDOMNode(e, voidNode);
-      r.setEndAfter(domNode);
-      contents = r.cloneContents();
-    }
-
-    // COMPAT: If the start node is a void node, we need to attach the encoded
-    // fragment to the void node's content node instead of the spacer, because
-    // attaching it to empty `<div>/<span>` nodes will end up having it erased by
-    // most browsers. (2018/04/27)
-    if (startVoid) {
-      attach = contents.querySelector("[data-slate-spacer]")! as HTMLElement;
-    }
-
-    // Remove any zero-width space spans from the cloned DOM so that they don't
-    // show up elsewhere when pasted.
-    Array.from(contents.querySelectorAll("[data-slate-zero-width]")).forEach(
-      (zw) => {
-        const isNewline = zw.getAttribute("data-slate-zero-width") === "n";
-        zw.textContent = isNewline ? "\n" : "";
-      }
-    );
-
-    // Set a `data-slate-fragment` attribute on a non-empty node, so it shows up
-    // in the HTML, and can be used for intra-Slate pasting. If it's a text
-    // node, wrap it in a `<span>` so we have something to set an attribute on.
-    if (isDOMText(attach)) {
-      const span = document.createElement("span");
-      // COMPAT: In Chrome and Safari, if we don't add the `white-space` style
-      // then leading and trailing spaces will be ignored. (2017/09/21)
-      span.style.whiteSpace = "pre";
-      span.appendChild(attach);
-      contents.appendChild(span);
-      attach = span;
-    }
-
     const fragment = e.getFragment();
+    const plain = (e as any).getSourceValue?.(fragment);
+    if (!plain) {
+      // TODO: need to implement this
+      return;
+    }
     const string = JSON.stringify(fragment);
     const encoded = window.btoa(encodeURIComponent(string));
-    attach.setAttribute("data-slate-fragment", encoded);
-    data.setData("application/x-slate-fragment", encoded);
 
-    // Add the content to a <div> so that we can get its inner HTML.
-    const div = document.createElement("div");
-    div.appendChild(contents);
-    div.setAttribute("hidden", "true");
-    document.body.appendChild(div);
-    data.setData("text/html", div.innerHTML);
-    data.setData("text/plain", getPlainText(div));
-    document.body.removeChild(div);
+    // This application/x-slate-fragment is the only thing that is
+    // used for Firefox and Chrome paste:
+    data.setData("application/x-slate-fragment", encoded);
+    // This data part of text/html is used for Safari, which ignores
+    // the application/x-slate-fragment above.
+    data.setData(
+      "text/html",
+      `<pre data-slate-fragment="${encoded}">\n${plain}\n</pre>`
+    );
+    data.setData("text/plain", plain);
   };
 
   e.insertData = (data: DataTransfer) => {
-    const fragment = data.getData("application/x-slate-fragment");
+    let fragment = data.getData("application/x-slate-fragment");
+
+    if (!fragment) {
+      // On Safari (probably for security reasons?), the
+      // application/x-slate-fragment data is not set.
+      // My guess is this is why the html is also modified
+      // even though it is never used in the upstream code!
+      // See https://github.com/ianstormtaylor/slate/issues/3589
+      // Supporting this is also important when copying from
+      // Safari to Chrome (say).
+      const html = data.getData("text/html");
+      if (html) {
+        // It would be nicer to parse html properly, but that's
+        // going to be pretty difficult, so I'm doing the following,
+        // which of course could be tricked if the content
+        // itself happened to have data-slate-fragment="...
+        // in it.  That's a reasonable price to pay for
+        // now for restoring this functionality.
+        let i = html.indexOf('data-slate-fragment="');
+        if (i != -1) {
+          i += 'data-slate-fragment="'.length;
+          const j = html.indexOf('"', i);
+          if (j != -1) {
+            fragment = html.slice(i, j);
+          }
+        }
+      }
+    }
+
+    (e as any).saveValue?.(true);
 
     if (fragment) {
       const decoded = decodeURIComponent(window.atob(fragment));
@@ -223,7 +200,13 @@ export const withReact = <T extends Editor>(editor: T) => {
     });
   };
 
-  e.scrollCaretIntoView = async (options?: { middle?: boolean }) => {
+  e.scrollCaretIntoView = (options?: { middle?: boolean }) => {
+    if (IS_ANDROID || IS_IOS) {
+      // With touch input it is very confusing trying to scroll to a cursor,
+      // which just doesn't make sense, because you aren't navigating with
+      // the cursor.  NOTE/TODO: Unless you're using an external keyboard...?
+      return;
+    }
     /* Scroll so Caret is visible.  I tested several editors, and
      I think reasonable behavior is:
       - If caret is full visible on the screen, do nothing.
@@ -250,80 +233,86 @@ export const withReact = <T extends Editor>(editor: T) => {
      because it just scrolls that entire leaf into view, not the cursor
      itself.
   */
-    await new Promise(requestAnimationFrame);
-    const { selection } = e;
-    if (!selection) return;
-    //if (!Range.isCollapsed(selection)) return;
+    try {
+      const { selection } = e;
+      if (!selection) return;
+      if (!Range.isCollapsed(selection)) return;
 
-    // Important: there's no good way to do this when the focused
-    // element is void, and the naive code leads to bad problems,
-    // e.g., with several images, when you click on one, things jump
-    // around randomly and you sometimes can't scroll the image into view.
-    // Better to just do nothing in case of voids.
-    for (const [node] of Editor.nodes(e, { at: selection.focus })) {
-      if (Editor.isVoid(e, node)) {
-        return;
-      }
-    }
-
-    // In case we're using windowing, scroll the block with the focus
-    // into the DOM first.
-    let windowed: boolean = e.windowedListRef.current != null;
-    if (windowed) {
-      const info = e.windowedListRef.current.render_info;
-      const index = selection.focus.path[0];
-      if (info != null && index != null) {
-        const { overscanStartIndex, overscanStopIndex } = info;
-        if (index < overscanStartIndex || index > overscanStopIndex) {
-          e.windowedListRef.current.scrollToItem(index);
-          // now wait until the actual scroll happens before
-          // doing the measuring below, or it could be wrong.
-          await new Promise(requestAnimationFrame);
+      // Important: there's no good way to do this when the focused
+      // element is void, and the naive code leads to bad problems,
+      // e.g., with several images, when you click on one, things jump
+      // around randomly and you sometimes can't scroll the image into view.
+      // Better to just do nothing in case of voids.
+      for (const [node] of Editor.nodes(e, { at: selection.focus })) {
+        if (Editor.isVoid(e, node)) {
+          return;
         }
       }
-    }
 
-    let domSelection;
-    try {
-      domSelection = ReactEditor.toDOMRange(e, {
-        anchor: selection.focus,
-        focus: selection.focus,
-      });
-    } catch (_err) {
-      // harmless to just not do this in case of failure.
-      return;
-    }
-    if (!domSelection) return;
-    const selectionRect = domSelection.getBoundingClientRect();
-    const editorEl = ReactEditor.toDOMNode(e, e);
-    const editorRect = editorEl.getBoundingClientRect();
-    const EXTRA = options?.middle
-      ? editorRect.height / 2
-      : editorRect.height > 100
-      ? IS_FIREFOX
-        ? 60
-        : 20 // need more room on Firefox since we do custom cursor movement
-      : // when using windowing, which doesn't work without enough space.
-        0; // this much more than the min possible to get it on screen.
-
-    let offset: number = 0;
-    if (selectionRect.top < editorRect.top + EXTRA) {
-      offset = editorRect.top + EXTRA - selectionRect.top;
-    } else if (
-      selectionRect.bottom - editorRect.top >
-      editorRect.height - EXTRA
-    ) {
-      offset =
-        editorRect.height - EXTRA - (selectionRect.bottom - editorRect.top);
-    }
-    if (offset) {
+      // In case we're using windowing, scroll the block with the focus
+      // into the DOM first.
+      let windowed: boolean = e.windowedListRef.current != null;
       if (windowed) {
-        e.windowedListRef.current.list_ref?.current?.scrollTo(
-          e.windowedListRef.current?.scroll_info.scrollOffset - offset
-        );
-      } else {
-        editorEl.scrollTop = editorEl.scrollTop - offset;
+        const info = e.windowedListRef.current.render_info;
+        const index = selection.focus.path[0];
+        if (info != null && index != null) {
+          const { overscanStartIndex, overscanStopIndex } = info;
+          if (index < overscanStartIndex || index > overscanStopIndex) {
+            e.windowedListRef.current.scrollToItem(index);
+            // now wait until the actual scroll happens before
+            // doing the measuring below, or it could be wrong.
+            e.scrollCaretAfterNextScroll = true;
+            return;
+          }
+        }
       }
+
+      let domSelection;
+      try {
+        domSelection = ReactEditor.toDOMRange(e, {
+          anchor: selection.focus,
+          focus: selection.focus,
+        });
+      } catch (_err) {
+        // harmless to just not do this in case of failure.
+        return;
+      }
+      if (!domSelection) return;
+      const selectionRect = domSelection.getBoundingClientRect();
+      const editorEl = ReactEditor.toDOMNode(e, e);
+      const editorRect = editorEl.getBoundingClientRect();
+      const EXTRA = options?.middle
+        ? editorRect.height / 2
+        : editorRect.height > 100
+        ? IS_FIREFOX
+          ? 60
+          : 20 // need more room on Firefox since we do custom cursor movement
+        : // when using windowing, which doesn't work without enough space.
+          0; // this much more than the min possible to get it on screen.
+
+      let offset: number = 0;
+      if (selectionRect.top < editorRect.top + EXTRA) {
+        offset = editorRect.top + EXTRA - selectionRect.top;
+      } else if (
+        selectionRect.bottom - editorRect.top >
+        editorRect.height - EXTRA
+      ) {
+        offset =
+          editorRect.height - EXTRA - (selectionRect.bottom - editorRect.top);
+      }
+      if (offset) {
+        if (windowed) {
+          e.windowedListRef.current.list_ref?.current?.scrollTo(
+            e.windowedListRef.current?.scroll_info.scrollOffset - offset
+          );
+        } else {
+          editorEl.scrollTop = editorEl.scrollTop - offset;
+        }
+      }
+    } catch (_e) {
+      // The only side effect we are hiding is that the cursor might not
+      // scroll into view, which is way better than crashing everything.
+      // console.log("WARNING: failed to scroll cursor into view", e);
     }
   };
 

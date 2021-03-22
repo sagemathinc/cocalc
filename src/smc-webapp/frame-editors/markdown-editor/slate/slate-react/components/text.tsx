@@ -11,6 +11,7 @@ import {
   NODE_TO_ELEMENT,
   ELEMENT_TO_NODE,
 } from "../utils/weak-maps";
+import { isEqual } from "lodash";
 
 /**
  * Text.
@@ -79,7 +80,14 @@ const MemoizedText = React.memo(Text, (prev, next) => {
     next.renderLeaf === prev.renderLeaf &&
     next.isLast === prev.isLast &&
     next.text === prev.text &&
-    next.decorations === prev.decorations;
+    isEqual(next.decorations, prev.decorations);
+  /*
+  console.log("Text is_equal", is_equal, [
+    next.renderLeaf === prev.renderLeaf,
+    next.isLast === prev.isLast,
+    next.text === prev.text,
+    isEqual(next.decorations, prev.decorations),
+  ]);*/
   return is_equal;
 });
 

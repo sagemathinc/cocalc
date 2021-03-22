@@ -142,7 +142,7 @@ export function formatSelectedText(editor: SlateEditor, mark: string) {
     // select current word (which may partly span multiple text nodes!)
     const at = currentWord(editor);
     if (at != null) {
-      editor.saveValue(true);
+      editor.saveValue(true); // make snapshot so can undo to before format
       Transforms.setNodes(
         editor,
         { [mark]: !isAlreadyMarked(editor, mark) ? true : undefined },
