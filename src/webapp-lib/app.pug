@@ -53,7 +53,7 @@ html(lang="en")
         if ("serviceWorker" in navigator) {
           window.addEventListener("load", function() {
             navigator.serviceWorker
-              .register("./webapp/serviceWorker.js", { scope: BASE_URL})
+              .register("./webapp/serviceWorker.js", { scope: '#{BASE_URL ? BASE_URL : "/"}'})
               .catch(err => console.log("service worker not registered", err))
           })
         }
