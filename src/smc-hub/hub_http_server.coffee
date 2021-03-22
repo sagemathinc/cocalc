@@ -35,6 +35,7 @@ MetricsRecorder  = require('./metrics-recorder')
 {setup_analytics_js} = require('./analytics')
 {have_active_registration_tokens} = require("./utils");
 {setup_healthchecks} = require('./healthchecks')
+manifest = require('./manifest')
 
 open_cocalc = require('./open-cocalc-server')
 
@@ -264,6 +265,8 @@ exports.init_express_http_server = (opts) ->
                 res.header("Content-Type", "text/javascript")
                 mapping = '{configuration:window.CUSTOMIZE, registration:window.REGISTER, strategies:window.STRATEGIES}'
                 res.send("(#{mapping} = Object.freeze(#{JSON.stringify(config)}))")
+            else if req.query.type == 'manifest'
+                manifest.send(res, config, opts.base_url)
             else
                 # this is deprecated
                 if req.query.type == 'embed'

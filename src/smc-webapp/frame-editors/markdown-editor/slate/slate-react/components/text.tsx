@@ -69,6 +69,31 @@ const Text = (props: {
   );
 };
 
+/**
+ * Check if a list of ranges is equal to another.
+ *
+ * PERF: this requires the two lists to also have the ranges inside them in the
+ * same order, but this is an okay constraint for us since decorations are
+ * kept in order, and the odd case where they aren't is okay to re-render for.
+ */
+
+const isRangeListEqual = (list: Range[], another: Range[]): boolean => {
+  if (list.length !== another.length) {
+    return false;
+  }
+
+  for (let i = 0; i < list.length; i++) {
+    const range = list[i];
+    const other = another[i];
+
+    if (!isEqual(range, other)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const MemoizedText = React.memo(Text, (prev, next) => {
   // I think including parent is wrong here. E.g.,
   // parent is not included in the analogous function
@@ -80,7 +105,7 @@ const MemoizedText = React.memo(Text, (prev, next) => {
     next.renderLeaf === prev.renderLeaf &&
     next.isLast === prev.isLast &&
     next.text === prev.text &&
-    isEqual(next.decorations, prev.decorations);
+    isRangeListEqual(next.decorations, prev.decorations);
   /*
   console.log("Text is_equal", is_equal, [
     next.renderLeaf === prev.renderLeaf,
