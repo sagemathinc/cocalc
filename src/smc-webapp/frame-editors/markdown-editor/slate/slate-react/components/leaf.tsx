@@ -3,6 +3,7 @@ import { Element, Text } from "slate";
 import String from "./string";
 import { PLACEHOLDER_SYMBOL } from "../utils/weak-maps";
 import { RenderLeafProps } from "./editable";
+import { isEqual } from "lodash";
 
 /**
  * Individual leaves in a text node with unique formatting.
@@ -70,7 +71,7 @@ const MemoizedLeaf = React.memo(Leaf, (prev, next) => {
     next.isLast === prev.isLast &&
     next.renderLeaf === prev.renderLeaf &&
     next.text === prev.text &&
-    Text.matches(next.leaf, prev.leaf)
+    isEqual(next.leaf, prev.leaf)
   );
 });
 
