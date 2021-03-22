@@ -121,14 +121,38 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
   const editor = useSlate();
   const ref = props.divref ?? useRef<HTMLDivElement>(null);
 
+  // Return true if the given event should be handled
+  // by the event handler code defined below.
+  const shouldHandle = useCallback(
+    ({
+      event, // the event itself
+      name, // name of the event, e.g., "onClick"
+      notReadOnly, // require doc to not be readOnly (ignored if not specified)
+      editableTarget, // require event target to be editable (defaults to true if not specified!)
+    }: {
+      event;
+      name: string;
+      notReadOnly?: boolean;
+      editableTarget?: boolean;
+    }) =>
+      (notReadOnly == null || notReadOnly == !readOnly) &&
+      ((editableTarget ?? true) == true
+        ? hasEditableTarget(editor, event.target)
+        : hasTarget(editor, event.target)) &&
+      !isEventHandled(event, attributes[name]),
+    [editor, attributes, readOnly]
+  );
+
   // Update internal state on each render.
   IS_READ_ONLY.set(editor, readOnly);
 
   // Keep track of some state for the event handler logic.
-  const state = useMemo(
+  const state: {
+    isComposing: boolean;
+    latestElement: DOMElement | null;
+  } = useMemo(
     () => ({
       isComposing: false,
-      isUpdatingSelection: false,
       latestElement: null as DOMElement | null,
     }),
     []
@@ -378,9 +402,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
             // only works for the `insertText` input type.
             if (
               !HAS_BEFORE_INPUT_SUPPORT &&
-              !readOnly &&
-              !isEventHandled(event, attributes.onBeforeInput) &&
-              hasEditableTarget(editor, event.target)
+              shouldHandle({ event, name: "onBeforeInput", notReadOnly: true })
             ) {
               event.preventDefault();
               const text = (event as any).data as string;
@@ -391,12 +413,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         )}
         onBlur={useCallback(
           (event: React.FocusEvent<HTMLDivElement>) => {
-            if (
-              readOnly ||
-              state.isUpdatingSelection ||
-              !hasEditableTarget(editor, event.target) ||
-              isEventHandled(event, attributes.onBlur)
-            ) {
+            if (!shouldHandle({ event, name: "onBlur", notReadOnly: true })) {
               return;
             }
 
@@ -449,9 +466,12 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         onClick={useCallback(
           (event: React.MouseEvent<HTMLDivElement>) => {
             if (
-              !readOnly &&
-              hasTarget(editor, event.target) &&
-              !isEventHandled(event, attributes.onClick) &&
+              shouldHandle({
+                event,
+                name: "onClick",
+                notReadOnly: true,
+                editableTarget: false,
+              }) &&
               isDOMNode(event.target)
             ) {
               const node = ReactEditor.toSlateNode(editor, event.target);
@@ -477,8 +497,11 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         onCompositionEnd={useCallback(
           (event: React.CompositionEvent<HTMLDivElement>) => {
             if (
-              hasEditableTarget(editor, event.target) &&
-              !isEventHandled(event, attributes.onCompositionEnd)
+              shouldHandle({
+                event,
+                name: "onCompositionEnd",
+                notReadOnly: true,
+              })
             ) {
               state.isComposing = false;
               // console.log(`onCompositionEnd :'${event.data}'`);
@@ -497,8 +520,11 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         onCompositionStart={useCallback(
           (event: React.CompositionEvent<HTMLDivElement>) => {
             if (
-              hasEditableTarget(editor, event.target) &&
-              !isEventHandled(event, attributes.onCompositionStart)
+              shouldHandle({
+                event,
+                name: "onCompositionStart",
+                notReadOnly: true,
+              })
             ) {
               state.isComposing = true;
               // console.log("onCompositionStart");
@@ -506,23 +532,9 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           },
           [attributes.onCompositionStart]
         )}
-        /* onCompositionUpdate={useCallback(
-          (event: React.CompositionEvent<HTMLDivElement>) => {
-            if (
-              hasEditableTarget(editor, event.target) &&
-              !isEventHandled(event, attributes.onCompositionStart)
-            ) {
-              // console.log(`onCompositionUpdate :'${event.data}'`);
-            }
-          },
-          [attributes.onCompositionStart]
-        )}*/
         onCopy={useCallback(
           (event: React.ClipboardEvent<HTMLDivElement>) => {
-            if (
-              hasEditableTarget(editor, event.target) &&
-              !isEventHandled(event, attributes.onCopy)
-            ) {
+            if (shouldHandle({ event, name: "onCopy" })) {
               event.preventDefault();
               ReactEditor.setFragmentData(editor, event.clipboardData);
             }
@@ -531,11 +543,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         )}
         onCut={useCallback(
           (event: React.ClipboardEvent<HTMLDivElement>) => {
-            if (
-              !readOnly &&
-              hasEditableTarget(editor, event.target) &&
-              !isEventHandled(event, attributes.onCut)
-            ) {
+            if (shouldHandle({ event, name: "onCut", notReadOnly: true })) {
               event.preventDefault();
               ReactEditor.setFragmentData(editor, event.clipboardData);
               const { selection } = editor;
@@ -557,9 +565,13 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         onDragOver={useCallback(
           (event: React.DragEvent<HTMLDivElement>) => {
             if (
-              hasTarget(editor, event.target) &&
-              !isEventHandled(event, attributes.onDragOver)
+              shouldHandle({
+                event,
+                name: "onDragOver",
+                editableTarget: false,
+              })
             ) {
+              if (!hasTarget(editor, event.target)) return; // for typescript only
               // Only when the target is void, call `preventDefault` to signal
               // that drops are allowed. Editable content is droppable by
               // default, and calling `preventDefault` hides the cursor.
@@ -575,9 +587,13 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         onDragStart={useCallback(
           (event: React.DragEvent<HTMLDivElement>) => {
             if (
-              hasTarget(editor, event.target) &&
-              !isEventHandled(event, attributes.onDragStart)
+              shouldHandle({
+                event,
+                name: "onDragStart",
+                editableTarget: false,
+              })
             ) {
+              if (!hasTarget(editor, event.target)) return; // for typescript only
               const node = ReactEditor.toSlateNode(editor, event.target);
               const path = ReactEditor.findPath(editor, node);
               const voidMatch = Editor.void(editor, { at: path });
@@ -597,9 +613,12 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         onDrop={useCallback(
           (event: React.DragEvent<HTMLDivElement>) => {
             if (
-              hasTarget(editor, event.target) &&
-              !readOnly &&
-              !isEventHandled(event, attributes.onDrop)
+              shouldHandle({
+                event,
+                name: "onDrop",
+                editableTarget: false,
+                notReadOnly: true,
+              })
             ) {
               // COMPAT: Certain browsers don't fire `beforeinput` events at all, and
               // Chromium browsers don't properly fire them for files being
@@ -621,12 +640,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         )}
         onFocus={useCallback(
           (event: React.FocusEvent<HTMLDivElement>) => {
-            if (
-              !readOnly &&
-              !state.isUpdatingSelection &&
-              hasEditableTarget(editor, event.target) &&
-              !isEventHandled(event, attributes.onFocus)
-            ) {
+            if (shouldHandle({ event, name: "onFocus", notReadOnly: true })) {
               const el = ReactEditor.toDOMNode(editor, editor);
               state.latestElement = window.document.activeElement;
 
@@ -647,9 +661,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           (event: React.KeyboardEvent<HTMLDivElement>) => {
             if (
               state.isComposing ||
-              readOnly ||
-              !hasEditableTarget(editor, event.target) ||
-              isEventHandled(event, attributes.onKeyDown)
+              !shouldHandle({ event, name: "onKeyDown", notReadOnly: true })
             ) {
               return;
             }
@@ -878,11 +890,9 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
             // when "paste without formatting" option is used.
             // This unfortunately needs to be handled with paste events instead.
             if (
-              hasEditableTarget(editor, event.target) &&
-              !isEventHandled(event, attributes.onPaste) &&
+              shouldHandle({ event, name: "onPaste", notReadOnly: true }) &&
               (!HAS_BEFORE_INPUT_SUPPORT ||
-                isPlainTextOnlyPaste(event.nativeEvent)) &&
-              !readOnly
+                isPlainTextOnlyPaste(event.nativeEvent))
             ) {
               event.preventDefault();
               ReactEditor.insertData(editor, event.clipboardData);
@@ -901,6 +911,10 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           selection={editor.selection}
           windowing={windowing}
           onScroll={() => {
+            if (editor.scrollCaretAfterNextScroll) {
+              editor.scrollCaretAfterNextScroll = false;
+              editor.scrollCaretIntoView();
+            }
             updateDOMSelection();
             props.onScroll?.({} as any);
           }}
