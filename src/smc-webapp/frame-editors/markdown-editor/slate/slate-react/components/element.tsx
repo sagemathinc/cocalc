@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useRef } from "react";
 const getDirection = require("direction");
-import { Editor, Node, Range, NodeEntry, Element as SlateElement } from "slate";
+import { Editor, Node, Range, Element as SlateElement } from "slate";
 
 import Text from "./text";
 import Children from "./children";
@@ -22,7 +22,6 @@ import { RenderElementProps, RenderLeafProps } from "./editable";
  */
 
 const Element = (props: {
-  decorate: (entry: NodeEntry) => Range[];
   decorations: Range[];
   element: SlateElement;
   renderElement?: React.FC<RenderElementProps>;
@@ -30,7 +29,6 @@ const Element = (props: {
   selection: Range | null;
 }) => {
   const {
-    decorate,
     decorations,
     element,
     renderElement = (p: RenderElementProps) => <DefaultElement {...p} />,
@@ -45,7 +43,6 @@ const Element = (props: {
 
   let children: JSX.Element | null = (
     <Children
-      decorate={decorate}
       decorations={decorations}
       node={element}
       renderElement={renderElement}
@@ -133,7 +130,6 @@ const Element = (props: {
 
 const MemoizedElement = React.memo(Element, (prev, next) => {
   const is_equal =
-    prev.decorate === next.decorate &&
     prev.element === next.element &&
     prev.renderElement === next.renderElement &&
     prev.renderLeaf === next.renderLeaf &&

@@ -25,6 +25,7 @@ import { ReactEditor } from "..";
 import { ReadOnlyContext } from "../hooks/use-read-only";
 import { useSlate } from "../hooks/use-slate";
 import { useIsomorphicLayoutEffect } from "../hooks/use-isomorphic-layout-effect";
+import { DecorateContext } from "../hooks/use-decorate";
 import {
   DOMElement,
   isDOMElement,
@@ -150,10 +151,12 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
   const state: {
     isComposing: boolean;
     latestElement: DOMElement | null;
+    shiftKey: boolean;
   } = useMemo(
     () => ({
       isComposing: false,
       latestElement: null as DOMElement | null,
+      shiftKey: false,
     }),
     []
   );
@@ -657,8 +660,12 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           },
           [readOnly, attributes.onFocus]
         )}
+        onKeyUp={useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+          state.shiftKey = event.shiftKey;
+        }, [])}
         onKeyDown={useCallback(
           (event: React.KeyboardEvent<HTMLDivElement>) => {
+            state.shiftKey = event.shiftKey;
             if (
               state.isComposing ||
               !shouldHandle({ event, name: "onKeyDown", notReadOnly: true })
@@ -901,24 +908,25 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           [readOnly, attributes.onPaste]
         )}
       >
-        <Children
-          isComposing={state.isComposing}
-          decorate={decorate}
-          decorations={decorations}
-          node={editor}
-          renderElement={renderElement}
-          renderLeaf={renderLeaf}
-          selection={editor.selection}
-          windowing={windowing}
-          onScroll={() => {
-            if (editor.scrollCaretAfterNextScroll) {
-              editor.scrollCaretAfterNextScroll = false;
-              editor.scrollCaretIntoView();
-            }
-            updateDOMSelection();
-            props.onScroll?.({} as any);
-          }}
-        />
+        <DecorateContext.Provider value={decorate}>
+          <Children
+            isComposing={state.isComposing}
+            decorations={decorations}
+            node={editor}
+            renderElement={renderElement}
+            renderLeaf={renderLeaf}
+            selection={editor.selection}
+            windowing={windowing}
+            onScroll={() => {
+              if (editor.scrollCaretAfterNextScroll) {
+                editor.scrollCaretAfterNextScroll = false;
+                editor.scrollCaretIntoView();
+              }
+              updateDOMSelection();
+              props.onScroll?.({} as any);
+            }}
+          />
+        </DecorateContext.Provider>
       </Component>
     </ReadOnlyContext.Provider>
   );
@@ -928,7 +936,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
  * A default memoized decorate function.
  */
 
-const defaultDecorate = () => [];
+const defaultDecorate: (entry: NodeEntry) => Range[] = () => [];
 
 /**
  * Check if an event is overrided by a handler.

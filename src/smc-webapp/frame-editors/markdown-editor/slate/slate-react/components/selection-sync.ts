@@ -19,8 +19,9 @@ import { useCallback } from "react";
 import { useIsomorphicLayoutEffect } from "../hooks/use-isomorphic-layout-effect";
 import { ReactEditor } from "..";
 import { EDITOR_TO_ELEMENT, IS_FOCUSED } from "../utils/weak-maps";
-import { Point, Range, Selection, Transforms } from "slate";
+import { Editor, Point, Range, Selection, Transforms } from "slate";
 import { hasEditableTarget, isTargetInsideVoid } from "./dom-utils";
+import { DOMElement } from "../utils/dom";
 
 export const useUpdateDOMSelection = ({ editor, state }) => {
   // Ensure that the DOM selection state is set to the editor selection.
@@ -123,7 +124,19 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
   return updateDOMSelection;
 };
 
-export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
+export const useDOMSelectionChange = ({
+  editor,
+  state,
+  readOnly,
+}: {
+  editor: ReactEditor;
+  state: {
+    isComposing: boolean;
+    shiftKey: boolean;
+    latestElement: DOMElement | null;
+  };
+  readOnly: boolean;
+}) => {
   // Listen on the native `selectionchange` event to be able to update any time
   // the selection changes. This is required because React's `onSelect` is leaky
   // and non-standard so it doesn't fire until after a selection has been
@@ -131,7 +144,6 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
   // while a selection is being dragged.
 
   const onDOMSelectionChange = useCallback(() => {
-    // console.log("onDOMSelectionChange");
     if (readOnly || state.isComposing) {
       return;
     }
@@ -178,6 +190,54 @@ export const useDOMSelectionChange = ({ editor, state, readOnly }) => {
         }
         if (range.focus.path[0] > info.visibleStopIndex) {
           range.focus = selection.focus;
+        }
+
+        // Check if user is shift+clicking to select a range.
+        // This is needed if you select a single point, then
+        // scroll way down (so the point you selected is removed
+        // from the DOM), then shift+click.  In the meantime,
+        // as you scrolled down, the original selection gets
+        // removed from the DOM, at least on some browsers (Safari
+        // but not Chrome as of March 2021).  Fortunately, this
+        // simple code below seems to takes care of all cases, and
+        // doesn't break things even if the selection didn't get
+        // removed, since the behavior is the same.
+        if (state.shiftKey) {
+          // What *should* actually happen on shift+click to extend a
+          // selection is not so obvious!  For starters, the behavior
+          // in text editors like CodeMirror, VSCode and Ace Editor
+          // (set range.anchor to selection.anchor) is totally different
+          // than rich editors like Word, Pages, and browser
+          // contenteditable, which mostly *extend* the selection in
+          // various ways.  We match exactly what default browser
+          // selection does, since otherwise we would have to *change*
+          // that when not using windowing or when everything is in
+          // the visible window, which seems silly.
+          const edges = Range.edges(selection);
+          if (Point.isBefore(range.focus, edges[0])) {
+            // Shift+click before the entire existing selection:
+            range.anchor = edges[1];
+          } else if (Point.isAfter(range.focus, edges[1])) {
+            // Shift+click after the entire existing selection:
+            range.anchor = edges[0];
+          } else {
+            // Shift+click inside the existing selection.  What browsers
+            // do is they shrink selection so the new focus is
+            // range.focus, and the new anchor is whichever of
+            // selection.focus or selection.anchor makes the resulting
+            // selection "longer".
+            const a = Editor.string(
+              editor,
+              { focus: range.focus, anchor: selection.anchor },
+              { voids: true }
+            ).length;
+            const b = Editor.string(
+              editor,
+              { focus: range.focus, anchor: selection.focus },
+              { voids: true }
+            ).length;
+            range.anchor = a > b ? selection.anchor : selection.focus;
+          }
         }
       }
     }
