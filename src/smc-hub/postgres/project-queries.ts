@@ -83,17 +83,28 @@ export async function project_datastore_set(
       "configuration 'type' is not defined (must be 'gcs', 'sshfs', ...)"
     );
 
+  // check data from user
+  for (const [key, val] of Object.entries(config)) {
+    if (typeof val !== "string" && typeof val !== "boolean") {
+      throw new Error(`Invalid value -- '${key}' is not a valid type`);
+    }
+    if (typeof val === "string" && val.length > 100000) {
+      throw new Error(`Invalid value -- '${key}' is too long`);
+    }
+  }
+
   const old_name = config.__old_name;
   const conf_new = omit(config, "name", "secret", "__old_name");
+
   const ds_prev = await get_datastore({ db, account_id, project_id });
-  // if a user wants to update the settings, they don't need to have the secret
-  // an empty value or the dummy text signals to keep the secret as it is...
 
   // there is a situation where datastore is renamed, i.e. "name" is a new one,
   // while the previous secret is stored under a different key. So, if __old_name
   // is set, we pick that one instead.
   const prev_name = old_name != null ? old_name : config.name;
 
+  // if a user wants to update the settings, they don't need to have the secret.
+  // an empty value or the dummy text signals to keep the secret as it is...
   if (
     ds_prev != null &&
     ds_prev[prev_name] != null &&

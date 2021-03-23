@@ -262,6 +262,14 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  async function confirm_del(name) {
+    try {
+      confirm_del(name);
+    } catch (err) {
+      set_error(err);
+    }
+  }
+
   function render_list() {
     return (
       <Table<Config> dataSource={configs} loading={loading} pagination={false}>
@@ -303,7 +311,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
               </Tooltip>
               <Popconfirm
                 title={`Delete ${record.name}?`}
-                onConfirm={() => del(record.name)}
+                onConfirm={() => confirm_del(record.name)}
                 okText="Yes"
                 cancelText="No"
               >
@@ -457,16 +465,22 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     set_error(msg.join("\n"));
   }
 
+  async function form_finish(values: any, type): Promise<void> {
+    values.readonly = form_readonly;
+    values.type = type;
+    try {
+      await set(values);
+    } catch (err) {
+      set_error(err);
+    }
+  }
+
   function ConfigForm(props) {
     return (
       <Form
         {...form_layout}
         form={props.form}
-        onFinish={(values: any) => {
-          values.readonly = form_readonly;
-          values.type = props.type;
-          set(values);
-        }}
+        onFinish={(v) => form_finish(v, props.type)}
         onFinishFailed={process_failure}
       >
         {props.children}

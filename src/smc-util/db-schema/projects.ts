@@ -406,7 +406,8 @@ Table({
     virtual: "projects",
     primary_key: "project_id",
     user_query: {
-      set: { // this also deals with delete requests
+      set: {
+        // this also deals with delete requests
         fields: {
           project_id: true,
           addons: true,
@@ -439,7 +440,7 @@ Table({
               cb(undefined, res);
             }
           } catch (err) {
-            cb(err);
+            cb(`${err}`);
           }
         },
       },
@@ -461,7 +462,7 @@ Table({
             );
             cb(undefined, data);
           } catch (err) {
-            cb(err);
+            cb(`${err}`);
           }
         },
       },
