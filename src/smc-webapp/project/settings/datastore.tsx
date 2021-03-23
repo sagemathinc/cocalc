@@ -270,6 +270,26 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
+  function render_action_buttons(_, record) {
+    return (
+      <AntdSpace>
+        <Tooltip title={`Modify ${record.name}'s configuration.`}>
+          <Button onClick={() => edit(record)} icon={<EditOutlined />}></Button>
+        </Tooltip>
+        <Popconfirm
+          title={`Delete ${record.name}?`}
+          onConfirm={() => confirm_del(record.name)}
+          okText="Yes"
+          cancelText="No"
+        >
+          <Tooltip title={`Delete ${record.name}`}>
+            <Button icon={<DeleteOutlined />}></Button>{" "}
+          </Tooltip>
+        </Popconfirm>
+      </AntdSpace>
+    );
+  }
+
   function render_list() {
     return (
       <Table<Config> dataSource={configs} loading={loading} pagination={false}>
@@ -301,26 +321,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           key="actions"
           title="Actions"
           dataIndex="actions"
-          render={(_, record) => (
-            <AntdSpace>
-              <Tooltip title={`Modify ${record.name}'s configuration.`}>
-                <Button
-                  onClick={() => edit(record)}
-                  icon={<EditOutlined />}
-                ></Button>
-              </Tooltip>
-              <Popconfirm
-                title={`Delete ${record.name}?`}
-                onConfirm={() => confirm_del(record.name)}
-                okText="Yes"
-                cancelText="No"
-              >
-                <Tooltip title={`Delete ${record.name}`}>
-                  <Button icon={<DeleteOutlined />}></Button>{" "}
-                </Tooltip>
-              </Popconfirm>
-            </AntdSpace>
-          )}
+          render={render_action_buttons}
         />
       </Table>
     );
@@ -371,18 +372,22 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         message={
           <div>
             <p>
-              A datastore is an external collection of files or file-like
-              objects. It can be mounted into a CoCalc project, if it has access
-              to the internet (quota "internet") by entering the proper
-              configuration. If everything works out fine, you can access the
-              data at "/data/[name]". As a convenience, it's possible to let a
+              A datastore is a remote collection of files or file-like objects.
+              It can be mounted into a CoCalc project, if the has access to the
+              internet (quota "internet"). The configuration for each datastore
+              is passed on to the back-end and activated upon project startup.
+            </p>
+            <p>
+              If everything works out fine, you will be able to access the data
+              at "/data/[name]". As a convenience, it's possible to let a
               symlink point from the project's home directory to the "/data"
               directory.
             </p>
             <p>
               When editing, the secret stays hidden. Keep the dummy text{" "}
-              <Typography.Text code>{DUMMY_SECRET}</Typography.Text> as it is to
-              keep it – otherwise it gets replaced by the new value.
+              <Typography.Text code>{DUMMY_SECRET}</Typography.Text> as it is in
+              order to not modify it – otherwise it gets replaced by the newly
+              entered value.
             </p>
             <p>
               More information: <A href={DOC}>Project Settings / Datastore</A>
@@ -450,7 +455,14 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         label="Name"
         name="name"
         rules={RULE_ALPHANUM}
-        tooltip={"Name of the datastore.\nIt will be mounted at /data/[name]"}
+        tooltip={
+          <div>
+            Choose a name for the datastore.
+            <br />
+            It will be mounted at{" "}
+            <code style={{ color: "white" }}>/data/[name]</code>.
+          </div>
+        }
       >
         <Input placeholder="" />
       </Form.Item>
@@ -458,7 +470,6 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function process_failure(err: { errorFields: { name; errors: string[] }[] }) {
-    //console.log("process_failure", err);
     const msg: string[] = err.errorFields?.map(
       ({ name, errors }) => `- ${name}: ${errors.join(" ")}`
     );
@@ -597,6 +608,13 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     if (new_config == null) return;
     return (
       <>
+        <Space />
+        <h3 style={{ textAlign: "center" }}>
+          <Typography.Text strong>
+            {new_config.type.toUpperCase()}
+          </Typography.Text>{" "}
+          configuration
+        </h3>
         {new_config.type === "s3" && render_new_s3()}
         {new_config.type === "gcs" && render_new_gcs()}
         {new_config.type === "sshfs" && render_new_sshfs()}
