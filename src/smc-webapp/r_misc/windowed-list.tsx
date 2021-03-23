@@ -392,10 +392,16 @@ export class WindowedList extends Component<Props, State> {
         }
       : undefined;
 
+    // NOTE: WebkitUserSelect here and also in the row component
+    // below together make it so that on **Safari** you don't visibly
+    // see the containing div get selected whenever you try to select
+    // several elements of a windowed list.  This helps enormously
+    // with slate.js + windowing on safari.  On chrome and firefox
+    // this isn't a problem, but also the extra CSS rule doesn't hurt.
     return (
       <div
         className="smc-vfill"
-        style={{ width: "100%" }}
+        style={{ width: "100%", WebkitUserSelect: "none" }}
         key={"list-of-cells"}
       >
         <AutoSizer>
@@ -451,7 +457,11 @@ function create_row_component(windowed_list: WindowedList) {
         <div
           style={{
             ...windowed_list.props.row_style,
-            ...{ display: "flex", flexDirection: "column" },
+            ...{
+              display: "flex",
+              flexDirection: "column",
+              WebkitUserSelect: "text",
+            },
           }}
           data-key={key}
           data-index={index}

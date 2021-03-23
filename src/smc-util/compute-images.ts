@@ -45,8 +45,8 @@ export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
     // a synonym of "default", but with a specific functionality!
     // we use it as a marker: if a "default" project (before the 20.04 upgrade) is set to stay at 18.04, this image is selected.
     order: 1,
-    title: "Ubuntu 18.04 (Stable)",
-    short: "Ubuntu 18.04 (Stable)",
+    title: "Ubuntu 18.04 (EndOfLife)",
+    short: "Ubuntu 18.04 (EndOfLife)",
     descr: "Ubuntu 18.04 reached end of life in August 2020",
     group: "Main",
   },
@@ -68,6 +68,24 @@ export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
     short: "Experimental",
     descr: "Cutting-edge software updates (could be broken)",
     group: "Ubuntu 20.04",
+  },
+  "ubuntu2004-2020-10-28": {
+    title: "Ubuntu 20.04 (2020-10-28)",
+    short: "2020-10-28",
+    group: "Ubuntu 20.04",
+    descr: "Frozen on 2020-10-28 and no longer updated",
+  },
+  "ubuntu2004-2020-12-09": {
+    title: "Ubuntu 20.04 (2020-12-09)",
+    short: "2020-12-09",
+    group: "Ubuntu 20.04",
+    descr: "Frozen on 2020-12-09 and no longer updated",
+  },
+  "ubuntu2004-2021-02-01": {
+    title: "Ubuntu 20.04 (2021-02-01)",
+    short: "2021-02-01",
+    group: "Ubuntu 20.04",
+    descr: "Frozen on 2021-02-01 and no longer updated",
   },
   previous: {
     order: -2,

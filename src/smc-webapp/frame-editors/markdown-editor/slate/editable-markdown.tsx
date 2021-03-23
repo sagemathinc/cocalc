@@ -72,6 +72,7 @@ export interface SlateEditor extends ReactEditor {
   hasUnsavedChanges?: boolean;
   markdownValue?: string;
   getMarkdownValue: () => string;
+  getSourceValue: (fragment?) => string;
   syncCache?: any;
 }
 
@@ -82,7 +83,7 @@ export interface SlateEditor extends ReactEditor {
 // including subtle issues with selection, scroll state, etc.
 // IMPORTANT: Do not set this to false unless you want to make
 // slate editing **basically unusable** at scale beyond a few pages!!
-let USE_WINDOWING = true;
+const USE_WINDOWING = true;
 
 // Why window?  Unfortunately, due to how slate is designed, actually editing
 // text is "unusable" for even medium size documents
@@ -96,6 +97,8 @@ let USE_WINDOWING = true;
 // In contrast, with windowing, everything is **buttery smooth**.
 // Making this overscan small makes things even faster, and also
 // minimizes interference when two users are editing at once.
+// ** This must be at least 1 or our algorithm for maintaining the
+// DOM selection state will not work.**
 const OVERSCAN_ROW_COUNT = 3;
 
 /*
@@ -153,6 +156,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         withAutoFormat(withIsInline(withIsVoid(withReact(createEditor()))))
       ) as SlateEditor;
       actions.registerSlateEditor(id, ed);
+
+      ed.getSourceValue = (fragment?) => {
+        return fragment ? slate_to_markdown(fragment) : ed.getMarkdownValue();
+      };
 
       ed.getMarkdownValue = () => {
         if (ed.markdownValue != null && !ed.hasUnsavedChanges) {
@@ -253,7 +260,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     });
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
+    const didRestoreRef = useRef<boolean>(false);
     const restoreScroll = async () => {
+      if (didRestoreRef.current) return; // so we only ever do this once.
+      didRestoreRef.current = true;
+
       const scroll = editor_state?.get("scroll");
       if (scroll == null) return;
 
@@ -283,6 +294,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         elt.scrollTop(scroll);
       });
     };
+
     useEffect(() => {
       if (value != "Loading...") {
         restoreScroll();
@@ -290,7 +302,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, [value]);
 
     function setSyncstringFromSlate() {
-      actions.set_value(editor.getMarkdownValue());
+      const v = editor.getMarkdownValue();
+      actions.set_value(v);
     }
 
     // We don't want to do saveValue too much, since it presumably can be slow,
@@ -309,6 +322,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
       mentions.onKeyDown(e);
       if (e.defaultPrevented) return;
+
+      if (!ReactEditor.isFocused(editor)) {
+        // E.g., when typing into a codemirror editor embedded
+        // in slate, we get the keystrokes, but at the same time
+        // the (contenteditable) editor itself is not focused.
+        return;
+      }
 
       const handler = getKeyboardHandler(e);
       if (handler != null) {

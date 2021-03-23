@@ -1578,7 +1578,6 @@ export class SyncDoc extends EventEmitter {
       dbg(`state=${this.state} not ready so not saving`);
       return;
     }
-    await this.patches_table.save();
     while (!this.doc.is_equal(this.last)) {
       dbg("something to save");
       this.emit("user-change");
@@ -1592,16 +1591,22 @@ export class SyncDoc extends EventEmitter {
         // and state still ready).
         continue;
       }
-      dbg("Compute new patch and send it.");
+      dbg("Compute new patch.");
       await this.sync_remote_and_doc();
       // Emit event since this syncstring was
       // changed locally (or we wouldn't have had
       // to save at all).
       if (doc.is_equal(this.doc)) {
         dbg("no change during loop -- done!");
-        return;
+        break;
       }
     }
+    // Ensure all patches are saved to backend.
+    // We do this after the above, so that creating the newest patch
+    // happens immediately on save, which makes it possible for clients
+    // to save current state without having to wait on an async, which is
+    // useful to ensure specific undo points (e.g., right before a paste).
+    await this.patches_table.save();
   }
 
   private next_patch_time(): Date {

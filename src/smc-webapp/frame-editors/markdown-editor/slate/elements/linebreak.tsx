@@ -4,7 +4,13 @@
  */
 
 import { React } from "../../../../app-framework";
-import { register, SlateElement, useFocused, useSelected } from "./register";
+import {
+  register,
+  SlateElement,
+  useCollapsed,
+  useFocused,
+  useSelected,
+} from "./register";
 import { Element } from "slate";
 
 export interface Softbreak extends SlateElement {
@@ -30,17 +36,19 @@ register({
   Element: ({ attributes, children }) => {
     const focused = useFocused();
     const selected = useSelected();
+    const collapsed = useCollapsed();
+    const reveal = focused && selected && collapsed;
     return (
       <span {...attributes}>
         <span
           style={{
             whiteSpace: "normal",
-            borderRight: selected && focused ? "1px solid #333" : undefined,
-            color: selected && focused ? "lightgrey" : undefined,
+            borderRight: reveal ? "1px solid #333" : undefined,
+            color: reveal ? "lightgrey" : undefined,
           }}
           contentEditable={false}
         >
-          {selected && focused ? "↵" : " "}
+          {reveal ? "↵" : " "}
         </span>
         {children}
       </span>
@@ -80,17 +88,19 @@ register({
   Element: ({ attributes, children }) => {
     const focused = useFocused();
     const selected = useSelected();
+    const collapsed = useCollapsed();
+    const reveal = focused && selected && collapsed;
     return (
       <span {...attributes}>
         <span
           style={{
             whiteSpace: "pre",
-            borderRight: selected && focused ? "1px solid #333" : undefined,
-            color: selected && focused ? "lightgrey" : undefined,
+            borderRight: reveal ? "1px solid #333" : undefined,
+            color: reveal ? "lightgrey" : undefined,
           }}
           contentEditable={false}
         >
-          {selected && focused ? "↵\n" : "\n"}
+          {reveal ? "↵\n" : "\n"}
         </span>
         {children}
       </span>
