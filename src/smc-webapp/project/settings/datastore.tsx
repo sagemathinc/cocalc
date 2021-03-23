@@ -226,6 +226,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         // we encountered an error
         set_error(raw.error);
       }
+      // besides a possible error, there might still be useful data
       if (raw.addons?.datastore == null) {
         set_configs([]);
       } else {
@@ -514,7 +515,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     try {
       await set(values);
     } catch (err) {
-      set_error(err);
+      if (err) set_error(err);
     }
   }
 

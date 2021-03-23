@@ -55,7 +55,7 @@ async function get_datastore(
   opts: GetDSOpts
 ): Promise<{ [key: string]: DatastoreConfig }> {
   const { db, account_id, project_id } = opts;
-  const q: { users: any; addons: any } = await query({
+  const q: { users: any; addons?: any } = await query({
     db,
     table: "projects",
     select: ["addons", "users"],
@@ -66,7 +66,7 @@ async function get_datastore(
   // TODO is this test necessary? given this comes from db-schema/projects.ts ?
   if (q.users[account_id] == null) throw Error(`access denied`);
 
-  return q.addons.datastore;
+  return q.addons?.datastore;
 }
 
 export async function project_datastore_set(
@@ -160,6 +160,6 @@ export async function project_datastore_get(
       addons: { datastore: ds },
     };
   } catch (err) {
-    return { type: "error", error: err };
+    return { type: "error", error: `${err}` };
   }
 }
