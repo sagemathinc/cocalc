@@ -172,12 +172,13 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     } else {
       set_needs_restart(true);
       set_new_config(null); // hide form
-      reload(); // refresh what we just saved ...
+      if (!name_change) reload(); // refresh what we just saved ...
     }
 
     // if we *edit* an entry, get rid of the old one
     if (new_config != null && name_change) {
       del(new_config.name);
+      reload();
     }
   }
 
@@ -264,7 +265,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
 
   async function confirm_del(name) {
     try {
-      confirm_del(name);
+      del(name);
     } catch (err) {
       set_error(err);
     }
