@@ -7,7 +7,12 @@
 Datastore (kucalc only!)
 */
 
-import { React, useState, useIsMountedRef } from "../../app-framework";
+import {
+  React,
+  useState,
+  useIsMountedRef,
+  useActions,
+} from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
 import { useProjectState } from "../page/project-state-hook";
 import { useProjectHasInternetAccess } from "./has-internet-access-hook";
@@ -16,6 +21,7 @@ import { PlusCircleOutlined, EditOutlined } from "@ant-design/icons";
 import { Button, Table, Typography, Form, Input, Checkbox } from "antd";
 import { Space as AntdSpace, Alert, Switch, Popconfirm, Tooltip } from "antd";
 import { ErrorDisplay, SettingBox, Space, Icon, Tip, A } from "../../r_misc";
+import { RestartProject } from "./restart-project";
 import { unreachable } from "smc-util/misc";
 import { DUMMY_SECRET } from "./const";
 import { DatastoreConfig as Config } from "./types";
@@ -73,6 +79,7 @@ interface Props {
 
 export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   const { project_id } = props;
+  const project_actions = useActions({ project_id });
   const state = useProjectState(project_id);
   const has_internet = useProjectHasInternetAccess(project_id);
   const is_running = state.get("state") === "running";
@@ -128,9 +135,19 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
       <Alert
         type={"warning"}
         message={
-          <Typography.Text strong>
-            Restart your project for these changes to take effect.
-          </Typography.Text>
+          <div>
+            <Typography.Text strong>
+              Restart your project for these changes to take effect.
+            </Typography.Text>
+            <span style={{ float: "right" }}>
+              <RestartProject
+                project_id={project_id}
+                text={"Restart…"}
+                bsStyle={"default"}
+                bsSize={"small"}
+              />
+            </span>
+          </div>
         }
       />
     );
@@ -271,19 +288,31 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
+  function open(record) {
+    project_actions?.open_directory(`.smc/root/data/${record.name}/`);
+  }
+
   function render_action_buttons(_, record) {
     return (
       <AntdSpace>
         <Tooltip title={`Modify ${record.name}'s configuration.`}>
           <Button onClick={() => edit(record)} icon={<EditOutlined />}></Button>
         </Tooltip>
+
+        <Tooltip title={`Open ${record.name} in Files`}>
+          <Button
+            onClick={() => open(record)}
+            icon={<Icon name="external-link-alt" />}
+          ></Button>
+        </Tooltip>
+
         <Popconfirm
           title={`Delete ${record.name}?`}
           onConfirm={() => confirm_del(record.name)}
           okText="Yes"
           cancelText="No"
         >
-          <Tooltip title={`Delete ${record.name}`}>
+          <Tooltip title={`Delete ${record.name}.`}>
             <Button icon={<DeleteOutlined />}></Button>{" "}
           </Tooltip>
         </Popconfirm>
@@ -314,6 +343,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           key="readonly"
           title={render_list_ro_title()}
           dataIndex="readonly"
+          align={"right"}
           render={(_, record) => (
             <Icon name={record.readonly ?? false ? "lock" : "lock-open"} />
           )}
@@ -323,6 +353,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           title="Actions"
           dataIndex="actions"
           render={render_action_buttons}
+          align={"right"}
         />
       </Table>
     );
