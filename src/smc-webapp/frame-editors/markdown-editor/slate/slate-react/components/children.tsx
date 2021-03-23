@@ -1,10 +1,11 @@
 import * as React from "react";
-import { Editor, Range, Element, NodeEntry, Ancestor, Descendant } from "slate";
+import { Editor, Range, Element, Ancestor, Descendant } from "slate";
 
 import ElementComponent from "./element";
 import TextComponent from "./text";
 import { ReactEditor } from "..";
 import { useSlateStatic } from "../hooks/use-slate-static";
+import { useDecorate } from "../hooks/use-decorate";
 import { NODE_TO_INDEX, NODE_TO_PARENT } from "../utils/weak-maps";
 import { RenderElementProps, RenderLeafProps } from "./editable";
 import { WindowedList } from "smc-webapp/r_misc";
@@ -21,7 +22,6 @@ export interface WindowingParams {
  */
 
 interface Props {
-  decorate: (entry: NodeEntry) => Range[];
   decorations: Range[];
   node: Ancestor;
   renderElement?: React.FC<RenderElementProps>;
@@ -34,7 +34,6 @@ interface Props {
 
 const Children: React.FC<Props> = React.memo(
   ({
-    decorate,
     decorations,
     node,
     renderElement,
@@ -43,13 +42,14 @@ const Children: React.FC<Props> = React.memo(
     windowing,
     onScroll,
   }) => {
+    const decorate = useDecorate();
     const editor = useSlateStatic();
     let path;
     try {
       path = ReactEditor.findPath(editor, node);
     } catch (err) {
       console.log(
-        "TODO: unable to find path to node! So not rendering...",
+        "WARNING: unable to find path to node! So not rendering...",
         node,
         editor.children,
         err
@@ -79,7 +79,6 @@ const Children: React.FC<Props> = React.memo(
       if (Element.isElement(n)) {
         return (
           <ElementComponent
-            decorate={decorate}
             decorations={ds}
             element={n}
             key={key.id}
@@ -102,19 +101,11 @@ const Children: React.FC<Props> = React.memo(
       }
     };
 
-    //const t0 = new Date().valueOf();
     for (let i = 0; i < node.children.length; i++) {
       const n = node.children[i];
       NODE_TO_INDEX.set(n, i);
       NODE_TO_PARENT.set(n, node);
     }
-    /*  console.log(
-    "update weakmap for ",
-    node.children.length,
-    " nodes in ",
-    new Date().valueOf() - t0,
-    "ms"
-  );*/
 
     if (path.length == 0 && windowing != null) {
       // top level and using windowing!
@@ -132,19 +123,11 @@ const Children: React.FC<Props> = React.memo(
         />
       );
     } else {
-      //const t0 = new Date().valueOf();
       // anything else -- just render the children
       const children: JSX.Element[] = [];
       for (let index = 0; index < node.children.length; index++) {
         children.push(renderChild({ index }));
       }
-      /* console.log(
-      "update children for ",
-      node.children.length,
-      " nodes in ",
-      new Date().valueOf() - t0,
-      "ms"
-    );*/
 
       return <>{children}</>;
     }
