@@ -589,14 +589,14 @@ export const ReactEditor = {
   // totally breaks firefox.  Another approach to this problem might be
   // to change react-window to turn off absolutely positioning, move
   // the cursor, then turn absolute positioning back on...
-  async moveDOMCursorLineFirefox(
+  moveDOMCursorLineFirefox(
     editor: ReactEditor,
     reverse: boolean = false,
     shift: boolean = false
   ) {
     const { selection } = editor;
     if (selection == null) return; // no cursor
-    await editor.scrollCaretIntoView();
+    editor.scrollCaretIntoView();
     const range = ReactEditor.toDOMRange(editor, {
       anchor: selection.focus,
       focus: selection.focus,

@@ -6,7 +6,6 @@ import { Key } from "../utils/key";
 import { EDITOR_TO_ON_CHANGE, NODE_TO_KEY } from "../utils/weak-maps";
 import { findCurrentLineRange } from "../utils/lines";
 import { IS_FIREFOX } from "../utils/environment";
-import { IS_ANDROID, IS_IOS } from "smc-webapp/feature";
 
 /**
  * `withReact` adds React and DOM specific behaviors to the editor.
@@ -201,12 +200,6 @@ export const withReact = <T extends Editor>(editor: T) => {
   };
 
   e.scrollCaretIntoView = (options?: { middle?: boolean }) => {
-    if (IS_ANDROID || IS_IOS) {
-      // With touch input it is very confusing trying to scroll to a cursor,
-      // which just doesn't make sense, because you aren't navigating with
-      // the cursor.  NOTE/TODO: Unless you're using an external keyboard...?
-      return;
-    }
     /* Scroll so Caret is visible.  I tested several editors, and
      I think reasonable behavior is:
       - If caret is full visible on the screen, do nothing.
