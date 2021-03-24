@@ -10,8 +10,8 @@ This configures the project hub based on an environment variable or other data.
 import * as debug from "debug";
 const L = debug("project:project-setup");
 import { setPriority } from "os";
-const { callback2: cb2 } = require("smc-util/async-utils");
-const { execute_code } = require("smc-util-node/misc_node");
+// const { callback2: cb2 } = require("smc-util/async-utils");
+// const { execute_code } = require("smc-util-node/misc_node");
 
 // 19 is the minimum, we keep it 1 above that.
 export const DEFAULT_FREE_PROCS_NICENESS = 18;
@@ -96,23 +96,4 @@ export function cleanup(): void {
 }
 
 // this is called after local services are already setup -- the project startup sequence does not wait for this!
-export async function finalize_kucalc_setup(opts: {
-  create_data_symlink: boolean;
-}): Promise<void> {
-  const { create_data_symlink } = opts;
-  const dbg = L.extend("finalize");
-  try {
-    if (create_data_symlink) {
-      // if there are any addons and no data → /data symlink, make one as a convenience...
-      // some day in the future, we might want to do more
-      await cb2(execute_code, {
-        command: "test ! -e ~/data && ln -sv /data ~/data",
-        err_on_exit: false,
-        bash: true,
-        timeout: 5,
-      });
-    }
-  } catch (err) {
-    dbg("error", err);
-  }
-}
+export async function finalize_kucalc_setup(): Promise<void> {}

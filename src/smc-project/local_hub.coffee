@@ -361,9 +361,7 @@ start_server = (tcp_port, raw_port, cb) ->
             start_tcp_server(the_secret_token, tcp_port, cb)
         (cb) ->
             if program.kucalc
-                project_setup.finalize_kucalc_setup(
-                    create_data_symlink: process.env.COCALC_PROJECT_DATASTORE == "true"
-                )
+                project_setup.finalize_kucalc_setup()
             cb()
     ], (err) ->
         if err
