@@ -9,9 +9,8 @@ This configures the project hub based on an environment variable or other data.
 
 import * as debug from "debug";
 const L = debug("project:project-setup");
-import { isEmpty } from "lodash";
 import { setPriority } from "os";
-const { callback2: cb2, once } = require("smc-util/async-utils");
+const { callback2: cb2 } = require("smc-util/async-utils");
 const { execute_code } = require("smc-util-node/misc_node");
 
 // 19 is the minimum, we keep it 1 above that.
@@ -97,19 +96,13 @@ export function cleanup(): void {
 }
 
 // this is called after local services are already setup -- the project startup sequence does not wait for this!
-export async function finalize_kucalc_setup(client): Promise<void> {
+export async function finalize_kucalc_setup(opts: {
+  create_data_symlink: boolean;
+}): Promise<void> {
+  const { create_data_symlink } = opts;
   const dbg = L.extend("finalize");
-  const query = {
-    project_datastore: {
-      addons: { datastore: null },
-    },
-  };
   try {
-    // we have to wait until connected, then we can issue a query
-    await once(client, "connected");
-    const res = await cb2(client.query, { query });
-    const addons = res?.query?.project_datastore?.addons;
-    if (addons && !isEmpty(addons) && addons.error == null) {
+    if (create_data_symlink) {
       // if there are any addons and no data → /data symlink, make one as a convenience...
       // some day in the future, we might want to do more
       await cb2(execute_code, {

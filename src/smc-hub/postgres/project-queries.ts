@@ -49,13 +49,12 @@ interface GetDSOpts {
   db: PostgreSQL;
   account_id: string;
   project_id: string;
-  access_check?: boolean;
 }
 
 async function get_datastore(
   opts: GetDSOpts
 ): Promise<{ [key: string]: DatastoreConfig }> {
-  const { db, account_id, project_id, access_check = true } = opts;
+  const { db, account_id, project_id } = opts;
   const q: { users: any; addons?: any } = await query({
     db,
     table: "projects",
@@ -65,9 +64,7 @@ async function get_datastore(
   });
 
   // this access test is absolutely critial to have! (only project queries set access_check to false)
-  if (access_check) {
-    if (q.users[account_id] == null) throw Error(`access denied`);
-  }
+  if (q.users[account_id] == null) throw Error(`access denied`);
 
   return q.addons?.datastore;
 }
@@ -152,15 +149,13 @@ export async function project_datastore_del(
 export async function project_datastore_get(
   db: PostgreSQL,
   account_id: string,
-  project_id: string,
-  access_check: boolean
+  project_id: string
 ): Promise<any> {
   try {
     const ds = await get_datastore({
       db,
       account_id,
       project_id,
-      access_check,
     });
     if (ds != null) {
       for (const [k, v] of Object.entries(ds)) {

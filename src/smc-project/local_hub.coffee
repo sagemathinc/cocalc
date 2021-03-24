@@ -360,8 +360,10 @@ start_server = (tcp_port, raw_port, cb) ->
             winston.debug("starting tcp server...")
             start_tcp_server(the_secret_token, tcp_port, cb)
         (cb) ->
-            if program.kucalc or true
-                project_setup.finalize_kucalc_setup(hub_client)
+            if program.kucalc
+                project_setup.finalize_kucalc_setup(
+                    create_data_symlink: process.env.COCALC_PROJECT_DATASTORE == "true"
+                )
             cb()
     ], (err) ->
         if err
