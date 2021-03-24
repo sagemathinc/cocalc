@@ -38,6 +38,7 @@ import { getRules } from "../elements";
 import { moveCursorToEndOfElement } from "../control";
 import { ReactEditor } from "../slate-react";
 import { SlateEditor } from "../editable-markdown";
+import { setSelectionAndFocus } from "./commands";
 
 export const withInsertText = (editor) => {
   const { insertText } = editor;
@@ -137,9 +138,8 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
   // doesn't like it.
   // @ts-ignore
   editor.saveValue(true);
-  // Wait for next time to finish before applying operations below; if
-  // we don't do this, then undo gets messed up.
-  await new Promise(requestAnimationFrame);
+  // **TODO: the above doesn't actually work without awaiting on it,
+  // which ends up waiting on too much.**
 
   // **INLINE CASE**
   if (isInline) {
@@ -193,7 +193,7 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
       offset: children[children.length - 1]["text"].length,
       path: new_path,
     };
-    await focusEditorAt(editor, new_cursor);
+    focusEditorAt(editor, new_cursor);
   } else {
     // **NON-INLINE CASE**
     // Select what is being replaced so it will get deleted when the
@@ -206,7 +206,6 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
     // is preserved (otherwise it gets stripped); also some documents
     // ending in void block elements are difficult to use.
     Transforms.insertNodes(editor, doc);
-    await new Promise(requestAnimationFrame);
     moveCursorToEndOfElement(editor, doc[0]);
 
     // Normally just move the cursor beyond what was just
@@ -219,7 +218,6 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
       Transforms.move(editor, { distance: 1 });
     }
   }
-  await new Promise(requestAnimationFrame);
   // @ts-ignore
   editor.saveValue(true);
   return true;
@@ -235,22 +233,7 @@ function shift_path(op: Operation, shift: number): void {
 // where you insert a checkbox in an empty document and everything
 // looses focus.
 // This is a SCARY function so please don't export it.
-export async function focusEditorAt(
-  editor: ReactEditor,
-  point: Point
-): Promise<void> {
-  const sel = { focus: point, anchor: point };
-  Transforms.setSelection(editor, sel);
-  let n = 0;
-  await new Promise(requestAnimationFrame);
-  while (
-    n < 100 &&
-    (editor.selection == null || !Point.equals(editor.selection.anchor, point))
-  ) {
-    ReactEditor.focus(editor, true);
-    Transforms.setSelection(editor, sel);
-    await delay(n);
-    n += 1;
-  }
+export function focusEditorAt(editor: ReactEditor, point: Point): void {
+  setSelectionAndFocus(editor, { focus: point, anchor: point });
   editor.scrollCaretIntoView();
 }

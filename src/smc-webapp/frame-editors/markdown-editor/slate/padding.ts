@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Descendant } from "slate";
+import { Descendant, Node } from "slate";
 
 export function emptyParagraph() {
   // returns a new object each time.
@@ -13,13 +13,17 @@ export function emptyParagraph() {
   } as Descendant;
 }
 
-export function isWhitespaceParagraph(node: Descendant | undefined): boolean {
+export function isWhitespaceParagraph(node: Node | undefined): boolean {
   return (
     node != null &&
     node["type"] == "paragraph" &&
     node["children"]?.length == 1 &&
-    node["children"][0]?.text?.trim() == ""
+    isWhitespaceText(node["children"][0])
   );
+}
+
+export function isWhitespaceText(node: Node | undefined): boolean {
+  return node?.["text"]?.trim() === "";
 }
 
 export function ensureDocNonempty(doc: Descendant[]): void {

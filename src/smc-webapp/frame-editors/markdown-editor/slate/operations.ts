@@ -32,10 +32,7 @@ export function applyOperations(
         editor.apply(op);
       }
     });
-    Editor.normalize(editor);
 
-    //console.log("apply last ", operations[operations.length - 1]);
-    // editor.apply(operations[operations.length - 1]);
     /* console.log(
       `time: apply ${operations.length} operations`,
       new Date().valueOf() - t0,
