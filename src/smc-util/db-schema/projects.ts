@@ -458,7 +458,32 @@ Table({
             // check if opts.query.addons === null ?!
             const data = await db.project_datastore_get(
               opts.account_id,
-              opts.query.project_id
+              opts.query.project_id,
+              true
+            );
+            cb(undefined, data);
+          } catch (err) {
+            cb(`${err}`);
+          }
+        },
+      },
+    },
+    project_query: {
+      get: {
+        fields: {
+          addons: true,
+        },
+        async instead_of_query(db, opts, cb): Promise<void> {
+          if (opts.multi) {
+            throw Error("'multi' is not implemented");
+          }
+          try {
+            // important: the config dicts for each key must not expose secret credentials!
+            // check if opts.query.addons === null ?!
+            const data = await db.project_datastore_get(
+              null,
+              opts.project_id,
+              false
             );
             cb(undefined, data);
           } catch (err) {

@@ -49,12 +49,13 @@ interface GetDSOpts {
   db: PostgreSQL;
   account_id: string;
   project_id: string;
+  access_check?: boolean;
 }
 
 async function get_datastore(
   opts: GetDSOpts
 ): Promise<{ [key: string]: DatastoreConfig }> {
-  const { db, account_id, project_id } = opts;
+  const { db, account_id, project_id, access_check = true } = opts;
   const q: { users: any; addons?: any } = await query({
     db,
     table: "projects",
@@ -63,8 +64,10 @@ async function get_datastore(
     one: true,
   });
 
-  // TODO is this test necessary? given this comes from db-schema/projects.ts ?
-  if (q.users[account_id] == null) throw Error(`access denied`);
+  // this access test is absolutely critial to have! (only project queries set access_check to false)
+  if (access_check) {
+    if (q.users[account_id] == null) throw Error(`access denied`);
+  }
 
   return q.addons?.datastore;
 }
@@ -96,6 +99,7 @@ export async function project_datastore_set(
   const old_name = config.__old_name;
   const conf_new = omit(config, "name", "secret", "__old_name");
 
+  // this is implicitly a test if the user has access to modify this -- don't catch it
   const ds_prev = await get_datastore({ db, account_id, project_id });
 
   // there is a situation where datastore is renamed, i.e. "name" is a new one,
@@ -134,6 +138,7 @@ export async function project_datastore_del(
     throw Error("Datastore name not properly set.");
   }
 
+  // this is implicitly a test if the user has access to modify this -- don't catch it
   const ds = await get_datastore({ db, account_id, project_id });
   delete ds[name];
   await query({
@@ -147,10 +152,16 @@ export async function project_datastore_del(
 export async function project_datastore_get(
   db: PostgreSQL,
   account_id: string,
-  project_id: string
+  project_id: string,
+  access_check: boolean
 ): Promise<any> {
   try {
-    const ds = await get_datastore({ db, account_id, project_id });
+    const ds = await get_datastore({
+      db,
+      account_id,
+      project_id,
+      access_check,
+    });
     if (ds != null) {
       for (const [k, v] of Object.entries(ds)) {
         ds[k] = omit(v, "secret");

@@ -359,6 +359,10 @@ start_server = (tcp_port, raw_port, cb) ->
         (cb) ->
             winston.debug("starting tcp server...")
             start_tcp_server(the_secret_token, tcp_port, cb)
+        (cb) ->
+            if program.kucalc or true
+                project_setup.finalize_kucalc_setup(hub_client)
+            cb()
     ], (err) ->
         if err
             winston.debug("ERROR starting server -- #{err}")
