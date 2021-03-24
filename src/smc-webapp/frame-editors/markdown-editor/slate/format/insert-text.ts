@@ -133,14 +133,6 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
     return false;
   }
 
-  // Do an immediate save so that it is easy and possible
-  // to undo exactly the result of auto format, in case user
-  // doesn't like it.
-  // @ts-ignore
-  editor.saveValue(true);
-  // **TODO: the above doesn't actually work without awaiting on it,
-  // which ends up waiting on too much.**
-
   // **INLINE CASE**
   if (isInline) {
     const children = doc[0].children;
@@ -218,8 +210,6 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
       Transforms.move(editor, { distance: 1 });
     }
   }
-  // @ts-ignore
-  editor.saveValue(true);
   return true;
 }
 
