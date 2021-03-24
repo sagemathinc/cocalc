@@ -29,7 +29,7 @@ is itself  deep, being based on diff-match-patch, and using numerous
 heuristics.
 */
 
-import { Editor, Operation, Transforms, Range, Point, Text } from "slate";
+import { Editor, Operation, Transforms, Range, Path, Point, Text } from "slate";
 import { len } from "smc-util/misc";
 import { markdown_to_slate } from "../markdown-to-slate";
 import { applyOperations } from "../operations";
@@ -52,7 +52,7 @@ export const withInsertText = (editor) => {
 
     if (text === " " && selection && Range.isCollapsed(selection)) {
       insertText(text);
-      markdownReplace(editor);
+      markdownAutoformat(editor);
       return;
     }
     insertText(text);
@@ -61,30 +61,49 @@ export const withInsertText = (editor) => {
   return editor;
 };
 
-async function markdownReplace(editor: SlateEditor): Promise<boolean> {
+// Use conversion back and forth to markdown to autoformat
+// what is right before the cursor in the current text node.
+function markdownAutoformat(editor: SlateEditor): boolean {
   const { selection } = editor;
   if (!selection) return false;
-  const [node, path] = Editor.node(editor, selection.focus);
+  const [node] = Editor.node(editor, selection.focus.path);
   // Must be a text node
   if (!Text.isText(node)) return false;
-  // Cursor must be at the end of the text node (except for whitespace):
-  if (selection.focus.offset < node.text.trimRight().length) return false;
 
+  let r;
+  Editor.withoutNormalizing(editor, () => {
+    editor.apply({
+      type: "split_node",
+      path: selection.focus.path,
+      position: selection.focus.offset - 1,
+      properties: {},
+    });
+    r = markdownAutoformatAt(editor, selection.focus.path);
+  });
+  return r;
+}
+
+// Use conversion back and forth to markdown to autoformat
+// what is in the current text node.
+function markdownAutoformatAt(editor: SlateEditor, path: Path): boolean {
+  const [node] = Editor.node(editor, path);
+  // Must be a text node
+  if (!Text.isText(node)) return false;
   const pos = path[path.length - 1]; // position among siblings.
 
   // Find the first whitespace from the end after triming whitespace.
   // This is what we autoformat on, since it is the most predictable,
-  // and doesn't suddenly do something with text earlier in the sentence
+  // and doesn't suddenly do something with text earlier in the node
   // that the user already explicitly decided not to autoformat.
   let text = node.text;
   let start = text.lastIndexOf(" ", text.trimRight().length - 1);
   // However, there are some cases where we extend the range of
-  // the autofocus further:
+  // the autofocus further to the left from start:
   //    - "[ ]" for checkboxes.
   //    - formatting, e.g., "consider `foo bar`".
-  //    - NOTE: I'm not including math ($ or $$) here, since it is very
-  //      annoying if you trying to type USD amounts, and people can
-  //      create their inline formula with no spaces, then edit it.
+  //    - NOTE: I'm not allowing for space in  math formulas ($ or $$) here,
+  //      since it is very annoying if you trying to type USD amounts. A
+  //      workaround is create the inline formula with no spaces, then edit it.
   const text0 = text.trimRight();
   if (text0.endsWith("]")) {
     const i = text.lastIndexOf("[");
@@ -192,7 +211,7 @@ async function markdownReplace(editor: SlateEditor): Promise<boolean> {
     // insert happens.
     Transforms.select(editor, {
       anchor: { path, offset: start == -1 ? 0 : start },
-      focus: { path, offset: Math.max(0, node.text.length - 1) },
+      focus: { path, offset: Math.max(0, node.text.length) },
     });
     // We put an empty paragraph after, so that formatting
     // is preserved (otherwise it gets stripped); also some documents
