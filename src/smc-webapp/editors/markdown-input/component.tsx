@@ -64,13 +64,7 @@ const AUX_FILE_EXT = "upload";
 import { join } from "path";
 import * as CodeMirror from "codemirror";
 type EventHandlerFunction = (cm: CodeMirror.Editor) => void;
-import {
-  aux_file,
-  len,
-  path_split,
-  trunc_middle,
-  trunc,
-} from "smc-util/misc";
+import { aux_file, len, path_split, trunc_middle, trunc } from "smc-util/misc";
 import { IS_MOBILE } from "../../feature";
 import { A } from "../../r_misc";
 import {
@@ -309,7 +303,7 @@ export const MarkdownInput: React.FC<Props> = ({
   }, []);
 
   useEffect(() => {
-    cm.current?.setOption("theme", theme);
+    cm.current?.setOption("theme", theme == null ? "default" : theme);
   }, [theme]);
 
   useEffect(() => {
