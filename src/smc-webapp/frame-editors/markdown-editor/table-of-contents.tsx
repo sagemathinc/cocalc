@@ -30,7 +30,7 @@ export const TableOfContents: React.FC<Props> = React.memo(
     return (
       <TOC
         contents={contents}
-        style={{ fontSize: `${font_size - 4}px` }}
+        style={{ fontSize: `${font_size - 6}px` }}
         scrollTo={actions.scrollToHeading.bind(actions)}
       />
     );

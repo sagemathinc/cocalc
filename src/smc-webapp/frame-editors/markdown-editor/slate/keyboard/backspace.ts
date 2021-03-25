@@ -11,16 +11,13 @@ What happens when you hit the backspace/delete key.
     for discussion of why we must implement this ourselves.
 */
 
-import { Editor, Point, Range, Transforms } from "slate";
+import { Editor, Path, Point, Range, Text, Transforms } from "slate";
 import { register } from "./register";
+import { getNodeAt } from "../slate-util";
 
 function backspaceKey({ editor }) {
   if (editor.selection == null || !Range.isCollapsed(editor.selection)) {
-    // default handler
-    // However, we add a fake invisible mark on all text in the range first which
-    // workarounds this **horrendous** bug:
-    //    https://github.com/ianstormtaylor/slate/issues/4121
-    Editor.addMark(editor, "issue4121", true);
+    selectionHack(editor);
     return false;
   }
 
@@ -48,11 +45,58 @@ function backspaceKey({ editor }) {
   return true;
 }
 
-register([{ key: "Backspace" }, { key: "Delete" }], backspaceKey);
+register({ key: "Backspace" }, backspaceKey);
+
+function deleteKey({ editor }) {
+  if (editor.selection == null) return true;
+  if (!Range.isCollapsed(editor.selection)) {
+    selectionHack(editor);
+    // deleteForward does nothing for non collapsed
+    Transforms.delete(editor);
+    return true;
+  }
+  editor.deleteForward();
+  return true;
+}
+
+register({ key: "Delete" }, deleteKey);
 
 function isAtStart(loc: Point): boolean {
   for (const n of loc.path) {
     if (n != 0) return false;
   }
   return loc.offset == 0;
+}
+
+// This is a hack to workaround this bug:
+//    https://github.com/ianstormtaylor/slate/issues/4121
+// which is in the core of slate. Call this before
+// deleting the selection to ensure that the wrong thing
+// isn't deleted...
+function selectionHack(editor: Editor): void {
+  const { selection } = editor;
+  if (selection == null || Range.isCollapsed(selection)) return;
+  const edges = Range.edges(selection);
+  const node = getNodeAt(editor, edges[1].path);
+  if (!Text.isText(node)) return;
+  if (node.text.length != edges[1].offset) return;
+
+  // OK, so at this point, we're in exactly the situation
+  // of issue 4121.  In particular, the
+  // selection ends at the edge of a text node.
+  // Our hack is to move the cursor to the beginning of
+  // the *next* node, but make the offset 0,
+  // so that when we delete nothing is removed
+  // from there.
+  const path = Path.next(edges[1].path);
+  const nextNode = getNodeAt(editor, path);
+  if (Text.isText(nextNode)) {
+    // NOTE: it doesn't matter if we reverse the range here, since
+    // we're about to delete this selection.
+    const newSelection = {
+      anchor: edges[0],
+      focus: { path, offset: 0 },
+    };
+    Transforms.setSelection(editor, newSelection);
+  }
 }

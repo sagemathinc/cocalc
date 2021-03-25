@@ -1347,6 +1347,8 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     v.push(render_save_timetravel_group());
     v.push(render_build());
     v.push(render_force_build());
+    v.push(render_edit());
+    v.push(render_readonly_view());
     v.push(render_sync());
     v.push(render_switch_to_file());
     v.push(render_clean());
@@ -1371,8 +1373,6 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     v.push(render_kick_other_users_out());
     v.push(render_format());
     v.push(render_shell());
-    v.push(render_edit());
-    v.push(render_readonly_view());
     v.push(render_print());
     v.push(render_table_of_contents());
     v.push(render_guide(labels));

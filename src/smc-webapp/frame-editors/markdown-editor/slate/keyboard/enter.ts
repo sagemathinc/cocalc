@@ -5,16 +5,16 @@
 
 // What happens when you hit the enter key.
 
-import { Element, Transforms } from "slate";
+import { Editor, Element, Transforms } from "slate";
 import { isElementOfType } from "../elements";
-import { emptyParagraph } from "../padding";
+import { emptyParagraph, isWhitespaceParagraph } from "../padding";
 import { register } from "./register";
 import {
   isAtBeginningOfBlock,
   isAtEndOfBlock,
   moveCursorToBeginningOfBlock,
 } from "../control";
-import { hardbreak } from "../elements/linebreak";
+import { containingBlock } from "../slate-util";
 
 register({ key: "Enter" }, ({ editor }) => {
   const fragment = editor.getFragment();
@@ -30,12 +30,19 @@ register({ key: "Enter" }, ({ editor }) => {
 
   if (isElementOfType(x, "paragraph")) {
     // If you hit enter in a paragraph, the default behavior is creating
-    // another empty paragraph, which just gets ignored by markdown.
-    // So don't do it, as it's confusing.  Instead we just insert
-    // a hard break (same as shift-enter).
-    Transforms.insertNodes(editor, [hardbreak()]);
-    Transforms.move(editor, { distance: 1 });
-    return true;
+    // another empty paragraph.  We do a bunch of special cases so that
+    // our document corresponds much more closely to what markdown
+    // actually supports.
+
+    if (isWhitespaceParagraph(containingBlock(editor)?.[0])) {
+      return true;
+    }
+    const prev = Editor.previous(editor);
+    if (prev == null) return false;
+    if (isWhitespaceParagraph(prev[0])) {
+      return true;
+    }
+    return false;
   }
 
   if (isElementOfType(x, ["bullet_list", "ordered_list"])) {

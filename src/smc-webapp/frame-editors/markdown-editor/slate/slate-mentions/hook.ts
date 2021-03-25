@@ -61,29 +61,33 @@ export const useMentions: (Options) => MentionsControl = ({
   // very laggy on a large document!
   const onChange = useCallback(
     debounce(async () => {
-      if (!isMountedRef.current) return;
-      await new Promise(requestAnimationFrame);
-      if (!isMountedRef.current) return;
-      const { selection } = editor;
-      if (selection && Range.isCollapsed(selection)) {
-        const [start] = Range.edges(selection);
-        const wordBefore = Editor.before(editor, start, { unit: "word" });
-        const before = wordBefore && Editor.before(editor, wordBefore);
-        const beforeRange = before && Editor.range(editor, before, start);
-        const beforeText = beforeRange && Editor.string(editor, beforeRange);
-        const beforeMatch = beforeText && beforeText.match(/^@(\w*)$/);
-        const after = Editor.after(editor, start);
-        const afterRange = Editor.range(editor, start, after);
-        const afterText = Editor.string(editor, afterRange);
-        const afterMatch = afterText.match(/^(\s|$)/);
-        if (beforeMatch && afterMatch) {
-          setTarget(beforeRange);
-          setSearch(beforeMatch[1]);
-          return;
+      try {
+        if (!isMountedRef.current) return;
+        await new Promise(requestAnimationFrame);
+        if (!isMountedRef.current) return;
+        const { selection } = editor;
+        if (selection && Range.isCollapsed(selection)) {
+          const [start] = Range.edges(selection);
+          const wordBefore = Editor.before(editor, start, { unit: "word" });
+          const before = wordBefore && Editor.before(editor, wordBefore);
+          const beforeRange = before && Editor.range(editor, before, start);
+          const beforeText = beforeRange && Editor.string(editor, beforeRange);
+          const beforeMatch = beforeText && beforeText.match(/^@(\w*)$/);
+          const after = Editor.after(editor, start);
+          const afterRange = Editor.range(editor, start, after);
+          const afterText = Editor.string(editor, afterRange);
+          const afterMatch = afterText.match(/^(\s|$)/);
+          if (beforeMatch && afterMatch) {
+            setTarget(beforeRange);
+            setSearch(beforeMatch[1]);
+            return;
+          }
         }
-      }
 
-      setTarget(undefined);
+        setTarget(undefined);
+      } catch (err) {
+        console.log("WARNING -- slate.mentions", err);
+      }
     }, 250),
     [editor]
   );

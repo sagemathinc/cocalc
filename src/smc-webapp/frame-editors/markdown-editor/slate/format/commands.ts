@@ -19,7 +19,6 @@ import { ReactEditor } from "../slate-react";
 import { markdown_to_slate } from "../markdown-to-slate";
 import { commands } from "../../../../editors/editor-button-bar";
 import { removeBlankLines } from "../util";
-import { delay } from "awaiting";
 import { insertLink } from "./insert-link";
 import { insertImage } from "./insert-image";
 import { insertSpecialChar } from "./insert-special-char";
@@ -265,40 +264,21 @@ export function getCollapsedSelection(editor: SlateEditor): Range {
   return { focus, anchor: focus };
 }
 
-export async function setSelectionAndFocus(
-  editor: ReactEditor,
-  selection
-): Promise<void> {
-  // This delay is critical since otherwise the focus itself
-  // also sets the selection cancelling out the setSelection below.
-  // Note: firefox + focus/selection + slate is extremely broken
-  // with react-window (which we are very likely not using anyways),
-  // and I have no idea how to fix it yet
-  //     https://github.com/sagemathinc/cocalc/issues/5204
+export function setSelectionAndFocus(editor: ReactEditor, selection): void {
   ReactEditor.focus(editor);
-  await delay(1);
   Transforms.setSelection(editor, selection);
-  ReactEditor.focus(editor);
 }
 
-export async function restoreSelectionAndFocus(
-  editor: SlateEditor
-): Promise<void> {
-  let selection = editor.selection;
-  if (selection == null) {
-    const sel = editor.lastSelection;
-    if (sel == null) return;
-    await setSelectionAndFocus(editor, sel);
-  }
+export function restoreSelectionAndFocus(editor: SlateEditor): void {
+  const { selection, lastSelection } = editor;
+  if (selection != null) return;
+  if (lastSelection == null) return;
+  setSelectionAndFocus(editor, lastSelection);
 }
 
-export async function formatAction(
-  editor: SlateEditor,
-  cmd: string,
-  args
-): Promise<void> {
+export function formatAction(editor: SlateEditor, cmd: string, args): void {
   // console.log("formatAction", cmd, args);
-  await restoreSelectionAndFocus(editor);
+  restoreSelectionAndFocus(editor);
   try {
     if (
       cmd == "bold" ||
