@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React, useState } from "smc-webapp/app-framework";
+import { CSS, React, useEffect, useState } from "smc-webapp/app-framework";
 import { Icon } from "smc-webapp/r_misc";
 import { useSlateStatic } from "./register";
 import { Heading } from "./heading";
@@ -27,6 +27,10 @@ export const HeadingToggle: React.FC<Props> = ({ element }) => {
   const [collapsed, setCollapsed] = useState<boolean>(
     !!editor.collapsedSections.get(element)
   );
+
+  useEffect(() => {
+    setCollapsed(!!editor.collapsedSections.get(element));
+  }, [element]);
 
   const toggle = () => {
     editor.collapsedSections.set(element, !collapsed);

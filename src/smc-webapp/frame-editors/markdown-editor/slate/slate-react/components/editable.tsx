@@ -167,19 +167,23 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     new Set([])
   );
 
-  editor.updateHiddenChildren = () => {
+  editor.updateHiddenChildren = useCallback(() => {
     if (!ReactEditor.isUsingWindowing(editor)) return;
-    const hiddenChildren: number[] = [];
+    const hiddenChildren0: number[] = [];
     let isCollapsed: boolean = false;
     let level: number = 0;
     let index: number = 0;
+    let hasAll: boolean = true;
     for (const child of editor.children) {
       if (!Element.isElement(child)) {
         throw Error("bug");
       }
       if (child.type != "heading" || (isCollapsed && child.level > level)) {
         if (isCollapsed) {
-          hiddenChildren.push(index);
+          hiddenChildren0.push(index);
+          if (hasAll && !hiddenChildren.has(index)) {
+            hasAll = false;
+          }
         }
       } else {
         // it's a heading of a high enough level, and it sets the new state.
@@ -189,17 +193,26 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
       }
       index += 1;
     }
-    setHiddenChildren(new Set(hiddenChildren));
-  };
+    if (hasAll && hiddenChildren0.length == hiddenChildren.size) {
+      // no actual change (since subset and same cardinality), so don't
+      // cause re-render.
+      return;
+    }
+    setHiddenChildren(new Set(hiddenChildren0));
+  }, [editor.children, hiddenChildren]);
+
+  const updateHiddenChildrenDebounce = useMemo(() => {
+    return debounce(() => editor.updateHiddenChildren(), 500, {
+      leading: true,
+    });
+  }, []);
 
   // Whenever the actual document changes, update the
   // hidden children set, since it is a list of indexes
   // into editor.children, so may change. That said, we
   // don't want this to impact performance when typing, so
   // we debounce it.
-  useEffect(debounce(editor.updateHiddenChildren, 500, { leading: true }), [
-    editor.children,
-  ]);
+  useEffect(updateHiddenChildrenDebounce, [editor.children]);
 
   // Update element-related weak maps with the DOM element ref.
   useIsomorphicLayoutEffect(() => {
