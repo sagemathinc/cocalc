@@ -3,9 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../../../app-framework";
+import { React } from "smc-webapp/app-framework";
 import { register, SlateElement } from "./register";
 import { mark_block } from "../util";
+import { HeadingToggle } from "./heading-toggle";
 
 export interface Heading extends SlateElement {
   type: "heading";
@@ -27,9 +28,16 @@ register({
     if (element.type != "heading") throw Error("bug");
     const { level } = element;
     if (!level || level < 1 || level > 6) {
+      // Shouldn't be allowed, but at least we can render it somehow...
       return <b>{children}</b>;
     }
-    return React.createElement(`h${level}`, attributes, children);
+    return React.createElement(
+      `h${level}`,
+      attributes,
+      [<HeadingToggle compressed={Math.random() > 0.5} key="toggle" />].concat(
+        children
+      )
+    );
   },
 
   fromSlate: ({ node, children }) => {
