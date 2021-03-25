@@ -14,3 +14,4 @@ import "./tab";
 import "./arrow-keys";
 import "./actions";
 import "./sync";
+import "./toggle-collapse-sections";

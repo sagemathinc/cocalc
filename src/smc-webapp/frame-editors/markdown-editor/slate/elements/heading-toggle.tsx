@@ -35,7 +35,11 @@ export const HeadingToggle: React.FC<Props> = ({ element }) => {
   };
 
   return (
-    <span style={TOGGLE_STYLE} onClick={toggle}>
+    <span
+      style={TOGGLE_STYLE}
+      onClick={toggle}
+      title={"Toggle collapse section (Control+Q)"}
+    >
       <span style={{ float: "right" }}>
         <Icon name={collapsed ? "chevron-right" : "chevron-down"} />
       </span>

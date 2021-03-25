@@ -127,8 +127,8 @@ const Children: React.FC<Props> = React.memo(
           render_info={true}
           row_count={node.children.length}
           row_renderer={renderChild}
-          overscan_row_count={windowing.overscanRowCount ?? 10}
-          estimated_row_size={windowing.estimatedRowSize ?? 32}
+          overscan_row_count={windowing.overscanRowCount ?? 3}
+          estimated_row_size={windowing.estimatedRowSize ?? 60}
           row_key={(index) => `${index}`}
           row_style={windowing.rowStyle}
           on_scroll={onScroll}
