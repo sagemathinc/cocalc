@@ -838,7 +838,7 @@ describe("default quota", () => {
       },
       b: {
         quota: {
-          ram:2,
+          ram: 2,
           always_running: true,
         },
       },
@@ -852,6 +852,54 @@ describe("default quota", () => {
     const q = quota({}, { userX: {} }, site_license);
     expect(q.always_running).toBe(true);
     expect(q.memory_limit).toBe(3000);
+  });
+
+  it("site_license always_running do not mix incomplete 1", () => {
+    const site_license = {
+      a: {
+        quota: {
+          ram: 4,
+          always_running: true,
+          member: false,
+        },
+      },
+      b: {
+        quota: {
+          ram: 2,
+          member: true,
+        },
+      },
+      c: {
+        quota: {
+          ram: 1,
+          always_running: false,
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_license);
+    expect(q.always_running).toBe(true);
+    expect(q.memory_limit).toBe(4000);
+    expect(q.member_host).toBe(false);
+  });
+
+  it("site_license always_running do not mix incomplete 2", () => {
+    const site_license = {
+      a: {
+        quota: {
+          ram: 2,
+          member: true,
+        },
+      },
+      b: {
+        quota: {
+          ram: 4,
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_license);
+    expect(q.always_running).toBe(false);
+    expect(q.memory_limit).toBe(2000);
+    expect(q.member_host).toBe(true);
   });
 
   it("cap site_license upgrades by max_upgrades /1", () => {

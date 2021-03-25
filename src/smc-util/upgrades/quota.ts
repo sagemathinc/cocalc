@@ -132,7 +132,7 @@ interface SiteLicenseQuotaSetting {
   quota: SiteLicenseQuota;
 }
 
-type QuotaSetting = Settings | SiteLicenseQuotaSetting;
+type QuotaSetting = Upgrades | SiteLicenseQuotaSetting;
 
 type SiteLicenses = {
   [license_id: string]: QuotaSetting;
@@ -215,46 +215,72 @@ function isSiteLicenseQuotaSetting(
   return slq != null && (slq as SiteLicenseQuotaSetting).quota != null;
 }
 
-function isSettingsQuota(slq?: QuotaSetting): slq is Settings {
+function isSettingsQuota(slq?: QuotaSetting): slq is Upgrades {
   if (slq == null || (slq as SiteLicenseQuotaSetting).quota != null)
     return false;
   return (
-    (slq as Settings).network != null ||
-    (slq as Settings).member_host != null ||
-    (slq as Settings).disk_quota != null ||
-    (slq as Settings).memory_limit != null ||
-    (slq as Settings).memory_request != null ||
-    (slq as Settings).privileged != null ||
-    (slq as Settings).idle_timeout != null ||
-    (slq as Settings).cpu_shares != null ||
-    (slq as Settings).always_running != null
+    (slq as Upgrades).disk_quota != null ||
+    (slq as Upgrades).memory != null ||
+    (slq as Upgrades).memory_request != null ||
+    (slq as Upgrades).cores != null ||
+    (slq as Upgrades).network != null ||
+    (slq as Upgrades).cpu_shares != null ||
+    (slq as Upgrades).mintime != null ||
+    (slq as Upgrades).member_host != null ||
+    (slq as Upgrades).ephemeral_state != null ||
+    (slq as Upgrades).ephemeral_disk != null ||
+    (slq as Upgrades).always_running != null
   );
 }
 
 // some site licenses do not mix.
 // e.g. always running true can't upgrade another (especially large) one not having always running set.
+// also preempt upgrades shouldn't uprade member hosting upgades.
 //
-// this heuristic selects all always running licenses if there is at least one of them.
+// this heuristic groups all licenses by always_running and member hosting, and then picks the first nonempty group.
+// TODO: once we have a license with an extended uptime (hours instead of ~30 mins), we introduce that as a third dimension.
 function select_site_licenses(
   site_licenses?: SiteLicenses
 ): SiteLicenses | undefined {
   if (site_licenses == null) return;
 
-  const only_ar = {};
-  let any_always_running = false;
+  // key is <member>-<always_running> as 0/1 numbers
+  const groups = {
+    "0-0": [],
+    "0-1": [],
+    "1-0": [],
+    "1-1": [],
+  };
+
+  // classification
   for (const [key, val] of Object.entries(site_licenses)) {
     const is_ar = isSiteLicenseQuotaSetting(val)
       ? val.quota.always_running === true
       : (val.always_running ?? 0) === 1;
-    any_always_running ||= is_ar;
-    if (is_ar) only_ar[key] = val;
+
+    const is_member = isSiteLicenseQuotaSetting(val)
+      ? val.quota.member === true
+      : (val.member_host ?? 0) === 1;
+
+    groups[`${is_member ? "1" : "0"}-${is_ar ? "1" : "0"}`].push(key);
   }
 
-  if (any_always_running) {
-    return only_ar;
-  } else {
-    return site_licenses;
-  }
+  // selection -- always_running comes first, then member hosting
+  const selected = (function () {
+    for (const ar of ["1", "0"]) {
+      for (const mh of ["1", "0"]) {
+        const k = `${mh}-${ar}`;
+        if (groups[k].length > 0) {
+          return groups[k];
+        }
+      }
+    }
+  })();
+
+  return selected.reduce((acc, cur) => {
+    acc[cur] = site_licenses[cur];
+    return acc;
+  }, {});
 }
 
 export function quota(
@@ -277,14 +303,14 @@ export function quota(
   const quota: Quota = calc_default_quotas(site_settings);
 
   // site settings max quotas overwrite the hardcoded values
-  const max_upgrades = Object.assign(
-    {},
-    MAX_UPGRADES,
-    site_settings?.max_upgrades ?? {}
-  );
+  const max_upgrades = {
+    ...MAX_UPGRADES,
+    ...(site_settings?.max_upgrades ?? {}),
+  };
 
   // we might not consider all of them!
   site_licenses = select_site_licenses(site_licenses);
+  //console.log("selected licenses:", site_licenses);
 
   // network access
   if (max_upgrades.network == 0) {
