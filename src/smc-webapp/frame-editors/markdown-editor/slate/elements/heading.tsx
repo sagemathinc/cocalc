@@ -4,7 +4,8 @@
  */
 
 import { React } from "smc-webapp/app-framework";
-import { register, SlateElement } from "./register";
+import { ReactEditor } from "../slate-react";
+import { register, SlateElement, useSlateStatic } from "./register";
 import { mark_block } from "../util";
 import { HeadingToggle } from "./heading-toggle";
 
@@ -25,16 +26,22 @@ register({
   },
 
   Element: ({ attributes, children, element }) => {
+    const editor = useSlateStatic();
     if (element.type != "heading") throw Error("bug");
     const { level } = element;
     if (!level || level < 1 || level > 6) {
       // Shouldn't be allowed, but at least we can render it somehow...
       return <b>{children}</b>;
     }
-    const x = [
-      <HeadingToggle element={element} key="toggle" />,
-      <span key="children">{children}</span>,
-    ];
+    let x;
+    if (ReactEditor.isUsingWindowing(editor)) {
+      x = [
+        <HeadingToggle element={element} key="toggle" />,
+        <span key="children">{children}</span>,
+      ];
+    } else {
+      x = children;
+    }
     return React.createElement(`h${level}`, attributes, x);
   },
 
