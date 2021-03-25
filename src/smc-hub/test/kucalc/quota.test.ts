@@ -886,20 +886,31 @@ describe("default quota", () => {
     const site_license = {
       a: {
         quota: {
+          cpu: 2,
           ram: 2,
+          disk: 2,
           member: true,
+          dedicated_cpu: 1,
+          dedicated_ram: 1,
+          always_running: true,
         },
       },
       b: {
         quota: {
           ram: 4,
+          dedicated_cpu: 1,
+          dedicated_ram: 1,
+          always_running: false,
         },
       },
     };
     const q = quota({}, { userX: {} }, site_license);
-    expect(q.always_running).toBe(false);
-    expect(q.memory_limit).toBe(2000);
+    expect(q.always_running).toBe(true);
+    expect(q.memory_limit).toBe(3000);
     expect(q.member_host).toBe(true);
+    expect(q.memory_request).toBe(1000);
+    expect(q.cpu_limit).toBe(3);
+    expect(q.cpu_request).toBe(1);
   });
 
   it("cap site_license upgrades by max_upgrades /1", () => {

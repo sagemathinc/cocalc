@@ -149,7 +149,7 @@ interface SiteSettingsQuotas {
 
 // base quota + calculated default quotas is the quota object each project gets by default
 // any additional quotas are added on top of it, up until the given limits
-const BASE_QUOTAS: Quota = {
+const BASE_QUOTAS: Required<Quota> = {
   network: false,
   member_host: false,
   memory_request: 0, // will hold guaranteed RAM in MB
@@ -303,7 +303,7 @@ export function quota(
   const quota: Quota = calc_default_quotas(site_settings);
 
   // site settings max quotas overwrite the hardcoded values
-  const max_upgrades = {
+  const max_upgrades: Upgrades = {
     ...MAX_UPGRADES,
     ...(site_settings?.max_upgrades ?? {}),
   };
@@ -527,70 +527,116 @@ export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
 
 // Compute the contribution to quota coming from the quota field of the site licenses.
 // This is max'd with the quota computed using settings, the rest of the licenses, etc.
-// We do not count memory and cpu toward the running total if they
-// come from a license without member hosting but some license
-// includes member hosting, since otherwise you can cheat and get
-// very cheap cpu/memory/always running.  Disk is fine.
+// The given licenses might be a subset of all, because e.g. it's sort of cheating
+// to combine memory upgades of member hosting with preempt hosting, or add a small
+// always_running license on top of a cheaper but larger member hosting license.
+// @see select_site_licenses
 export function site_licenses_quota(
   site_licenses: SiteLicenses,
-  max_upgrades: SiteSettingsQuotas["max_upgrades"]
+  max_upgrades: Upgrades
 ): Quota {
-  const total_quota: Quota = {};
-  // We do member separately first, since we don't count ram and cpu upgrades
-  // for a *nonmember* license if member is set.
-  for (const license_id in site_licenses) {
-    const upgr = site_licenses[license_id];
-    if (!isSiteLicenseQuotaSetting(upgr)) continue;
-    if (upgr.quota.member) {
-      total_quota.member_host = true;
-    }
-  }
+  // we start to define a "base" quota, easier to add up everything
+  const total_quota: Required<Quota> = {
+    cpu_limit: 0,
+    cpu_request: 0,
+    memory_limit: 0,
+    memory_request: 0,
+    disk_quota: 0,
+    always_running: false,
+    network: false,
+    member_host: false,
+    privileged: false,
+    idle_timeout: 0,
+  };
 
-  for (const license_id in site_licenses) {
-    const license = site_licenses[license_id];
+  for (const license of Object.values(site_licenses)) {
     if (!isSiteLicenseQuotaSetting(license)) continue;
     const quota: SiteLicenseQuota | undefined = license.quota;
     if (quota == null || len(quota) == 0) continue;
 
-    // member is true unless the overall max includes member_host
-    // and this quota doesn't.
-    const member_check = !(total_quota.member_host && !quota.member);
-
     // If there is any nontrivial new quota contribution, then
     // project automatically gets network access... we trust it.
     total_quota.network = true;
-    if (quota.always_running && member_check) {
-      total_quota.always_running = true;
+
+    if (quota.always_running) {
+      total_quota.always_running ||= quota.always_running;
     }
-    if (quota.cpu && member_check) {
-      total_quota.cpu_limit = (total_quota.cpu_limit ?? 0) + quota.cpu;
+    if (quota.member) {
+      total_quota.member_host ||= quota.member;
     }
-    if (quota.ram && member_check) {
-      total_quota.memory_limit =
-        (total_quota.memory_limit ?? 0) + 1000 * quota.ram;
+    if (quota.cpu) {
+      total_quota.cpu_limit += quota.cpu;
     }
-    if (quota.dedicated_cpu && member_check) {
-      total_quota.cpu_request =
-        (total_quota.cpu_request ?? 0) + quota.dedicated_cpu;
+    if (quota.ram) {
+      total_quota.memory_limit += 1000 * quota.ram;
+    }
+    if (quota.dedicated_cpu) {
+      total_quota.cpu_request += quota.dedicated_cpu;
       // dedicated CPU also contributes to the shared cpu limit:
-      total_quota.cpu_limit =
-        (total_quota.cpu_limit ?? 0) + quota.dedicated_cpu;
+      total_quota.cpu_limit += quota.dedicated_cpu;
     }
-    if (quota.dedicated_ram && member_check) {
-      total_quota.memory_request =
-        (total_quota.memory_request ?? 0) + 1000 * quota.dedicated_ram;
+    if (quota.dedicated_ram) {
+      total_quota.memory_request += 1000 * quota.dedicated_ram;
       // The dedicated RAM **also** contributes "for free" to the shared RAM
       // which is an upper bound.
-      total_quota.memory_limit =
-        (total_quota.memory_limit ?? 0) + 1000 * quota.dedicated_ram;
+      total_quota.memory_limit += 1000 * quota.dedicated_ram;
     }
     if (quota.disk) {
-      total_quota.disk_quota =
-        (total_quota.disk_quota ?? 0) + 1000 * quota.disk;
+      total_quota.disk_quota += 1000 * quota.disk;
     }
   }
-  console.log("TODO cap", total_quota, "by", max_upgrades);
+
+  return limit_quota(total_quota, max_upgrades);
+}
+
+function limit_quota(
+  total_quota: Required<Quota>,
+  max_upgrades: Upgrades
+): Quota {
+  /*
+  for better understanding of this upgrade2quota, here are two examples
+
+  total_quota =  {            max_upgrades = {
+    cpu_limit: 3,               disk_quota: 20000,
+    cpu_request: 1,             memory: 16000,
+    memory_limit: 3000,         memory_request: 8000,
+    memory_request: 1000,       cores: 3,
+    disk_quota: 2000,           network: 1,
+    always_running: true,       cpu_shares: 2048,
+    network: true,              mintime: 7776000,
+    member_host: true,          member_host: 1,
+    privileged: false,          ephemeral_state: 1,
+    idle_timeout: 0             ephemeral_disk: 1,
+  }                             always_running: 1
+                              }
+  */
+
+  for (const [key, val] of Object.entries(upgrade2quota(max_upgrades))) {
+    if (typeof val === "boolean") {
+      total_quota[key] &&= val;
+    } else {
+      total_quota[key] = Math.min(total_quota[key], val);
+    }
+  }
+
   return total_quota;
+}
+
+// there is an old schema, inherited from SageMathCloud, etc. and newer iterations.
+// this helps by going from one schema to the newer one
+function upgrade2quota(up: Required<Upgrades>): Required<Quota> {
+  return {
+    network: up.network >= 1,
+    member_host: up.member_host >= 1,
+    always_running: up.always_running >= 1,
+    disk_quota: up.disk_quota,
+    memory_limit: up.memory / 1000,
+    memory_request: up.memory_request / 1000,
+    cpu_limit: up.cores,
+    cpu_request: up.cpu_shares / 1024,
+    privileged: false, // there is no upgrade for that!
+    idle_timeout: up.mintime,
+  };
 }
 
 // TODO name is <K extends keyof Quota>, but that causes troubles ...
