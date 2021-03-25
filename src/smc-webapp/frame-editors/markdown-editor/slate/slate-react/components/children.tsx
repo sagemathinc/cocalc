@@ -72,7 +72,7 @@ const Children: React.FC<Props> = React.memo(
       if (hiddenChildren?.has(index)) {
         // TRICK: We use a small positive height since a height of 0 gets ignored, as it often
         // appears when scrolling and allowing that breaks everything (for now!).
-        return <div style={{ height: "0.1px" }} />;
+        return <div style={{ height: "0.1px" }} contentEditable={false} />;
       }
       const n = node.children[index] as Descendant;
       const p = path.concat(index);
