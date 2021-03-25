@@ -196,7 +196,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const mentions = useMentions({
       editor,
       insertMention: (editor, account_id) => {
-        Transforms.insertNodes(editor, [createMention(account_id)]);
+        Transforms.insertNodes(editor, [
+          createMention(account_id),
+          { text: " " },
+        ]);
         submit_mentions(project_id, path, [{ account_id, description: "" }]);
       },
       matchingUsers: (search) => mentionableUsers(project_id, search),
@@ -424,7 +427,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         Path,
         Editor,
         Range,
-        Text
+        Text,
       };
     }
 
