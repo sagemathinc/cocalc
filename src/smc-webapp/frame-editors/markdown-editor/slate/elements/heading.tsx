@@ -31,13 +31,11 @@ register({
       // Shouldn't be allowed, but at least we can render it somehow...
       return <b>{children}</b>;
     }
-    return React.createElement(
-      `h${level}`,
-      attributes,
-      [<HeadingToggle compressed={Math.random() > 0.5} key="toggle" />].concat(
-        children
-      )
-    );
+    const x = [
+      <HeadingToggle element={element} key="toggle" />,
+      <span key="children">{children}</span>,
+    ];
+    return React.createElement(`h${level}`, attributes, x);
   },
 
   fromSlate: ({ node, children }) => {

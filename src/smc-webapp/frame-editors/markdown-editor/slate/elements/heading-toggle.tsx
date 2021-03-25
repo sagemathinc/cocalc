@@ -3,8 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React } from "smc-webapp/app-framework";
+import { CSS, React, useState } from "smc-webapp/app-framework";
 import { Icon } from "smc-webapp/r_misc";
+import { useSlateStatic } from "./register";
+import { Heading } from "./heading";
 
 const TOGGLE_STYLE = {
   cursor: "pointer",
@@ -17,19 +19,25 @@ const TOGGLE_STYLE = {
 } as CSS;
 
 interface Props {
-  compressed?: boolean;
+  element: Heading;
 }
 
-export const HeadingToggle: React.FC<Props> = ({ compressed }) => {
+export const HeadingToggle: React.FC<Props> = ({ element }) => {
+  const editor = useSlateStatic();
+  const [collapsed, setCollapsed] = useState<boolean>(
+    !!editor.collapsedSections.get(element)
+  );
+
   const toggle = () => {
-    console.log("clicked on the toggle");
+    editor.collapsedSections.set(element, !collapsed);
+    setCollapsed(!collapsed);
   };
 
   return (
     <span style={TOGGLE_STYLE}>
       <span style={{ float: "right" }}>
         <Icon
-          name={compressed ? "chevron-right" : "chevron-down"}
+          name={collapsed ? "chevron-right" : "chevron-down"}
           onClick={toggle}
         />
       </span>
