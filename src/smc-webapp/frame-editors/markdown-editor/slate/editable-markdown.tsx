@@ -47,7 +47,6 @@ import { slatePointToMarkdownPosition } from "./sync";
 import { useMentions } from "./slate-mentions";
 import { mentionableUsers } from "../../../editors/markdown-input/mentionable-users";
 import { createMention } from "./elements/mention";
-import { Heading } from "./elements/heading";
 import { submit_mentions } from "../../../editors/markdown-input/mentions";
 
 import { useSearch } from "./search";
@@ -76,7 +75,6 @@ export interface SlateEditor extends ReactEditor {
   getMarkdownValue: () => string;
   getSourceValue: (fragment?) => string;
   syncCache?: any;
-  collapsedSections: WeakMap<Heading, boolean>;
 }
 
 // Whether or not to use windowing (=only rendering visible elements).
@@ -158,7 +156,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       const ed = withUpload(
         withAutoFormat(withIsInline(withIsVoid(withReact(createEditor()))))
       ) as SlateEditor;
-      ed.collapsedSections = new WeakMap();
       actions.registerSlateEditor(id, ed);
 
       ed.getSourceValue = (fragment?) => {

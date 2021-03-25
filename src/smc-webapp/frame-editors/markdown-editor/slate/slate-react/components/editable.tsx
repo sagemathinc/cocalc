@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useEffect, useRef, useMemo, useCallback } from "react";
+import { useEffect, useRef, useMemo, useState, useCallback } from "react";
 import {
   Editor,
   Element,
@@ -10,7 +10,6 @@ import {
   Transforms,
   Path,
 } from "slate";
-//import { HistoryEditor } from "slate-history";
 
 import Children from "./children";
 import { WindowingParams } from "./children";
@@ -41,6 +40,8 @@ import {
   IS_FOCUSED,
   PLACEHOLDER_SYMBOL,
 } from "../utils/weak-maps";
+
+import { debounce } from "lodash";
 
 import { useDOMSelectionChange, useUpdateDOMSelection } from "./selection-sync";
 
@@ -160,6 +161,45 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     }),
     []
   );
+
+  // state whose change causes an update
+  const [hiddenChildren, setHiddenChildren] = useState<Set<number>>(
+    new Set([])
+  );
+
+  editor.updateHiddenChildren = () => {
+    if (!ReactEditor.isUsingWindowing(editor)) return;
+    const hiddenChildren: number[] = [];
+    let isCollapsed: boolean = false;
+    let level: number = 0;
+    let index: number = 0;
+    for (const child of editor.children) {
+      if (!Element.isElement(child)) {
+        throw Error("bug");
+      }
+      if (child.type != "heading" || (isCollapsed && child.level > level)) {
+        if (isCollapsed) {
+          hiddenChildren.push(index);
+        }
+      } else {
+        // it's a heading of a high enough level, and it sets the new state.
+        // It is always visible.
+        isCollapsed = !!editor.collapsedSections.get(child);
+        level = child.level;
+      }
+      index += 1;
+    }
+    setHiddenChildren(new Set(hiddenChildren));
+  };
+
+  // Whenever the actual document changes, update the
+  // hidden children set, since it is a list of indexes
+  // into editor.children, so may change. That said, we
+  // don't want this to impact performance when typing, so
+  // we debounce it.
+  useEffect(debounce(editor.updateHiddenChildren, 500, { leading: true }), [
+    editor.children,
+  ]);
 
   // Update element-related weak maps with the DOM element ref.
   useIsomorphicLayoutEffect(() => {
@@ -930,6 +970,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
             renderElement={renderElement}
             renderLeaf={renderLeaf}
             selection={editor.selection}
+            hiddenChildren={hiddenChildren}
             windowing={windowing}
             onScroll={() => {
               if (editor.scrollCaretAfterNextScroll) {

@@ -1,5 +1,12 @@
 import * as ReactDOM from "react-dom";
-import { Editor, Node, Path, Operation, Transforms, Range } from "slate";
+import {
+  Editor,
+  Node,
+  Path,
+  Operation,
+  Transforms,
+  Range,
+} from "slate";
 
 import { ReactEditor } from "./react-editor";
 import { Key } from "../utils/key";
@@ -16,6 +23,8 @@ export const withReact = <T extends Editor>(editor: T) => {
   const { apply, onChange, deleteBackward } = e;
 
   e.windowedListRef = { current: null };
+
+  e.collapsedSections = new WeakMap();
 
   e.deleteBackward = (unit) => {
     if (unit !== "line") {
@@ -303,7 +312,7 @@ export const withReact = <T extends Editor>(editor: T) => {
         }
       }
     } catch (err) {
-      console.log("WARNING: scrollCaretIntoView -- ", err)
+      console.log("WARNING: scrollCaretIntoView -- ", err);
       // The only side effect we are hiding is that the cursor might not
       // scroll into view, which is way better than crashing everything.
       // console.log("WARNING: failed to scroll cursor into view", e);

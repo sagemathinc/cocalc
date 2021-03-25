@@ -32,6 +32,8 @@ export interface ReactEditor extends Editor {
   scrollCaretIntoView: (options?: { middle?: boolean }) => void;
   windowedListRef: { current: any };
   scrollCaretAfterNextScroll?: boolean;
+  collapsedSections: WeakMap<Node, boolean>;
+  updateHiddenChildren: () => void;
 }
 
 export const ReactEditor = {

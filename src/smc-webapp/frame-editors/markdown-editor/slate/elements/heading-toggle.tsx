@@ -31,15 +31,13 @@ export const HeadingToggle: React.FC<Props> = ({ element }) => {
   const toggle = () => {
     editor.collapsedSections.set(element, !collapsed);
     setCollapsed(!collapsed);
+    editor.updateHiddenChildren();
   };
 
   return (
-    <span style={TOGGLE_STYLE}>
+    <span style={TOGGLE_STYLE} onClick={toggle}>
       <span style={{ float: "right" }}>
-        <Icon
-          name={collapsed ? "chevron-right" : "chevron-down"}
-          onClick={toggle}
-        />
+        <Icon name={collapsed ? "chevron-right" : "chevron-down"} />
       </span>
     </span>
   );

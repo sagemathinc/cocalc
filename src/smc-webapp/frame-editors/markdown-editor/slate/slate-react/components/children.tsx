@@ -31,6 +31,7 @@ interface Props {
   windowing?: WindowingParams;
   onScroll?: () => void; // called after scrolling when windowing is true.
   isComposing?: boolean;
+  hiddenChildren?: Set<number>;
 }
 
 const Children: React.FC<Props> = React.memo(
@@ -42,6 +43,7 @@ const Children: React.FC<Props> = React.memo(
     selection,
     windowing,
     onScroll,
+    hiddenChildren,
   }) => {
     const decorate = useDecorate();
     const editor = useSlateStatic() as SlateEditor;
@@ -67,7 +69,7 @@ const Children: React.FC<Props> = React.memo(
       Editor.hasInlines(editor, node);
 
     const renderChild = ({ index }) => {
-      if (editor.hiddenChildren?.has(index)) {
+      if (hiddenChildren?.has(index)) {
         // TRICK: We use a small positive height since a height of 0 gets ignored, as it often
         // appears when scrolling and allowing that breaks everything (for now!).
         return <div style={{ height: "0.1px" }} />;
@@ -119,29 +121,6 @@ const Children: React.FC<Props> = React.memo(
 
     if (path.length == 0 && windowing != null) {
       // top level and using windowing!
-
-      const hiddenChildren: number[] = [];
-      let isCollapsed: boolean = false;
-      let level: number = 0;
-      let index: number = 0;
-      for (const child of node.children) {
-        if (!Element.isElement(child)) {
-          throw Error("bug");
-        }
-        if (child.type != "heading" || (isCollapsed && child.level > level)) {
-          if (isCollapsed) {
-            hiddenChildren.push(index);
-          }
-        } else {
-          // it's a heading of a high enough level, and it sets the new state.
-          // It is always visible.
-          isCollapsed = !!editor.collapsedSections.get(child);
-          level = child.level;
-        }
-        index += 1;
-      }
-      editor.hiddenChildren = new Set(hiddenChildren);
-
       return (
         <WindowedList
           ref={editor.windowedListRef}
