@@ -565,6 +565,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               ? {
                   rowStyle: {
                     padding: "0 70px",
+                    backgroundColor:
+                      "white" /* to avoid overlapping transparent effect when initially measuring */,
                   },
                   overscanRowCount: OVERSCAN_ROW_COUNT,
                 }
