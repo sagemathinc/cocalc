@@ -11,16 +11,40 @@ What happens when you hit the backspace/delete key.
     for discussion of why we must implement this ourselves.
 */
 
-import { Editor, Point, Range, Transforms } from "slate";
+import { Path, Point, Range, Text, Transforms } from "slate";
 import { register } from "./register";
+import { getNodeAt } from "../slate-util";
 
 function backspaceKey({ editor }) {
-  if (editor.selection == null || !Range.isCollapsed(editor.selection)) {
-    // default handler
-    // However, we add a fake invisible mark on all text in the range first which
-    // workarounds this **horrendous** bug:
-    //    https://github.com/ianstormtaylor/slate/issues/4121
-    Editor.addMark(editor, "issue4121", true);
+  const { selection } = editor;
+  if (selection == null) return false;
+  if (!Range.isCollapsed(selection)) {
+    const edges = Range.edges(selection);
+    const node = getNodeAt(editor, edges[1].path);
+    if (Text.isText(node)) {
+      // Workaround this bug:
+      //    https://github.com/ianstormtaylor/slate/issues/4121
+      // which is in the core of slate.
+      if (node.text.length == edges[1].offset) {
+        // Selection ends at the edge of a text node,
+        // so we move the cursor to the beginning of
+        // the *next* node, but make the offset 0,
+        // so that when we delete nothing is removed
+        // from there.
+        const path = Path.next(edges[1].path);
+        const nextNode = getNodeAt(editor, path);
+        if (Text.isText(nextNode)) {
+          // NOTE: it doesn't matter if we reverse the range here, since we're
+          // about to delete this selection.
+          const newSelection = {
+            anchor: edges[0],
+            focus: { path, offset: 0 },
+          };
+          Transforms.setSelection(editor, newSelection);
+        }
+      }
+    }
+
     return false;
   }
 
