@@ -3,9 +3,14 @@
  *  License: MIT (same as slate uses https://github.com/ianstormtaylor/slate/blob/master/License.md)
  */
 
-// Adapted from https://github.com/ianstormtaylor/slate/blob/master/site/examples/mentions.tsx
+/* Adapted from
+       https://github.com/ianstormtaylor/slate/blob/master/site/examples/mentions.tsx
+   One thing that makes this implementation more complicated is that if you just type
+   the @ symbol and nothing else, it immediately pops up the mentions dialog.  In
+   the demo above, it does not, which is EXTREMELY disconcerting.
+*/
 
-import { Editor, Range, Transforms } from "slate";
+import { Editor, Range, Text, Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import * as React from "react";
 import { useIsMountedRef } from "smc-webapp/app-framework";
@@ -60,27 +65,44 @@ export const useMentions: (Options) => MentionsControl = ({
   // we debounce this onChange, since it is VERY expensive and can make typing feel
   // very laggy on a large document!
   const onChange = useCallback(
-    debounce(async () => {
+    debounce(() => {
       try {
-        if (!isMountedRef.current) return;
-        await new Promise(requestAnimationFrame);
         if (!isMountedRef.current) return;
         const { selection } = editor;
         if (selection && Range.isCollapsed(selection)) {
-          const [start] = Range.edges(selection);
-          const wordBefore = Editor.before(editor, start, { unit: "word" });
-          const before = wordBefore && Editor.before(editor, wordBefore);
-          const beforeRange = before && Editor.range(editor, before, start);
-          const beforeText = beforeRange && Editor.string(editor, beforeRange);
-          const beforeMatch = beforeText && beforeText.match(/^@(\w*)$/);
-          const after = Editor.after(editor, start);
-          const afterRange = Editor.range(editor, start, after);
-          const afterText = Editor.string(editor, afterRange);
-          const afterMatch = afterText.match(/^(\s|$)/);
-          if (beforeMatch && afterMatch) {
-            setTarget(beforeRange);
-            setSearch(beforeMatch[1]);
-            return;
+          const { focus } = selection;
+          const [current] = Editor.node(editor, focus);
+          if (Text.isText(current)) {
+            const charBeforeCursor = current.text[focus.offset - 1];
+            let afterMatch, beforeMatch, beforeRange, search;
+            if (charBeforeCursor == "@") {
+              beforeRange = {
+                focus: editor.selection.focus,
+                anchor: {
+                  path: editor.selection.anchor.path,
+                  offset: editor.selection.anchor.offset - 1,
+                },
+              };
+              search = "";
+              afterMatch = beforeMatch = null;
+            } else {
+              const wordBefore = Editor.before(editor, focus, { unit: "word" });
+              const before = wordBefore && Editor.before(editor, wordBefore);
+              beforeRange = before && Editor.range(editor, before, focus);
+              const beforeText =
+                beforeRange && Editor.string(editor, beforeRange);
+              beforeMatch = beforeText && beforeText.match(/^@(\w*)$/);
+              search = beforeMatch?.[1];
+              const after = Editor.after(editor, focus);
+              const afterRange = Editor.range(editor, focus, after);
+              const afterText = Editor.string(editor, afterRange);
+              afterMatch = afterText.match(/^(\s|$)/);
+            }
+            if (charBeforeCursor == "@" || (beforeMatch && afterMatch)) {
+              setTarget(beforeRange);
+              setSearch(search);
+              return;
+            }
           }
         }
 
@@ -111,6 +133,8 @@ export const useMentions: (Options) => MentionsControl = ({
       insertMention(editor, value);
       setTarget(undefined);
       ReactEditor.focus(editor);
+      // Move the cursor forward 2 spaces:
+      Transforms.move(editor, { distance: 2, unit: "character" });
     };
 
     const rect = domRange.getBoundingClientRect();
