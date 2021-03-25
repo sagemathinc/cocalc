@@ -63,6 +63,7 @@ import { delay } from "awaiting";
 
 export interface SlateEditor extends ReactEditor {
   ignoreNextOnChange?: boolean;
+  syncCausedUpdate?: boolean;
   saveValue: (force?) => void;
   dropzoneRef?: any;
   applyingOperations?: boolean;
@@ -392,7 +393,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // also so we don't update the source editor (and other browsers)
       // with a view with things like loan $'s escaped.'
       if (operations.length > 0) {
-        editor.ignoreNextOnChange = true;
+        editor.ignoreNextOnChange = editor.syncCausedUpdate = true;
         applyOperations(editor, operations);
       }
 
@@ -524,6 +525,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         editor.ignoreNextOnChange = false;
       }
     };
+
+    useEffect(() => {
+      editor.syncCausedUpdate = false;
+    }, [editorValue]);
 
     let slate = (
       <Slate editor={editor} value={editorValue} onChange={onChange}>

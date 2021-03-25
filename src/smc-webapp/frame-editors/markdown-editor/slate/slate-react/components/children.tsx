@@ -48,12 +48,16 @@ const Children: React.FC<Props> = React.memo(
     try {
       path = ReactEditor.findPath(editor, node);
     } catch (err) {
-      console.log(
-        "WARNING: unable to find path to node! So not rendering...",
-        node,
-        editor.children,
-        err
-      );
+      if (windowing == null) {
+        // In case of windowing this is expected to happen temporarily during scrolling.
+        // But when not windowing, it should never happen.
+        console.log(
+          "WARNING: unable to find path to node! So not rendering...",
+          node,
+          editor.children,
+          err
+        );
+      }
       return <></>;
     }
     const isLeafBlock =

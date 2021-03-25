@@ -180,6 +180,24 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     }
   }, [autoFocus]);
 
+  useIsomorphicLayoutEffect(() => {
+    // Whenever the selection changes and is collapsed, make
+    // sure the cursor is visible.  Also, have a facility to
+    // ignore a single iteration of this, which we use when
+    // the selection change is being caused by realtime
+    // collaboration.
+
+    // @ts-ignore
+    const skip = editor.syncCausedUpdate;
+    if (
+      editor.selection != null &&
+      Range.isCollapsed(editor.selection) &&
+      !skip
+    ) {
+      editor.scrollCaretIntoView();
+    }
+  }, [editor.selection]);
+
   // Listen on the native `beforeinput` event to get real "Level 2" events. This
   // is required because React's `beforeinput` is fake and never really attaches
   // to the real event sadly. (2019/11/01)
@@ -877,10 +895,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               event.key.length == 1 &&
               !ReactEditor.selectionIsInDOM(editor)
             ) {
-              // In case of windowing, if you type something when the cursor is not
-              // in the DOM, then without doing something like this, that text would
-              // get inserted in completely the wrong place in the document.
-              editor.scrollCaretIntoView();
               // user likely typed a character so insert it
               editor.insertText(event.key);
               event.preventDefault();

@@ -194,10 +194,7 @@ function markdownAutoformatAt(editor: SlateEditor, path: Path): boolean {
     }
 
     applyOperations(editor, operations);
-    // Move the cursor to the right position.  It's very important to
-    // do this immediately after applying the operations, since otherwise
-    // the cursor will be in an invalid position right when
-    // scrollCaretIntoView and other things are called, which causes a crash.
+    // Move the cursor to the right position.
     const new_path = [...path];
     new_path[new_path.length - 1] += children.length - 1;
     const new_cursor = {
@@ -244,5 +241,4 @@ function shift_path(op: Operation, shift: number): void {
 // This is a SCARY function so please don't export it.
 export function focusEditorAt(editor: ReactEditor, point: Point): void {
   setSelectionAndFocus(editor, { focus: point, anchor: point });
-  editor.scrollCaretIntoView();
 }

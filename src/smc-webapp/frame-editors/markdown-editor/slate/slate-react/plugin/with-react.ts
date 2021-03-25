@@ -302,7 +302,8 @@ export const withReact = <T extends Editor>(editor: T) => {
           editorEl.scrollTop = editorEl.scrollTop - offset;
         }
       }
-    } catch (_e) {
+    } catch (err) {
+      console.log("WARNING: scrollCaretIntoView -- ", err)
       // The only side effect we are hiding is that the cursor might not
       // scroll into view, which is way better than crashing everything.
       // console.log("WARNING: failed to scroll cursor into view", e);

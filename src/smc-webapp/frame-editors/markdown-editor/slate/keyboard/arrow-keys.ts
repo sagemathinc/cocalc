@@ -38,7 +38,6 @@ const down = ({ editor, shift }) => {
     // subsequently move the cursor down programatically in
     // contenteditable, and it makes no sense to do so in slate
     // since the semantics of moving down depend on the exact rendering.
-    editor.scrollCaretIntoView();
     return true;
   }
 };
@@ -59,7 +58,6 @@ const up = ({ editor, shift }) => {
     moveCursorUp(editor, true);
     return true;
   } else {
-    editor.scrollCaretIntoView();
     return true;
   }
 };

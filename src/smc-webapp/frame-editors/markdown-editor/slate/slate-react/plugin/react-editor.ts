@@ -596,7 +596,6 @@ export const ReactEditor = {
   ) {
     const { selection } = editor;
     if (selection == null) return; // no cursor
-    editor.scrollCaretIntoView();
     const range = ReactEditor.toDOMRange(editor, {
       anchor: selection.focus,
       focus: selection.focus,
