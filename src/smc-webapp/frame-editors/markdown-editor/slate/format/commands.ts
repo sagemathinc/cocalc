@@ -465,7 +465,7 @@ async function formatHeading(editor, level: number): Promise<void> {
   const type = fragment[0]?.["type"];
   if (type != "heading" && type != "paragraph") {
     // Markdown doesn't let most things be in headers.
-    // Technicall markdown allows for headers as entries in other
+    // Technically markdown allows for headers as entries in other
     // things like lists, but we're not supporting this here, since
     // that just seems really annoying.
     return;
@@ -497,9 +497,16 @@ async function formatHeading(editor, level: number): Promise<void> {
       return;
     }
     if (level == 0) return; // paragraph mode -- no heading.
+    /*
     Transforms.wrapNodes(
       editor,
       { type: "heading", level } as Element,
+      options
+    );
+    */
+    Transforms.setNodes(
+      editor,
+      { type: "heading", level } as Partial<Element>,
       options
     );
   } finally {
