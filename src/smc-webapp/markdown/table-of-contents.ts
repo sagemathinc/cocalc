@@ -16,6 +16,7 @@ one extra thing we better do.
 
 import { remove_math, replace_math } from "smc-util/mathjax-utils";
 import { TableOfContentsEntry as Entry } from "../r_misc";
+import { parseHeader } from "./header";
 
 import { Token } from "./types";
 import * as MarkdownIt from "markdown-it";
@@ -26,6 +27,7 @@ const markdown_it = new MarkdownIt(OPTIONS);
 // NOTE: headings can't be nested in markdown, which makes parsing much easier.
 
 export function parseTableOfContents(markdown: string): Entry[] {
+  markdown = parseHeader(markdown).body;
   let id = 0;
   const entries: Entry[] = [];
   let entry: Entry | undefined = undefined;

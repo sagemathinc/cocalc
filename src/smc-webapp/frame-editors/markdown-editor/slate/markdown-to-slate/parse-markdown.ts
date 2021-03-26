@@ -11,7 +11,7 @@ issues with math formulas that can be mistaken for markdown
 syntax, which is a problem with many math markdown plugins.
 */
 
-import { markdown_it } from "../../../../markdown";
+import { markdown_it, parseHeader } from "smc-webapp/markdown";
 
 // Use this instead of the above to test with no plugins, which
 // can be useful for isolating performance issues.
@@ -76,11 +76,11 @@ export function parse_markdown(
   // const t0 = new Date().valueOf();
 
   let meta: undefined | string = undefined;
-  if (!no_meta && markdown.slice(0, 3) == "---") {
-    // YAML metadata header
-    const j = markdown.indexOf("---", 3);
-    meta = markdown.slice(4, j - 1);
-    markdown = markdown.slice(j + 4);
+
+  if (!no_meta) {
+    const x = parseHeader(markdown);
+    markdown = x.body;
+    meta = x.header;
   }
 
   markdown = math_escape(markdown);

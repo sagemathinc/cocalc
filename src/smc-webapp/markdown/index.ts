@@ -19,6 +19,7 @@ import * as emojiPlugin from "markdown-it-emoji";
 import { checkboxPlugin } from "./checkbox-plugin";
 import { hashtagPlugin } from "./hashtag-plugin";
 import { mentionPlugin } from "./mentions-plugin";
+export { parseHeader } from "./header";
 
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
