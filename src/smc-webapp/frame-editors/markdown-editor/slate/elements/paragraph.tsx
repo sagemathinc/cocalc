@@ -110,7 +110,11 @@ register({
         children = c;
       }
     }
-    return `${children}${info.lastChild ? "\n" : node.tight ? "\n" : "\n\n"}`;
+
+    // trimLeft is because prettier (say) strips whitespace from beginning of paragraphs.
+    return `${children}${
+      info.lastChild ? "\n" : node.tight ? "\n" : "\n\n"
+    }`.trimLeft();
   },
 });
 
