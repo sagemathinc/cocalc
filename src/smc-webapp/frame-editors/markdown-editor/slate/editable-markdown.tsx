@@ -97,19 +97,8 @@ const USE_WINDOWING = true;
 // minimizes interference when two users are editing at once.
 // ** This must be at least 1 or our algorithm for maintaining the
 // DOM selection state will not work.**
-const OVERSCAN_ROW_COUNT = 3;
+const OVERSCAN_ROW_COUNT = 10;
 
-/*
-import { IS_FIREFOX } from "../../../feature";
-if (USE_WINDOWING && IS_FIREFOX) {
-  // Windowing on Firefox results in TONS of problems all over the place, whereas it
-  // works "better" with Safari and Chrome.  So until we fix these (and we will),
-  // we disable windowing with Firefox.
-  // See https://github.com/sagemathinc/cocalc/issues/5204 where both
-  // problems are caused by windowing.
-  USE_WINDOWING = false;
-}
-*/
 
 const STYLE = {
   width: "100%",
