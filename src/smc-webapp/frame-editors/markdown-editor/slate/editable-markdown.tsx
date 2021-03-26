@@ -99,7 +99,6 @@ const USE_WINDOWING = true;
 // DOM selection state will not work.**
 const OVERSCAN_ROW_COUNT = 10;
 
-
 const STYLE = {
   width: "100%",
   overflow: "auto",
@@ -556,6 +555,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               ? {
                   rowStyle: {
                     padding: "0 70px",
+                    minHeight: "0.1px",
                     backgroundColor:
                       "white" /* to avoid overlapping transparent effect when initially measuring */,
                   },
