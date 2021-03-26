@@ -5,11 +5,6 @@
 
 // Component that allows WYSIWYG editing of markdown.
 
-// important: I made this type **wrong** so I don't
-// forget to comment this out.
-// const DEBUG: string = true; // do not delete "string"!
-const DEBUG = false;
-
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
 import { Map } from "immutable";
@@ -424,9 +419,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    if (DEBUG) {
+    if ((window as any).cc != null) {
+      // This only gets set when running in cc-in-cc dev mode.
       const { Editor, Node, Path, Range, Text } = require("slate");
-      (window as any).z = {
+      (window as any).cc.slate = {
         editor,
         Transforms,
         ReactEditor,
