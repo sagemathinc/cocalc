@@ -137,30 +137,36 @@ function toggleMark(editor: Editor, mark: string): void {
 export function formatSelectedText(editor: SlateEditor, mark: string) {
   const selection = getSelection(editor);
   if (selection == null) return; // nothing to do.
-  if (Range.isCollapsed(selection)) {
-    // select current word (which may partly span multiple text nodes!)
-    const at = currentWord(editor);
-    if (at != null) {
-      editor.saveValue(true); // make snapshot so can undo to before format
-      Transforms.setNodes(
-        editor,
-        { [mark]: !isAlreadyMarked(editor, mark) ? true : undefined },
-        { at, split: true, match: (node) => Text.isText(node) }
-      );
+  try {
+    if (Range.isCollapsed(selection)) {
+      // select current word (which may partly span multiple text nodes!)
+      const at = currentWord(editor);
+      if (at != null) {
+        editor.saveValue(true); // make snapshot so can undo to before format
+        Transforms.setNodes(
+          editor,
+          { [mark]: !isAlreadyMarked(editor, mark) ? true : undefined },
+          { at, split: true, match: (node) => Text.isText(node) }
+        );
+      }
+      // No current word.
+      // Set thing so if you start typing it has the given mark (or doesn't).
+      toggleMark(editor, mark);
+      return;
     }
-    // No current word.
-    // Set thing so if you start typing it has the given mark (or doesn't).
-    toggleMark(editor, mark);
-    return;
-  }
 
-  // This formats exactly the current selection or node, even if
-  // selection spans many nodes, etc.
-  Transforms.setNodes(
-    editor,
-    { [mark]: !isAlreadyMarked(editor, mark) ? true : undefined },
-    { at: selection, match: (node) => Text.isText(node), split: true }
-  );
+    // This formats exactly the current selection or node, even if
+    // selection spans many nodes, etc.
+    Transforms.setNodes(
+      editor,
+      { [mark]: !isAlreadyMarked(editor, mark) ? true : undefined },
+      { at: selection, match: (node) => Text.isText(node), split: true }
+    );
+  } finally {
+    // Clear the marks cache -- that we have to do this here is probably a slate bug.
+    // It would get cleared by moving the selection also.
+    editor.marks = null;
+  }
 }
 
 function unformatSelectedText(
@@ -169,18 +175,23 @@ function unformatSelectedText(
 ): void {
   const at = getSelection(editor);
   if (at == null) return; // nothing to do.
-  if (options.prefix) {
-    // Remove all formatting of the selected text
-    // that begins with the given prefix.
-    while (true) {
-      const mark = findMarkWithPrefix(editor, options.prefix);
-      if (!mark) break;
-      Transforms.setNodes(
-        editor,
-        { [mark]: false },
-        { at, match: (node) => Text.isText(node), split: true }
-      );
+  try {
+    if (options.prefix) {
+      // Remove all formatting of the selected text
+      // that begins with the given prefix.
+      while (true) {
+        const mark = findMarkWithPrefix(editor, options.prefix);
+        if (!mark) break;
+        Transforms.setNodes(
+          editor,
+          { [mark]: false },
+          { at, match: (node) => Text.isText(node), split: true }
+        );
+      }
     }
+  } finally {
+    // Clear the marks cache (workaround a slate bug).
+    editor.marks = null;
   }
 }
 

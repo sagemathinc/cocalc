@@ -85,14 +85,14 @@ const Children: React.FC<Props> = React.memo(
           }
         }
       } else {
-        ds = null;
+        ds = [];
         range = null;
       }
 
       if (Element.isElement(n)) {
         return (
           <ElementComponent
-            decorations={ds ?? []}
+            decorations={ds}
             element={n}
             key={key.id}
             renderElement={renderElement}
@@ -122,7 +122,7 @@ const Children: React.FC<Props> = React.memo(
       NODE_TO_PARENT.set(n, node);
     }
 
-    if (path.length == 0 && windowing != null) {
+    if (path?.length === 0 && windowing != null) {
       // top level and using windowing!
       return (
         <WindowedList

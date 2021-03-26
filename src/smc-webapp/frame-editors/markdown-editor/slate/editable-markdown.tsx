@@ -10,7 +10,7 @@ const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 import { Map } from "immutable";
 
 import { EditorState } from "../../frame-tree/types";
-import { createEditor, Descendant, Editor, Range, Transforms } from "slate";
+import { createEditor, Descendant, Range, Transforms } from "slate";
 import "./patches";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
@@ -47,7 +47,7 @@ import { createMention } from "./elements/mention";
 import { submit_mentions } from "../../../editors/markdown-input/mentions";
 
 import { useSearch } from "./search";
-import { EditBar, Marks } from "./edit-bar";
+import { EditBar, useMarks } from "./edit-bar";
 
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 
@@ -197,25 +197,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const search = useSearch();
 
-    const [marks, setMarks] = useState<Marks>(getMarks(editor));
-    const updateMarks = useMemo(() => {
-      const f = () => {
-        if (!isMountedRef.current) return;
-        // NOTE: important to debounce, and that this update happens
-        // sometime in the near future and not immediately on any change!
-        // Don't do it in the update loop where it is requested
-        // since that causes issues, e.g.., try to move cursor out
-        // of a code block.
-        if (!ReactEditor.isFocused(editor)) {
-          setMarks({});
-        } else {
-          setMarks(getMarks(editor));
-        }
-      };
-      // We debounce to avoid performance implications while typing and
-      // for the reason mentioned in the NOTE above.
-      return debounce(f, 500);
-    }, []);
+    const { marks, updateMarks } = useMarks(editor);
 
     const updateScrollState = useMemo(
       () =>
@@ -614,14 +596,3 @@ const withIsInline = (editor) => {
 
   return editor;
 };
-
-function getMarks(editor) {
-  try {
-    return Editor.marks(editor) ?? {};
-  } catch (err) {
-    // If the selection is at a non-leaf node somehow,
-    // then marks aren't defined and raises an error.
-    //console.log("Editor.marks", err);
-    return {};
-  }
-}
