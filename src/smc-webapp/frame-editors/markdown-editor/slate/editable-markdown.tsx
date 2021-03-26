@@ -37,6 +37,7 @@ import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { withAutoFormat } from "./format";
 import { withNormalize } from "./normalize";
+import { withInsertBreakHack } from "./elements/link";
 import { getHandler as getKeyboardHandler } from "./keyboard";
 
 import { useUpload, withUpload } from "./upload";
@@ -154,9 +155,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const editor = useMemo(() => {
       const cur = actions.getSlateEditor(id);
       if (cur != null) return cur;
-      const ed = withNormalize(
-        withUpload(
-          withAutoFormat(withIsInline(withIsVoid(withReact(createEditor()))))
+      const ed = withInsertBreakHack(
+        withNormalize(
+          withUpload(
+            withAutoFormat(withIsInline(withIsVoid(withReact(createEditor()))))
+          )
         )
       ) as SlateEditor;
       actions.registerSlateEditor(id, ed);

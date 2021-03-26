@@ -69,3 +69,31 @@ register({
     };
   },
 });
+
+// This is a workaround for https://github.com/ianstormtaylor/slate/issues/3772
+import { Editor, Element, Path, Range, Text, Transforms } from "slate";
+
+export const withInsertBreakHack = (editor) => {
+  const { insertBreak } = editor;
+
+  editor.insertBreak = () => {
+    const [selectedElement, path] = Editor.parent(editor, editor.selection);
+
+    if (Element.isElement(selectedElement) && selectedElement.type === "link") {
+      const endPoint = Range.end(editor.selection);
+      const [selectedLeaf] = Editor.node(editor, endPoint);
+      if (
+        Text.isText(selectedLeaf) &&
+        selectedLeaf.text.length === endPoint.offset
+      ) {
+        if (Range.isExpanded(editor.selection)) {
+          Transforms.delete(editor);
+        }
+        Transforms.select(editor, Path.next(path));
+      }
+    }
+    insertBreak();
+  };
+
+  return editor;
+};
