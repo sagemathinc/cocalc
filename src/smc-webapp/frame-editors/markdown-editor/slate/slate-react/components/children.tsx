@@ -51,17 +51,13 @@ const Children: React.FC<Props> = React.memo(
     try {
       path = ReactEditor.findPath(editor, node);
     } catch (err) {
-      if (windowing == null) {
-        // In case of windowing this is expected to happen temporarily during scrolling.
-        // But when not windowing, it should never happen.
-        console.log(
-          "WARNING: unable to find path to node! So not rendering...",
-          node,
-          editor.children,
-          err
-        );
-      }
-      return <></>;
+      console.log(
+        "WARNING: unable to find path to node: decorations and selection won't be rendered.",
+        node,
+        editor.children,
+        err
+      );
+      path = null;
     }
     const isLeafBlock =
       Element.isElement(node) &&
@@ -75,34 +71,41 @@ const Children: React.FC<Props> = React.memo(
         return <div style={{ height: "0.1px" }} contentEditable={false} />;
       }
       const n = node.children[index] as Descendant;
-      const p = path.concat(index);
       const key = ReactEditor.findKey(editor, n);
-      const range = Editor.range(editor, p);
-      const ds = decorate([n, p]);
+      let ds, range;
+      if (path != null) {
+        const p = path.concat(index);
+        range = Editor.range(editor, p);
+        ds = decorate([n, p]);
+        for (const dec of decorations) {
+          const d = Range.intersection(dec, range);
 
-      for (const dec of decorations) {
-        const d = Range.intersection(dec, range);
-
-        if (d) {
-          ds.push(d);
+          if (d) {
+            ds.push(d);
+          }
         }
+      } else {
+        ds = null;
+        range = null;
       }
 
       if (Element.isElement(n)) {
         return (
           <ElementComponent
-            decorations={ds}
+            decorations={ds ?? []}
             element={n}
             key={key.id}
             renderElement={renderElement}
             renderLeaf={renderLeaf}
-            selection={selection && Range.intersection(range, selection)}
+            selection={
+              selection && range && Range.intersection(range, selection)
+            }
           />
         );
       } else {
         return (
           <TextComponent
-            decorations={ds}
+            decorations={ds ?? []}
             key={key.id}
             isLast={isLeafBlock && index === node.children.length - 1}
             parent={node as Element}
