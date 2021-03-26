@@ -5,7 +5,7 @@
 
 export function parseHeader(
   markdown: string
-): { header: string; body: string } {
+): { header: string | undefined; body: string } {
   if (markdown.slice(0, 3) == "---") {
     // YAML metadata header
     const j = markdown.indexOf("---", 3);
@@ -13,5 +13,5 @@ export function parseHeader(
       return { header: markdown.slice(4, j - 1), body: markdown.slice(j + 4) };
     }
   }
-  return { header: "", body: markdown };
+  return { header: undefined, body: markdown };
 }
