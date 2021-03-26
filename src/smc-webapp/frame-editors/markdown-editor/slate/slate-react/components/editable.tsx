@@ -715,17 +715,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         onFocus={useCallback(
           (event: React.FocusEvent<HTMLDivElement>) => {
             if (shouldHandle({ event, name: "onFocus", notReadOnly: true })) {
-              const el = ReactEditor.toDOMNode(editor, editor);
               state.latestElement = window.document.activeElement;
-
-              // COMPAT: If the editor has nested editable elements, the focus
-              // can go to them. In Firefox, this must be prevented because it
-              // results in issues with keyboard navigation. (2017/03/30)
-              if (IS_FIREFOX && event.target !== el) {
-                el.focus();
-                return;
-              }
-
               IS_FOCUSED.set(editor, true);
             }
           },

@@ -149,7 +149,7 @@ register({
 const INFO_STYLE = {
   float: "right",
   position: "relative",
-  width: "10em",
+  width: "20ex",
   border: "1px solid #ccc",
   borderRadius: "5px",
   marginTop: "-3em",
@@ -157,6 +157,7 @@ const INFO_STYLE = {
   background: "#fafafa",
   padding: "0 5px",
   fontSize: "12px",
+  height: "20px",
 } as CSS;
 
 interface InfoProps {
