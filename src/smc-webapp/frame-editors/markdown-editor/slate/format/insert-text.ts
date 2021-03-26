@@ -146,10 +146,12 @@ function markdownAutoformatAt(editor: SlateEditor, path: Path): boolean {
     doc[0].type == "paragraph" &&
     Text.isText(doc[0].children[0]);
 
-  if (!isInline && start >= 1) {
-    // block level autocomplete must start at beginning of node. Otherwise, e.g.,
-    // typing "Tuesday - Thursday" would make a list item.
-    return false;
+  if (!isInline) {
+    if (start >= 1 || pos > 0) {
+      // block level autocomplete must start at beginning of the *block*. Otherwise, e.g.,
+      // typing "*Tuesday* - Thursday" would make a list item.
+      return false;
+    }
   }
 
   // **INLINE CASE**
