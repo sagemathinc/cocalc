@@ -3,6 +3,7 @@ import { Editor, Node, Path, Point, Range, Transforms } from "slate";
 import { Key } from "../utils/key";
 import {
   EDITOR_TO_ELEMENT,
+  EDITOR_TO_ON_CHANGE,
   ELEMENT_TO_NODE,
   IS_FOCUSED,
   IS_READ_ONLY,
@@ -32,8 +33,10 @@ export interface ReactEditor extends Editor {
   scrollCaretIntoView: (options?: { middle?: boolean }) => void;
   windowedListRef: { current: any };
   scrollCaretAfterNextScroll?: boolean;
-  collapsedSections: WeakMap<Node, boolean>;
+  collapsedSections: WeakMap<Node, true>;
   updateHiddenChildren: () => void;
+  forceUpdate: (editor: ReactEditor) => void;
+  ticks: number;
 }
 
 export const ReactEditor = {
@@ -650,5 +653,9 @@ export const ReactEditor = {
       // only change focus point
       Transforms.setSelection(editor, { focus });
     }
+  },
+
+  forceUpdate(editor: ReactEditor) {
+    EDITOR_TO_ON_CHANGE.get(editor)?.();
   },
 };

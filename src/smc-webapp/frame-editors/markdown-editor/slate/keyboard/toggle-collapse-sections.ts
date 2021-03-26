@@ -6,6 +6,7 @@
 import { register } from "./register";
 import { isElementOfType } from "../elements";
 import { Editor } from "slate";
+import { ReactEditor } from "../slate-react";
 
 function toggleCollapsedSections(editor): void {
   let changed: boolean = false;
@@ -20,6 +21,9 @@ function toggleCollapsedSections(editor): void {
   }
   if (changed) {
     editor.updateHiddenChildren();
+    // Cause the editor to update so that the useSlate context hook updates.
+    // (Only needed because editor.collapsedSection is a normal Set.)
+    ReactEditor.forceUpdate(editor);
   }
 }
 

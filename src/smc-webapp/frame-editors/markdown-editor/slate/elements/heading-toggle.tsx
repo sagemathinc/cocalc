@@ -5,7 +5,7 @@
 
 import { CSS, React, useEffect, useState } from "smc-webapp/app-framework";
 import { Icon } from "smc-webapp/r_misc";
-import { useSlateStatic } from "./register";
+import { useSlate } from "./register";
 import { Heading } from "./heading";
 
 const TOGGLE_STYLE = {
@@ -23,17 +23,27 @@ interface Props {
 }
 
 export const HeadingToggle: React.FC<Props> = ({ element }) => {
-  const editor = useSlateStatic();
+  const editor = useSlate();
   const [collapsed, setCollapsed] = useState<boolean>(
-    !!editor.collapsedSections.get(element)
+    editor.collapsedSections.has(element)
   );
 
   useEffect(() => {
-    setCollapsed(!!editor.collapsedSections.get(element));
-  }, [element]);
+    // check this every time editor changes, e.g., when user uses
+    // keyboard shortcut to change collapsedSections we have to
+    // handle that here.  TODO:  editor.collapsedSections is not
+    // in immer object, so we can't update only when it changes.
+    if (!!editor.collapsedSections.get(element) !== collapsed) {
+      setCollapsed(!collapsed);
+    }
+  }, [element, editor.ticks]);
 
   const toggle = () => {
-    editor.collapsedSections.set(element, !collapsed);
+    if (collapsed) {
+      editor.collapsedSections.delete(element);
+    } else {
+      editor.collapsedSections.set(element, true);
+    }
     setCollapsed(!collapsed);
     editor.updateHiddenChildren();
   };

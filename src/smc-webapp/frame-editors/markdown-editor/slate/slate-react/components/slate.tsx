@@ -20,17 +20,18 @@ export const Slate = (props: {
   onChange: (value: Descendant[]) => void;
 }) => {
   const { editor, children, onChange, value, ...rest } = props;
-  const [key, setKey] = useState(0);
+  const [ticks, setTick] = useState(0);
   const context: [ReactEditor] = useMemo(() => {
     editor.children = value;
+    editor.ticks = ticks;
     Object.assign(editor, rest);
     return [editor];
-  }, [key, value, ...Object.values(rest)]);
+  }, [ticks, value, ...Object.values(rest)]);
 
   const onContextChange = useCallback(() => {
     onChange(editor.children);
-    setKey(key + 1);
-  }, [key, onChange]);
+    setTick(ticks + 1);
+  }, [ticks, onChange]);
 
   EDITOR_TO_ON_CHANGE.set(editor, onContextChange);
 
