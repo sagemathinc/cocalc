@@ -28,40 +28,11 @@ export const EditBar: React.FC<Props> = ({
   marks,
   editor,
 }) => {
-  // console.log("EditBar", JSON.stringify(marks));
-  function renderButtons() {
-    const v: JSX.Element[] = [];
-    for (const mark of [
-      "bold",
-      "italic",
-      "underline",
-      "strikethrough",
-      "code",
-      /*"sup",
-      "sub",*/
-    ]) {
-      v.push(
-        <MarkButton
-          key={mark}
-          mark={mark}
-          active={marks[mark] ?? false}
-          editor={editor}
-        />
-      );
-    }
-    return <div style={{ flex: 1, whiteSpace: "nowrap" }}>{v}</div>;
-  }
-
-  function renderSearch() {
-    // put first since float right.
-    return <div>{Search}</div>;
-  }
-
-  function renderBody() {
+  function renderContent() {
     return (
       <>
-        {renderButtons()}
-        {renderSearch()}
+        <MarksBar marks={marks} editor={editor} />
+        <div>{Search}</div>
       </>
     );
   }
@@ -69,13 +40,13 @@ export const EditBar: React.FC<Props> = ({
   return (
     <div
       style={{
-        borderBottom: "1px solid lightgray",
+        borderBottom: isCurrent ? "1px solid lightgray" : "1px solid white",
         height: HEIGHT,
         display: "flex",
         flexDirection: "row",
       }}
     >
-      {isCurrent && renderBody()}
+      {isCurrent && renderContent()}
     </div>
   );
 };
@@ -101,4 +72,34 @@ const MarkButton: React.FC<MarkButtonProps> = ({ mark, active, editor }) => {
       <Icon name={mark} />
     </Button>
   );
+};
+
+interface MarksBarProps {
+  marks: Marks;
+  editor: SlateEditor;
+}
+
+const MARKS = [
+  "bold",
+  "italic",
+  "underline",
+  "strikethrough",
+  "code",
+  /*"sup",
+      "sub",*/
+];
+
+const MarksBar: React.FC<MarksBarProps> = ({ marks, editor }) => {
+  const v: JSX.Element[] = [];
+  for (const mark of MARKS) {
+    v.push(
+      <MarkButton
+        key={mark}
+        mark={mark}
+        active={marks[mark] ?? false}
+        editor={editor}
+      />
+    );
+  }
+  return <div style={{ flex: 1, whiteSpace: "nowrap" }}>{v}</div>;
 };
