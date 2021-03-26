@@ -10,8 +10,10 @@
 
 */
 
-import { Editor, Element, Range, Text, Transforms } from "slate";
+import { Editor, Element, Path, Range, Text, Transforms } from "slate";
 import { isEqual } from "lodash";
+
+import { getNodeAt } from "./slate-util";
 
 export const withNormalize = (editor) => {
   const { normalizeNode } = editor;
@@ -21,6 +23,7 @@ export const withNormalize = (editor) => {
 
     ensureListItemInAList({ editor, node, path });
     trimLeadingWhitespace({ editor, node, path });
+    mergeAdjacentLists({ editor, node, path });
 
     // Fall back to the original `normalizeNode` to enforce other constraints.
     normalizeNode(entry);
@@ -29,9 +32,9 @@ export const withNormalize = (editor) => {
   return editor;
 };
 
+// Ensure every list_item is contained in a list.
 function ensureListItemInAList({ editor, node, path }) {
   if (Element.isElement(node) && node.type === "list_item") {
-    // If the element is a list_item, ensure it is contained in a list.
     const [parent] = Editor.parent(editor, path);
     if (
       !Element.isElement(parent) ||
@@ -45,10 +48,12 @@ function ensureListItemInAList({ editor, node, path }) {
   }
 }
 
+/*
+Trim *all* whitespace from the beginning of blocks whose first child is Text,
+since markdown doesn't allow for it. (You can use &nbsp; of course.)
+*/
 function trimLeadingWhitespace({ editor, node, path }) {
   if (Element.isElement(node) && Text.isText(node.children[0])) {
-    // Trim *all* whitespace from the beginning of blocks whose first child is Text, since
-    // markdown doesn't allow for it.  (You can use &nbsp; of course.)
     const firstText = node.children[0].text;
     if (firstText != null) {
       // We actually get rid of spaces and tabs, but not ALL whitespace.  For example,
@@ -73,6 +78,24 @@ function trimLeadingWhitespace({ editor, node, path }) {
           );
         }
       }
+    }
+  }
+}
+
+/*
+If there are two adjacent lists of the same type, merge the second one into
+the first.
+*/
+function mergeAdjacentLists({ editor, node, path }) {
+  if (
+    Element.isElement(node) &&
+    (node.type === "bullet_list" || node.type === "ordered_list")
+  ) {
+    const nextPath = Path.next(path);
+    const nextNode = getNodeAt(editor, nextPath);
+    if (Element.isElement(nextNode) && nextNode.type == node.type) {
+      // We have two adjacent lists of the same type: combine them.
+      Transforms.mergeNodes(editor, { at: nextPath });
     }
   }
 }
