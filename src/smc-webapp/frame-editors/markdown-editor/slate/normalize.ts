@@ -42,6 +42,7 @@ export const withNormalize = (editor) => {
           const text = firstText.slice(0, i);
           editor.apply({ type: "remove_text", offset: 0, path: p, text });
           if (
+            selection != null &&
             Range.isCollapsed(selection) &&
             isEqual(selection.focus.path, p)
           ) {
