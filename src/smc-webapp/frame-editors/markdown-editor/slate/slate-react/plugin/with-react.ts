@@ -1,12 +1,5 @@
 import * as ReactDOM from "react-dom";
-import {
-  Editor,
-  Node,
-  Path,
-  Operation,
-  Transforms,
-  Range,
-} from "slate";
+import { Editor, Node, Path, Operation, Transforms, Range } from "slate";
 
 import { ReactEditor } from "./react-editor";
 import { Key } from "../utils/key";
@@ -166,12 +159,24 @@ export const withReact = <T extends Editor>(editor: T) => {
       }
     }
 
-    (e as any).saveValue?.(true);
+    // TODO: we want to do this, but it currently causes a slight
+    // delay, which is very disconcerting.  We need some sort of
+    // local slate undo before saving out to markdown (which has
+    // to wait until there is a pause in typing).
+    //(e as any).saveValue?.(true);
 
     if (fragment) {
       const decoded = decodeURIComponent(window.atob(fragment));
       const parsed = JSON.parse(decoded) as Node[];
-      e.insertFragment(parsed);
+      if (e.selection != null && e.selection.focus.path.length <= 2) {
+        // We do this at the top level
+        // @ts-ignore -- typing seems to not like an array, but works...
+        e.insertNode(parsed);
+      } else {
+        // When we're in some nested structure, e.g., a list, this
+        // seems to work much better.
+        e.insertFragment(parsed);
+      }
       return;
     }
 
