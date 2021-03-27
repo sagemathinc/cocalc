@@ -27,8 +27,9 @@ export const LinkEdit: React.FC<Props> = ({ linkURL, editor }) => {
     </a>
   );
   if (linkURL == null) {
-    body = <></>;
-  } else if (edit) {
+    return <></>;
+  }
+  if (edit) {
     body = (
       <Input
         autoFocus

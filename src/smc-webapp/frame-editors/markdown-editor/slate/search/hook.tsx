@@ -19,7 +19,9 @@ import * as React from "react";
 const { useMemo, useState } = React;
 import { Point, Text } from "slate";
 
-const DEFAULT_DEBOUNCE_MS = 500; // 500ms is pretty safe -- slate is pretty slow and handling this.
+import { SearchControlButtons } from "./search-control";
+
+const DEFAULT_DEBOUNCE_MS = 300;
 
 interface Options {
   debounce: number; // time in ms.
@@ -33,6 +35,7 @@ export interface SearchHook {
 
 export const useSearch: (Options?) => SearchHook = (options?) => {
   const [search, setSearch] = useState<string>("");
+  const [index, setIndex] = useState<number>(0);
 
   const decorate = useMemo(() => {
     const lowercaseSearch = search.trim().toLowerCase();
@@ -66,7 +69,7 @@ export const useSearch: (Options?) => SearchHook = (options?) => {
 
   const Search = useMemo(
     () => (
-      <Input.Search
+      <Input
         allowClear={true}
         size="small"
         placeholder="Search..."
@@ -75,15 +78,21 @@ export const useSearch: (Options?) => SearchHook = (options?) => {
           (e) => setSearch(e.target.value),
           options?.debounce ?? DEFAULT_DEBOUNCE_MS
         )}
-        onSearch={(value) => setSearch(value)}
         style={{
           border: 0,
           paddingLeft: "1ex",
           width: "100%",
         }}
+        addonAfter={
+          <SearchControlButtons
+            index={index}
+            matches={Math.max(0, search.length - 2)}
+            setIndex={setIndex}
+          />
+        }
       />
     ),
-    [search]
+    [search, index]
   );
 
   return { decorate, Search, search };

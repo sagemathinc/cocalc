@@ -62,5 +62,5 @@ export const MarksBar: React.FC<MarksBarProps> = ({ marks, editor }) => {
       />
     );
   }
-  return <div style={{ paddingRight: "10px" }}>{v}</div>;
+  return <div style={{ paddingRight: "10px", flex:1 }}>{v}</div>;
 };

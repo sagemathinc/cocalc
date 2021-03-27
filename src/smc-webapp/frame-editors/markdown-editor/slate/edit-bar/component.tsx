@@ -32,7 +32,7 @@ export const EditBar: React.FC<Props> = ({
       <>
         <MarksBar marks={marks} editor={editor} />
         <LinkEdit linkURL={linkURL} editor={editor} />
-        <div style={{ flex: 1, maxWidth: "30ex" }}>{Search}</div>
+        <div style={{ flex: 1, maxWidth: "50ex" }}>{Search}</div>
       </>
     );
   }
