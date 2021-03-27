@@ -197,7 +197,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       matchingUsers: (search) => mentionableUsers(project_id, search),
     });
 
-    const search = useSearch();
+    const search = useSearch({ editor });
 
     const { marks, updateMarks } = useMarks(editor);
 

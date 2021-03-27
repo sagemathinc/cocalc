@@ -4,27 +4,22 @@
  */
 
 /*
-Support for full text search of our slate.js document.
-
-Inspired by https://www.slatejs.org/examples/search-highlighting
-
-
+Support for global full text search of our slate.js document.
 */
 
 import { debounce } from "lodash";
-
 import { Input } from "antd";
-
 import * as React from "react";
 const { useMemo, useState } = React;
-import { Point, Text } from "slate";
+import { Editor, Point, Text } from "slate";
 
 import { SearchControlButtons } from "./search-control";
 
-const DEFAULT_DEBOUNCE_MS = 300;
+const DEFAULT_DEBOUNCE_MS = 500;
 
 interface Options {
   debounce: number; // time in ms.
+  editor: Editor;
 }
 
 export interface SearchHook {
@@ -33,9 +28,9 @@ export interface SearchHook {
   search: string;
 }
 
-export const useSearch: (Options?) => SearchHook = (options?) => {
+export const useSearch: (Options) => SearchHook = (options) => {
+  const { editor } = options;
   const [search, setSearch] = useState<string>("");
-  const [index, setIndex] = useState<number>(0);
 
   const decorate = useMemo(() => {
     const lowercaseSearch = search.trim().toLowerCase();
@@ -76,7 +71,7 @@ export const useSearch: (Options?) => SearchHook = (options?) => {
         defaultValue={search}
         onChange={debounce(
           (e) => setSearch(e.target.value),
-          options?.debounce ?? DEFAULT_DEBOUNCE_MS
+          options.debounce ?? DEFAULT_DEBOUNCE_MS
         )}
         style={{
           border: 0,
@@ -85,14 +80,14 @@ export const useSearch: (Options?) => SearchHook = (options?) => {
         }}
         addonAfter={
           <SearchControlButtons
-            index={index}
-            matches={Math.max(0, search.length - 2)}
-            setIndex={setIndex}
+            editor={editor}
+            decorate={decorate}
+            disabled={!search.trim()}
           />
         }
       />
     ),
-    [search, index]
+    [search, decorate]
   );
 
   return { decorate, Search, search };

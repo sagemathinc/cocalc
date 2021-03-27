@@ -6,41 +6,64 @@
 import * as React from "react";
 import { Button } from "antd";
 import { Icon } from "smc-webapp/r_misc";
+import { ReactEditor } from "../slate-react";
+import { selectNextMatch, selectPreviousMatch } from "./find-matches";
 
 interface Props {
-  index: number;
-  matches: number;
-  setIndex: (number) => void;
+  decorate;
+  editor: ReactEditor;
+  disabled: boolean;
 }
 
 export const SearchControlButtons: React.FC<Props> = ({
-  index,
-  matches,
-  setIndex,
+  decorate,
+  editor,
+  disabled,
 }) => {
   return (
     <div style={{ margin: "-1.5px -10px 0 -5px", height: "23px" }}>
-      <span
-        style={{ marginRight: "5px", color: matches == 0 ? "#999" : undefined }}
-      >
-        {matches == 0 ? 0 : index + 1} / {matches}
-      </span>
       <Button
         shape="round"
         size="small"
-        disabled={matches == 0}
-        onClick={() => setIndex(index == 0 ? matches - 1 : index - 1)}
+        disabled={disabled}
+        onClick={() => previousMatch(editor, decorate)}
       >
         <Icon name="chevron-up" />
       </Button>{" "}
       <Button
         shape="round"
         size="small"
-        disabled={matches == 0}
-        onClick={() => setIndex(index == matches - 1 ? 0 : index + 1)}
+        disabled={disabled}
+        onClick={() => nextMatch(editor, decorate)}
       >
         <Icon name="chevron-down" />
       </Button>
     </div>
   );
 };
+
+export async function nextMatch(editor, decorate) {
+  const focused = ReactEditor.isFocused(editor);
+  if (!focused) {
+    ReactEditor.focus(editor);
+    await delay(0);
+  }
+  selectNextMatch(editor, decorate);
+  if (!focused) {
+    await delay(10);
+  }
+  editor.scrollCaretIntoView();
+}
+
+export async function previousMatch(editor, decorate) {
+  const focused = ReactEditor.isFocused(editor);
+  if (!focused) {
+    ReactEditor.focus(editor);
+    await delay(0);
+  }
+  selectPreviousMatch(editor, decorate);
+  if (!focused) {
+    await delay(10);
+  }
+  editor.scrollCaretIntoView();
+}
