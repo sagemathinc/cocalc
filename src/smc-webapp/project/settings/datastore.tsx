@@ -406,9 +406,10 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           <div>
             <p>
               A datastore is a remote collection of files or file-like objects.
-              It can be mounted into a CoCalc project, if the has access to the
-              internet (quota "internet"). The configuration for each datastore
-              is passed on to the back-end and activated upon project startup.
+              It can be mounted into a CoCalc project, if the project has access
+              to the internet (quota "internet"). The configuration for each
+              datastore is passed on to the back-end and activated upon project
+              startup.
             </p>
             <p>
               If everything works out fine, you will be able to access the data
