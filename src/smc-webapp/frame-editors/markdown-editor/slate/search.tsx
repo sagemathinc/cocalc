@@ -79,8 +79,7 @@ export const useSearch: (Options?) => SearchHook = (options?) => {
         style={{
           border: 0,
           paddingLeft: "1ex",
-          width: "30ex",
-          maxWidth: "100%",
+          width: "100%",
         }}
       />
     ),

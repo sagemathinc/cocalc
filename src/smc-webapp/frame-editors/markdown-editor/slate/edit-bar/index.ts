@@ -5,3 +5,4 @@
 
 export * from "./component";
 export * from "./marks";
+export { useLinkURL } from "./link-url";

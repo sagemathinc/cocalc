@@ -3,10 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../../../app-framework";
+import { React } from "smc-webapp/app-framework";
 import { register, SlateElement, useProcessLinks } from "./register";
 import { dict } from "smc-util/misc";
-import { open_new_tab } from "../../../../misc-page";
+import { open_new_tab } from "smc-webapp/misc-page";
 const linkify = require("linkify-it")();
 
 export interface Link extends SlateElement {
@@ -21,7 +21,7 @@ register({
 
   fromSlate: ({ node, children }) => {
     // [my website](wstein.org "here")
-    const url = node.url ?? "";
+    let url = node.url ?? "";
     let title = node.title ?? "";
     if (title.length > 0) {
       title = ` \"${title}\"`;
@@ -31,6 +31,10 @@ register({
       // and there is no title.
       return url;
     } else {
+      if (/\s/.test(url)) {
+        // See https://superuser.com/questions/1170654/how-do-i-add-a-hyperlink-with-spaces-in-it-using-markdown
+        url = `<${url}>`;
+      }
       return `[${children}](${url}${title})`;
     }
   },

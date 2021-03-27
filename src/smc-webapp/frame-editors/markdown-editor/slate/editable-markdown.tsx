@@ -47,7 +47,7 @@ import { createMention } from "./elements/mention";
 import { submit_mentions } from "../../../editors/markdown-input/mentions";
 
 import { useSearch } from "./search";
-import { EditBar, useMarks } from "./edit-bar";
+import { EditBar, useLinkURL, useMarks } from "./edit-bar";
 
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 
@@ -198,6 +198,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const search = useSearch();
 
     const { marks, updateMarks } = useMarks(editor);
+
+    const { linkURL, updateLinkURL } = useLinkURL(editor);
 
     const updateScrollState = useMemo(
       () =>
@@ -446,6 +448,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       if (!isMountedRef.current) return;
       broadcastCursors();
       updateMarks();
+      updateLinkURL();
       try {
         // Track where the last editor selection was,
         // since this is very useful to know, e.g., for
@@ -559,6 +562,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           Search={search.Search}
           isCurrent={is_current}
           marks={marks}
+          linkURL={linkURL}
           editor={editor}
         />
         <div

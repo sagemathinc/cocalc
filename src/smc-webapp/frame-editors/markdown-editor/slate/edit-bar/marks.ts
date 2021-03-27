@@ -5,9 +5,12 @@
 
 import { debounce } from "lodash";
 import { useIsMountedRef, useMemo, useState } from "smc-webapp/app-framework";
-import { Marks } from "./component";
 import { Editor } from "slate";
 import { ReactEditor } from "../slate-react";
+
+export interface Marks {
+  [mark: string]: boolean | undefined;
+}
 
 function getMarks(editor) {
   try {
