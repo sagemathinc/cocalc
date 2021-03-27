@@ -15,6 +15,7 @@ import { TypedMap, createTypedMap } from "../app-framework";
 import { SITE_NAME } from "smc-util/theme";
 // Upgrades
 import * as project_upgrades from "./project-upgrades";
+import { Datastore } from "../projects/actions";
 
 export const PARALLEL_DEFAULT = 5;
 
@@ -238,6 +239,18 @@ export class CourseStore extends Store<CourseState> {
     const pay = settings.get("pay");
     if (!pay) return "";
     return pay;
+  }
+
+  public get_datastore(): Datastore {
+    const settings = this.get("settings");
+    if (settings == null || settings.get("datastore") == null) return undefined;
+    const ds = settings.get("datastore");
+    if (typeof ds === "boolean" || Array.isArray(ds)) {
+      return ds;
+    } else {
+      console.warn(`course/get_datastore: encountered faulty value:`, ds);
+      return undefined;
+    }
   }
 
   public get_allow_collabs(): boolean {

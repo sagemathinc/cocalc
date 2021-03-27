@@ -29,6 +29,8 @@ import { allow_project_to_run } from "../project/client-side-throttle";
 import { site_license_public_info } from "../site-licenses/util";
 import { Quota } from "smc-util/db-schema/site-licenses";
 
+export type Datastore = boolean | string[] | undefined;
+
 // Define projects actions
 export class ProjectsActions extends Actions<ProjectsState> {
   private async projects_table_set(
@@ -224,8 +226,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
     course_project_id: string,
     path: string,
     pay: Date | "",
-    account_id: string,
-    email_address: string
+    account_id: string | null,
+    email_address: string | null,
+    datastore: Datastore,
+    type: "student" | "shared" | "nbgrader"
   ): Promise<void> {
     if (!(await this.have_project(project_id))) {
       const msg = `Can't set course info -- you are not a collaborator on project '${project_id}'.`;
@@ -233,13 +237,18 @@ export class ProjectsActions extends Actions<ProjectsState> {
       return;
     }
     const course_info = store.get_course_info(project_id)?.toJS();
-    const course = {
+    const course: any = {
       project_id: course_project_id,
       path,
       pay,
-      account_id,
-      email_address,
+      datastore,
+      type,
     };
+    // null for shared/nbgrader project, otherwise student project
+    if (account_id != null && email_address != null) {
+      course.account_id = account_id;
+      course.email_address = email_address;
+    }
     // json_stable -- I'm tired and this needs to just work for comparing.
     if (json_stable(course_info) === json_stable(course)) {
       // already set as required; do nothing
