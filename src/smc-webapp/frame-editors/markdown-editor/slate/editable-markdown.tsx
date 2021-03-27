@@ -97,7 +97,9 @@ const USE_WINDOWING = true;
 // minimizes interference when two users are editing at once.
 // ** This must be at least 1 or our algorithm for maintaining the
 // DOM selection state will not work.**
-const OVERSCAN_ROW_COUNT = 10;
+// Setting the count to 10 and editing moby dick **does** feel slightly
+// laggy, whereas around 2 or 3 and it feels super snappy.
+const OVERSCAN_ROW_COUNT = 2;
 
 const STYLE = {
   width: "100%",
