@@ -49,9 +49,8 @@ export async function nextMatch(editor, decorate) {
     await delay(0);
   }
   selectNextMatch(editor, decorate);
-  if (!focused) {
-    await delay(10);
-  }
+  editor.scrollCaretIntoView();
+  await delay(100);
   editor.scrollCaretIntoView();
 }
 
@@ -62,8 +61,7 @@ export async function previousMatch(editor, decorate) {
     await delay(0);
   }
   selectPreviousMatch(editor, decorate);
-  if (!focused) {
-    await delay(10);
-  }
+  editor.scrollCaretIntoView();
+  await delay(100);
   editor.scrollCaretIntoView();
 }

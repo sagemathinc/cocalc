@@ -46,7 +46,7 @@ import { mentionableUsers } from "../../../editors/markdown-input/mentionable-us
 import { createMention } from "./elements/mention";
 import { submit_mentions } from "../../../editors/markdown-input/mentions";
 
-import { useSearch } from "./search";
+import { useSearch, SearchHook } from "./search";
 import { EditBar, useLinkURL, useMarks } from "./edit-bar";
 
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
@@ -197,7 +197,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       matchingUsers: (search) => mentionableUsers(project_id, search),
     });
 
-    const search = useSearch({ editor });
+    const search: SearchHook = useSearch({ editor });
 
     const { marks, updateMarks } = useMarks(editor);
 
@@ -311,7 +311,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
       const handler = getKeyboardHandler(e);
       if (handler != null) {
-        const extra = { actions, id };
+        const extra = { actions, id, search };
         if (handler({ editor, extra })) {
           e.preventDefault();
           // key was handled.

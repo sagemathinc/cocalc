@@ -12,7 +12,7 @@ import { blocksCursor, moveCursorUp, moveCursorDown } from "../control";
 import { ReactEditor } from "../slate-react";
 import { IS_FIREFOX } from "smc-webapp/feature";
 
-const down = ({ editor, shift }) => {
+const down = ({ editor, shift }: { editor: ReactEditor; shift? }) => {
   if (ReactEditor.selectionIsInDOM(editor)) {
     // just work in the usual way
     if (!blocksCursor(editor, false)) {
@@ -44,7 +44,7 @@ const down = ({ editor, shift }) => {
 
 register({ key: "ArrowDown" }, down);
 
-const up = ({ editor, shift }) => {
+const up = ({ editor, shift }: { editor: ReactEditor; shift? }) => {
   if (ReactEditor.selectionIsInDOM(editor)) {
     if (!blocksCursor(editor, true)) {
       if (IS_FIREFOX && ReactEditor.isUsingWindowing(editor)) {
