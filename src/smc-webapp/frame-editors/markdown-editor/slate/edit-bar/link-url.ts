@@ -12,15 +12,20 @@ function getLinkURL(editor): string | undefined {
   if (selection == null || !Range.isCollapsed(selection)) {
     return;
   }
-  for (const [node] of Editor.nodes(editor, {
-    match: (node) => Element.isElement(node) && node.type == "link",
-  })) {
-    // @ts-ignore
-    return node.url;
+  try {
+    for (const [node] of Editor.nodes(editor, {
+      match: (node) => Element.isElement(node) && node.type == "link",
+    })) {
+      // @ts-ignore
+      return node.url;
+    }
+  } catch (_err) {
+    // This can happen right when the actual editor is closing...
+    return;
   }
 }
 
-export function setLinkURL(editor, url: string) {
+export function setLinkURL(editor, url: string): void {
   const { selection } = editor;
   if (selection == null || !Range.isCollapsed(selection)) {
     return;
@@ -33,20 +38,18 @@ export function setLinkURL(editor, url: string) {
       return;
     }
   } catch (_err) {
-    // This can happen right when the actual editor is closing, due to
-    // setLinkURL being called asyncronously.  Best to not crash all
-    // of cocalc!  And skipping this is harmless.
+    // This can happen right when the actual editor is closing...
   }
 }
 
 export const useLinkURL = (editor) => {
-  const [linkURL, setLinkURL] = useState<string | undefined>(
+  const [linkURL, setLinkURLState] = useState<string | undefined>(
     getLinkURL(editor)
   );
 
   const updateLinkURL = useMemo(() => {
     const f = () => {
-      setLinkURL(getLinkURL(editor));
+      setLinkURLState(getLinkURL(editor));
     };
     // We debounce to avoid any potential performance implications while
     // typing and for the reason mentioned in the NOTE above.  leading=false

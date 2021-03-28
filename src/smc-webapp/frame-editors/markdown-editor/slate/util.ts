@@ -72,14 +72,21 @@ export function indent(s: string, n: number): string {
   return v.join("\n");
 }
 
-export function li_indent(s: string): string {
-  // indent all but the first line by 2 spaces.
-  // There are some cases where more than 2 spaces may be needed, but we're not
-  // dealing with those yet.  See
-  // https://stackoverflow.com/questions/53866598/markdown-list-indentation-with-3-spaces-or-4-spaces-what-is-the-standard#:~:text=So%20for%20ordered%20lists%2C%20you,hit%20the%20list%20marker%2010.
+/*
+li_indent -- indent all but the first line by amount spaces.
+
+NOTE: There are some cases where more than 2 spaces are needed.
+For example, here we need 3:
+
+1. one
+2. two
+   - foo
+   - bar
+*/
+export function li_indent(s: string, amount: number = 2): string {
   const i = s.indexOf("\n");
   if (i != -1 && i != s.length - 1) {
-    return s.slice(0, i + 1) + indent(s.slice(i + 1), 2);
+    return s.slice(0, i + 1) + indent(s.slice(i + 1), amount);
   } else {
     return s;
   }
@@ -215,5 +222,3 @@ export const DEFAULT_CHILDREN = [{ text: "" }];
 export function removeBlankLines(s: string): string {
   return s.replace(/^\s*\n/gm, "");
 }
-
-

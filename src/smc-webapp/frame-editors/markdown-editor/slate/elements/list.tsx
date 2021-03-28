@@ -45,7 +45,7 @@ register({
       style.marginBottom = "1em";
     }
     const start =
-      element.type == "ordered_list" && element.start
+      element.type == "ordered_list" && element.start != null
         ? { start: element.start }
         : {};
 

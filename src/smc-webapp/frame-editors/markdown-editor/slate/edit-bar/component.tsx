@@ -9,12 +9,15 @@ import { SlateEditor } from "../editable-markdown";
 import { MarksBar } from "./marks-bar";
 import { Marks } from "./marks";
 import { LinkEdit } from "./link-edit";
+import { ListProperties } from "./list";
+import { ListEdit } from "./list-edit";
 
 interface Props {
   Search: JSX.Element;
   isCurrent?: boolean;
   marks: Marks;
   linkURL: string | undefined;
+  listProperties: ListProperties | undefined;
   editor: SlateEditor;
 }
 
@@ -25,6 +28,7 @@ export const EditBar: React.FC<Props> = ({
   Search,
   marks,
   linkURL,
+  listProperties,
   editor,
 }) => {
   function renderContent() {
@@ -32,6 +36,7 @@ export const EditBar: React.FC<Props> = ({
       <>
         <MarksBar marks={marks} editor={editor} />
         <LinkEdit linkURL={linkURL} editor={editor} />
+        <ListEdit listProperties={listProperties} editor={editor} />
         <div style={{ flex: 1, maxWidth: "50ex" }}>{Search}</div>
       </>
     );

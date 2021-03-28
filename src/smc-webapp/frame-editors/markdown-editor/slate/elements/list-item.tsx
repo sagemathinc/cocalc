@@ -23,24 +23,27 @@ register({
   },
 
   fromSlate: ({ children, info, node }) => {
-    let s = ensure_ends_in_newline(li_indent(item({ children, info })));
+    let indent = 2;
+    let item: string;
+
+    if (info.parent == null) {
+      // should never happen for list *items*.
+      item = `- ${children}`;
+    } else if (info.parent.type == "bullet_list") {
+      item = `- ${children}`;
+    } else if (info.parent.type == "ordered_list") {
+      const number = `${(info.index ?? 0) + (info.parent.start ?? 1)}`;
+      indent = number.length + 2;
+      item = `${number}. ${children}`;
+    } else {
+      // should also never happen
+      item = `- ${children}`;
+    }
+
+    let s = ensure_ends_in_newline(li_indent(item, indent));
     if (!node.children[0]?.tight) {
       s += "\n";
     }
     return s;
   },
 });
-
-function item({ children, info }): string {
-  if (info.parent == null) {
-    // should never happen for list *items*.
-    return `- ${children}`;
-  } else if (info.parent.type == "bullet_list") {
-    return `- ${children}`;
-  } else if (info.parent.type == "ordered_list") {
-    return `${(info.index ?? 0) + (info.parent.start ?? 1)}. ${children}`;
-  } else {
-    // should also never happen
-    return `- ${children}`;
-  }
-}
