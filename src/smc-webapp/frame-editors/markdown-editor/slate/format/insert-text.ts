@@ -76,7 +76,7 @@ function markdownAutoformat(editor: SlateEditor): boolean {
       type: "split_node",
       path: selection.focus.path,
       position: selection.focus.offset - 1,
-      properties: {},
+      properties: node, // important to preserve text properties on split (seems fine to leave text field)
     });
     r = markdownAutoformatAt(editor, selection.focus.path);
   });
