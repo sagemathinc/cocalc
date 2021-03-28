@@ -17,6 +17,7 @@ import { debounce, isEqual } from "lodash";
 import {
   CSS,
   React,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -33,6 +34,7 @@ import { Leaf } from "./leaf";
 import { withAutoFormat } from "./format";
 import { withNormalize } from "./normalize";
 import { withInsertBreakHack } from "./elements/link";
+import { estimateSize } from "./elements";
 import { getHandler as getKeyboardHandler } from "./keyboard";
 
 import { useUpload, withUpload } from "./upload";
@@ -186,6 +188,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       markdown_to_slate(value, false, editor.syncCache)
     );
 
+    const rowSizeEstimator = useCallback((node) => {
+      return estimateSize({ node, fontSize: font_size });
+    }, []);
+
     const mentions = useMentions({
       editor,
       insertMention: (editor, account_id) => {
@@ -198,7 +204,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       matchingUsers: (search) => mentionableUsers(project_id, search),
     });
 
-    const search: SearchHook = editor.search = useSearch({ editor });
+    const search: SearchHook = (editor.search = useSearch({ editor }));
 
     const { marks, updateMarks } = useMarks(editor);
 
@@ -548,13 +554,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
                       "white" /* to avoid overlapping transparent effect when initially measuring */,
                   },
                   overscanRowCount: OVERSCAN_ROW_COUNT,
+                  rowSizeEstimator,
                 }
               : undefined
           }
         />
       </Slate>
     );
-
     let body = (
       <div
         className="smc-vfill"

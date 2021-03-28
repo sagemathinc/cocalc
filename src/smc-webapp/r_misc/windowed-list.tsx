@@ -40,6 +40,7 @@ import { React, Component, Rendered, CSS } from "../app-framework";
 interface Props {
   overscan_row_count: number; // how many not visible cells to render on each side of window
   estimated_row_size: number; // estimate to use for the row size before measuring
+  row_size_estimator?: (index: number) => number | undefined; // optional row size estimator
   row_count: number; // number of rows
   row_renderer: (obj: {
     key: string;
@@ -314,7 +315,10 @@ export class WindowedList extends Component<Props, State> {
 
     const elt = this.cell_refs[key];
     if (elt == null) {
-      return h ? h : this.props.estimated_row_size;
+      return h
+        ? h
+        : this.props.row_size_estimator?.(index) ??
+            this.props.estimated_row_size;
     }
 
     let ht = elt.height();
@@ -323,7 +327,10 @@ export class WindowedList extends Component<Props, State> {
       ht = Math.max(h, ht);
     }
     if (ht === 0) {
-      return h ? h : this.props.estimated_row_size;
+      return h
+        ? h
+        : this.props.row_size_estimator?.(index) ??
+            this.props.estimated_row_size;
     }
 
     if (

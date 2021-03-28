@@ -16,6 +16,7 @@ export interface WindowingParams {
   rowStyle?: React.CSSProperties;
   overscanRowCount?: number;
   estimatedRowSize?: number;
+  rowSizeEstimator?: (Node) => number | undefined;
 }
 
 /**
@@ -132,6 +133,15 @@ const Children: React.FC<Props> = React.memo(
           row_renderer={renderChild}
           overscan_row_count={windowing.overscanRowCount ?? 3}
           estimated_row_size={windowing.estimatedRowSize ?? 60}
+          row_size_estimator={
+            windowing.rowSizeEstimator
+              ? (index) => {
+                  return node.children[index] != null
+                    ? windowing.rowSizeEstimator?.(node.children[index])
+                    : undefined;
+                }
+              : undefined
+          }
           row_key={(index) => `${index}`}
           row_style={windowing.rowStyle}
           on_scroll={onScroll}

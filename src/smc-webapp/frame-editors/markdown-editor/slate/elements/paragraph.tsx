@@ -116,6 +116,11 @@ register({
       info.lastChild ? "\n" : node.tight ? "\n" : "\n\n"
     }`.trimLeft();
   },
+
+  sizeEstimator({ node, fontSize }): number {
+    const numLines = Math.round(JSON.stringify(node).length / 60);
+    return numLines * 1.4 * fontSize + fontSize;
+  },
 });
 
 function hasImageAsChild(element): boolean {

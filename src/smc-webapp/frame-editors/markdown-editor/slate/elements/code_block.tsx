@@ -135,6 +135,10 @@ function fromSlate({ node }) {
   }
 }
 
+function sizeEstimator({ node, fontSize }): number {
+  return node.value.split("\n").length * (fontSize + 2) + 10 + fontSize;
+}
+
 register({
   slateType: "code_block",
   markdownType: ["fence", "code_block"],
@@ -142,6 +146,7 @@ register({
   Element,
   toSlate,
   rules: { autoFocus: true },
+  sizeEstimator,
 });
 
 // The info editor.

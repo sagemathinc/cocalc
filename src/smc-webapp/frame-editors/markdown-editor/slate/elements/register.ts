@@ -39,6 +39,13 @@ type markdownToSlateFunction = (markdownToSlateOptions) => Element | undefined;
 
 type slateToMarkdownFunction = (slateToMarkdownOptions) => string;
 
+interface SizeEstimatorOptions {
+  node: Node;
+  fontSize: number; // unit of pixels
+}
+
+type sizeEstimatorFunction = (SizeEstimatorOptions) => number | undefined;
+
 // This hook is called before the children of the node are serialized.
 // Use this to mutate childInfo and add in extra information that the
 // parent can deduce, but the children can't, since they have no way
@@ -67,6 +74,8 @@ interface Handler {
 
   Element: React.FC<RenderElementProps>;
 
+  sizeEstimator?: sizeEstimatorFunction;
+
   childInfoHook?: childInfoHookFunction;
   fromSlate: slateToMarkdownFunction;
 
@@ -82,6 +91,9 @@ const slateToMarkdown: {
 } = {};
 const childInfoHooks: { [slateType: string]: childInfoHookFunction } = {};
 const rules: { [slateType: string]: Rules } = {};
+const sizeEstimators: {
+  [slateType: string]: sizeEstimatorFunction;
+} = {};
 
 export function register(h: Handler): void {
   const t = typeof h.slateType == "string" ? [h.slateType] : h.slateType;
@@ -113,6 +125,10 @@ export function register(h: Handler): void {
 
     if (h.childInfoHook != null) {
       childInfoHooks[slateType] = h.childInfoHook;
+    }
+
+    if (h.sizeEstimator != null) {
+      sizeEstimators[slateType] = h.sizeEstimator;
     }
   }
 }
@@ -159,4 +175,10 @@ export function getChildInfoHook(
 
 export function getRules(slateType: string): Rules | undefined {
   return rules[slateType];
+}
+
+export function estimateSize(opts: SizeEstimatorOptions): number | undefined {
+  const estimate = sizeEstimators[opts.node["type"]]?.(opts);
+  // console.log(estimate, " -- estimated size of ", opts);
+  return estimate;
 }
