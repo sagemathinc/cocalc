@@ -10,7 +10,7 @@ Support for global full text search of our slate.js document.
 import { Input } from "antd";
 import * as React from "react";
 const { useMemo, useRef, useState } = React;
-import { Editor, Point, Range, Text, Transforms } from "slate";
+import { Editor, Point, Range, Transforms } from "slate";
 import {
   nextMatch,
   previousMatch,
@@ -18,6 +18,9 @@ import {
 } from "./search-control";
 import { ReactEditor } from "../slate-react";
 import { IS_MACOS, IS_TOUCH } from "smc-webapp/feature";
+import { createSearchDecorate } from "./decorate";
+
+
 const modKey = IS_MACOS ? "⌘" : "ctrl";
 const keyboardMessage = `Next (${modKey}-G) and Prev (Shift-${modKey}-G).`;
 
@@ -51,33 +54,7 @@ export const useSearch: (Options) => SearchHook = (options) => {
   const [isFocused, setIsFocused] = useState<boolean>(false);
 
   const decorate = useMemo(() => {
-    const lowercaseSearch = search.trim().toLowerCase();
-    if (!lowercaseSearch) {
-      // trivial function (as fast as possible)
-      return () => [];
-    }
-    return ([node, path]) => {
-      const ranges: { anchor: Point; focus: Point; search: true }[] = [];
-      if (!Text.isText(node)) return ranges;
-
-      const { text } = node;
-      const parts = text.toLowerCase().split(lowercaseSearch);
-      let offset = 0;
-
-      parts.forEach((part, i) => {
-        if (i !== 0) {
-          ranges.push({
-            anchor: { path, offset: offset - lowercaseSearch.length },
-            focus: { path, offset },
-            search: true,
-          });
-        }
-
-        offset = offset + part.length + lowercaseSearch.length;
-      });
-
-      return ranges;
-    };
+    return createSearchDecorate(search);
   }, [search]);
 
   const Search = useMemo(
