@@ -24,8 +24,10 @@ export const SearchControlButtons: React.FC<Props> = ({
     <div style={{ margin: "-1.5px -10px 0 -5px", height: "23px" }}>
       <Button
         shape="round"
+        type="text"
         size="small"
         disabled={disabled}
+        style={{ padding: "0 5px" }}
         onClick={() => previousMatch(editor, decorate)}
       >
         <Icon name="chevron-up" />
@@ -33,7 +35,9 @@ export const SearchControlButtons: React.FC<Props> = ({
       <Button
         shape="round"
         size="small"
+        type="text"
         disabled={disabled}
+        style={{ padding: "0 5px" }}
         onClick={() => nextMatch(editor, decorate)}
       >
         <Icon name="chevron-down" />
