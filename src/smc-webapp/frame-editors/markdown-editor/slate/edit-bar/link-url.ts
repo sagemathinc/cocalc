@@ -4,7 +4,7 @@
  */
 
 import { debounce } from "lodash";
-import { useIsMountedRef, useMemo, useState } from "smc-webapp/app-framework";
+import { useMemo, useState } from "smc-webapp/app-framework";
 import { Editor, Element, Range, Transforms } from "slate";
 
 function getLinkURL(editor): string | undefined {
@@ -25,24 +25,27 @@ export function setLinkURL(editor, url: string) {
   if (selection == null || !Range.isCollapsed(selection)) {
     return;
   }
-  for (const [, path] of Editor.nodes(editor, {
-    match: (node) => Element.isElement(node) && node.type == "link",
-  })) {
-    Transforms.setNodes(editor, { url }, { at: path });
-    return;
+  try {
+    for (const [, path] of Editor.nodes(editor, {
+      match: (node) => Element.isElement(node) && node.type == "link",
+    })) {
+      Transforms.setNodes(editor, { url }, { at: path });
+      return;
+    }
+  } catch (_err) {
+    // This can happen right when the actual editor is closing, due to
+    // setLinkURL being called asyncronously.  Best to not crash all
+    // of cocalc!  And skipping this is harmless.
   }
 }
 
 export const useLinkURL = (editor) => {
-  const isMountedRef = useIsMountedRef();
-
   const [linkURL, setLinkURL] = useState<string | undefined>(
     getLinkURL(editor)
   );
 
   const updateLinkURL = useMemo(() => {
     const f = () => {
-      if (!isMountedRef.current) return;
       setLinkURL(getLinkURL(editor));
     };
     // We debounce to avoid any potential performance implications while
