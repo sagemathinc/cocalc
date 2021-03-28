@@ -14,6 +14,7 @@ import { Editor, Element, Path, Range, Text, Transforms } from "slate";
 import { isEqual } from "lodash";
 
 import { getNodeAt } from "./slate-util";
+import { emptyParagraph } from "./padding";
 
 export const withNormalize = (editor) => {
   const { normalizeNode } = editor;
@@ -24,6 +25,7 @@ export const withNormalize = (editor) => {
     ensureListItemInAList({ editor, node, path });
     trimLeadingWhitespace({ editor, node, path });
     mergeAdjacentLists({ editor, node, path });
+    ensureDocumentNonempty({ editor });
 
     // Fall back to the original `normalizeNode` to enforce other constraints.
     normalizeNode(entry);
@@ -31,6 +33,17 @@ export const withNormalize = (editor) => {
 
   return editor;
 };
+
+// This does get called if you somehow blank the document. It
+// gets called with path=[], which makes perfect sense.  If we
+// don't put something in, then things immediately break due to
+// selection assumptions.  Slate doesn't do this automatically,
+// since it doesn't nail down the internal format of a blank document.
+function ensureDocumentNonempty({ editor }) {
+  if (editor.children.length == 0) {
+    Editor.insertNode(editor, emptyParagraph());
+  }
+}
 
 // Ensure every list_item is contained in a list.
 function ensureListItemInAList({ editor, node, path }) {
