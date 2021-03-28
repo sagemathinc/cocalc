@@ -10,7 +10,7 @@ import {
   register,
   useFocused,
   useSelected,
-  useCollapsed,
+  useSlateStatic,
 } from "./register";
 
 export interface Hashtag extends SlateElement {
@@ -23,6 +23,7 @@ const STYLE = {
   padding: "0 7px",
   color: "#1b95e0",
   borderRadius: "5px",
+  cursor: "pointer",
 } as CSS;
 
 register({
@@ -34,16 +35,19 @@ register({
     if (element.type != "hashtag") throw Error("bug");
     const focused = useFocused();
     const selected = useSelected();
-    const collapsed = useCollapsed();
+    const editor = useSlateStatic();
 
     const border =
       focused && selected ? `1px solid ${FOCUSED_COLOR}` : "1px solid #d9d9d9";
-    const backgroundColor =
-      focused && selected && !collapsed ? "#1990ff" : "#fafafa";
+    const backgroundColor = focused && selected ? "#1990ff" : "#fafafa";
+    const color = focused && selected ? "white" : undefined;
 
     return (
       <span {...attributes}>
-        <span style={{ ...STYLE, border, backgroundColor }}>
+        <span
+          style={{ ...STYLE, border, backgroundColor, color }}
+          onClick={() => editor.search.focus("#" + element.content)}
+        >
           #{element.content}
         </span>
         {children}

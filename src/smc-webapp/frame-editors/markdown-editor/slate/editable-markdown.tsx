@@ -72,6 +72,7 @@ export interface SlateEditor extends ReactEditor {
   getMarkdownValue: () => string;
   getSourceValue: (fragment?) => string;
   syncCache?: any;
+  search: SearchHook;
 }
 
 // Whether or not to use windowing (=only rendering visible elements).
@@ -197,7 +198,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       matchingUsers: (search) => mentionableUsers(project_id, search),
     });
 
-    const search: SearchHook = useSearch({ editor });
+    const search: SearchHook = editor.search = useSearch({ editor });
 
     const { marks, updateMarks } = useMarks(editor);
 

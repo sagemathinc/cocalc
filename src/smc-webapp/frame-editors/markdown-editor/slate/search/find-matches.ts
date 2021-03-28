@@ -8,6 +8,7 @@ import { rangeAll, rangeToEnd, rangeFromStart } from "../slate-util";
 
 /* Find locations of all positions in the editor that match the search string. */
 
+// TODO: findMatches will be used for "replace all" functionality, but isn't used now.
 export function findMatches(
   editor: Editor,
   decorate: (x: [Node, Path]) => any[]

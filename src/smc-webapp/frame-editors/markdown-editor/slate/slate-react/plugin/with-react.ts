@@ -245,13 +245,14 @@ export const withReact = <T extends Editor>(editor: T) => {
       if (!selection) return;
       //if (!Range.isCollapsed(selection)) return;
 
-      // Important: there's no good way to do this when the focused
-      // element is void, and the naive code leads to bad problems,
-      // e.g., with several images, when you click on one, things jump
+      // Important: this doesn't really work well for many types
+      // of void elements, e.g, when the focused
+      // element is an image -- with several images, when
+      // you click on one, things jump
       // around randomly and you sometimes can't scroll the image into view.
-      // Better to just do nothing in case of voids.
+      // Better to just do nothing in this case.
       for (const [node] of Editor.nodes(e, { at: selection.focus })) {
-        if (Editor.isVoid(e, node)) {
+        if (Editor.isVoid(e, node) && !SCROLL_WHITELIST.has(node["type"])) {
           return;
         }
       }
@@ -326,3 +327,5 @@ export const withReact = <T extends Editor>(editor: T) => {
 
   return e;
 };
+
+const SCROLL_WHITELIST = new Set(["hashtag", "checkbox"]);
