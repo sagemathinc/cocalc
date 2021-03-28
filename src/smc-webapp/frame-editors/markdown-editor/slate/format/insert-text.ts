@@ -38,7 +38,7 @@ import { getRules } from "../elements";
 import { moveCursorToEndOfElement } from "../control";
 import { ReactEditor } from "../slate-react";
 import { SlateEditor } from "../editable-markdown";
-import { setSelectionAndFocus } from "./commands";
+import { formatHeading, setSelectionAndFocus } from "./commands";
 
 export const withInsertText = (editor) => {
   const { insertText } = editor;
@@ -70,7 +70,7 @@ function markdownAutoformat(editor: SlateEditor): boolean {
   // Must be a text node
   if (!Text.isText(node)) return false;
 
-  let r;
+  let r: boolean | Function = false;
   Editor.withoutNormalizing(editor, () => {
     editor.apply({
       type: "split_node",
@@ -80,12 +80,21 @@ function markdownAutoformat(editor: SlateEditor): boolean {
     });
     r = markdownAutoformatAt(editor, selection.focus.path);
   });
+  if (typeof r == "function") {
+    // code to run after normalizing.
+    // @ts-ignore
+    r();
+    r = true;
+  }
   return r;
 }
 
 // Use conversion back and forth to markdown to autoformat
 // what is in the current text node.
-function markdownAutoformatAt(editor: SlateEditor, path: Path): boolean {
+function markdownAutoformatAt(
+  editor: SlateEditor,
+  path: Path
+): boolean | Function {
   const [node] = Editor.node(editor, path);
   // Must be a text node
   if (!Text.isText(node)) return false;
@@ -97,6 +106,28 @@ function markdownAutoformatAt(editor: SlateEditor, path: Path): boolean {
   // that the user already explicitly decided not to autoformat.
   let text = node.text;
   let start = text.lastIndexOf(" ", text.trimRight().length - 1);
+
+  // Special case some block level formatting (for better handling and speed).
+  if (path.length == 2 && pos == 0 && start <= 0) {
+    switch (text) {
+      case "#":
+      case "##":
+      case "###":
+      case "####":
+      case "#####":
+      case "######":
+        // This could sets the block containing the selection
+        // to be formatted with exactly the right heading.
+        formatHeading(editor, text.length);
+        // However, because we just typed some hashes to get this
+        // to happen, we need to delete them.  But this has to wait
+        // until after normalize, and this whole function is run
+        // in a withoutNormalizing block, so we return some code to
+        // run afterwards.
+        return () => editor.deleteBackward("word");
+    }
+  }
+
   // However, there are some cases where we extend the range of
   // the autofocus further to the left from start:
   //    - "[ ]" for checkboxes.
@@ -147,9 +178,7 @@ function markdownAutoformatAt(editor: SlateEditor, path: Path): boolean {
     Text.isText(doc[0].children[0]);
 
   if (!isInline) {
-    if (start >= 1 || pos > 0) {
-      // block level autocomplete must start at beginning of the *block*. Otherwise, e.g.,
-      // typing "*Tuesday* - Thursday" would make a list item.
+    if (start > 0 || pos > 0) {
       return false;
     }
   }

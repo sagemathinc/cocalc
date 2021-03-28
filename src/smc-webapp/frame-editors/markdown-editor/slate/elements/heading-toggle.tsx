@@ -12,8 +12,8 @@ const TOGGLE_STYLE = {
   cursor: "pointer",
   width: "1em",
   display: "inline-block",
-  marginLeft: "-1em",
-  paddingRight: "10px",
+  marginLeft: "-3em",
+  paddingRight: "3em",
   color: "#666",
   fontSize: "12pt",
 } as CSS;

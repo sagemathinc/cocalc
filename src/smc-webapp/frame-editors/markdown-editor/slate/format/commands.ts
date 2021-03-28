@@ -456,7 +456,7 @@ export function selectionToText(editor: Editor): string {
 // The code below is complicated, because there are numerous subtle
 // cases that can arise and we have to both create and remove
 // being a heading.
-async function formatHeading(editor, level: number): Promise<void> {
+export function formatHeading(editor, level: number): void {
   const at = getCollapsedSelection(editor);
   const options = {
     match: (node) => Editor.isBlock(editor, node),
@@ -499,13 +499,6 @@ async function formatHeading(editor, level: number): Promise<void> {
       return;
     }
     if (level == 0) return; // paragraph mode -- no heading.
-    /*
-    Transforms.wrapNodes(
-      editor,
-      { type: "heading", level } as Element,
-      options
-    );
-    */
     Transforms.setNodes(
       editor,
       { type: "heading", level } as Partial<Element>,
