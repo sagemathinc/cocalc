@@ -45,7 +45,7 @@ export const useMarks = (editor) => {
     // We debounce to avoid any potential performance implications while
     // typing and for the reason mentioned in the NOTE above.  leading=false
     // is the default, but I just want to be very clear about that below.
-    return debounce(f, 200, { leading: false });
+    return debounce(f, 200, { leading: true });
   }, []);
 
   return { marks, updateMarks };

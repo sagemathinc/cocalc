@@ -109,8 +109,9 @@ register({
     }
 
     // trimLeft is because prettier (say) strips whitespace from beginning of paragraphs.
-    const s = children.trimLeft();
-    return `${s}${info.lastChild ? "\n" : "\n\n"}`;
+    const s = children.trimLeft() + "\n";
+    if (info.lastChild || info.parent?.type == "list_item") return s;
+    return s + "\n";
   },
 
   sizeEstimator({ node, fontSize }): number {
