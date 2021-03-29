@@ -26,7 +26,8 @@ register({
       // in a "hidden" paragraph.  Weird and annoying,
       // but I can see why, I guess.  Instead, we just
       // set this here, and it propagates up to the
-      // enclosing list.
+      // enclosing list.  Whichever tightness is first takes
+      // precedence.
       state.tight = true;
     }
     const x = { type: "paragraph", children } as Paragraph;

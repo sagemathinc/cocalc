@@ -108,6 +108,9 @@ function mergeAdjacentLists({ editor, node, path }) {
     const nextNode = getNodeAt(editor, nextPath);
     if (Element.isElement(nextNode) && nextNode.type == node.type) {
       // We have two adjacent lists of the same type: combine them.
+      // Note that we do NOT take into account tightness when deciding
+      // whether to merge, since in markdown you can't have a non-tight
+      // and tight list of the same type adjacent to each other anyways.
       Transforms.mergeNodes(editor, { at: nextPath });
     }
   }
