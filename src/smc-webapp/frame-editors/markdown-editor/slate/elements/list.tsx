@@ -7,6 +7,7 @@ import { React } from "../../../../app-framework";
 import { register, SlateElement } from "./register";
 import { DEFAULT_CHILDREN } from "../util";
 import { Element } from "slate";
+import { isEqual } from "lodash";
 
 export interface BulletList extends SlateElement {
   type: "bullet_list";
@@ -19,10 +20,22 @@ export interface OrderedList extends SlateElement {
   tight?: boolean;
 }
 
+const EMPTY_LIST_ITEM = {
+  type: "list_item",
+  children: [{ text: "" }],
+};
+Object.freeze(EMPTY_LIST_ITEM);
+
 export function bullet_list(
   children = DEFAULT_CHILDREN,
   tight: boolean = true
 ): Element {
+  if (!tight && children.length == 1 && isEqual(children[0], EMPTY_LIST_ITEM)) {
+    // Annoying special case -- our parser based on markdown-it views completely empty
+    // lists (so exactly one item and it is empty) as NOT tight.  However, a list with
+    // one letter in it is tight, so this special case is wrong.  We fix that here.
+    tight = true;
+  }
   return { type: "bullet_list", children, tight };
 }
 
@@ -31,6 +44,10 @@ export function ordered_list(
   start,
   tight: boolean = true
 ): Element {
+  if (!tight && children.length == 1 && isEqual(children[0], EMPTY_LIST_ITEM)) {
+    // See comment above in bullet_list.
+    tight = true;
+  }
   return { type: "ordered_list", children, start, tight };
 }
 
