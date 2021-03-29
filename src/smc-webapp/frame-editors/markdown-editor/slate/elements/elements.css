@@ -1,0 +1,22 @@
+ul.cocalc-slate-tight-list > li {
+  margin-bottom: -1em;
+}
+ol.cocalc-slate-tight-list > li {
+  margin-bottom: -1em;
+}
+
+ul.cocalc-slate-tight-list {
+  margin-bottom: 2em;
+}
+
+ol.cocalc-slate-tight-list {
+  margin-bottom: 2em;
+}
+
+ul.cocalc-slate-nontight-list > li {
+  margin-bottom: 0em;
+}
+
+ol.cocalc-slate-nontight-list > li {
+  margin-bottom: 0em;
+}

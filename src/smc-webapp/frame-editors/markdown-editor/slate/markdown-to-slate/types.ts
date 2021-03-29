@@ -26,4 +26,5 @@ export interface State {
   attrs?: string[][];
   block?: boolean;
   markdown?: string;
+  tight?: boolean;
 }

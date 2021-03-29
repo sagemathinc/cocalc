@@ -22,7 +22,7 @@ register({
     return <li {...attributes}>{children}</li>;
   },
 
-  fromSlate: ({ children, info, node }) => {
+  fromSlate: ({ children, info }) => {
     let indent = 2;
     let item: string;
 
@@ -41,7 +41,7 @@ register({
     }
 
     let s = ensure_ends_in_newline(li_indent(item, indent));
-    if (!node.children[0]?.tight) {
+    if (!info.parent.tight) {
       s += "\n";
     }
     return s;

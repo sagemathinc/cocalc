@@ -19,13 +19,17 @@ export interface Paragraph extends SlateElement {
 register({
   slateType: "paragraph",
 
-  toSlate: ({ token, children, markdown, cache }) => {
-    // We include a tight property when hidden is true, since that's the
-    // hack that markdown-it uses for parsing tight lists.
-    const x = {
-      ...{ type: "paragraph", children },
-      ...(token.hidden ? { tight: true } : {}),
-    } as Paragraph;
+  toSlate: ({ token, children, markdown, cache, state }) => {
+    if (token.hidden) {
+      // this is how markdown-it happens to encode the
+      // idea of a "tight list"; it wraps the items
+      // in a "hidden" paragraph.  Weird and annoying,
+      // but I can see why, I guess.  Instead, we just
+      // set this here, and it propagates up to the
+      // enclosing list.
+      state.tight = true;
+    }
+    const x = { type: "paragraph", children } as Paragraph;
 
     if (markdown != null && cache != null) {
       cache[JSON.stringify(x)] = markdown;
@@ -66,14 +70,7 @@ register({
     }
 
     // Normal paragraph rendering.
-    return (
-      <p
-        {...attributes}
-        style={element.tight ? { marginBottom: 0 } : undefined}
-      >
-        {children}
-      </p>
-    );
+    return <p {...attributes}>{children}</p>;
 
     /*
     // I wish I could just use a div instead of a p because
@@ -112,9 +109,8 @@ register({
     }
 
     // trimLeft is because prettier (say) strips whitespace from beginning of paragraphs.
-    return `${children}${
-      info.lastChild ? "\n" : node.tight ? "\n" : "\n\n"
-    }`.trimLeft();
+    const s = children.trimLeft();
+    return `${s}${info.lastChild ? "\n" : "\n\n"}`;
   },
 
   sizeEstimator({ node, fontSize }): number {

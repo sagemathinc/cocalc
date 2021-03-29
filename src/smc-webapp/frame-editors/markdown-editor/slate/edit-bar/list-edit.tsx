@@ -7,7 +7,7 @@ import * as React from "react";
 import { Icon } from "smc-webapp/r_misc";
 import { Editor } from "slate";
 import { ListProperties, setListProperties } from "./list";
-import { Button, /*Checkbox,*/ InputNumber } from "antd";
+import { Button, Checkbox, InputNumber } from "antd";
 
 interface Props {
   listProperties: ListProperties | undefined;
@@ -20,13 +20,20 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
   }
   const v: JSX.Element[] = [];
 
-  /*
   v.push(
-    <Checkbox key={"tight"} checked={listProperties.tight}>
+    <Checkbox
+      key={"tight"}
+      checked={listProperties.tight}
+      onChange={(e) =>
+        setListProperties(editor, {
+          ...listProperties,
+          tight: e.target.checked,
+        })
+      }
+    >
       <span style={{ fontWeight: 350 }}> Tight</span>
     </Checkbox>
   );
-  */
 
   v.push(
     <Button

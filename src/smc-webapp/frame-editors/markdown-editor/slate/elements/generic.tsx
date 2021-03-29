@@ -42,7 +42,7 @@ register({
     const elt = element as Generic;
     if (elt.tag) {
       let style = {} as CSS;
-      if ((elt.tag == "ol" || elt.tag == "ul") && !elt.tight) {
+      if (elt.tag == "ol" || elt.tag == "ul") {
         // NOTE: this is done correctly of course in the list plugin.
         // doing it here is just redundant...
         style.marginBottom = "1em";
@@ -56,13 +56,6 @@ register({
           ...{ style },
         },
         children
-      );
-    }
-    if (elt.tight) {
-      return (
-        <span {...attributes} {...elt.attrs}>
-          {children}
-        </span>
       );
     }
     return (

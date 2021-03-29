@@ -39,17 +39,12 @@ function handleClose({ token, state, cache }) {
       // does this, except for one weird special case which involves hidden:true that is
       // used for tight lists.
 
-      // We use all_tight to make it so if one node is marked tight, then all are.
-      // This is useful to better render nested markdown lists.
-      let all_tight: boolean = false;
+      state.tight = false;
       let markdown = "";
       for (const token2 of state.contents) {
         for (const node of parse(token2, child_state, cache)) {
-          if (node["tight"]) {
-            all_tight = true;
-          }
-          if (all_tight) {
-            node["tight"] = true;
+          if (child_state.tight) {
+            state.tight = true;
           }
           isEmpty = false;
           children.push(node);
@@ -75,6 +70,11 @@ function handleClose({ token, state, cache }) {
         markdown,
         cache,
       });
+      if (type == "bullet_list" || type == "ordered_list") {
+        // tight-ness is ONLY used by lists and we only want it to propagate
+        // up to the enclosing list.
+        delete state.tight;
+      }
       if (node == null) {
         return [];
       }

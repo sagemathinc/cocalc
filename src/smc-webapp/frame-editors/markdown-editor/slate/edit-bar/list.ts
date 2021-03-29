@@ -26,7 +26,7 @@ function getListProperties(editor): ListProperties | undefined {
     })) {
       if (!Element.isElement(node)) return; // type guard.
       // @ts-ignore -- TODO -- redo tightness to be prop of the list itself.
-      const tight = !!node.children[0]?.children?.[0]?.["tight"];
+      const tight = !!node.tight;
       if (node.type == "bullet_list") {
         return { tight, start: undefined };
       } else {
@@ -54,7 +54,7 @@ export function setListProperties(editor, props: ListProperties) {
       {
         type: props.start == null ? "bullet_list" : "ordered_list",
         start: props.start,
-        /*TODO: tight: props.tight, */
+        tight: props.tight,
       },
       { at: path }
     );

@@ -15,7 +15,6 @@ import { ChildInfo } from "../element-to-markdown";
 
 export interface SlateElement {
   children: Descendant[];
-  tight?: boolean;
 }
 
 export interface markdownToSlateOptions {
