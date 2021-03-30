@@ -130,8 +130,13 @@ function* iter(subs: LicenseSubs) {
 
 export async function sync_site_license_subscriptions(
   db: PostgreSQL,
-  account_id?: string
+  account_id?: string,
+  test_mode = false
 ): Promise<number> {
+  if (test_mode) L(`TEST MODE -- UPDATE QUERIES ARE DISABLED`);
+
+  if (!test_mode) throw Error("test_mode should be true");
+
   const licenses: LicenseInfo = await get_licenses(db, account_id);
   const subs = await get_subs(db, account_id);
 
@@ -141,11 +146,15 @@ export async function sync_site_license_subscriptions(
     if (sub.status == "active" || sub.status == "trialing") {
       // make sure expires is not set
       if (expires != null) {
-        await db.async_query({
-          query: "UPDATE site_licenses",
-          set: { expires: null },
-          where: { id: license_id },
-        });
+        if (test_mode) {
+          L(`TEST: for license_id='${license_id}' would set 'expires == null'`);
+        } else {
+          await db.async_query({
+            query: "UPDATE site_licenses",
+            set: { expires: null },
+            where: { id: license_id },
+          });
+        }
         await delay(WAIT_AFTER_UPDATE_MS);
         n += 1;
       }
@@ -153,11 +162,17 @@ export async function sync_site_license_subscriptions(
       // status is something other than active, so make sure license *is* expired.
       // It will only un-expire when the subscription is active again.
       if (expires == null || expires > new Date()) {
-        await db.async_query({
-          query: "UPDATE site_licenses",
-          set: { expires: new Date() },
-          where: { id: license_id },
-        });
+        if (test_mode) {
+          L(
+            `TEST: for license_id='${license_id}' would set 'expires == ${new Date().toISOString()}'`
+          );
+        } else {
+          await db.async_query({
+            query: "UPDATE site_licenses",
+            set: { expires: new Date() },
+            where: { id: license_id },
+          });
+        }
         await delay(WAIT_AFTER_UPDATE_MS);
         n += 1;
       }
@@ -165,7 +180,7 @@ export async function sync_site_license_subscriptions(
   }
 
   if (account_id == null) {
-    n += await expire_cancelled_subscriptions(db, subs);
+    n += await expire_cancelled_subscriptions(db, subs, test_mode);
   }
 
   return n;
@@ -176,7 +191,8 @@ export async function sync_site_license_subscriptions(
 // if not, the license is expired.
 async function expire_cancelled_subscriptions(
   db: PostgreSQL,
-  subs: LicenseSubs
+  subs: LicenseSubs,
+  test_mode: boolean
 ): Promise<number> {
   let n = 0;
   const licenses: LicenseInfo = await get_licenses(db, undefined, true);
@@ -194,13 +210,19 @@ async function expire_cancelled_subscriptions(
         L(`${msg}, but it is a trial`);
       } else {
         L(`${msg}, and would expire it`);
-        // await db.async_query(
-        //   query: "UPDATE site_licenses",
-        //   set: { expires: new Date() },
-        //   where: { id: license_id },
-        // });
-        // await delay(WAIT_AFTER_UPDATE_MS);
-        // n += 1;
+        if (test_mode) {
+          L(
+            `TEST: for license_id='${license_id}' would set 'expires == ${new Date().toISOString()}'`
+          );
+        } else {
+          // await db.async_query(
+          //   query: "UPDATE site_licenses",
+          //   set: { expires: new Date() },
+          //   where: { id: license_id },
+          // });
+          // await delay(WAIT_AFTER_UPDATE_MS);
+          // n += 1;
+        }
       }
     }
   }

@@ -2608,8 +2608,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # account_id is optional; if not given iterates over all users
     # with stripe_customer field set.
     # async/await:
-    sync_site_license_subscriptions: (account_id) =>
-        return await sync_site_license_subscriptions(@, account_id)
+    sync_site_license_subscriptions: (account_id, test_mode) =>
+        return await sync_site_license_subscriptions(@, account_id, test_mode)
 
     # Return the sum total of all user upgrades to a particular project
     get_project_upgrades: (opts) =>
