@@ -26,7 +26,8 @@ register({
       // in a "hidden" paragraph.  Weird and annoying,
       // but I can see why, I guess.  Instead, we just
       // set this here, and it propagates up to the
-      // enclosing list.
+      // enclosing list.  Whichever tightness is first takes
+      // precedence.
       state.tight = true;
     }
     const x = { type: "paragraph", children } as Paragraph;
@@ -109,8 +110,9 @@ register({
     }
 
     // trimLeft is because prettier (say) strips whitespace from beginning of paragraphs.
-    const s = children.trimLeft();
-    return `${s}${info.lastChild ? "\n" : "\n\n"}`;
+    const s = children.trimLeft() + "\n";
+    if (info.lastChild || info.parent?.type == "list_item") return s;
+    return s + "\n";
   },
 
   sizeEstimator({ node, fontSize }): number {

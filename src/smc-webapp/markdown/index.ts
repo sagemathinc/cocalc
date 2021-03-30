@@ -29,6 +29,7 @@ export const OPTIONS: MarkdownIt.Options = {
   html: true,
   typographer: false,
   linkify: true,
+  breaks: true,
 };
 
 const PLUGINS = [emojiPlugin, checkboxPlugin, hashtagPlugin, mentionPlugin];

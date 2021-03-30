@@ -64,9 +64,10 @@ export const LinkEdit: React.FC<Props> = ({ linkURL, editor }) => {
           borderLeft: "1px solid lightgray",
           borderRight: "1px solid lightgray",
           maxWidth: "50ex",
+          color: !linkURL ? "#999" : undefined,
         }}
       >
-        {icon} {linkURL ?? "Set link target..."}
+        {icon} {linkURL ? linkURL : "Link target..."}
       </div>
     );
   }

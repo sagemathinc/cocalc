@@ -1,22 +1,29 @@
-ul.cocalc-slate-tight-list > li {
-  margin-bottom: -1em;
-}
-ol.cocalc-slate-tight-list > li {
-  margin-bottom: -1em;
-}
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
-ul.cocalc-slate-tight-list {
-  margin-bottom: 2em;
-}
+/*
+CSS to handle tight/nontight lists.
 
-ol.cocalc-slate-tight-list {
-  margin-bottom: 2em;
-}
+ALSO, importantly, we handle the fact that lists in slate end up
+getting entries somewhat renadomly wrapped in paragraphs or not.
+When the markdown is loaded everything is wrapped in paragraphs;
+however, when creating new lines, they might not be. We might
+change/fix this, but in any case it's nice to be able to ensure
+things don't look all wrong by getting rid of the paragraph margin
+inside of lists. Also, eliminating this paragraph margin means we
+don't have to compensate for it using negative margins.
+*/
 
-ul.cocalc-slate-nontight-list > li {
+.cocalc-slate-tight-list  > li > p {
+  margin-bottom: 0em;
+}
+.cocalc-slate-nontight-list > li >  p {
   margin-bottom: 0em;
 }
 
-ol.cocalc-slate-nontight-list > li {
-  margin-bottom: 0em;
+.cocalc-slate-nontight-list > li {
+  margin-bottom: 1em;
 }
+
