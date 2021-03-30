@@ -24,7 +24,7 @@ import { TIMEOUT_S } from "./const";
 import { delay } from "awaiting";
 
 // wait this long after writing to the DB, to avoid overwhelming it...
-const WAIT_AFTER_UPDATE_MS = 5;
+const WAIT_AFTER_UPDATE_MS = 10;
 
 // this is each entry in the "data" field of what's in the DB in stripe_customer -> subscriptions
 interface Subscription {
@@ -214,14 +214,14 @@ async function expire_cancelled_subscriptions(
             `DRYRUN: set 'expires = ${new Date().toISOString()}' where license_id='${license_id}'`
           );
         } else {
-          // await db.async_query(
-          //   query: "UPDATE site_licenses",
-          //   set: { expires: new Date() },
-          //   where: { id: license_id },
-          // });
-          // await delay(WAIT_AFTER_UPDATE_MS);
-          // n += 1;
+          await db.async_query({
+            query: "UPDATE site_licenses",
+            set: { expires: new Date() },
+            where: { id: license_id },
+          });
         }
+        await delay(WAIT_AFTER_UPDATE_MS);
+        n += 1;
       }
     }
   }
