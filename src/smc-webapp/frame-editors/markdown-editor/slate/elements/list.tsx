@@ -20,6 +20,13 @@ export interface OrderedList extends SlateElement {
   tight?: boolean;
 }
 
+export function isListElement(element: SlateElement): boolean {
+  return (
+    Element.isElement(element) &&
+    (element.type == "bullet_list" || element.type == "ordered_list")
+  );
+}
+
 const EMPTY_LIST_ITEM = {
   type: "list_item",
   children: [{ text: "" }],

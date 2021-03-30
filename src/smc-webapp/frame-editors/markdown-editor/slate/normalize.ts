@@ -15,6 +15,7 @@ import { isEqual } from "lodash";
 
 import { getNodeAt } from "./slate-util";
 import { emptyParagraph } from "./padding";
+import { isListElement } from "./elements/list";
 
 export const withNormalize = (editor) => {
   const { normalizeNode } = editor;
@@ -49,10 +50,7 @@ function ensureDocumentNonempty({ editor }) {
 function ensureListItemInAList({ editor, node, path }) {
   if (Element.isElement(node) && node.type === "list_item") {
     const [parent] = Editor.parent(editor, path);
-    if (
-      !Element.isElement(parent) ||
-      (parent.type != "bullet_list" && parent.type != "ordered_list")
-    ) {
+    if (!isListElement(parent)) {
       // invalid document: every list_item should be in a list.
       Transforms.wrapNodes(editor, { type: "bullet_list" } as Element, {
         at: path,
