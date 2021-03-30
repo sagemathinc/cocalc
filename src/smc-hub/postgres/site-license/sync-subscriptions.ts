@@ -133,9 +133,8 @@ export async function sync_site_license_subscriptions(
   account_id?: string,
   test_mode = false
 ): Promise<number> {
-  if (test_mode) L(`TEST MODE -- UPDATE QUERIES ARE DISABLED`);
-
-  if (!test_mode) throw Error("test_mode should be true");
+  test_mode = test_mode || !!process.env.DRYRUN;
+  if (test_mode) L(`DRYRUN TEST MODE -- UPDATE QUERIES ARE DISABLED`);
 
   const licenses: LicenseInfo = await get_licenses(db, account_id);
   const subs = await get_subs(db, account_id);
@@ -147,7 +146,7 @@ export async function sync_site_license_subscriptions(
       // make sure expires is not set
       if (expires != null) {
         if (test_mode) {
-          L(`TEST: for license_id='${license_id}' would set 'expires == null'`);
+          L(`DRYRUN: set 'expires = null' where license_id='${license_id}'`);
         } else {
           await db.async_query({
             query: "UPDATE site_licenses",
@@ -164,7 +163,7 @@ export async function sync_site_license_subscriptions(
       if (expires == null || expires > new Date()) {
         if (test_mode) {
           L(
-            `TEST: for license_id='${license_id}' would set 'expires == ${new Date().toISOString()}'`
+            `DRYRUN: set 'expires = ${new Date().toISOString()}' where license_id='${license_id}'`
           );
         } else {
           await db.async_query({
@@ -201,18 +200,18 @@ async function expire_cancelled_subscriptions(
     // the query above already filtered by exires == null
     let found = subs[license_id] != null && subs[license_id].length > 0;
     if (found) {
-      L(`license_id '{$license_id}' is funded by '${subs[license_id][0].id}'`);
+      L(`license_id '${license_id}' is funded by '${subs[license_id][0].id}'`);
       found = true;
     } else {
-      const msg = `license_id '{$license_id}' is not funded by any subscription`;
+      const msg = `license_id '${license_id}' is not funded by any subscription`;
       // maybe trial without expiration?
       if (licenses[license_id].trial) {
         L(`${msg}, but it is a trial`);
       } else {
-        L(`${msg}, and would expire it`);
+        L(`${msg}`);
         if (test_mode) {
           L(
-            `TEST: for license_id='${license_id}' would set 'expires == ${new Date().toISOString()}'`
+            `DRYRUN: set 'expires = ${new Date().toISOString()}' where license_id='${license_id}'`
           );
         } else {
           // await db.async_query(
