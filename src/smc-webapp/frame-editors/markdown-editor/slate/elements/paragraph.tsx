@@ -102,7 +102,7 @@ register({
       return "";
     }
 
-    if (info.cache != null && info.hook == null) {
+    if (info.cache != null) {
       const c = info.cache[JSON.stringify(node)];
       if (c != null) {
         children = c;
