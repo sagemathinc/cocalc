@@ -31,6 +31,7 @@ costs add).
 
 // TODO: relative path just needed in manage-*
 
+import { isEmpty } from "lodash";
 import { DEFAULT_QUOTAS, upgrades } from "../upgrade-spec";
 import { Quota as SiteLicenseQuota } from "../db-schema/site-licenses";
 import { len } from "../misc";
@@ -239,10 +240,8 @@ function isSettingsQuota(slq?: QuotaSetting): slq is Upgrades {
 //
 // this heuristic groups all licenses by always_running and member hosting, and then picks the first nonempty group.
 // TODO: once we have a license with an extended uptime (hours instead of ~30 mins), we introduce that as a third dimension.
-function select_site_licenses(
-  site_licenses?: SiteLicenses
-): SiteLicenses | undefined {
-  if (site_licenses == null) return;
+function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
+  if (site_licenses == null || isEmpty(site_licenses)) return {};
 
   // key is <member>-<always_running> as 0/1 numbers
   const groups = {
@@ -256,11 +255,11 @@ function select_site_licenses(
   for (const [key, val] of Object.entries(site_licenses)) {
     const is_ar = isSiteLicenseQuotaSetting(val)
       ? val.quota.always_running === true
-      : (val.always_running ?? 0) === 1;
+      : (val.always_running ?? 0) >= 1;
 
     const is_member = isSiteLicenseQuotaSetting(val)
       ? val.quota.member === true
-      : (val.member_host ?? 0) === 1;
+      : (val.member_host ?? 0) >= 1;
 
     groups[`${is_member ? "1" : "0"}-${is_ar ? "1" : "0"}`].push(key);
   }
@@ -310,7 +309,6 @@ export function quota(
 
   // we might not consider all of them!
   site_licenses = select_site_licenses(site_licenses);
-  //console.log("selected licenses:", site_licenses);
 
   // network access
   if (max_upgrades.network == 0) {
@@ -495,7 +493,7 @@ export function quota(
 
   if (site_licenses != null) {
     // If there is new license.quota, compute it and max with it.
-    const license_quota = site_licenses_quota(site_licenses, max_upgrades);
+    const license_quota = site_license_quota(site_licenses, max_upgrades);
     max_quota(quota, license_quota);
   }
 
@@ -531,10 +529,15 @@ export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
 // to combine memory upgades of member hosting with preempt hosting, or add a small
 // always_running license on top of a cheaper but larger member hosting license.
 // @see select_site_licenses
-export function site_licenses_quota(
+export function site_license_quota(
   site_licenses: SiteLicenses,
-  max_upgrades: Upgrades
+  max_upgrades_param?: Upgrades
 ): Quota {
+  // we filter here as well, b/c this function is used elsewhere
+  site_licenses = select_site_licenses(site_licenses);
+  // a fallback, should take site settings into account here as well
+  const max_upgrades: Upgrades = max_upgrades_param ?? MAX_UPGRADES;
+
   // we start to define a "base" quota, easier to add up everything
   const total_quota: Required<Quota> = {
     cpu_limit: 0,
@@ -593,8 +596,22 @@ function limit_quota(
   total_quota: Required<Quota>,
   max_upgrades: Upgrades
 ): Quota {
+  for (const [key, val] of Object.entries(upgrade2quota(max_upgrades))) {
+    if (typeof val === "boolean") {
+      total_quota[key] &&= val;
+    } else {
+      total_quota[key] = Math.min(total_quota[key], val);
+    }
+  }
+
+  return total_quota;
+}
+
+// there is an old schema, inherited from SageMathCloud, etc. and newer iterations.
+// this helps by going from one schema to the newer one
+function upgrade2quota(up: Required<Upgrades>): Required<Quota> {
   /*
-  for better understanding of this upgrade2quota, here are two examples
+  for better understanding, here are two examples
 
   total_quota =  {            max_upgrades = {
     cpu_limit: 3,               disk_quota: 20000,
@@ -610,21 +627,6 @@ function limit_quota(
   }                             always_running: 1
                               }
   */
-
-  for (const [key, val] of Object.entries(upgrade2quota(max_upgrades))) {
-    if (typeof val === "boolean") {
-      total_quota[key] &&= val;
-    } else {
-      total_quota[key] = Math.min(total_quota[key], val);
-    }
-  }
-
-  return total_quota;
-}
-
-// there is an old schema, inherited from SageMathCloud, etc. and newer iterations.
-// this helps by going from one schema to the newer one
-function upgrade2quota(up: Required<Upgrades>): Required<Quota> {
   return {
     network: up.network >= 1,
     member_host: up.member_host >= 1,

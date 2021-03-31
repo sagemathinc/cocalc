@@ -452,12 +452,17 @@ describe("default quota", () => {
   it("site-license upgrades /2", () => {
     const site_license = {
       "1234-5678-asdf-yxcv": {
+        // will be ignored
         member_host: true,
         network: true,
         disk_quota: 222,
       },
       "1234-5678-asdf-asdf": {
         disk_quota: 111,
+        always_running: true,
+      },
+      "333-5678-asdf-asdf": {
+        disk_quota: 333,
         always_running: true,
       },
     };
@@ -480,8 +485,9 @@ describe("default quota", () => {
     const q1 = quota({}, users, site_license);
 
     expect(q1.memory_limit).toEqual(2234);
-    expect(q1.disk_quota).toBe(3000 + 321 + 111 + 222);
-    expect(q1.member_host).toBe(true);
+    // not +222, because always_running has higher priority than member hosting
+    expect(q1.disk_quota).toBe(3000 + 321 + 111 + 333);
+    expect(q1.member_host).toBe(false);
     expect(q1.network).toBe(true);
     expect(q1.cpu_limit).toBe(1.25);
     expect(q1.always_running).toBe(true);
