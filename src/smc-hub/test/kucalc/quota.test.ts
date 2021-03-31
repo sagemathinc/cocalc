@@ -511,19 +511,56 @@ describe("default quota", () => {
     const users = {
       user1: {
         upgrades: {
-          memory: 1313,
+          memory: 1313, // maxed with "ram"
         },
       },
     };
     const q1 = quota({}, users, site_license);
+
     expect(q1).toEqual({
       network: true,
       member_host: true,
-      memory_request: 1000000,
+      memory_request: 1000,
       cpu_request: 0.5,
       privileged: false,
-      disk_quota: 1234000,
-      memory_limit: 3000000,
+      disk_quota: 3000,
+      memory_limit: 3000,
+      cpu_limit: 1.5,
+      idle_timeout: 1800,
+      always_running: true,
+    });
+  });
+
+  it("site-license quota upgrades /2", () => {
+    const site_license = {
+      "1234-5678-asdf-yxcv": {
+        quota: {
+          ram: 2,
+          cpu: 1,
+          disk: 3,
+          always_running: true,
+          member: true,
+          user: "academic",
+        },
+      },
+    };
+    const users = {
+      user1: {
+        upgrades: {
+          memory: 4321, // maxed with "ram"
+        },
+      },
+    };
+    const q1 = quota({}, users, site_license);
+
+    expect(q1).toEqual({
+      network: true,
+      member_host: true,
+      memory_request: 1000,
+      cpu_request: 0.5,
+      privileged: false,
+      disk_quota: 3000,
+      memory_limit: 4321,
       cpu_limit: 1.5,
       idle_timeout: 1800,
       always_running: true,

@@ -589,13 +589,38 @@ export function site_license_quota(
     }
   }
 
-  return limit_quota(total_quota, max_upgrades);
+  // console.log("total_quota", JSON.stringify(total_quota, null, 2));
+
+  const ret = limit_quota(total_quota, max_upgrades);
+  console.log("total_quota_limited", JSON.stringify(ret, null, 2));
+  return ret;
 }
+
+/*
+for better understanding of the next two functions, here are two examples
+
+total_quota =  {            max_upgrades = {
+  cpu_limit: 3,               disk_quota: 20000,
+  cpu_request: 1,             memory: 16000,
+  memory_limit: 3000,         memory_request: 8000,
+  memory_request: 1000,       cores: 3,
+  disk_quota: 2000,           network: 1,
+  always_running: true,       cpu_shares: 2048,
+  network: true,              mintime: 7776000,
+  member_host: true,          member_host: 1,
+  privileged: false,          ephemeral_state: 1,
+  idle_timeout: 0             ephemeral_disk: 1,
+}                             always_running: 1
+                            }
+*/
 
 function limit_quota(
   total_quota: Required<Quota>,
   max_upgrades: Upgrades
 ): Quota {
+  console.log("total_quota", JSON.stringify(total_quota, null, 2));
+  console.log("max_upgrades", JSON.stringify(max_upgrades, null, 2));
+
   for (const [key, val] of Object.entries(upgrade2quota(max_upgrades))) {
     if (typeof val === "boolean") {
       total_quota[key] &&= val;
@@ -603,37 +628,19 @@ function limit_quota(
       total_quota[key] = Math.min(total_quota[key], val);
     }
   }
-
   return total_quota;
 }
 
 // there is an old schema, inherited from SageMathCloud, etc. and newer iterations.
 // this helps by going from one schema to the newer one
 function upgrade2quota(up: Required<Upgrades>): Required<Quota> {
-  /*
-  for better understanding, here are two examples
-
-  total_quota =  {            max_upgrades = {
-    cpu_limit: 3,               disk_quota: 20000,
-    cpu_request: 1,             memory: 16000,
-    memory_limit: 3000,         memory_request: 8000,
-    memory_request: 1000,       cores: 3,
-    disk_quota: 2000,           network: 1,
-    always_running: true,       cpu_shares: 2048,
-    network: true,              mintime: 7776000,
-    member_host: true,          member_host: 1,
-    privileged: false,          ephemeral_state: 1,
-    idle_timeout: 0             ephemeral_disk: 1,
-  }                             always_running: 1
-                              }
-  */
   return {
     network: up.network >= 1,
     member_host: up.member_host >= 1,
     always_running: up.always_running >= 1,
     disk_quota: up.disk_quota,
-    memory_limit: up.memory / 1000,
-    memory_request: up.memory_request / 1000,
+    memory_limit: up.memory,
+    memory_request: up.memory_request,
     cpu_limit: up.cores,
     cpu_request: up.cpu_shares / 1024,
     privileged: false, // there is no upgrade for that!
