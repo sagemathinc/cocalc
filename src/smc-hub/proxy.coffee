@@ -24,6 +24,7 @@ theme   = require('smc-util/theme')
 hub_projects = require('./projects')
 auth = require('./auth')
 access = require('./access')
+{process_alive, process_healthcheck, setup_agent_check} = require('./healthchecks')
 
 {once} = require('smc-util/async-utils')
 
@@ -120,13 +121,17 @@ exports.init_http_proxy_server = (opts) ->
         base_url       : required
         port           : required
         host           : required
-    {database, compute_server, base_url} = opts
+        is_personal    : undefined
+    {database, compute_server, base_url, is_personal} = opts
 
     winston.debug("init_http_proxy_server")
 
     winston.debug("init_smc_version: start...")
     await init_smc_version(opts.database)
     winston.debug("init_smc_version: done")
+
+    # healthcheck agent enpoint setup
+    setup_agent_check()
 
     # Checks for access to project, and in case of write access,
     # also touch's project thus recording that user is interested
@@ -205,6 +210,11 @@ exports.init_http_proxy_server = (opts) ->
 
     _remember_me_cache = {}
     remember_me_check_for_access_to_project = (opts) ->
+        if is_personal
+            # In personal mode, anyone who can access localhost has full access to everything, since
+            # this is meant to be used on a personal computer.
+            opts.cb(undefined, true)
+            return
         opts = defaults opts,
             project_id  : required
             remember_me : required
@@ -380,8 +390,18 @@ exports.init_http_proxy_server = (opts) ->
         tm = misc.walltime()
         {query, pathname} = url.parse(req.url, true)
         req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
-        if req_url == "/alive"
-            res.end('')
+
+        health_data = null
+        # keep in mind, "internally", there is no base url prefix – we check for both situations
+        if req_url == "/alive" or req.url == '/alive'
+            health_data = process_alive()
+        else if req_url == '/healthcheck' or req.url == '/healthcheck'
+            health_data = await process_healthcheck(opts.database)
+
+        if health_data != null
+            { txt, code } = health_data
+            res.writeHead(code, { 'Content-Type': 'text/plain' });
+            res.end(txt)
             return
 
         #buffer = http_proxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
@@ -392,7 +412,8 @@ exports.init_http_proxy_server = (opts) ->
                 winston.debug("http_proxy_server(#{req_url}): #{m}")
         dbg('got request')
 
-        if exports.version_check(req, res, base_url)
+        # version check not needed in personal mode
+        if not is_personal and exports.version_check(req, res, base_url)
             dbg("version check failed")
             return
 
@@ -404,8 +425,8 @@ exports.init_http_proxy_server = (opts) ->
         remember_me = x.remember_me
         req.headers['cookie'] = x.cookie
 
-        if not remember_me?
-            # before giving an error, check on possibility that file is public
+        if not remember_me? and not is_personal
+            # before giving an error, check on possibility that file is public  (also, not important if is_personal is true)
             public_raw req_url, query, res, (err, is_public) ->
                 if err or not is_public
                     res.writeHead(500, {'Content-Type':'text/html'})
@@ -473,7 +494,8 @@ exports.init_http_proxy_server = (opts) ->
         req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
         dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
 
-        if exports.version_check(req, undefined, base_url)
+        # version check not needed in personal mode
+        if not is_personal and exports.version_check(req, undefined, base_url)
             dbg("websocket upgrade -- version check failed")
             return
 

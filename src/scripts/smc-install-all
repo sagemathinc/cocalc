@@ -21,7 +21,7 @@ for dir in "${CODE_DIRS[@]}"; do
 done
 
 cd $SMC_ROOT
-find -type d -name node_modules.delme | xargs rm -rf &
+find . -type d -name node_modules.delme | xargs rm -rf &
 
 # npm ci install function, will run in parallel if gnu parallel is installed
 run_install() {

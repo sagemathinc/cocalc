@@ -6,8 +6,7 @@
 import { DOMAIN_NAME } from "../../smc-util/theme";
 import { join } from "path";
 
-export const APP_BASE_URL =
-  window != null && window.app_base_url != null ? window.app_base_url : "";
+export const APP_BASE_URL = (window as any)?.app_base_url ?? "";
 
 const BASE_PATH = join(window.location.hostname, APP_BASE_URL);
 export const BASE_URL =

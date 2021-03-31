@@ -20,8 +20,6 @@ misc             = require('smc-util/misc')
 {redux}          = require('./app-framework')
 {alert_message}  = require('./alerts')
 
-misc_page        = require('./misc_page')
-
 templates        = $("#webapp-console-templates")
 console_template = templates.find(".webapp-console")
 
@@ -453,10 +451,6 @@ class Console extends EventEmitter
             if not getSelection().toString()
                 @unpause_rendering()
                 return
-            s = misc_page.get_selection_start_node()
-            if s.closest(e).length == 0
-                # nothing in the terminal is selected
-                @unpause_rendering()
 
         e.on 'copy', =>
             @unpause_rendering()

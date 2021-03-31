@@ -32,6 +32,11 @@ export { StoreState as AdminUsersState } from "../admin/users/store";
 export { BillingActions } from "../billing/actions";
 export { BillingStore } from "../billing/store";
 export { BillingStoreState as BillingState } from "../billing/store";
+
+export { ComputeEnvironmentState } from "../compute-environment/types";
+export { ComputeEnvironmentActions } from "../compute-environment/actions";
+export { ComputeEnvironmentStore } from "../compute-environment/store";
+
 // compute_images
 export {
   ComputeImagesActions,

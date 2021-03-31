@@ -71,8 +71,8 @@ function markdown_post_hook(elt) {
 export interface CellInputProps {
   actions?: JupyterActions; // if not defined, then everything read only
   frame_actions?: NotebookFrameActions;
-  cm_options: Map<string, any>; // TODO: what is this
-  cell: Map<string, any>; // TODO: what is this
+  cm_options: Map<string, any>;
+  cell: Map<string, any>;
   is_markdown_edit: boolean;
   is_focused: boolean;
   is_current: boolean;

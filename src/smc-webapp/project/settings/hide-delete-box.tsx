@@ -57,7 +57,12 @@ export class HideDeleteBox extends React.Component<Props, State> {
     if (this.props.project.get("deleted")) {
       return <DeletedProjectWarning />;
     } else {
-      return <span>Delete this project for everyone. You can undo this.</span>;
+      return (
+        <span>
+          Delete this project for everyone. You can undo this for a few days
+          after which it becomes permanent and all data in this project is lost.
+        </span>
+      );
     }
   }
 

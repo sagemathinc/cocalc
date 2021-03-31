@@ -3,24 +3,13 @@
 
 if typeof GOOGLE_ANALYTICS == "string" && GOOGLE_ANALYTICS.length > 0
     //--- Google Analytics ---
+    script(async src='//www.googletagmanager.com/gtag/js?id=' + GOOGLE_ANALYTICS)
     script.
-        //- Instructs analytics.js to use the name `google_analytics`.
-        window.GoogleAnalyticsObject = 'google_analytics';
-        //- Creates an initial analytics() function.
-        //- The queued commands will be executed once analytics.js loads.
-        window.google_analytics = window.google_analytics || function() {
-          (google_analytics.q = google_analytics.q || []).push(arguments)
-        };
-        //- Sets the time (as an integer) this tag was executed.
-        //- Used for timing hits.
-        google_analytics.l = +new Date;
-        //- Creates a default tracker with automatic cookie domain configuration.
-        google_analytics('create', '#{GOOGLE_ANALYTICS}', 'auto');
-        //- Sends a pageview hit from the tracker just created.
-        google_analytics('send', 'pageview', location.pathname);
-
-    //- Sets the `async` attribute to load the script asynchronously.
-    script(async src='//www.google-analytics.com/analytics.js')
+      window.dataLayer = window.dataLayer || [];
+      function GoogleGTag(){dataLayer.push(arguments);}
+      GoogleGTag('js', new Date());
+      GoogleGTag('config', '#{GOOGLE_ANALYTICS}', { 'anonymize_ip': true });
+      function GoogleGTagPageview(path) {GoogleGTag('config', '#{GOOGLE_ANALYTICS}', { 'page_path': path })};
     //--- End Google Analytics ---
 
 //- cocalc analytics

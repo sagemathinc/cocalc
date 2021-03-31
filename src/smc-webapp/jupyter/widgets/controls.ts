@@ -34,6 +34,9 @@ export class ReactView extends WidgetView {
 export class BoxModel extends ReactModel {}
 export class BoxView extends ReactView {}
 
+export class GridBoxModel extends ReactModel {}
+export class GridBoxView extends ReactView {}
+
 export class VBoxModel extends ReactModel {}
 export class VBoxView extends ReactView {}
 

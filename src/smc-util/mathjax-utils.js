@@ -14,28 +14,39 @@
 
 // MATHSPLIT contains the pattern for math delimiters and special symbols
 // needed for searching for math in the text input.
-var MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|\\[{}$]|[{}]|(?:\n\s*)+|@@\d+@@|\\\\(?:\(|\)|\[|\]))/i;
 
-regex_split = require("./regex-split").regex_split;
+const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|(?:\n\s*)+)/i;
+
+// This would also capture \[ \]  \( \), but I don't want to do that because
+// Jupyter classic doesn't and it conflicts too much with markdown.  Use $'s and e.g., \begin{equation}.
+// const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|(?:\n\s*)+|\\(?:\(|\)|\[|\]))/i;
+
+// This runs under node.js and is js (not ts) so can't use import.
+const { regex_split } = require("./regex-split");
 
 //  The math is in blocks i through j, so
 //    collect it into one block and clear the others.
 //  Clear the current math positions and store the index of the
 //    math, then push the math string onto the storage array.
 //  The preProcess function is called on all blocks if it has been passed in
-var process_math = function (i, j, pre_process, math, blocks) {
-  var block = blocks.slice(i, j + 1).join("");
+function process_math(i, j, pre_process, math, blocks, tags) {
+  let block = blocks.slice(i, j + 1).join("");
   while (j > i) {
     blocks[j] = "";
     j--;
   }
-  blocks[i] = "@@" + math.length + "@@"; // replace the current block text with a unique tag to find later
+  // replace the current block text with a unique tag to find later
+  if (block[0] === "$" && block[1] === "$") {
+    blocks[i] = tags.display_open + math.length + tags.display_close;
+  } else {
+    blocks[i] = tags.open + math.length + tags.close;
+  }
   if (pre_process) {
     block = pre_process(block);
   }
   math.push(block);
   return blocks;
-};
+}
 
 //  Break up the text into its component parts and search
 //    through them for math delimiters, braces, linebreaks, etc.
@@ -43,12 +54,24 @@ var process_math = function (i, j, pre_process, math, blocks) {
 //  Don't allow math to pass through a double linebreak
 //    (which will be a paragraph).
 //
-exports.remove_math = function (text) {
-  var math = []; // stores math strings for later
-  var start;
-  var end;
-  var last;
-  var braces;
+
+// Do *NOT* conflict with the ones used in ./markdown-utils.ts
+const MATH_ESCAPE = "\uFE32\uFE33"; // unused unicode -- hardcoded below too
+exports.MATH_ESCAPE = MATH_ESCAPE;
+
+const DEFAULT_TAGS = {
+  open: MATH_ESCAPE,
+  close: MATH_ESCAPE,
+  display_open: MATH_ESCAPE,
+  display_close: MATH_ESCAPE,
+};
+
+function remove_math(text, tags = DEFAULT_TAGS) {
+  let math = []; // stores math strings for later
+  let start;
+  let end;
+  let last;
+  let braces;
 
   // Except for extreme edge cases, this should catch precisely those pieces of the markdown
   // source that will later be turned into code spans. While MathJax will not TeXify code spans,
@@ -56,7 +79,7 @@ exports.remove_math = function (text) {
   //
   //     `$foo` and `$bar` are variables.  -->  <code>$foo ` and `$bar</code> are variables.
 
-  var hasCodeSpans = /`/.test(text),
+  let hasCodeSpans = /`/.test(text),
     de_tilde;
   if (hasCodeSpans) {
     text = text
@@ -75,18 +98,11 @@ exports.remove_math = function (text) {
     };
   }
 
-  var blocks = regex_split(text.replace(/\r\n?/g, "\n"), MATHSPLIT);
+  let blocks = regex_split(text.replace(/\r\n?/g, "\n"), MATHSPLIT);
 
-  for (var i = 1, m = blocks.length; i < m; i += 2) {
-    var block = blocks[i];
-    if (block.charAt(0) === "@") {
-      //
-      //  Things that look like our math markers will get
-      //  stored and then retrieved along with the math.
-      //
-      blocks[i] = "@@" + math.length + "@@";
-      math.push(block);
-    } else if (start) {
+  for (let i = 1, m = blocks.length; i < m; i += 2) {
+    const block = blocks[i];
+    if (start) {
       //
       //  If we are in math, look for the end delimiter,
       //    but don't go past double line breaks, and
@@ -96,7 +112,7 @@ exports.remove_math = function (text) {
         if (braces) {
           last = i;
         } else {
-          blocks = process_math(start, i, de_tilde, math, blocks);
+          blocks = process_math(start, i, de_tilde, math, blocks, tags);
           start = null;
           end = null;
           last = null;
@@ -104,7 +120,7 @@ exports.remove_math = function (text) {
       } else if (block.match(/\n.*\n/)) {
         if (last) {
           i = last;
-          blocks = process_math(start, i, de_tilde, math, blocks);
+          blocks = process_math(start, i, de_tilde, math, blocks, tags);
         }
         start = null;
         end = null;
@@ -136,21 +152,24 @@ exports.remove_math = function (text) {
     }
   }
   if (last) {
-    blocks = process_math(start, last, de_tilde, math, blocks);
+    blocks = process_math(start, last, de_tilde, math, blocks, tags);
     start = null;
     end = null;
     last = null;
   }
   return [de_tilde(blocks.join("")), math];
-};
+}
+exports.remove_math = remove_math;
 
 //
 //  Put back the math strings that were saved.
 //
-exports.replace_math = function (text, math) {
+function replace_math(text, math) {
   // Replace all the math group placeholders in the text
   // with the saved strings.
-  return text.replace(/@@(\d+)@@/g, function (match, n) {
+  return text.replace(/\uFE32\uFE33(\d+)\uFE32\uFE33/g, function (match, n) {
     return math[n];
   });
-};
+}
+
+exports.replace_math = replace_math;

@@ -35,7 +35,7 @@ import "./system-notifications";
 import "./launch/actions";
 
 // Various jquery plugins:
-require("./jquery_plugins");
+import "./jquery-plugins";
 // Another jquery plugin:
 import "./process-links";
 

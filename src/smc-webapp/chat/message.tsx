@@ -7,7 +7,7 @@ import { Map } from "immutable";
 const { IS_TOUCH } = require("../feature");
 
 import { Avatar } from "../account/avatar/avatar";
-import { is_different, path_split, smiley } from "smc-util/misc";
+import { is_different, path_split } from "smc-util/misc";
 import {
   is_editing,
   message_colors,
@@ -252,12 +252,6 @@ export const Message: React.FC<Props> = React.memo((props) => {
       props.message
     );
 
-    // smileys, just for fun.
-    value = smiley({
-      s: value,
-      wrap: ['<span class="smc-editor-chat-smiley">', "</span>"],
-    });
-
     const font_size = `${props.font_size}px`;
 
     if (props.show_avatar) {
@@ -400,10 +394,6 @@ export const Message: React.FC<Props> = React.memo((props) => {
 // Used for exporting chat to markdown file
 export function message_to_markdown(message): string {
   let value = newest_content(message);
-  value = smiley({
-    s: value,
-    wrap: ['<span class="smc-editor-chat-smiley">', "</span>"],
-  });
   const user_map = redux.getStore("users").get("user_map");
   const sender = get_user_name(user_map, message.get("sender_id"));
   const date = message.get("date").toString();

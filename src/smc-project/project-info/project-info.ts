@@ -14,9 +14,9 @@ import { exec } from "./utils";
 // singleton, we instantiate it when we need it
 let _info: ProjectInfoServer | undefined = undefined;
 
-export function get_ProjectInfoServer(L: Function): ProjectInfoServer {
+export function get_ProjectInfoServer(): ProjectInfoServer {
   if (_info != null) return _info;
-  _info = new ProjectInfoServer(L);
+  _info = new ProjectInfoServer();
   return _info;
 }
 

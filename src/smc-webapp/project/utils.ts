@@ -21,7 +21,7 @@ import * as dogNames from "dog-names";
 import { file_options } from "../editor-tmp";
 import { DEFAULT_NEW_FILENAMES } from "smc-util/db-schema";
 import { webapp_client } from "../webapp-client";
-const { BASE_URL } = require("../misc_page");
+import { BASE_URL } from "../misc";
 
 export type NewFilenameTypes =
   | "iso"

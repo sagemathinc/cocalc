@@ -16,16 +16,22 @@ import {
   useRedux,
   useRef,
   useState,
+  CSS,
 } from "../../app-framework";
 import { is_safari } from "../generic/browser";
-import * as CSS from "csstype";
 import { Popconfirm } from "antd";
 import { SaveButton } from "./save-button";
 
 const { debounce } = require("underscore");
-const { ButtonGroup, Button } = require("react-bootstrap");
+import {
+  ButtonGroup,
+  Button as AntdButton,
+  ButtonStyle,
+} from "../../antd-bootstrap";
 
 import { get_default_font_size } from "../generic/client";
+
+import { IS_MACOS } from "../../feature";
 
 import {
   r_join,
@@ -70,7 +76,7 @@ const COL_BAR_BACKGROUND = "#f8f8f8";
 const COL_BAR_BACKGROUND_DARK = "#ddd";
 const COL_BAR_BORDER = "rgb(204,204,204)";
 
-const title_bar_style: CSS.Properties = {
+const title_bar_style: CSS = {
   background: COL_BAR_BACKGROUND_DARK,
   border: `1px solid ${COL_BAR_BORDER}`,
   padding: "1px",
@@ -81,7 +87,7 @@ const title_bar_style: CSS.Properties = {
   minHeight: "34px",
 };
 
-const TITLE_STYLE: CSS.Properties = {
+const TITLE_STYLE: CSS = {
   background: COL_BAR_BACKGROUND_DARK,
   padding: "5px 5px 0 5px",
   color: "#333",
@@ -91,7 +97,7 @@ const TITLE_STYLE: CSS.Properties = {
   display: "inline-block",
 };
 
-const CONNECTION_STATUS_STYLE: CSS.Properties = {
+const CONNECTION_STATUS_STYLE: CSS = {
   padding: "5px 5px 0 5px",
   fontSize: "10pt",
   float: "right",
@@ -110,12 +116,12 @@ function connection_status_color(status: ConnectionStatus): string {
   }
 }
 
-const ICON_STYLE: CSS.Properties = {
+const ICON_STYLE: CSS = {
   width: "20px",
   display: "inline-block",
 };
 
-const close_style: CSS.Properties | undefined = IS_TOUCH
+const close_style: CSS | undefined = IS_TOUCH
   ? undefined
   : {
       background: "transparent",
@@ -227,6 +233,21 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     return props.is_only || props.is_full ? "34px" : "30px";
   }
 
+  function button_style(style?: CSS): CSS {
+    return {
+      ...style,
+      ...{ height: button_height(), marginBottom: "5px" },
+    };
+  }
+
+  function Button(props) {
+    return (
+      <AntdButton {...props} style={button_style(props.style)}>
+        {props.children}
+      </AntdButton>
+    );
+  }
+
   function is_visible(action_name: string, explicit?: boolean): boolean {
     if (props.editor_actions[action_name] == null) {
       return false;
@@ -330,10 +351,11 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
 
   function render_control(): Rendered {
     const is_active = props.active_id === props.id;
-    const style: CSS.Properties = {
+    const style: CSS = {
       padding: 0,
       paddingLeft: "4px",
       background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK,
+      height: button_height(),
     };
     if (is_active) {
       style.position = "absolute";
@@ -515,7 +537,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     return (
       <Button
         key={"sync"}
-        title={"Synchronize views (alt+enter)"}
+        title={`Synchronize views (${IS_MACOS ? "⌘" : "Alt"} + Enter)`}
         bsSize={button_size()}
         onClick={() => props.actions.sync?.(props.id, props.editor_actions)}
       >
@@ -983,6 +1005,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         is_saving={is_saving}
         no_labels={!labels}
         size={button_size()}
+        style={button_style()}
         onClick={() => {
           props.editor_actions.save(true);
           props.actions.explicit_save();
@@ -1131,7 +1154,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     if (!is_visible("pause")) {
       return;
     }
-    let icon: string, title: string, style: string | undefined;
+    let icon: string, title: string, style: ButtonStyle | undefined;
     if (props.is_paused) {
       icon = "play";
       title = "Play";
@@ -1239,7 +1262,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   }
 
   function render_shell(): Rendered {
-    if (!is_visible("shell")) {
+    if (!is_visible("shell") || is_public) {
       return;
     }
     return (
@@ -1251,6 +1274,38 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
       >
         <Icon name={"terminal"} />{" "}
         <VisibleMDLG>{button_text("shell")}</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  function render_edit(): Rendered {
+    if (!is_visible("edit") || is_public) {
+      return;
+    }
+    return (
+      <Button
+        key={"edit"}
+        bsSize={button_size()}
+        onClick={() => props.actions["edit"]?.(props.id)}
+        title={button_title("shell", "Click to edit file directly here")}
+      >
+        <Icon name={"lock"} /> <VisibleMDLG>Locked</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  function render_readonly_view(): Rendered {
+    if (!is_visible("readonly_view") || is_public) {
+      return;
+    }
+    return (
+      <Button
+        key={"readonly-view"}
+        bsSize={button_size()}
+        onClick={() => props.actions["readonly_view"]?.(props.id)}
+        title={button_title("shell", "Click to switch to readonly view")}
+      >
+        <Icon name={"pencil"} /> <VisibleMDLG>Editable</VisibleMDLG>
       </Button>
     );
   }
@@ -1292,6 +1347,8 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     v.push(render_save_timetravel_group());
     v.push(render_build());
     v.push(render_force_build());
+    v.push(render_edit());
+    v.push(render_readonly_view());
     v.push(render_sync());
     v.push(render_switch_to_file());
     v.push(render_clean());
@@ -1313,11 +1370,11 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     v.push(render_edit_init_script());
     v.push(render_clear());
     v.push(render_count_words());
-    v.push(render_table_of_contents());
     v.push(render_kick_other_users_out());
     v.push(render_format());
     v.push(render_shell());
     v.push(render_print());
+    v.push(render_table_of_contents());
     v.push(render_guide(labels));
     v.push(render_help(labels));
 
@@ -1342,7 +1399,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   function render_main_buttons(): Rendered {
     // This is complicated below (with the flex display) in order to have a drop down menu that actually appears
     // and *ALSO* have buttons that vanish when there are many of them.
-    const style: CSS.Properties = {
+    const style: CSS = {
       flexFlow: "row nowrap",
       display: "flex",
     };

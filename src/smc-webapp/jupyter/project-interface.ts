@@ -90,7 +90,6 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   readonly identity: string;
   get_state(): string;
   signal(signal: string): void;
-  usage(): Promise<{ cpu: number; memory: number }>;
   close(): Promise<void>;
   spawn(opts?: JupyterKernelInterfaceSpawnOpts): Promise<void>;
   execute_code(opts: ExecOpts): CodeExecutionEmitterInterface;

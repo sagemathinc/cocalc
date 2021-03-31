@@ -62,7 +62,7 @@ export function file_options(filename: string, content?: string) {
     if (icon != null) {
       x.icon = "fa-" + icon;
     } else {
-      x.icon = "fa-file-code-o";
+      x.icon = "fa-question-circle";
     }
   }
   return x;

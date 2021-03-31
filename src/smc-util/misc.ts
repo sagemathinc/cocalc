@@ -5,8 +5,6 @@
 
 export { get_start_time_ts, get_uptime, log, wrap_log } from "./log";
 
-export { smiley, smiley_strings } from "./emoji";
-
 import {
   is_array,
   is_integer,
@@ -39,6 +37,7 @@ export {
   field_cmp,
   is_different,
   is_different_array,
+  shallowCompare,
 } from "./cmp";
 
 export {
@@ -2081,7 +2080,7 @@ export function obj_key_subs(obj: object, subs: { [key: string]: any }): void {
 
 // this is a helper for sanitizing html. It is used in
 // * smc-util-node/misc_node → sanitize_html
-// * smc-webapp/misc_page    → sanitize_html
+// * smc-webapp/misc-page    → sanitize_html
 export function sanitize_html_attributes($, node): void {
   $.each(node.attributes, function () {
     // sometimes, "this" is undefined -- #2823
@@ -2217,4 +2216,16 @@ export function count(str: string, strsearch: string): number {
     }
   }
   return count;
+}
+
+// right pad a number using html's &nbsp;
+// by default, rounds number to a whole integer
+export function rpad_html(num: number, width: number, round_fn?: Function) {
+  num = (round_fn ?? Math.round)(num);
+  const s = "&nbsp;";
+  if (num == 0) return lodash.repeat(s, width - 1) + "0";
+  if (num < 0) return num; // TODO not implemented
+  const str = `${num}`;
+  const pad = Math.max(0, width - str.length);
+  return lodash.repeat(s, pad) + str;
 }

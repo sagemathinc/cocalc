@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-const { Button } = require("react-bootstrap");
+import { React, CSS } from "../../app-framework";
 import { Icon, VisibleMDLG } from "smc-webapp/r_misc";
-import { React } from "../../app-framework";
+import { Button, ButtonSize } from "../../antd-bootstrap";
 import { UncommittedChanges } from "../../r_misc";
 
 interface Props {
@@ -15,10 +15,11 @@ interface Props {
   is_public?: boolean;
   is_saving?: boolean;
   no_labels?: boolean;
-  size?: string;
-  onClick?: Function;
+  size?: ButtonSize;
+  onClick?: (e) => void;
   show_uncommitted_changes?: boolean;
   set_show_uncommitted_changes?: Function;
+  style?: CSS;
 }
 
 export const SaveButton: React.FC<Props> = React.memo((props: Props) => {
@@ -33,6 +34,7 @@ export const SaveButton: React.FC<Props> = React.memo((props: Props) => {
     onClick,
     show_uncommitted_changes,
     set_show_uncommitted_changes,
+    style,
   } = props;
 
   function make_label() {
@@ -63,7 +65,7 @@ export const SaveButton: React.FC<Props> = React.memo((props: Props) => {
       bsSize={size}
       disabled={disabled}
       onClick={onClick}
-      style={{ whiteSpace: "nowrap" }}
+      style={{ ...style, ...{ whiteSpace: "nowrap" } }}
     >
       <Icon name={icon} style={{ width: "15px", display: "inline-block" }} />{" "}
       <VisibleMDLG>{label}</VisibleMDLG>

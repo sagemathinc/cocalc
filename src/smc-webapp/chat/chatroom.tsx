@@ -8,8 +8,8 @@ import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
 
 // CoCalc libraries
-import { smiley, history_path, path_split } from "smc-util/misc";
-const { sanitize_html_safe } = require("../misc_page");
+import { history_path, path_split } from "smc-util/misc";
+import { sanitize_html_safe } from "../misc-page";
 import { SaveButton } from "../frame-editors/frame-tree/save-button";
 
 // have to rewrite buttons like SaveButton in antd before we can
@@ -128,12 +128,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
 
   function render_preview_message(): JSX.Element | undefined {
     if (input.length == 0 || preview.length == 0) return;
-    const value = sanitize_html_safe(
-      smiley({
-        s: preview,
-        wrap: ['<span class="smc-editor-chat-smiley">', "</span>"],
-      })
-    );
+    const value = sanitize_html_safe(preview);
     const file_path = path != null ? path_split(path).head : undefined;
 
     return (

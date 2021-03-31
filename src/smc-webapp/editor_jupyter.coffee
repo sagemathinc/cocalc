@@ -50,8 +50,8 @@ misc                 = require('smc-util/misc')
 {webapp_client}      = require('./webapp-client')
 {redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')
-misc_page            = require('./misc_page')
 {JUPYTER_CLASSIC_OPEN}  = require('./misc/commands')
+{cm_define_diffApply_extension} = require('./codemirror/extensions')
 
 templates            = $(".smc-jupyter-templates")
 editor_templates     = $("#webapp-editor-templates")
@@ -262,8 +262,7 @@ class JupyterWrapper extends EventEmitter
             # get in a state where @frame is defined, but window is not.
             return
         @_already_monkey_patched = true
-        misc_page.cm_define_diffApply_extension(@frame.CodeMirror)
-        misc_page.cm_define_testbot(@frame.CodeMirror)
+        cm_define_diffApply_extension(@frame.CodeMirror)
         @monkey_patch_logo()
         if @read_only
             @monkey_patch_read_only()
@@ -1128,10 +1127,6 @@ class JupyterNotebook extends EventEmitter
             # There are other algorithms that involve electing leaders or some other
             # consensus protocol, to decide who fixes issues, but they would all but
             # much more complicated and brittle.
-            # For testing, I do
-            #    smc.editors['tmp/break.ipynb'].wrapped.testbot({n:60})
-            # in a console on at least one open notebook, then open tmp/.break.ipynb.jupyter-sync
-            # directly and corrupt it in all kinds of ways.
             if not @_parse_errors
                 @_handle_dom_change(true)
 
@@ -1366,31 +1361,6 @@ class JupyterNotebook extends EventEmitter
         if @state != 'ready'
             return
         @syncstring.exit_undo_mode()
-
-    ###
-    Used for testing.  Call this to have a "robot" count from 1 up to n
-    in the given cell.   Will call sync after adding each number.   The
-    test to do is to have several of these running at once and make
-    sure all numbers are entered.  Also, try typing while this is running.
-    Use like this:
-            smc.editors['tmp/bot.ipynb'].wrapped.testbot()
-    A good way to test is to start one of these running on one machine,
-    then just try to use the same notebook on another machine.  The
-    constant arrivable and merging in of new content will properly stress
-    the system.
-    ###
-    testbot: (opts) =>
-        opts = defaults opts,
-            n     : 30
-            delay : 1000
-            index : @dom?.nb?.get_selected_index() ? 0
-        cell = @dom?.nb?.get_cell(opts.index)
-        if not cell?
-            console.warn("no available cell to test")
-        cell.code_mirror.testbot
-            n     : opts.n
-            delay : opts.delay
-            f     : @_handle_dom_change
 
 get_timestamp = (opts) ->
     opts = defaults opts,

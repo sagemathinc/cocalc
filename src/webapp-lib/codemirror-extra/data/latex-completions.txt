@@ -65,10 +65,10 @@
 \begin{array}{cols}
 \begin{array}[pos]{cols}
 \begin{center}
-\begin{description}\item
+\begin{description}
 \begin{displaymath}
 \begin{document}
-\begin{enumerate}\item
+\begin{enumerate}
 \begin{eqnarray}
 \begin{eqnarray*}
 \begin{equation}
@@ -81,7 +81,7 @@
 \begin{flushright}
 \begin{fussypar}
 \begingroup
-\begin{itemize}\item
+\begin{itemize}
 \begin{list}{label}{spacing}
 \begin{lrbox}
 \begin{math}

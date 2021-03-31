@@ -13,7 +13,8 @@ Do this if you want to test rendering with the full production data for `compute
 ~/cocalc/src/webapp-lib$ curl https://storage.googleapis.com/cocalc-compute-environment/compute-components.json > compute-components.json
 ~/cocalc/src/webapp-lib$ curl https://storage.googleapis.com/cocalc-compute-environment/compute-inventory.json > compute-inventory.json
 ```
-Do NOT commit this to the repo.
+Do NOT commit this to the repo.   It's unlikely you accidentally will, because
+neither file is in the cocalc git repo.
 
 ### `compute-inventory.json`
 

@@ -11,7 +11,7 @@ import { query, server_time } from "./frame-editors/generic/client";
 import { analytics_cookie_name as analytics, uuid } from "../smc-util/misc";
 import { redux } from "./app-framework";
 import { version } from "../smc-util/smc-version";
-const { get_cookie } = require("./misc_page");
+import { get_cookie } from "./misc-page";
 import { webapp_client } from "./webapp-client";
 
 export async function log(eventName: string, payload: any): Promise<void> {

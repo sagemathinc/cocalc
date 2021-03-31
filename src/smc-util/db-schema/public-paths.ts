@@ -7,6 +7,23 @@ import { deep_copy } from "../misc";
 import { SCHEMA as schema } from "./index";
 import { Table } from "./types";
 
+export interface PublicPath {
+  id: string;
+  project_id: string;
+  path: string;
+  description?: string;
+  disabled?: boolean;
+  unlisted?: boolean;
+  created?: Date;
+  license?: string;
+  last_edited?: Date;
+  last_saved?: Date;
+  counter?: number;
+  vhost?: string;
+  auth?: string;
+  compute_image?: string;
+}
+
 // Get publicly available information about a project.
 Table({
   name: "public_projects",
@@ -175,6 +192,40 @@ Table({
             cb(); // good
           } else {
             cb("id must be a sha1 hash");
+          }
+        },
+        fields: {
+          id: null,
+          project_id: null,
+          path: null,
+          description: null,
+          disabled: null, // if true then disabled
+          unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
+          license: null,
+          last_edited: null,
+          created: null,
+          last_saved: null,
+          counter: null,
+          compute_image: null,
+        },
+      },
+    },
+  },
+});
+
+// WARNING: the fields in queries to all_publics_paths are ignored; all of them are always returned.
+Table({
+  name: "all_public_paths",
+  rules: {
+    anonymous: true,
+    virtual: "public_paths",
+    user_query: {
+      get: {
+        async instead_of_query(database, opts, cb): Promise<void> {
+          try {
+            cb(undefined, await database.get_all_public_paths(opts.account_id));
+          } catch (err) {
+            cb(err);
           }
         },
         fields: {

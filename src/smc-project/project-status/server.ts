@@ -57,12 +57,12 @@ export class ProjectStatusServer extends EventEmitter {
   };
   private elevated_cpu_procs: { [pid: string]: number } = {};
 
-  constructor(L, testing = false) {
+  constructor(L: Function, testing = false) {
     super();
     //this.update = reuseInFlight(this.update.bind(this));
     this.testing = testing;
     this.dbg = (...msg) => L("ProjectStatusServer", ...msg);
-    this.project_info = get_ProjectInfoServer(L);
+    this.project_info = get_ProjectInfoServer();
   }
 
   private async init(): Promise<void> {

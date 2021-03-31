@@ -13,6 +13,7 @@ import {
   useRef,
 } from "../app-framework";
 import { is_share_server } from "./share-server";
+import { sanitize_html, sanitize_html_safe } from "../misc-page/sanitize";
 
 export interface Props {
   value?: string;
@@ -43,7 +44,7 @@ export interface Props {
   post_hook?: (any) => void;
 
   highlight?: Set<string>;
-  content_editable?: boolean; // if true, makes rendered HTML contenteditable
+  content_editable?: boolean; // if true, makes rendered HTML contenteditable; otherwise, explicitly set false.
 
   // If true, after any update to component, force reloading of all images.
   reload_images?: boolean;
@@ -58,7 +59,6 @@ export interface Props {
   smc_image_scaling?: boolean;
 
   // if true, highlight some <code class='language-r'> </code> blocks.
-  // See misc_page for how tiny this is!
   highlight_code?: boolean;
 
   id?: string;
@@ -131,7 +131,8 @@ export const HTML: React.FC<Props> = (props) => {
 
   function update_code(): void {
     if (isMountedRef.current && props.highlight_code) {
-      jq()?.highlight_code();
+      // note that the highlight_code plugin might not be defined.
+      jq()?.highlight_code?.();
     }
   }
 
@@ -190,17 +191,9 @@ export const HTML: React.FC<Props> = (props) => {
       html = elt.html();
     } else {
       if (props.safeHTML) {
-        html = require("../misc_page").sanitize_html_safe(
-          props.value,
-          props.post_hook
-        );
+        html = sanitize_html_safe(props.value, props.post_hook);
       } else {
-        html = require("../misc_page").sanitize_html(
-          props.value,
-          true,
-          true,
-          props.post_hook
-        );
+        html = sanitize_html(props.value, true, true, props.post_hook);
       }
     }
 
@@ -218,7 +211,7 @@ export const HTML: React.FC<Props> = (props) => {
         id={props.id}
         contentEditable={true}
         key={Math.random()}
-        className={props.className}
+        className={`${props.className ?? ""} cocalc-html-component`}
         dangerouslySetInnerHTML={render_html()}
         style={props.style}
         onClick={props.onClick}
@@ -230,8 +223,9 @@ export const HTML: React.FC<Props> = (props) => {
       <span
         ref={ref}
         id={props.id}
+        contentEditable={false}
         key={Math.random()}
-        className={props.className}
+        className={`${props.className ?? ""} cocalc-html-component`}
         dangerouslySetInnerHTML={render_html()}
         style={props.style}
         onClick={props.onClick}
@@ -248,4 +242,5 @@ HTML.displayName = "Misc-HTML";
 HTML.defaultProps = {
   auto_render_math: true,
   safeHTML: true,
+  highlight_code: true,
 };

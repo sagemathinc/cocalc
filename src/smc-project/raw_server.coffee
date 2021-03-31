@@ -83,7 +83,7 @@ exports.start_raw_server = (opts) ->
                         cb(err)
                         return
                     port = _port
-                    fs.writeFile(raw_port_file, port, cb) # since not specified, write it
+                    fs.writeFile(raw_port_file, port+"", cb) # since not specified, write it
         (cb) ->
             base = "#{base_url}/#{project_id}/raw/"
             opts.logger?.info("raw server: port=#{port}, host='#{host}', base='#{base}'")
@@ -114,8 +114,10 @@ exports.start_raw_server = (opts) ->
                 # it sets the content type to octet-stream (aka "download me") if URL query ?download exists
                 if req.query.download?
                     res.setHeader('Content-Type', 'application/octet-stream')
-                # Disable optimistic caching -- cloudflare obeys these headers
-                res.setHeader('Cache-Control', 'private, no-cache, must-revalidate')
+                # Note: we do not set no-cache since that causes major issues on Safari:
+                #   https://github.com/sagemathinc/cocalc/issues/5120
+                # By now our applications should use query params to break the cache.
+                res.setHeader('Cache-Control', 'private, must-revalidate')
                 return next()
             raw_server.use(base, express_index(home,  {hidden:true, icons:true}))
             raw_server.use(base, express.static(home, {hidden:true}))

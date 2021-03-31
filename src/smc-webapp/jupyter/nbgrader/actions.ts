@@ -154,6 +154,7 @@ export class NBGraderActions {
       ],
     });
     if (choice === "Cancel") return;
+    this.ensure_grade_ids_are_unique(); // non-unique ids lead to pain later
     await this.assign(target);
   }
 
@@ -355,5 +356,30 @@ export class NBGraderActions {
         });
       }
     });
+  }
+
+  public ensure_grade_ids_are_unique(): void {
+    const grade_ids = new Set<string>();
+    const cells = this.jupyter_actions.store.get("cells");
+    let changed: boolean = false; // did something change.
+    cells.forEach((cell, id: string): void => {
+      if (cell == null) return;
+      const nbgrader = cell.getIn(["metadata", "nbgrader"]);
+      if (nbgrader == null) return;
+      let grade_id = nbgrader.get("grade_id");
+      if (grade_ids.has(grade_id)) {
+        let n = 0;
+        while (grade_ids.has(grade_id + `${n}`)) {
+          n += 1;
+        }
+        grade_id = grade_id + `${n}`;
+        this.set_metadata(id, { grade_id }, false);
+        changed = true;
+      }
+      grade_ids.add(grade_id);
+    });
+    if (changed) {
+      this.jupyter_actions._sync();
+    }
   }
 }

@@ -11,8 +11,10 @@ import * as query_string from "query-string";
 
 export namespace QueryParams {
   export type Params = query_string.ParsedQuery<string>;
+  const location = (window as any).location;
 
   export function get_all(): Params {
+    if (location == null) return {};
     // fallback for situations where the url is temporarily like …/app#projects/…?…
     if (location.hash?.length > 0 && location.search?.length == 0) {
       const i = location.hash.indexOf("?");
@@ -31,6 +33,7 @@ export namespace QueryParams {
 
   // Remove the given query parameter from the URL
   export function remove(p: string | string[]): void {
+    if (location == null) return;
     const parsed = query_string.parse(location.search);
     if (typeof p != "string") {
       for (const x of p) {

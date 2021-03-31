@@ -43,7 +43,7 @@ import * as uuid from "node-uuid";
 import * as passport from "passport";
 import * as dot from "dot-object";
 import * as _ from "lodash";
-const misc = require("../smc-util/misc");
+import * as misc from "../smc-util/misc";
 import * as message from "../smc-util/message"; // message protocol between front-end and back-end
 const sign_in = require("./sign-in");
 import * as Cookies from "cookies";

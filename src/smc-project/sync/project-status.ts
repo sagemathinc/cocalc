@@ -63,7 +63,7 @@ class ProjectStatusTable {
 
   public close(): void {
     this.log("close");
-    this.status_server.off("status", this.status_handler);
+    this.status_server?.off("status", this.status_handler);
     this.table?.close_no_async();
     close(this);
     this.state = "closed";

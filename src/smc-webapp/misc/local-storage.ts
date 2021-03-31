@@ -7,7 +7,7 @@
  * Typed wrapper around LocalStorage
  */
 
-const { APP_BASE_URL } = require("../misc_page");
+import { APP_BASE_URL } from "./base-url";
 
 // tests at startup if localStorage exists and works. if not or disabled, uses memory as a fallback.
 

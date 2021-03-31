@@ -15,7 +15,7 @@ import {
 } from "./util";
 import { ComputeImages } from "./init";
 import { path_split, trunc, trunc_middle } from "smc-util/misc";
-const { open_new_tab } = require("smc-webapp/misc_page");
+import { open_new_tab } from "../misc-page";
 import { Icon, Tip, HiddenXSSM, VisibleMDLG, VisibleXSSM } from "../r_misc";
 import { ButtonGroup, Button } from "react-bootstrap";
 import { Available as AvailableFeatures } from "../project_configuration";

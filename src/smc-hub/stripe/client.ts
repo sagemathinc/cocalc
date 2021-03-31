@@ -305,6 +305,7 @@ export class StripeClient {
 
     const options = {
       customer: customer_id,
+      payment_behavior: "error_if_incomplete" as "error_if_incomplete", // see https://github.com/sagemathinc/cocalc/issues/5234
       items: [{ quantity, plan }],
       coupon: mesg.coupon_id,
       cancel_at_period_end: schema.cancel_at_period_end,
@@ -327,6 +328,7 @@ export class StripeClient {
 
       // SECURITY NOTE: incrementing a counter... subject to attack?
       // I.e., use a coupon more times than should be able to?
+      // NOT a big worry since we never issue or use coupons anyways...
       coupon_history[coupon.id] += 1;
       await callback2(this.client.database.update_coupon_history, {
         account_id: this.client.account_id,

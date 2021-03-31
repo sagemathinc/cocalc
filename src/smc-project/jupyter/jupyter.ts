@@ -31,7 +31,8 @@ export const VERSION = "5.3";
 
 import { EventEmitter } from "events";
 import { exists, unlink } from "./async-utils-node";
-import * as pidusage from "pidusage";
+import { createMainChannel } from "enchannel-zmq-backend";
+import { Channels, MessageType } from "@nteract/messaging";
 
 const { do_not_laod_transpilers } = require("../init-program");
 
@@ -69,7 +70,6 @@ import { remove_redundant_reps } from "../smc-webapp/jupyter/import-from-ipynb";
 import { retry_until_success } from "../smc-util/async-utils";
 import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
-import { delay } from "awaiting";
 
 import { nbconvert } from "./nbconvert";
 
@@ -182,15 +182,11 @@ interface KernelParams {
   verbose?: boolean;
   path: string; // filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
   actions?: any; // optional redux actions object
-  usage?: boolean; // monitor memory/cpu usage and report via 'usage' event.∑
 }
 
 export function kernel(opts: KernelParams): JupyterKernel {
   if (opts.verbose === undefined) {
     opts.verbose = true;
-  }
-  if (opts.usage === undefined) {
-    opts.usage = true;
   }
   if (opts.client === undefined) {
     opts.client = new Client();
@@ -199,8 +195,7 @@ export function kernel(opts: KernelParams): JupyterKernel {
     opts.name,
     opts.verbose ? opts.client.dbg : undefined,
     opts.path,
-    opts.actions,
-    opts.usage
+    opts.actions
   );
 }
 
@@ -230,10 +225,10 @@ export class JupyterKernel
   private _kernel: any;
   private _kernel_info: KernelInfo;
   _execute_code_queue: CodeExecutionEmitter[] = [];
-  _channels: any;
+  public channel?: Channels;
   private has_ensured_running: boolean = false;
 
-  constructor(name, _dbg, _path, _actions, usage) {
+  constructor(name, _dbg, _path, _actions) {
     super();
 
     this.spawn = reuseInFlight(this.spawn.bind(this)); // TODO -- test carefully!
@@ -265,9 +260,6 @@ export class JupyterKernel
     const dbg = this.dbg("constructor");
     dbg();
     process.on("exit", this.close);
-    if (usage) {
-      this._init_usage_monitor();
-    }
     this.setMaxListeners(100);
   }
 
@@ -314,6 +306,10 @@ export class JupyterKernel
     // one for us.  See https://plot.ly/python/renderers/ and
     // https://github.com/sagemathinc/cocalc/issues/4259
     opts.env.PLOTLY_RENDERER = "colab";
+
+    // expose path of jupyter notebook -- https://github.com/sagemathinc/cocalc/issues/5165
+    opts.env.COCALC_JUPYTER_FILENAME = this._path;
+    opts.env.COCALC_JUPYTER_KERNELNAME = this.name;
 
     if (this._directory !== "") {
       opts.cwd = this._directory;
@@ -373,40 +369,49 @@ export class JupyterKernel
       // no data gets dropped.  See https://github.com/sagemathinc/cocalc/issues/5065
     });
 
-    this._channels = require("enchannel-zmq-backend").createChannels(
-      this.identity,
-      this._kernel.config
+    this.channel = await createMainChannel(
+      this._kernel.config,
+      "",
+      this.identity
     );
 
     if (DEBUG) {
       this.low_level_dbg();
     }
 
-    this._channels.shell.subscribe((mesg) => {
-      this.emit("shell", mesg);
-    });
+    this.channel?.subscribe((mesg) => {
+      switch (mesg.channel) {
+        case "shell":
+          this.emit("shell", mesg);
+          break;
+        case "stdin":
+          this.emit("stdin", mesg);
+          break;
+        case "iopub":
+          if (mesg.content != null && mesg.content.execution_state != null) {
+            this.emit("execution_state", mesg.content.execution_state);
+          }
 
-    this._channels.stdin.subscribe((mesg) => this.emit("stdin", mesg));
+          if (
+            (mesg.content != null ? mesg.content.comm_id : undefined) !==
+            undefined
+          ) {
+            // A comm message, which gets handled directly.
+            this.process_comm_message_from_kernel(mesg);
+            break;
+          }
 
-    this._channels.iopub.subscribe((mesg) => {
-      if (mesg.content != null && mesg.content.execution_state != null) {
-        this.emit("execution_state", mesg.content.execution_state);
+          if (
+            this._actions != null &&
+            this._actions.capture_output_message(mesg)
+          ) {
+            // captured an output message -- do not process further
+            break;
+          }
+
+          this.emit("iopub", mesg);
+          break;
       }
-
-      if (
-        (mesg.content != null ? mesg.content.comm_id : undefined) !== undefined
-      ) {
-        // A comm message, which gets handled directly.
-        this.process_comm_message_from_kernel(mesg);
-        return;
-      }
-
-      if (this._actions != null && this._actions.capture_output_message(mesg)) {
-        // captured an output message -- do not process further
-        return;
-      }
-
-      this.emit("iopub", mesg);
     });
 
     this._kernel.spawn.on("exit", (exit_code, signal) => {
@@ -504,54 +509,6 @@ export class JupyterKernel
     }
   }
 
-  // Get memory/cpu usage e.g. { cpu: 1.154401154402318, memory: 482050048 }
-  // If no kernel/pid returns {cpu:0,memory:0}
-  async usage(): Promise<{ cpu: number; memory: number }> {
-    if (!this._kernel) {
-      return { cpu: 0, memory: 0 };
-    }
-    // Do *NOT* put any logging in here, since it gets called a lot by the usage monitor.
-    const spawn = this._kernel.spawn;
-    if (spawn === undefined) {
-      return { cpu: 0, memory: 0 };
-    }
-    const pid = spawn.pid;
-    if (pid === undefined) {
-      return { cpu: 0, memory: 0 };
-    }
-    return await callback(pidusage.stat, pid);
-  }
-
-  // Start a monitor that calls usage periodically.
-  // When the usage changes by a certain threshhold from the
-  // previous usage, emits a 'usage' event with new values.
-  async _init_usage_monitor(): Promise<void> {
-    let last_usage = { cpu: 0, memory: 0 };
-    const thresh = 0.2; // report any change of at least thresh percent (we always report cpu dropping to 0)
-    const interval = 5000; // frequently should be OK, since it just reads /proc filesystem
-    this.emit("usage", last_usage);
-    const dbg = this.dbg("usage_monitor");
-    while (this._state != "closed") {
-      await delay(interval);
-      try {
-        const usage = await this.usage();
-        for (const x of ["cpu", "memory"]) {
-          if (
-            usage[x] > last_usage[x] * (1 + thresh) ||
-            usage[x] < last_usage[x] * (1 - thresh) ||
-            (usage[x] === 0 && last_usage[x] > 0)
-          ) {
-            last_usage = usage;
-            this.emit("usage", usage);
-            break;
-          }
-        }
-      } catch (err) {
-        dbg("err", err, " -- skip");
-      }
-    }
-  }
-
   async close(): Promise<void> {
     this.dbg("close")();
     if (this._state === "closed") {
@@ -589,7 +546,7 @@ export class JupyterKernel
         }
       }
       delete this._kernel;
-      delete this._channels;
+      delete this.channel;
     }
     if (this._execute_code_queue != null) {
       for (const code_snippet of this._execute_code_queue) {
@@ -615,14 +572,9 @@ export class JupyterKernel
     const dbg = this.dbg("low_level_debug", 10000);
     this._kernel.spawn.all?.on("data", (data) => dbg("STDIO", data.toString()));
     // for low level debugging only...
-    const f = (channel) => {
-      this._channels[channel].subscribe((mesg) =>
-        dbg(channel, JSON.stringify(mesg))
-      );
-    };
-    for (const channel of ["shell", "iopub", "control", "stdin"]) {
-      f(channel);
-    }
+    this.channel?.subscribe((mesg) => {
+      dbg(JSON.stringify(mesg));
+    });
   }
 
   private async ensure_running(): Promise<void> {
@@ -808,23 +760,27 @@ export class JupyterKernel
       await this.ensure_running();
     }
     // Do a paranoid double check anyways...
-    if (this._channels == null || this._state == "closed") {
+    if (this.channel == null || this._state == "closed") {
       throw Error("not running, so can't call");
     }
 
     const message = {
+      parent_header: {},
+      metadata: {},
+      channel: "shell",
       content,
       header: {
         msg_id: uuid(),
         username: "",
         session: "",
-        msg_type: msg_type,
+        msg_type: msg_type as MessageType,
         version: VERSION,
+        date: new Date().toISOString(),
       },
     };
 
     // Send the message
-    this._channels.shell.next(message);
+    this.channel?.next(message);
 
     // Wait for the response that has the right msg_id.
     let the_mesg: any = undefined;
@@ -886,7 +842,7 @@ export class JupyterKernel
 
   async save_ipynb_file(): Promise<void> {
     if (this._actions != null) {
-      await callback(this._actions.save_ipynb_file);
+      await this._actions.save_ipynb_file();
     } else {
       throw Error("save_ipynb_file -- ERROR: actions not known");
     }
@@ -958,20 +914,24 @@ export class JupyterKernel
     const dbg = this.dbg("send_comm_message_to_kernel");
 
     const message = {
+      parent_header: {},
+      metadata: {},
+      channel: "shell",
       content: { comm_id, data },
       header: {
         msg_id,
         username: "user",
         session: "",
-        msg_type: "comm_msg",
+        msg_type: "comm_msg" as MessageType,
         version: VERSION,
+        date: new Date().toISOString(),
       },
     };
 
     dbg("sending ", JSON.stringify(message));
     // "The Kernel listens for these messages on the Shell channel,
     // and the Frontend listens for them on the IOPub channel." -- docs
-    this._channels.shell.next(message);
+    this.channel?.next(message);
   }
 }
 

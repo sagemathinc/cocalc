@@ -50,7 +50,7 @@ def get_ports():
     path = join(P, 'ports')
     if not os.path.exists(path):
         os.mkdir(path)
-    ports = {'hub': 0, 'hub-api': 0, 'hub-share': 0, 'hub-share-2': 0}
+    ports = {'hub': 0, 'hub-api': 0, 'hub-share': 0, 'hub-share-2': 0, 'agent-port': 0}
     for x in ports.keys():
         file = join(path, x)
         if os.path.exists(file):

@@ -23,16 +23,10 @@
 
 import { delay } from "awaiting";
 
-// The ResizeObserver polyfill in the resize-observer package is
-// really weird because it *always* gets used, even if the browser
-// has its own native ResizeObserver implementation, which is
-// most browsers these days.  Hence we do the following, which saves
-// wasted time according to the profiler.
-let ResizeObserver: any = (window as any).ResizeObserver;
-if (ResizeObserver == null) {
-  ResizeObserver = require("resize-observer").ResizeObserver;
-}
-const SHRINK_THRESH: number = 10;
+import ResizeObserver from "resize-observer-polyfill";
+
+const SHRINK_THRESH: number = 3;
+const BIG: number = 9999999;
 
 import { VariableSizeList as List, ListOnScrollProps } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -41,11 +35,12 @@ export interface ScrollInfo extends ListOnScrollProps {
   maxScrollOffset?: number;
 }
 
-import { React, Component, Rendered } from "../app-framework";
+import { React, Component, Rendered, CSS } from "../app-framework";
 
 interface Props {
   overscan_row_count: number; // how many not visible cells to render on each side of window
   estimated_row_size: number; // estimate to use for the row size before measuring
+  row_size_estimator?: (index: number) => number | undefined; // optional row size estimator
   row_count: number; // number of rows
   row_renderer: (obj: {
     key: string;
@@ -62,6 +57,7 @@ interface Props {
   hide_resize?: boolean;
   render_info?: boolean; // if true, record RenderInfo; also makes isVisible available for row_renderer.
   scroll_margin?: number;
+  row_style?: CSS;
 }
 
 interface State {
@@ -89,7 +85,6 @@ export class WindowedList extends Component<Props, State> {
   private list_ref;
   private row_heights_cache: { [key: string]: number } = {};
   private row_heights_stale: { [key: string]: boolean } = {};
-  private row_heights_removed: { [key: string]: boolean } = {};
   public resize_observer: any; // ResizeObserver, but can't because that's only for the polyfill...
   private is_mounted: boolean = true;
   private _disable_refresh: boolean = false;
@@ -102,6 +97,8 @@ export class WindowedList extends Component<Props, State> {
     scrollUpdateWasRequested: false,
   };
 
+  private min_changed_index: number = 0;
+
   public render_info: RenderInfo = {
     overscanStartIndex: 0,
     overscanStopIndex: 0,
@@ -113,7 +110,12 @@ export class WindowedList extends Component<Props, State> {
   constructor(props) {
     super(props);
     this.list_ref = React.createRef();
-    this.resize_observer = new ResizeObserver(this.cell_resized.bind(this));
+    this.resize_observer = new ResizeObserver((entries) =>
+      // We wrap it in requestAnimationFrame to avoid this error - ResizeObserver loop limit exceeded
+      // See https://stackoverflow.com/questions/49384120/resizeobserver-loop-limit-exceeded
+      // This overflow happens frequently on Safari and results in glitchy behavior.
+      window.requestAnimationFrame(() => this.rows_resized(entries))
+    );
     let scroll_top: number | undefined = props.scroll_top;
     if (scroll_top == null && this.props.cache_id != null) {
       const x = scroll_cache[this.props.cache_id];
@@ -130,7 +132,10 @@ export class WindowedList extends Component<Props, State> {
     this.is_mounted = false;
   }
 
-  public scrollToRow(row: number, align: string = "auto"): void {
+  // NOTE: avoid using "auto" as it is somewhat random and can be confusing.
+  // Try to specify one of these explicitly for align:
+  //      auto, end, start, center, top
+  public async scrollToRow(row: number, align: string = "auto"): Promise<void> {
     if (this.list_ref.current == null || this.props.row_count == 0) return;
     if (row < 0) {
       row = row % this.props.row_count;
@@ -143,6 +148,8 @@ export class WindowedList extends Component<Props, State> {
       // react-window doesn't have align=top, but we **need** it for jupyter
       // This implementation isn't done; it's just to prove we can do it.
       // Here "top" means the top of the row is in view nicely.
+      // NOTE: I ripped out all use of WindowedList from our Jupyter so no
+      // longer needed... but maybe I'll add it back someday (probably off by default).
       this.scrollToRow(row, "auto"); // at least get it into view, so metadata useful.
       const meta = this.get_row_metadata(row);
       if (meta == null) {
@@ -164,7 +171,15 @@ export class WindowedList extends Component<Props, State> {
       }
     } else {
       // align is auto, end, start, center
-      this.list_ref.current.scrollToItem(row, align);
+      while (this.is_mounted) {
+        const total_height = this.get_total_height();
+        this.list_ref.current.scrollToItem(row, align);
+        await delay(250);
+        if (this.get_total_height() <= total_height) {
+          // total height didn't increase as a result of scrolling...
+          break;
+        }
+      }
     }
   }
 
@@ -232,53 +247,39 @@ export class WindowedList extends Component<Props, State> {
     return x.info;
   }
 
-  private cell_resized(entries: any[]): void {
-    let num_changed: number = 0;
-    let min_index: number = 999999;
-    for (const entry of entries) {
-      const elt = entry.target;
-      const key = elt.getAttribute("data-key");
-      if (key == null) continue;
-      if (isNaN(entry.contentRect.height) || entry.contentRect.height === 0) {
-        if (this.row_heights_cache[key] > 0) {
-          // A row was deleted (or isn't visible), so goes from a
-          // possibly big height to 0.
-          this.row_heights_removed[key] = true;
-        }
-        continue;
-      }
-
-      const index = elt.getAttribute("data-index");
-      if (this.row_heights_removed[key]) {
-        delete this.row_heights_removed[key];
-        if (
-          Math.abs(this.row_heights_cache[key] - entry.contentRect.height) < 3
-        ) {
-          // Last time it changed it was removed, and now it is back but with
-          // a (significantly) different height
-          this.row_heights_cache[key] = entry.contentRect.height;
-          this.row_heights_stale[key] = true;
-          num_changed += 1;
-          if (index != null) {
-            min_index = Math.min(min_index, parseInt(index));
-          }
-          continue;
-        }
-      }
-
-      const s = entry.contentRect.height - this.row_heights_cache[key];
-      if (s == 0 || (s < 0 && -s <= SHRINK_THRESH)) {
-        // not really changed or just disappeared from DOM or just shrunk a little,
-        // ... so continue using what we have cached (or the default).
-        continue;
-      }
-      if (index != null) {
-        min_index = Math.min(min_index, parseInt(index));
-      }
-      this.row_heights_stale[key] = true;
-      num_changed += 1;
+  /* Call when a row may have changed size.  */
+  private row_resized(entry): void {
+    const elt = entry.target;
+    const key = elt.getAttribute("data-key");
+    if (key == null) return;
+    const height = entry.contentRect.height;
+    if (height == null || isNaN(height)) {
+      return;
     }
-    if (num_changed > 0) this.refresh(min_index);
+
+    const index = elt.getAttribute("data-index");
+    const s = height - this.row_heights_cache[key];
+    if (s < 0 && -s <= SHRINK_THRESH) {
+      // just shrunk a little,
+      // ... so continue using what we have cached (or the default).
+      return;
+    }
+    if (index != null) {
+      this.min_changed_index = Math.min(
+        this.min_changed_index,
+        parseInt(index)
+      );
+    }
+    this.row_heights_stale[key] = true;
+  }
+
+  private rows_resized(entries: any[]): void {
+    for (const entry of entries) {
+      this.row_resized(entry);
+    }
+    if (this.min_changed_index != BIG) {
+      this.refresh();
+    }
   }
 
   public disable_refresh(): void {
@@ -289,10 +290,11 @@ export class WindowedList extends Component<Props, State> {
     this._disable_refresh = false;
   }
 
-  public refresh(min_index: number = 0): void {
+  public refresh(): void {
     if (this._disable_refresh) return;
     if (this.list_ref.current == null) return;
-    this.list_ref.current.resetAfterIndex(min_index, true);
+    this.list_ref.current.resetAfterIndex(this.min_changed_index, true);
+    this.min_changed_index = BIG;
   }
 
   public row_ref(key: string): any {
@@ -307,11 +309,16 @@ export class WindowedList extends Component<Props, State> {
     if (h !== undefined && !this.row_heights_stale[key]) {
       return h;
     }
-    if (h === undefined) h = 0;
+    if (h === undefined) {
+      h = 0;
+    }
 
     const elt = this.cell_refs[key];
     if (elt == null) {
-      return h ? h : this.props.estimated_row_size;
+      return h
+        ? h
+        : this.props.row_size_estimator?.(index) ??
+            this.props.estimated_row_size;
     }
 
     let ht = elt.height();
@@ -320,7 +327,10 @@ export class WindowedList extends Component<Props, State> {
       ht = Math.max(h, ht);
     }
     if (ht === 0) {
-      return h ? h : this.props.estimated_row_size;
+      return h
+        ? h
+        : this.props.row_size_estimator?.(index) ??
+            this.props.estimated_row_size;
     }
 
     if (
@@ -348,6 +358,14 @@ export class WindowedList extends Component<Props, State> {
       scroll_to_index: undefined,
       scroll_top: undefined,
     });
+  }
+
+  public scrollToItem(index: number, align?): void {
+    this.list_ref.current?.scrollToItem(index, align);
+  }
+
+  public scrollTo(offset: number): void {
+    this.list_ref.current?.scrollTo(offset);
   }
 
   public render(): Rendered {
@@ -381,10 +399,16 @@ export class WindowedList extends Component<Props, State> {
         }
       : undefined;
 
+    // NOTE: WebkitUserSelect here and also in the row component
+    // below together make it so that on **Safari** you don't visibly
+    // see the containing div get selected whenever you try to select
+    // several elements of a windowed list.  This helps enormously
+    // with slate.js + windowing on safari.  On chrome and firefox
+    // this isn't a problem, but also the extra CSS rule doesn't hurt.
     return (
       <div
         className="smc-vfill"
-        style={{ width: "100%" }}
+        style={{ width: "100%", WebkitUserSelect: "none" }}
         key={"list-of-cells"}
       >
         <AutoSizer>
@@ -439,8 +463,12 @@ function create_row_component(windowed_list: WindowedList) {
       return (
         <div
           style={{
-            display: "flex",
-            flexDirection: "column",
+            ...windowed_list.props.row_style,
+            ...{
+              display: "flex",
+              flexDirection: "column",
+              WebkitUserSelect: "text",
+            },
           }}
           data-key={key}
           data-index={index}

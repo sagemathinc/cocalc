@@ -110,6 +110,7 @@ export function create_sync_db(
     }
     actions.students.lookup_nonregistered_students();
 
+    // compute image default setup
     const course_compute_image = store.getIn(["settings", "custom_image"]);
     const inherit_compute_image =
       store.getIn(["settings", "inherit_compute_image"]) ?? true;
@@ -120,15 +121,22 @@ export function create_sync_db(
         course_project_id,
         "compute_image",
       ]);
-      actions.set(
-        {
-          custom_image: course_project_compute_image,
-          inherit_compute_image,
-          table: "settings",
-        },
-        true
-      );
+      actions.set({
+        custom_image: course_project_compute_image,
+        inherit_compute_image,
+        table: "settings",
+      });
     }
+
+    // datastore default setup
+    const datastore = store.getIn(["settings", "datastore"]);
+    if (datastore == null) {
+      actions.set({
+        datastore: true,
+        table: "settings",
+      });
+    }
+
     actions.configuration.configure_all_projects();
 
     // Also

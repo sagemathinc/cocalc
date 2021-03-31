@@ -25,3 +25,18 @@
   text-decoration : none !important
   padding         : 0px 20px
   visibility      : visible
+
+=smooth-background-color
+  transition-property: background-color, color
+  transition-timing-function: ease
+  transition-duration: .250s
+  transition-delay: 0s
+
+.cocalc-jupyter-usage-info
+  padding: 2px 2px 0px 2px
+  margin-right: 1em
+  border: 1px solid $COL_GRAY_L
+  +smooth-background-color
+
+.cocalc-jupyter-btn-interrupt
+  +smooth-background-color

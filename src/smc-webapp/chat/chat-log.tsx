@@ -114,7 +114,7 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
         {render_not_showing()}
         <WindowedList
           ref={windowed_list_ref}
-          overscan_row_count={25}
+          overscan_row_count={15}
           estimated_row_size={62}
           row_count={sorted_dates.length}
           row_renderer={row_renderer}

@@ -107,6 +107,12 @@ export function setup_open_cocalc(opts: Setup) {
   app.set("views", "../webapp-lib");
   app.set("view engine", "pug");
 
+  // expand the scope of the service worker
+  router.use("/webapp/serviceWorker.js", (_req, res, next) => {
+    res.set("service-worker-allowed", path_module.join("/", base_url));
+    next();
+  });
+
   // static content for the main page
   router.use(
     "/webapp",

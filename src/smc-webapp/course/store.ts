@@ -15,6 +15,7 @@ import { TypedMap, createTypedMap } from "../app-framework";
 import { SITE_NAME } from "smc-util/theme";
 // Upgrades
 import * as project_upgrades from "./project-upgrades";
+import { Datastore } from "../projects/actions";
 
 export const PARALLEL_DEFAULT = 5;
 
@@ -97,6 +98,7 @@ export type AssignmentRecord = TypedMap<{
   nbgrader_scores?: {
     [student_id: string]: { [ipynb: string]: NotebookScores | string };
   };
+  nbgrader_score_ids?: { [ipynb: string]: string[] };
 }>;
 
 export type AssignmentsMap = Map<string, AssignmentRecord>;
@@ -237,6 +239,18 @@ export class CourseStore extends Store<CourseState> {
     const pay = settings.get("pay");
     if (!pay) return "";
     return pay;
+  }
+
+  public get_datastore(): Datastore {
+    const settings = this.get("settings");
+    if (settings == null || settings.get("datastore") == null) return undefined;
+    const ds = settings.get("datastore");
+    if (typeof ds === "boolean" || Array.isArray(ds)) {
+      return ds;
+    } else {
+      console.warn(`course/get_datastore: encountered faulty value:`, ds);
+      return undefined;
+    }
   }
 
   public get_allow_collabs(): boolean {
@@ -441,10 +455,21 @@ export class CourseStore extends Store<CourseState> {
     student_id: string
   ): { [ipynb: string]: NotebookScores | string } | undefined {
     const { assignment } = this.resolve({ assignment_id });
-    if (assignment == null) return undefined;
-    const x = assignment.getIn(["nbgrader_scores", student_id]);
-    if (x == null) return undefined;
-    return x.toJS();
+    return assignment?.getIn(["nbgrader_scores", student_id])?.toJS();
+  }
+
+  public get_nbgrader_score_ids(
+    assignment_id: string
+  ): { [ipynb: string]: string[] } | undefined {
+    const { assignment } = this.resolve({ assignment_id });
+    const ids = assignment?.get("nbgrader_score_ids")?.toJS();
+    if (ids != null) return ids;
+    // TODO: If the score id's aren't known, it would be nice to try
+    // to parse the master ipynb file and compute them.  We still
+    // allow for the possibility that this fails and return undefined
+    // in that case.  This is painful since it involves async calls
+    // to the backend, and the code that does this as part of grading
+    // is deep inside other functions...
   }
 
   public get_comments(assignment_id: string, student_id: string): string {

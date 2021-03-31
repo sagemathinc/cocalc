@@ -138,7 +138,7 @@ class SagewsPrinter extends Printer
 
             {SITE_NAME} = require('smc-util/theme')
             SiteName = redux.getStore('customize').site_name ? SITE_NAME
-            {BASE_URL} = require('./misc_page')
+            {BASE_URL} = require('./misc')
 
             # note to a future reader: the <meta data-name="smc-generated" ... > uniquely tags this document for detection.
             # e.g. this can be used to import it later on

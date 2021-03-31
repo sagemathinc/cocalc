@@ -54,7 +54,7 @@ Type `./info.py` to get the URL where you can reach your own running copy of CoC
 
 If you want, you can start several different services at once
 
-    ./tmux-start-all
+    dev/project/tmux-start-all
 
 to create a single tmux session with each of the servers running.
 
@@ -73,8 +73,9 @@ Edit files in smc-hub, e.g., `hub.coffee`.  Then hit control+c, then run `./star
 Set the environment variable, e.g.,
 
     \$ . $HOME/cocalc/src/dev/project/postgres-env
+    \$ . smc-env
 
-From the directory `~/cocalc/cocalc` you can do:
+From the directory `~/cocalc/src` you can do:
 
     \$ coffee
     coffee> require './c'; db()

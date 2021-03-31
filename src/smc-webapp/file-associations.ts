@@ -46,6 +46,7 @@ const codemirror_associations: { [ext: string]: string } = {
   hs: "text/x-haskell",
   lhs: "text/x-haskell",
   html: "htmlmixed",
+  init: "shell",
   java: "text/x-java",
   jl: "text/x-julia",
   js: "javascript",
@@ -97,8 +98,7 @@ const codemirror_associations: { [ext: string]: string } = {
   ptx: "xml", // https://pretextbook.org/
   v: "verilog",
   vh: "verilog",
-  "": "text",
-};
+} as const;
 
 export interface FileSpec {
   editor?: string;
@@ -153,6 +153,7 @@ file_associations["noext-dockerfile"] = {
   icon: "fa-ship",
   opts: { mode: "dockerfile", indent_unit: 2, tab_size: 2 },
   name: "Dockerfile",
+  exclude_from_menu: true,
 };
 
 file_associations["tex"] = {
@@ -411,9 +412,9 @@ const archive_association = {
 
 // Fallback for any type not otherwise explicitly specified
 file_associations[""] = {
-  editor: "codemirror",
-  icon: "fa-file-code-o",
-  opts: { mode: "text", indent_unit: 4, tab_size: 4 },
+  editor: "unknown",
+  icon: "fa-question-circle",
+  opts: {},
   name: "",
 };
 

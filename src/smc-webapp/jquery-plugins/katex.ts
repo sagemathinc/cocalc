@@ -20,8 +20,9 @@ declare var $: any;
 import { tex2jax } from "./tex2jax";
 import * as LRU from "lru-cache";
 
-const { macros } = require("../math_katex");
+import { macros } from "./math-katex";
 import { redux } from "../app-framework";
+import { is_share_server } from "../r_misc/share-server";
 
 declare global {
   interface JQuery {
@@ -35,6 +36,10 @@ $.fn.katex = function () {
 };
 
 const math_cache = new LRU({ max: CACHE_SIZE });
+
+function get_key(text: string, display?: boolean): string {
+  return `${display ? "d" : "i"}${text}`;
+}
 
 function is_macro_definition(s: string): boolean {
   for (const k of ["\\newcommand", "\\renewcommand", "\\providecommand"]) {
@@ -53,9 +58,8 @@ function katex_plugin(): void {
   //    <script type="math/tex; mode=display">x^2</script>
   tex2jax.PreProcess(elt[0]);
 
-  const always_use_mathjax: boolean = redux
-    .getStore("account")
-    ?.getIn(["other_settings", "katex"]) === false;
+  const always_use_mathjax: boolean =
+    redux.getStore("account")?.getIn(["other_settings", "katex"]) === false;
 
   // Select all the math and try to use katex on each part.
   elt.find("script").each(function () {
@@ -65,19 +69,23 @@ function katex_plugin(): void {
       (node[0] as any).type == "math/tex" ||
       (node[0] as any).type == "math/tex; mode=display"
     ) {
-      const katex_options: KatexOptions = {
+      const katex_options = {
         displayMode: (node[0] as any).type == "math/tex; mode=display",
-        macros: macros,
+        macros,
         trust: true,
       } as KatexOptions; // cast required due to macros not being in the typescript def file yet.
       let text = node.text();
-      const cached: any = math_cache.get(text);
+      const key: string = get_key(text, katex_options.displayMode);
+      const cached: any = math_cache.get(key);
       if (cached !== undefined) {
         node.replaceWith(cached.clone());
         return;
       }
       text = text.replace("\\newcommand{\\Bold}[1]{\\mathbf{#1}}", ""); // hack for sage kernel for now.
-      if (always_use_mathjax || is_macro_definition(text)) {
+      if (
+        (always_use_mathjax || is_macro_definition(text)) &&
+        !is_share_server()
+      ) {
         //console.log("using mathjax for text since is a macro defn", text);
         // Use mathjax for this.
         // 1. clear anything in cache involving the command
@@ -85,9 +93,9 @@ function katex_plugin(): void {
         const j = text.indexOf("}");
         if (i != -1 && j != -1) {
           const cmd = text.slice(i + 1, j);
-          math_cache.forEach(function (_, key) {
-            if ((key as string).indexOf(cmd) != -1) {
-              math_cache.del(key);
+          math_cache.forEach(function (_, k) {
+            if ((k as string).indexOf(cmd) != -1) {
+              math_cache.del(k);
             }
           });
         }
@@ -97,7 +105,7 @@ function katex_plugin(): void {
           node0.mathjax({
             cb: () => {
               // prev since mathjax puts the rendered content NEXT to the script node0, not inside it (of course).
-              math_cache.set(text, node0.prev().clone());
+              math_cache.set(key, node0.prev().clone());
             },
           });
         }
@@ -106,8 +114,16 @@ function katex_plugin(): void {
         try {
           const rendered = $(renderToString(text, katex_options));
           node.replaceWith(rendered);
-          math_cache.set(text, rendered.clone());
+          math_cache.set(key, rendered.clone());
         } catch (err) {
+          if (is_share_server()) {
+            node.replaceWith(
+              $(
+                "<div style='text-align: center;color: red;'>(Share server only supports KaTeX; open in CoCalc to see this formula.)</div>"
+              )
+            );
+            return;
+          }
           // Failed -- use mathjax instead.
           console.log(
             "WARNING -- ",
@@ -121,7 +137,7 @@ function katex_plugin(): void {
             node0.mathjax({
               cb: () => {
                 // prev since mathjax puts the rendered content NEXT to the script node0, not inside it (of course).
-                math_cache.set(text, node0.prev().clone());
+                math_cache.set(key, node0.prev().clone());
               },
             });
           }

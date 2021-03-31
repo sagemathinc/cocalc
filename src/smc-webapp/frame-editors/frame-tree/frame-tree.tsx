@@ -41,10 +41,11 @@ import {
   Rendered,
 } from "../../app-framework";
 import { Map, Set } from "immutable";
-
 const Draggable = require("react-draggable");
-const misc_page = require("smc-webapp/misc_page");
-
+import {
+  drag_start_iframe_disable,
+  drag_stop_iframe_enable,
+} from "../../misc-page";
 import * as feature from "smc-webapp/feature";
 import { FrameTitleBar } from "./title-bar";
 import { FrameTreeLeaf } from "./leaf";
@@ -52,12 +53,11 @@ import * as tree_ops from "./tree-ops";
 import { Loading } from "../../r_misc";
 import { AvailableFeatures } from "../../project_configuration";
 import { get_file_editor } from "./register";
-
 import { TimeTravelActions } from "../time-travel-editor/actions";
 import { EditorSpec, EditorDescription, EditorState, NodeDesc } from "./types";
 import { Actions } from "../code-editor/actions";
-
 import { cm as cm_spec } from "../code-editor/editor";
+import { FrameContext } from "./frame-context";
 
 const drag_offset = feature.IS_TOUCH ? 5 : 2;
 
@@ -110,6 +110,7 @@ interface FrameTreeProps {
   derived_file_types: Set<string>;
   available_features: AvailableFeatures;
   local_view_state: Map<string, any>;
+  is_visible: boolean;
 }
 
 interface FrameTreeState {
@@ -156,6 +157,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "derived_file_types",
         "available_features",
         "local_view_state",
+        "is_visible",
       ])
     );
   }
@@ -192,11 +194,12 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         derived_file_types={this.props.derived_file_types}
         available_features={this.props.available_features}
         local_view_state={this.props.local_view_state}
+        is_visible={this.props.is_visible}
       />
     );
   }
 
-  private get_editor_actions(desc: NodeDesc): Actions {
+  private get_editor_actions(desc: NodeDesc): Actions | undefined {
     if (desc.get("type") == "cm" && this.props.editor_spec["cm"] == null) {
       // make it so the spec includes info about cm editor.
       this.props.editor_spec.cm = copy(cm_spec);
@@ -207,7 +210,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       desc.get("path", this.props.path) != this.props.path
     ) {
       const manager = this.props.actions.get_code_editor(desc.get("id"));
-      return manager.get_actions();
+      return manager?.get_actions();
     } else {
       return this.props.actions;
     }
@@ -316,6 +319,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         reload={this.props.reload.get(type)}
         resize={this.props.resize}
         is_subframe={is_subframe}
+        is_visible={this.props.is_visible}
       />
     );
   }
@@ -334,9 +338,19 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     }
     // NOTE: get_editor_actions may mutate props.editor_spec
     // if necessary for subframe, etc. So we call it first!
-    let editor_actions: Actions, spec: EditorDescription, component: any;
+    let editor_actions: Actions | undefined,
+      spec: EditorDescription,
+      component: any;
     try {
       editor_actions = this.get_editor_actions(desc);
+      if (editor_actions == null) {
+        return (
+          <div>
+            BUG: editor actions not defined; please close and open this tab or
+            refresh your browser.
+          </div>
+        );
+      }
       spec = this.props.editor_spec[type];
       component = spec != null ? spec.component : undefined;
       if (component == null) throw Error(`unknown type '${type}'`);
@@ -348,15 +362,24 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       return <div>{mesg}</div>;
     }
     return (
-      <div
-        className={"smc-vfill"}
-        onClick={() => this.props.actions.set_active_id(desc.get("id"), true)}
-        onTouchStart={() => this.props.actions.set_active_id(desc.get("id"))}
-        style={spec != null ? spec.style : undefined}
+      <FrameContext.Provider
+        value={{
+          id: desc.get("id"),
+          project_id: this.props.project_id,
+          path: this.props.path,
+          actions: editor_actions,
+        }}
       >
-        {this.render_titlebar(desc, spec, editor_actions)}
-        {this.render_leaf(desc, component, spec, editor_actions)}
-      </div>
+        <div
+          className={"smc-vfill"}
+          onClick={() => this.props.actions.set_active_id(desc.get("id"), true)}
+          onTouchStart={() => this.props.actions.set_active_id(desc.get("id"))}
+          style={spec != null ? spec.style : undefined}
+        >
+          {this.render_titlebar(desc, spec, editor_actions)}
+          {this.render_leaf(desc, component, spec, editor_actions)}
+        </div>
+      </FrameContext.Provider>
     );
   }
 
@@ -377,7 +400,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     };
 
     const handle_stop = async (_, ui) => {
-      misc_page.drag_stop_iframe_enable();
+      drag_stop_iframe_enable();
       const clientX = ui.node.offsetLeft + ui.x + drag_offset;
       const elt = ReactDOM.findDOMNode(this.refs.cols_container);
       const pos = (clientX - elt.offsetLeft) / elt.offsetWidth;
@@ -396,7 +419,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         ref={"cols_drag_bar"}
         axis={"x"}
         onStop={handle_stop}
-        onStart={misc_page.drag_start_iframe_disable}
+        onStart={drag_start_iframe_disable}
         defaultClassNameDragging={"cc-vertical-drag-bar-dragging"}
       >
         <div
@@ -483,7 +506,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     };
 
     const handle_stop = (_, ui) => {
-      misc_page.drag_stop_iframe_enable();
+      drag_stop_iframe_enable();
       const clientY = ui.node.offsetTop + ui.y + drag_offset;
       const elt = ReactDOM.findDOMNode(this.refs.rows_container);
       const pos = (clientY - elt.offsetTop) / elt.offsetHeight;
@@ -502,7 +525,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         ref={"rows_drag_bar"}
         axis={"y"}
         onStop={handle_stop}
-        onStart={misc_page.drag_start_iframe_disable}
+        onStart={drag_start_iframe_disable}
       >
         <div
           style={

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
@@ -219,7 +219,7 @@ def sws_to_sagews(filename):
             sage_worksheet/worksheet_conf.pickle
             sage_worksheet/worksheet.html
             sage_worksheet/worksheet.txt
-            sage_worksheet/data/fcla.css 
+            sage_worksheet/data/fcla.css
 
     """
     out = ''
