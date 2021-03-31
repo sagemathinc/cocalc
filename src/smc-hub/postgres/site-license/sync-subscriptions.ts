@@ -26,7 +26,7 @@ import { delay } from "awaiting";
 // wait this long after writing to the DB, to avoid overwhelming it...
 const WAIT_AFTER_UPDATE_MS = 10;
 
-// this is each entry in the "data" field of what's in the DB in stripe_customer -> subscriptions
+// this is a subset of what's in the "data" field in the DB in stripe_customer -> subscriptions jsonb
 interface Subscription {
   id: string; // e.g.  sub_XXX...
   metadata: { license_id?: string; account_id?: string };
@@ -34,6 +34,7 @@ interface Subscription {
   status: string;
   created: number;
   customer: string; // cus_XXXX...
+  cancel_at: number | null; // stripe sets this to a timestamp value (secs), if the subscription is set to cancel at period end. oddly enough, the "status" could still "active".
 }
 
 interface RawSubscriptions {
@@ -68,7 +69,7 @@ async function get_licenses(
     table: "site_licenses",
   } as { select: string[]; table: string; where?: string; params?: string[] };
   if (account_id != null && expires_unset) {
-    throw new Error("account_id requires expires_unset == false");
+    throw new Error("setting the account_id requires expires_unset == false");
   }
   if (account_id != null) {
     query.where = "$1 = ANY(managers)";
@@ -128,6 +129,18 @@ function* iter(subs: LicenseSubs) {
   }
 }
 
+// returns true, if this subscription is actively funding
+function is_funding(sub): boolean {
+  // there are subs, which are "active" but the cancel_at time is in the past and hence are cancelled.
+  // that's not in the stripe API but could happen to us here if the account's stripe info is no longer synced
+  const cancelled =
+    typeof sub.cancel_at === "number"
+      ? new Date(sub.cancel_at * 1000) < new Date()
+      : false;
+
+  return (sub.status == "active" || sub.status == "trialing") && !cancelled;
+}
+
 export async function sync_site_license_subscriptions(
   db: PostgreSQL,
   account_id?: string,
@@ -142,7 +155,9 @@ export async function sync_site_license_subscriptions(
   let n = 0;
   for (const { license_id, sub } of iter(subs)) {
     const expires: Date | undefined = licenses[license_id].expires;
-    if (sub.status == "active" || sub.status == "trialing") {
+
+    // we check, if the given subscription of that license is still funding it
+    if (is_funding(sub)) {
       // make sure expires is not set
       if (expires != null) {
         if (test_mode) {
@@ -197,11 +212,25 @@ async function expire_cancelled_subscriptions(
   const licenses: LicenseInfo = await get_licenses(db, undefined, true);
 
   for (const license_id in licenses) {
-    // the query above already filtered by exires == null
-    let found = subs[license_id] != null && subs[license_id].length > 0;
-    if (found) {
-      L(`license_id '${license_id}' is funded by '${subs[license_id][0].id}'`);
-      found = true;
+    // the query above already filters by exires == null
+
+    let funded: number | false = false;
+
+    if (subs[license_id] != null) {
+      let i = 0;
+      for (const sub of subs[license_id]) {
+        if (is_funding(sub)) {
+          funded = i;
+          break;
+        }
+        i += 1;
+      }
+    }
+
+    if (typeof funded === "number") {
+      L(
+        `license_id '${license_id}' is funded by '${subs[license_id][funded].id}'`
+      );
     } else {
       const msg = `license_id '${license_id}' is not funded by any subscription`;
       // maybe trial without expiration?
