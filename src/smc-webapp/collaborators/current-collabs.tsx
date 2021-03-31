@@ -4,178 +4,130 @@
  */
 
 import * as React from "react";
-import { redux, rtypes, rclass } from "../app-framework";
-import { Well, Button, ButtonToolbar, Row, Col } from "react-bootstrap";
+import { redux, useRedux, CSS } from "../app-framework";
+import { Well, Row, Col } from "react-bootstrap";
 import { Space, Icon, SettingBox } from "../r_misc";
 import { Project } from "smc-webapp/project/settings/types";
-const { User } = require("../users");
+import { User } from "../users";
+import { Popconfirm, Button } from "antd";
 
-interface ReactProps {
+interface Props {
   project: Project;
   user_map?: any;
 }
 
-interface ReduxProps {
-  get_account_id: any;
-  sort_by_activity: any;
-  actions: any;
-}
+export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
+  const { project, user_map } = props;
+  const get_account_id = useRedux("account", "get_account_id");
+  const sort_by_activity = useRedux("projects", "sort_by_activity");
 
-interface CurrentCollaboratorsPanelState {
-  removing?: string; // id of account that we are currently confirming to remove
-}
+  function remove_collaborator(account_id: string) {
+    const project_id = project.get("project_id");
+    redux.getActions("projects").remove_collaborator(project_id, account_id);
+    if (account_id === get_account_id()) {
+      return (redux.getActions("page") as any).close_project_tab(project_id); // TODO: better types
+    }
+  }
 
-export const CurrentCollaboratorsPanel = rclass<ReactProps>(
-  class CurrentCollaboratorsPanel extends React.Component<
-    ReactProps & ReduxProps,
-    CurrentCollaboratorsPanelState
-  > {
-    static reduxProps() {
-      return {
-        account: {
-          get_account_id: rtypes.func,
-        },
-        projects: {
-          sort_by_activity: rtypes.func,
-        },
-      };
-    }
-    constructor(props) {
-      super(props);
-      this.state = { removing: undefined };
-    }
-    remove_collaborator = (account_id: string) => {
-      const project_id = this.props.project.get("project_id");
-      redux.getActions("projects").remove_collaborator(project_id, account_id);
-      this.setState({ removing: undefined });
-      if (account_id === this.props.get_account_id()) {
-        return (redux.getActions("page") as any).close_project_tab(project_id); // TODO: better types
-      }
-    };
-
-    render_user_remove_confirm(account_id: string) {
-      if (account_id === this.props.get_account_id()) {
-        return (
-          <Well style={{ background: "white" }}>
-            Are you sure you want to remove <b>yourself</b> from this project?
-            You will no longer have access to this project and cannot add
-            yourself back.
-            <ButtonToolbar style={{ marginTop: "15px" }}>
-              <Button
-                bsStyle="danger"
-                onClick={() => this.remove_collaborator(account_id)}
-              >
-                Remove Myself
-              </Button>
-              <Button
-                bsStyle="default"
-                onClick={() => this.setState({ removing: "" })}
-              >
-                Cancel
-              </Button>
-            </ButtonToolbar>
-          </Well>
-        );
-      } else {
-        return (
-          <Well style={{ background: "white" }}>
-            Are you sure you want to remove{" "}
-            <User account_id={account_id} user_map={this.props.user_map} /> from
-            this project? They will no longer have access to this project.
-            <ButtonToolbar style={{ marginTop: "15px" }}>
-              <Button
-                bsStyle="danger"
-                onClick={() => this.remove_collaborator(account_id)}
-              >
-                Remove
-              </Button>
-              <Button
-                bsStyle="default"
-                onClick={() => this.setState({ removing: "" })}
-              >
-                Cancel
-              </Button>
-            </ButtonToolbar>
-          </Well>
-        );
-      }
-    }
-    user_remove_button(account_id: string, group?: string) {
+  function user_remove_confirm_text(account_id: string) {
+    const style: CSS = { maxWidth: "300px" };
+    if (account_id === get_account_id()) {
       return (
-        <Button
-          disabled={group === "owner"}
-          style={{ marginBottom: "0", float: "right" }}
-          onClick={() => this.setState({ removing: account_id })}
-        >
-          <Icon name="user-times" /> Remove...
-        </Button>
+        <div style={style}>
+          Are you sure you want to remove <b>yourself</b> from this project? You
+          will no longer have access to this project and cannot add yourself
+          back.
+        </div>
       );
-    }
-    render_user(user: any, is_last?: boolean) {
+    } else {
       return (
-        <div
-          key={user.account_id}
-          style={!is_last ? { marginBottom: "20px" } : undefined}
-        >
-          <Row style={{ display: "flex", alignItems: "center" }}>
-            <Col sm={8}>
-              <User
-                account_id={user.account_id}
-                user_map={this.props.user_map}
-                last_active={user.last_active}
-                show_avatar={true}
-              />
-              <span>
-                <Space />({user.group})
-              </span>
-            </Col>
-            <Col sm={4}>
-              {this.user_remove_button(user.account_id, user.group)}
-            </Col>
-          </Row>
-          {this.state.removing === user.account_id
-            ? this.render_user_remove_confirm(user.account_id)
-            : undefined}
+        <div style={style}>
+          Are you sure you want to remove{" "}
+          <User account_id={account_id} user_map={user_map} /> from this
+          project? They will no longer have access to this project.
         </div>
       );
     }
-    render_users() {
-      const u = this.props.project.get("users");
-      if (u === undefined) {
-        return;
-      }
-      const users = u
-        .map((v, k) => ({ account_id: k, group: v.get("group") }))
-        .toList()
-        .toJS();
-      return this.props
-        .sort_by_activity(users, this.props.project.get("project_id"))
-        .map((u, i) => this.render_user(u, i === users.length - 1));
-    }
-    render_collaborators_list() {
-      return (
-        <Well
-          style={{
-            maxHeight: "20em",
-            overflowY: "auto",
-            overflowX: "hidden",
-            marginBottom: "0",
-          }}
-        >
-          {this.render_users()}
-        </Well>
-      );
-    }
-    render() {
-      return (
-        <SettingBox title="Current collaborators" icon="user">
-          Everybody listed below can collaboratively work with you on any
-          notebooks, terminals or files in this project, and add or remove other
-          collaborators.
-          <hr />
-          {this.render_collaborators_list()}
-        </SettingBox>
-      );
-    }
   }
-);
+
+  function user_remove_button(account_id: string, group?: string) {
+    const text = user_remove_confirm_text(account_id);
+    return (
+      <Popconfirm
+        title={text}
+        onConfirm={() => remove_collaborator(account_id)}
+        okText={"Yes, remove collaborator"}
+        cancelText={"Cancel"}
+      >
+        <Button
+          disabled={group === "owner"}
+          style={{ marginBottom: "0", float: "right" }}
+        >
+          <Icon name="user-times" /><Space/> Remove...
+        </Button>
+      </Popconfirm>
+    );
+  }
+
+  function render_user(user: any, is_last?: boolean) {
+    return (
+      <div
+        key={user.account_id}
+        style={!is_last ? { marginBottom: "20px" } : undefined}
+      >
+        <Row style={{ display: "flex", alignItems: "center" }}>
+          <Col sm={8}>
+            <User
+              account_id={user.account_id}
+              user_map={user_map}
+              last_active={user.last_active}
+              show_avatar={true}
+            />
+            <span>
+              <Space />({user.group})
+            </span>
+          </Col>
+          <Col sm={4}>{user_remove_button(user.account_id, user.group)}</Col>
+        </Row>
+      </div>
+    );
+  }
+
+  function render_users() {
+    const u = project.get("users");
+    if (u === undefined) {
+      return;
+    }
+    const users = u
+      .map((v, k) => ({ account_id: k, group: v.get("group") }))
+      .toList()
+      .toJS();
+    return sort_by_activity(users, project.get("project_id")).map((u, i) =>
+      render_user(u, i === users.length - 1)
+    );
+  }
+
+  function render_collaborators_list() {
+    return (
+      <Well
+        style={{
+          maxHeight: "20em",
+          overflowY: "auto",
+          overflowX: "hidden",
+          marginBottom: "0",
+        }}
+      >
+        {render_users()}
+      </Well>
+    );
+  }
+
+  return (
+    <SettingBox title="Current collaborators" icon="user">
+      Everybody listed below can collaboratively work with you on any notebooks,
+      terminals or files in this project, and add or remove other collaborators.
+      <hr />
+      {render_collaborators_list()}
+    </SettingBox>
+  );
+};

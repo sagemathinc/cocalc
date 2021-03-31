@@ -12,6 +12,7 @@ import {
   STUDENT_PAYS,
   INSTRUCTOR_GUIDE,
   DOC_LICENSE_URL,
+  DOC_ACCOUNT_LICENSES,
 } from "./data";
 import {
   compute_cost,
@@ -165,8 +166,13 @@ export const ExplainLicenses: React.FC<{}> = () => {
       <>
         <h4>How to get started?</h4>
         <p>
-          Go to your Account Settings &rarr; Licenses in order to start
-          purchasing a license for your course:{" "}
+          Sign in to <SiteName />, go to your{" "}
+          <strong>
+            <A href={DOC_ACCOUNT_LICENSES}> Account Settings</A>
+          </strong>{" "}
+          and open the <strong>"Licenses" tab</strong>. Click on the{" "}
+          <strong>"Buy a license..."</strong> button to reveal a form to
+          configure your license:{" "}
           <A href={DOC_LICENSE_URL}>licenses documentation</A>.
         </p>
         <p>

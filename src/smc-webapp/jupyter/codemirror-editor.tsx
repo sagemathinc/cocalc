@@ -369,7 +369,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
   };
 
-  adjacent_cell = (y: number, delta: any): void => {
+  adjacent_cell = (y: number, delta: number): void => {
     if (!this.has_frame_actions()) return;
     this.props.frame_actions.move_cursor(delta);
     this.props.frame_actions.set_input_editor_cursor(

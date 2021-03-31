@@ -334,6 +334,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       case "HBoxModel":
       case "VBoxModel":
       case "GridBoxView":
+      case "GridBoxModel":
       case "BoxModel":
         return this.render_react_box_view();
       default:
@@ -415,7 +416,11 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       );
       i += 1;
     }
-    // todo -- this is hackish; fix later.
+    // todo -- this is hackish; fix later.  Moreover,
+    // this does not magically make all these containers
+    // works, e.g., GridBoxModel doesn't properly lay
+    // things out in general.  See
+    //   
     let cls = "jupyter-widgets widget-container";
     switch (this.model.name) {
       case "BoxModel":
@@ -428,6 +433,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
         cls += " widget-box widget-vbox";
         break;
       case "GridBoxView":
+      case "GridBoxModel":
         cls += " widget-gridbox";
         break;
     }

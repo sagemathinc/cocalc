@@ -10,7 +10,7 @@ import { show_react_modal } from "../../misc-page";
 import { Icon } from "../../r_misc";
 import { alert_message } from "../../alerts";
 
-interface Options {
+export interface Options {
   url: string;
   title: string;
   height: string;
@@ -90,14 +90,19 @@ function insert_image(mode: string, opts: Options): string {
   return s;
 }
 
-async function get_insert_image_opts_from_user(): Promise<undefined | Options> {
-  return await show_react_modal((cb) => {
+export async function get_insert_image_opts_from_user(
+  note = ""
+): Promise<undefined | Options> {
+  const opts = await show_react_modal((cb) => {
     return (
       <Modal
         title={
-          <h3>
-            <Icon name="image" /> Insert Image
-          </h3>
+          <div>
+            <h3>
+              <Icon name="image" /> Insert Image
+            </h3>
+            {note}
+          </div>
         }
         visible={true}
         footer={<Button onClick={() => cb()}>Cancel</Button>}
@@ -146,6 +151,15 @@ async function get_insert_image_opts_from_user(): Promise<undefined | Options> {
       </Modal>
     );
   });
+  if (opts != null) {
+    // if width or height are numbers, append pixel units.
+    for (const x of ["width", "height"]) {
+      if (opts[x] && opts[x].match(/^[\.0-9]+$/)) {
+        opts[x] += "px";
+      }
+    }
+  }
+  return opts;
 }
 
 CodeMirror.defineExtension("insert_image", async function (): Promise<void> {

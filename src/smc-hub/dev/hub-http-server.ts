@@ -74,12 +74,13 @@ export async function init_http_proxy(
   database: any,
   base_url: string,
   compute_server: any,
-  logger: any
+  logger: any,
+  is_personal: boolean = false
 ): Promise<void> {
   await hub_proxy.init_smc_version(database);
 
   async function handle_proxy_request(req, res): Promise<void> {
-    if (hub_proxy.version_check(req, res, base_url)) {
+    if (!is_personal && hub_proxy.version_check(req, res, base_url)) {
       logger.debug("http_proxy: version check failed");
       return;
     }
@@ -153,10 +154,11 @@ export function init_websocket_proxy(
   database: any,
   base_url: string,
   compute_server: any,
-  logger: any
+  logger: any,
+  is_personal: boolean = false
 ): void {
   async function handle_upgrade(req, socket, head): Promise<void> {
-    if (hub_proxy.version_check(req, undefined, base_url)) {
+    if (!is_personal && hub_proxy.version_check(req, undefined, base_url)) {
       logger.debug(
         "http_proxy.init_websocket_proxy: websocket upgrade -- version check failed"
       );

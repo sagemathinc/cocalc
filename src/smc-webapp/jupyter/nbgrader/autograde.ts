@@ -72,7 +72,7 @@ export interface JupyterNotebook {
 export function create_autograde_ipynb(
   instructor_ipynb: string,
   student_ipynb: string
-): string {
+): { autograde_ipynb: string; ids: string[] } {
   const instructor = JSON.parse(instructor_ipynb);
   const student = JSON.parse(student_ipynb);
   let instructor_by_grade_id = autograde_cells_by_grade_id(instructor);
@@ -101,7 +101,7 @@ export function create_autograde_ipynb(
   }
 
   const autograde_ipynb = JSON.stringify(student);
-  return autograde_ipynb;
+  return { autograde_ipynb, ids: instructor_by_grade_id.ids };
 }
 
 // Return a map from grade_id to reference to actual cell in the given notebook.

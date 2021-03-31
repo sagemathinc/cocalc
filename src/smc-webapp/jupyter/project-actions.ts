@@ -989,7 +989,9 @@ export class JupyterActions extends JupyterActions0 {
         maxsize_MB: 50,
       });
     } catch (err) {
-      const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.`;
+      // It would be better to have a button to push instead of suggesting running a
+      // command in the terminal, but adding that took 1 second.
+      const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.  You can delete all output by typing cc-jupyter-no-output [filename].ipynb in a terminal.`;
       this.syncdb.set({ type: "fatal", error });
       throw Error(error);
     }
@@ -1016,7 +1018,7 @@ export class JupyterActions extends JupyterActions0 {
     this.set_last_load();
   };
 
-  save_ipynb_file = async (cb?: Function) => {
+  save_ipynb_file = async () => {
     const dbg = this.dbg("save_ipynb_file");
     dbg("saving to file");
     if (this.jupyter_kernel == null) {
@@ -1026,10 +1028,7 @@ export class JupyterActions extends JupyterActions0 {
       if (this.jupyter_kernel == null) {
         // still not null?  This would happen if no kernel is set at all,
         // in which case it's OK that saving isn't possible.
-        const err = "no kernel so cannot save";
-        dbg(err);
-        cb?.(err);
-        return;
+        throw Error("no kernel so cannot save");
       }
     }
     if (this.store.get("kernels") == null) {
@@ -1037,11 +1036,9 @@ export class JupyterActions extends JupyterActions0 {
       if (this.store.get("kernels") == null) {
         // This should never happen, but maybe could in case of a very
         // messed up compute environment where the kernelspecs can't be listed.
-        const err =
-          "kernel info not known and can't be determined, so can't save";
-        dbg(err);
-        cb?.(err);
-        return;
+        throw Error(
+          "kernel info not known and can't be determined, so can't save"
+        );
       }
     }
     dbg("going to try to save");
@@ -1050,27 +1047,22 @@ export class JupyterActions extends JupyterActions0 {
     // and more consistent with official Jupyter.
     const data = json_stable(ipynb, { space: 1 });
     if (data == null) {
-      const err = "ipynb not defined yet; can't save";
-      dbg(err);
-      cb?.(err);
-      return;
+      throw Error("ipynb not defined yet; can't save");
     }
     //dbg("got string version '#{data}'")
-    this._client.write_file({
-      path: this.store.get("path"),
-      data,
-      cb: (err) => {
-        if (err) {
-          // TODO: need way to report this to frontend
-          dbg(`error writing file: ${err}`);
-        } else {
-          dbg("succeeded at saving");
-          this._last_save_ipynb_file = new Date();
-          this.set_last_ipynb_save();
-        }
-        cb?.(err);
-      },
-    });
+    try {
+      await callback2(this._client.write_file, {
+        path: this.store.get("path"),
+        data,
+      });
+      dbg("succeeded at saving");
+      this._last_save_ipynb_file = new Date();
+      this.set_last_ipynb_save();
+    } catch (err) {
+      const e = `error writing file: ${err}`;
+      dbg(e);
+      throw Error(e);
+    }
   };
 
   ensure_there_is_a_cell = () => {
@@ -1155,9 +1147,14 @@ export class JupyterActions extends JupyterActions0 {
       this._run_nbconvert_lock = true;
       return async.series(
         [
-          (cb) => {
+          async (cb) => {
             dbg("saving file to disk first");
-            this.save_ipynb_file(cb);
+            try {
+              await this.save_ipynb_file();
+              cb();
+            } catch (err) {
+              cb(err);
+            }
           },
           (cb) => {
             dbg("now actually running nbconvert");

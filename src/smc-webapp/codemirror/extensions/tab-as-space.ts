@@ -7,9 +7,12 @@ import * as CodeMirror from "codemirror";
 
 CodeMirror.defineExtension("tab_as_space", function () {
   // @ts-ignore
-  const cm : any = this;
-  const cursor = cm.getCursor();
-  for (let i = 0; i < cm.options.tabSize; i++) {
-    cm.replaceRange(" ", cursor);
+  const cm: any = this;
+  const selections = cm.listSelections();
+  selections.reverse();
+  for (const sel of selections) {
+    for (let i = 0; i < cm.options.tabSize; i++) {
+      cm.replaceRange(" ", sel.head);
+    }
   }
 });

@@ -61,6 +61,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
         ["x11", "Graphical applications"],
         ["latex", "LaTeX editor"],
         ["html2pdf", "HTML to PDF via Chrome/Chromium"],
+        ["pandoc", "File format conversions via pandoc"],
       ];
       const features: JSX.Element[] = [];
       let any_nonavail = false;

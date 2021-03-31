@@ -24,7 +24,7 @@ you have to change the context to *top*!   See
 http://stackoverflow.com/questions/3275816/debugging-iframes-with-chrome-developer-tools/8581276#8581276
 */
 
-declare var DEBUG; // I think this comes from webpack.
+declare var DEBUG; //  this comes from webpack.
 
 import { IS_TOUCH } from "../feature";
 import { redux } from "../app-framework";

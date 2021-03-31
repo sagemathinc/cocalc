@@ -3,13 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import {
-  Button,
-  ButtonToolbar,
-  Row,
-  Col,
-  Well,
-} from "../antd-bootstrap";
+import { Button, ButtonToolbar, Row, Col, Well } from "../antd-bootstrap";
 
 import { Component, React, Rendered, redux } from "../app-framework";
 
@@ -70,7 +64,7 @@ export class AddPaymentMethod extends Component<Props, State> {
   private async submit_payment_method(): Promise<void> {
     this.setState({ error: "", submitting: true });
     const actions = redux.getActions("billing");
-    const store = redux.getStore('billing');
+    const store = redux.getStore("billing");
     if (store.get("customer") == null) {
       actions.setState({ continue_first_purchase: true });
     }
@@ -141,8 +135,8 @@ export class AddPaymentMethod extends Component<Props, State> {
           </Col>
         </Row>
         <div style={{ color: "#666", marginTop: "15px" }}>
-          (PayPal or wire transfers for non-recurring subscriptions above $50
-          are also possible. Please email <HelpEmailLink />
+          (PayPal or wire transfers for non-recurring purchases above $100 are
+          also possible. Please email <HelpEmailLink />
           .)
         </div>
       </div>

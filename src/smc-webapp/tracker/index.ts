@@ -4,23 +4,26 @@
  */
 
 // `analytics` is a generalized wrapper for reporting data to google analytics, pwiki, parsley, ...
-// for now, it either does nothing or works with GA
+// for now, it either does nothing or works with GTAG
 // this API basically allows to send off events by name and category
 
 function analytics(type: "event" | "pageview", ...args): void {
-  // GoogleAnalyticsObject contains the possibly customized function name of GA.
-  // It's a good idea to call it differently from the default 'ga' to avoid name clashes...
-  if ((window as any).GoogleAnalyticsObject == null) {
-    return; // GA not available
-  }
-  const ga: any = window[(window as any).GoogleAnalyticsObject];
-  if (ga == null) {
-    return; // GA still not available again?
-  }
+  // GoogleGTag contains the possibly customized function name of GA.
+  // It's a good idea to call it differently from the default 'gtag' to avoid name clashes...
+  // see webapp-lib/_inc_analytics.pug
+  const gtag: any = (window as any).GoogleGTag;
+  const pv: any = (window as any).GoogleGTagPageview;
+  if (gtag == null || pv == null) return;
   switch (type) {
     case "event":
+      gtag("event", args[0], {
+        event_category: args[1],
+        event_label: args[2],
+        value: args[3],
+      });
+      return;
     case "pageview":
-      ga("send", type, ...args);
+      pv(location.pathname);
       return;
     default:
       console.warn(`unknown analytics event '${type}'`);
@@ -28,8 +31,8 @@ function analytics(type: "event" | "pageview", ...args): void {
   }
 }
 
-export function analytics_pageview(...args): void {
-  analytics("pageview", ...args);
+export function analytics_pageview(): void {
+  analytics("pageview");
 }
 
 export function analytics_event(...args): void {

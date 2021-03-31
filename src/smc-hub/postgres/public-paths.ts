@@ -11,6 +11,8 @@ Probably more need to be rewritten and moved here...
 import { callback2 } from "../../smc-util/async-utils";
 import { PostgreSQL } from "./types";
 import { query } from "./query";
+import { is_valid_uuid_string } from "../../smc-util/misc";
+import { PublicPath } from "../../smc-util/db-schema/public-paths";
 
 /* Unlist all public paths on all projects that the
 given account is a collaborator on.  If is_owner is
@@ -33,5 +35,18 @@ export async function unlist_all_public_paths(
     db,
     query: "UPDATE public_paths SET unlisted=true",
     where: { "project_id = ANY($)": project_ids },
+  });
+}
+
+export async function get_all_public_paths(
+  db: PostgreSQL,
+  account_id: string
+): Promise<PublicPath[]> {
+  if (!is_valid_uuid_string(account_id)) {
+    throw Error(`account_id="${account_id}" must be a valid uuid`);
+  }
+  return await query({
+    db,
+    query: `SELECT public_paths.id, public_paths.project_id, public_paths.path, public_paths.description, public_paths.disabled, public_paths.unlisted, public_paths.license, public_paths.last_edited, public_paths.created, public_paths.last_saved, public_paths.counter, public_paths.compute_image FROM public_paths, projects WHERE public_paths.project_id = projects.project_id AND projects.users ? '${account_id}' AND projects.last_active ? '${account_id}' ORDER BY public_paths.last_edited DESC`,
   });
 }

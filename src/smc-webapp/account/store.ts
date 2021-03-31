@@ -130,6 +130,7 @@ export class AccountStore extends Store<AccountState> {
 // A user is anonymous if they have not provided a way to sign
 // in later (besides their cookie), i.e., if they have no
 // passport strategies and have not provided an email address.
+// In is_personal mode, user is never anonymous.
 function is_anonymous(
   is_logged_in: boolean,
   email_address: string | undefined | null,
@@ -146,6 +147,9 @@ function is_anonymous(
     return false;
   }
   if (lti_id != null && lti_id.size > 0) {
+    return false;
+  }
+  if ((window as any).CUSTOMIZE?.is_personal) {
     return false;
   }
   return true;

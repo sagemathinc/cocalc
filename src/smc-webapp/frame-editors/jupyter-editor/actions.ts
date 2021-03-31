@@ -41,6 +41,14 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     this.create_jupyter_actions();
     this.init_new_frame();
     this.init_changes_state();
+
+    this.store.on("close-frame", async ({ id }) => {
+      if (this.frame_actions[id] != null) {
+        await delay(1);
+        this.frame_actions[id].close();
+        delete this.frame_actions[id];
+      }
+    });
   }
 
   public close(): void {
@@ -114,16 +122,6 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     });
   }
 
-  async close_frame_hook(id: string, type: string): Promise<void> {
-    if (type != "jupyter_cell_notebook") return;
-    // TODO: need to free up frame actions when frame is destroyed.
-    if (this.frame_actions[id] != null) {
-      await delay(1);
-      this.frame_actions[id].close();
-      delete this.frame_actions[id];
-    }
-  }
-
   public focus(id?: string): void {
     const actions = this.get_frame_actions(id);
     if (actions != null) {
@@ -161,6 +159,9 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       if (id == null) throw Error("no active frame");
     }
     if (this.frame_actions[id] != null) {
+      if (this.frame_actions[id].is_closed()) {
+        return undefined;
+      }
       return this.frame_actions[id];
     }
     const node = this._get_frame_node(id);

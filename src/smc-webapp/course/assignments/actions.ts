@@ -456,6 +456,7 @@ You can find the comments they made in the folders below.\
       assignment_id,
       student_id
     );
+    const nbgrader_score_ids = store.get_nbgrader_score_ids(assignment_id);
     if (nbgrader_scores) {
       const { score, points, error } = get_nbgrader_score(nbgrader_scores);
       const summary = error ? "error" : `${score}/${points}`;
@@ -468,9 +469,17 @@ You can find the comments they made in the folders below.\
           details += `ERROR: ${s}\n\n`;
         } else {
           details += `| Problem   | Score     |\n|:----------|:----------|\n`;
+          const ids: string[] = nbgrader_score_ids?.[filename] ?? [];
           for (const id in s) {
-            const t = `${s[id].score}`;
-            details += `| ${id.padEnd(10)}| ${t.padEnd(10)}|\n`;
+            if (!ids.includes(id)) {
+              ids.push(id);
+            }
+          }
+          for (const id of ids) {
+            if (s[id] != null) {
+              const t = `${s[id]?.score ?? 0}`;
+              details += `| ${id.padEnd(10)}| ${t.padEnd(10)}|\n`;
+            }
           }
         }
       }
@@ -1425,6 +1434,9 @@ ${details}
     assignment_id: string,
     student_id: string,
     scores: { [filename: string]: NotebookScores | string },
+    nbgrader_score_ids:
+      | { [filename: string]: string[] }
+      | undefined = undefined,
     commit: boolean = true
   ): void {
     const assignment_data = this.course_actions.get_one({
@@ -1441,6 +1453,7 @@ ${details}
         table: "assignments",
         assignment_id,
         nbgrader_scores,
+        ...(nbgrader_score_ids != null ? { nbgrader_score_ids } : undefined),
       },
       commit
     );
@@ -1488,6 +1501,7 @@ ${details}
       assignment_id,
       student_id,
       scores,
+      undefined,
       commit
     );
 
@@ -1571,6 +1585,10 @@ ${details}
       // grade in the path where we collected their work.
       student_path =
         assignment.get("collect_path") + "/" + student.get("student_id");
+
+      this.course_actions.configuration.configure_nbgrader_grade_project(
+        grade_project_id
+      );
     } else {
       if (student_project_id == null) {
         // This would happen if maybe instructor deletes student project at
@@ -1723,10 +1741,15 @@ ${details}
     // preserve any manually entered scores, rather than overwrite them.
     const prev_scores = store.get_nbgrader_scores(assignment_id, student_id);
 
+    const nbgrader_score_ids: { [filename: string]: string[] } = {};
+
     for (const filename in result) {
       const r = result[filename];
       if (r == null) continue;
       if (r.output == null) continue;
+      if (r.ids != null) {
+        nbgrader_score_ids[filename] = r.ids;
+      }
 
       // Depending on instructor options, write the graded version of
       // the notebook to disk, so the student can see why their grade
@@ -1765,6 +1788,7 @@ ${details}
       assignment_id,
       student_id,
       scores,
+      nbgrader_score_ids,
       commit
     );
   }

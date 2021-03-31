@@ -4,10 +4,8 @@
  */
 
 import * as React from "react";
+import { Breadcrumb } from "antd";
 import { Tip } from "../../r_misc";
-import { COLORS } from "smc-util/theme";
-
-const { Breadcrumb } = require("react-bootstrap");
 
 interface Props {
   path: string;
@@ -16,17 +14,22 @@ interface Props {
   full_name?: string;
   history?: boolean;
   active?: boolean;
+  key: number;
 }
 
 // One segment of the directory links at the top of the files listing.
-export function PathSegmentLink({
-  path = "",
-  display,
-  on_click,
-  full_name,
-  history,
-  active = false,
-}: Props): JSX.Element {
+// this can't be a react component, because "Breadcrumb" only works with Breadcrumb.Item children!
+export function PathSegmentLink(props: Props) {
+  const {
+    path = "",
+    display,
+    on_click,
+    full_name,
+    history,
+    active = false,
+    key,
+  } = props;
+
   function render_content(): JSX.Element | string | undefined {
     if (full_name && full_name !== display) {
       return (
@@ -39,21 +42,18 @@ export function PathSegmentLink({
     }
   }
 
-  function style(): React.CSSProperties {
+  function cls() {
     if (history) {
-      return { cursor: "pointer", color: "#c0c0c0" };
+      return "cc-path-navigator-history";
     } else if (active) {
-      return { cursor: "pointer", color: COLORS.BS_BLUE_BGRND };
+      return "cc-path-navigator-active";
+    } else {
+      return "cc-path-navigator-basic";
     }
-    return { cursor: "pointer" };
   }
 
   return (
-    <Breadcrumb.Item
-      onClick={() => on_click(path)}
-      active={active}
-      style={style()}
-    >
+    <Breadcrumb.Item onClick={() => on_click(path)} className={cls()} key={key}>
       {render_content()}
     </Breadcrumb.Item>
   );

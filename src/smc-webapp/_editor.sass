@@ -264,9 +264,6 @@
   right: 0
   margin-top: -2px
 
-.smc-editor-chat-smiley
-  font-size : 125%
-
 /*********** Synchronized Worksheets **************** */
 
 .sagews-input
@@ -653,6 +650,13 @@ h6 { font-size: 110% }
 .webapp-editor-codemirror-button-container
   margin       : 3px
 
+// Fallback if used without .smc-message-from-viewer or .smc-message-from-other 
+.user-mention
+  color: #7289da
+  background: rgba(114,137,218,.1)
+  border-radius: 3px
+  padding: 0 2px
+
 .smc-message-from-viewer a:link,
 .smc-message-from-viewer a:visited,
 .smc-message-from-viewer .user-mention
@@ -702,3 +706,15 @@ h6 { font-size: 110% }
 
 .CodeMirror pre.CodeMirror-placeholder
     color: #999 !important;
+
+.cocalc-html-component
+  img
+    max-width: 100%
+  blockquote
+    padding: 0px 0px 0px 10px
+    font-size: inherit
+    p
+      font-size: inherit
+  pre
+    font-size: inherit
+    padding: 5px

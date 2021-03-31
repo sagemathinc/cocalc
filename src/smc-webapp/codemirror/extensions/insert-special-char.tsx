@@ -9,12 +9,12 @@ import { React } from "../../app-framework";
 import { alert_message } from "../../alerts";
 import { show_react_modal } from "../../misc-page";
 
-interface Options {
+export interface Options {
   char: string; // utf8 representation of the symbol
   code: string; // html code for the symbol
 }
 
-async function get_insert_special_char_from_user(): Promise<
+export async function get_insert_special_char_from_user(): Promise<
   undefined | Options
 > {
   return await show_react_modal((cb) => {

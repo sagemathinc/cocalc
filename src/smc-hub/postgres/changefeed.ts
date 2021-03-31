@@ -125,9 +125,11 @@ export class Changes extends EventEmitter {
     }
     this.emit("close", { action: "close" });
     this.removeAllListeners();
-    this.db.removeListener(this.trigger_name, this.handle_change);
-    this.db.removeListener("connect", this.close);
-    this.db._stop_listening(this.table, this.select, this.watch);
+    if (this.db != null) {
+      this.db.removeListener(this.trigger_name, this.handle_change);
+      this.db.removeListener("connect", this.close);
+      this.db._stop_listening(this.table, this.select, this.watch);
+    }
     misc.close(this);
     this.closed = true;
   }
@@ -319,7 +321,7 @@ export class Changes extends EventEmitter {
 
     this.condition = {};
     const add_condition = (field: string, op: string, val: any): void => {
-      if (this.condition == null) return;  // won't happen
+      if (this.condition == null) return; // won't happen
       let f: Function, g: Function;
       field = field.trim();
       if (field[0] === '"') {

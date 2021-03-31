@@ -48,6 +48,7 @@ underscore = require('underscore')
 {record_user_tracking} = require('./postgres/user-tracking')
 {project_has_network_access} = require('./postgres/project-queries')
 {is_paying_customer} = require('./postgres/account-queries')
+{get_personal_user} = require('./postgres/personal')
 
 {SENDGRID_ASM_INVITES} = require('smc-util/theme')
 
@@ -119,6 +120,7 @@ class exports.Client extends EventEmitter
             compute_server : required
             host           : undefined
             port           : undefined
+            personal        : undefined
 
         @conn            = @_opts.conn
         @logger          = @_opts.logger
@@ -268,9 +270,33 @@ class exports.Client extends EventEmitter
         @signed_out()  # so can't do anything with projects, etc.
         @push_to_client(message.remember_me_failed(reason:reason))
 
+    get_personal_user: () =>
+        if @account_id or not @conn? or not @_opts.personal
+            # there is only one account
+            return
+        dbg = @dbg("check_for_remember_me")
+        dbg("personal mode")
+        try
+            signed_in_mesg = {account_id:await get_personal_user(@database), event:'signed_in'}
+            # sign them in if not already signed in (due to async this could happen
+            # by get_personal user getting called twice at once).
+            if @account_id != signed_in_mesg.account_id
+                signed_in_mesg.hub = @_opts.host + ':' + @_opts.port
+                @signed_in(signed_in_mesg)
+                @push_to_client(signed_in_mesg)
+        catch err
+            dbg("remember_me: personal mode error", err.toString())
+            @remember_me_failed("error getting personal user -- #{err}")
+        return
+
     check_for_remember_me: () =>
         return if not @conn?
         dbg = @dbg("check_for_remember_me")
+
+        if @_opts.personal
+            @get_personal_user()
+            return
+
         value = @_remember_me_value
         if not value?
             @remember_me_failed("no remember_me cookie")
@@ -705,6 +731,9 @@ class exports.Client extends EventEmitter
 
     # Messages: Account creation, deletion, sign in, sign out
     mesg_create_account: (mesg) =>
+        if @_opts.personal
+            @error_to_client(id:mesg.id, error:"account creation not allowed on personal server")
+            return
         create_account
             client   : @
             mesg     : mesg

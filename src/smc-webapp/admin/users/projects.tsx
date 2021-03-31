@@ -68,7 +68,7 @@ export class Projects extends Component<Props, State> {
     this.state = {};
   }
 
-  componentWillMount(): void {
+  UNSAFE_componentWillMount(): void {
     this.mounted = true;
     this.update_search();
   }
