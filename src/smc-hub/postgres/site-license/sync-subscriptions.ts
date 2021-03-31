@@ -4,8 +4,6 @@
  */
 
 /*
-
-/*
 Ensure all (or just for given account_id) site license subscriptions
 are non-expired iff subscription in stripe is "active" or "trialing".  This actually
 uses the "stripe_customer" field of the user account, so its important
@@ -37,6 +35,7 @@ interface Subscription {
   cancel_at: number | null; // stripe sets this to a timestamp value (secs), if the subscription is set to cancel at period end. oddly enough, the "status" could still "active".
 }
 
+// DB query artefact
 interface RawSubscriptions {
   rows: {
     sub?: {
@@ -50,6 +49,7 @@ type LicenseSubs = {
   [license_id: string]: Subscription[];
 };
 
+// for each license_id, we want to know if/when it expires and if it is a trial -- trials are ignored
 type LicenseInfo = {
   [license_id: string]: { expires: Date | undefined; trial: boolean };
 };
@@ -141,17 +141,14 @@ function is_funding(sub): boolean {
   return (sub.status == "active" || sub.status == "trialing") && !cancelled;
 }
 
-export async function sync_site_license_subscriptions(
+// for each subscription status, we set the associated license status
+// in particular, we don't expect special cases like "trial" or other manual licenses
+async function sync_subscriptions_to_licenses(
   db: PostgreSQL,
-  account_id?: string,
-  test_mode = false
+  licenses: LicenseInfo,
+  subs: LicenseSubs,
+  test_mode
 ): Promise<number> {
-  test_mode = test_mode || !!process.env.DRYRUN;
-  if (test_mode) L(`DRYRUN TEST MODE -- UPDATE QUERIES ARE DISABLED`);
-
-  const licenses: LicenseInfo = await get_licenses(db, account_id);
-  const subs = await get_subs(db, account_id);
-
   let n = 0;
   for (const { license_id, sub } of iter(subs)) {
     const expires: Date | undefined = licenses[license_id].expires;
@@ -192,17 +189,13 @@ export async function sync_site_license_subscriptions(
       }
     }
   }
-
-  if (account_id == null) {
-    n += await expire_cancelled_subscriptions(db, subs, test_mode);
-  }
-
   return n;
 }
 
 // this handles the case when the subscription, which is funding a license key, has been cancelled.
-// hence this checks all active licenses if there is still an associated subscription.
+// hence this checks all active licenses without an expiration, if there is still an associated subscription.
 // if not, the license is expired.
+// keep in mind there are special licenses like "trials", which aren't funded and might not have an expiration...
 async function expire_cancelled_subscriptions(
   db: PostgreSQL,
   subs: LicenseSubs,
@@ -253,6 +246,28 @@ async function expire_cancelled_subscriptions(
         n += 1;
       }
     }
+  }
+
+  return n;
+}
+
+// call this to sync subscriptions <-> site licenses.
+// if there is an account_id, it only syncs the given users' subscription to the license
+export async function sync_site_license_subscriptions(
+  db: PostgreSQL,
+  account_id?: string,
+  test_mode = false
+): Promise<number> {
+  test_mode = test_mode || !!process.env.DRYRUN;
+  if (test_mode) L(`DRYRUN TEST MODE -- UPDATE QUERIES ARE DISABLED`);
+
+  const licenses: LicenseInfo = await get_licenses(db, account_id);
+  const subs = await get_subs(db, account_id);
+
+  let n = await sync_subscriptions_to_licenses(db, licenses, subs, test_mode);
+
+  if (account_id == null) {
+    n += await expire_cancelled_subscriptions(db, subs, test_mode);
   }
 
   return n;
