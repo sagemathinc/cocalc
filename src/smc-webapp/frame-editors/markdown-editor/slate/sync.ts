@@ -45,7 +45,6 @@ export function slatePointToMarkdown(
       if (elt !== node) return;
       return s.slice(0, point.offset) + SENTINEL + s.slice(point.offset);
     },
-    cache: editor.syncCache,
   });
   const index = markdown.indexOf(SENTINEL);
   if (index != -1) {
@@ -128,7 +127,7 @@ export function markdownPositionToSlatePoint({
   if (m == null) {
     return undefined;
   }
-  const doc: Descendant[] = markdown_to_slate(m, false, editor.syncCache);
+  const doc: Descendant[] = markdown_to_slate(m, false);
   let point = findSentinel(doc);
   if (point != null) return normalizePoint(editor, doc, point);
   if (pos.ch == 0) return undefined;
@@ -143,9 +142,22 @@ export function markdownPositionToSlatePoint({
   });
 }
 
-export function scrollIntoView(editor: ReactEditor, point: Point): void {
-  const [node] = Editor.node(editor, point);
-  ReactEditor.toDOMNode(editor, node).scrollIntoView({ block: "center" });
+export async function scrollIntoView(
+  editor: ReactEditor,
+  point: Point
+): Promise<void> {
+  if (!ReactEditor.isUsingWindowing(editor)) {
+    const [node] = Editor.node(editor, point);
+    ReactEditor.toDOMNode(editor, node).scrollIntoView({ block: "center" });
+  } else {
+    // TODO: this async is terrible. Also, if we just opened the slate editor,
+    // then this will fail due to that restoring!
+    const scroll = point.path[0];
+    editor.windowedListRef.current?.scrollToItem(scroll);
+    await delay(10);
+    editor.windowedListRef.current?.scrollToItem(scroll);
+    await delay(500);
+  }
 }
 
 function normalizePoint(

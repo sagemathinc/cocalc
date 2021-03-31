@@ -67,7 +67,7 @@
     "pug-loader": "^2.4.0",
     "react-test-renderer": "^16.5.2",
     "sass": "^1.32.5",
-    "sass-loader": "^6.0.7",
+    "sass-loader": "^7.3.1",
     "script-loader": "^0.7",
     "style-loader": "^0.13.1",
     "temp": "^0.9.1",

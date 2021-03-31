@@ -15,7 +15,10 @@ import {
 import { Range } from "slate";
 import { path_split } from "smc-util/misc";
 import { Actions } from "../../actions";
-import { useSlate as useSlate0 } from "../slate-react";
+import {
+  useSlate as useSlate0,
+  useSlateStatic as useSlateStatic0,
+} from "../slate-react";
 import { SlateEditor } from "../editable-markdown";
 
 // Exactly like the normal useSlate hook, except return type is
@@ -23,6 +26,10 @@ import { SlateEditor } from "../editable-markdown";
 // where we only use our enhanced type.
 export const useSlate = () => {
   return useSlate0() as SlateEditor;
+};
+
+export const useSlateStatic = () => {
+  return useSlateStatic0() as SlateEditor;
 };
 
 // Whether or not the current selection exists and is collapsed (i.e., not

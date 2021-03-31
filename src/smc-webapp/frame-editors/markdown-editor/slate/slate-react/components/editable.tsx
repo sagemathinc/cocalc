@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useEffect, useRef, useMemo, useCallback } from "react";
+import { useEffect, useRef, useMemo, useState, useCallback } from "react";
 import {
   Editor,
   Element,
@@ -10,7 +10,6 @@ import {
   Transforms,
   Path,
 } from "slate";
-//import { HistoryEditor } from "slate-history";
 
 import Children from "./children";
 import { WindowingParams } from "./children";
@@ -41,6 +40,8 @@ import {
   IS_FOCUSED,
   PLACEHOLDER_SYMBOL,
 } from "../utils/weak-maps";
+
+import { debounce } from "lodash";
 
 import { useDOMSelectionChange, useUpdateDOMSelection } from "./selection-sync";
 
@@ -161,6 +162,58 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     []
   );
 
+  // state whose change causes an update
+  const [hiddenChildren, setHiddenChildren] = useState<Set<number>>(
+    new Set([])
+  );
+
+  editor.updateHiddenChildren = useCallback(() => {
+    if (!ReactEditor.isUsingWindowing(editor)) return;
+    const hiddenChildren0: number[] = [];
+    let isCollapsed: boolean = false;
+    let level: number = 0;
+    let index: number = 0;
+    let hasAll: boolean = true;
+    for (const child of editor.children) {
+      if (!Element.isElement(child)) {
+        throw Error("bug");
+      }
+      if (child.type != "heading" || (isCollapsed && child.level > level)) {
+        if (isCollapsed) {
+          hiddenChildren0.push(index);
+          if (hasAll && !hiddenChildren.has(index)) {
+            hasAll = false;
+          }
+        }
+      } else {
+        // it's a heading of a high enough level, and it sets the new state.
+        // It is always visible.
+        isCollapsed = !!editor.collapsedSections.get(child);
+        level = child.level;
+      }
+      index += 1;
+    }
+    if (hasAll && hiddenChildren0.length == hiddenChildren.size) {
+      // no actual change (since subset and same cardinality), so don't
+      // cause re-render.
+      return;
+    }
+    setHiddenChildren(new Set(hiddenChildren0));
+  }, [editor.children, hiddenChildren]);
+
+  const updateHiddenChildrenDebounce = useMemo(() => {
+    return debounce(() => editor.updateHiddenChildren(), 500, {
+      leading: true,
+    });
+  }, []);
+
+  // Whenever the actual document changes, update the
+  // hidden children set, since it is a list of indexes
+  // into editor.children, so may change. That said, we
+  // don't want this to impact performance when typing, so
+  // we debounce it.
+  useEffect(updateHiddenChildrenDebounce, [editor.children]);
+
   // Update element-related weak maps with the DOM element ref.
   useIsomorphicLayoutEffect(() => {
     if (ref.current) {
@@ -179,6 +232,24 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
       ref.current.focus();
     }
   }, [autoFocus]);
+
+  useIsomorphicLayoutEffect(() => {
+    // Whenever the selection changes and is collapsed, make
+    // sure the cursor is visible.  Also, have a facility to
+    // ignore a single iteration of this, which we use when
+    // the selection change is being caused by realtime
+    // collaboration.
+
+    // @ts-ignore
+    const skip = editor.syncCausedUpdate;
+    if (
+      editor.selection != null &&
+      Range.isCollapsed(editor.selection) &&
+      !skip
+    ) {
+      editor.scrollCaretIntoView();
+    }
+  }, [editor.selection]);
 
   // Listen on the native `beforeinput` event to get real "Level 2" events. This
   // is required because React's `beforeinput` is fake and never really attaches
@@ -644,17 +715,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         onFocus={useCallback(
           (event: React.FocusEvent<HTMLDivElement>) => {
             if (shouldHandle({ event, name: "onFocus", notReadOnly: true })) {
-              const el = ReactEditor.toDOMNode(editor, editor);
               state.latestElement = window.document.activeElement;
-
-              // COMPAT: If the editor has nested editable elements, the focus
-              // can go to them. In Firefox, this must be prevented because it
-              // results in issues with keyboard navigation. (2017/03/30)
-              if (IS_FIREFOX && event.target !== el) {
-                el.focus();
-                return;
-              }
-
               IS_FOCUSED.set(editor, true);
             }
           },
@@ -877,10 +938,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               event.key.length == 1 &&
               !ReactEditor.selectionIsInDOM(editor)
             ) {
-              // In case of windowing, if you type something when the cursor is not
-              // in the DOM, then without doing something like this, that text would
-              // get inserted in completely the wrong place in the document.
-              editor.scrollCaretIntoView();
               // user likely typed a character so insert it
               editor.insertText(event.key);
               event.preventDefault();
@@ -916,6 +973,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
             renderElement={renderElement}
             renderLeaf={renderLeaf}
             selection={editor.selection}
+            hiddenChildren={hiddenChildren}
             windowing={windowing}
             onScroll={() => {
               if (editor.scrollCaretAfterNextScroll) {

@@ -38,17 +38,20 @@ register({
     const selected = useSelected();
     const collapsed = useCollapsed();
     const reveal = focused && selected && collapsed;
+    // NOTE: putting \n in the render below corresponds
+    // to having the breaks option to markdown-it, which
+    // seems to be common.
     return (
       <span {...attributes}>
         <span
           style={{
-            whiteSpace: "normal",
+            whiteSpace: "pre",
             borderRight: reveal ? "1px solid #333" : undefined,
             color: reveal ? "lightgrey" : undefined,
           }}
           contentEditable={false}
         >
-          {reveal ? "↵" : " "}
+          {reveal ? "↵\n" : "\n"}
         </span>
         {children}
       </span>

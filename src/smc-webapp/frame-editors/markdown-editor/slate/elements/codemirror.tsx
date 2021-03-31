@@ -160,7 +160,10 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       if (options == null) options = {};
       options.mode = infoToMode(info);
 
-      options.inputStyle = "contenteditable";
+      // NOTE: Using the inputStyle of "contenteditable" does not
+      // work because copy ends up being handled by slate and being
+      // wrong, which is weird.  In contrast, textarea does work fine.
+      options.inputStyle = "textarea";
 
       if (options.extraKeys == null) {
         options.extraKeys = {};

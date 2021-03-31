@@ -5,7 +5,7 @@
 
 import { useRef } from "../../../../app-framework";
 import { Editor, Element, Transforms } from "slate";
-import { rangeAll } from "../keyboard/select-all";
+import { rangeAll } from "../slate-util";
 
 export function setElement(
   editor: Editor,

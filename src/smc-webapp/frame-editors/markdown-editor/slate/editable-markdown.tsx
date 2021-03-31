@@ -5,23 +5,19 @@
 
 // Component that allows WYSIWYG editing of markdown.
 
-// important: I made this type **wrong** so I don't
-// forget to comment this out.
-// const DEBUG: string = true; // do not delete "string"!
-const DEBUG = false;
-
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
 import { Map } from "immutable";
 
 import { EditorState } from "../../frame-tree/types";
-import { createEditor, Descendant, Editor, Range, Transforms } from "slate";
+import { createEditor, Descendant, Range, Transforms } from "slate";
 import "./patches";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
 import {
   CSS,
   React,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -36,6 +32,9 @@ import { markdown_to_slate } from "./markdown-to-slate";
 import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { withAutoFormat } from "./format";
+import { withNormalize } from "./normalize";
+import { withInsertBreakHack } from "./elements/link";
+import { estimateSize } from "./elements";
 import { getHandler as getKeyboardHandler } from "./keyboard";
 
 import { useUpload, withUpload } from "./upload";
@@ -49,8 +48,8 @@ import { mentionableUsers } from "../../../editors/markdown-input/mentionable-us
 import { createMention } from "./elements/mention";
 import { submit_mentions } from "../../../editors/markdown-input/mentions";
 
-import { useSearch } from "./search";
-import { EditBar, Marks } from "./edit-bar";
+import { useSearch, SearchHook } from "./search";
+import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
 
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 
@@ -63,6 +62,7 @@ import { delay } from "awaiting";
 
 export interface SlateEditor extends ReactEditor {
   ignoreNextOnChange?: boolean;
+  syncCausedUpdate?: boolean;
   saveValue: (force?) => void;
   dropzoneRef?: any;
   applyingOperations?: boolean;
@@ -74,6 +74,7 @@ export interface SlateEditor extends ReactEditor {
   getMarkdownValue: () => string;
   getSourceValue: (fragment?) => string;
   syncCache?: any;
+  search: SearchHook;
 }
 
 // Whether or not to use windowing (=only rendering visible elements).
@@ -99,19 +100,9 @@ const USE_WINDOWING = true;
 // minimizes interference when two users are editing at once.
 // ** This must be at least 1 or our algorithm for maintaining the
 // DOM selection state will not work.**
-const OVERSCAN_ROW_COUNT = 3;
-
-/*
-import { IS_FIREFOX } from "../../../feature";
-if (USE_WINDOWING && IS_FIREFOX) {
-  // Windowing on Firefox results in TONS of problems all over the place, whereas it
-  // works "better" with Safari and Chrome.  So until we fix these (and we will),
-  // we disable windowing with Firefox.
-  // See https://github.com/sagemathinc/cocalc/issues/5204 where both
-  // problems are caused by windowing.
-  USE_WINDOWING = false;
-}
-*/
+// Setting the count to 10 and editing moby dick **does** feel slightly
+// laggy, whereas around 2 or 3 and it feels super snappy.
+const OVERSCAN_ROW_COUNT = 2;
 
 const STYLE = {
   width: "100%",
@@ -152,8 +143,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const editor = useMemo(() => {
       const cur = actions.getSlateEditor(id);
       if (cur != null) return cur;
-      const ed = withUpload(
-        withAutoFormat(withIsInline(withIsVoid(withReact(createEditor()))))
+      const ed = withInsertBreakHack(
+        withNormalize(
+          withUpload(
+            withAutoFormat(withIsInline(withIsVoid(withReact(createEditor()))))
+          )
+        )
       ) as SlateEditor;
       actions.registerSlateEditor(id, ed);
 
@@ -193,36 +188,29 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       markdown_to_slate(value, false, editor.syncCache)
     );
 
+    const rowSizeEstimator = useCallback((node) => {
+      return estimateSize({ node, fontSize: font_size });
+    }, []);
+
     const mentions = useMentions({
       editor,
       insertMention: (editor, account_id) => {
-        Transforms.insertNodes(editor, [createMention(account_id)]);
+        Transforms.insertNodes(editor, [
+          createMention(account_id),
+          { text: " " },
+        ]);
         submit_mentions(project_id, path, [{ account_id, description: "" }]);
       },
       matchingUsers: (search) => mentionableUsers(project_id, search),
     });
 
-    const search = useSearch();
+    const search: SearchHook = (editor.search = useSearch({ editor }));
 
-    const [marks, setMarks] = useState<Marks>(getMarks(editor));
-    const updateMarks = useMemo(() => {
-      const f = () => {
-        if (!isMountedRef.current) return;
-        // NOTE: important to debounce, and that this update happens
-        // sometime in the near future and not immediately on any change!
-        // Don't do it in the update loop where it is requested
-        // since that causes issues, e.g.., try to move cursor out
-        // of a code block.
-        if (!ReactEditor.isFocused(editor)) {
-          setMarks({});
-        } else {
-          setMarks(getMarks(editor));
-        }
-      };
-      // We debounce to avoid performance implications while typing and
-      // for the reason mentioned in the NOTE above.
-      return debounce(f, 500);
-    }, []);
+    const { marks, updateMarks } = useMarks(editor);
+
+    const { linkURL, updateLinkURL } = useLinkURL(editor);
+
+    const { listProperties, updateListProperties } = useListProperties(editor);
 
     const updateScrollState = useMemo(
       () =>
@@ -332,7 +320,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
       const handler = getKeyboardHandler(e);
       if (handler != null) {
-        const extra = { actions, id };
+        const extra = { actions, id, search };
         if (handler({ editor, extra })) {
           e.preventDefault();
           // key was handled.
@@ -389,7 +377,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       // also so we don't update the source editor (and other browsers)
       // with a view with things like loan $'s escaped.'
       if (operations.length > 0) {
-        editor.ignoreNextOnChange = true;
+        editor.ignoreNextOnChange = editor.syncCausedUpdate = true;
         applyOperations(editor, operations);
       }
 
@@ -414,9 +402,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     }, [value]);
 
-    if (DEBUG) {
+    if ((window as any).cc != null) {
+      // This only gets set when running in cc-in-cc dev mode.
       const { Editor, Node, Path, Range, Text } = require("slate");
-      (window as any).z = {
+      (window as any).cc.slate = {
         editor,
         Transforms,
         ReactEditor,
@@ -424,7 +413,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         Path,
         Editor,
         Range,
-        Text
+        Text,
       };
     }
 
@@ -470,6 +459,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       if (!isMountedRef.current) return;
       broadcastCursors();
       updateMarks();
+      updateLinkURL();
+      updateListProperties();
       try {
         // Track where the last editor selection was,
         // since this is very useful to know, e.g., for
@@ -522,6 +513,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
     };
 
+    useEffect(() => {
+      editor.syncCausedUpdate = false;
+    }, [editorValue]);
+
     let slate = (
       <Slate editor={editor} value={editorValue} onChange={onChange}>
         <Editable
@@ -557,15 +552,18 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
               ? {
                   rowStyle: {
                     padding: "0 70px",
+                    minHeight: "0.1px",
+                    backgroundColor:
+                      "white" /* to avoid overlapping transparent effect when initially measuring */,
                   },
                   overscanRowCount: OVERSCAN_ROW_COUNT,
+                  rowSizeEstimator,
                 }
               : undefined
           }
         />
       </Slate>
     );
-
     let body = (
       <div
         className="smc-vfill"
@@ -576,6 +574,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           Search={search.Search}
           isCurrent={is_current}
           marks={marks}
+          linkURL={linkURL}
+          listProperties={listProperties}
           editor={editor}
         />
         <div
@@ -613,14 +613,3 @@ const withIsInline = (editor) => {
 
   return editor;
 };
-
-function getMarks(editor) {
-  try {
-    return Editor.marks(editor) ?? {};
-  } catch (err) {
-    // If the selection is at a non-leaf node somehow,
-    // then marks aren't defined and raises an error.
-    //console.log("Editor.marks", err);
-    return {};
-  }
-}

@@ -6,7 +6,7 @@
 import { Editor, Element, Range, Transforms, Point } from "slate";
 import { ReactEditor } from "./slate-react";
 import { isEqual } from "lodash";
-import { rangeAll } from "./keyboard/select-all";
+import { rangeAll } from "./slate-util";
 import { emptyParagraph } from "./padding";
 import { delay } from "awaiting";
 

@@ -10,6 +10,8 @@ This configures the project hub based on an environment variable or other data.
 import * as debug from "debug";
 const L = debug("project:project-setup");
 import { setPriority } from "os";
+// const { callback2: cb2 } = require("smc-util/async-utils");
+// const { execute_code } = require("smc-util-node/misc_node");
 
 // 19 is the minimum, we keep it 1 above that.
 export const DEFAULT_FREE_PROCS_NICENESS = 18;
@@ -92,3 +94,6 @@ export function cleanup(): void {
   ];
   envrm.forEach((name) => delete process.env[name]);
 }
+
+// this is called after local services are already setup -- the project startup sequence does not wait for this!
+export async function finalize_kucalc_setup(): Promise<void> {}

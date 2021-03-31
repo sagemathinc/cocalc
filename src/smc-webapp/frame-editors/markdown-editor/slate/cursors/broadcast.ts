@@ -66,11 +66,7 @@ export const useBroadcastCursors: (Options) => () => void = ({
       return;
     }
     focusPointRef.current = newFocus;
-    // ensure *user* cursor is visible.  (TODO: This is not naturally placed here, but
-    // putting it here for now since we need the above "cursor changed" logic.  We
-    // can move that elsewhere (e.g., and event) and then move this.)
-    editor.scrollCaretIntoView();
-    // and update/broadcast out.
+    // update/broadcast out cursor position.
     update();
   };
 

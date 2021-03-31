@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Range, Editor, Element, Point, Transforms } from "slate";
+import { Range, Editor, Element, Path, Point, Text, Transforms } from "slate";
 import { endswith } from "smc-util/misc";
 
 export const withDeleteBackward = (editor) => {
@@ -41,6 +41,9 @@ function customDeleteBackwards(editor: Editor): boolean | undefined {
   switch (block.type) {
     case "list_item":
       deleteBackwardsInListItem(editor);
+      return true;
+    case "heading":
+      deleteBackwardsHeading(editor, block, path);
       return true;
   }
 }
@@ -80,4 +83,24 @@ function deleteBackwardsInListItem(editor: Editor) {
     split: true,
     mode: "lowest",
   });
+}
+
+// Special handling at beginning of heading.
+function deleteBackwardsHeading(editor: Editor, block: Element, path: Path) {
+  if (Text.isText(block.children[0])) {
+    Transforms.setNodes(
+      editor,
+      {
+        type: "paragraph",
+      },
+      { at: path }
+    );
+  } else {
+    Transforms.unwrapNodes(editor, {
+      match: (node) => Element.isElement(node),
+      split: true,
+      mode: "lowest",
+      at: path,
+    });
+  }
 }

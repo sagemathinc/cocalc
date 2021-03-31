@@ -93,8 +93,8 @@ export const useUpdateDOMSelection = ({ editor, state }) => {
     // selected.  If they are the same, done.  If different,
     // we change the selection in the DOM.
     if (
-      domSelection.anchorNode?.isEqualNode(newDomRange.startContainer) &&
-      domSelection.focusNode?.isEqualNode(newDomRange.endContainer) &&
+      domSelection.anchorNode?.isSameNode(newDomRange.startContainer) &&
+      domSelection.focusNode?.isSameNode(newDomRange.endContainer) &&
       domSelection.anchorOffset === newDomRange.startOffset &&
       domSelection.focusOffset === newDomRange.endOffset
     ) {
@@ -168,7 +168,15 @@ export const useDOMSelectionChange = ({
       return;
     }
 
-    const range = ReactEditor.toSlateRange(editor, domSelection);
+    let range;
+    try {
+      range = ReactEditor.toSlateRange(editor, domSelection);
+    } catch (_err) {
+      // isSelectable should catch any situation where the above might cause an
+      // error, but in practice it doesn't.  Just ignore selection change when this
+      // happens.
+      return;
+    }
     const { selection } = editor;
     if (selection != null) {
       const info = editor.windowedListRef?.current?.render_info;

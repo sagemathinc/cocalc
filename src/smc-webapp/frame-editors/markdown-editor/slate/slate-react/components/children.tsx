@@ -10,11 +10,13 @@ import { NODE_TO_INDEX, NODE_TO_PARENT } from "../utils/weak-maps";
 import { RenderElementProps, RenderLeafProps } from "./editable";
 import { WindowedList } from "smc-webapp/r_misc";
 import { shallowCompare } from "smc-util/misc";
+import { SlateEditor } from "../../editable-markdown";
 
 export interface WindowingParams {
   rowStyle?: React.CSSProperties;
   overscanRowCount?: number;
   estimatedRowSize?: number;
+  rowSizeEstimator?: (Node) => number | undefined;
 }
 
 /**
@@ -30,6 +32,7 @@ interface Props {
   windowing?: WindowingParams;
   onScroll?: () => void; // called after scrolling when windowing is true.
   isComposing?: boolean;
+  hiddenChildren?: Set<number>;
 }
 
 const Children: React.FC<Props> = React.memo(
@@ -41,20 +44,21 @@ const Children: React.FC<Props> = React.memo(
     selection,
     windowing,
     onScroll,
+    hiddenChildren,
   }) => {
     const decorate = useDecorate();
-    const editor = useSlateStatic();
+    const editor = useSlateStatic() as SlateEditor;
     let path;
     try {
       path = ReactEditor.findPath(editor, node);
     } catch (err) {
-      console.log(
-        "WARNING: unable to find path to node! So not rendering...",
-        node,
-        editor.children,
-        err
+      console.log("WARNING: unable to find path to node", node, err);
+      return (
+        <div>
+          (WARNING: unable to find path to node. You might have to close and
+          open this file.)
+        </div>
       );
-      return <></>;
     }
     const isLeafBlock =
       Element.isElement(node) &&
@@ -62,18 +66,28 @@ const Children: React.FC<Props> = React.memo(
       Editor.hasInlines(editor, node);
 
     const renderChild = ({ index }) => {
+      if (hiddenChildren?.has(index)) {
+        // TRICK: We use a small positive height since a height of 0 gets ignored, as it often
+        // appears when scrolling and allowing that breaks everything (for now!).
+        return <div style={{ height: "0.1px" }} contentEditable={false} />;
+      }
       const n = node.children[index] as Descendant;
-      const p = path.concat(index);
       const key = ReactEditor.findKey(editor, n);
-      const range = Editor.range(editor, p);
-      const ds = decorate([n, p]);
+      let ds, range;
+      if (path != null) {
+        const p = path.concat(index);
+        range = Editor.range(editor, p);
+        ds = decorate([n, p]);
+        for (const dec of decorations) {
+          const d = Range.intersection(dec, range);
 
-      for (const dec of decorations) {
-        const d = Range.intersection(dec, range);
-
-        if (d) {
-          ds.push(d);
+          if (d) {
+            ds.push(d);
+          }
         }
+      } else {
+        ds = [];
+        range = null;
       }
 
       if (Element.isElement(n)) {
@@ -84,13 +98,15 @@ const Children: React.FC<Props> = React.memo(
             key={key.id}
             renderElement={renderElement}
             renderLeaf={renderLeaf}
-            selection={selection && Range.intersection(range, selection)}
+            selection={
+              selection && range && Range.intersection(range, selection)
+            }
           />
         );
       } else {
         return (
           <TextComponent
-            decorations={ds}
+            decorations={ds ?? []}
             key={key.id}
             isLast={isLeafBlock && index === node.children.length - 1}
             parent={node as Element}
@@ -107,7 +123,7 @@ const Children: React.FC<Props> = React.memo(
       NODE_TO_PARENT.set(n, node);
     }
 
-    if (path.length == 0 && windowing != null) {
+    if (path?.length === 0 && windowing != null) {
       // top level and using windowing!
       return (
         <WindowedList
@@ -115,8 +131,17 @@ const Children: React.FC<Props> = React.memo(
           render_info={true}
           row_count={node.children.length}
           row_renderer={renderChild}
-          overscan_row_count={windowing.overscanRowCount ?? 10}
-          estimated_row_size={windowing.estimatedRowSize ?? 32}
+          overscan_row_count={windowing.overscanRowCount ?? 3}
+          estimated_row_size={windowing.estimatedRowSize ?? 60}
+          row_size_estimator={
+            windowing.rowSizeEstimator
+              ? (index) => {
+                  return node.children[index] != null
+                    ? windowing.rowSizeEstimator?.(node.children[index])
+                    : undefined;
+                }
+              : undefined
+          }
           row_key={(index) => `${index}`}
           row_style={windowing.rowStyle}
           on_scroll={onScroll}

@@ -17,6 +17,8 @@ export const withReact = <T extends Editor>(editor: T) => {
 
   e.windowedListRef = { current: null };
 
+  e.collapsedSections = new WeakMap();
+
   e.deleteBackward = (unit) => {
     if (unit !== "line") {
       return deleteBackward(unit);
@@ -157,12 +159,24 @@ export const withReact = <T extends Editor>(editor: T) => {
       }
     }
 
-    (e as any).saveValue?.(true);
+    // TODO: we want to do this, but it currently causes a slight
+    // delay, which is very disconcerting.  We need some sort of
+    // local slate undo before saving out to markdown (which has
+    // to wait until there is a pause in typing).
+    //(e as any).saveValue?.(true);
 
     if (fragment) {
       const decoded = decodeURIComponent(window.atob(fragment));
       const parsed = JSON.parse(decoded) as Node[];
-      e.insertFragment(parsed);
+      if (e.selection != null && e.selection.focus.path.length <= 2) {
+        // We do this at the top level
+        // @ts-ignore -- typing seems to not like an array, but works...
+        e.insertNode(parsed);
+      } else {
+        // When we're in some nested structure, e.g., a list, this
+        // seems to work much better.
+        e.insertFragment(parsed);
+      }
       return;
     }
 
@@ -229,15 +243,16 @@ export const withReact = <T extends Editor>(editor: T) => {
     try {
       const { selection } = e;
       if (!selection) return;
-      if (!Range.isCollapsed(selection)) return;
+      //if (!Range.isCollapsed(selection)) return;
 
-      // Important: there's no good way to do this when the focused
-      // element is void, and the naive code leads to bad problems,
-      // e.g., with several images, when you click on one, things jump
+      // Important: this doesn't really work well for many types
+      // of void elements, e.g, when the focused
+      // element is an image -- with several images, when
+      // you click on one, things jump
       // around randomly and you sometimes can't scroll the image into view.
-      // Better to just do nothing in case of voids.
+      // Better to just do nothing in this case.
       for (const [node] of Editor.nodes(e, { at: selection.focus })) {
-        if (Editor.isVoid(e, node)) {
+        if (Editor.isVoid(e, node) && !SCROLL_WHITELIST.has(node["type"])) {
           return;
         }
       }
@@ -302,7 +317,8 @@ export const withReact = <T extends Editor>(editor: T) => {
           editorEl.scrollTop = editorEl.scrollTop - offset;
         }
       }
-    } catch (_e) {
+    } catch (_err) {
+      // console.log("WARNING: scrollCaretIntoView -- ", err);
       // The only side effect we are hiding is that the cursor might not
       // scroll into view, which is way better than crashing everything.
       // console.log("WARNING: failed to scroll cursor into view", e);
@@ -311,3 +327,5 @@ export const withReact = <T extends Editor>(editor: T) => {
 
   return e;
 };
+
+const SCROLL_WHITELIST = new Set(["hashtag", "checkbox"]);

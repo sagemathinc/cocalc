@@ -141,15 +141,17 @@ export function formatSelectedText(editor: SlateEditor, mark: string) {
     // select current word (which may partly span multiple text nodes!)
     const at = currentWord(editor);
     if (at != null) {
-      editor.saveValue(true); // make snapshot so can undo to before format
+      // editor.saveValue(true); // TODO: make snapshot so can undo to before format
       Transforms.setNodes(
         editor,
         { [mark]: !isAlreadyMarked(editor, mark) ? true : undefined },
         { at, split: true, match: (node) => Text.isText(node) }
       );
+      return;
     }
     // No current word.
-    // Set thing so if you start typing it has the given mark (or doesn't).
+    // Set thing so if you start typing it has the given
+    // mark (or doesn't).
     toggleMark(editor, mark);
     return;
   }
@@ -454,7 +456,7 @@ export function selectionToText(editor: Editor): string {
 // The code below is complicated, because there are numerous subtle
 // cases that can arise and we have to both create and remove
 // being a heading.
-async function formatHeading(editor, level: number): Promise<void> {
+export function formatHeading(editor, level: number): void {
   const at = getCollapsedSelection(editor);
   const options = {
     match: (node) => Editor.isBlock(editor, node),
@@ -465,7 +467,7 @@ async function formatHeading(editor, level: number): Promise<void> {
   const type = fragment[0]?.["type"];
   if (type != "heading" && type != "paragraph") {
     // Markdown doesn't let most things be in headers.
-    // Technicall markdown allows for headers as entries in other
+    // Technically markdown allows for headers as entries in other
     // things like lists, but we're not supporting this here, since
     // that just seems really annoying.
     return;
@@ -497,9 +499,9 @@ async function formatHeading(editor, level: number): Promise<void> {
       return;
     }
     if (level == 0) return; // paragraph mode -- no heading.
-    Transforms.wrapNodes(
+    Transforms.setNodes(
       editor,
-      { type: "heading", level } as Element,
+      { type: "heading", level } as Partial<Element>,
       options
     );
   } finally {

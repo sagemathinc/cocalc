@@ -26,6 +26,10 @@ misc2_node = require('smc-util-node/misc2_node')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
+# IDK why, but if that import line is down below, where the other "./postgres/*" imports are, building manage
+# fails with: remember-me.ts(15,31): error TS2307: Cannot find module 'async-await-utils/hof' or its corresponding type declarations.
+{get_remember_me} = require('./postgres/remember-me')
+
 {SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('smc-util/schema')
 
 { DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images")
@@ -45,10 +49,10 @@ collab = require('./postgres/collab')
 {matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
 {sync_site_license_subscriptions} = require('./postgres/site-license/sync-subscriptions')
 {add_license_to_project, remove_license_from_project} = require('./postgres/site-license/add-remove')
+{project_datastore_set, project_datastore_get, project_datastore_del} = require('./postgres/project-queries')
 
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
-{get_remember_me} = require('./postgres/remember-me')
 {get_personal_user} = require('./postgres/personal')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
@@ -3119,6 +3123,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     site_license_public_info: (license_id) =>
         return await site_license_public_info(@, license_id)
 
+    # async function
     site_license_manager_set: (license_id, info) =>
         return await site_license_manager_set(@, license_id, info)
 
@@ -3126,18 +3131,33 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     update_site_license_usage_log: =>
         return await update_site_license_usage_log(@)
 
-        # async function
+    # async function
     matching_site_licenses: (...args) =>
         return await matching_site_licenses(@, ...args)
 
+    # async function
     manager_site_licenses: (...args) =>
         return await manager_site_licenses(@, ...args)
 
+    # async function
     add_license_to_project: (...args) =>
         return await add_license_to_project(@, ...args)
 
+    # async function
     remove_license_from_project: (...args) =>
         return await remove_license_from_project(@, ...args)
+
+    # async function
+    project_datastore_set: (...args) =>
+        return await project_datastore_set(@, ...args)
+
+    # async function
+    project_datastore_get: (...args) =>
+        return await project_datastore_get(@, ...args)
+
+    # async function
+    project_datastore_del: (...args) =>
+        return await project_datastore_del(@, ...args)
 
     # async function
     permanently_unlink_all_deleted_projects_of_user: (account_id_or_email_address) =>
