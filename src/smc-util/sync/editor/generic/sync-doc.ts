@@ -63,6 +63,7 @@ import {
   is_date,
   ISO_to_Date,
   minutes_ago,
+  server_minutes_ago,
 } from "../../../misc";
 import { Evaluator } from "./evaluator";
 import { IpywidgetsState } from "./ipywidgets-state";
@@ -210,6 +211,9 @@ export class SyncDoc extends EventEmitter {
 
   private ephemeral: boolean = false;
 
+  private sync_is_disabled: boolean = false;
+  private delay_sync_timer: any;
+
   constructor(opts: SyncOpts) {
     super();
     if (opts.string_id === undefined) {
@@ -237,6 +241,11 @@ export class SyncDoc extends EventEmitter {
       }
     }
     this._from_str = opts.from_str;
+
+    // Initialize to time when we create the syncstring, so we don't
+    // see our own cursor when we refresh the browser (before we move
+    // to update this).
+    this.cursor_last_time = this.client?.server_time();
 
     reuse_in_flight_methods(this, [
       "save",
@@ -409,11 +418,11 @@ export class SyncDoc extends EventEmitter {
   }
 
   public set_doc(doc: Document, exit_undo_mode: boolean = true): void {
-    if (exit_undo_mode) this.undo_state = undefined;
     if (doc.is_equal(this.doc)) {
       // no change.
       return;
     }
+    if (exit_undo_mode) this.undo_state = undefined;
     // console.log(`sync-doc.set_doc("${doc.to_str()}")`);
     this.doc = doc;
     this.emit_change();
@@ -634,12 +643,15 @@ export class SyncDoc extends EventEmitter {
      the file to disk periodically. */
   private init_project_autosave(): void {
     // Do not autosave sagews until we resolve
-    // https://github.com/sagemathinc/cocalc/issues/974
+    //   https://github.com/sagemathinc/cocalc/issues/974
+    // Similarly, do not autosave ipynb because of
+    //   https://github.com/sagemathinc/cocalc/issues/5216
     if (
       !LOCAL_HUB_AUTOSAVE_S ||
       !this.client.is_project() ||
       this.project_autosave_timer ||
-      endswith(this.path, ".sagews")
+      endswith(this.path, ".sagews") ||
+      endswith(this.path, ".ipynb.sage-jupyter2")
     ) {
       return;
     }
@@ -1502,6 +1514,13 @@ export class SyncDoc extends EventEmitter {
     ) {
       map = map.delete(account_id);
     }
+    // Remove any old cursors, where "old" is more than 1 minute old; this is never useful.
+    const cutoff = server_minutes_ago(1);
+    for (const [a] of map as any) {
+      if (map.getIn([a, "time"]) < cutoff) {
+        map = map.delete(a);
+      }
+    }
     return map;
   }
 
@@ -1559,7 +1578,6 @@ export class SyncDoc extends EventEmitter {
       dbg(`state=${this.state} not ready so not saving`);
       return;
     }
-    await this.patches_table.save();
     while (!this.doc.is_equal(this.last)) {
       dbg("something to save");
       this.emit("user-change");
@@ -1573,16 +1591,22 @@ export class SyncDoc extends EventEmitter {
         // and state still ready).
         continue;
       }
-      dbg("Compute new patch and send it.");
+      dbg("Compute new patch.");
       await this.sync_remote_and_doc();
       // Emit event since this syncstring was
       // changed locally (or we wouldn't have had
       // to save at all).
       if (doc.is_equal(this.doc)) {
         dbg("no change during loop -- done!");
-        return;
+        break;
       }
     }
+    // Ensure all patches are saved to backend.
+    // We do this after the above, so that creating the newest patch
+    // happens immediately on save, which makes it possible for clients
+    // to save current state without having to wait on an async, which is
+    // useful to ensure specific undo points (e.g., right before a paste).
+    await this.patches_table.save();
   }
 
   private next_patch_time(): Date {
@@ -1967,7 +1991,9 @@ export class SyncDoc extends EventEmitter {
       this.emit("save-to-disk", time);
     }
     const dbg = this.dbg("handle_syncstring_save_state");
-    dbg();
+    dbg(
+      `state=${state}; this.syncstring_save_state=${this.syncstring_save_state}; this.state=${state}`
+    );
     if (
       this.state === "ready" &&
       this.client.is_project() &&
@@ -1980,12 +2006,39 @@ export class SyncDoc extends EventEmitter {
       // so we do it (unless of course syncstring is still
       // being initialized).
       try {
+        // Uncomment the following to test simulating a
+        // random failure in save_to_disk:
+        // if (Math.random() < 0.5) throw Error("CHAOS MONKEY!"); // FOR TESTING ONLY.
         await this.save_to_disk();
       } catch (err) {
+        // CRITICAL: we must unset this.syncstring_save_state (and set the save state);
+        // otherwise, it stays as "requested" and this if statement would never get
+        // run again, thus completely breaking saving this doc to disk.
+        // It is normal behavior that *sometimes* this.save_to_disk might
+        // throw an exception, e.g., if the file is temporarily deleted
+        // or save it called before everything is initialized, or file
+        // is temporarily set readonly, or maybe there is a filesystem error.
+        // Of course, the finally below will also take care of this.  However,
+        // it's nice to record the error here.
+        this.syncstring_save_state = "done";
+        await this.set_save({ state: "done", error: `${err}` });
         dbg(`ERROR saving to disk in handle_syncstring_save_state-- ${err}`);
+      } finally {
+        // No matter what, after the above code is run,
+        // the save state in the table better be "done".
+        // We triple check that here, though of course
+        // we believe the logic in save_to_disk and above
+        // should always accomplish this.
+        dbg("had to set the state to done in finally block");
+        if (
+          this.state === "ready" &&
+          (this.syncstring_save_state != "done" ||
+            this.syncstring_table_get_one().getIn(["save", "state"]) != "done")
+        ) {
+          this.syncstring_save_state = "done";
+          await this.set_save({ state: "done", error: "" });
+        }
       }
-    } else {
-      this.syncstring_save_state = state; // only used in the if above
     }
   }
 
@@ -2354,20 +2407,16 @@ export class SyncDoc extends EventEmitter {
     const dbg = this.dbg("save_to_disk");
     if (this.client.is_deleted(this.path, this.project_id)) {
       dbg("not saving to disk because deleted");
+      await this.set_save({ state: "done", error: "" });
       return;
     }
+
     dbg("initiating the save");
-    /* dbg(`live="${this.to_str()}"`);
-    this.show_history({log:dbg});
-    const x = this.patches_table.get();
-    if (x != null) {
-      dbg(`patches_table=${JSON.stringify(x.toJS())}`);
-    }
-    */
     if (!this.has_unsaved_changes()) {
       dbg("no unsaved changes, so don't save");
       // CRITICAL: this optimization is assumed by
       // autosave, etc.
+      await this.set_save({ state: "done", error: "" });
       return;
     }
 
@@ -2397,8 +2446,8 @@ export class SyncDoc extends EventEmitter {
       }
     }
 
-    dbg("now wait for the save to disk to finish");
     if (this.client.is_user()) {
+      dbg("now wait for the save to disk to finish");
       this.assert_is_ready("save_to_disk - waiting to finish");
       await this.wait_for_save_to_disk_done();
     }
@@ -2687,14 +2736,49 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  /*Merge remote patches and live version to create new live version,
+  /* Disable and enable sync.   When disabled we still
+     collect patches from upstream (but do not apply them
+     locally), and changes we make are broadcast into
+     the patch stream.   When we re-enable sync, all
+     patches are put together in the stream and
+     everything is synced as normal.  This is useful, e.g.,
+     to make it so a user **actively** editing a document is
+     not interrupted by being forced to sync (in particular,
+     by the 'before-change' event that they use to update
+     the live document).
+
+     Also, delay_sync will delay syncing local with upstream
+     for the given number of ms.  Calling it regularly while
+     user is actively editing to avoid them being bothered
+     by upstream patches getting merged in.
+  */
+
+  public disable_sync(): void {
+    this.sync_is_disabled = true;
+  }
+
+  public enable_sync(): void {
+    this.sync_is_disabled = false;
+    this.sync_remote_and_doc();
+  }
+
+  public delay_sync(timeout_ms = 2000): void {
+    clearTimeout(this.delay_sync_timer);
+    this.disable_sync();
+    this.delay_sync_timer = setTimeout(() => {
+      this.enable_sync();
+    }, timeout_ms);
+  }
+
+  /*
+    Merge remote patches and live version to create new live version,
     which is equal to result of applying all patches.
 
     Only returns once any newly created patches have
     been sent out.
-    */
+  */
   private async sync_remote_and_doc(): Promise<void> {
-    if (this.last == null || this.doc == null) {
+    if (this.last == null || this.doc == null || this.sync_is_disabled) {
       return;
     }
 

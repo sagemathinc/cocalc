@@ -55,7 +55,7 @@ class ProjectInfoTable {
 
   public close(): void {
     this.log("close");
-    this.info_server.off("info", this.publish);
+    this.info_server?.off("info", this.publish);
     this.table?.close_no_async();
     close(this);
     this.state = "closed";

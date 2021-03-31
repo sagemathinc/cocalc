@@ -5,7 +5,7 @@
 
 import { React } from "../app-framework";
 import { List, Map } from "immutable";
-import { smiley, trunc_middle } from "smc-util/misc";
+import { trunc_middle } from "smc-util/misc";
 import { sanitize_html_safe } from "../misc-page";
 import { Markdown, TimeAgo } from "../r_misc";
 import { ListGroupItem, Well } from "react-bootstrap";
@@ -45,12 +45,7 @@ export const History: React.FC<{
   const v: JSX.Element[] = [];
   for (const index in historyList) {
     const objects = historyList[index];
-    const value = sanitize_html_safe(
-      smiley({
-        s: objects.content,
-        wrap: ['<span class="smc-editor-chat-smiley">', "</span>"],
-      })
-    );
+    const value = sanitize_html_safe(objects.content);
     const author = trunc_middle(
       user_map.getIn([objects.author_id, "first_name"]) +
         " " +

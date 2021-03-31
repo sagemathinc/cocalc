@@ -90,11 +90,6 @@ export class About extends Component<AboutProps> {
           redo, realtime synchronized ipywidgets
         </li>
         <li>
-          <b>Windowing:</b> Only visible cells are rendered, which makes it
-          possible to efficiently work with very large notebooks having hundreds
-          of cells
-        </li>
-        <li>
           <b>Document split:</b> edit and see multiple parts of a large notebook
           at once
         </li>

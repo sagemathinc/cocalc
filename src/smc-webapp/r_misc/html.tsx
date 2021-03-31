@@ -44,7 +44,7 @@ export interface Props {
   post_hook?: (any) => void;
 
   highlight?: Set<string>;
-  content_editable?: boolean; // if true, makes rendered HTML contenteditable
+  content_editable?: boolean; // if true, makes rendered HTML contenteditable; otherwise, explicitly set false.
 
   // If true, after any update to component, force reloading of all images.
   reload_images?: boolean;
@@ -211,7 +211,7 @@ export const HTML: React.FC<Props> = (props) => {
         id={props.id}
         contentEditable={true}
         key={Math.random()}
-        className={props.className}
+        className={`${props.className ?? ""} cocalc-html-component`}
         dangerouslySetInnerHTML={render_html()}
         style={props.style}
         onClick={props.onClick}
@@ -223,8 +223,9 @@ export const HTML: React.FC<Props> = (props) => {
       <span
         ref={ref}
         id={props.id}
+        contentEditable={false}
         key={Math.random()}
-        className={props.className}
+        className={`${props.className ?? ""} cocalc-html-component`}
         dangerouslySetInnerHTML={render_html()}
         style={props.style}
         onClick={props.onClick}

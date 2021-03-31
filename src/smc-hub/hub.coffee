@@ -173,6 +173,7 @@ init_primus_server = (http_server) ->
             compute_server : compute_server
             host           : program.host
             port           : program.port
+            personal       : program.personal
         dbg("num_clients=#{misc.len(clients)}")
 
 #######################################################
@@ -629,6 +630,7 @@ exports.start_server = start_server = (cb) ->
             x = await hub_http_server.init_express_http_server
                 base_url       : BASE_URL
                 dev            : program.dev
+                is_personal    : program.personal
                 compute_server : compute_server
                 database       : database
                 cookie_options : client.COOKIE_OPTIONS
@@ -689,6 +691,7 @@ exports.start_server = start_server = (cb) ->
                     base_url       : BASE_URL
                     port           : program.proxy_port
                     host           : program.host
+                    is_personal    : program.personal
 
             if program.port or program.share_port or program.proxy_port
                 winston.debug("Starting registering periodically with the database and updating a health check...")
@@ -748,7 +751,6 @@ add_user_to_project = (project_id, email_address, cb) ->
 
 command_line = () ->
     program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
-    daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
     default_db = process.env.PGHOST ? 'localhost'
 
     program.usage('[start/stop/restart/status/nodaemon] [options]')
@@ -783,9 +785,8 @@ command_line = () ->
         .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
         .option('--lti', 'just start the LTI service')
         .option('--landing', 'serve landing pages')
+        .option('--personal', 'run in VERY UNSAFE personal mode; there is only one user and no authentication')
         .parse(process.argv)
-
-        # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
 
     if program._name.slice(0,3) == 'hub'
         # run as a server/daemon (otherwise, is being imported as a library)
@@ -847,6 +848,8 @@ command_line = () ->
                     if err and program.dev
                         process.exit(1)
             else
+                # TODO get rid of start-stop-daemon
+                daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
                 daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)
 
 

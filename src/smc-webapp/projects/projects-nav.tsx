@@ -13,6 +13,7 @@ import { COMPUTE_STATES } from "smc-util/schema";
 import { IS_TOUCH } from "../feature";
 import { set_window_title } from "../browser";
 import {
+  redux,
   React,
   ReactDOM,
   useActions,
@@ -168,6 +169,28 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
         <Icon name={COMPUTE_STATES[project_state]?.icon ?? "bullhorn"} />
       );
 
+    function click_title(e) {
+      // we intercept a click with a modification key in order to open that project in a new window
+      if (e.ctrlKey || e.shiftKey || e.metaKey) {
+        e.stopPropagation();
+        e.preventDefault();
+        const actions = redux.getProjectActions(project_id);
+        actions.open_file({ path: "", new_browser_window: true });
+      }
+    }
+
+    function render_tip() {
+      return (
+        <>
+          <div>{trunc(project?.get("description") ?? "", 128)}</div>
+          <hr />
+          <div style={{ color: COLORS.GRAY }}>
+            Hint: Shift-Click to open in new window.
+          </div>
+        </>
+      );
+    }
+
     return (
       <SortableNavTab
         ref={tab_ref}
@@ -181,13 +204,8 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
           {render_websocket_indicator()}
           {render_close_x()}
         </div>
-        <div style={PROJECT_NAME_STYLE}>
-          <Tip
-            title={title}
-            tip={trunc(project?.get("description") ?? "", 128)}
-            placement="bottom"
-            size="small"
-          >
+        <div style={PROJECT_NAME_STYLE} onClick={click_title}>
+          <Tip title={title} tip={render_tip()} placement="bottom" size="small">
             {icon}
             <span style={{ marginLeft: 5, position: "relative" }}>
               {trunc(title, 24)}

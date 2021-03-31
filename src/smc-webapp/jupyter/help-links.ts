@@ -35,7 +35,7 @@ const LINKS: { [key: string]: Help } = {
     "Linux Tutorial": "https://ryanstutorials.net/linuxtutorial/",
   },
   julia: {
-    "Julia Documentation": "https://docs.julialang.org/en/stable/",
+    "Julia Documentation": "https://docs.julialang.org/",
     Plots: "https://docs.juliaplots.org/latest/",
     DataFrames: "https://juliadata.github.io/DataFrames.jl/stable/",
     JuMP: "http://www.juliaopt.org/JuMP.jl/stable/",

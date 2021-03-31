@@ -6,9 +6,13 @@ from __future__ import print_function
 import argparse, os, sys, time
 from concurrent.futures import ThreadPoolExecutor
 
-# This install script is not the place to do type checking -- that should happen
-# only during development.
+# This install script is not the place to do type checking -- that
+# should happen only during development.
 os.environ['TS_TRANSPILE_ONLY'] = 'true'
+
+# Building some things definitely uses too much memory and
+# crashes without this option, e.g., running tsc on smc-project!
+os.environ['NODE_OPTIONS'] = '--max-old-space-size=8192'
 
 WORKERS = 3
 SRC = os.path.split(os.path.realpath(__file__))[0]
@@ -77,8 +81,12 @@ def install_project():
         print(f"TOTAL PROJECT PKG BUILD TIME: {total:.1f}s")
 
     # UGLY; hard codes the path -- TODO: fix at some point.
-    cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn ci --unsafe-perm=true --progress=false --upgrade"
-        % SUDO)
+    try:
+        cmd("cd /usr/local/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn ci --unsafe-perm=true --progress=false --upgrade"
+            % SUDO)
+    except:
+        cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn ci --unsafe-perm=true --progress=false --upgrade"
+            % SUDO)
 
     # At least run typescript...
     # TODO: currently this errors somewhere in building something in node_modules in smc-webapp, since I can't get
@@ -88,17 +96,17 @@ def install_project():
 
     # Pre-compile everything to Javascript, so that loading is much faster and more efficient.
     # This can easily save more than 2 seconds, given how big things have got.
-    cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter"
-        )
+    try:
+        cmd("cd /usr/local/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter"
+            )
+    except:
+        cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter"
+            )
 
 
 def install_hub():
     paths = [
-        '.',
-        'smc-hub',
-        'smc-util-node',
-        'smc-util',
-        'webapp-lib/resources'
+        '.', 'smc-hub', 'smc-util-node', 'smc-util', 'webapp-lib/resources'
     ]
 
     # npm ci for using pkg lock file

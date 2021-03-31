@@ -139,10 +139,14 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
   }
 
   function set_grade_id(grade_id: string): void {
-    // TODO: check globally unique...?
     // DO NOT allow whitespace (see https://github.com/sagemathinc/cocalc/issues/4743):
     grade_id = grade_id.replace(/\s+/g, "");
     actions.nbgrader_actions.set_metadata(cell.get("id"), { grade_id });
+    // Check globally unique, and if not change it until it is.
+    // Not doing this can be very painful, e.g., nbgrader later
+    // doesn't work properly.  We can't just do this check here,
+    // since copy/paste can also create multiple cells with the same id.
+    actions.nbgrader_actions.ensure_grade_ids_are_unique();
   }
 
   function render_id(): Rendered {
@@ -163,7 +167,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
           value={grade_id}
           onChange={(e) => set_grade_id((e.target as any).value)}
           style={{
-            width: `${grade_id.length <= 6 ? 64 : 180}px`,
+            width: `${grade_id.length <= 6 ? 72 : 180}px`,
             marginLeft: "10px",
             paddingLeft: "5px",
             color: "#666",

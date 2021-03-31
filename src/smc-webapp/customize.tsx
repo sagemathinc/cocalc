@@ -75,6 +75,7 @@ export interface CustomizeState {
   iframe_comm_hosts: string[];
   index_info_html: string;
   is_cocalc_com: boolean;
+  is_personal: boolean;
   kucalc: string;
   logo_rectangular: string;
   logo_square: string;

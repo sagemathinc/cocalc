@@ -45,7 +45,7 @@ export const NoNetworkProjectWarning: React.FC<Options> = (props) => {
         <span>
           <Space />
           <A href={url} style={{ cursor: "pointer" }}>
-            Subscriptions start at only $14/month.
+            Licenses start at about $3/month...
           </A>
         </span>
       );
@@ -53,7 +53,7 @@ export const NoNetworkProjectWarning: React.FC<Options> = (props) => {
   }
 
   return (
-    <Alert bsStyle="warning" style={{ marginTop: "10px" }}>
+    <Alert bsStyle="warning" style={{ margin: "15px" }}>
       <h4>
         <Icon name="exclamation-triangle" /> Warning: this project{" "}
         <strong>does not have full internet access</strong>

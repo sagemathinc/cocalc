@@ -57,7 +57,6 @@ Table({
           course: null,
           // if the value is not set, we have to use the old default prior to summer 2020 (Ubuntu 18.04, not 20.04!)
           compute_image: FALLBACK_COMPUTE_IMAGE,
-          addons: null,
           created: null,
           env: null,
         },
@@ -394,4 +393,83 @@ Table({
     project_id: true,
     invite_requests: true,
   }, // {account_id:{timestamp:?, message:?}, ...}
+});
+
+/*
+Table to get/set the datastore config in addons.
+
+The main idea is to set/update/delete entries in the dict addons.datastore.[key] = {...}
+*/
+Table({
+  name: "project_datastore",
+  rules: {
+    virtual: "projects",
+    primary_key: "project_id",
+    user_query: {
+      set: {
+        // this also deals with delete requests
+        fields: {
+          project_id: true,
+          addons: true,
+        },
+        async instead_of_change(
+          db,
+          _old_value,
+          new_val,
+          account_id,
+          cb
+        ): Promise<void> {
+          try {
+            // to delete an entry, pretend to set the datastore = {delete: [name]}
+            if (typeof new_val.addons.datastore.delete === "string") {
+              await db.project_datastore_del(
+                account_id,
+                new_val.project_id,
+                new_val.addons.datastore.delete
+              );
+              cb(undefined);
+            } else {
+              // query should set addons.datastore.[new key] = config, such that we see here
+              // new_val = {"project_id":"...","addons":{"datastore":{"key3":{"type":"xxx", ...}}}}
+              // which will be merged into the existing addons.datastore dict
+              const res = await db.project_datastore_set(
+                account_id,
+                new_val.project_id,
+                new_val.addons.datastore
+              );
+              cb(undefined, res);
+            }
+          } catch (err) {
+            cb(`${err}`);
+          }
+        },
+      },
+      get: {
+        fields: {
+          project_id: true,
+          addons: true,
+        },
+        async instead_of_query(db, opts, cb): Promise<void> {
+          if (opts.multi) {
+            throw Error("'multi' is not implemented");
+          }
+          try {
+            // important: the config dicts for each key must not expose secret credentials!
+            // check if opts.query.addons === null ?!
+            const data = await db.project_datastore_get(
+              opts.account_id,
+              opts.query.project_id
+            );
+            cb(undefined, data);
+          } catch (err) {
+            cb(`${err}`);
+          }
+        },
+      },
+    },
+  },
+  fields: {
+    project_id: true,
+    addons: true,
+  },
 });

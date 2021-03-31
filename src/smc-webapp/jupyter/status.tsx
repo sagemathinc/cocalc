@@ -341,7 +341,14 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         : KERNEL_USAGE_STYLE_SMALL;
 
       // const status = usage.cpu > 50 ? "active" : undefined
-      const status = usage.cpu_runtime != null ? "active" : undefined;
+      // const status = usage.cpu_runtime != null ? "active" : undefined;
+      // **WARNING**: Including the status icon (which is computed above,
+      // and done via status={status} for cpu below), leads to a MASSIVE
+      // RENDERING BUG, where the cpu burns at like 50% anytime a Jupyter
+      // notebook is being displayed. See
+      //      https://github.com/sagemathinc/cocalc/issues/5185
+      // This may be a weird conflict between antd and fontawesome icons.
+
       // we calibrate "100%" at the median – color changes at 2 x timings_q
       const cpu_val = Math.min(
         100,
@@ -358,7 +365,6 @@ export const Kernel: React.FC<KernelProps> = React.memo(
               percent={cpu_val}
               size="small"
               trailColor="white"
-              status={status}
               strokeColor={ALERT_COLS[usage.time_alert]}
             />
           </span>

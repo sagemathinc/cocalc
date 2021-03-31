@@ -132,7 +132,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   }
 
   function click_on_cell(event: any): void {
-    if (props.frame_actions == null) {
+    if (props.frame_actions == null || props.frame_actions.is_closed()) {
       return;
     }
     if (event.shiftKey && !props.is_current) {

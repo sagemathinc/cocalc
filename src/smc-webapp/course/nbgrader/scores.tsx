@@ -17,6 +17,7 @@ import { autograded_filename } from "../util";
 
 interface Props {
   nbgrader_scores: { [ipynb: string]: NotebookScores | string };
+  nbgrader_score_ids?: { [ipynb: string]: string[] };
   assignment_id: string;
   student_id: string;
   name: string;
@@ -108,9 +109,20 @@ export class NbgraderScores extends Component<Props, State> {
       );
     }
     const v: Rendered[] = [];
+
+    const ids: string[] = this.props.nbgrader_score_ids?.[filename] ?? [];
     for (const id in scores) {
-      v.push(this.render_score(filename, id, scores[id]));
+      if (!ids.includes(id)) {
+        ids.push(id);
+      }
     }
+
+    for (const id of ids) {
+      if (scores[id] != null) {
+        v.push(this.render_score(filename, id, scores[id]));
+      }
+    }
+
     const style = { padding: "5px" };
     return (
       <table

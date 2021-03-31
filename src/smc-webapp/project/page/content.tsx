@@ -221,7 +221,10 @@ export const Content: React.FC<Props> = React.memo(
       } else {
         // just the editor
         content = (
-          <div style={{ position: "absolute", height: "100%", width: "100%" }}>
+          <div
+            className="smc-vfill"
+            style={{ position: "absolute", height: "100%", width: "100%" }}
+          >
             {editor}
           </div>
         );

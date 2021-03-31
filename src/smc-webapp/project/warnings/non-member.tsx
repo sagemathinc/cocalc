@@ -48,7 +48,7 @@ export const NonMemberProjectWarning: React.FC<Options> = (opts) => {
         <span>
           <Space />
           <A href={url} style={{ cursor: "pointer" }}>
-            Subscriptions start at only $14/month.
+            Licenses start at about $3/month...
           </A>
         </span>
       );
@@ -56,7 +56,7 @@ export const NonMemberProjectWarning: React.FC<Options> = (opts) => {
   }
 
   return (
-    <Alert bsStyle="warning" style={{ marginTop: "10px" }}>
+    <Alert bsStyle="warning" style={{ margin: "15px" }}>
       <h4>
         <Icon name="exclamation-triangle" /> Warning: this project is{" "}
         <strong>running on a free server</strong>
@@ -72,7 +72,7 @@ export const NonMemberProjectWarning: React.FC<Options> = (opts) => {
         <b>
           <i>much more heavily loaded</i>
         </b>{" "}
-        than members-only servers. {suggestion}
+        than member-only servers. {suggestion}
       </p>
     </Alert>
   );

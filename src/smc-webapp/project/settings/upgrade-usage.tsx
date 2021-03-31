@@ -12,6 +12,7 @@ import { URLBox } from "./url-box";
 import { Project } from "./types";
 import { HelpEmailLink } from "../../customize";
 import { SiteLicense } from "./site-license";
+import { is_zero_map } from "smc-util/misc";
 
 const { ShowSupportLink } = require("../../support");
 const { Row, Col, Button } = require("react-bootstrap");
@@ -67,16 +68,23 @@ class UpgradeUsage extends React.Component<Props, State> {
   private render_upgrades_button(): Rendered {
     if (!this.props.is_commercial) return; // never show if not commercial
     return (
-      <Row>
+      <Row style={{ borderBottom: "1px solid grey", paddingBottom: "15px" }}>
         <Col sm={12}>
-          <Button
-            bsStyle="primary"
-            disabled={this.state.show_adjustor}
-            onClick={() => this.setState({ show_adjustor: true })}
-            style={{ float: "right", marginBottom: "5px" }}
-          >
-            <Icon name="arrow-circle-up" /> Adjust your upgrade contributions...
-          </Button>
+          {is_zero_map(this.props.upgrades_you_can_use) ? (
+            <div style={{ float: "right" }}>
+              Increase these quotas using a license below.
+            </div>
+          ) : (
+            <Button
+              bsStyle="primary"
+              disabled={this.state.show_adjustor}
+              onClick={() => this.setState({ show_adjustor: true })}
+              style={{ float: "right", marginBottom: "5px" }}
+            >
+              <Icon name="arrow-circle-up" /> Adjust your upgrade
+              contributions...
+            </Button>
+          )}
         </Col>
       </Row>
     );

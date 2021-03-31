@@ -70,6 +70,10 @@ def hub_args(server_id):
     if args.single:
         s += ' --single '
 
+
+    if args.personal:
+        s += ' --personal '
+
     if args.update:
         s += ' --update '
 
@@ -197,6 +201,13 @@ if __name__ == "__main__":
     parser.add_argument('--single',
                         help="single",
                         dest='single',
+                        action="store_const",
+                        const=True,
+                        default=False)
+
+    parser.add_argument('--personal',
+                        help="personal",
+                        dest='personal',
                         action="store_const",
                         const=True,
                         default=False)

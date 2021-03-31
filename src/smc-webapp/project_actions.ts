@@ -20,7 +20,7 @@ import {
   is_available as feature_is_available,
 } from "./project_configuration";
 import { query as client_query } from "./frame-editors/generic/client";
-import { callback, delay } from "awaiting";
+import { callback } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
 import { exec } from "./frame-editors/generic/client";
 import { API } from "./project/websocket/api";
@@ -48,7 +48,7 @@ import { ensure_project_running } from "./project/project-start-warning";
 import { download_file, open_new_tab, open_popup_window } from "./misc-page";
 
 const BAD_FILENAME_CHARACTERS = "\\";
-const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%';
+const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
 const BANNED_FILE_TYPES = ["doc", "docx", "pdf", "sws"];
 
 const FROM_WEB_TIMEOUT_S = 45;
@@ -690,15 +690,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  public open_in_new_browser_window(path: string): void {
-    let url =
-      (window.app_base_url != null ? window.app_base_url : "") +
-      this._url_in_project(`files/${path}`);
-    url += "?session=&fullscreen=kiosk";
-    open_popup_window(url, {
-      width: 800,
-      height: 640,
-    });
+  public open_in_new_browser_window(path: string, fullscreen = "kiosk"): void {
+    let url = window.app_base_url ?? "";
+    url += this._url_in_project(`files/${path}`);
+    url += "?session=";
+    if (fullscreen) url += `&fullscreen=${fullscreen}`;
+    const width = Math.round(window.screen.width * 0.75);
+    const height = Math.round(window.screen.height * 0.75);
+    open_popup_window(url, { width, height });
   }
 
   public async open_word_document(path): Promise<void> {
@@ -900,12 +899,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   private async convert_docx_file(filename): Promise<string> {
+    const conf = await this.init_configuration("main");
+    if (conf != null && conf.capabilities.pandoc === false) {
+      throw new Error(
+        "Pandoc not installed – unable to convert docx to markdown."
+      );
+    }
+    const md_fn = misc.change_filename_extension(filename, "md");
+    // pandoc -s example30.docx -t gfm [or markdown] -o example35.md
     await webapp_client.project_client.exec({
       project_id: this.project_id,
-      command: "cc-docx2txt",
-      args: [filename],
+      command: "pandoc",
+      args: ["-s", filename, "-t", "gfm", "-o", md_fn],
     });
-    return filename.slice(0, filename.length - 4) + "txt";
+    return md_fn;
   }
 
   // Closes all files and removes all references
@@ -966,7 +973,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   open_directory(path, change_history = true, show_files = true): void {
     path = normalize(path);
-    this._ensure_project_is_open((err) => {
+    this._ensure_project_is_open(async (err) => {
       if (err) {
         // TODO!
         console.log(
@@ -1057,9 +1064,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const opts: FetchDirectoryListingOpts = defaults(opts_args, {
       path: store.get("current_path"),
-      force: false,
+      force: false, // WARNING: THINK VERY HARD BEFORE YOU USE force
       cb: undefined,
-    }); // WARNING: THINK VERY HARD BEFORE YOU USE THIS
+    });
 
     if (opts.force && opts.path != null) {
       // always update our interest.
@@ -2205,10 +2212,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
       return;
     }
+    this.fetch_directory_listing({ path: p });
     if (switch_over) {
       this.open_directory(p);
-    } else {
-      this.fetch_directory_listing();
     }
     // Log directory creation to the event log.  / at end of path says it is a directory.
     this.log({ event: "file_action", action: "created", files: [p + "/"] });
@@ -2755,7 +2761,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) return; // project closed
     const a = store.get("active_project_tab");
     if (!misc.startswith(a, "editor-")) return;
-    await delay(0);
     this.show_file(misc.tab_to_path(a));
   }
 
@@ -2773,6 +2778,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       project_id: this.project_id,
       command: "mkdir",
       args: ["-p", path],
+    });
+    // WARNING: If we don't do this sync, the
+    // create_folder/open_directory code gets messed up
+    // (with the backend watcher stuff) and the directory
+    // gets stuck "Loading...".  Anyway, this is a good idea
+    // to ensure the directory is fully created and usable.
+    // And no, I don't like having to do this.
+    await webapp_client.exec({
+      project_id: this.project_id,
+      command: "sync",
     });
   }
 
@@ -2818,5 +2833,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       until: (s) => !s.get("modal") && this.modal == null,
       timeout: 99999,
     });
+  }
+
+  public show_public_config(path: string): void {
+    this.set_current_path(misc.path_split(path).head);
+    this.set_all_files_unchecked();
+    this.set_file_checked(path, true);
+    this.set_file_action("share");
   }
 }

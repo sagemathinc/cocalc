@@ -5,8 +5,6 @@
 
 export { get_start_time_ts, get_uptime, log, wrap_log } from "./log";
 
-export { smiley, smiley_strings } from "./emoji";
-
 import {
   is_array,
   is_integer,
@@ -39,6 +37,7 @@ export {
   field_cmp,
   is_different,
   is_different_array,
+  shallowCompare,
 } from "./cmp";
 
 export {

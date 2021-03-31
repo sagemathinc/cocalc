@@ -68,7 +68,7 @@ export const NotificationBell: React.FC<Props> = React.memo(
         <div
           style={{
             padding: "10px",
-            fontSize: "17pt",
+            fontSize: "18pt",
             cursor: "pointer",
           }}
         >

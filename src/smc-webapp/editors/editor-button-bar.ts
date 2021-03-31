@@ -290,6 +290,15 @@ $$\
         right: "\\end{enumerate}",
       },
     },
+    format_heading_0: {
+      strip: [
+        "format_heading_1",
+        "format_heading_2",
+        "format_heading_3",
+        "format_heading_4",
+      ],
+      wrap: { left: "", right: "" },
+    },
     format_heading_1: {
       strip: ["format_heading_2", "format_heading_3", "format_heading_4"],
       wrap: {
@@ -415,9 +424,15 @@ $$\
         right: "~~",
       },
     },
+    code: {
+      wrap: {
+        left: "`",
+        right: "`",
+      },
+    },
     insertunorderedlist: {
       wrap: {
-        left: " - ",
+        left: " - first\n - second\n",
         right: "",
         multi: true,
         space: false,
@@ -427,7 +442,7 @@ $$\
     },
     insertorderedlist: {
       wrap: {
-        left: "1. ",
+        left: "1. first\n2. second\n",
         right: "",
         multi: true,
         space: false,
@@ -444,6 +459,17 @@ $$\
         newline: true,
         trim: false,
       },
+    },
+    format_heading_0: {
+      strip: [
+        "format_heading_1",
+        "format_heading_2",
+        "format_heading_3",
+        "format_heading_4",
+        "format_heading_5",
+        "format_heading_6",
+      ],
+      wrap: { left: "", right: "" },
     },
     indent: {
       wrap: {
@@ -552,21 +578,21 @@ $$\
     justifycenter: {
       strip: ["justifycenter", "justifyright", "justifyleft"],
       wrap: {
-        left: "<div align='center'>",
+        left: "<div style='text-align:center'>",
         right: "</div>",
       },
     },
     justifyright: {
       strip: ["justifycenter", "justifyright", "justifyleft"],
       wrap: {
-        left: "<div align='right'>",
+        left: "<div style='text-align:right'>",
         right: "</div>",
       },
     },
     justifyfull: {
       strip: ["justifycenter", "justifyright", "justifyleft"],
       wrap: {
-        left: "<div align='justify'>",
+        left: "<div style='text-align:justify'>",
         right: "</div>",
       },
     },
@@ -575,6 +601,15 @@ $$\
         left: "<blockquote>",
         right: "</blockquote>",
       },
+    },
+    format_heading_0: {
+      strip: [
+        "format_heading_1",
+        "format_heading_2",
+        "format_heading_3",
+        "format_heading_4",
+      ],
+      wrap: { left: "", right: "" },
     },
     format_heading_1: {
       // FUTURE -- define via for loop below
@@ -733,6 +768,15 @@ $$\
         right: "",
       },
     },
+    format_heading_0: {
+      strip: [
+        "format_heading_1",
+        "format_heading_2",
+        "format_heading_3",
+        "format_heading_4",
+      ],
+      wrap: { left: "", right: "" },
+    },
     format_heading_1: {
       // FUTURE -- define via for loop below
       strip: ["format_heading_2", "format_heading_3", "format_heading_4"],
@@ -873,6 +917,16 @@ $$\
         right: "</pre>\n",
       },
     },
+    format_heading_0: {
+      // FUTURE -- define via for loop below
+      strip: [
+        "format_heading_1",
+        "format_heading_2",
+        "format_heading_3",
+        "format_heading_4",
+      ],
+      wrap: { left: "", right: "" },
+    },
     format_heading_1: {
       // FUTURE -- define via for loop below
       strip: ["format_heading_2", "format_heading_3", "format_heading_4"],
@@ -962,7 +1016,7 @@ f = open('example.csv', 'rt')
 try:
     reader = csv.reader(f)
     for row in reader:
-        print row
+        print(row)
 finally:
     f.close()\
 `,
@@ -981,7 +1035,7 @@ try:
 finally:
     f.close()
 
-print open('example.csv', 'rt').read()\
+print(open('example.csv', 'rt').read())\
 `,
     },
     dict: {
@@ -996,56 +1050,56 @@ print open('example.csv', 'rt').read()\
     forloop: {
       insert: `\
 for i in range(5):
-    print i\
+    print(i)\
 `,
     },
     forlistloop: {
       insert: `\
 l = [1, 2, 5, 8, 10]
 for i in l:
-    print i\
+    print(i)\
 `,
     },
     forelseloop: {
       insert: `\
 for k in [1, 2, 5, 10]:
     if k == 3:
-        print "found k, returning"
+        print("found k, returning")
         break
 else:
-    print "Haven't found k == 3"\
+    print("Haven't found k == 3")\
 `,
     },
     whileloop: {
       insert: `\
 n = 0
 while n < 5:
-    print n
+    print(n)
     n += 1\
 `,
     },
     if: {
       insert: `\
 if i == 1:
-    print 'i equals 1'\
+    print('i equals 1')\
 `,
     },
     ifelse: {
       insert: `\
 if i == 1:
-    print 'i equals 1'
+    print('i equals 1')
 else:
-    print 'i is not 1'\
+    print('i is not 1')\
 `,
     },
     cases: {
       insert: `\
 if i == 0:
-    print "i is zero"
+    print("i is zero")
 elif i == 1:
-    print "i is one"
+    print("i is one")
 else:
-    print "i is neither zero or one"\
+    print("i is neither zero or one")\
 `,
     },
     function: {
@@ -2133,8 +2187,8 @@ const initialize_sage_python_r_toolbar = function () {
       ["Properties"],
       ["Length", "#len"],
       ["CSV"],
-      ["Read CSV file", "#read_csv_file"],
       ["Write CSV file", "#write_csv_file"],
+      ["Read CSV file", "#read_csv_file"],
     ],
   ];
   add_menu(pybar, py_control);

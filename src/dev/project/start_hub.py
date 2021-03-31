@@ -18,7 +18,7 @@ ports = util.get_ports()
 base_url = util.base_url()
 
 # these lines are lazy hacks...
-kucalc = lti = landing = ''
+kucalc = lti = landing = personal = ''
 if len(sys.argv) > 1:
     if 'kucalc' in sys.argv[1:]:
         kucalc = '--kucalc'
@@ -26,15 +26,18 @@ if len(sys.argv) > 1:
         lti = '--lti'
     if 'landing' in sys.argv[1:]:
         landing = '--landing'
+    if 'personal' in sys.argv[1:]:
+        personal = '--personal'
 
-cmd = "cd ../../ && . smc-env &&  service_hub.py --dev --foreground --hostname=0.0.0.0 --port={hub_port} --agent_port={agent_port} --share_port=0 --proxy_port=0 --gap=0 --mentions --base_url={base_url} {test} {kucalc} {lti} {landing} start".format(
+cmd = "cd ../../ && . smc-env &&  service_hub.py --dev --foreground --hostname=0.0.0.0 --port={hub_port} --agent_port={agent_port} --share_port=0 --proxy_port=0 --gap=0 --mentions --base_url={base_url} {test} {kucalc} {lti} {landing} {personal} start".format(
     base_url=base_url,
     hub_port=ports['hub'],
     agent_port=ports['agent-port'],
     test=util.test(),
     kucalc=kucalc,
     lti=lti,
-    landing=landing)
+    landing=landing,
+    personal=personal)
 
 print(cmd)
 util.cmd(cmd)

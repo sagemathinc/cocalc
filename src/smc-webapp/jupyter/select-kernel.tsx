@@ -5,7 +5,7 @@
 
 // help users selecting a kernel
 
-import { React, Component, Rendered } from "../app-framework";
+import { React, Component, Rendered, CSS } from "../app-framework";
 import {
   Map as ImmutableMap,
   List,
@@ -13,28 +13,21 @@ import {
 } from "immutable";
 import * as misc from "smc-util/misc";
 import { Icon, Loading } from "../r_misc";
-import {
-  Button,
-  Col,
-  Row,
-  ButtonGroup,
-  Checkbox,
-  Alert,
-} from "../antd-bootstrap";
+import { Col, Row } from "../antd-bootstrap";
 import * as Antd from "antd";
+import { Descriptions, Radio, Typography } from "antd";
 import { Kernel } from "./util";
 import { COLORS } from "smc-util/theme";
 import { JupyterActions } from "./browser-actions";
 
-const row_style: React.CSSProperties = {
-  marginTop: "5px",
-  marginBottom: "5px",
-};
-
-const main_style: React.CSSProperties = {
+const main_style: CSS = {
   padding: "20px 10px",
   overflowY: "auto",
   overflowX: "hidden",
+} as const;
+
+const section_style: CSS = {
+  marginTop: "2em",
 };
 
 interface KernelSelectorProps {
@@ -108,11 +101,7 @@ export class KernelSelector extends Component<
     }
   }
 
-  render_kernel_button(
-    name: string,
-    size?: "small" | "large" | "xsmall",
-    show_icon: boolean = true
-  ): Rendered {
+  render_kernel_button(name: string, show_icon: boolean = true): Rendered {
     const lang = this.kernel_attr(name, "language");
     let icon: Rendered | undefined = undefined;
     if (lang != null && show_icon) {
@@ -124,14 +113,13 @@ export class KernelSelector extends Component<
       // TODO do other languages have icons?
     }
     return (
-      <Button
+      <Radio.Button
         key={`kernel-${lang}-${name}`}
         onClick={() => this.props.actions.select_kernel(name)}
-        bsSize={size}
         style={{ marginBottom: "5px" }}
       >
         {icon} {this.kernel_name(name) || name}
-      </Button>
+      </Radio.Button>
     );
   }
 
@@ -163,72 +151,63 @@ export class KernelSelector extends Component<
         // drop those below 10, priority is too low
         if (prio < 10) return;
 
+        const label = this.render_kernel_button(name);
+
         entries.push(
-          <Row key={lang} style={row_style}>
-            <Col sm={6}>{this.render_kernel_button(name)}</Col>
-            <Col sm={6}>
-              <div>{this.render_suggested_link(cocalc)}</div>
-            </Col>
-          </Row>
+          <Descriptions.Item key={lang} label={label}>
+            <div>{this.render_suggested_link(cocalc)}</div>
+          </Descriptions.Item>
         );
       });
 
     if (entries.length == 0) return;
 
     return (
-      <Row style={row_style}>
-        <Col>
-          <h4>Suggested kernels</h4>
-          {entries}
-        </Col>
-      </Row>
+      <Descriptions
+        title="Suggested kernels"
+        bordered
+        column={1}
+        style={section_style}
+      >
+        {entries}
+      </Descriptions>
     );
   }
 
   private render_custom(): Rendered {
     return (
-      <Row style={row_style}>
-        <Col>
-          <h4>Custom kernels</h4>
+      <Descriptions bordered column={1} style={section_style}>
+        <Descriptions.Item label={"Custom kernels"}>
           <a onClick={() => this.props.actions.custom_jupyter_kernel_docs()}>
             How to create a custom kernel...
           </a>
-        </Col>
-      </Row>
+        </Descriptions.Item>
+      </Descriptions>
     );
   }
 
-  // render_all_selected_link() {
-  //   if (this.props.kernels_by_name == null) return;
-  //   const name = this.state.selected_kernel;
-  //   if (name == null) return;
-  //   const cocalc: ImmutableMap<string, any> = this.props.kernels_by_name.getIn(
-  //     [name, "metadata", "cocalc"],
-  //     null
-  //   );
-  //   return this.render_suggested_link(cocalc);
-  // }
-
   render_all_langs(): Rendered[] | undefined {
     if (this.props.kernels_by_language == null) return;
-    const label: React.CSSProperties = {
+
+    const label_style: React.CSSProperties = {
       fontWeight: "bold",
       color: COLORS.GRAY_D,
     };
+
     const all: Rendered[] = [];
     this.props.kernels_by_language.forEach((names, lang) => {
       const kernels = names.map((name) =>
-        this.render_kernel_button(name, "small", false)
+        this.render_kernel_button(name, false)
       );
+
+      const label = <span style={label_style}>{misc.capitalize(lang)}</span>;
+
       all.push(
-        <Row key={lang} style={row_style}>
-          <Col sm={2} style={label}>
-            {misc.capitalize(lang)}
-          </Col>
-          <Col sm={10}>
-            <ButtonGroup>{kernels}</ButtonGroup>
-          </Col>
-        </Row>
+        <Descriptions.Item key={lang} label={label}>
+          <Radio.Group buttonStyle={"solid"} defaultValue={null}>
+            {kernels}
+          </Radio.Group>
+        </Descriptions.Item>
       );
       return true;
     });
@@ -240,12 +219,14 @@ export class KernelSelector extends Component<
     if (this.props.kernels_by_language == null) return;
 
     return (
-      <Row style={row_style}>
-        <Col>
-          <h4>All kernels by language</h4>
-          {this.render_all_langs()}
-        </Col>
-      </Row>
+      <Descriptions
+        title="All kernels by language"
+        bordered
+        column={1}
+        style={section_style}
+      >
+        {this.render_all_langs()}
+      </Descriptions>
     );
   }
 
@@ -257,37 +238,33 @@ export class KernelSelector extends Component<
     if (!this.props.kernels_by_name.has(name)) return;
 
     return (
-      <Row style={row_style}>
-        <Col>
-          <h4>Quick selection</h4>
+      <Descriptions bordered column={1} style={section_style}>
+        <Descriptions.Item label={"Quick select"}>
           <div>
             Your most recently selected kernel is{" "}
             {this.render_kernel_button(name)}.
           </div>
-        </Col>
-      </Row>
+        </Descriptions.Item>
+        <Descriptions.Item label={"Make default"}>
+          <Antd.Checkbox
+            checked={!this.props.ask_jupyter_kernel}
+            onChange={(e) => this.dont_ask_again_click(e.target.checked)}
+          >
+            Do not ask again. Instead, default to your most recent selection.
+          </Antd.Checkbox>
+          <div>
+            <Typography.Text type="secondary">
+              You can always change the kernel by clicking on the kernel
+              selector at the top right.
+            </Typography.Text>
+          </div>
+        </Descriptions.Item>
+      </Descriptions>
     );
   }
 
   dont_ask_again_click(checked: boolean) {
     this.props.actions.kernel_dont_ask_again(checked);
-  }
-
-  render_dont_ask_again() {
-    return (
-      <Row style={row_style}>
-        <div>
-          <Checkbox
-            checked={!this.props.ask_jupyter_kernel}
-            onChange={(e) => this.dont_ask_again_click(e.target.checked)}
-          >
-            Do not ask, instead default to your most recent selection (you can
-            always show this screen again by clicking on the kernel name in the
-            upper right)
-          </Checkbox>
-        </div>
-      </Row>
-    );
   }
 
   render_top() {
@@ -305,7 +282,7 @@ export class KernelSelector extends Component<
         msg = <>This notebook has no kernel.</>;
       }
       return (
-        <Row style={row_style}>
+        <Row style={{ marginLeft: 0, marginRight: 0 }}>
           <strong>{msg}</strong> A working kernel is required in order to
           evaluate the code in the notebook. Please select one for the
           programming language you want to work with.
@@ -314,12 +291,11 @@ export class KernelSelector extends Component<
     } else {
       const name = this.kernel_name(this.props.kernel);
       const current =
-        name != null ? <> The currently selected kernel is "{name}".</> : "";
+        name != null ? `The currently selected kernel is "${name}"` : "";
 
       return (
-        <Row style={row_style}>
-          <strong>Select a new kernel.</strong>
-          {current}
+        <Row style={{ marginLeft: 0, marginRight: 0 }}>
+          <strong>Select a new kernel.</strong> <span>{current}</span>
         </Row>
       );
     }
@@ -332,21 +308,22 @@ export class KernelSelector extends Component<
     if (closestKernelName == null) return;
 
     return (
-      <Row style={row_style}>
-        <Alert bsStyle={"danger"}>
-          <h4>Unknown Kernel</h4>
-          <div>
-            A similar kernel might be{" "}
-            {this.render_kernel_button(closestKernelName)}.
-          </div>
-        </Alert>
-      </Row>
+      <Descriptions
+        bordered
+        column={1}
+        style={{ backgroundColor: COLORS.RED_L }}
+      >
+        <Descriptions.Item label={"Unknown Kernel"}>
+          A similar kernel might be{" "}
+          {this.render_kernel_button(closestKernelName)}.
+        </Descriptions.Item>
+      </Descriptions>
     );
   }
 
   render_footer(): Rendered {
     return (
-      <Row style={{ ...row_style, ...{ color: COLORS.GRAY } }}>
+      <Row style={{ color: COLORS.GRAY, paddingBottom: "2em" }}>
         <strong>Note:</strong> You can always change the selected kernel later
         in the »Kernel« menu or by clicking on the kernel information at the top
         right.
@@ -357,12 +334,12 @@ export class KernelSelector extends Component<
   render_close_button(): Rendered | undefined {
     if (this.props.kernel == null || this.props.kernel_info == null) return;
     return (
-      <Button
+      <Antd.Button
         style={{ float: "right" }}
         onClick={() => this.props.actions.hide_select_kernel()}
       >
         Close
-      </Button>
+      </Antd.Button>
     );
   }
 
@@ -372,7 +349,7 @@ export class KernelSelector extends Component<
       this.props.kernel_selection == null
     ) {
       return (
-        <Row style={row_style}>
+        <Row>
           <Loading />
         </Row>
       );
@@ -382,7 +359,6 @@ export class KernelSelector extends Component<
           {this.render_top()}
           {this.render_unknown()}
           {this.render_last()}
-          {this.render_dont_ask_again()}
           {this.render_suggested()}
           {this.render_all()}
           {this.render_custom()}
@@ -407,7 +383,7 @@ export class KernelSelector extends Component<
   render(): Rendered {
     return (
       <div style={main_style} className={"smc-vfill"}>
-        <Col md={8} mdOffset={2}>
+        <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
           {this.render_head()}
           {this.render_body()}
         </Col>

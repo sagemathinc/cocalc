@@ -32,14 +32,7 @@ import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-i
 import { SiteLicenseInput } from "../../site-licenses/input";
 import { PurchaseOneLicenseLink } from "../../site-licenses/purchase";
 import { ShowSupportLink } from "../../support";
-import {
-  A,
-  Icon,
-  Loading,
-  NoUpgrades,
-  Tip,
-  UPGRADE_ERROR_STYLE,
-} from "../../r_misc";
+import { A, Icon, Loading, Tip, UPGRADE_ERROR_STYLE } from "../../r_misc";
 import { UpgradeRestartWarning } from "../../upgrade-restart-warning";
 import {
   Button,
@@ -51,6 +44,7 @@ import {
   Col,
 } from "../../antd-bootstrap";
 import { Alert, Card, Radio } from "antd";
+import { alert_message } from "../../alerts";
 
 const radioStyle: CSS = {
   display: "block",
@@ -339,8 +333,8 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
 
     const purchased_upgrades = account_store.get_total_upgrades();
     if (is_zero_map(purchased_upgrades)) {
-      // user has no upgrades on their account
-      return <NoUpgrades cancel={() => set_upgrade_quotas(false)} />;
+      // user has no upgrades on their account -- show nothing here.
+      return;
     }
 
     const course_store = get_store();
@@ -628,8 +622,31 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
     );
   }
 
+  function render_remove_all_licenses() {
+    return (
+      <Button
+        onClick={async () => {
+          try {
+            await get_actions().student_projects.remove_all_project_licenses();
+            alert_message({
+              type: "info",
+              message:
+                "Successfully removed all licenses from student projects.",
+            });
+          } catch (err) {
+            alert_message({ type: "error", message: `${err}` });
+          }
+        }}
+      >
+        Remove all licenses from student projects
+      </Button>
+    );
+  }
+
   function render_site_license() {
-    const n = props.site_license_id?.split(",").length ?? 0;
+    const n = !!props.site_license_id
+      ? props.site_license_id.split(",").length
+      : 0;
     return (
       <div>
         {render_current_licenses()}
@@ -649,6 +666,8 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
         <div style={{ fontSize: "13pt" }}>
           <PurchaseOneLicenseLink />
         </div>
+        <br />
+        {n == 0 && render_remove_all_licenses()}
       </div>
     );
   }

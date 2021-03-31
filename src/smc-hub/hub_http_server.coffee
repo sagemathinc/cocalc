@@ -35,6 +35,7 @@ MetricsRecorder  = require('./metrics-recorder')
 {setup_analytics_js} = require('./analytics')
 {have_active_registration_tokens} = require("./utils");
 {setup_healthchecks} = require('./healthchecks')
+manifest = require('./manifest')
 
 open_cocalc = require('./open-cocalc-server')
 
@@ -47,6 +48,7 @@ exports.init_express_http_server = (opts) ->
     opts = defaults opts,
         base_url       : required
         dev            : false       # if true, serve additional dev stuff, e.g., a proxyserver.
+        is_personal       : false       # if true, includes that is in personal mode in customize info (so frontend can take this into account).
         database       : required
         compute_server : required
         cookie_options : undefined   # they're for the new behavior (legacy fallback implemented below)
@@ -152,7 +154,7 @@ exports.init_express_http_server = (opts) ->
         metricsRecorder = MetricsRecorder.get()
         if metricsRecorder?
             # res.send(JSON.stringify(opts.metricsRecorder.get(), null, 2))
-            res.send(metricsRecorder.metrics())
+            res.send(await metricsRecorder.metrics())
         else
             res.send(JSON.stringify(error:'Metrics recorder not initialized.'))
 
@@ -257,10 +259,14 @@ exports.init_express_http_server = (opts) ->
             country = req.headers['cf-ipcountry'] ? 'XX'
             host = req.headers["host"]
             config = await webapp_config.get(host:host, country:country)
+            if opts.is_personal
+                config.configuration.is_personal = true
             if req.query.type == 'full'
                 res.header("Content-Type", "text/javascript")
                 mapping = '{configuration:window.CUSTOMIZE, registration:window.REGISTER, strategies:window.STRATEGIES}'
                 res.send("(#{mapping} = Object.freeze(#{JSON.stringify(config)}))")
+            else if req.query.type == 'manifest'
+                manifest.send(res, config, opts.base_url)
             else
                 # this is deprecated
                 if req.query.type == 'embed'
@@ -300,8 +306,8 @@ exports.init_express_http_server = (opts) ->
 
     if opts.dev
         dev = require('./dev/hub-http-server')
-        await dev.init_http_proxy(app, opts.database, opts.base_url, opts.compute_server, winston)
-        dev.init_websocket_proxy(http_server, opts.database, opts.base_url, opts.compute_server, winston)
+        await dev.init_http_proxy(app, opts.database, opts.base_url, opts.compute_server, winston, opts.is_personal)
+        dev.init_websocket_proxy(http_server, opts.database, opts.base_url, opts.compute_server, winston, opts.is_personal)
         dev.init_share_server(app, opts.database, opts.base_url, winston);
 
     return {http_server:http_server, express_router:router}

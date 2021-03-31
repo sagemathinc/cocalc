@@ -46,6 +46,7 @@ const codemirror_associations: { [ext: string]: string } = {
   hs: "text/x-haskell",
   lhs: "text/x-haskell",
   html: "htmlmixed",
+  init: "shell",
   java: "text/x-java",
   jl: "text/x-julia",
   js: "javascript",
@@ -152,6 +153,7 @@ file_associations["noext-dockerfile"] = {
   icon: "fa-ship",
   opts: { mode: "dockerfile", indent_unit: 2, tab_size: 2 },
   name: "Dockerfile",
+  exclude_from_menu: true,
 };
 
 file_associations["tex"] = {
