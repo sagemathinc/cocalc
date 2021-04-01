@@ -92,6 +92,7 @@ export function cm_options(
     "Ctrl-/": "toggleComment", // shortcut chosen by jupyter project (undocumented)
 
     "Ctrl-Space": "autocomplete",
+    "Alt-Space": "autocomplete",
     Tab(cm) {
       tab_key(cm, opts.spaces_instead_of_tabs);
     },

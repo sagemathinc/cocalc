@@ -416,6 +416,7 @@ class CodeMirrorEditor extends FileEditor
             "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
             "Ctrl-Space"   : "autocomplete"
+            "Alt-Space": "autocomplete"
 
         if feature.IS_TOUCH
             # Better more external keyboard friendly shortcuts, motivated by iPad.
