@@ -43,6 +43,8 @@ import {
 
 import { debounce } from "lodash";
 
+import * as getDirection from "direction"
+
 import { useDOMSelectionChange, useUpdateDOMSelection } from "./selection-sync";
 
 import { hasEditableTarget, hasTarget } from "./dom-utils";
@@ -796,6 +798,10 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               return;
             }
 
+            const element = editor.children[selection?.focus.path[0] ?? 0];
+            // @ts-ignore -- typescript gets confused by type of getDirection
+            const isRTL = getDirection(Node.string(element)) === "rtl";
+
             // COMPAT: If a void node is selected, or a zero-width text node
             // adjacent to an inline is selected, we need to handle these
             // hotkeys manually because browsers won't be able to skip over
@@ -805,7 +811,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               event.preventDefault();
 
               if (selection && Range.isCollapsed(selection)) {
-                Transforms.move(editor, { reverse: true });
+                Transforms.move(editor, { reverse: !isRTL });
               } else {
                 Transforms.collapse(editor, { edge: "start" });
               }
@@ -817,7 +823,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               event.preventDefault();
 
               if (selection && Range.isCollapsed(selection)) {
-                Transforms.move(editor);
+                Transforms.move(editor, { reverse: isRTL });
               } else {
                 Transforms.collapse(editor, { edge: "end" });
               }
@@ -827,13 +833,13 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
 
             if (Hotkeys.isMoveWordBackward(nativeEvent)) {
               event.preventDefault();
-              Transforms.move(editor, { unit: "word", reverse: true });
+              Transforms.move(editor, { unit: "word", reverse: !isRTL });
               return;
             }
 
             if (Hotkeys.isMoveWordForward(nativeEvent)) {
               event.preventDefault();
-              Transforms.move(editor, { unit: "word" });
+              Transforms.move(editor, { unit: "word", reverse: isRTL });
               return;
             }
 
