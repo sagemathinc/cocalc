@@ -292,7 +292,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           const [targetRange] = event.getTargetRanges();
 
           if (targetRange) {
-            const range = ReactEditor.toSlateRange(editor, targetRange);
+            const range = ReactEditor.toSlateRange(editor, targetRange, {exactMatch:false});
 
             if (!selection || !Range.equals(selection, range)) {
               Transforms.select(editor, range);
@@ -600,7 +600,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
                 notReadOnly: true,
               })
             ) {
-              state.isComposing = true;
+              //state.isComposing = true;
               // console.log("onCompositionStart");
             }
           },

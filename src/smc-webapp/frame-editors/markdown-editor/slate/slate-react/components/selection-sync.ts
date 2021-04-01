@@ -168,16 +168,51 @@ export const useDOMSelectionChange = ({
       return;
     }
 
-    let range;
+    let rangeExact: null | Range;
     try {
-      range = ReactEditor.toSlateRange(editor, domSelection);
+      rangeExact = ReactEditor.toSlateRange(editor, domSelection, {
+        exactMatch: true,
+      });
     } catch (_err) {
       // isSelectable should catch any situation where the above might cause an
       // error, but in practice it doesn't.  Just ignore selection change when this
-      // happens.
+      // happens.  TODO: if this happens, it probably indicates a bug involving windowing.
       return;
     }
     const { selection } = editor;
+    if (
+      selection != null &&
+      rangeExact != null &&
+      Range.equals(selection, rangeExact)
+    ) {
+      // Special case during IME composition.
+      return;
+    }
+
+    /*
+    This is an upstream *idea*; I'm not putting it in, since I don't
+    think we hit this.  But it's still worth considering.
+    // when <Editable/> is being controlled through external value
+    // then its children might just change - DOM responds to it on its own
+    // but Slate's value is not being updated through any operation
+    // and thus it doesn't transform selection on its own.
+    if (selection && !ReactEditor.hasRange(editor, selection)) {
+      editor.selection = ReactEditor.toSlateRange(editor, domSelection, {
+        exactMatch: false,
+      });
+      return;
+    }
+    */
+
+    let range: Range;
+    try {
+      range = ReactEditor.toSlateRange(editor, domSelection, {
+        exactMatch: false,
+      });
+    } catch (_err) {
+      // TODO: see comment above -- if this happens, it likely indicates a bug.
+      return;
+    }
     if (selection != null) {
       const info = editor.windowedListRef?.current?.render_info;
       if (info != null) {

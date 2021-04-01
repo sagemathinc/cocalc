@@ -414,16 +414,22 @@ export const ReactEditor = {
     }
 
     // Resolve a Slate range from the DOM range.
-    const range = ReactEditor.toSlateRange(editor, domRange);
-    return range;
+    return ReactEditor.toSlateRange(editor, domRange, { exactMatch: false });
   },
 
   /**
    * Find a Slate point from a DOM selection's `domNode` and `domOffset`.
    */
 
-  toSlatePoint(editor: ReactEditor, domPoint: DOMPoint): Point {
-    const [nearestNode, nearestOffset] = normalizeDOMPoint(domPoint);
+  toSlatePoint<T extends boolean | undefined>(
+    editor: ReactEditor,
+    domPoint: DOMPoint,
+    options: { exactMatch: T }
+  ): T extends true ? Point | null : Point {
+    const { exactMatch } = options;
+    const [nearestNode, nearestOffset] = exactMatch
+      ? domPoint
+      : normalizeDOMPoint(domPoint);
     const parentNode = nearestNode.parentNode as DOMElement;
     let textNode: DOMElement | null = null;
     let offset = 0;
@@ -483,6 +489,9 @@ export const ReactEditor = {
     }
 
     if (!textNode) {
+      if (exactMatch) {
+        return null as T extends true ? Point | null : Point;
+      }
       throw new Error(
         `Cannot resolve a Slate point from DOM point: ${domPoint}`
       );
@@ -493,17 +502,19 @@ export const ReactEditor = {
     // first, and then afterwards for the correct `element`. (2017/03/03)
     const slateNode = ReactEditor.toSlateNode(editor, textNode!);
     const path = ReactEditor.findPath(editor, slateNode);
-    return { path, offset };
+    return { path, offset } as T extends true ? Point | null : Point;
   },
 
   /**
    * Find a Slate range from a DOM range or selection.
    */
 
-  toSlateRange(
+  toSlateRange<T extends boolean | undefined>(
     editor: ReactEditor,
-    domRange: DOMRange | DOMStaticRange | DOMSelection
-  ): Range {
+    domRange: DOMRange | DOMStaticRange | DOMSelection,
+    options: { exactMatch: T }
+  ): T extends true ? Range | null : Range {
+    const { exactMatch } = options;
     const el =
       domRange instanceof Selection
         ? domRange.anchorNode
@@ -541,12 +552,27 @@ export const ReactEditor = {
       );
     }
 
-    const anchor = ReactEditor.toSlatePoint(editor, [anchorNode, anchorOffset]);
+    const anchor = ReactEditor.toSlatePoint(
+      editor,
+      [anchorNode, anchorOffset],
+      { exactMatch }
+    );
+    if (!anchor) {
+      return null as T extends true ? Range | null : Range;
+    }
+
     const focus = isCollapsed
       ? anchor
-      : ReactEditor.toSlatePoint(editor, [focusNode, focusOffset]);
+      : ReactEditor.toSlatePoint(editor, [focusNode, focusOffset], {
+          exactMatch,
+        });
+    if (!focus) {
+      return null as T extends true ? Range | null : Range;
+    }
 
-    return { anchor, focus };
+    return ({ anchor, focus } as unknown) as T extends true
+      ? Range | null
+      : Range;
   },
 
   isUsingWindowing(editor: ReactEditor): boolean {
@@ -621,7 +647,9 @@ export const ReactEditor = {
 
     let focus;
     try {
-      focus = ReactEditor.toSlatePoint(editor, [node, offset]);
+      focus = ReactEditor.toSlatePoint(editor, [node, offset], {
+        exactMatch: false,
+      });
     } catch (_err) {
       // This would happen, e.g., if we tried to move the cursor outside of the editor.
       return;
@@ -654,6 +682,15 @@ export const ReactEditor = {
       Transforms.setSelection(editor, { focus });
     }
   },
+
+  /*
+  hasRange(editor: ReactEditor, range: Range): boolean {
+    const { anchor, focus } = range;
+    return (
+      Editor.hasPath(editor, anchor.path) && Editor.hasPath(editor, focus.path)
+    );
+  },
+  */
 
   forceUpdate(editor: ReactEditor) {
     EDITOR_TO_ON_CHANGE.get(editor)?.();
