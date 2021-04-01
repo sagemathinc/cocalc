@@ -21,7 +21,7 @@ export const SearchControlButtons: React.FC<Props> = ({
   disabled,
 }) => {
   return (
-    <div style={{ margin: "-1.5px -10px 0 -5px", height: "23px" }}>
+    <div style={{ height: "23px" }}>
       <Button
         shape="round"
         type="text"
