@@ -592,7 +592,7 @@ export function site_license_quota(
   // console.log("total_quota", JSON.stringify(total_quota, null, 2));
 
   const ret = limit_quota(total_quota, max_upgrades);
-  console.log("total_quota_limited", JSON.stringify(ret, null, 2));
+  //console.log("total_quota_limited", JSON.stringify(ret, null, 2));
   return ret;
 }
 
@@ -618,8 +618,8 @@ function limit_quota(
   total_quota: Required<Quota>,
   max_upgrades: Upgrades
 ): Quota {
-  console.log("total_quota", JSON.stringify(total_quota, null, 2));
-  console.log("max_upgrades", JSON.stringify(max_upgrades, null, 2));
+  // console.log("total_quota", JSON.stringify(total_quota, null, 2));
+  // console.log("max_upgrades", JSON.stringify(max_upgrades, null, 2));
 
   for (const [key, val] of Object.entries(upgrade2quota(max_upgrades))) {
     if (typeof val === "boolean") {

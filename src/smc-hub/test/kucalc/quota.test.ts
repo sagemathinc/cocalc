@@ -536,7 +536,7 @@ describe("default quota", () => {
       "1234-5678-asdf-yxcv": {
         quota: {
           ram: 2,
-          cpu: 1,
+          cpu: 1.5,
           disk: 3,
           always_running: true,
           member: true,
@@ -547,7 +547,7 @@ describe("default quota", () => {
     const users = {
       user1: {
         upgrades: {
-          memory: 4321, // maxed with "ram"
+          memory: 4321, // +1gb base quota, maxed with "ram"
         },
       },
     };
@@ -556,11 +556,11 @@ describe("default quota", () => {
     expect(q1).toEqual({
       network: true,
       member_host: true,
-      memory_request: 1000,
-      cpu_request: 0.5,
+      memory_request: 300,
+      cpu_request: 0.05,
       privileged: false,
       disk_quota: 3000,
-      memory_limit: 4321,
+      memory_limit: 5321,
       cpu_limit: 1.5,
       idle_timeout: 1800,
       always_running: true,
@@ -960,11 +960,11 @@ describe("default quota", () => {
     const site_license = {
       "1234-5678-asdf-yxcv": {
         quota: {
-          ram: 3000,
-          dedicated_ram: 3000,
+          ram: 4,
+          dedicated_ram: 3,
           cpu: 3,
           dedicated_cpu: 2,
-          disk: 2000,
+          disk: 7500,
           always_running: true,
           member: true,
           user: "academic",
@@ -972,8 +972,8 @@ describe("default quota", () => {
       },
       "9876-5432-1098-6543": {
         quota: {
-          ram: 4000,
-          dedicated_ram: 2000,
+          ram: 2.1,
+          dedicated_ram: 2.3,
           cpu: 2,
           dedicated_cpu: 1,
           disk: 4000,
@@ -983,6 +983,7 @@ describe("default quota", () => {
         },
       },
     };
+
     const users = {
       user1: {
         upgrades: {
@@ -990,17 +991,18 @@ describe("default quota", () => {
         },
       },
     };
+
     const site_settings = {
       max_upgrades: {
         member_host: false,
         network: false,
         always_running: false,
-        disk_quota: 5000,
+        disk_quota: 333,
         mintime: 999,
-        cpu_shares: 4,
+        cpu_shares: 512,
         cores: 2,
-        memory_request: 4000,
-        memory_limit: 5000,
+        memory_request: 2500,
+        memory: 4321,
       },
     };
 
@@ -1009,10 +1011,10 @@ describe("default quota", () => {
       network: false, // user upgrade not allowed
       member_host: false, // user upgrade not allowed
       always_running: false, // user upgrade not allowed
-      memory_request: 200, // lower cap is 200
-      memory_limit: 1000, // should be 555, but global minimum trump this
-      cpu_request: 0.02, // lower cap is 0.02
-      cpu_limit: 0.44,
+      memory_request: 2500, // lower cap is 2500
+      memory_limit: 4321, // dedicated+shared in license > limit
+      cpu_request: 0.5, // those 512 shares
+      cpu_limit: 2,
       privileged: false,
       idle_timeout: 999,
       disk_quota: 333,
