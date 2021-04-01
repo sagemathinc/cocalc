@@ -9,9 +9,9 @@ are non-expired iff subscription in stripe is "active" or "trialing".  This actu
 uses the "stripe_customer" field of the user account, so its important
 that *that* is valid.
 
-2021-03-29: this also checks for expired licenses, where there was a subscription
-without a set expiration date, but now there is no subscription any more.
-This is only run if there is no specific account_id set.
+2021-03-29: this also checks the other way around:
+for each un-expired license check if there is a subscription funding it.
+This additional sync is only run if there is no specific account_id set!
 */
 
 import * as debug from "debug";
@@ -22,7 +22,7 @@ import { TIMEOUT_S } from "./const";
 import { delay } from "awaiting";
 
 // wait this long after writing to the DB, to avoid overwhelming it...
-const WAIT_AFTER_UPDATE_MS = 10;
+const WAIT_AFTER_UPDATE_MS = 20;
 
 // this is a subset of what's in the "data" field in the DB in stripe_customer -> subscriptions jsonb
 interface Subscription {
@@ -122,7 +122,8 @@ async function get_subs(
 
 // there should only be one subscription per license id, but who knows ...
 function* iter(subs: LicenseSubs) {
-  for (const [license_id, sub_list] of Object.entries(subs)) {
+  for (const license_id in subs) {
+    const sub_list = subs[license_id];
     for (const sub of sub_list) {
       yield { license_id, sub };
     }
@@ -151,6 +152,11 @@ async function sync_subscriptions_to_licenses(
 ): Promise<number> {
   let n = 0;
   for (const { license_id, sub } of iter(subs)) {
+    if (licenses[license_id] == null) {
+      L(
+        `WARNING: no known license '${license_id}' for subscription '${sub.id}'`
+      );
+    }
     const expires: Date | undefined = licenses[license_id].expires;
 
     // we check, if the given subscription of that license is still funding it
@@ -202,11 +208,11 @@ async function expire_cancelled_subscriptions(
   test_mode: boolean
 ): Promise<number> {
   let n = 0;
+
+  // this query already filters by expires == null
   const licenses: LicenseInfo = await get_licenses(db, undefined, true);
 
   for (const license_id in licenses) {
-    // the query above already filters by exires == null
-
     let funded: number | false = false;
 
     if (subs[license_id] != null) {
