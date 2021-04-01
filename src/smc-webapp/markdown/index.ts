@@ -29,7 +29,7 @@ export const OPTIONS: MarkdownIt.Options = {
   html: true,
   typographer: false,
   linkify: true,
-  breaks: true,
+  breaks: false, // breaks=true is NOT liked by many devs.
 };
 
 const PLUGINS = [emojiPlugin, checkboxPlugin, hashtagPlugin, mentionPlugin];
