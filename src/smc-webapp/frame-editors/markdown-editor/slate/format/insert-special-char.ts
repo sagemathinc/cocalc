@@ -21,6 +21,6 @@ export async function insertSpecialChar(editor): Promise<void> {
   }
   if (opts == null) return; // user canceled.
   // We insert at what is likely the focus, rather than trying to
-  // focus, since focusing is erractic (especially with firefox).
+  // focus, since focusing is erratic (especially with firefox).
   Transforms.insertText(editor, opts.char, { at: getFocus(editor) });
 }

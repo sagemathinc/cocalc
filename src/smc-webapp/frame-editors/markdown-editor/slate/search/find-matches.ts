@@ -60,27 +60,29 @@ function selectMatch(
   return false;
 }
 
-export function selectNextMatch(editor: Editor, decorate) {
+export function selectNextMatch(editor: Editor, decorate) : boolean {
   {
     const { anchor, focus } = rangeToEnd(editor);
     const at = { focus, anchor: { path: anchor.path, offset: 0 } };
-    if (selectMatch(editor, decorate, { at }, false)) return;
+    if (selectMatch(editor, decorate, { at }, false)) return true;
   }
   {
     const at = rangeFromStart(editor);
-    if (selectMatch(editor, decorate, { at }, true)) return;
+    if (selectMatch(editor, decorate, { at }, true)) return true;
   }
+  return false;
 }
 
-export function selectPreviousMatch(editor: Editor, decorate) {
+export function selectPreviousMatch(editor: Editor, decorate) : boolean {
   {
     const { anchor, focus } = rangeFromStart(editor);
     const n = Editor.next(editor, { at: focus.path });
     const at = { anchor, focus: n != null ? n[1] : focus };
-    if (selectMatch(editor, decorate, { at, reverse: true }, true)) return;
+    if (selectMatch(editor, decorate, { at, reverse: true }, true)) return true;
   }
   {
     const at = rangeToEnd(editor);
-    if (selectMatch(editor, decorate, { at, reverse: true }, false)) return;
+    if (selectMatch(editor, decorate, { at, reverse: true }, false)) return true;
   }
+  return false;
 }

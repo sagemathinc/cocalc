@@ -9,7 +9,7 @@ Support for global full text search of our slate.js document.
 
 import { Input } from "antd";
 import * as React from "react";
-const { useMemo, useRef, useState } = React;
+const { useCallback, useMemo, useRef, useState } = React;
 import { Editor, Point, Range, Transforms } from "slate";
 import {
   nextMatch,
@@ -26,11 +26,14 @@ const keyboardMessage = `Find Next (${modKey}-G) and Prev (Shift-${modKey}-G).`;
 
 const EXTRA_INFO_STYLE = {
   position: "absolute",
+  opacity: 0.95,
   marginTop: "2px",
   zIndex: 1,
   background: "white",
   width: "100%",
   color: "rgb(102,102,102)",
+  borderLeft: "1px solid lightgrey",
+  borderBottom: "1px solid lightgrey",
 } as React.CSSProperties;
 
 interface Options {
@@ -54,6 +57,14 @@ export const useSearch: (Options) => SearchHook = (options) => {
   const decorate = useMemo(() => {
     return createSearchDecorate(search);
   }, [search]);
+
+  const cancel = useCallback(async () => {
+    setSearch("");
+    inputRef.current?.blur();
+    await delay(100); // todo: there must be a better way.
+    ReactEditor.focus(editor);
+    return;
+  }, []);
 
   const Search = useMemo(
     () => (
@@ -102,13 +113,11 @@ export const useSearch: (Options) => SearchHook = (options) => {
                   Transforms.setSelection(editor, { focus, anchor: focus });
                 }
                 nextMatch(editor, decorate);
+                return;
               }
               if (event.key == "Escape") {
                 event.preventDefault();
-                setSearch("");
-                inputRef.current?.blur();
-                await delay(100);
-                ReactEditor.focus(editor);
+                cancel();
                 return;
               }
             }}
@@ -123,7 +132,7 @@ export const useSearch: (Options) => SearchHook = (options) => {
         </div>
         {search.trim() && (
           <div style={EXTRA_INFO_STYLE}>
-            <Replace />
+            <Replace editor={editor} decorate={decorate} cancel={cancel} search={search} />
             {!IS_TOUCH && (
               <div style={{ marginLeft: "7px" }}>{keyboardMessage}</div>
             )}
