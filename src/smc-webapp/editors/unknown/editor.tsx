@@ -96,17 +96,35 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
   }, []);
 
   React.useEffect(() => {
-    if (mime == "inode/directory" && actions != null) {
-      (async () => {
-        // It is actually a directory so we know what to do.
-        // See https://github.com/sagemathinc/cocalc/issues/5212
-        actions.open_directory(path);
-        // We delay before closing this file, since closing the file causes a
-        // state change to this component at the same time
-        // as updating (which is a WARNING).
-        await delay(1);
-        actions.close_file(path);
-      })();
+    if (actions == null) return;
+    switch (mime) {
+      case "inode/directory":
+        (async () => {
+          // It is actually a directory so we know what to do.
+          // See https://github.com/sagemathinc/cocalc/issues/5212
+          actions.open_directory(path);
+          // We delay before closing this file, since closing the file causes a
+          // state change to this component at the same time
+          // as updating (which is a WARNING).
+          await delay(1);
+          actions.close_file(path);
+        })();
+        break;
+      case "text/plain":
+        if (ext) {
+          // automatically register the code editor
+          register_file_editor({
+            ext: [ext],
+            component: CodeEditor,
+            Actions: CodeEditorActions,
+          });
+          (async () => {
+            actions.close_file(path);
+            await delay(1);
+            actions.open_file({ path });
+          })();
+        }
+        break;
     }
   }, [mime]);
 
@@ -164,7 +182,7 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
       return;
     }
     actions.close_file(path);
-    await delay(0);
+    await delay(1);
     actions.open_file({ path });
   }
 
