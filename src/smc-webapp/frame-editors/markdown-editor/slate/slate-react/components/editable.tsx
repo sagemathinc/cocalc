@@ -14,12 +14,7 @@ import {
 import Children from "./children";
 import { WindowingParams } from "./children";
 import Hotkeys from "../utils/hotkeys";
-import {
-  IS_FIREFOX,
-  IS_SAFARI,
-  IS_EDGE_LEGACY,
-  IS_CHROME_LEGACY,
-} from "../utils/environment";
+import { IS_FIREFOX, IS_SAFARI, IS_CHROME_LEGACY } from "../utils/environment";
 import { ReactEditor } from "..";
 import { ReadOnlyContext } from "../hooks/use-read-only";
 import { useSlate } from "../hooks/use-slate";
@@ -43,19 +38,19 @@ import {
 
 import { debounce } from "lodash";
 
-import * as getDirection from "direction"
+import * as getDirection from "direction";
 
 import { useDOMSelectionChange, useUpdateDOMSelection } from "./selection-sync";
 
 import { hasEditableTarget, hasTarget } from "./dom-utils";
 
-// COMPAT: Firefox/Edge Legacy don't support the `beforeinput` event
+// COMPAT: Edge Legacy don't support the `beforeinput` event
 // Chrome Legacy doesn't support `beforeinput` correctly
-const HAS_BEFORE_INPUT_SUPPORT = !(
-  IS_FIREFOX ||
-  IS_EDGE_LEGACY ||
-  IS_CHROME_LEGACY
-);
+const HAS_BEFORE_INPUT_SUPPORT =
+  !IS_CHROME_LEGACY &&
+  globalThis.InputEvent &&
+  // @ts-ignore The `getTargetRanges` property isn't recognized.
+  typeof globalThis.InputEvent.prototype.getTargetRanges === "function";
 
 /**
  * `RenderElementProps` are passed to the `renderElement` handler.
