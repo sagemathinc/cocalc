@@ -1988,9 +1988,6 @@ class exports.Client extends EventEmitter
     mesg_stripe_update_source: (mesg) =>
         @handle_stripe_mesg(mesg)
 
-    mesg_stripe_get_plans: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
     mesg_stripe_create_subscription: (mesg) =>
         @handle_stripe_mesg(mesg)
 

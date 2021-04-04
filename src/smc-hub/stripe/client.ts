@@ -271,13 +271,6 @@ export class StripeClient {
     await this.update_database();
   }
 
-  public async mesg_get_plans(_mesg: Message): Promise<Message> {
-    const dbg = this.dbg("mesg_get_plans");
-    dbg("get descriptions of plans that the user might subscribe to");
-    const plans = await this.conn.plans.list();
-    return message.stripe_plans({ plans });
-  }
-
   public async sales_tax(customer_id: string): Promise<number> {
     return await stripe_sales_tax(customer_id, this.dbg("sales_tax"));
   }

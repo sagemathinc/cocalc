@@ -2366,14 +2366,6 @@ API(
 
 // subscriptions to plans
 
-// Get a list of all currently available plans:
-API(
-  message({
-    event: "stripe_get_plans",
-    id: undefined,
-  })
-);
-
 API(
   message({
     event: "stripe_plans",
