@@ -30,21 +30,22 @@ export async function create_missing_plans(
   // There's no point in fixing it now, since we won't be creating
   // any new subscriptions.
   dbg("DEPRECATED");
-  return;
-  /*
-  dbg("initialize stripe connection");
-  const stripe = await init_stripe(database, logger);
-  dbg("get already created plans");
-  const plans = await stripe.plans.list({ limit: 999 });
-  const known: { [id: string]: boolean } = {};
-  for (const plan of plans.data) {
-    known[plan.id] = true;
+
+  // This is just kept for reference
+  if (false) {
+    dbg("initialize stripe connection");
+    const stripe = await init_stripe(database, logger);
+    dbg("get already created plans");
+    const plans = await stripe.plans.list({ limit: 999 });
+    const known: { [id: string]: boolean } = {};
+    for (const plan of plans.data) {
+      known[plan.id] = true;
+    }
+    dbg("create any missing plans");
+    for (const name in upgrades.subscription) {
+      await create_plan(name, database, logger, known);
+    }
   }
-  dbg("create any missing plans");
-  for (const name in upgrades.subscription) {
-    await create_plan(name, database, logger, known);
-  }
-  */
 }
 
 // Create a specific plan (error if plan already defined)
