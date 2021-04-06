@@ -174,7 +174,7 @@ function sanitize_overcommit(oc: number | undefined): number | undefined {
 // {"cfb75fa5-3dd8-4c8d-aa8f-0a91275019e5": {"quota": {"cpu": 1, "ram": 1, "disk": 1, "user": "academic", "member": true, "always_running": false}}}
 
 function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
-  const quota: Quota = Object.assign({}, BASE_QUOTAS);
+  const quota: Quota = { ...BASE_QUOTAS };
 
   // overwrite/set extras for any set default quota in the site setting
   if (site_settings != null && site_settings.default_quotas != null) {
@@ -288,8 +288,7 @@ export function quota(
   site_licenses?: SiteLicenses,
   site_settings?: SiteSettingsQuotas
 ): Quota {
-  // we want settings and users to be defined below and make sure the
-  // arguments can't be modified
+  // we want to make sure the arguments can't be modified
   const settings: Readonly<Settings> = Object.freeze(
     settings_arg == null ? {} : settings_arg
   );
@@ -298,17 +297,19 @@ export function quota(
     users_arg == null ? {} : users_arg
   );
 
+  site_settings = Object.freeze(site_settings);
+
   // new quota object, we modify it in-place below and return it.
   const quota: Quota = calc_default_quotas(site_settings);
 
   // site settings max quotas overwrite the hardcoded values
-  const max_upgrades: Upgrades = {
+  const max_upgrades: Upgrades = Object.freeze({
     ...MAX_UPGRADES,
     ...(site_settings?.max_upgrades ?? {}),
-  };
+  });
 
   // we might not consider all of them!
-  site_licenses = select_site_licenses(site_licenses);
+  site_licenses = Object.freeze(select_site_licenses(site_licenses));
 
   // network access
   if (max_upgrades.network == 0) {
@@ -399,20 +400,15 @@ export function quota(
 
   // elevated quota for docker container (fuse mounting and maybe more ...).
   // This is only used for a few projects mainly by William Stein.
+  // this is not available for general users.
   if (settings.privileged) {
     quota.privileged = true;
   }
 
-  // user-upgrades are disabled on purpose (security concerns and not implemented)!
-  //else
-  //    for _, val of users
-  //        if val?.upgrades?.privileged
-  //            quota.privileged = true
-  //            break
-
   // Little helper to calculate the quotas, contributions, and limits.
   // name: of the computed quota, upgrade the quota config key,
   // parse_num for converting numbers, and factor for conversions
+  // this takes license upgrades into account, but not the "site license" quotas
   function calc(
     name: string, // keyof Quota, but only the numeric ones
     upgrade: string, // keyof Settings, but only the numeric ones
@@ -468,6 +464,7 @@ export function quota(
       factor * max_upgrades[upgrade] - default_quota
     );
     contribs = Math.min(contribs, contribs_limit);
+
     // base is the default or the modified admin upgrades
     quota[name] = base + contribs;
   }
@@ -534,7 +531,7 @@ export function site_license_quota(
   max_upgrades_param?: Upgrades
 ): Quota {
   // we filter here as well, b/c this function is used elsewhere
-  site_licenses = select_site_licenses(site_licenses);
+  site_licenses = Object.freeze(select_site_licenses(site_licenses));
   // a fallback, should take site settings into account here as well
   const max_upgrades: Upgrades = max_upgrades_param ?? MAX_UPGRADES;
 
