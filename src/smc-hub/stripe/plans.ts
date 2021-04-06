@@ -22,17 +22,29 @@ export async function create_missing_plans(
 ) {
   const dbg = (m?) => logger.debug(`create_missing_plans: ${m}`);
   dbg();
-  dbg("initialize stripe connection");
-  const stripe = await init_stripe(database, logger);
-  dbg("get already created plans");
-  const plans = await stripe.plans.list({ limit: 999 });
-  const known: { [id: string]: boolean } = {};
-  for (const plan of plans.data) {
-    known[plan.id] = true;
-  }
-  dbg("create any missing plans");
-  for (const name in upgrades.subscription) {
-    await create_plan(name, database, logger, known);
+  // We have deprecated the old "upgrade" subscriptions, and the
+  // code below would just ensure that all upgrade subscription types
+  // described in code were also represented in stripe.  However,
+  // the existence of licenses which automatically created hundreds
+  // of subscriptions broke this code (since only 100 plans get returned).
+  // There's no point in fixing it now, since we won't be creating
+  // any new subscriptions.
+  dbg("DEPRECATED");
+
+  // This is just kept for reference
+  if (false) {
+    dbg("initialize stripe connection");
+    const stripe = await init_stripe(database, logger);
+    dbg("get already created plans");
+    const plans = await stripe.plans.list({ limit: 999 });
+    const known: { [id: string]: boolean } = {};
+    for (const plan of plans.data) {
+      known[plan.id] = true;
+    }
+    dbg("create any missing plans");
+    for (const name in upgrades.subscription) {
+      await create_plan(name, database, logger, known);
+    }
   }
 }
 

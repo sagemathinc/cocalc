@@ -9,6 +9,8 @@ register(
   [
     { key: "f", ctrl: true },
     { key: "f", meta: true },
+    { key: "h", ctrl: true }, // also include H, which is shortcut for
+    { key: "h", meta: true }, // replace, since find/replace are unified in our editor.
   ],
   ({ extra }) => {
     extra.search.focus(getSelection()?.toString());

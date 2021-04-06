@@ -4,7 +4,7 @@
  */
 
 import * as React from "react";
-const { Col, Row } = require("react-bootstrap");
+import { Row, Col } from "antd";
 
 interface Props {
   label_cols?: number;
@@ -14,21 +14,21 @@ interface Props {
   children: React.ReactNode;
 }
 
-export function LabeledRow({
+export const LabeledRow: React.FC<Props> = ({
   children,
   style,
   label,
   className,
   label_cols = 4,
-}: Props) {
+}) => {
   return (
     <Row style={style} className={className}>
-      <Col xs={label_cols} style={{ marginTop: "8px" }}>
+      <Col span={2 * label_cols} style={{ marginTop: "8px" }}>
         {label}
       </Col>
-      <Col xs={12 - label_cols} style={{ marginTop: "8px" }}>
+      <Col span={24 - 2 * label_cols} style={{ marginTop: "8px" }}>
         {children}
       </Col>
     </Row>
   );
-}
+};

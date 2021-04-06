@@ -11,7 +11,7 @@ import { Map } from "immutable";
 
 import { EditorState } from "../../frame-tree/types";
 import { createEditor, Descendant, Range, Transforms } from "slate";
-import "./patches";
+import { withFix4131 } from "./patches";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
 import {
@@ -143,10 +143,14 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const editor = useMemo(() => {
       const cur = actions.getSlateEditor(id);
       if (cur != null) return cur;
-      const ed = withInsertBreakHack(
-        withNormalize(
-          withUpload(
-            withAutoFormat(withIsInline(withIsVoid(withReact(createEditor()))))
+      const ed = withFix4131(
+        withInsertBreakHack(
+          withNormalize(
+            withUpload(
+              withAutoFormat(
+                withIsInline(withIsVoid(withReact(createEditor())))
+              )
+            )
           )
         )
       ) as SlateEditor;

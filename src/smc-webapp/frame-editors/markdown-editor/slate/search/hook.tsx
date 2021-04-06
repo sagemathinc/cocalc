@@ -9,7 +9,7 @@ Support for global full text search of our slate.js document.
 
 import { Input } from "antd";
 import * as React from "react";
-const { useMemo, useRef, useState } = React;
+const { useCallback, useMemo, useRef, useState } = React;
 import { Editor, Point, Range, Transforms } from "slate";
 import {
   nextMatch,
@@ -19,19 +19,21 @@ import {
 import { ReactEditor } from "../slate-react";
 import { IS_MACOS, IS_TOUCH } from "smc-webapp/feature";
 import { createSearchDecorate } from "./decorate";
-
+import { Replace } from "./replace";
 
 const modKey = IS_MACOS ? "⌘" : "ctrl";
-const keyboardMessage = `Next (${modKey}-G) and Prev (Shift-${modKey}-G).`;
+const keyboardMessage = `Find Next (${modKey}-G) and Prev (Shift-${modKey}-G).`;
 
-const SHORTCUT_STYLE = {
+const EXTRA_INFO_STYLE = {
   position: "absolute",
+  opacity: 0.95,
+  marginTop: "2px",
   zIndex: 1,
   background: "white",
-  border: "1px solid lightgrey",
-  padding: "5px",
   width: "100%",
-  color: "rgb(102,102,102)"
+  color: "rgb(102,102,102)",
+  borderLeft: "1px solid lightgrey",
+  borderBottom: "1px solid lightgrey",
 } as React.CSSProperties;
 
 interface Options {
@@ -51,84 +53,94 @@ export const useSearch: (Options) => SearchHook = (options) => {
   const { editor } = options;
   const [search, setSearch] = useState<string>("");
   const inputRef = useRef<any>(null);
-  const [isFocused, setIsFocused] = useState<boolean>(false);
 
   const decorate = useMemo(() => {
     return createSearchDecorate(search);
   }, [search]);
+
+  const cancel = useCallback(async () => {
+    setSearch("");
+    inputRef.current?.blur();
+    await delay(100); // todo: there must be a better way.
+    ReactEditor.focus(editor);
+    return;
+  }, []);
 
   const Search = useMemo(
     () => (
       <div
         style={{
           border: 0,
-          paddingLeft: "1ex",
           width: "100%",
           position: "relative",
         }}
       >
-        <Input
-          ref={inputRef}
-          allowClear={true}
-          size="small"
-          placeholder="Search..."
-          value={search}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{
-            border: 0,
-          }}
-          addonAfter={
+        <div style={{ display: "flex" }}>
+          <Input
+            ref={inputRef}
+            allowClear={true}
+            size="small"
+            placeholder="Find..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              border: 0,
+              flex: 1,
+            }}
+            onKeyDown={async (event) => {
+              if (event.metaKey || event.ctrlKey) {
+                if (event.key == "f") {
+                  event.preventDefault();
+                  return;
+                }
+                if (event.key == "g") {
+                  event.preventDefault();
+                  if (event.shiftKey) {
+                    previousMatch(editor, decorate);
+                  } else {
+                    nextMatch(editor, decorate);
+                  }
+                  return;
+                }
+              }
+              if (event.key == "Enter") {
+                event.preventDefault();
+                inputRef.current?.blur();
+                await delay(100);
+                const { selection } = editor;
+                if (selection != null) {
+                  const focus = Range.edges(selection)[0];
+                  Transforms.setSelection(editor, { focus, anchor: focus });
+                }
+                nextMatch(editor, decorate);
+                return;
+              }
+              if (event.key == "Escape") {
+                event.preventDefault();
+                cancel();
+                return;
+              }
+            }}
+          />
+          {search.trim() && (
             <SearchControlButtons
               editor={editor}
               decorate={decorate}
               disabled={!search.trim()}
             />
-          }
-          onKeyDown={async (event) => {
-            if (event.metaKey || event.ctrlKey) {
-              if (event.key == "f") {
-                event.preventDefault();
-                return;
-              }
-              if (event.key == "g") {
-                event.preventDefault();
-                if (event.shiftKey) {
-                  previousMatch(editor, decorate);
-                } else {
-                  nextMatch(editor, decorate);
-                }
-                return;
-              }
-            }
-            if (event.key == "Enter") {
-              event.preventDefault();
-              inputRef.current?.blur();
-              await delay(100);
-              const { selection } = editor;
-              if (selection != null) {
-                const focus = Range.edges(selection)[0];
-                Transforms.setSelection(editor, { focus, anchor: focus });
-              }
-              nextMatch(editor, decorate);
-            }
-            if (event.key == "Escape") {
-              event.preventDefault();
-              setSearch("");
-              inputRef.current?.blur();
-              await delay(100);
-              ReactEditor.focus(editor);
-              return;
-            }
-          }}
-        />
-        {!IS_TOUCH && isFocused && search.trim() && (
-          <div style={SHORTCUT_STYLE}>{keyboardMessage}</div>
+          )}
+        </div>
+        {search.trim() && (
+          <div style={EXTRA_INFO_STYLE}>
+            <Replace editor={editor} decorate={decorate} cancel={cancel} search={search} />
+            {!IS_TOUCH && (
+              <div style={{ marginLeft: "7px" }}>{keyboardMessage}</div>
+            )}
+          </div>
         )}
       </div>
     ),
-    [search, decorate, isFocused]
+    [search, decorate]
   );
 
   return {

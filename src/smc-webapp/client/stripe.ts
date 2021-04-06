@@ -78,11 +78,6 @@ export class StripeClient {
     ).charges;
   }
 
-  // gets stripe plans that could be subscribed to.
-  public async get_plans(): Promise<any> {
-    return (await this.call(message.stripe_get_plans())).plans;
-  }
-
   public async create_subscription(opts: {
     plan: string;
     quantity?: number;

@@ -14,12 +14,7 @@ import {
 import Children from "./children";
 import { WindowingParams } from "./children";
 import Hotkeys from "../utils/hotkeys";
-import {
-  IS_FIREFOX,
-  IS_SAFARI,
-  IS_EDGE_LEGACY,
-  IS_CHROME_LEGACY,
-} from "../utils/environment";
+import { IS_FIREFOX, IS_SAFARI, IS_CHROME_LEGACY } from "../utils/environment";
 import { ReactEditor } from "..";
 import { ReadOnlyContext } from "../hooks/use-read-only";
 import { useSlate } from "../hooks/use-slate";
@@ -43,17 +38,19 @@ import {
 
 import { debounce } from "lodash";
 
+import * as getDirection from "direction";
+
 import { useDOMSelectionChange, useUpdateDOMSelection } from "./selection-sync";
 
 import { hasEditableTarget, hasTarget } from "./dom-utils";
 
-// COMPAT: Firefox/Edge Legacy don't support the `beforeinput` event
+// COMPAT: Edge Legacy don't support the `beforeinput` event
 // Chrome Legacy doesn't support `beforeinput` correctly
-const HAS_BEFORE_INPUT_SUPPORT = !(
-  IS_FIREFOX ||
-  IS_EDGE_LEGACY ||
-  IS_CHROME_LEGACY
-);
+const HAS_BEFORE_INPUT_SUPPORT =
+  !IS_CHROME_LEGACY &&
+  globalThis.InputEvent &&
+  // @ts-ignore The `getTargetRanges` property isn't recognized.
+  typeof globalThis.InputEvent.prototype.getTargetRanges === "function";
 
 /**
  * `RenderElementProps` are passed to the `renderElement` handler.
@@ -796,6 +793,10 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               return;
             }
 
+            const element = editor.children[selection?.focus.path[0] ?? 0];
+            // @ts-ignore -- typescript gets confused by type of getDirection
+            const isRTL = getDirection(Node.string(element)) === "rtl";
+
             // COMPAT: If a void node is selected, or a zero-width text node
             // adjacent to an inline is selected, we need to handle these
             // hotkeys manually because browsers won't be able to skip over
@@ -805,7 +806,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               event.preventDefault();
 
               if (selection && Range.isCollapsed(selection)) {
-                Transforms.move(editor, { reverse: true });
+                Transforms.move(editor, { reverse: !isRTL });
               } else {
                 Transforms.collapse(editor, { edge: "start" });
               }
@@ -817,7 +818,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               event.preventDefault();
 
               if (selection && Range.isCollapsed(selection)) {
-                Transforms.move(editor);
+                Transforms.move(editor, { reverse: isRTL });
               } else {
                 Transforms.collapse(editor, { edge: "end" });
               }
@@ -827,13 +828,13 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
 
             if (Hotkeys.isMoveWordBackward(nativeEvent)) {
               event.preventDefault();
-              Transforms.move(editor, { unit: "word", reverse: true });
+              Transforms.move(editor, { unit: "word", reverse: !isRTL });
               return;
             }
 
             if (Hotkeys.isMoveWordForward(nativeEvent)) {
               event.preventDefault();
-              Transforms.move(editor, { unit: "word" });
+              Transforms.move(editor, { unit: "word", reverse: isRTL });
               return;
             }
 

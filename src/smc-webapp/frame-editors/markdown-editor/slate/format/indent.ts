@@ -3,106 +3,122 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Editor, Element, Transforms } from "slate";
-import { slate_to_markdown } from "../slate-to-markdown";
-import { markdown_to_slate } from "../markdown-to-slate";
-import { slateDiff } from "../slate-diff";
-import { applyOperations } from "../operations";
+import { Editor, Element, Location, Path, Transforms } from "slate";
+import { isListElement } from "../elements/list";
+import { emptyParagraph } from "../padding";
 
-const SENTINEL = "\uFE30";
-const LIST_INDENT = "  "; // 2 spaces
+export function unindentListItem(editor: Editor): boolean {
+  const [item, path] = getParent(editor, (node) => node.type == "list_item");
+  if (item == null || path == null) {
+    // no list item containing cursor...
+    return false;
+  }
+  if (!item.children) {
+    // this shouldn't happen since all list_item's should
+    // have children
+    return false;
+  }
 
-function findParentOfType(
+  const [list, listPath] = getParent(editor, isListElement);
+  if (list == null || listPath == null) {
+    // shouldn't happen, since list_item should be inside of an actual list.
+    return false;
+  }
+
+  // Now the parent of that list itself has to be a list item
+  // to be able to unindent.
+  const parentOfListPath = Path.parent(listPath);
+  const [parentOfList] = Editor.node(editor, parentOfListPath);
+  if (!Element.isElement(parentOfList) || parentOfList.type != "list_item") {
+    // can only unindent if is a list inside a list item
+    return false;
+  }
+  const to = Path.next(parentOfListPath);
+
+  Editor.withoutNormalizing(editor, () => {
+    Transforms.moveNodes(editor, {
+      to,
+      match: (node) => node === list,
+    });
+    Transforms.unwrapNodes(editor, { at: to });
+  });
+
+  return true;
+}
+
+function getParent(
   editor,
-  type: string
-): [Element, number[]] | undefined {
+  match,
+  at: Location | undefined = undefined
+): [Element, number[]] | [undefined, undefined] {
   for (const elt of Editor.nodes(editor, {
     mode: "lowest",
-    match: (node) => Element.isElement(node) && node.type == type,
+    match: (node) => Element.isElement(node) && match(node),
+    at,
   })) {
     return [elt[0] as Element, elt[1]];
   }
-}
-
-function changeViaMarkdown(
-  editor,
-  hooks: {
-    nodeHook?: (Node, string) => string | undefined;
-    markdownHook?: (string) => string;
-  }
-): boolean {
-  let md = slate_to_markdown(editor.children, { hook: hooks.nodeHook });
-  if (hooks.markdownHook != null) {
-    const md2 = hooks.markdownHook(md);
-    if (md2 == null) {
-      return false;
-    } else {
-      md = md2;
-    }
-  }
-  const doc = markdown_to_slate(md);
-  const operations = slateDiff(editor.children, doc);
-  applyOperations(editor, operations);
-  return true;
+  return [undefined, undefined];
 }
 
 export function indentListItem(editor: Editor): boolean {
-  const x = findParentOfType(editor, "list_item");
-  if (x == null) {
+  const [item, path] = getParent(editor, (node) => node.type == "list_item");
+  if (item == null || path == null) {
     // no list item containing cursor...
     return false;
   }
-  const [node] = x;
-  if (node.children) {
-    if (
-      !changeViaMarkdown(editor, {
-        nodeHook: (elt, s) => {
-          if (elt !== node) return;
-          if (s.trim() == "-") {
-            // Markdown interprets an indented *tight* list with nothing in
-            // the first item as making the previous line a header.
-            // In this case, we switch to a non-tight list.  It's the only
-            // way with markdown... sorry.
-            return "\n" + LIST_INDENT + s;
-          } else {
-            return LIST_INDENT + s;
-          }
-        },
-      })
-    ) {
-      return false;
-    }
+  if (!item.children) {
+    // this shouldn't happen since all list_item's should
+    // have children
+    return false;
   }
-  return true;
-}
 
-export function unindentListItem(editor: Editor): boolean {
-  const x = findParentOfType(editor, "list_item");
-  if (x == null) {
-    // no list item containing cursor...
+  const [list] = getParent(editor, isListElement);
+  if (list == null) {
+    // shouldn't happen, since list_item should be inside of an actual list.
     return false;
   }
-  const [node] = x;
+
+  if (list.children[0] === item) {
+    // can't indent the first item
+    return false;
+  }
+
+  const prevPath = Path.previous(path);
+  const [prevItem] = Editor.node(editor, prevPath);
+  if (!Element.isElement(prevItem)) {
+    // should not happen
+    return false;
+  }
   if (
-    !changeViaMarkdown(editor, {
-      nodeHook: (elt, s) => {
-        if (elt !== node) return;
-        return SENTINEL + s;
-      },
-      markdownHook: (md) => {
-        const i = md.indexOf(SENTINEL);
-        if (i == -1) return false;
-        if (md.slice(i - LIST_INDENT.length, i) != LIST_INDENT) {
-          // not spaces - no-op
-          return undefined;
-        }
-        return md.slice(0, i - LIST_INDENT.length) + md.slice(i + 1);
-      },
-    })
-  )
-    return false;
+    prevItem.children.length > 0 &&
+    !Element.isElement(prevItem.children[prevItem.children.length - 1])
+  ) {
+    // we can't stick our list item adjacent to a leaf node (e.g.,
+    // not next to a text node). This naturally happens, since an
+    // empty list item is parsed without a block child in it.
+    Transforms.wrapNodes(editor, emptyParagraph() as any, {
+      at: prevPath.concat(0),
+    });
+  }
+  const to = prevPath.concat([prevItem.children.length]);
 
-  // move cursor back to line we just unindented.
-  Transforms.move(editor, { distance: 1, unit: "line" });
+  if (list.type != "bullet_list" && list.type != "ordered_list") {
+    // This should not happen, but it makes typescript
+    //  happier below when wrapping.
+    return false;
+  }
+  Editor.withoutNormalizing(editor, () => {
+    Transforms.moveNodes(editor, {
+      to,
+      match: (node) => node === item,
+    });
+    Transforms.wrapNodes(
+      editor,
+      { type: list.type, tight: true, children: [] },
+      { at: to }
+    );
+  });
+
   return true;
 }

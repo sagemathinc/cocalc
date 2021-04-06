@@ -102,14 +102,25 @@ function mergeAdjacentLists({ editor, node, path }) {
     Element.isElement(node) &&
     (node.type === "bullet_list" || node.type === "ordered_list")
   ) {
-    const nextPath = Path.next(path);
-    const nextNode = getNodeAt(editor, nextPath);
-    if (Element.isElement(nextNode) && nextNode.type == node.type) {
-      // We have two adjacent lists of the same type: combine them.
-      // Note that we do NOT take into account tightness when deciding
-      // whether to merge, since in markdown you can't have a non-tight
-      // and tight list of the same type adjacent to each other anyways.
-      Transforms.mergeNodes(editor, { at: nextPath });
-    }
+    try {
+      const nextPath = Path.next(path);
+      const nextNode = getNodeAt(editor, nextPath);
+      if (Element.isElement(nextNode) && nextNode.type == node.type) {
+        // We have two adjacent lists of the same type: combine them.
+        // Note that we do NOT take into account tightness when deciding
+        // whether to merge, since in markdown you can't have a non-tight
+        // and tight list of the same type adjacent to each other anyways.
+        Transforms.mergeNodes(editor, { at: nextPath });
+        return;
+      }
+    } catch (_) {} // because prev or next might not be defined
+
+    try {
+      const previousPath = Path.previous(path);
+      const previousNode = getNodeAt(editor, previousPath);
+      if (Element.isElement(previousNode) && previousNode.type == node.type) {
+        Transforms.mergeNodes(editor, { at: path });
+      }
+    } catch (_) {}
   }
 }
