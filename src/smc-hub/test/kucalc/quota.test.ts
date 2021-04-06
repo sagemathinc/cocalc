@@ -960,6 +960,50 @@ describe("default quota", () => {
     const site_license = {
       "1234-5678-asdf-yxcv": {
         quota: {
+          ram: 10,
+          dedicated_ram: 5,
+          cpu: 2,
+          dedicated_cpu: 5,
+          disk: 10000,
+          always_running: false,
+          member: true,
+          user: "academic",
+        },
+      },
+      "4321-5678-asdf-yxcv": {
+        quota: {
+          ram: 7,
+          dedicated_ram: 4,
+          cpu: 5,
+          dedicated_cpu: 2,
+          disk: 60000,
+          always_running: false,
+          member: true,
+          user: "academic",
+        },
+      },
+    };
+
+    // capped at default limits
+    const q = quota({}, null, site_license);
+    expect(q).toEqual({
+      network: true,
+      member_host: true,
+      memory_request: 8000,
+      cpu_request: 2,
+      privileged: false,
+      disk_quota: 20000,
+      memory_limit: 16000,
+      cpu_limit: 3,
+      idle_timeout: 1800,
+      always_running: false,
+    });
+  });
+
+  it("cap site_license upgrades by max_upgrades /2", () => {
+    const site_license = {
+      "1234-5678-asdf-yxcv": {
+        quota: {
           ram: 4,
           dedicated_ram: 3,
           cpu: 3,
@@ -1018,6 +1062,53 @@ describe("default quota", () => {
       privileged: false,
       idle_timeout: 999,
       disk_quota: 333,
+    });
+  });
+
+  it("cap site_license upgrades by max_upgrades /3", () => {
+    const site_license = {
+      "1234-5678-asdf-yxcv": {
+        quota: {
+          ram: 1,
+          dedicated_ram: 0,
+          cpu: 1,
+          dedicated_cpu: 0,
+          disk: 2000,
+          always_running: false,
+          member: true,
+          user: "academic",
+        },
+      },
+    };
+
+    // dominating site license upgrade
+    const users = {
+      user1: {
+        upgrades: {
+          network: 2,
+          member_host: 3,
+          disk_quota: 32000, // max 20gb
+          memory: 20000, // max 16gb
+          mintime: 24 * 3600 * 100, // max 90 days
+          memory_request: 10000, // max 8gb
+          cores: 7, // max 3
+          cpu_shares: 1024 * 4,
+        },
+      },
+    };
+
+    const q = quota({}, users, site_license);
+    expect(q).toEqual({
+      cpu_limit: 3,
+      cpu_request: 2, // set at the top of quota config
+      disk_quota: 20000,
+      idle_timeout: 24 * 3600 * 90,
+      member_host: true,
+      memory_limit: 16000, // set at the top of quota config
+      memory_request: 8000, // set at the top of quota config
+      network: true,
+      privileged: false,
+      always_running: false,
     });
   });
 });
