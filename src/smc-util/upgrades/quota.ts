@@ -86,29 +86,30 @@ interface Quota {
 // all are optional!
 interface Settings {
   cores?: number;
-  memory?: number;
-  mintime?: number;
   cpu_shares?: number;
-  disk_quota?: number; // sometimes a string
-  privileged?: boolean;
+  mintime?: number;
+  memory?: number;
   memory_request?: number;
+  disk_quota?: number; // sometimes a string, sanitized very early!
+  member_host?: number;
+  privileged?: number;
   network?: number;
   always_running?: number;
-  member_host?: number;
 }
 
 interface Upgrades {
-  disk_quota: number;
-  memory: number;
-  memory_request: number;
   cores: number;
-  network: number;
   cpu_shares: number; // 1024
   mintime: number;
+  memory: number;
+  memory_request: number;
+  network: number;
+  disk_quota: number;
   member_host: number;
+  privileged: number;
+  always_running: number;
   ephemeral_state: number;
   ephemeral_disk: number;
-  always_running: number;
 }
 
 // upgrade raw data from users: {"<uuid4>": {"group": ...,
@@ -317,7 +318,7 @@ function upgrade2quota(up: Partial<Upgrades>): Required<Quota> {
     memory_request: dflt_num(up.memory_request),
     cpu_limit: dflt_num(up.cores),
     cpu_request: dflt_num(up.cpu_shares) / 1024,
-    privileged: false, // there is no upgrade for that!
+    privileged: dflt_false(up.privileged),
     idle_timeout: dflt_num(up.mintime),
   };
 }
@@ -416,7 +417,12 @@ function contribs_limited(
   return ret as Required<Quota>;
 }
 
-function calc_quota({ quota, contribs, site_settings, max_upgrades }): Required<Quota> {
+function calc_quota({
+  quota,
+  contribs,
+  site_settings,
+  max_upgrades,
+}): Required<Quota> {
   const default_quota = { ...quota };
   if (false) calc_oc({ quota: contribs, site_settings });
   // limit the contributions by the overall maximum (except for the defaults!)
@@ -443,7 +449,7 @@ function quota_v2(opts): Quota {
     Object.values(site_licenses).filter(isSettingsQuota).map(upgrade2quota)
   );
 
-  //console.log("settings", settings);
+  console.log("settings", settings);
   quota = sum_quotas([
     max_quotas(quota, settings),
     calc_quota({
@@ -453,6 +459,7 @@ function quota_v2(opts): Quota {
       max_upgrades,
     }),
   ]);
+  console.log("sum_quotas", quota);
 
   //const total = ensure_minimum(
   //    min_quotas(
