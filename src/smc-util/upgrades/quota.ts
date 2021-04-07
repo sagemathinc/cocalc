@@ -158,9 +158,9 @@ interface SiteSettingsQuotas {
 const ZERO_QUOTA: Required<Quota> = {
   network: false,
   member_host: false,
+  privileged: false,
   memory_request: 0,
   cpu_request: 0,
-  privileged: false,
   disk_quota: 0,
   memory_limit: 0,
   cpu_limit: 0,
@@ -173,9 +173,9 @@ const ZERO_QUOTA: Required<Quota> = {
 const BASE_QUOTAS: Required<Quota> = {
   network: false,
   member_host: false,
+  privileged: false, // for elevated docker privileges (FUSE mounting, later more)
   memory_request: 0, // will hold guaranteed RAM in MB
   cpu_request: 0, // will hold guaranteed min number of vCPU's as a float from 0 to infinity.
-  privileged: false, // for elevated docker privileges (FUSE mounting, later more)
   disk_quota: DEFAULT_QUOTAS.disk_quota,
   memory_limit: DEFAULT_QUOTAS.memory, // upper bound on RAM in MB
   cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPU's
@@ -323,8 +323,9 @@ function upgrade2quota(up: Partial<Upgrades>): Required<Quota> {
 
 // this is summing up a list of quotas, where we assume they're all defined!
 function sum_quotas(quotas: Required<Quota>[]): Required<Quota> {
-  if (quotas == null || quotas.length == 0) return ZERO_QUOTA;
   const sum = { ...ZERO_QUOTA };
+  if (quotas == null || quotas.length == 0) return sum;
+
   for (const q of quotas) {
     for (const k in sum) {
       if (typeof sum[k] === "boolean") {
@@ -335,6 +336,31 @@ function sum_quotas(quotas: Required<Quota>[]): Required<Quota> {
     }
   }
   return sum;
+}
+
+function op_quotas(
+  q1: Required<Quota>,
+  q2: Required<Quota>,
+  op: "min" | "max"
+): Required<Quota> {
+  const q: Quota = {};
+  for (const [k, v] of Object.entries(ZERO_QUOTA)) {
+    if (typeof v === "boolean") {
+      q[k] = op === "min" ? q1[k] && q2[k] : q1[k] || q2[k];
+    } else {
+      const cmp = op === "min" ? Math.min : Math.max;
+      q[k] = cmp(q1[k], q2[k]);
+    }
+  }
+  return q as Required<Quota>;
+}
+
+//function min_quotas(q1: Required<Quota>, q2: Required<Quota>): Required<Quota> {
+//  return op_quotas(q1, q2, "min");
+//}
+
+function max_quotas(q1: Required<Quota>, q2: Required<Quota>): Required<Quota> {
+  return op_quotas(q1, q2, "max");
 }
 
 // this is inplace and also returns the modified quota
@@ -352,10 +378,10 @@ function ensure_minimum(quota): Quota {
 }
 
 function quota_v2(opts): Quota {
-  const { quota, site_settings, max_upgrades, users, site_licenses } = opts;
+  const { quota, settings, max_upgrades, users, site_licenses } = opts;
   // const user_quota = sum_quotas();
 
-  console.log(quota, site_settings, max_upgrades, users, site_licenses);
+  console.log(quota, settings, max_upgrades, users, site_licenses);
 
   console.log("quota", quota);
 
@@ -365,8 +391,9 @@ function quota_v2(opts): Quota {
       .map((v: { upgrades: Upgrades }) => upgrade2quota(v.upgrades))
   );
 
-  const total = ensure_minimum(sum_quotas([quota, users_sum]));
-
+  const total = ensure_minimum(
+    max_quotas(upgrade2quota(settings), sum_quotas([quota, users_sum]))
+  );
   return total;
 }
 
@@ -399,10 +426,10 @@ export function quota(
   // we might not consider all of them!
   site_licenses = Object.freeze(select_site_licenses(site_licenses));
 
-  if (false) {
+  if (process.env.v2) {
     return quota_v2({
       quota,
-      site_settings,
+      settings,
       max_upgrades,
       users,
       site_licenses,
@@ -420,7 +447,7 @@ export function quota(
       // paid by some user
       for (const userid in users) {
         const val = users[userid];
-        if (val != null && val.upgrades && val.upgrades.network) {
+        if (val?.upgrades?.network) {
           quota.network = true;
           break;
         }
@@ -449,7 +476,7 @@ export function quota(
       // paid by some user
       for (const userid in users) {
         const val = users[userid];
-        if (val != null && val.upgrades && val.upgrades.member_host) {
+        if (val?.upgrades?.member_host) {
           quota.member_host = true;
           break;
         }
@@ -478,7 +505,7 @@ export function quota(
       // paid by some user
       for (const userid in users) {
         const val = users[userid];
-        if (val != null && val.upgrades && val.upgrades.always_running) {
+        if (val?.upgrades?.always_running) {
           quota.always_running = true;
           break;
         }
