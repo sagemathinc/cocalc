@@ -85,15 +85,16 @@ interface Quota {
 
 // all are optional!
 interface Settings {
-  network?: boolean;
-  member_host?: boolean;
-  disk_quota?: string;
-  memory_limit?: string;
-  memory_request?: string;
+  cores?: number;
+  memory?: number;
+  mintime?: number;
+  cpu_shares?: number;
+  disk_quota?: number; // sometimes a string
   privileged?: boolean;
-  idle_timeout?: number;
-  cpu_shares?: string;
+  memory_request?: number;
+  network?: number;
   always_running?: number;
+  member_host?: number;
 }
 
 interface Upgrades {
@@ -377,13 +378,59 @@ function ensure_minimum(quota): Quota {
   return quota;
 }
 
+// if we have some overcommit ratio set, increase a request after we know the quota
+function calc_oc({ quota, site_settings }) {
+  if (site_settings?.default_quotas != null) {
+    const { mem_oc, cpu_oc } = site_settings.default_quotas;
+    if (quota.cpu_limit != null) {
+      const oc = sanitize_overcommit(cpu_oc);
+      if (oc != null) {
+        const oc_cpu = quota.cpu_limit / oc;
+        quota.cpu_request = Math.max(quota.cpu_request, oc_cpu);
+      }
+    }
+    if (quota.memory_limit != null) {
+      const oc = sanitize_overcommit(mem_oc);
+      if (oc != null) {
+        const oc_mem = Math.round(quota.memory_limit / oc);
+        quota.memory_request = Math.max(quota.memory_request, oc_mem);
+      }
+    }
+  }
+}
+
+function contribs_limited(
+  default_quota: Quota,
+  contribs: Quota,
+  max_upgrades: Quota
+): Required<Quota> {
+  const ret: Quota = {};
+  for (const [k, v] of Object.entries(ZERO_QUOTA)) {
+    if (typeof v === "boolean") {
+      ret[k] = max_upgrades[k] ? default_quota[k] || contribs[k] : false;
+    } else {
+      const limit = Math.max(0, max_upgrades[k] - default_quota[k]);
+      ret[k] = Math.min(contribs[k], limit);
+    }
+  }
+  return ret as Required<Quota>;
+}
+
+function calc_quota({ quota, contribs, site_settings, max_upgrades }): Required<Quota> {
+  const default_quota = { ...quota };
+  if (false) calc_oc({ quota: contribs, site_settings });
+  // limit the contributions by the overall maximum (except for the defaults!)
+  const limited = contribs_limited(default_quota, contribs, max_upgrades);
+
+  //console.log("default_quota", default_quota);
+  //console.log("limited", limited);
+  return limited;
+}
+
 function quota_v2(opts): Quota {
-  const { quota, settings, max_upgrades, users, site_licenses } = opts;
-  // const user_quota = sum_quotas();
-
-  console.log(quota, settings, max_upgrades, users, site_licenses);
-
-  console.log("quota", quota);
+  let quota = opts.quota as Required<Quota>;
+  const { settings, max_upgrades, users, site_licenses, site_settings } = opts;
+  //console.log(quota, settings, max_upgrades, users, site_licenses);
 
   const users_sum = sum_quotas(
     Object.values(users)
@@ -391,9 +438,45 @@ function quota_v2(opts): Quota {
       .map((v: { upgrades: Upgrades }) => upgrade2quota(v.upgrades))
   );
 
-  const total = ensure_minimum(
-    max_quotas(upgrade2quota(settings), sum_quotas([quota, users_sum]))
+  // v1 of licenses, encoding upgrades directly
+  const licenses_sum = sum_quotas(
+    Object.values(site_licenses).filter(isSettingsQuota).map(upgrade2quota)
   );
+
+  //console.log("settings", settings);
+  quota = sum_quotas([
+    max_quotas(quota, settings),
+    calc_quota({
+      quota,
+      contribs: sum_quotas([users_sum, licenses_sum]),
+      site_settings,
+      max_upgrades,
+    }),
+  ]);
+
+  //const total = ensure_minimum(
+  //    min_quotas(
+  //      upgrade2quota(max_upgrades),
+  //      sum_quotas([quota, users_sum, licenses_sum])
+  //    )
+  //  )
+  //);
+
+  // const contribs = contribs_limit(
+  //   quota,
+  //   sum_quotas([users_sum, licenses_sum]),
+  //   upgrade2quota(max_upgrades)
+  // );
+  //
+  // calc_oc({ quota: sum_quotas([quota, contribs]), site_settings });
+
+  //for (const [k, v] of Object.entries(ZERO_QUOTA)) {
+  //  if (typeof v === "boolean") {
+  //  } else {
+  //  }
+  //}
+
+  const total = ensure_minimum(max_quotas(quota, settings));
   return total;
 }
 
@@ -403,6 +486,10 @@ export function quota(
   site_licenses?: SiteLicenses,
   site_settings?: SiteSettingsQuotas
 ): Quota {
+  // empirically, this is sometimes a string -- we want this to be a number, though!
+  if (typeof settings_arg?.disk_quota === "string") {
+    settings_arg.disk_quota = to_int(settings_arg.disk_quota);
+  }
   // we want to make sure the arguments can't be modified
   const settings: Readonly<Settings> = Object.freeze(
     settings_arg == null ? {} : settings_arg
@@ -429,10 +516,11 @@ export function quota(
   if (process.env.v2) {
     return quota_v2({
       quota,
-      settings,
-      max_upgrades,
+      settings: upgrade2quota(settings),
+      max_upgrades: upgrade2quota(max_upgrades),
       users,
       site_licenses,
+      site_settings,
     });
   }
 
@@ -591,6 +679,7 @@ export function quota(
     contribs = Math.min(contribs, contribs_limit);
 
     // base is the default or the modified admin upgrades
+    //console.log("calc", "name=" + name, base, contribs);
     quota[name] = base + contribs;
   }
 
