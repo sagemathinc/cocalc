@@ -83,12 +83,6 @@ interface Quota {
   idle_timeout?: number;
 }
 
-interface Users {
-  [userid: string]: {
-    upgrades?: Quota;
-  };
-}
-
 // all are optional!
 interface Settings {
   network?: boolean;
@@ -108,12 +102,25 @@ interface Upgrades {
   memory_request: number;
   cores: number;
   network: number;
-  cpu_shares: number;
+  cpu_shares: number; // 1024
   mintime: number;
   member_host: number;
   ephemeral_state: number;
   ephemeral_disk: number;
   always_running: number;
+}
+
+// upgrade raw data from users: {"<uuid4>": {"group": ...,
+// "upgrades":
+// {"cores": 0, "memory": 3000, "mintime": 86400, "network": 1,
+//  "cpu_shares": 0, "disk_quota": 5000, "member_host": 1, "always_running": 0,
+//  "ephemeral_disk": 0, "memory_request": 0, "ephemeral_state": 0
+// }}
+
+interface Users {
+  [userid: string]: {
+    upgrades?: Upgrades;
+  };
 }
 
 // special quotas for on-prem setups.
@@ -147,6 +154,19 @@ interface SiteSettingsQuotas {
   default_quotas: Partial<SiteSettingsDefaultQuotas>;
   max_upgrades: Partial<Upgrades>;
 }
+
+const ZERO_QUOTA: Required<Quota> = {
+  network: false,
+  member_host: false,
+  memory_request: 0,
+  cpu_request: 0,
+  privileged: false,
+  disk_quota: 0,
+  memory_limit: 0,
+  cpu_limit: 0,
+  idle_timeout: 0,
+  always_running: false,
+} as const;
 
 // base quota + calculated default quotas is the quota object each project gets by default
 // any additional quotas are added on top of it, up until the given limits
@@ -282,6 +302,74 @@ function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
   }, {});
 }
 
+// there is an old schema, inherited from SageMathCloud, etc. and newer iterations.
+// this helps by going from one schema to the newer one
+function upgrade2quota(up: Partial<Upgrades>): Required<Quota> {
+  const dflt_false = (x) => (x != null ? x >= 1 : false);
+  const dflt_num = (x) => (x != null ? x : 0);
+  return {
+    network: dflt_false(up.network),
+    member_host: dflt_false(up.member_host),
+    always_running: dflt_false(up.always_running),
+    disk_quota: dflt_num(up.disk_quota),
+    memory_limit: dflt_num(up.memory),
+    memory_request: dflt_num(up.memory_request),
+    cpu_limit: dflt_num(up.cores),
+    cpu_request: dflt_num(up.cpu_shares) / 1024,
+    privileged: false, // there is no upgrade for that!
+    idle_timeout: dflt_num(up.mintime),
+  };
+}
+
+// this is summing up a list of quotas, where we assume they're all defined!
+function sum_quotas(quotas: Required<Quota>[]): Required<Quota> {
+  if (quotas == null || quotas.length == 0) return ZERO_QUOTA;
+  const sum = { ...ZERO_QUOTA };
+  for (const q of quotas) {
+    for (const k in sum) {
+      if (typeof sum[k] === "boolean") {
+        sum[k] ||= q[k];
+      } else {
+        sum[k] += q[k];
+      }
+    }
+  }
+  return sum;
+}
+
+// this is inplace and also returns the modified quota
+function ensure_minimum(quota): Quota {
+  // ensure minimum cpu are met
+  cap_lower_bound(quota, "cpu_request", MIN_POSSIBLE_CPU);
+
+  // ensure minimum memory request is met
+  cap_lower_bound(quota, "memory_request", MIN_POSSIBLE_MEMORY);
+
+  // ensure minimum memory limit is met
+  cap_lower_bound(quota, "memory_limit", MIN_MEMORY_LIMIT);
+
+  return quota;
+}
+
+function quota_v2(opts): Quota {
+  const { quota, site_settings, max_upgrades, users, site_licenses } = opts;
+  // const user_quota = sum_quotas();
+
+  console.log(quota, site_settings, max_upgrades, users, site_licenses);
+
+  console.log("quota", quota);
+
+  const users_sum = sum_quotas(
+    Object.values(users)
+      .filter((v: { upgrades?: Upgrades }) => v?.upgrades != null)
+      .map((v: { upgrades: Upgrades }) => upgrade2quota(v.upgrades))
+  );
+
+  const total = ensure_minimum(sum_quotas([quota, users_sum]));
+
+  return total;
+}
+
 export function quota(
   settings_arg?: Settings,
   users_arg?: Users,
@@ -310,6 +398,16 @@ export function quota(
 
   // we might not consider all of them!
   site_licenses = Object.freeze(select_site_licenses(site_licenses));
+
+  if (false) {
+    return quota_v2({
+      quota,
+      site_settings,
+      max_upgrades,
+      users,
+      site_licenses,
+    });
+  }
 
   // network access
   if (max_upgrades.network == 0) {
@@ -495,15 +593,7 @@ export function quota(
   }
 
   // Finally apply all caps and also compute cpu_request in terms of cpu_shares.
-
-  // ensure minimum cpu are met
-  cap_lower_bound(quota, "cpu_request", MIN_POSSIBLE_CPU);
-
-  // ensure minimum memory request is met
-  cap_lower_bound(quota, "memory_request", MIN_POSSIBLE_MEMORY);
-
-  // ensure minimum memory limit is met
-  cap_lower_bound(quota, "memory_limit", MIN_MEMORY_LIMIT);
+  ensure_minimum(quota);
 
   return quota;
 }
@@ -626,23 +716,6 @@ function limit_quota(
     }
   }
   return total_quota;
-}
-
-// there is an old schema, inherited from SageMathCloud, etc. and newer iterations.
-// this helps by going from one schema to the newer one
-function upgrade2quota(up: Required<Upgrades>): Required<Quota> {
-  return {
-    network: up.network >= 1,
-    member_host: up.member_host >= 1,
-    always_running: up.always_running >= 1,
-    disk_quota: up.disk_quota,
-    memory_limit: up.memory,
-    memory_request: up.memory_request,
-    cpu_limit: up.cores,
-    cpu_request: up.cpu_shares / 1024,
-    privileged: false, // there is no upgrade for that!
-    idle_timeout: up.mintime,
-  };
 }
 
 // TODO name is <K extends keyof Quota>, but that causes troubles ...
