@@ -417,14 +417,8 @@ function contribs_limited(
   return ret as Required<Quota>;
 }
 
-function calc_quota({
-  quota,
-  contribs,
-  site_settings,
-  max_upgrades,
-}): Required<Quota> {
+function calc_quota({ quota, contribs, max_upgrades }): Required<Quota> {
   const default_quota = { ...quota };
-  if (false) calc_oc({ quota: contribs, site_settings });
   // limit the contributions by the overall maximum (except for the defaults!)
   const limited = contribs_limited(default_quota, contribs, max_upgrades);
 
@@ -445,21 +439,27 @@ function quota_v2(opts): Quota {
   );
 
   // v1 of licenses, encoding upgrades directly
-  const licenses_sum = sum_quotas(
+  const license_quota_sum = sum_quotas(
     Object.values(site_licenses).filter(isSettingsQuota).map(upgrade2quota)
   );
 
-  console.log("settings", settings);
+  //console.log("settings", settings);
   quota = sum_quotas([
     max_quotas(quota, settings),
     calc_quota({
       quota,
-      contribs: sum_quotas([users_sum, licenses_sum]),
-      site_settings,
+      contribs: sum_quotas([users_sum, license_quota_sum]),
       max_upgrades,
     }),
   ]);
-  console.log("sum_quotas", quota);
+
+  // earlier implementations somehow implicitly rounded down
+  quota.memory_limit = Math.floor(quota.memory_limit);
+  quota.memory_request = Math.floor(quota.memory_request);
+
+  calc_oc({ quota, site_settings });
+
+  //console.log("sum_quotas", quota);
 
   //const total = ensure_minimum(
   //    min_quotas(
