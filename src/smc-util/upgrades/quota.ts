@@ -325,6 +325,22 @@ function upgrade2quota(up: Partial<Upgrades>): RQuota {
   };
 }
 
+// v2 license upgrades, converting to the quota schema
+function license2quota(q: Partial<SiteLicenseQuota>): RQuota {
+  return {
+    network: true, // any license quota will give you network access
+    member_host: !!q.member,
+    always_running: !!q.always_running,
+    disk_quota: 1000 * (q.disk ?? 0),
+    memory_limit: 1000 * ((q.ram ?? 0) + (q.dedicated_ram ?? 0)),
+    memory_request: 1000 * (q.dedicated_ram ?? 0),
+    cpu_limit: (q.cpu ?? 0) + (q.dedicated_cpu ?? 0),
+    cpu_request: q.dedicated_cpu ?? 0,
+    privileged: false,
+    idle_timeout: 0, // always zero, until we have an upgrade schema in place
+  };
+}
+
 // this is summing up a list of quotas, where we assume they're all defined!
 function sum_quotas(...quotas: RQuota[]): RQuota {
   const sum = { ...ZERO_QUOTA };
@@ -455,19 +471,29 @@ function quota_v2(opts: OptsV2): Quota {
   //console.log("users_sum", users_sum);
 
   // v1 of licenses, encoding upgrades directly
-  const license_quota_sum = sum_quotas(
+  const license_upgrades_sum = sum_quotas(
     ...Object.values(site_licenses).filter(isSettingsQuota).map(upgrade2quota)
+  );
+
+  // v2 of licenses, indirectly via {quota: {…}} objects, introducing yet another schema.
+  const license_quota_sum = sum_quotas(
+    ...Object.values(site_licenses)
+      .filter(isSiteLicenseQuotaSetting)
+      .map((l: SiteLicenseQuotaSetting) => license2quota(l.quota))
   );
 
   //console.log("settings", settings);
   quota = ensure_minimum(
-    sum_quotas(
-      max_quotas(quota, settings),
-      calc_quota({
-        quota,
-        contribs: sum_quotas(users_sum, license_quota_sum),
-        max_upgrades,
-      })
+    max_quotas(
+      sum_quotas(
+        max_quotas(quota, settings),
+        calc_quota({
+          quota,
+          contribs: sum_quotas(users_sum, license_upgrades_sum),
+          max_upgrades,
+        })
+      ),
+      min_quotas(license_quota_sum, max_upgrades)
     ),
     max_upgrades
   );
