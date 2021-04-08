@@ -83,6 +83,8 @@ interface Quota {
   idle_timeout?: number;
 }
 
+type RQuota = Required<Quota>;
+
 // all are optional!
 interface Settings {
   cores?: number;
@@ -157,7 +159,7 @@ interface SiteSettingsQuotas {
   max_upgrades: Partial<Upgrades>;
 }
 
-const ZERO_QUOTA: Required<Quota> = {
+const ZERO_QUOTA: RQuota = {
   network: false,
   member_host: false,
   privileged: false,
@@ -172,7 +174,7 @@ const ZERO_QUOTA: Required<Quota> = {
 
 // base quota + calculated default quotas is the quota object each project gets by default
 // any additional quotas are added on top of it, up until the given limits
-const BASE_QUOTAS: Required<Quota> = {
+const BASE_QUOTAS: RQuota = {
   network: false,
   member_host: false,
   privileged: false, // for elevated docker privileges (FUSE mounting, later more)
@@ -306,7 +308,7 @@ function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
 
 // there is an old schema, inherited from SageMathCloud, etc. and newer iterations.
 // this helps by going from one schema to the newer one
-function upgrade2quota(up: Partial<Upgrades>): Required<Quota> {
+function upgrade2quota(up: Partial<Upgrades>): RQuota {
   const dflt_false = (x) => (x != null ? x >= 1 : false);
   const dflt_num = (x) => (x != null ? x : 0);
   return {
@@ -324,7 +326,7 @@ function upgrade2quota(up: Partial<Upgrades>): Required<Quota> {
 }
 
 // this is summing up a list of quotas, where we assume they're all defined!
-function sum_quotas(quotas: Required<Quota>[]): Required<Quota> {
+function sum_quotas(...quotas: RQuota[]): RQuota {
   const sum = { ...ZERO_QUOTA };
   if (quotas == null || quotas.length == 0) return sum;
 
@@ -340,11 +342,7 @@ function sum_quotas(quotas: Required<Quota>[]): Required<Quota> {
   return sum;
 }
 
-function op_quotas(
-  q1: Required<Quota>,
-  q2: Required<Quota>,
-  op: "min" | "max"
-): Required<Quota> {
+function op_quotas(q1: RQuota, q2: RQuota, op: "min" | "max"): RQuota {
   const q: Quota = {};
   for (const [k, v] of Object.entries(ZERO_QUOTA)) {
     if (typeof v === "boolean") {
@@ -354,27 +352,30 @@ function op_quotas(
       q[k] = cmp(q1[k], q2[k]);
     }
   }
-  return q as Required<Quota>;
+  return q as RQuota;
 }
 
-function min_quotas(q1: Required<Quota>, q2: Required<Quota>): Required<Quota> {
+function min_quotas(q1: RQuota, q2: RQuota): RQuota {
   return op_quotas(q1, q2, "min");
 }
 
-function max_quotas(q1: Required<Quota>, q2: Required<Quota>): Required<Quota> {
+function max_quotas(q1: RQuota, q2: RQuota): RQuota {
   return op_quotas(q1, q2, "max");
 }
 
 // this is inplace and also returns the modified quota
-function ensure_minimum<T extends Quota | Required<Quota>>(quota: T): T {
+function ensure_minimum<T extends Quota | RQuota>(
+  quota: T,
+  max_upgrades?: RQuota
+): T {
   // ensure minimum cpu are met
-  cap_lower_bound(quota, "cpu_request", MIN_POSSIBLE_CPU);
+  cap_lower_bound(quota, "cpu_request", MIN_POSSIBLE_CPU, max_upgrades);
 
   // ensure minimum memory request is met
-  cap_lower_bound(quota, "memory_request", MIN_POSSIBLE_MEMORY);
+  cap_lower_bound(quota, "memory_request", MIN_POSSIBLE_MEMORY, max_upgrades);
 
   // ensure minimum memory limit is met
-  cap_lower_bound(quota, "memory_limit", MIN_MEMORY_LIMIT);
+  cap_lower_bound(quota, "memory_limit", MIN_MEMORY_LIMIT, max_upgrades);
 
   return quota;
 }
@@ -400,7 +401,7 @@ function calc_oc({ quota, site_settings }) {
   }
 }
 
-function calc_quota({ quota, contribs, max_upgrades }): Required<Quota> {
+function calc_quota({ quota, contribs, max_upgrades }): RQuota {
   const default_quota = { ...quota };
 
   // limit the contributions by the overall maximum (except for the defaults!)
@@ -417,12 +418,27 @@ function calc_quota({ quota, contribs, max_upgrades }): Required<Quota> {
   //console.log("default_quota", default_quota);
   //console.log("limited", limited);
 
-  return limited as Required<Quota>;
+  return limited as RQuota;
 }
 
-function quota_v2(opts): Quota {
-  let quota = opts.quota as Required<Quota>;
-  const { settings, max_upgrades, users, site_licenses, site_settings } = opts;
+interface OptsV2 {
+  quota: Quota;
+  max_upgrades: RQuota;
+  users: Users;
+  site_licenses?: SiteLicenses;
+  site_settings?: SiteSettingsQuotas;
+  settings: RQuota;
+}
+
+function quota_v2(opts: OptsV2): Quota {
+  let quota = opts.quota as RQuota;
+  const {
+    settings,
+    max_upgrades,
+    users,
+    site_licenses = {},
+    site_settings = {},
+  } = opts;
   //console.log(quota, settings, max_upgrades, users, site_licenses);
 
   // limit the default quota by max upgrades
@@ -431,7 +447,7 @@ function quota_v2(opts): Quota {
   //console.log("quota", quota);
 
   const users_sum = sum_quotas(
-    Object.values(users)
+    ...Object.values(users)
       .filter((v: { upgrades?: Upgrades }) => v?.upgrades != null)
       .map((v: { upgrades: Upgrades }) => upgrade2quota(v.upgrades))
   );
@@ -440,18 +456,21 @@ function quota_v2(opts): Quota {
 
   // v1 of licenses, encoding upgrades directly
   const license_quota_sum = sum_quotas(
-    Object.values(site_licenses).filter(isSettingsQuota).map(upgrade2quota)
+    ...Object.values(site_licenses).filter(isSettingsQuota).map(upgrade2quota)
   );
 
   //console.log("settings", settings);
-  quota = sum_quotas([
-    max_quotas(quota, settings),
-    calc_quota({
-      quota,
-      contribs: sum_quotas([users_sum, license_quota_sum]),
-      max_upgrades,
-    }),
-  ]);
+  quota = ensure_minimum(
+    sum_quotas(
+      max_quotas(quota, settings),
+      calc_quota({
+        quota,
+        contribs: sum_quotas(users_sum, license_quota_sum),
+        max_upgrades,
+      })
+    ),
+    max_upgrades
+  );
 
   //console.log("quota2", quota);
 
@@ -472,10 +491,7 @@ function quota_v2(opts): Quota {
   // console.log("settings", settings);
 
   // max_upgrades (from the site settings) could be *lower* than the ensure minimum values (which are hardcoded)
-  const total = min_quotas(
-    ensure_minimum(max_quotas(quota, settings)),
-    max_upgrades
-  );
+  const total = quota;
 
   //console.log("total", total);
 
@@ -744,7 +760,7 @@ export function site_license_quota(
   const max_upgrades: Upgrades = max_upgrades_param ?? MAX_UPGRADES;
 
   // we start to define a "base" quota, easier to add up everything
-  const total_quota: Required<Quota> = {
+  const total_quota: RQuota = {
     cpu_limit: 0,
     cpu_request: 0,
     memory_limit: 0,
@@ -819,10 +835,7 @@ total_quota =  {            max_upgrades = {
                             }
 */
 
-function limit_quota(
-  total_quota: Required<Quota>,
-  max_upgrades: Upgrades
-): Quota {
+function limit_quota(total_quota: RQuota, max_upgrades: Upgrades): Quota {
   // console.log("total_quota", JSON.stringify(total_quota, null, 2));
   // console.log("max_upgrades", JSON.stringify(max_upgrades, null, 2));
 
@@ -838,9 +851,22 @@ function limit_quota(
 
 // TODO name is <K extends keyof Quota>, but that causes troubles ...
 // at this point we already know that we only look for numeric properties and they're all != null
-function cap_lower_bound(quota: Quota, name: string, MIN_SPEC): void {
-  const cap = quota.member_host ? MIN_SPEC.member : MIN_SPEC.nonmember;
-  quota[name] = Math.max(quota[name], cap);
+function cap_lower_bound(
+  quota: Quota,
+  name: keyof Quota,
+  MIN_SPEC,
+  max_upgrades?: RQuota
+): void {
+  const val = quota[name];
+  if (val != null && typeof val === "number") {
+    let cap = quota.member_host ? MIN_SPEC.member : MIN_SPEC.nonmember;
+    if (max_upgrades != null) {
+      const max = max_upgrades[name];
+      if (typeof max === "number") cap = Math.min(cap, max);
+    }
+    // @ts-ignore
+    quota[name] = Math.max(val, cap);
+  }
 }
 
 function make_number_parser(fn: Str2Num): NumParser {
