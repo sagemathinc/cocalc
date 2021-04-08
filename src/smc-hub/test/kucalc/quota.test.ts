@@ -774,7 +774,7 @@ describe("default quota", () => {
       disk_quota: 512,
       always_running: false,
     });
-  }); // capped hardcoded default by max_upgrades
+  });
 
   it("takes overcommitment ratios into account for user upgrades", () => {
     const site_settings = {

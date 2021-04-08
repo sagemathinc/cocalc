@@ -155,8 +155,8 @@ type SiteLicenses = {
  * max_upgrades: Quota
  */
 interface SiteSettingsQuotas {
-  default_quotas: Partial<SiteSettingsDefaultQuotas>;
-  max_upgrades: Partial<Upgrades>;
+  default_quotas?: Partial<SiteSettingsDefaultQuotas>;
+  max_upgrades?: Partial<Upgrades>;
 }
 
 const ZERO_QUOTA: RQuota = {
@@ -397,24 +397,46 @@ function ensure_minimum<T extends Quota | RQuota>(
 }
 
 // if we have some overcommit ratio set, increase a request after we know the quota
-function calc_oc(quota: RQuota, site_settings?) {
+// important: only for the additional requests cap by an eventually set max_upgrades
+// reg. Math.floor, the earlier implementation somehow implicitly rounded down – can't hurt.
+function calc_oc(
+  quota: RQuota,
+  site_settings?: SiteSettingsQuotas,
+  max_upgrades?: RQuota
+) {
+  function ocfun(
+    quota,
+    ratio,
+    limit: "cpu_limit" | "memory_limit",
+    request: "memory_request" | "cpu_request"
+  ): void {
+    ratio = sanitize_overcommit(ratio);
+    if (ratio != null) {
+      const oc_val = quota[limit] / ratio;
+      let val = Math.max(quota[request], oc_val);
+      if (max_upgrades?.[request] != null) {
+        val = Math.min(val, max_upgrades[request]);
+      }
+      quota[request] = val;
+    }
+  }
+
   if (site_settings?.default_quotas != null) {
     const { mem_oc, cpu_oc } = site_settings.default_quotas;
     if (quota.cpu_limit != null) {
-      const oc = sanitize_overcommit(cpu_oc);
-      if (oc != null) {
-        const oc_cpu = quota.cpu_limit / oc;
-        quota.cpu_request = Math.max(quota.cpu_request, oc_cpu);
-      }
+      ocfun(quota, cpu_oc, "cpu_limit", "cpu_request");
     }
     if (quota.memory_limit != null) {
-      const oc = sanitize_overcommit(mem_oc);
-      if (oc != null) {
-        const oc_mem = Math.round(quota.memory_limit / oc);
-        quota.memory_request = Math.max(quota.memory_request, oc_mem);
-      }
+      ocfun(quota, mem_oc, "memory_limit", "memory_request");
     }
   }
+  return quota;
+}
+
+// earlier implementations somehow implicitly rounded down
+function round_quota(quota: RQuota): RQuota {
+  quota.memory_limit = Math.floor(quota.memory_limit);
+  quota.memory_request = Math.floor(quota.memory_request);
   return quota;
 }
 
@@ -456,20 +478,15 @@ function quota_v2(opts: OptsV2): Quota {
     site_licenses = {},
     site_settings = {},
   } = opts;
-  //console.log(quota, settings, max_upgrades, users, site_licenses);
-
   // limit the default quota by max upgrades
   quota = min_quotas(quota, max_upgrades);
 
-  //console.log("quota", quota);
-
+  // classical upgrades by users
   const users_sum = sum_quotas(
     ...Object.values(users)
       .filter((v: { upgrades?: Upgrades }) => v?.upgrades != null)
       .map((v: { upgrades: Upgrades }) => upgrade2quota(v.upgrades))
   );
-
-  //console.log("users_sum", users_sum);
 
   // v1 of licenses, encoding upgrades directly
   const license_upgrades_sum = sum_quotas(
@@ -483,42 +500,26 @@ function quota_v2(opts: OptsV2): Quota {
       .map((l: SiteLicenseQuotaSetting) => license2quota(l.quota))
   );
 
-  //console.log("settings", settings);
-  quota = ensure_minimum(
-    max_quotas(
-      sum_quotas(
-        max_quotas(quota, settings),
-        calc_quota({
-          quota,
-          contribs: sum_quotas(users_sum, license_upgrades_sum),
-          max_upgrades,
-        })
-      ),
-      min_quotas(license_quota_sum, max_upgrades)
+  return ensure_minimum(
+    round_quota(
+      calc_oc(
+        max_quotas(
+          sum_quotas(
+            max_quotas(quota, settings),
+            calc_quota({
+              quota,
+              contribs: sum_quotas(users_sum, license_upgrades_sum),
+              max_upgrades,
+            })
+          ),
+          min_quotas(license_quota_sum, max_upgrades)
+        ),
+        site_settings,
+        max_upgrades
+      )
     ),
     max_upgrades
   );
-
-  //console.log("quota2", quota);
-
-  // earlier implementations somehow implicitly rounded down
-  quota.memory_limit = Math.floor(quota.memory_limit);
-  quota.memory_request = Math.floor(quota.memory_request);
-
-  //for (const [k, v] of Object.entries(ZERO_QUOTA)) {
-  //  if (typeof v === "boolean") {
-  //  } else {
-  //  }
-  //}
-
-  // console.log("settings", settings);
-
-  // max_upgrades (from the site settings) could be *lower* than the ensure minimum values (which are hardcoded)
-  const total = calc_oc(quota, site_settings);
-
-  //console.log("total", total);
-
-  return total;
 }
 
 export function quota(
