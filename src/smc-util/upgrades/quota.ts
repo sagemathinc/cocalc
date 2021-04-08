@@ -397,7 +397,7 @@ function ensure_minimum<T extends Quota | RQuota>(
 }
 
 // if we have some overcommit ratio set, increase a request after we know the quota
-function calc_oc({ quota, site_settings }) {
+function calc_oc(quota: RQuota, site_settings?) {
   if (site_settings?.default_quotas != null) {
     const { mem_oc, cpu_oc } = site_settings.default_quotas;
     if (quota.cpu_limit != null) {
@@ -415,6 +415,7 @@ function calc_oc({ quota, site_settings }) {
       }
     }
   }
+  return quota;
 }
 
 function calc_quota({ quota, contribs, max_upgrades }): RQuota {
@@ -504,10 +505,6 @@ function quota_v2(opts: OptsV2): Quota {
   quota.memory_limit = Math.floor(quota.memory_limit);
   quota.memory_request = Math.floor(quota.memory_request);
 
-  calc_oc({ quota, site_settings });
-
-  //console.log("calc_oc", quota);
-
   //for (const [k, v] of Object.entries(ZERO_QUOTA)) {
   //  if (typeof v === "boolean") {
   //  } else {
@@ -517,7 +514,7 @@ function quota_v2(opts: OptsV2): Quota {
   // console.log("settings", settings);
 
   // max_upgrades (from the site settings) could be *lower* than the ensure minimum values (which are hardcoded)
-  const total = quota;
+  const total = calc_oc(quota, site_settings);
 
   //console.log("total", total);
 

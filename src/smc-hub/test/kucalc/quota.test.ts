@@ -648,7 +648,7 @@ describe("default quota", () => {
         network: false,
         disk_quota: 333,
         mintime: 999,
-        cpu_shares: 1,
+        cpu_shares: 64,
         cores: 0.44,
         memory_request: 1,
         memory_limit: 555,
@@ -666,15 +666,15 @@ describe("default quota", () => {
 
     const q1 = quota({}, over_max, undefined, site_settings);
     expect(q1).toEqual({
-      network: false, // user upgrade not allowed
-      member_host: false, // user upgrade not allowed
-      memory_request: 200, // lower cap is 200
-      memory_limit: 1000, // should be 555, but global minimum trump this
-      cpu_request: 0.02, // lower cap is 0.02
-      cpu_limit: 0.44,
+      network: false,
+      member_host: false,
       privileged: false,
-      idle_timeout: 999,
+      memory_request: 1, // below minimum cap, because max_upgrades in settings are stronger than hardcoded vals
+      cpu_request: 0.02,
       disk_quota: 333,
+      memory_limit: 1000,
+      cpu_limit: 0.44, // below minimum cap, because max_upgrades in settings are stronger than hardcoded vals
+      idle_timeout: 999,
       always_running: false,
     });
   });
@@ -697,6 +697,7 @@ describe("default quota", () => {
       },
     };
 
+    // capped hardcoded default by max_upgrades
     const q1 = quota({}, { userX: {} }, undefined, site_settings);
     expect(q1).toEqual({
       network: true,
@@ -710,7 +711,7 @@ describe("default quota", () => {
       disk_quota: 512,
       always_running: false,
     });
-  }); // capped hardcoded default by max_upgrades
+  });
 
   it("site_settings default_quotas and max_upgrades/2", () => {
     const site_settings = {
