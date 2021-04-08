@@ -357,16 +357,16 @@ function op_quotas(
   return q as Required<Quota>;
 }
 
-//function min_quotas(q1: Required<Quota>, q2: Required<Quota>): Required<Quota> {
-//  return op_quotas(q1, q2, "min");
-//}
+function min_quotas(q1: Required<Quota>, q2: Required<Quota>): Required<Quota> {
+  return op_quotas(q1, q2, "min");
+}
 
 function max_quotas(q1: Required<Quota>, q2: Required<Quota>): Required<Quota> {
   return op_quotas(q1, q2, "max");
 }
 
 // this is inplace and also returns the modified quota
-function ensure_minimum(quota): Quota {
+function ensure_minimum<T extends Quota | Required<Quota>>(quota: T): T {
   // ensure minimum cpu are met
   cap_lower_bound(quota, "cpu_request", MIN_POSSIBLE_CPU);
 
@@ -400,31 +400,24 @@ function calc_oc({ quota, site_settings }) {
   }
 }
 
-function contribs_limited(
-  default_quota: Quota,
-  contribs: Quota,
-  max_upgrades: Quota
-): Required<Quota> {
-  const ret: Quota = {};
-  for (const [k, v] of Object.entries(ZERO_QUOTA)) {
-    if (typeof v === "boolean") {
-      ret[k] = max_upgrades[k] ? default_quota[k] || contribs[k] : false;
-    } else {
-      const limit = Math.max(0, max_upgrades[k] - default_quota[k]);
-      ret[k] = Math.min(contribs[k], limit);
-    }
-  }
-  return ret as Required<Quota>;
-}
-
 function calc_quota({ quota, contribs, max_upgrades }): Required<Quota> {
   const default_quota = { ...quota };
+
   // limit the contributions by the overall maximum (except for the defaults!)
-  const limited = contribs_limited(default_quota, contribs, max_upgrades);
+  const limited: Quota = {};
+  for (const [k, v] of Object.entries(ZERO_QUOTA)) {
+    if (typeof v === "boolean") {
+      limited[k] = max_upgrades[k] ? default_quota[k] || contribs[k] : false;
+    } else {
+      const limit = Math.max(0, max_upgrades[k] - default_quota[k]);
+      limited[k] = Math.min(contribs[k], limit);
+    }
+  }
 
   //console.log("default_quota", default_quota);
   //console.log("limited", limited);
-  return limited;
+
+  return limited as Required<Quota>;
 }
 
 function quota_v2(opts): Quota {
@@ -432,11 +425,18 @@ function quota_v2(opts): Quota {
   const { settings, max_upgrades, users, site_licenses, site_settings } = opts;
   //console.log(quota, settings, max_upgrades, users, site_licenses);
 
+  // limit the default quota by max upgrades
+  quota = min_quotas(quota, max_upgrades);
+
+  //console.log("quota", quota);
+
   const users_sum = sum_quotas(
     Object.values(users)
       .filter((v: { upgrades?: Upgrades }) => v?.upgrades != null)
       .map((v: { upgrades: Upgrades }) => upgrade2quota(v.upgrades))
   );
+
+  //console.log("users_sum", users_sum);
 
   // v1 of licenses, encoding upgrades directly
   const license_quota_sum = sum_quotas(
@@ -453,29 +453,15 @@ function quota_v2(opts): Quota {
     }),
   ]);
 
+  //console.log("quota2", quota);
+
   // earlier implementations somehow implicitly rounded down
   quota.memory_limit = Math.floor(quota.memory_limit);
   quota.memory_request = Math.floor(quota.memory_request);
 
   calc_oc({ quota, site_settings });
 
-  //console.log("sum_quotas", quota);
-
-  //const total = ensure_minimum(
-  //    min_quotas(
-  //      upgrade2quota(max_upgrades),
-  //      sum_quotas([quota, users_sum, licenses_sum])
-  //    )
-  //  )
-  //);
-
-  // const contribs = contribs_limit(
-  //   quota,
-  //   sum_quotas([users_sum, licenses_sum]),
-  //   upgrade2quota(max_upgrades)
-  // );
-  //
-  // calc_oc({ quota: sum_quotas([quota, contribs]), site_settings });
+  //console.log("calc_oc", quota);
 
   //for (const [k, v] of Object.entries(ZERO_QUOTA)) {
   //  if (typeof v === "boolean") {
@@ -483,7 +469,16 @@ function quota_v2(opts): Quota {
   //  }
   //}
 
-  const total = ensure_minimum(max_quotas(quota, settings));
+  // console.log("settings", settings);
+
+  // max_upgrades (from the site settings) could be *lower* than the ensure minimum values (which are hardcoded)
+  const total = min_quotas(
+    ensure_minimum(max_quotas(quota, settings)),
+    max_upgrades
+  );
+
+  //console.log("total", total);
+
   return total;
 }
 

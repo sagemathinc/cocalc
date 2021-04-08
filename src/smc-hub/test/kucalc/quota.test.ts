@@ -380,7 +380,7 @@ describe("default quota", () => {
     const site_settings = {
       max_upgrades: {
         member_host: 0,
-        disk_quota: 616,
+        disk_quota: 616, // only disk quota is below the hardcoded default
         memory: 1515,
         mintime: 4345,
         memory_request: 505,
@@ -415,6 +415,53 @@ describe("default quota", () => {
       memory_request: 505,
       network: true,
       privileged: false,
+      always_running: false,
+    });
+  });
+
+  it("respect different (lower) max_upgrades /2", () => {
+    // here, we go well below the default everywhere
+    const site_settings = {
+      max_upgrades: {
+        member_host: 0,
+        network: 0,
+        always_running: 0,
+        disk_quota: 616,
+        memory: 512,
+        mintime: 300,
+        memory_request: 64,
+        cores: 0.5,
+        cpu_shares: 256,
+      },
+    };
+
+    const over_max = {
+      user2: {
+        upgrades: {
+          network: 2,
+          member_host: 3,
+          always_running: 4,
+          disk_quota: 32000, // max 20gb
+          memory: 20000, // max 16gb
+          mintime: 24 * 3600 * 100, // max 90 days
+          memory_request: 10000, // max 8gb
+          cores: 7, // max 3
+          cpu_shares: 1024 * 4,
+        },
+      },
+    };
+
+    const maxedout = quota({}, over_max, undefined, site_settings);
+    expect(maxedout).toEqual({
+      network: false,
+      member_host: false,
+      privileged: false,
+      memory_request: 64,
+      cpu_request: 0.25,
+      disk_quota: 616,
+      memory_limit: 512,
+      cpu_limit: 0.5,
+      idle_timeout: 300,
       always_running: false,
     });
   });
