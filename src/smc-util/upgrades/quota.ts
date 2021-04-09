@@ -294,8 +294,10 @@ function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
 
   // selection -- always_running comes first, then member hosting
   const selected = (function () {
-    for (const ar of ["1", "0"]) { // always running
-      for (const mh of ["1", "0"]) { // member hosting
+    for (const ar of ["1", "0"]) {
+      // always running
+      for (const mh of ["1", "0"]) {
+        // member hosting
         const k = `${mh}-${ar}`;
         if (groups[k].length > 0) {
           return groups[k];
@@ -313,8 +315,10 @@ function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
 // there is an old schema, inherited from SageMathCloud, etc. and newer iterations.
 // this helps by going from one schema to the newer one
 function upgrade2quota(up: Partial<Upgrades>): RQuota {
-  const dflt_false = (x) => (x != null ? x >= 1 : false);
-  const dflt_num = (x) => (x != null ? x : 0);
+  const dflt_false = (x) =>
+    x != null ? (typeof x === "boolean" ? x : to_int(x) >= 1) : false;
+  const dflt_num = (x) =>
+    x != null ? (typeof x === "number" ? x : to_float(x)) : 0;
   return {
     network: dflt_false(up.network),
     member_host: dflt_false(up.member_host),
@@ -722,4 +726,4 @@ function make_number_parser(fn: Str2Num): NumParser {
 
 const to_int: NumParser = make_number_parser(parseInt);
 
-//const to_float: NumParser = make_number_parser(parseFloat);
+const to_float: NumParser = make_number_parser(parseFloat);

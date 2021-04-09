@@ -281,6 +281,31 @@ describe("default quota", () => {
     expect(quota(settings, users)).toEqual(exp);
   });
 
+  it("sanitizes admin upgrades", () => {
+    const settings = {
+      memory: "5000", // some are strings
+      disk_quota: "3210", // we do know this could be a strings
+      mintime: "3600",
+      network: "1",
+      cores: "1.5",
+      member_host: "1",
+      always_running: "0",
+      memory_request: "512",
+    };
+    expect(quota(settings)).toEqual({
+      always_running: false,
+      cpu_limit: 1.5,
+      cpu_request: 0.05, // due to member hosting minimum
+      disk_quota: 3210,
+      idle_timeout: 3600,
+      member_host: true,
+      memory_limit: 5000,
+      memory_request: 512,
+      network: true,
+      privileged: false,
+    });
+  });
+
   it("does not allow privileged updates for users", () => {
     const users = { user1: { upgrades: { privileged: 1 } } };
     const q = quota({}, users);
@@ -917,6 +942,31 @@ describe("default quota", () => {
     expect(q1.always_running).toBe(true);
     expect(q1.privileged).toBe(false);
     expect(q1.network).toBe(true);
+  });
+
+  it("site_license basic update as expected", () => {
+    const site_license = {
+      "1234-5432-3456-7654": {
+        ram: 1,
+        cpu: 1,
+        disk: 3,
+        member: true,
+      },
+    };
+    const q = quota({}, {}, site_license);
+    expect(q.idle_timeout).toBe(1800);
+    expect(q).toEqual({
+      idle_timeout: 1800,
+      member_host: false,
+      always_running: false,
+      cpu_limit: 1,
+      cpu_request: 0.02,
+      disk_quota: 3000,
+      memory_limit: 1000,
+      memory_request: 200,
+      network: false,
+      privileged: false,
+    });
   });
 
   it("site_license always_running do not mix", () => {
