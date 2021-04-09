@@ -33,7 +33,10 @@ export const TableOfContents: React.FC<Props> = React.memo(
       value: string,
       icon: string
     ): JSX.Element {
-      const style = { marginTop: 0 };
+      if (level < 1) level = 1;
+      if (level > 6) level = 6;
+      const fontSize = `${1 + (7 - level) / 6}em`;
+      const style = { marginTop: 0, fontSize, whiteSpace:'nowrap' } as CSS;
       const elt = (
         <>
           <Icon
@@ -45,27 +48,14 @@ export const TableOfContents: React.FC<Props> = React.memo(
           </a>
         </>
       );
+
       // NOTE: the weird style for the a above is so the markdown
       // paragraph wrapper doesn't end up on a new line; it also removes
       // the extra 1em space at the bottom of that paragraph.   We could
       // redo this more cleanly by possibly using a special markdown
       // component that omits that top-level paragraph wrapping (and uses
       // react/slate?).
-
-      switch (level) {
-        case 1:
-          return <h1 style={style}>{elt}</h1>;
-        case 2:
-          return <h2 style={style}>{elt}</h2>;
-        case 3:
-          return <h3 style={style}>{elt}</h3>;
-        case 4:
-          return <h4 style={style}>{elt}</h4>;
-        case 5:
-          return <h5 style={style}>{elt}</h5>;
-        default:
-          return <h6 style={style}>{elt}</h6>;
-      }
+      return <div style={style}>{elt}</div>;
     }
 
     if (contents == null) {
