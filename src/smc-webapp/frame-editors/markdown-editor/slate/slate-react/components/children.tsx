@@ -66,10 +66,28 @@ const Children: React.FC<Props> = React.memo(
       Editor.hasInlines(editor, node);
 
     const renderChild = ({ index }) => {
+      // When windowing, we put a margin at the top of the first cell
+      // and the bottom of the last cell.  This makes sure the scroll
+      // bar looks right, which it would not if we put a margin around
+      // the entire list.
+      let marginTop: string | undefined = undefined;
+      let marginBottom: string | undefined = undefined;
+      if (path?.length === 0 && windowing != null) {
+        if (index === 0) {
+          marginTop = "60px";
+        } else if (index + 1 === node?.children?.length) {
+          marginBottom = "60px";
+        }
+      }
       if (hiddenChildren?.has(index)) {
         // TRICK: We use a small positive height since a height of 0 gets ignored, as it often
         // appears when scrolling and allowing that breaks everything (for now!).
-        return <div style={{ height: "0.1px" }} contentEditable={false} />;
+        return (
+          <div
+            style={{ height: "0.1px", marginTop, marginBottom }}
+            contentEditable={false}
+          />
+        );
       }
       const n = node.children[index] as Descendant;
       const key = ReactEditor.findKey(editor, n);
@@ -91,7 +109,7 @@ const Children: React.FC<Props> = React.memo(
       }
 
       if (Element.isElement(n)) {
-        return (
+        const x = (
           <ElementComponent
             decorations={ds}
             element={n}
@@ -103,6 +121,11 @@ const Children: React.FC<Props> = React.memo(
             }
           />
         );
+        if (marginTop || marginBottom) {
+          return <div style={{ marginTop, marginBottom }}>{x}</div>;
+        } else {
+          return x;
+        }
       } else {
         return (
           <TextComponent
