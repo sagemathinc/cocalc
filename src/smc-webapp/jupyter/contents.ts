@@ -13,7 +13,7 @@ export interface TableOfContentsInfo {
   id: string;
   level: number;
   value: string;
-  icon: string;
+  icon?: string;
   number?: number[];
   align: "center" | "top";
 }
@@ -86,7 +86,6 @@ export function parse_headings(
         id,
         level,
         value,
-        icon: "minus",
         number: section_counter.slice(0, level),
         align: "top",
       });

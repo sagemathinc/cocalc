@@ -31,22 +31,34 @@ export const TableOfContents: React.FC<Props> = React.memo(
     function renderHeader(
       level: 1 | 2 | 3 | 4 | 5 | 6,
       value: string,
-      icon: string
+      icon: string | undefined
     ): JSX.Element {
       if (level < 1) level = 1;
       if (level > 6) level = 6;
       const fontSize = `${1 + (7 - level) / 6}em`;
-      const style = { marginTop: 0, fontSize, whiteSpace:'nowrap' } as CSS;
-      const elt = (
-        <>
-          <Icon
-            name={icon}
-            style={{ width: "30px", display: "inline-block" }}
-          />{" "}
+      return (
+        <div
+          style={{
+            marginTop: level == 1 ? "1em" : level == 2 ? "0.5em" : undefined,
+            fontSize,
+            whiteSpace: "nowrap",
+            fontWeight: level == 1 ? "bold" : undefined,
+          }}
+        >
+          <span
+            style={{
+              width: level == 1 ? "35px" : level == 2 ? "50px" : "65px",
+              display: "inline-block",
+            }}
+          >
+            {icon && (
+              <Icon name={icon} style={{ marginLeft: "10px", color: "#666" }} />
+            )}
+          </span>
           <a style={{ display: "inline-block", marginBottom: "-1em" }}>
-            <Markdown value={value} />
+            <Markdown value={"&nbsp;" + value} />
           </a>
-        </>
+        </div>
       );
 
       // NOTE: the weird style for the a above is so the markdown
@@ -55,7 +67,6 @@ export const TableOfContents: React.FC<Props> = React.memo(
       // redo this more cleanly by possibly using a special markdown
       // component that omits that top-level paragraph wrapping (and uses
       // react/slate?).
-      return <div style={style}>{elt}</div>;
     }
 
     if (contents == null) {
@@ -74,14 +85,9 @@ export const TableOfContents: React.FC<Props> = React.memo(
           onClick={scrollTo != null ? () => scrollTo(entry.toJS()) : undefined}
           style={{
             cursor: "pointer",
-            paddingLeft: `${entry.get("level", 1) * 2}em`,
           }}
         >
-          {renderHeader(
-            entry.get("level", 1),
-            value,
-            entry.get("icon", "minus")
-          )}
+          {renderHeader(entry.get("level", 1), value, entry.get("icon"))}
         </div>
       );
     }
