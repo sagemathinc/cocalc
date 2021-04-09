@@ -12,6 +12,7 @@ import { Checkbox } from "../../antd-bootstrap";
 const EDITOR_SETTINGS_CHECKBOXES: { [setting: string]: string | Rendered } = {
   line_wrapping: "wrap long lines",
   line_numbers: "show line numbers",
+  jupyter_line_numbers: "show line numbers in Jupyter notebooks",
   code_folding: "fold code using control+Q",
   smart_indent: "context sensitive indentation",
   electric_chars: "sometimes reindent current line",
