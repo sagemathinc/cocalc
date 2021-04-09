@@ -442,7 +442,7 @@ function calc_oc(
   return quota;
 }
 
-// earlier implementations somehow implicitly rounded down
+// the earlier implementation somehow implicitly rounded down
 function round_quota(quota: RQuota): RQuota {
   quota.memory_limit = Math.floor(quota.memory_limit);
   quota.memory_request = Math.floor(quota.memory_request);
@@ -451,7 +451,7 @@ function round_quota(quota: RQuota): RQuota {
 
 // calculate how much users can contribute with their upgades
 function calc_quota({ quota, contribs, max_upgrades }): RQuota {
-  const default_quota = { ...quota };
+  const default_quota: RQuota = { ...quota };
 
   // limit the contributions by the overall maximum (except for the defaults!)
   const limited: Quota = {};
@@ -507,6 +507,10 @@ function quota_v2(opts: OptsV2): Quota {
       .map((l: SiteLicenseQuotaSetting) => license2quota(l.quota))
   );
 
+  // the main idea is old upgrades and licenses quotas only complement each other – not add up.
+  // the "settings" object is the "admin upgrade", which isn't capped by the maximum.
+  // calc_quota is limited by what's left up until the maximum. also, the previous implementation
+  // did add up the deprecated license upgrades as if they were normal user upgrades.
   return ensure_minimum(
     round_quota(
       calc_oc(

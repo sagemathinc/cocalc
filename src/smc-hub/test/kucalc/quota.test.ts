@@ -969,6 +969,45 @@ describe("default quota", () => {
     });
   });
 
+  it("site_license 'complements' user upgrades", () => {
+    const site_license = {
+      "1234-5432-3456-7654": {
+        quota: {
+          ram: 2,
+          cpu: 1.5,
+          disk: 5,
+          member: true,
+        },
+      },
+    };
+    const users = {
+      user1: {
+        upgrades: {
+          member_host: false,
+          network: true,
+          memory_request: 1234,
+          memory: 2345,
+          mintime: 24 * 3600 * 50,
+        },
+      },
+    };
+    const q = quota({}, users, site_license);
+    // user quota + basic upgrade
+    expect(q.idle_timeout).toBe(24 * 3600 * 50 + 1800);
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 1.5, // license
+      cpu_request: 0.05, // implied by license member hosting
+      disk_quota: 5000, // license
+      idle_timeout: 4321800, // upgrade
+      member_host: true, // license
+      memory_limit: 2345 + 1000, // upgrade + base
+      memory_request: 1234, // upgrade
+      network: true, // both
+      privileged: false,
+    });
+  });
+
   it("site_license always_running do not mix", () => {
     const site_license = {
       a: {
