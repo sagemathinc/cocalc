@@ -8,6 +8,8 @@
     - settings:
         - by admins
         - system-wide customizable site defaults
+        - overcommit ratios
+        - maximum overall limits
     - old plans:
         - upgrades coming from about-to-be-deprecated subscriptions and course packages
     - site licenses:
@@ -27,6 +29,9 @@ including network automatically, but capping them at whatever maxes we've define
 Then final quota is the *max* of these two along each parameter.  Old and
 new don't add, but of course multiple SiteLicenseQuota do add (since their
 costs add).
+
+2021-04-08: a messy "version 1" patchwork code was replaced by a cleaner implementation.
+            see rev 19967bb82083b398 for the previous code.
 */
 
 // TODO: relative path just needed in manage-*
@@ -66,8 +71,8 @@ const MIN_MEMORY_LIMIT: Limit = Object.freeze({
   nonmember: DEFAULT_QUOTAS.memory,
 });
 
-type NumParser = (s: string | undefined) => number;
-type Str2Num = (s: string) => number;
+type NumParser = (s: string | number | undefined) => number;
+type Str2Num = (s: string | number) => number;
 
 // the end result
 interface Quota {
@@ -195,8 +200,7 @@ function sanitize_overcommit(oc: number | undefined): number | undefined {
   return undefined;
 }
 
-// {"cfb75fa5-3dd8-4c8d-aa8f-0a91275019e5": {"quota": {"cpu": 1, "ram": 1, "disk": 1, "user": "academic", "member": true, "always_running": false}}}
-
+// the quota calculation starts with certain base quotas, which could be modified by the site_settings
 function calc_default_quotas(site_settings?: SiteSettingsQuotas): Quota {
   const quota: Quota = { ...BASE_QUOTAS };
 
@@ -259,7 +263,7 @@ function isSettingsQuota(slq?: QuotaSetting): slq is Upgrades {
 }
 
 // some site licenses do not mix.
-// e.g. always running true can't upgrade another (especially large) one not having always running set.
+// e.g. always_running==true can't upgrade another (especially large) one not having always_running set.
 // also preempt upgrades shouldn't uprade member hosting upgades.
 //
 // this heuristic groups all licenses by always_running and member hosting, and then picks the first nonempty group.
@@ -290,8 +294,8 @@ function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
 
   // selection -- always_running comes first, then member hosting
   const selected = (function () {
-    for (const ar of ["1", "0"]) {
-      for (const mh of ["1", "0"]) {
+    for (const ar of ["1", "0"]) { // always running
+      for (const mh of ["1", "0"]) { // member hosting
         const k = `${mh}-${ar}`;
         if (groups[k].length > 0) {
           return groups[k];
@@ -341,7 +345,7 @@ function license2quota(q: Partial<SiteLicenseQuota>): RQuota {
   };
 }
 
-// this is summing up a list of quotas, where we assume they're all defined!
+// this is summing up several quotas, where we assume they're all fully defined!
 function sum_quotas(...quotas: RQuota[]): RQuota {
   const sum = { ...ZERO_QUOTA };
   if (quotas == null || quotas.length == 0) return sum;
@@ -358,6 +362,7 @@ function sum_quotas(...quotas: RQuota[]): RQuota {
   return sum;
 }
 
+// operator for combining two quotas
 function op_quotas(q1: RQuota, q2: RQuota, op: "min" | "max"): RQuota {
   const q: Quota = {};
   for (const [k, v] of Object.entries(ZERO_QUOTA)) {
@@ -379,7 +384,8 @@ function max_quotas(q1: RQuota, q2: RQuota): RQuota {
   return op_quotas(q1, q2, "max");
 }
 
-// this is inplace and also returns the modified quota
+// we make sure no matter what, there are certain minimums being set
+// still, max upgrades cap those hardcoded minimums
 function ensure_minimum<T extends Quota | RQuota>(
   quota: T,
   max_upgrades?: RQuota
@@ -397,8 +403,7 @@ function ensure_minimum<T extends Quota | RQuota>(
 }
 
 // if we have some overcommit ratio set, increase a request after we know the quota
-// important: only for the additional requests cap by an eventually set max_upgrades
-// reg. Math.floor, the earlier implementation somehow implicitly rounded down – can't hurt.
+// important: the additional requests are capped by an eventually set max_upgrades!
 function calc_oc(
   quota: RQuota,
   site_settings?: SiteSettingsQuotas,
@@ -440,6 +445,7 @@ function round_quota(quota: RQuota): RQuota {
   return quota;
 }
 
+// calculate how much users can contribute with their upgades
 function calc_quota({ quota, contribs, max_upgrades }): RQuota {
   const default_quota = { ...quota };
 
@@ -453,10 +459,7 @@ function calc_quota({ quota, contribs, max_upgrades }): RQuota {
       limited[k] = Math.min(contribs[k], limit);
     }
   }
-
-  //console.log("default_quota", default_quota);
-  //console.log("limited", limited);
-
+  // here we know all fields of the quota are defined
   return limited as RQuota;
 }
 
@@ -522,6 +525,7 @@ function quota_v2(opts: OptsV2): Quota {
   );
 }
 
+// this is the main function – used by backend services to calculate the run quota of a given project
 export function quota(
   settings_arg?: Settings,
   users_arg?: Users,
@@ -544,7 +548,7 @@ export function quota(
   site_settings = Object.freeze(site_settings);
 
   // new quota object, we modify it in-place below and return it.
-  const quota: Quota = calc_default_quotas(site_settings);
+  let quota: Quota = calc_default_quotas(site_settings);
 
   // site settings max quotas overwrite the hardcoded values
   const max_upgrades: Upgrades = Object.freeze({
@@ -555,207 +559,17 @@ export function quota(
   // we might not consider all of them!
   site_licenses = Object.freeze(select_site_licenses(site_licenses));
 
-  if (process.env.v2) {
-    return quota_v2({
-      quota,
-      settings: upgrade2quota(settings),
-      max_upgrades: upgrade2quota(max_upgrades),
-      users,
-      site_licenses,
-      site_settings,
-    });
-  }
-
-  // network access
-  if (max_upgrades.network == 0) {
-    quota.network = false;
-  } else if (!quota.network) {
-    if (settings.network) {
-      // free admin-set
-      quota.network = true;
-    } else {
-      // paid by some user
-      for (const userid in users) {
-        const val = users[userid];
-        if (val?.upgrades?.network) {
-          quota.network = true;
-          break;
-        }
-      }
-      // or some site license
-      if (!quota.network && site_licenses != null) {
-        for (const license_id in site_licenses) {
-          const val = site_licenses[license_id];
-          if (isSettingsQuota(val) && val.network) {
-            quota.network = true;
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  // member hosting, which translates to better hosting conditions of the project
-  if (max_upgrades.member_host == 0) {
-    quota.member_host = false;
-  } else if (!quota.member_host) {
-    if (settings.member_host) {
-      // free admin-set
-      quota.member_host = true;
-    } else {
-      // paid by some user
-      for (const userid in users) {
-        const val = users[userid];
-        if (val?.upgrades?.member_host) {
-          quota.member_host = true;
-          break;
-        }
-      }
-      // or some site license
-      if (!quota.member_host && site_licenses != null) {
-        for (const license_id in site_licenses) {
-          const val = site_licenses[license_id];
-          if (isSettingsQuota(val) && val.member_host) {
-            quota.member_host = true;
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  // always_running – deal with it just like with member_hosting
-  if (max_upgrades.always_running == 0) {
-    quota.always_running = false;
-  } else if (!quota.always_running) {
-    if (settings.always_running) {
-      // free admin-set
-      quota.always_running = true;
-    } else {
-      // paid by some user
-      for (const userid in users) {
-        const val = users[userid];
-        if (val?.upgrades?.always_running) {
-          quota.always_running = true;
-          break;
-        }
-      }
-      // or some site license
-      if (!quota.always_running && site_licenses != null) {
-        for (const license_id in site_licenses) {
-          const val = site_licenses[license_id];
-          if (isSettingsQuota(val) && val.always_running) {
-            quota.always_running = true;
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  // elevated quota for docker container (fuse mounting and maybe more ...).
-  // This is only used for a few projects mainly by William Stein.
-  // this is not available for general users.
-  if (settings.privileged) {
-    quota.privileged = true;
-  }
-
-  // Little helper to calculate the quotas, contributions, and limits.
-  // name: of the computed quota, upgrade the quota config key,
-  // parse_num for converting numbers, and factor for conversions
-  // this takes license upgrades into account, but not the "site license" quotas
-  function calc(
-    name: string, // keyof Quota, but only the numeric ones
-    upgrade: string, // keyof Settings, but only the numeric ones
-    parse_num: NumParser,
-    factor?: number
-  ): void {
-    if (factor == null) factor = 1;
-
-    const default_quota = quota[name];
-
-    let base: number;
-    // there are no limits to settings "admin" upgrades
-    if (settings[upgrade]) {
-      base = factor * parse_num(settings[upgrade]);
-    } else {
-      base = Math.min(quota[name], factor * max_upgrades[upgrade]);
-    }
-
-    // contributions can come from user upgrades or site licenses
-    let contribs = 0;
-    for (const userid in users) {
-      const val = users[userid];
-      const num = val != null && val.upgrades && val.upgrades[upgrade];
-      contribs += factor * parse_num(num);
-    }
-    if (site_licenses != null) {
-      for (const license_id in site_licenses) {
-        const val = site_licenses[license_id];
-        const num = val != null && val[upgrade];
-        contribs += factor * parse_num(num);
-      }
-    }
-    // if we have some overcommit ratio set, increase a request
-    if (site_settings?.default_quotas != null) {
-      const { mem_oc, cpu_oc } = site_settings.default_quotas;
-      if (name == "cpu_request" && quota.cpu_limit != null) {
-        const oc = sanitize_overcommit(cpu_oc);
-        if (oc != null) {
-          const oc_cpu = quota.cpu_limit / oc;
-          contribs = Math.max(contribs, oc_cpu - base);
-        }
-      } else if (name == "memory_request" && quota.memory_limit != null) {
-        const oc = sanitize_overcommit(mem_oc);
-        if (oc != null) {
-          const oc_mem = Math.round(quota.memory_limit / oc);
-          contribs = Math.max(contribs, oc_mem - base);
-        }
-      }
-    }
-    // limit the contributions by the overall maximum (except for the defaults!)
-    const contribs_limit = Math.max(
-      0,
-      factor * max_upgrades[upgrade] - default_quota
-    );
-    contribs = Math.min(contribs, contribs_limit);
-
-    // base is the default or the modified admin upgrades
-    //console.log("calc", "name=" + name, base, contribs);
-    quota[name] = base + contribs;
-  }
-
-  // disk space quota in MB
-  calc("disk_quota", "disk_quota", to_int, undefined);
-
-  // memory limit
-  calc("memory_limit", "memory", to_int, undefined);
-
-  // idle timeout: not used for setting up the project quotas, but necessary
-  // to know for precise scheduling on nodes
-  calc("idle_timeout", "mintime", to_int, undefined);
-
-  // memory request -- must come AFTER memory_limit calculation
-  calc("memory_request", "memory_request", to_int, undefined);
-
-  // "cores" is the hard upper bound the project container should get
-  calc("cpu_limit", "cores", to_float, undefined);
-
-  // cpu_shares is the minimum cpu usage to request -- must come AFTER cpu_limit calculation
-  calc("cpu_request", "cpu_shares", to_float, 1 / 1024);
-
-  if (site_licenses != null) {
-    // If there is new license.quota, compute it and max with it.
-    const license_quota = site_license_quota(site_licenses, max_upgrades);
-    max_quota(quota, license_quota);
-  }
-
-  // Finally apply all caps and also compute cpu_request in terms of cpu_shares.
-  ensure_minimum(quota);
-
-  return quota;
+  return quota_v2({
+    quota,
+    settings: upgrade2quota(settings),
+    max_upgrades: upgrade2quota(max_upgrades),
+    users,
+    site_licenses,
+    site_settings,
+  });
 }
 
+// this is used by webapp, not part of this quota calculation, and also not tested
 export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
   for (const field in license_quota) {
     if (license_quota[field] == null) continue;
@@ -774,6 +588,8 @@ export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
 // to combine memory upgades of member hosting with preempt hosting, or add a small
 // always_running license on top of a cheaper but larger member hosting license.
 // @see select_site_licenses
+//
+// this is only used by webapp, not this quota function, and also not tested
 export function site_license_quota(
   site_licenses: SiteLicenses,
   max_upgrades_param?: Upgrades
@@ -834,8 +650,6 @@ export function site_license_quota(
     }
   }
 
-  // console.log("total_quota", JSON.stringify(total_quota, null, 2));
-
   const ret = limit_quota(total_quota, max_upgrades);
   //console.log("total_quota_limited", JSON.stringify(ret, null, 2));
   return ret;
@@ -860,9 +674,6 @@ total_quota =  {            max_upgrades = {
 */
 
 function limit_quota(total_quota: RQuota, max_upgrades: Upgrades): Quota {
-  // console.log("total_quota", JSON.stringify(total_quota, null, 2));
-  // console.log("max_upgrades", JSON.stringify(max_upgrades, null, 2));
-
   for (const [key, val] of Object.entries(upgrade2quota(max_upgrades))) {
     if (typeof val === "boolean") {
       total_quota[key] &&= val;
@@ -882,7 +693,7 @@ function cap_lower_bound(
   max_upgrades?: RQuota
 ): void {
   const val = quota[name];
-  if (val != null && typeof val === "number") {
+  if (typeof val === "number") {
     let cap = quota.member_host ? MIN_SPEC.member : MIN_SPEC.nonmember;
     if (max_upgrades != null) {
       const max = max_upgrades[name];
@@ -894,7 +705,7 @@ function cap_lower_bound(
 }
 
 function make_number_parser(fn: Str2Num): NumParser {
-  return (s: string | undefined): number => {
+  return (s: string | number | undefined): number => {
     if (s == null) return 0;
     try {
       const n = fn(s);
@@ -911,4 +722,4 @@ function make_number_parser(fn: Str2Num): NumParser {
 
 const to_int: NumParser = make_number_parser(parseInt);
 
-const to_float: NumParser = make_number_parser(parseFloat);
+//const to_float: NumParser = make_number_parser(parseFloat);
