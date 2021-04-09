@@ -116,6 +116,7 @@ export class Actions extends BaseActions<LeanEditorState> {
   }
 
   handle_data_from_channel(x: object): void {
+    if (this._state === "closed") return;
     this.data_queue.push(x);
     this.debounced_process_data_queue();
   }
