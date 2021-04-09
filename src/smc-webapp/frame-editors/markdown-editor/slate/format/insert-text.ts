@@ -39,21 +39,37 @@ import { moveCursorToEndOfElement } from "../control";
 import { ReactEditor } from "../slate-react";
 import { SlateEditor } from "../editable-markdown";
 import { formatHeading, setSelectionAndFocus } from "./commands";
+const linkify = require("linkify-it")();
 
 export const withInsertText = (editor) => {
   const { insertText } = editor;
 
   editor.insertText = (text, autoFormat?) => {
+    if (linkify.test(text)) {
+      // inserting a link somehow, e.g., by pasting.  Instead,
+      // create a link node instead of plain text.
+      Transforms.insertNodes(editor, [
+        {
+          type: "link",
+          isInline: true,
+          url: text,
+          children: [{ text}],
+        },
+      ]);
+      return;
+    }
     if (!autoFormat) {
       insertText(text);
       return;
     }
     const { selection } = editor;
 
-    if (text === " " && selection && Range.isCollapsed(selection)) {
-      insertText(text);
-      markdownAutoformat(editor);
-      return;
+    if (selection && Range.isCollapsed(selection)) {
+      if (text === " ") {
+        insertText(text);
+        markdownAutoformat(editor);
+        return;
+      }
     }
     insertText(text);
   };

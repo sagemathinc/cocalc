@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Text } from "slate";
 import { React } from "smc-webapp/app-framework";
 import { register, SlateElement, useProcessLinks } from "./register";
 import { dict } from "smc-util/misc";
@@ -56,6 +57,11 @@ register({
             }}
           >
             {children}
+            {element.children.length == 1 &&
+              Text.isText(element.children[0]) &&
+              !element.children[0].text.trim() && (
+                <span contentEditable={false}>(blank link)</span>
+              )}
           </a>
         </span>
       </span>
@@ -75,7 +81,7 @@ register({
 });
 
 // This is a workaround for https://github.com/ianstormtaylor/slate/issues/3772
-import { Editor, Element, Path, Range, Text, Transforms } from "slate";
+import { Editor, Element, Path, Range, Transforms } from "slate";
 
 export const withInsertBreakHack = (editor) => {
   const { insertBreak } = editor;
