@@ -16,6 +16,8 @@ export interface WindowingParams {
   rowStyle?: React.CSSProperties;
   overscanRowCount?: number;
   estimatedRowSize?: number;
+  marginTop?;
+  marginBottom?;
   rowSizeEstimator?: (Node) => number | undefined;
 }
 
@@ -73,10 +75,13 @@ const Children: React.FC<Props> = React.memo(
       let marginTop: string | undefined = undefined;
       let marginBottom: string | undefined = undefined;
       if (path?.length === 0 && windowing != null) {
-        if (index === 0) {
-          marginTop = "60px";
-        } else if (index + 1 === node?.children?.length) {
-          marginBottom = "60px";
+        if (windowing.marginTop && index === 0) {
+          marginTop = windowing.marginTop;
+        } else if (
+          windowing.marginBottom &&
+          index + 1 === node?.children?.length
+        ) {
+          marginBottom = windowing.marginBottom;
         }
       }
       if (hiddenChildren?.has(index)) {

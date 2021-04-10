@@ -34,6 +34,7 @@ const EXTRA_INFO_STYLE = {
   color: "rgb(102,102,102)",
   borderLeft: "1px solid lightgrey",
   borderBottom: "1px solid lightgrey",
+  boxShadow: "-3px 5px 2px lightgrey",
 } as React.CSSProperties;
 
 interface Options {
@@ -132,7 +133,12 @@ export const useSearch: (Options) => SearchHook = (options) => {
         </div>
         {search.trim() && (
           <div style={EXTRA_INFO_STYLE}>
-            <Replace editor={editor} decorate={decorate} cancel={cancel} search={search} />
+            <Replace
+              editor={editor}
+              decorate={decorate}
+              cancel={cancel}
+              search={search}
+            />
             {!IS_TOUCH && (
               <div style={{ marginLeft: "7px" }}>{keyboardMessage}</div>
             )}
