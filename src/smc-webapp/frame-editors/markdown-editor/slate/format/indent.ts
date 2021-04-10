@@ -43,6 +43,27 @@ export function unindentListItem(editor: Editor): boolean {
     Transforms.unwrapNodes(editor, { at: to });
   });
 
+  // re-indent any extra siblings that we just unintentionally un-indented
+  // Yes, I wish there was a simpler way than this, but fortunately this
+  // is not a speed critical path for anything.
+  // NOTE: this does not always work, e.g., unidenting blah in this:
+/*
+12. two
+    1. threexx
+    2. blah
+    3. sfooj
+       1. ds
+*/
+  const numBefore = path[path.length - 1];
+  const numAfter = list.children.length - numBefore - 1;
+  for (let i = 0; i < numBefore; i++) {
+    indentListItem(editor, to);
+  }
+  const after = Path.next(to);
+  for (let i = 0; i < numAfter; i++) {
+    indentListItem(editor, after);
+  }
+
   return true;
 }
 
@@ -53,7 +74,7 @@ function getParent(
 ): [Element, number[]] | [undefined, undefined] {
   for (const elt of Editor.nodes(editor, {
     mode: "lowest",
-    match: (node) => Element.isElement(node) && match(node),
+    match: (node, path) => Element.isElement(node) && match(node, path),
     at,
   })) {
     return [elt[0] as Element, elt[1]];
@@ -61,8 +82,15 @@ function getParent(
   return [undefined, undefined];
 }
 
-export function indentListItem(editor: Editor): boolean {
-  const [item, path] = getParent(editor, (node) => node.type == "list_item");
+export function indentListItem(
+  editor: Editor,
+  at: Location | undefined = undefined
+): boolean {
+  const [item, path] = getParent(
+    editor,
+    (node) => node.type == "list_item",
+    at
+  );
   if (item == null || path == null) {
     // no list item containing cursor...
     return false;
@@ -79,7 +107,7 @@ export function indentListItem(editor: Editor): boolean {
     return false;
   }
 
-  if (list.children[0] === item) {
+  if (list.children[0] === item || path[path.length - 1] == 0) {
     // can't indent the first item
     return false;
   }
@@ -112,6 +140,7 @@ export function indentListItem(editor: Editor): boolean {
     Transforms.moveNodes(editor, {
       to,
       match: (node) => node === item,
+      at,
     });
     Transforms.wrapNodes(
       editor,
