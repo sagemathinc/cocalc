@@ -84,8 +84,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     const { id } = useFrameContext();
 
     const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
-    const [isFocused, setIsFocused] = useState<boolean>(
-      !!options?.autofocus);
+    const [isFocused, setIsFocused] = useState<boolean>(!!options?.autofocus);
     const textareaRef = useRef<any>(null);
 
     const setCSS = useCallback(
@@ -246,11 +245,6 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         css.backgroundColor = "#f7f7f7";
       }
       setCSS(css);
-
-      if (focused && selected) {
-        focusEditor();
-      }
-
       cm.refresh();
 
       return () => {
