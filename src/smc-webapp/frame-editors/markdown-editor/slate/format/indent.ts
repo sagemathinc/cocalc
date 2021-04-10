@@ -46,14 +46,6 @@ export function unindentListItem(editor: Editor): boolean {
   // re-indent any extra siblings that we just unintentionally un-indented
   // Yes, I wish there was a simpler way than this, but fortunately this
   // is not a speed critical path for anything.
-  // NOTE: this does not always work, e.g., unidenting blah in this:
-  /*
-12. two
-    1. threexx
-    2. blah
-    3. sfooj
-       1. ds
-*/
   const numBefore = path[path.length - 1];
   const numAfter = list.children.length - numBefore - 1;
   for (let i = 0; i < numBefore; i++) {
@@ -106,17 +98,13 @@ export function indentListItem(
     return false;
   }
   if (!item.children) {
-    // console.log(
-      "this shouldn't happen since all list_item's should have children"
-    );
+    // console.log("this shouldn't happen since all list_item's should have children");
     return false;
   }
 
   const [list] = getNode(editor, isListElement, at);
   if (list == null) {
-    // console.log(
-      "shouldn't happen, since list_item should be inside of an actual list."
-    );
+    // console.log("shouldn't happen, since list_item should be inside of an actual list.");
     return false;
   }
 
