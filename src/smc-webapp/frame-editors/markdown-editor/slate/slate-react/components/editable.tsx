@@ -199,17 +199,19 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
   }, [editor.children, hiddenChildren]);
 
   const updateHiddenChildrenDebounce = useMemo(() => {
-    return debounce(() => editor.updateHiddenChildren(), 500, {
-      leading: true,
-    });
+    return debounce(() => editor.updateHiddenChildren(), 1000);
   }, []);
 
-  // Whenever the actual document changes, update the
+  // When the actual document changes we soon update the
   // hidden children set, since it is a list of indexes
-  // into editor.children, so may change. That said, we
+  // into editor.children, so may change.  That said, we
   // don't want this to impact performance when typing, so
-  // we debounce it.
+  // we debounce it, and it is unlikely that things change
+  // when the content (but not number) of children changes.
   useEffect(updateHiddenChildrenDebounce, [editor.children]);
+  // We *always* immediately update when the number of children changes, since
+  // that is highly likely to make the hiddenChildren data structure wrong.
+  useEffect(() => editor.updateHiddenChildren(), [editor.children.length]);
 
   // Update element-related weak maps with the DOM element ref.
   useIsomorphicLayoutEffect(() => {
