@@ -8,7 +8,7 @@ import { isListElement } from "../elements/list";
 import { emptyParagraph } from "../padding";
 
 export function unindentListItem(editor: Editor): boolean {
-  const [item, path] = getParent(editor, (node) => node.type == "list_item");
+  const [item, path] = getNode(editor, (node) => node.type == "list_item");
   if (item == null || path == null) {
     // no list item containing cursor...
     return false;
@@ -19,7 +19,7 @@ export function unindentListItem(editor: Editor): boolean {
     return false;
   }
 
-  const [list, listPath] = getParent(editor, isListElement);
+  const [list, listPath] = getNode(editor, isListElement);
   if (list == null || listPath == null) {
     // shouldn't happen, since list_item should be inside of an actual list.
     return false;
@@ -47,7 +47,7 @@ export function unindentListItem(editor: Editor): boolean {
   // Yes, I wish there was a simpler way than this, but fortunately this
   // is not a speed critical path for anything.
   // NOTE: this does not always work, e.g., unidenting blah in this:
-/*
+  /*
 12. two
     1. threexx
     2. blah
@@ -67,14 +67,28 @@ export function unindentListItem(editor: Editor): boolean {
   return true;
 }
 
-function getParent(
+function getNode(
   editor,
   match,
   at: Location | undefined = undefined
 ): [Element, number[]] | [undefined, undefined] {
+  if (at != null) {
+    // First try the node at *specific* given position.
+    // For some reason there seems to be no mode
+    // with Editor.nodes that does this, but we use
+    // this for re-indenting in the unindent code above.
+    try {
+      const [elt, path] = Editor.node(editor, at);
+      if (Element.isElement(elt) && match(elt, path)) {
+        return [elt as Element, path];
+      }
+    } catch (_err) {
+      // no such element, so try search below...
+    }
+  }
   for (const elt of Editor.nodes(editor, {
-    mode: "lowest",
     match: (node, path) => Element.isElement(node) && match(node, path),
+    mode: "lowest",
     at,
   })) {
     return [elt[0] as Element, elt[1]];
@@ -86,36 +100,35 @@ export function indentListItem(
   editor: Editor,
   at: Location | undefined = undefined
 ): boolean {
-  const [item, path] = getParent(
-    editor,
-    (node) => node.type == "list_item",
-    at
-  );
+  const [item, path] = getNode(editor, (node) => node.type == "list_item", at);
   if (item == null || path == null) {
-    // no list item containing cursor...
+    // console.log("no list item containing cursor...");
     return false;
   }
   if (!item.children) {
-    // this shouldn't happen since all list_item's should
-    // have children
+    // console.log(
+      "this shouldn't happen since all list_item's should have children"
+    );
     return false;
   }
 
-  const [list] = getParent(editor, isListElement);
+  const [list] = getNode(editor, isListElement, at);
   if (list == null) {
-    // shouldn't happen, since list_item should be inside of an actual list.
+    // console.log(
+      "shouldn't happen, since list_item should be inside of an actual list."
+    );
     return false;
   }
 
   if (list.children[0] === item || path[path.length - 1] == 0) {
-    // can't indent the first item
+    // console.log("can't indent the first item", { list, path, item });
     return false;
   }
 
   const prevPath = Path.previous(path);
   const [prevItem] = Editor.node(editor, prevPath);
   if (!Element.isElement(prevItem)) {
-    // should not happen
+    // console.log("type issue -- should not happen");
     return false;
   }
   if (
@@ -132,8 +145,7 @@ export function indentListItem(
   const to = prevPath.concat([prevItem.children.length]);
 
   if (list.type != "bullet_list" && list.type != "ordered_list") {
-    // This should not happen, but it makes typescript
-    //  happier below when wrapping.
+    // console.log("Type issue that should not happen.");
     return false;
   }
   Editor.withoutNormalizing(editor, () => {
@@ -151,3 +163,4 @@ export function indentListItem(
 
   return true;
 }
+
