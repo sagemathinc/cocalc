@@ -23,6 +23,7 @@ export const withNormalize = (editor) => {
   editor.normalizeNode = (entry) => {
     const [node, path] = entry;
 
+    ensureListContainsListItems({ editor, node, path });
     ensureListItemInAList({ editor, node, path });
     trimLeadingWhitespace({ editor, node, path });
     mergeAdjacentLists({ editor, node, path });
@@ -55,6 +56,27 @@ function ensureListItemInAList({ editor, node, path }) {
       Transforms.wrapNodes(editor, { type: "bullet_list" } as Element, {
         at: path,
       });
+    }
+  }
+}
+
+// Ensure every immediate child of a list is a list_item.
+function ensureListContainsListItems({ editor, node, path }) {
+  if (
+    Element.isElement(node) &&
+    (node.type === "bullet_list" || node.type == "ordered_list")
+  ) {
+    let i = 0;
+    for (const child of node.children) {
+      if (!Element.isElement(child) || child.type != "list_item") {
+        // invalid document: every child of a list should be a list_item
+        Transforms.wrapNodes(editor, { type: "list_item" } as Element, {
+          at: path.concat([i]),
+          mode: "lowest",
+        });
+        return;
+      }
+      i += 1;
     }
   }
 }
