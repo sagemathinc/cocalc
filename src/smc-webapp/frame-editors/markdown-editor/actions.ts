@@ -8,7 +8,7 @@ Markdown Editor Actions
 */
 
 import { debounce } from "lodash";
-import { toggle_checkbox } from "../../editors/task-editor/desc-rendering";
+import { toggle_checkbox } from "smc-webapp/editors/task-editor/desc-rendering";
 import * as $ from "jquery";
 import {
   Actions as CodeEditorActions,
@@ -16,17 +16,20 @@ import {
 } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
-import { scrollToHeading } from "./slate/control";
-import { SlateEditor } from "./slate/editable-markdown";
-import { formatAction as slateFormatAction } from "./slate/format";
-import { TableOfContentsEntryList, TableOfContentsEntry } from "../../r_misc";
+import { scrollToHeading } from "smc-webapp/editors/slate/control";
+import { SlateEditor } from "smc-webapp/editors/slate/editable-markdown";
+import { formatAction as slateFormatAction } from "smc-webapp/editors/slate/format";
+import {
+  TableOfContentsEntryList,
+  TableOfContentsEntry,
+} from "smc-webapp/r_misc";
 import { fromJS } from "immutable";
-import { parseTableOfContents } from "../../markdown";
+import { parseTableOfContents } from "smc-webapp/markdown";
 import {
   markdownPositionToSlatePoint,
   slatePointToMarkdownPosition,
   scrollIntoView as scrollSlateIntoView,
-} from "./slate/sync";
+} from "smc-webapp/editors/slate/sync";
 
 interface MarkdownEditorState extends CodeEditorState {
   custom_pdf_error_message: string; // currently used only in rmd editor, but we could easily add pdf output to the markdown editor
