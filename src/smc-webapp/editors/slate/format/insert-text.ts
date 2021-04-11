@@ -35,7 +35,6 @@ import { markdown_to_slate } from "../markdown-to-slate";
 import { applyOperations } from "../operations";
 import { slateDiff } from "../slate-diff";
 import { getRules } from "../elements";
-import { moveCursorToEndOfElement } from "../control";
 import { ReactEditor } from "../slate-react";
 import { SlateEditor } from "../editable-markdown";
 import { formatHeading, setSelectionAndFocus } from "./commands";
@@ -53,7 +52,7 @@ export const withInsertText = (editor) => {
           type: "link",
           isInline: true,
           url: text,
-          children: [{ text}],
+          children: [{ text }],
         },
       ]);
       return;
@@ -250,17 +249,15 @@ function markdownAutoformatAt(
     focusEditorAt(editor, new_cursor);
   } else {
     // **NON-INLINE CASE**
-    // Select what is being replaced so it will get deleted when the
-    // insert happens.
-    Transforms.select(editor, {
-      anchor: { path, offset: start == -1 ? 0 : start },
-      focus: { path, offset: Math.max(0, node.text.length) },
-    });
+    // Remove the node with the text that we're autoformatting
+    // so the new doc replaces it.  NOTE that doing this works
+    // **much** better than selecting the corresponding text
+    // and letting insertNodes take care of it.
+    Transforms.removeNodes(editor, { at: path });
     // We put an empty paragraph after, so that formatting
     // is preserved (otherwise it gets stripped); also some documents
     // ending in void block elements are difficult to use.
     Transforms.insertNodes(editor, doc);
-    moveCursorToEndOfElement(editor, doc[0]);
 
     // Normally just move the cursor beyond what was just
     // inserted, though sometimes it makes more sense to
