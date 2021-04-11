@@ -121,7 +121,7 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
   };
   const style_inner: CSS = {
     ...{
-      padding: "70px",
+      padding: "40px 70px",
       backgroundColor: "white",
       overflowY: "auto",
     },

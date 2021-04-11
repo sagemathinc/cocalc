@@ -192,6 +192,7 @@ Table({
             show_trailing_whitespace: true,
             line_wrapping: true,
             line_numbers: true,
+            jupyter_line_numbers: false,
             smart_indent: true,
             electric_chars: true,
             match_brackets: true,

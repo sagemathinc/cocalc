@@ -1352,10 +1352,10 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     v.push(render_sync());
     v.push(render_switch_to_file());
     v.push(render_clean());
+    v.push(render_zoom_group());
     if (!is_public) {
       v.push(render_undo_redo_group());
     }
-    v.push(render_zoom_group());
     v.push(render_restart());
     v.push(render_close_and_halt(labels));
 

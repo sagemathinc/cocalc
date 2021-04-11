@@ -31,41 +31,42 @@ export const TableOfContents: React.FC<Props> = React.memo(
     function renderHeader(
       level: 1 | 2 | 3 | 4 | 5 | 6,
       value: string,
-      icon: string
+      icon: string | undefined
     ): JSX.Element {
-      const style = { marginTop: 0 };
-      const elt = (
-        <>
-          <Icon
-            name={icon}
-            style={{ width: "30px", display: "inline-block" }}
-          />{" "}
+      if (level < 1) level = 1;
+      if (level > 6) level = 6;
+      const fontSize = `${1 + (7 - level) / 6}em`;
+      return (
+        <div
+          style={{
+            marginTop: level == 1 ? "1em" : level == 2 ? "0.5em" : undefined,
+            fontSize,
+            whiteSpace: "nowrap",
+            fontWeight: level == 1 ? "bold" : undefined,
+          }}
+        >
+          <span
+            style={{
+              width: level == 1 ? "35px" : level == 2 ? "50px" : "65px",
+              display: "inline-block",
+            }}
+          >
+            {icon && (
+              <Icon name={icon} style={{ marginLeft: "10px", color: "#666" }} />
+            )}
+          </span>
           <a style={{ display: "inline-block", marginBottom: "-1em" }}>
-            <Markdown value={value} />
+            <Markdown value={"&nbsp;" + value} />
           </a>
-        </>
+        </div>
       );
+
       // NOTE: the weird style for the a above is so the markdown
       // paragraph wrapper doesn't end up on a new line; it also removes
       // the extra 1em space at the bottom of that paragraph.   We could
       // redo this more cleanly by possibly using a special markdown
       // component that omits that top-level paragraph wrapping (and uses
       // react/slate?).
-
-      switch (level) {
-        case 1:
-          return <h1 style={style}>{elt}</h1>;
-        case 2:
-          return <h2 style={style}>{elt}</h2>;
-        case 3:
-          return <h3 style={style}>{elt}</h3>;
-        case 4:
-          return <h4 style={style}>{elt}</h4>;
-        case 5:
-          return <h5 style={style}>{elt}</h5>;
-        default:
-          return <h6 style={style}>{elt}</h6>;
-      }
     }
 
     if (contents == null) {
@@ -84,14 +85,9 @@ export const TableOfContents: React.FC<Props> = React.memo(
           onClick={scrollTo != null ? () => scrollTo(entry.toJS()) : undefined}
           style={{
             cursor: "pointer",
-            paddingLeft: `${entry.get("level", 1) * 2}em`,
           }}
         >
-          {renderHeader(
-            entry.get("level", 1),
-            value,
-            entry.get("icon", "minus")
-          )}
+          {renderHeader(entry.get("level", 1), value, entry.get("icon"))}
         </div>
       );
     }

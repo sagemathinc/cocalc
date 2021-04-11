@@ -1966,7 +1966,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const immutable_editor_settings = account.get("editor_settings");
     if (immutable_editor_settings == null) return;
     const editor_settings = immutable_editor_settings.toJS();
-    const line_numbers = this.store.get_local_storage("line_numbers");
+    const line_numbers = this.store.get_local_storage("line_numbers") ?? immutable_editor_settings.get('jupyter_line_numbers') ?? false;
     const read_only = this.store.get("read_only");
     const x = immutable.fromJS({
       options: cm_options(mode, editor_settings, line_numbers, read_only),

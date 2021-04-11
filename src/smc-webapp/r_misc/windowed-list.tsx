@@ -252,15 +252,21 @@ export class WindowedList extends Component<Props, State> {
     const elt = entry.target;
     const key = elt.getAttribute("data-key");
     if (key == null) return;
-    const height = entry.contentRect.height;
-    if (height == null || isNaN(height)) {
+    // NOTE: We use this jQuery instead of entry.contentRect.height,
+    // since in some cases (e.g., codemirror editors), using
+    // entry.contentRect.height would be wrong just as they
+    // were being mounted/refreshed, but height() seems always right.
+    const height = $(entry.target).height();
+    // We never resize to exactly 0.  If you need to hide something,
+    // resize it to a small positive number...
+    if (height == null || isNaN(height) || height == 0) {
       return;
     }
 
     const index = elt.getAttribute("data-index");
     const s = height - this.row_heights_cache[key];
-    if (s < 0 && -s <= SHRINK_THRESH) {
-      // just shrunk a little,
+    if ((s < 0 && -s <= SHRINK_THRESH) || Math.abs(s) < 0.1) {
+      // just shrunk or barely changed,
       // ... so continue using what we have cached (or the default).
       return;
     }

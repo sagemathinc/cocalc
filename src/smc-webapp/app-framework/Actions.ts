@@ -21,7 +21,12 @@ export class Actions<T> {
   }
 
   setState = (obj: Partial<{ [P in keyof T]: T[P] }>): void => {
-    if (this.redux.getStore(this.name) == undefined) {
+    // This ? is because sometimes setState is called after the actions
+    // are cleaned up (so this.redux is null) and closed for an editor,
+    // and crashing isn't useful, but silently ignoring is in this case.
+    // See https://github.com/sagemathinc/cocalc/issues/5263 for an
+    // example in nature.
+    if (this.redux?.getStore(this.name) == null) {
       return; // No op
     }
     this.redux._set_state({ [this.name]: obj }, this.name);

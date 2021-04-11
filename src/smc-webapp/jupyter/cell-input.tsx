@@ -9,7 +9,7 @@ React component that describes the input of a cell
 
 declare const $: any;
 
-import { React, Component, Rendered } from "../app-framework";
+import { React, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
 import { Button, ButtonGroup } from "react-bootstrap";
 import { startswith, filename_extension } from "smc-util/misc";
@@ -88,301 +88,265 @@ export interface CellInputProps {
   index: number;
 }
 
-export class CellInput extends Component<CellInputProps> {
-  public shouldComponentUpdate(nextProps: CellInputProps): boolean {
-    return (
-      nextProps.cell.get("input") !== this.props.cell.get("input") ||
-      nextProps.cell.get("metadata") !== this.props.cell.get("metadata") ||
-      nextProps.cell.get("exec_count") !== this.props.cell.get("exec_count") ||
-      nextProps.cell.get("cell_type") !== this.props.cell.get("cell_type") ||
-      nextProps.cell.get("state") !== this.props.cell.get("state") ||
-      nextProps.cell.get("start") !== this.props.cell.get("start") ||
-      nextProps.cell.get("end") !== this.props.cell.get("end") ||
-      nextProps.cell.get("tags") !== this.props.cell.get("tags") ||
-      nextProps.cell.get("cursors") !== this.props.cell.get("cursors") ||
-      nextProps.cell.get("line_numbers") !==
-        this.props.cell.get("line_numbers") ||
-      nextProps.cm_options !== this.props.cm_options ||
-      nextProps.trust !== this.props.trust ||
-      (nextProps.is_markdown_edit !== this.props.is_markdown_edit &&
-        nextProps.cell.get("cell_type") === "markdown") ||
-      nextProps.is_focused !== this.props.is_focused ||
-      nextProps.is_current !== this.props.is_current ||
-      nextProps.font_size !== this.props.font_size ||
-      nextProps.complete !== this.props.complete ||
-      nextProps.is_readonly !== this.props.is_readonly ||
-      nextProps.is_scrolling !== this.props.is_scrolling ||
-      nextProps.cell_toolbar !== this.props.cell_toolbar ||
-      nextProps.index !== this.props.index ||
-      (nextProps.cell_toolbar === "slideshow" &&
-        nextProps.cell.get("slide") !== this.props.cell.get("slide"))
-    );
-  }
+export const CellInput: React.FC<CellInputProps> = React.memo(
+  (props) => {
+    function render_input_prompt(type: string): Rendered {
+      return (
+        <InputPrompt
+          type={type}
+          state={props.cell.get("state")}
+          exec_count={props.cell.get("exec_count")}
+          kernel={props.cell.get("kernel")}
+          start={props.cell.get("start")}
+          end={props.cell.get("end")}
+          actions={props.actions}
+          frame_actions={props.frame_actions}
+          id={props.id}
+        />
+      );
+    }
 
-  private render_input_prompt(type: string): Rendered {
-    return (
-      <InputPrompt
-        type={type}
-        state={this.props.cell.get("state")}
-        exec_count={this.props.cell.get("exec_count")}
-        kernel={this.props.cell.get("kernel")}
-        start={this.props.cell.get("start")}
-        end={this.props.cell.get("end")}
-        actions={this.props.actions}
-        frame_actions={this.props.frame_actions}
-        id={this.props.id}
-      />
-    );
-  }
+    function handle_upload_click(): void {
+      if (props.actions == null) {
+        return;
+      }
+      props.actions.insert_image(props.id);
+    }
 
-  private handle_upload_click(): void {
-    if (this.props.actions == null) {
-      return;
+    function handle_md_double_click(): void {
+      if (props.frame_actions == null || props.frame_actions.is_closed()) {
+        return;
+      }
+      if (props.cell.getIn(["metadata", "editable"]) === false) {
+        // TODO: NEVER ever silently fail!
+        return;
+      }
+      const id = props.cell.get("id");
+      props.frame_actions.set_md_cell_editing(id);
+      props.frame_actions.set_cur_id(id);
+      props.frame_actions.set_mode("edit");
     }
-    this.props.actions.insert_image(this.props.id);
-  }
 
-  private handle_md_double_click(): void {
-    if (
-      this.props.frame_actions == null ||
-      this.props.frame_actions.is_closed()
-    ) {
-      return;
+    function options(type: "code" | "markdown" | "raw"): Map<string, any> {
+      let opt: Map<string, any>;
+      switch (type) {
+        case "code":
+          opt = props.cm_options.get("options");
+          break;
+        case "markdown":
+          opt = props.cm_options.get("markdown");
+          break;
+        case "raw":
+        default:
+          opt = props.cm_options.get("options");
+          opt = opt.set("mode", {});
+          opt = opt.set("foldGutter", false); // no use with no mode
+          break;
+      }
+      if (props.is_readonly) {
+        opt = opt.set("readOnly", true);
+      }
+      if (props.cell.get("line_numbers") != null) {
+        opt = opt.set("lineNumbers", props.cell.get("line_numbers"));
+      }
+      return opt;
     }
-    if (this.props.cell.getIn(["metadata", "editable"]) === false) {
-      // TODO: NEVER ever silently fail!
-      return;
-    }
-    const id = this.props.cell.get("id");
-    this.props.frame_actions.set_md_cell_editing(id);
-    this.props.frame_actions.set_cur_id(id);
-    this.props.frame_actions.set_mode("edit");
-  }
 
-  private options(type: "code" | "markdown" | "raw"): Map<string, any> {
-    let opt: Map<string, any>;
-    switch (type) {
-      case "code":
-        opt = this.props.cm_options.get("options");
-        break;
-      case "markdown":
-        opt = this.props.cm_options.get("markdown");
-        break;
-      case "raw":
-      default:
-        opt = this.props.cm_options.get("options");
-        opt = opt.set("mode", {});
-        opt = opt.set("foldGutter", false); // no use with no mode
-        break;
-    }
-    if (this.props.is_readonly) {
-      opt = opt.set("readOnly", true);
-    }
-    if (this.props.cell.get("line_numbers") != null) {
-      opt = opt.set("lineNumbers", this.props.cell.get("line_numbers"));
-    }
-    return opt;
-  }
-
-  private render_codemirror(type: "code" | "markdown" | "raw"): Rendered {
-    let value = this.props.cell.get("input");
-    if (typeof value != "string") {
-      // E.g., if it is null or a weird object.  This shouldn't happen, but typescript doesn't
-      // guarantee it. I have hit this in production: https://sagemathcloud.zendesk.com/agent/tickets/8963
-      // and anyways, a user could edit the underlying db file and mess things up.
-      value = "";
-    }
-    return (
-      <CodeMirror
-        value={value}
-        options={this.options(type)}
-        actions={this.props.actions}
-        frame_actions={this.props.frame_actions}
-        id={this.props.cell.get("id")}
-        is_focused={this.props.is_focused}
-        font_size={this.props.font_size}
-        cursors={this.props.cell.get("cursors")}
-        is_scrolling={this.props.is_scrolling}
-      />
-    );
-  }
-
-  private render_markdown_edit_button(): Rendered {
-    if (
-      !this.props.is_current ||
-      this.props.actions == null ||
-      this.props.cell.getIn(["metadata", "editable"]) === false
-    ) {
-      return;
-    }
-    return (
-      <ButtonGroup style={{ float: "right" }}>
-        <Button onClick={this.handle_md_double_click.bind(this)}>
-          <Icon name="edit" /> Edit
-        </Button>
-        <Button onClick={this.handle_upload_click.bind(this)}>
-          <Icon name="image" />
-        </Button>
-      </ButtonGroup>
-    );
-  }
-
-  private render_markdown(): Rendered {
-    let value = this.props.cell.get("input");
-    if (typeof value != "string") {
-      // E.g., if it is null.  This shouldn't happen, but typescript doesn't
-      // guarantee it. I might have hit this in production...
-      value = "";
-    }
-    value = value.trim();
-    if (value === "" && this.props.actions) {
-      value = "Type *Markdown* and LaTeX: $\\alpha^2$";
-    }
-    return (
-      <div
-        onDoubleClick={this.handle_md_double_click.bind(this)}
-        style={{ width: "100%", wordWrap: "break-word", overflow: "auto" }}
-        className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md"
-      >
-        {this.render_markdown_edit_button()}
-        <Markdown
+    function render_codemirror(type: "code" | "markdown" | "raw"): Rendered {
+      let value = props.cell.get("input");
+      if (typeof value != "string") {
+        // E.g., if it is null or a weird object.  This shouldn't happen, but typescript doesn't
+        // guarantee it. I have hit this in production: https://sagemathcloud.zendesk.com/agent/tickets/8963
+        // and anyways, a user could edit the underlying db file and mess things up.
+        value = "";
+      }
+      return (
+        <CodeMirror
           value={value}
-          project_id={this.props.project_id}
-          file_path={this.props.directory}
-          href_transform={href_transform(
-            this.props.project_id,
-            this.props.cell
-          )}
-          post_hook={markdown_post_hook}
-          safeHTML={!this.props.trust}
-        />
-      </div>
-    );
-  }
-
-  private render_unsupported(type: string): Rendered {
-    return <div>Unsupported cell type {type}</div>;
-  }
-
-  private render_input_value(type: string): Rendered {
-    switch (type) {
-      case "code":
-        return this.render_codemirror(type);
-      case "raw":
-        return this.render_codemirror(type);
-      case "markdown":
-        if (this.props.is_markdown_edit) return this.render_codemirror(type);
-        else return this.render_markdown();
-      default:
-        return this.render_unsupported(type);
-    }
-  }
-
-  private render_complete(): Rendered {
-    if (
-      this.props.actions != null &&
-      this.props.frame_actions != null &&
-      this.props.complete &&
-      this.props.complete.get("matches", fromJS([])).size > 0
-    ) {
-      return (
-        <Complete
-          complete={this.props.complete}
-          actions={this.props.actions}
-          frame_actions={this.props.frame_actions}
-          id={this.props.id}
+          options={options(type)}
+          actions={props.actions}
+          frame_actions={props.frame_actions}
+          id={props.cell.get("id")}
+          is_focused={props.is_focused}
+          font_size={props.font_size}
+          cursors={props.cell.get("cursors")}
+          is_scrolling={props.is_scrolling}
         />
       );
     }
-  }
 
-  private render_cell_toolbar(): Rendered {
-    if (this.props.cell_toolbar && this.props.actions) {
+    function render_markdown_edit_button(): Rendered {
+      if (
+        !props.is_current ||
+        props.actions == null ||
+        props.cell.getIn(["metadata", "editable"]) === false
+      ) {
+        return;
+      }
       return (
-        <CellToolbar
-          actions={this.props.actions}
-          cell_toolbar={this.props.cell_toolbar}
-          cell={this.props.cell}
-        />
+        <ButtonGroup style={{ float: "right" }}>
+          <Button onClick={handle_md_double_click}>
+            <Icon name="edit" /> Edit
+          </Button>
+          <Button onClick={handle_upload_click}>
+            <Icon name="image" />
+          </Button>
+        </ButtonGroup>
       );
     }
-  }
 
-  private render_time(): Rendered {
-    return (
-      <div
-        style={{
-          position: "absolute",
-          zIndex: 1,
-          right: "2px",
-          width: "100%",
-          paddingLeft: "5px",
-        }}
-        className="pull-right hidden-xs"
-      >
+    function render_markdown(): Rendered {
+      let value = props.cell.get("input");
+      if (typeof value != "string") {
+        // E.g., if it is null.  This shouldn't happen, but typescript doesn't
+        // guarantee it. I might have hit this in production...
+        value = "";
+      }
+      value = value.trim();
+      if (value === "" && props.actions) {
+        value = "Type *Markdown* and LaTeX: $\\alpha^2$";
+      }
+      return (
+        <div
+          onDoubleClick={handle_md_double_click}
+          style={{ width: "100%", wordWrap: "break-word", overflow: "auto" }}
+          className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md"
+        >
+          {render_markdown_edit_button()}
+          <Markdown
+            value={value}
+            project_id={props.project_id}
+            file_path={props.directory}
+            href_transform={href_transform(props.project_id, props.cell)}
+            post_hook={markdown_post_hook}
+            safeHTML={!props.trust}
+          />
+        </div>
+      );
+    }
+
+    function render_unsupported(type: string): Rendered {
+      return <div>Unsupported cell type {type}</div>;
+    }
+
+    function render_input_value(type: string): Rendered {
+      switch (type) {
+        case "code":
+          return render_codemirror(type);
+        case "raw":
+          return render_codemirror(type);
+        case "markdown":
+          if (props.is_markdown_edit) return render_codemirror(type);
+          else return render_markdown();
+        default:
+          return render_unsupported(type);
+      }
+    }
+
+    function render_complete(): Rendered {
+      if (
+        props.actions != null &&
+        props.frame_actions != null &&
+        props.complete &&
+        props.complete.get("matches", fromJS([])).size > 0
+      ) {
+        return (
+          <Complete
+            complete={props.complete}
+            actions={props.actions}
+            frame_actions={props.frame_actions}
+            id={props.id}
+          />
+        );
+      }
+    }
+
+    function render_cell_toolbar(): Rendered {
+      if (props.cell_toolbar && props.actions) {
+        return (
+          <CellToolbar
+            actions={props.actions}
+            cell_toolbar={props.cell_toolbar}
+            cell={props.cell}
+          />
+        );
+      }
+    }
+
+    function render_time(): Rendered {
+      return (
         <div
           style={{
-            color: "#666",
-            fontSize: "8pt",
             position: "absolute",
-            right: "5px",
-            lineHeight: 1.25,
-            top: "1px",
-            textAlign: "right",
+            zIndex: 1,
+            right: "2px",
+            width: "100%",
+            paddingLeft: "5px",
           }}
+          className="pull-right hidden-xs"
         >
-          <span style={{ float: "right" }}>{this.render_cell_number()}</span>
-          {this.render_cell_timing()}
+          <div
+            style={{
+              color: "#666",
+              fontSize: "8pt",
+              position: "absolute",
+              right: "5px",
+              lineHeight: 1.25,
+              top: "1px",
+              textAlign: "right",
+            }}
+          >
+            <span style={{ float: "right" }}>{render_cell_number()}</span>
+            {render_cell_timing()}
+          </div>
         </div>
-      </div>
-    );
-  }
-
-  private render_cell_timing(): Rendered {
-    if (this.props.cell.get("start") == null) return;
-    return (
-      <CellTiming
-        start={this.props.cell.get("start")}
-        end={this.props.cell.get("end")}
-        state={this.props.cell.get("state")}
-      />
-    );
-  }
-
-  private render_cell_number(): Rendered {
-    return (
-      <span
-        style={{
-          marginLeft: "3px",
-          padding: "0 3px",
-          borderLeft: "1px solid #ccc",
-          borderBottom: "1px solid #ccc",
-        }}
-      >
-        {this.props.index + 1}
-      </span>
-    );
-  }
-
-  private render_hidden(): Rendered {
-    return (
-      <CellHiddenPart
-        title={
-          "Input is hidden; show via Edit --> Toggle hide input in the menu."
-        }
-      />
-    );
-  }
-
-  public render(): Rendered {
-    if (this.props.cell.getIn(["metadata", "jupyter", "source_hidden"])) {
-      return this.render_hidden();
+      );
     }
 
-    const type = this.props.cell.get("cell_type") || "code";
+    function render_cell_timing(): Rendered {
+      if (props.cell.get("start") == null) return;
+      return (
+        <CellTiming
+          start={props.cell.get("start")}
+          end={props.cell.get("end")}
+          state={props.cell.get("state")}
+        />
+      );
+    }
+
+    function render_cell_number(): Rendered {
+      return (
+        <span
+          style={{
+            marginLeft: "3px",
+            padding: "0 3px",
+            borderLeft: "1px solid #ccc",
+            borderBottom: "1px solid #ccc",
+          }}
+        >
+          {props.index + 1}
+        </span>
+      );
+    }
+
+    function render_hidden(): JSX.Element {
+      return (
+        <CellHiddenPart
+          title={
+            "Input is hidden; show via Edit --> Toggle hide input in the menu."
+          }
+        />
+      );
+    }
+
+    if (props.cell.getIn(["metadata", "jupyter", "source_hidden"])) {
+      return render_hidden();
+    }
+
+    const type = props.cell.get("cell_type") || "code";
     return (
       <div>
-        {this.render_cell_toolbar()}
+        {render_cell_toolbar()}
         <div
           style={{
             display: "flex",
@@ -391,12 +355,42 @@ export class CellInput extends Component<CellInputProps> {
           }}
           cocalc-test="cell-input"
         >
-          {this.render_input_prompt(type)}
-          {this.render_complete()}
-          {this.render_input_value(type)}
-          {this.render_time()}
+          {render_input_prompt(type)}
+          {render_complete()}
+          {render_input_value(type)}
+          {render_time()}
         </div>
       </div>
     );
-  }
-}
+  },
+  (
+    cur,
+    next /* this has got ugly; the not is from converting from component */
+  ) =>
+    !(
+      next.cell.get("input") !== cur.cell.get("input") ||
+      next.cell.get("metadata") !== cur.cell.get("metadata") ||
+      next.cell.get("exec_count") !== cur.cell.get("exec_count") ||
+      next.cell.get("cell_type") !== cur.cell.get("cell_type") ||
+      next.cell.get("state") !== cur.cell.get("state") ||
+      next.cell.get("start") !== cur.cell.get("start") ||
+      next.cell.get("end") !== cur.cell.get("end") ||
+      next.cell.get("tags") !== cur.cell.get("tags") ||
+      next.cell.get("cursors") !== cur.cell.get("cursors") ||
+      next.cell.get("line_numbers") !== cur.cell.get("line_numbers") ||
+      next.cm_options !== cur.cm_options ||
+      next.trust !== cur.trust ||
+      (next.is_markdown_edit !== cur.is_markdown_edit &&
+        next.cell.get("cell_type") === "markdown") ||
+      next.is_focused !== cur.is_focused ||
+      next.is_current !== cur.is_current ||
+      next.font_size !== cur.font_size ||
+      next.complete !== cur.complete ||
+      next.is_readonly !== cur.is_readonly ||
+      next.is_scrolling !== cur.is_scrolling ||
+      next.cell_toolbar !== cur.cell_toolbar ||
+      next.index !== cur.index ||
+      (next.cell_toolbar === "slideshow" &&
+        next.cell.get("slide") !== cur.cell.get("slide"))
+    )
+);
