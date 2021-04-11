@@ -435,7 +435,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
         # quick check for write query against read-only connection
         if @is_standby and (opts.set? or opts.jsonb_set? or opts.jsonb_merge?)
-            opts.cb("set queries against standby not allowed")
+            opts.cb?("set queries against standby not allowed")
             return
 
         if opts.retry_until_success
@@ -450,7 +450,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 cb       : (err) =>
                     if err
                         dbg("FAILED to connect -- #{err}")
-                        opts.cb("database is down (please try later)")
+                        opts.cb?("database is down (please try later)")
                     else
                         dbg("connected, now doing query")
                         @__do_query(opts)
@@ -475,9 +475,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         # calls the original cb.
         retry_opts.cb = (err) =>
             if err
-                orig_cb(err)
+                orig_cb?(err)
             else
-                orig_cb(args...)
+                orig_cb?(args...)
 
         # OK, now start it attempting.
         misc.retry_until_success(retry_opts)
