@@ -41,6 +41,8 @@ function backspaceKey({ editor }) {
   // This seems to work perfectly in all cases, including working around the
   // void delete bug in Slate:
   //     https://github.com/ianstormtaylor/slate/issues/3875
+  // IMPORTANT: this editor.deleteBackward() is implemented in
+  // format/delete-backward.ts and is quite complicated!
   editor.deleteBackward();
   return true;
 }
