@@ -332,9 +332,10 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
             Similar licenses are ignored, if they{" "}
             <b>aren't providing any additional upgrades</b>.
           </li>
+          <li>The hard limit on the maximum possible upgrade is reached.</li>
           <li>
             Only licenses of <b>similar nature</b> can be combined. e.g. a
-            license providing "member hosting" upgrade can't be added to a
+            license providing "member hosting" upgrade can't be summed up with a
             license not providing "member hosting".
           </li>
         </ul>
