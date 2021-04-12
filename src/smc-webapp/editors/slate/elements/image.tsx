@@ -17,6 +17,9 @@ import { dict } from "smc-util/misc";
 import { FOCUSED_COLOR } from "../util";
 import { Resizable } from "re-resizable";
 
+// NOTE: We do NOT use maxWidth:100% since that ends up
+// making the resizing screw up the aspect ratio.
+
 export interface Image extends SlateElement {
   type: "image";
   isInline: true;
@@ -108,7 +111,11 @@ register({
       alt = alt ? ` alt="${alt}"` : "";
       // Important: this **must** start with '<img ' right now
       // due to our fairly naive parsing code for html blocks.
-      return `<img ${src} ${alt} ${width} ${height} ${title}/>`;
+      //
+      // Also, object-fit: allows us to specify the
+      // width and height and have a general CSS max-width,
+      // without screwing up the aspect ratio.
+      return `<img ${src} ${alt} ${width} ${height} ${title} style="object-fit:cover"/>`;
     }
   },
 
@@ -144,11 +151,11 @@ register({
       <span {...attributes}>
         <span ref={ref} contentEditable={false}>
           <Resizable
-            maxWidth="100%"
             style={{
               display: "inline-block",
               background: "#f0f0f0",
               border,
+              maxWidth: "100%",
             }}
             lockAspectRatio={true}
             size={
@@ -185,10 +192,11 @@ register({
               alt={alt}
               title={title}
               style={{
-                maxWidth: "100%",
-                maxHeight: "100%",
                 height: height ?? node.height,
                 width: width ?? node.width,
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "cover",
               }}
             />
           </Resizable>
