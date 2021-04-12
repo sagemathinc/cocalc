@@ -290,7 +290,14 @@ export async function terminal(
     }
     //logger.debug("resize", "new size", rows, cols);
     if (rows && cols) {
-      terminals[name].term.resize(cols, rows);
+      try {
+        terminals[name].term.resize(cols, rows);
+      } catch (err) {
+        logger.debug(
+          "terminal channel",
+          `WARNING: unable to resize term ${err}`
+        );
+      }
       channel.write({ cmd: "size", rows, cols });
     }
   }
