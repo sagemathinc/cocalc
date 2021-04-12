@@ -450,13 +450,19 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       // Yeah, that is just insane... except that it seems
       // to work fine.
       // See https://github.com/sagemathinc/cocalc/issues/5228
+      // and https://github.com/sagemathinc/cocalc/pull/5273
 
-      // reverting 4dfb08af223897872e8e3fb38eef0a6658a9277d because it breaks sliders
-      if (false) {
-        const elt = ReactDOM.findDOMNode(this.refs.reactBox);
-        const container = $(elt);
-        const p = container.children().children().remove();
-        container.prepend(p);
+      const elt = ReactDOM.findDOMNode(this.refs.reactBox);
+      const container = $(elt);
+      const children = container.children().children();
+      for (const child of children) {
+        // Don't mess with sliders, since if there are multiple
+        // copies of the same one created at different times, then
+        // phosphor redoes them in a way that breaks them.  Fortunately,
+        // we don't need to mess with them anyways.
+        if (child.className.indexOf("widget-slider") != -1) continue;
+        const a = $(child);
+        a.parent().replaceWith(a);
       }
     }, 1);
 
