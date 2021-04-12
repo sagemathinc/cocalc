@@ -29,10 +29,35 @@ export function unindentListItem(editor: Editor): boolean {
   // to be able to unindent.
   const parentOfListPath = Path.parent(listPath);
   const [parentOfList] = Editor.node(editor, parentOfListPath);
+
   if (!Element.isElement(parentOfList) || parentOfList.type != "list_item") {
-    // can only unindent if is a list inside a list item
-    return false;
+    // Top level list item.  Remove bullet point and make it
+    // no longer a list item at all.
+    let to = Path.parent(path);
+    if (Path.hasPrevious(path)) {
+      to = Path.next(to);
+    }
+    Editor.withoutNormalizing(editor, () => {
+      if (path[path.length - 1] < list.children.length - 1) {
+        // not last child so split
+        Transforms.splitNodes(editor, {
+          match: (node) => Element.isElement(node) && isListElement(node),
+          mode: "lowest",
+        });
+      }
+      Transforms.moveNodes(editor, {
+        match: (node) => node === item,
+        to,
+      });
+      Transforms.unwrapNodes(editor, {
+        match: (node) => node === item,
+        mode: "lowest",
+        at: to,
+      });
+    });
+    return true;
   }
+
   const to = Path.next(parentOfListPath);
 
   Editor.withoutNormalizing(editor, () => {
@@ -151,4 +176,3 @@ export function indentListItem(
 
   return true;
 }
-

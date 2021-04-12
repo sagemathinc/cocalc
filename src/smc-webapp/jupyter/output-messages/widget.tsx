@@ -416,11 +416,6 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       );
       i += 1;
     }
-    // todo -- this is hackish; fix later.  Moreover,
-    // this does not magically make all these containers
-    // works, e.g., GridBoxModel doesn't properly lay
-    // things out in general.  See
-    //   
     let cls = "jupyter-widgets widget-container";
     switch (this.model.name) {
       case "BoxModel":
@@ -437,18 +432,86 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
         cls += " widget-gridbox";
         break;
     }
-    return <div className={cls}>{v}</div>;
+    setTimeout(() => {
+      if (!this.mounted) return;
+      // This is a ridiculously horrible hack, but I can
+      // think of no other possible way to do it, and we're
+      // lucky it happens to work (due to internal implementation
+      // details of phosphor).  The motivation for this is
+      // that in the function render_phosphor above we
+      // make a react node whose *contents* get managed by
+      // Phosphor for all the interesting widgets such as
+      // text and buttons that are NOT implemented in React.
+      // Unfortunately, all the style and layout of
+      // ipywidgets assumes that this extra level of wrapping
+      // isn't there and is broken by this.  So we set things
+      // up like that, then simply hoist all the elements that
+      // phosphor creates out of the wrappers using jquery.
+      // Yeah, that is just insane... except that it seems
+      // to work fine.
+      // See https://github.com/sagemathinc/cocalc/issues/5228
+      const elt = ReactDOM.findDOMNode(this.refs.reactBox);
+      const container = $(elt);
+      const p = container.children().children().remove();
+      container.prepend(p);
+    }, 1);
+
+    return (
+      <div className={cls} style={getLayoutStyle(this.model)} ref="reactBox">
+        {v}
+      </div>
+    );
   }
 
   render(): Rendered {
     return (
-      <div>
+      <>
         {this.render_phosphor()}
         {this.render_output()}
         {this.render_react_view()}
-      </div>
+      </>
     );
   }
 }
 
 export const Widget = rclass(Widget0);
+
+export function getLayoutStyle(model) {
+  const attributes = model?.attributes?.layout?.attributes;
+  if (attributes == null) return;
+  const style = {};
+  for (const x in attributes) {
+    if (x.startsWith("_")) continue;
+    const y = attributes[x];
+    if (y != null) {
+      style[snakeCaseToCamelCase(x)] = y;
+    }
+  }
+  return style;
+}
+
+// Modified version of
+// https://www.npmjs.com/package/@ivanhanak_com/snake-case-to-camel-case
+function snakeCaseToCamelCase(string) {
+  let split = string.split("_");
+
+  if (split.length) {
+    const firstWord = split.shift();
+
+    split = split
+      .map((word) => word.trim())
+      .filter((word) => word.length > 0)
+      .map((word) => {
+        const firstLetter = word.substring(0, 1).toUpperCase();
+        const restOfTheWord = word.substring(1).toLowerCase();
+
+        return `${firstLetter}${restOfTheWord}`;
+      });
+
+    split.unshift(firstWord);
+
+    return split.join("");
+  } else {
+    return string;
+  }
+}

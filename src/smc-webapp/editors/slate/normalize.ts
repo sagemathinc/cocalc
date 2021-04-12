@@ -17,16 +17,30 @@ import { getNodeAt } from "./slate-util";
 import { emptyParagraph } from "./padding";
 import { isListElement } from "./elements/list";
 
+interface NormalizeInputs {
+  editor?: Editor;
+  node?: Node;
+  path?: Path;
+}
+
+type NormalizeFunction = (NormalizeInputs) => void;
+
+const NORMALIZERS: NormalizeFunction[] = [];
+
 export const withNormalize = (editor) => {
   const { normalizeNode } = editor;
 
   editor.normalizeNode = (entry) => {
     const [node, path] = entry;
 
-    ensureListItemInAList({ editor, node, path });
-    trimLeadingWhitespace({ editor, node, path });
-    mergeAdjacentLists({ editor, node, path });
-    ensureDocumentNonempty({ editor });
+    for (const f of NORMALIZERS) {
+      //const before = JSON.stringify(editor.children);
+      f({ editor, node, path });
+      //const after = JSON.stringify(editor.children);
+      //if (before != after) {
+      //  console.log(`${f.name}, BEFORE ${before}\n${f.name}, AFTER  ${after}`);
+      //}
+    }
 
     // Fall back to the original `normalizeNode` to enforce other constraints.
     normalizeNode(entry);
@@ -40,14 +54,14 @@ export const withNormalize = (editor) => {
 // don't put something in, then things immediately break due to
 // selection assumptions.  Slate doesn't do this automatically,
 // since it doesn't nail down the internal format of a blank document.
-function ensureDocumentNonempty({ editor }) {
+NORMALIZERS.push(function ensureDocumentNonempty({ editor }) {
   if (editor.children.length == 0) {
     Editor.insertNode(editor, emptyParagraph());
   }
-}
+});
 
 // Ensure every list_item is contained in a list.
-function ensureListItemInAList({ editor, node, path }) {
+NORMALIZERS.push(function ensureListItemInAList({ editor, node, path }) {
   if (Element.isElement(node) && node.type === "list_item") {
     const [parent] = Editor.parent(editor, path);
     if (!isListElement(parent)) {
@@ -57,13 +71,47 @@ function ensureListItemInAList({ editor, node, path }) {
       });
     }
   }
-}
+});
+
+// Ensure every immediate child of a list is a list_item. Also, ensure
+// that the children of each list_item are block level elements, since this
+// makes list manipulation much easier and more consistent.
+NORMALIZERS.push(function ensureListContainsListItems({ editor, node, path }) {
+  if (
+    Element.isElement(node) &&
+    (node.type === "bullet_list" || node.type == "ordered_list")
+  ) {
+    let i = 0;
+    for (const child of node.children) {
+      if (!Element.isElement(child) || child.type != "list_item") {
+        // invalid document: every child of a list should be a list_item
+        Transforms.wrapNodes(editor, { type: "list_item" } as Element, {
+          at: path.concat([i]),
+          mode: "lowest",
+        });
+        return;
+      }
+      if (!Element.isElement(child.children[0])) {
+        // if the the children of the list item are leaves, wrap
+        // them all in a paragraph (for consistency with what our
+        // convertor from markdown does, and also our doc manipulation,
+        // e.g., backspace, assumes this).
+        Transforms.wrapNodes(editor, { type: "paragraph" } as Element, {
+          mode: "lowest",
+          match: (node) => !Element.isElement(node),
+          at: path.concat([i]),
+        });
+      }
+      i += 1;
+    }
+  }
+});
 
 /*
 Trim *all* whitespace from the beginning of blocks whose first child is Text,
 since markdown doesn't allow for it. (You can use &nbsp; of course.)
 */
-function trimLeadingWhitespace({ editor, node, path }) {
+NORMALIZERS.push(function trimLeadingWhitespace({ editor, node, path }) {
   if (Element.isElement(node) && Text.isText(node.children[0])) {
     const firstText = node.children[0].text;
     if (firstText != null) {
@@ -91,13 +139,13 @@ function trimLeadingWhitespace({ editor, node, path }) {
       }
     }
   }
-}
+});
 
 /*
 If there are two adjacent lists of the same type, merge the second one into
 the first.
 */
-function mergeAdjacentLists({ editor, node, path }) {
+NORMALIZERS.push(function mergeAdjacentLists({ editor, node, path }) {
   if (
     Element.isElement(node) &&
     (node.type === "bullet_list" || node.type === "ordered_list")
@@ -123,4 +171,4 @@ function mergeAdjacentLists({ editor, node, path }) {
       }
     } catch (_) {}
   }
-}
+});

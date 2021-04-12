@@ -41,7 +41,9 @@ register({
     }
 
     let s = ensure_ends_in_newline(li_indent(item, indent));
-    if (!info.parent.tight) {
+    if (!info.parent?.tight) {
+      // NOTE: the ? above is so this code works even if the document
+      // structure is invalid.
       s += "\n";
     }
     return s;

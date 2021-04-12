@@ -83,7 +83,7 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       <InputNumber
         title={"Numbered list starting value"}
         size={"small"}
-        style={{ flex: 1, maxWidth: "6ex" }}
+        style={{ flex: 1, maxWidth: "8ex" }}
         key={"start"}
         min={0}
         value={listProperties.start}
