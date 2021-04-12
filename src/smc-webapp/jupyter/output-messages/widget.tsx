@@ -450,10 +450,14 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       // Yeah, that is just insane... except that it seems
       // to work fine.
       // See https://github.com/sagemathinc/cocalc/issues/5228
-      const elt = ReactDOM.findDOMNode(this.refs.reactBox);
-      const container = $(elt);
-      const p = container.children().children().remove();
-      container.prepend(p);
+
+      // reverting 4dfb08af223897872e8e3fb38eef0a6658a9277d because it breaks sliders
+      if (false) {
+        const elt = ReactDOM.findDOMNode(this.refs.reactBox);
+        const container = $(elt);
+        const p = container.children().children().remove();
+        container.prepend(p);
+      }
     }, 1);
 
     return (
