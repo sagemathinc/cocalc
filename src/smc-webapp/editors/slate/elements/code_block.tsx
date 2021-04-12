@@ -145,7 +145,7 @@ register({
   fromSlate,
   Element,
   toSlate,
-  rules: { autoFocus: true },
+  /*rules: { autoFocus: true },  -- disabled since it doesn't work right now and enabling makes cursor disappear which is very confusing. */
   sizeEstimator,
 });
 
