@@ -434,6 +434,11 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     }
     setTimeout(() => {
       if (!this.mounted) return;
+      if (true) {
+        // disabling due to reports of crashes.
+        return;
+      }
+
       // This is a ridiculously horrible hack, but I can
       // think of no other possible way to do it, and we're
       // lucky it happens to work (due to internal implementation
