@@ -66,7 +66,9 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
           knowledgeable student can likely get around these constraints, e.g.,
           by using a command line terminal or doing a bunch of copying and
           pasting. Use the above instead to reduce the chances students get
-          confused and mess up their work.
+          confused and mess up their work. Checking either of the above also
+          disables the Jupyter classic and JupyterLab servers, since they have
+          equivalent functionality built in.
         </span>
       </Card>
     );
