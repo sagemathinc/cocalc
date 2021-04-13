@@ -8,7 +8,7 @@ import { React } from "../../app-framework";
 import { Icon } from "../../r_misc";
 
 export interface StudentProjectFunctionality {
-  disableDownloads?: boolean;
+  disableActions?: boolean;
   disableJupyterToggleReadonly?: boolean;
 }
 
@@ -23,7 +23,7 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
       <Card
         title={
           <>
-            <Icon name="envelope" /> Customize student projects
+            <Icon name="envelope" /> Lockdown student projects
           </>
         }
       >
@@ -35,9 +35,9 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
           }}
         >
           <Checkbox
-            checked={functionality.disableDownloads}
+            checked={functionality.disableActions}
             onChange={(e) =>
-              onChange({ disableDownloads: (e.target as any).checked })
+              onChange({ disableActions: (e.target as any).checked })
             }
           >
             Disable file actions: deleting, downloading, copying and publishing

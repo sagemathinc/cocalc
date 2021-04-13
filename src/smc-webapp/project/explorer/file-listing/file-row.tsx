@@ -226,7 +226,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
   }
 
   function render_download_button(url_href) {
-    if (student_project_functionality.disableDownloads) return;
+    if (student_project_functionality.disableActions) return;
 
     // ugly width 2.5em is to line up with blank space for directory.
     // TODO: This really should not be in the size column...
@@ -264,13 +264,15 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       className={props.no_select ? "noselect" : undefined}
     >
       <Col sm={2} xs={3}>
-        <FileCheckbox
-          name={props.name}
-          checked={props.checked}
-          current_path={props.current_path}
-          actions={props.actions}
-          style={{ verticalAlign: "sub" }}
-        />
+        {!student_project_functionality.disableActions && (
+          <FileCheckbox
+            name={props.name}
+            checked={props.checked}
+            current_path={props.current_path}
+            actions={props.actions}
+            style={{ verticalAlign: "sub" }}
+          />
+        )}
         {render_public_file_info()}
       </Col>
       <Col sm={1} xs={3}>
