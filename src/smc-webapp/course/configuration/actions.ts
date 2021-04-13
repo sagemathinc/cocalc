@@ -7,6 +7,7 @@
 Actions involving configuration of the course.
 */
 
+import { webapp_client } from "../../webapp-client";
 import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
 import { CourseActions } from "../actions";
 import { store as projects_store } from "../../projects/store";
@@ -166,6 +167,7 @@ export class ConfigurationActions {
       await this.course_actions.shared_project.configure();
       await this.configure_host_project();
       await this.course_actions.student_projects.configure_all_projects(force);
+      await this.configure_nbgrader_grade_project();
     } finally {
       this.configuring = false;
       if (this.configureAgain) {
@@ -192,27 +194,61 @@ export class ConfigurationActions {
   }
 
   public async configure_nbgrader_grade_project(
-    project_id: string
+    project_id?: string
   ): Promise<void> {
     const store = this.course_actions.get_store();
 
-    // make sure the course config for that nbgrader project (mainly for the datastore!) is set
-    const datastore: Datastore = store.get_datastore();
-    const projects_actions = redux.getActions("projects");
+    if (project_id == null) {
+      project_id = store.getIn(["settings", "nbgrader_grade_project"]);
+    }
+    if (project_id == null || project_id == "") return;
 
-    // if for some reason this is a student project, we don't want to reconfigure it
-    const course_info: any = projects_store.get_course_info(project_id)?.toJS();
-    if (course_info?.type == null || course_info.type == "nbgrader") {
-      await projects_actions.set_project_course_info(
-        project_id,
-        store.get("course_project_id"),
-        store.get("course_filename"),
-        "", // pay
-        null, // account_id
-        null, // email_address
-        datastore,
-        "nbgrader" // type of project
+    const id = this.course_actions.set_activity({
+      desc: "Configuring grading project.",
+    });
+
+    try {
+      // make sure the course config for that nbgrader project (mainly for the datastore!) is set
+      const datastore: Datastore = store.get_datastore();
+      const projects_actions = redux.getActions("projects");
+
+      // if for some reason this is a student project, we don't want to reconfigure it
+      const course_info: any = projects_store
+        .get_course_info(project_id)
+        ?.toJS();
+      if (course_info?.type == null || course_info.type == "nbgrader") {
+        await projects_actions.set_project_course_info(
+          project_id,
+          store.get("course_project_id"),
+          store.get("course_filename"),
+          "", // pay
+          null, // account_id
+          null, // email_address
+          datastore,
+          "nbgrader" // type of project
+        );
+      }
+
+      // we also make sure all teachers have access to that project – otherwise NBGrader can't work, etc.
+      const ps = redux.getStore("projects");
+      const teachers = ps.get_users(store.get("course_project_id"));
+      const users_of_grade_project = ps.get_users(project_id);
+      if (users_of_grade_project != null && teachers != null) {
+        for (const account_id of teachers.keys()) {
+          const user = users_of_grade_project.get(account_id);
+          if (user != null) continue;
+          await webapp_client.project_collaborators.add_collaborator({
+            account_id,
+            project_id,
+          });
+        }
+      }
+    } catch (err) {
+      this.course_actions.set_error(
+        `Error configuring grading project - ${err}`
       );
+    } finally {
+      this.course_actions.set_activity({ id });
     }
   }
 
@@ -298,14 +334,7 @@ export class ConfigurationActions {
     this.set({ datastore, table: "settings" });
     this.course_actions.student_projects.configure_all_projects();
     this.course_actions.shared_project.set_datastore();
-
-    const store = this.course_actions.get_store();
-    const nbgrader_grade_project: string | undefined = store.getIn([
-      "settings",
-      "nbgrader_grade_project",
-    ]);
-    if (nbgrader_grade_project) {
-      this.configure_nbgrader_grade_project(nbgrader_grade_project);
-    }
+    // in case there is one, we have to set the datastore as well
+    this.configure_nbgrader_grade_project();
   }
 }
