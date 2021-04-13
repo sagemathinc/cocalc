@@ -29,7 +29,11 @@ import {
   NBgraderRunInfo,
   get_nbgrader_score,
 } from "../store";
-import { start_project, exec } from "../../frame-editors/generic/client";
+import {
+  start_project,
+  stop_project,
+  exec,
+} from "../../frame-editors/generic/client";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
 import {
@@ -1579,6 +1583,7 @@ ${details}
 
     let grade_project_id: string;
     let student_path: string;
+    let stop_student_project = false;
     if (nbgrader_grade_project) {
       grade_project_id = nbgrader_grade_project;
 
@@ -1600,8 +1605,13 @@ ${details}
       // grade right where student did their work.
       student_path = assignment.get("target_path");
     }
+
     const where_grade =
       redux.getStore("projects").get_title(grade_project_id) ?? "a project";
+
+    const project_name = nbgrader_grade_project
+      ? `project ${trunc(where_grade, 40)}`
+      : `${store.get_student_name(student_id)}'s project`;
 
     if (instructor_ipynb_files == null) {
       instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
@@ -1647,13 +1657,17 @@ ${details}
         if (instructor_ipynb_files == null) throw Error("BUG");
         const instructor_ipynb: string = instructor_ipynb_files[file];
         if (this.course_actions.is_closed()) return;
+
         const id = this.course_actions.set_activity({
-          desc: `Ensuring ${store.get_student_name(
-            student_id
-          )}'s project is running`,
+          desc: `Ensuring ${project_name} is running`,
         });
+
         try {
-          await start_project(grade_project_id, 60);
+          const did_start = await start_project(grade_project_id, 60);
+          // if *we* started the student project, we'll also stop it afterwards
+          if (!nbgrader_grade_project) {
+            stop_student_project = did_start;
+          }
         } finally {
           this.course_actions.clear_activity(id);
         }
@@ -1711,6 +1725,17 @@ ${details}
           r,
         });*/
         result[file] = r;
+
+        if (!nbgrader_grade_project && stop_student_project) {
+          const idstop = this.course_actions.set_activity({
+            desc: `Stopping project ${project_name} after grading.`,
+          });
+          try {
+            await stop_project(grade_project_id, 60);
+          } finally {
+            this.course_actions.clear_activity(idstop);
+          }
+        }
       } catch (err) {
         // console.log("nbgrader failed", { student_id, file, err });
         scores[file] = `${err}`;

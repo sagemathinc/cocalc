@@ -49,22 +49,47 @@ export async function touch_project(project_id: string): Promise<void> {
   }
 }
 
+// return true, if this actually started the project
+// throwing a timeout means it attempted to start
 export async function start_project(
   project_id: string,
   timeout: number = 60
-): Promise<void> {
+): Promise<boolean> {
   const store = redux.getStore("projects");
   function is_running() {
     return store.get_state(project_id) === "running";
   }
   if (is_running()) {
     // already running, so done.
-    return;
+    return false;
   }
   // Start project running.
-  await redux.getActions("projects").start_project(project_id);
+  const did_start = await redux
+    .getActions("projects")
+    .start_project(project_id);
   // Wait until running (or fails without timeout).
   await callback2(store.wait, { until: is_running, timeout });
+  return did_start;
+}
+
+// return true, if this actually stopped the project
+// throwing a timeout means it attempted to stop
+export async function stop_project(
+  project_id: string,
+  timeout: number = 60
+): Promise<boolean> {
+  const store = redux.getStore("projects");
+  function is_not_running() {
+    return store.get_state(project_id) !== "running";
+  }
+  if (is_not_running()) {
+    return false;
+  }
+  // Start project running.
+  const did_stop = await redux.getActions("projects").stop_project(project_id);
+  // Wait until running (or fails without timeout).
+  await callback2(store.wait, { until: is_not_running, timeout });
+  return did_stop;
 }
 
 interface ReadTextFileOpts {
