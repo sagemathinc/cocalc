@@ -22,7 +22,7 @@ import {
   useMemo,
   useRedux,
 } from "../../../app-framework";
-import { sortBy, debounce, isEmpty } from "lodash";
+import { sortBy, debounce, isEmpty, merge } from "lodash";
 import { JupyterEditorActions } from "../actions";
 import { JupyterStore } from "../../../jupyter/store";
 import { NotebookFrameStore } from "../cell-notebook/store";
@@ -46,7 +46,11 @@ import {
 } from "@ant-design/icons";
 
 import { SnippetDoc, SnippetEntry, SnippetEntries, Snippets } from "./types";
-import { filter_snippets, generate_setup_code } from "./utils";
+import {
+  filter_snippets,
+  generate_setup_code,
+  load_custom_snippets,
+} from "./utils";
 import { Copy, Highlight } from "./components";
 
 const URL = "https://github.com/sagemathinc/cocalc-snippets";
@@ -54,13 +58,15 @@ const BUTTON_TEXT = "pick";
 const HEADER_SORTER = ([k, _]) =>
   -["Introduction", "Tutorial", "Help"].indexOf(k);
 
-function useData() {
+function useData(project_id: string) {
   const [data, set_data] = useState<{ [lang: string]: Snippets | undefined }>();
   if (data == null) {
     // this file is supposed to be in webapp-lib/examples/examples.json
     //     follow "./install.py examples" to see how the makefile is called during build
-    require.ensure([], function () {
-      set_data(require("webapp-lib/examples/examples.json"));
+    require.ensure([], async function () {
+      const hardcoded = require("webapp-lib/examples/examples.json");
+      const custom = await load_custom_snippets(project_id);
+      set_data(merge(hardcoded, custom));
     });
   }
   return data;
@@ -77,7 +83,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const {
     font_size,
     actions: frame_actions,
-    // project_id,
+    project_id,
     local_view_state,
   } = props;
   const jupyter_actions = frame_actions.jupyter_actions;
@@ -92,7 +98,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const [search_txt, set_search_txt] = useState("");
   const [search, set_search] = useState("");
   const set_search_debounced = debounce(set_search, 333);
-  const data = useData();
+  const data = useData(project_id);
 
   useEffect(() => {
     set_search_debounced(search_txt);
@@ -285,6 +291,29 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  function render_custom_snippets() {
+    return (
+      <Collapse.Panel
+        key={"custom_snippets"}
+        header={"Custom Snippets"}
+        className="cc-jupyter-snippets"
+      >
+        render custom snippets lvl1 here
+      </Collapse.Panel>
+    );
+  }
+  function render_custom_info() {
+    return (
+      <Collapse.Panel
+        key={"custom_info"}
+        header={"Custom Snippets"}
+        className="cc-jupyter-snippets"
+      >
+        Info about custom snippets
+      </Collapse.Panel>
+    );
+  }
+
   function render_no_kernel(): JSX.Element {
     return (
       <Alert
@@ -368,7 +397,9 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         }}
         {...active_search}
       >
+        {render_custom_snippets()}
         {lvl1.map(render_level1)}
+        {render_custom_info()}
       </Collapse>
     );
   }, [snippets, insert_setup, search, font_size]);

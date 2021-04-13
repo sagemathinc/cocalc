@@ -4,7 +4,43 @@
  */
 
 import { pick } from "lodash";
+import { exec } from "../../generic/client";
+import { reuseInFlight } from "async-await-utils/hof";
 import { Snippets, SnippetEntry, SnippetDoc } from "./types";
+
+// snippets are specific to a project, even if data comes from a global directory
+const custom_snippets_cache: {
+  [project_id: string]: { [lang: string]: Snippets };
+} = {};
+
+async function _load_custom_snippets(project_id: string) {
+  const cached = custom_snippets_cache[project_id];
+  if (cached != null) return cached;
+
+  const command = "cat ~/cocalc-snippets/*.ipynb";
+
+  const fns = await exec({
+    project_id,
+    command: 'ls -1 "~/cocalc-snippets/*.ipynb"',
+    bash: true,
+    err_on_exit: false,
+  });
+  console.log(fns);
+
+  const res = await exec({
+    command,
+    project_id,
+    bash: true,
+    err_on_exit: false,
+  });
+  console.log(res);
+
+  const snippets = {};
+  custom_snippets_cache[project_id] = snippets;
+  return snippets;
+}
+
+export const load_custom_snippets = reuseInFlight(_load_custom_snippets);
 
 // this derives the "snippets" datastrcture from the given data
 // if there is no or an empty string set, it's only purpose is to filter out empty snippet blocks
