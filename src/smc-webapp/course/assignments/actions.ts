@@ -1648,9 +1648,11 @@ ${details}
         const instructor_ipynb: string = instructor_ipynb_files[file];
         if (this.course_actions.is_closed()) return;
         const id = this.course_actions.set_activity({
-          desc: `Ensuring ${store.get_student_name(
-            student_id
-          )}'s project is running`,
+          desc: `Ensuring ${
+            nbgrader_grade_project
+              ? `project ${trunc(where_grade, 40)}`
+              : `${store.get_student_name(student_id)}'s project`
+          } is running`,
         });
         try {
           await start_project(grade_project_id, 60);
