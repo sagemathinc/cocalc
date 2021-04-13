@@ -15,6 +15,7 @@ import { COLORS } from "smc-util/theme";
 import { Button, Row, Col } from "react-bootstrap";
 import * as misc from "smc-util/misc";
 import { url_href } from "../../utils";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 interface Props {
   isdir: boolean;
@@ -37,6 +38,9 @@ interface Props {
 }
 
 export const FileRow: React.FC<Props> = React.memo((props) => {
+  const student_project_functionality = useStudentProjectFunctionality(
+    props.actions.project_id
+  );
   const [
     selection_at_last_mouse_down,
     set_selection_at_last_mouse_down,
@@ -222,6 +226,8 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
   }
 
   function render_download_button(url_href) {
+    if (student_project_functionality.disableDownloads) return;
+
     // ugly width 2.5em is to line up with blank space for directory.
     // TODO: This really should not be in the size column...
     return (

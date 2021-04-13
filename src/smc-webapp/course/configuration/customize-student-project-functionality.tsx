@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Card, Checkbox } from "antd";
 import { React } from "../../app-framework";
 import { Icon } from "../../r_misc";
@@ -65,3 +70,25 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
     );
   }
 );
+
+import { useEffect, useTypedRedux, useState } from "smc-webapp/app-framework";
+export const useStudentProjectFunctionality = (project_id: string) => {
+  const project_map = useTypedRedux("projects", "project_map");
+  const [state, setState] = useState<StudentProjectFunctionality>(
+    project_map
+      ?.getIn([project_id, "course", "student_project_functionality"])
+      ?.toJS() ?? {}
+  );
+  useEffect(() => {
+    setState(
+      project_map
+        ?.getIn([project_id, "course", "student_project_functionality"])
+        ?.toJS() ?? {}
+    );
+    return;
+  }, [
+    project_map?.getIn([project_id, "course", "student_project_functionality"]),
+  ]);
+
+  return state;
+};
