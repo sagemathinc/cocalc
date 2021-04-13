@@ -1252,6 +1252,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.store.set_global_clipboard(global_clipboard);
   }
 
+  private requireToggleReadonly(): void {
+    if (
+      this.redux
+        .getStore("projects")
+        .get_student_project_functionality(this.project_id)
+        .disableJupyterToggleReadonly
+    ) {
+      throw Error("Toggling of write protection is disabled in this project.");
+    }
+  }
+
   /* write protection disables any modifications, entering "edit"
      mode, and prohibits cell evaluations example: teacher handout
      notebook and student should not be able to modify an
@@ -1260,6 +1271,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     cell_ids: string[],
     save: boolean = true
   ): void {
+    this.requireToggleReadonly();
     this.toggle_metadata_boolean_on_cells(cell_ids, "editable", true, save);
   }
 
@@ -1269,6 +1281,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     cell_ids: string[],
     save: boolean = true
   ): void {
+    this.requireToggleReadonly();
     this.toggle_metadata_boolean_on_cells(cell_ids, "deletable", true, save);
   }
 
@@ -1966,7 +1979,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const immutable_editor_settings = account.get("editor_settings");
     if (immutable_editor_settings == null) return;
     const editor_settings = immutable_editor_settings.toJS();
-    const line_numbers = this.store.get_local_storage("line_numbers") ?? immutable_editor_settings.get('jupyter_line_numbers') ?? false;
+    const line_numbers =
+      this.store.get_local_storage("line_numbers") ??
+      immutable_editor_settings.get("jupyter_line_numbers") ??
+      false;
     const read_only = this.store.get("read_only");
     const x = immutable.fromJS({
       options: cm_options(mode, editor_settings, line_numbers, read_only),

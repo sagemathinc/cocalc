@@ -40,7 +40,8 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
               onChange({ disableDownloads: (e.target as any).checked })
             }
           >
-            Disable all file downloads
+            Disable file actions: deleting, downloading, copying and publishing
+            files
           </Checkbox>
           <br />
 
@@ -52,7 +53,8 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
               })
             }
           >
-            Disable toggle of read-only state of cells in Jupyter notebooks
+            Disable toggling of whether cells are editable or deletable in
+            Jupyter notebooks
           </Checkbox>
         </div>
         <hr />

@@ -28,6 +28,7 @@ import { Upgrades } from "smc-util/upgrades/types";
 import { has_internet_access } from "../upgrades/upgrade-utils";
 
 import { WebsocketState } from "../project/websocket/websocket-state";
+import { StudentProjectFunctionality } from "smc-webapp/course/configuration/customize-student-project-functionality";
 
 export type Project = Map<string, any>;
 export type ProjectMap = Map<string, Project>;
@@ -614,6 +615,19 @@ export class ProjectsStore extends Store<ProjectsState> {
       }
     };
     return this.get("project_map")?.filter(by_csi).valueSeq();
+  }
+
+  public get_student_project_functionality(
+    project_id: string
+  ): StudentProjectFunctionality {
+    return (
+      this.getIn([
+        "project_map",
+        project_id,
+        "course",
+        "student_project_functionality",
+      ])?.toJS() ?? {}
+    );
   }
 }
 
