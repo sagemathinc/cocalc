@@ -51,22 +51,22 @@ export const ActionBar: React.FC<Props> = (props) => {
     return <div></div>;
   }
 
-  /*
-  componentDidUpdate(prevProps: Props): void {
-    if (prevProps.current_path !== props.current_path) {
-      // user changed directory, hide the "select entire directory" button
-      if (select_entire_directory !== "hidden") {
-        set_select_entire_directory("hidden");
-      }
-    } else if (
+  React.useEffect(() => {
+    // user changed directory, hide the "select entire directory" button
+    if (select_entire_directory !== "hidden") {
+      set_select_entire_directory("hidden");
+    }
+  }, [props.current_path]);
+
+  React.useEffect(() => {
+    if (
       props.checked_files.size === props.listing.length &&
       select_entire_directory === "check"
     ) {
       // user just clicked the "select entire directory" button, show the "clear" button
       set_select_entire_directory("clear");
     }
-  }
-  */
+  }, [props.checked_files, props.listing, select_entire_directory]);
 
   function clear_selection(): void {
     props.actions.set_all_files_unchecked();
