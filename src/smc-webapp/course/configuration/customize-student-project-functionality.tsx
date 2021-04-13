@@ -74,22 +74,29 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
 );
 
 import { useEffect, useTypedRedux, useState } from "smc-webapp/app-framework";
-export const useStudentProjectFunctionality = (project_id: string) => {
+
+// NOTE: we allow project_id to be undefined for convenience since some clients
+// were written with that unlikely assumption on their knowledge of project_id.
+export const useStudentProjectFunctionality = (project_id?: string) => {
   const project_map = useTypedRedux("projects", "project_map");
   const [state, setState] = useState<StudentProjectFunctionality>(
     project_map
-      ?.getIn([project_id, "course", "student_project_functionality"])
+      ?.getIn([project_id ?? "", "course", "student_project_functionality"])
       ?.toJS() ?? {}
   );
   useEffect(() => {
     setState(
       project_map
-        ?.getIn([project_id, "course", "student_project_functionality"])
+        ?.getIn([project_id ?? "", "course", "student_project_functionality"])
         ?.toJS() ?? {}
     );
     return;
   }, [
-    project_map?.getIn([project_id, "course", "student_project_functionality"]),
+    project_map?.getIn([
+      project_id ?? "",
+      "course",
+      "student_project_functionality",
+    ]),
   ]);
 
   return state;

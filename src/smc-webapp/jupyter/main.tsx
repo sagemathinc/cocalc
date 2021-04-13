@@ -416,6 +416,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
       return (
         <TopButtonbar
           frame_actions={frame_actions}
+          project_id={project_id}
           name={name}
           cells={cells}
           cur_id={cur_id}
