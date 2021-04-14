@@ -10,10 +10,11 @@ import { CopyOutlined } from "@ant-design/icons";
 
 export const Highlight: React.FC<{
   text: string;
-  search: string;
+  search?: string;
   style?: CSS;
 }> = React.memo(({ text, search, style }) => {
   function highlight_md(descr, search) {
+    if (search == null) return descr;
     if (search == null || search === "") return descr;
     const pos = descr.toLowerCase().indexOf(search.toLowerCase());
     if (pos == -1) return descr;

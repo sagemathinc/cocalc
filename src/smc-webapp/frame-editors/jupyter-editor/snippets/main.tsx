@@ -19,6 +19,7 @@ import {
   useEffect,
   useState,
   useStore,
+  useActions,
   useMemo,
   useRedux,
 } from "../../../app-framework";
@@ -27,7 +28,9 @@ import { JupyterEditorActions } from "../actions";
 import { JupyterStore } from "../../../jupyter/store";
 import { NotebookFrameStore } from "../cell-notebook/store";
 import { A, Loading } from "../../../r_misc";
+import { isMainConfiguration } from "../../../project_configuration";
 import { COLORS } from "smc-util/theme";
+import { ExclamationCircleOutlined } from "@ant-design/icons";
 import {
   Button,
   Collapse,
@@ -50,26 +53,55 @@ import {
   filter_snippets,
   generate_setup_code,
   load_custom_snippets,
+  LOCAL_CUSTOM_DIR,
+  GLOBAL_CUSTOM_DIR,
+  CUSTOM_SNIPPETS_TITLE,
 } from "./utils";
 import { Copy, Highlight } from "./components";
 
 const URL = "https://github.com/sagemathinc/cocalc-snippets";
 const BUTTON_TEXT = "pick";
 const HEADER_SORTER = ([k, _]) =>
-  -["Introduction", "Tutorial", "Help"].indexOf(k);
+  -["Introduction", "Tutorial", "Help", CUSTOM_SNIPPETS_TITLE].indexOf(k);
 
-function useData(project_id: string) {
+// will be set once in the require.ensure callback
+let hardcoded: any = {};
+
+async function load_data(project_actions, set_data, forced = false) {
+  const main_conf = await project_actions.init_configuration("main");
+  if (
+    main_conf != null &&
+    isMainConfiguration(main_conf) &&
+    main_conf.capabilities.jq === true
+  ) {
+    const custom = await load_custom_snippets(
+      project_actions.project_id,
+      forced
+    );
+    set_data(merge({}, hardcoded, custom));
+  }
+}
+
+function useData(
+  project_actions
+): [{ [lang: string]: Snippets | undefined } | undefined, Function, number] {
   const [data, set_data] = useState<{ [lang: string]: Snippets | undefined }>();
+  const [reload_ts, set_reload_ts] = useState<number>(Date.now());
   if (data == null) {
-    // this file is supposed to be in webapp-lib/examples/examples.json
-    //     follow "./install.py examples" to see how the makefile is called during build
-    require.ensure([], async function () {
-      const hardcoded = require("webapp-lib/examples/examples.json");
-      const custom = await load_custom_snippets(project_id);
-      set_data(merge(hardcoded, custom));
+    require.ensure([], () => {
+      // this file is supposed to be in webapp-lib/examples/examples.json
+      //     follow "./install.py examples" to see how the makefile is called during build
+      hardcoded = require("webapp-lib/examples/examples.json");
+      set_data(hardcoded); // call immediately to show default snippets quickly
+      load_data(project_actions, set_data);
     });
   }
-  return data;
+  // reload has "forced" set to true, which clears the cache
+  const reload = async function () {
+    await load_data(project_actions, set_data, true);
+    set_reload_ts(Date.now());
+  };
+  return [data, reload, reload_ts];
 }
 
 interface Props {
@@ -86,6 +118,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     project_id,
     local_view_state,
   } = props;
+  const project_actions = useActions({ project_id });
   const jupyter_actions = frame_actions.jupyter_actions;
 
   // the most recent notebook frame id, i.e. that's where we'll insert cells
@@ -98,7 +131,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const [search_txt, set_search_txt] = useState("");
   const [search, set_search] = useState("");
   const set_search_debounced = debounce(set_search, 333);
-  const data = useData(project_id);
+  const [data, reload, reload_ts] = useData(project_actions);
 
   useEffect(() => {
     set_search_debounced(search_txt);
@@ -118,7 +151,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     // we also pass the raw data through the filter if the string is empty,
     // such that no headers without any data do not show up
     return filter_snippets(raw, search);
-  }, [data, lang, search]);
+  }, [data, lang, search, reload_ts]);
 
   // we need to know the target frame of the jupyter notebook
   useEffect(() => {
@@ -284,32 +317,41 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         className="cc-jupyter-snippets"
         showArrow={active_search == null}
       >
-        <Collapse ghost destroyInactivePanel {...active_search}>
+        <Collapse ghost={true} destroyInactivePanel {...active_search}>
           {lvl2.map(render_level2)}
         </Collapse>
       </Collapse.Panel>
     );
   }
 
-  function render_custom_snippets() {
-    return (
-      <Collapse.Panel
-        key={"custom_snippets"}
-        header={"Custom Snippets"}
-        className="cc-jupyter-snippets"
-      >
-        render custom snippets lvl1 here
-      </Collapse.Panel>
-    );
-  }
   function render_custom_info() {
     return (
       <Collapse.Panel
         key={"custom_info"}
-        header={"Custom Snippets"}
+        header={
+          <>
+            <Highlight
+              text={"Custom Snippets Info"}
+              style={{ fontWeight: "bold" }}
+            />{" "}
+            <ExclamationCircleOutlined />
+          </>
+        }
         className="cc-jupyter-snippets"
       >
-        Info about custom snippets
+        <div style={{ margin: "10px", fontSize: `${font_size}px` }}>
+          <p>
+            You can add custom snippets, by placing Jupyter Notebooks containing
+            markdown/code cell pairs into{" "}
+            <Typography.Text code>{LOCAL_CUSTOM_DIR}</Typography.Text> or if
+            set, into the directory defined by the{" "}
+            <Typography.Text code>{GLOBAL_CUSTOM_DIR}</Typography.Text>{" "}
+            environment variable.
+          </p>
+          <p>
+            <Button onClick={() => reload()}>Reload custom snippets</Button>
+          </p>
+        </div>
       </Collapse.Panel>
     );
   }
@@ -397,12 +439,11 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         }}
         {...active_search}
       >
-        {render_custom_snippets()}
         {lvl1.map(render_level1)}
         {render_custom_info()}
       </Collapse>
     );
-  }, [snippets, insert_setup, search, font_size]);
+  }, [snippets, insert_setup, search, font_size, reload_ts]);
 
   // introduction at the top
   function render_help(): JSX.Element {

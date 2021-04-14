@@ -153,6 +153,11 @@ async function get_rmd(): Promise<boolean> {
   return await have("R");
 }
 
+// jq is used to e.g. pre-process ipynb files
+async function get_jq(): Promise<boolean> {
+  return await have("jq");
+}
+
 // check if we can read that json file.
 // if it exists, show the corresponding button in "Files".
 async function get_library(): Promise<boolean> {
@@ -242,6 +247,7 @@ async function capabilities(): Promise<MainCapabilities> {
     sage_version: undefined,
     x11,
     rmd,
+    jq: await get_jq(), // don't know why, but it doesn't compile when inside the Promise.all
     spellcheck,
     library,
     sshd,

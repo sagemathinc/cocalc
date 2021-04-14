@@ -46,11 +46,12 @@ export interface MainCapabilities {
   sage_version?: number[];
   x11: boolean;
   rmd: boolean;
+  jq: boolean;
   spellcheck: boolean;
   library: boolean;
   sshd: boolean;
   html2pdf: boolean; // via chrome/chromium
-  pandoc: boolean;  // e.g. for docx2md conversion
+  pandoc: boolean; // e.g. for docx2md conversion
 }
 
 export interface Available {
@@ -61,6 +62,7 @@ export interface Available {
   latex: boolean;
   sage: boolean;
   rmd: boolean; // TODO besides R, what's necessary?
+  jq: boolean;
   spellcheck: boolean;
   library: boolean;
   html2pdf: boolean;
@@ -77,6 +79,7 @@ const NO_AVAIL: Readonly<Available> = {
   sage: false,
   latex: false,
   rmd: false,
+  jq: false,
   x11: false,
   spellcheck: false,
   library: false,
@@ -92,6 +95,7 @@ export const ALL_AVAIL: Readonly<Available> = {
   sage: true,
   latex: true,
   rmd: true,
+  jq: true,
   x11: true,
   spellcheck: true,
   library: true,
@@ -190,6 +194,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       sage: !!capabilities.sage,
       latex: !!capabilities.latex,
       rmd: !!capabilities.rmd,
+      jq: !!capabilities.jq,
       x11: !!capabilities.x11,
       spellcheck: !!capabilities.spellcheck,
       library: !!capabilities.library,

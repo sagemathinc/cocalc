@@ -3,39 +3,191 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { pick } from "lodash";
+import { pick, merge } from "lodash";
+import { basename } from "path";
+import { unreachable, separate_file_extension } from "smc-util/misc";
 import { exec } from "../../generic/client";
 import { reuseInFlight } from "async-await-utils/hof";
-import { Snippets, SnippetEntry, SnippetDoc } from "./types";
+import { Snippets, LangSnippets, SnippetEntry, SnippetDoc } from "./types";
+import { canonical_language } from "../../../jupyter/store";
 
 // snippets are specific to a project, even if data comes from a global directory
 const custom_snippets_cache: {
-  [project_id: string]: { [lang: string]: Snippets };
+  [project_id: string]: LangSnippets;
 } = {};
 
-async function _load_custom_snippets(project_id: string) {
-  const cached = custom_snippets_cache[project_id];
-  if (cached != null) return cached;
+export const CUSTOM_SNIPPETS_TITLE = "Custom Snippets";
+export const LOCAL_CUSTOM_DIR = "$HOME/code-snippets";
+export const GLOBAL_CUSTOM_DIR = "$COCALC_CODE_SNIPPETS_DIR";
 
-  const command = "cat ~/cocalc-snippets/*.ipynb";
+// a minimal jupyter notebook interface, just enough for our purposes and all optional ...
+interface JupyterNotebook {
+  cells?: {
+    cell_type?: "markdown" | "code";
+    source?: string[];
+  }[];
+  metadata?: {
+    kernelspec?: {
+      display_name?: string;
+      language?: string; // "python", ...
+      name?: string; // "python3", ...
+    };
+    language_info?: {
+      name?: string; // "python"
+    };
+  };
+}
 
-  const fns = await exec({
-    project_id,
-    command: 'ls -1 "~/cocalc-snippets/*.ipynb"',
-    bash: true,
-    err_on_exit: false,
-  });
-  console.log(fns);
+// we combine alternating runs of markdown cells and code cells as a single snippet
+// it starts by defining an empty "md" string and no code, and then either collects more text
+// or starts to collect code. the moment it tries to collect more text, a snippet is emitted
+// and the text part reset to the current text.
+function cells2snippets(cells?: JupyterNotebook["cells"]): SnippetEntry {
+  const entries: SnippetDoc[] = [];
+  const ret: SnippetEntry = { entries };
+  if (!cells) return ret;
+  let md: string | null = "";
+  let code: string[] = [];
+  let title: string | null = null;
+  let i = 1;
 
+  function finish() {
+    // end a run of one or more codecells
+    const fallback = `snippet ${i}`;
+    entries.push([title ?? fallback, [code, md ?? fallback]]);
+    i += 1;
+    md = title = null;
+    code = [];
+  }
+
+  for (const cell of cells) {
+    const ct = cell.cell_type;
+    if (!ct) continue;
+    const source = (cell.source ?? []).join("\n");
+    switch (ct) {
+      case "markdown":
+        if (code.length > 0) finish();
+        md = `${md ?? ""}\n\n${source}`;
+        if (title == null) {
+          title = lvl2_title(cell.source ?? []);
+        }
+        break;
+      case "code":
+        if (source.trim()) code.push(source);
+        break;
+    }
+  }
+  if (code.length > 0) finish();
+
+  return ret;
+}
+
+// search for a markdown title starting with at least ##...
+function lvl2_title(lines: string[]): string | null {
+  for (const line of lines) {
+    const m = line.match(/^#[#]+[\s]+(.*)$/);
+    if (m?.[1] != null) return m[1].trim();
+  }
+  return null;
+}
+
+// the level 1 title is either the first h1 title in the first cell, or the filename
+function lvl1_title(fn: string, nb: JupyterNotebook) {
+  const cell1 = nb.cells?.[0];
+  if (cell1 != null) {
+    if (cell1.cell_type === "markdown" && cell1.source) {
+      let i = 0;
+      for (const line of cell1.source) {
+        const m = line.match(/^#[\s]+(.*)$/);
+        if (m?.[1] != null) {
+          // we get rid of the title
+          // @ts-ignore
+          nb.cells[0].source[i] = "";
+          return m[1].trim();
+        }
+        i += 1;
+      }
+    }
+  }
+
+  const { name } = separate_file_extension(fn);
+  return name;
+}
+
+function parse_custom_snippets(json?: object): LangSnippets {
+  const ret = {};
+  if (json == null) return ret;
+
+  for (const entry of Object.entries(json)) {
+    const [fn, nb]: [string, JupyterNotebook] = entry;
+    const fn_base = basename(fn);
+    const lvl1 = lvl1_title(fn_base, nb);
+    const meta = nb.metadata;
+    // python as a default fallback is a sane choice
+    const lang =
+      canonical_language(meta?.kernelspec?.name, meta?.language_info?.name) ??
+      "python";
+    const sippets = cells2snippets(nb.cells);
+    if (ret[lang] == null) {
+      ret[lang] = { [CUSTOM_SNIPPETS_TITLE]: {} };
+    }
+    if (ret[lang][CUSTOM_SNIPPETS_TITLE][lvl1] == null) {
+      ret[lang][CUSTOM_SNIPPETS_TITLE][lvl1] = sippets;
+    } else {
+      ret[lang][CUSTOM_SNIPPETS_TITLE][lvl1] = merge(
+        ret[lang][CUSTOM_SNIPPETS_TITLE][lvl1],
+        sippets
+      );
+    }
+  }
+  return ret;
+}
+
+async function fetch_custom_sippets_data(
+  location: "local" | "global",
+  project_id: string
+): Promise<LangSnippets> {
+  // we collect all files by their name and drop all outputs (images are embedded!)
+  // TODO of course, if there are many files, we'll end up having problems.
+  const dir = (function () {
+    switch (location) {
+      case "local":
+        return LOCAL_CUSTOM_DIR;
+      case "global":
+        return GLOBAL_CUSTOM_DIR;
+      default:
+        unreachable(location);
+        return LOCAL_CUSTOM_DIR;
+    }
+  })();
+  // TODO make this robust for spaces in filenames
+  const command = `jq -cnM 'reduce inputs as $s (.; .[input_filename] += $s)' ${dir}/*.ipynb | jq -Mrc 'del(.. | .outputs?)'`;
   const res = await exec({
     command,
     project_id,
     bash: true,
     err_on_exit: false,
   });
-  console.log(res);
 
-  const snippets = {};
+  if (res.exit_code === 0) {
+    return parse_custom_snippets(JSON.parse(res.stdout));
+  } else {
+    return {};
+  }
+}
+
+async function _load_custom_snippets(project_id: string, forced = false) {
+  const cached = custom_snippets_cache[project_id];
+  if (forced) {
+    delete custom_snippets_cache[project_id];
+  } else if (cached != null) {
+    return cached;
+  }
+  const [local, global] = await Promise.all([
+    fetch_custom_sippets_data("local", project_id),
+    fetch_custom_sippets_data("global", project_id),
+  ]);
+  const snippets = merge(local, global);
   custom_snippets_cache[project_id] = snippets;
   return snippets;
 }

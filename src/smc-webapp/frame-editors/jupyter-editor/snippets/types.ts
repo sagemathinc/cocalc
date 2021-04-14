@@ -26,3 +26,5 @@ export type SnippetEntries = {
 export type Snippets = {
   [key: string]: SnippetEntries;
 };
+
+export type LangSnippets = { [lang: string]: Snippets };
