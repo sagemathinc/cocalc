@@ -1252,13 +1252,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.store.set_global_clipboard(global_clipboard);
   }
 
+  public studentProjectFunctionality() {
+    return this.redux
+      .getStore("projects")
+      .get_student_project_functionality(this.project_id);
+  }
+
   private requireToggleReadonly(): void {
-    if (
-      this.redux
-        .getStore("projects")
-        .get_student_project_functionality(this.project_id)
-        .disableJupyterToggleReadonly
-    ) {
+    if (this.studentProjectFunctionality().disableJupyterToggleReadonly) {
       throw Error("Toggling of write protection is disabled in this project.");
     }
   }

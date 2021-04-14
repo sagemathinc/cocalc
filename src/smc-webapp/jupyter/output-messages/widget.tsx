@@ -434,10 +434,6 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     }
     setTimeout(() => {
       if (!this.mounted) return;
-      if (true) {
-        // disabling due to reports of crashes.
-        return;
-      }
 
       // This is a ridiculously horrible hack, but I can
       // think of no other possible way to do it, and we're
@@ -450,10 +446,9 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       // Unfortunately, all the style and layout of
       // ipywidgets assumes that this extra level of wrapping
       // isn't there and is broken by this.  So we set things
-      // up like that, then simply hoist all the elements that
-      // phosphor creates out of the wrappers using jquery.
-      // Yeah, that is just insane... except that it seems
-      // to work fine.
+      // up like that, then copy the style and class from
+      // the elements that phosphor creates to the wrapper elements
+      // that we create.
       // See https://github.com/sagemathinc/cocalc/issues/5228
       // and https://github.com/sagemathinc/cocalc/pull/5273
 
@@ -461,13 +456,10 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       const container = $(elt);
       const children = container.children().children();
       for (const child of children) {
-        // Don't mess with sliders, since if there are multiple
-        // copies of the same one created at different times, then
-        // phosphor redoes them in a way that breaks them.  Fortunately,
-        // we don't need to mess with them anyways.
-        if (child.className.indexOf("widget-slider") != -1) continue;
         const a = $(child);
-        a.parent().replaceWith(a);
+        const p = a.parent();
+        p.attr('class', a.attr("class"));
+        p.attr('style', a.attr("style"));
       }
     }, 1);
 

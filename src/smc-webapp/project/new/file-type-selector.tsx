@@ -14,6 +14,7 @@ import { JupyterLabServerPanel } from "../jupyterlab-server";
 import { NewFileButton } from "./new-file-button";
 import { ALL_AVAIL } from "../../project_configuration";
 import { useTypedRedux, useState } from "../../app-framework";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 interface Props {
   create_file: (name?: string) => void;
@@ -30,6 +31,12 @@ export const FileTypeSelector: React.FC<Props> = ({
   project_id,
   children,
 }: Props): JSX.Element | null => {
+  const student_project_functionality = useStudentProjectFunctionality(
+    project_id
+  );
+  const noJupyter =
+    student_project_functionality.disableActions ||
+    student_project_functionality.disableJupyterToggleReadonly;
   const [show_jupyter_server, set_show_jupyter_server] = useState(false);
   const [show_jupyterlab_server, set_show_jupyterlab_server] = useState(false);
   const available_features = useTypedRedux(
@@ -227,7 +234,7 @@ export const FileTypeSelector: React.FC<Props> = ({
       </Row>
       <Row style={row_style}>
         <Col sm={12}>
-          {available.jupyter_notebook ? (
+          {!noJupyter && available.jupyter_notebook ? (
             <Tip
               title={"Jupyter server"}
               icon={"cc-icon-ipynb"}
@@ -245,7 +252,7 @@ export const FileTypeSelector: React.FC<Props> = ({
               />
             </Tip>
           ) : undefined}
-          {available.jupyter_lab ? (
+          {!noJupyter && available.jupyter_lab ? (
             <Tip
               title={"JupyterLab server"}
               icon={"cc-icon-ipynb"}
