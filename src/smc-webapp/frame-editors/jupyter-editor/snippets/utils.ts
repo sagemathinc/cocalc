@@ -15,6 +15,7 @@ import {
   SnippetEntry,
   SnippetDoc,
   JupyterNotebook,
+  Error,
 } from "./types";
 
 // snippets are specific to a project, even if data comes from a global directory
@@ -23,7 +24,7 @@ const custom_snippets_cache: {
 } = {};
 
 export const CUSTOM_SNIPPETS_TITLE = "Custom Snippets";
-export const LOCAL_CUSTOM_DIR = "$HOME/code-snippets";
+export const LOCAL_CUSTOM_DIR = "code-snippets";
 export const GLOBAL_CUSTOM_DIR = "$COCALC_CODE_SNIPPETS_DIR";
 
 // we combine alternating runs of markdown cells and code cells as a single snippet
@@ -68,17 +69,18 @@ function cells2snippets(cells?: JupyterNotebook["cells"]): SnippetEntry {
   for (const cell of cells) {
     const ct = cell.cell_type;
     if (!ct) continue;
-    const source = (cell.source ?? []).join("\n");
     switch (ct) {
       case "markdown":
         if (code.length > 0) finish();
-        md = `${md ?? ""}\n\n${source}`;
         if (title == null) {
+          // lvl2_title might modify cell.source!
           title = lvl2_title(cell.source ?? []);
         }
+        md = `${md ?? ""}\n\n${(cell.source ?? []).join("\n")}`;
         break;
       case "code":
-        if (source.trim()) code.push(source);
+        const cs = (cell.source ?? []).join("\n");
+        if (cs.trim()) code.push(cs);
         if (no_markdown) finish();
         break;
     }
@@ -92,7 +94,8 @@ function cells2snippets(cells?: JupyterNotebook["cells"]): SnippetEntry {
 // this also removes the title it finds!
 function lvl2_title(lines: string[]): string | null {
   for (const i in lines) {
-    const line = lines[i];
+    // weird, sometimes lines end with \n which aren't matched with the regex
+    const line = lines[i].split("\n")[0];
     const m = line.match(/^#[#]+[\s]+(.*)$/);
     if (m?.[1] != null) {
       lines[i] = "";
@@ -120,7 +123,7 @@ function lvl1_title(fn: string, nb: JupyterNotebook) {
       }
     }
   }
-
+  // fallback
   const { name } = separate_file_extension(fn);
   return name;
 }
@@ -157,22 +160,23 @@ function parse_custom_snippets(json?: object): LangSnippets {
 async function fetch_custom_sippets_data(
   location: "local" | "global",
   project_id: string
-): Promise<LangSnippets> {
+): Promise<LangSnippets | Error> {
   // we collect all files by their name and drop all outputs (images are embedded!)
   // TODO of course, if there are many files, we'll end up having problems.
-  const dir = (function () {
+  const base = (function () {
+    const local = `$HOME/${LOCAL_CUSTOM_DIR}`;
     switch (location) {
       case "local":
-        return LOCAL_CUSTOM_DIR;
+        return local;
       case "global":
         return GLOBAL_CUSTOM_DIR;
       default:
         unreachable(location);
-        return LOCAL_CUSTOM_DIR;
+        return local;
     }
   })();
   // TODO make this robust for spaces in filenames
-  const command = `jq -cnM 'reduce inputs as $s (.; .[input_filename] += $s)' ${dir}/*.ipynb | jq -Mrc 'del(.. | .outputs?)'`;
+  const command = `jq -cnM 'reduce inputs as $s (.; .[input_filename] += $s)' ${base}/*.ipynb | jq -Mrc 'del(.. | .outputs?)'`;
   const res = await exec({
     command,
     project_id,
@@ -181,13 +185,21 @@ async function fetch_custom_sippets_data(
   });
 
   if (res.exit_code === 0) {
-    return parse_custom_snippets(JSON.parse(res.stdout));
+    try {
+      return parse_custom_snippets(JSON.parse(res.stdout));
+    } catch (err) {
+      return { error: `${err}` };
+    }
   } else {
-    return {};
+    return { error: res.stderr };
   }
 }
 
-async function _load_custom_snippets(project_id: string, forced = false) {
+async function _load_custom_snippets(
+  project_id: string,
+  set_error: (err) => void,
+  forced: boolean
+): Promise<LangSnippets> {
   const cached = custom_snippets_cache[project_id];
   if (forced) {
     delete custom_snippets_cache[project_id];
@@ -198,7 +210,17 @@ async function _load_custom_snippets(project_id: string, forced = false) {
     fetch_custom_sippets_data("local", project_id),
     fetch_custom_sippets_data("global", project_id),
   ]);
-  const snippets = merge(local, global);
+  const snippets: LangSnippets = {};
+  if (local?.error != null) {
+    set_error(`Error loading local snippets: ${local.error}`);
+  } else {
+    merge(snippets, local);
+  }
+  if (global?.error != null) {
+    set_error(`Error loading local snippets: ${global.error}`);
+  } else {
+    merge(snippets, global);
+  }
   custom_snippets_cache[project_id] = snippets;
   return snippets;
 }

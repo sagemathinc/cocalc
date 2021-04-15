@@ -67,7 +67,7 @@ const HEADER_SORTER = ([k, _]) =>
 // will be set once in the require.ensure callback
 let hardcoded: any = {};
 
-async function load_data(project_actions, set_data, forced = false) {
+async function load_data(project_actions, set_data, set_error, forced = false) {
   const main_conf = await project_actions.init_configuration("main");
   if (
     main_conf != null &&
@@ -76,32 +76,45 @@ async function load_data(project_actions, set_data, forced = false) {
   ) {
     const custom = await load_custom_snippets(
       project_actions.project_id,
+      set_error,
       forced
     );
     set_data(merge({}, hardcoded, custom));
+  } else {
+    set_error("Utility 'jq' is not installed.");
   }
 }
 
 function useData(
-  project_actions
-): [{ [lang: string]: Snippets | undefined } | undefined, Function, number] {
+  project_actions,
+  set_error
+): [
+  { [lang: string]: Snippets | undefined } | undefined,
+  Function,
+  number,
+  boolean
+] {
   const [data, set_data] = useState<{ [lang: string]: Snippets | undefined }>();
   const [reload_ts, set_reload_ts] = useState<number>(Date.now());
+  const [loading, set_loading] = useState<boolean>(false);
   if (data == null) {
     require.ensure([], () => {
       // this file is supposed to be in webapp-lib/examples/examples.json
       //     follow "./install.py examples" to see how the makefile is called during build
       hardcoded = require("webapp-lib/examples/examples.json");
       set_data(hardcoded); // call immediately to show default snippets quickly
-      load_data(project_actions, set_data);
+      load_data(project_actions, set_data, set_error);
     });
   }
   // reload has "forced" set to true, which clears the cache
   const reload = async function () {
-    await load_data(project_actions, set_data, true);
+    set_error(null);
+    set_loading(true);
+    await load_data(project_actions, set_data, set_error, true);
     set_reload_ts(Date.now());
+    set_loading(false);
   };
-  return [data, reload, reload_ts];
+  return [data, reload, reload_ts, loading];
 }
 
 interface Props {
@@ -131,7 +144,11 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const [search_txt, set_search_txt] = useState("");
   const [search, set_search] = useState("");
   const set_search_debounced = debounce(set_search, 333);
-  const [data, reload, reload_ts] = useData(project_actions);
+  const [error, set_error] = useState<string | null>(null);
+  const [data, reload, reload_ts, reloading] = useData(
+    project_actions,
+    set_error
+  );
 
   useEffect(() => {
     set_search_debounced(search_txt);
@@ -325,7 +342,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function open_custom_snippet_file() {
-    // open `${LOCAL_CUSTOM_DIR}/snippets.ipynb`
+    const path = `${LOCAL_CUSTOM_DIR}/snippets.ipynb`;
+    project_actions?.open_file({ path, foreground: true });
   }
 
   function render_custom_info() {
@@ -341,36 +359,53 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       >
         <div style={{ margin: "10px", fontSize: `${font_size}px` }}>
           <p>
-            You can add your own custom snippets, by placing Jupyter Notebooks
-            containing markdown/code cell pairs into{" "}
-            <Typography.Text code>{LOCAL_CUSTOM_DIR}</Typography.Text> (e.g.{" "}
+            Add your own snippets by placing Jupyter Notebooks containing
+            markdown/code cell pairs into{" "}
+            <Typography.Text code>$HOME/{LOCAL_CUSTOM_DIR}</Typography.Text>{" "}
+            (e.g.{" "}
             <Button
               type="link"
               style={{ padding: 0 }}
               onClick={open_custom_snippet_file}
             >
-              <Typography.Text code>snippets.ipynb</Typography.Text>
+              snippets.ipynb
             </Button>
-            ) or if set, into the directory defined by the{" "}
+            ) or if defined, into the directory specified by the{" "}
             <Typography.Text code>{GLOBAL_CUSTOM_DIR}</Typography.Text>{" "}
             environment variable.
           </p>
           <p>
             After changing the files,{" "}
-            <Button type="link" style={{ padding: 0 }} onClick={() => reload()}>
+            <Button
+              type="link"
+              style={{ padding: 0 }}
+              onClick={() => reload()}
+              loading={reloading}
+            >
               reload custom snippets
             </Button>
             .
+            {error && (
+              <>
+                <br />
+                Problem:{" "}
+                <Typography.Text type="danger">{error}</Typography.Text>
+              </>
+            )}
           </p>
           <p>
-            Regarding the content of the notebooks, the first cell should start
-            with a Markdown title header, i.e.{" "}
-            <Typography.Text code># Title</Typography.Text>. The next cells
-            should be alternating between Markdown (with a 2nd level header,
-            i.e. <Typography.Text code>## Snippet Name</Typography.Text> and a
-            description) followed by one or more code cells. The language of the
-            snippet notebook must match the language of your notebook to see the
-            snippets!
+            Regarding the content of the notebooks, the first cell be a Markdown
+            title header, i.e. <Typography.Text code># Title</Typography.Text>.
+            The next cells should be alternating between Markdown (with a 2nd
+            level header, i.e.{" "}
+            <Typography.Text code>## Snippet Name</Typography.Text> and a
+            description) and followed by one or more code cells. The language of
+            the snippet notebook must match the language of your notebook in
+            order to see the snippets!
+          </p>
+          <p>
+            Also, at least for now, no spaces in the path or filename are
+            allowed!
           </p>
         </div>
       </Collapse.Panel>
@@ -464,7 +499,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         {render_custom_info()}
       </Collapse>
     );
-  }, [snippets, insert_setup, search, font_size, reload_ts]);
+  }, [snippets, insert_setup, search, font_size, reload_ts, error, reloading]);
 
   // introduction at the top
   function render_help(): JSX.Element {
@@ -478,7 +513,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         the categories to see them and use the "{BUTTON_TEXT}" button to copy
         the snippet into your notebook. If there is some text in the search box,
         it shows you some of the matching snippets. Something missing? Please{" "}
-        <A href={URL}>contribute snippets</A>.
+        <A href={URL}>contribute snippets</A> or read about "Custom Snippets" at
+        the very bottom.
       </Typography.Paragraph>
     );
   }

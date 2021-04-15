@@ -5,6 +5,8 @@
 
 // this defines the datastructure we want to present to the user
 
+export type Error = { error: string };
+
 export type SnippetDoc = [
   title: string,
   snippet: [code: string | string[], descr: string]
