@@ -28,3 +28,21 @@ export type Snippets = {
 };
 
 export type LangSnippets = { [lang: string]: Snippets };
+
+// a minimal/incomplete jupyter notebook, just enough for our purposes and all fields are optional ... don't use it elsewhere
+export interface JupyterNotebook {
+  cells?: {
+    cell_type?: "markdown" | "code";
+    source?: string[];
+  }[];
+  metadata?: {
+    kernelspec?: {
+      display_name?: string;
+      language?: string; // "python", ...
+      name?: string; // "python3", ...
+    };
+    language_info?: {
+      name?: string; // "python"
+    };
+  };
+}

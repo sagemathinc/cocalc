@@ -6,10 +6,16 @@
 import { pick, merge } from "lodash";
 import { basename } from "path";
 import { unreachable, separate_file_extension } from "smc-util/misc";
-import { exec } from "../../generic/client";
 import { reuseInFlight } from "async-await-utils/hof";
-import { Snippets, LangSnippets, SnippetEntry, SnippetDoc } from "./types";
+import { exec } from "../../generic/client";
 import { canonical_language } from "../../../jupyter/store";
+import {
+  Snippets,
+  LangSnippets,
+  SnippetEntry,
+  SnippetDoc,
+  JupyterNotebook,
+} from "./types";
 
 // snippets are specific to a project, even if data comes from a global directory
 const custom_snippets_cache: {
@@ -20,28 +26,13 @@ export const CUSTOM_SNIPPETS_TITLE = "Custom Snippets";
 export const LOCAL_CUSTOM_DIR = "$HOME/code-snippets";
 export const GLOBAL_CUSTOM_DIR = "$COCALC_CODE_SNIPPETS_DIR";
 
-// a minimal jupyter notebook interface, just enough for our purposes and all optional ...
-interface JupyterNotebook {
-  cells?: {
-    cell_type?: "markdown" | "code";
-    source?: string[];
-  }[];
-  metadata?: {
-    kernelspec?: {
-      display_name?: string;
-      language?: string; // "python", ...
-      name?: string; // "python3", ...
-    };
-    language_info?: {
-      name?: string; // "python"
-    };
-  };
-}
-
 // we combine alternating runs of markdown cells and code cells as a single snippet
 // it starts by defining an empty "md" string and no code, and then either collects more text
 // or starts to collect code. the moment it tries to collect more text, a snippet is emitted
 // and the text part reset to the current text.
+// there is a bit of extra-trickery for titles. a h1 title should be used as the overall title
+// while smaller h2/h3 titles for the individual snippet titles.
+// besides that, what to do if there is no markdown or many code cells? not clear.
 function cells2snippets(cells?: JupyterNotebook["cells"]): SnippetEntry {
   const entries: SnippetDoc[] = [];
   const ret: SnippetEntry = { entries };
@@ -51,11 +42,25 @@ function cells2snippets(cells?: JupyterNotebook["cells"]): SnippetEntry {
   let title: string | null = null;
   let i = 1;
 
+  // special case: if there is no markdown, each cell is a snippet
+  const no_markdown =
+    cells
+      .filter((c) => c.cell_type === "markdown")
+      .filter((c) => (c.source ?? []).join("").trim().length > 0).length === 0;
+
+  // ends a run of one or more codecells
   function finish() {
-    // end a run of one or more codecells
-    const fallback = `snippet ${i}`;
-    entries.push([title ?? fallback, [code, md ?? fallback]]);
-    i += 1;
+    const fallback = `Snippet ${i}`;
+    const descr = md ?? fallback;
+    // check if there is at least any text/code to snippet
+    // to avoid empty cells at the bottom
+    if (
+      (md ?? "").trim().length > 0 ||
+      code.filter((c) => c.trim().length > 0).length > 0
+    ) {
+      entries.push([title ?? fallback, [code, descr]]);
+      i += 1;
+    }
     md = title = null;
     code = [];
   }
@@ -74,6 +79,7 @@ function cells2snippets(cells?: JupyterNotebook["cells"]): SnippetEntry {
         break;
       case "code":
         if (source.trim()) code.push(source);
+        if (no_markdown) finish();
         break;
     }
   }
@@ -83,29 +89,34 @@ function cells2snippets(cells?: JupyterNotebook["cells"]): SnippetEntry {
 }
 
 // search for a markdown title starting with at least ##...
+// this also removes the title it finds!
 function lvl2_title(lines: string[]): string | null {
-  for (const line of lines) {
+  for (const i in lines) {
+    const line = lines[i];
     const m = line.match(/^#[#]+[\s]+(.*)$/);
-    if (m?.[1] != null) return m[1].trim();
+    if (m?.[1] != null) {
+      lines[i] = "";
+      return m[1].trim();
+    }
   }
   return null;
 }
 
 // the level 1 title is either the first h1 title in the first cell, or the filename
+// this also removes the title it finds!
 function lvl1_title(fn: string, nb: JupyterNotebook) {
   const cell1 = nb.cells?.[0];
   if (cell1 != null) {
     if (cell1.cell_type === "markdown" && cell1.source) {
-      let i = 0;
-      for (const line of cell1.source) {
+      for (const i in cell1.source) {
+        const line = cell1.source[i];
         const m = line.match(/^#[\s]+(.*)$/);
         if (m?.[1] != null) {
-          // we get rid of the title
+          // we get rid of the title – and here we know this exists, TS can't
           // @ts-ignore
           nb.cells[0].source[i] = "";
           return m[1].trim();
         }
-        i += 1;
       }
     }
   }

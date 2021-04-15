@@ -30,7 +30,7 @@ import { NotebookFrameStore } from "../cell-notebook/store";
 import { A, Loading } from "../../../r_misc";
 import { isMainConfiguration } from "../../../project_configuration";
 import { COLORS } from "smc-util/theme";
-import { ExclamationCircleOutlined } from "@ant-design/icons";
+import { QuestionCircleOutlined } from "@ant-design/icons";
 import {
   Button,
   Collapse,
@@ -324,32 +324,53 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  function open_custom_snippet_file() {
+    // open `${LOCAL_CUSTOM_DIR}/snippets.ipynb`
+  }
+
   function render_custom_info() {
     return (
       <Collapse.Panel
         key={"custom_info"}
         header={
           <>
-            <Highlight
-              text={"Custom Snippets Info"}
-              style={{ fontWeight: "bold" }}
-            />{" "}
-            <ExclamationCircleOutlined />
+            <QuestionCircleOutlined /> Custom Snippets
           </>
         }
         className="cc-jupyter-snippets"
       >
         <div style={{ margin: "10px", fontSize: `${font_size}px` }}>
           <p>
-            You can add custom snippets, by placing Jupyter Notebooks containing
-            markdown/code cell pairs into{" "}
-            <Typography.Text code>{LOCAL_CUSTOM_DIR}</Typography.Text> or if
-            set, into the directory defined by the{" "}
+            You can add your own custom snippets, by placing Jupyter Notebooks
+            containing markdown/code cell pairs into{" "}
+            <Typography.Text code>{LOCAL_CUSTOM_DIR}</Typography.Text> (e.g.{" "}
+            <Button
+              type="link"
+              style={{ padding: 0 }}
+              onClick={open_custom_snippet_file}
+            >
+              <Typography.Text code>snippets.ipynb</Typography.Text>
+            </Button>
+            ) or if set, into the directory defined by the{" "}
             <Typography.Text code>{GLOBAL_CUSTOM_DIR}</Typography.Text>{" "}
             environment variable.
           </p>
           <p>
-            <Button onClick={() => reload()}>Reload custom snippets</Button>
+            After changing the files,{" "}
+            <Button type="link" style={{ padding: 0 }} onClick={() => reload()}>
+              reload custom snippets
+            </Button>
+            .
+          </p>
+          <p>
+            Regarding the content of the notebooks, the first cell should start
+            with a Markdown title header, i.e.{" "}
+            <Typography.Text code># Title</Typography.Text>. The next cells
+            should be alternating between Markdown (with a 2nd level header,
+            i.e. <Typography.Text code>## Snippet Name</Typography.Text> and a
+            description) followed by one or more code cells. The language of the
+            snippet notebook must match the language of your notebook to see the
+            snippets!
           </p>
         </div>
       </Collapse.Panel>
