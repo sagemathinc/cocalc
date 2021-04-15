@@ -98,6 +98,17 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
   }
 
   private render_file(): Rendered {
+    if (this.props.actions.studentProjectFunctionality().disableActions) {
+      // Everything in this menu is either easily still available in
+      // project tabs or generaly something that downloads, so we
+      // just remove it.
+      // NOTE/TODO: When we rewrite this TopMenubar0 as a functional
+      // component, be sure to switch to use the
+      // useStudentProjectFunctionality hook so that this File menu
+      // immediately appears/disappears whenever the course field
+      // changes, rather than only when the notebook loads.
+      return;
+    }
     let script_entry: any = undefined;
     if (this.props.backend_kernel_info != null) {
       const ext = this.props.backend_kernel_info.getIn([

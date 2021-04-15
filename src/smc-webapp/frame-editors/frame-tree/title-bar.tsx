@@ -48,6 +48,7 @@ import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 import { Actions } from "../code-editor/actions";
 import { EditorFileInfoDropdown } from "../../editors/file-info-dropdown";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -166,6 +167,10 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   const [close_and_halt_confirm, set_close_and_halt_confirm] = useState<
     boolean
   >(false);
+
+  const student_project_functionality = useStudentProjectFunctionality(
+    props.project_id
+  );
 
   if (props.editor_actions?.name == null) {
     throw Error("editor_actions must have name attribute");
@@ -583,7 +588,11 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   }
 
   function render_download(): Rendered {
-    if (!is_visible("download") || props.editor_actions.download == null) {
+    if (
+      !is_visible("download") ||
+      props.editor_actions.download == null ||
+      student_project_functionality.disableActions
+    ) {
       return;
     }
     const labels = show_labels();
@@ -1245,7 +1254,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   }
 
   function render_print(): Rendered {
-    if (!is_visible("print")) {
+    if (!is_visible("print") || student_project_functionality.disableActions) {
       return;
     }
     return (
@@ -1311,6 +1320,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   }
 
   function render_file_menu(): Rendered {
+    if (student_project_functionality.disableActions) return;
     const small = !(props.is_only || props.is_full);
     const spec = props.editor_spec[props.type];
     if (spec != null && spec.hide_file_menu) return;

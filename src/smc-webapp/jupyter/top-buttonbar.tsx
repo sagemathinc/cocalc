@@ -19,6 +19,7 @@ import { endswith, capitalize } from "smc-util/misc";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { Cells, CellType, Usage } from "./types";
 import { ALERT_COLS } from "./usage";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 type ButtonDescription =
   | string
@@ -38,6 +39,7 @@ interface Props {
   cell_toolbar?: string;
   name: string;
   usage: Usage;
+  project_id?: string;
 }
 
 export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
@@ -49,8 +51,12 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
     cell_toolbar,
     name,
     usage,
+    project_id,
   } = props;
   const read_only = useRedux([name, "read_only"]);
+  const student_project_functionality = useStudentProjectFunctionality(
+    project_id
+  );
 
   function focus() {
     frame_actions.focus(true);
@@ -210,7 +216,13 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_keyboard() {
-    return render_button("0", "show keyboard shortcuts");
+    if (student_project_functionality.disableActions) return;
+    return (
+      <>
+        {render_button("0", "show keyboard shortcuts")}{" "}
+        <span style={{ marginLeft: "5px" }} />
+      </>
+    );
   }
 
   function render_close_and_halt() {
@@ -261,9 +273,7 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
       {render_group_run()}
       <span style={{ marginLeft: "5px" }} />
       {render_select_cell_type()}
-      <span style={{ marginLeft: "5px" }} />
       {render_keyboard()}
-      <span style={{ marginLeft: "5px" }} />
       {render_group_assistant_halt()}
       {render_nbgrader()}
     </Form>
