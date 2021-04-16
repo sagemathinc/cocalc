@@ -2495,9 +2495,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private async format_cell(id: string): Promise<void> {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      throw Error(`no cell with id ${id}`);
+      throw new Error(`no cell with id ${id}`);
     }
-    const code: string = cell.get("input", "").trim();
+    let code: string = cell.get("input", "").trim();
     let config: FormatterConfig;
     const cell_type: string = cell.get("cell_type", "code");
     switch (cell_type) {
@@ -2518,7 +2518,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     //  console.log("FMT", cell_type, options, code);
     let resp: string | undefined;
     try {
+      code = parsing.process_magics(code, config.syntax, "escape");
       resp = await this.api_call_formatter(code, config);
+      resp = parsing.process_magics(resp, config.syntax, "unescape");
     } catch (err) {
       this.set_error(err);
       // Do not process response (probably empty anyways) if
@@ -2544,13 +2546,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     sync: boolean = true
   ): Promise<void> {
     this.set_error(null);
-    const jobs: string[] = [];
-    for (const id of cell_ids) {
-      if (!this.store.is_cell_editable(id)) {
-        continue;
-      }
-      jobs.push(id);
-    }
+    const jobs: string[] = cell_ids.filter((id) =>
+      this.store.is_cell_editable(id)
+    );
 
     try {
       await awaiting.map(jobs, 4, this.format_cell.bind(this));
