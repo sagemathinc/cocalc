@@ -37,7 +37,7 @@ function last_style(code: string, mode = "python") {
   return style;
 }
 
-// calling escape and then unescape should be idempotent
+// (unescape ∘ escape)(code) ≡ code should hold, while escape(code) is valid python
 // python is inspired by https://github.com/drillan/jupyter-black/blob/master/jupyter-black.js
 export function process_magics(
   code,
@@ -46,15 +46,24 @@ export function process_magics(
 ): string {
   if (syntax !== "python3") return code;
 
-  code = `${code}\n`; // for the regex, we need a \n at the end!
   switch (mode) {
     case "escape":
-      return code.replace(/\%(.*)\n/g, (m, g1) =>
-        g1 != null ? `#%#%${g1}\n` : /* should not happen */ m
-      );
+      return code
+        .split("\n")
+        .map((line) =>
+          line.replace(/^\%(.*)$/, (m, g1) =>
+            g1 != null ? `#%%%#%${g1}` : /* should not happen */ m
+          )
+        )
+        .join("\n");
     case "unescape":
-      return code.replace(/#\%#(.*)\n/g, (m, g1) =>
-        g1 != null ? `${g1}\n` : /* should not happen */ m
-      );
+      return code
+        .split("\n")
+        .map((line) =>
+          line.replace(/^#\%{3}#(.*)$/, (m, g1) =>
+            g1 != null ? `${g1}` : /* should not happen */ m
+          )
+        )
+        .join("\n");
   }
 }
