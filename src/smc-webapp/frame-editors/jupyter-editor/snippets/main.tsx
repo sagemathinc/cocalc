@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { alert_message } from "smc-webapp/alerts";
+
 // lazy loading the json file via webpack – using @types/webpack-env doesn't work
 declare var require: {
   <T>(path: string): T;
@@ -81,7 +83,9 @@ async function load_data(project_actions, set_data, set_error, forced = false) {
     );
     set_data(merge({}, hardcoded, custom));
   } else {
-    set_error("Utility 'jq' is not installed.");
+    set_error(
+      "The command line JSON processor 'jq' is not installed in your project; you must install and possibly restart your project."
+    );
   }
 }
 
@@ -108,6 +112,11 @@ function useData(
   }
   // reload has "forced" set to true, which clears the cache
   const reload = async function () {
+    alert_message({
+      type: "info",
+      message: "Reloading custom snippets...",
+      timeout: 5,
+    });
     set_error(null);
     set_loading(true);
     await load_data(project_actions, set_data, set_error, true);
@@ -365,47 +374,49 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
             (e.g.{" "}
             <Button
               type="link"
-              style={{ padding: 0 }}
+              style={{ padding: 0, fontSize: `${font_size}px` }}
               onClick={open_custom_snippet_file}
             >
               snippets.ipynb
             </Button>
-            ) or if defined, into the directory specified by the{" "}
-            <Typography.Text code>{GLOBAL_CUSTOM_DIR}</Typography.Text>{" "}
-            environment variable.
+            ) or if defined, into the directory specified by the environment
+            variable <Typography.Text code>{GLOBAL_CUSTOM_DIR}</Typography.Text>
+            .
           </p>
           <p>
             After changing the files,{" "}
             <Button
               type="link"
-              style={{ padding: 0 }}
+              style={{ padding: 0, fontSize: `${font_size}px` }}
               onClick={() => reload()}
               loading={reloading}
             >
-              reload custom snippets
+              click here to reload custom snippets
             </Button>
-            .
+            , which will appear in a new category "Custom Snippets" at
+            the top above.
             {error && (
               <>
                 <br />
-                Problem:{" "}
+                <br />
+                <b>Problem:</b>{" "}
                 <Typography.Text type="danger">{error}</Typography.Text>
               </>
             )}
           </p>
           <p>
-            Regarding the content of the notebooks, the first cell be a Markdown
-            title header, i.e. <Typography.Text code># Title</Typography.Text>.
-            The next cells should be alternating between Markdown (with a 2nd
-            level header, i.e.{" "}
-            <Typography.Text code>## Snippet Name</Typography.Text> and a
-            description) and followed by one or more code cells. The language of
+            Regarding the content of the notebooks, the first cell must be a
+            Markdown title header, i.e.,{" "}
+            <Typography.Text code># Title</Typography.Text>. The next cells
+            should be alternating between Markdown (with a 2nd level header,
+            i.e., <Typography.Text code>## Snippet Name</Typography.Text> and a
+            description) and followed at least one line of explanatory text and one or more code cells. The language of
             the snippet notebook must match the language of your notebook in
-            order to see the snippets!
+            order to see the snippets! Include one snippet in each notebook.
           </p>
           <p>
-            Also, at least for now, no spaces in the path or filename are
-            allowed!
+            Also, at least for now, there cannot be spaces in the path or
+            filename of the snippets notebooks!
           </p>
         </div>
       </Collapse.Panel>
@@ -513,8 +524,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         the categories to see them and use the "{BUTTON_TEXT}" button to copy
         the snippet into your notebook. If there is some text in the search box,
         it shows you some of the matching snippets. Something missing? Please{" "}
-        <A href={URL}>contribute snippets</A> or read about "Custom Snippets" at
-        the very bottom.
+        <A href={URL}>contribute snippets</A> or create your own personal
+        "Custom Snippets" as described at the very bottom below.
       </Typography.Paragraph>
     );
   }
