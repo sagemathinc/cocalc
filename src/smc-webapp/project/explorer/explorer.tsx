@@ -620,7 +620,9 @@ export const Explorer = rclass(
               {this.render_new_file()}
             </div>
           )}
-          <div className="cc-project-files-path-nav"><PathNavigator project_id={this.props.project_id} /></div>
+          <div className="cc-project-files-path-nav">
+            <PathNavigator project_id={this.props.project_id} />
+          </div>
           {!public_view && (
             <>
               <div
@@ -653,6 +655,7 @@ export const Explorer = rclass(
         >
           {!public_view && (
             <MiscSideButtons
+              project_id={this.props.project_id}
               show_hidden={
                 this.props.show_hidden != undefined
                   ? this.props.show_hidden

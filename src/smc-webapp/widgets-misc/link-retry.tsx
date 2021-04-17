@@ -11,7 +11,7 @@ import { open_new_tab } from "../misc-page";
 
 interface Props {
   href?: string;
-  get_href: () => Promise<string>; // optional async function that determines url
+  get_href?: () => Promise<string>; // optional async function that determines url
   mode: "link" | "button";
 }
 

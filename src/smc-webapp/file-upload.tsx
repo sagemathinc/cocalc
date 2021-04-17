@@ -22,6 +22,7 @@ import {
 } from "./app-framework";
 import { Icon, Tip } from "./r_misc";
 import { join } from "path";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 // 3GB upload limit --  since that's the default filesystem quota
 // and it should be plenty?
@@ -95,6 +96,18 @@ interface FileUploadProps {
 }
 
 export const FileUpload: React.FC<FileUploadProps> = (props) => {
+  const student_project_functionality = useStudentProjectFunctionality(
+    props.project_id
+  );
+
+  if (student_project_functionality.disableUploads) {
+    return (
+      <div>
+        File upload is disabled; if you need this, contact your instructor.
+      </div>
+    );
+  }
+
   function dropzone_template() {
     return <DropzonePreview project_id={props.project_id} />;
   }
@@ -157,6 +170,11 @@ interface FileUploadWrapperProps {
 }
 
 export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
+  const student_project_functionality = useStudentProjectFunctionality(
+    props.project_id
+  );
+  const disabled =
+    props.disabled || student_project_functionality.disableUploads;
   const [files, set_files] = useState<string[]>([]);
   const preview_ref = useRef(null);
   const zone_ref = useRef(null);
@@ -187,7 +205,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
   let queueDestroy: boolean = false;
 
   useEffect(() => {
-    if (!props.disabled) {
+    if (!disabled) {
       create_dropzone();
       set_up_events();
     }
@@ -220,7 +238,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
   }, []);
 
   useEffect(() => {
-    if (props.disabled) {
+    if (disabled) {
       destroy();
     } else {
       create_dropzone();
@@ -305,11 +323,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
   }
 
   function create_dropzone(): void {
-    if (
-      dropzone.current == null &&
-      !props.disabled &&
-      zone_ref.current != null
-    ) {
+    if (dropzone.current == null && !disabled && zone_ref.current != null) {
       const dropzone_node = ReactDOM.findDOMNode(zone_ref.current);
       const config = get_djs_config();
       dropzone.current = new Dropzone(dropzone_node, config);
@@ -385,7 +399,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
 
   return (
     <div style={props.style} ref={zone_ref} className={props.className}>
-      {!props.disabled ? render_preview() : undefined}
+      {!disabled ? render_preview() : undefined}
       {props.children}
     </div>
   );

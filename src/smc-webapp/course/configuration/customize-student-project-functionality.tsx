@@ -10,7 +10,12 @@ import { Icon } from "../../r_misc";
 export interface StudentProjectFunctionality {
   disableActions?: boolean;
   disableJupyterToggleReadonly?: boolean;
+  disableJupyterClassicServer?: boolean;
+  disableJupyterLabServer?: boolean;
   disableTerminals?: boolean;
+  disableUploads?: boolean;
+  disableNetwork?: boolean;
+  disableSSH?: boolean;
 }
 
 interface Props {
@@ -24,7 +29,7 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
       <Card
         title={
           <>
-            <Icon name="envelope" /> Lockdown student projects
+            <Icon name="lock" /> Lockdown student projects
           </>
         }
       >
@@ -42,10 +47,9 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
             }
           >
             Disable file actions: deleting, downloading, copying and publishing
-            files
+            of files
           </Checkbox>
           <br />
-
           <Checkbox
             checked={functionality.disableJupyterToggleReadonly}
             onChange={(e) =>
@@ -56,9 +60,32 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
           >
             Disable toggling of whether cells are editable or deletable in
             Jupyter notebooks (also disables the RAW JSON editor and the command
-            list dialog).
+            list dialog)
           </Checkbox>
-
+          <br />
+          <Checkbox
+            checked={functionality.disableJupyterClassicServer}
+            onChange={(e) =>
+              onChange({
+                disableJupyterClassicServer: (e.target as any).checked,
+              })
+            }
+          >
+            Disable Jupyter Classic notebook server, which provides its own
+            extensive download and edit functionality.
+          </Checkbox>{" "}
+          <br />
+          <Checkbox
+            checked={functionality.disableJupyterLabServer}
+            onChange={(e) =>
+              onChange({
+                disableJupyterLabServer: (e.target as any).checked,
+              })
+            }
+          >
+            Disable JupyterLab notebook server, which provides its own extensive
+            download and edit functionality.
+          </Checkbox>
           <br />
           <Checkbox
             checked={functionality.disableTerminals}
@@ -70,20 +97,55 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
           >
             Disable command line terminal
           </Checkbox>
+          <br />
+          <Checkbox
+            checked={functionality.disableUploads}
+            onChange={(e) =>
+              onChange({
+                disableUploads: (e.target as any).checked,
+              })
+            }
+          >
+            Disable files uploads
+          </Checkbox>
+          <br />
+          <Checkbox
+            checked={functionality.disableNetwork}
+            onChange={(e) =>
+              onChange({
+                disableNetwork: (e.target as any).checked,
+              })
+            }
+          >
+            Disable outgoing network access (NOT implemented)
+          </Checkbox>
+          <br />
+          <Checkbox
+            checked={functionality.disableSSH}
+            onChange={(e) =>
+              onChange({
+                disableSSH: (e.target as any).checked,
+              })
+            }
+          >
+            Disable SSH access to project (NOT implemented)
+          </Checkbox>
         </div>
         <hr />
         <span style={{ color: "#666" }}>
           Check any of the boxes above to remove the corresponding functionality
           from student projects. This is useful to reduce student confusion and
-          keep the students more focused, e.g., during an exam. Do not expect
-          these to prevent very highly motivated cheaters, since a resourceful
-          and knowledgeable student could potentially get around these
-          constraints, e.g., by doing a bunch of copying and pasting by hand. Of
-          course such manual cheating is more likely to leave a distinct trail.
-          Use the above features to also reduce the chances students get
-          confused and mess up their work. Checking either of the above also
-          disables the Jupyter classic and JupyterLab servers, since they have
-          equivalent functionality built in.
+          keep the students more focused, e.g., during an exam.{" "}
+          <i>
+            Do not gain a false sense of security and expect these to prevent
+            very highly motivated cheaters!
+          </i>{" "}
+          -- a resourceful and knowledgeable student could potentially get
+          around these constraints, e.g., by doing a bunch of copying and
+          pasting by hand. Use the above features to also reduce the chances
+          students get confused and mess up their work. For example, you might
+          want to disable Jupyter classic in a class that is using JupyterLab
+          extensively.
         </span>
       </Card>
     );
