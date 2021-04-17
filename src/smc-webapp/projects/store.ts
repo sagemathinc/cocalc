@@ -15,6 +15,7 @@ import {
   len,
   months_before,
   parse_number_input,
+  is_valid_uuid_string,
 } from "smc-util/misc";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
 import { max_quota, site_license_quota } from "smc-util/upgrades/quota";
@@ -620,6 +621,9 @@ export class ProjectsStore extends Store<ProjectsState> {
   public get_student_project_functionality(
     project_id: string
   ): StudentProjectFunctionality {
+    if (!is_valid_uuid_string(project_id)) {
+      throw Error(`${project_id} must be a UUID`);
+    }
     return (
       this.getIn([
         "project_map",

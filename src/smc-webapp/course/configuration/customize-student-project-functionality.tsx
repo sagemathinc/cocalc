@@ -10,6 +10,7 @@ import { Icon } from "../../r_misc";
 export interface StudentProjectFunctionality {
   disableActions?: boolean;
   disableJupyterToggleReadonly?: boolean;
+  disableTerminals?: boolean;
 }
 
 interface Props {
@@ -56,16 +57,29 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
             Disable toggling of whether cells are editable or deletable in
             Jupyter notebooks
           </Checkbox>
+
+          <br />
+          <Checkbox
+            checked={functionality.disableTerminals}
+            onChange={(e) =>
+              onChange({
+                disableTerminals: (e.target as any).checked,
+              })
+            }
+          >
+            Disable command line terminal
+          </Checkbox>
         </div>
         <hr />
         <span style={{ color: "#666" }}>
-          Check either of the boxes above to remove the corresponding
-          functionality from student projects. This is useful to reduce student
-          confusion and keep the students more focused. Do not use these to
-          prevent highly motivated cheaters, since a very resourceful and
-          knowledgeable student can likely get around these constraints, e.g.,
-          by using a command line terminal or doing a bunch of copying and
-          pasting. Use the above instead to reduce the chances students get
+          Check any of the boxes above to remove the corresponding functionality
+          from student projects. This is useful to reduce student confusion and
+          keep the students more focused, e.g., during an exam. Do not expect
+          these to prevent very highly motivated cheaters, since a resourceful
+          and knowledgeable student could potentially get around these
+          constraints, e.g., by doing a bunch of copying and pasting by hand. Of
+          course such manual cheating is more likely to leave a distinct trail.
+          Use the above features to also reduce the chances students get
           confused and mess up their work. Checking either of the above also
           disables the Jupyter classic and JupyterLab servers, since they have
           equivalent functionality built in.
