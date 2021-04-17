@@ -4,8 +4,8 @@
  */
 
 import { Card, Checkbox } from "antd";
-import { React } from "../../app-framework";
-import { Icon } from "../../r_misc";
+import { React, useTypedRedux } from "smc-webapp/app-framework";
+import { Icon } from "smc-webapp/r_misc";
 
 export interface StudentProjectFunctionality {
   disableActions?: boolean;
@@ -25,6 +25,8 @@ interface Props {
 
 export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
   ({ functionality, onChange }) => {
+    const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
+
     return (
       <Card
         title={
@@ -109,27 +111,33 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
             Disable files uploads
           </Checkbox>
           <br />
-          <Checkbox
-            checked={functionality.disableNetwork}
-            onChange={(e) =>
-              onChange({
-                disableNetwork: (e.target as any).checked,
-              })
-            }
-          >
-            Disable outgoing network access (NOT implemented)
-          </Checkbox>
-          <br />
-          <Checkbox
-            checked={functionality.disableSSH}
-            onChange={(e) =>
-              onChange({
-                disableSSH: (e.target as any).checked,
-              })
-            }
-          >
-            Disable SSH access to project (NOT implemented)
-          </Checkbox>
+          {isCoCalcCom && (
+            <>
+              <Checkbox
+                checked={functionality.disableNetwork}
+                onChange={(e) =>
+                  onChange({
+                    disableNetwork: (e.target as any).checked,
+                  })
+                }
+              >
+                Disable outgoing network access (NOT implemented)
+              </Checkbox>
+              <br />
+            </>
+          )}
+          {isCoCalcCom && (
+            <Checkbox
+              checked={functionality.disableSSH}
+              onChange={(e) =>
+                onChange({
+                  disableSSH: (e.target as any).checked,
+                })
+              }
+            >
+              Disable SSH access to project (NOT implemented)
+            </Checkbox>
+          )}
         </div>
         <hr />
         <span style={{ color: "#666" }}>
@@ -152,7 +160,7 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
   }
 );
 
-import { useEffect, useTypedRedux, useState } from "smc-webapp/app-framework";
+import { useEffect, useState } from "smc-webapp/app-framework";
 
 // NOTE: we allow project_id to be undefined for convenience since some clients
 // were written with that unlikely assumption on their knowledge of project_id.
