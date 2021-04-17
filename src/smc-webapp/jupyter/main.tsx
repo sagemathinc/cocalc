@@ -192,7 +192,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     "cells",
   ]);
-  const project_id: undefined | string = useRedux([name, "project_id"]);
+  const project_id: string = useRedux([name, "project_id"]);
   const directory: undefined | string = useRedux([name, "directory"]);
   // const version: undefined | any = useRedux([name, "version"]);
   const about: undefined | boolean = useRedux([name, "about"]);
@@ -674,6 +674,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         actions={actions}
         font_size={font_size}
         cm_options={cm_options.get("options")}
+        project_id={project_id}
       />
     );
   }

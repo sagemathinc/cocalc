@@ -20,12 +20,14 @@ interface Props {
   actions: JupyterEditorActions;
   font_size: number;
   editor_settings: Map<string, any>;
+  project_id: string;
 }
 
 export const RawIPynb: React.FC<Props> = ({
   actions,
   font_size,
   editor_settings,
+  project_id,
 }) => {
   return (
     <RawEditor
@@ -33,6 +35,7 @@ export const RawIPynb: React.FC<Props> = ({
       actions={actions.jupyter_actions}
       font_size={font_size}
       cm_options={fromJS(cm_options("a.json", editor_settings))}
+      project_id={project_id}
     />
   );
 };

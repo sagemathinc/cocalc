@@ -55,7 +55,8 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
             }
           >
             Disable toggling of whether cells are editable or deletable in
-            Jupyter notebooks
+            Jupyter notebooks (also disables the RAW JSON editor and the command
+            list dialog).
           </Checkbox>
 
           <br />

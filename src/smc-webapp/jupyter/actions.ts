@@ -1258,7 +1258,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       .get_student_project_functionality(this.project_id);
   }
 
-  private requireToggleReadonly(): void {
+  public requireToggleReadonly(): void {
     if (this.studentProjectFunctionality().disableJupyterToggleReadonly) {
       throw Error("Toggling of write protection is disabled in this project.");
     }
