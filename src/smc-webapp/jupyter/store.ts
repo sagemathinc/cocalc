@@ -25,6 +25,20 @@ let global_clipboard: any = undefined;
 
 export type show_kernel_selector_reasons = "bad kernel" | "user request";
 
+export function canonical_language(
+  kernel?: string,
+  kernel_info_lang?: string
+): string | undefined {
+  let lang;
+  // special case: sage is language "python", but the snippet dialog needs "sage"
+  if (startswith(kernel, "sage")) {
+    lang = "sage";
+  } else {
+    lang = kernel_info_lang;
+  }
+  return lang;
+}
+
 export interface JupyterStoreState {
   nbconvert_dialog: any;
   cell_toolbar: CellToolbarName;
@@ -488,14 +502,10 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   // canonicalize the language of the kernel
   public get_kernel_language(): string | undefined {
-    let lang;
-    // special case: sage is language "python", but the snippet dialog needs "sage"
-    if (startswith(this.get("kernel"), "sage")) {
-      lang = "sage";
-    } else {
-      lang = this.getIn(["kernel_info", "language"]);
-    }
-    return lang;
+    return canonical_language(
+      this.get("kernel"),
+      this.getIn(["kernel_info", "language"])
+    );
   }
 
   // map the kernel language to the syntax of a language we know

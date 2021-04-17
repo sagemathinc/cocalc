@@ -434,6 +434,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     }
     setTimeout(() => {
       if (!this.mounted) return;
+
       // This is a ridiculously horrible hack, but I can
       // think of no other possible way to do it, and we're
       // lucky it happens to work (due to internal implementation
@@ -445,18 +446,20 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       // Unfortunately, all the style and layout of
       // ipywidgets assumes that this extra level of wrapping
       // isn't there and is broken by this.  So we set things
-      // up like that, then simply hoist all the elements that
-      // phosphor creates out of the wrappers using jquery.
-      // Yeah, that is just insane... except that it seems
-      // to work fine.
+      // up like that, then copy the style and class from
+      // the elements that phosphor creates to the wrapper elements
+      // that we create.
       // See https://github.com/sagemathinc/cocalc/issues/5228
+      // and https://github.com/sagemathinc/cocalc/pull/5273
 
-      // reverting 4dfb08af223897872e8e3fb38eef0a6658a9277d because it breaks sliders
-      if (false) {
-        const elt = ReactDOM.findDOMNode(this.refs.reactBox);
-        const container = $(elt);
-        const p = container.children().children().remove();
-        container.prepend(p);
+      const elt = ReactDOM.findDOMNode(this.refs.reactBox);
+      const container = $(elt);
+      const children = container.children().children();
+      for (const child of children) {
+        const a = $(child);
+        const p = a.parent();
+        p.attr('class', a.attr("class"));
+        p.attr('style', a.attr("style"));
       }
     }, 1);
 

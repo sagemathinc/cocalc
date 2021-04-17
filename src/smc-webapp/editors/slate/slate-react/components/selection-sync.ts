@@ -269,6 +269,8 @@ export const useDOMSelectionChange = ({
       );
     };
   }, [onDOMSelectionChange]);
+
+  return onDOMSelectionChange;
 };
 
 export function getWindowedSelection(editor: ReactEditor): Selection | null {

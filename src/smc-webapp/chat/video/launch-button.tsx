@@ -1,14 +1,18 @@
 import useInterval from "use-interval";
 import { debounce } from "lodash";
 
-import { React, useState, useTypedRedux, useRef } from "../../app-framework";
+import {
+  React,
+  useState,
+  useTypedRedux,
+  useRef,
+} from "smc-webapp/app-framework";
 
-import { Icon, Tip } from "../../r_misc";
-import { user_activity } from "../../tracker";
+import { Icon, Tip } from "smc-webapp/r_misc";
+import { user_activity } from "smc-webapp/tracker";
 import { VideoChat } from "./video-chat";
 
-//import { Button } from "../../antd-bootstrap";
-import { Button } from "react-bootstrap"; // have to change all at once.
+import { Button } from "smc-webapp/antd-bootstrap";
 
 const VIDEO_UPDATE_INTERVAL_MS = 30 * 1000;
 // jit.si doesn't seem to have a limit...?

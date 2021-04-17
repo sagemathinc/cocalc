@@ -1252,6 +1252,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.store.set_global_clipboard(global_clipboard);
   }
 
+  public studentProjectFunctionality() {
+    return this.redux
+      .getStore("projects")
+      .get_student_project_functionality(this.project_id);
+  }
+
+  private requireToggleReadonly(): void {
+    if (this.studentProjectFunctionality().disableJupyterToggleReadonly) {
+      throw Error("Toggling of write protection is disabled in this project.");
+    }
+  }
+
   /* write protection disables any modifications, entering "edit"
      mode, and prohibits cell evaluations example: teacher handout
      notebook and student should not be able to modify an
@@ -1260,6 +1272,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     cell_ids: string[],
     save: boolean = true
   ): void {
+    this.requireToggleReadonly();
     this.toggle_metadata_boolean_on_cells(cell_ids, "editable", true, save);
   }
 
@@ -1269,6 +1282,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     cell_ids: string[],
     save: boolean = true
   ): void {
+    this.requireToggleReadonly();
     this.toggle_metadata_boolean_on_cells(cell_ids, "deletable", true, save);
   }
 
@@ -1966,7 +1980,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const immutable_editor_settings = account.get("editor_settings");
     if (immutable_editor_settings == null) return;
     const editor_settings = immutable_editor_settings.toJS();
-    const line_numbers = this.store.get_local_storage("line_numbers") ?? immutable_editor_settings.get('jupyter_line_numbers') ?? false;
+    const line_numbers =
+      this.store.get_local_storage("line_numbers") ??
+      immutable_editor_settings.get("jupyter_line_numbers") ??
+      false;
     const read_only = this.store.get("read_only");
     const x = immutable.fromJS({
       options: cm_options(mode, editor_settings, line_numbers, read_only),
@@ -2478,9 +2495,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private async format_cell(id: string): Promise<void> {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      throw Error(`no cell with id ${id}`);
+      throw new Error(`no cell with id ${id}`);
     }
-    const code: string = cell.get("input", "").trim();
+    let code: string = cell.get("input", "").trim();
     let config: FormatterConfig;
     const cell_type: string = cell.get("cell_type", "code");
     switch (cell_type) {
@@ -2501,7 +2518,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     //  console.log("FMT", cell_type, options, code);
     let resp: string | undefined;
     try {
+      code = parsing.process_magics(code, config.syntax, "escape");
       resp = await this.api_call_formatter(code, config);
+      resp = parsing.process_magics(resp, config.syntax, "unescape");
     } catch (err) {
       this.set_error(err);
       // Do not process response (probably empty anyways) if
@@ -2527,13 +2546,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     sync: boolean = true
   ): Promise<void> {
     this.set_error(null);
-    const jobs: string[] = [];
-    for (const id of cell_ids) {
-      if (!this.store.is_cell_editable(id)) {
-        continue;
-      }
-      jobs.push(id);
-    }
+    const jobs: string[] = cell_ids.filter((id) =>
+      this.store.is_cell_editable(id)
+    );
 
     try {
       await awaiting.map(jobs, 4, this.format_cell.bind(this));

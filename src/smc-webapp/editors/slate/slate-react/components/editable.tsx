@@ -418,7 +418,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
   }, [onDOMBeforeInput]);
 
   const updateDOMSelection = useUpdateDOMSelection({ editor, state });
-  useDOMSelectionChange({ editor, state, readOnly });
+  const DOMSelectionChange = useDOMSelectionChange({ editor, state, readOnly });
 
   const decorations = decorate([editor, []]);
 
@@ -555,10 +555,13 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               const startVoid = Editor.void(editor, { at: start });
               const endVoid = Editor.void(editor, { at: end });
 
+              // We set selection either if we're not
+              // focused *or* clicking on a void.  The
+              // not focused part isn't upstream, but we
+              // need it to have codemirror blocks.
               if (
-                startVoid &&
-                endVoid &&
-                Path.equals(startVoid[1], endVoid[1])
+                !ReactEditor.isFocused(editor) ||
+                (startVoid && endVoid && Path.equals(startVoid[1], endVoid[1]))
               ) {
                 const range = Editor.range(editor, start);
                 Transforms.select(editor, range);
@@ -714,6 +717,9 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         onFocus={useCallback(
           (event: React.FocusEvent<HTMLDivElement>) => {
             if (shouldHandle({ event, name: "onFocus", notReadOnly: true })) {
+              // Call DOMSelectionChange so we can capture what was just
+              // selected in the DOM to cause this focus.
+              DOMSelectionChange();
               state.latestElement = window.document.activeElement;
               IS_FOCUSED.set(editor, true);
             }

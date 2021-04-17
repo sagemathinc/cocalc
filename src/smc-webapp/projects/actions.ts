@@ -229,7 +229,8 @@ export class ProjectsActions extends Actions<ProjectsState> {
     account_id: string | null,
     email_address: string | null,
     datastore: Datastore,
-    type: "student" | "shared" | "nbgrader"
+    type: "student" | "shared" | "nbgrader",
+    student_project_functionality?
   ): Promise<void> {
     if (!(await this.have_project(project_id))) {
       const msg = `Can't set course info -- you are not a collaborator on project '${project_id}'.`;
@@ -244,6 +245,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
       datastore,
       type,
     };
+    if (type == "student" && student_project_functionality != null) {
+      course.student_project_functionality = student_project_functionality;
+    }
     // null for shared/nbgrader project, otherwise student project
     if (account_id != null && email_address != null) {
       course.account_id = account_id;
@@ -801,14 +805,16 @@ export class ProjectsActions extends Actions<ProjectsState> {
     return action_request.get("action");
   }
 
-  public async start_project(project_id: string): Promise<void> {
+  // return true, if it actually started the project
+  public async start_project(project_id: string): Promise<boolean> {
     if (!allow_project_to_run(project_id)) {
-      return;
+      return false;
     }
     const state = store.get_state(project_id);
     if (state == "starting" || state == "running" || state == "stopping") {
-      return;
+      return false;
     }
+    let did_start = false;
     const action_request = this.current_action_request(project_id);
     if (action_request == null || action_request != "start") {
       // need to make an action request:
@@ -819,6 +825,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
         project_id,
         action_request: { action: "start", time: webapp_client.server_time() },
       });
+      did_start = true;
     }
     // Wait until it is running
     await store.async_wait({
@@ -830,13 +837,16 @@ export class ProjectsActions extends Actions<ProjectsState> {
     this.project_log(project_id, {
       event: "project_started",
     });
+    return did_start;
   }
 
-  public async stop_project(project_id: string): Promise<void> {
+  // returns true, if it acutally stopped the project
+  public async stop_project(project_id: string): Promise<boolean> {
     const state = store.get_state(project_id);
     if (state == "stopping" || state == "opened" || state == "starting") {
-      return;
+      return false;
     }
+    let did_stop = false;
     const action_request = this.current_action_request(project_id);
     if (action_request == null || action_request != "stop") {
       // need to do it!
@@ -847,6 +857,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
         project_id,
         action_request: { action: "stop", time: webapp_client.server_time() },
       });
+      did_stop = true;
     }
 
     // Wait until it is no longer running or stopping.  We don't
@@ -863,6 +874,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     this.project_log(project_id, {
       event: "project_stopped",
     });
+    return did_stop;
   }
 
   public async restart_project(project_id: string): Promise<void> {

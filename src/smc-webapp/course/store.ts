@@ -16,6 +16,7 @@ import { SITE_NAME } from "smc-util/theme";
 // Upgrades
 import * as project_upgrades from "./project-upgrades";
 import { Datastore } from "../projects/actions";
+import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 
 export const PARALLEL_DEFAULT = 5;
 
@@ -121,6 +122,7 @@ export type SortDescription = TypedMap<{
 
 export type CourseSettingsRecord = TypedMap<{
   allow_collabs: boolean;
+  student_project_functionality?: StudentProjectFunctionality;
   description: string;
   email_invite: string;
   institute_pay: boolean;

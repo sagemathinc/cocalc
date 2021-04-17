@@ -6,6 +6,7 @@
 import { DirectoryListingEntry } from "smc-util/types";
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
 import { Datastore } from "../projects/actions";
+import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 
 export interface SyncDBRecordBase {
   table: string;
@@ -17,6 +18,7 @@ export interface SyncDBRecordSettings {
   table: string;
   upgrade_goal?: UpgradeGoal;
   allow_collabs?: boolean;
+  student_project_functionality?: StudentProjectFunctionality;
   shared_project_id?: string;
   pay?: string;
   site_license_id?: string;

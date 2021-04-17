@@ -17,9 +17,12 @@ import {
   derive_project_img_name,
 } from "../../custom-software/selector";
 import { Datastore } from "../../projects/actions";
+import { StudentProjectFunctionality } from "./customize-student-project-functionality";
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
+  private configuring: boolean = false;
+  private configureAgain: boolean = false;
 
   constructor(course_actions: CourseActions) {
     this.course_actions = course_actions;
@@ -96,6 +99,13 @@ export class ConfigurationActions {
     this.course_actions.student_projects.configure_all_projects();
   }
 
+  public set_student_project_functionality(
+    student_project_functionality: StudentProjectFunctionality
+  ): void {
+    this.set({ student_project_functionality, table: "settings" });
+    this.course_actions.student_projects.configure_all_projects();
+  }
+
   public set_email_invite(body: string): void {
     this.set({ email_invite: body, table: "settings" });
   }
@@ -141,9 +151,28 @@ export class ConfigurationActions {
   }
 
   public async configure_all_projects(force: boolean = false): Promise<void> {
-    await this.course_actions.shared_project.configure();
-    await this.configure_host_project();
-    await this.course_actions.student_projects.configure_all_projects(force);
+    if (this.configuring) {
+      // Important -- if configure_all_projects is called *while* it is running,
+      // wait until it is done, then call it again (though I'm being lazy about the
+      // await!).  Don't do the actual work more than once
+      // at the same time since that might confuse the db writes, but
+      // also don't just reuse in flight, which will miss the later calls.
+      this.configureAgain = true;
+      return;
+    }
+    try {
+      this.configureAgain = false;
+      this.configuring = true;
+      await this.course_actions.shared_project.configure();
+      await this.configure_host_project();
+      await this.course_actions.student_projects.configure_all_projects(force);
+    } finally {
+      this.configuring = false;
+      if (this.configureAgain) {
+        this.configureAgain = false;
+        this.configure_all_projects();
+      }
+    }
   }
 
   public async push_missing_handouts_and_assignments(): Promise<void> {

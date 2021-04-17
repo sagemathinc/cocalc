@@ -415,6 +415,9 @@ export class StudentProjectsActions {
     }
 
     const datastore: Datastore = store.get_datastore();
+    const student_project_functionality = store
+      .getIn(["settings", "student_project_functionality"])
+      ?.toJS();
 
     const actions = redux.getActions("projects");
     const id = this.course_actions.set_activity({
@@ -436,7 +439,8 @@ export class StudentProjectsActions {
           student_account_id,
           student_email_address,
           datastore,
-          "student" // type of project
+          "student", // type of project
+          student_project_functionality
         );
       }
     } finally {

@@ -49,6 +49,7 @@ import { Parallel } from "./parallel";
 import { upgrades } from "smc-util/upgrade-spec";
 import { StudentProjectsStartStopPanel } from "./start-stop-panel";
 import { DisableStudentCollaboratorsPanel } from "./disable-collaborators";
+import { CustomizeStudentProjectFunctionality } from "./customize-student-project-functionality";
 import { StudentProjectSoftwareEnvironment } from "./student-project-software-environment";
 import { DatastoreConfig } from "./datastore-config";
 
@@ -603,6 +604,19 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
       );
     }
 
+    function render_student_project_functionality() {
+      const functionality =
+        settings.get("student_project_functionality")?.toJS() ?? {};
+      return (
+        <CustomizeStudentProjectFunctionality
+          functionality={functionality}
+          onChange={(opts) =>
+            actions.configuration.set_student_project_functionality(opts)
+          }
+        />
+      );
+    }
+
     function render_nbgrader() {
       return <Nbgrader name={name} />;
     }
@@ -637,6 +651,8 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             {render_email_invite_body()}
             <br />
             {render_disable_students()}
+            <br />
+            {render_student_project_functionality()}
             <br />
             {render_configure_all_projects()}
             <br />

@@ -717,7 +717,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_concurrent_queries += 1
         dbg("query='#{opts.query} (concurrent=#{@_concurrent_queries})'")
 
-        @concurrent_counter.labels('started').inc(1)
+        @concurrent_counter?.labels('started').inc(1)
         try
             start = new Date()
             if @_timeout_ms and @_timeout_delay_ms
@@ -753,8 +753,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     clearTimeout(timer)
                 query_time_ms = new Date() - start
                 @_concurrent_queries -= 1
-                @query_time_histogram.observe({table:opts.table ? ''}, query_time_ms)
-                @concurrent_counter.labels('ended').inc(1)
+                @query_time_histogram?.observe({table:opts.table ? ''}, query_time_ms)
+                @concurrent_counter?.labels('ended').inc(1)
                 if err
                     dbg("done (concurrent=#{@_concurrent_queries}), (query_time_ms=#{query_time_ms}) -- error: #{err}")
                     err = 'postgresql ' + err
@@ -784,7 +784,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             dbg("EXCEPTION in client.query: #{e}")
             opts.cb?(e)
             @_concurrent_queries -= 1
-            @concurrent_counter.labels('ended').inc(1)
+            @concurrent_counter?.labels('ended').inc(1)
         return
 
     # Special case of query for counting entries in a table.

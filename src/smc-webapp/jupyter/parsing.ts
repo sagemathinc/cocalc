@@ -9,6 +9,7 @@ This can *ONLY* be used from the browser!
 */
 
 const { endswith } = require("smc-util/misc");
+import { Syntax } from "../../smc-util/code-formatter";
 
 declare const CodeMirror: any; // TODO: import?
 
@@ -34,4 +35,26 @@ function last_style(code: string, mode = "python") {
   let style = undefined;
   CodeMirror.runMode(code, mode, (_, s) => (style = s));
   return style;
+}
+
+// calling escape and then unescape should be idempotent
+// python is inspired by https://github.com/drillan/jupyter-black/blob/master/jupyter-black.js
+export function process_magics(
+  code,
+  syntax: Syntax,
+  mode: "escape" | "unescape"
+): string {
+  if (syntax !== "python3") return code;
+
+  code = `${code}\n`; // for the regex, we need a \n at the end!
+  switch (mode) {
+    case "escape":
+      return code.replace(/\%(.*)\n/g, (m, g1) =>
+        g1 != null ? `#%#%${g1}\n` : /* should not happen */ m
+      );
+    case "unescape":
+      return code.replace(/#\%#(.*)\n/g, (m, g1) =>
+        g1 != null ? `${g1}\n` : /* should not happen */ m
+      );
+  }
 }

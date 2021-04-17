@@ -8,6 +8,7 @@ import { CSS, React, ReactDOM, useActions } from "../app-framework";
 import { capitalize, filename_extension } from "smc-util/misc";
 import { file_actions } from "../project_store";
 import { DropdownMenu, HiddenXS, MenuItem, Icon, Space } from "../r_misc";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 interface Props {
   filename: string; // expects the full path name
@@ -20,6 +21,12 @@ interface Props {
 export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
   ({ filename, project_id, is_public, label, style }) => {
     const actions = useActions({ project_id });
+    const student_project_functionality = useStudentProjectFunctionality(
+      project_id
+    );
+    if (student_project_functionality.disableActions) {
+      return <span></span>;
+    }
 
     function handle_click(name) {
       if (actions == null) {

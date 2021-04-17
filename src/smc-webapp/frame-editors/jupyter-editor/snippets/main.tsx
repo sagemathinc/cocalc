@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { alert_message } from "smc-webapp/alerts";
+
 // lazy loading the json file via webpack – using @types/webpack-env doesn't work
 declare var require: {
   <T>(path: string): T;
@@ -19,15 +21,18 @@ import {
   useEffect,
   useState,
   useStore,
+  useActions,
   useMemo,
   useRedux,
 } from "../../../app-framework";
-import { sortBy, debounce, isEmpty } from "lodash";
+import { sortBy, debounce, isEmpty, merge } from "lodash";
 import { JupyterEditorActions } from "../actions";
 import { JupyterStore } from "../../../jupyter/store";
 import { NotebookFrameStore } from "../cell-notebook/store";
 import { A, Loading } from "../../../r_misc";
+import { isMainConfiguration } from "../../../project_configuration";
 import { COLORS } from "smc-util/theme";
+import { QuestionCircleOutlined } from "@ant-design/icons";
 import {
   Button,
   Collapse,
@@ -46,24 +51,79 @@ import {
 } from "@ant-design/icons";
 
 import { SnippetDoc, SnippetEntry, SnippetEntries, Snippets } from "./types";
-import { filter_snippets, generate_setup_code } from "./utils";
+import {
+  filter_snippets,
+  generate_setup_code,
+  load_custom_snippets,
+  LOCAL_CUSTOM_DIR,
+  GLOBAL_CUSTOM_DIR,
+  CUSTOM_SNIPPETS_TITLE,
+} from "./utils";
 import { Copy, Highlight } from "./components";
 
 const URL = "https://github.com/sagemathinc/cocalc-snippets";
 const BUTTON_TEXT = "pick";
 const HEADER_SORTER = ([k, _]) =>
-  -["Introduction", "Tutorial", "Help"].indexOf(k);
+  -["Introduction", "Tutorial", "Help", CUSTOM_SNIPPETS_TITLE].indexOf(k);
 
-function useData() {
+// will be set once in the require.ensure callback
+let hardcoded: any = {};
+
+async function load_data(project_actions, set_data, set_error, forced = false) {
+  const main_conf = await project_actions.init_configuration("main");
+  if (
+    main_conf != null &&
+    isMainConfiguration(main_conf) &&
+    main_conf.capabilities.jq === true
+  ) {
+    const custom = await load_custom_snippets(
+      project_actions.project_id,
+      set_error,
+      forced
+    );
+    set_data(merge({}, hardcoded, custom));
+  } else {
+    set_error(
+      "The command line JSON processor 'jq' is not installed in your project; you must install and possibly restart your project."
+    );
+  }
+}
+
+function useData(
+  project_actions,
+  set_error
+): [
+  { [lang: string]: Snippets | undefined } | undefined,
+  Function,
+  number,
+  boolean
+] {
   const [data, set_data] = useState<{ [lang: string]: Snippets | undefined }>();
+  const [reload_ts, set_reload_ts] = useState<number>(Date.now());
+  const [loading, set_loading] = useState<boolean>(false);
   if (data == null) {
-    // this file is supposed to be in webapp-lib/examples/examples.json
-    //     follow "./install.py examples" to see how the makefile is called during build
-    require.ensure([], function () {
-      set_data(require("webapp-lib/examples/examples.json"));
+    require.ensure([], () => {
+      // this file is supposed to be in webapp-lib/examples/examples.json
+      //     follow "./install.py examples" to see how the makefile is called during build
+      hardcoded = require("webapp-lib/examples/examples.json");
+      set_data(hardcoded); // call immediately to show default snippets quickly
+      load_data(project_actions, set_data, set_error);
     });
   }
-  return data;
+  // reload has "forced" set to true, which clears the cache
+  const reload = async function () {
+    alert_message({
+      type: "info",
+      message: "Reloading custom snippets...",
+      timeout: 5,
+    });
+    set_error(null);
+    set_loading(true);
+    await load_data(project_actions, set_data, set_error, true);
+    set_reload_ts(Date.now());
+    set_loading(false);
+  };
+  return [data, reload, reload_ts, loading];
 }
 
 interface Props {
@@ -77,9 +137,10 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const {
     font_size,
     actions: frame_actions,
-    // project_id,
+    project_id,
     local_view_state,
   } = props;
+  const project_actions = useActions({ project_id });
   const jupyter_actions = frame_actions.jupyter_actions;
 
   // the most recent notebook frame id, i.e. that's where we'll insert cells
@@ -92,7 +153,11 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const [search_txt, set_search_txt] = useState("");
   const [search, set_search] = useState("");
   const set_search_debounced = debounce(set_search, 333);
-  const data = useData();
+  const [error, set_error] = useState<string | null>(null);
+  const [data, reload, reload_ts, reloading] = useData(
+    project_actions,
+    set_error
+  );
 
   useEffect(() => {
     set_search_debounced(search_txt);
@@ -112,7 +177,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     // we also pass the raw data through the filter if the string is empty,
     // such that no headers without any data do not show up
     return filter_snippets(raw, search);
-  }, [data, lang, search]);
+  }, [data, lang, search, reload_ts]);
 
   // we need to know the target frame of the jupyter notebook
   useEffect(() => {
@@ -278,9 +343,82 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         className="cc-jupyter-snippets"
         showArrow={active_search == null}
       >
-        <Collapse ghost destroyInactivePanel {...active_search}>
+        <Collapse ghost={true} destroyInactivePanel {...active_search}>
           {lvl2.map(render_level2)}
         </Collapse>
+      </Collapse.Panel>
+    );
+  }
+
+  function open_custom_snippet_file() {
+    const path = `${LOCAL_CUSTOM_DIR}/snippets.ipynb`;
+    project_actions?.open_file({ path, foreground: true });
+  }
+
+  function render_custom_info() {
+    return (
+      <Collapse.Panel
+        key={"custom_info"}
+        header={
+          <>
+            <QuestionCircleOutlined /> Custom Snippets
+          </>
+        }
+        className="cc-jupyter-snippets"
+      >
+        <div style={{ margin: "10px", fontSize: `${font_size}px` }}>
+          <p>
+            Add your own snippets by placing Jupyter Notebooks containing
+            markdown/code cell pairs into{" "}
+            <Typography.Text code>$HOME/{LOCAL_CUSTOM_DIR}</Typography.Text>{" "}
+            (e.g.{" "}
+            <Button
+              type="link"
+              style={{ padding: 0, fontSize: `${font_size}px` }}
+              onClick={open_custom_snippet_file}
+            >
+              snippets.ipynb
+            </Button>
+            ) or if defined, into the directory specified by the environment
+            variable <Typography.Text code>{GLOBAL_CUSTOM_DIR}</Typography.Text>
+            .
+          </p>
+          <p>
+            After changing the files,{" "}
+            <Button
+              type="link"
+              style={{ padding: 0, fontSize: `${font_size}px` }}
+              onClick={() => reload()}
+              loading={reloading}
+            >
+              click here to reload custom snippets
+            </Button>
+            , which will appear in a new category "Custom Snippets" at
+            the top above.
+            {error && (
+              <>
+                <br />
+                <br />
+                <b>Problem:</b>{" "}
+                <Typography.Text type="danger">{error}</Typography.Text>
+              </>
+            )}
+          </p>
+          <p>
+            Regarding the content of the notebooks, the first cell must be a
+            Markdown title header, i.e.,{" "}
+            <Typography.Text code># Title</Typography.Text>. The next cells
+            should be alternating between Markdown (with a 2nd level header,
+            i.e., <Typography.Text code>## Snippet Name</Typography.Text> and a
+            description) and followed at least one line of explanatory text and one or more code cells. The language of
+            the snippet notebook must match the language of your notebook in
+            order to see the snippets! Include one snippet in each notebook.
+          </p>
+          <p>
+            Also, at least for now, there cannot be spaces in the path or
+            filename of the snippets notebooks!
+          </p>
+        </div>
       </Collapse.Panel>
     );
   }
@@ -369,9 +507,10 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         {...active_search}
       >
         {lvl1.map(render_level1)}
+        {render_custom_info()}
       </Collapse>
     );
-  }, [snippets, insert_setup, search, font_size]);
+  }, [snippets, insert_setup, search, font_size, reload_ts, error, reloading]);
 
   // introduction at the top
   function render_help(): JSX.Element {
@@ -385,7 +524,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         the categories to see them and use the "{BUTTON_TEXT}" button to copy
         the snippet into your notebook. If there is some text in the search box,
         it shows you some of the matching snippets. Something missing? Please{" "}
-        <A href={URL}>contribute snippets</A>.
+        <A href={URL}>contribute snippets</A> or create your own personal
+        "Custom Snippets" as described at the very bottom below.
       </Typography.Paragraph>
     );
   }
