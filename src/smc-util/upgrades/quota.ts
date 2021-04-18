@@ -145,13 +145,13 @@ interface SiteSettingsDefaultQuotas {
   disk_quota: number; // overrides DEFAULT_QUOTAS.disk_quota
 }
 
-interface SiteLicenseQuotaSetting {
+export interface SiteLicenseQuotaSetting {
   quota: SiteLicenseQuota;
 }
 
-type QuotaSetting = Upgrades | SiteLicenseQuotaSetting;
+export type QuotaSetting = Upgrades | SiteLicenseQuotaSetting;
 
-type SiteLicenses = {
+export type SiteLicenses = {
   [license_id: string]: QuotaSetting;
 };
 
