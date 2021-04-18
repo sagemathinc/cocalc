@@ -4,12 +4,18 @@
  */
 
 import { Card, Checkbox } from "antd";
-import { React } from "../../app-framework";
-import { Icon } from "../../r_misc";
+import { React, useTypedRedux } from "smc-webapp/app-framework";
+import { Icon } from "smc-webapp/r_misc";
 
 export interface StudentProjectFunctionality {
   disableActions?: boolean;
   disableJupyterToggleReadonly?: boolean;
+  disableJupyterClassicServer?: boolean;
+  disableJupyterLabServer?: boolean;
+  disableTerminals?: boolean;
+  disableUploads?: boolean;
+  disableNetwork?: boolean;
+  disableSSH?: boolean;
 }
 
 interface Props {
@@ -19,11 +25,13 @@ interface Props {
 
 export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
   ({ functionality, onChange }) => {
+    const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
+
     return (
       <Card
         title={
           <>
-            <Icon name="envelope" /> Lockdown student projects
+            <Icon name="lock" /> Lockdown student projects
           </>
         }
       >
@@ -41,10 +49,9 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
             }
           >
             Disable file actions: deleting, downloading, copying and publishing
-            files
+            of files
           </Checkbox>
           <br />
-
           <Checkbox
             checked={functionality.disableJupyterToggleReadonly}
             onChange={(e) =>
@@ -54,28 +61,106 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
             }
           >
             Disable toggling of whether cells are editable or deletable in
-            Jupyter notebooks
+            Jupyter notebooks (also disables the RAW JSON editor and the command
+            list dialog)
           </Checkbox>
+          <br />
+          <Checkbox
+            checked={functionality.disableJupyterClassicServer}
+            onChange={(e) =>
+              onChange({
+                disableJupyterClassicServer: (e.target as any).checked,
+              })
+            }
+          >
+            Disable Jupyter Classic notebook server, which provides its own
+            extensive download and edit functionality.
+          </Checkbox>{" "}
+          <br />
+          <Checkbox
+            checked={functionality.disableJupyterLabServer}
+            onChange={(e) =>
+              onChange({
+                disableJupyterLabServer: (e.target as any).checked,
+              })
+            }
+          >
+            Disable JupyterLab notebook server, which provides its own extensive
+            download and edit functionality.
+          </Checkbox>
+          <br />
+          <Checkbox
+            checked={functionality.disableTerminals}
+            onChange={(e) =>
+              onChange({
+                disableTerminals: (e.target as any).checked,
+              })
+            }
+          >
+            Disable command line terminal
+          </Checkbox>
+          <br />
+          <Checkbox
+            checked={functionality.disableUploads}
+            onChange={(e) =>
+              onChange({
+                disableUploads: (e.target as any).checked,
+              })
+            }
+          >
+            Disable files uploads
+          </Checkbox>
+          <br />
+          {isCoCalcCom && (
+            <>
+              <Checkbox
+                checked={functionality.disableNetwork}
+                onChange={(e) =>
+                  onChange({
+                    disableNetwork: (e.target as any).checked,
+                  })
+                }
+              >
+                Disable outgoing network access (NOT implemented)
+              </Checkbox>
+              <br />
+            </>
+          )}
+          {isCoCalcCom && (
+            <Checkbox
+              checked={functionality.disableSSH}
+              onChange={(e) =>
+                onChange({
+                  disableSSH: (e.target as any).checked,
+                })
+              }
+            >
+              Disable SSH access to project (NOT implemented)
+            </Checkbox>
+          )}
         </div>
         <hr />
         <span style={{ color: "#666" }}>
-          Check either of the boxes above to remove the corresponding
-          functionality from student projects. This is useful to reduce student
-          confusion and keep the students more focused. Do not use these to
-          prevent highly motivated cheaters, since a very resourceful and
-          knowledgeable student can likely get around these constraints, e.g.,
-          by using a command line terminal or doing a bunch of copying and
-          pasting. Use the above instead to reduce the chances students get
-          confused and mess up their work. Checking either of the above also
-          disables the Jupyter classic and JupyterLab servers, since they have
-          equivalent functionality built in.
+          Check any of the boxes above to remove the corresponding functionality
+          from student projects. This is useful to reduce student confusion and
+          keep the students more focused, e.g., during an exam.{" "}
+          <i>
+            Do not gain a false sense of security and expect these to prevent
+            very highly motivated cheaters!
+          </i>{" "}
+          -- a resourceful and knowledgeable student could potentially get
+          around these constraints, e.g., by doing a bunch of copying and
+          pasting by hand. Use the above features to also reduce the chances
+          students get confused and mess up their work. For example, you might
+          want to disable Jupyter classic in a class that is using JupyterLab
+          extensively.
         </span>
       </Card>
     );
   }
 );
 
-import { useEffect, useTypedRedux, useState } from "smc-webapp/app-framework";
+import { useEffect, useState } from "smc-webapp/app-framework";
 
 // NOTE: we allow project_id to be undefined for convenience since some clients
 // were written with that unlikely assumption on their knowledge of project_id.

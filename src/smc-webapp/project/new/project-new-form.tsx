@@ -30,6 +30,7 @@ import { AvailableFeatures } from "./types";
 import { ProjectMap } from "smc-webapp/todo-types";
 import { PathNavigator } from "../explorer/path-navigator";
 
+
 interface ReactProps {
   project_id: string;
   actions: ProjectActions;
@@ -251,6 +252,7 @@ export const ProjectNewForm = rclass<ReactProps>(
     }
 
     private render_upload(): JSX.Element {
+      
       return (
         <>
           <Row style={{ marginTop: "20px" }}>

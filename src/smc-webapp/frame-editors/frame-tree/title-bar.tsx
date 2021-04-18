@@ -1271,7 +1271,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   }
 
   function render_shell(): Rendered {
-    if (!is_visible("shell") || is_public) {
+    if (!is_visible("shell") || is_public ||  student_project_functionality.disableTerminals) {
       return;
     }
     return (

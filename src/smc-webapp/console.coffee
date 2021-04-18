@@ -14,7 +14,6 @@ $                = window.$
 {debounce}       = require('underscore')
 
 {EventEmitter}   = require('events')
-{alert_message}  = require('./alerts')
 misc             = require('smc-util/misc')
 {copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('smc-util/misc')
 {redux}          = require('./app-framework')
@@ -186,6 +185,11 @@ class Console extends EventEmitter
         #window.c = @
 
     connect: =>
+        if redux.getStore('projects').get_student_project_functionality(@opts.project_id).disableTerminals
+            # short lines since this is only used on mobile.
+            @render("Terminals are currently disabled\r\nin this project.\r\nPlease contact your
+        instructor\r\nif you have questions.\r\n");
+            return;
         api = await webapp_client.project_client.api(@project_id)
         # aux_path for compat with new frame terminal editor.
         {aux_file} = require('./frame-editors/frame-tree/util')
@@ -815,7 +819,10 @@ class Console extends EventEmitter
         x = @conn
         delete @conn
         if x?
-            x.end()
+            try
+                x.end()
+            catch err
+                # pass
 
     # enter fullscreen mode
     fullscreen: () =>

@@ -8,23 +8,24 @@ A button that when clicked, shows a loading indicator until the backend
 Jupyter notebook server is running, then pops it up in a new tab.
 */
 
-import { Component, React, Rendered } from "../app-framework";
-
+import { React } from "../app-framework";
 import { Icon, SettingBox } from "../r_misc";
+import { LinkRetryUntilSuccess } from "../widgets-misc/link-retry";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 const { jupyter_server_url } = require("../editor_jupyter");
-
-const { LinkRetryUntilSuccess } = require("../widgets-misc/link-retry");
 
 interface Props {
   project_id: string;
 }
 
-export class JupyterServerPanel extends Component<Props, {}> {
-  displayName = "ProjectSettings-JupyterServer";
+export const JupyterServerPanel: React.FC<Props> = ({ project_id }) => {
+  const student_project_functionality = useStudentProjectFunctionality(
+    project_id
+  );
 
-  render_jupyter_link(): Rendered {
-    const url = jupyter_server_url(this.props.project_id);
+  function render_jupyter_link(): JSX.Element {
+    const url = jupyter_server_url(project_id);
     return (
       <LinkRetryUntilSuccess href={url}>
         <Icon name="cc-icon-ipynb" /> Plain Jupyter Classic Server
@@ -32,9 +33,12 @@ export class JupyterServerPanel extends Component<Props, {}> {
     );
   }
 
-  render(): Rendered {
-    return (
-      <SettingBox title="Plain Jupyter Classic Server" icon="list-alt">
+  let body;
+  if (student_project_functionality.disableJupyterClassicServer) {
+    body = "Disabled. Please contact your instructor if you need to use this.";
+  } else {
+    body = (
+      <>
         <span style={{ color: "#444" }}>
           The Jupyter Classic notebook server runs in your project and provides
           support for classical Jupyter notebooks. You can also use the plain
@@ -47,9 +51,15 @@ export class JupyterServerPanel extends Component<Props, {}> {
           open it in a new browser tab.
         </span>
         <div style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}>
-          {this.render_jupyter_link()}
+          {render_jupyter_link()}
         </div>
-      </SettingBox>
+      </>
     );
   }
-}
+
+  return (
+    <SettingBox title="Plain Jupyter Classic Server" icon="list-alt">
+      {body}
+    </SettingBox>
+  );
+};

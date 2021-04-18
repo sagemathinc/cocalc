@@ -7,15 +7,14 @@ import { delay } from "awaiting";
 import { PostgreSQL } from "./types";
 import { callback2 } from "../smc-util/async-utils";
 
-// Return an array of project_id's of projects that have the always_running quota
-// set (or a license that would provide it -- TODO!), but are not in the running
-// or starting state.
+// Return an array of project_id's of projects that have the always_running run_quota set,
+// but are not in the running or starting state.
 export async function projects_that_need_to_be_started(
   database: PostgreSQL
 ): Promise<string[]> {
   const result = await database.async_query({
     query:
-      "SELECT project_id FROM projects WHERE settings ->> 'always_running' = '1' AND state ->> 'state' NOT IN ('running', 'starting')",
+      "SELECT project_id FROM projects WHERE run_quota ->> 'always_running' = 'true' AND state ->> 'state' NOT IN ('running', 'starting')",
   });
   const projects: string[] = [];
   for (const row of result.rows) {

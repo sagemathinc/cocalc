@@ -21,12 +21,14 @@ import { Map } from "immutable";
 import { JSONEditor } from "./json-editor";
 import { JupyterActions } from "./browser-actions";
 import { Loading } from "../r_misc";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 interface Props {
   name: string;
   actions: JupyterActions;
   font_size: number;
   cm_options: Map<string, any>;
+  project_id: string;
 }
 
 export const RawEditor: React.FC<Props> = ({
@@ -34,6 +36,7 @@ export const RawEditor: React.FC<Props> = ({
   actions,
   font_size,
   cm_options,
+  project_id,
 }) => {
   // we ONLY want to update raw_ipynb when the things it depends on change **and**
   // this component is mounted, since it can be very expensive to update.
@@ -59,6 +62,18 @@ export const RawEditor: React.FC<Props> = ({
       actions.set_raw_ipynb();
     }
   }, 5000);
+
+  const student_project_functionality = useStudentProjectFunctionality(
+    project_id
+  );
+  if (student_project_functionality.disableJupyterToggleReadonly) {
+    return (
+      <b style={{ margin: "auto", fontSize: "14pt", padding: "15px" }}>
+        Raw JSON editor is currently disabled in this project. Please contact
+        your instructor if you have questions.
+      </b>
+    );
+  }
 
   if (raw_ipynb == null) {
     return <Loading />;
