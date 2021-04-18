@@ -37,8 +37,18 @@ function last_style(code: string, mode = "python") {
   return style;
 }
 
-// (unescape ∘ escape)(code) ≡ code should hold, while escape(code) is valid python
-// python is inspired by https://github.com/drillan/jupyter-black/blob/master/jupyter-black.js
+/*
+We would like that the following two conditions hold:
+     (1) `(unescape ∘ escape)(code) ≡ code`
+     (2) `escape(code)` is valid python if code is valid python combined with ipython magics.
+However, the code below does not actually satisfy both of these conditions for all input and
+can probably dangerously mangle carefully crafted input.  Life is short, and somebody should
+fix this properly (is there a parser that Jupyter itself uses for processing magics that we
+could hook into?)  See https://github.com/sagemathinc/cocalc/pull/5291/.
+
+This function is inspired by
+ https://github.com/drillan/jupyter-black/blob/master/jupyter-black.js
+*/
 export function process_magics(
   code,
   syntax: Syntax,
