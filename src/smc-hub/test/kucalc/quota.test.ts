@@ -281,31 +281,6 @@ describe("default quota", () => {
     expect(quota(settings, users)).toEqual(exp);
   });
 
-  it("sanitizes admin upgrades", () => {
-    const settings = {
-      memory: "5000", // some are strings
-      disk_quota: "3210", // we do know this could be a strings
-      mintime: "3600",
-      network: "1",
-      cores: "1.5",
-      member_host: "1",
-      always_running: "0",
-      memory_request: "512",
-    };
-    expect(quota(settings)).toEqual({
-      always_running: false,
-      cpu_limit: 1.5,
-      cpu_request: 0.05, // due to member hosting minimum
-      disk_quota: 3210,
-      idle_timeout: 3600,
-      member_host: true,
-      memory_limit: 5000,
-      memory_request: 512,
-      network: true,
-      privileged: false,
-    });
-  });
-
   it("does not allow privileged updates for users", () => {
     const users = { user1: { upgrades: { privileged: 1 } } };
     const q = quota({}, users);
@@ -405,7 +380,7 @@ describe("default quota", () => {
     const site_settings = {
       max_upgrades: {
         member_host: 0,
-        disk_quota: 616, // only disk quota is below the hardcoded default
+        disk_quota: 616,
         memory: 1515,
         mintime: 4345,
         memory_request: 505,
@@ -444,53 +419,6 @@ describe("default quota", () => {
     });
   });
 
-  it("respect different (lower) max_upgrades /2", () => {
-    // here, we go well below the default everywhere
-    const site_settings = {
-      max_upgrades: {
-        member_host: 0,
-        network: 0,
-        always_running: 0,
-        disk_quota: 616,
-        memory: 512,
-        mintime: 300,
-        memory_request: 64,
-        cores: 0.5,
-        cpu_shares: 256,
-      },
-    };
-
-    const over_max = {
-      user2: {
-        upgrades: {
-          network: 2,
-          member_host: 3,
-          always_running: 4,
-          disk_quota: 32000, // max 20gb
-          memory: 20000, // max 16gb
-          mintime: 24 * 3600 * 100, // max 90 days
-          memory_request: 10000, // max 8gb
-          cores: 7, // max 3
-          cpu_shares: 1024 * 4,
-        },
-      },
-    };
-
-    const maxedout = quota({}, over_max, undefined, site_settings);
-    expect(maxedout).toEqual({
-      network: false,
-      member_host: false,
-      privileged: false,
-      memory_request: 64,
-      cpu_request: 0.25,
-      disk_quota: 616,
-      memory_limit: 512,
-      cpu_limit: 0.5,
-      idle_timeout: 300,
-      always_running: false,
-    });
-  });
-
   it("site-license upgrades /1", () => {
     const site_license = {
       "1234-5678-asdf-yxcv": {
@@ -524,17 +452,12 @@ describe("default quota", () => {
   it("site-license upgrades /2", () => {
     const site_license = {
       "1234-5678-asdf-yxcv": {
-        // will be ignored
         member_host: true,
         network: true,
         disk_quota: 222,
       },
       "1234-5678-asdf-asdf": {
         disk_quota: 111,
-        always_running: true,
-      },
-      "333-5678-asdf-asdf": {
-        disk_quota: 333,
         always_running: true,
       },
     };
@@ -557,9 +480,8 @@ describe("default quota", () => {
     const q1 = quota({}, users, site_license);
 
     expect(q1.memory_limit).toEqual(2234);
-    // not +222, because always_running has higher priority than member hosting
-    expect(q1.disk_quota).toBe(3000 + 321 + 111 + 333);
-    expect(q1.member_host).toBe(false);
+    expect(q1.disk_quota).toBe(3000 + 321 + 111 + 222);
+    expect(q1.member_host).toBe(true);
     expect(q1.network).toBe(true);
     expect(q1.cpu_limit).toBe(1.25);
     expect(q1.always_running).toBe(true);
@@ -569,11 +491,11 @@ describe("default quota", () => {
     const site_license = {
       "1234-5678-asdf-yxcv": {
         quota: {
-          ram: 2,
-          dedicated_ram: 1,
+          ram: 2000,
+          dedicated_ram: 1000,
           cpu: 1,
           dedicated_cpu: 0.5,
-          disk: 3,
+          disk: 1234,
           always_running: true,
           member: true,
           user: "academic",
@@ -583,56 +505,19 @@ describe("default quota", () => {
     const users = {
       user1: {
         upgrades: {
-          memory: 1313, // maxed with "ram"
+          memory: 1313,
         },
       },
     };
     const q1 = quota({}, users, site_license);
-
     expect(q1).toEqual({
       network: true,
       member_host: true,
-      memory_request: 1000,
+      memory_request: 1000000,
       cpu_request: 0.5,
       privileged: false,
-      disk_quota: 3000,
-      memory_limit: 3000,
-      cpu_limit: 1.5,
-      idle_timeout: 1800,
-      always_running: true,
-    });
-  });
-
-  it("site-license quota upgrades /2", () => {
-    const site_license = {
-      "1234-5678-asdf-yxcv": {
-        quota: {
-          ram: 2,
-          cpu: 1.5,
-          disk: 3,
-          always_running: true,
-          member: true,
-          user: "academic",
-        },
-      },
-    };
-    const users = {
-      user1: {
-        upgrades: {
-          memory: 4321, // +1gb base quota, maxed with "ram"
-        },
-      },
-    };
-    const q1 = quota({}, users, site_license);
-
-    expect(q1).toEqual({
-      network: true,
-      member_host: true,
-      memory_request: 300,
-      cpu_request: 0.05,
-      privileged: false,
-      disk_quota: 3000,
-      memory_limit: 5321,
+      disk_quota: 1234000,
+      memory_limit: 3000000,
       cpu_limit: 1.5,
       idle_timeout: 1800,
       always_running: true,
@@ -673,7 +558,7 @@ describe("default quota", () => {
         network: false,
         disk_quota: 333,
         mintime: 999,
-        cpu_shares: 64,
+        cpu_shares: 1,
         cores: 0.44,
         memory_request: 1,
         memory_limit: 555,
@@ -691,15 +576,15 @@ describe("default quota", () => {
 
     const q1 = quota({}, over_max, undefined, site_settings);
     expect(q1).toEqual({
-      network: false,
-      member_host: false,
+      network: false, // user upgrade not allowed
+      member_host: false, // user upgrade not allowed
+      memory_request: 200, // lower cap is 200
+      memory_limit: 1000, // should be 555, but global minimum trump this
+      cpu_request: 0.02, // lower cap is 0.02
+      cpu_limit: 0.44,
       privileged: false,
-      memory_request: 1, // below minimum cap, because max_upgrades in settings are stronger than hardcoded vals
-      cpu_request: 0.02,
-      disk_quota: 333,
-      memory_limit: 1000,
-      cpu_limit: 0.44, // below minimum cap, because max_upgrades in settings are stronger than hardcoded vals
       idle_timeout: 999,
+      disk_quota: 333,
       always_running: false,
     });
   });
@@ -722,7 +607,6 @@ describe("default quota", () => {
       },
     };
 
-    // capped hardcoded default by max_upgrades
     const q1 = quota({}, { userX: {} }, undefined, site_settings);
     expect(q1).toEqual({
       network: true,
@@ -736,7 +620,7 @@ describe("default quota", () => {
       disk_quota: 512,
       always_running: false,
     });
-  });
+  }); // capped hardcoded default by max_upgrades
 
   it("site_settings default_quotas and max_upgrades/2", () => {
     const site_settings = {
@@ -799,7 +683,7 @@ describe("default quota", () => {
       disk_quota: 512,
       always_running: false,
     });
-  });
+  }); // capped hardcoded default by max_upgrades
 
   it("takes overcommitment ratios into account for user upgrades", () => {
     const site_settings = {
@@ -942,310 +826,5 @@ describe("default quota", () => {
     expect(q1.always_running).toBe(true);
     expect(q1.privileged).toBe(false);
     expect(q1.network).toBe(true);
-  });
-
-  it("site_license basic update as expected", () => {
-    const site_license = {
-      "1234-5432-3456-7654": {
-        ram: 1,
-        cpu: 1,
-        disk: 3,
-        member: true,
-      },
-    };
-    const q = quota({}, {}, site_license);
-    expect(q.idle_timeout).toBe(1800);
-    expect(q).toEqual({
-      idle_timeout: 1800,
-      member_host: false,
-      always_running: false,
-      cpu_limit: 1,
-      cpu_request: 0.02,
-      disk_quota: 3000,
-      memory_limit: 1000,
-      memory_request: 200,
-      network: false,
-      privileged: false,
-    });
-  });
-
-  it("site_license 'complements' user upgrades", () => {
-    const site_license = {
-      "1234-5432-3456-7654": {
-        quota: {
-          ram: 2,
-          cpu: 1.5,
-          disk: 5,
-          member: true,
-        },
-      },
-    };
-    const users = {
-      user1: {
-        upgrades: {
-          member_host: false,
-          network: true,
-          memory_request: 1234,
-          memory: 2345,
-          mintime: 24 * 3600 * 50,
-        },
-      },
-    };
-    const q = quota({}, users, site_license);
-    // user quota + basic upgrade
-    expect(q.idle_timeout).toBe(24 * 3600 * 50 + 1800);
-    expect(q).toEqual({
-      always_running: false,
-      cpu_limit: 1.5, // license
-      cpu_request: 0.05, // implied by license member hosting
-      disk_quota: 5000, // license
-      idle_timeout: 4321800, // upgrade
-      member_host: true, // license
-      memory_limit: 2345 + 1000, // upgrade + base
-      memory_request: 1234, // upgrade
-      network: true, // both
-      privileged: false,
-    });
-  });
-
-  it("site_license always_running do not mix", () => {
-    const site_license = {
-      a: {
-        quota: {
-          ram: 4,
-          always_running: false,
-        },
-      },
-      b: {
-        quota: {
-          ram: 2,
-          always_running: true,
-        },
-      },
-      c: {
-        quota: {
-          ram: 1,
-          always_running: true,
-        },
-      },
-    };
-    const q = quota({}, { userX: {} }, site_license);
-    expect(q.always_running).toBe(true);
-    expect(q.memory_limit).toBe(3000);
-  });
-
-  it("site_license always_running do not mix incomplete 1", () => {
-    const site_license = {
-      a: {
-        quota: {
-          ram: 4,
-          always_running: true,
-          member: false,
-        },
-      },
-      b: {
-        quota: {
-          ram: 2,
-          member: true,
-        },
-      },
-      c: {
-        quota: {
-          ram: 1,
-          always_running: false,
-        },
-      },
-    };
-    const q = quota({}, { userX: {} }, site_license);
-    expect(q.always_running).toBe(true);
-    expect(q.memory_limit).toBe(4000);
-    expect(q.member_host).toBe(false);
-  });
-
-  it("site_license always_running do not mix incomplete 2", () => {
-    const site_license = {
-      a: {
-        quota: {
-          cpu: 2,
-          ram: 2,
-          disk: 2,
-          member: true,
-          dedicated_cpu: 1,
-          dedicated_ram: 1,
-          always_running: true,
-        },
-      },
-      b: {
-        quota: {
-          ram: 4,
-          dedicated_cpu: 1,
-          dedicated_ram: 1,
-          always_running: false,
-        },
-      },
-    };
-    const q = quota({}, { userX: {} }, site_license);
-    expect(q.always_running).toBe(true);
-    expect(q.memory_limit).toBe(3000);
-    expect(q.member_host).toBe(true);
-    expect(q.memory_request).toBe(1000);
-    expect(q.cpu_limit).toBe(3);
-    expect(q.cpu_request).toBe(1);
-  });
-
-  it("cap site_license upgrades by max_upgrades /1", () => {
-    const site_license = {
-      "1234-5678-asdf-yxcv": {
-        quota: {
-          ram: 10,
-          dedicated_ram: 5,
-          cpu: 2,
-          dedicated_cpu: 5,
-          disk: 10000,
-          always_running: false,
-          member: true,
-          user: "academic",
-        },
-      },
-      "4321-5678-asdf-yxcv": {
-        quota: {
-          ram: 7,
-          dedicated_ram: 4,
-          cpu: 5,
-          dedicated_cpu: 2,
-          disk: 60000,
-          always_running: false,
-          member: true,
-          user: "academic",
-        },
-      },
-    };
-
-    // capped at default limits
-    const q = quota({}, null, site_license);
-    expect(q).toEqual({
-      network: true,
-      member_host: true,
-      memory_request: 8000,
-      cpu_request: 2,
-      privileged: false,
-      disk_quota: 20000,
-      memory_limit: 16000,
-      cpu_limit: 3,
-      idle_timeout: 1800,
-      always_running: false,
-    });
-  });
-
-  it("cap site_license upgrades by max_upgrades /2", () => {
-    const site_license = {
-      "1234-5678-asdf-yxcv": {
-        quota: {
-          ram: 4,
-          dedicated_ram: 3,
-          cpu: 3,
-          dedicated_cpu: 2,
-          disk: 7500,
-          always_running: true,
-          member: true,
-          user: "academic",
-        },
-      },
-      "9876-5432-1098-6543": {
-        quota: {
-          ram: 2.1,
-          dedicated_ram: 2.3,
-          cpu: 2,
-          dedicated_cpu: 1,
-          disk: 4000,
-          always_running: false,
-          member: true,
-          user: "academic",
-        },
-      },
-    };
-
-    const users = {
-      user1: {
-        upgrades: {
-          memory: 1313,
-        },
-      },
-    };
-
-    const site_settings = {
-      max_upgrades: {
-        member_host: false,
-        network: false,
-        always_running: false,
-        disk_quota: 333,
-        mintime: 999,
-        cpu_shares: 512,
-        cores: 2,
-        memory_request: 2500,
-        memory: 4321,
-      },
-    };
-
-    const q = quota({}, users, site_license, site_settings);
-    expect(q).toEqual({
-      network: false, // user upgrade not allowed
-      member_host: false, // user upgrade not allowed
-      always_running: false, // user upgrade not allowed
-      memory_request: 2500, // lower cap is 2500
-      memory_limit: 4321, // dedicated+shared in license > limit
-      cpu_request: 0.5, // those 512 shares
-      cpu_limit: 2,
-      privileged: false,
-      idle_timeout: 999,
-      disk_quota: 333,
-    });
-  });
-
-  it("cap site_license upgrades by max_upgrades /3", () => {
-    const site_license = {
-      "1234-5678-asdf-yxcv": {
-        quota: {
-          ram: 1,
-          dedicated_ram: 0,
-          cpu: 1,
-          dedicated_cpu: 0,
-          disk: 2000,
-          always_running: false,
-          member: true,
-          user: "academic",
-        },
-      },
-    };
-
-    // dominating site license upgrade
-    const users = {
-      user1: {
-        upgrades: {
-          network: 2,
-          member_host: 3,
-          disk_quota: 32000, // max 20gb
-          memory: 20000, // max 16gb
-          mintime: 24 * 3600 * 100, // max 90 days
-          memory_request: 10000, // max 8gb
-          cores: 7, // max 3
-          cpu_shares: 1024 * 4,
-        },
-      },
-    };
-
-    const q = quota({}, users, site_license);
-    expect(q).toEqual({
-      cpu_limit: 3,
-      cpu_request: 2, // set at the top of quota config
-      disk_quota: 20000,
-      idle_timeout: 24 * 3600 * 90,
-      member_host: true,
-      memory_limit: 16000, // set at the top of quota config
-      memory_request: 8000, // set at the top of quota config
-      network: true,
-      privileged: false,
-      always_running: false,
-    });
   });
 });

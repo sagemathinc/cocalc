@@ -33,7 +33,6 @@ exports.DEFAULT_QUOTAS = {
   always_running: 0,
 };
 
-// type must be Upgrades (in smc-util/upgrades/quota)
 upgrades.max_per_project = {
   disk_quota: 20000,
   memory: 16000,

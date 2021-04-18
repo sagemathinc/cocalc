@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "coffee-coverage": "^3.0.1",
-    "expect": "^26.6.2",
+    "expect": "^1.12.2",
     "mocha": "^8.1.3"
   }
 }

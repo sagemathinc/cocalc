@@ -16,7 +16,7 @@ import { SiteLicensePublicInfo as Info } from "./types";
 import { site_license_public_info } from "./util";
 import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../r_misc";
 import { alert_message } from "../alerts";
-import { Alert, Button, Input, Popconfirm, Popover } from "antd";
+import { Alert, Button, Input, Popconfirm } from "antd";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { plural, trunc_left } from "smc-util/misc";
 import { DebounceInput } from "react-debounce-input";
@@ -64,8 +64,6 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
       }
   >(false);
   const user_map = useTypedRedux("users", "user_map");
-
-  const provides_upgrades = upgrades != null && upgrades.size > 0;
 
   useEffect(() => {
     // Optimization: check in redux store for first approximation of
@@ -183,7 +181,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
 
   function get_type(): "warning" | "error" | "success" {
     if (loading || info != null) {
-      if (provides_upgrades) {
+      if (provides_upgrades()) {
         return "success";
       } else {
         return "warning";
@@ -232,6 +230,10 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
         {render_expires()}
       </span>
     );
+  }
+
+  function provides_upgrades(): boolean {
+    return upgrades != null && upgrades.size > 0;
   }
 
   function render_run_limit(): JSX.Element | undefined {
@@ -316,43 +318,6 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
     actions.restart_project(project_id);
   }
 
-  function render_why(): JSX.Element {
-    const why = (
-      <div style={{ maxWidth: "400px" }}>
-        <ul style={{ paddingLeft: "15px" }}>
-          <li>
-            The <b>run limit</b> of simultaneously running projects isn't
-            reached.
-          </li>
-          <li>
-            The attempt to use the license is <b>after activation</b> and{" "}
-            <b>before expiration</b>.
-          </li>
-          <li>
-            Similar licenses are ignored, if they{" "}
-            <b>aren't providing any additional upgrades</b>.
-          </li>
-          <li>The hard limit on the maximum possible upgrade is reached.</li>
-          <li>
-            Only licenses of <b>similar nature</b> can be combined. e.g. a
-            license providing "member hosting" upgrade can't be summed up with a
-            license not providing "member hosting".
-          </li>
-        </ul>
-      </div>
-    );
-    return (
-      <Popover
-        content={why}
-        trigger="click"
-        placement="rightTop"
-        title="Licenses activation rules"
-      >
-        <a>Why?</a>
-      </Popover>
-    );
-  }
-
   function render_upgrades(): JSX.Element | undefined {
     if (!project_id) {
       // component not being used in the context of a specific project.
@@ -387,24 +352,22 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
       // provide or telling you to restart your project.
       provides = <li>License is expired.</li>;
       show_run = false; // no point in showing these
-    } else if (!provides_upgrades) {
+    } else if (!provides_upgrades()) {
       // not providing any upgrades -- tell them why
       if (info.running == null) {
         // not loaded yet...
-        provides = <li>Currently providing no upgrades to this project.</li>;
+        provides = <li>Currently providing no upgrades to this project. </li>;
       } else {
         if (!info.run_limit || info.running < info.run_limit) {
           provides = (
             <>
+              <li>Currently providing no upgrades to this project. </li>
               <li>
-                Currently providing no upgrades to this project. {render_why()}
+                <Icon name="sync" />{" "}
+                <a onClick={restart_project}>Restart this project</a> to use the
+                upgrades provided by this license
+                {info?.quota ? " - " + describe_quota(info.quota) : "."}
               </li>
-              <li>
-                Try <Icon name="sync" />{" "}
-                <a onClick={restart_project}>restarting this project</a> to
-                attempt using the upgrades provided by this license.
-              </li>
-              {info?.quota && <li>{describe_quota(info.quota)}</li>}
             </>
           );
         } else {
@@ -498,7 +461,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
 
   function render_remove_button(): JSX.Element | undefined {
     if (!project_id && onRemove == null) return;
-    const extra = provides_upgrades ? (
+    const extra = provides_upgrades() ? (
       <>
         <br />
         The project will no longer get upgraded using this license, and it may
