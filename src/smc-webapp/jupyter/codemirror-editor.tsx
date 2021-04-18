@@ -74,7 +74,6 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   private cm: any;
   private _cm_last_remote: any;
   private _cm_change: any;
-  private _cm_blur_skip: any;
   private _cm_is_focused: any;
   private _vim_mode: any;
   private cm_ref = React.createRef<HTMLPreElement>();
@@ -137,16 +136,14 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       return;
     }
     this.props.set_last_cursor(this.cm.getCursor());
-    if (this._vim_mode) {
-      return;
-    }
-    if (this._cm_blur_skip) {
-      delete this._cm_blur_skip;
-      return;
-    }
-    if (this.has_frame_actions()) {
-      this.props.frame_actions.set_mode("escape");
-    }
+    // NOTE: see https://github.com/sagemathinc/cocalc/issues/5289
+    // We had code here that did
+    //    this.props.frame_actions?.set_mode("escape");
+    // so that any time the jupyter notebook blurs the mode
+    // changes, which is consistent with the behavior of Jupyter
+    // classic.  However, it causes that bug #5289, and I don't
+    // really see that it is a good idea to switch this mode on
+    // blur anyways.
   };
 
   _cm_cursor = (): void => {
