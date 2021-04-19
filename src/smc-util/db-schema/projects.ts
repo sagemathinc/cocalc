@@ -28,6 +28,7 @@ Table({
       "((state #>> '{state}'))", // projecting the "state" (running, etc.) for its own index – the GIN index above still causes a scan, which we want to avoid.
       "((state ->> 'state'))", // same reason as above. both syntaxes appear and we have to index both.
       "((settings ->> 'always_running'))", // to quickly know which projects have this setting
+      "((run_quota ->> 'always_running'))", // same reason as above
     ],
 
     user_query: {
