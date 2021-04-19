@@ -58,7 +58,10 @@ export function process_magics(
 
   switch (mode) {
     case "escape":
-      // this avoids unescaping a line that was never escaped
+      // This below check guarantees we do not unescape a line that was never escaped.
+      // TODO: Instead of failing, we could increase the number of percents in s='#%...%%#'
+      // until s is not found in the code, then use that.  The result would then work
+      // on arbitrary input (however, other things are more important right now).
       if (code.match(/^#\%{3}#/gm)?.length > 0) {
         throw new Error(
           "Cells with lines starting with '#%%%#' cannot be formatted."
