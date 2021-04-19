@@ -71,7 +71,7 @@ export const DatastoreConfig: React.FC<Props> = (props: Props) => {
     <Card
       title={
         <>
-          <Icon name="database" /> Datstores
+          <Icon name="database" /> Datastores
         </>
       }
     >
