@@ -55,11 +55,15 @@ export const SearchBar = React.memo((props: Props) => {
   const [state, set_state] = React.useState<"edit" | "run">("edit");
   const [error, set_error] = React.useState<string | undefined>(undefined);
   const [stdout, set_stdout] = React.useState<string | undefined>(undefined);
-  const [cmd, set_cmd] = React.useState<string | undefined>(undefined);
+
+  const _id = React.useRef<number>(0);
+  const [cmd, set_cmd] = React.useState<
+    { input: string; id: number } | undefined
+  >(undefined);
 
   React.useEffect(() => {
     if (cmd == null) return;
-    const input = cmd;
+    const { input, id } = cmd;
     const input0 = input + '\necho $HOME "`pwd`"';
     webapp_client.exec({
       project_id,
@@ -69,7 +73,8 @@ export const SearchBar = React.memo((props: Props) => {
       bash: true,
       path: current_path,
       err_on_exit: false,
-      cb: (err, output) => {
+      cb(err, output) {
+        if (id !== _id.current) return;
         if (err) {
           set_error(JSON.stringify(err));
           set_state("edit");
@@ -119,7 +124,8 @@ export const SearchBar = React.memo((props: Props) => {
       return;
     }
     set_state("run");
-    set_cmd(input);
+    _id.current = _id.current + 1;
+    set_cmd({ input, id: _id.current });
   }
 
   function render_help_info(): JSX.Element | undefined {
