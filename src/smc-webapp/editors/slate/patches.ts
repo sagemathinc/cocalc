@@ -29,3 +29,22 @@ export function withFix4131(editor: Editor) {
 
   return a;
 }
+
+// I have seen cocalc.com crash in production randomly when editing markdown
+// when calling range.  I think this happens when computing decorators, so
+// it is way better to make it non-fatal for now.
+export const withNonfatalRange = (editor) => {
+  const { range } = editor;
+
+  editor.range = (editor, at, to?) => {
+    try {
+      return range(editor, at, to);
+    } catch (err) {
+      console.log(`WARNING: range error ${err}`);
+      const anchor = Editor.first(editor, []);
+      return { anchor, focus: anchor };
+    }
+  };
+
+  return editor;
+};
