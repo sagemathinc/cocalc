@@ -19,7 +19,7 @@ import { Datastore } from "../projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 
 export const PARALLEL_DEFAULT = 5;
-export const MAX_COPY_PARALLEL = 10
+export const MAX_COPY_PARALLEL = 25;
 
 import {
   AssignmentCopyStep,
