@@ -51,7 +51,7 @@ export type StudentRecord = TypedMap<{
   first_name: string;
   last_name: string;
   last_active: number;
-  hosting: boolean;
+  hosting: string;
   email_address: string;
   project_id: string;
   deleted: boolean;
