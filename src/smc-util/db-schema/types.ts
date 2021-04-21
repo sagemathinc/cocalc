@@ -269,6 +269,8 @@ export type AllSiteSettings = {
   [key in keyof SiteSettings | keyof SettingsExtras]?: any;
 };
 
+export type AllSiteSettingsCached = AllSiteSettings & { _timestamp?: number };
+
 export type RegistrationTokenSetFields =
   | "token"
   | "descr"
