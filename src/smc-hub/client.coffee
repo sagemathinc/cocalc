@@ -1329,36 +1329,6 @@ class exports.Client extends EventEmitter
                                 to           : locals.email_address
                                 error        : err
                             cb(err) # call the cb one scope up so that the client is informed that we sent the invite (or not)
-                        
-                        
-                    #try
-                    #    email_body = create_email_body(subject, mesg.email, locals.email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
-                    #catch err
-                    #    cb(err)
-                    #    return
-
-                    ## asm_group for invites stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
-                    #opts =
-                    #    to           : locals.email_address
-                    #    bcc          : 'invites@cocalc.com'
-                    #    fromname     : 'CoCalc'
-                    #    from         : 'invites@cocalc.com'
-                    #    replyto      : mesg.replyto ? 'help@cocalc.com'
-                    #    replyto_name : mesg.replyto_name
-                    #    subject      : subject
-                    #    category     : "invite"
-                    #    asm_group    : SENDGRID_ASM_INVITES
-                    #    body         : email_body
-                    #    settings     : locals.settings
-                    #    cb           : (err) =>
-                    #        if err
-                    #            dbg("FAILED to send email to #{locals.email_address}  -- err=#{misc.to_json(err)}")
-                    #        @database.sent_project_invite
-                    #            project_id : mesg.project_id
-                    #            to         : locals.email_address
-                    #            error      : err
-                    #        cb(err) # call the cb one scope up so that the client is informed that we sent the invite (or not)
-                    #send_email(opts)
 
                 ], (err) =>
                         if err
@@ -1532,36 +1502,6 @@ class exports.Client extends EventEmitter
                                     to         : email_address
                                     error      : err
                                 cb(err) # call the cb one scope up so that the client is informed that we sent the invite (or not)
-
-                        #try
-                        #    email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
-                        #    cb()
-                        #catch err
-                        #    cb(err)
-                        #    return
-
-                        ## asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
-                        #opts =
-                        #    to           : email_address
-                        #    bcc          : 'invites@cocalc.com'
-                        #    fromname     : 'CoCalc'
-                        #    from         : 'invites@cocalc.com'
-                        #    replyto      : mesg.replyto ? 'help@cocalc.com'
-                        #    replyto_name : mesg.replyto_name
-                        #    subject      : subject
-                        #    category     : "invite"
-                        #    asm_group    : SENDGRID_ASM_INVITES
-                        #    body         : email_body
-                        #    settings     : locals.settings
-                        #    cb           : (err) =>
-                        #        if err
-                        #            dbg("FAILED to send email to #{email_address}  -- err=#{misc.to_json(err)}")
-                        #        @database.sent_project_invite
-                        #            project_id : mesg.project_id
-                        #            to         : email_address
-                        #            error      : err
-                        #dbg("send_email invite to #{email_address}")
-                        #send_email(opts)
 
                 ], cb)
 
