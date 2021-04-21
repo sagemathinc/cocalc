@@ -76,10 +76,10 @@ function cells2snippets(cells?: JupyterNotebook["cells"]): SnippetEntry {
           // lvl2_title might modify cell.source!
           title = lvl2_title(cell.source ?? []);
         }
-        md = `${md ?? ""}\n\n${(cell.source ?? []).join("\n")}`;
+        md = `${md ?? ""}\n\n${(cell.source ?? []).join("").trim()}`;
         break;
       case "code":
-        const cs = (cell.source ?? []).join("\n");
+        const cs = (cell.source ?? []).join("").trim();
         if (cs.trim()) code.push(cs);
         if (no_markdown) finish();
         break;
