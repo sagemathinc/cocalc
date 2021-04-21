@@ -17,6 +17,7 @@ const async = require("async");
 const winston = require("./winston-metrics").get_logger("email");
 import { template } from "lodash";
 import { AllSiteSettings } from "../smc-util/db-schema/types";
+import { KUCALC_COCALC_COM } from "../smc-util/db-schema/site-defaults";
 
 // sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 import * as sendgrid from "@sendgrid/client";
@@ -32,6 +33,7 @@ import { contains_url } from "../smc-util-node/misc2_node";
 const {
   SENDGRID_TEMPLATE_ID,
   SENDGRID_ASM_NEWSLETTER,
+  SENDGRID_ASM_INVITES,
   COMPANY_NAME,
   COMPANY_EMAIL,
   SITE_NAME,
@@ -264,7 +266,7 @@ async function send_via_sendgrid(opts, dbg): Promise<void> {
 // constructs the email body for INVITES! (collaborator and student course)
 // this includes sign up instructions pointing to the given project
 // it might throw an error!
-export function create_email_body(
+function create_email_body(
   subject,
   body,
   email_address,
@@ -309,6 +311,50 @@ export function create_email_body(
 `;
 
   return email_body;
+}
+
+interface InviteOpts {
+  to: string;
+  subject: string;
+  email: string;
+  email_address: string;
+  title: string;
+  settings: AllSiteSettings;
+  allow_urls: boolean;
+  link2proj?: string;
+  replyto: string;
+  replyto_name: string;
+  cb: (err?, msg?) => void;
+}
+
+export function send_invite_email(opts: InviteOpts) {
+  try {
+    const email_body = create_email_body(
+      opts.subject,
+      opts.email,
+      opts.email_address,
+      opts.title,
+      opts.link2proj,
+      opts.allow_urls
+    );
+    send_email({
+      to: opts.to,
+      bcc:
+        opts.settings.kucalc === KUCALC_COCALC_COM ? "invites@cocalc.com" : "",
+      fromname: fallback(opts.settings.organization_name, COMPANY_NAME),
+      from: fallback(opts.settings.organization_email, COMPANY_EMAIL),
+      category: "invite",
+      asm_group: SENDGRID_ASM_INVITES,
+      settings: opts.settings,
+      subject: opts.subject,
+      body: email_body,
+      replyto: opts.replyto,
+      replyto_name: opts.replyto_name,
+      cb: opts.cb,
+    });
+  } catch (err) {
+    opts.cb(err);
+  }
 }
 
 export function is_banned(address): boolean {

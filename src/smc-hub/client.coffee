@@ -32,7 +32,7 @@ sign_in              = require('./sign-in')
 hub_projects         = require('./projects')
 {StripeClient}       = require('./stripe/client')
 {get_support}        = require('./support')
-{send_email, create_email_body} = require('./email')
+{send_email, send_invite_email} = require('./email')
 {api_key_action}     = require('./api/manage')
 {create_account, delete_account} = require('./client/create-account')
 {purchase_license}   = require('./client/license')
@@ -49,8 +49,6 @@ underscore = require('underscore')
 {project_has_network_access} = require('./postgres/project-queries')
 {is_paying_customer} = require('./postgres/account-queries')
 {get_personal_user} = require('./postgres/personal')
-
-{SENDGRID_ASM_INVITES} = require('smc-util/theme')
 
 {PW_RESET_ENDPOINT, PW_RESET_KEY} = require('./password')
 
@@ -1266,6 +1264,9 @@ class exports.Client extends EventEmitter
                                 cb()
 
                 (cb) =>
+                    if locals.done or (not locals.email_address)
+                        cb()
+                        return
                     @database.get_server_settings_cached
                         cb : (err, settings) =>
                             if err
@@ -1309,34 +1310,55 @@ class exports.Client extends EventEmitter
                     if mesg.subject?
                         subject  = mesg.subject
 
-                    try
-                        email_body = create_email_body(subject, mesg.email, locals.email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
-                    catch err
-                        cb(err)
-                        return
-
-                    # asm_group for invites stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
-                    opts =
-                        to           : locals.email_address
-                        bcc          : 'invites@cocalc.com'
-                        fromname     : 'CoCalc'
-                        from         : 'invites@cocalc.com'
-                        replyto      : mesg.replyto ? 'help@cocalc.com'
-                        replyto_name : mesg.replyto_name
-                        subject      : subject
-                        category     : "invite"
-                        asm_group    : SENDGRID_ASM_INVITES
-                        body         : email_body
-                        settings     : locals.settings
-                        cb           : (err) =>
+                    send_invite_email
+                        to            : locals.email_address
+                        subject       : subject
+                        email         : mesg.email
+                        email_address : locals.email_address
+                        title         : mesg.title
+                        allow_urls    : await @allow_urls_in_emails(mesg.project_id)
+                        replyto       : mesg.replyto ? settings.organization_email
+                        replyto_name  : mesg.replyto_name
+                        link2proj     : mesg.link2proj
+                        settings      : locals.settings
+                        cb            : (err) =>
                             if err
                                 dbg("FAILED to send email to #{locals.email_address}  -- err=#{misc.to_json(err)}")
                             @database.sent_project_invite
-                                project_id : mesg.project_id
-                                to         : locals.email_address
-                                error      : err
+                                project_id   : mesg.project_id
+                                to           : locals.email_address
+                                error        : err
                             cb(err) # call the cb one scope up so that the client is informed that we sent the invite (or not)
-                    send_email(opts)
+                        
+                        
+                    #try
+                    #    email_body = create_email_body(subject, mesg.email, locals.email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
+                    #catch err
+                    #    cb(err)
+                    #    return
+
+                    ## asm_group for invites stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                    #opts =
+                    #    to           : locals.email_address
+                    #    bcc          : 'invites@cocalc.com'
+                    #    fromname     : 'CoCalc'
+                    #    from         : 'invites@cocalc.com'
+                    #    replyto      : mesg.replyto ? 'help@cocalc.com'
+                    #    replyto_name : mesg.replyto_name
+                    #    subject      : subject
+                    #    category     : "invite"
+                    #    asm_group    : SENDGRID_ASM_INVITES
+                    #    body         : email_body
+                    #    settings     : locals.settings
+                    #    cb           : (err) =>
+                    #        if err
+                    #            dbg("FAILED to send email to #{locals.email_address}  -- err=#{misc.to_json(err)}")
+                    #        @database.sent_project_invite
+                    #            project_id : mesg.project_id
+                    #            to         : locals.email_address
+                    #            error      : err
+                    #        cb(err) # call the cb one scope up so that the client is informed that we sent the invite (or not)
+                    #send_email(opts)
 
                 ], (err) =>
                         if err
@@ -1465,6 +1487,9 @@ class exports.Client extends EventEmitter
                                         cb()
 
                     (cb) =>
+                        if locals.done
+                            cb()
+                            return
                         @database.get_server_settings_cached
                             cb: (err, settings) =>
                                 if err
@@ -1487,35 +1512,56 @@ class exports.Client extends EventEmitter
                         if mesg.subject?
                             subject  = mesg.subject
 
-                        try
-                            email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
-                            cb()
-                        catch err
-                            cb(err)
-                            return
-
-                        # asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
-                        opts =
-                            to           : email_address
-                            bcc          : 'invites@cocalc.com'
-                            fromname     : 'CoCalc'
-                            from         : 'invites@cocalc.com'
-                            replyto      : mesg.replyto ? 'help@cocalc.com'
-                            replyto_name : mesg.replyto_name
-                            subject      : subject
-                            category     : "invite"
-                            asm_group    : SENDGRID_ASM_INVITES
-                            body         : email_body
-                            settings     : locals.settings
-                            cb           : (err) =>
+                        dbg("send_email invite to #{email_address}")
+                        send_invite_email
+                            to            : email_address
+                            subject       : subject
+                            email         : mesg.email
+                            email_address : email_address
+                            title         : mesg.title
+                            allow_urls    : await @allow_urls_in_emails(mesg.project_id)
+                            replyto       : mesg.replyto ? settings.organization_email
+                            replyto_name  : mesg.replyto_name
+                            link2proj     : mesg.link2proj
+                            settings      : locals.settings
+                            cb            : (err) =>
                                 if err
                                     dbg("FAILED to send email to #{email_address}  -- err=#{misc.to_json(err)}")
                                 @database.sent_project_invite
                                     project_id : mesg.project_id
                                     to         : email_address
                                     error      : err
-                        dbg("send_email invite to #{email_address}")
-                        send_email(opts)
+                                cb(err) # call the cb one scope up so that the client is informed that we sent the invite (or not)
+
+                        #try
+                        #    email_body = create_email_body(subject, mesg.email, email_address, mesg.title, mesg.link2proj, await @allow_urls_in_emails(mesg.project_id))
+                        #    cb()
+                        #catch err
+                        #    cb(err)
+                        #    return
+
+                        ## asm_group for invites is stored in theme.js https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                        #opts =
+                        #    to           : email_address
+                        #    bcc          : 'invites@cocalc.com'
+                        #    fromname     : 'CoCalc'
+                        #    from         : 'invites@cocalc.com'
+                        #    replyto      : mesg.replyto ? 'help@cocalc.com'
+                        #    replyto_name : mesg.replyto_name
+                        #    subject      : subject
+                        #    category     : "invite"
+                        #    asm_group    : SENDGRID_ASM_INVITES
+                        #    body         : email_body
+                        #    settings     : locals.settings
+                        #    cb           : (err) =>
+                        #        if err
+                        #            dbg("FAILED to send email to #{email_address}  -- err=#{misc.to_json(err)}")
+                        #        @database.sent_project_invite
+                        #            project_id : mesg.project_id
+                        #            to         : email_address
+                        #            error      : err
+                        #dbg("send_email invite to #{email_address}")
+                        #send_email(opts)
 
                 ], cb)
 
