@@ -188,7 +188,7 @@ async function send_via_smtp(opts: Opts, dbg): Promise<string | undefined> {
     html: smtp_email_body(opts),
   };
   if (opts.replyto) {
-    msg.reply_to = opts.replyto;
+    msg.replyTo = opts.replyto;
   }
   if (opts.cc != null && opts.cc.length > 0) {
     msg.cc = opts.cc;
