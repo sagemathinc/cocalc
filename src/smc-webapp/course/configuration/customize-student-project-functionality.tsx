@@ -31,7 +31,7 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
       <Card
         title={
           <>
-            <Icon name="lock" /> Lockdown student projects
+            <Icon name="lock" /> Restrict student projects
           </>
         }
       >
