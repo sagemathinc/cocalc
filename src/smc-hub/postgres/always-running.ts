@@ -13,11 +13,11 @@ import { callback2 } from "../smc-util/async-utils";
 // Ref: smc-util/compute-states.js
 // Performance: only an `x IN <array>` clause uses the index, not a `NOT IN`.
 export async function projects_that_need_to_be_started(
-  database: PostgreSQL
+  database: PostgreSQL,
+  limit = 10
 ): Promise<string[]> {
   const result = await database.async_query({
-    query:
-      "SELECT project_id FROM projects WHERE run_quota ->> 'always_running' = 'true' AND state ->> 'state' IN ('archived', 'closed', 'opened') OR state IS NULL",
+    query: `SELECT project_id FROM projects WHERE (run_quota ->> 'always_running' = 'true') AND (state ->> 'state' IN ('archived', 'closed', 'opened') OR state IS NULL) LIMIT ${limit}`,
   });
   const projects: string[] = [];
   for (const row of result.rows) {
