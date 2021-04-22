@@ -1238,6 +1238,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     # name search only includes active users
                     query += " AND ((last_active >= NOW() - $#{i}::INTERVAL) OR (created >= NOW() - $#{i}::INTERVAL)) "
                     i += 1
+                if not opts.admin
+                    # Exclude unlisted users from search results
+                    query += " AND unlisted IS NOT true ";
                 # recently active users are much more relevant than old ones -- #2991
                 query += " ORDER BY last_active DESC NULLS LAST"
                 query += " LIMIT $#{i}::INTEGER"; i += 1

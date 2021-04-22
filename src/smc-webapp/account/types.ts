@@ -17,6 +17,7 @@ export interface AccountState {
   terminal: immutable.Map<string, any>;
   first_name?: string;
   last_name?: string;
+  unlisted?: boolean;
   profile: TypedMap<{ color: string }>;
   email_address?: string;
   editor_settings: TypedMap<{
