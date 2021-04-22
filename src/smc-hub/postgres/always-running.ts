@@ -9,12 +9,15 @@ import { callback2 } from "../smc-util/async-utils";
 
 // Return an array of project_id's of projects that have the always_running run_quota set,
 // but are not in the running or starting state.
+// We only check for stable states, i.e. there is no state transition going on right now.
+// Ref: smc-util/compute-states.js
+// Performance: only an `x IN <array>` clause uses the index, not a `NOT IN`.
 export async function projects_that_need_to_be_started(
-  database: PostgreSQL
+  database: PostgreSQL,
+  limit = 10
 ): Promise<string[]> {
   const result = await database.async_query({
-    query:
-      "SELECT project_id FROM projects WHERE run_quota ->> 'always_running' = 'true' AND state ->> 'state' NOT IN ('running', 'starting')",
+    query: `SELECT project_id FROM projects WHERE (run_quota ->> 'always_running' = 'true') AND (state ->> 'state' IN ('archived', 'closed', 'opened') OR state IS NULL) LIMIT ${limit}`,
   });
   const projects: string[] = [];
   for (const row of result.rows) {
