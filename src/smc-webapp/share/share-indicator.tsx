@@ -11,6 +11,7 @@ import { containing_public_path } from "smc-util/misc";
 import { COLORS } from "smc-util/theme";
 import { React, redux, useMemo, useTypedRedux } from "../app-framework";
 import { Icon, Loading } from "../r_misc";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 const SHARE_INDICATOR_STYLE = {
   fontSize: "14pt",
@@ -31,6 +32,10 @@ export const ShareIndicator: React.FC<Props> = React.memo(
   ({ project_id, path, shrink_fixed_tabs }) => {
     const public_paths = useTypedRedux({ project_id }, "public_paths");
 
+    const student_project_functionality = useStudentProjectFunctionality(
+      project_id
+    );
+
     const is_public = useMemo(() => {
       if (public_paths == null) return false;
       const paths: string[] = [];
@@ -41,6 +46,10 @@ export const ShareIndicator: React.FC<Props> = React.memo(
       });
       return containing_public_path(path, paths) != null;
     }, [public_paths, path, project_id]);
+
+    if (student_project_functionality.disableActions) {
+      return <></>;
+    }
 
     if (public_paths == null) {
       return <Loading />;

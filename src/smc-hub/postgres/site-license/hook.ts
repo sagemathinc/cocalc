@@ -12,7 +12,12 @@ import { is_valid_uuid_string, len } from "../../smc-util/misc";
 import { callback2 } from "../../smc-util/async-utils";
 import { number_of_running_projects_using_license } from "./analytics";
 import { QuotaMap } from "../../smc-util/db-schema/site-licenses";
-import { quota as compute_total_quota } from "../../smc-util/upgrades/quota";
+import {
+  quota as compute_total_quota,
+  SiteLicenseQuotaSetting,
+  QuotaSetting,
+  SiteLicenses,
+} from "../../smc-util/upgrades/quota";
 
 let licenses: any = undefined;
 
@@ -95,7 +100,7 @@ async function site_license_hook0(
   }
 
   const site_license = project.site_license;
-  const new_site_license: { [license_id: string]: object } = {};
+  const new_site_license: SiteLicenses = {};
   // Next we check the keys of site_license to see what they contribute,
   // and fill that in.
   const licenses = await get_valid_licenses(db);
@@ -145,10 +150,10 @@ async function site_license_hook0(
     if (is_valid) {
       if (license == null) throw Error("bug");
       // Licenses can specify what they do in two distinct ways: upgrades and quota.
-      const upgrades: object = license.get("upgrades")?.toJS() ?? {};
-      const quota = license.get("quota")?.toJS();
+      const upgrades = (license.get("upgrades")?.toJS() ?? {}) as QuotaSetting;
+      const quota = license.get("quota");
       if (quota) {
-        upgrades["quota"] = quota;
+        upgrades["quota"] = quota.toJS() as SiteLicenseQuotaSetting;
       }
       // remove any zero values to make frontend client code simpler and avoid waste/clutter.
       // NOTE: I do assume these 0 fields are removed in some client code, so don't just not do this!

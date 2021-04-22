@@ -1120,66 +1120,26 @@ class Student extends Component<StudentProps, StudentState> {
   }
 
   render_hosting() {
-    const student_project_id = this.props.student.get("project_id");
-    if (student_project_id) {
-      const store = redux.getStore("projects");
-      const upgrades = store.get_total_project_quotas(student_project_id);
-      if (upgrades == null) {
-        // user opening the course isn't a collaborator on this student project yet
-        return;
-      }
-      const state = store.get_state(student_project_id);
-      if (upgrades.member_host) {
-        return (
-          <Tip
-            placement="left"
-            title={
-              <span>
-                <Icon name="check" /> Members-only hosting
-              </span>
-            }
-            tip="Projects is on a members-only server, which is much more robust and has priority support."
-          >
-            <span style={{ color: "#888", cursor: "pointer" }}>
-              <Icon name="check" /> Members-only ({state})
-            </span>
-          </Tip>
-        );
-      }
-      const licenses = store.get_site_license_ids(student_project_id);
-      if (licenses.length > 0) {
-        return (
-          <Tip
-            placement="left"
-            title={
-              <span>
-                <Icon name="check" /> Licensed
-              </span>
-            }
-            tip="Project is properly licensed and should work well. Thank you!"
-          >
-            <span style={{ color: "#888", cursor: "pointer" }}>
-              <Icon name="check" /> Licensed ({state})
-            </span>
-          </Tip>
-        );
-      }
-      return (
-        <Tip
-          placement="left"
-          title={
-            <span>
-              <Icon name="exclamation-triangle" /> Trial
-            </span>
-          }
-          tip="Project is a trial project hosted on a free server, so it may be overloaded and will be rebooted frequently.  Please upgrade in course configuration."
-        >
-          <span style={{ color: "#888", cursor: "pointer" }}>
-            <Icon name="exclamation-triangle" /> Free Trial ({state})
+    const { description, tip, state } = util.projectStatus(
+      this.props.student.get("project_id"),
+      redux
+    );
+    return (
+      <Tip
+        placement="left"
+        title={
+          <span>
+            <Icon name="check" /> {description}
           </span>
-        </Tip>
-      );
-    }
+        }
+        tip={tip}
+      >
+        <span style={{ color: "#888", cursor: "pointer" }}>
+          <Icon name="check" /> {description}
+          {state}
+        </span>
+      </Tip>
+    );
   }
 
   render_project_access(): JSX.Element {

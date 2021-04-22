@@ -107,7 +107,7 @@ export function step_ready(step: AssignmentCopyStep, n) {
 //    first_name    : string
 //    last_name     : string
 //    last_active   : integer
-//    hosting       : bool
+//    hosting       : string
 //    email_address : string
 // }
 export function parse_students(student_map: StudentsMap, user_map, redux) {
@@ -128,15 +128,11 @@ export function parse_students(student_map: StudentsMap, user_map, redux) {
           if (last_active != null) {
             x.last_active = last_active.get(x.account_id);
           }
-          const upgrades = projects_store.get_total_project_quotas(
-            x.project_id
-          );
-          if (upgrades != null) {
-            x.hosting = upgrades.member_host;
-          }
         }
       }
     }
+    const { description, state } = projectStatus(x.project_id, redux);
+    x.hosting = description + state;
 
     if (x.first_name == null) {
       x.first_name = "";
@@ -146,9 +142,6 @@ export function parse_students(student_map: StudentsMap, user_map, redux) {
     }
     if (x.last_active == null) {
       x.last_active = 0;
-    }
-    if (x.hosting == null) {
-      x.hosting = false;
     }
     if (x.email_address == null) {
       x.email_address = "";
@@ -268,7 +261,7 @@ export function pick_student_sorter<T extends { column_name: StudentField }>(
     case "last_active":
       return sort_on_numerical_field("last_active");
     case "hosting":
-      return sort_on_numerical_field("hosting");
+      return sort_on_string_field("hosting");
   }
 }
 
@@ -282,4 +275,47 @@ export function assignment_identifier(
 export function autograded_filename(filename: string): string {
   const { name, ext } = separate_file_extension(filename);
   return name + "_autograded." + ext;
+}
+
+export function projectStatus(
+  project_id: string | undefined,
+  redux
+): { description: string; icon: string; state: string; tip?: string } {
+  if (!project_id) {
+    return { description: "(not created)", icon: "checkbox", state: "" };
+  }
+  const store = redux.getStore("projects");
+  const upgrades = store.get_total_project_quotas(project_id);
+  if (upgrades == null) {
+    // user opening the course, but isn't a collaborator on
+    // this student project for some reason.  This will get fixed
+    // when configure all projects runs.
+    return { description: "(not available)", icon: "question", state: "" };
+  }
+  const state = ` (${store.get_state(project_id)})`;
+  if (upgrades.member_host) {
+    return {
+      icon: "check",
+      description: "Members-only hosting",
+      tip:
+        "Projects is on a members-only server, which is much more robust and has priority support.",
+      state,
+    };
+  }
+  const licenses = store.get_site_license_ids(project_id);
+  if (licenses.length > 0) {
+    return {
+      description: "Licensed",
+      icon: "check",
+      state,
+      tip: "Project is properly licensed and should work well. Thank you!",
+    };
+  }
+  return {
+    description: "Free Trial",
+    icon: "exclamation-triangle",
+    state,
+    tip:
+      "Project is a trial project hosted on a free server, so it may be overloaded and will be rebooted frequently.  Please upgrade in course configuration.",
+  };
 }

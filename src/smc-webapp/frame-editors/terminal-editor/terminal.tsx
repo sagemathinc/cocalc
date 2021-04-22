@@ -18,6 +18,7 @@ import {
   useIsMountedRef,
   useRef,
 } from "../../app-framework";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 interface Props {
   actions: any;
@@ -45,6 +46,9 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
   const terminalRef = useRef<Terminal | undefined>(undefined);
   const terminalDOMRef = useRef<any>(null);
   const isMountedRef = useIsMountedRef();
+  const student_project_functionality = useStudentProjectFunctionality(
+    props.project_id
+  );
 
   useEffect(() => {
     return delete_terminal; // clean up on unmount
@@ -77,7 +81,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
   useEffect(measure_size, [props.resize]);
 
   function delete_terminal(): void {
-    if (terminalRef.current == null) return; // already deleted
+    if (terminalRef.current == null) return; // already deleted or never created
     terminalRef.current.element?.remove();
     terminalRef.current.is_visible = false;
     // Ignore size for this terminal.
@@ -89,7 +93,8 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
     if (!props.is_visible) return;
     const node: any = ReactDOM.findDOMNode(terminalDOMRef.current);
     if (node == null) {
-      throw Error("terminalDOMRef.current MUST be defined");
+      // happens, e.g., when terminals are disabled.
+      return;
     }
     try {
       terminalRef.current = props.actions._get_terminal(props.id, node);
@@ -150,6 +155,15 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
       <div style={COMMAND_STYLE}>
         {command} {args.join(" ")}
       </div>
+    );
+  }
+
+  if (student_project_functionality.disableTerminals) {
+    return (
+      <b style={{ margin: "auto", fontSize: "14pt", padding: "15px" }}>
+        Terminals are currently disabled in this project. Please contact your
+        instructor if you have questions.
+      </b>
     );
   }
 

@@ -18,13 +18,14 @@ IDEAS FOR LATER:
 import { React, ReactDOM } from "../../app-framework";
 import { user_activity } from "../../tracker";
 import { ProjectActions } from "../../project_actions";
-const {
+import {
   Button,
   FormControl,
   InputGroup,
   FormGroup,
-} = require("react-bootstrap");
+} from "smc-webapp/antd-bootstrap";
 import { Icon } from "smc-webapp/r_misc";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 // used to run the command -- could change to use an action and the store.
 import { webapp_client } from "../../webapp-client";
@@ -80,7 +81,7 @@ interface State {
   error?: string;
 }
 
-export class MiniTerminal extends React.Component<Props, State> {
+class MiniTerminal0 extends React.Component<Props, State> {
   private _id: number = 0;
 
   constructor(props) {
@@ -304,3 +305,13 @@ export class MiniTerminal extends React.Component<Props, State> {
     );
   }
 }
+
+export const MiniTerminal: React.FC<Props> = (props) => {
+  const student_project_functionality = useStudentProjectFunctionality(
+    props.project_id
+  );
+  if (student_project_functionality.disableTerminals) {
+    return <></>;
+  }
+  return <MiniTerminal0 {...props} />;
+};

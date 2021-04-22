@@ -4,7 +4,7 @@
  */
 
 import * as React from "react";
-const misc = require("smc-util/misc");
+import * as misc from "smc-util/misc";
 import { Icon } from "../../r_misc";
 import { NonMemberProjectWarning } from "../warnings/non-member";
 import { NoNetworkProjectWarning } from "../warnings/no-network";
@@ -30,6 +30,9 @@ import { AddCollaborators } from "../../collaborators";
 
 import { webapp_client } from "../../webapp-client";
 import { Col, Row } from "react-bootstrap";
+
+import { commercial } from "smc-webapp/customize";
+import { is_available, ProjectConfiguration } from "smc-webapp/project_configuration";
 
 interface ReactProps {
   project_id: string;
@@ -61,7 +64,7 @@ interface ReduxProps {
   all_projects_have_been_loaded: boolean;
 
   // context specific
-  configuration: Map<string, any>;
+  configuration: ProjectConfiguration;
   available_features: object;
 }
 
@@ -132,9 +135,6 @@ export const Body = rclass<ReactProps>(
         this.props.project_id
       );
 
-      const { commercial } = require("../../customize");
-
-      const { is_available } = require("../../project_configuration");
       const available = is_available(this.props.configuration);
       const have_jupyter_lab = available.jupyter_lab;
       const have_jupyter_notebook = available.jupyter_notebook;

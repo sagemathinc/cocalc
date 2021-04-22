@@ -5,6 +5,8 @@
 
 // this defines the datastructure we want to present to the user
 
+export type Error = { error: string };
+
 export type SnippetDoc = [
   title: string,
   snippet: [code: string | string[], descr: string]
@@ -26,3 +28,23 @@ export type SnippetEntries = {
 export type Snippets = {
   [key: string]: SnippetEntries;
 };
+
+export type LangSnippets = { [lang: string]: Snippets };
+
+// a minimal/incomplete jupyter notebook, just enough for our purposes and all fields are optional ... don't use it elsewhere
+export interface JupyterNotebook {
+  cells?: {
+    cell_type?: "markdown" | "code";
+    source?: string[];
+  }[];
+  metadata?: {
+    kernelspec?: {
+      display_name?: string;
+      language?: string; // "python", ...
+      name?: string; // "python3", ...
+    };
+    language_info?: {
+      name?: string; // "python"
+    };
+  };
+}

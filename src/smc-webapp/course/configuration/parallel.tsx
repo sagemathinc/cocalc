@@ -6,7 +6,6 @@
 import { Card } from "antd";
 import { React, useRedux, useActions } from "../../app-framework";
 import { Icon, NumberInput } from "../../r_misc";
-import { plural } from "smc-util/misc";
 import { CourseActions } from "../actions";
 
 interface Props {
@@ -39,8 +38,7 @@ export const Parallel: React.FC<Props> = ({ name }) => {
       title={
         <>
           {" "}
-          <Icon name="users" /> Parallel limit: copy {parallel} assignments at a time{" "}
-          {plural(parallel, "student")} at a time
+          <Icon name="users" /> Parallel limit: copy {parallel} assignments at a time
         </>
       }
     >

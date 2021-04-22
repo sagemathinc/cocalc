@@ -128,6 +128,7 @@ export function Button(props: {
   target?: string;
   title?: string;
   tabIndex?: number;
+  active?: boolean;
   id?: string;
 }) {
   // The span is needed inside below, otherwise icons and labels get squashed together
@@ -140,6 +141,10 @@ export function Button(props: {
     size = "middle";
   } else if (props.bsSize == "xsmall") {
     size = "small";
+  }
+  if (props.active) {
+    style.backgroundColor = "#d4d4d4";
+    style.boxShadow = "inset 0 3px 5px rgb(0 0 0 / 13%)";
   }
   return (
     <antd.Button

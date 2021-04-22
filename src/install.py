@@ -63,6 +63,7 @@ def install_sagews():
 
 def install_project():
     # unsafe-perm below is needed so can build C code as root
+    cmd("cd smc-project && npm --loglevel=warn --progress=false ci")
 
     # global install, hence no "npm ci" (!)
     for pkg in ['coffeescript', 'forever']:

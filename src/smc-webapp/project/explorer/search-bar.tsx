@@ -22,73 +22,65 @@ interface Props {
   create_file: (a, b) => void;
   create_folder: (a) => void;
   selected_file?: ListingItem; // if given, file selected by cursor, which we open on pressing enter
-  selected_file_index: number;
+  selected_file_index?: number;
   file_creation_error?: string;
-  num_files_displayed: number;
+  num_files_displayed?: number;
   public_view: boolean;
   disabled?: boolean;
   ext_selection?: string;
 }
 
-interface State {
-  state: "edit" | "run";
-  input?: string;
-  error?: string;
-  stdout?: string;
-}
-
 // Commands such as CD throw a setState error.
 // Search WARNING to find the line in this class.
-export class SearchBar extends React.Component<Props, State> {
-  private _id: any;
+export const SearchBar = React.memo((props: Props) => {
+  const {
+    project_id,
+    file_search = "",
+    current_path,
+    actions,
+    create_file,
+    create_folder,
+    selected_file,
+    selected_file_index = 0,
+    file_creation_error,
+    num_files_displayed = 0,
+    public_view,
+    disabled = false,
+    ext_selection,
+  } = props;
 
-  static defaultProps = {
-    file_search: "",
-    selected_file_index: 0,
-    num_files_displayed: 0,
-    disabled: false,
-  };
+  // edit → run → edit
+  // TODO use "state" to show a progress spinner while a command is running
+  // @ts-ignore
+  const [state, set_state] = React.useState<"edit" | "run">("edit");
+  const [error, set_error] = React.useState<string | undefined>(undefined);
+  const [stdout, set_stdout] = React.useState<string | undefined>(undefined);
 
-  constructor(props) {
-    super(props);
-    // Miniterm functionality
-    this.state = {
-      stdout: undefined,
-      state: "edit", // 'edit' --> 'run' --> 'edit'
-      error: undefined,
-    };
-  }
+  const _id = React.useRef<number>(0);
+  const [cmd, set_cmd] = React.useState<
+    { input: string; id: number } | undefined
+  >(undefined);
 
-  // Miniterm functionality
-  execute_command(command: string): void {
-    this.setState({
-      stdout: "",
-      error: "",
-    });
-    const input = command.trim();
-    if (!input) {
-      return;
-    }
+  React.useEffect(() => {
+    if (cmd == null) return;
+    const { input, id } = cmd;
     const input0 = input + '\necho $HOME "`pwd`"';
-    this.setState({ state: "run" });
-
-    this._id = (this._id != undefined ? this._id : 0) + 1;
-    const id = this._id;
     webapp_client.exec({
-      project_id: this.props.project_id,
+      project_id,
       command: input0,
       timeout: 10,
       max_output: 100000,
       bash: true,
-      path: this.props.current_path,
+      path: current_path,
       err_on_exit: false,
-      cb: (err, output) => {
-        if (this._id !== id) {
+      cb(err, output) {
+        if (id !== _id.current) {
           // computation was cancelled -- ignore result.
           return;
         }
         if (err) {
-          this.setState({ error: JSON.stringify(err), state: "edit" });
+          set_error(JSON.stringify(err));
+          set_state("edit");
         } else {
           if (output.stdout) {
             // Find the current path
@@ -107,44 +99,55 @@ export class SearchBar extends React.Component<Props, State> {
             if (full_path.slice(0, i) === s.slice(0, i)) {
               // only change if in project
               const path = s.slice(2 * i + 2);
-              this.props.actions.open_directory(path);
+              actions.open_directory(path);
             }
           }
           if (!output.stderr) {
             // only log commands that worked...
-            this.props.actions.log({ event: "termInSearch", input });
+            actions.log({ event: "termInSearch", input });
           }
           // WARNING: RENDER ERROR. Move state to redux store
-          this.setState({
-            state: "edit",
-            error: output.stderr,
-            stdout: output.stdout,
-          });
+          set_state("edit");
+          set_error(output.stderr);
+          set_stdout(output.stdout);
           if (!output.stderr) {
-            this.props.actions.set_file_search("");
+            actions.set_file_search("");
           }
         }
       },
     });
+  }, [cmd]);
+
+  // Miniterm functionality
+  function execute_command(command: string): void {
+    set_error("");
+    set_stdout("");
+    const input = command.trim();
+    if (!input) {
+      return;
+    }
+    set_state("run");
+    _id.current = _id.current + 1;
+    set_cmd({ input, id: _id.current });
   }
 
-  render_help_info(): JSX.Element | undefined {
+  function render_help_info(): JSX.Element | undefined {
     if (
-      this.props.file_search.length > 0 &&
-      this.props.num_files_displayed > 0 &&
-      this.props.file_search[0] !== TERM_MODE_CHAR
+      file_search.length > 0 &&
+      num_files_displayed > 0 &&
+      file_search[0] !== TERM_MODE_CHAR
     ) {
       let text;
-      const firstFolderPosition = this.props.file_search.indexOf("/");
-      if (this.props.file_search === " /") {
+      const firstFolderPosition = file_search.indexOf("/");
+      if (file_search === " /") {
         text = "Showing all folders in this directory";
-      } else if (firstFolderPosition === this.props.file_search.length - 1) {
-        text = `Showing folders matching ${this.props.file_search.slice(
+      } else if (firstFolderPosition === file_search.length - 1) {
+        text = `Showing folders matching ${file_search.slice(
           0,
-          this.props.file_search.length - 1
+          file_search.length - 1
         )}`;
       } else {
-        text = `Showing files matching ${this.props.file_search}`;
+        text = `Showing files matching ${file_search}`;
       }
       return (
         <Alert style={{ wordWrap: "break-word" }} bsStyle="info">
@@ -154,29 +157,30 @@ export class SearchBar extends React.Component<Props, State> {
     }
   }
 
-  render_file_creation_error(): JSX.Element | undefined {
-    if (this.props.file_creation_error) {
+  function render_file_creation_error(): JSX.Element | undefined {
+    if (file_creation_error) {
       return (
         <Alert
           style={{ wordWrap: "break-word" }}
           bsStyle="danger"
-          onDismiss={this.dismiss_alert}
+          onDismiss={dismiss_alert}
         >
-          {this.props.file_creation_error}
+          {file_creation_error}
         </Alert>
       );
     }
   }
 
   // Miniterm functionality
-  render_output(x, style): JSX.Element | undefined {
+  function render_output(x, style): JSX.Element | undefined {
     if (x) {
       return (
         <pre style={style}>
           <a
             onClick={(e) => {
               e.preventDefault();
-              this.setState({ stdout: "", error: "" });
+              set_stdout("");
+              set_error("");
             }}
             href=""
             style={{
@@ -195,93 +199,90 @@ export class SearchBar extends React.Component<Props, State> {
     }
   }
 
-  dismiss_alert = (): void => {
-    this.props.actions.setState({ file_creation_error: "" });
-  };
+  function dismiss_alert(): void {
+    actions.setState({ file_creation_error: "" });
+  }
 
-  search_submit = (value: string, opts: { ctrl_down: boolean }): void => {
-    if (this.props.current_path == null) {
+  function search_submit(value: string, opts: { ctrl_down: boolean }): void {
+    if (current_path == null) {
       return;
     }
-    if (value[0] === TERM_MODE_CHAR && !this.props.public_view) {
+    if (value[0] === TERM_MODE_CHAR && !public_view) {
       const command = value.slice(1, value.length);
-      this.execute_command(command);
-    } else if (this.props.selected_file) {
-      const new_path = path_to_file(
-        this.props.current_path,
-        this.props.selected_file.name
-      );
-      const opening_a_dir = this.props.selected_file.isdir;
+      execute_command(command);
+    } else if (selected_file) {
+      const new_path = path_to_file(current_path, selected_file.name);
+      const opening_a_dir = selected_file.isdir;
       if (opening_a_dir) {
-        this.props.actions.open_directory(new_path);
-        this.props.actions.setState({ page_number: 0 });
+        actions.open_directory(new_path);
+        actions.setState({ page_number: 0 });
       } else {
-        this.props.actions.open_file({
+        actions.open_file({
           path: new_path,
           foreground: !opts.ctrl_down,
         });
       }
       if (opening_a_dir || !opts.ctrl_down) {
-        this.props.actions.set_file_search("");
-        this.props.actions.clear_selected_file_index();
+        actions.set_file_search("");
+        actions.clear_selected_file_index();
       }
-    } else if (this.props.file_search.length > 0) {
-      if (this.props.file_search[this.props.file_search.length - 1] === "/") {
-        this.props.create_folder(!opts.ctrl_down);
+    } else if (file_search.length > 0) {
+      if (file_search[file_search.length - 1] === "/") {
+        create_folder(!opts.ctrl_down);
       } else {
-        this.props.create_file(undefined, !opts.ctrl_down);
+        create_file(undefined, !opts.ctrl_down);
       }
-      this.props.actions.clear_selected_file_index();
+      actions.clear_selected_file_index();
     }
-  };
-
-  on_up_press = (): void => {
-    if (this.props.selected_file_index > 0) {
-      this.props.actions.decrement_selected_file_index();
-    }
-  };
-
-  on_down_press = (): void => {
-    if (this.props.selected_file_index < this.props.num_files_displayed - 1) {
-      this.props.actions.increment_selected_file_index();
-    }
-  };
-
-  on_change = (search: string): void => {
-    this.props.actions.zero_selected_file_index();
-    this.props.actions.set_file_search(search);
-  };
-
-  on_clear = (): void => {
-    this.props.actions.clear_selected_file_index();
-    this.setState({ input: "", stdout: "", error: "" });
-  };
-
-  render(): JSX.Element {
-    return (
-      <span>
-        <SearchInput
-          autoFocus={!IS_TOUCH}
-          autoSelect={!IS_TOUCH}
-          placeholder="Search or create file"
-          value={this.props.file_search}
-          on_change={this.on_change}
-          on_submit={this.search_submit}
-          on_up={this.on_up_press}
-          on_down={this.on_down_press}
-          on_clear={this.on_clear}
-          disabled={this.props.disabled || !!this.props.ext_selection}
-        />
-        {this.render_file_creation_error()}
-        {this.render_help_info()}
-        <div style={output_style_searchbox}>
-          {this.render_output(this.state.error, {
-            color: "darkred",
-            margin: 0,
-          })}
-          {this.render_output(this.state.stdout, { margin: 0 })}
-        </div>
-      </span>
-    );
   }
-}
+
+  function on_up_press(): void {
+    if (selected_file_index > 0) {
+      actions.decrement_selected_file_index();
+    }
+  }
+
+  function on_down_press(): void {
+    if (selected_file_index < num_files_displayed - 1) {
+      actions.increment_selected_file_index();
+    }
+  }
+
+  function on_change(search: string): void {
+    actions.zero_selected_file_index();
+    actions.set_file_search(search);
+  }
+
+  function on_clear(): void {
+    actions.clear_selected_file_index();
+    //set_input("");
+    set_stdout("");
+    set_error("");
+  }
+
+  return (
+    <span>
+      <SearchInput
+        autoFocus={!IS_TOUCH}
+        autoSelect={!IS_TOUCH}
+        placeholder="Search or create file"
+        value={file_search}
+        on_change={on_change}
+        on_submit={search_submit}
+        on_up={on_up_press}
+        on_down={on_down_press}
+        on_clear={on_clear}
+        disabled={disabled || !!ext_selection}
+      />
+      {render_file_creation_error()}
+      {render_help_info()}
+      <div style={output_style_searchbox}>
+        {render_output(error, {
+          color: "darkred",
+          margin: 0,
+        })}
+        {render_output(stdout, { margin: 0 })}
+      </div>
+    </span>
+  );
+});
