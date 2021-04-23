@@ -103,50 +103,38 @@ export const SupportInfo: React.FC = () => {
     }
     return (
       <div>
-        <h2 style={{ marginTop: "-5px" }}>Frequent questions</h2>
+        <h2 style={{ marginTop: "-5px" }}>Information</h2>
         <ul>
           <li>
-            <a href="https://doc.cocalc.com" target="_blank" rel="noopener">
+            <A href="https://doc.cocalc.com">
               <b>
-                <SiteName /> Documentation and help
+                CoCalc Documentation and help
               </b>
-            </a>
+            </A>
           </li>
           <li>
-            <a
-              target="_blank"
-              rel="noopener"
-              href="https://doc.cocalc.com/howto/missing-project.html"
-            >
-              File or project seems gone
-            </a>
+            <A href="https://github.com/sagemathinc/cocalc-desktop#readme">
+              Try CoCalc Desktop, which may help address performance and
+              compatibility issues with cocalc.com...
+            </A>
+          </li>
+          <li>
+            <A href="https://doc.cocalc.com/howto/missing-project.html">
+              File or project gone?
+            </A>
           </li>
           <li>
             Jupyter notebook or SageMath worksheet{" "}
-            <a
-              target="_blank"
-              rel="noopener"
-              href="https://doc.cocalc.com/howto/slow-worksheet.html"
-            >
-              slow
-            </a>{" "}
+            <A href="https://doc.cocalc.com/howto/slow-worksheet.html">slow</A>{" "}
             or{" "}
-            <a
-              target="_blank"
-              rel="noopener"
-              href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html"
-            >
-              crashing
-            </a>
+            <A href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">
+              crashing?
+            </A>
           </li>
           <li>
-            <a
-              target="_blank"
-              rel="noopener"
-              href="https://doc.cocalc.com/howto/sage-question.html"
-            >
-              Questions about SageMath
-            </a>
+            <A href="https://doc.cocalc.com/howto/sage-question.html">
+              Questions about SageMath?
+            </A>
           </li>
           <li>
             <b>
