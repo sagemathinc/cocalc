@@ -106,10 +106,7 @@ export class StudentProjectsActions {
     const student = s.get_student(student_id);
     if (student == null) return; // no such student..
 
-    let site_name = redux.getStore("customize").get("site_name");
-    if (!site_name) {
-      site_name = SITE_NAME;
-    }
+    const site_name = redux.getStore("customize").get("site_name") ?? SITE_NAME;
     let body = s.get_email_invite();
 
     // Define function to invite or add collaborator

@@ -289,7 +289,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 if err
                     opts.cb(err)
                 else
-                    x = {}
+                    x = {_timestamp: Date.now()}
                     # process values, possibly post-process values
                     for k in result.rows
                         val = k.value

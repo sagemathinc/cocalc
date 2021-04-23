@@ -12,11 +12,13 @@ const BANNED_DOMAINS = { "qq.com": true };
 import { promisify } from "util";
 import * as fs from "fs";
 import * as os_path from "path";
+import { isEqual } from "lodash";
 const fs_readFile_prom = promisify(fs.readFile);
 const async = require("async");
 const winston = require("./winston-metrics").get_logger("email");
 import { template } from "lodash";
-import { AllSiteSettings } from "../smc-util/db-schema/types";
+import { AllSiteSettingsCached } from "../smc-util/db-schema/types";
+import { KUCALC_COCALC_COM } from "../smc-util/db-schema/site-defaults";
 
 // sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 import * as sendgrid from "@sendgrid/client";
@@ -32,6 +34,7 @@ import { contains_url } from "../smc-util-node/misc2_node";
 const {
   SENDGRID_TEMPLATE_ID,
   SENDGRID_ASM_NEWSLETTER,
+  SENDGRID_ASM_INVITES,
   COMPANY_NAME,
   COMPANY_EMAIL,
   SITE_NAME,
@@ -91,6 +94,8 @@ function fallback(val: string | undefined, alt: string) {
 let sendgrid_server: any | undefined = undefined;
 let sendgrid_server_disabled = false;
 let smtp_server: any | undefined = undefined;
+let smtp_server_created: number | undefined = undefined; // timestamp
+let smtp_server_conf: any | undefined = undefined;
 let smtp_pw_reset_server: any | undefined = undefined;
 
 async function init_sendgrid(opts: Opts, dbg): Promise<void> {
@@ -136,12 +141,9 @@ async function init_sendgrid(opts: Opts, dbg): Promise<void> {
 }
 
 async function init_smtp_server(opts: Opts, dbg): Promise<void> {
-  if (smtp_server != null) {
-    return;
-  }
-  dbg("SMTP server not configured. setting up ...");
   const s = opts.settings;
-  smtp_server = await nodemailer.createTransport({
+
+  const conf = {
     host: s.email_smtp_server,
     port: s.email_smtp_port,
     secure: s.email_smtp_secure, // true for 465, false for other ports
@@ -149,7 +151,31 @@ async function init_smtp_server(opts: Opts, dbg): Promise<void> {
       user: s.email_smtp_login,
       pass: s.email_smtp_password,
     },
-  });
+  };
+
+  // we check, if we can keep the smtp server instance
+  if (
+    smtp_server != null &&
+    smtp_server_conf != null &&
+    s._timestamp != null &&
+    smtp_server_created != null
+  ) {
+    if (smtp_server_created < s._timestamp) {
+      if (!isEqual(smtp_server_conf, conf)) {
+        dbg("SMTP server instance outdated, recreating");
+      } else {
+        // settings changed, but the server config is the same
+        smtp_server_created = Date.now();
+        return;
+      }
+    } else {
+      return;
+    }
+  }
+  dbg("SMTP server not configured. setting up ...");
+  smtp_server = await nodemailer.createTransport(conf);
+  smtp_server_created = Date.now();
+  smtp_server_conf = conf;
   dbg("SMTP server configured");
 }
 
@@ -162,7 +188,7 @@ async function send_via_smtp(opts: Opts, dbg): Promise<string | undefined> {
     html: smtp_email_body(opts),
   };
   if (opts.replyto) {
-    msg.reply_to = opts.replyto;
+    msg.replyTo = opts.replyto;
   }
   if (opts.cc != null && opts.cc.length > 0) {
     msg.cc = opts.cc;
@@ -264,7 +290,7 @@ async function send_via_sendgrid(opts, dbg): Promise<void> {
 // constructs the email body for INVITES! (collaborator and student course)
 // this includes sign up instructions pointing to the given project
 // it might throw an error!
-export function create_email_body(
+function create_email_body(
   subject,
   body,
   email_address,
@@ -309,6 +335,50 @@ export function create_email_body(
 `;
 
   return email_body;
+}
+
+interface InviteOpts {
+  to: string;
+  subject: string;
+  email: string;
+  email_address: string;
+  title: string;
+  settings: AllSiteSettingsCached;
+  allow_urls: boolean;
+  link2proj?: string;
+  replyto: string;
+  replyto_name: string;
+  cb: (err?, msg?) => void;
+}
+
+export function send_invite_email(opts: InviteOpts) {
+  try {
+    const email_body = create_email_body(
+      opts.subject,
+      opts.email,
+      opts.email_address,
+      opts.title,
+      opts.link2proj,
+      opts.allow_urls
+    );
+    send_email({
+      to: opts.to,
+      bcc:
+        opts.settings.kucalc === KUCALC_COCALC_COM ? "invites@cocalc.com" : "",
+      fromname: fallback(opts.settings.organization_name, COMPANY_NAME),
+      from: fallback(opts.settings.organization_email, COMPANY_EMAIL),
+      category: "invite",
+      asm_group: SENDGRID_ASM_INVITES,
+      settings: opts.settings,
+      subject: opts.subject,
+      body: email_body,
+      replyto: opts.replyto,
+      replyto_name: opts.replyto_name,
+      cb: opts.cb,
+    });
+  } catch (err) {
+    opts.cb(err);
+  }
 }
 
 export function is_banned(address): boolean {
@@ -391,7 +461,7 @@ interface Opts {
   category?: string;
   asm_group?: number;
   // "Partial" b/c any might be missing for random reasons
-  settings: AllSiteSettings;
+  settings: AllSiteSettingsCached;
   url?: string; // for the string templates
   company_name?: string; // for the string templates
   cb?: (err?, msg?) => void;
