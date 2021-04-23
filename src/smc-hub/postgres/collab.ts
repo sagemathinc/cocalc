@@ -139,8 +139,8 @@ function verify_types(
   }
 }
 
-// Returns "" if token is not valid.
-// Returns the project_id of the project if the token is valid.
+// Returns {error:"..."} if token is not valid.
+// Returns {project_id:"...."} with project_id of the project if the token is valid.
 async function project_invite_token_project_id(
   db: PostgreSQL,
   token: string
