@@ -74,18 +74,14 @@ class TerminalCommandPanel extends Component<Props> {
             this.run_terminal_command();
           }}
         >
-          <Form.Item>
-            <Input.Group>
-              <Input
-                style={{ width: "80%" }}
-                placeholder="Terminal command..."
-                onChange={(e) => {
-                  this.set_field("input", e.target.value);
-                }}
-              />
-              {this.render_button(running)}
-            </Input.Group>
-          </Form.Item>
+          <Input
+            style={{ width: "80%" }}
+            placeholder="Terminal command..."
+            onChange={(e) => {
+              this.set_field("input", e.target.value);
+            }}
+          />
+          {this.render_button(running)}
         </Form>
       </div>
     );

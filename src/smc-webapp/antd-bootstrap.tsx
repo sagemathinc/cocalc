@@ -163,7 +163,7 @@ export function Button(props: {
       tabIndex={props.tabIndex}
       id={props.id}
     >
-      <span>{props.children}</span>
+      <>{props.children}</>
     </antd.Button>
   );
 }
