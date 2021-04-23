@@ -21,12 +21,12 @@ export async function add_collaborators_to_projects(
     await verify_write_access_to_projects(db, account_id, projects, tokens);
   } catch (err) {
     // There is one case where a user can add themselve to a project that they
-    // are not a collaborator on, which is a TA can add themself to a course prjoect.
+    // are not a collaborator on, which is a TA can add themself to a course project.
     // Technically this is the case when accounts[0] == account_id and
     // projects[0] points to a course in project_id where account_id is a
     // collaborator on project_id.    We only support one accounts/projects
     // and no use of tokens for this.
-    if (accounts.length == 1 && account_id == accounts[0]) {
+    if (accounts.length == 1 && account_id == accounts[0] && tokens == null) {
       await verify_course_access_to_project(db, account_id, projects[0]);
     } else {
       throw err;
@@ -155,7 +155,7 @@ async function project_invite_token_project_id(
   } catch (err) {
     return { error: `problem querying the database -- ${err}` };
   }
-  if (v.rows.length == 0) return { error: "" }; // no such token
+  if (v.rows.length == 0) return { error: "no such token" };
   const { expires, counter, usage_limit, project_id } = v.rows[0];
   if (expires != null && expires <= new Date()) {
     return { error: "the token already expired" };
