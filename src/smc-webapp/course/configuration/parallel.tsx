@@ -7,6 +7,7 @@ import { Card } from "antd";
 import { React, useRedux, useActions } from "../../app-framework";
 import { Icon, NumberInput } from "../../r_misc";
 import { CourseActions } from "../actions";
+import { MAX_COPY_PARALLEL } from "../store";
 
 interface Props {
   name: string;
@@ -26,7 +27,7 @@ export const Parallel: React.FC<Props> = ({ name }) => {
         <NumberInput
           on_change={(n) => actions.configuration.set_copy_parallel(n)}
           min={1}
-          max={50}
+          max={MAX_COPY_PARALLEL}
           number={parallel}
         />
       </div>
@@ -38,7 +39,8 @@ export const Parallel: React.FC<Props> = ({ name }) => {
       title={
         <>
           {" "}
-          <Icon name="users" /> Parallel limit: copy {parallel} assignments at a time
+          <Icon name="users" /> Parallel limit: copy {parallel} assignments at a
+          time
         </>
       }
     >
