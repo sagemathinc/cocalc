@@ -19,6 +19,7 @@ import { Datastore } from "../projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 
 export const PARALLEL_DEFAULT = 5;
+export const MAX_COPY_PARALLEL = 25;
 
 import {
   AssignmentCopyStep,
@@ -904,7 +905,7 @@ export class CourseStore extends Store<CourseState> {
   public get_copy_parallel(): number {
     const n = this.getIn(["settings", "copy_parallel"]) ?? PARALLEL_DEFAULT;
     if (n < 1) return 1;
-    if (n > 50) return 50;
+    if (n > MAX_COPY_PARALLEL) return MAX_COPY_PARALLEL;
     return n;
   }
 

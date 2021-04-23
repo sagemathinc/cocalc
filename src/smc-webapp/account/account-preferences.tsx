@@ -33,6 +33,7 @@ export const AccountPreferences: React.FC = () => {
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const created = useTypedRedux("account", "created");
   const strategies = useTypedRedux("account", "strategies");
+  const unlisted = useTypedRedux("account", "unlisted");
   const email_enabled = useTypedRedux("customize", "email_enabled");
   const verify_emails = useTypedRedux("customize", "verify_emails");
 
@@ -52,6 +53,7 @@ export const AccountPreferences: React.FC = () => {
         verify_emails={verify_emails}
         created={created}
         strategies={strategies}
+        unlisted={unlisted}
       />
     );
   }

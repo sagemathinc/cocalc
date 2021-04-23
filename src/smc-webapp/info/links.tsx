@@ -83,28 +83,36 @@ export const SUPPORT_LINKS: Links = {
     href: "https://doc.cocalc.com/api/",
     link: (
       <span>
-        Embed and control <SiteName /> using a powerful API
+        Embed and control CoCalc using the API
       </span>
+    ),
+  },
+  desktop: {
+    commercial: true,
+    icon: "desktop",
+    href: "https://github.com/sagemathinc/cocalc-desktop#readme",
+    link: (
+      <span>Install the CoCalc desktop application for Windows and MacOS</span>
     ),
   },
   docker_image: {
     commercial: true,
     icon: "window-maximize",
-    href: "https://github.com/sagemathinc/cocalc-docker",
+    href: "https://github.com/sagemathinc/cocalc-docker#readme",
     link: (
       <span>
-        Run open source CoCalc on your computer ($999 commercial license)
+        Easily run your own CoCalc server (commercial support available)
       </span>
     ),
   },
   kubernetes_image: {
     commercial: true,
     icon: "window-maximize",
-    href: "https://github.com/sagemathinc/cocalc-kubernetes",
+    href: "https://github.com/sagemathinc/cocalc-kubernetes#readme",
     link: (
       <span>
-        Run open source CoCalc on your Kubernetes cluster ($1499 commercial
-        license)
+        Deploy a CoCalc server on your Kubernetes cluster (commercial support
+        available)
       </span>
     ),
   },

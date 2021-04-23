@@ -47,6 +47,7 @@ interface Props {
   account_id?: string;
   first_name?: string;
   last_name?: string;
+  unlisted?: boolean;
   email_address?: string;
   email_address_verified?: Map<string, any>;
   passports?: Map<string, any>;
@@ -504,6 +505,23 @@ export class AccountSettings extends Component<Props, State> {
     );
   }
 
+  private render_unlisted(): Rendered {
+    if (!this.props.account_id) {
+      return; // makes no sense to change email if there is no account
+    }
+    return (
+      <Checkbox
+        checked={this.props.unlisted}
+        onChange={
+          (e) => this.actions().set_account_table({ unlisted: e.target.checked })
+          //this.actions().setState({ unlisted: !!e.target.checked })
+        }
+      >
+        Unlisted: you can only be found by an exact email address match
+      </Checkbox>
+    );
+  }
+
   private render_email_verification(): Rendered {
     if (
       this.props.email_enabled &&
@@ -531,6 +549,7 @@ export class AccountSettings extends Component<Props, State> {
         {this.render_terms_of_service()}
         {this.render_name()}
         {this.render_email_address()}
+        {this.render_unlisted()}
         <div style={{ marginBottom: "15px" }}></div>
         {this.render_email_verification()}
         {this.render_password()}

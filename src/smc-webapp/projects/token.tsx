@@ -45,7 +45,6 @@ export const AddToProjectToken: React.FC = React.memo(() => {
         on_submit={do_add}
         buttonAfter={
           <Button
-            style={{ height: "34px" }}
             onClick={() =>
               open_popup_window(
                 "https://doc.cocalc.com/howto/project-invitation-tokens.html"

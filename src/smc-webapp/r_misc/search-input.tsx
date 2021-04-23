@@ -9,7 +9,9 @@
    - `esc` to clear
 */
 
-import { Button, FormGroup, InputGroup, FormControl } from "../antd-bootstrap";
+import { Input } from "antd";
+import { Button } from "../antd-bootstrap";
+//import { , FormGroup, InputGroup, FormControl } from "../antd-bootstrap";
 import { Icon } from "./icon";
 import { React, ReactDOM, useEffect, useState, useRef } from "../app-framework";
 
@@ -138,26 +140,24 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
   }
 
   return (
-    <FormGroup style={props.style}>
-      <InputGroup className={props.input_class}>
-        <FormControl
-          cocalc-test="search-input"
-          autoFocus={props.autoFocus}
-          ref={input_ref}
-          type="text"
-          placeholder={props.placeholder}
-          value={value}
-          onChange={() => {
-            const value = ReactDOM.findDOMNode(input_ref.current)?.value ?? "";
-            set_value(value);
-            props.on_change?.(value, get_opts());
-          }}
-          onKeyDown={key_down}
-          onKeyUp={key_up}
-          disabled={props.disabled}
-        />
-        <InputGroup.Button>{search_button()}</InputGroup.Button>
-      </InputGroup>
-    </FormGroup>
+    <Input
+      style={props.style}
+      cocalc-test="search-input"
+      autoFocus={props.autoFocus}
+      ref={input_ref}
+      type="text"
+      placeholder={props.placeholder}
+      value={value}
+      onChange={(e) => {
+        e.preventDefault();
+        const value = e.target?.value ?? "";
+        set_value(value);
+        props.on_change?.(value, get_opts());
+      }}
+      onKeyDown={key_down}
+      onKeyUp={key_up}
+      disabled={props.disabled}
+      addonAfter={search_button()}
+    />
   );
 });

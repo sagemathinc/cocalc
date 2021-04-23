@@ -163,6 +163,11 @@ Table({
       type: "map",
       desc: "extra information related to LTI",
     },
+    unlisted: {
+      type: "boolean",
+      desc:
+        "If true then exclude user for full name searches (but not exact email address searches).",
+    },
   },
   rules: {
     desc: "All user accounts.",
@@ -176,6 +181,7 @@ Table({
       "api_key",
       "last_active DESC NULLS LAST",
       "lti_id",
+      "unlisted",
     ],
     user_query: {
       get: {
@@ -257,6 +263,7 @@ Table({
           },
           ssh_keys: {},
           created: null,
+          unlisted: false,
         },
       },
       set: {
@@ -273,6 +280,7 @@ Table({
           profile: true,
           ssh_keys: true,
           sign_up_usage_intent: true,
+          unlisted: true,
         },
         check_hook(_db, obj, _account_id, _project_id, cb) {
           // Hook to truncate some text fields to at most 254 characters, to avoid
