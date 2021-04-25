@@ -82,7 +82,7 @@ export function open_new_tab(
   // equivalent to rel=noopener, i.e. neither tabs know about each other via window.opener
   // credits: https://stackoverflow.com/a/49276673/54236
   tab.opener = null;
-  // be sure to set the URL
+  // be sure to set the URL (this might not be needed, since we set it above).
   tab.location = url;
   return tab;
 }
