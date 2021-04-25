@@ -4,7 +4,7 @@
  */
 
 // React libraries
-import { Store } from "../app-framework";
+import { Store, redux } from "../app-framework";
 // CoCalc libraries
 import { cmp, cmp_array, set } from "smc-util/misc";
 import { DirectoryListingEntry } from "smc-util/types";
@@ -263,7 +263,8 @@ export class CourseStore extends Store<CourseState> {
   public get_email_invite(): string {
     const invite = this.getIn(["settings", "email_invite"]);
     if (invite) return invite;
-    return `Hello!\n\nWe will use ${SITE_NAME} for the course *{title}*.\n\nPlease sign up!\n\n--\n\n{name}`;
+    const site_name = redux.getStore("customize").get("site_name") ?? SITE_NAME;
+    return `Hello!\n\nWe will use ${site_name} for the course *{title}*.\n\nPlease sign up!\n\n--\n\n{name}`;
   }
 
   public get_students(): StudentsMap {
