@@ -5,7 +5,7 @@
 import { React, useActions, useTypedRedux } from "../app-framework";
 import { Alert, Button } from "../antd-bootstrap";
 import { A, Icon, Loading } from "../r_misc";
-import { HelpEmailLink, SiteName } from "../customize";
+import { HelpEmailLink } from "../customize";
 import { location } from "./util";
 import { DISCORD_INVITE } from "smc-util/theme";
 
