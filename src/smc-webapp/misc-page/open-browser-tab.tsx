@@ -49,9 +49,9 @@ export function open_new_tab(
       }
     }
     const popup_opts = x.join(",");
-    tab = window.open("", "_blank", popup_opts);
+    tab = window.open(url, "_blank", popup_opts);
   } else {
-    tab = window.open("", "_blank");
+    tab = window.open(url, "_blank");
   }
 
   if (tab == null || tab.closed == null || tab.closed) {
@@ -82,7 +82,7 @@ export function open_new_tab(
   // equivalent to rel=noopener, i.e. neither tabs know about each other via window.opener
   // credits: https://stackoverflow.com/a/49276673/54236
   tab.opener = null;
-  // only *after* the above, we set the URL!
+  // be sure to set the URL
   tab.location = url;
   return tab;
 }
