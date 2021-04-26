@@ -610,8 +610,8 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
       return (
         <CustomizeStudentProjectFunctionality
           functionality={functionality}
-          onChange={(opts) =>
-            actions.configuration.set_student_project_functionality(opts)
+          onChange={async (opts) =>
+            await actions.configuration.set_student_project_functionality(opts)
           }
         />
       );

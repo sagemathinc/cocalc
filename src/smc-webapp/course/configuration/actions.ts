@@ -99,11 +99,11 @@ export class ConfigurationActions {
     this.course_actions.student_projects.configure_all_projects();
   }
 
-  public set_student_project_functionality(
+  public async set_student_project_functionality(
     student_project_functionality: StudentProjectFunctionality
-  ): void {
+  ): Promise<void> {
     this.set({ student_project_functionality, table: "settings" });
-    this.course_actions.student_projects.configure_all_projects();
+    await this.course_actions.student_projects.configure_all_projects();
   }
 
   public set_email_invite(body: string): void {
