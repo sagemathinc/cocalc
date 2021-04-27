@@ -125,3 +125,8 @@ src/smc-webapp/_colors.sass
 # pytest cache
 src/smc_sagews/.pytest_cache/
 .mypy_cache/
+
+src/smc-nextjs/cache
+src/smc-nextjs/.next
+
+src/go*
