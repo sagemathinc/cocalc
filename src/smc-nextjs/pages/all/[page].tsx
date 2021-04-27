@@ -12,15 +12,21 @@ such as Google, and only exists for that purpose.
 import { useRouter } from "next/router";
 import Link from "next/link";
 import SiteName from "components/site-name";
+import getPool from "lib/database";
 
-export default function All(props) {
-  const router = useRouter();
-  let { page } = router.query;
+function getPage(obj): number {
+  let { page } = obj ?? {};
   if (page == null) {
-    page = 0;
-  } else {
-    page = parseInt(page);
+    return 0;
   }
+  page = parseInt(page);
+  if (isFinite(page)) {
+    return page;
+  }
+  return 0;
+}
+
+export default function All({ page }) {
   return (
     <div>
       <h1>
@@ -35,12 +41,22 @@ export default function All(props) {
       ) : (
         <span style={{ color: "#888" }}>Previous</span>
       )}
-        &nbsp;&nbsp;
+      &nbsp;&nbsp;
       <Link href={`/all/${page + 1}`}>
         <a>Next</a>
       </Link>
       <h2>Documents</h2>
-      
     </div>
   );
+}
+
+export async function getServerSideProps(context) {
+  const page = getPage(context.params);
+  const pool = getPool();
+  const { rows } = await pool.query("SELECT * FROM public_paths");
+  console.log("rows =", rows);
+
+  return {
+    props: { page },
+  };
 }

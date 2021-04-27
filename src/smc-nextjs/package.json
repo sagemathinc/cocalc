@@ -8,8 +8,10 @@
     "start": "next start"
   },
   "dependencies": {
+    "@types/pg": "^7.14.11",
     "antd": "^4.15.3",
     "next": "10.1.3",
+    "pg": "^8.6.0",
     "react": "17.0.2",
     "react-dom": "17.0.2"
   },
