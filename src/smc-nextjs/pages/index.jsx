@@ -18,12 +18,12 @@ export default function Home() {
         </h1>
 
         <h2>
-          <SiteName /> is
+          <SiteName />...
         </h2>
-        <p>Your best choice for teaching remote scientific courses!</p>
+        <p>Is your best choice for teaching remote scientific courses!</p>
 
         <p>
-          Save weeks of class time troubleshooting software and make your TA's
+          Will save you weeks of class time troubleshooting software and make your TA's
           more effective.
         </p>
 

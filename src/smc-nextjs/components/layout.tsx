@@ -4,6 +4,7 @@
  */
 
 import Link from "next/link";
+import SiteName from "components/site-name";
 
 export default function Layout({ children }) {
   return (
@@ -16,7 +17,11 @@ export default function Layout({ children }) {
           borderBottom: "1px solid lightgrey",
         }}
       >
-        <Link href="/"><a>CoCalc Public Files</a></Link>
+        <Link href="/">
+          <a>
+            <SiteName />{" "}
+          </a>
+        </Link>
       </div>
 
       <div
@@ -34,14 +39,13 @@ export default function Layout({ children }) {
       <footer
         style={{
           borderTop: "1px solid lightgrey",
-          padding: "30px",
-          marginTop: "50px",
           background: "#efefef",
           fontSize: "12pt",
           textAlign: "center",
+          color: "#999",
         }}
       >
-        <div></div>
+        CoCalc by Sagemath, Inc. · Terms of Service · help@cocalc.com · © 2021
       </footer>
     </>
   );

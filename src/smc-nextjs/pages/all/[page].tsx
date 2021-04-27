@@ -12,8 +12,9 @@ such as Google, and only exists for that purpose.
 import Link from "next/link";
 import SiteName from "components/site-name";
 import getPool from "lib/database";
+import ProjectsTable from "components/projects-table";
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 15;
 const PRERENDER_PAGES = 10;
 
 function getPage(obj): number {
@@ -28,12 +29,9 @@ function getPage(obj): number {
   return 1;
 }
 
-export default function All({ page, rows }) {
+function Pager({ page, rows }) {
   return (
     <div>
-      <h1>
-        All documents published on <SiteName />{" "}
-      </h1>
       Page {page}
       &nbsp;&nbsp;
       {page > 1 ? (
@@ -51,30 +49,25 @@ export default function All({ page, rows }) {
       ) : (
         <span style={{ color: "#888" }}>Next</span>
       )}
-      <h2>Documents</h2>
-      {renderPublicProjects(rows)}
     </div>
   );
 }
 
-function renderPublicProjects(
-  rows: {
-    id?: string;
-    path?: string;
-    description?: string;
-    last_edited?: number;
-  }[]
-): JSX.Element[] {
-  const v: JSX.Element[] = [];
-  for (const x of rows ?? []) {
-    const { id, path, description, last_edited } = x;
-    v.push(
-      <pre key={id}>
-        {id} {path} {description} {last_edited}
-      </pre>
-    );
-  }
-  return v;
+export default function All({ page, rows }) {
+  const pager = <Pager page={page} rows={rows} />;
+  return (
+    <div>
+      <h1>
+        All documents published on <SiteName />{" "}
+      </h1>
+      <h2>Documents</h2>
+      {pager}
+      <br/>
+      <ProjectsTable rows={rows} />
+      <br/>
+      {pager}
+    </div>
+  );
 }
 
 export async function getStaticPaths() {
