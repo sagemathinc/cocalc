@@ -29,6 +29,7 @@ interface FrameTreeEditorReactProps {
   format_bar: boolean;
   format_bar_exclude?: SetMap;
   editor_spec: any;
+  tab_is_visible: boolean; // if the editor tab is active -- page/page.tsx
 }
 
 interface FrameTreeEditorReduxProps {
@@ -153,6 +154,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
         "derived_file_types",
         "available_features",
         "visible",
+        "tab_is_visible",
       ]) ||
       this.props.editor_settings.get("extra_button_bar") !==
         next.editor_settings.get("extra_button_bar")
@@ -214,6 +216,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           available_features={this.props.available_features}
           local_view_state={this.props.local_view_state}
           is_visible={this.props.visible ?? true}
+          tab_is_visible={this.props.tab_is_visible}
         />
       </div>
     );
@@ -297,6 +300,7 @@ interface EditorProps {
   name: string;
   path: string;
   project_id: string;
+  is_visible: boolean;
 }
 
 export function createEditor(opts: Options) {
@@ -313,6 +317,7 @@ export function createEditor(opts: Options) {
           format_bar={opts.format_bar}
           format_bar_exclude={opts.format_bar_exclude}
           editor_spec={opts.editor_spec}
+          tab_is_visible={this.props.is_visible}
         />
       );
     }

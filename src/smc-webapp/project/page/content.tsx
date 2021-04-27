@@ -104,6 +104,7 @@ export const Content: React.FC<Props> = React.memo(
             actions={
               redux_name != null ? redux.getActions(redux_name) : undefined
             }
+            is_visible={is_visible}
           />
         </div>
       );

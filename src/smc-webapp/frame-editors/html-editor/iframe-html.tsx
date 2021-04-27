@@ -16,13 +16,14 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 
 import * as $ from "jquery";
 import { Set } from "immutable";
+import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
 import {
   change_filename_extension,
   is_different,
   list_alternatives,
 } from "smc-util/misc";
-import { throttle } from "underscore";
+import { debounce } from "lodash";
 import { React, ReactDOM, Rendered, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { EditorState } from "../frame-tree/types";
@@ -37,7 +38,7 @@ interface Props {
   path: string;
   reload: number;
   font_size: number;
-  is_visible: boolean;
+  tab_is_visible: boolean;
   mode: "rmd" | undefined;
   style?: any; // style should be static; change does NOT cause update.
   derived_file_types: Set<string>;
@@ -48,6 +49,7 @@ function should_memoize(prev, next) {
     "reload",
     "font_size", // used for scaling
     "derived_file_types",
+    "tab_is_visible",
   ]);
 }
 
@@ -70,27 +72,18 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     mode,
     style,
     derived_file_types,
-    is_visible,
+    tab_is_visible,
   } = props;
 
   const rootEl = React.useRef(null);
   const iframe = React.useRef(null);
   const mounted = React.useRef(false);
-
   const scaling = use_font_size_scaling(font_size);
-
-  React.useEffect(reload_iframe, []);
-
-  React.useEffect(
-    function () {
-      set_iframe_style(scaling);
-    },
-    [scaling]
-  );
 
   // once after mounting
   React.useEffect(function () {
     mounted.current = true;
+    reload_iframe();
     safari_hack();
     set_iframe_style(scaling);
     return function () {
@@ -100,28 +93,17 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
 
   React.useEffect(
     function () {
-      if (is_visible) restore_scroll();
+      if (tab_is_visible) restore_scroll();
     },
-    [is_visible]
+    [tab_is_visible]
   );
 
-  function on_scroll(): void {
-    if (!mounted.current) return;
-    const elt = ReactDOM.findDOMNode(iframe.current);
-    if (elt == null) return;
-    const scroll = $(elt).contents().scrollTop();
-    actions.save_editor_state(id, { scroll });
-  }
-
-  function init_scroll_handler(): void {
-    const node = ReactDOM.findDOMNode(iframe.current);
-    if (node != null && node.contentDocument != null) {
-      node.contentDocument.addEventListener(
-        "scroll",
-        throttle(() => on_scroll(), 150)
-      );
-    }
-  }
+  React.useEffect(
+    function () {
+      set_iframe_style(scaling);
+    },
+    [scaling]
+  );
 
   function click_iframe(): void {
     actions.set_active_id(id);
@@ -134,6 +116,28 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
+  function on_scroll(): void {
+    if (!mounted.current || !tab_is_visible) return;
+    const elt = ReactDOM.findDOMNode(iframe.current);
+    if (elt == null) return;
+    const el = $(elt);
+    const scroll = el.contents().scrollTop();
+    // we filter out the case where display:none higher up in the DOM tree
+    // causes the iframe to have zero height, despite being still visible.
+    if (el.height() == 0) return;
+    actions.save_editor_state(id, { scroll });
+  }
+
+  function init_scroll_handler(): void {
+    const node = ReactDOM.findDOMNode(iframe.current);
+    if (node != null && node.contentDocument != null) {
+      node.contentDocument.addEventListener(
+        "scroll",
+        debounce(() => on_scroll(), 150)
+      );
+    }
+  }
+
   function restore_scroll() {
     const scroll: number | undefined = editor_state.get("scroll");
     if (scroll == null) return;
@@ -142,6 +146,14 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     elt = $(elt);
     elt.contents().scrollTop(scroll);
     elt.css("opacity", 1);
+  }
+
+  async function iframe_loaded() {
+    await delay(0);
+    set_iframe_style(scaling);
+    restore_scroll();
+    init_scroll_handler();
+    init_click_handler();
   }
 
   function render_iframe() {
@@ -166,12 +178,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
         width={"100%"}
         height={"100%"}
         style={{ border: 0, opacity: 0, ...style }}
-        onLoad={() => {
-          set_iframe_style(scaling);
-          restore_scroll();
-          init_scroll_handler();
-          init_click_handler();
-        }}
+        onLoad={iframe_loaded}
       />
     );
   }
