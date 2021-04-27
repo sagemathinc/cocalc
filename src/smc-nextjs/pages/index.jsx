@@ -1,15 +1,40 @@
 import Head from "next/head";
+import Link from "next/link";
+import SiteName from "components/site-name";
 
 export default function Home() {
   return (
     <div>
       <Head>
-        <title>CoCalc Share Server</title>
+        <title>
+          <SiteName />
+        </title>
         <link rel="icon" href={`${process.env.basePath ?? ""}/favicon.ico`} />
       </Head>
 
       <main>
-        <h1>CoCalc Share Server</h1>
+        <h1>
+          <SiteName full={true} />
+        </h1>
+
+        <h2>
+          <SiteName /> is
+        </h2>
+        <p>Your best choice for teaching remote scientific courses!</p>
+
+        <p>
+          Save weeks of class time troubleshooting software and make your TA's
+          more effective.
+        </p>
+
+        <h2>Browse</h2>
+        <ul>
+          <li>
+            <Link href="/all/0">
+              <a>List of all public documents</a>
+            </Link>
+          </li>
+        </ul>
       </main>
     </div>
   );

@@ -1,4 +1,9 @@
-// import Link from "next/link";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import Link from "next/link";
 
 export default function Layout({ children }) {
   return (
@@ -11,7 +16,7 @@ export default function Layout({ children }) {
           borderBottom: "1px solid lightgrey",
         }}
       >
-        This is going to be the CoCalc share server.
+        <Link href="/"><a>CoCalc Public Files</a></Link>
       </div>
 
       <div
@@ -36,7 +41,7 @@ export default function Layout({ children }) {
           textAlign: "center",
         }}
       >
-        <div>The footer...</div>
+        <div></div>
       </footer>
     </>
   );
