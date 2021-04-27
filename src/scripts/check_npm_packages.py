@@ -31,7 +31,7 @@ def pkg_dirs() -> List[str]:
     search = run(['git', 'ls-files', '--', '../**/package.json'], stdout=PIPE)
     data = search.stdout.decode('utf8')
     packages = [abspath(_) for _ in data.splitlines()]
-    return packages
+    return [package for package in packages if 'smc-nextjs' not in package]
 
 
 def get_versions(packages, dep_type) -> Tuple[T_installs, Set[str]]:
