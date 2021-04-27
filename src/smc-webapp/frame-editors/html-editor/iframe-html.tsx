@@ -23,9 +23,9 @@ import {
   list_alternatives,
 } from "smc-util/misc";
 import { throttle } from "underscore";
-import { React, Component, ReactDOM, Rendered, CSS } from "../../app-framework";
+import { React, ReactDOM, Rendered, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
-import { EditorState } from "../frame-tree/types"
+import { EditorState } from "../frame-tree/types";
 
 interface Props {
   id: string;
@@ -37,6 +37,7 @@ interface Props {
   path: string;
   reload: number;
   font_size: number;
+  is_visible: boolean;
   mode: "rmd" | undefined;
   style?: any; // style should be static; change does NOT cause update.
   derived_file_types: Set<string>;
@@ -45,168 +46,173 @@ interface Props {
 function should_memoize(prev, next) {
   return !is_different(prev, next, [
     "reload",
-    "font_size",
+    "font_size", // used for scaling
     "derived_file_types",
   ]);
 }
 
-const with_font_size_scaling = (IFrameHTMLComponent) => {
-  return React.memo((props: Props) => {
-    const { font_size } = props;
-    const scaling = use_font_size_scaling(font_size);
-    return <IFrameHTMLComponent scaling={scaling} {...props} />;
-  }, should_memoize);
-};
-
 const STYLE: CSS = {
   overflowY: "auto",
   width: "100%",
-};
+} as const;
 
-interface PropTypes extends Props {
-  scaling: number;
-}
+export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
+  const {
+    id,
+    actions,
+    editor_state,
+    is_fullscreen,
+    fullscreen_style,
+    project_id,
+    path,
+    reload,
+    font_size,
+    mode,
+    style,
+    derived_file_types,
+    is_visible,
+  } = props;
 
-class IFrameHTMLComponent extends Component<PropTypes, {}> {
-  shouldComponentUpdate(next): boolean {
-    return is_different(this.props, next, [
-      "reload",
-      "derived_file_types",
-      "scaling",
-      "font_size", // used for scaling, but also re-render on that
-    ]);
-  }
+  const rootEl = React.useRef(null);
+  const iframe = React.useRef(null);
+  const mounted = React.useRef(false);
 
-  componentWillReceiveProps(next): void {
-    if (this.props.reload !== next.reload) {
-      this.reload_iframe();
-    }
-    if (
-      this.props.scaling !== next.scaling ||
-      this.props.font_size !== next.font_size
-    ) {
-      this.set_iframe_style(next.scaling);
-    }
-  }
+  const scaling = use_font_size_scaling(font_size);
 
-  componentDidMount(): void {
-    this.safari_hack();
-    this.set_iframe_style(this.props.scaling);
-  }
+  React.useEffect(reload_iframe, []);
 
-  on_scroll(): void {
-    const elt = ReactDOM.findDOMNode(this.refs.iframe);
+  React.useEffect(
+    function () {
+      set_iframe_style(scaling);
+    },
+    [scaling]
+  );
+
+  // once after mounting
+  React.useEffect(function () {
+    mounted.current = true;
+    safari_hack();
+    set_iframe_style(scaling);
+    return function () {
+      mounted.current = false;
+    };
+  }, []);
+
+  React.useEffect(
+    function () {
+      if (is_visible) restore_scroll();
+    },
+    [is_visible]
+  );
+
+  function on_scroll(): void {
+    if (!mounted.current) return;
+    const elt = ReactDOM.findDOMNode(iframe.current);
     if (elt == null) return;
     const scroll = $(elt).contents().scrollTop();
-    this.props.actions.save_editor_state(this.props.id, { scroll });
+    actions.save_editor_state(id, { scroll });
   }
 
-  init_scroll_handler(): void {
-    const node = ReactDOM.findDOMNode(this.refs.iframe);
+  function init_scroll_handler(): void {
+    const node = ReactDOM.findDOMNode(iframe.current);
     if (node != null && node.contentDocument != null) {
       node.contentDocument.addEventListener(
         "scroll",
-        throttle(() => this.on_scroll(), 150)
+        throttle(() => on_scroll(), 150)
       );
     }
   }
 
-  click_iframe(): void {
-    this.props.actions.set_active_id(this.props.id);
+  function click_iframe(): void {
+    actions.set_active_id(id);
   }
 
-  init_click_handler(): void {
-    const node = ReactDOM.findDOMNode(this.refs.iframe);
+  function init_click_handler(): void {
+    const node = ReactDOM.findDOMNode(iframe.current);
     if (node != null && node.contentDocument != null) {
-      node.contentDocument.addEventListener("click", () => this.click_iframe());
+      node.contentDocument.addEventListener("click", click_iframe);
     }
   }
 
-  restore_scroll() {
-    const scroll: number | undefined = this.props.editor_state.get("scroll");
-    if (scroll === undefined) return;
-    let elt = ReactDOM.findDOMNode(this.refs.iframe);
-    if (elt == null) {
-      return;
-    }
+  function restore_scroll() {
+    const scroll: number | undefined = editor_state.get("scroll");
+    if (scroll == null) return;
+    let elt = ReactDOM.findDOMNode(iframe.current);
+    if (elt == null) return;
     elt = $(elt);
-    if (scroll != null) {
-      elt.contents().scrollTop(scroll);
-    }
+    elt.contents().scrollTop(scroll);
     elt.css("opacity", 1);
   }
 
-  render_iframe() {
-    let path = this.props.path;
-    if (
-      this.props.mode == "rmd" &&
-      this.props.derived_file_types != undefined
-    ) {
-      if (this.props.derived_file_types.contains("html")) {
+  function render_iframe() {
+    let actual_path = path;
+    if (mode == "rmd" && derived_file_types != undefined) {
+      if (derived_file_types.contains("html")) {
         // keep path as it is; don't remove this case though because of the else
-      } else if (this.props.derived_file_types.contains("nb.html")) {
-        path = change_filename_extension(path, "nb.html");
+      } else if (derived_file_types.contains("nb.html")) {
+        actual_path = change_filename_extension(path, "nb.html");
       } else {
-        return this.render_no_html();
+        return render_no_html();
       }
     }
 
     // param below is just to avoid caching.
-    const src_url = `${window.app_base_url}/${this.props.project_id}/raw/${path}?param=${this.props.reload}`;
+    const src_url = `${window.app_base_url}/${project_id}/raw/${actual_path}?param=${reload}`;
 
     return (
       <iframe
-        ref={"iframe"}
+        ref={iframe}
         src={src_url}
         width={"100%"}
         height={"100%"}
-        style={{ border: 0, opacity: 0 }}
+        style={{ border: 0, opacity: 0, ...style }}
         onLoad={() => {
-          this.set_iframe_style(this.props.scaling);
-          this.restore_scroll();
-          this.init_scroll_handler();
-          this.init_click_handler();
+          set_iframe_style(scaling);
+          restore_scroll();
+          init_scroll_handler();
+          init_click_handler();
         }}
       />
     );
   }
 
-  reload_iframe(): void {
-    const elt = ReactDOM.findDOMNode(this.refs.iframe);
+  function reload_iframe(): void {
+    const elt = ReactDOM.findDOMNode(iframe.current);
     if (elt == null || elt.contentDocument == null) return;
     elt.style.opacity = 0;
     elt.contentDocument.location.reload(true);
   }
 
-  set_iframe_style(scaling: number): void {
-    const elt = ReactDOM.findDOMNode(this.refs.iframe);
+  function set_iframe_style(scaling: number): void {
+    const elt = ReactDOM.findDOMNode(iframe.current);
     if (elt == null || elt.contentDocument == null) return;
     elt.style.opacity = 1;
     const body = elt.contentDocument.body;
+    if (body?.style == null) return;
     // don't use "zoom: ...", which is not a standard property
     // https://github.com/sagemathinc/cocalc/issues/4438
     body.style.transform = `scale(${scaling})`;
     body.style["transform-origin"] = "0 0";
-    if (this.props.is_fullscreen && this.props.fullscreen_style != null) {
-      body.style = { ...body.style, ...this.props.fullscreen_style };
+    if (is_fullscreen && fullscreen_style != null) {
+      body.style = { ...body.style, ...fullscreen_style };
     }
   }
 
-  safari_hack(): void {
+  function safari_hack(): void {
     if (is_safari()) {
-      $(ReactDOM.findDOMNode(this)).make_height_defined();
+      $(ReactDOM.findDOMNode(rootEl.current)).make_height_defined();
     }
   }
 
-  render_no_html(): Rendered {
+  function render_no_html(): Rendered {
     return (
       <div>
         <p>There is no rendered HTML file available.</p>
-        {this.props.derived_file_types.size > 0 ? (
+        {derived_file_types.size > 0 ? (
           <p>
             Instead, you might want to switch to the{" "}
-            {list_alternatives(this.props.derived_file_types)} view by selecting
-            it via the dropdown selector in the button row above.
+            {list_alternatives(derived_file_types)} view by selecting it via the
+            dropdown selector in the button row above.
           </p>
         ) : (
           ""
@@ -215,14 +221,10 @@ class IFrameHTMLComponent extends Component<PropTypes, {}> {
     );
   }
 
-  render(): Rendered {
-    // the cocalc-editor-div is needed for a safari hack only
-    return (
-      <div style={STYLE} className={"cocalc-editor-div smc-vfill"}>
-        {this.render_iframe()}
-      </div>
-    );
-  }
-}
-
-export const IFrameHTML = with_font_size_scaling(IFrameHTMLComponent);
+  // the cocalc-editor-div is needed for a safari hack only
+  return (
+    <div style={STYLE} className={"cocalc-editor-div smc-vfill"} ref={rootEl}>
+      {render_iframe()}
+    </div>
+  );
+}, should_memoize);
