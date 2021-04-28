@@ -5,8 +5,5 @@ module.exports = {
   env: {
     basePath,
   },
-  future: {
-    webpack5: true,
-  },
   pageExtensions: ["jsx", "js", "ts", "tsx"],
 };
