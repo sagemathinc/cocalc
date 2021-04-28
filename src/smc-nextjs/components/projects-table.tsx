@@ -7,6 +7,7 @@
 A table of a list of public paths.
 */
 
+import Link from "next/link";
 import { Table } from "antd";
 
 export interface Row {
@@ -21,6 +22,11 @@ const COLUMNS = [
     title: "Path",
     dataIndex: "path",
     key: "path",
+    render: (title, record) => (
+      <Link href={`/public_paths/${record.id}`}>
+        <a>{title}</a>
+      </Link>
+    ),
   },
   {
     title: "Description",

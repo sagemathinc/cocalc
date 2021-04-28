@@ -5,7 +5,7 @@
 This is what we need for functional equivalence with existing share server:
 
 - [x] make the public paths in the all page look "actually readable" using antd
-- [ ] ability to click on a public path and have it open the right url
+- [ ] #now  ability to click on a public path and have it open the right url
 - [ ] display a specific path:
   - [ ] number of views
     - [ ] increment the view counter
@@ -15,12 +15,12 @@ This is what we need for functional equivalence with existing share server:
     - [ ] #hard static smc-webapp rendered view of the document
     - [ ] download a single document
     - [ ] raw view of document
-    - [ ] embed version of document
+    - [ ] embed version of document (with backward compat redirect)
     - [ ] showing license
     - [ ] long description
     - [ ] compute environment
     - [ ] name and link to author of document
-- [ ] page with info about an author 
+- [ ] page with info about an author
 - [ ] button to search the share server using google
 - [ ] google analytics
 
@@ -28,7 +28,10 @@ Plan to get all the above **functionally working** with absolutely minimal care 
 
 Biggest challenges are: (1) **no coffeescript** so we might have to rewrite chunks of existing code in typescript, and (2) things that are tricky to render via next.js such as math formulas or anything trying to use jsdom or jquery (???).
 
-.
+### Optimizations and cleanup
+
+- [ ]  In `pages/public_paths/[id].tsx`  we could pre-render the top N most popular pages...
+- [ ] is the token field in `public_paths`  used at all? 
 
 ---
 
