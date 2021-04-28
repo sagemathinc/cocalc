@@ -216,7 +216,8 @@ export class LatexParser {
       line = line.slice(0, line.length - 1);
     }
     // we only want to know about tex and bib files
-    if (!line.endsWith(".tex") && !line.endsWith(".bib")) return;
+    const pl = line.toLowerCase(); // could be name.TEX
+    if (!pl.endsWith(".tex") && !pl.endsWith(".bib")) return;
     this.deps.push(line);
   }
 
@@ -393,8 +394,9 @@ export class LatexParser {
   postProcess(data: Error[]): ProcessedLatexLog {
     const pll = new ProcessedLatexLog();
     for (const path of this.files) {
+      const pl = path.toLowerCase(); // could be name.TEX
       // only include tex and bib files
-      if (!path.endsWith(".tex") && !path.endsWith(".bib")) continue;
+      if (!pl.endsWith(".tex") && !pl.endsWith(".bib")) continue;
       pll.files.push(path);
     }
     const hashes: string[] = [];

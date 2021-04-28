@@ -569,9 +569,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         key={"switch-to-file"}
         button={true}
         style={{
-          top: props.is_full
-            ? "-7.5px"
-            : "-6.5px" /* this is obviously lazy crappy code */,
           height: button_height(),
         }}
         title={path_split(props.path).tail}
