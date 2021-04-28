@@ -1229,8 +1229,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  // time 0 implies to take the last_save_time,
   make_timestamp(time: number, force: boolean): number {
-    return force ? new Date().valueOf() : time || this.last_save_time();
+    return force ? Date.now() : time || this.last_save_time();
   }
 
   async word_count(time: number, force: boolean): Promise<void> {
