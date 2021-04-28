@@ -5,18 +5,33 @@
 
 import Link from "next/link";
 import getPool from "lib/database";
+import { useEffect } from "react";
+import { useRouter } from "next/router";
 
 // TODO: pre-render the most popuar n pages, according
 // to internal db counter.
 // const PRERENDER_COUNT = 0;
 
+function useCounter(id: string | undefined) {
+  // call API to increment the counter
+  const router = useRouter();
+  useEffect(() => {
+    if (id != null) {
+      fetch(`${router.basePath}/api/public_paths/counter/${id}`);
+    }
+  }, [id]);
+}
+
 export default function PublicPath({
+  id,
   path,
   project_id,
   description,
   counter,
   compute_image,
 }) {
+  useCounter(id);
+
   return (
     <div>
       Path: {path}
@@ -52,7 +67,7 @@ export async function getStaticProps(context) {
     return { notFound: true };
   }
 
-  // Get the database entry
+  // Get the database entry that describes the public path
   const {
     rows,
   } = await pool.query(

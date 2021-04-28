@@ -6,10 +6,10 @@ This is what we need for functional equivalence with existing share server:
 
 - [x] make the public paths in the all page look "actually readable" using antd
 - [x] ability to click on a public path and have it open the right url
-- [x] development is basically impossible due to https://github.com/vercel/next.js/issues/14997 and https://github.com/vercel/next.js/issues/12735.  This is obviously a recent really stupid move by the next.js devs due to them only using vscode, and not putting in the work to figure this out (like I already did with cocalc). 
+- [x] development is basically impossible due to https://github.com/vercel/next.js/issues/14997 and https://github.com/vercel/next.js/issues/12735.  This is obviously a recent really stupid move by the next.js devs due to them only using vscode, and not putting in the work to figure this out (like I already did with cocalc).
 - [ ] display a specific path:
   - [ ] number of views
-    - [ ] increment the view counter
+    - [ ] #now  increment the view counter
   - [ ] open with one click link
   - [ ] directory listing
   - [ ] document
@@ -24,7 +24,7 @@ This is what we need for functional equivalence with existing share server:
 - [ ] page with info about a user
 - [ ] box to search the share server using google
 - [ ] google analytics
-- [x] the back button doesn't work robustly, which is really disturbing! 
+- [x] the back button doesn't work robustly, which is really disturbing!
   - Might be [this](https://github.com/vercel/next.js/issues/7091)? nope.
   - maybe [this](https://github.com/vercel/next.js/issues/9989)? nope.
   - deleting the index.jsx page entirely... seems to get rid of the problem (causing a page refresh on back button, which is fine).
@@ -36,9 +36,9 @@ Biggest challenges are: (1) **no coffeescript** so we might have to rewrite chun
 ### Optimizations and cleanup
 
 - [ ]  In `pages/public_paths/[id].tsx`  we could pre-render the top N most popular pages...
-- [ ] is the token field in `public_paths`  used at all? 
-- [ ] unlisted users -- need to add to cocalc account prefs that unlisted also means that user will not be mentioned anywhere publicly (e.g., on the share server). 
-- [ ] right now we have no index.jsx due to the back button bug.  So user has to know to go to /home... 
+- [ ] is the token field in `public_paths`  used at all?
+- [ ] unlisted users -- need to add to cocalc account prefs that unlisted also means that user will not be mentioned anywhere publicly (e.g., on the share server).
+- [ ] right now we have no index.jsx due to the back button bug.  So user has to know to go to /home...
 
 ---
 
