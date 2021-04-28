@@ -18,19 +18,20 @@ export default function Home() {
         </h1>
 
         <h2>
-          <SiteName />...
+          <SiteName />
+          ...
         </h2>
         <p>Is your best choice for teaching remote scientific courses!</p>
 
         <p>
-          Will save you weeks of class time troubleshooting software and make your TA's
-          more effective.
+          Will save you weeks of class time troubleshooting software and make
+          your TA's more effective.
         </p>
 
         <h2>Browse</h2>
         <ul>
           <li>
-            <Link href="/all/0">
+            <Link href="/all/1">
               <a>List of all public documents</a>
             </Link>
           </li>

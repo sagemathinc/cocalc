@@ -5,7 +5,8 @@
 This is what we need for functional equivalence with existing share server:
 
 - [x] make the public paths in the all page look "actually readable" using antd
-- [ ] #now  ability to click on a public path and have it open the right url
+- [x] ability to click on a public path and have it open the right url
+- [ ] development is basically impossible due to https://github.com/vercel/next.js/issues/14997 and https://github.com/vercel/next.js/issues/12735.  This is obviously a recent really stupid move by the next.js devs due to them only using vscode, and not putting in the work to figure this out (like I already did with cocalc). 
 - [ ] display a specific path:
   - [ ] number of views
     - [ ] increment the view counter
@@ -32,6 +33,7 @@ Biggest challenges are: (1) **no coffeescript** so we might have to rewrite chun
 
 - [ ]  In `pages/public_paths/[id].tsx`  we could pre-render the top N most popular pages...
 - [ ] is the token field in `public_paths`  used at all? 
+- [ ] unlisted users -- need to add to cocalc account prefs that unlisted also means that user will not be mentioned anywhere publicly (e.g., on the share server). 
 
 ---
 

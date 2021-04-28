@@ -12,7 +12,7 @@ such as Google, and only exists for that purpose.
 import Link from "next/link";
 import SiteName from "components/site-name";
 import getPool from "lib/database";
-import ProjectsTable from "components/projects-table";
+import PublicPathsTable from "components/public-paths-table";
 
 const PAGE_SIZE = 15;
 const PRERENDER_PAGES = 10;
@@ -62,9 +62,9 @@ export default function All({ page, rows }) {
       </h1>
       <h2>Documents</h2>
       {pager}
-      <br/>
-      <ProjectsTable rows={rows} />
-      <br/>
+      <br />
+      <PublicPathsTable rows={rows} />
+      <br />
       {pager}
     </div>
   );
