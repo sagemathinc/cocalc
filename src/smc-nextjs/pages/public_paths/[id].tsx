@@ -3,9 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import Link from "next/link";
 import getPool from "lib/database";
-import getCollaborators from "lib/get-collaborators";
-import Collaborators from "components/collaborators";
 
 // TODO: pre-render the most popuar n pages, according
 // to internal db counter.
@@ -13,10 +12,10 @@ import Collaborators from "components/collaborators";
 
 export default function PublicPath({
   path,
+  project_id,
   description,
   counter,
   compute_image,
-  collaborators,
 }) {
   return (
     <div>
@@ -28,7 +27,9 @@ export default function PublicPath({
       <br />
       Compute image: {compute_image}
       <br />
-      Project collaborators: <Collaborators collaborators={collaborators} />
+      <Link href={`/projects/${project_id}`}>
+        <a>Project</a>
+      </Link>
       <br />
       <a>Edit a copy</a>, <a>Download</a>, <a>Raw</a>, <a>Embed</a>
       <hr />
@@ -61,10 +62,9 @@ export async function getStaticProps(context) {
   if (rows.length == 0) {
     return { notFound: true };
   }
-  const collaborators = await getCollaborators(rows[0].project_id);
 
   return {
-    props: { collaborators, id, ...rows[0] },
+    props: { id, ...rows[0] },
     revalidate: 5,
   };
 }

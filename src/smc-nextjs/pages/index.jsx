@@ -31,7 +31,7 @@ export default function Home() {
         <h2>Browse</h2>
         <ul>
           <li>
-            <Link href="/all/1">
+            <Link href="/public_paths/page/1">
               <a>List of all public documents</a>
             </Link>
           </li>

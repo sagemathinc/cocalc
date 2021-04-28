@@ -35,7 +35,7 @@ function Pager({ page, rows }) {
       Page {page}
       &nbsp;&nbsp;
       {page > 1 ? (
-        <Link href={`/all/${page - 1}`}>
+        <Link href={`/public_paths/page/${page - 1}`}>
           <a>Previous</a>
         </Link>
       ) : (
@@ -43,7 +43,7 @@ function Pager({ page, rows }) {
       )}
       &nbsp;&nbsp;
       {rows != null && rows.length >= PAGE_SIZE ? (
-        <Link href={`/all/${page + 1}`}>
+        <Link href={`/public_paths/page/${page + 1}`}>
           <a>Next</a>
         </Link>
       ) : (

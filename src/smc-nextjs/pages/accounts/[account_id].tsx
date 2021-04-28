@@ -13,13 +13,13 @@ Page for a given user.
  */
 
 import getPool from "lib/database";
-import { isUUID } from "lib/util";
+import { isUUID, trunc } from "lib/util";
 
 export default function Account({ first_name, last_name }) {
   return (
     <div>
       <h1>Account</h1>
-      Name: {first_name} {last_name}
+      Name: {trunc(`${first_name} ${last_name}`, 150)}
     </div>
   );
 }
