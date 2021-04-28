@@ -21,6 +21,7 @@ misc             = require('smc-util/misc')
 
 templates        = $("#webapp-console-templates")
 console_template = templates.find(".webapp-console")
+{getStudentProjectFunctionality} = require('smc-webapp/course/')
 
 {delay} = require('awaiting')
 
@@ -185,7 +186,7 @@ class Console extends EventEmitter
         #window.c = @
 
     connect: =>
-        if redux.getStore('projects').get_student_project_functionality(@opts.project_id).disableTerminals
+        if getStudentProjectFunctionality(@opts.project_id).disableTerminals
             # short lines since this is only used on mobile.
             @render("Terminals are currently disabled\r\nin this project.\r\nPlease contact your
         instructor\r\nif you have questions.\r\n");

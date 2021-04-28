@@ -7,6 +7,7 @@ import { isEqual } from "lodash";
 import { Card, Checkbox } from "antd";
 import { Button } from "smc-webapp/antd-bootstrap";
 import {
+  redux,
   React,
   useEffect,
   useIsMountedRef,
@@ -218,7 +219,8 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
 
 // NOTE: we allow project_id to be undefined for convenience since some clients
 // were written with that unlikely assumption on their knowledge of project_id.
-export const useStudentProjectFunctionality = (project_id?: string) => {
+type Hook = (project_id?: string) => StudentProjectFunctionality;
+export const useStudentProjectFunctionality: Hook = (project_id?: string) => {
   const project_map = useTypedRedux("projects", "project_map");
   const [state, setState] = useState<StudentProjectFunctionality>(
     project_map
@@ -242,3 +244,22 @@ export const useStudentProjectFunctionality = (project_id?: string) => {
 
   return state;
 };
+
+// Getting the information known right now about studnet project functionality.
+// Similar to the above hook, but just a point in time snapshot.  Use this
+// for old components that haven't been converted to react hooks yet.
+export function getStudentProjectFunctionality(
+  project_id?: string
+): StudentProjectFunctionality {
+  return (
+    redux
+      .getStore("projects")
+      ?.getIn([
+        "project_map",
+        project_id ?? "",
+        "course",
+        "student_project_functionality",
+      ])
+      ?.toJS() ?? {}
+  );
+}

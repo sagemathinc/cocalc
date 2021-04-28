@@ -3,5 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
-export { useStudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
+export {
+  useStudentProjectFunctionality,
+  getStudentProjectFunctionality,
+} from "./configuration/customize-student-project-functionality";
