@@ -141,7 +141,7 @@ export async function open_file(
   } catch (_) {
     // TODO: old projects will not have the new realpath api call -- can delete this try/catch at some point.
   }
-  const ext = filename_extension_notilde(opts.path).toLowerCase();
+  let ext = filename_extension_notilde(opts.path).toLowerCase();
 
   // Returns true if the project is closed or the file tab is now closed.
   function is_closed(): boolean {

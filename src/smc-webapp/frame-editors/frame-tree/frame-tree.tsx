@@ -111,6 +111,7 @@ interface FrameTreeProps {
   available_features: AvailableFeatures;
   local_view_state: Map<string, any>;
   is_visible: boolean;
+  tab_is_visible: boolean;
 }
 
 interface FrameTreeState {
@@ -158,6 +159,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "available_features",
         "local_view_state",
         "is_visible",
+        "tab_is_visible",
       ])
     );
   }
@@ -195,6 +197,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         available_features={this.props.available_features}
         local_view_state={this.props.local_view_state}
         is_visible={this.props.is_visible}
+        tab_is_visible={this.props.tab_is_visible}
       />
     );
   }
@@ -320,6 +323,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         resize={this.props.resize}
         is_subframe={is_subframe}
         is_visible={this.props.is_visible}
+        tab_is_visible={this.props.tab_is_visible}
       />
     );
   }

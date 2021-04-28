@@ -36,6 +36,7 @@ import { Project } from "../projects/store";
 import { Avatar } from "../account/avatar/avatar";
 import { ProjectInviteTokens } from "./project-invite-tokens";
 import { alert_message } from "../alerts";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 interface RegisteredUser {
   sort?: string;
@@ -78,6 +79,7 @@ export const AddCollaborators: React.FC<Props> = ({
   autoFocus,
   project_id,
 }) => {
+  const student = useStudentProjectFunctionality(project_id);
   const user_map = useTypedRedux("users", "user_map");
   const project_map = useTypedRedux("projects", "project_map");
   const project: Project | undefined = useMemo(
@@ -642,6 +644,10 @@ export const AddCollaborators: React.FC<Props> = ({
         message={invite_result}
       />
     );
+  }
+
+   if(student.disableCollaborators) {
+    return <div></div>;
   }
 
   return (

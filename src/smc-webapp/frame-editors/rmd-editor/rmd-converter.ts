@@ -7,11 +7,13 @@
 Convert R Markdown file to hidden Markdown file, then read.
 */
 
-// import { aux_file } from "../frame-tree/util";
+import { reuseInFlight } from "async-await-utils/hof";
 import { path_split } from "smc-util/misc";
 import { exec, ExecOutput } from "../generic/client";
 
-export async function convert(
+export const convert = reuseInFlight(_convert);
+
+async function _convert(
   project_id: string,
   path: string,
   frontmatter: string,

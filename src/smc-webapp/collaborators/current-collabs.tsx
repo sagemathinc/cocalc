@@ -10,6 +10,7 @@ import { Space, Icon, SettingBox } from "../r_misc";
 import { Project } from "smc-webapp/project/settings/types";
 import { User } from "../users";
 import { Popconfirm, Button } from "antd";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 interface Props {
   project: Project;
@@ -20,6 +21,7 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
   const { project, user_map } = props;
   const get_account_id = useRedux("account", "get_account_id");
   const sort_by_activity = useRedux("projects", "sort_by_activity");
+  const student = useStudentProjectFunctionality(project.get("project_id"));
 
   function remove_collaborator(account_id: string) {
     const project_id = project.get("project_id");
@@ -51,6 +53,7 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
   }
 
   function user_remove_button(account_id: string, group?: string) {
+    if (student.disableCollaborators) return;
     const text = user_remove_confirm_text(account_id);
     return (
       <Popconfirm
@@ -63,7 +66,8 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
           disabled={group === "owner"}
           style={{ marginBottom: "0", float: "right" }}
         >
-          <Icon name="user-times" /><Space/> Remove...
+          <Icon name="user-times" />
+          <Space /> Remove...
         </Button>
       </Popconfirm>
     );

@@ -32,7 +32,11 @@ import { webapp_client } from "../../webapp-client";
 import { Col, Row } from "react-bootstrap";
 
 import { commercial } from "smc-webapp/customize";
-import { is_available, ProjectConfiguration } from "smc-webapp/project_configuration";
+import {
+  is_available,
+  ProjectConfiguration,
+} from "smc-webapp/project_configuration";
+import { getStudentProjectFunctionality } from "smc-webapp/course";
 
 interface ReactProps {
   project_id: string;
@@ -138,6 +142,7 @@ export const Body = rclass<ReactProps>(
       const available = is_available(this.props.configuration);
       const have_jupyter_lab = available.jupyter_lab;
       const have_jupyter_notebook = available.jupyter_notebook;
+      const student = getStudentProjectFunctionality(this.props.project_id);
       return (
         <div>
           {commercial &&
@@ -204,8 +209,9 @@ export const Body = rclass<ReactProps>(
                 project={this.props.project}
                 actions={redux.getActions("projects")}
               />
-              {this.props.ssh_gateway ||
-              this.props.kucalc === KUCALC_COCALC_COM ? (
+              {!student.disableSSH &&
+              (this.props.ssh_gateway ||
+                this.props.kucalc === KUCALC_COCALC_COM) ? (
                 <SSHPanel
                   key="ssh-keys"
                   project={this.props.project}
@@ -232,11 +238,13 @@ export const Body = rclass<ReactProps>(
                 project={this.props.project}
                 user_map={this.props.user_map}
               />
-              <SettingBox title="Add new collaborators" icon="plus">
-                <AddCollaborators
-                  project_id={this.props.project.get("project_id")}
-                />
-              </SettingBox>
+              {!student.disableCollaborators && (
+                <SettingBox title="Add new collaborators" icon="plus">
+                  <AddCollaborators
+                    project_id={this.props.project.get("project_id")}
+                  />
+                </SettingBox>
+              )}
               <ProjectControl key="control" project={this.props.project} />
               <SagewsControl key="worksheet" project={this.props.project} />
               {have_jupyter_notebook ? (
