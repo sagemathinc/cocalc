@@ -6,7 +6,7 @@ This is what we need for functional equivalence with existing share server:
 
 - [x] make the public paths in the all page look "actually readable" using antd
 - [x] ability to click on a public path and have it open the right url
-- [ ] development is basically impossible due to https://github.com/vercel/next.js/issues/14997 and https://github.com/vercel/next.js/issues/12735.  This is obviously a recent really stupid move by the next.js devs due to them only using vscode, and not putting in the work to figure this out (like I already did with cocalc). 
+- [x] development is basically impossible due to https://github.com/vercel/next.js/issues/14997 and https://github.com/vercel/next.js/issues/12735.  This is obviously a recent really stupid move by the next.js devs due to them only using vscode, and not putting in the work to figure this out (like I already did with cocalc). 
 - [ ] display a specific path:
   - [ ] number of views
     - [ ] increment the view counter
