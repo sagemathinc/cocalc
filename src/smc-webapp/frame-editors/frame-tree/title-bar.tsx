@@ -49,6 +49,7 @@ import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 import { Actions } from "../code-editor/actions";
 import { EditorFileInfoDropdown } from "../../editors/file-info-dropdown";
 import { useStudentProjectFunctionality } from "smc-webapp/course";
+import { RmdActions } from "../rmd-editor/actions";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -150,7 +151,7 @@ interface Props {
   available_features?: AvailableFeatures;
 }
 
-export const FrameTitleBar: React.FC<Props> = (props) => {
+export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   const buttons_ref = useRef<
     { [button_name: string]: true } | null | undefined
   >(null);
@@ -200,6 +201,7 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   ]);
   const is_saving: boolean = useRedux([props.editor_actions.name, "is_saving"]);
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
+  const is_rmd = props.actions instanceof RmdActions;
 
   // comes from actions's store:
   const switch_to_files: List<string> = useRedux([
@@ -1080,13 +1082,16 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
     if (!is_visible("build", true)) {
       return;
     }
+    const title = is_rmd
+      ? "Build (disable automatic builds in Account → Editor → 'Build on save')"
+      : "Build project";
     return (
       <Button
         key={"build"}
         disabled={!!props.status}
         bsSize={button_size()}
         onClick={() => props.actions.build?.(props.id, false)}
-        title={"Build project"}
+        title={title}
       >
         <Icon name={"play-circle"} /> <VisibleMDLG>Build</VisibleMDLG>
       </Button>
@@ -1271,7 +1276,11 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   }
 
   function render_shell(): Rendered {
-    if (!is_visible("shell") || is_public ||  student_project_functionality.disableTerminals) {
+    if (
+      !is_visible("shell") ||
+      is_public ||
+      student_project_functionality.disableTerminals
+    ) {
       return;
     }
     return (
