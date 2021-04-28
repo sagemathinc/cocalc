@@ -81,7 +81,6 @@ const OPTIONS: Option[] = [
       "Blocks uploading files to the student project via drag-n-drop or the Upload button.",
   },
   {
-    notImplemented: true,
     name: "disableCollaborators",
     title: "adding or removing collaborators",
     description:
