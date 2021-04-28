@@ -48,6 +48,7 @@ interface Props {
   // randomly rendered wrong if it was initialized when the div was in the DOM,
   // but hidden.
   is_visible: boolean;
+  tab_is_visible: boolean; // if that editor tab is active -- see page/page.tsx
 }
 
 interface ReduxProps {
@@ -135,6 +136,7 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
         available_features={this.props.available_features}
         is_subframe={this.props.is_subframe}
         is_visible={this.props.is_visible}
+        tab_is_visible={this.props.tab_is_visible}
       />
     );
   }
