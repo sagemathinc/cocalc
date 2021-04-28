@@ -567,9 +567,6 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
         key={"switch-to-file"}
         button={true}
         style={{
-          top: props.is_full
-            ? "-7.5px"
-            : "-6.5px" /* this is obviously lazy crappy code */,
           height: button_height(),
         }}
         title={path_split(props.path).tail}
@@ -1271,7 +1268,11 @@ export const FrameTitleBar: React.FC<Props> = (props) => {
   }
 
   function render_shell(): Rendered {
-    if (!is_visible("shell") || is_public ||  student_project_functionality.disableTerminals) {
+    if (
+      !is_visible("shell") ||
+      is_public ||
+      student_project_functionality.disableTerminals
+    ) {
       return;
     }
     return (
