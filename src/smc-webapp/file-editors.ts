@@ -14,6 +14,7 @@ import {
 import { React } from "./app-framework";
 
 import { delay } from "awaiting";
+import { getStudentProjectFunctionality } from "./course";
 
 declare let DEBUG: boolean;
 
@@ -118,7 +119,11 @@ export function register_file_editor(opts: FileEditorInfo): void {
 
 // Get editor for given path and is_public state.
 
-function get_ed(path: string, is_public?: boolean): FileEditorSpec {
+function get_ed(
+  project_id: string | undefined,
+  path: string,
+  is_public?: boolean
+): FileEditorSpec {
   const is_pub = `${!!is_public}`;
   const noext = `noext-${path_split(path).tail}`.toLowerCase();
   if (file_editors[is_pub] == null) throw Error("bug");
@@ -126,7 +131,18 @@ function get_ed(path: string, is_public?: boolean): FileEditorSpec {
   if (e != null) {
     return e;
   }
-  const ext = filename_extension_notilde(path).toLowerCase();
+  let ext = filename_extension_notilde(path).toLowerCase();
+
+  // TODO: temporary hack because we have two kinds of ipynb editors.  This will go away.
+  if (
+    project_id != null &&
+    ext == "ipynb" &&
+    getStudentProjectFunctionality(project_id).disableJupyterClassicMode
+  ) {
+    // This ipynb-cocalc-jupyter just ensures we get the right editor below.
+    ext = "ipynb-cocalc-jupyter";
+  }
+
   // either use the one given by ext, or if there isn't one, use the '' fallback.
   const spec =
     file_editors[is_pub][ext] != null
@@ -150,7 +166,7 @@ export function initialize(
   is_public: boolean,
   content?: string
 ): string | undefined {
-  const editor = get_ed(path, is_public);
+  const editor = get_ed(project_id, path, is_public);
   if (editor.init != null) {
     return editor.init(path, redux, project_id, content);
   }
@@ -163,7 +179,7 @@ export function generate(
   project_id: string | undefined,
   is_public: boolean
 ) {
-  const e = get_ed(path, is_public);
+  const e = get_ed(project_id, path, is_public);
   const { generator } = e;
   if (generator != null) {
     return generator(path, redux, project_id);
@@ -214,7 +230,7 @@ export async function remove(
     );
   }
 
-  const e = get_ed(path, is_public);
+  const e = get_ed(project_id, path, is_public);
   // Wait until the next render cycle before actually removing,
   // to give the UI a chance to save some state (e.g., scroll positions).
   await delay(0);
@@ -223,7 +239,6 @@ export async function remove(
     e.remove(path, redux, project_id);
     return;
   }
-
 }
 
 // The save function may be called to request to save contents to disk.
@@ -239,7 +254,7 @@ export function save(
     console.warn("WARNING: save(undefined path)"); // TODO: remove when all typescript
     return;
   }
-  const save = get_ed(path, is_public).save;
+  const save = get_ed(project_id, path, is_public).save;
   if (save != null) {
     save(path, redux, project_id);
   }

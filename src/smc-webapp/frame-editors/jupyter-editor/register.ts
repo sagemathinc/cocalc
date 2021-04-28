@@ -24,3 +24,15 @@ export function register_cocalc_jupyter(): void {
 }
 
 init_jupyter_classic_support(register_cocalc_jupyter);
+
+// We always register for "ipynb-cocalc-jupyter" purely as a hack so that
+// we can still easily grab what we need to open an ipynb file
+// using cocalc-jupyter, even if things are configured to
+// use jupyter classic.  This is needed, e.g., for course
+// restrictions.
+register_file_editor({
+  ext: "ipynb-cocalc-jupyter",
+  component: Editor,
+  Actions: JupyterEditorActions,
+  is_public: false,
+});

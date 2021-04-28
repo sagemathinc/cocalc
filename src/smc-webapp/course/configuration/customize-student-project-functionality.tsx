@@ -20,6 +20,7 @@ export interface StudentProjectFunctionality {
   disableActions?: boolean;
   disableJupyterToggleReadonly?: boolean;
   disableJupyterClassicServer?: boolean;
+  disableJupyterClassicMode?: boolean;
   disableJupyterLabServer?: boolean;
   disableTerminals?: boolean;
   disableUploads?: boolean;
@@ -47,7 +48,7 @@ const OPTIONS: Option[] = [
     name: "disableJupyterToggleReadonly",
     title: "toggling whether cells are editable or deletable",
     description:
-      "Make it so that in Jupyter notebooks, students can't toggle whether cells are editable or deletable, and also disables the RAW Json Editor and the Jupyter command list dialog.",
+      "Make it so that in Jupyter notebooks, students can't toggle whether cells are editable or deletable, and also disables the RAW Json Editor and the Jupyter command list dialog.  If you set this, you should probably disable all of the JupyterLab and Jupyter classic options too.",
   },
   {
     name: "disableJupyterClassicServer",
@@ -56,7 +57,6 @@ const OPTIONS: Option[] = [
       "Disable the user interface for running a Jupyter classic server in the student project.  This is important, since Jupyter classic provides its own extensive download and edit functionality; moreover, you may want to disable Jupyter classic to reduce confusion if you don't plan to use it.",
   },
   {
-    notImplemented: true,
     name: "disableJupyterClassicMode",
     title: "Jupyter Classic mode",
     description:
