@@ -3,44 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { is_different } from "smc-util/misc";
-import { Component, React, rclass, rtypes } from "../../app-framework";
-import { EditorState } from "../frame-tree/types"
+import { React, useRedux } from "../../app-framework";
 
-interface ILatexWordCount {
-  id: string;
+interface LatexWordCountProps {
+  name: string;
   actions: any;
-  editor_state: EditorState;
-  is_fullscreen: boolean;
-  project_id: string;
-  path: string;
-  reload: number;
   font_size: number;
-
-  // reduxProps:
-  word_count: string;
 }
 
-class LatexWordCount extends Component<ILatexWordCount, {}> {
-  static defaultProps = { word_count: "" };
+export const LatexWordCount: React.FC<LatexWordCountProps> = React.memo(
+  (props: LatexWordCountProps) => {
+    const { name, actions, font_size } = props;
 
-  static reduxProps({ name }) {
-    return {
-      [name]: {
-        word_count: rtypes.string,
-      },
-    };
-  }
+    const word_count = useRedux([name, "word_count"]) ?? "";
 
-  shouldComponentUpdate(props): boolean {
-    return is_different(this.props, props, ["word_count"]);
-  }
+    React.useEffect(function () {
+      // false: don't force it
+      actions.word_count(0, false);
+    }, []);
 
-  componentDidMount(): void {
-    this.props.actions.word_count(0, false);
-  }
-
-  render(): React.ReactElement<any> {
     return (
       <div
         cocalc-test={"word-count-output"}
@@ -48,16 +29,13 @@ class LatexWordCount extends Component<ILatexWordCount, {}> {
         style={{
           overflowY: "scroll",
           padding: "5px 15px",
-          fontSize: "10pt",
+          fontSize: `${font_size * 0.8}pt`,
           whiteSpace: "pre-wrap",
           fontFamily: "monospace",
         }}
       >
-        {this.props.word_count}
+        {word_count}
       </div>
     );
   }
-}
-
-const tmp = rclass(LatexWordCount);
-export { tmp as LatexWordCount };
+);
