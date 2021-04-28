@@ -1,4 +1,3 @@
-import "styles/global.css";
 import Layout from "components/layout";
 import "antd/dist/antd.min.css";
 

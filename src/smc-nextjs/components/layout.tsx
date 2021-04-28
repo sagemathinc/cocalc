@@ -5,48 +5,57 @@
 
 import Link from "next/link";
 import SiteName from "components/site-name";
+import Head from "next/head";
 
 export default function Layout({ children }) {
   return (
     <>
-      <div
-        style={{
-          background: "#efefef",
-          padding: "0 30px",
-          marginBottom: "30px",
-          borderBottom: "1px solid lightgrey",
-        }}
-      >
-        <Link href="/">
-          <a>
-            <SiteName />{" "}
-          </a>
-        </Link>
-      </div>
+      <Head>
+        <title>
+          <SiteName />
+        </title>
+        <link rel="icon" href={`${process.env.basePath ?? ""}/favicon.ico`} />
+      </Head>
+      <main>
+        <div
+          style={{
+            background: "#efefef",
+            padding: "0 30px",
+            marginBottom: "30px",
+            borderBottom: "1px solid lightgrey",
+          }}
+        >
+          <Link href="/home">
+            <a>
+              <SiteName />{" "}
+            </a>
+          </Link>
+        </div>
 
-      <div
-        style={{
-          color: "#555",
-          margin: "0 auto",
-          maxWidth: "1200px",
-          fontSize: "11pt",
-          padding: "0 15px",
-        }}
-      >
-        {children}
-      </div>
+        <div
+          style={{
+            color: "#555",
+            margin: "0 auto",
+            maxWidth: "1200px",
+            fontSize: "11pt",
+            padding: "0 15px",
+          }}
+        >
+          {children}
+        </div>
 
-      <footer
-        style={{
-          borderTop: "1px solid lightgrey",
-          background: "#efefef",
-          fontSize: "12pt",
-          textAlign: "center",
-          color: "#999",
-        }}
-      >
-        CoCalc by Sagemath, Inc. · Terms of Service · help@cocalc.com · © 2021
-      </footer>
+        <footer
+          style={{
+            borderTop: "1px solid lightgrey",
+            background: "#efefef",
+            fontSize: "12pt",
+            textAlign: "center",
+            color: "#999",
+          }}
+        >
+          CoCalc by Sagemath, Inc. · Terms of Service · help@cocalc.com · © 2021
+        </footer>
+      </main>
     </>
   );
 }

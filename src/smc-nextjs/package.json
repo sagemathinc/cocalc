@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "tsc": "tsc --watch --fallbackPolling fixedinterval",
+    "tsc": "tsc --watch --fallbackPolling dynamicpriority",
     "build": "time next build",
     "start": "next start"
   },
