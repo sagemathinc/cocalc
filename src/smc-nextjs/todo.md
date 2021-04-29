@@ -8,10 +8,10 @@ This is what we need for functional equivalence with existing share server:
 - [x] ability to click on a public path and have it open the right url
 - [x] development is basically impossible due to https://github.com/vercel/next.js/issues/14997 and https://github.com/vercel/next.js/issues/12735.  This is obviously a recent really stupid move by the next.js devs due to them only using vscode, and not putting in the work to figure this out (like I already did with cocalc).
 - [ ] display a specific path:
-  - [ ] number of views
-    - [ ] #now  increment the view counter
+  - [x] number of views
+    - [x] #now  increment the view counter
   - [ ] open with one click link
-  - [ ] directory listing
+  - [ ] #now  directory listing
   - [ ] document
     - [ ] #hard static smc-webapp rendered view of the document
     - [ ] download a single document

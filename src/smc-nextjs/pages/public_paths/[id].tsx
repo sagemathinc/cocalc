@@ -7,6 +7,7 @@ import Link from "next/link";
 import getPool from "lib/database";
 import { useEffect } from "react";
 import { useRouter } from "next/router";
+import getContents from "lib/get-contents";
 
 // TODO: pre-render the most popuar n pages, according
 // to internal db counter.
@@ -22,6 +23,17 @@ function useCounter(id: string | undefined) {
   }, [id]);
 }
 
+function PathContents({ isdir, listing, content }) {
+  if (isdir) {
+    return (
+      <pre style={{ border: "1px solid red" }}>
+        {JSON.stringify(listing, undefined, 2)}
+      </pre>
+    );
+  }
+  return <pre style={{ border: "1px solid red" }}>{content}</pre>;
+}
+
 export default function PublicPath({
   id,
   path,
@@ -29,9 +41,9 @@ export default function PublicPath({
   description,
   counter,
   compute_image,
+  contents,
 }) {
   useCounter(id);
-
   return (
     <div>
       Path: {path}
@@ -48,7 +60,7 @@ export default function PublicPath({
       <br />
       <a>Edit a copy</a>, <a>Download</a>, <a>Raw</a>, <a>Embed</a>
       <hr />
-      <pre>The actual file here or directory listing...</pre>
+      {contents && <PathContents {...contents} />}
     </div>
   );
 }
@@ -74,12 +86,14 @@ export async function getStaticProps(context) {
     "SELECT project_id, path, description, counter, compute_image FROM public_paths WHERE disabled IS NOT TRUE AND unlisted IS NOT TRUE AND vhost IS NULL AND id=$1",
     [id]
   );
-  if (rows.length == 0) {
+  if (rows.length == 0 || rows[0].project_id == null || rows[0].path == null) {
     return { notFound: true };
   }
 
+  const contents = await getContents(rows[0].project_id, rows[0].path);
+
   return {
-    props: { id, ...rows[0] },
+    props: { id, ...rows[0], contents },
     revalidate: 5,
   };
 }

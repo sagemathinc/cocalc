@@ -641,7 +641,7 @@ exports.start_server = start_server = (cb) ->
             if not program.share_port
                 cb(); return
             t0 = new Date()
-            winston.debug("initializing the share server on port #{program.share_port}")
+            winston.debug("initializing the share server on port #{program.share_port}, '#{program.share_path}'")
             winston.debug("...... (takes about 10 seconds) ......")
             x = await require('./share/server').init
                 database       : database
