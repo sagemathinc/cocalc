@@ -16,23 +16,32 @@ Page for a given user.
 
 import getPool from "lib/database";
 import { isUUID } from "lib/util";
-import PublicPaths from "components/public-paths";
 import getCollaborators from "lib/get-collaborators";
+import { getProjectTitle } from "lib/get-project";
+import getPublicPaths from "lib/get-public-paths";
+import PublicPaths from "components/public-paths";
 import Collaborators from "components/collaborators";
+import Loading from "components/loading";
 
-export default function Project({ rows, collaborators, title }) {
+export default function Project({ publicPaths, collaborators, projectTitle }) {
+  if (publicPaths == null || collaborators == null || projectTitle == null) {
+    return <Loading />;
+  }
   return (
     <div>
-      <h1>Project</h1>
-      <h2>Title: "{title}"</h2>
-      <h2>Collaborators</h2>
-      <Collaborators collaborators={collaborators} />
-      <br /> <br />
+      <h1>Project: {projectTitle}</h1>
+      {collaborators != null && collaborators.length > 0 && (
+        <>
+          <h2>Collaborators</h2>
+          <Collaborators collaborators={collaborators} />
+          <br /> <br />
+        </>
+      )}
       <h2>Public Paths</h2>
-      {rows != null && rows.length > 0 ? (
-        <PublicPaths rows={rows} />
+      {publicPaths != null && publicPaths.length == 0 ? (
+        <div>No public paths.</div>
       ) : (
-        "No public paths."
+        <PublicPaths publicPaths={publicPaths} />
       )}
     </div>
   );
@@ -43,34 +52,43 @@ export async function getStaticPaths() {
 }
 
 export async function getStaticProps(context) {
-  const pool = getPool();
-
   const { project_id } = context.params;
   if (!isUUID(project_id)) {
     return { notFound: true };
   }
 
-  const project = await pool.query(
-    "SELECT title FROM projects WHERE project_id=$1",
-    [project_id]
-  );
-  if (project.rows.length == 0) {
+  const pool = getPool();
+  let projectTitle;
+  try {
+    projectTitle = await getProjectTitle(project_id);
+  } catch (err) {
+    console.warn(err);
     return { notFound: true };
   }
-  const title = project.rows[0]?.title;
 
-  // Get the database entry
-  // Note: unlisted --> makes them not have any homepage...
+  // Note: unlisted --> makes them not have any page...
   const {
     rows,
   } = await pool.query(
-    "SELECT id, path, description, EXTRACT(EPOCH FROM last_edited)*1000 as last_edited  FROM public_paths WHERE disabled IS NOT TRUE AND unlisted IS NOT TRUE AND project_id=$1 ORDER BY counter DESC",
+    "SELECT id, path, description, EXTRACT(EPOCH FROM last_edited)*1000 as last_edited FROM public_paths WHERE disabled IS NOT TRUE AND unlisted IS NOT TRUE AND project_id=$1 ORDER BY counter DESC",
     [project_id]
   );
-  const collaborators = await getCollaborators(project_id);
+  let publicPaths;
+  try {
+    publicPaths = await getPublicPaths(project_id);
+  } catch (_err) {
+    return { notFound: true };
+  }
+
+  let collaborators;
+  try {
+    collaborators = await getCollaborators(project_id);
+  } catch (_err) {
+    return { notFound: true };
+  }
 
   return {
-    props: { title, rows, collaborators },
+    props: { projectTitle, publicPaths, collaborators },
     revalidate: 30,
   };
 }

@@ -21,7 +21,7 @@ This is what we need for functional equivalence with existing share server:
     - [x] long description
     - [x] compute environment
     - [x] name and link to author of document
-- [ ] page with info about a user.  But what?
+- [ ] page with info about a user.  But what?  How about a list of all projects with public paths that they collaborate on, and that's it.
 - [x] box to search the share server using google
 - [ ] google analytics: just need to copy some functions from `share/base-page.tsx`
 - [x] the back button doesn't work robustly, which is really disturbing!

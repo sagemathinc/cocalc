@@ -9,9 +9,12 @@ Get the collaborators on a given project.  Unlisted collaborators are NOT includ
 
 import getPool from "./database";
 import { User } from "./types";
+import { isUUID } from "lib/util";
 
-export default async function getCollaborators(project_id: string): Promise<User[]> {
-  if (typeof project_id != "string" || project_id.length != 36) {
+export default async function getCollaborators(
+  project_id: string
+): Promise<User[]> {
+  if (!isUUID(project_id)) {
     throw Error("project_id must be a uuid");
   }
   const pool = getPool();

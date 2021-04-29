@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "tsc": "TSC_WATCHFILE=DynamicPriorityPolling tsc --watch",
+    "tsc": "tsc --watch",
     "build": "time next build",
     "start": "next start"
   },

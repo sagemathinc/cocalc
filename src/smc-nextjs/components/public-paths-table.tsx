@@ -9,7 +9,13 @@ A table of a list of public paths.
 
 import Link from "next/link";
 import { Table } from "antd";
-import { PublicPath } from "lib/types";
+
+export interface Row {
+  id: string;
+  path?: string;
+  description?: string;
+  last_edited?: number;
+}
 
 const COLUMNS = [
   {
@@ -27,7 +33,7 @@ const COLUMNS = [
     dataIndex: "description",
     key: "description",
     render: (description) => (
-      <div style={{ maxWidth: "50ex", maxHeight: "5em", overflow: "auto" }}>
+      <div style={{ width: "50ex", maxHeight: "5em", overflow: "auto" }}>
         {description}
       </div>
     ),
@@ -40,17 +46,12 @@ const COLUMNS = [
   },
 ];
 
-interface Props {
-  publicPaths?: PublicPath[];
-}
-
-export default function PublicPaths({ publicPaths }: Props): JSX.Element {
+export default function PublicPaths({ rows }: { rows: Row[] }): JSX.Element {
   return (
     <Table
       pagination={false}
       rowKey={"id"}
-      loading={publicPaths == null}
-      dataSource={publicPaths}
+      dataSource={rows}
       columns={COLUMNS}
     />
   );

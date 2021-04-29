@@ -29,7 +29,7 @@ function getPage(obj): number {
   return 1;
 }
 
-function Pager({ page, rows }) {
+function Pager({ page, publicPaths }) {
   return (
     <div>
       Page {page}
@@ -42,7 +42,7 @@ function Pager({ page, rows }) {
         <span style={{ color: "#888" }}>Previous</span>
       )}
       &nbsp;&nbsp;
-      {rows != null && rows.length >= PAGE_SIZE ? (
+      {publicPaths != null && publicPaths.length >= PAGE_SIZE ? (
         <Link href={`/public_paths/page/${page + 1}`}>
           <a>Next</a>
         </Link>
@@ -53,8 +53,8 @@ function Pager({ page, rows }) {
   );
 }
 
-export default function All({ page, rows }) {
-  const pager = <Pager page={page} rows={rows} />;
+export default function All({ page, publicPaths }) {
+  const pager = <Pager page={page} publicPaths={publicPaths} />;
   return (
     <div>
       <h1>
@@ -63,7 +63,7 @@ export default function All({ page, rows }) {
       <h2>Documents</h2>
       {pager}
       <br />
-      <PublicPaths rows={rows} />
+      <PublicPaths publicPaths={publicPaths} />
       <br />
       {pager}
     </div>
@@ -72,10 +72,13 @@ export default function All({ page, rows }) {
 
 export async function getStaticPaths() {
   const paths: any[] = [];
-  for (let page = 1; page < PRERENDER_PAGES; page++) {
-    paths.push({ params: { page: `${page}` } });
+  if (process.env.NODE_ENV != "development") {
+    // See https://stackoverflow.com/questions/62439413/navigation-between-statically-generated-pages-painfully-slow-in-dev-mode-next-js
+    for (let page = 1; page < PRERENDER_PAGES; page++) {
+      paths.push({ params: { page: `${page}` } });
+    }
   }
-  return { paths, fallback: true };
+  return { paths: [], fallback: true };
 }
 
 export async function getStaticProps(context) {
@@ -89,7 +92,7 @@ export async function getStaticProps(context) {
   );
 
   return {
-    props: { page, rows },
+    props: { page, publicPaths: rows },
     revalidate: 10, // in production only queries once every 10s
   };
 }

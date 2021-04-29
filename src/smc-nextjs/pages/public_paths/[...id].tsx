@@ -13,6 +13,9 @@ import PathContents from "components/path-contents";
 import LinkedPath from "components/linked-path";
 import Loading from "components/loading";
 import License from "components/license";
+import ProjectLink from "components/project-link";
+import { getProjectTitle } from "lib/get-project";
+
 
 // TODO: pre-render the most popuar n pages, according
 // to internal db counter.
@@ -32,6 +35,7 @@ export default function PublicPath({
   id,
   path,
   project_id,
+  projectTitle,
   relativePath,
   description,
   counter,
@@ -73,9 +77,8 @@ export default function PublicPath({
       <br />
       <b>Compute image:</b> {compute_image}
       <br />
-      <Link href={`/projects/${project_id}`}>
-        <a>Project</a>
-      </Link>
+      <b>Project:</b>{" "}
+      <ProjectLink project_id={project_id} title={projectTitle} />
       <br />
       <a>Edit a copy</a>, <a>Download</a>, <a>Raw</a>, <a>Embed</a>
       <hr />
@@ -87,7 +90,7 @@ export default function PublicPath({
 }
 
 export async function getStaticPaths() {
-  // TODO: take into account PRERENDER_COUNT
+  // TODO: take into account PRERENDER_COUNT?  (not in dev mode)
   return { paths: [], fallback: true };
 }
 
@@ -129,9 +132,17 @@ export async function getStaticProps(context) {
       revalidate: 5,
     };
   }
+  let projectTitle;
+  try {
+    projectTitle = await getProjectTitle(rows[0].project_id);
+  } catch (err) {
+    console.warn(err);
+    // project is gone/deleted...
+    return { notFound: true };
+  }
 
   return {
-    props: { id, ...rows[0], contents, relativePath },
+    props: { id, ...rows[0], contents, relativePath, projectTitle },
     revalidate: 5,
   };
 }

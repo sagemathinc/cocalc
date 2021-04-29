@@ -19,17 +19,17 @@ export default function LinkedPath({ id, path, relativePath, isdir }: Props) {
       <a>{path}</a>
     </Link>
   );
-  const slash = <span>{" "}/{" "}</span>;
-  const segments: JSX.Element[] = [first, slash];
+  const slash = (key) => <span key={"slash" - key}> / </span>;
+  const segments: JSX.Element[] = [first, slash("")];
   for (const segment of relativePath.split("/")) {
     if (!segment) continue;
     href += `/${encodeURIComponent(segment)}`;
     segments.push(
-      <Link href={href}>
+      <Link href={href} key={href}>
         <a>{segment}</a>
       </Link>
     );
-    segments.push(slash);
+    segments.push(slash(href));
   }
   if (!isdir) {
     segments.pop();
