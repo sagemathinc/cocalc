@@ -17,13 +17,13 @@ This is what we need for functional equivalence with existing share server:
     - [ ] download a single document
     - [ ] raw view of document
     - [ ] embed version of document (with backward compat redirect)
-    - [ ] showing license
+    - [x] showing license
     - [x] long description
-    - [ ] compute environment
-    - [ ] name and link to author of document
-- [ ] page with info about a user
-- [ ] box to search the share server using google
-- [ ] google analytics
+    - [x] compute environment
+    - [x] name and link to author of document
+- [ ] page with info about a user.  But what?
+- [x] box to search the share server using google
+- [ ] google analytics: just need to copy some functions from `share/base-page.tsx`
 - [x] the back button doesn't work robustly, which is really disturbing!
   - Might be [this](https://github.com/vercel/next.js/issues/7091)? nope.
   - maybe [this](https://github.com/vercel/next.js/issues/9989)? nope.

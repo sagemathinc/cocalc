@@ -6,6 +6,7 @@
 import Link from "next/link";
 import SiteName from "components/site-name";
 import Head from "next/head";
+import GoogleSearch from "components/google-search";
 
 export default function Layout({ children }) {
   return (
@@ -23,13 +24,18 @@ export default function Layout({ children }) {
             padding: "0 30px",
             marginBottom: "30px",
             borderBottom: "1px solid lightgrey",
+            display: "flex",
           }}
         >
           <Link href="/home">
-            <a>
+            <a style={{ margin: "auto 0" }}>
               <SiteName />{" "}
             </a>
           </Link>
+          <div style={{ flex: "1" }}></div>
+          <div style={{ maxWidth: "40ex" }}>
+            <GoogleSearch />
+          </div>
         </div>
 
         <div

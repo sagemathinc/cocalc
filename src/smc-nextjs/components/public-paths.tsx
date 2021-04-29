@@ -33,7 +33,7 @@ const COLUMNS = [
     dataIndex: "description",
     key: "description",
     render: (description) => (
-      <div style={{ width: "50ex", maxHeight: "5em", overflow: "auto" }}>
+      <div style={{ maxWidth: "50ex", maxHeight: "5em", overflow: "auto" }}>
         {description}
       </div>
     ),
