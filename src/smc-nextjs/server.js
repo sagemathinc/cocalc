@@ -23,8 +23,7 @@ app.prepare().then(() => {
     } else {
       handle(req, res, parsedUrl);
     }
-  }).listen(3000, (err) => {
-    if (err) throw err;
+  }).listen(3000, () => {
     if (process.env.COCALC_PROJECT_ID && basePath) {
       // Running from within a cocalc project.
       console.log(`\n> Ready on https://cocalc.com${basePath}\n`);
