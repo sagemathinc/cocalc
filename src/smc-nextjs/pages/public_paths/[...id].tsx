@@ -3,13 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { join } from "path";
 import Link from "next/link";
 import getPool from "lib/database";
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import getContents from "lib/get-contents";
-import DirectoryListing from "components/directory-listing";
-import { join } from "path";
+import PathContents from "components/path-contents";
+import LinkedPath from "components/linked-path";
+import Loading from "components/loading";
 
 // TODO: pre-render the most popuar n pages, according
 // to internal db counter.
@@ -25,15 +27,6 @@ function useCounter(id: string | undefined) {
   }, [id]);
 }
 
-function PathContents({ id, isdir, listing, content, relativePath }) {
-  if (isdir) {
-    return (
-      <DirectoryListing id={id} listing={listing} relativePath={relativePath} />
-    );
-  }
-  return <pre style={{ border: "1px solid red" }}>{content}</pre>;
-}
-
 export default function PublicPath({
   id,
   path,
@@ -46,7 +39,7 @@ export default function PublicPath({
   error,
 }) {
   useCounter(id);
-  if (id == null) return <span>Loading...</span>;
+  if (id == null) return <Loading />;
   if (error != null) {
     return (
       <div>
@@ -62,8 +55,13 @@ export default function PublicPath({
   }
   return (
     <div>
-      <b>Public {contents?.isdir ? "directory" : "file"}:</b> {path}
-      {relativePath ? <i>/{relativePath}</i> : ""}
+      <b>Public path: </b>
+      <LinkedPath
+        path={path}
+        relativePath={relativePath}
+        id={id}
+        isdir={contents?.isdir}
+      />
       <br />
       <b>Description:</b> {description}
       <br />

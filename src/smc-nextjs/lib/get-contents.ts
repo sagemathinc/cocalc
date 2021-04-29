@@ -15,7 +15,7 @@ export interface FileInfo {
   mtime?: number;
 }
 
-interface PathContents {
+export interface PathContents {
   isdir?: boolean;
   listing?: FileInfo[];
   content?: string;
