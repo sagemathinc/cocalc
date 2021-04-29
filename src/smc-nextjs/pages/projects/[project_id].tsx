@@ -14,7 +14,6 @@ Page for a given user.
 
 /* Show all the public paths in a given project, and maybe other information about the project? */
 
-import getPool from "lib/database";
 import { isUUID } from "lib/util";
 import getCollaborators from "lib/get-collaborators";
 import { getProjectTitle } from "lib/get-project";
@@ -57,7 +56,6 @@ export async function getStaticProps(context) {
     return { notFound: true };
   }
 
-  const pool = getPool();
   let projectTitle;
   try {
     projectTitle = await getProjectTitle(project_id);
@@ -66,13 +64,6 @@ export async function getStaticProps(context) {
     return { notFound: true };
   }
 
-  // Note: unlisted --> makes them not have any page...
-  const {
-    rows,
-  } = await pool.query(
-    "SELECT id, path, description, EXTRACT(EPOCH FROM last_edited)*1000 as last_edited FROM public_paths WHERE disabled IS NOT TRUE AND unlisted IS NOT TRUE AND project_id=$1 ORDER BY counter DESC",
-    [project_id]
-  );
   let publicPaths;
   try {
     publicPaths = await getPublicPaths(project_id);

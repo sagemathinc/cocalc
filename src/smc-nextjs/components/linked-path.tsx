@@ -19,7 +19,7 @@ export default function LinkedPath({ id, path, relativePath, isdir }: Props) {
       <a>{path}</a>
     </Link>
   );
-  const slash = (key) => <span key={"slash" - key}> / </span>;
+  const slash = (key) => <span key={"slash" + key}> / </span>;
   const segments: JSX.Element[] = [first, slash("")];
   for (const segment of relativePath.split("/")) {
     if (!segment) continue;

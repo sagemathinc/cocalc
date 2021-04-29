@@ -14,6 +14,10 @@ This is what we need for functional equivalence with existing share server:
   - [x]  directory listing
   - [ ] document
     - [ ] #hard static smc-webapp rendered view of the document
+      - [ ]  codemirror for code first
+      - [ ] markdown
+      - [ ] sage worksheet
+      - [ ] jupyter notebook
     - [ ] download a single document
     - [ ] raw view of document
     - [ ] embed version of document (with backward compat redirect)
