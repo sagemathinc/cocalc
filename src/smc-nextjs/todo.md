@@ -9,16 +9,16 @@ This is what we need for functional equivalence with existing share server:
 - [x] development is basically impossible due to https://github.com/vercel/next.js/issues/14997 and https://github.com/vercel/next.js/issues/12735.  This is obviously a recent really stupid move by the next.js devs due to them only using vscode, and not putting in the work to figure this out (like I already did with cocalc).
 - [ ] display a specific path:
   - [x] number of views
-    - [x] #now  increment the view counter
-  - [ ] open with one click link
-  - [ ] #now  directory listing
+    - [x] increment the view counter
+  - [ ] open with one click link; env variable and function to make the url...
+  - [x]  directory listing
   - [ ] document
     - [ ] #hard static smc-webapp rendered view of the document
     - [ ] download a single document
     - [ ] raw view of document
     - [ ] embed version of document (with backward compat redirect)
     - [ ] showing license
-    - [ ] long description
+    - [x] long description
     - [ ] compute environment
     - [ ] name and link to author of document
 - [ ] page with info about a user

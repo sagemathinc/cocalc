@@ -12,6 +12,7 @@ import getContents from "lib/get-contents";
 import PathContents from "components/path-contents";
 import LinkedPath from "components/linked-path";
 import Loading from "components/loading";
+import License from "components/license";
 
 // TODO: pre-render the most popuar n pages, according
 // to internal db counter.
@@ -35,6 +36,7 @@ export default function PublicPath({
   description,
   counter,
   compute_image,
+  license,
   contents,
   error,
 }) {
@@ -66,6 +68,8 @@ export default function PublicPath({
       <b>Description:</b> {description}
       <br />
       <b>Views:</b> {counter}
+      <br />
+      <b>License:</b> <License license={license} />
       <br />
       <b>Compute image:</b> {compute_image}
       <br />
@@ -106,7 +110,7 @@ export async function getStaticProps(context) {
   const {
     rows,
   } = await pool.query(
-    "SELECT project_id, path, description, counter, compute_image FROM public_paths WHERE disabled IS NOT TRUE AND unlisted IS NOT TRUE AND vhost IS NULL AND id=$1",
+    "SELECT project_id, path, description, counter, compute_image, license FROM public_paths WHERE disabled IS NOT TRUE AND unlisted IS NOT TRUE AND vhost IS NULL AND id=$1",
     [id]
   );
   if (rows.length == 0 || rows[0].project_id == null || rows[0].path == null) {
