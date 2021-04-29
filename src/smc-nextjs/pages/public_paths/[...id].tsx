@@ -25,9 +25,11 @@ function useCounter(id: string | undefined) {
   }, [id]);
 }
 
-function PathContents({ id, isdir, listing, content }) {
+function PathContents({ id, isdir, listing, content, relativePath }) {
   if (isdir) {
-    return <DirectoryListing id={id} listing={listing} />;
+    return (
+      <DirectoryListing id={id} listing={listing} relativePath={relativePath} />
+    );
   }
   return <pre style={{ border: "1px solid red" }}>{content}</pre>;
 }
@@ -75,7 +77,9 @@ export default function PublicPath({
       <br />
       <a>Edit a copy</a>, <a>Download</a>, <a>Raw</a>, <a>Embed</a>
       <hr />
-      {contents != null && <PathContents id={id} {...contents} />}
+      {contents != null && (
+        <PathContents id={id} relativePath={relativePath} {...contents} />
+      )}
     </div>
   );
 }

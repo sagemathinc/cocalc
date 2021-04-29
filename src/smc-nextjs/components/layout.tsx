@@ -54,7 +54,11 @@ export default function Layout({ children }) {
             color: "#999",
           }}
         >
-          CoCalc by Sagemath, Inc. · Terms of Service · help@cocalc.com · © 2021
+          <a href="https://cocalc.com">
+            <SiteName />
+          </a>{" "}
+          by Sagemath, Inc. ·{" "}
+          <a href="mailto:help@cocalc.com">help@cocalc.com</a>
         </footer>
       </main>
     </>
