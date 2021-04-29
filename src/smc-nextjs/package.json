@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "cocalc": "bash ./cocalc/update.sh",
     "dev": "next dev",
     "tsc": "tsc --watch",
     "build": "time next build",

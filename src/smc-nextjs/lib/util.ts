@@ -16,3 +16,8 @@ export function isSha1Hash(s: string): boolean {
 export function trunc(s: string, n: number): string {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
+
+export function getExtension(path: string): string {
+  const v = path.split(".");
+  return v.length <= 1 ? "" : v.pop() ?? "";
+}

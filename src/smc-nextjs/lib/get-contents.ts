@@ -7,6 +7,8 @@ import pathToFiles from "lib/path-to-files";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { sortBy } from "lodash";
+import { needsContent } from "lib/file-extensions";
+import { getExtension } from "lib/util";
 
 export interface FileInfo {
   name: string;
@@ -42,7 +44,9 @@ export default async function getContents(
     // get actual file content
     // TODO: deal with large files and binary files, obviously.
     // See smc-hub/share/render-public-path.ts where this is solved.
-    obj.content = (await fs.readFile(fsPath)).toString();
+    if (needsContent(getExtension(fsPath))) {
+      obj.content = (await fs.readFile(fsPath)).toString();
+    }
     obj.size = stats.size;
   }
   return obj;
@@ -66,5 +70,5 @@ async function getDirectoryListing(path: string): Promise<FileInfo[]> {
     }
     listing.push(obj);
   }
-  return sortBy(listing, ['mtime', 'name']).reverse();
+  return sortBy(listing, ["mtime", "name"]).reverse();
 }

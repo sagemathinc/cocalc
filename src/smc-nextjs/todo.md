@@ -13,7 +13,7 @@ This is what we need for functional equivalence with existing share server:
   - [ ] open with one click link; env variable and function to make the url...
   - [x]  directory listing
   - [ ] document
-    - [ ] #hard static smc-webapp rendered view of the document
+    - [ ] #hard static smc-webapp rendered view of the document; currently in `smc-webapp/share/file-contents.tsx`  
       - [ ]  codemirror for code first
       - [ ] markdown
       - [ ] sage worksheet

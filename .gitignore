@@ -128,5 +128,6 @@ src/smc_sagews/.pytest_cache/
 
 src/smc-nextjs/cache
 src/smc-nextjs/.next
+src/smc-nextjs/cocalc
 
 src/go*

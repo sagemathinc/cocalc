@@ -83,7 +83,7 @@ export default function PublicPath({
       <a>Edit a copy</a>, <a>Download</a>, <a>Raw</a>, <a>Embed</a>
       <hr />
       {contents != null && (
-        <PathContents id={id} relativePath={relativePath} {...contents} />
+        <PathContents id={id} path={path} relativePath={relativePath} {...contents} />
       )}
     </div>
   );
