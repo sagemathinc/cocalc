@@ -13,7 +13,10 @@ This is what we need for functional equivalence with existing share server:
   - [ ] open with one click link; env variable and function to make the url...
   - [x]  directory listing
   - [ ] document
-    - [ ] #hard static smc-webapp rendered view of the document; currently in `smc-webapp/share/file-contents.tsx`  
+    - [ ] #hard static smc-webapp rendered view of the document; currently in `smc-webapp/share/file-contents.tsx`
+      - need to use https://nextjs.org/docs/advanced-features/custom-server to incorporate the raw server via express, since raw server is needed, but impossible in next.js.
+        - [ ] get it to server static files properly
+        - [ ] can we fix the / issue (i.e., that if next serves /, then back button breaks)?
       - [ ]  codemirror for code first
       - [ ] markdown
       - [ ] sage worksheet

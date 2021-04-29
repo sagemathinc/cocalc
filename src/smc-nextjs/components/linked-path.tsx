@@ -15,12 +15,12 @@ interface Props {
 export default function LinkedPath({ id, path, relativePath, isdir }: Props) {
   let href = `/public_paths/${id}`;
   const first = (
-    <Link href={href}>
+    <Link href={href} key={href}>
       <a>{path}</a>
     </Link>
   );
   const slash = (key) => <span key={"slash" + key}> / </span>;
-  const segments: JSX.Element[] = [first, slash("/")];
+  const segments: JSX.Element[] = [first, slash(href)];
   for (const segment of relativePath.split("/")) {
     if (!segment) continue;
     href += `/${encodeURIComponent(segment)}`;
