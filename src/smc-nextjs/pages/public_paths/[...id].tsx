@@ -8,6 +8,8 @@ import getPool from "lib/database";
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import getContents from "lib/get-contents";
+import DirectoryListing from "components/directory-listing";
+import { join } from "path";
 
 // TODO: pre-render the most popuar n pages, according
 // to internal db counter.
@@ -23,13 +25,9 @@ function useCounter(id: string | undefined) {
   }, [id]);
 }
 
-function PathContents({ isdir, listing, content }) {
+function PathContents({ id, isdir, listing, content }) {
   if (isdir) {
-    return (
-      <pre style={{ border: "1px solid red" }}>
-        {JSON.stringify(listing, undefined, 2)}
-      </pre>
-    );
+    return <DirectoryListing id={id} listing={listing} />;
   }
   return <pre style={{ border: "1px solid red" }}>{content}</pre>;
 }
@@ -38,21 +36,38 @@ export default function PublicPath({
   id,
   path,
   project_id,
+  relativePath,
   description,
   counter,
   compute_image,
   contents,
+  error,
 }) {
   useCounter(id);
+  if (id == null) return <span>Loading...</span>;
+  if (error != null) {
+    return (
+      <div>
+        There was a problem loading "{relativePath}" in{" "}
+        <Link href={`/public_paths/${id}`}>
+          <a>{path}.</a>
+        </Link>
+        <br />
+        <br />
+        {error}
+      </div>
+    );
+  }
   return (
     <div>
-      Path: {path}
+      <b>Public {contents?.isdir ? "directory" : "file"}:</b> {path}
+      {relativePath ? <i>/{relativePath}</i> : ""}
       <br />
-      Description: {description}
+      <b>Description:</b> {description}
       <br />
-      Views: {counter}
+      <b>Views:</b> {counter}
       <br />
-      Compute image: {compute_image}
+      <b>Compute image:</b> {compute_image}
       <br />
       <Link href={`/projects/${project_id}`}>
         <a>Project</a>
@@ -60,7 +75,7 @@ export default function PublicPath({
       <br />
       <a>Edit a copy</a>, <a>Download</a>, <a>Raw</a>, <a>Embed</a>
       <hr />
-      {contents && <PathContents {...contents} />}
+      {contents != null && <PathContents id={id} {...contents} />}
     </div>
   );
 }
@@ -74,8 +89,14 @@ export async function getStaticProps(context) {
   const pool = getPool();
 
   // Get the sha1 id.
-  const { id } = context.params;
-  if (typeof id != "string" || id.length != 40) {
+  const id = context.params.id[0];
+  const relativePath = context.params.id.slice(1).join("/");
+  if (
+    typeof id != "string" ||
+    id.length != 40 ||
+    relativePath.indexOf("..") != -1 ||
+    relativePath[0] == "/"
+  ) {
     return { notFound: true };
   }
 
@@ -90,10 +111,21 @@ export async function getStaticProps(context) {
     return { notFound: true };
   }
 
-  const contents = await getContents(rows[0].project_id, rows[0].path);
+  let contents;
+  try {
+    contents = await getContents(
+      rows[0].project_id,
+      join(rows[0].path, relativePath)
+    );
+  } catch (error) {
+    return {
+      props: { id, ...rows[0], relativePath, error: error.toString() },
+      revalidate: 5,
+    };
+  }
 
   return {
-    props: { id, ...rows[0], contents },
+    props: { id, ...rows[0], contents, relativePath },
     revalidate: 5,
   };
 }

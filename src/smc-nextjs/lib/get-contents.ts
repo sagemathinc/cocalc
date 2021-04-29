@@ -7,7 +7,7 @@ import pathToFiles from "lib/path-to-files";
 import { promises as fs } from "fs";
 import { join } from "path";
 
-interface FileInfo {
+export interface FileInfo {
   name: string;
   error?: Error;
   isdir?: boolean;
@@ -15,13 +15,13 @@ interface FileInfo {
   mtime?: number;
 }
 
-type PathContents = {
+interface PathContents {
   isdir?: boolean;
   listing?: FileInfo[];
   content?: string;
   size?: number;
   mtime?: number;
-};
+}
 
 export default async function getContents(
   project_id: string,

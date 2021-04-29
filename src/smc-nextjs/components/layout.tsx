@@ -48,6 +48,7 @@ export default function Layout({ children }) {
           style={{
             borderTop: "1px solid lightgrey",
             background: "#efefef",
+            marginTop: "30px",
             fontSize: "12pt",
             textAlign: "center",
             color: "#999",
