@@ -6,6 +6,7 @@
 import pathToFiles from "lib/path-to-files";
 import { promises as fs } from "fs";
 import { join } from "path";
+import { sortBy } from "lodash";
 
 export interface FileInfo {
   name: string;
@@ -65,5 +66,5 @@ async function getDirectoryListing(path: string): Promise<FileInfo[]> {
     }
     listing.push(obj);
   }
-  return listing;
+  return sortBy(listing, ['mtime', 'name']).reverse();
 }

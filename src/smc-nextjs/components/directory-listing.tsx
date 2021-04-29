@@ -34,13 +34,24 @@ function columns(id, relativePath) {
       title: "Name",
       dataIndex: "name",
       key: "name",
-      render: (name) => {
+      render: (name, record) => {
         return (
-          <Link href={`/public_paths/${id}/${encodeURIComponent(join(relativePath, name))}`}>
-            <a>{name}</a>
+          <Link
+            href={`/public_paths/${id}/${encodeURIComponent(
+              join(relativePath, name)
+            )}`}
+          >
+            <a>{record.isdir ? <b>{name}</b> : name}</a>
           </Link>
         );
       },
+    },
+    { title: "Size", dataIndex: "size", key: "size" },
+    {
+      title: "Last modified",
+      dataIndex: "mtime",
+      key: "mtime",
+      render: (mtime) => `${new Date(mtime).toLocaleString()}`,
     },
   ];
 }

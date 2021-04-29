@@ -46,7 +46,7 @@ const COLUMNS = [
   },
 ];
 
-export default function publicPathsTable({ rows }: { rows: Row[] }): JSX.Element {
+export default function PublicPaths({ rows }: { rows: Row[] }): JSX.Element {
   return (
     <Table
       pagination={false}

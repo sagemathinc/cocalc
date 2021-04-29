@@ -16,7 +16,7 @@ Page for a given user.
 
 import getPool from "lib/database";
 import { isUUID } from "lib/util";
-import PublicPathsTable from "components/public-paths-table";
+import PublicPaths from "components/public-paths";
 import getCollaborators from "lib/get-collaborators";
 import Collaborators from "components/collaborators";
 
@@ -30,7 +30,7 @@ export default function Project({ rows, collaborators, title }) {
       <br /> <br />
       <h2>Public Paths</h2>
       {rows != null && rows.length > 0 ? (
-        <PublicPathsTable rows={rows} />
+        <PublicPaths rows={rows} />
       ) : (
         "No public paths."
       )}
