@@ -20,6 +20,7 @@ import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { normalize as path_normalize } from "path";
 import { union } from "lodash";
+import { reuseInFlight } from "async-await-utils/hof";
 import { fromJS, List, Map } from "immutable";
 import { once } from "smc-util/async-utils";
 import { project_api } from "../generic/client";
@@ -94,6 +95,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   public project_id: string;
   public store: Store<LatexEditorState>;
   private _last_sagetex_hash: string;
+  private _last_syncstring_hash: string | undefined;
   private is_building: boolean = false;
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
@@ -172,10 +174,12 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  private not_ready(): boolean {
+    return this._syncstring == null || this._syncstring.get_state() != "ready";
+  }
+
   private is_likely_master(): boolean {
-    if (this._syncstring == null || this._syncstring.get_state() != "ready") {
-      return false;
-    }
+    if (this.not_ready()) return false;
     const s = this._syncstring.to_str();
     return s && s.indexOf("\\document") != -1;
   }
@@ -183,16 +187,23 @@ export class Actions extends BaseActions<LatexEditorState> {
   private init_latexmk(): void {
     const account: any = this.redux.getStore("account");
 
-    this._syncstring.on("save-to-disk", () => {
-      if (
-        account &&
-        account.getIn(["editor_settings", "build_on_save"]) &&
-        this.is_likely_master()
-      ) {
-        // Only autobuild on save if there is a \\document* command.
-        this.build("", false);
-      }
-    });
+    this._syncstring.on(
+      "save-to-disk",
+      reuseInFlight(async () => {
+        if (this.not_ready()) return;
+        const hash = this._syncstring.hash_of_saved_version();
+        if (
+          account &&
+          account.getIn(["editor_settings", "build_on_save"]) &&
+          this.is_likely_master() &&
+          this._last_syncstring_hash != hash
+        ) {
+          this._last_syncstring_hash = hash;
+          // Only autobuild on save if there is a \\document* command.
+          await this.build("", false);
+        }
+      })
+    );
   }
 
   private async init_build_directive(): Promise<void> {
@@ -342,9 +353,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
     }
 
-    console.log("before", { cmd });
+    //console.log("before", { cmd });
     cmd = ensureTargetPathIsCorrect(cmd, path_split(this.path).tail);
-    console.log("after", { cmd });
+    //console.log("after", { cmd });
 
     // We also focus on setting -deps for latexmk
     if (!cmd.trim().startsWith("latexmk")) return cmd;
