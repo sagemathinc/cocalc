@@ -44,8 +44,8 @@ Biggest challenges are: (1) **no coffeescript** so we might have to rewrite chun
 
 ### Optimizations and cleanup
 
-- [ ] worry about .. and access to raw shares. 
-- [ ] LRU cache in lib/server/serve-raw-path.js
+- [x] #security  worry more about ".." in path and access to raw shares. 
+- [x] #now  LRU cache in lib/server/serve-raw-path.js
 - [ ]  In `pages/public_paths/[id].tsx`  we could pre-render the top N most popular pages...
 - [ ] is the token field in `public_paths`  used at all?
 - [ ] unlisted users -- need to add to cocalc account prefs that unlisted also means that user will not be mentioned anywhere publicly (e.g., on the share server).

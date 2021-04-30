@@ -13,22 +13,29 @@ const url = require("url");
 const serve_static = require("serve-static");
 const serve_index = require("serve-index");
 const finalhandler = require("finalhandler");
+const LRU = require("lru-cache");
 
-// TODO: redo using LRU caches.
+const CACHE_SIZE = 100;
 const STATIC_OPTIONS = { index: ["index.html", "index.htm"] };
-const serve_static_cache = {};
-function get_serve_static(dir) {
-  return serve_static_cache[dir] != null
-    ? serve_static_cache[dir]
-    : (serve_static_cache[dir] = serve_static(dir, STATIC_OPTIONS));
+const staticServers = new LRU({ max: CACHE_SIZE });
+function getStaticServer(dir) {
+  if (staticServers.has(dir)) {
+    return staticServers.get(dir);
+  }
+  const server = serve_static(dir, STATIC_OPTIONS);
+  staticServers.set(dir, server);
+  return server;
 }
 
-const INDEX_OPTIONS = { icons: true };
-const serve_index_cache = {};
-function get_serve_index(dir) {
-  return serve_index_cache[dir] != null
-    ? serve_index_cache[dir]
-    : (serve_index_cache[dir] = serve_index(dir, INDEX_OPTIONS));
+const INDEX_OPTIONS = { icons: true, hidden: true, view: "details" };
+const indexServers = new LRU({ max: CACHE_SIZE });
+function getIndexServer(dir) {
+  if (indexServers.has(dir)) {
+    return indexServers.get(dir);
+  }
+  const server = serve_index(dir, INDEX_OPTIONS);
+  indexServers.set(dir, server);
+  return server;
 }
 
 function send404(res) {
@@ -83,14 +90,14 @@ module.exports = async function serveRawPath(opts) {
     return;
   }
 
-  const s_static = get_serve_static(dir);
-  const s_index = get_serve_index(dir);
+  const staticServer = getStaticServer(dir);
   req.url = path === "" ? "/" : path;
-  s_static(req, res, function (err) {
+  staticServer(req, res, function (err) {
     if (err) {
       finalhandler(err);
     } else {
-      s_index(req, res, finalhandler);
+      const indexServer = getIndexServer(dir);
+      indexServer(req, res, finalhandler);
     }
   });
 };
