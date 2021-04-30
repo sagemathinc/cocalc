@@ -4,7 +4,7 @@
  */
 
 import { getExtension } from "lib/util";
-import { isImage } from "lib/file-extensions";
+import { isImage, isAudio, isVideo } from "lib/file-extensions";
 import rawURL from "lib/raw-url";
 
 interface Props {
@@ -24,19 +24,21 @@ export default function FileContents({
 }: Props): JSX.Element {
   const filename = relativePath ? relativePath : path;
   const ext = getExtension(filename);
+  const raw = rawURL(id, filename, basePath);
   if (isImage(ext)) {
+    return <img src={raw} style={{ maxWidth: "100%" }} />;
+  } else if (isVideo(ext)) {
     return (
-      <div>
-        <img
-          src={rawURL(id, filename, basePath)}
-          style={{ maxWidth: "100%" }}
-        />
-      </div>
+      <video
+        controls={true}
+        autoPlay={true}
+        loop={true}
+        style={{ width: "100%", height: "auto" }}
+        src={raw}
+      />
     );
+  } else if (isAudio(ext)) {
+    return <audio src={raw} autoPlay={true} controls={true} loop={false} />;
   }
-  return (
-    <div>
-      <pre>{content}</pre>
-    </div>
-  );
+  return <pre>{content}</pre>;
 }

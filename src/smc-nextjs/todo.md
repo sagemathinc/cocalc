@@ -11,10 +11,12 @@ This is what we need for functional equivalence with existing share server:
   - [x] number of views
     - [x] increment the view counter
 
-  - [ ] #now  open in cocalc link; env variable and function to make the url...  
+  - [x] open in cocalc link; env variable and function to make the url...  
     [https://cocalc.com/107dcdce-4222-41a7-88a1-7652e29c1159/port/54145/app?anonymous=true&amp;launch=share/fc974f7e93cc44cd3c0df7fd413e565a896e817d/issue-5212/a.png](https://cocalc.com/107dcdce-4222-41a7-88a1-7652e29c1159/port/54145/app?anonymous=true&launch=share/fc974f7e93cc44cd3c0df7fd413e565a896e817d/issue-5212/a.png)
 
   - [x]  directory listing
+
+  - virtual hosts: porting this over `smc-hub/share/virtual-hosts.ts`  
 
   - [ ] document
     - [ ] #hard static smc-webapp rendered view of the document; currently in `smc-webapp/share/file-contents.tsx`
@@ -23,8 +25,9 @@ This is what we need for functional equivalence with existing share server:
         - [x] can we fix the / issue (i.e., that if next serves /, then back button breaks)?
         - [x] security
         - [x] images in directories work  but single alone images don't
-        - [ ] virtual hosts
       - [ ] codemirror for code
+      - [ ] audio
+      - [ ] video 
       - [ ] markdown
       - [ ] sage worksheet
       - [ ] jupyter notebook
