@@ -146,6 +146,9 @@ export class Actions<
   private _active_id_history: string[] = [];
   private _spellcheck_is_supported: boolean = false;
 
+  // multifile support. this will be set to the path of the parent file (master)
+  protected parent_file: string | undefined = undefined;
+
   _init(
     project_id: string,
     path: string,
@@ -2580,5 +2583,9 @@ export class Actions<
 
   public set_show_uncommitted_changes(val: boolean): void {
     this.setState({ show_uncommitted_changes: val });
+  }
+
+  public set_parent_file(path: string) {
+    this.parent_file = path;
   }
 }

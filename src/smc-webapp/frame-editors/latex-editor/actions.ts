@@ -195,12 +195,22 @@ export class Actions extends BaseActions<LatexEditorState> {
         if (
           account &&
           account.getIn(["editor_settings", "build_on_save"]) &&
-          this.is_likely_master() &&
           this._last_syncstring_hash != hash
         ) {
           this._last_syncstring_hash = hash;
-          // Only autobuild on save if there is a \\document* command.
-          await this.build("", false);
+          // there are two cases: the parent "master" file triggers the build (usual case)
+          // or an included depdenency – i.e. where parent_file is set
+          if (this.parent_file != null && this.parent_file != this.path) {
+            const parent_actions = this.redux.getEditorActions(
+              this.project_id,
+              this.parent_file
+            ) as Actions;
+            // we're careful, maybe getEditorActions returns something else ...
+            await parent_actions?.build?.("", false);
+          } else if (this.parent_file == null && this.is_likely_master()) {
+            // also check is_likely_master, b/c there must be a \\document* command.
+            await this.build("", false);
+          }
         }
       })
     );
@@ -547,9 +557,16 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     const v: BaseActions<CodeEditorState>[] = [];
     for (const path of files) {
-      const actions = this.redux.getEditorActions(this.project_id, path);
+      const actions = this.redux.getEditorActions(
+        this.project_id,
+        path
+      ) as BaseActions<CodeEditorState>;
       if (actions == null) continue;
-      v.push(actions as BaseActions<CodeEditorState>);
+      // the parent (master) file is in the switch_to_files list!
+      if (this.path != path) {
+        actions.set_parent_file(this.path);
+      }
+      v.push(actions);
     }
     return v;
   }
