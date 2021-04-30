@@ -15,6 +15,7 @@ import Loading from "components/loading";
 import License from "components/license";
 import ProjectLink from "components/project-link";
 import { getProjectTitle } from "lib/get-project";
+import rawURL from "lib/raw-url";
 
 const basePath = require("lib/basePath")();
 
@@ -82,7 +83,8 @@ export default function PublicPath({
       <b>Project:</b>{" "}
       <ProjectLink project_id={project_id} title={projectTitle} />
       <br />
-      <a>Edit a copy</a>, <a>Download</a>, <a>Raw</a>, <a>Embed</a>
+      <a>Edit a copy</a>, <a>Download</a>,{" "}
+      <a href={rawURL(id, relativePath ? relativePath : path, basePath)}>Raw</a>, <a>Embed</a>
       <hr />
       {contents != null && (
         <PathContents

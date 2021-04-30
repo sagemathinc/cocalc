@@ -36,8 +36,6 @@ export default function FileContents({
   }
   return (
     <div>
-      {id}/{relativePath}
-      <br />
       <pre>{content}</pre>
     </div>
   );

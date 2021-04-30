@@ -18,13 +18,14 @@ This is what we need for functional equivalence with existing share server:
         - [x] get it to server static files properly
         - [x] can we fix the / issue (i.e., that if next serves /, then back button breaks)?
         - [ ] security
-        - [ ] images in directories work  but single alone images don't
-      - [ ]  codemirror for code first
+        - [x] images in directories work  but single alone images don't
+        - [ ] virtual hosts
+      - [ ] codemirror for code
       - [ ] markdown
       - [ ] sage worksheet
       - [ ] jupyter notebook
-    - [ ] download a single document
-    - [ ] raw view of document
+    - [ ] download  document
+    - [x] raw view of document
     - [ ] embed version of document (with backward compat redirect)
     - [x] showing license
     - [x] long description

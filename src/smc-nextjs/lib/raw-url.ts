@@ -5,8 +5,8 @@
 
 export default function rawURL(
   id: string,
-  path: string,
+  relativePath: string,
   basePath?: string
 ): string {
-  return `${basePath ?? ""}/raw/${id}/${encodeURIComponent(path)}`;
+  return `${basePath ?? ""}/raw/${id}/${encodeURI(relativePath)}`;
 }
