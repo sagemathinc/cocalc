@@ -26,7 +26,7 @@ This is what we need for functional equivalence with existing share server:
       - [ ] jupyter notebook
     - [x] download  document
     - [x] raw view of document
-    - [ ] embed version of document 
+    - [x] embed version of document
     - [x] showing license
     - [x] long description
     - [x] compute environment
@@ -34,7 +34,7 @@ This is what we need for functional equivalence with existing share server:
 - [x] browser raw directory listings
 - [ ] page with info about a user.  But what?  How about a list of all projects with public paths that they collaborate on, and that's it.
 - [x] box to search the share server using google
-- [ ] google analytics: just need to copy some functions from `share/base-page.tsx`
+- [x] google analytics: just need to copy some functions from `share/base-page.tsx`
 - [x] the back button doesn't work robustly, which is really disturbing!
   - Might be [this](https://github.com/vercel/next.js/issues/7091)? nope.
   - maybe [this](https://github.com/vercel/next.js/issues/9989)? nope.
@@ -46,7 +46,7 @@ Biggest challenges are: (1) **no coffeescript** so we might have to rewrite chun
 
 ### Optimizations and cleanup
 
-- [x] #security  worry more about ".." in path and access to raw shares. 
+- [x] #security  worry more about ".." in path and access to raw shares.
 - [x] LRU cache in lib/server/serve-raw-path.js
 - [ ]  In `pages/public_paths/[id].tsx`  we could pre-render the top N most popular pages...
 - [ ] is the token field in `public_paths`  used at all?

@@ -7,8 +7,9 @@ import Link from "next/link";
 import SiteName from "components/site-name";
 import Head from "next/head";
 import GoogleSearch from "components/google-search";
+import Analytics from "components/analytics";
 
-export default function Layout({ children }) {
+export function Layout({ children }) {
   return (
     <>
       <Head>
@@ -16,6 +17,7 @@ export default function Layout({ children }) {
           <SiteName />
         </title>
         <link rel="icon" href={`${process.env.basePath ?? ""}/favicon.ico`} />
+        <Analytics />
       </Head>
       <main>
         <div
@@ -67,6 +69,21 @@ export default function Layout({ children }) {
           <a href="mailto:help@cocalc.com">help@cocalc.com</a>
         </footer>
       </main>
+    </>
+  );
+}
+
+export function Embed({ children }) {
+  return (
+    <>
+      <Head>
+        <title>
+          <SiteName />
+        </title>
+        <link rel="icon" href={`${process.env.basePath ?? ""}/favicon.ico`} />
+        <Analytics />
+      </Head>
+      <main>{children}</main>
     </>
   );
 }

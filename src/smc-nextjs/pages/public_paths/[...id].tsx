@@ -3,10 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { join } from "path";
 import Link from "next/link";
-import { useEffect } from "react";
-import { useRouter } from "next/router";
 import PathContents from "components/path-contents";
 import LinkedPath from "components/linked-path";
 import Loading from "components/loading";

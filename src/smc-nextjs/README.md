@@ -23,3 +23,11 @@ npm run dev
 ```
 
 In CoCalc, open  `https://cocalc.com/COCALC_PROJECT_ID/port/3000/` with your browser to see the result.
+
+## Analytics
+
+Run with env variables like this:
+
+```sh
+GA_TRACKING_ID=UA-12345600-1 COCALC_ANALYTICS_DNS='cocalc.com'  npm run dev
+```

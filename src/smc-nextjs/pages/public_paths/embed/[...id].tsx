@@ -3,14 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { join } from "path";
 import Link from "next/link";
-import getPool from "lib/database";
-import { useEffect } from "react";
-import { useRouter } from "next/router";
-import getContents from "lib/get-contents";
 import PathContents from "components/path-contents";
-import LinkedPath from "components/linked-path";
 import Loading from "components/loading";
 import getPublicPathInfo from "lib/get-public-path-info";
 import useCounter from "lib/counter";
@@ -78,7 +72,7 @@ export async function getStaticProps(context) {
   try {
     const props = await getPublicPathInfo(id, relativePath);
     return {
-      props: { ...props, noLayout: true },
+      props: { ...props, layout: "embed" },
       revalidate: 5,
     };
   } catch (_err) {
