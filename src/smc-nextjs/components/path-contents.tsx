@@ -30,11 +30,7 @@ export default function PathContents({
   if (isdir) {
     if (listing == null) return <Loading />;
     return (
-      <DirectoryListing
-        id={id}
-        listing={listing}
-        relativePath={relativePath}
-      />
+      <DirectoryListing id={id} listing={listing} relativePath={relativePath} />
     );
   } else {
     return (

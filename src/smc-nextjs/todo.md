@@ -10,14 +10,18 @@ This is what we need for functional equivalence with existing share server:
 - [ ] display a specific path:
   - [x] number of views
     - [x] increment the view counter
-  - [ ] open with one click link; env variable and function to make the url...
+
+  - [ ] #now  open in cocalc link; env variable and function to make the url...  
+    [https://cocalc.com/107dcdce-4222-41a7-88a1-7652e29c1159/port/54145/app?anonymous=true&amp;launch=share/fc974f7e93cc44cd3c0df7fd413e565a896e817d/issue-5212/a.png](https://cocalc.com/107dcdce-4222-41a7-88a1-7652e29c1159/port/54145/app?anonymous=true&launch=share/fc974f7e93cc44cd3c0df7fd413e565a896e817d/issue-5212/a.png)
+
   - [x]  directory listing
+
   - [ ] document
     - [ ] #hard static smc-webapp rendered view of the document; currently in `smc-webapp/share/file-contents.tsx`
       - need to use https://nextjs.org/docs/advanced-features/custom-server to incorporate the raw server via express, since raw server is needed, but impossible in next.js.
         - [x] get it to server static files properly
         - [x] can we fix the / issue (i.e., that if next serves /, then back button breaks)?
-        - [ ] security
+        - [x] security
         - [x] images in directories work  but single alone images don't
         - [ ] virtual hosts
       - [ ] codemirror for code
@@ -31,8 +35,9 @@ This is what we need for functional equivalence with existing share server:
     - [x] long description
     - [x] compute environment
     - [x] name and link to author of document
+
 - [x] browser raw directory listings
-- [ ] page with info about a user.  But what?  How about a list of all projects with public paths that they collaborate on, and that's it.
+- [ ] page with info about a user.  But what?  How about a list of all projects with public paths that they "collaborate on", and that's it.
 - [x] box to search the share server using google
 - [x] google analytics: just need to copy some functions from `share/base-page.tsx`
 - [x] the back button doesn't work robustly, which is really disturbing!

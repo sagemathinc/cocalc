@@ -9,7 +9,11 @@ duplicating code.  What's below may be pretty dumb though (and we should use som
 mimetype library)...
 */
 
-import { file_associations, VIDEO_EXTS, AUDIO_EXTS } from "cocalc/smc-webapp/file-associations";
+import {
+  file_associations,
+  VIDEO_EXTS,
+  AUDIO_EXTS,
+} from "cocalc/smc-webapp/file-associations";
 
 // see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
 const image = new Set([
@@ -80,7 +84,3 @@ export function hasSpecialViewer(ext: string): boolean {
   );
 }
 
-// Is the actual content used in rendering files with the given extension.
-export function needsContent(ext: string): boolean {
-  return !(image[ext] || pdf[ext] || video[ext]);
-}

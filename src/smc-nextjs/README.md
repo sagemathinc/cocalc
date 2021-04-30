@@ -29,5 +29,5 @@ In CoCalc, open  `https://cocalc.com/COCALC_PROJECT_ID/port/3000/` with your bro
 Run with env variables like this:
 
 ```sh
-GA_TRACKING_ID=UA-12345600-1 COCALC_ANALYTICS_DNS='cocalc.com'  npm run dev
+GA_TRACKING_ID=UA-12345600-1 COCALC_APP_SERVER='https://cocalc.com'  npm run dev
 ```

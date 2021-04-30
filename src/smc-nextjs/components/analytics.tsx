@@ -14,23 +14,24 @@ gtag('config', '${GA_TRACKING_ID}');\
 `;
   return [
     <script
-      key={0}
+      key={'google-analytics-0'}
       async={true}
       defer={true}
       src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
     />,
-    <script key={1} dangerouslySetInnerHTML={{ __html: ga }} />,
+    <script key={'google-analytics-1'} dangerouslySetInnerHTML={{ __html: ga }} />,
   ];
 }
 
 function CoCalcAnalytics() {
-  const COCALC_ANALYTICS_DNS = process.env.COCALC_ANALYTICS_DNS;
-  if (!COCALC_ANALYTICS_DNS) return [];
+  const COCALC_APP_SERVER = process.env.COCALC_APP_SERVER;
+  if (!COCALC_APP_SERVER) return [];
   return [
     <script
+      key="cocalc-analytics"
       async={true}
       defer={true}
-      src={`https://${COCALC_ANALYTICS_DNS}/analytics.js`}
+      src={`${COCALC_APP_SERVER}/analytics.js`}
     />,
   ];
 }
