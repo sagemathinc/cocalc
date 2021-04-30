@@ -44,6 +44,8 @@ Biggest challenges are: (1) **no coffeescript** so we might have to rewrite chun
 
 ### Optimizations and cleanup
 
+- [ ] worry about .. and access to raw shares. 
+- [ ] LRU cache in lib/server/serve-raw-path.js
 - [ ]  In `pages/public_paths/[id].tsx`  we could pre-render the top N most popular pages...
 - [ ] is the token field in `public_paths`  used at all?
 - [ ] unlisted users -- need to add to cocalc account prefs that unlisted also means that user will not be mentioned anywhere publicly (e.g., on the share server).
@@ -58,3 +60,25 @@ Biggest challenges are: (1) **no coffeescript** so we might have to rewrite chun
 - [ ] ability to name public path so get a nice url
 - [ ] implement redirect so old url schema works
 - [ ] I disabled checks for  src/scripts/check\_npm\_packages.py of smc-nextjs, since we're truly using different package versions that (only overlapping codebase eventually in some react components).   Maybe at some point re-enable this.
+
+## Other
+
+inotify:
+
+```sh
+cocalc@kucalc-prod3-node-eara:~$ sudo su
+root@kucalc-prod3-node-eara:/home/cocalc# more /proc/sys/fs/inotify/max_user_watches
+8192
+root@kucalc-prod3-node-eara:/home/cocalc# echo fs.inotify.max_user_watches=80000 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+fs.inotify.max_user_watches=80000
+fs.inotify.max_user_watches = 80000
+root@kucalc-prod3-node-eara:/home/cocalc# more /proc/sys/fs/inotify/max_user_watches
+80000
+root@kucalc-prod3-node-eara:/home/cocalc# sysctl -a|grep inotify
+fs.inotify.max_queued_events = 16384
+fs.inotify.max_user_instances = 128
+fs.inotify.max_user_watches = 80000
+user.max_inotify_instances = 128
+user.max_inotify_watches = 80000
+root@kucalc-prod3-node-eara:/home/cocalc#
+```

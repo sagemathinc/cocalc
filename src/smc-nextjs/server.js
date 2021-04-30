@@ -31,9 +31,9 @@ app.prepare().then(() => {
       // Access is via /raw/[shareid]/path/to/file
       const segments = path.split("/");
       const id = segments[2];
-      let dir;
+      let sharePath;
       try {
-        dir = await pathFromID(id);
+        sharePath = await pathFromID(id);
       } catch (err) {
         res.error(err);
         return;
@@ -42,7 +42,7 @@ app.prepare().then(() => {
         req,
         res,
         path: segments.slice(3).join("/"), // path to the file inside the public share.
-        dir, // path to directory on filesystem that contains the public share
+        sharePath, // path to directory on filesystem that contains the public share
       });
     } else {
       handle(req, res, parsedUrl);

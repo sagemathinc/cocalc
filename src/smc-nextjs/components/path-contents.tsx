@@ -33,7 +33,6 @@ export default function PathContents({
       <DirectoryListing
         id={id}
         listing={listing}
-        path={path}
         relativePath={relativePath}
       />
     );

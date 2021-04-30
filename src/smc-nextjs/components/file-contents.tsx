@@ -11,6 +11,7 @@ interface Props {
   id: string;
   content?: string;
   relativePath: string;
+  path: string;
   basePath?: string;
 }
 
@@ -21,12 +22,13 @@ export default function FileContents({
   relativePath,
   basePath,
 }: Props): JSX.Element {
-  const ext = getExtension(relativePath ? relativePath : path);
+  const filename = relativePath ? relativePath : path;
+  const ext = getExtension(filename);
   if (isImage(ext)) {
     return (
       <div>
         <img
-          src={rawURL(id, relativePath, basePath)}
+          src={rawURL(id, filename, basePath)}
           style={{ maxWidth: "100%" }}
         />
       </div>

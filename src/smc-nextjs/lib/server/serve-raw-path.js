@@ -31,35 +31,66 @@ function get_serve_index(dir) {
     : (serve_index_cache[dir] = serve_index(dir, INDEX_OPTIONS));
 }
 
+function send404(res) {
+  res.writeHead(404, { "Content-Type": "text/plain" });
+  res.write("404 Not Found\n");
+  res.end();
+}
+
 // res = html response object
-module.exports = function serveRawPath(opts) {
-  // We first test that we have access to the file (and it exists) before
-  // messing with the express static server.  I don't know why, but for some
-  // reason it hangs forever when fed an unknown path, which obviously leads
-  // to a very bad experience for users!
-  const { req, res, dir, path } = opts;
+module.exports = async function serveRawPath(opts) {
+  const { req, res, sharePath, path } = opts;
   // see https://stackoverflow.com/questions/14166898/node-js-with-express-how-to-remove-the-query-string-from-the-url
   const pathname = url.parse(path).pathname;
   if (pathname == null) {
-    // I think this shouldn't be possible, but typescript thinks it is.
-    res.sendStatus(404);
+    // console.log("serveRawPath", err);
+    send404(res);
     return;
   }
-  const target = os_path.join(dir, decodeURI(pathname));
-  fs.access(target, fs.constants.R_OK, function (err) {
-    if (err != null) {
-      res.sendStatus(404);
-      return;
-    }
-    const s_static = get_serve_static(dir);
-    const s_index = get_serve_index(dir);
-    req.url = path === "" ? "/" : path;
-    s_static(req, res, function (err) {
-      if (err) {
-        finalhandler(err);
-      } else {
-        s_index(req, res, finalhandler);
+
+  // We first test that we have access to the file (and it exists)
+  // before serving the file, to avoid the static server itself
+  // failing internally (which does so in a bad way).
+  // Also, if the share target is a directory, then the url
+  // to acccess it is
+  //     /raw/[share_id]/path/into/the/share.
+  // but if the share target is a file, the url is
+  //     /raw/[share_id]/[shared_filename].
+  // We do this because otherwise the browser/server wouldn't know the MIME type,
+  // but at the same time we want to minimize how much redundant information
+  // is in the URL.   In our actual implementation in the later case (not a directory),
+  // we immediately send an error if the shared_filename doesn't match the
+  // last segment of the shared_id's path.
+  let stats, target, dir;
+  try {
+    stats = await fs.promises.lstat(sharePath);
+    if (stats.isDirectory()) {
+      target = os_path.join(sharePath, decodeURI(pathname));
+      dir = sharePath;
+    } else {
+      target = sharePath;
+      const i = sharePath.lastIndexOf("/");
+      dir = sharePath.slice(0, i);
+      if (decodeURI(pathname) != sharePath.slice(i + 1)) {
+        send404(res);
+        return;
       }
-    });
+    }
+    await fs.promises.access(target, fs.constants.R_OK);
+  } catch (err) {
+    // console.log("serveRawPath", err, { target });
+    send404(res);
+    return;
+  }
+
+  const s_static = get_serve_static(dir);
+  const s_index = get_serve_index(dir);
+  req.url = path === "" ? "/" : path;
+  s_static(req, res, function (err) {
+    if (err) {
+      finalhandler(err);
+    } else {
+      s_index(req, res, finalhandler);
+    }
   });
 };
