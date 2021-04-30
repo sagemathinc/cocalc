@@ -16,10 +16,9 @@ import { Map } from "immutable";
 import {
   React,
   Component,
-  rclass,
-  rtypes,
   ReactDOM,
   Rendered,
+  useTypedRedux,
 } from "../app-framework";
 
 import { times_n } from "./util";
@@ -337,80 +336,29 @@ class StaticPositionedCursor extends Component<StaticPositionedCursorProps> {
 }
 
 interface CursorsProps {
-  // OwnProps
   cursors: Map<string, any>;
   codemirror?: any; // optional codemirror editor instance
-  // ReduxProps
-  user_map?: Map<string, any>;
-  account_id?: string;
 }
 
-interface CursorsState {
-  n: number;
-}
+export const Cursors: React.FC<CursorsProps> = React.memo(
+  (props: CursorsProps) => {
+    const { cursors, codemirror } = props;
+    const user_map = useTypedRedux("users", "user_map");
+    // const account_id = useTypedRedux("account", "account_id");
+    const [, set_n] = React.useState<number>(0);
 
-class Cursors0 extends Component<CursorsProps, CursorsState> {
-  private _interval: any;
+    React.useEffect(() => {
+      const i_id = setInterval(() => set_n((n) => n + 1), CURSOR_TIME_MS / 2);
+      return () => clearInterval(i_id);
+    }, []);
 
-  public static reduxProps = () => ({
-    users: {
-      user_map: rtypes.immutable.Map,
-    },
-    account: {
-      account_id: rtypes.string,
-    },
-  });
-
-  constructor(props, context) {
-    super(props, context);
-    this.state = { n: 0 };
-  }
-
-  public shouldComponentUpdate(
-    props: CursorsProps,
-    state: CursorsState
-  ): boolean {
-    return (
-      is_different(this.props, props, ["cursors", "user_map", "account_id"]) ||
-      this.state.n !== state.n
-    );
-  }
-
-  public componentDidMount(): void {
-    this._interval = setInterval(
-      () => this.setState({ n: this.state.n + 1 }),
-      CURSOR_TIME_MS / 2
-    );
-  }
-
-  public componentWillUnmount(): void {
-    clearInterval(this._interval);
-  }
-
-  private profile(account_id: string): { color: string; name: string } {
-    if (this.props.user_map == null) return UNKNOWN_USER_PROFILE;
-    const user = this.props.user_map.get(account_id);
-    if (user == null) return UNKNOWN_USER_PROFILE;
-    const color = user.getIn(["profile", "color"], "rgb(170,170,170)");
-    const name = trunc_middle(
-      user.get("first_name", "") + " " + user.get("last_name", ""),
-      60
-    );
-    return { color, name };
-  }
-
-  public render(): Rendered {
-    let C: any;
     const now = server_time().valueOf();
     const v: any[] = [];
-    if (this.props.codemirror != null) {
-      C = PositionedCursor;
-    } else {
-      C = StaticPositionedCursor;
-    }
-    if (this.props.cursors != null && this.props.user_map != null) {
-      this.props.cursors.forEach((locs: any, account_id: any) => {
-        const { color, name } = this.profile(account_id);
+    const C: any =
+      codemirror != null ? PositionedCursor : StaticPositionedCursor;
+    if (cursors != null && user_map != null) {
+      cursors.forEach((locs: any, account_id: any) => {
+        const { color, name } = getProfile(account_id, user_map);
         locs.forEach((pos) => {
           const tm = pos.get("time");
           if (tm == null) {
@@ -418,7 +366,7 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
           }
           const t = tm.valueOf();
           if (now - t <= CURSOR_TIME_MS) {
-            /* if (account_id === this.props.account_id) {
+            /* if (account_id === account_id) {
               // Don't show our own cursor, we just haven't made this
               // possible due to only keying by account_id.
               return;
@@ -431,7 +379,7 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
                 name={name}
                 line={pos.get("y", 0)}
                 ch={pos.get("x", 0)}
-                codemirror={this.props.codemirror}
+                codemirror={codemirror}
               />
             );
           }
@@ -441,10 +389,9 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
     return (
       <div style={{ position: "relative", height: 0, zIndex: 5 }}>{v}</div>
     );
-  }
-}
-
-export const Cursors = rclass(Cursors0);
+  },
+  (prev, next) => !is_different(prev, next, ["cursors"])
+);
 
 export function getProfile(
   account_id,
