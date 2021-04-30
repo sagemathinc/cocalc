@@ -13,13 +13,7 @@ const CURSOR_TIME_MS = 45000;
 const HIDE_NAME_TIMEOUT_MS = 5000;
 
 import { Map } from "immutable";
-import {
-  React,
-  Component,
-  ReactDOM,
-  Rendered,
-  useTypedRedux,
-} from "../app-framework";
+import { React, ReactDOM, Rendered, useTypedRedux } from "../app-framework";
 
 import { times_n } from "./util";
 
@@ -38,137 +32,116 @@ interface CursorProps {
   paddingText?: string; // paddingText -- only used in slate to move cursor over one letter to place cursor at end of text
 }
 
-interface CursorState {
-  show_name?: boolean;
-}
+export const Cursor: React.FC<CursorProps> = React.memo(
+  (props: CursorProps) => {
+    const { name, color, top, time, paddingText } = props;
 
-export class Cursor extends Component<CursorProps, CursorState> {
-  private _mounted: any; // TODO: don't do this
-  private _timer: any;
+    const mounted = React.useRef<boolean>(false); // TODO: don't do this
+    const timer = React.useRef<number | null>(null);
+    const [render_name, set_render_name] = React.useState<boolean>(true);
 
-  constructor(props, context) {
-    super(props, context);
-    this.state = { show_name: true };
-  }
+    React.useEffect(() => {
+      mounted.current = true;
+      set_timer(HIDE_NAME_TIMEOUT_MS);
+      return () => {
+        mounted.current = false;
+        clear_timer();
+      };
+    }, []);
 
-  public shouldComponentUpdate(
-    nextProps: CursorProps,
-    nextState: CursorState
-  ): boolean {
-    if (this.props.time !== nextProps.time) {
-      this.show_name(HIDE_NAME_TIMEOUT_MS);
+    React.useEffect(() => {
+      show_name(HIDE_NAME_TIMEOUT_MS);
+    }, [time]);
+
+    function clear_timer(): void {
+      if (timer.current != null) {
+        clearTimeout(timer.current);
+        timer.current = null;
+      }
     }
-    return (
-      is_different(this.props, nextProps, ["name", "color", "paddingText"]) ||
-      this.state.show_name !== nextState.show_name
-    );
-  }
 
-  public componentDidMount(): void {
-    this._mounted = true;
-    this._set_timer(HIDE_NAME_TIMEOUT_MS);
-  }
-
-  public componentWillUnmount(): void {
-    this._mounted = false;
-  }
-
-  private _clear_timer(): void {
-    if (this._timer != null) {
-      clearTimeout(this._timer);
-      delete this._timer;
+    function set_timer(timeout: number): void {
+      clear_timer();
+      timer.current = window.setTimeout(hide_name, timeout);
     }
-  }
 
-  private _set_timer(timeout: number): void {
-    this._clear_timer();
-    this._timer = setTimeout(() => this.hide_name(), timeout);
-  }
-
-  private hide_name(): void {
-    if (!this._mounted) {
-      return;
+    function hide_name(): void {
+      if (!mounted.current) return;
+      clear_timer();
+      set_render_name(false);
     }
-    this._clear_timer();
-    this.setState({ show_name: false });
-  }
 
-  private show_name(timeout?: number): void {
-    if (!this._mounted) {
-      return;
+    function show_name(timeout?: number): void {
+      if (!mounted.current) return;
+      set_render_name(true);
+      if (timeout) {
+        set_timer(timeout);
+      }
     }
-    this.setState({ show_name: true });
-    if (timeout) {
-      this._set_timer(timeout);
-    }
-  }
 
-  public renderCursor(): Rendered {
-    if (!this.props.paddingText) {
+    function renderCursor(): Rendered {
+      if (!paddingText) {
+        return (
+          <>
+            <span
+              style={{
+                width: 0,
+                height: "1em",
+                borderLeft: "2px solid",
+                position: "absolute",
+              }}
+            />
+            <span
+              style={{
+                width: "6px",
+                left: "-2px",
+                top: "-2px",
+                height: "6px",
+                position: "absolute",
+                backgroundColor: color,
+              }}
+            />
+          </>
+        );
+      }
+
       return (
         <>
           <span
             style={{
-              width: 0,
               height: "1em",
-              borderLeft: "2px solid",
+              borderRight: "2px solid",
               position: "absolute",
             }}
-          />
-          <span
-            style={{
-              width: "6px",
-              left: "-2px",
-              top: "-2px",
-              height: "6px",
-              position: "absolute",
-              backgroundColor: this.props.color,
-            }}
-          />
+          >
+            {renderPaddingText()}
+          </span>
         </>
       );
     }
 
-    return (
-      <>
-        <span
-          style={{
-            height: "1em",
-            borderRight: "2px solid",
-            position: "absolute",
-          }}
-        >
-          {this.renderPaddingText()}
-        </span>
-      </>
-    );
-  }
-
-  public renderPaddingText() {
-    if (this.props.paddingText) {
-      return (
-        <span style={{ color: "transparent" }}>{this.props.paddingText}</span>
-      );
+    function renderPaddingText() {
+      if (paddingText) {
+        return <span style={{ color: "transparent" }}>{paddingText}</span>;
+      }
     }
-  }
 
-  public render(): Rendered {
     return (
       <span
         style={{
-          color: this.props.color,
+          color: color,
           position: "relative",
           cursor: "text",
           pointerEvents: "all",
-          top: this.props.top,
+          top: top,
         }}
-        onMouseEnter={() => this.show_name()}
-        onMouseLeave={() => this.show_name(HIDE_NAME_TIMEOUT_MS)}
-        onTouchStart={() => this.show_name()}
-        onTouchEnd={() => this.show_name(HIDE_NAME_TIMEOUT_MS)}
+        onMouseEnter={() => show_name()}
+        onMouseLeave={() => show_name(HIDE_NAME_TIMEOUT_MS)}
+        onTouchStart={() => show_name()}
+        onTouchEnd={() => show_name(HIDE_NAME_TIMEOUT_MS)}
       >
-        {this.renderCursor()}
-        {this.state.show_name ? (
+        {renderCursor()}
+        {render_name ? (
           <span
             style={{
               position: "absolute",
@@ -178,20 +151,21 @@ export class Cursor extends Component<CursorProps, CursorState> {
               left: "-2px",
               padding: "2px",
               whiteSpace: "nowrap",
-              background: this.props.color,
+              background: color,
               fontFamily: "sans-serif",
               boxShadow: "3px 3px 5px 0px #bbb",
               opacity: 0.8,
             }}
           >
-            {this.renderPaddingText()}
-            {this.props.name}
+            {renderPaddingText()}
+            {name}
           </span>
         ) : undefined}
       </span>
     );
-  }
-}
+  },
+  (prev, next) => !is_different(prev, next, ["name", "color", "paddingText"])
+);
 
 interface PositionedCursorProps {
   name: string;
