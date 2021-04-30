@@ -202,90 +202,73 @@ interface PositionedCursorProps {
   time?: number;
 }
 
-class PositionedCursor extends Component<PositionedCursorProps> {
-  private _elt: any;
-  private _mounted: any; // TODO: dont do this
-  private _pos: any;
-
-  public shouldComponentUpdate(next: PositionedCursorProps): boolean {
-    return is_different(this.props, next, [
-      "line",
-      "ch",
-      "name",
-      "color",
-      "time",
-    ]);
-  }
-
-  private _render_cursor(props: PositionedCursorProps): Rendered {
-    return ReactDOM.render(
-      <Cursor
-        name={props.name}
-        color={props.color}
-        top={"-1.2em"}
-        time={this.props.time}
-      />,
-      this._elt
+const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
+  (props: PositionedCursorProps) => {
+    const { name, color, line, ch, codemirror, time } = props;
+    const mounted = React.useRef<boolean>(false);
+    const elt = React.useRef<HTMLDivElement | null>(null);
+    const [pos, set_pos] = React.useState<{ line: number; ch: number } | null>(
+      null
     );
-  }
 
-  public componentDidMount(): void {
-    this._mounted = true;
-    this._elt = document.createElement("div");
-    this._elt.style.position = "absolute";
-    this._elt.style["z-index"] = "5";
-    this._render_cursor(this.props);
-    this.props.codemirror.addWidget(
-      { line: this.props.line, ch: this.props.ch },
-      this._elt,
-      false
-    );
-  }
+    React.useEffect(() => {
+      mounted.current = true;
+      elt.current = document.createElement("div");
+      elt.current.style.position = "absolute";
+      elt.current.style["z-index"] = "5";
+      render_cursor();
+      codemirror.addWidget({ line, ch }, elt.current, false);
+      return () => {
+        mounted.current = false;
+        if (elt.current != null) {
+          ReactDOM.unmountComponentAtNode(elt.current);
+          elt.current.remove();
+          elt.current = null;
+        }
+      };
+    }, []);
 
-  private _position_cursor(): void {
-    if (!this._mounted || this._pos == null || this._elt == null) {
-      return;
-    }
-    // move the cursor widget to pos:
-    // A *big* subtlety here is that if one user holds down a key and types a lot, then their
-    // cursor will move *before* their new text arrives.  This sadly leaves the cursor
-    // being placed in a position that does not yet exist, hence fails.   To address this,
-    // if the position does not exist, we retry.
-    const x = this.props.codemirror.getLine(this._pos.line);
-    if (x == null || this._pos.ch > x.length) {
-      // oh crap, impossible to position cursor!  Try again in 1s.
-      setTimeout(this._position_cursor, 1000);
-    } else {
-      this.props.codemirror.addWidget(this._pos, this._elt, false);
-    }
-  }
+    React.useEffect(() => {
+      set_pos({ line, ch });
+      position_cursor();
+      // Always update how widget is rendered (this will at least cause it to display for 2 seconds after move/change).
+      render_cursor();
+    }, [line, ch]);
 
-  public componentWillReceiveProps(next: PositionedCursorProps): void {
-    if (this._elt == null) {
-      return;
-    }
-    if (this.props.line !== next.line || this.props.ch !== next.ch) {
-      this._pos = { line: next.line, ch: next.ch };
-      this._position_cursor();
-    }
-    // Always update how widget is rendered (this will at least cause it to display for 2 seconds after move/change).
-    this._render_cursor(next);
-  }
+    function position_cursor(): void {
+      if (!mounted.current || pos == null || elt.current == null) {
+        return;
+      }
 
-  public componentWillUnmount(): void {
-    this._mounted = false;
-    if (this._elt != null) {
-      ReactDOM.unmountComponentAtNode(this._elt);
-      this._elt.remove();
-      delete this._elt;
+      // move the cursor widget to pos:
+      // A *big* subtlety here is that if one user holds down a key and types a lot, then their
+      // cursor will move *before* their new text arrives.  This sadly leaves the cursor
+      // being placed in a position that does not yet exist, hence fails.   To address this,
+      // if the position does not exist, we retry.
+      const x = codemirror.getLine(pos.line);
+      if (x == null || pos.ch > x.length) {
+        // oh crap, impossible to position cursor!  Try again in 1s.
+        setTimeout(position_cursor, 1000);
+      } else {
+        codemirror.addWidget(pos, elt.current, false);
+      }
     }
-  }
 
-  public render(): Rendered {
+    function render_cursor(): void {
+      if (elt.current != null) {
+        ReactDOM.render(
+          <Cursor name={name} color={color} top={"-1.2em"} time={time} />,
+          elt.current
+        );
+      }
+    }
+
     // A simple (unused) container to satisfy react.
     return <span />;
-  }
-}
+  },
+  (prev, next) =>
+    !is_different(prev, next, ["line", "ch", "name", "color", "time"])
+);
 
 interface StaticPositionedCursorProps {
   name: string;
@@ -295,19 +278,10 @@ interface StaticPositionedCursorProps {
   time?: number;
 }
 
-class StaticPositionedCursor extends Component<StaticPositionedCursorProps> {
-  public shouldComponentUpdate(
-    nextProps: StaticPositionedCursorProps
-  ): boolean {
-    return (
-      this.props.line !== nextProps.line ||
-      this.props.ch !== nextProps.ch ||
-      this.props.name !== nextProps.name ||
-      this.props.color !== nextProps.color
-    );
-  }
+const StaticPositionedCursor: React.FC<StaticPositionedCursorProps> = React.memo(
+  (props: StaticPositionedCursorProps) => {
+    const { name, color, line, ch, time } = props;
 
-  public render(): Rendered {
     const style: React.CSSProperties = {
       position: "absolute",
       height: 0,
@@ -320,20 +294,21 @@ class StaticPositionedCursor extends Component<StaticPositionedCursorProps> {
     };
 
     // we position using newlines and blank spaces, so no measurement is needed.
-    const position =
-      times_n("\n", this.props.line) + times_n(" ", this.props.ch);
+    const position = times_n("\n", line) + times_n(" ", ch);
+
     return (
       <div style={style}>
         {position}
-        <Cursor
-          time={this.props.time}
-          name={this.props.name}
-          color={this.props.color}
-        />
+        <Cursor time={time} name={name} color={color} />
       </div>
     );
-  }
-}
+  },
+  (prev, next) =>
+    prev.line === next.line &&
+    prev.ch === next.ch &&
+    prev.name === next.name &&
+    prev.color === next.color
+);
 
 interface CursorsProps {
   cursors: Map<string, any>;
