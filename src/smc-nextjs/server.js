@@ -35,7 +35,9 @@ app.prepare().then(() => {
       try {
         sharePath = await pathFromID(id);
       } catch (err) {
-        res.error(err);
+        res.writeHead(404, { "Content-Type": "text/plain" });
+        res.write(`404 Not Found - ${err}\n`);
+        res.end();
         return;
       }
       serveRawPath({

@@ -14,9 +14,14 @@ const serve_static = require("serve-static");
 const serve_index = require("serve-index");
 const finalhandler = require("finalhandler");
 const LRU = require("lru-cache");
+const { sortBy } = require("lodash");
 
 const CACHE_SIZE = 100;
-const STATIC_OPTIONS = { index: ["index.html", "index.htm"] };
+const STATIC_OPTIONS = {
+  index: ["index.html", "index.htm"],
+  dotfiles: "allow",
+  fallthrough: true,
+};
 const staticServers = new LRU({ max: CACHE_SIZE });
 function getStaticServer(dir) {
   if (staticServers.has(dir)) {
@@ -27,7 +32,22 @@ function getStaticServer(dir) {
   return server;
 }
 
-const INDEX_OPTIONS = { icons: true, hidden: true, view: "details" };
+// TODO: make this look nice/consistent...?  Maybe also include timestamp and filesize.
+function template(locals, cb) {
+  // see https://www.npmjs.com/package/serve-index
+  const { directory, fileList, path } = locals;
+  let page = `<div style="color: #555;margin: 0 auto;max-width: 1200px;font-size: 12pt;"><h2>${directory}</h2>`;
+  for (const file of sortBy(fileList, ["name"])) {
+    const { name, stat } = file;
+    const isDir = stat.isDirectory();
+    page += `<div style="height:1.5em"><a style="text-decoration: none" href="${
+      name + (isDir ? "/" : "")
+    }">${isDir ? `<b>${name}</b>` : name}</a></div>`;
+  }
+  page += "</div>";
+  cb(undefined, page);
+}
+const INDEX_OPTIONS = { hidden: true, template };
 const indexServers = new LRU({ max: CACHE_SIZE });
 function getIndexServer(dir) {
   if (indexServers.has(dir)) {
@@ -48,16 +68,16 @@ function send404(res) {
 module.exports = async function serveRawPath(opts) {
   const { req, res, sharePath, path } = opts;
   // see https://stackoverflow.com/questions/14166898/node-js-with-express-how-to-remove-the-query-string-from-the-url
-  const pathname = url.parse(path).pathname;
+  let pathname = url.parse(path).pathname;
   if (pathname == null) {
-    // console.log("serveRawPath", err);
-    send404(res);
-    return;
+    // This happens when getting directory listing for entire public path.
+    pathname = "";
   }
 
   // We first test that we have access to the file (and it exists)
   // before serving the file, to avoid the static server itself
-  // failing internally (which does so in a bad way).
+  // failing internally (which does so in a bad way, due to fallthrough: true,
+  // since we want to serve an index in that case).
   // Also, if the share target is a directory, then the url
   // to acccess it is
   //     /raw/[share_id]/path/into/the/share.
@@ -83,7 +103,7 @@ module.exports = async function serveRawPath(opts) {
         return;
       }
     }
-    await fs.promises.access(target, fs.constants.R_OK);
+    await fs.promises.lstat(target, fs.constants.R_OK);
   } catch (err) {
     // console.log("serveRawPath", err, { target });
     send404(res);
@@ -91,13 +111,20 @@ module.exports = async function serveRawPath(opts) {
   }
 
   const staticServer = getStaticServer(dir);
+  const orig_url = req.url;
   req.url = path === "" ? "/" : path;
   staticServer(req, res, function (err) {
     if (err) {
       finalhandler(err);
     } else {
-      const indexServer = getIndexServer(dir);
-      indexServer(req, res, finalhandler);
+      if (orig_url.endsWith("/")) {
+        const indexServer = getIndexServer(dir);
+        indexServer(req, res, finalhandler);
+      } else {
+        // Redirect so that clicking on paths in the listing works properly.
+        res.writeHead(301, { Location: orig_url + "/" });
+        res.end();
+      }
     }
   });
 };

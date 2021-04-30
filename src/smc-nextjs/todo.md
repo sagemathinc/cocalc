@@ -30,6 +30,7 @@ This is what we need for functional equivalence with existing share server:
     - [x] long description
     - [x] compute environment
     - [x] name and link to author of document
+- [x] browser raw directory listings
 - [ ] page with info about a user.  But what?  How about a list of all projects with public paths that they collaborate on, and that's it.
 - [x] box to search the share server using google
 - [ ] google analytics: just need to copy some functions from `share/base-page.tsx`
@@ -45,7 +46,7 @@ Biggest challenges are: (1) **no coffeescript** so we might have to rewrite chun
 ### Optimizations and cleanup
 
 - [x] #security  worry more about ".." in path and access to raw shares. 
-- [x] #now  LRU cache in lib/server/serve-raw-path.js
+- [x] LRU cache in lib/server/serve-raw-path.js
 - [ ]  In `pages/public_paths/[id].tsx`  we could pre-render the top N most popular pages...
 - [ ] is the token field in `public_paths`  used at all?
 - [ ] unlisted users -- need to add to cocalc account prefs that unlisted also means that user will not be mentioned anywhere publicly (e.g., on the share server).
