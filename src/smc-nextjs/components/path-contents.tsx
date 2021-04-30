@@ -7,15 +7,15 @@ import DirectoryListing from "components/directory-listing";
 import FileContents from "components/file-contents";
 import { FileInfo } from "lib/get-contents";
 import Loading from "components/loading";
-import { join } from "path";
 
 interface Props {
   id: string;
   isdir?: boolean;
   listing?: FileInfo[];
   content?: string;
-  path: string;
   relativePath: string;
+  basePath: string;
+  path: string;
 }
 
 export default function PathContents({
@@ -23,17 +23,29 @@ export default function PathContents({
   isdir,
   listing,
   content,
-  path,
   relativePath,
+  basePath,
+  path,
 }: Props) {
   if (isdir) {
     if (listing == null) return <Loading />;
     return (
-      <DirectoryListing id={id} listing={listing} relativePath={relativePath} />
+      <DirectoryListing
+        id={id}
+        listing={listing}
+        path={path}
+        relativePath={relativePath}
+      />
     );
   } else {
     return (
-      <FileContents id={id} content={content} path={join(path, relativePath)} />
+      <FileContents
+        id={id}
+        content={content}
+        path={path}
+        relativePath={relativePath}
+        basePath={basePath}
+      />
     );
   }
 }

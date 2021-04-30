@@ -16,6 +16,7 @@ import License from "components/license";
 import ProjectLink from "components/project-link";
 import { getProjectTitle } from "lib/get-project";
 
+const basePath = require("lib/basePath")();
 
 // TODO: pre-render the most popuar n pages, according
 // to internal db counter.
@@ -43,6 +44,7 @@ export default function PublicPath({
   license,
   contents,
   error,
+  basePath,
 }) {
   useCounter(id);
   if (id == null) return <Loading />;
@@ -83,7 +85,13 @@ export default function PublicPath({
       <a>Edit a copy</a>, <a>Download</a>, <a>Raw</a>, <a>Embed</a>
       <hr />
       {contents != null && (
-        <PathContents id={id} path={path} relativePath={relativePath} {...contents} />
+        <PathContents
+          id={id}
+          relativePath={relativePath}
+          basePath={basePath}
+          path={path}
+          {...contents}
+        />
       )}
     </div>
   );
@@ -142,7 +150,7 @@ export async function getStaticProps(context) {
   }
 
   return {
-    props: { id, ...rows[0], contents, relativePath, projectTitle },
+    props: { id, ...rows[0], contents, relativePath, projectTitle, basePath },
     revalidate: 5,
   };
 }

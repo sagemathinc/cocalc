@@ -5,27 +5,36 @@
 
 import { getExtension } from "lib/util";
 import { isImage } from "lib/file-extensions";
+import rawURL from "lib/raw-url";
 
 interface Props {
   id: string;
   content?: string;
-  path: string;
+  relativePath: string;
+  basePath?: string;
 }
 
 export default function FileContents({
   id,
   content,
   path,
+  relativePath,
+  basePath,
 }: Props): JSX.Element {
-  const ext = getExtension(path);
+  const ext = getExtension(relativePath ? relativePath : path);
   if (isImage(ext)) {
     return (
-      <img src="https://cocalc.com/107dcdce-4222-41a7-88a1-7652e29c1159/port/54145/8d304d73-6544-47e2-993b-6060fae84763/raw/issue-5212/a.png" />
+      <div>
+        <img
+          src={rawURL(id, relativePath, basePath)}
+          style={{ maxWidth: "100%" }}
+        />
+      </div>
     );
   }
   return (
     <div>
-      {id}/{path}
+      {id}/{relativePath}
       <br />
       <pre>{content}</pre>
     </div>

@@ -3,10 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Pool } from "pg";
+const { Pool } = require("pg");
 // TODO: need to deal with auth....
 const pool = new Pool();
 
-export default function getPool() {
+module.exports = function getPool() {
   return pool;
-}
+};
