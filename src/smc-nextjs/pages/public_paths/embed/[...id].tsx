@@ -17,7 +17,6 @@ import ProjectLink from "components/project-link";
 import { getProjectTitle } from "lib/get-project";
 import rawURL from "lib/raw-url";
 import downloadURL from "lib/download-url";
-import SiteName from "components/site-name";
 
 const basePath = require("lib/basePath")();
 
@@ -66,49 +65,7 @@ export default function PublicPath({
   }
   return (
     <div>
-      <b>Public path: </b>
-      <LinkedPath
-        path={path}
-        relativePath={relativePath}
-        id={id}
-        isdir={contents?.isdir}
-      />
-      <br />
-      <b>Description:</b> {description}
-      <br />
-      <b>Views:</b> {counter}
-      <br />
-      <b>License:</b> <License license={license} />
-      <br />
-      <b>Compute image:</b> {compute_image}
-      <br />
-      <b>Project:</b>{" "}
-      <ProjectLink project_id={project_id} title={projectTitle} />
-      <br />
-      <a>
-        Open in <SiteName />
-      </a>
-      ,{" "}
-      <a href={rawURL(id, relativePath ? relativePath : path, basePath)}>Raw</a>
-      ,{" "}
-      <Link
-        href={`/public_paths/embed/${id}${
-          relativePath ? "/" + relativePath : ""
-        }`}
-      >
-        <a>Embed</a>
-      </Link>
-      {!contents?.isdir && (
-        <>
-          ,{" "}
-          <a
-            href={downloadURL(id, relativePath ? relativePath : path, basePath)}
-          >
-            Download
-          </a>
-        </>
-      )}
-      <hr />
+      <a>Edit a copy</a>,{" "}
       {contents != null && (
         <PathContents
           id={id}

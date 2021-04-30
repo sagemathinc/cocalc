@@ -10,5 +10,5 @@ export default function downloadURL(
   relativePath: string,
   basePath?: string
 ): string {
-  return `${basePath ?? ""}/download/${id}/${encodePath(relativePath)}`;
+  return `${basePath ?? ""}/public_paths/download/${id}/${encodePath(relativePath)}`;
 }

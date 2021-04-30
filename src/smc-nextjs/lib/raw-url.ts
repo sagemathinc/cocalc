@@ -8,7 +8,7 @@ export default function rawURL(
   relativePath: string,
   basePath?: string
 ): string {
-  return `${basePath ?? ""}/raw/${id}/${encodePath(relativePath)}`;
+  return `${basePath ?? ""}/public_paths/raw/${id}/${encodePath(relativePath)}`;
 }
 
 export function encodePath(path: string) {

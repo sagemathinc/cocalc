@@ -27,9 +27,9 @@ app.prepare().then(() => {
       // then the back button breaks everywhere.  Hopefully this
       // can somehow go away, but for now this works.
       app.render(req, res, "/home", query);
-    } else if (path.startsWith("/raw/")) {
+    } else if (path.startsWith("/public_paths/raw/")) {
       handleRaw(req, res, path, false);
-    } else if (path.startsWith("/download/")) {
+    } else if (path.startsWith("/public_paths/download/")) {
       handleRaw(req, res, path, true);
     } else {
       handle(req, res, parsedUrl);
@@ -47,11 +47,11 @@ app.prepare().then(() => {
 });
 
 async function handleRaw(req, res, path, download) {
-  // Access is via /raw/[shareid]/path/to/file
+  // Access is via public_paths/[raw|download]/[shareid]/path/to/file
   // See remarks in lib/server/serve-raw-path for
   // what path/to/file is relative to...
   const segments = path.split("/");
-  const id = segments[2];
+  const id = segments[3]; // 3 because /public_paths/raw/; similar for 4 below.
   let sharePath;
   try {
     sharePath = await pathFromID(id);
@@ -64,7 +64,7 @@ async function handleRaw(req, res, path, download) {
   serveRawPath({
     req,
     res,
-    path: segments.slice(3).join("/"), // path to the file inside the public share.
+    path: segments.slice(4).join("/"), // path to the file inside the public share.
     sharePath, // path to directory on filesystem that contains the public share
     download,
   });
