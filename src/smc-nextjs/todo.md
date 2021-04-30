@@ -24,9 +24,9 @@ This is what we need for functional equivalence with existing share server:
       - [ ] markdown
       - [ ] sage worksheet
       - [ ] jupyter notebook
-    - [ ] download  document
+    - [x] download  document
     - [x] raw view of document
-    - [ ] embed version of document (with backward compat redirect)
+    - [ ] embed version of document 
     - [x] showing license
     - [x] long description
     - [x] compute environment

@@ -28,24 +28,9 @@ app.prepare().then(() => {
       // can somehow go away, but for now this works.
       app.render(req, res, "/home", query);
     } else if (path.startsWith("/raw/")) {
-      // Access is via /raw/[shareid]/path/to/file
-      const segments = path.split("/");
-      const id = segments[2];
-      let sharePath;
-      try {
-        sharePath = await pathFromID(id);
-      } catch (err) {
-        res.writeHead(404, { "Content-Type": "text/plain" });
-        res.write(`404 Not Found - ${err}\n`);
-        res.end();
-        return;
-      }
-      serveRawPath({
-        req,
-        res,
-        path: segments.slice(3).join("/"), // path to the file inside the public share.
-        sharePath, // path to directory on filesystem that contains the public share
-      });
+      handleRaw(req, res, path, false);
+    } else if (path.startsWith("/download/")) {
+      handleRaw(req, res, path, true);
     } else {
       handle(req, res, parsedUrl);
     }
@@ -60,3 +45,27 @@ app.prepare().then(() => {
     }
   });
 });
+
+async function handleRaw(req, res, path, download) {
+  // Access is via /raw/[shareid]/path/to/file
+  // See remarks in lib/server/serve-raw-path for
+  // what path/to/file is relative to...
+  const segments = path.split("/");
+  const id = segments[2];
+  let sharePath;
+  try {
+    sharePath = await pathFromID(id);
+  } catch (err) {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.write(`404 Not Found - ${err}\n`);
+    res.end();
+    return;
+  }
+  serveRawPath({
+    req,
+    res,
+    path: segments.slice(3).join("/"), // path to the file inside the public share.
+    sharePath, // path to directory on filesystem that contains the public share
+    download,
+  });
+}

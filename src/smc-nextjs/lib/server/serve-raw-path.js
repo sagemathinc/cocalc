@@ -58,15 +58,15 @@ function getIndexServer(dir) {
   return server;
 }
 
-function send404(res) {
+function send404(res, err) {
   res.writeHead(404, { "Content-Type": "text/plain" });
-  res.write("404 Not Found\n");
+  res.write(`404 Not Found\n${err}`);
   res.end();
 }
 
 // res = html response object
 module.exports = async function serveRawPath(opts) {
-  const { req, res, sharePath, path } = opts;
+  const { req, res, sharePath, path, download } = opts;
   // see https://stackoverflow.com/questions/14166898/node-js-with-express-how-to-remove-the-query-string-from-the-url
   let pathname = url.parse(path).pathname;
   if (pathname == null) {
@@ -88,25 +88,40 @@ module.exports = async function serveRawPath(opts) {
   // is in the URL.   In our actual implementation in the later case (not a directory),
   // we immediately send an error if the shared_filename doesn't match the
   // last segment of the shared_id's path.
-  let stats, target, dir;
+  let stats, target, dir, targetIsDir;
   try {
     stats = await fs.promises.lstat(sharePath);
     if (stats.isDirectory()) {
-      target = os_path.join(sharePath, decodeURI(pathname));
+      target = os_path.join(sharePath, decodePath(pathname));
       dir = sharePath;
     } else {
       target = sharePath;
       const i = sharePath.lastIndexOf("/");
       dir = sharePath.slice(0, i);
-      if (decodeURI(pathname) != sharePath.slice(i + 1)) {
-        send404(res);
+      if (decodePath(pathname) != sharePath.slice(i + 1)) {
+        send404(res, "Invalid path");
         return;
       }
     }
-    await fs.promises.lstat(target, fs.constants.R_OK);
+    // This lstat both determines it is a directory *and* checks that it is readable.
+    targetIsDir = (
+      await fs.promises.lstat(target, fs.constants.R_OK)
+    ).isDirectory();
+    if (targetIsDir && download) {
+      throw Error("only files can be downloaded"); // TODO: we could implement directories somehow (zip and stream?)
+    }
   } catch (err) {
     // console.log("serveRawPath", err, { target });
-    send404(res);
+    send404(res, err);
+    return;
+  }
+
+  if (download) {
+    // download file to browser
+    const stream = fs.createReadStream(target);
+    const i = target.lastIndexOf("/");
+    res.writeHead(200, { "Content-disposition": "attachment" });
+    stream.pipe(res);
     return;
   }
 
@@ -128,3 +143,12 @@ module.exports = async function serveRawPath(opts) {
     }
   });
 };
+
+function decodePath(path) {
+  const segments = path.split("/");
+  const decoded = [];
+  for (const segment of segments) {
+    decoded.push(decodeURIComponent(segment));
+  }
+  return decoded.join("/");
+}

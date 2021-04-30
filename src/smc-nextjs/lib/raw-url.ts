@@ -8,5 +8,15 @@ export default function rawURL(
   relativePath: string,
   basePath?: string
 ): string {
-  return `${basePath ?? ""}/raw/${id}/${encodeURI(relativePath)}`;
+  return `${basePath ?? ""}/raw/${id}/${encodePath(relativePath)}`;
 }
+
+export function encodePath(path: string) {
+  const segments = path.split("/");
+  const encoded: string[] = [];
+  for (const segment of segments) {
+    encoded.push(encodeURIComponent(segment));
+  }
+  return encoded.join("/");
+}
+
