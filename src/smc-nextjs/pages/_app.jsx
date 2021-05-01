@@ -6,6 +6,7 @@
 import { Layout, Embed } from "components/layout";
 import "antd/dist/antd.min.css";
 import Loading from "components/loading";
+import "codemirror/lib/codemirror.css";
 
 export default function MyApp({ Component, pageProps }) {
   if (pageProps.layout == "embed") {

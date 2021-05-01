@@ -12,6 +12,7 @@
   "dependencies": {
     "@types/pg": "^7.14.11",
     "antd": "^4.15.3",
+    "codemirror": "^5.61.0",
     "lodash": "^4.17.21",
     "lru-cache": "^6.0.0",
     "next": "^10.2.0",

@@ -5,8 +5,11 @@
 This is what we need for functional equivalence with existing share server:
 
 - [x] make the public paths in the all page look "actually readable" using antd
+
 - [x] ability to click on a public path and have it open the right url
+
 - [x] development is basically impossible due to https://github.com/vercel/next.js/issues/14997 and https://github.com/vercel/next.js/issues/12735.  This is obviously a recent really stupid move by the next.js devs due to them only using vscode, and not putting in the work to figure this out (like I already did with cocalc).
+
 - [ ] display a specific path:
   - [x] number of views
     - [x] increment the view counter
@@ -16,7 +19,7 @@ This is what we need for functional equivalence with existing share server:
 
   - [x]  directory listing
 
-  - virtual hosts: porting this over `smc-hub/share/virtual-hosts.ts`  
+  - virtual hosts: porting this over `smc-hub/share/virtual-hosts.ts`
 
   - [ ] document
     - [ ] #hard static smc-webapp rendered view of the document; currently in `smc-webapp/share/file-contents.tsx`
@@ -26,8 +29,8 @@ This is what we need for functional equivalence with existing share server:
         - [x] security
         - [x] images in directories work  but single alone images don't
       - [ ] codemirror for code
-      - [ ] audio
-      - [ ] video 
+      - [x] audio
+      - [x] video
       - [ ] markdown
       - [ ] sage worksheet
       - [ ] jupyter notebook
@@ -39,10 +42,17 @@ This is what we need for functional equivalence with existing share server:
     - [x] compute environment
     - [x] name and link to author of document
 
+
 - [x] browser raw directory listings
+
 - [ ] page with info about a user.  But what?  How about a list of all projects with public paths that they "collaborate on", and that's it.
+
+- [ ] directory listing within a share NEEDS a client-side search...
+
 - [x] box to search the share server using google
+
 - [x] google analytics: just need to copy some functions from `share/base-page.tsx`
+
 - [x] the back button doesn't work robustly, which is really disturbing!
   - Might be [this](https://github.com/vercel/next.js/issues/7091)? nope.
   - maybe [this](https://github.com/vercel/next.js/issues/9989)? nope.

@@ -3,8 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-const COCALC_APP_SERVER = process.env.COCALC_APP_SERVER;
-
 export default function editURL(
   id: string,
   path: string,

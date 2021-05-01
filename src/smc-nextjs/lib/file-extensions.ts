@@ -55,6 +55,8 @@ for (const ext in file_associations) {
 }
 export const isCodemirror = (ext) => !!codemirror[ext];
 
+export const codemirrorMode = (ext) => codemirror[ext]?.mode;
+
 export function hasViewer(ext: string): boolean {
   return (
     hasSpecialViewer(ext) ||

@@ -4,8 +4,9 @@
  */
 
 import { getExtension } from "lib/util";
-import { isImage, isAudio, isVideo } from "lib/file-extensions";
+import { isImage, isAudio, isVideo, isCodemirror } from "lib/file-extensions";
 import rawURL from "lib/raw-url";
+import CodeMirror from "components/codemirror";
 
 interface Props {
   id: string;
@@ -39,6 +40,8 @@ export default function FileContents({
     );
   } else if (isAudio(ext)) {
     return <audio src={raw} autoPlay={true} controls={true} loop={false} />;
+  } else if (isCodemirror(ext) && content != null) {
+    return <CodeMirror content={content} filename={filename} />;
   }
   return <pre>{content}</pre>;
 }
