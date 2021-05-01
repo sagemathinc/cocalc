@@ -5,30 +5,23 @@
 This is what we need for functional equivalence with existing share server:
 
 - [x] make the public paths in the all page look "actually readable" using antd
-
 - [x] ability to click on a public path and have it open the right url
-
 - [x] development is basically impossible due to https://github.com/vercel/next.js/issues/14997 and https://github.com/vercel/next.js/issues/12735.  This is obviously a recent really stupid move by the next.js devs due to them only using vscode, and not putting in the work to figure this out (like I already did with cocalc).
-
 - [ ] display a specific path:
   - [x] number of views
     - [x] increment the view counter
-
   - [x] open in cocalc link; env variable and function to make the url...  
     [https://cocalc.com/107dcdce-4222-41a7-88a1-7652e29c1159/port/54145/app?anonymous=true&amp;launch=share/fc974f7e93cc44cd3c0df7fd413e565a896e817d/issue-5212/a.png](https://cocalc.com/107dcdce-4222-41a7-88a1-7652e29c1159/port/54145/app?anonymous=true&launch=share/fc974f7e93cc44cd3c0df7fd413e565a896e817d/issue-5212/a.png)
-
   - [x]  directory listing
-
   - virtual hosts: porting this over `smc-hub/share/virtual-hosts.ts`
-
   - [ ] document
-    - [ ] #hard static smc-webapp rendered view of the document; currently in `smc-webapp/share/file-contents.tsx`
+    - [x] static smc-webapp rendered view of the document; currently in `smc-webapp/share/file-contents.tsx`
       - need to use https://nextjs.org/docs/advanced-features/custom-server to incorporate the raw server via express, since raw server is needed, but impossible in next.js.
         - [x] get it to server static files properly
         - [x] can we fix the / issue (i.e., that if next serves /, then back button breaks)?
         - [x] security
         - [x] images in directories work  but single alone images don't
-      - [ ] codemirror for code
+      - [x] codemirror for code
       - [x] audio
       - [x] video
       - [ ] markdown
@@ -41,18 +34,9 @@ This is what we need for functional equivalence with existing share server:
     - [x] long description
     - [x] compute environment
     - [x] name and link to author of document
-
-
 - [x] browser raw directory listings
-
-- [ ] page with info about a user.  But what?  How about a list of all projects with public paths that they "collaborate on", and that's it.
-
-- [ ] directory listing within a share NEEDS a client-side search...
-
 - [x] box to search the share server using google
-
 - [x] google analytics: just need to copy some functions from `share/base-page.tsx`
-
 - [x] the back button doesn't work robustly, which is really disturbing!
   - Might be [this](https://github.com/vercel/next.js/issues/7091)? nope.
   - maybe [this](https://github.com/vercel/next.js/issues/9989)? nope.
@@ -66,6 +50,8 @@ Biggest challenges are: (1) **no coffeescript** so we might have to rewrite chun
 
 - [x] #security  worry more about ".." in path and access to raw shares.
 - [x] LRU cache in lib/server/serve-raw-path.js
+- [ ] page with info about a user.  But what?  How about a list of all projects with public paths that they "collaborate on"; maybe something just with the files they actually touched (?).
+- [ ] directory listing within a share could really use a client-side search...
 - [ ]  In `pages/public_paths/[id].tsx`  we could pre-render the top N most popular pages...
 - [ ] is the token field in `public_paths`  used at all?
 - [ ] unlisted users -- need to add to cocalc account prefs that unlisted also means that user will not be mentioned anywhere publicly (e.g., on the share server).

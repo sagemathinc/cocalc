@@ -70,5 +70,5 @@ async function getDirectoryListing(path: string): Promise<FileInfo[]> {
     }
     listing.push(obj);
   }
-  return sortBy(listing, ["mtime", "name"]).reverse();
+  return sortBy(listing, ['name']);
 }
