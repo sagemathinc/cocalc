@@ -4,9 +4,16 @@
  */
 
 import { getExtension } from "lib/util";
-import { isImage, isAudio, isVideo, isCodemirror } from "lib/file-extensions";
+import {
+  isAudio,
+  isCodemirror,
+  isImage,
+  isMarkdown,
+  isVideo,
+} from "lib/file-extensions";
 import rawURL from "lib/raw-url";
 import CodeMirror from "components/codemirror";
+import Markdown from "components/markdown";
 
 interface Props {
   id: string;
@@ -42,6 +49,8 @@ export default function FileContents({
     return <audio src={raw} autoPlay={true} controls={true} loop={false} />;
   } else if (isCodemirror(ext) && content != null) {
     return <CodeMirror content={content} filename={filename} />;
+  } else if (isMarkdown(ext) && content != null) {
+    return <Markdown content={content} />;
   }
   return <pre>{content}</pre>;
 }

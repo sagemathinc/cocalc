@@ -7,7 +7,7 @@
 
 */
 
-import CodeMirrorStatic from "cocalc/smc-webapp/codemirror/static";
+import CodeMirrorStatic from "smc-webapp/codemirror/static";
 import { getExtension } from "lib/util";
 import { codemirrorMode } from "lib/file-extensions";
 

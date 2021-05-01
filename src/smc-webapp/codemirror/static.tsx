@@ -18,7 +18,7 @@ this (or get rid of it).
 // It is also VERY important to use require instead of import, so that
 // the imports work properly on both the frontend and in node.js.
 const { runMode } = require("codemirror/addon/runmode/runmode.node.js");
-require("cocalc/smc-webapp/codemirror/modes");
+require("./modes");
 import { CSSProperties } from "react";
 
 const BLURRED_STYLE = {

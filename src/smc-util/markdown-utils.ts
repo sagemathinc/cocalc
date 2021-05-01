@@ -7,7 +7,7 @@
  * license
  */
 
-import { replace_all } from "./misc";
+import { replaceAll } from "./replace-all";
 
 const escape_map = "$";
 
@@ -21,14 +21,14 @@ const unescape_map =
 
 export function math_escape(s: string): string {
   for (let i = 0; i < escape_map.length; i++) {
-    s = replace_all(s, "\\" + escape_map[i], unescape_map[i]);
+    s = replaceAll(s, "\\" + escape_map[i], unescape_map[i]);
   }
   return s;
 }
 
 export function math_unescape(s: string): string {
   for (let i = 0; i < escape_map.length; i++) {
-    s = replace_all(s, unescape_map[i], "\\" + escape_map[i]);
+    s = replaceAll(s, unescape_map[i], "\\" + escape_map[i]);
   }
   return s;
 }

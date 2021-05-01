@@ -93,6 +93,6 @@ export async function getStaticProps(context) {
 
   return {
     props: { page, publicPaths: rows },
-    revalidate: 10, // in production only queries once every 10s
+    revalidate: 5, // in production only queries once every few seconds
   };
 }

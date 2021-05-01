@@ -38,8 +38,6 @@ with this parser, but it's much harder without.
 
 */
 
-import { startswith } from "smc-util/misc";
-
 function renderMention(tokens, idx): string {
   // TODO: we could dynamically update the username using the account-id
   // in case it changed from what is stored in the doc.
@@ -49,7 +47,7 @@ function renderMention(tokens, idx): string {
 }
 
 function isMentionOpen(str: string): boolean {
-  return startswith(str, '<span class="user-mention" ');
+  return str.startsWith('<span class="user-mention" ');
 }
 function isMentionClose(str: string): boolean {
   return str == "</span>";

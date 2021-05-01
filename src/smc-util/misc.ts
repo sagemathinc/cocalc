@@ -68,6 +68,10 @@ export {
   local_storage_length,
 } from "./local-storage";
 
+import { replaceAll } from "./replace-all";
+export { replaceAll as replace_all };
+export { replaceAllFunction as replace_all_function } from "./replace-all";
+
 import * as sha1 from "sha1";
 export { sha1 };
 
@@ -496,36 +500,9 @@ export function getIn(x: any, path: string[], default_value?: any): any {
   return x === undefined ? default_value : x;
 }
 
-// see http://stackoverflow.com/questions/1144783/replacing-all-occurrences-of-a-string-in-javascript
-export function replace_all(
-  s: string,
-  search: string,
-  replace: string
-): string {
-  return s.split(search).join(replace);
-}
-
-// Similar to replace_all, except it takes as input a function replace_f, which
-// returns what to replace the i-th copy of search in string with.
-export function replace_all_function(
-  s: string,
-  search: string,
-  replace_f: (i: number) => string
-): string {
-  const v = s.split(search);
-  const w: string[] = [];
-  for (let i = 0; i < v.length; i++) {
-    w.push(v[i]);
-    if (i < v.length - 1) {
-      w.push(replace_f(i));
-    }
-  }
-  return w.join("");
-}
-
 export function path_to_title(path: string): string {
   const subtitle = separate_file_extension(path_split(path).tail).name;
-  return capitalize(replace_all(replace_all(subtitle, "-", " "), "_", " "));
+  return capitalize(replaceAll(replaceAll(subtitle, "-", " "), "_", " "));
 }
 
 // names is a Set<string>

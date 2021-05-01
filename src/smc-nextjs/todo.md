@@ -1,5 +1,7 @@
 # Todo
 
+Some math: $x^3+\int_0^{\infty} \alpha^3dx$ 
+
 ### Top priority -- first release
 
 This is what we need for functional equivalence with existing share server:
