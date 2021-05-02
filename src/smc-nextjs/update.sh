@@ -32,3 +32,8 @@ rsync -axvH $SRC/smc-util/markdown-utils.ts smc-util/markdown-utils.ts
 rsync -axvH $SRC/smc-util/mathjax-utils.js smc-util/mathjax-utils.js
 rsync -axvH $SRC/smc-util/replace-all.ts smc-util/replace-all.ts
 rsync -axvH $SRC/smc-util/regex-split.js smc-util/regex-split.js
+
+mkdir -p smc-webapp/sagews
+rsync -axvH $SRC/smc-webapp/sagews/parse-sagews.ts smc-webapp/sagews/parse-sagews.ts
+rsync -axvH $SRC/smc-util/sagews.ts smc-util/sagews.ts
+

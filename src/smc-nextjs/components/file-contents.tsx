@@ -14,6 +14,8 @@ import {
 import rawURL from "lib/raw-url";
 import CodeMirror from "components/codemirror";
 import Markdown from "components/markdown";
+import SageWorksheet from "components/sage-worksheet";
+import JupyterNotebook from "components/jupyter-notebook";
 
 interface Props {
   id: string;
@@ -51,6 +53,10 @@ export default function FileContents({
     return <CodeMirror content={content} filename={filename} />;
   } else if (isMarkdown(ext) && content != null) {
     return <Markdown content={content} />;
+  } else if (ext == "sagews") {
+    return <SageWorksheet content={content} />;
+  } else if (ext == "ipynb") {
+    return <JupyterNotebook content={content} />;
   }
   return <pre>{content}</pre>;
 }
