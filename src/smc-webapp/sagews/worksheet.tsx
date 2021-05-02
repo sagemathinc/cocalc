@@ -19,8 +19,16 @@ interface Props {
 }
 
 export function Worksheet({ sagews, style }: Props) {
-  function renderCell(cell: CellType): JSX.Element {
-    return (
+  const cells: CellType[] = [];
+  for (const cell of sagews) {
+    if (cell.type === "cell") {
+      cells.push(cell);
+    }
+  }
+  sortBy(cells, ["pos"]);
+  const v: JSX.Element[] = [];
+  for (const cell of cells) {
+    v.push(
       <Cell
         key={cell.id}
         input={cell.input ? cell.input : ""}
@@ -30,20 +38,5 @@ export function Worksheet({ sagews, style }: Props) {
     );
   }
 
-  function renderCells(): JSX.Element[] {
-    const cells: CellType[] = [];
-    for (const cell of sagews) {
-      if (cell.type === "cell") {
-        cells.push(cell);
-      }
-    }
-    sortBy(cells, ["pos"]);
-    const v: JSX.Element[] = [];
-    for (const cell of cells) {
-      v.push(renderCell(cell));
-    }
-    return v;
-  }
-
-  return <div style={style}>{renderCells()}</div>;
+  return <div style={style}>{v}</div>;
 }

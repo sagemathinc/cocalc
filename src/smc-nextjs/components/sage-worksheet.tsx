@@ -4,16 +4,12 @@
  */
 
 import { parse_sagews } from "smc-webapp/sagews/parse-sagews";
-import CodeMirror from "components/codemirror";
+import { Worksheet } from "smc-webapp/sagews/worksheet";
 
 interface Props {
   content: string;
 }
 
 export default function SageWorksheet({ content }: Props) {
-  const parsed = parse_sagews(content);
-  return <CodeMirror
-    content={JSON.stringify(parsed, undefined, 2)}
-    filename={"a.json"}
-  />;
+  return <Worksheet sagews={parse_sagews(content)} />;
 }

@@ -35,5 +35,12 @@ rsync -axvH $SRC/smc-util/regex-split.js smc-util/regex-split.js
 
 mkdir -p smc-webapp/sagews
 rsync -axvH $SRC/smc-webapp/sagews/parse-sagews.ts smc-webapp/sagews/parse-sagews.ts
+rsync -axvH $SRC/smc-webapp/sagews/worksheet.tsx smc-webapp/sagews/worksheet.tsx
+rsync -axvH $SRC/smc-webapp/sagews/cell.tsx smc-webapp/sagews/cell.tsx
+rsync -axvH $SRC/smc-webapp/sagews/input.tsx smc-webapp/sagews/input.tsx
+rsync -axvH $SRC/smc-webapp/sagews/output.tsx smc-webapp/sagews/output.tsx
+echo 'export function CellOutput(props) { return <div>(todo)</div>; }' > smc-webapp/sagews/output.tsx
 rsync -axvH $SRC/smc-util/sagews.ts smc-util/sagews.ts
+
+
 
