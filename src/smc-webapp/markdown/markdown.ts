@@ -86,14 +86,25 @@ export interface MD2html {
   frontmatter: string;
 }
 
+interface Options {
+  line_numbers?: boolean; // if given, embed extra line number info useful for inverse/forward search.
+  no_hashtags?: boolean; // if given, do not specially process hashtags with the plugin
+  processMath?: (string) => string; // if given, apply this function to all the math
+}
+
 function process(
   markdown_string: string,
   mode: "default" | "frontmatter",
-  options?: { line_numbers?: boolean; no_hashtags?: boolean }
+  options?: Options
 ): MD2html {
   let text: string;
   let math: string[];
   [text, math] = remove_math(math_escape(markdown_string));
+  if (options?.processMath != null) {
+    for (let i = 0; i < math.length; i++) {
+      math[i] = options.processMath(math[i]);
+    }
+  }
 
   let html: string;
   let frontmatter = "";
@@ -135,9 +146,6 @@ export function markdown_to_html_frontmatter(s: string): MD2html {
 const markdown_it_no_hashtags = new MarkdownIt(OPTIONS);
 usePlugins(markdown_it, PLUGINS_NO_HASHTAGS);
 
-export function markdown_to_html(
-  s: string,
-  options?: { line_numbers?: boolean; no_hashtags?: boolean }
-): string {
+export function markdown_to_html(s: string, options?: Options): string {
   return process(s, "default", options).html;
 }

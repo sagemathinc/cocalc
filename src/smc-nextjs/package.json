@@ -13,6 +13,7 @@
     "@types/pg": "^7.14.11",
     "antd": "^4.15.3",
     "codemirror": "^5.61.0",
+    "katex": "^0.13.3",
     "lodash": "^4.17.21",
     "lru-cache": "^6.0.0",
     "markdown-it-emoji": "^2.0.0",

@@ -19,6 +19,12 @@ rsync -axvH $SRC/smc-webapp/codemirror/static.tsx smc-webapp/codemirror/static.t
 rsync -axvH $SRC/smc-webapp/codemirror/modes.js smc-webapp/codemirror/modes.js
 rsync -axvH $SRC/smc-webapp/codemirror/mode/ smc-webapp/codemirror/mode/
 
+mkdir -p smc-webapp/jquery-plugins/
+rsync -axvH $SRC/smc-webapp/jquery-plugins/math-katex.ts smc-webapp/jquery-plugins/math-katex.ts
+
+mkdir -p smc-webapp/editors/slate/elements/
+rsync -axvH $SRC/smc-webapp/editors/slate/elements/math-to-html.ts smc-webapp/editors/slate/elements/math-to-html.ts
+
 mkdir -p smc-webapp/markdown/
 rsync -axvH --delete --exclude /table-of-contents.ts --exclude /index.ts $SRC/smc-webapp/markdown/ smc-webapp/markdown/
 
