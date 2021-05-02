@@ -7,37 +7,27 @@
 Rendering input part of a Sage worksheet cell
 */
 
-import { fromJS } from "immutable";
-import { React, Component, Rendered } from "../app-framework";
-import { CodeMirrorStatic } from "../jupyter/codemirror-static";
+import * as React from "react";
+import CodeMirrorStatic from "smc-webapp/codemirror/static";
 import { FLAGS } from "smc-util/sagews";
 
-const OPTIONS = fromJS({ mode: { name: "sagews" } });
+const OPTIONS = { mode: { name: "sagews" } } as const;
 
 interface Props {
   input?: string;
   flags?: string;
 }
 
-export class CellInput extends Component<Props> {
-  private render_input(): Rendered {
+export function CellInput({ input, flags }: Props) {
+  if (flags != null && flags.indexOf(FLAGS.hide_input) != -1) {
+    return <span />;
+  } else {
     return (
       <CodeMirrorStatic
-        value={this.props.input != null ? this.props.input : ""}
+        value={input ?? ""}
         options={OPTIONS}
         style={{ background: "white", padding: "10px" }}
       />
     );
-  }
-
-  public render(): Rendered {
-    if (
-      this.props.flags != null &&
-      this.props.flags.indexOf(FLAGS.hide_input) != -1
-    ) {
-      return <span />;
-    } else {
-      return this.render_input();
-    }
   }
 }

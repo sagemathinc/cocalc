@@ -13,6 +13,8 @@ TODO: make jupyter/cocdemirror-static a simple wrapper around
 this (or get rid of it).
 */
 
+import * as React from "react";
+
 // We use a special version of runMode that can be run on the backend
 // or frontend, to better support next.js.
 // It is also VERY important to use require instead of import, so that
