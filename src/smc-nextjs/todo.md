@@ -1,6 +1,6 @@
 # Todo
 
-Some math: $x^3+\int_0^{\infty} \alpha^3dx$ 
+Some math: $x^3+\int_0^{\infty} \alpha^3dx$
 
 ### Top priority -- first release
 
@@ -26,7 +26,7 @@ This is what we need for functional equivalence with existing share server:
       - [x] codemirror for code
       - [x] audio
       - [x] video
-      - [ ] markdown
+      - [x] markdown
       - [ ] sage worksheet
       - [ ] jupyter notebook
     - [x] download  document
