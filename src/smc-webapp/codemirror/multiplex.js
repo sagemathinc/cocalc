@@ -12,6 +12,8 @@ Original copyright on https://codemirror.net/addon/mode/multiplex.js:
    Distributed under an MIT license: http://codemirror.net/LICENSE
 */
 
+const CodeMirror = require("codemirror");
+
 CodeMirror.cocalcMultiplexingMode = function (outer /*, others */) {
   // Others should be {open, close, mode [, delimStyle] [, innerStyle]} objects
   var others = Array.prototype.slice.call(arguments, 1);

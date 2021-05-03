@@ -42,9 +42,12 @@ export const isPDF = (ext) => pdf.has(ext);
 const html = new Set(["html", "htm"]);
 export const isHTML = (ext) => html.has(ext);
 
-// what to render in markdown -- rmd is special, but it's ok to show it that way for now
+// what to render in markdown: md and rmd
+// TODO: normal markdown doesn't know how the fenced block modes
+// work with rmd! One fix would use my slate renderer, which does.
 const md = new Set(["md", "rmd"]);
 export const isMarkdown = (ext) => md.has(ext);
+
 
 const codemirror = {};
 for (const ext in file_associations) {
