@@ -98,3 +98,12 @@
   p
     display: inline
 
+// katex 0.13.5 somehow causes formulas to be displayed wider than the width of the output
+// adding ugly horizontal scrollbars. this eliminates that.
+.cocalc-jupyter-rendered
+  .katex-display>.katex>.katex-html
+    // display: contents // this did work, but it's some experimenal new display option
+    margin: 1em .5em // margin works as well, but we also have to set it for mathjax to make it look consistent
+
+  .MathJax_SVG_Display
+    padding-right: 1em;
