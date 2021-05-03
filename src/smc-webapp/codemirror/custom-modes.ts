@@ -5,12 +5,11 @@
 
 // Multiplex'd worksheet mode
 
-let sagews_decorator_modes;
 import { MARKERS } from "smc-util/sagews";
-import { clone, object } from "underscore";
+import { fromPairs } from "lodash";
 import * as CodeMirror from "codemirror";
 
-let _sagews_decorator_modes = (sagews_decorator_modes = [
+export const sagews_decorator_modes: [string, string][] = [
   ["cjsx", "text/cjsx"],
   ["coffeescript", "coffeescript"],
   ["cython", "cython"],
@@ -35,9 +34,7 @@ let _sagews_decorator_modes = (sagews_decorator_modes = [
   ["julia", "text/x-julia"],
   ["wiki", "mediawiki"],
   ["mediawiki", "mediawiki"],
-]);
-
-export { _sagews_decorator_modes as sagews_decorator_modes };
+];
 
 // Many of the modes below are multiplexed
 
@@ -185,8 +182,8 @@ CodeMirror.defineMode("sagews", function (config) {
 
 CodeMirror.defineMode("rmd", function (config) {
   // derived from the sagews modes with some additions
-  let mode, open;
-  const modes = clone(object(sagews_decorator_modes));
+  // and removals.
+  const modes = fromPairs(sagews_decorator_modes);
   modes["fortran95"] = modes["fortran"];
   modes["octave"] = "octave";
   modes["bash"] = modes["sh"];
@@ -195,7 +192,7 @@ CodeMirror.defineMode("rmd", function (config) {
 
   // blocks (ATTN ruby before r!)
   // all engine modes: names(knitr::knit_engines$get())
-  for (let name of [
+  for (const name of [
     "ruby",
     "r",
     "python",
@@ -208,8 +205,8 @@ CodeMirror.defineMode("rmd", function (config) {
     "julia",
     "perl",
   ]) {
-    mode = modes[name];
-    open = new RegExp(`\`\`\`\\s*{${name}[^}]*?}`);
+    const mode = modes[name];
+    const open = new RegExp(`\`\`\`\\s*{${name}[^}]*?}`);
     options.push({
       open,
       close: "```",
