@@ -7,6 +7,7 @@
 Rst Editor Actions
 */
 
+import { reuseInFlight } from "async-await-utils/hof";
 import { Actions as CodeEditorActions } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { convert } from "./rst2html";
@@ -14,6 +15,9 @@ import { raw_url, aux_file } from "../frame-tree/util";
 import { FrameTree } from "../frame-tree/types";
 
 export class Actions extends CodeEditorActions {
+  private run_rst2html: Function;
+  private _last_rst_hash: string = "";
+
   _init2(): void {
     if (!this.is_public) {
       this._init_syncstring_value();
@@ -25,8 +29,21 @@ export class Actions extends CodeEditorActions {
   }
 
   _init_rst2html(): void {
-    this._syncstring.on("save-to-disk", () => this._run_rst2html());
-    this._run_rst2html();
+    this.run_rst2html = reuseInFlight(this._run_rst2html.bind(this));
+
+    this._syncstring.on(
+      "save-to-disk",
+      reuseInFlight(async () => {
+        if (this._syncstring == null) return;
+        const hash = this._syncstring.hash_of_saved_version();
+        if (this._last_rst_hash != hash) {
+          this._last_rst_hash = hash;
+          await this.run_rst2html();
+        }
+      })
+    );
+
+    this._syncstring.once("ready", this.run_rst2html.bind(this));
   }
 
   async _run_rst2html(time?: number): Promise<void> {
