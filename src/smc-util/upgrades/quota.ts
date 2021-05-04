@@ -296,7 +296,7 @@ function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
   }
 
   // selection -- always_running comes first, then member hosting
-  const selected = (function () {
+  const selected: string[] | null = (function () {
     for (const ar of ["1", "0"]) {
       // always running
       for (const mh of ["1", "0"]) {
@@ -308,6 +308,8 @@ function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
       }
     }
   })();
+
+  if (selected == null) return {};
 
   return selected.reduce((acc, cur) => {
     acc[cur] = site_licenses[cur];
