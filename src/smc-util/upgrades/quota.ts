@@ -149,7 +149,8 @@ export interface SiteLicenseQuotaSetting {
   quota: SiteLicenseQuota;
 }
 
-export type QuotaSetting = Upgrades | SiteLicenseQuotaSetting;
+// it could be null in the moment when a license is removed via the UI
+export type QuotaSetting = Upgrades | SiteLicenseQuotaSetting | null;
 
 export type SiteLicenses = {
   [license_id: string]: QuotaSetting;
@@ -281,6 +282,8 @@ function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
 
   // classification
   for (const [key, val] of Object.entries(site_licenses)) {
+    if (val == null) continue;
+
     const is_ar = isSiteLicenseQuotaSetting(val)
       ? val.quota.always_running === true
       : (val.always_running ?? 0) >= 1;
