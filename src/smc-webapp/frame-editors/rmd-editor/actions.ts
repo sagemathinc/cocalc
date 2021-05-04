@@ -72,7 +72,7 @@ export class RmdActions extends Actions {
   _init_rmd_converter(): void {
     // one build takes min. a few seconds up to a minute or more
     this.run_rmd_converter = debounce(
-      async () => await this._run_rmd_converter(),
+      async (hash?) => await this._run_rmd_converter(hash),
       5 * 1000,
       { leading: true, trailing: false }
     );
@@ -106,7 +106,7 @@ export class RmdActions extends Actions {
     try {
       const actions = this.redux.getEditorActions(this.project_id, this.path);
       await (actions as BaseActions<CodeEditorState>).save(false);
-      await this.run_rmd_converter();
+      await this.run_rmd_converter(Date.now());
     } finally {
       this.is_building = false;
     }
@@ -161,7 +161,7 @@ export class RmdActions extends Actions {
   }
 
   // use this.run_rmd_converter
-  private async _run_rmd_converter(): Promise<void> {
+  private async _run_rmd_converter(hash?): Promise<void> {
     // TODO: should only run knitr if at least one frame is visible showing preview?
     // maybe not, since might want to show error.
     if (this._syncstring == null || this._syncstring.get_state() != "ready") {
@@ -187,7 +187,7 @@ export class RmdActions extends Actions {
         this.project_id,
         this.path,
         frontmatter,
-        this._last_rmd_hash
+        hash || this._last_rmd_hash
       );
       this.set_log(output);
       if (output == null || output.exit_code != 0) {
