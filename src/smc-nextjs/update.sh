@@ -39,11 +39,10 @@ rsync -axvH $SRC/smc-webapp/sagews/worksheet.tsx smc-webapp/sagews/worksheet.tsx
 rsync -axvH $SRC/smc-webapp/sagews/cell.tsx smc-webapp/sagews/cell.tsx
 rsync -axvH $SRC/smc-webapp/sagews/input.tsx smc-webapp/sagews/input.tsx
 rsync -axvH $SRC/smc-webapp/sagews/output.tsx smc-webapp/sagews/output.tsx
-echo 'export function CellOutput(props) { return <div>(todo)</div>; }' > smc-webapp/sagews/output.tsx
+echo 'export function CellOutput(props) { return <pre>{JSON.stringify(props,undefined,2)}</pre>; }' > smc-webapp/sagews/output.tsx
 rsync -axvH $SRC/smc-util/sagews.ts smc-util/sagews.ts
 
 rsync -axvH $SRC/smc-webapp/codemirror/custom-modes.ts smc-webapp/codemirror/custom-modes.ts
 rsync -axvH $SRC/smc-webapp/codemirror/multiplex.js smc-webapp/codemirror/multiplex.js
-
 
 

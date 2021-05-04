@@ -10,6 +10,11 @@ interface Props {
 }
 
 export default function JupyterNotebook({ content }: Props) {
-  const a = JSON.stringify(JSON.parse(content), undefined, 2);
+  let a;
+  try {
+    a = JSON.stringify(JSON.parse(content), undefined, 2);
+  } catch (err) {
+    a = content;
+  }
   return <CodeMirror content={a} filename={"a.json"} />;
 }

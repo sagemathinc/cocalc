@@ -49,9 +49,12 @@ export default function FileContents({
     );
   } else if (isAudio(ext)) {
     return <audio src={raw} autoPlay={true} controls={true} loop={false} />;
-  } else if (isCodemirror(ext) && content != null) {
+  } else if (content == null) {
+    // everything below this gets to assume content is not null
+    return <div>TODO</div>;
+  } else if (isCodemirror(ext)) {
     return <CodeMirror content={content} filename={filename} />;
-  } else if (isMarkdown(ext) && content != null) {
+  } else if (isMarkdown(ext)) {
     return <Markdown content={content} />;
   } else if (ext == "sagews") {
     return <SageWorksheet content={content} />;
