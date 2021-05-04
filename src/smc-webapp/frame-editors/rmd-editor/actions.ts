@@ -8,6 +8,7 @@ R Markdown Editor Actions
 */
 
 import { reuseInFlight } from "async-await-utils/hof";
+import { debounce } from "lodash";
 import { Set } from "immutable";
 import { callback2 } from "smc-util/async-utils";
 import { Actions } from "../markdown-editor/actions";
@@ -46,7 +47,7 @@ output: html_document
 `;
 
 export class RmdActions extends Actions {
-  private _last_rmd_hash: string = "";
+  private _last_rmd_hash: string | null = null;
   private is_building: boolean = false;
   private run_rmd_converter: Function;
 
@@ -69,8 +70,11 @@ export class RmdActions extends Actions {
   }
 
   _init_rmd_converter(): void {
-    this.run_rmd_converter = reuseInFlight(
-      async (time?: number) => await this._run_rmd_converter(time)
+    // one build takes min. a few seconds up to a minute or more
+    this.run_rmd_converter = debounce(
+      async () => await this._run_rmd_converter(),
+      5 * 1000,
+      { leading: true, trailing: false }
     );
 
     const do_build = reuseInFlight(async () => {
@@ -102,7 +106,7 @@ export class RmdActions extends Actions {
     try {
       const actions = this.redux.getEditorActions(this.project_id, this.path);
       await (actions as BaseActions<CodeEditorState>).save(false);
-      await this._run_rmd_converter(Date.now());
+      await this.run_rmd_converter();
     } finally {
       this.is_building = false;
     }
@@ -157,13 +161,16 @@ export class RmdActions extends Actions {
   }
 
   // use this.run_rmd_converter
-  private async _run_rmd_converter(time?: number): Promise<void> {
+  private async _run_rmd_converter(): Promise<void> {
     // TODO: should only run knitr if at least one frame is visible showing preview?
     // maybe not, since might want to show error.
     if (this._syncstring == null || this._syncstring.get_state() != "ready") {
       // do not run if not ready -- important due to the debounce, which could
       // fire this at any time.
       return;
+    }
+    if (this._last_rmd_hash == null) {
+      this._last_rmd_hash = this._syncstring.hash_of_saved_version();
     }
     const md = this._syncstring.to_str();
     if (md == null) return;
@@ -176,12 +183,11 @@ export class RmdActions extends Actions {
     try {
       const { frontmatter, html } = markdown_to_html_frontmatter(md);
       markdown = html;
-      const last_save_time = this.last_save_time(false);
       output = await convert(
         this.project_id,
         this.path,
         frontmatter,
-        time || last_save_time
+        this._last_rmd_hash
       );
       this.set_log(output);
       if (output == null || output.exit_code != 0) {
