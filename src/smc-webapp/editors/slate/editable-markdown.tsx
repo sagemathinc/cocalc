@@ -53,6 +53,8 @@ import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
 
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 
+import { markdown_to_html } from "smc-webapp/markdown";
+
 // (??) A bit longer is better, due to escaping of markdown and multiple users
 // with one user editing source and the other editing with slate.
 // const SAVE_DEBOUNCE_MS = 1500;
@@ -72,6 +74,7 @@ export interface SlateEditor extends ReactEditor {
   hasUnsavedChanges?: boolean;
   markdownValue?: string;
   getMarkdownValue: () => string;
+  getPlainValue: () => string;
   getSourceValue: (fragment?) => string;
   syncCache?: any;
   search: SearchHook;
@@ -170,6 +173,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           cache: ed.syncCache,
         });
         return ed.markdownValue;
+      };
+
+      ed.getPlainValue = (fragment?) => {
+        const markdown = ed.getSourceValue(fragment);
+        return $("<div>" + markdown_to_html(markdown) + "</div>").text();
       };
 
       ed.saveValue = (force?) => {

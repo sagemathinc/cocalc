@@ -13,14 +13,7 @@ const CURSOR_TIME_MS = 45000;
 const HIDE_NAME_TIMEOUT_MS = 5000;
 
 import { Map } from "immutable";
-import {
-  React,
-  Component,
-  rclass,
-  rtypes,
-  ReactDOM,
-  Rendered,
-} from "../app-framework";
+import { React, ReactDOM, Rendered, useTypedRedux } from "../app-framework";
 
 import { times_n } from "./util";
 
@@ -39,137 +32,116 @@ interface CursorProps {
   paddingText?: string; // paddingText -- only used in slate to move cursor over one letter to place cursor at end of text
 }
 
-interface CursorState {
-  show_name?: boolean;
-}
+export const Cursor: React.FC<CursorProps> = React.memo(
+  (props: CursorProps) => {
+    const { name, color, top, time, paddingText } = props;
 
-export class Cursor extends Component<CursorProps, CursorState> {
-  private _mounted: any; // TODO: don't do this
-  private _timer: any;
+    const mounted = React.useRef<boolean>(false); // TODO: don't do this
+    const timer = React.useRef<number | null>(null);
+    const [render_name, set_render_name] = React.useState<boolean>(true);
 
-  constructor(props, context) {
-    super(props, context);
-    this.state = { show_name: true };
-  }
+    React.useEffect(() => {
+      mounted.current = true;
+      set_timer(HIDE_NAME_TIMEOUT_MS);
+      return () => {
+        mounted.current = false;
+        clear_timer();
+      };
+    }, []);
 
-  public shouldComponentUpdate(
-    nextProps: CursorProps,
-    nextState: CursorState
-  ): boolean {
-    if (this.props.time !== nextProps.time) {
-      this.show_name(HIDE_NAME_TIMEOUT_MS);
+    React.useEffect(() => {
+      show_name(HIDE_NAME_TIMEOUT_MS);
+    }, [time]);
+
+    function clear_timer(): void {
+      if (timer.current != null) {
+        clearTimeout(timer.current);
+        timer.current = null;
+      }
     }
-    return (
-      is_different(this.props, nextProps, ["name", "color", "paddingText"]) ||
-      this.state.show_name !== nextState.show_name
-    );
-  }
 
-  public componentDidMount(): void {
-    this._mounted = true;
-    this._set_timer(HIDE_NAME_TIMEOUT_MS);
-  }
-
-  public componentWillUnmount(): void {
-    this._mounted = false;
-  }
-
-  private _clear_timer(): void {
-    if (this._timer != null) {
-      clearTimeout(this._timer);
-      delete this._timer;
+    function set_timer(timeout: number): void {
+      clear_timer();
+      timer.current = window.setTimeout(hide_name, timeout);
     }
-  }
 
-  private _set_timer(timeout: number): void {
-    this._clear_timer();
-    this._timer = setTimeout(() => this.hide_name(), timeout);
-  }
-
-  private hide_name(): void {
-    if (!this._mounted) {
-      return;
+    function hide_name(): void {
+      if (!mounted.current) return;
+      clear_timer();
+      set_render_name(false);
     }
-    this._clear_timer();
-    this.setState({ show_name: false });
-  }
 
-  private show_name(timeout?: number): void {
-    if (!this._mounted) {
-      return;
+    function show_name(timeout?: number): void {
+      if (!mounted.current) return;
+      set_render_name(true);
+      if (timeout) {
+        set_timer(timeout);
+      }
     }
-    this.setState({ show_name: true });
-    if (timeout) {
-      this._set_timer(timeout);
-    }
-  }
 
-  public renderCursor(): Rendered {
-    if (!this.props.paddingText) {
+    function renderCursor(): Rendered {
+      if (!paddingText) {
+        return (
+          <>
+            <span
+              style={{
+                width: 0,
+                height: "1em",
+                borderLeft: "2px solid",
+                position: "absolute",
+              }}
+            />
+            <span
+              style={{
+                width: "6px",
+                left: "-2px",
+                top: "-2px",
+                height: "6px",
+                position: "absolute",
+                backgroundColor: color,
+              }}
+            />
+          </>
+        );
+      }
+
       return (
         <>
           <span
             style={{
-              width: 0,
               height: "1em",
-              borderLeft: "2px solid",
+              borderRight: "2px solid",
               position: "absolute",
             }}
-          />
-          <span
-            style={{
-              width: "6px",
-              left: "-2px",
-              top: "-2px",
-              height: "6px",
-              position: "absolute",
-              backgroundColor: this.props.color,
-            }}
-          />
+          >
+            {renderPaddingText()}
+          </span>
         </>
       );
     }
 
-    return (
-      <>
-        <span
-          style={{
-            height: "1em",
-            borderRight: "2px solid",
-            position: "absolute",
-          }}
-        >
-          {this.renderPaddingText()}
-        </span>
-      </>
-    );
-  }
-
-  public renderPaddingText() {
-    if (this.props.paddingText) {
-      return (
-        <span style={{ color: "transparent" }}>{this.props.paddingText}</span>
-      );
+    function renderPaddingText() {
+      if (paddingText) {
+        return <span style={{ color: "transparent" }}>{paddingText}</span>;
+      }
     }
-  }
 
-  public render(): Rendered {
     return (
       <span
         style={{
-          color: this.props.color,
+          color: color,
           position: "relative",
           cursor: "text",
           pointerEvents: "all",
-          top: this.props.top,
+          top: top,
         }}
-        onMouseEnter={() => this.show_name()}
-        onMouseLeave={() => this.show_name(HIDE_NAME_TIMEOUT_MS)}
-        onTouchStart={() => this.show_name()}
-        onTouchEnd={() => this.show_name(HIDE_NAME_TIMEOUT_MS)}
+        onMouseEnter={() => show_name()}
+        onMouseLeave={() => show_name(HIDE_NAME_TIMEOUT_MS)}
+        onTouchStart={() => show_name()}
+        onTouchEnd={() => show_name(HIDE_NAME_TIMEOUT_MS)}
       >
-        {this.renderCursor()}
-        {this.state.show_name ? (
+        {renderCursor()}
+        {render_name ? (
           <span
             style={{
               position: "absolute",
@@ -179,20 +151,21 @@ export class Cursor extends Component<CursorProps, CursorState> {
               left: "-2px",
               padding: "2px",
               whiteSpace: "nowrap",
-              background: this.props.color,
+              background: color,
               fontFamily: "sans-serif",
               boxShadow: "3px 3px 5px 0px #bbb",
               opacity: 0.8,
             }}
           >
-            {this.renderPaddingText()}
-            {this.props.name}
+            {renderPaddingText()}
+            {name}
           </span>
         ) : undefined}
       </span>
     );
-  }
-}
+  },
+  (prev, next) => !is_different(prev, next, ["name", "color", "paddingText"])
+);
 
 interface PositionedCursorProps {
   name: string;
@@ -203,90 +176,73 @@ interface PositionedCursorProps {
   time?: number;
 }
 
-class PositionedCursor extends Component<PositionedCursorProps> {
-  private _elt: any;
-  private _mounted: any; // TODO: dont do this
-  private _pos: any;
-
-  public shouldComponentUpdate(next: PositionedCursorProps): boolean {
-    return is_different(this.props, next, [
-      "line",
-      "ch",
-      "name",
-      "color",
-      "time",
-    ]);
-  }
-
-  private _render_cursor(props: PositionedCursorProps): Rendered {
-    return ReactDOM.render(
-      <Cursor
-        name={props.name}
-        color={props.color}
-        top={"-1.2em"}
-        time={this.props.time}
-      />,
-      this._elt
+const PositionedCursor: React.FC<PositionedCursorProps> = React.memo(
+  (props: PositionedCursorProps) => {
+    const { name, color, line, ch, codemirror, time } = props;
+    const mounted = React.useRef<boolean>(false);
+    const elt = React.useRef<HTMLDivElement | null>(null);
+    const [pos, set_pos] = React.useState<{ line: number; ch: number } | null>(
+      null
     );
-  }
 
-  public componentDidMount(): void {
-    this._mounted = true;
-    this._elt = document.createElement("div");
-    this._elt.style.position = "absolute";
-    this._elt.style["z-index"] = "5";
-    this._render_cursor(this.props);
-    this.props.codemirror.addWidget(
-      { line: this.props.line, ch: this.props.ch },
-      this._elt,
-      false
-    );
-  }
+    React.useEffect(() => {
+      mounted.current = true;
+      elt.current = document.createElement("div");
+      elt.current.style.position = "absolute";
+      elt.current.style["z-index"] = "5";
+      render_cursor();
+      codemirror.addWidget({ line, ch }, elt.current, false);
+      return () => {
+        mounted.current = false;
+        if (elt.current != null) {
+          ReactDOM.unmountComponentAtNode(elt.current);
+          elt.current.remove();
+          elt.current = null;
+        }
+      };
+    }, []);
 
-  private _position_cursor(): void {
-    if (!this._mounted || this._pos == null || this._elt == null) {
-      return;
-    }
-    // move the cursor widget to pos:
-    // A *big* subtlety here is that if one user holds down a key and types a lot, then their
-    // cursor will move *before* their new text arrives.  This sadly leaves the cursor
-    // being placed in a position that does not yet exist, hence fails.   To address this,
-    // if the position does not exist, we retry.
-    const x = this.props.codemirror.getLine(this._pos.line);
-    if (x == null || this._pos.ch > x.length) {
-      // oh crap, impossible to position cursor!  Try again in 1s.
-      setTimeout(this._position_cursor, 1000);
-    } else {
-      this.props.codemirror.addWidget(this._pos, this._elt, false);
-    }
-  }
+    React.useEffect(() => {
+      set_pos({ line, ch });
+      position_cursor();
+      // Always update how widget is rendered (this will at least cause it to display for 2 seconds after move/change).
+      render_cursor();
+    }, [line, ch]);
 
-  public componentWillReceiveProps(next: PositionedCursorProps): void {
-    if (this._elt == null) {
-      return;
-    }
-    if (this.props.line !== next.line || this.props.ch !== next.ch) {
-      this._pos = { line: next.line, ch: next.ch };
-      this._position_cursor();
-    }
-    // Always update how widget is rendered (this will at least cause it to display for 2 seconds after move/change).
-    this._render_cursor(next);
-  }
+    function position_cursor(): void {
+      if (!mounted.current || pos == null || elt.current == null) {
+        return;
+      }
 
-  public componentWillUnmount(): void {
-    this._mounted = false;
-    if (this._elt != null) {
-      ReactDOM.unmountComponentAtNode(this._elt);
-      this._elt.remove();
-      delete this._elt;
+      // move the cursor widget to pos:
+      // A *big* subtlety here is that if one user holds down a key and types a lot, then their
+      // cursor will move *before* their new text arrives.  This sadly leaves the cursor
+      // being placed in a position that does not yet exist, hence fails.   To address this,
+      // if the position does not exist, we retry.
+      const x = codemirror.getLine(pos.line);
+      if (x == null || pos.ch > x.length) {
+        // oh crap, impossible to position cursor!  Try again in 1s.
+        setTimeout(position_cursor, 1000);
+      } else {
+        codemirror.addWidget(pos, elt.current, false);
+      }
     }
-  }
 
-  public render(): Rendered {
+    function render_cursor(): void {
+      if (elt.current != null) {
+        ReactDOM.render(
+          <Cursor name={name} color={color} top={"-1.2em"} time={time} />,
+          elt.current
+        );
+      }
+    }
+
     // A simple (unused) container to satisfy react.
     return <span />;
-  }
-}
+  },
+  (prev, next) =>
+    !is_different(prev, next, ["line", "ch", "name", "color", "time"])
+);
 
 interface StaticPositionedCursorProps {
   name: string;
@@ -296,19 +252,10 @@ interface StaticPositionedCursorProps {
   time?: number;
 }
 
-class StaticPositionedCursor extends Component<StaticPositionedCursorProps> {
-  public shouldComponentUpdate(
-    nextProps: StaticPositionedCursorProps
-  ): boolean {
-    return (
-      this.props.line !== nextProps.line ||
-      this.props.ch !== nextProps.ch ||
-      this.props.name !== nextProps.name ||
-      this.props.color !== nextProps.color
-    );
-  }
+const StaticPositionedCursor: React.FC<StaticPositionedCursorProps> = React.memo(
+  (props: StaticPositionedCursorProps) => {
+    const { name, color, line, ch, time } = props;
 
-  public render(): Rendered {
     const style: React.CSSProperties = {
       position: "absolute",
       height: 0,
@@ -321,96 +268,46 @@ class StaticPositionedCursor extends Component<StaticPositionedCursorProps> {
     };
 
     // we position using newlines and blank spaces, so no measurement is needed.
-    const position =
-      times_n("\n", this.props.line) + times_n(" ", this.props.ch);
+    const position = times_n("\n", line) + times_n(" ", ch);
+
     return (
       <div style={style}>
         {position}
-        <Cursor
-          time={this.props.time}
-          name={this.props.name}
-          color={this.props.color}
-        />
+        <Cursor time={time} name={name} color={color} />
       </div>
     );
-  }
-}
+  },
+  (prev, next) =>
+    prev.line === next.line &&
+    prev.ch === next.ch &&
+    prev.name === next.name &&
+    prev.color === next.color
+);
 
 interface CursorsProps {
-  // OwnProps
   cursors: Map<string, any>;
   codemirror?: any; // optional codemirror editor instance
-  // ReduxProps
-  user_map?: Map<string, any>;
-  account_id?: string;
 }
 
-interface CursorsState {
-  n: number;
-}
+export const Cursors: React.FC<CursorsProps> = React.memo(
+  (props: CursorsProps) => {
+    const { cursors, codemirror } = props;
+    const user_map = useTypedRedux("users", "user_map");
+    // const account_id = useTypedRedux("account", "account_id");
+    const [, set_n] = React.useState<number>(0);
 
-class Cursors0 extends Component<CursorsProps, CursorsState> {
-  private _interval: any;
+    React.useEffect(() => {
+      const i_id = setInterval(() => set_n((n) => n + 1), CURSOR_TIME_MS / 2);
+      return () => clearInterval(i_id);
+    }, []);
 
-  public static reduxProps = () => ({
-    users: {
-      user_map: rtypes.immutable.Map,
-    },
-    account: {
-      account_id: rtypes.string,
-    },
-  });
-
-  constructor(props, context) {
-    super(props, context);
-    this.state = { n: 0 };
-  }
-
-  public shouldComponentUpdate(
-    props: CursorsProps,
-    state: CursorsState
-  ): boolean {
-    return (
-      is_different(this.props, props, ["cursors", "user_map", "account_id"]) ||
-      this.state.n !== state.n
-    );
-  }
-
-  public componentDidMount(): void {
-    this._interval = setInterval(
-      () => this.setState({ n: this.state.n + 1 }),
-      CURSOR_TIME_MS / 2
-    );
-  }
-
-  public componentWillUnmount(): void {
-    clearInterval(this._interval);
-  }
-
-  private profile(account_id: string): { color: string; name: string } {
-    if (this.props.user_map == null) return UNKNOWN_USER_PROFILE;
-    const user = this.props.user_map.get(account_id);
-    if (user == null) return UNKNOWN_USER_PROFILE;
-    const color = user.getIn(["profile", "color"], "rgb(170,170,170)");
-    const name = trunc_middle(
-      user.get("first_name", "") + " " + user.get("last_name", ""),
-      60
-    );
-    return { color, name };
-  }
-
-  public render(): Rendered {
-    let C: any;
     const now = server_time().valueOf();
     const v: any[] = [];
-    if (this.props.codemirror != null) {
-      C = PositionedCursor;
-    } else {
-      C = StaticPositionedCursor;
-    }
-    if (this.props.cursors != null && this.props.user_map != null) {
-      this.props.cursors.forEach((locs: any, account_id: any) => {
-        const { color, name } = this.profile(account_id);
+    const C: any =
+      codemirror != null ? PositionedCursor : StaticPositionedCursor;
+    if (cursors != null && user_map != null) {
+      cursors.forEach((locs: any, account_id: any) => {
+        const { color, name } = getProfile(account_id, user_map);
         locs.forEach((pos) => {
           const tm = pos.get("time");
           if (tm == null) {
@@ -418,7 +315,7 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
           }
           const t = tm.valueOf();
           if (now - t <= CURSOR_TIME_MS) {
-            /* if (account_id === this.props.account_id) {
+            /* if (account_id === account_id) {
               // Don't show our own cursor, we just haven't made this
               // possible due to only keying by account_id.
               return;
@@ -431,7 +328,7 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
                 name={name}
                 line={pos.get("y", 0)}
                 ch={pos.get("x", 0)}
-                codemirror={this.props.codemirror}
+                codemirror={codemirror}
               />
             );
           }
@@ -441,10 +338,9 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
     return (
       <div style={{ position: "relative", height: 0, zIndex: 5 }}>{v}</div>
     );
-  }
-}
-
-export const Cursors = rclass(Cursors0);
+  },
+  (prev, next) => !is_different(prev, next, ["cursors"])
+);
 
 export function getProfile(
   account_id,
