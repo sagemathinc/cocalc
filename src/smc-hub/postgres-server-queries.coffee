@@ -2217,7 +2217,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             project_id  : required
             account_id  : undefined
-            groups      : misc.PROJECT_GROUPS
+            groups      : ['owner', 'collaborator']
             cache       : false  # if true cache result for a few seconds
             cb          : required  # cb(err, true if in group)
         if not opts.account_id?

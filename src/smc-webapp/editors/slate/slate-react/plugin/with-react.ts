@@ -109,13 +109,11 @@ export const withReact = <T extends Editor>(editor: T) => {
     }
 
     const fragment = e.getFragment();
-    const plain = (e as any).getSourceValue?.(fragment);
-    if (!plain) {
-      // TODO: need to implement this
-      return;
+    const plain = (e as any).getPlainValue?.(fragment);
+    if (plain == null) {
+      throw Error("copy not implemented");
     }
-    const string = JSON.stringify(fragment);
-    const encoded = window.btoa(encodeURIComponent(string));
+    const encoded = window.btoa(encodeURIComponent(JSON.stringify(fragment)));
 
     // This application/x-slate-fragment is the only thing that is
     // used for Firefox and Chrome paste:

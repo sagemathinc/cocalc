@@ -100,10 +100,13 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
         <i>Where to grade:</i> choose the project in which to run autograding.
         You can create a new project dedicated to running nbgrader, upgrade or
         license it appropriately, and copy any files to it that student work
-        depends on. You can also grade all student work in the student's own
-        project, which is good because the code runs in the same environment as
-        the student work (and won't harm any files you have), but can be slower
-        since each student project has to start running.
+        depends on. This new project will be shared will all collaborators of
+        this instructorproject.
+        <br />
+        You can also grade all student work in the student's own project, which
+        is good because the code runs in the same environment as the student
+        work (and won't harm any files you have), but can be slower since each
+        student project has to start running.
       </div>
     );
   }
