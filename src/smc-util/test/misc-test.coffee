@@ -14,6 +14,7 @@
 require('ts-node').register()
 
 misc = require('../misc')
+jupyter = require('../jupyter')
 underscore = require('underscore')
 immutable = require('immutable')
 
@@ -1103,12 +1104,12 @@ describe 'test closest kernel matching method', ->
     ir_old   = immutable.fromJS {name:"ir-old", display_name: "R (old)", language: "r", metadata: {cocalc: {priority: -10}}}
     kernels = immutable.fromJS([octave, python3, python3, sage8_2, sage8_10, ir, ir_old])
     it 'thinks python8 should be python3', ->
-        expect(misc.closest_kernel_match("python8",kernels)).toEqual(python3)
+        expect(jupyter.closest_kernel_match("python8",kernels)).toEqual(python3)
     it 'replaces "matlab" with "octave"', ->
-        expect(misc.closest_kernel_match("matlab",kernels)).toEqual(octave)
+        expect(jupyter.closest_kernel_match("matlab",kernels)).toEqual(octave)
     it 'suggests sage8.10 over sage8.2', ->
-        expect(misc.closest_kernel_match("sage8",kernels)).toEqual(sage8_10)
+        expect(jupyter.closest_kernel_match("sage8",kernels)).toEqual(sage8_10)
     it 'suggests R over ir35', ->
-        expect(misc.closest_kernel_match("ir35",kernels)).toEqual(ir)
+        expect(jupyter.closest_kernel_match("ir35",kernels)).toEqual(ir)
     it 'suggests R over ir-35', ->
-        expect(misc.closest_kernel_match("ir-35",kernels)).toEqual(ir)
+        expect(jupyter.closest_kernel_match("ir-35",kernels)).toEqual(ir)

@@ -7,23 +7,16 @@
 Rendering output part of a Sage worksheet cell
 */
 
-import { Component, React, Rendered } from "../app-framework";
+import * as React from "react";
 
 import { encode_path, filename_extension, keys, cmp, len } from "smc-util/misc";
-
 import { FLAGS } from "smc-util/sagews";
-
-import { Stdout } from "../jupyter/output-messages/stdout";
-import { Stderr } from "../jupyter/output-messages/stderr";
-
-import { HTML, Markdown } from "../r_misc";
-
+import { Stdout } from "smc-webapp/jupyter/output-messages/stdout";
+import { Stderr } from "smc-webapp/jupyter/output-messages/stderr";
+import { HTML, Markdown } from "smc-webapp/r_misc";
 import { fromJS } from "immutable";
-
-import { CodeMirrorStatic } from "../jupyter/codemirror-static";
-
-import * as extensions from "../share/extensions";
-
+import CodeMirrorStatic from "smc-webapp/codemirror/static";
+import * as extensions from "smc-webapp/share/extensions";
 import { OutputMessage, OutputMessages } from "./parse-sagews";
 
 interface Props {
@@ -31,38 +24,46 @@ interface Props {
   flags?: string;
 }
 
-export class CellOutput extends Component<Props> {
-  render_auto(): Rendered {
+export function CellOutput({ output, flags }: Props) {
+  // @ts-ignore -- since not *explicitly* used
+  function render_auto(): JSX.Element {
     // This is deprecated, but can be in some older worksheets.
     // It should do nothing for static rendering.
     return <span />;
   }
 
-  render_stdout(value: string, key: string): Rendered {
+  // @ts-ignore -- since not *explicitly* used
+  function render_stdout(value: string, key: string): JSX.Element {
     return <Stdout key={key} message={fromJS({ text: value })} />;
   }
 
-  render_stderr(value: string, key: string): Rendered {
+  // @ts-ignore -- since not *explicitly* used
+  function render_stderr(value: string, key: string): JSX.Element {
     return <Stderr key={key} message={fromJS({ text: value })} />;
   }
 
-  render_md(value: string, key: string): Rendered {
+  // @ts-ignore -- since not *explicitly* used
+  function render_md(value: string, key: string): JSX.Element {
     return <Markdown key={key} value={value} />;
   }
 
-  render_html(value: string, key: string): Rendered {
+  // @ts-ignore -- since not *explicitly* used
+  function render_html(value: string, key: string): JSX.Element {
     return <HTML key={key} value={value} auto_render_math={true} />;
   }
 
-  render_interact(_value: object, key: string): Rendered {
+  // @ts-ignore -- since not *explicitly* used
+  function render_interact(_value: object, key: string): JSX.Element {
     return <div key={key}>Interact: please open in CoCalc</div>;
   }
 
-  render_d3(_value: object, key): Rendered {
+  // @ts-ignore -- since not *explicitly* used
+  function render_d3(_value: object, key): JSX.Element {
     return <div key={key}>d3-based renderer not yet implemented</div>;
   }
 
-  render_file(
+  // @ts-ignore -- since not *explicitly* used
+  function render_file(
     value: {
       show?: boolean;
       url?: string;
@@ -71,7 +72,7 @@ export class CellOutput extends Component<Props> {
       uuid?: string;
     },
     key: string
-  ): Rendered {
+  ): JSX.Element | undefined {
     if (value.show != null && !value.show) {
       return;
     }
@@ -92,7 +93,7 @@ export class CellOutput extends Component<Props> {
     } else if (extensions.audio.has(ext)) {
       return <audio src={src} autoPlay={true} controls loop />;
     } else if (ext === "sage3d") {
-      return this.render_3d(value.filename, key);
+      return render_3d(value.filename, key);
     } else {
       let text: string;
       if (value.text) {
@@ -108,11 +109,15 @@ export class CellOutput extends Component<Props> {
     }
   }
 
-  render_3d(_filename: string, key: string): Rendered {
+  function render_3d(_filename: string, key: string): JSX.Element {
     return <div key={key}>3D rendering not yet implemented</div>;
   }
 
-  render_code(value: { mode: string; source?: string }, key: string): Rendered {
+  // @ts-ignore -- since not *explicitly* used
+  function render_code(
+    value: { mode: string; source?: string },
+    key: string
+  ): JSX.Element {
     const options = fromJS({ mode: { name: value.mode } });
     return (
       <CodeMirrorStatic
@@ -124,7 +129,11 @@ export class CellOutput extends Component<Props> {
     );
   }
 
-  render_tex(value: { tex: string; display?: boolean }, key: string): Rendered {
+  // @ts-ignore -- since not *explicitly* used
+  function render_tex(
+    value: { tex: string; display?: boolean },
+    key: string
+  ): JSX.Element {
     let html = `$${value.tex}$`;
     if (value.display) {
       html = `$${html}$`;
@@ -136,10 +145,11 @@ export class CellOutput extends Component<Props> {
     );
   }
 
-  render_raw_input(
+  // @ts-ignore -- since not *explicitly* used
+  function render_raw_input(
     val: { prompt: string; value: string | undefined },
     key
-  ): Rendered {
+  ): JSX.Element {
     const { prompt, value } = val;
     // sanitizing value, b/c we know the share server throws right here:
     // TypeError: Cannot read property 'length' of undefined
@@ -158,41 +168,37 @@ export class CellOutput extends Component<Props> {
     );
   }
 
-  render_output_mesg(elts: Rendered[], mesg: object): void {
+  // @ts-ignore -- since not *explicitly* used
+  function render_output_mesg(elts: JSX.Element[], mesg: object): void {
     for (const type in mesg) {
       let value: any = mesg[type];
-      let f = this[`render_${type}`];
+      let f = eval(`render_${type}`);
       if (f == null) {
-        f = this.render_stderr;
+        f = render_stderr;
         value = `unknown message type '${type}'`;
       }
-      elts.push(f.bind(this)(value, elts.length));
+      elts.push(f(value, elts.length));
     }
   }
 
-  render_output(): Rendered[] {
-    const elts: Rendered[] = [];
-    for (const mesg of process_messages(this.props.output)) {
-      this.render_output_mesg(elts, mesg);
+  function render_output(): JSX.Element[] {
+    const elts: JSX.Element[] = [];
+    for (const mesg of processMessages(output)) {
+      render_output_mesg(elts, mesg);
     }
     return elts;
   }
 
-  render() {
-    if (
-      this.props.flags != null &&
-      this.props.flags.indexOf(FLAGS.hide_output) != -1
-    ) {
-      return <span />;
-    }
-    return <div style={{ margin: "15px" }}>{this.render_output()}</div>;
+  if (flags != null && flags.indexOf(FLAGS.hide_output) != -1) {
+    return <span />;
   }
+  return <div style={{ margin: "15px" }}>{render_output()}</div>;
 }
 
 // sort in order to a list and combine adjacent stdout/stderr messages.
 const STRIP = ["done", "error", "once", "javascript", "hide", "show"]; // these are just deleted -- make no sense for static rendering.
 
-function process_messages(output: OutputMessages): object[] {
+function processMessages(output: OutputMessages): object[] {
   const v: string[] = keys(output);
   v.sort((a, b) => cmp(parseInt(a), parseInt(b)));
   let r: OutputMessage[] = [];
