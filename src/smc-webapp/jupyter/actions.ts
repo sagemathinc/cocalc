@@ -30,6 +30,7 @@ import { debounce } from "lodash";
 // **It's just a hack.**
 import { callback2, retry_until_success } from "../../smc-util/async-utils";
 import * as misc from "../../smc-util/misc";
+import { closest_kernel_match } from "../../smc-util/jupyter";
 const { close, required, defaults } = misc;
 import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
@@ -2605,7 +2606,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // unknown kernel, we try to find a close match
     if (kernel_info == null && kernel != null) {
       // kernel & kernels must be defined
-      closestKernel = misc.closest_kernel_match(kernel, kernels as any) as any;
+      closestKernel = closest_kernel_match(kernel, kernels as any) as any;
       // TODO about that any above: closest_kernel_match should be moved here so it knows the typings
     }
     this.setState({
