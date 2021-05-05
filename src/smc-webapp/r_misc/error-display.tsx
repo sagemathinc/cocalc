@@ -7,13 +7,15 @@ import * as React from "react";
 import * as misc from "smc-util/misc";
 import { Alert } from "antd";
 
-const ERROR_TEXT_STYLE: React.CSSProperties = {
-  whiteSpace: "pre-line",
+const ELEMENT_STYLE: React.CSSProperties = {
+  maxHeight: "30%",
+  overflowY: "auto",
 } as const;
 
 const BODY_STYLE: React.CSSProperties = {
-  overflowX: "auto",
   marginRight: "10px",
+  whiteSpace: "pre",
+  fontSize: "85%",
 } as const;
 
 interface Props {
@@ -21,12 +23,21 @@ interface Props {
   error_component?: JSX.Element | JSX.Element[];
   title?: string;
   style?: React.CSSProperties;
+  element_style?: React.CSSProperties;
   bsStyle?: string;
   onClose?: () => void;
 }
 
 export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
-  const { error, error_component, title, style, bsStyle, onClose } = props;
+  const {
+    error,
+    error_component,
+    title,
+    style,
+    element_style,
+    bsStyle,
+    onClose,
+  } = props;
 
   function render_title() {
     return <h4>{title}</h4>;
@@ -60,29 +71,30 @@ export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
 
   function msgdesc() {
     if (title) {
-      return {
-        message: render_title(),
-        description: <div style={BODY_STYLE}>{render_error()}</div>,
-      };
+      return [
+        render_title(),
+        <div style={{ ...BODY_STYLE, ...style }}>{render_error()}</div>,
+      ];
     } else {
-      return {
-        message: <div style={BODY_STYLE}>{render_error()}</div>,
-        description: undefined,
-      };
+      return [
+        <div style={{ ...BODY_STYLE, ...style }}>{render_error()}</div>,
+        undefined,
+      ];
     }
   }
 
-  const { message, description } = msgdesc();
+  const [message, description] = msgdesc();
 
   return (
-    <div style={{ ...ERROR_TEXT_STYLE, ...style }}>
-      <Alert
-        type={type() as any}
-        message={message}
-        description={description}
-        closable={onClose != null}
-        onClose={onClose}
-      />
-    </div>
+    <Alert
+      banner
+      showIcon={false}
+      style={{ ...ELEMENT_STYLE, ...element_style }}
+      type={type() as any}
+      message={message}
+      description={description}
+      closable={onClose != null}
+      onClose={onClose}
+    />
   );
 });

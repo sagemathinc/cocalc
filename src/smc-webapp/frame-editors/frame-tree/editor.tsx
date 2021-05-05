@@ -5,6 +5,7 @@
 
 import {
   React,
+  CSS,
   rclass,
   rtypes,
   Component,
@@ -226,11 +227,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     if (!this.props.error) {
       return;
     }
-    const style: any = {
-      maxWidth: "100%",
-      maxHeight: "30%",
-      overflowY: "scroll",
-    };
+    const style: CSS = {};
     if (this.props.errorstyle === "monospace") {
       style.fontFamily = "monospace";
       style.fontSize = "85%";

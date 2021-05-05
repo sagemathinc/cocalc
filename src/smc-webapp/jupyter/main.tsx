@@ -59,7 +59,6 @@ const KERNEL_STYLE: CSS = {
 } as const;
 
 export const ERROR_STYLE: CSS = {
-  margin: "1ex",
   whiteSpace: "pre" as "pre",
   fontSize: "12px",
   fontFamily: "monospace" as "monospace",
