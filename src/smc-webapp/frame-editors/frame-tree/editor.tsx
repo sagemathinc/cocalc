@@ -228,7 +228,6 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     }
     const style: any = {
       maxWidth: "100%",
-      margin: "1ex",
       maxHeight: "30%",
       overflowY: "scroll",
     };

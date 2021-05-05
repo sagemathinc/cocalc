@@ -8,14 +8,13 @@ import * as misc from "smc-util/misc";
 import { Alert } from "antd";
 
 const ERROR_TEXT_STYLE: React.CSSProperties = {
-  marginRight: "1ex",
   whiteSpace: "pre-line",
-};
+} as const;
 
 const BODY_STYLE: React.CSSProperties = {
   overflowX: "auto",
   marginRight: "10px",
-};
+} as const;
 
 interface Props {
   error?: string | object;
@@ -26,61 +25,64 @@ interface Props {
   onClose?: () => void;
 }
 
-export class ErrorDisplay extends React.Component<Props> {
-  render_title() {
-    return <h4>{this.props.title}</h4>;
+export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
+  const { error, error_component, title, style, bsStyle, onClose } = props;
+
+  function render_title() {
+    return <h4>{title}</h4>;
   }
 
-  render() {
-    let error, style;
-
-    if (this.props.style != undefined) {
-      style = misc.copy(ERROR_TEXT_STYLE);
-      misc.merge(style, this.props.style);
-    } else {
-      style = ERROR_TEXT_STYLE;
-    }
-
-    if (this.props.error != undefined) {
-      if (typeof this.props.error === "string") {
-        error = this.props.error;
+  function render_error() {
+    if (error != undefined) {
+      if (typeof error === "string") {
+        return error;
       } else {
-        error = misc.to_json(this.props.error);
+        return misc.to_json(error);
       }
     } else {
-      error = this.props.error_component;
+      return error_component;
     }
+  }
 
-    let type = this.props.bsStyle;
+  function type() {
     if (
-      type != "success" &&
-      type != "info" &&
-      type != "warning" &&
-      type != "error"
+      bsStyle != "success" &&
+      bsStyle != "info" &&
+      bsStyle != "warning" &&
+      bsStyle != "error"
     ) {
       // only types that antd has...
-      type = "error";
-    }
-
-    let description: any = undefined,
-      message: any;
-    if (this.props.title) {
-      message = this.props.title;
-      description = <div style={BODY_STYLE}>{error}</div>;
+      return "error";
     } else {
-      message = <div style={BODY_STYLE}>{error}</div>;
+      bsStyle;
     }
-
-    return (
-      <div style={style}>
-        <Alert
-          type={type as any}
-          message={message}
-          description={description}
-          closable={this.props.onClose != null}
-          onClose={this.props.onClose}
-        />
-      </div>
-    );
   }
-}
+
+  function msgdesc() {
+    if (title) {
+      return {
+        message: render_title(),
+        description: <div style={BODY_STYLE}>{render_error()}</div>,
+      };
+    } else {
+      return {
+        message: <div style={BODY_STYLE}>{render_error()}</div>,
+        description: undefined,
+      };
+    }
+  }
+
+  const { message, description } = msgdesc();
+
+  return (
+    <div style={{ ...ERROR_TEXT_STYLE, ...style }}>
+      <Alert
+        type={type() as any}
+        message={message}
+        description={description}
+        closable={onClose != null}
+        onClose={onClose}
+      />
+    </div>
+  );
+});
