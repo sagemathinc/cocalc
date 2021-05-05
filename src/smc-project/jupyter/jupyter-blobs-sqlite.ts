@@ -20,7 +20,7 @@ if (do_not_laod_transpilers) {
 
 import { BlobStoreInterface } from "../smc-webapp/jupyter/project-interface";
 
-const fs = require("fs");
+import * as fs from "fs";
 
 import { readFile } from "./async-utils-node";
 
@@ -32,27 +32,26 @@ const misc_node = require("smc-util-node/misc_node");
 
 import * as Database from "better-sqlite3";
 
-let JUPYTER_BLOBS_DB_FILE: string;
-if (process.env.JUPYTER_BLOBS_DB_FILE) {
-  JUPYTER_BLOBS_DB_FILE = process.env.JUPYTER_BLOBS_DB_FILE;
-} else {
-  JUPYTER_BLOBS_DB_FILE = `${
-    process.env.SMC_LOCAL_HUB_HOME != null
-      ? process.env.SMC_LOCAL_HUB_HOME
-      : process.env.HOME
-  }/.jupyter-blobs-v0.db`;
-}
+const JUPYTER_BLOBS_DB_FILE: string =
+  process.env.JUPYTER_BLOBS_DB_FILE ??
+  `${process.env.SMC_LOCAL_HUB_HOME ?? process.env.HOME}/.jupyter-blobs-v0.db`;
 
 // TODO: are these the only base64 encoded types that jupyter kernels return?
 const BASE64_TYPES = ["image/png", "image/jpeg", "application/pdf", "base64"];
 
 export class BlobStore implements BlobStoreInterface {
   private db: Database.Database;
+  private stmt_insert;
+  private stmt_update;
+  private stmt_get;
+  private stmt_data;
+  private stmt_ipynb;
+  private stmt_keys;
 
   constructor() {
     winston.debug("jupyter BlobStore: constructor");
     try {
-      this._init();
+      this.init();
       winston.debug(`jupyter BlobStore: ${JUPYTER_BLOBS_DB_FILE} opened fine`);
     } catch (err) {
       winston.debug(
@@ -73,25 +72,53 @@ export class BlobStore implements BlobStoreInterface {
           err
         );
       }
-      this._init();
+      this.init();
     }
   }
 
-  _init(): void {
+  init(): void {
     if (JUPYTER_BLOBS_DB_FILE == "memory") {
       this.db = new Database(".db", { memory: true });
     } else {
       this.db = new Database(JUPYTER_BLOBS_DB_FILE);
     }
+
+    this.init_table();
+    this.init_statements(); // table must exist!
+
+    if (JUPYTER_BLOBS_DB_FILE !== "memory") {
+      this.clean(); // do this once on start
+      this.db.exec("VACUUM");
+    }
+  }
+
+  private init_table() {
     this.db
       .prepare(
         "CREATE TABLE IF NOT EXISTS blobs (sha1 TEXT, data BLOB, type TEXT, ipynb TEXT, time INTEGER)"
       )
       .run();
-    this._clean(); // do this once on start
   }
 
-  _clean(): void {
+  private init_statements() {
+    this.stmt_insert = this.db.prepare(
+      "INSERT INTO blobs VALUES(?, ?, ?, ?, ?)"
+    );
+    this.stmt_update = this.db.prepare("UPDATE blobs SET time=? WHERE sha1=?");
+    this.stmt_get = this.db.prepare("SELECT * FROM blobs WHERE sha1=?");
+    this.stmt_data = this.db.prepare("SELECT data FROM blobs where sha1=?");
+    this.stmt_keys = this.db.prepare("SELECT sha1 FROM blobs");
+    this.stmt_ipynb = this.db.prepare(
+      "SELECT ipynb, type, data FROM blobs where sha1=?"
+    );
+  }
+
+  private clean(): void {
+    this.clean_old();
+    this.clean_filesize();
+  }
+
+  private clean_old() {
     // Delete anything old...
     // The main point of this blob store being in the db is to ensure that when the
     // project restarts, then user saves an ipynb,
@@ -101,6 +128,31 @@ export class BlobStore implements BlobStoreInterface {
     this.db
       .prepare("DELETE FROM blobs WHERE time <= ?")
       .run(months_ago(1).getTime());
+  }
+
+  private clean_filesize() {
+    // we also check for the actual filesize and in case, get rid of half of the old blobs
+    try {
+      const stats = fs.statSync(JUPYTER_BLOBS_DB_FILE);
+      const size_mb = stats.size / (1024 * 1024);
+      if (size_mb > 128) {
+        const cnt = this.db.prepare("SELECT COUNT(*) as cnt FROM blobs").get();
+        if (cnt?.cnt == null) return;
+        const n = Math.floor(cnt.cnt / 2);
+        winston.debug(
+          `jupyter BlobStore: large file of ${size_mb}MiB detected – deleting ${n} old rows.`
+        );
+        if (n == 0) return;
+        const when = this.db
+          .prepare("SELECT time FROM blobs ORDER BY time ASC LIMIT 1 OFFSET ?")
+          .get(n);
+        if (when?.time == null) return;
+        winston.debug(`jupyter BlobStore: delete starting from ${when.time}`);
+        this.db.prepare("DELETE FROM blobs WHERE time <= ?").run(when.time);
+      }
+    } catch (err) {
+      winston.debug(`jupyter BlobStore: clean_filesize error: ${err}`);
+    }
   }
 
   // used in testing
@@ -120,15 +172,11 @@ export class BlobStore implements BlobStoreInterface {
       data = Buffer.from(data);
     }
     const sha1: string = misc_node.sha1(data);
-    const row = this.db.prepare("SELECT * FROM blobs where sha1=?").get(sha1);
+    const row = this.stmt_get.get(sha1);
     if (row == null) {
-      this.db
-        .prepare("INSERT INTO blobs VALUES(?, ?, ?, ?, ?)")
-        .run([sha1, data, type, ipynb, new Date().valueOf()]);
+      this.stmt_insert.run([sha1, data, type, ipynb, Date.now()]);
     } else {
-      this.db
-        .prepare("UPDATE blobs SET time=? WHERE sha1=?")
-        .run([new Date().valueOf(), sha1]);
+      this.stmt_update.run([Date.now(), sha1]);
     }
     return sha1;
   }
@@ -147,16 +195,14 @@ export class BlobStore implements BlobStoreInterface {
 
   // Return data with given sha1, or undefined if no such data.
   get(sha1: string): undefined | Buffer {
-    const x = this.db.prepare("SELECT data FROM blobs where sha1=?").get(sha1);
+    const x = this.stmt_data.get(sha1);
     if (x != null) {
       return x.data;
     }
   }
 
   get_ipynb(sha1: string): any {
-    const row = this.db
-      .prepare("SELECT ipynb, type, data FROM blobs where sha1=?")
-      .get(sha1);
+    const row = this.stmt_ipynb.get(sha1);
     if (row == null) {
       return;
     }
@@ -171,10 +217,7 @@ export class BlobStore implements BlobStoreInterface {
   }
 
   keys(): string[] {
-    return this.db
-      .prepare("SELECT sha1 FROM blobs")
-      .all()
-      .map((x) => x.sha1);
+    return this.stmt_keys.all().map((x) => x.sha1);
   }
 
   express_router(base, express) {

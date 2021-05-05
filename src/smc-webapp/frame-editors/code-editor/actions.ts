@@ -241,8 +241,11 @@ export class Actions<
   // spelling makes sense...
   protected _init_spellcheck(): void {
     this._spellcheck_is_supported = true;
-    this._syncstring.on("save-to-disk", (time) =>
-      this.update_misspelled_words(time)
+    this._syncstring.on(
+      "save-to-disk",
+      reuseInFlight(async (time) => {
+        await this.update_misspelled_words(time);
+      })
     );
   }
 
