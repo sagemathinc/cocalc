@@ -7,6 +7,7 @@
 Media wiki Editor Actions
 */
 
+import { reuseInFlight } from "async-await-utils/hof";
 import { Actions as MarkdownActions } from "../markdown-editor/actions";
 import { convert } from "./wiki2html";
 import { FrameTree } from "../frame-tree/types";
@@ -15,6 +16,9 @@ import { aux_file } from "../frame-tree/util";
 import { raw_url } from "../frame-tree/util";
 
 export class Actions extends MarkdownActions {
+  private run_wiki2html: Function;
+  private _last_wiki_hash: string = "";
+
   _init2(): void {
     if (!this.is_public) {
       // one extra thing after base class init...
@@ -23,8 +27,20 @@ export class Actions extends MarkdownActions {
   }
 
   _init_wiki2html(): void {
-    this._syncstring.on("save-to-disk", () => this._run_wiki2html());
-    this._run_wiki2html();
+    this.run_wiki2html = reuseInFlight(this._run_wiki2html.bind(this));
+    this._syncstring.on(
+      "save-to-disk",
+      reuseInFlight(async () => {
+        if (this._syncstring == null) return;
+        const hash = this._syncstring.hash_of_saved_version();
+        if (this._last_wiki_hash != hash) {
+          this._last_wiki_hash = hash;
+          await this.run_wiki2html();
+        }
+      })
+    );
+
+    this._syncstring.once("ready", this.run_wiki2html.bind(this));
   }
 
   async _run_wiki2html(time?: number): Promise<void> {

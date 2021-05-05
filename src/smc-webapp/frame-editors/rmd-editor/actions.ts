@@ -7,8 +7,9 @@
 R Markdown Editor Actions
 */
 
-import { Set } from "immutable";
+import { reuseInFlight } from "async-await-utils/hof";
 import { debounce } from "lodash";
+import { Set } from "immutable";
 import { callback2 } from "smc-util/async-utils";
 import { Actions } from "../markdown-editor/actions";
 import { convert } from "./rmd-converter";
@@ -46,7 +47,7 @@ output: html_document
 `;
 
 export class RmdActions extends Actions {
-  private _last_build_rmd: string = "";
+  private _last_rmd_hash: string | null = null;
   private is_building: boolean = false;
   private run_rmd_converter: Function;
 
@@ -69,22 +70,22 @@ export class RmdActions extends Actions {
   }
 
   _init_rmd_converter(): void {
+    // one build takes min. a few seconds up to a minute or more
     this.run_rmd_converter = debounce(
-      (time?: number) => this._run_rmd_converter(time),
-      1 * 1000,
-      {
-        leading: true,
-        trailing: false,
-      }
+      async (hash?) => await this._run_rmd_converter(hash),
+      5 * 1000,
+      { leading: true, trailing: false }
     );
 
-    const do_build = () => {
+    const do_build = reuseInFlight(async () => {
       if (!this.do_implicit_builds()) return;
       if (this._syncstring == null) return;
-      if (this._last_build_rmd != this._syncstring.to_str()) {
-        this.run_rmd_converter();
+      const hash = this._syncstring.hash_of_saved_version();
+      if (this._last_rmd_hash != hash) {
+        this._last_rmd_hash = hash;
+        await this.run_rmd_converter();
       }
-    };
+    });
 
     this._syncstring.on("save-to-disk", do_build);
     this._syncstring.on("after-change", do_build);
@@ -105,8 +106,7 @@ export class RmdActions extends Actions {
     try {
       const actions = this.redux.getEditorActions(this.project_id, this.path);
       await (actions as BaseActions<CodeEditorState>).save(false);
-      // don't debounce and we don't use last_save_time but instead a new timestamp
-      await this._run_rmd_converter(Date.now());
+      await this.run_rmd_converter(Date.now());
     } finally {
       this.is_building = false;
     }
@@ -160,7 +160,8 @@ export class RmdActions extends Actions {
     });
   }
 
-  private async _run_rmd_converter(time?: number): Promise<void> {
+  // use this.run_rmd_converter
+  private async _run_rmd_converter(hash?): Promise<void> {
     // TODO: should only run knitr if at least one frame is visible showing preview?
     // maybe not, since might want to show error.
     if (this._syncstring == null || this._syncstring.get_state() != "ready") {
@@ -168,7 +169,10 @@ export class RmdActions extends Actions {
       // fire this at any time.
       return;
     }
-    const md = (this._last_build_rmd = this._syncstring.to_str());
+    if (this._last_rmd_hash == null) {
+      this._last_rmd_hash = this._syncstring.hash_of_saved_version();
+    }
+    const md = this._syncstring.to_str();
     if (md == null) return;
     this.set_status("Running RMarkdown...");
     this.setState({ building: true });
@@ -179,12 +183,11 @@ export class RmdActions extends Actions {
     try {
       const { frontmatter, html } = markdown_to_html_frontmatter(md);
       markdown = html;
-      const last_save_time = this.last_save_time(false);
       output = await convert(
         this.project_id,
         this.path,
         frontmatter,
-        time || last_save_time
+        hash || this._last_rmd_hash
       );
       this.set_log(output);
       if (output == null || output.exit_code != 0) {
