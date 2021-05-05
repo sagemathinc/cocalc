@@ -51,7 +51,7 @@ export class BlobStore implements BlobStoreInterface {
   constructor() {
     winston.debug("jupyter BlobStore: constructor");
     try {
-      this._init();
+      this.init();
       winston.debug(`jupyter BlobStore: ${JUPYTER_BLOBS_DB_FILE} opened fine`);
     } catch (err) {
       winston.debug(
@@ -72,16 +72,35 @@ export class BlobStore implements BlobStoreInterface {
           err
         );
       }
-      this._init();
+      this.init();
     }
   }
 
-  _init(): void {
+  init(): void {
     if (JUPYTER_BLOBS_DB_FILE == "memory") {
       this.db = new Database(".db", { memory: true });
     } else {
       this.db = new Database(JUPYTER_BLOBS_DB_FILE);
     }
+
+    this.init_table();
+    this.init_statements(); // table must exist!
+
+    if (JUPYTER_BLOBS_DB_FILE !== "memory") {
+      this.clean(); // do this once on start
+      this.db.exec("VACUUM");
+    }
+  }
+
+  private init_table() {
+    this.db
+      .prepare(
+        "CREATE TABLE IF NOT EXISTS blobs (sha1 TEXT, data BLOB, type TEXT, ipynb TEXT, time INTEGER)"
+      )
+      .run();
+  }
+
+  private init_statements() {
     this.stmt_insert = this.db.prepare(
       "INSERT INTO blobs VALUES(?, ?, ?, ?, ?)"
     );
@@ -92,18 +111,14 @@ export class BlobStore implements BlobStoreInterface {
     this.stmt_ipynb = this.db.prepare(
       "SELECT ipynb, type, data FROM blobs where sha1=?"
     );
-    this.db
-      .prepare(
-        "CREATE TABLE IF NOT EXISTS blobs (sha1 TEXT, data BLOB, type TEXT, ipynb TEXT, time INTEGER)"
-      )
-      .run();
-    if (JUPYTER_BLOBS_DB_FILE !== "memory") {
-      this._clean(); // do this once on start
-      this.db.exec("VACUUM");
-    }
   }
 
-  _clean(): void {
+  private clean(): void {
+    this.clean_old();
+    this.clean_filesize();
+  }
+
+  private clean_old() {
     // Delete anything old...
     // The main point of this blob store being in the db is to ensure that when the
     // project restarts, then user saves an ipynb,
@@ -113,12 +128,10 @@ export class BlobStore implements BlobStoreInterface {
     this.db
       .prepare("DELETE FROM blobs WHERE time <= ?")
       .run(months_ago(1).getTime());
-
-    // we also check for the actual filesize and in case, get rid of half of the old blobs
-    this.clean_filesize();
   }
 
   private clean_filesize() {
+    // we also check for the actual filesize and in case, get rid of half of the old blobs
     try {
       const stats = fs.statSync(JUPYTER_BLOBS_DB_FILE);
       const size_mb = stats.size / (1024 * 1024);
