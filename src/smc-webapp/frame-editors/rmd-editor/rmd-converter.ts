@@ -17,7 +17,7 @@ async function _convert(
   project_id: string,
   path: string,
   frontmatter: string,
-  time?: number
+  hash
 ): Promise<ExecOutput> {
   const x = path_split(path);
   const infile = x.tail;
@@ -44,6 +44,6 @@ async function _convert(
     project_id: project_id,
     path: x.head,
     err_on_exit: false,
-    aggregate: time,
+    aggregate: { value: hash },
   });
 }
