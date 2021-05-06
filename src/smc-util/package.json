@@ -2,12 +2,18 @@
   "name": "smc-util",
   "version": "1.0.0",
   "description": "CoCalc code shared between the frontend and the backend",
-  "main": "index.js",
+  "exports": {
+    "./*": "./dist/*.js",
+    "./db-schema": "./dist/db-schema/index.js",
+    "./fill": "./dist/fill/index.js",
+    "./upgrades/*": "./dist/upgrades/*.js"
+  },
+  "workspaces": ["."],
+  "files": ["dist"],
   "scripts": {
+    "build": "tsc",
     "testsync": "cd sync && npx jest",
-    "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee; cd test && npx jest",
-    "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
-    "lint": "node_modules/.bin/coffeelint -c *.coffee"
+    "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee; cd test && npx jest"
   },
   "author": "SageMath, Inc.",
   "license": "GPL-3.0",
