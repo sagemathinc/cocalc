@@ -5,17 +5,36 @@
 
 import * as React from "react";
 import * as misc from "smc-util/misc";
-import { Alert } from "antd";
+import { Icon } from "./index";
+import { Alert, Button } from "antd";
 
+// use "element_style" to customize
 const ELEMENT_STYLE: React.CSSProperties = {
-  maxHeight: "30%",
   overflowY: "auto",
 } as const;
 
+// use "style" prop to customize
 const BODY_STYLE: React.CSSProperties = {
   marginRight: "10px",
   whiteSpace: "pre",
   fontSize: "85%",
+} as const;
+
+const CLOSE_X: React.CSSProperties = {
+  float: "right",
+  position: "absolute",
+  top: "5px",
+  right: "10px",
+  zIndex: 1,
+} as const;
+
+const WRAPPER_STYLE: React.CSSProperties = {
+  margin: 0,
+  padding: 0,
+  maxHeight: "30%",
+  position: "relative",
+  display: "flex",
+  flexDirection: "column",
 } as const;
 
 interface Props {
@@ -57,15 +76,13 @@ export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
 
   function type() {
     if (
-      bsStyle != "success" &&
-      bsStyle != "info" &&
-      bsStyle != "warning" &&
-      bsStyle != "error"
-    ) {
       // only types that antd has...
-      return "error";
-    } else {
+      bsStyle != null &&
+      ["success", "info", "warning", "error"].includes(bsStyle)
+    ) {
       bsStyle;
+    } else {
+      return "error";
     }
   }
 
@@ -83,18 +100,34 @@ export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
+  function render_close() {
+    if (onClose == null) return;
+    return (
+      <Button
+        style={CLOSE_X}
+        shape="circle"
+        size="small"
+        type="text"
+        onClick={onClose}
+      >
+        <Icon style={style} name="times" />
+      </Button>
+    );
+  }
+
   const [message, description] = msgdesc();
 
   return (
-    <Alert
-      banner
-      showIcon={false}
-      style={{ ...ELEMENT_STYLE, ...element_style }}
-      type={type() as any}
-      message={message}
-      description={description}
-      closable={onClose != null}
-      onClose={onClose}
-    />
+    <div style={WRAPPER_STYLE}>
+      {render_close()}
+      <Alert
+        banner
+        showIcon={false}
+        style={{ ...ELEMENT_STYLE, ...element_style }}
+        type={type() as any}
+        message={message}
+        description={description}
+      />
+    </div>
   );
 });
