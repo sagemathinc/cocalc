@@ -1,17 +1,17 @@
 {
   "compilerOptions": {
     "jsx": "react",
+    "target": "es5",
     "types": ["node"],
     "lib": ["es7"],
     "strictNullChecks": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "downlevelIteration": true
+    "downlevelIteration": true,
+    "baseUrl": ".",
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "allowJs": true
   },
-  "exclude": [
-    "../smc-webapp/node_modules/",
-    "./smc-webapp/node_modules/",
-    "smc-webapp/node_modules",
-    "../smc-webapp/node_modules/*"
-  ]
+  "exclude": ["node_modules", "dist", "test", "jupyter/test"]
 }

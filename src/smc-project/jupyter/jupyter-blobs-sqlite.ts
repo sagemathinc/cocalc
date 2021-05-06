@@ -18,7 +18,7 @@ if (do_not_laod_transpilers) {
   require("coffee-register");
 }
 
-import { BlobStoreInterface } from "../smc-webapp/jupyter/project-interface";
+import { BlobStoreInterface } from "smc-webapp/jupyter/project-interface";
 
 import * as fs from "fs";
 
@@ -26,7 +26,7 @@ import { readFile } from "./async-utils-node";
 
 const winston = require("winston");
 
-import { months_ago, to_json } from "../smc-util/misc";
+import { months_ago, to_json } from "smc-util/misc";
 
 const misc_node = require("smc-util-node/misc_node");
 

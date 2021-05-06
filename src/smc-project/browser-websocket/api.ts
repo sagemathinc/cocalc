@@ -34,7 +34,7 @@ import { delete_files } from "./delete-files";
 import { rename_file, move_files } from "./move-files";
 import { realpath } from "./realpath";
 import { project_info_ws } from "../project-info";
-import { Mesg } from "../../smc-webapp/project/websocket/types";
+import { Mesg } from "smc-webapp/project/websocket/types";
 
 export function init_websocket_api(
   primus: any,
@@ -157,7 +157,7 @@ async function handle_api_call(
 /* implementation of the api calls */
 
 import { get_listing } from "../directory-listing";
-import { DirectoryListingEntry } from "../../smc-util/types";
+import { DirectoryListingEntry } from "smc-util/types";
 async function listing(
   path: string,
   hidden?: boolean

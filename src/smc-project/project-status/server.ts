@@ -22,7 +22,7 @@ if (require.main === module) {
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
-import { how_long_ago_m } from "../../smc-util/misc";
+import { how_long_ago_m } from "smc-util/misc";
 import {
   ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,
   ALERT_DISK_FREE,
@@ -31,7 +31,7 @@ import {
 import { ProjectStatus, Alert, AlertType } from "./types";
 import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
 import { ProjectInfo } from "../project-info/types";
-import { version } from "../../smc-util/smc-version";
+import { version } from "smc-util/smc-version";
 import { cgroup_stats } from "./utils";
 
 // tracks, when for the first time we saw an elevated value

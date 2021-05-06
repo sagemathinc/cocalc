@@ -17,11 +17,11 @@ const MAX_REQUESTS_PER_MINUTE = 50;
 import * as express from "express";
 import { writeFile } from "fs";
 import { callback } from "awaiting";
-import { endswith, split, meta_file } from "../smc-util/misc";
+import { endswith, split, meta_file } from "smc-util/misc";
 import { json, urlencoded } from "body-parser";
 
-const { free_port } = require("../../smc-util-node/misc_node");
-const { client_db } = require("../smc-util/db-schema");
+const { free_port } = require("smc-util-node/misc_node");
+const { client_db } = require("smc-util/db-schema");
 const RateLimit = require("express-rate-limit");
 
 export interface Client {

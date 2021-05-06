@@ -14,7 +14,7 @@ import * as os_path from "path";
 import { exists } from "./async-utils-node";
 import { blob_store } from "./jupyter-blobs-sqlite";
 import { get_kernel_data } from "./kernel-data";
-import { startswith } from "../smc-util/misc";
+import { startswith } from "smc-util/misc";
 
 const BASE = "/.smc/jupyter/";
 

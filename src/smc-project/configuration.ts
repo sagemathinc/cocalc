@@ -15,16 +15,16 @@ import { access as fs_access, constants as fs_constaints } from "fs";
 import { exec as child_process_exec } from "child_process";
 import { promisify } from "util";
 const exec = promisify(child_process_exec);
-import { APPS } from "../smc-webapp/frame-editors/x11-editor/apps";
-import { ConfigurationAspect } from "../smc-webapp/project_configuration";
+import { APPS } from "smc-webapp/frame-editors/x11-editor/apps";
+import { ConfigurationAspect } from "smc-webapp/project_configuration";
 import {
   Configuration,
   Capabilities,
   MainCapabilities,
   LIBRARY_INDEX_FILE,
-} from "../smc-webapp/project_configuration";
-import { syntax2tool, Tool as FormatTool } from "../smc-util/code-formatter";
-import { copy } from "../smc-util/misc";
+} from "smc-webapp/project_configuration";
+import { syntax2tool, Tool as FormatTool } from "smc-util/code-formatter";
+import { copy } from "smc-util/misc";
 
 // we prefix the environment PATH by default bin paths pointing into it in order to pick up locally installed binaries.
 // they can't be set as defaults for projects since this could break it from starting up

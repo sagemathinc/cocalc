@@ -16,7 +16,7 @@ import {
   len,
   merge,
   path_split,
-} from "../smc-util/misc";
+} from "smc-util/misc";
 import { exists } from "../jupyter/async-utils-node";
 import { isEqual, throttle } from "lodash";
 import { callback, delay } from "awaiting";

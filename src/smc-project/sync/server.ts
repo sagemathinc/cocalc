@@ -43,7 +43,7 @@ import {
   SyncTable,
   VersionedChange,
   set_debug,
-} from "../smc-util/sync/table";
+} from "smc-util/sync/table";
 
 // Only uncomment this for an intense level of debugging.
 // set_debug(true);
@@ -53,9 +53,9 @@ const _ = set_debug;
 import { init_syncdoc } from "./sync-doc";
 import { key, register_synctable } from "./open-synctables";
 import { reuseInFlight } from "async-await-utils/hof";
-import { once } from "../smc-util/async-utils";
+import { once } from "smc-util/async-utils";
 import { delay } from "awaiting";
-import { close, deep_copy, len } from "../smc-util/misc";
+import { close, deep_copy, len } from "smc-util/misc";
 import { register_listings_table } from "./listings";
 import { register_project_info_table } from "./project-info";
 import { register_project_status_table } from "./project-status";
@@ -85,7 +85,7 @@ interface Channel {
   destroy: Function;
 }
 
-import { Client } from "../smc-util/sync/editor/generic/types";
+import { Client } from "smc-util/sync/editor/generic/types";
 
 interface Primus {
   channel: (str: string) => Channel;
