@@ -213,8 +213,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               label: "Academic",
               desc: (
                 <span>
-                  students, teachers, academic researchers and hobbyists{" "}
-                  <b>({discount_pct}% discount)</b>
+                  students, teachers, academic researchers, non-profit
+                  organizations and hobbyists <b>({discount_pct}% discount)</b>
                 </span>
               ),
               value: "academic",
