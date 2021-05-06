@@ -73,7 +73,7 @@
     "require-reload": "^0.2.2",
     "rimraf": "^2.4.4",
     "safe-json-stringify": "^1.2.0",
-    "sanitize-html": "^1.20.1",
+    "sanitize-html": "^2.3.2",
     "serve-index": "^1.9.1",
     "snappy": "^6.3.5",
     "sql-string-escape": "^1.1.6",
