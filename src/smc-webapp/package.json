@@ -4,6 +4,9 @@
   "description": "CoCalc: Collaborative Calculation in the Cloud",
   "main": "index.js",
   "directories": {},
+  "workspaces": [
+    "../smc-util"
+  ],
   "dependencies": {
     "@ant-design/icons": "^4.3.0",
     "@fortawesome/fontawesome-free": "^5.15.2",

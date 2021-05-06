@@ -10,6 +10,9 @@
   },
   "author": "SageMath, Inc.",
   "license": "GPL-3.0",
+  "workspaces": [
+    "../smc-util"
+  ],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
     "async": "^1.5.2",

@@ -1,5 +1,5 @@
 {
-  "name": "smc-util",
+  "name": "@cocalc/util",
   "version": "1.0.0",
   "description": "CoCalc code shared between the frontend and the backend",
   "main": "index.js",

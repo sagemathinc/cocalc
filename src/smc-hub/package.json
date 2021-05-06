@@ -4,6 +4,9 @@
   "description": "CoCalc: Backend webserver component",
   "main": "index.js",
   "directories": {},
+  "workspaces": [
+    "../smc-util"
+  ],
   "dependencies": {
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.1",
