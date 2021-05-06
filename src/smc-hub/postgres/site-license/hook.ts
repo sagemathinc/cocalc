@@ -151,6 +151,11 @@ async function site_license_hook0(
       if (license == null) throw Error("bug");
       // Licenses can specify what they do in two distinct ways: upgrades and quota.
       const upgrades = (license.get("upgrades")?.toJS() ?? {}) as QuotaSetting;
+      if (upgrades == null) {
+        // This is to make typescript happy since QuotaSetting may be null
+        // (though I don't think upgrades ever could be).
+        throw Error("bug");
+      }
       const quota = license.get("quota");
       if (quota) {
         upgrades["quota"] = quota.toJS() as SiteLicenseQuotaSetting;
