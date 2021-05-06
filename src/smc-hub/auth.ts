@@ -35,7 +35,7 @@
 
 import { Router } from "express";
 import * as ms from "ms";
-import { callback2 as cb2 } from "../smc-util/async-utils";
+import { callback2 as cb2 } from "smc-util/async-utils";
 import * as debug from "debug";
 const LOG = debug("hub:auth");
 import { join as path_join } from "path";
@@ -43,12 +43,12 @@ import * as uuid from "node-uuid";
 import * as passport from "passport";
 import * as dot from "dot-object";
 import * as _ from "lodash";
-import * as misc from "../smc-util/misc";
-import * as message from "../smc-util/message"; // message protocol between front-end and back-end
+import * as misc from "smc-util/misc";
+import * as message from "smc-util/message"; // message protocol between front-end and back-end
 const sign_in = require("./sign-in");
 import * as Cookies from "cookies";
 import * as express_session from "express-session";
-import { HELP_EMAIL, DNS } from "../smc-util/theme";
+import { HELP_EMAIL, DNS } from "smc-util/theme";
 import {
   email_verified_successfully,
   email_verification_problem,
@@ -643,7 +643,7 @@ export class PassportManager {
           "clientSecret",
           "userinfoURL",
           "public", // we don't need that info for initializing them
-        ]),
+        ]) as any,
       };
       inits.push(this.init_strategy(config));
     }

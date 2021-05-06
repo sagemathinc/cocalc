@@ -5,9 +5,9 @@
 
 import { PostgreSQL } from "./types";
 
-import { is_valid_uuid_string } from "../smc-util/misc";
+import { is_valid_uuid_string } from "smc-util/misc";
 
-import { callback2 } from "../smc-util/async-utils";
+import { callback2 } from "smc-util/async-utils";
 
 export async function record_user_tracking(
   db: PostgreSQL,

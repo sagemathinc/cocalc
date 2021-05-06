@@ -7,7 +7,7 @@
 
 import { Response } from "express";
 import { join } from "path";
-import { SiteSettingsKeys } from "../smc-util/db-schema/site-defaults";
+import { SiteSettingsKeys } from "smc-util/db-schema/site-defaults";
 
 interface Custom {
   configuration: Record<SiteSettingsKeys, string>;

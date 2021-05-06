@@ -8,7 +8,7 @@ import {
   is_valid_uuid_string,
   search_match,
   search_split,
-} from "../../smc-util/misc";
+} from "smc-util/misc";
 import { query } from "../query";
 
 // This works and does the entire search in the database.

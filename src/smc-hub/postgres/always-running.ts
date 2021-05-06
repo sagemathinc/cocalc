@@ -5,7 +5,7 @@
 
 import { delay } from "awaiting";
 import { PostgreSQL } from "./types";
-import { callback2 } from "../smc-util/async-utils";
+import { callback2 } from "smc-util/async-utils";
 
 // Return an array of project_id's of projects that have the always_running run_quota set,
 // but are not in the running or starting state.

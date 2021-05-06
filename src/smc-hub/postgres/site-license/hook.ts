@@ -8,16 +8,16 @@ import { isEqual } from "lodash";
 import { PostgreSQL } from "../types";
 import { query } from "../query";
 import { TypedMap } from "../../../smc-webapp/app-framework";
-import { is_valid_uuid_string, len } from "../../smc-util/misc";
-import { callback2 } from "../../smc-util/async-utils";
+import { is_valid_uuid_string, len } from "smc-util/misc";
+import { callback2 } from "smc-util/async-utils";
 import { number_of_running_projects_using_license } from "./analytics";
-import { QuotaMap } from "../../smc-util/db-schema/site-licenses";
+import { QuotaMap } from "smc-util/db-schema/site-licenses";
 import {
   quota as compute_total_quota,
   SiteLicenseQuotaSetting,
   QuotaSetting,
   SiteLicenses,
-} from "../../smc-util/upgrades/quota";
+} from "smc-util/upgrades/quota";
 
 let licenses: any = undefined;
 

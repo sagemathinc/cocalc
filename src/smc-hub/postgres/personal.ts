@@ -9,7 +9,7 @@ Functionality related to running cocalc in personal mode.
 
 import { PostgreSQL } from "./types";
 import { reuseInFlight } from "async-await-utils/hof";
-import { uuid } from "../smc-util/misc";
+import { uuid } from "smc-util/misc";
 
 async function _get_personal_user(database: PostgreSQL): Promise<string> {
   // Get account_id of the one and only user, or if there is no user, create one and return its account_id.
