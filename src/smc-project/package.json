@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "CoCalc: project daemons",
   "main": "index.js",
+  "workspaces": [
+    "../smc-util"
+  ],
   "dependencies": {
     "@types/better-sqlite3": "^5.4.0",
     "@types/body-parser": "^1.19.0",
