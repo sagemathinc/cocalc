@@ -26,7 +26,7 @@ export const note: CSSProperties = {
 };
 
 export function show_hide_deleted(opts): CSSProperties {
-  types(opts, { needs_margin: types.bool.isRequired });
+  types(opts, { needs_margin: types["bool"]?.isRequired });
 
   return {
     marginTop: opts.needs_margin ? "15px" : "0px",

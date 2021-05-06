@@ -125,3 +125,6 @@ src/smc-webapp/_colors.sass
 # pytest cache
 src/smc_sagews/.pytest_cache/
 .mypy_cache/
+
+src/go-landing
+src/smc-hub/dist

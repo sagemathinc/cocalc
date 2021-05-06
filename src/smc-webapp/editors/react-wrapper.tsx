@@ -12,7 +12,10 @@
 
 import { debounce } from "lodash";
 import { delay } from "awaiting";
-import { NotifyResize } from "../notify-resize/index";
+import { NotifyResize as NotifyResize0 } from "../notify-resize/index";
+// NotifyResize type inference is wrong...
+const NotifyResize = NotifyResize0 as any;
+
 import {
   React,
   ReactDOM,

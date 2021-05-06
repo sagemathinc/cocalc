@@ -1099,6 +1099,9 @@ export class SyncTable extends EventEmitter {
     }
     let specs;
     if (t.virtual != null) {
+      if (t.virtual === true) {
+        throw Error(`t.virtual can't be true for ${this.table}`);
+      }
       const x = schema.SCHEMA[t.virtual];
       if (x == null) {
         throw Error(`invalid virtual table spec for ${this.table}`);

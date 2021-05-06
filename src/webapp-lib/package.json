@@ -1,0 +1,15 @@
+{
+  "name": "webapp-lib",
+  "version": "1.0.0",
+  "description": "This sub-directory contains assets (images, code, etc.) for the smc-webapp and static pages.",
+  "main": "serviceWorker.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "SageMath, Inc.",
+  "license": "GPL-3.0+"
+}

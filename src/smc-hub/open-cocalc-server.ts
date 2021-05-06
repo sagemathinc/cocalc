@@ -12,16 +12,15 @@
 // - "webapp" refers to files in SMC_ROOT/webapp-lib
 // - several aspects can be modified via the administrator's tab / "site settings"
 
-import { PostgreSQL } from "smc-hub/postgres/types";
+import { PostgreSQL } from "./postgres/types";
 import { callback2 } from "smc-util/async-utils";
 import * as express from "express";
 import * as path_module from "path";
 const auth = require("./auth");
 import { get_smc_root } from "./utils";
 import { have_active_registration_tokens } from "./utils";
-//import { SiteSettingsKeys } from "smc-util/db-schema/site-defaults";
 import * as winston from "winston";
-import { versions as RES_VERSIONS } from "../webapp-lib/resources/versions";
+import { versions as RES_VERSIONS } from "webapp-lib/resources/versions";
 
 const WEBAPP_PATH = path_module.join(get_smc_root(), "webapp-lib");
 

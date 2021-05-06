@@ -101,7 +101,7 @@ let previous_project_id: string | undefined = undefined;
 // This function makes it possible to switch between projects in kiosk mode.
 // If the project changes, it also recreates the users table.
 // Warning: https://github.com/sagemathinc/cocalc/pull/3985#discussion_r336828374
-export async function switch_to_project(project_id): Promise<void> {
+export async function switch_to_project(project_id : string): Promise<void> {
   redux.getActions("page").setState({ kiosk_project_id: project_id });
   if (previous_project_id !== project_id) {
     recreate_users_table();

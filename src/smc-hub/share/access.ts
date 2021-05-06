@@ -18,7 +18,7 @@ But it might:
 
 import { Database } from "./types";
 
-export async function public_access_request(opts: {
+export async function public_access_request(_opts: {
   database: Database;
   project_id: string;
   path: string;

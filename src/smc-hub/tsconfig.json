@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "jsx": "react",
+    "target": "es5",
+    "lib": ["es5", "es6", "es2017", "dom"],
+    "strictNullChecks": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "downlevelIteration": true,
+    "baseUrl": ".",
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "allowJs": true
+  },
+  "exclude": ["landing", "node_modules", "dist", "test"]
+}

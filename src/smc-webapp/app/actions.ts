@@ -10,7 +10,7 @@ import { disconnect_from_project } from "../project/websocket/connect";
 import { session_manager } from "../session";
 import { PageState } from "./store";
 
-class PageActions extends Actions<PageState> {
+export class PageActions extends Actions<PageState> {
   private session_manager?: any;
   private active_key_handler?: any;
   private suppress_key_handlers: boolean = false;

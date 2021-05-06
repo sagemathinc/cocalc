@@ -2071,7 +2071,7 @@ export class SyncDoc extends EventEmitter {
     this.emit("load-time-estimate", { type: "new", time: 1 });
     this.last_snapshot = undefined;
     this.snapshot_interval =
-      schema.SCHEMA.syncstrings.user_query.get.fields.snapshot_interval;
+      schema.SCHEMA.syncstrings.user_query?.get?.fields.snapshot_interval;
 
     // Brand new syncstring
     // TODO: worry about race condition with everybody making themselves

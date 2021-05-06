@@ -5,7 +5,11 @@
   "main": "index.js",
   "directories": {},
   "workspaces": [
-    "../smc-util"
+    "../smc-hub",
+    "../smc-util",
+    "../smc-project",
+    "../webapp-lib",
+    "."
   ],
   "dependencies": {
     "@ant-design/icons": "^4.3.0",
@@ -32,7 +36,7 @@
     "@types/react-image-crop": "^8.1.2",
     "@types/react-redux": "^7.1.9",
     "@types/react-window": "^1.8.2",
-    "@zippytech/react-notify-resize": "^3.0.0",
+    "@zippytech/react-notify-resize": "^4.0.4",
     "ansi-to-react": "^6.0.10",
     "antd": "^4.11.1",
     "async": "^2.6.3",

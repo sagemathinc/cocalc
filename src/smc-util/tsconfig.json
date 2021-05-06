@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["es5", "es6", "es2017", "dom"],
+    "strictNullChecks": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "downlevelIteration": true,
+    "skipLibCheck": true,
+    "rootDir": ".",
+    "outDir": "dist/",
+    "allowJs": true
+  },
+  "exclude": ["test", "dist", "./index.js"]
+}
