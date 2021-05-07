@@ -18,15 +18,12 @@ import { delay } from "awaiting";
 import { Map, Set } from "immutable";
 import { throttle } from "underscore";
 import * as $ from "jquery";
-import { is_different, seconds_ago, list_alternatives } from "smc-util/misc";
-import { COLORS } from "smc-utils/theme";
+import { seconds_ago, list_alternatives } from "smc-util/misc";
+import { COLORS } from "smc-util/theme";
 import { dblclick } from "./mouse-click";
 import {
-  Component,
   React,
   ReactDOM,
-  rtypes,
-  Rendered,
   useRedux,
   useIsMountedRef,
 } from "../../app-framework";
@@ -41,6 +38,7 @@ import "./mouse-draggable";
 
 interface PDFJSProps {
   id: string;
+  name: string;
   actions: any;
   editor_state: EditorState;
   is_fullscreen: boolean;
@@ -53,21 +51,13 @@ interface PDFJSProps {
   status: string;
 }
 
-interface PDFJSState {
-  loaded: boolean;
-  doc?: PDFDocumentProxy;
-  pages: PDFPageProxy[];
-  scrollTop: number;
-  missing: boolean;
-  restored_scroll: boolean;
-}
-
 export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
   const {
     id,
+    name,
     actions,
     editor_state,
-    is_fullscreen,
+    //is_fullscreen,
     project_id,
     path,
     reload,
@@ -91,8 +81,8 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
   const zoom_page_height = useRedux(name, "zoom_page_height");
   const sync = useRedux(name, "sync");
   const scroll_pdf_into_view = useRedux(name, "scroll_pdf_into_view");
-  const mode = useRedux(name, "mode");
-  const derived_file_types = useRedux(name, "derived_file_types");
+  const mode: undefined | "rmd" = useRedux(name, "mode");
+  const derived_file_types: Set<string> = useRedux(name, "derived_file_types");
   const custom_pdf_error_message = useRedux(name, "custom_pdf_error_message");
 
   const [loaded, set_loaded] = React.useState<boolean>(false);
@@ -103,7 +93,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
   const [restored_scroll, set_restored_scroll] = React.useState<boolean>(false);
   const [doc, set_doc] = React.useState<PDFDocumentProxy | null>(null);
 
-  const [scrollRef] = React.useRef<HTMLDivElement>(null);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
 
   //shouldComponentUpdate(
   //  next_props: PDFJSProps,
@@ -166,7 +156,9 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     load_doc(reload);
   }, []);
 
-  React.useEffect(() => load_doc(reload), [reload]);
+  React.useEffect(() => {
+    load_doc(reload);
+  }, [reload]);
   React.useEffect(() => {
     if (zoom_page_height == id) do_zoom_page_height();
     if (zoom_page_width == id) do_zoom_page_width();
@@ -174,11 +166,11 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
   }, [id]);
   React.useEffect(() => {
     if (scroll_pdf_into_view) {
-      const { page, y, id } = next_props.scroll_pdf_into_view;
+      const { page, y, id } = scroll_pdf_into_view;
       do_scroll_pdf_into_view(page, y, id);
     }
   }, [scroll_pdf_into_view]);
-  React.useEffet(() => {
+  React.useEffect(() => {
     if (is_current) {
       // ensure any codemirror (etc.) elements blur, when this pdfjs viewer is focused.
       ($ as any)(document.activeElement).blur();
@@ -226,7 +218,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
   }
 
   async function restore_scroll(): Promise<void> {
-    await this._restore_scroll(0);
+    await _restore_scroll(0);
     set_restored_scroll(true);
   }
 
@@ -237,7 +229,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     if (!isMounted.current || !editor_state) return;
     const scroll: Map<string, number> = editor_state.get("scroll");
     if (!scroll) return;
-    const elt = $(ReactDOM.findDOMNode(this.refs.scroll));
+    const elt = $(ReactDOM.findDOMNode(scrollRef.current));
     elt.scrollTop(scroll.get("top", 0));
     elt.scrollLeft(scroll.get("left", 0));
   }
@@ -265,7 +257,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
       // This is normal if the PDF is being modified *as* it is being loaded...
       console.log(`WARNING: error loading PDF -- ${err}`);
       if (isMounted.current && err.toString().indexOf("Missing") != -1) {
-        set_missing( true )
+        set_missing(true);
         await delay(3000);
         if (isMounted.current && missing && actions.update_pdf != null) {
           // try again, since there is functionality for updating the pdf
@@ -319,9 +311,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     try {
       pages = await Promise.all(page_promises);
     } catch (err) {
-      this.props.actions.set_error(
-        `error scrolling PDF into position -- ${err}`
-      );
+      actions.set_error(`error scrolling PDF into position -- ${err}`);
     }
 
     await delay(0);
@@ -400,7 +390,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     const width = $(ReactDOM.findDOMNode(scrollRef.current)).width();
     if (width === undefined) return;
     const scale = (width - 10) / page.view[2];
-    actions.set_font_size(id, font_size(scale));
+    actions.set_font_size(id, get_font_size(scale));
   }
 
   async function do_zoom_page_height(): Promise<void> {
@@ -416,7 +406,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     const height = $(ReactDOM.findDOMNode(scrollRef.current)).height();
     if (height === undefined) return;
     const scale = (height - 10) / page.view[3];
-    actions.set_font_size(id, font_size(scale));
+    actions.set_font_size(id, get_font_size(scale));
   }
 
   function do_sync(): void {
@@ -429,7 +419,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
   }
 
   function render_pages(): JSX.Element[] {
-    const pages: Rendered[] = [];
+    const ret: JSX.Element[] = [];
     const scale = get_scale();
     let top: number = 0;
     if (doc == null) return [];
@@ -455,7 +445,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
       } else {
         sync_highlight = undefined;
       }
-      pages.push(
+      ret.push(
         <Page
           id={id}
           actions={actions}
@@ -463,7 +453,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
           page={page}
           n={n}
           key={n}
-          renderer={renderer}
+          renderer={renderer2}
           scale={scale}
           sync_highlight={sync_highlight}
         />
@@ -475,7 +465,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
       // rendered into the DOM.
       restore_scroll();
     }
-    return pages;
+    return ret;
   }
 
   function render_content(): JSX.Element | JSX.Element[] {
@@ -498,15 +488,16 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     }
   }
 
+  // TODO use account's font size ?!
   function get_scale(): number {
     return font_size / 12;
   }
 
-  function font_size(scale: number): number {
+  function get_font_size(scale: number): number {
     return 12 * scale;
   }
 
-  function render_other_viewers(): JSX.Element {
+  function render_other_viewers() {
     if (derived_file_types.size == 0) return;
     return (
       <>
@@ -517,7 +508,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     );
   }
 
-  function render_custom_error_message(): JSX.Element {
+  function render_custom_error_message() {
     if (custom_pdf_error_message == null) return;
     return (
       <Alert

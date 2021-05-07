@@ -59,9 +59,7 @@ const KERNEL_STYLE: CSS = {
 } as const;
 
 export const ERROR_STYLE: CSS = {
-  margin: "1ex",
   whiteSpace: "pre" as "pre",
-  fontSize: "12px",
   fontFamily: "monospace" as "monospace",
   maxHeight: "30vh",
   overflow: "auto",
@@ -346,6 +344,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     if (error) {
       return (
         <ErrorDisplay
+          banner={true}
           error={error}
           style={ERROR_STYLE}
           onClose={() => actions.set_error(undefined)}
