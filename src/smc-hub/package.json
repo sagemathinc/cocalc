@@ -4,7 +4,7 @@
   "description": "CoCalc: Backend webserver component",
   "main": "index.js",
   "directories": {},
-  "workspaces": [
+  "workspaces-disabled": [
     "../smc-util"
   ],
   "dependencies": {

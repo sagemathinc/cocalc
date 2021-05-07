@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "CoCalc: project daemons",
   "main": "index.js",
-  "workspaces": [
+  "workspaces-disabled": [
     "../smc-util"
   ],
   "dependencies": {

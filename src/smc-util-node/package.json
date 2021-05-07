@@ -10,7 +10,7 @@
   },
   "author": "SageMath, Inc.",
   "license": "GPL-3.0",
-  "workspaces": [
+  "workspaces-disabled": [
     "../smc-util"
   ],
   "dependencies": {
