@@ -67,13 +67,13 @@ export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function type() {
+  function type(): string {
     if (
       // only types that antd has...
       bsStyle != null &&
       ["success", "info", "warning", "error"].includes(bsStyle)
     ) {
-      bsStyle;
+      return bsStyle;
     } else {
       return "error";
     }
