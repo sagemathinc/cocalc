@@ -23,7 +23,6 @@ import * as LRU from "lru-cache";
 import { reuseInFlight } from "async-await-utils/hof";
 import {
   getDocument as pdfjs_getDocument,
-  PDFPromise,
   PDFDocumentProxy,
 } from "pdfjs-dist/webpack";
 import { raw_url } from "../frame-tree/util";
@@ -42,15 +41,13 @@ export function url_to_pdf(
   path: string,
   reload: number
 ): string {
-  const url = raw_url(project_id, encode_path(pdf_path(path)))
+  const url = raw_url(project_id, encode_path(pdf_path(path)));
   return `${url}?param=${reload}`;
 }
 
 const doc_cache = new LRU(options);
 
-export const getDocument: (
-  url: string
-) => PDFPromise<PDFDocumentProxy> = reuseInFlight(async function (url) {
+export const getDocument = reuseInFlight(async function (url: string) {
   let doc: PDFDocumentProxy | undefined = doc_cache.get(url);
   if (doc === undefined) {
     doc = await pdfjs_getDocument({

@@ -8,7 +8,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "downlevelIteration": true,
-    "baseUrl": ".",
+    "rootDir": "./",
+    "baseUrl": "./",
     "skipLibCheck": true,
     "outDir": "dist",
     "allowJs": true

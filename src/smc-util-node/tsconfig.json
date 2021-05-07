@@ -1,17 +1,17 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "lib": ["es5", "es6", "es2017", "dom"],
+    "types": ["node"],
+    "lib": ["es7"],
     "strictNullChecks": true,
-    "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "downlevelIteration": true,
-    "skipLibCheck": true,
     "rootDir": "./",
     "baseUrl": "./",
-    "outDir": "dist/",
+    "skipLibCheck": true,
+    "outDir": "dist",
     "allowJs": true
   },
-  "exclude": ["test", "dist"]
+  "exclude": ["node_modules", "dist", "test"]
 }

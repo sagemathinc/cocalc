@@ -2,8 +2,11 @@
   "name": "smc-util-node",
   "version": "1.0.0",
   "description": "CoCalc compute server code",
-  "main": "index.js",
+  "exports": {
+    "./*": "./dist/*.js"
+  },
   "scripts": {
+    "build": "tsc && coffee -c -o dist/ .",
     "test": "SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee"

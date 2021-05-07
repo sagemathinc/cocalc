@@ -8,8 +8,7 @@
     "../smc-hub",
     "../smc-util",
     "../smc-project",
-    "../webapp-lib",
-    "."
+    "../webapp-lib"
   ],
   "dependencies": {
     "@ant-design/icons": "^4.3.0",

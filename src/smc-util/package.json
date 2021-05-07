@@ -8,8 +8,9 @@
     "./sync/table": "./dist/sync/table/index.js",
     "./sync/editor/db": "./dist/sync/editor/db/index.js"
   },
-  "workspaces": ["."],
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "testsync": "cd sync && npx jest",

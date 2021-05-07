@@ -5,7 +5,12 @@
   "exports": {
     "./*": "./dist/*.js"
   },
-  "workspaces": ["smc-util", "smc-webapp", "."],
+  "workspaces": [
+    "../smc-util",
+    "../smc-webapp",
+    "../smc-util-node",
+    "."
+  ],
   "dependencies": {
     "@types/better-sqlite3": "^5.4.0",
     "@types/body-parser": "^1.19.0",
@@ -68,7 +73,9 @@
     "testjup": "echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee"
   },
   "author": "SageMath, Inc.",
-  "contributors": ["William Stein <wstein@sagemath.com>"],
+  "contributors": [
+    "William Stein <wstein@sagemath.com>"
+  ],
   "license": "GPL-3.0+",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"

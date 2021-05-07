@@ -131,3 +131,5 @@ src/go-landing
 src/smc-hub/dist
 src/smc-util/dist
 src/smc-project/dist
+src/smc-util-node/dist
+src/webapp-lib/dist
