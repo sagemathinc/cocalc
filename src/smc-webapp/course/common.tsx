@@ -630,7 +630,7 @@ export class StudentAssignmentInfo extends Component<
       <ErrorDisplay
         key="error"
         error={error}
-        style={{ maxHeight: "140px", overflow: "auto" }}
+        style={{ maxHeight: "140px", overflow: "auto", display: "block" }}
       />
     );
   }
