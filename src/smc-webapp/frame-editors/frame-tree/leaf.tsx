@@ -153,13 +153,12 @@ class FrameTreeLeaf extends Component<Props & ReduxProps> {
     }
     return (
       <ErrorDisplay
+        banner={true}
         error={this.props.error}
         onClose={() => this.props.editor_actions.set_error("")}
-        style={{
+        body_style={{
           maxWidth: "100%",
-          margin: "1ex",
           maxHeight: "30%",
-          overflowY: "scroll",
           fontFamily: "monospace",
           fontSize: "85%",
           whiteSpace: "pre-wrap",

@@ -8,12 +8,12 @@ import * as misc from "smc-util/misc";
 import { Icon } from "./index";
 import { Alert, Button } from "antd";
 
-// use "element_style" to customize
+// use "style" to customize
 const ELEMENT_STYLE: React.CSSProperties = {
   overflowY: "auto",
 } as const;
 
-// use "style" prop to customize
+// use "body_style" prop to customize
 const BODY_STYLE: React.CSSProperties = {
   marginRight: "10px",
   whiteSpace: "pre",
@@ -28,23 +28,15 @@ const CLOSE_X: React.CSSProperties = {
   zIndex: 1,
 } as const;
 
-const WRAPPER_STYLE: React.CSSProperties = {
-  margin: 0,
-  padding: 0,
-  maxHeight: "30%",
-  position: "relative",
-  display: "flex",
-  flexDirection: "column",
-} as const;
-
 interface Props {
   error?: string | object;
   error_component?: JSX.Element | JSX.Element[];
   title?: string;
   style?: React.CSSProperties;
-  element_style?: React.CSSProperties;
+  body_style?: React.CSSProperties;
   bsStyle?: string;
   onClose?: () => void;
+  banner?: boolean;
 }
 
 export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
@@ -52,10 +44,11 @@ export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
     error,
     error_component,
     title,
+    body_style,
     style,
-    element_style,
     bsStyle,
     onClose,
+    banner = false,
   } = props;
 
   function render_title() {
@@ -90,18 +83,19 @@ export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
     if (title) {
       return [
         render_title(),
-        <div style={{ ...BODY_STYLE, ...style }}>{render_error()}</div>,
+        <div style={{ ...BODY_STYLE, ...body_style }}>{render_error()}</div>,
       ];
     } else {
       return [
-        <div style={{ ...BODY_STYLE, ...style }}>{render_error()}</div>,
+        <div style={{ ...BODY_STYLE, ...body_style }}>{render_error()}</div>,
         undefined,
       ];
     }
   }
 
+  // must be rendered as the first child element!
   function render_close() {
-    if (onClose == null) return;
+    if (onClose == null || banner === false) return;
     return (
       <Button
         style={CLOSE_X}
@@ -115,19 +109,29 @@ export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  const [message, description] = msgdesc();
-
-  return (
-    <div style={WRAPPER_STYLE}>
-      {render_close()}
+  function render_alert() {
+    const [message, description] = msgdesc();
+    // tweak the case where it's not a banner
+    const extra = banner ? undefined : { closable: true, onClose };
+    return (
       <Alert
-        banner
+        banner={banner}
         showIcon={false}
-        style={{ ...ELEMENT_STYLE, ...element_style }}
+        style={{ ...ELEMENT_STYLE, ...style }}
         type={type() as any}
         message={message}
         description={description}
+        {...extra}
       />
+    );
+  }
+
+  const divprops = banner ? { className: "cc-error-display" } : undefined;
+
+  return (
+    <div {...divprops}>
+      {render_close()}
+      {render_alert()}
     </div>
   );
 });
