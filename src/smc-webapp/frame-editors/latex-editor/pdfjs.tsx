@@ -86,7 +86,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
   const custom_pdf_error_message = useRedux(name, "custom_pdf_error_message");
 
   const [loaded, set_loaded] = React.useState<boolean>(false);
-  const [pages, set_pages] = React.useState<any[]>([]);
+  const [pages, set_pages] = React.useState<PDFPageProxy[]>([]);
   const scroll_init = editor_state?.getIn(["scroll", "top"]) ?? 0;
   const [scrollTop, set_scrollTop] = React.useState<number>(scroll_init);
   const [missing, set_missing] = React.useState<boolean>(false);
@@ -153,23 +153,25 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
   React.useEffect(() => {
     mouse_draggable();
     focus_on_click();
-    load_doc(reload);
   }, []);
 
   React.useEffect(() => {
     load_doc(reload);
   }, [reload]);
+
   React.useEffect(() => {
     if (zoom_page_height == id) do_zoom_page_height();
     if (zoom_page_width == id) do_zoom_page_width();
     if (sync == id) do_sync();
   }, [id]);
+
   React.useEffect(() => {
     if (scroll_pdf_into_view) {
-      const { page, y, id } = scroll_pdf_into_view;
+      const { page, y, id } = scroll_pdf_into_view.toJS();
       do_scroll_pdf_into_view(page, y, id);
     }
   }, [scroll_pdf_into_view]);
+
   React.useEffect(() => {
     if (is_current) {
       // ensure any codemirror (etc.) elements blur, when this pdfjs viewer is focused.
@@ -295,10 +297,10 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     if (doc == null) return;
 
     /*
-        We iterative through each page in the document, determine its height, and add that
-        to a running total, along with the gap between pages.  Once we get to the given page,
-        we then just add y.  We then scroll the containing div down to that position.
-        */
+    We iterative through each page in the document, determine its height, and add that
+    to a running total, along with the gap between pages.  Once we get to the given page,
+    we then just add y.  We then scroll the containing div down to that position.
+    */
     // Get all pages before page we are scrolling to in parallel.
     const page_promises: Promise<PDFPageProxy>[] = [];
     for (let n = 1; n <= page; n++) {
@@ -418,7 +420,8 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     dblclick(offset.left, offset.top + height / 2);
   }
 
-  function render_pages(): JSX.Element[] {
+  function render_pages() {
+    if (pages == null || pages.length == 0) return;
     const ret: JSX.Element[] = [];
     const scale = get_scale();
     let top: number = 0;
