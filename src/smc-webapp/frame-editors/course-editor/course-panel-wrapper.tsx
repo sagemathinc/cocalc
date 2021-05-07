@@ -200,17 +200,14 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
   private render_error(name: string): Rendered {
     if (!this.props.error) return;
     return (
-      <div
-        style={{ margin: "5px 15px", maxHeight: "30vh", overflowY: "scroll" }}
-      >
-        <ErrorDisplay
-          error={this.props.error}
-          onClose={() => {
-            const actions = redux.getActions(name) as CourseActions;
-            if (actions != null) actions.set_error("");
-          }}
-        />
-      </div>
+      <ErrorDisplay
+        banner={true}
+        error={this.props.error}
+        onClose={() => {
+          const actions = redux.getActions(name) as CourseActions;
+          if (actions != null) actions.set_error("");
+        }}
+      />
     );
   }
 

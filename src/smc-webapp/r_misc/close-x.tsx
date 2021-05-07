@@ -9,25 +9,24 @@ import { Icon } from "./icon";
 const closex_style: React.CSSProperties = {
   float: "right",
   marginLeft: "5px",
-};
+} as const;
 
-export function CloseX({
-  on_close,
-  style,
-}: {
+interface Props {
   on_close: () => void;
   style?: React.CSSProperties;
-}) {
-  const onClick = (e) => {
-    if (e != undefined) {
-      e.preventDefault();
-    }
+}
+
+export const CloseX: React.FC<Props> = (props: Props) => {
+  const { on_close, style } = props;
+
+  function onClick(e) {
+    e?.preventDefault();
     on_close();
-  };
+  }
 
   return (
     <a href="" style={closex_style} onClick={onClick}>
       <Icon style={style} name="times" />
     </a>
   );
-}
+};
