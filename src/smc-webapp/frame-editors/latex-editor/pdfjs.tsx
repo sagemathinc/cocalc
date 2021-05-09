@@ -420,34 +420,37 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     dblclick(offset.left, offset.top + height / 2);
   }
 
+  function sync_highlight({ n, id }): SyncHighlight | undefined {
+    if (
+      scroll_pdf_into_view != null &&
+      scroll_pdf_into_view.page === n &&
+      scroll_pdf_into_view.id === id
+    ) {
+      return {
+        y: scroll_pdf_into_view.y,
+        until: seconds_ago(-HIGHLIGHT_TIME_S),
+      };
+    }
+  }
+
+  function get_renderer() {
+    if (
+      top >= scrollTop - WINDOW_SIZE * scale &&
+      top <= scrollTop + WINDOW_SIZE * scale
+    ) {
+      renderer;
+    } else {
+      return "none";
+    }
+  }
+
   function render_pages() {
     if (pages == null || pages.length == 0) return;
     const ret: JSX.Element[] = [];
-    const scale = get_scale();
     let top: number = 0;
     if (doc == null) return [];
     for (let n = 1; n <= doc.numPages; n++) {
       const page = pages[n - 1];
-      let renderer2: string = "none";
-      if (
-        top >= scrollTop - WINDOW_SIZE * scale &&
-        top <= scrollTop + WINDOW_SIZE * scale
-      ) {
-        renderer2 = renderer;
-      }
-      let sync_highlight: SyncHighlight | undefined;
-      if (
-        scroll_pdf_into_view !== undefined &&
-        scroll_pdf_into_view.page === n &&
-        scroll_pdf_into_view.id === id
-      ) {
-        sync_highlight = {
-          y: scroll_pdf_into_view.y,
-          until: seconds_ago(-HIGHLIGHT_TIME_S),
-        };
-      } else {
-        sync_highlight = undefined;
-      }
       ret.push(
         <Page
           id={id}
@@ -456,9 +459,9 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
           page={page}
           n={n}
           key={n}
-          renderer={renderer2}
-          scale={scale}
-          sync_highlight={sync_highlight}
+          renderer={get_renderer()}
+          scale={get_scale()}
+          sync_highlight={sync_highlight({ n, id })}
         />
       );
       top += scale * page.view[3] + PAGE_GAP;
