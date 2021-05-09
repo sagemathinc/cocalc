@@ -1,6 +1,6 @@
 {
   "name": "cocalc",
-  "workspaces": [
+  "workspaces-disabled": [
     "smc-util"
   ],
   "version": "1.0.0",
