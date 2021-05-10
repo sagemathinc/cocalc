@@ -364,9 +364,11 @@ export class ProjectAndUserTracker extends EventEmitter {
       // Register this account
       let projects: QueryResult[];
       try {
+        // 2021-05-10: one user has a really large number of projects, which causes the hub to crash
+        // TODO: fix this ORDER BY .. LIMIT .. part properly
         projects = await query(this.db, {
           query:
-            "SELECT project_id, json_agg(o) as users FROM (select project_id, jsonb_object_keys(users) AS o FROM projects WHERE users ? $1::TEXT) s group by s.project_id",
+            "SELECT project_id, json_agg(o) as users FROM (SELECT project_id, jsonb_object_keys(users) AS o FROM projects WHERE users ? $1::TEXT ORDER BY last_edited DESC LIMIT 10000) s group by s.project_id",
           params: [account_id],
         });
       } catch (err) {
