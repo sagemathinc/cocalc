@@ -461,6 +461,7 @@ export class ProjectAndUserTracker extends EventEmitter {
   // map from collabs of account_id to number of projects they collab
   // on (account_id itself counted twice)
   public get_collabs(account_id: string): { [account_id: string]: number } {
+    if (this.state == "closed") return {};
     return this.collabs[account_id] != null ? this.collabs[account_id] : {};
   }
 
