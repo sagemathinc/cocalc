@@ -69,18 +69,10 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
 
   const isMounted = useIsMountedRef();
 
-  //  zoom_page_width?: string;
-  //  zoom_page_height?: string;
-  //  sync?: string;
-  //  scroll_pdf_into_view?: { page: number; y: number; id: string };
-  //  mode: undefined | "rmd";
-  //  derived_file_types: Set<string>;
-  //  custom_pdf_error_message?: string;
-
   const zoom_page_width = useRedux(name, "zoom_page_width");
   const zoom_page_height = useRedux(name, "zoom_page_height");
   const sync = useRedux(name, "sync");
-  const scroll_pdf_into_view = useRedux(name, "scroll_pdf_into_view");
+  const scroll_pdf_into_view = useRedux(name, "scroll_pdf_into_view")?.toJS();
   const mode: undefined | "rmd" = useRedux(name, "mode");
   const derived_file_types: Set<string> = useRedux(name, "derived_file_types");
   const custom_pdf_error_message = useRedux(name, "custom_pdf_error_message");
@@ -94,61 +86,6 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
   const [doc, set_doc] = React.useState<PDFDocumentProxy | null>(null);
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
-
-  //shouldComponentUpdate(
-  //  next_props: PDFJSProps,
-  //  next_state: PDFJSState
-  //): boolean {
-  //  return (
-  //    is_different(this.props, next_props, [
-  //      "reload",
-  //      "font_size",
-  //      "renderer",
-  //      "path",
-  //      "zoom_page_width",
-  //      "zoom_page_height",
-  //      "sync",
-  //      "scroll_pdf_into_view",
-  //      "is_current",
-  //      "status",
-  //      "derived_file_types",
-  //    ]) ||
-  //    is_different(this.state, next_state, [
-  //      "loaded",
-  //      "scrollTop",
-  //      "missing",
-  //      "restored_scroll",
-  //    ]) ||
-  //    is_different(this.state.doc, next_state.doc, ["fingerprint"])
-  //  );
-  //}
-
-  //function componentWillReceiveProps(next_props: PDFJSProps): void {
-  //  if (next_props.zoom_page_width == next_props.id) {
-  //    this.zoom_page_width();
-  //  }
-  //  if (next_props.zoom_page_height == next_props.id) {
-  //    this.zoom_page_height();
-  //  }
-  //  if (next_props.sync == next_props.id) {
-  //    this.sync();
-  //  }
-  //  if (
-  //    this.props.scroll_pdf_into_view !== next_props.scroll_pdf_into_view &&
-  //    next_props.scroll_pdf_into_view
-  //  ) {
-  //    const { page, y, id } = next_props.scroll_pdf_into_view;
-  //    this.scroll_pdf_into_view(page, y, id);
-  //  }
-  //  if (
-  //    this.props.is_current != next_props.is_current &&
-  //    next_props.is_current
-  //  ) {
-  //    // ensure any codemirror (etc.) elements blur, when this pdfjs viewer is focused.
-  //    ($ as any)(document.activeElement).blur();
-  //    $(ReactDOM.findDOMNode(this.refs.scroll)).focus();
-  //  }
-  //}
 
   React.useEffect(() => {
     mouse_draggable();
@@ -167,7 +104,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
 
   React.useEffect(() => {
     if (scroll_pdf_into_view) {
-      const { page, y, id } = scroll_pdf_into_view.toJS();
+      const { page, y, id } = scroll_pdf_into_view;
       do_scroll_pdf_into_view(page, y, id);
     }
   }, [scroll_pdf_into_view]);
@@ -433,24 +370,19 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     }
   }
 
-  function get_renderer() {
-    if (
-      top >= scrollTop - WINDOW_SIZE * scale &&
-      top <= scrollTop + WINDOW_SIZE * scale
-    ) {
-      renderer;
-    } else {
-      return "none";
-    }
-  }
-
   function render_pages() {
     if (pages == null || pages.length == 0) return;
     const ret: JSX.Element[] = [];
     let top: number = 0;
+    const scale = get_scale();
     if (doc == null) return [];
     for (let n = 1; n <= doc.numPages; n++) {
       const page = pages[n - 1];
+      const page_renderer =
+        top >= scrollTop - WINDOW_SIZE * scale &&
+        top <= scrollTop + WINDOW_SIZE * scale
+          ? renderer
+          : "none";
       ret.push(
         <Page
           id={id}
@@ -459,8 +391,8 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
           page={page}
           n={n}
           key={n}
-          renderer={get_renderer()}
-          scale={get_scale()}
+          renderer={page_renderer}
+          scale={scale}
           sync_highlight={sync_highlight({ n, id })}
         />
       );
