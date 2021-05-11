@@ -67,7 +67,7 @@ export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
     }
   }, [sync_highlight_prop]);
 
-  // remove the highlight after a brief timeout
+  // remove highlight after a brief timeout
   React.useEffect(() => {
     if (sync_highlight != null) {
       const wait_ms = sync_highlight.until.getTime() - Date.now();

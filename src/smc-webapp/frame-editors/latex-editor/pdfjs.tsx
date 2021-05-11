@@ -100,7 +100,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     if (zoom_page_height == id) do_zoom_page_height();
     if (zoom_page_width == id) do_zoom_page_width();
     if (sync == id) do_sync();
-  }, [id]);
+  }, [zoom_page_height, zoom_page_width, sync]);
 
   React.useEffect(() => {
     if (scroll_pdf_into_view) {
@@ -351,8 +351,8 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
   function do_sync(): void {
     actions.setState({ sync: undefined });
     const e = $(ReactDOM.findDOMNode(scrollRef.current));
-    const offset = e.offset(),
-      height = e.height();
+    const offset = e.offset();
+    const height = e.height();
     if (!offset || !height) return;
     dblclick(offset.left, offset.top + height / 2);
   }
