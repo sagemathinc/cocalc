@@ -37,7 +37,7 @@ interface Props {
 }
 
 function should_memoize(prev, next) {
-  return !is_different(prev, next, ["scale", "sync_highlight"]);
+  return !is_different(prev, next, ["page", "scale", "sync_highlight"]);
 }
 
 export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
@@ -55,13 +55,6 @@ export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
   const [sync_highlight, set_sync_highlight] = React.useState<
     SyncHighlight | undefined
   >(sync_highlight_prop);
-
-  // shouldComponentUpdate(next_props: Props, next_state: State): boolean {
-  //   return (
-  //     is_different(this.props, next_props, ["scale", "sync_highlight"]) ||
-  //     is_different(this.state, next_state, ["annotations", "sync_highlight"])
-  //   );
-  // }
 
   React.useEffect(() => {
     update_annotations();
@@ -81,7 +74,7 @@ export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
       sync_highlight_number.current += 1;
       const shn = sync_highlight_number.current;
       const to = setTimeout(() => {
-        if (isMounted && sync_highlight_number.current === shn) {
+        if (isMounted.current && sync_highlight_number.current === shn) {
           set_sync_highlight(undefined);
         }
       }, wait_ms);
@@ -92,7 +85,7 @@ export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
   async function update_annotations(): Promise<void> {
     try {
       const annotations = ((await page.getAnnotations()) as unknown) as PDFAnnotationData[];
-      if (!isMounted) return;
+      if (!isMounted.current) return;
       set_annotations(annotations);
     } catch (err) {
       console.error(`pdf.js -- Error updating annotations: #{err}`);

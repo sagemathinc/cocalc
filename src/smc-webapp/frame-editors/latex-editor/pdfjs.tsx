@@ -370,8 +370,8 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     }
   }
 
-  function render_pages() {
-    if (pages == null || pages.length == 0) return;
+  function render_pages(): JSX.Element[] {
+    if (pages == null || pages.length == 0) return [];
     const ret: JSX.Element[] = [];
     let top: number = 0;
     const scale = get_scale();

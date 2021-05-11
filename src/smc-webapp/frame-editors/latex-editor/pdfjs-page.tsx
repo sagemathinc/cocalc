@@ -34,8 +34,13 @@ interface PageProps {
 
 function should_memoize(prev, next) {
   return (
-    !is_different(prev, next, ["n", "renderer", "scale", "sync_highlight"]) &&
-    prev.doc.fingerprint === next.doc.fingerprint
+    !is_different(prev, next, [
+      "n",
+      "renderer",
+      "scale",
+      "page",
+      "sync_highlight",
+    ]) && prev.doc.fingerprint === next.doc.fingerprint
   );
 }
 
