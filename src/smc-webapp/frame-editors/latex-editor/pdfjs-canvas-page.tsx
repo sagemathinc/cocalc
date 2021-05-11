@@ -8,11 +8,8 @@ Render a single PDF page using canvas.
 */
 
 import * as $ from "jquery";
-
 import { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
-
-import { Component, React, ReactDOM } from "../../app-framework";
-
+import { React, ReactDOM } from "../../app-framework";
 import { AnnotationLayer, SyncHighlight } from "./pdfjs-annotation";
 
 interface Props {
@@ -22,9 +19,18 @@ interface Props {
   sync_highlight?: SyncHighlight;
 }
 
-export class CanvasPage extends Component<Props, {}> {
-  async render_page(page: PDFPageProxy, scale: number): Promise<void> {
-    const div: HTMLElement = ReactDOM.findDOMNode(this.refs.page);
+export const CanvasPage: React.FC<Props> = (props: Props) => {
+  const { page, scale, click_annotation, sync_highlight } = props;
+
+  const pageRef = React.useRef(null);
+
+  React.useEffect(() => {
+    render_page(page, scale);
+  }, [page, scale]);
+
+  async function render_page(page: PDFPageProxy, scale: number): Promise<void> {
+    if (pageRef.current == null) return;
+    const div: HTMLElement = ReactDOM.findDOMNode(pageRef.current);
     const viewport: PDFPageViewport = page.getViewport({
       scale: scale * window.devicePixelRatio,
     });
@@ -53,31 +59,21 @@ export class CanvasPage extends Component<Props, {}> {
     }
   }
 
-  componentWillReceiveProps(next_props: Props): void {
-    this.render_page(next_props.page, next_props.scale);
-  }
-
-  componentDidMount(): void {
-    this.render_page(this.props.page, this.props.scale);
-  }
-
-  render() {
-    return (
-      <div
-        style={{
-          margin: "auto",
-          position: "relative",
-          display: "inline-block",
-        }}
-      >
-        <AnnotationLayer
-          page={this.props.page}
-          scale={this.props.scale}
-          click_annotation={this.props.click_annotation}
-          sync_highlight={this.props.sync_highlight}
-        />
-        <div ref="page" />
-      </div>
-    );
-  }
-}
+  return (
+    <div
+      style={{
+        margin: "auto",
+        position: "relative",
+        display: "inline-block",
+      }}
+    >
+      <AnnotationLayer
+        page={page}
+        scale={scale}
+        click_annotation={click_annotation}
+        sync_highlight={sync_highlight}
+      />
+      <div ref={pageRef} />
+    </div>
+  );
+};
