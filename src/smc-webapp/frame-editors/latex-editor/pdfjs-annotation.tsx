@@ -67,6 +67,14 @@ export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
     update_annotations();
   }, [page]);
 
+  // react to changes in props
+  React.useEffect(() => {
+    if (sync_highlight_prop != null && sync_highlight_prop != sync_highlight) {
+      set_sync_highlight(sync_highlight_prop);
+    }
+  }, [sync_highlight_prop]);
+
+  // remove the highlight after a brief timeout
   React.useEffect(() => {
     if (sync_highlight != null) {
       const wait_ms = sync_highlight.until.getTime() - Date.now();
@@ -80,16 +88,6 @@ export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
       return () => clearTimeout(to);
     }
   }, [sync_highlight]);
-
-  //componentWillReceiveProps(next_props: Props): void {
-  //  this.update_annotations(next_props.page);
-  //  if (next_props.sync_highlight !== undefined) {
-  //    this.setState({ sync_highlight: next_props.sync_highlight });
-  //    this.remove_sync_highlight(
-  //      next_props.sync_highlight.until.valueOf() - new Date().valueOf()
-  //    );
-  //  }
-  //}
 
   async function update_annotations(): Promise<void> {
     try {
@@ -140,6 +138,7 @@ export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
             height: height * scale,
             border: border,
             cursor: "pointer",
+            zIndex: 1, // otherwise, the yellow sync highlight is above url links
           }}
         />
       );
