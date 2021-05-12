@@ -50,6 +50,7 @@ Table({
           deleted: null,
           host: null,
           settings: DEFAULT_QUOTAS,
+          run_quota: null,
           site_license: null,
           status: null,
           state: null,
