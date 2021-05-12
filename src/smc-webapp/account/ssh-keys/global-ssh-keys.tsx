@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Col, Row } from "../../antd-bootstrap";
 import { React, redux, useRedux } from "../../app-framework";
 import { A } from "../../r_misc";
@@ -5,10 +10,7 @@ import { SSHKeyAdder } from "./ssh-key-adder";
 import { SSHKeyList } from "./ssh-key-list";
 
 export const SSHKeysPage: React.FC = () => {
-  const ssh_keys = useRedux(
-    "account",
-    "ssh_keys",
-  );
+  const ssh_keys = useRedux("account", "ssh_keys");
 
   function render_pre_list_message() {
     return (
