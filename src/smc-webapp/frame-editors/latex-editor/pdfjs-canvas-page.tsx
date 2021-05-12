@@ -20,7 +20,7 @@ interface Props {
   sync_highlight?: SyncHighlight;
 }
 
-export const CanvasPage: React.FC<Props> = (props: Props) => {
+export const CanvasPage: React.FC<Props> = React.memo((props: Props) => {
   const { page, scale, click_annotation, sync_highlight } = props;
 
   const pageRef = React.useRef(null);
@@ -75,4 +75,4 @@ export const CanvasPage: React.FC<Props> = (props: Props) => {
       <div ref={pageRef} />
     </div>
   );
-};
+});
