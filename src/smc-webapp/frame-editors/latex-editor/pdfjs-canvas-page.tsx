@@ -7,7 +7,6 @@
 Render a single PDF page using canvas.
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
 import * as $ from "jquery";
 import { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 import { React, ReactDOM } from "../../app-framework";
@@ -25,7 +24,12 @@ export const CanvasPage: React.FC<Props> = React.memo((props: Props) => {
 
   const pageRef = React.useRef(null);
 
-  React.useEffect(reuseInFlight(render_page), [page, scale]);
+  React.useEffect(
+    function () {
+      render_page();
+    },
+    [page, scale]
+  );
 
   async function render_page(): Promise<void> {
     if (pageRef.current == null) return;
