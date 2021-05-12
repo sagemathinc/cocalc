@@ -215,7 +215,6 @@ export const Body = rclass<ReactProps>(
                 <SSHPanel
                   key="ssh-keys"
                   project={this.props.project}
-                  user_map={this.props.user_map}
                   account_id={this.props.account_id}
                 />
               ) : undefined}

@@ -4,42 +4,32 @@
  */
 
 import * as React from "react";
-import * as misc from "smc-util/misc";
+import { replace } from "lodash";
 import { Icon } from "../../r_misc";
 import { redux } from "../../app-framework";
 
 import { Project } from "./types";
-import { UserMap } from "smc-webapp/todo-types";
-import { webapp_client } from "../../webapp-client";
 
 import { SSHKeyAdder } from "../../account/ssh-keys/ssh-key-adder";
 import { SSHKeyList } from "../../account/ssh-keys/ssh-key-list";
 
 interface Props {
   project: Project;
-  user_map: UserMap;
   account_id?: string;
 }
 
-export class SSHPanel extends React.Component<Props> {
-  add_ssh_key = (opts) => {
-    opts.project_id = this.props.project.get("project_id");
+export const SSHPanel: React.FC<Props> = React.memo((props: Props) => {
+  const { project, account_id } = props;
+
+  const project_id = project.get("project_id");
+
+  function add_ssh_key(opts) {
+    opts.project_id = project_id;
     redux.getActions("projects").add_ssh_key_to_project(opts);
-  };
+  }
 
-  delete_ssh_key = (fingerprint) => {
-    redux.getActions("projects").delete_ssh_key_from_project({
-      fingerprint,
-      project_id: this.props.project.get("project_id"),
-    });
-  };
-
-  render_ssh_notice() {
-    const user = misc.replace_all(
-      this.props.project.get("project_id"),
-      "-",
-      ""
-    );
+  function render_ssh_notice() {
+    const user = replace(project_id, /-/g, "");
     const addr = `${user}@ssh.cocalc.com`;
     return (
       <div>
@@ -56,33 +46,26 @@ export class SSHPanel extends React.Component<Props> {
     );
   }
 
-  render() {
-    const ssh_keys = this.props.project.getIn([
-      "users",
-      webapp_client.account_id as string,
-      "ssh_keys",
-    ]);
-    return (
-      <div>
-        <SSHKeyList
-          ssh_keys={ssh_keys}
-          project_id={this.props.project.get("project_id")}
-        >
-          <div>
-            <span>
-              NOTE: If you want to use the same ssh key for all your projects,
-              add a key using the "SSH keys" tab under Account Settings. If you
-              have done that, there is no need to configure an ssh key here.
-            </span>
-          </div>
-          <SSHKeyAdder
-            add_ssh_key={this.add_ssh_key}
-            toggleable={true}
-            style={{ marginBottom: "10px" }}
-          />
-          {this.render_ssh_notice()}
-        </SSHKeyList>
-      </div>
-    );
-  }
-}
+  if (account_id == null) return null;
+  const ssh_keys = project.getIn(["users", account_id, "ssh_keys"]);
+
+  return (
+    <div>
+      <SSHKeyList ssh_keys={ssh_keys} project_id={project_id}>
+        <div>
+          <span>
+            NOTE: If you want to use the same ssh key for all your projects, add
+            a key using the "SSH keys" tab under Account Settings. If you have
+            done that, there is no need to configure an ssh key here.
+          </span>
+        </div>
+        <SSHKeyAdder
+          add_ssh_key={add_ssh_key}
+          toggleable={true}
+          style={{ marginBottom: "10px" }}
+        />
+        {render_ssh_notice()}
+      </SSHKeyList>
+    </div>
+  );
+});
