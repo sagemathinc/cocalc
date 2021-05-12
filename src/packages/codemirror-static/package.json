@@ -1,0 +1,18 @@
+{
+  "name": "cocalc-codemirror-static",
+  "version": "1.0.0",
+  "description": "A static CodeMirror React component.  Supports all CoCalc syntax highlighting modes and line numbers.  Properly uses react for rendering rather than unsafe html.",
+  "main": "dist/static.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "SageMath, Inc.",
+  "license": "AGPL+common clause",
+  "dependencies": {
+    "cocalc-codemirror-core": "^1.0.0",
+    "codemirror": "^5.61.0",
+    "leftpad": "^0.0.1",
+    "react": "^17.0.2"
+  }
+}

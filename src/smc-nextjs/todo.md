@@ -1,6 +1,12 @@
 # Todo
 
-Some math: $x^3+\int_0^{\infty} \alpha^3dx$
+Today's big goal:
+
+- [ ] get smc-nextjs + codemirror lerna package to work together
+- [ ] restructure into codemirror-core and codemirror-static 
+- [ ] understand _scoped_ organizations -- package names should be maybe `@cocalc/codemirror-core` and `@cocalc/codemirror-static` etc.  
+- [ ] then get smc-webapp to use new codemirror lerna package and codemirror-static and work...
+- [ ] worry about how this impacts our normal build process... 
 
 ### Top priority -- first release
 
@@ -28,6 +34,7 @@ This is what we need for functional equivalence with existing share server:
       - [x] video
       - [x] markdown
       - [ ] sage worksheet
+        - be sure to test image display, which grabs blobs from db
       - [ ] jupyter notebook
     - [x] download  document
     - [x] raw view of document
@@ -50,6 +57,7 @@ Biggest challenges are: (1) **no coffeescript** so we might have to rewrite chun
 
 ### Optimizations and cleanup
 
+- [ ] make the [update.sh](http://update.sh) script pull from a _specific_ commit -- then there will be no way to accidentally break the share server.   
 - [x] #security  worry more about ".." in path and access to raw shares.
 - [x] LRU cache in lib/server/serve-raw-path.js
 - [ ] page with info about a user.  But what?  How about a list of all projects with public paths that they "collaborate on"; maybe something just with the files they actually touched (?).

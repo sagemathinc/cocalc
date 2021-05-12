@@ -12,6 +12,7 @@
   "dependencies": {
     "@types/pg": "^7.14.11",
     "antd": "^4.15.3",
+    "cocalc-codemirror-static": "^1.0.0",
     "codemirror": "^5.61.0",
     "katex": "^0.13.3",
     "lodash": "^4.17.21",

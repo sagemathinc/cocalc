@@ -3,11 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/* Static codemirror-based renderer.
+/* Static codemirror-based renderer. */
 
-*/
-
-import CodeMirrorStatic from "smc-webapp/codemirror/static";
+import CodeMirrorStatic from "cocalc-codemirror-static";
 import { getExtension } from "lib/util";
 import { codemirrorMode } from "lib/file-extensions";
 

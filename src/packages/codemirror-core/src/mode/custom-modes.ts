@@ -5,7 +5,13 @@
 
 // Multiplex'd worksheet mode
 
-import { MARKERS } from "smc-util/sagews";
+//import { MARKERS } from "smc-util/sagews";
+// TODO: once smc-utils sagews is a repo, then import this from there.  This won't change though.
+export const MARKERS = {
+  cell: "\uFE20",
+  output: "\uFE21",
+};
+
 import { fromPairs } from "lodash";
 import * as CodeMirror from "codemirror";
 

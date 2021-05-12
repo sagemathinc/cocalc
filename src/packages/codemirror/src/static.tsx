@@ -17,10 +17,9 @@ import * as React from "react";
 
 // We use a special version of runMode that can be run on the backend
 // or frontend, to better support next.js.
-// It is also VERY important to use require instead of import, so that
-// the imports work properly on both the frontend and in node.js.
-const { runMode } = require("codemirror/addon/runmode/runmode.node.js");
-require("./modes");
+// @ts-ignore -- issue with runMode having any type
+import { runMode } from "codemirror/addon/runmode/runmode.node";
+import "./modes";
 import { CSSProperties } from "react";
 
 const BLURRED_STYLE = {
@@ -40,14 +39,14 @@ const BLURRED_STYLE = {
 interface Props {
   value: string;
   id?: string;
-  options?: object;
+  options?: { mode?: string; lineNumbers?: boolean; theme?: string };
   fontSize?: number;
   style?: CSSProperties; // optional style that is merged into BLURRED_STYLE
   noBorder?: boolean; // if given, do not draw border around whole thing
 }
 
 // This is used heavily by the share server.
-export default function CodeMirrorStatic({
+export function CodeMirrorStatic({
   value,
   options,
   fontSize,
