@@ -27,7 +27,7 @@ import { Actions } from "./app-framework/Actions";
 import { Table, TableConstructor } from "./app-framework/Table";
 
 // Relative import is temporary, until I figure this out -- needed for *project*
-import { bind_methods, keys, is_valid_uuid_string } from "../smc-util/misc";
+import { bind_methods, keys, is_valid_uuid_string } from "smc-util/misc";
 
 export { TypedMap, createTypedMap } from "./app-framework/TypedMap";
 

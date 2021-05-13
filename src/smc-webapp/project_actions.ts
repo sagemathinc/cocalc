@@ -42,7 +42,7 @@ import { get_directory_listing2 as get_directory_listing } from "./project/direc
 import { Actions, project_redux_name, redux } from "./app-framework";
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
-import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
+import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
 import { download_href, url_href } from "./project/utils";
 import { ensure_project_running } from "./project/project-start-warning";
 import { download_file, open_new_tab, open_popup_window } from "./misc-page";

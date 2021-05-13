@@ -40,7 +40,7 @@ import { RawEditor } from "./raw-editor";
 const { SnippetsDialog } = require("smc-webapp/assistant/dialog");
 import { Kernel as KernelType, Kernels as KernelsType } from "./util";
 import { Scroll, Usage, BackendState } from "./types";
-import { ImmutableUsageInfo } from "../../smc-project/usage-info/types";
+import { ImmutableUsageInfo } from "smc-project/usage-info/types";
 import { compute_usage } from "./usage";
 
 import { JupyterActions } from "./browser-actions";

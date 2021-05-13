@@ -14,7 +14,7 @@ import { webapp_client } from "./webapp-client";
 import { should_load_target_url } from "./misc-page";
 import { AppRedux } from "./app-framework";
 import { COCALC_MINIMAL } from "./fullscreen";
-import { callback2 } from "../smc-util/async-utils";
+import { callback2 } from "smc-util/async-utils";
 import * as LS from "./misc/local-storage";
 import { bind_methods } from "smc-util/misc";
 import { APP_BASE_URL } from "./misc";

@@ -18,7 +18,7 @@ declare const CodeMirror: any; // TODO: type
 
 import { React, Component, ReactDOM, Rendered } from "../app-framework";
 import { Loading } from "../r_misc";
-import * as syncstring from "../../smc-util/sync/editor/generic/util";
+import * as syncstring from "smc-util/sync/editor/generic/util";
 import { JupyterActions } from "./browser-actions";
 import { NotebookMode } from "./types";
 

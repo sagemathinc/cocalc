@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { DOMAIN_NAME } from "../../smc-util/theme";
+import { DOMAIN_NAME } from "smc-util/theme";
 import { join } from "path";
 
 export const APP_BASE_URL = (window as any)?.app_base_url ?? "";

@@ -13,7 +13,7 @@ import { React, Rendered, useRedux } from "../../app-framework";
 import { BuildCommand } from "./build-command";
 import { Loading } from "smc-webapp/r_misc";
 import { Tab, Tabs } from "../../antd-bootstrap";
-import { COLORS } from "../../../smc-util/theme";
+import { COLORS } from "smc-util/theme";
 import { BuildLogs } from "./actions";
 import { use_build_logs } from "./hooks";
 

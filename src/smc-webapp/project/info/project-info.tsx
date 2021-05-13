@@ -26,8 +26,8 @@ import { A, Tip, Loading } from "../../r_misc";
 import { RestartProject } from "../settings/restart-project";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
-import { ProjectInfo, Process } from "../../../smc-project/project-info/types";
-import { cgroup_stats } from "../../../smc-project/project-status/utils";
+import { ProjectInfo, Process } from "smc-project/project-info/types";
+import { cgroup_stats } from "smc-project/project-status/utils";
 import {
   CGroupFC,
   CoCalcFile,
