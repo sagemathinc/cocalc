@@ -6,6 +6,7 @@
 import * as React from "react";
 import { ProjectsActions } from "smc-webapp/todo-types";
 import { QuotaConsole } from "./quota-console";
+import { RunQuota } from "./run-quota";
 import { Icon, Loading, UpgradeAdjustor, SettingBox } from "smc-webapp/r_misc";
 import { redux, useTypedRedux, Rendered } from "smc-webapp/app-framework";
 import { URLBox } from "./url-box";
@@ -13,6 +14,7 @@ import { Project } from "./types";
 import { HelpEmailLink } from "../../customize";
 import { SiteLicense } from "./site-license";
 import { is_zero_map } from "smc-util/misc";
+import { COLORS } from "smc-util/theme";
 
 const { ShowSupportLink } = require("../../support");
 const { Row, Col, Button } = require("react-bootstrap");
@@ -137,7 +139,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
   function render_support(): Rendered {
     if (!is_commercial) return; // don't render if not commercial
     return (
-      <span style={{ color: "#666" }}>
+      <span style={{ color: COLORS.GRAY }}>
         If you have any questions about upgrading a project, create a{" "}
         <ShowSupportLink />, or email <HelpEmailLink /> and include the
         following URL:
@@ -156,8 +158,13 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  function render_run_quota(): Rendered {
+    return <RunQuota project_id={project_id} project_state={project.getIn(["state", "state"])} />;
+  }
+
   return (
     <SettingBox title="Project usage and quotas" icon="dashboard">
+      {render_run_quota()}
       {render_upgrades_button()}
       {render_upgrade_adjustor()}
       {render_quota_console()}
