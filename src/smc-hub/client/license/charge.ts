@@ -242,7 +242,7 @@ async function stripe_purchase_product(
 
   // TODO: improve later to handle case of *multiple* items on one invoice
 
-  // TODO: tax_percent is DEPRECATED (see stripe_create_subscription below).
+  // TODO: tax_percent is DEPRECATED but not gone (see stripe_create_subscription below).
   const tax_percent = await stripe.sales_tax(customer);
   const options: Stripe.InvoiceCreateParams = {
     customer,

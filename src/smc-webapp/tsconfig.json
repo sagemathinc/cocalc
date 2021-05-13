@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "jsx": "react",
+    "target": "es5",
+    "sourceMap": true,
+    "lib": ["es5", "es6", "es2017", "dom"],
+    "strictNullChecks": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "downlevelIteration": true,
+    "rootDir": "./",
+    "baseUrl": "./",
+    "skipLibCheck": true,
+    "allowJs": true,
+    "outDir": "dist"
+  },
+  "exclude": [
+    "../node_modules",
+    "./node_modules",
+    "./jupyter/project-actions.ts",
+    "./jupyter/test/",
+    ",/frame-editors/generic/mocha-tests/",
+    "./test-mocha",
+    "./test"
+  ]
+}
