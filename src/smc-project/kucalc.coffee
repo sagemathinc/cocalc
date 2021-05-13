@@ -267,4 +267,4 @@ exports.init_health_metrics = (raw_server, project_id) ->
         res.setHeader("Content-Type", "text/plain; version=0.0.4")
         res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
         part1 = exports.prometheus_metrics(project_id)
-        res.send(part1 + '\n' + prom_client.register.metrics() + '\n')
+        res.send(part1 + '\n' + (await prom_client.register.metrics()) + '\n')
