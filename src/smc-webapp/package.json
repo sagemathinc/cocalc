@@ -8,7 +8,9 @@
     "./r_misc": "./dist/r_misc/index.js",
     "./admin/users/projects": "./dist/admin/users/projects.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "directories": {},
   "workspaces": [
     "../smc-hub",
@@ -134,6 +136,7 @@
     "requirejs": "^2.3.6",
     "reselect": "^4.0.0",
     "resize-observer-polyfill": "^1.5.1",
+    "shallowequal": "^1.1.0",
     "shell-escape": "^0.2.0",
     "slate": "^0.62.0",
     "superb": "^3.0.0",

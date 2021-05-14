@@ -342,7 +342,7 @@ export class AppRedux {
     if (!this.hasProjectStore(project_id)) {
       // Right now importing project_store breaks the share server,
       // so we don't yet.
-      return require("./project_store").init(project_id, this);
+      return require("../project_store").init(project_id, this);
     } else {
       return this.getStore(project_redux_name(project_id)) as any;
     }
@@ -356,7 +356,7 @@ export class AppRedux {
       console.warn(`getProjectActions: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
-      require("./project_store").init(project_id, this);
+      require("../project_store").init(project_id, this);
     }
     return this.getActions(project_redux_name(project_id)) as any;
   }
@@ -368,7 +368,7 @@ export class AppRedux {
       console.warn(`getProjectTable: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
-      require("./project_store").init(project_id, this);
+      require("../project_store").init(project_id, this);
     }
     return this.getTable(project_redux_name(project_id, name));
   }
