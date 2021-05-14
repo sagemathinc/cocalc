@@ -9,7 +9,7 @@ This is a renderer using the embed tag, so works with browsers that have a PDF v
 
 import { raw_url } from "../frame-tree/util";
 
-import { Component, React, Rendered } from "../../app-framework";
+import { React } from "../../app-framework";
 
 export interface Props {
   actions: any;
@@ -20,15 +20,16 @@ export interface Props {
   reload?: number;
 }
 
-export class PDFEmbed extends Component<Props, {}> {
-  render_embed(): Rendered {
-    const src: string = `${raw_url(
-      this.props.project_id,
-      this.props.path
-    )}?param=${this.props.reload}`;
+export const PDFEmbed: React.FC<Props> = React.memo((props: Props) => {
+  const { actions, id, project_id, is_current, path, reload } = props;
+
+  const embedRef = React.useRef<any>(null);
+
+  function render_embed(): JSX.Element {
+    const src: string = `${raw_url(project_id, path)}?param=${reload}`;
     return (
       <embed
-        ref={"embed"}
+        ref={embedRef}
         width={"100%"}
         height={"100%"}
         src={src}
@@ -37,12 +38,12 @@ export class PDFEmbed extends Component<Props, {}> {
     );
   }
 
-  focus(): void {
-    this.props.actions.set_active_id(this.props.id);
-    $(this.refs.embed).focus();
+  function focus(): void {
+    actions.set_active_id(id);
+    $(embedRef.current).focus();
   }
 
-  render_clickable(): Rendered {
+  function render_clickable(): JSX.Element {
     return (
       <>
         <div
@@ -50,26 +51,24 @@ export class PDFEmbed extends Component<Props, {}> {
             position: "absolute",
             width: "100%",
             height: "100%",
-            zIndex: this.props.is_current ? -1 : 1,
+            zIndex: is_current ? -1 : 1,
           }}
-          onMouseEnter={() => this.focus()}
+          onMouseEnter={focus}
         />
-        {this.render_embed()}
+        {render_embed()}
       </>
     );
   }
 
-  render() {
-    return (
-      <div
-        style={{
-          position: "relative",
-          height: "100%",
-          width: "100%",
-        }}
-      >
-        {this.render_clickable()}
-      </div>
-    );
-  }
-}
+  return (
+    <div
+      style={{
+        position: "relative",
+        height: "100%",
+        width: "100%",
+      }}
+    >
+      {render_clickable()}
+    </div>
+  );
+});

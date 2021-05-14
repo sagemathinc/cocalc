@@ -7,7 +7,7 @@
 Manages rendering a single page using either SVG or Canvas
 */
 
-import { React, Rendered, Component } from "../../app-framework";
+import { React } from "../../app-framework";
 import { is_different } from "smc-util/misc";
 import { NonloadedPage } from "./pdfjs-nonloaded-page";
 import { CanvasPage } from "./pdfjs-canvas-page";
@@ -32,42 +32,41 @@ interface PageProps {
   sync_highlight?: SyncHighlight;
 }
 
-export class Page extends Component<PageProps, {}> {
-  constructor(props) {
-    super(props);
-  }
+function should_memoize(prev, next) {
+  return (
+    !is_different(prev, next, [
+      "n",
+      "renderer",
+      "scale",
+      "page",
+      "sync_highlight",
+    ]) && prev.doc.fingerprint === next.doc.fingerprint
+  );
+}
 
-  shouldComponentUpdate(next_props: PageProps): boolean {
-    return (
-      is_different(this.props, next_props, [
-        "n",
-        "renderer",
-        "scale",
-        "sync_highlight",
-      ]) || this.props.doc.fingerprint !== next_props.doc.fingerprint
-    );
-  }
+export const Page: React.FC<PageProps> = React.memo((props: PageProps) => {
+  const { actions, id, n, doc, renderer, scale, page, sync_highlight } = props;
 
-  render_content(): Rendered {
-    if (!this.props.page) return;
+  function render_content() {
+    if (!page) return;
     const f = (annotation) => {
-      this.click_annotation(annotation);
+      click_annotation(annotation);
     };
-    if (this.props.renderer == "none") {
-      return <NonloadedPage page={this.props.page} scale={this.props.scale} />;
+    if (renderer == "none") {
+      return <NonloadedPage page={page} scale={scale} />;
     } else {
       return (
         <CanvasPage
-          page={this.props.page}
-          scale={this.props.scale}
+          page={page}
+          scale={scale}
           click_annotation={f}
-          sync_highlight={this.props.sync_highlight}
+          sync_highlight={sync_highlight}
         />
       );
     }
   }
 
-  render_page_number(): Rendered {
+  function render_page_number(): JSX.Element {
     return (
       <div
         style={{
@@ -77,22 +76,24 @@ export class Page extends Component<PageProps, {}> {
           height: `${PAGE_GAP}px`,
         }}
       >
-        Page {this.props.n}
+        Page {n}
       </div>
     );
   }
 
-  click(event): void {
-    if (!this.props.actions.synctex_pdf_to_tex) {
+  function click(event): void {
+    if (!actions.synctex_pdf_to_tex) {
       // no support for synctex for whatever is using this.
       return;
     }
-    const x: number = event.nativeEvent.offsetX / this.props.scale;
-    const y: number = event.nativeEvent.offsetY / this.props.scale;
-    this.props.actions.synctex_pdf_to_tex(this.props.n, x, y);
+    const x: number = event.nativeEvent.offsetX / scale;
+    const y: number = event.nativeEvent.offsetY / scale;
+    actions.synctex_pdf_to_tex(n, x, y);
   }
 
-  async click_annotation(annotation0: PDFAnnotationData): Promise<void> {
+  async function click_annotation(
+    annotation0: PDFAnnotationData
+  ): Promise<void> {
     // NOTE: We have to do this cast because the @types for pdfjs are incomplete and wrong.
     const annotation: any = annotation0 as any; // TODO
     if (annotation.url) {
@@ -108,40 +109,27 @@ export class Page extends Component<PageProps, {}> {
       // Internal link within the document.
       // cast to any because of shortcoming in @types/pdfjs-dist (it's there -- see
       // https://github.com/mozilla/pdf.js/blob/master/src/display/api.js#L643)
-      const dest = await (this.props.doc as any).getDestination(
-        annotation.dest
-      );
+      const dest = await (doc as any).getDestination(annotation.dest);
       if (dest == null) {
         console.warn(`Unknown destination ${annotation.dest}`);
         return; // no such destination -- internal inconsistency...
       }
 
       // again, cast to any because of missing typing.
-      const page_index: number = await (this.props.doc as any).getPageIndex(
-        dest[0]
-      );
-      const page_height = this.props.page.view[3];
-      this.props.actions.scroll_pdf_into_view(
-        page_index + 1,
-        page_height - dest[3],
-        this.props.id
-      );
+      const page_index: number = await (doc as any).getPageIndex(dest[0]);
+      const page_height = page.view[3];
+      actions.scroll_pdf_into_view(page_index + 1, page_height - dest[3], id);
       return;
     }
     console.warn("Unknown annotation link", annotation);
   }
 
-  render() {
-    return (
-      <div>
-        {this.render_page_number()}
-        <div
-          style={{ background: BG_COL }}
-          onDoubleClick={(e) => this.click(e)}
-        >
-          {this.render_content()}
-        </div>
+  return (
+    <div>
+      {render_page_number()}
+      <div style={{ background: BG_COL }} onDoubleClick={(e) => click(e)}>
+        {render_content()}
       </div>
-    );
-  }
-}
+    </div>
+  );
+}, should_memoize);

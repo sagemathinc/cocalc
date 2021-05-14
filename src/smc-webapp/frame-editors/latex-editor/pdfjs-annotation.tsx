@@ -15,13 +15,11 @@ like is here:  https://tex.stackexchange.com/questions/6306/how-to-annotate-pdf-
 
 const HIGHLIGHT_HEIGHT: number = 30;
 
-import { Component, React, Rendered } from "../../app-framework";
+import { useIsMountedRef, React } from "../../app-framework";
 import { PDFAnnotationData, PDFPageProxy } from "pdfjs-dist/webpack";
 
 // Evidently the typescript code is wrong for this PDFJS.Util thing, so we use require.
 const PDFJS = require("pdfjs-dist/webpack");
-
-import { delay } from "awaiting";
 import { is_different } from "smc-util/misc";
 
 export interface SyncHighlight {
@@ -38,43 +36,67 @@ interface Props {
   sync_highlight?: SyncHighlight;
 }
 
-interface State {
-  annotations?: PDFAnnotationData[];
-  sync_highlight?: SyncHighlight;
+function should_memoize(prev, next) {
+  return !is_different(prev, next, ["page", "scale", "sync_highlight"]);
 }
 
-export class AnnotationLayer extends Component<Props, State> {
-  private mounted: boolean;
-  private sync_highlight_number: number = 0;
+export const AnnotationLayer: React.FC<Props> = React.memo((props: Props) => {
+  const {
+    page,
+    scale,
+    click_annotation,
+    sync_highlight: sync_highlight_prop,
+  } = props;
+  const isMounted = useIsMountedRef();
+  const sync_highlight_number = React.useRef<number>(0);
+  const [annotations, set_annotations] = React.useState<
+    PDFAnnotationData[] | undefined
+  >(undefined);
+  const [sync_highlight, set_sync_highlight] = React.useState<
+    SyncHighlight | undefined
+  >(sync_highlight_prop);
 
-  constructor(props) {
-    super(props);
-    this.state = { annotations: undefined, sync_highlight: undefined };
-  }
+  React.useEffect(() => {
+    update_annotations();
+  }, [page]);
 
-  shouldComponentUpdate(next_props: Props, next_state: State): boolean {
-    return (
-      is_different(this.props, next_props, ["scale", "sync_highlight"]) ||
-      is_different(this.state, next_state, ["annotations", "sync_highlight"])
-    );
-  }
+  // react to changes in props
+  React.useEffect(() => {
+    if (sync_highlight_prop != null && sync_highlight_prop != sync_highlight) {
+      set_sync_highlight(sync_highlight_prop);
+    }
+  }, [sync_highlight_prop]);
 
-  async update_annotations(page: PDFPageProxy): Promise<void> {
+  // remove highlight after a brief timeout
+  React.useEffect(() => {
+    if (sync_highlight != null) {
+      const wait_ms = sync_highlight.until.getTime() - Date.now();
+      sync_highlight_number.current += 1;
+      const shn = sync_highlight_number.current;
+      const to = setTimeout(() => {
+        if (isMounted.current && sync_highlight_number.current === shn) {
+          set_sync_highlight(undefined);
+        }
+      }, wait_ms);
+      return () => clearTimeout(to);
+    }
+  }, [sync_highlight]);
+
+  async function update_annotations(): Promise<void> {
     try {
       const annotations = ((await page.getAnnotations()) as unknown) as PDFAnnotationData[];
-      if (!this.mounted) return;
-      this.setState({ annotations: annotations });
+      if (!isMounted.current) return;
+      set_annotations(annotations);
     } catch (err) {
       console.error(`pdf.js -- Error updating annotations: #{err}`);
       return;
     }
   }
 
-  render_annotations(): Rendered {
-    if (this.state.annotations == null) return;
-    const scale = this.props.scale;
-    const v: Rendered[] = [];
-    for (const annotation0 of this.state.annotations) {
+  function render_annotations() {
+    if (annotations == null) return <div />;
+    const v: JSX.Element[] = [];
+    for (const annotation0 of annotations) {
       // NOTE: We have to do this ugly cast to any because the @types for pdfjs are
       // incomplete/wrong for annotations.
       const annotation: any = annotation0 as any;
@@ -84,7 +106,7 @@ export class AnnotationLayer extends Component<Props, State> {
         continue;
       }
       const [x1, y1, x2, y2] = PDFJS.Util.normalizeRect(annotation.rect);
-      const page_height = this.props.page.view[3];
+      const page_height = page.view[3];
       const left = x1 - 1,
         top = page_height - y2 - 1,
         width = x2 - x1 + 2,
@@ -99,7 +121,7 @@ export class AnnotationLayer extends Component<Props, State> {
       // *inside* the for loop above -- I'm not making the typical closure/scopying mistake.
       const elt = (
         <div
-          onClick={() => this.props.click_annotation(annotation)}
+          onClick={() => click_annotation(annotation)}
           key={annotation.id}
           style={{
             position: "absolute",
@@ -109,6 +131,7 @@ export class AnnotationLayer extends Component<Props, State> {
             height: height * scale,
             border: border,
             cursor: "pointer",
+            zIndex: 1, // otherwise, the yellow sync highlight is above url links
           }}
         />
       );
@@ -116,14 +139,8 @@ export class AnnotationLayer extends Component<Props, State> {
     }
 
     // handle highlight which is used for synctex.
-    if (this.state.sync_highlight !== undefined) {
-      v.push(
-        this.render_sync_highlight(
-          scale,
-          this.props.page.view[2],
-          this.state.sync_highlight.y
-        )
-      );
+    if (sync_highlight !== undefined) {
+      v.push(render_sync_highlight(scale, page.view[2], sync_highlight.y));
     }
 
     return (
@@ -137,7 +154,11 @@ export class AnnotationLayer extends Component<Props, State> {
     );
   }
 
-  render_sync_highlight(scale: number, width: number, y: number): Rendered {
+  function render_sync_highlight(
+    scale: number,
+    width: number,
+    y: number
+  ): JSX.Element {
     return (
       <div
         onDoubleClick={(e) => e.stopPropagation()}
@@ -156,39 +177,5 @@ export class AnnotationLayer extends Component<Props, State> {
     );
   }
 
-  componentWillReceiveProps(next_props: Props): void {
-    this.update_annotations(next_props.page);
-    if (next_props.sync_highlight !== undefined) {
-      this.setState({ sync_highlight: next_props.sync_highlight });
-      this.remove_sync_highlight(
-        next_props.sync_highlight.until.valueOf() - new Date().valueOf()
-      );
-    }
-  }
-
-  async remove_sync_highlight(wait_ms: number): Promise<void> {
-    this.sync_highlight_number += 1;
-    const sync_highlight_number = this.sync_highlight_number;
-    await delay(wait_ms);
-    if (this.mounted && this.sync_highlight_number === sync_highlight_number) {
-      this.setState({ sync_highlight: undefined });
-    }
-  }
-
-  componentDidMount(): void {
-    this.mounted = true;
-    this.update_annotations(this.props.page);
-  }
-
-  componentWillUnmount(): void {
-    this.mounted = false;
-  }
-
-  render() {
-    if (!this.state.annotations) {
-      return <div />;
-    } else {
-      return this.render_annotations();
-    }
-  }
-}
+  return render_annotations();
+}, should_memoize);
