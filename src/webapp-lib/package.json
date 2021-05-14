@@ -2,12 +2,14 @@
   "name": "webapp-lib",
   "version": "1.0.0",
   "description": "This sub-directory contains assets (images, code, etc.) for the smc-webapp and static pages.",
-  "main": "serviceWorker.js",
+  "exports": {
+    "./serviceWorker": "./serviceWorker.js",
+    "./resources/versions": "./resources/versions.js"
+  },
   "directories": {
     "example": "examples"
   },
   "scripts": {
-    "build": "echo 'TODO -- write a build script for webapp-lib'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

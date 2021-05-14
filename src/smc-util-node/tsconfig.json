@@ -8,7 +8,6 @@
     "noUnusedParameters": true,
     "downlevelIteration": true,
     "rootDir": "./",
-    "baseUrl": "./",
     "skipLibCheck": true,
     "outDir": "dist",
     "allowJs": true

@@ -44,5 +44,5 @@ for path, data in deps.items():
     versions[name] = version
 
 # finally, write the version info such that it can be loaded
-with open('versions.ts', 'w') as out:
-    out.write(f'export const versions = {json.dumps(versions)};')
+with open('versions.js', 'w') as out:
+    out.write(f'exports.versions = {json.dumps(versions)};')

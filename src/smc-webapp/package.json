@@ -5,6 +5,7 @@
   "exports": {
     "./*": "./dist/*.js",
     "./app-framework": "./dist/app-framework/index.js",
+    "./r_misc": "./dist/r_misc/index.js",
     "./admin/users/projects": "./dist/admin/users/projects.js"
   },
   "files": ["dist"],
@@ -13,7 +14,8 @@
     "../smc-hub",
     "../smc-util",
     "../smc-project",
-    "../webapp-lib"
+    "../webapp-lib",
+    "./"
   ],
   "dependencies": {
     "@ant-design/icons": "^4.3.0",

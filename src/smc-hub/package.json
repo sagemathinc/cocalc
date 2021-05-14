@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "CoCalc: Backend webserver component",
   "exports": {
-    "./*": "./dist/*.js"
+    "./*": "./dist/*.js",
+    "./run/*": "./dist/run/*.js"
   },
   "workspaces": [
     "../smc-util",

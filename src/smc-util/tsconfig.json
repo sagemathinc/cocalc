@@ -9,7 +9,6 @@
     "downlevelIteration": true,
     "skipLibCheck": true,
     "rootDir": "./",
-    "baseUrl": "./",
     "outDir": "dist/",
     "allowJs": true
   },

@@ -9,7 +9,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "downlevelIteration": true,
-    "baseUrl": ".",
     "skipLibCheck": true,
     "outDir": "dist"
   },
