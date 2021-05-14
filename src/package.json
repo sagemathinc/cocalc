@@ -1,7 +1,9 @@
 {
   "name": "cocalc",
   "workspaces": [
-    "smc-util"
+    "smc-util",
+    "smc-util-node",
+    "webapp-lib"
   ],
   "version": "1.0.0",
   "description": "Collaborative Calculation in the Cloud",
@@ -110,10 +112,11 @@
     "webpack-clean": "rm -rvf $SALVUS_ROOT/static/",
     "webpack-static": "cd $SALVUS_ROOT; node scripts/update-color-scheme.js; scripts/update_react_static && NODE_OPTIONS='--max-old-space-size=3000' CC_STATICPAGES=true NODE_ENV=development webpack --debug --output-pathinfo --progress --colors",
     "install-all": "scripts/smc-install-all",
+    "build": "echo 'no-op for now; just here for consistency'",
     "make": "npm run install-all",
     "delete-package-lock": "git ls-files '../*/package-lock.json' | xargs rm -f",
     "restore-package-lock": "git ls-files '../*/package-lock.json' | xargs git checkout --",
-    "clean": "find $SMC_ROOT -type d -name node_modules | xargs rm -rf; rm -rf $SMC_ROOT/static; npm cache verify",
+    "clean": "find $SMC_ROOT -type d -name dist | grep -v node_modules | grep \\/dist\\$ | xargs rm -rf && find $SMC_ROOT -type d -name node_modules | xargs rm -rf && rm -rf $SMC_ROOT/static && npm cache verify",
     "audit-fix": "scripts/npm-audit.sh fix",
     "prettier-all": "git ls-files '*.ts' '*.tsx' '**/*.ts' '**/*.tsx' | parallel -j5 --eta prettier --write :::"
   },

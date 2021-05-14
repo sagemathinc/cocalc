@@ -34,6 +34,17 @@ run_install() {
     fi
 }
 
+# npm build function
+run_build() {
+    cd "$1"
+    # ts is part of moreutils
+    if `hash ts 2> /dev/null`; then
+        npm run build | ts "[%Y-%m-%d %H:%M:%S|$(basename $1)]"
+    else
+        npm run build
+    fi
+}
+
 if `hash parallel 2> /dev/null`; then
 
     export -f run_install
@@ -46,6 +57,11 @@ else
     done
 
 fi
+
+# Run build on each code directory.
+for dir in "${CODE_DIRS[@]}"; do
+    run_build "$dir"
+done
 
 
 # after everything is installed, we run some extra jobs
