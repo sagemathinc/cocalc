@@ -10,6 +10,7 @@
     "roboto-fontface": "^0.10.0"
   },
   "scripts": {
-    "postinstall": "python3 setup.py"
+    "postinstall": "python3 setup.py",
+    "build": "echo 'no-op for now; just here for consistency'"
   }
 }
