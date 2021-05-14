@@ -15,12 +15,12 @@
     "allowJs": true,
     "outDir": "dist"
   },
-  "include": ["app-framework"],
   "exclude": [
     "dist",
     "node_modules",
     "account/test",
     "jupyter/test",
+    "frame-editors/sagews-editor",
     "frame-editors/generic/mocha-tests",
     "frame-editors/settings/__tests__",
     "jupyter/output-messages/__test__",

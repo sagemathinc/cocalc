@@ -9,7 +9,6 @@ import { QueryParams } from "../misc/query-params";
 import { COCALC_FULLSCREEN } from "../fullscreen";
 import { redux } from "../app-framework";
 import { parse_target } from "../history";
-import { webapp_client } from "../webapp-client";
 
 export function init_query_params(): void {
   const actions = redux.getActions("page");
@@ -32,27 +31,6 @@ export function init_query_params(): void {
     actions.set_fullscreen("default");
   }
 
-  // setup for frontend mocha testing -- TODO: delete all this, since we don't use it!
-  const test_query_value = QueryParams.get("test");
-  if (test_query_value) {
-    // include entryway for running mocha tests.
-    actions.setState({ test: test_query_value });
-    console.log("TESTING mode -- waiting for sign in...");
-    webapp_client.once("signed_in", async () => {
-      console.log("TESTING mode -- waiting for projects to load...");
-      await redux.getStore("projects").async_wait({
-        timeout: 9999999,
-        until(store) {
-          return store.get("project_map");
-        },
-      });
-      console.log(
-        "TESTING mode -- projects loaded; now loading and running tests..."
-      );
-      require("../test-mocha/setup").mocha_run(test_query_value);
-    });
-  }
-
   const get_api_key_query_value = QueryParams.get("get_api_key");
   if (get_api_key_query_value) {
     actions.set_get_api_key(get_api_key_query_value);
@@ -66,7 +44,7 @@ export function init_query_params(): void {
   // Note that we never have a session in kiosk mode, since you can't
   // access the other files.
   const session =
-    COCALC_FULLSCREEN === "kiosk" || test_query_value
+    COCALC_FULLSCREEN === "kiosk"
       ? ""
       : QueryParams.get("session") ?? "default";
   actions.set_session(session);
