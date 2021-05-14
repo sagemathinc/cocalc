@@ -15,13 +15,24 @@
     "allowJs": true,
     "outDir": "dist"
   },
+  "include": ["app-framework"],
   "exclude": [
-    "../node_modules",
-    "./node_modules",
-    "./jupyter/project-actions.ts",
-    "./jupyter/test/",
-    ",/frame-editors/generic/mocha-tests/",
-    "./test-mocha",
-    "./test"
+    "dist",
+    "node_modules",
+    "account/test",
+    "jupyter/project-actions.ts",
+    "jupyter/test/",
+    "frame-editors/generic/mocha-tests",
+    "frame-editors/settings/__tests__",
+    "jupyter/output-messages/__test__",
+    "misc/__test__",
+    "r_misc/__tests__",
+    "test-mocha",
+    "test",
+    "*__tests__*",
+    "*__test__*",
+    "admin",
+    "app",
+    "billing"
   ]
 }

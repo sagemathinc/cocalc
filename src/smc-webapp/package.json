@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "description": "CoCalc: Collaborative Calculation in the Cloud",
   "exports": {
-    "./*": "./dist/*.js"
+    "./*": "./dist/*.js",
+    "./app-framework": "./dist/app-framework/index.js"
   },
+  "files": ["dist"],
   "directories": {},
   "workspaces": [
     "../smc-hub",
@@ -155,7 +157,7 @@
     "react-addons-perf": "^15.4.2"
   },
   "scripts": {
-    "build": "tsc && coffee -c -o dist/ .",
+    "build": "node --max-old-space-size=8192 ../node_modules/typescript/bin/tsc && coffee -c -o dist/ .",
     "test": "cd .. && npx jest smc-webapp",
     "testjcli": "echo 'TEST JUPYTER CLIENT'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee test/*.ts",
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee *.cjsx",

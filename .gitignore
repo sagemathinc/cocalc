@@ -128,6 +128,7 @@ src/smc_sagews/.pytest_cache/
 
 src/go-landing
 
+src/smc-webapp/dist
 src/smc-hub/dist
 src/smc-util/dist
 src/smc-project/dist

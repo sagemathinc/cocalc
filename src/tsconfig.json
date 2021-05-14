@@ -10,7 +10,8 @@
     "noUnusedParameters": true,
     "downlevelIteration": true,
     "baseUrl": ".",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "outDir": "dist"
   },
   "exclude": [
     "./data",

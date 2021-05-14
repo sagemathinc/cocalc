@@ -22,20 +22,20 @@ import * as createReactClass from "create-react-class";
 import { Provider, connect, useSelector } from "react-redux";
 import * as json_stable from "json-stable-stringify";
 
-import { Store, StoreConstructorType } from "./app-framework/Store";
-import { Actions } from "./app-framework/Actions";
-import { Table, TableConstructor } from "./app-framework/Table";
+import { Store, StoreConstructorType } from "./Store";
+import { Actions } from "./Actions";
+import { Table, TableConstructor } from "./Table";
 
 // Relative import is temporary, until I figure this out -- needed for *project*
 import { bind_methods, keys, is_valid_uuid_string } from "smc-util/misc";
 
-export { TypedMap, createTypedMap } from "./app-framework/TypedMap";
+export { TypedMap, createTypedMap } from "./TypedMap";
 
-import { NAME_TYPE as ComputeImageStoreType } from "./custom-software/util";
+import { NAME_TYPE as ComputeImageStoreType } from "../custom-software/util";
 
-import * as types from "./app-framework/actions-and-stores";
-declare type ProjectStore = import("./project_store").ProjectStore;
-declare type ProjectActions = import("./project_actions").ProjectActions;
+import * as types from "./actions-and-stores";
+declare type ProjectStore = import("../project_store").ProjectStore;
+declare type ProjectActions = import("../project_actions").ProjectActions;
 export { ProjectStore, ProjectActions };
 
 const action_set_state = function (change) {
@@ -730,5 +730,5 @@ export function redux_fields(spec) {
 }
 
 // Export common React Hooks for convenience:
-export * from "./app-framework/hooks";
-export * from "./app-framework/redux-hooks";
+export * from "./hooks";
+export * from "./redux-hooks";
