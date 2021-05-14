@@ -75,7 +75,7 @@ type NumParser = (s: string | number | undefined) => number;
 type Str2Num = (s: string | number) => number;
 
 // the end result
-interface Quota {
+export interface Quota {
   network?: boolean;
   member_host?: boolean;
   always_running?: boolean;
