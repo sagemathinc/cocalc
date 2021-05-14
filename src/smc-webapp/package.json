@@ -4,7 +4,8 @@
   "description": "CoCalc: Collaborative Calculation in the Cloud",
   "exports": {
     "./*": "./dist/*.js",
-    "./app-framework": "./dist/app-framework/index.js"
+    "./app-framework": "./dist/app-framework/index.js",
+    "./admin/users/projects": "./dist/admin/users/projects.js"
   },
   "files": ["dist"],
   "directories": {},

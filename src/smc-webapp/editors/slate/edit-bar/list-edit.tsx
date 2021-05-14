@@ -4,7 +4,7 @@
  */
 
 import * as React from "react";
-import { Icon } from "r_misc";
+import { Icon } from "smc-webapp/r_misc";
 import { ReactEditor } from "../slate-react";
 import { ListProperties, setListProperties } from "./list";
 import { Button, Checkbox, InputNumber } from "antd";

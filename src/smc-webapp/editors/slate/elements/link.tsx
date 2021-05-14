@@ -4,10 +4,10 @@
  */
 
 import { Text } from "slate";
-import { React } from "app-framework";
+import { React } from "smc-webapp/app-framework";
 import { register, SlateElement, useProcessLinks } from "./register";
 import { dict } from "smc-util/misc";
-import { open_new_tab } from "misc-page";
+import { open_new_tab } from "smc-webapp/misc-page";
 const linkify = require("linkify-it")();
 
 export interface Link extends SlateElement {

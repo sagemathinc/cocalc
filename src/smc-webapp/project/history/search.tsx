@@ -6,7 +6,7 @@
 import * as React from "react";
 import { useDebounce } from "../../hooks";
 import { SearchInput } from "../../r_misc";
-import { ProjectActions } from "project_store";
+import { ProjectActions } from "smc-webapp/project_store";
 import { EventRecordMap } from "./types";
 
 interface Props {

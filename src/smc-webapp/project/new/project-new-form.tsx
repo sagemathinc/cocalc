@@ -27,7 +27,7 @@ import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
 import { FileTypeSelector } from "./file-type-selector";
 import { AvailableFeatures } from "./types";
-import { ProjectMap } from "todo-types";
+import { ProjectMap } from "smc-webapp/todo-types";
 import { PathNavigator } from "../explorer/path-navigator";
 
 

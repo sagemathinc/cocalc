@@ -33,8 +33,8 @@ import { SearchBar } from "./search-bar";
 import { NewButton } from "./new-button";
 import { ShallowTypedMap } from "../../app-framework/ShallowTypedMap";
 import { ComputeImages } from "../../custom-software/init";
-import { ProjectMap, ProjectStatus } from "todo-types";
-import { ProjectActions } from "project_store";
+import { ProjectMap, ProjectStatus } from "smc-webapp/todo-types";
+import { ProjectActions } from "smc-webapp/project_store";
 import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { AccessErrors } from "./access-errors";
 import { ListingItem } from "./types";
@@ -499,7 +499,7 @@ export const Explorer = rclass(
               quotas={this.props.get_total_project_quotas(
                 this.props.project_id
               )}
-              is_commercial={require("customize").commercial}
+              is_commercial={require("smc-webapp/customize").commercial}
               public_view={public_view}
               is_logged_in={!!this.props.is_logged_in}
             />

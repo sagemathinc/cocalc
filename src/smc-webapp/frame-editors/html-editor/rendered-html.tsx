@@ -12,7 +12,7 @@ import { is_different, path_split } from "smc-util/misc";
 import { throttle } from "lodash";
 import { React, ReactDOM } from "../../app-framework";
 import { MAX_WIDTH } from "../options";
-import { HTML } from "r_misc";
+import { HTML } from "smc-webapp/r_misc";
 import { EditorState } from "../frame-tree/types";
 
 interface Props {

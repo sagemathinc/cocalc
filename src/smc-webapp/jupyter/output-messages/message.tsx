@@ -8,7 +8,7 @@ Handling of output messages.
 */
 
 import { NotebookFrameActions } from "../../frame-editors/jupyter-editor/cell-notebook/actions";
-import { React, Component, Rendered } from "app-framework";
+import { React, Component, Rendered } from "smc-webapp/app-framework";
 import { JupyterActions } from "../actions";
 import { Map } from "immutable";
 import { OUTPUT_STYLE, OUTPUT_STYLE_SCROLLED } from "./style";

@@ -7,8 +7,8 @@ import { Transforms, Element } from "slate";
 import {
   get_insert_link_opts_from_user,
   Options,
-} from "codemirror/extensions/insert-link";
-import { alert_message } from "alerts";
+} from "smc-webapp/codemirror/extensions/insert-link";
+import { alert_message } from "smc-webapp/alerts";
 import { getSelection, selectionToText } from "./commands";
 
 export async function insertLink(editor): Promise<void> {

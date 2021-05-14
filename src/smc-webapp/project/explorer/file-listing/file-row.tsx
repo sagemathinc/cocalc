@@ -15,7 +15,7 @@ import { COLORS } from "smc-util/theme";
 import { Button, Row, Col } from "react-bootstrap";
 import * as misc from "smc-util/misc";
 import { url_href } from "../../utils";
-import { useStudentProjectFunctionality } from "course";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 interface Props {
   isdir: boolean;

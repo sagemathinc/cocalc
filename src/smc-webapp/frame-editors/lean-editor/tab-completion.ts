@@ -14,7 +14,7 @@ import { Completion } from "./types";
 
 import { Actions } from "./actions";
 
-import { completions } from "codemirror/mode/lean";
+import { completions } from "smc-webapp/codemirror/mode/lean";
 
 interface CMCompletion {
   text: string;

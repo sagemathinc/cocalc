@@ -4,7 +4,7 @@
  */
 
 import { delay } from "awaiting";
-import { React, Component, Rendered } from "app-framework";
+import { React, Component, Rendered } from "smc-webapp/app-framework";
 import { get_blob_url } from "../server-urls";
 
 interface ImageProps {

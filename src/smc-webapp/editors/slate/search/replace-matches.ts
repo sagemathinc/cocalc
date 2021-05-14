@@ -7,7 +7,7 @@ import { Editor, Range, Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import { selectNextMatch } from "./find-matches";
 import { nextMatch } from "./search-control";
-import { alert_message } from "alerts";
+import { alert_message } from "smc-webapp/alerts";
 
 function lowestNode(editor: Editor) {
   for (const [node] of Editor.nodes(editor, { mode: "lowest" })) {

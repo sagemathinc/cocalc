@@ -18,7 +18,7 @@ import {
   useIsMountedRef,
   useRef,
 } from "../../app-framework";
-import { useStudentProjectFunctionality } from "course";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 interface Props {
   actions: any;

@@ -46,7 +46,7 @@ import {
   drag_start_iframe_disable,
   drag_stop_iframe_enable,
 } from "../../misc-page";
-import * as feature from "feature";
+import * as feature from "smc-webapp/feature";
 import { FrameTitleBar } from "./title-bar";
 import { FrameTreeLeaf } from "./leaf";
 import * as tree_ops from "./tree-ops";

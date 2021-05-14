@@ -8,7 +8,7 @@ import { useSlateStatic } from "../hooks/use-slate-static";
 import { useDecorate } from "../hooks/use-decorate";
 import { NODE_TO_INDEX, NODE_TO_PARENT } from "../utils/weak-maps";
 import { RenderElementProps, RenderLeafProps } from "./editable";
-import { WindowedList } from "r_misc";
+import { WindowedList } from "smc-webapp/r_misc";
 import { shallowCompare } from "smc-util/misc";
 import { SlateEditor } from "../../editable-markdown";
 

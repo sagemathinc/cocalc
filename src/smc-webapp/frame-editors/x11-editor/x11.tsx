@@ -22,7 +22,7 @@ import { cmp, is_different } from "smc-util/misc";
 import { Actions } from "./actions";
 import { WindowTab } from "./window-tab";
 import { TAB_BAR_GREY } from "./theme";
-import { Loading } from "r_misc";
+import { Loading } from "smc-webapp/r_misc";
 import { retry_until_success } from "smc-util/async-utils";
 
 interface Props {

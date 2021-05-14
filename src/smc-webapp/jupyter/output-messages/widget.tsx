@@ -20,7 +20,7 @@ import {
   Rendered,
   rclass,
   rtypes,
-} from "app-framework";
+} from "smc-webapp/app-framework";
 import { JupyterActions } from "../browser-actions";
 
 import * as pWidget from "@phosphor/widgets";

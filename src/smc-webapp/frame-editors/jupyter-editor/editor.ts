@@ -31,7 +31,7 @@ import { ClassicalNotebook } from "./classical-notebook";
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { TableOfContents } from "./table-of-contents";
 import { Introspect } from "./introspect/introspect";
-const SNIPPET_ICON_NAME = require("assistant/common").ICON_NAME;
+const SNIPPET_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 import { JupyterSnippets } from "./snippets";
 
 export const EDITOR_SPEC = {

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useEffect, useRef, useState } from "app-framework";
+import { React, useEffect, useRef, useState } from "smc-webapp/app-framework";
 import {
   register,
   SlateElement,

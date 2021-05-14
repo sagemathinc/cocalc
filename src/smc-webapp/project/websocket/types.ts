@@ -5,9 +5,9 @@
 import {
   NBGraderAPIOptions,
   RunNotebookOptions,
-} from "jupyter/nbgrader/api";
+} from "smc-webapp/jupyter/nbgrader/api";
 import { Options } from "smc-project/formatters";
-import { ConfigurationAspect } from "project_configuration";
+import { ConfigurationAspect } from "smc-webapp/project_configuration";
 
 interface MesgExec {
   cmd: "exec";

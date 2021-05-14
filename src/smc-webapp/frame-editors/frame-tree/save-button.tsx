@@ -4,7 +4,7 @@
  */
 
 import { React, CSS } from "../../app-framework";
-import { Icon, VisibleMDLG } from "r_misc";
+import { Icon, VisibleMDLG } from "smc-webapp/r_misc";
 import { Button, ButtonSize } from "../../antd-bootstrap";
 import { UncommittedChanges } from "../../r_misc";
 

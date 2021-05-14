@@ -7,7 +7,7 @@
 Register the code editor
 */
 
-const { file_associations } = require("file-associations");
+const { file_associations } = require("smc-webapp/file-associations");
 
 import { Editor } from "./editor";
 

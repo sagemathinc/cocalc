@@ -9,7 +9,7 @@ import { Icon } from "../../r_misc";
 import { redux } from "../../app-framework";
 
 import { Project } from "./types";
-import { UserMap } from "todo-types";
+import { UserMap } from "smc-webapp/todo-types";
 import { webapp_client } from "../../webapp-client";
 
 import { SSHKeyAdder } from "../../account/ssh-keys/ssh-key-adder";

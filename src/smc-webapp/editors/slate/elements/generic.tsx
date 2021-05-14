@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React } from "app-framework";
+import { CSS, React } from "smc-webapp/app-framework";
 import { string_to_style } from "../util";
 import { register, SlateElement } from "./register";
 import { dict } from "smc-util/misc";

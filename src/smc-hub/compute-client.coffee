@@ -44,7 +44,7 @@ misc_node   = require('smc-util-node/misc_node')
 message     = require('smc-util/message')
 misc        = require('smc-util/misc')
 
-{site_license_hook} = require('smc-hub/postgres/site-license/hook')
+{site_license_hook} = require('./postgres/site-license/hook')
 
 # Set the log level
 try
@@ -137,7 +137,7 @@ class ComputeServerClient
             cb()
             return
         else
-            @database = require('smc-hub/postgres').db(pool:1)
+            @database = require('./postgres').db(pool:1)
             @database.connect(cb:cb)
 
     _init_storage_servers_feed: (cb) =>
@@ -202,7 +202,7 @@ class ComputeServerClient
                         cb(undefined, output.stdout)
 
         port = undefined; secret = undefined
-        {program} = require('smc-hub/compute-server')
+        {program} = require('./compute-server')
         async.series([
             (cb) =>
                 async.parallel([
@@ -232,7 +232,7 @@ class ComputeServerClient
         dbg = @dbg("_add_server_single")
         dbg("adding the compute server to the database by grabbing conf files, etc.")
         port = secret = undefined
-        {program} = require('smc-hub/compute-server')
+        {program} = require('./compute-server')
         async.series([
             (cb) =>
                 async.parallel([
@@ -374,7 +374,7 @@ class ComputeServerClient
         dbg = @dbg("socket(#{host})")
         if @_dev
             dbg("development mode 'socket'")
-            require('smc-hub/compute-server').fake_dev_socket (err, socket) =>
+            require('./compute-server').fake_dev_socket (err, socket) =>
                 if err
                     cb(err)
                 else

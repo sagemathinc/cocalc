@@ -29,6 +29,9 @@
     "test-mocha",
     "test",
     "*__tests__*",
-    "*__test__*"
+    "*__test__*",
+    "admin",
+    "app",
+    "billing"
   ]
 }

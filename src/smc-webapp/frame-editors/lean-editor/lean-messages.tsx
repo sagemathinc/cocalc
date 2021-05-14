@@ -4,7 +4,7 @@
  */
 
 import { List, Map } from "immutable";
-import { Icon, Space, TimeAgo } from "r_misc";
+import { Icon, Space, TimeAgo } from "smc-webapp/r_misc";
 import { server_time } from "../generic/client";
 import { Message } from "./types";
 import { capitalize, is_different } from "smc-util/misc";

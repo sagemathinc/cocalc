@@ -7,8 +7,8 @@ import { Transforms, Element } from "slate";
 import {
   get_insert_image_opts_from_user,
   Options,
-} from "codemirror/extensions/insert-image";
-import { alert_message } from "alerts";
+} from "smc-webapp/codemirror/extensions/insert-image";
+import { alert_message } from "smc-webapp/alerts";
 import { getSelection } from "./commands";
 
 export async function insertImage(editor): Promise<void> {

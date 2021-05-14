@@ -5,7 +5,7 @@
 
 import * as React from "react";
 import { sortBy, keys } from "lodash";
-import { SettingBox, A, Icon, Loading } from "r_misc";
+import { SettingBox, A, Icon, Loading } from "smc-webapp/r_misc";
 import { rclass, rtypes, redux, Rendered } from "../../app-framework";
 import { Project } from "./types";
 import { Map } from "immutable";

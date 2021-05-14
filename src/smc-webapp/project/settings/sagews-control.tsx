@@ -4,7 +4,7 @@
  */
 
 import * as React from "react";
-import { Icon, SettingBox } from "r_misc";
+import { Icon, SettingBox } from "smc-webapp/r_misc";
 import { Row, Col, Button } from "react-bootstrap";
 import { Project } from "./types";
 import { alert_message } from "../../alerts";

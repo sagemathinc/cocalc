@@ -4,7 +4,7 @@
  */
 
 import { delay } from "awaiting";
-import { React, Component, Rendered, ReactDOM } from "app-framework";
+import { React, Component, Rendered, ReactDOM } from "smc-webapp/app-framework";
 import { Map } from "immutable";
 import { INPUT_STYLE, STDOUT_STYLE } from "./style";
 import { JupyterActions } from "../browser-actions";

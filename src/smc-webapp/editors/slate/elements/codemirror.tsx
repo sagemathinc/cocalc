@@ -14,7 +14,7 @@ TODO: a lot!
 import { delay } from "awaiting";
 import { Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
-import { file_associations } from "file-associations";
+import { file_associations } from "smc-webapp/file-associations";
 import {
   CSS,
   React,
@@ -24,7 +24,7 @@ import {
   useFrameContext,
   useRef,
   useState,
-} from "app-framework";
+} from "smc-webapp/app-framework";
 import * as CodeMirror from "codemirror";
 import { FOCUSED_COLOR } from "../util";
 import {

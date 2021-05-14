@@ -7,11 +7,11 @@
 Display of basic information about a user, with link to get more information about that user.
 */
 
-import { Icon, Space, TimeAgo } from "r_misc";
-import { React, Component, Rendered } from "app-framework";
+import { Icon, Space, TimeAgo } from "smc-webapp/r_misc";
+import { React, Component, Rendered } from "smc-webapp/app-framework";
 import { capitalize } from "smc-util/misc";
 import { Row, Col } from "react-bootstrap";
-import { User } from "frame-editors/generic/client";
+import { User } from "smc-webapp/frame-editors/generic/client";
 import { Subscriptions } from "./subscriptions";
 import { Projects } from "./projects";
 import { Activity } from "./activity";

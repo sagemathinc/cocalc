@@ -4,7 +4,7 @@
  */
 
 import * as React from "react";
-import { ErrorDisplay } from "r_misc";
+import { ErrorDisplay } from "smc-webapp/r_misc";
 import { AccountPage } from "../../account/account-page";
 
 interface Props {

@@ -19,7 +19,7 @@ import {
 import { Icon } from "../../r_misc";
 import { DebounceInput } from "react-debounce-input";
 
-import { User } from "frame-editors/generic/client";
+import { User } from "smc-webapp/frame-editors/generic/client";
 import { UserResult } from "./user";
 import { User as UserMap } from "./store";
 import { actions } from "./actions";

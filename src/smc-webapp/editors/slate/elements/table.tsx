@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React } from "app-framework";
+import { CSS, React } from "smc-webapp/app-framework";
 import { register, SlateElement, useFocused, useSelected } from "./register";
 import { FOCUSED_COLOR, padLeft, padRight, padCenter } from "../util";
 import { serialize } from "../slate-to-markdown";

@@ -7,7 +7,7 @@
 Stdout rendering.
 */
 
-import { React } from "app-framework";
+import { React } from "smc-webapp/app-framework";
 import { Map } from "immutable";
 import { is_ansi, Ansi } from "./ansi";
 import { STDOUT_STYLE } from "./style";

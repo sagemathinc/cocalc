@@ -7,8 +7,8 @@ import { Transforms } from "slate";
 import {
   get_insert_special_char_from_user,
   Options,
-} from "codemirror/extensions/insert-special-char";
-import { alert_message } from "alerts";
+} from "smc-webapp/codemirror/extensions/insert-special-char";
+import { alert_message } from "smc-webapp/alerts";
 import { getFocus } from "./commands";
 
 export async function insertSpecialChar(editor): Promise<void> {

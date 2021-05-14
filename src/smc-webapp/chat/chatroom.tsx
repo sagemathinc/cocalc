@@ -14,7 +14,7 @@ import { SaveButton } from "../frame-editors/frame-tree/save-button";
 
 // have to rewrite buttons like SaveButton in antd before we can
 // switch to antd buttons.
-import { Button, ButtonGroup } from "antd-bootstrap";
+import { Button, ButtonGroup } from "smc-webapp/antd-bootstrap";
 
 import { ChatInput } from "./input";
 import {

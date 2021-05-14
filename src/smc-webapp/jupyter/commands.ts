@@ -8,7 +8,7 @@ Comprehensive list of Jupyter notebook (version 5) commands
 we support and how they work.
 */
 
-import { FORMAT_SOURCE_ICON } from "frame-editors/frame-tree/config";
+import { FORMAT_SOURCE_ICON } from "smc-webapp/frame-editors/frame-tree/config";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";

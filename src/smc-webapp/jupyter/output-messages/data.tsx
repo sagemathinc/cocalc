@@ -4,7 +4,7 @@
  */
 
 import { Map } from "immutable";
-import { React, Component, Rendered } from "app-framework";
+import { React, Component, Rendered } from "smc-webapp/app-framework";
 import { Markdown, HTML } from "../../r_misc";
 import { JupyterActions } from "../browser-actions";
 import { Ansi, is_ansi } from "./ansi";

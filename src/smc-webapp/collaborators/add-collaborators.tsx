@@ -36,7 +36,7 @@ import { Project } from "../projects/store";
 import { Avatar } from "../account/avatar/avatar";
 import { ProjectInviteTokens } from "./project-invite-tokens";
 import { alert_message } from "../alerts";
-import { useStudentProjectFunctionality } from "course";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 interface RegisteredUser {
   sort?: string;

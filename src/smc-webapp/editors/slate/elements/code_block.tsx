@@ -8,7 +8,7 @@ import {
   React,
   useState,
   useIsMountedRef,
-} from "app-framework";
+} from "smc-webapp/app-framework";
 import { Element as Element0 } from "slate";
 import {
   register,

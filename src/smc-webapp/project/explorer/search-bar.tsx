@@ -6,7 +6,7 @@
 import * as React from "react";
 import { TERM_MODE_CHAR } from "./file-listing";
 import { Icon, SearchInput } from "../../r_misc";
-import { ProjectActions } from "project_store";
+import { ProjectActions } from "smc-webapp/project_store";
 import { ListingItem } from "./types";
 import { output_style_searchbox } from "./mini-terminal";
 import { webapp_client } from "../../webapp-client";

@@ -12,7 +12,7 @@ import { TerminalActions } from "./actions";
 import { register_file_editor } from "../frame-tree/register";
 
 let ext;
-if (require("feature").IS_TOUCH) {
+if (require("smc-webapp/feature").IS_TOUCH) {
   // For now, on mobile, we stay with old terminal, since copy/paste don't work, etc.
   // The new one is still available for testing using an extension of .term2.
   ext = "term2";

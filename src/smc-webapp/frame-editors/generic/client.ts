@@ -272,7 +272,7 @@ export async function project_websocket(project_id: string): Promise<any> {
   return await webapp_client.project_client.websocket(project_id);
 }
 
-import { API } from "project/websocket/api";
+import { API } from "smc-webapp/project/websocket/api";
 
 export async function project_api(project_id: string): Promise<API> {
   return (await project_websocket(project_id)).api as API;

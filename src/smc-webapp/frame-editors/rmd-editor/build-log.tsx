@@ -5,10 +5,10 @@
 
 import * as React from "react";
 import Ansi from "ansi-to-react";
-import { Loading } from "r_misc";
+import { Loading } from "smc-webapp/r_misc";
 import { Rendered, useRedux } from "../../app-framework";
 import { COLORS } from "smc-util/theme";
-import { Button } from "antd-bootstrap";
+import { Button } from "smc-webapp/antd-bootstrap";
 
 interface BuildLogProps {
   name: string;

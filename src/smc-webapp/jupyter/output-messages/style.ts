@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "app-framework";
+import { React } from "smc-webapp/app-framework";
 import { merge } from "smc-util/misc";
 
 export const OUT_STYLE: React.CSSProperties = {

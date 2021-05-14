@@ -10,7 +10,7 @@ import {
   it,
   expect,
   redux,
-} from "frame-editors/generic/test/util";
+} from "smc-webapp/frame-editors/generic/test/util";
 
 describe("test the account preferences page", function () {
   const page: any = redux.getActions("page");

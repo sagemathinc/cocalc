@@ -14,7 +14,7 @@ const HELP_URL = "https://doc.cocalc.com/x11.html";
 // waste of bandwidth...
 const CLIENT_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
-import { Channel } from "project/websocket/types";
+import { Channel } from "smc-webapp/project/websocket/types";
 import { Map, Set as immutableSet, fromJS } from "immutable";
 import { project_api } from "../generic/client";
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
@@ -34,7 +34,7 @@ import {
 import { ConnectionStatus, FrameTree } from "../frame-tree/types";
 import { XpraClient } from "./xpra-client";
 import { Store } from "../../app-framework";
-import { alert_message } from "alerts";
+import { alert_message } from "smc-webapp/alerts";
 import { open_new_tab } from "../../misc-page";
 
 interface X11EditorState extends CodeEditorState {

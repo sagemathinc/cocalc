@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useRef } from "app-framework";
+import { useRef } from "smc-webapp/app-framework";
 import { Editor, Element, Transforms } from "slate";
 import { rangeAll } from "../slate-util";
 

@@ -14,7 +14,7 @@ import {
   UserMap,
   StripeCustomer,
   Customer,
-} from "todo-types";
+} from "smc-webapp/todo-types";
 
 import { webapp_client } from "../../webapp-client";
 const { Alert } = require("react-bootstrap");

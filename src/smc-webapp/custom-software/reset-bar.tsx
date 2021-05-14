@@ -10,7 +10,7 @@ import { A, Icon } from "../r_misc";
 import { COLORS } from "smc-util/theme";
 const { Button, Well, Row, Col, ButtonToolbar } = require("react-bootstrap");
 import { Available as AvailableFeatures } from "../project_configuration";
-import { ProjectMap } from "todo-types";
+import { ProjectMap } from "smc-webapp/todo-types";
 const { SITE_NAME } = require("smc-util/theme");
 
 const doc_snap = "https://doc.cocalc.com/project-files.html#snapshots";

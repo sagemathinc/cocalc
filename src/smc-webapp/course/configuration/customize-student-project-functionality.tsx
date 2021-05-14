@@ -5,7 +5,7 @@
 
 import { isEqual } from "lodash";
 import { Card, Checkbox } from "antd";
-import { Button } from "antd-bootstrap";
+import { Button } from "smc-webapp/antd-bootstrap";
 import {
   redux,
   React,
@@ -13,8 +13,8 @@ import {
   useIsMountedRef,
   useState,
   useTypedRedux,
-} from "app-framework";
-import { Icon, Tip } from "r_misc";
+} from "smc-webapp/app-framework";
+import { Icon, Tip } from "smc-webapp/r_misc";
 
 export interface StudentProjectFunctionality {
   disableActions?: boolean;

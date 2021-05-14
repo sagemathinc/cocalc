@@ -19,7 +19,7 @@ import { endswith, capitalize } from "smc-util/misc";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { Cells, CellType, Usage } from "./types";
 import { ALERT_COLS } from "./usage";
-import { useStudentProjectFunctionality } from "course";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 type ButtonDescription =
   | string

@@ -4,7 +4,7 @@
  */
 
 import { debounce } from "lodash";
-import { useIsMountedRef, useMemo, useState } from "app-framework";
+import { useIsMountedRef, useMemo, useState } from "smc-webapp/app-framework";
 import { Editor } from "slate";
 import { ReactEditor } from "../slate-react";
 

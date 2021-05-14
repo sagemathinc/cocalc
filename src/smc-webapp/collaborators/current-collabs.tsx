@@ -7,10 +7,10 @@ import * as React from "react";
 import { redux, useRedux, CSS } from "../app-framework";
 import { Well, Row, Col } from "react-bootstrap";
 import { Space, Icon, SettingBox } from "../r_misc";
-import { Project } from "project/settings/types";
+import { Project } from "smc-webapp/project/settings/types";
 import { User } from "../users";
 import { Popconfirm, Button } from "antd";
-import { useStudentProjectFunctionality } from "course";
+import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 interface Props {
   project: Project;
