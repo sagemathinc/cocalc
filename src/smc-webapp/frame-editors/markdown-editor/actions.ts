@@ -9,7 +9,7 @@ Markdown Editor Actions
 
 import { debounce } from "lodash";
 import { delay } from "awaiting";
-import { toggle_checkbox } from "smc-webapp/editors/task-editor/desc-rendering";
+import { toggle_checkbox } from "editors/task-editor/desc-rendering";
 import * as $ from "jquery";
 import {
   Actions as CodeEditorActions,
@@ -17,20 +17,20 @@ import {
 } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
-import { scrollToHeading } from "smc-webapp/editors/slate/control";
-import { SlateEditor } from "smc-webapp/editors/slate/editable-markdown";
-import { formatAction as slateFormatAction } from "smc-webapp/editors/slate/format";
+import { scrollToHeading } from "editors/slate/control";
+import { SlateEditor } from "editors/slate/editable-markdown";
+import { formatAction as slateFormatAction } from "editors/slate/format";
 import {
   TableOfContentsEntryList,
   TableOfContentsEntry,
-} from "smc-webapp/r_misc";
+} from "r_misc";
 import { fromJS } from "immutable";
-import { parseTableOfContents } from "smc-webapp/markdown";
+import { parseTableOfContents } from "markdown";
 import {
   markdownPositionToSlatePoint,
   slatePointToMarkdownPosition,
   scrollIntoView as scrollSlateIntoView,
-} from "smc-webapp/editors/slate/sync";
+} from "editors/slate/sync";
 
 interface MarkdownEditorState extends CodeEditorState {
   custom_pdf_error_message: string; // currently used only in rmd editor, but we could easily add pdf output to the markdown editor

@@ -24,7 +24,7 @@ import {
   useState,
 } from "../../app-framework";
 import { debounce, throttle, isEqual } from "lodash";
-import { Cursors } from "smc-webapp/jupyter/cursors";
+import { Cursors } from "jupyter/cursors";
 import { cm_options } from "../codemirror/cm-options";
 import { init_style_hacks } from "../codemirror/util";
 import { get_state, set_state } from "../codemirror/codemirror-state";

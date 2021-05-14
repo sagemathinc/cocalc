@@ -11,7 +11,7 @@ import { React, Rendered, Component } from "../../app-framework";
 
 import { WebsocketState } from "./websocket-state";
 
-import { Icon } from "smc-webapp/r_misc";
+import { Icon } from "r_misc";
 
 interface Props {
   state?: WebsocketState;

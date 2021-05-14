@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React } from "smc-webapp/app-framework";
+import { CSS, React } from "app-framework";
 import { FOCUSED_COLOR } from "../util";
 import {
   SlateElement,

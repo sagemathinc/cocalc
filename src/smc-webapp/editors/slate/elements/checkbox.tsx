@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "smc-webapp/app-framework";
+import { React } from "app-framework";
 import { FOCUSED_COLOR } from "../util";
 import { Editor, Transforms } from "slate";
 import {
@@ -62,7 +62,7 @@ register({
 
   toSlate: ({ token }) => {
     // NOTE: the checkbox markdown-it plugin that finds the checkboxes in the input
-    // markdown is something I also wrote.  It is in smc-webapp/markdown/checkbox-plugin.ts.
+    // markdown is something I also wrote.  It is in markdown/checkbox-plugin.ts.
     return {
       type: "checkbox",
       isVoid: true,

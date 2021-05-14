@@ -9,7 +9,7 @@ const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
 import { Map } from "immutable";
 
-import { EditorState } from "smc-webapp/frame-editors/frame-tree/types";
+import { EditorState } from "frame-editors/frame-tree/types";
 import { createEditor, Descendant, Range, Transforms } from "slate";
 import { withFix4131, withNonfatalRange } from "./patches";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
@@ -23,10 +23,10 @@ import {
   useRef,
   useState,
   useIsMountedRef,
-} from "smc-webapp/app-framework";
-import { Actions } from "smc-webapp/frame-editors/markdown-editor/actions";
+} from "app-framework";
+import { Actions } from "frame-editors/markdown-editor/actions";
 
-import { Path } from "smc-webapp/frame-editors/frame-tree/path";
+import { Path } from "frame-editors/frame-tree/path";
 import { slate_to_markdown } from "./slate-to-markdown";
 import { markdown_to_slate } from "./markdown-to-slate";
 import { Element } from "./element";
@@ -44,21 +44,21 @@ import { applyOperations } from "./operations";
 import { slatePointToMarkdownPosition } from "./sync";
 
 import { useMentions } from "./slate-mentions";
-import { mentionableUsers } from "smc-webapp/editors/markdown-input/mentionable-users";
+import { mentionableUsers } from "editors/markdown-input/mentionable-users";
 import { createMention } from "./elements/mention";
-import { submit_mentions } from "smc-webapp/editors/markdown-input/mentions";
+import { submit_mentions } from "editors/markdown-input/mentions";
 
 import { useSearch, SearchHook } from "./search";
 import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
 
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 
-import { markdown_to_html } from "smc-webapp/markdown";
+import { markdown_to_html } from "markdown";
 
 // (??) A bit longer is better, due to escaping of markdown and multiple users
 // with one user editing source and the other editing with slate.
 // const SAVE_DEBOUNCE_MS = 1500;
-import { SAVE_DEBOUNCE_MS } from "smc-webapp/frame-editors/code-editor/const";
+import { SAVE_DEBOUNCE_MS } from "frame-editors/code-editor/const";
 
 import { delay } from "awaiting";
 

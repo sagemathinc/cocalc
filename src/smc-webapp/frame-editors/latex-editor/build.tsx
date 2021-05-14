@@ -11,7 +11,7 @@ import Ansi from "ansi-to-react";
 import { path_split } from "smc-util/misc";
 import { React, Rendered, useRedux } from "../../app-framework";
 import { BuildCommand } from "./build-command";
-import { Loading } from "smc-webapp/r_misc";
+import { Loading } from "r_misc";
 import { Tab, Tabs } from "../../antd-bootstrap";
 import { COLORS } from "smc-util/theme";
 import { BuildLogs } from "./actions";

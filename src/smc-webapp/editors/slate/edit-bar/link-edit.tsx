@@ -4,10 +4,10 @@
  */
 
 import * as React from "react";
-import { useState } from "smc-webapp/app-framework";
-import { Icon } from "smc-webapp/r_misc";
+import { useState } from "app-framework";
+import { Icon } from "r_misc";
 import { Editor } from "slate";
-import { open_new_tab } from "smc-webapp/misc-page";
+import { open_new_tab } from "misc-page";
 import { Input } from "antd";
 import { setLinkURL } from "./link-url";
 

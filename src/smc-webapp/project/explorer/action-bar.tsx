@@ -7,14 +7,14 @@ import * as React from "react";
 import * as immutable from "immutable";
 import { HiddenSM, Icon, Space } from "../../r_misc";
 import { COLORS } from "smc-util/theme";
-import { ComputeImages } from "smc-webapp/custom-software/init";
-import { ProjectActions } from "smc-webapp/project_store";
+import { ComputeImages } from "custom-software/init";
+import { ProjectActions } from "project_store";
 
-import { Button, ButtonGroup, ButtonToolbar } from "smc-webapp/antd-bootstrap";
+import { Button, ButtonGroup, ButtonToolbar } from "antd-bootstrap";
 
-import { CustomSoftwareInfo } from "smc-webapp/custom-software/info-bar";
+import { CustomSoftwareInfo } from "custom-software/info-bar";
 import * as misc from "smc-util/misc";
-import { file_actions } from "smc-webapp/project_store";
+import { file_actions } from "project_store";
 
 const ROW_INFO_STYLE = {
   color: COLORS.GRAY,
@@ -38,7 +38,7 @@ interface Props {
   project_is_running?: boolean;
 }
 
-import { useStudentProjectFunctionality } from "smc-webapp/course";
+import { useStudentProjectFunctionality } from "course";
 
 export const ActionBar: React.FC<Props> = (props) => {
   const [select_entire_directory, set_select_entire_directory] = React.useState<

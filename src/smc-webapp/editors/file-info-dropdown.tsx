@@ -8,7 +8,7 @@ import { CSS, React, ReactDOM, useActions } from "../app-framework";
 import { capitalize, filename_extension } from "smc-util/misc";
 import { file_actions } from "../project_store";
 import { DropdownMenu, HiddenXS, MenuItem, Icon, Space } from "../r_misc";
-import { useStudentProjectFunctionality } from "smc-webapp/course";
+import { useStudentProjectFunctionality } from "course";
 
 interface Props {
   filename: string; // expects the full path name

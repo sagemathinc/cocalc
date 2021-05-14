@@ -5,10 +5,10 @@
 
 // Plugin system for keyboarding handlers.
 
-export { IS_MACOS } from "smc-webapp/feature";
+export { IS_MACOS } from "feature";
 
 import { SlateEditor } from "../editable-markdown";
-import { Actions } from "smc-webapp/frame-editors/markdown-editor/actions";
+import { Actions } from "frame-editors/markdown-editor/actions";
 import { SearchHook } from "../search";
 
 interface Key {

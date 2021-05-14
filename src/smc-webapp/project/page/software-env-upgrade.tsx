@@ -17,7 +17,7 @@ import { ALERT_STYLE } from "../warnings/common";
 import { alert_message } from "../../alerts";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import { Alert, Button } from "../../antd-bootstrap";
-import { CloseX } from "smc-webapp/r_misc";
+import { CloseX } from "r_misc";
 import { Space as AntdSpace } from "antd";
 import {
   FALLBACK_COMPUTE_IMAGE,

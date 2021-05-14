@@ -7,7 +7,7 @@
 X11 Window frame.
 */
 
-import { Icon } from "smc-webapp/r_misc";
+import { Icon } from "r_misc";
 
 import { Map } from "immutable";
 

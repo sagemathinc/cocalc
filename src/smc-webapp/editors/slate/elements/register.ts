@@ -6,7 +6,7 @@
 export { RenderElementProps } from "../slate-react";
 export * from "./hooks";
 
-import { React } from "smc-webapp/app-framework";
+import { React } from "app-framework";
 import { RenderElementProps } from "../slate-react";
 import { Descendant, Element } from "slate";
 import { State as MarkdownParserState, Token } from "../markdown-to-slate";

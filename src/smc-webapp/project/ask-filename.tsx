@@ -15,7 +15,7 @@ const {
 } = require("react-bootstrap");
 import { SearchInput, SelectorInput, Icon } from "../r_misc";
 const { IS_TOUCH } = require("../feature");
-import { NewFilenameFamilies, NewFilenames } from "smc-webapp/project/utils";
+import { NewFilenameFamilies, NewFilenames } from "project/utils";
 import { FileSpec } from "../file-associations";
 import { NEW_FILENAMES } from "smc-util/db-schema";
 

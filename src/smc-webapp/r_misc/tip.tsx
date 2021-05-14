@@ -4,7 +4,7 @@
  */
 
 import * as React from "react";
-import { Rendered, CSS } from "smc-webapp/app-framework";
+import { Rendered, CSS } from "app-framework";
 import { Icon } from "./icon";
 import * as misc from "smc-util/misc";
 import * as feature from "../feature";

@@ -4,7 +4,7 @@
  */
 
 // NOTE: some code here is similar to code in
-// src/smc-webapp/course/configuration/upgrades.tsx
+// src/course/configuration/upgrades.tsx
 
 import { Map } from "immutable";
 import { redux, Component, Rendered, React } from "../../app-framework";

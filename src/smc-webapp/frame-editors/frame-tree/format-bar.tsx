@@ -15,7 +15,7 @@ import { SetMap } from "./types";
 import { DropdownMenu, MenuItem } from "../../r_misc";
 import { ButtonGroup, Button } from "../../antd-bootstrap";
 import { FONT_FACES } from "../../editors/editor-button-bar";
-import { Icon, Space } from "smc-webapp/r_misc";
+import { Icon, Space } from "r_misc";
 
 const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
   " "

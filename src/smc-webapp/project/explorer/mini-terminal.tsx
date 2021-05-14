@@ -19,9 +19,9 @@ import { React } from "../../app-framework";
 import { user_activity } from "../../tracker";
 import { ProjectActions } from "../../project_actions";
 import { Input } from "antd";
-import { Button } from "smc-webapp/antd-bootstrap";
-import { Icon } from "smc-webapp/r_misc";
-import { useStudentProjectFunctionality } from "smc-webapp/course";
+import { Button } from "antd-bootstrap";
+import { Icon } from "r_misc";
+import { useStudentProjectFunctionality } from "course";
 
 // used to run the command -- could change to use an action and the store.
 import { webapp_client } from "../../webapp-client";

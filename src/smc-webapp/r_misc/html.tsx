@@ -172,7 +172,7 @@ export const HTML: React.FC<Props> = (props) => {
          can crash on "big" documents (e.g., 500K).
       */
       // ensure have plugin here.
-      const { jQuery } = require("smc-webapp/jquery-plugins/katex");
+      const { jQuery } = require("jquery-plugins/katex");
       const elt = jQuery("<div>") as any;
       elt.html(props.value);
       if (props.auto_render_math) {
@@ -182,7 +182,7 @@ export const HTML: React.FC<Props> = (props) => {
       if (props.highlight_code) {
         elt.highlight_code();
       }
-      require("smc-webapp/process-links");
+      require("process-links");
       elt.process_smc_links({
         project_id: props.project_id,
         file_path: props.file_path,

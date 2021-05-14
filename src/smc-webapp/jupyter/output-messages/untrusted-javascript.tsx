@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component, Rendered } from "smc-webapp/app-framework";
+import { React, Component, Rendered } from "app-framework";
 import { List } from "immutable";
 
 interface UntrustedJavascriptProps {

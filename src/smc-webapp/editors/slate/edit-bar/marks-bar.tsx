@@ -5,7 +5,7 @@
 
 import * as React from "react";
 import { Button } from "antd";
-import { Icon } from "smc-webapp/r_misc";
+import { Icon } from "r_misc";
 import { formatAction } from "../format";
 import { SlateEditor } from "../editable-markdown";
 import { Marks } from "./marks";

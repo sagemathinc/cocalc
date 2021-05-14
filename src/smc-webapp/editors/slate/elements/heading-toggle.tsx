@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React, useEffect, useState } from "smc-webapp/app-framework";
-import { Icon } from "smc-webapp/r_misc";
+import { CSS, React, useEffect, useState } from "app-framework";
+import { Icon } from "r_misc";
 import { useSlate } from "./register";
 import { Heading } from "./heading";
 

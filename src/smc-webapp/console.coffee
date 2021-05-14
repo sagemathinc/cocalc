@@ -21,7 +21,7 @@ misc             = require('smc-util/misc')
 
 templates        = $("#webapp-console-templates")
 console_template = templates.find(".webapp-console")
-{getStudentProjectFunctionality} = require('smc-webapp/course/')
+{getStudentProjectFunctionality} = require('course/')
 
 {delay} = require('awaiting')
 

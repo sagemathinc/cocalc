@@ -10,7 +10,7 @@ What happens when you hit arrow keys.
 import { register } from "./register";
 import { blocksCursor, moveCursorUp, moveCursorDown } from "../control";
 import { ReactEditor } from "../slate-react";
-import { IS_FIREFOX } from "smc-webapp/feature";
+import { IS_FIREFOX } from "feature";
 
 const down = ({ editor, shift }: { editor: ReactEditor; shift? }) => {
   if (ReactEditor.selectionIsInDOM(editor)) {

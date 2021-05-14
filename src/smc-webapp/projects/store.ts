@@ -29,7 +29,7 @@ import { Upgrades } from "smc-util/upgrades/types";
 import { has_internet_access } from "../upgrades/upgrade-utils";
 
 import { WebsocketState } from "../project/websocket/websocket-state";
-import { StudentProjectFunctionality } from "smc-webapp/course/configuration/customize-student-project-functionality";
+import { StudentProjectFunctionality } from "course/configuration/customize-student-project-functionality";
 
 export type Project = Map<string, any>;
 export type ProjectMap = Map<string, Project>;

@@ -115,7 +115,7 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
   const tab_ref = useRef(null);
   useEffect(() => {
     // This is a hack to get around a Firefox or react-sortable-hoc bug.  See
-    // the long comment in src/smc-webapp/projects/projects-nav.tsx about
+    // the long comment in src/projects/projects-nav.tsx about
     // how to reproduce.
     if (tab_ref.current == null) return;
     ReactDOM.findDOMNode(tab_ref.current)?.children[0].removeAttribute("href");

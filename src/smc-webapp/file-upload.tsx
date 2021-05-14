@@ -22,7 +22,7 @@ import {
 } from "./app-framework";
 import { Icon, Tip } from "./r_misc";
 import { join } from "path";
-import { useStudentProjectFunctionality } from "smc-webapp/course";
+import { useStudentProjectFunctionality } from "course";
 
 // 3GB upload limit --  since that's the default filesystem quota
 // and it should be plenty?

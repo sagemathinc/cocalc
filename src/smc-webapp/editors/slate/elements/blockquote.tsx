@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "smc-webapp/app-framework";
+import { React } from "app-framework";
 import { mark_block } from "../util";
 import { register, SlateElement } from "./register";
 

@@ -13,9 +13,9 @@
 import { Editor, Range, Text, Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import * as React from "react";
-import { useIsMountedRef } from "smc-webapp/app-framework";
+import { useIsMountedRef } from "app-framework";
 import { useCallback, useMemo, useState } from "react";
-import { Complete, Item } from "smc-webapp/editors/markdown-input/complete";
+import { Complete, Item } from "editors/markdown-input/complete";
 import { debounce } from "lodash";
 
 interface Options {

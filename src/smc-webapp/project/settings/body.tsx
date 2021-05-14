@@ -19,7 +19,7 @@ import { HideDeleteBox } from "./hide-delete-box";
 import { SagewsControl } from "./sagews-control";
 import { ProjectCapabilities } from "./project-capabilites";
 import { ProjectControl } from "./project-control";
-import { Customer, ProjectMap, UserMap } from "smc-webapp/todo-types";
+import { Customer, ProjectMap, UserMap } from "todo-types";
 import { Project } from "./types";
 import { SSHPanel } from "./ssh";
 import { Environment } from "./environment";
@@ -31,12 +31,12 @@ import { AddCollaborators } from "../../collaborators";
 import { webapp_client } from "../../webapp-client";
 import { Col, Row } from "react-bootstrap";
 
-import { commercial } from "smc-webapp/customize";
+import { commercial } from "customize";
 import {
   is_available,
   ProjectConfiguration,
-} from "smc-webapp/project_configuration";
-import { getStudentProjectFunctionality } from "smc-webapp/course";
+} from "project_configuration";
+import { getStudentProjectFunctionality } from "course";
 
 interface ReactProps {
   project_id: string;

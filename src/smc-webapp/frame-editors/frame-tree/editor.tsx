@@ -12,7 +12,7 @@ import {
   Rendered,
   project_redux_name,
 } from "../../app-framework";
-import { ErrorDisplay, Loading, LoadingEstimate } from "smc-webapp/r_misc";
+import { ErrorDisplay, Loading, LoadingEstimate } from "r_misc";
 import { FormatBar } from "./format-bar";
 import { StatusBar } from "./status-bar";
 //TODO: import { FrameTree } from "./frame-tree";

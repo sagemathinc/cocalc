@@ -46,7 +46,7 @@ export const FileTypeSelector: React.FC<Props> = ({
   // If the configuration is not yet available, we default to the *most likely*
   // configuration, not the least likely configuration.
   // See https://github.com/sagemathinc/cocalc/issues/4293
-  // This is also consistent with src/smc-webapp/project/explorer/new-button.tsx
+  // This is also consistent with src/project/explorer/new-button.tsx
   const available = available_features?.toJS() ?? ALL_AVAIL;
 
   // console.log("FileTypeSelector: available", available)

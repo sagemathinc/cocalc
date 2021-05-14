@@ -5,9 +5,9 @@
 
 import * as React from "react";
 import { HiddenSM, Icon, Tip } from "../../r_misc";
-import { ProjectActions } from "smc-webapp/project_store";
-import { Button, ButtonGroup, ButtonToolbar } from "smc-webapp/antd-bootstrap";
-import { useStudentProjectFunctionality } from "smc-webapp/course";
+import { ProjectActions } from "project_store";
+import { Button, ButtonGroup, ButtonToolbar } from "antd-bootstrap";
+import { useStudentProjectFunctionality } from "course";
 
 interface Props {
   kucalc?: string;

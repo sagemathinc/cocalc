@@ -4,7 +4,7 @@
  */
 
 import { debounce } from "lodash";
-import { useMemo, useState } from "smc-webapp/app-framework";
+import { useMemo, useState } from "app-framework";
 import { Editor, Element, Range, Transforms } from "slate";
 
 function getLinkURL(editor): string | undefined {

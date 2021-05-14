@@ -4,10 +4,10 @@
  */
 
 import * as React from "react";
-import { ProjectsActions } from "smc-webapp/todo-types";
+import { ProjectsActions } from "todo-types";
 import { QuotaConsole } from "./quota-console";
-import { Icon, Loading, UpgradeAdjustor, SettingBox } from "smc-webapp/r_misc";
-import { redux, rtypes, rclass, Rendered } from "smc-webapp/app-framework";
+import { Icon, Loading, UpgradeAdjustor, SettingBox } from "r_misc";
+import { redux, rtypes, rclass, Rendered } from "app-framework";
 import { URLBox } from "./url-box";
 import { Project } from "./types";
 import { HelpEmailLink } from "../../customize";

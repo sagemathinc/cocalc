@@ -11,7 +11,7 @@ Jupyter notebook server is running, then pops it up in a new tab.
 import { React } from "../app-framework";
 import { Icon, SettingBox } from "../r_misc";
 import { LinkRetryUntilSuccess } from "../widgets-misc/link-retry";
-import { useStudentProjectFunctionality } from "smc-webapp/course";
+import { useStudentProjectFunctionality } from "course";
 
 const { jupyter_server_url } = require("../editor_jupyter");
 

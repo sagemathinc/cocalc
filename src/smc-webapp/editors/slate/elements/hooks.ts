@@ -11,10 +11,10 @@ import {
   useFrameContext,
   useRef,
   useActions as useReduxActions,
-} from "smc-webapp/app-framework";
+} from "app-framework";
 import { Range } from "slate";
 import { path_split } from "smc-util/misc";
-import { Actions } from "smc-webapp/frame-editors/markdown-editor/actions";
+import { Actions } from "frame-editors/markdown-editor/actions";
 import {
   useSlate as useSlate0,
   useSlateStatic as useSlateStatic0,
@@ -46,7 +46,7 @@ export const useProcessLinks = (deps?) => {
   useEffect(() => {
     if (ref.current == null) return;
     const elt = $(ReactDOM.findDOMNode(ref.current));
-    require("smc-webapp/process-links"); // ensure loaded
+    require("process-links"); // ensure loaded
     (elt as any).process_smc_links({
       project_id,
       file_path: path_split(path).head, // TODO: inefficient to compute this every time.

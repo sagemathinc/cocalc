@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Token } from "smc-webapp/markdown";
+import { Token } from "markdown";
 export { Token };
 
 export interface Marks {

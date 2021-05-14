@@ -21,7 +21,7 @@ import { Map } from "immutable";
 import { JSONEditor } from "./json-editor";
 import { JupyterActions } from "./browser-actions";
 import { Loading } from "../r_misc";
-import { useStudentProjectFunctionality } from "smc-webapp/course";
+import { useStudentProjectFunctionality } from "course";
 
 interface Props {
   name: string;

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component, Rendered } from "smc-webapp/app-framework";
+import { React, Component, Rendered } from "app-framework";
 import { Map } from "immutable";
 import { INPUT_STYLE, STDOUT_STYLE } from "./style";
 

@@ -21,7 +21,7 @@ import { file_actions } from "../../project_store";
 import { ProjectTitle } from "../../projects/project-title";
 import { file_associations } from "../../file-associations";
 import { SystemProcess } from "./system-process";
-import { UserMap } from "smc-webapp/todo-types";
+import { UserMap } from "todo-types";
 import { describe_quota } from "smc-util/db-schema/site-licenses";
 
 import {

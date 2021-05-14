@@ -4,8 +4,8 @@
  */
 
 import { List, Map, Set } from "immutable";
-import { TypedMap } from "smc-webapp/app-framework";
-import { LoadingEstimate } from "smc-webapp/r_misc";
+import { TypedMap } from "app-framework";
+import { LoadingEstimate } from "r_misc";
 
 export interface Task {
   task_id: string;

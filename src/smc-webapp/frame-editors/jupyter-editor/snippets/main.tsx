@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { alert_message } from "smc-webapp/alerts";
+import { alert_message } from "alerts";
 
 // lazy loading the json file via webpack – using @types/webpack-env doesn't work
 declare var require: {

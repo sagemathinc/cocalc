@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "smc-webapp/app-framework";
+import { React } from "app-framework";
 import { FOCUSED_COLOR } from "../util";
 import { SlateElement, register, useFocused, useSelected } from "./register";
 

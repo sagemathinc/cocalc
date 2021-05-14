@@ -3,4 +3,4 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export { EditableMarkdown } from "smc-webapp/editors/slate/editable-markdown";
+export { EditableMarkdown } from "editors/slate/editable-markdown";

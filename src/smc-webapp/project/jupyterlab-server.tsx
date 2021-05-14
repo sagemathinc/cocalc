@@ -9,10 +9,10 @@ Jupyter notebook server is running, then pops it up in a new tab.
 */
 
 import { exec } from "../frame-editors/generic/client";
-import { React, useIsMountedRef } from "smc-webapp/app-framework";
+import { React, useIsMountedRef } from "app-framework";
 import { Icon, SettingBox } from "../r_misc";
 import { LinkRetryUntilSuccess } from "../widgets-misc/link-retry";
-import { useStudentProjectFunctionality } from "smc-webapp/course";
+import { useStudentProjectFunctionality } from "course";
 
 interface Props {
   project_id: string;

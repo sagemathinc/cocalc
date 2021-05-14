@@ -5,8 +5,8 @@
 
 import { Transforms } from "slate";
 import { SlateEditor } from "./editable-markdown";
-import { React, useActions, useRef } from "smc-webapp/app-framework";
-import { Dropzone, FileUploadWrapper } from "smc-webapp/file-upload";
+import { React, useActions, useRef } from "app-framework";
+import { Dropzone, FileUploadWrapper } from "file-upload";
 import { join } from "path";
 import { aux_file, path_split } from "smc-util/misc";
 const AUX_FILE_EXT = "upload";

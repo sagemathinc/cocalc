@@ -124,7 +124,7 @@ async function handle_open({ data, reply }) {
   // we're in kiosk mode and only want to open a single project
   redux.getActions("page").setState({ kiosk_project_id: project_id });
 
-  // copied from cocalc/src/smc-webapp/file-use/util.ts
+  // copied from cocalc/src/file-use/util.ts
   await redux.getActions("projects").open_project({ project_id });
   await delay(0);
   const actions = redux.getProjectActions(project_id);
@@ -233,7 +233,7 @@ async function process_message(mesg) {
 }
 
 // this must be run to set this up
-// currently, this only happens for minimal/kiosk mode in smc-webapp/entry-point.coffee
+// currently, this only happens for minimal/kiosk mode in entry-point.coffee
 export function init() {
   if (initialized) return;
   initialized = true;

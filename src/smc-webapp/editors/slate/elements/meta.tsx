@@ -20,10 +20,10 @@ output:
 
 */
 
-import { React } from "smc-webapp//app-framework";
+import { React } from "app-framework";
 import { register, SlateElement, useSlate } from "./register";
 import { SlateCodeMirror } from "./codemirror";
-import { A } from "smc-webapp/r_misc";
+import { A } from "r_misc";
 import { useSetElement } from "./set-element";
 
 export interface Meta extends SlateElement {

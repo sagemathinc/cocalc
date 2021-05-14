@@ -20,8 +20,7 @@
     "dist",
     "node_modules",
     "account/test",
-    "jupyter/project-actions.ts",
-    "jupyter/test/",
+    "jupyter/test",
     "frame-editors/generic/mocha-tests",
     "frame-editors/settings/__tests__",
     "jupyter/output-messages/__test__",
@@ -30,9 +29,6 @@
     "test-mocha",
     "test",
     "*__tests__*",
-    "*__test__*",
-    "admin",
-    "app",
-    "billing"
+    "*__test__*"
   ]
 }

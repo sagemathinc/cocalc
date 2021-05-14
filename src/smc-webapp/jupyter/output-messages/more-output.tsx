@@ -5,7 +5,7 @@
 
 import { Button } from "react-bootstrap";
 import { Icon } from "../../r_misc/icon";
-import { React, Component, Rendered } from "smc-webapp/app-framework";
+import { React, Component, Rendered } from "app-framework";
 import { Map } from "immutable";
 import { JupyterActions } from "../actions";
 

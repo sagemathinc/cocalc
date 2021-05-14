@@ -17,7 +17,7 @@ import {
 } from "slate";
 import { ReactEditor } from "../slate-react";
 import { markdown_to_slate } from "../markdown-to-slate";
-import { commands } from "smc-webapp/editors/editor-button-bar";
+import { commands } from "editors/editor-button-bar";
 import { removeBlankLines } from "../util";
 import { insertLink } from "./insert-link";
 import { insertImage } from "./insert-image";

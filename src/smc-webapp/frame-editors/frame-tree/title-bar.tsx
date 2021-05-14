@@ -40,7 +40,7 @@ import {
   Space,
   DropdownMenu,
   MenuItem,
-} from "smc-webapp/r_misc";
+} from "r_misc";
 
 import { IS_TOUCH } from "../../feature";
 import { capitalize, copy, path_split, trunc_middle } from "smc-util/misc";
@@ -48,7 +48,7 @@ import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 import { Actions } from "../code-editor/actions";
 import { EditorFileInfoDropdown } from "../../editors/file-info-dropdown";
-import { useStudentProjectFunctionality } from "smc-webapp/course";
+import { useStudentProjectFunctionality } from "course";
 import { RmdActions } from "../rmd-editor/actions";
 
 // Certain special frame editors (e.g., for latex) have extra
@@ -1434,7 +1434,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (props.connection_status == "connected") {
       // To reduce clutter show nothing when connected.
       // NOTE: Keep this consistent with
-      // cocalc/src/smc-webapp/project/websocket/websocket-indicator.tsx
+      // cocalc/src/project/websocket/websocket-indicator.tsx
       return;
     }
 

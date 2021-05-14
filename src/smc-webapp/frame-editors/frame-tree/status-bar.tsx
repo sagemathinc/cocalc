@@ -10,7 +10,7 @@ Very simple for now.  We should obviously add more later, e.g., number of lines 
 */
 
 import { React, Component, Rendered } from "../../app-framework";
-import { Space } from "smc-webapp/r_misc";
+import { Space } from "r_misc";
 
 interface Props {
   status: string;

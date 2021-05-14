@@ -8,7 +8,7 @@ import { Configuration } from "./explorer";
 import { EXTs as ALL_FILE_BUTTON_TYPES } from "./file-listing/utils";
 import { Button } from "antd";
 import { Icon, MenuItem, MenuDivider, DropdownMenu } from "../../r_misc";
-import { ProjectActions } from "smc-webapp/project_store";
+import { ProjectActions } from "project_store";
 
 interface Props {
   file_search: string;

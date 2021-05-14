@@ -18,7 +18,7 @@ import {
   SearchControlButtons,
 } from "./search-control";
 import { ReactEditor } from "../slate-react";
-import { IS_MACOS, IS_TOUCH } from "smc-webapp/feature";
+import { IS_MACOS, IS_TOUCH } from "feature";
 import { createSearchDecorate } from "./decorate";
 import { Replace } from "./replace";
 

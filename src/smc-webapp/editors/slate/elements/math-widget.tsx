@@ -9,8 +9,8 @@ import {
   useFrameContext,
   useMemo,
   useState,
-} from "smc-webapp/app-framework";
-import { macros } from "smc-webapp/jquery-plugins/math-katex";
+} from "app-framework";
+import { macros } from "jquery-plugins/math-katex";
 import { renderToString } from "katex";
 import { startswith } from "smc-util/misc";
 import { SlateCodeMirror } from "./codemirror";

@@ -11,7 +11,7 @@ issues with math formulas that can be mistaken for markdown
 syntax, which is a problem with many math markdown plugins.
 */
 
-import { markdown_it, parseHeader } from "smc-webapp/markdown";
+import { markdown_it, parseHeader } from "markdown";
 
 // Use this instead of the above to test with no plugins, which
 // can be useful for isolating performance issues.

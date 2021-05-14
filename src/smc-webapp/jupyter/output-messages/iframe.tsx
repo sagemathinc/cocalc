@@ -15,7 +15,7 @@ import {
   useIsMountedRef,
   useRef,
   useState,
-} from "smc-webapp/app-framework";
+} from "app-framework";
 import { get_blob_url } from "../server-urls";
 
 interface Props {

@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component, Rendered } from "smc-webapp/app-framework";
+import { React, Component, Rendered } from "app-framework";
 
 import { Button } from "react-bootstrap";
 
-import { Icon, ErrorDisplay } from "smc-webapp/r_misc";
+import { Icon, ErrorDisplay } from "r_misc";
 
 import { webapp_client }  from "../../webapp-client";
 

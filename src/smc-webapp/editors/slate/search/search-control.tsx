@@ -6,7 +6,7 @@
 import * as React from "react";
 import { delay } from "awaiting";
 import { Button } from "antd";
-import { Icon } from "smc-webapp/r_misc";
+import { Icon } from "r_misc";
 import { ReactEditor } from "../slate-react";
 import { selectNextMatch, selectPreviousMatch } from "./find-matches";
 

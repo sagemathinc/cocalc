@@ -11,7 +11,7 @@ because then they will be compatible with all mentions already used with chat an
 */
 
 import { trunc_middle } from "smc-util/misc";
-import { React, redux } from "smc-webapp/app-framework";
+import { React, redux } from "app-framework";
 import { FOCUSED_COLOR } from "../util";
 import {
   SlateElement,

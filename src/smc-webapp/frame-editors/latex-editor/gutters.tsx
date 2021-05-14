@@ -10,7 +10,7 @@
 
 import * as React from "react";
 import { capitalize } from "smc-util/misc";
-import { Icon, Tip } from "smc-webapp/r_misc";
+import { Icon, Tip } from "r_misc";
 import { SPEC, SpecItem } from "./errors-and-warnings";
 import { IProcessedLatexLog, Error } from "./latex-log-parser";
 

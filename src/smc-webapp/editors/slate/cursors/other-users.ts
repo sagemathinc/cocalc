@@ -8,8 +8,8 @@
 import { useMemo } from "react";
 import { Map } from "immutable";
 import { Editor, Node, Point, Text } from "slate";
-import { getProfile } from "smc-webapp/jupyter/cursors";
-import { redux } from "smc-webapp/app-framework";
+import { getProfile } from "jupyter/cursors";
+import { redux } from "app-framework";
 import { markdownPositionToSlatePoint } from "../sync";
 import { SearchHook } from "../search";
 import { SlateEditor } from "../editable-markdown";

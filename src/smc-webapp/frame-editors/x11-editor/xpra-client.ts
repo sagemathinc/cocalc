@@ -16,7 +16,7 @@ import { touch, touch_project } from "../generic/client";
 import { throttle } from "underscore";
 import { open_new_tab } from "../../misc-page";
 import { is_copy } from "./xpra/util";
-import { alert_message } from "smc-webapp/alerts";
+import { alert_message } from "alerts";
 const sha1 = require("sha1");
 import { close, hash_string } from "smc-util/misc";
 
