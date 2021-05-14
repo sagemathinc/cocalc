@@ -70,12 +70,11 @@ def install_project():
         c = f"npm --loglevel=warn --unsafe-perm=true --progress=false install --upgrade {pkg} -g"
         cmd(SUDO + c)
 
-    #### TODO!
     pkgs = ['./smc-project', './smc-webapp', './smc-util-node', './smc-util']
 
     # TODO switch to use npm ci to install these (which doesn't exist for global installs, AFAIU)
     def build_op(pkg):
-        c = f"npm --loglevel=warn --unsafe-perm=true --progress=false install {pkg} -g"
+        c = f"npm --loglevel=warn --progress=false install {pkg} -g"
         return cmd(SUDO + c)
 
     with ThreadPoolExecutor(max_workers=WORKERS) as executor:
