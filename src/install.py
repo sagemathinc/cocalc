@@ -198,6 +198,9 @@ def main():
         help=
         'install/update any node.js dependencies for smc-[util*/webapp] and use webpack to build production js (takes several minutes!)'
     )
+    parser_webapp.add_argument('action',
+                               help='only build is supported now',
+                               choices=['build'])
     parser_webapp.add_argument(
         "--debug",
         action="store_true",
