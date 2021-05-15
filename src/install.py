@@ -86,10 +86,10 @@ def npm_run_make():
     cmd("npm run make")
 
 
-def install_webapp(args=None):
+def install_webapp(*args):
     nice()
     # Ensure npm_run_make() called:
-    if args is not None:
+    if len(args) > 0:
         npm_run_make()
     cmd("git submodule update --init")
     cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
@@ -123,7 +123,7 @@ def install_webapp(args=None):
     # update term.js
     cmd("cd webapp-lib/term; ./compile")
     print(f"Building webpack -- this should take at least 10 minutes")
-    wtype = 'debug' if (args is not None and len(args) > 0 and args[0].debug) else 'production'
+    wtype = 'debug' if (len(args) > 0 and args[0].debug) else 'production'
     cmd(f"npm --loglevel=warn --progress=false run webpack-{wtype}")
 
 
@@ -198,11 +198,6 @@ def main():
         help=
         'install/update any node.js dependencies for smc-[util*/webapp] and use webpack to build production js (takes several minutes!)'
     )
-    parser_webapp.add_argument(
-        'action',
-        help=
-        'either "build" the webapp or "pull/push" compiled files from a repository -- see scripts/webapp-control.sh how this works',
-        choices=['build', 'pull', 'push', 'build-push', 'clean'])
     parser_webapp.add_argument(
         "--debug",
         action="store_true",
