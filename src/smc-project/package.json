@@ -52,7 +52,7 @@
     "portfinder": "^1.0.28",
     "posix": "^4.2.0",
     "prettier": "^2.1.1",
-    "primus": "^7.3.4",
+    "primus": "^7.3.5",
     "primus-multiplex": "github:STRML/primus-multiplex",
     "primus-responder": "^1.0.4",
     "prom-client": "^13.0.0",
