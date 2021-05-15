@@ -1,6 +1,6 @@
 {
   "name": "smc-util",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
     "./*": "./dist/*.js",
@@ -8,16 +8,22 @@
     "./sync/table": "./dist/sync/table/index.js",
     "./sync/editor/db": "./dist/sync/editor/db/index.js"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "tsc",
     "testsync": "cd sync && npx jest",
     "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee; cd test && npx jest"
   },
   "author": "SageMath, Inc.",
-  "license": "GPL-3.0",
+  "keywords": [
+    "utilities",
+    "mathjax",
+    "katex",
+    "markdown",
+    "cocalc",
+    "realtime synchronization"
+  ],
+  "license": "SEE LICENSE IN LICENSE.md",
   "dependencies": {
     "@types/jest": "^26.0.22",
     "@types/json-stable-stringify": "^1.0.32",
