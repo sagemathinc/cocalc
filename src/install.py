@@ -86,9 +86,11 @@ def npm_run_make():
     cmd("npm run make")
 
 
-def install_webapp():
+def install_webapp(args=None):
     nice()
-    # ASSUME npm_run_make() has been called before!
+    # Ensure npm_run_make() called:
+    if args is not None:
+        npm_run_make()
     cmd("git submodule update --init")
     cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
     # E.g., this depends on running npm_run_make first, see above
@@ -121,7 +123,8 @@ def install_webapp():
     # update term.js
     cmd("cd webapp-lib/term; ./compile")
     print(f"Building webpack -- this should take at least 10 minutes")
-    cmd(f"npm --loglevel=warn --progress=false run webpack-production")
+    wtype = 'debug' if (args is not None and len(args) > 0 and args[0].debug) else 'production'
+    cmd(f"npm --loglevel=warn --progress=false run webpack-{wtype}")
 
 
 def install_primus():
@@ -189,6 +192,22 @@ def main():
                             const=True)
     parser_all.set_defaults(
         func=lambda args: install_all(compute=args.compute, web=args.web))
+
+    parser_webapp = subparsers.add_parser(
+        'webapp',
+        help=
+        'install/update any node.js dependencies for smc-[util*/webapp] and use webpack to build production js (takes several minutes!)'
+    )
+    parser_webapp.add_argument(
+        'action',
+        help=
+        'either "build" the webapp or "pull/push" compiled files from a repository -- see scripts/webapp-control.sh how this works',
+        choices=['build', 'pull', 'push', 'build-push', 'clean'])
+    parser_webapp.add_argument(
+        "--debug",
+        action="store_true",
+        help="if set, build debug version of code (rather than production)")
+    parser_webapp.set_defaults(func=install_webapp)
 
     args = parser.parse_args()
     args.func(args)
