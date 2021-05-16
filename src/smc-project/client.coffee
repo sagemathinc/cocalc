@@ -31,13 +31,6 @@ fs     = require('fs')
 {callback2, once} = require("smc-util/async-utils");
 async   = require('async')
 
-{do_not_laod_transpilers} = require('./init-program')
-
-if do_not_laod_transpilers
-    console.warn("[project/client] coffeescript transpiler is not enabled!")
-else
-    require('coffeescript/register')
-
 message    = require('smc-util/message')
 misc       = require('smc-util/misc')
 misc_node  = require('smc-util-node/misc_node')
