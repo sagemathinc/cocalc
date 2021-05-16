@@ -101,6 +101,7 @@
     "mathematics"
   ],
   "bin": {
+    "cocalc-start-project-server": "./bin/start-project-server.js",
     "smc-local-hub": "./bin/smc-local-hub"
   }
 }
