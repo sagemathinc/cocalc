@@ -18,9 +18,6 @@
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
     "async": "^1.5.2",
-    "coffee-cache": "^1.0.2",
-    "coffee-register-cache": "0.0.0",
-    "coffeescript": "^2.5.1",
     "jsdom": "^16.2.2",
     "node-pre-gyp": "^0.17.0",
     "nyc": "^15.0.1",
@@ -37,6 +34,9 @@
   },
   "devDependencies": {
     "coffee-coverage": "^3.0.1",
+    "coffee-cache": "^1.0.2",
+    "coffee-register-cache": "0.0.0",
+    "coffeescript": "^2.5.1",
     "expect": "^26.6.2",
     "mocha": "^8.1.3"
   }
