@@ -8,9 +8,8 @@
     "./r_misc": "./dist/r_misc/index.js",
     "./admin/users/projects": "./dist/admin/users/projects.js"
   },
-  "files": [
-    "dist"
-  ],
+  "keywords": ["cocalc", "jupyter", "sagemath"],
+  "files": ["dist"],
   "directories": {},
   "workspaces": [
     "../smc-hub",
@@ -139,6 +138,10 @@
     "shallowequal": "^1.1.0",
     "shell-escape": "^0.2.0",
     "slate": "^0.62.0",
+    "smc-hub": "*",
+    "smc-project": "*",
+    "smc-util": "*",
+    "webapp-lib": "*",
     "superb": "^3.0.0",
     "three": "^0.78.0",
     "timeago": "^1.6.3",
@@ -192,7 +195,7 @@
     "Jon Lee <jlee27@uw.edu>",
     "Nich Ruhland <nicholasruhland@gmail.com>"
   ],
-  "license": "GPL-3.0+",
+  "license": "SEE LICENSE IN LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },

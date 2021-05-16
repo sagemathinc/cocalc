@@ -5,10 +5,7 @@
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "build": "tsc && coffee -c -o dist/ .",
     "test": "SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
@@ -16,10 +13,8 @@
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee"
   },
   "author": "SageMath, Inc.",
-  "license": "GPL-3.0",
-  "workspaces": [
-    "../smc-util"
-  ],
+  "license": "SEE LICENSE IN LICENSE.md",
+  "workspaces": ["../smc-util"],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
     "async": "^1.5.2",

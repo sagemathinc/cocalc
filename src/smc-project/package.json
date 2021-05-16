@@ -1,16 +1,12 @@
 {
   "name": "smc-project",
   "version": "1.0.0",
-  "description": "CoCalc: project daemons",
+  "description": "CoCalc: project daemon",
   "exports": {
     "./*": "./dist/*.js"
   },
-  "workspaces": [
-    "../smc-util",
-    "../smc-webapp",
-    "../smc-util-node",
-    "."
-  ],
+  "keywords": ["cocalc", "jupyter", "sagemath"],
+  "workspaces": ["../smc-util", "../smc-webapp", "../smc-util-node", "."],
   "dependencies": {
     "@types/better-sqlite3": "^5.4.0",
     "@types/body-parser": "^1.19.0",
@@ -59,6 +55,9 @@
     "prometheus-gc-stats": "^0.6.2",
     "request": "^2.88.0",
     "serve-index": "^1.9.1",
+    "smc-util": "*",
+    "smc-util-node": "*",
+    "smc-webapp": "*",
     "temp": "^0.9.1",
     "tmp": "0.0.33",
     "ts-node": "=7.0.0",
@@ -80,10 +79,8 @@
     "testjup": "echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee"
   },
   "author": "SageMath, Inc.",
-  "contributors": [
-    "William Stein <wstein@sagemath.com>"
-  ],
-  "license": "GPL-3.0+",
+  "contributors": ["William Stein <wstein@sagemath.com>"],
+  "license": "SEE LICENSE IN LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },

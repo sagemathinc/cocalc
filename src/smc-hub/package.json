@@ -81,6 +81,10 @@
     "safe-json-stringify": "^1.2.0",
     "sanitize-html": "^2.3.2",
     "serve-index": "^1.9.1",
+    "smc-util": "*",
+    "smc-util-node": "*",
+    "smc-webapp": "*",
+    "webapp-lib": "*",
     "snappy": "^6.3.5",
     "sql-string-escape": "^1.1.6",
     "start-stop-daemon": "^0.1.1",
@@ -138,7 +142,7 @@
     "Jon Lee <jlee27@uw.edu>",
     "Nich Ruhland <nicholasruhland@gmail.com>"
   ],
-  "license": "GPL-3.0+",
+  "license": "SEE LICENSE IN LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
