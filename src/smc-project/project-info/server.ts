@@ -8,11 +8,6 @@ Project information server, doing the heavy lifting of telling the client
 about what's going on in a project.
 */
 
-// only for testing, see bottom
-if (require.main === module) {
-  require("coffee-register");
-}
-
 import * as debug from "debug";
 const L = debug("project:project-info:server");
 import { delay } from "awaiting";

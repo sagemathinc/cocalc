@@ -7,10 +7,8 @@
 Node.js interface to nbconvert.
 */
 
-require("coffee-register");
-
 const { execute_code } = require("smc-util-node/misc_node");
-const { callback_opts } = require("smc-util/async-utils");
+import { callback_opts } from "smc-util/async-utils";
 
 interface nbconvertParams {
   args: string[];

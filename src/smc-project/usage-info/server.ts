@@ -11,11 +11,6 @@ for a specific "path" (e.g. the corresponding jupyter process for a notebook)
 from the ProjectInfoServer (which collects data about everything)
 */
 
-// only for testing, see bottom
-if (require.main === module) {
-  require("coffee-register");
-}
-
 import * as debug from "debug";
 const L = debug("project:usage-info:server");
 import { EventEmitter } from "events";

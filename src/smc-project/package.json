@@ -1,6 +1,6 @@
 {
   "name": "smc-project",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "CoCalc: project daemon",
   "exports": {
     "./*": "./dist/*.js"
@@ -60,9 +60,6 @@
     "coffeelint": "^2.1.0",
     "ts-node": "=7.0.0",
     "typescript": "^4.1.3",
-    "coffee-cache": "^1.0.2",
-    "coffee-loader": "^0.9.0",
-    "coffee-register": "^2.2.0",
     "coffeescript": "^2.5.1",
     "@types/better-sqlite3": "^5.4.0",
     "@types/body-parser": "^1.19.0",

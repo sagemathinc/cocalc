@@ -13,11 +13,6 @@ that information to a low-frequency low-volume stream of important
 status updates.
 */
 
-// only for testing, see bottom
-if (require.main === module) {
-  require("coffee-register");
-}
-
 //import { reuseInFlight } from "async-await-utils/hof";
 import { EventEmitter } from "events";
 import { delay } from "awaiting";

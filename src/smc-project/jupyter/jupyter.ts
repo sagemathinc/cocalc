@@ -34,15 +34,6 @@ import { exists, unlink } from "./async-utils-node";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { Channels, MessageType } from "@nteract/messaging";
 
-const { do_not_laod_transpilers } = require("../init-program");
-
-if (do_not_laod_transpilers) {
-  console.warn("[project/jupyter] coffeescript transpiler is not enabled!");
-} else {
-  // because of misc and misc_node below.  Delete this when those are typescript'd
-  require("coffee-register");
-}
-
 const {
   merge,
   copy,
