@@ -45,8 +45,6 @@ exports.get_bugs_total = ->
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
-require('coffeescript/register')
-
 message     = require('smc-util/message')
 misc        = require('smc-util/misc')
 smc_version = require('smc-util/smc-version')

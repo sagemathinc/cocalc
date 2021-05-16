@@ -146,5 +146,8 @@
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/cocalc"
+  "homepage": "https://github.com/sagemathinc/cocalc",
+  "bin": {
+    "cocalc-start-hub-server": "./run/start-hub-server.js"
+  }
 }
