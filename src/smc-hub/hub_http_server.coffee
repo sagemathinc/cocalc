@@ -41,8 +41,7 @@ open_cocalc = require('./open-cocalc-server')
 
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
-WEBAPP_RES_PATH = path_module.join(SMC_ROOT, 'webapp-lib', 'resources')
-
+WEBAPP_RES_PATH = require('@cocalc/cdn').path
 
 exports.init_express_http_server = (opts) ->
     opts = defaults opts,
@@ -135,7 +134,8 @@ exports.init_express_http_server = (opts) ->
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: cacheLongTerm)
 
-    # This is webapp-lib/resources – cocalc serves everything it needs on its own. no info leaks, less dependency!
+    # This is @cocalc/cdn – cocalc serves everything it needs on its own. no info leaks, less dependency!
+    # See the comments in packages/cdn.
     router.use '/res',
         express.static(WEBAPP_RES_PATH, setHeaders: cacheLongTerm)
 

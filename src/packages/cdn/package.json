@@ -1,8 +1,13 @@
 {
-  "name": "cocalc-webapp-resources",
-  "version": "1.0.0",
-  "description": "Webapp Resource Files ",
-  "dependencies": {
+  "name": "@cocalc/cdn",
+  "version": "1.0.2",
+  "description": "Files that CoCalc uses that would be natural in various contexts to get from a CDN",
+  "main": "dist/index.js",
+  "keywords": [
+    "cdn",
+    "cocalc"
+  ],
+  "devDependencies": {
     "@fortawesome/fontawesome-free": "^5.15.2",
     "bootstrap": "=3.4.1",
     "codemirror": "^5.59.2",
@@ -10,7 +15,8 @@
     "roboto-fontface": "^0.10.0"
   },
   "scripts": {
-    "postinstall": "python3 setup.py",
-    "build": "echo 'no-op for now; just here for consistency'"
-  }
+    "build": "rm -rf dist && mkdir dist && ./setup.py"
+  },
+  "author": "SageMath, Inc.",
+  "license": "SEE LICENSE IN LICENSE.md"
 }

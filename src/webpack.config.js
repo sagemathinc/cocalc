@@ -109,7 +109,7 @@ const program = require("commander");
 
 const SMC_VERSION = require("smc-util/smc-version").version;
 const theme = require("smc-util/theme");
-const RES_VERSIONS = require("webapp-lib/resources/versions").versions;
+const RES_VERSIONS = require("@cocalc/cdn").versions;
 
 const git_head = child_process.execSync("git rev-parse HEAD");
 const GIT_REV = git_head.toString().trim();

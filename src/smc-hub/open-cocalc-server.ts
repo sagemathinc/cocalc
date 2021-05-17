@@ -17,12 +17,9 @@ import { callback2 } from "smc-util/async-utils";
 import * as express from "express";
 import * as path_module from "path";
 const auth = require("./auth");
-import { get_smc_root } from "./utils";
 import { have_active_registration_tokens } from "./utils";
 import * as winston from "winston";
-import { versions as RES_VERSIONS } from "webapp-lib/resources/versions";
-
-const WEBAPP_PATH = path_module.join(get_smc_root(), "webapp-lib");
+import { versions as RES_VERSIONS, path as WEBAPP_PATH } from "@cocalc/cdn";
 
 interface GetData {
   base_url: string;

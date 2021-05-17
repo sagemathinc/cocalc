@@ -4,9 +4,9 @@
  */
 
 // resource links, pointing to some assets we're hosting (formerly on a CDN)
-// see webapp-lib/resources/ for *how* they're hosted
+// see packages/cdn for *how* they're hosted.
 
-import { versions } from "webapp-lib/resources/versions";
+import { versions } from "@cocalc/cdn";
 
 // this encodes <link href="..." crossOrigin="..." etc. />
 // in react, you can use it as <link  {...link_info} />

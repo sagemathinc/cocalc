@@ -3,22 +3,17 @@
 import os
 from os.path import join, abspath, dirname, islink, exists
 import json
+from shutil import copytree
 
 curdir = dirname(abspath(__file__))
-os.chdir(curdir)
-# os.symlink(src, dst)
+os.chdir(join(curdir, 'dist'))
 
 extra_path = {
     'bootstrap': 'dist/css/',
     'katex': 'dist/',
 }
 
-# remove symlinks
-for fn in os.listdir('.'):
-    if islink(fn):
-        os.unlink(fn)
-
-deps = json.load(open('package-lock.json'))["dependencies"]
+deps = json.load(open(join('..', 'package-lock.json')))["dependencies"]
 versions = {}
 for path, data in deps.items():
     if '/' in path:
@@ -27,22 +22,22 @@ for path, data in deps.items():
         name = path
     extra = extra_path.get(name, '')
     # links must be relative to the current directory (we want to be able to move the directory around)
-    src = join("node_modules", path, extra)
+    src = join("..", "node_modules", path, extra)
     if not exists(src):
         raise Exception(
             f"target '{src}' does not exist -- did you forget to run 'npm ci' in '{curdir}'?"
         )
     version = data['version']
+    copytree(src, name)
     dst = f"{name}-{version}"
     print(f"symlink with    version '{dst}' -> '{src}'")
-    os.symlink(src, dst)
-    # now, we also symlink from just the name to the versioned symlink
-    src = dst
-    dst = f"{name}"
-    print(f"symlink without version '{dst}' -> '{src}'")
-    os.symlink(src, dst)
+    os.symlink(name, dst)
     versions[name] = version
 
+# TODO: This pix should not be in this package.  Put it somewhere else.
+copytree("../pix", "pix")
+
 # finally, write the version info such that it can be loaded
-with open('versions.js', 'w') as out:
-    out.write(f'exports.versions = {json.dumps(versions)};')
+with open('index.js', 'w') as out:
+    out.write(f'exports.versions = {json.dumps(versions)};\n')
+    out.write('exports.path = __dirname;\n')

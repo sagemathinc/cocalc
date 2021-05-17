@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "description": "This sub-directory contains assets (images, code, etc.) for the smc-webapp and static pages.",
   "exports": {
-    "./serviceWorker": "./serviceWorker.js",
-    "./resources/versions": "./resources/versions.js"
+    "./serviceWorker": "./serviceWorker.js"
   },
   "directories": {
     "example": "examples"

@@ -10,9 +10,11 @@
     "../smc-util",
     "../smc-util-node",
     "../smc-webapp",
-    "../webapp-lib"
+    "../webapp-lib",
+    "../packages/cdn"
   ],
   "dependencies": {
+    "@cocalc/cdn": "*",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.1",
     "@sendgrid/client": "^6.5.1",

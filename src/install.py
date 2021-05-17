@@ -93,8 +93,6 @@ def install_webapp(*args):
         npm_run_make()
     cmd("git submodule update --init")
     cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
-    # E.g., this depends on running npm_run_make first, see above
-    cmd("python3 webapp-lib/resources/setup.py")
 
     # react static step must come *before* webpack step
     cmd("update_react_static")
