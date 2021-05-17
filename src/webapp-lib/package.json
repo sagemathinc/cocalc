@@ -1,6 +1,6 @@
 {
   "name": "webapp-lib",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "This sub-directory contains assets (images, code, etc.) for the smc-webapp and static pages.",
   "exports": {
     "./serviceWorker": "./serviceWorker.js"
@@ -9,7 +9,8 @@
     "example": "examples"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo 'nothing'"
   },
   "keywords": ["cocalc"],
   "author": "SageMath, Inc.",
