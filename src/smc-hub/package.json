@@ -1,6 +1,6 @@
 {
   "name": "smc-hub",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",
@@ -11,6 +11,7 @@
     "../smc-util-node",
     "../smc-webapp",
     "../webapp-lib",
+    "./",
     "../packages/cdn"
   ],
   "dependencies": {
@@ -149,6 +150,7 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "bin": {
-    "cocalc-start-hub-server": "./run/hub.js"
+    "cocalc-hub-server": "./run/hub.js",
+    "cocalc-hub-stats-updater": "./dist/run/stats-updater.js"
   }
 }
