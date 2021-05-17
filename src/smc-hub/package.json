@@ -1,6 +1,6 @@
 {
   "name": "smc-hub",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",
@@ -148,6 +148,6 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "bin": {
-    "cocalc-start-hub-server": "./run/start-hub-server.js"
+    "cocalc-start-hub-server": "./run/hub.js"
   }
 }
