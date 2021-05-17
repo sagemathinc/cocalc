@@ -3,8 +3,6 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
-require('coffee2-cache')
-
 EXPERIMENTAL = false
 
 if process.env.DEVEL

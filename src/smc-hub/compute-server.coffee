@@ -3,8 +3,6 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
-require('coffee2-cache')
-
 # compute-server -- runs on the compute nodes; is also imported as a module
 
 CONF = '/projects/conf'
