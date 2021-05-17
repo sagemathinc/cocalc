@@ -378,6 +378,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     if (doc == null) return [];
     for (let n = 1; n <= doc.numPages; n++) {
       const page = pages[n - 1];
+      if (page == null) continue;
       const page_renderer =
         top >= scrollTop - WINDOW_SIZE * scale &&
         top <= scrollTop + WINDOW_SIZE * scale
