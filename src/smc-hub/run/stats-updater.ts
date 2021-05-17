@@ -18,13 +18,13 @@ function update() {
     ttl,
     cb(err, stats) {
       if (err) {
-        console.log(`failed to update stats -- ${err}`);
+        throw Error(`failed to update stats -- ${err}`);
       } else {
         console.log("updated stats", stats);
       }
+      setTimeout(update, ttl * 1000);
     },
   });
 }
 
 update();
-setInterval(update, ttl * 1000);
