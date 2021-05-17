@@ -783,69 +783,66 @@ command_line = () ->
         .option('--personal', 'run in VERY UNSAFE personal mode; there is only one user and no authentication')
         .parse(process.argv)
 
-    if program._name.slice(0,3) == 'hub'
-        # run as a server/daemon (otherwise, is being imported as a library)
+    #if program.rawArgs[1] in ['start', 'restart']
+    process.addListener "uncaughtException", (err) ->
+        winston.debug("BUG ****************************************************************************")
+        winston.debug("Uncaught exception: " + err)
+        winston.debug(err.stack)
+        winston.debug("BUG ****************************************************************************")
+        database?.uncaught_exception(err)
+        uncaught_exception_total?.inc(1)
 
-        #if program.rawArgs[1] in ['start', 'restart']
-        process.addListener "uncaughtException", (err) ->
-            winston.debug("BUG ****************************************************************************")
-            winston.debug("Uncaught exception: " + err)
-            winston.debug(err.stack)
-            winston.debug("BUG ****************************************************************************")
-            database?.uncaught_exception(err)
-            uncaught_exception_total?.inc(1)
+    process.on 'unhandledRejection', (reason, p) ->
+        winston.debug("BUG UNHANDLED REJECTION *********************************************************")
+        winston.debug('Unhandled Rejection at:', p, 'reason:', reason)
+        winston.debug("BUG UNHANDLED REJECTION *********************************************************")
+        database?.uncaught_exception(p)
+        uncaught_exception_total?.inc(1)
 
-        process.on 'unhandledRejection', (reason, p) ->
-            winston.debug("BUG UNHANDLED REJECTION *********************************************************")
-            winston.debug('Unhandled Rejection at:', p, 'reason:', reason)
-            winston.debug("BUG UNHANDLED REJECTION *********************************************************")
-            database?.uncaught_exception(p)
-            uncaught_exception_total?.inc(1)
-
-        if program.passwd
-            winston.debug("Resetting password")
-            reset_password(program.passwd, (err) -> process.exit())
-        else if program.stripe_sync
-            winston.debug("Stripe sync")
-            stripe_sync((err) -> winston.debug("DONE", err); process.exit())
-        else if program.delete_expired
-            delete_expired (err) ->
-                winston.debug("DONE", err)
-                process.exit()
-        else if program.blob_maintenance
-            blob_maintenance (err) ->
-                winston.debug("DONE", err)
-                process.exit()
-        else if program.update_stats
-            update_stats (err) ->
-                winston.debug("DONE", err)
-                process.exit()
-        else if program.add_user_to_project
-            console.log("Adding user to project")
-            v = program.add_user_to_project.split(',')
-            add_user_to_project v[0], v[1], (err) ->
-                if err
-                     console.log("Failed to add user: #{err}")
-                else
-                     console.log("User added to project.")
-                process.exit()
-        else if program.lti
-            console.log("LTI MODE")
-            start_lti_service()
-        else if program.landing
-            console.log("LANDING PAGE MODE")
-            start_landing_service()
-        else
-            console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
-            # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
-            if program.foreground
-                start_server (err) ->
-                    if err and program.dev
-                        process.exit(1)
+    if program.passwd
+        winston.debug("Resetting password")
+        reset_password(program.passwd, (err) -> process.exit())
+    else if program.stripe_sync
+        winston.debug("Stripe sync")
+        stripe_sync((err) -> winston.debug("DONE", err); process.exit())
+    else if program.delete_expired
+        delete_expired (err) ->
+            winston.debug("DONE", err)
+            process.exit()
+    else if program.blob_maintenance
+        blob_maintenance (err) ->
+            winston.debug("DONE", err)
+            process.exit()
+    else if program.update_stats
+        update_stats (err) ->
+            winston.debug("DONE", err)
+            process.exit()
+    else if program.add_user_to_project
+        console.log("Adding user to project")
+        v = program.add_user_to_project.split(',')
+        add_user_to_project v[0], v[1], (err) ->
+            if err
+                 console.log("Failed to add user: #{err}")
             else
-                # TODO get rid of start-stop-daemon
-                daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
-                daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)
+                 console.log("User added to project.")
+            process.exit()
+    else if program.lti
+        console.log("LTI MODE")
+        start_lti_service()
+    else if program.landing
+        console.log("LANDING PAGE MODE")
+        start_landing_service()
+    else
+        console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
+        # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
+        if program.foreground
+            start_server (err) ->
+                if err and program.dev
+                    process.exit(1)
+        else
+            # TODO get rid of start-stop-daemon
+            daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
+            daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)
 
 
 if process.argv.length > 1
