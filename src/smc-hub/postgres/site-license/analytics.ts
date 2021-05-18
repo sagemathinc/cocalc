@@ -4,8 +4,8 @@
  */
 
 import { PostgreSQL } from "../types";
-import { callback2 } from "../../smc-util/async-utils";
-import { copy_with, len } from "../../smc-util/misc";
+import { callback2 } from "smc-util/async-utils";
+import { copy_with, len } from "smc-util/misc";
 const TIMEOUT_S = 30;
 
 export async function number_of_running_projects_using_license(

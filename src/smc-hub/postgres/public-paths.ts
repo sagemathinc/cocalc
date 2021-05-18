@@ -8,11 +8,11 @@
 Probably more need to be rewritten and moved here...
 */
 
-import { callback2 } from "../../smc-util/async-utils";
+import { callback2 } from "smc-util/async-utils";
 import { PostgreSQL } from "./types";
 import { query } from "./query";
-import { is_valid_uuid_string } from "../../smc-util/misc";
-import { PublicPath } from "../../smc-util/db-schema/public-paths";
+import { is_valid_uuid_string } from "smc-util/misc";
+import { PublicPath } from "smc-util/db-schema/public-paths";
 
 /* Unlist all public paths on all projects that the
 given account is a collaborator on.  If is_owner is

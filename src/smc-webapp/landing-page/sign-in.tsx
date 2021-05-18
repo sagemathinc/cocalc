@@ -50,12 +50,10 @@ export const SignIn: React.FC<Props> = (props) => {
 
   function render_error(): JSX.Element | undefined {
     if (!props.sign_in_error) return;
-    // TODO: please fix ErrorDisplay typing so the conversion
-    // to unknown below is not needed.
     return (
       <ErrorDisplay
-        style={{ marginRight: 0 }}
         error_component={<Markdown value={props.sign_in_error} />}
+        body_style={{ fontSize: "100%" }}
         onClose={() => actions.setState({ sign_in_error: undefined })}
       />
     );

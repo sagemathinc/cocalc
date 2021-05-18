@@ -5,7 +5,7 @@
 
 import { omit } from "lodash";
 import { PostgreSQL } from "./types";
-import { callback2 } from "../smc-util/async-utils";
+import { callback2 } from "smc-util/async-utils";
 import { query } from "./query";
 import * as debug from "debug";
 const L = debug("hub:project-queries");
@@ -159,7 +159,7 @@ export async function project_datastore_get(
     });
     if (ds != null) {
       for (const [k, v] of Object.entries(ds)) {
-        ds[k] = omit(v, "secret");
+        ds[k] = omit(v, "secret") as any;
       }
     }
     return {

@@ -1,5 +1,8 @@
 {
   "name": "cocalc",
+  "workspaces-disabled": [
+    "smc-util"
+  ],
   "version": "1.0.0",
   "description": "Collaborative Calculation in the Cloud",
   "main": "index.js",

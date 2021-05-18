@@ -26,8 +26,8 @@ import { EventEmitter } from "events";
 
 import { callback } from "awaiting";
 
-import { once } from "../smc-util/async-utils";
-import { close, copy } from "../smc-util/misc";
+import { once } from "smc-util/async-utils";
+import { close, copy } from "smc-util/misc";
 
 const { one_result, all_results } = require("../postgres-base");
 

@@ -7,7 +7,7 @@
 Code related to permanently deleting projects.
 */
 
-import { callback2 } from "../smc-util/async-utils";
+import { callback2 } from "smc-util/async-utils";
 import { PostgreSQL } from "./types";
 
 /*
