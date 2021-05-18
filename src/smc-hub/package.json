@@ -1,6 +1,6 @@
 {
   "name": "smc-hub",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",
@@ -138,12 +138,6 @@
     "mathematics"
   ],
   "author": "SageMath, Inc.",
-  "contributors": [
-    "William Stein <wstein@sagemath.com>",
-    "Harald Schilly <hsy@sagemath.com>",
-    "Jon Lee <jlee27@uw.edu>",
-    "Nich Ruhland <nicholasruhland@gmail.com>"
-  ],
   "license": "SEE LICENSE IN LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
@@ -155,6 +149,7 @@
     "cocalc-hub-deleted-projects": "./dist/run/delete-projects.js",
     "cocalc-hub-maintenance-expired": "./dist/run/maintenance-expired.js",
     "cocalc-hub-maintenance-syncstrings": "./dist/run/maintenance-syncstrings.js",
-    "cocalc-hub-maintenance-blobs": "./dist/run/maintenance-blobs.js"
+    "cocalc-hub-maintenance-blobs": "./dist/run/maintenance-blobs.js",
+    "cocalc-hub-stripe-sync": "./dist/run/stripe-sync.js"
   }
 }
