@@ -2154,7 +2154,7 @@ export function closest_kernel_match(
       v > bestValue ||
       (v === bestValue &&
         bestMatch &&
-        compareVersionStrings(k.get("name"), bestMatch.get("name")) === 1)
+        compareVersionStrings(k.get("name") ?? "", bestMatch.get("name") ?? "") === 1)
     ) {
       bestValue = v;
       bestMatch = k;

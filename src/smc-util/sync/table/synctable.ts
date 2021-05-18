@@ -229,7 +229,10 @@ export class SyncTable extends EventEmitter {
       for (const k of arg) {
         const key: string | undefined = to_key(k);
         if (key != null) {
-          x = x.set(key, this.value.get(key));
+          const y = this.value.get(key);
+          if (y != null) {
+            x = x.set(key, y);
+          }
         }
       }
       return x;
@@ -1432,7 +1435,7 @@ export class SyncTable extends EventEmitter {
         if (this.value == null) {
           throw Error("value must not be null");
         }
-        let obj = this.value.get(key);
+        let obj : any = this.value.get(key);
         if (obj == null) {
           throw Error(`there must be an object in this.value with key ${key}`);
         }

@@ -2050,7 +2050,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     const data = this.syncstring_table_get_one();
-    const x = data != null ? data.toJS() : undefined;
+    const x : any = data != null ? data.toJS() : undefined;
 
     if (x != null && x.save != null) {
       this.handle_syncstring_save_state(x.save.state, x.save.time);
