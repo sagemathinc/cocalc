@@ -1,6 +1,6 @@
 {
   "name": "smc-util",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
     "./*": "./dist/*.js",
@@ -8,9 +8,6 @@
     "./sync/table": "./dist/sync/table/index.js",
     "./sync/editor/db": "./dist/sync/editor/db/index.js"
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsc",
     "testsync": "cd sync && npx jest",
