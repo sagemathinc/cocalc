@@ -1,17 +1,8 @@
 {
+  "extends": "../packages/tsconfig.json",
   "compilerOptions": {
-    "jsx": "react",
-    "target": "es5",
-    "lib": ["es5", "es6", "es2017", "dom"],
-    "strictNullChecks": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "downlevelIteration": true,
     "rootDir": "./",
-    "skipLibCheck": true,
-    "outDir": "dist",
-    "allowJs": true
+    "outDir": "dist"
   },
-  "exclude": ["landing", "node_modules", "dist", "test"]
+  "exclude": ["node_modules", "dist", "test"]
 }

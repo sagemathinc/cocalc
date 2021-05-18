@@ -131,3 +131,4 @@ src/go-landing
 **/dist/
 
 src/packages/landing
+tsconfig.tsbuildinfo
