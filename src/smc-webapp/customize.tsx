@@ -506,9 +506,15 @@ declare var document;
 async function init_gtag() {
   await store.until_configured();
   if (!store.get("is_commercial")) return;
-  const w: any = window;
+  let w: any;
+  try {
+    w = window;
+  } catch (_err) {
+    // Make it so this code can be run on the backend...
+    return;
+  }
   if (w?.document == null) {
-    // Make it so this code can be run on the backend (not in a browser).
+    // Double check that this code can be run on the backend (not in a browser).
     // see https://github.com/sagemathinc/cocalc-landing/issues/2
     return;
   }

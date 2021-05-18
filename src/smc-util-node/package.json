@@ -5,7 +5,10 @@
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "build": "tsc && coffee -c -o dist/ .",
     "test": "SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
@@ -14,7 +17,9 @@
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE IN LICENSE.md",
-  "workspaces": ["../smc-util"],
+  "workspaces": [
+    "../smc-util"
+  ],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
     "async": "^1.5.2",
@@ -33,9 +38,8 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "coffee-coverage": "^3.0.1",
     "coffee-cache": "^1.0.2",
-    "coffee-register-cache": "0.0.0",
+    "coffee-coverage": "^3.0.1",
     "coffeescript": "^2.5.1",
     "expect": "^26.6.2",
     "mocha": "^8.1.3"

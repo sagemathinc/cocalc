@@ -393,7 +393,8 @@ start_lti_service = (cb) ->
 
 start_landing_service = (cb) ->
     BASE_URL = base_url.init(program.base_url)
-    {LandingServer} = require('./landing/landing.ts')
+    # This @cocalc/landing is a private npm package that is installed on https://cocalc.com only.
+    {LandingServer} = require('@cocalc/landing')
     async.series([
         (cb) ->
             init_metrics(cb)
