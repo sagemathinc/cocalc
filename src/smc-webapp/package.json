@@ -1,11 +1,13 @@
 {
   "name": "smc-webapp",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "CoCalc: Collaborative Calculation in the Cloud",
   "exports": {
     "./*": "./dist/*.js",
     "./app-framework": "./dist/app-framework/index.js",
     "./r_misc": "./dist/r_misc/index.js",
+    "./misc": "./dist/misc/index.js",
+    "./billing": "./dist/billing/index.js",
     "./admin/users/projects": "./dist/admin/users/projects.js"
   },
   "keywords": [

@@ -1,6 +1,6 @@
 {
   "name": "smc-util",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
     "./*": "./dist/*.js",

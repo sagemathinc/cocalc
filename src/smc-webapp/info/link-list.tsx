@@ -9,7 +9,7 @@ import { copy } from "smc-util/misc";
 import { COLORS } from "smc-util/theme";
 import { Links } from "./links";
 import { li_style } from "./style";
-import { Icon } from "../r_misc";
+import { Icon } from "../r_misc/icon";
 
 interface Props {
   title: string;

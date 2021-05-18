@@ -128,8 +128,9 @@ actions.setState({ is_commercial: true, ssh_gateway: true });
 // to generate static content, which can't be customized.
 export let commercial: boolean = defaults.is_commercial;
 
-// for now, not used (this was the old approach)
-// in the future we might want to reload the configuration, though
+// For now, hopefully not used (this was the old approach).
+// in the future we might want to reload the configuration, though.
+// Note that this *is* clearly used as a fallback below though...!
 export function reload_configuration() {
   retry_until_success({
     f: async () => {
@@ -486,7 +487,12 @@ export function Footer() {
 // first step of centralizing these URLs in one place → collecting all such pages into one
 // react-class with a 'type' prop is the next step (TODO)
 // then consolidate this with the existing site-settings database (e.g. TOS above is one fixed HTML string with an anchor)
-const app_base_url = (window && (window as any).app_base_url) || ""; // fallback for react-static
+let app_base_url = "";
+try {
+  app_base_url = (window as any).app_base_url || ""; // fallback for react-static
+} catch (_err) {
+  // would fail on backend where window not defined.
+}
 export const PolicyIndexPageUrl = app_base_url + "/policies/index.html";
 export const PolicyPricingPageUrl = app_base_url + "/policies/pricing.html";
 export const PolicyPrivacyPageUrl = app_base_url + "/policies/privacy.html";

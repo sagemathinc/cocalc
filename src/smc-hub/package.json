@@ -1,6 +1,6 @@
 {
   "name": "smc-hub",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",

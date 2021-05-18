@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../app-framework";
+import * as React from "react";
 import { THIRD_PARTY } from "./links";
 import { LinkList } from "./link-list";
 
