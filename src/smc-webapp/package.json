@@ -21,7 +21,9 @@
     "math",
     "mathematics"
   ],
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "directories": {},
   "workspaces": [
     "../smc-hub",

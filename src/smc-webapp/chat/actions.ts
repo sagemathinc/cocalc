@@ -95,7 +95,7 @@ export class ChatActions extends Actions<ChatState> {
       if (this.syncdb == null || messages == null) return;
       obj.date = new Date(obj.date);
       const record = this.syncdb.get_one(obj);
-      let x = record != null ? record.toJS() : undefined;
+      let x : any = record != null ? record.toJS() : undefined;
       if (x == null) {
         // delete
         messages = messages.delete(obj.date.valueOf());

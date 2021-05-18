@@ -129,3 +129,5 @@ src/smc_sagews/.pytest_cache/
 src/go-landing
 
 **/dist/
+
+src/packages/landing
