@@ -1,8 +1,0 @@
-#!/usr/bin/env python
-import os,time
-
-s = "dev/project/start_share.py"
-while True:
-    print(s)
-    os.system(s)
-    time.sleep(1)

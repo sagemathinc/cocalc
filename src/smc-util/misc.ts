@@ -86,7 +86,6 @@ interface SplittedPath {
 }
 
 export function path_split(path: string): SplittedPath {
-  throw Error("boom");
   const v = path.split("/");
   return { head: v.slice(0, -1).join("/"), tail: v[v.length - 1] };
 }
