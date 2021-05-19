@@ -22,10 +22,6 @@ or for smc-in-smc project, info.py URL, e.g.
 
     https://cocalc.com/14eed217-2d3c-4975-a381-b69edcb40e0e/port/56754/
 
-This is far from ready to use yet, e.g., we need to properly serve primus websockets, etc.:
-
-    webpack-dev-server --port=9000 -d
-
 Resources for learning webpack:
 
     - https://github.com/petehunt/webpack-howto
@@ -121,8 +117,8 @@ const DESCRIPTION = theme.APP_TAGLINE;
 const SMC_REPO = "https://github.com/sagemathinc/cocalc";
 const SMC_LICENSE = "AGPLv3";
 const { WEBAPP_LIB } = misc_node;
-const INPUT = path.resolve(__dirname, WEBAPP_LIB);
-const OUTPUT = path.resolve(__dirname, 'dist', misc_node.OUTPUT_DIR);
+const INPUT = path.resolve(__dirname, "node_modules", WEBAPP_LIB);
+const OUTPUT = path.resolve(__dirname, "dist", misc_node.OUTPUT_DIR);
 const DEVEL = "development";
 const NODE_ENV = process.env.NODE_ENV || DEVEL;
 const { NODE_DEBUG } = process.env;
@@ -386,10 +382,7 @@ const loaderOptions = new webpack.LoaderOptionsPlugin({
       collapseWhitespace: true,
       conservativeCollapse: true,
     },
-  }, // absolutely necessary, also see above in module.loaders/.html
-  //sassLoader:
-  //    includePaths: [path.resolve(__dirname, 'src', 'scss')]
-  //context: '/'
+  },
 });
 
 if (cleanWebpackPlugin != null) {
@@ -407,10 +400,10 @@ entries = {
   // this way it will have better caching/cache hits since it changes infrequently
   vendor: [
     // local packages
-    "./webapp-lib/primus/primus-engine.min.js",
-    // npm packages are added to vendor code separately in splitChunks config below
+    "./node_modules/webapp-lib/primus/primus-engine.min.js",
   ],
-  "pdf.worker": "./node_modules/smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry",
+  "pdf.worker":
+    "./node_modules/smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry",
 };
 plugins.push(...[pug2app, mathjaxVersionedSymlink]);
 
@@ -512,17 +505,6 @@ module.exports = {
 
   optimization: {
     minimizer: [minimizer],
-
-    // this doesn't play nice with a loading indicator on the app page. probably best to not use it.
-    //splitChunks: {
-    //  cacheGroups: {
-    //    commons: {
-    //      test: /[\\/]node_modules[\\/]/,
-    //      name: "vendor",
-    //      chunks: "all",
-    //    },
-    //  },
-    //},
   },
 
   entry: entries,
@@ -541,6 +523,7 @@ module.exports = {
       { test: /\.cjsx$/, loader: ["coffee-loader", "cjsx-loader"] },
       { test: [/node_modules\/prom-client\/.*\.js$/], loader: "babel-loader" },
       { test: [/latex-editor\/.*\.jsx?$/], loader: "babel-loader" },
+      { test: [/build\/pdf.js$/], loader: "babel-loader" },   // since they messed up their release including Optional Chaining in built files!
       // Note: see https://github.com/TypeStrong/ts-loader/issues/552
       // for discussion of issues with ts-loader + webpack.
       {
@@ -617,7 +600,6 @@ module.exports = {
       },
       {
         test: /\.html$/,
-        include: [path.resolve(__dirname, "smc-webapp")],
         use: [
           { loader: "raw-loader" },
           {
@@ -625,6 +607,10 @@ module.exports = {
             options: { conservativeCollapse: true },
           },
         ],
+      },
+      {
+        test: /\.txt$/,
+        use: [{ loader: "raw-loader" }],
       },
       { test: /\.hbs$/, loader: "handlebars-loader" },
       {
@@ -675,14 +661,16 @@ module.exports = {
       ".scss",
       ".sass",
     ],
+    symlinks: true,
     modules: [
-      path.resolve(__dirname),
-      path.resolve(__dirname, WEBAPP_LIB),
-      path.resolve(__dirname, "smc-util"),
-      path.resolve(__dirname, "smc-util/node_modules"),
-      path.resolve(__dirname, "smc-webapp"),
-      path.resolve(__dirname, "smc-webapp/node_modules"),
+      __dirname,
       path.resolve(__dirname, "node_modules"),
+      path.resolve(__dirname, "node_modules", "webapp-lib"),
+      path.resolve(__dirname, "node_modules", "webapp-lib/node_modules"),
+      path.resolve(__dirname, "node_modules", "smc-util"),
+      path.resolve(__dirname, "node_modules", "smc-util/node_modules"),
+      path.resolve(__dirname, "node_modules", "smc-webapp"),
+      path.resolve(__dirname, "node_modules", "smc-webapp/node_modules"),
     ],
   },
 

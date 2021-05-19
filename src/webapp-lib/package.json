@@ -10,7 +10,13 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "echo 'nothing'"
   },
-  "keywords": ["cocalc"],
+  "keywords": [
+    "cocalc"
+  ],
   "author": "SageMath, Inc.",
-  "license": "SEE LICENSE IN LICENSE.md"
+  "license": "SEE LICENSE IN LICENSE.md",
+  "dependencies": {
+    "postcss-loader": "^3.0.0",
+    "url-loader": "^4.1.1"
+  }
 }

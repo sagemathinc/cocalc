@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+
 /*
 We cache recently loaded PDF.js docs, so that:
 
@@ -21,10 +22,25 @@ const MAX_PAGES = 1000;
 
 import * as LRU from "lru-cache";
 import { reuseInFlight } from "async-await-utils/hof";
+
+
+/* IMPORTANT:
+ - We do NOT install pdfjs-dist into the smc-webapp module at all though we import it here!!
+ - The reason is because it includes its own copy of webpack as a side effect of having its
+   own webpack loader included.   Having two copies of webpack obviously doesn't work, since
+   they have different state.
+ - Instead, pdfjs-dist is installed into packages/static instead.  That works fine.
+ - Oh, for some reason pdfjs-dist is shipping built js files with optional chaining in
+   them, which causes trouble, so we explicitly use a babel plugin just to deal
+   with this package.  That's all in packages/static.
+*/
 import {
   getDocument as pdfjs_getDocument,
   PDFDocumentProxy,
 } from "pdfjs-dist/webpack";
+
+
+
 import { raw_url } from "../frame-tree/util";
 import { pdf_path } from "./util";
 import { encode_path } from "smc-util/misc";

@@ -54,9 +54,6 @@ require("script-loader!./node_modules/smc-webapp/node_modules/bootbox/bootbox.mi
 // Bootstrap Colorpicker Plugin
 require("./node_modules/smc-webapp/node_modules/bootstrap-colorpicker");
 
-// Datetime picker
-require("script-loader!./node_modules/smc-webapp/node_modules/datetimepicker/bootstrap-datetimepicker.min.js");
-
 // XTerm terminal emulator
 require("script-loader!webapp-lib/term/term.js");
 require("script-loader!webapp-lib/term/color_themes.js");
