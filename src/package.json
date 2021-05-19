@@ -36,5 +36,8 @@
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
-  "devDependencies": {}
+  "dependencies": {
+    "autoprefixer": "^9.8.6",
+    "cssnano": "^5.0.2"
+  }
 }

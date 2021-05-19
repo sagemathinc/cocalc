@@ -73,6 +73,9 @@ Development vs. Production: There are two variables DEVMODE and PRODMODE.
     This means, when running webpack-watch, you do not end up with a growing pile of
     thousands of files in the output directory.
 
+
+** TODO: this approach is unsustainable and violates packaging assumptions**
+
 MathJax: It lives in its own isolated world. This means, don't mess with the MathJax.js ...
 It needs to know from where it is loaded (the path in the URL), to retrieve many additional files on demand.
 That's also the main reason why it is slow, because for each file a new SSL connection has to be setup!
@@ -119,7 +122,7 @@ const SMC_REPO = "https://github.com/sagemathinc/cocalc";
 const SMC_LICENSE = "AGPLv3";
 const { WEBAPP_LIB } = misc_node;
 const INPUT = path.resolve(__dirname, WEBAPP_LIB);
-const OUTPUT = path.resolve(__dirname, misc_node.OUTPUT_DIR);
+const OUTPUT = path.resolve(__dirname, 'dist', misc_node.OUTPUT_DIR);
 const DEVEL = "development";
 const NODE_ENV = process.env.NODE_ENV || DEVEL;
 const { NODE_DEBUG } = process.env;
@@ -203,6 +206,8 @@ console.log(`MATHJAX_URL      = ${MATHJAX_URL}`);
 console.log(`MATHJAX_ROOT     = ${MATHJAX_ROOT}`);
 console.log(`MATHJAX_LIB      = ${MATHJAX_LIB}`);
 
+// TODO: NO - this utterly breaks modularity/packaging...
+/*
 // fallback case: if COMP_ENV is false (default) we still need empty json files to satisfy the webpack dependencies
 if (!COMP_ENV) {
   for (let fn of [
@@ -215,6 +220,7 @@ if (!COMP_ENV) {
     fs.writeFileSync(fn, "{}");
   }
 }
+*/
 
 // adds a banner to each compiled and minified source .js file
 // webpack2: https://webpack.js.org/guides/migrating/#bannerplugin-breaking-change
@@ -404,7 +410,7 @@ entries = {
     "./webapp-lib/primus/primus-engine.min.js",
     // npm packages are added to vendor code separately in splitChunks config below
   ],
-  "pdf.worker": "./smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry",
+  "pdf.worker": "./node_modules/smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry",
 };
 plugins.push(...[pug2app, mathjaxVersionedSymlink]);
 
