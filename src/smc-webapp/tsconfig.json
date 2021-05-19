@@ -1,18 +1,12 @@
 {
+  "extends": "../packages/tsconfig.json",
   "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "dist",
     "jsx": "react",
     "target": "es5",
     "sourceMap": true,
-    "lib": ["es5", "es6", "es2017", "dom"],
-    "strictNullChecks": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "downlevelIteration": true,
-    "rootDir": "./",
-    "skipLibCheck": true,
-    "allowJs": true,
-    "outDir": "dist"
+    "lib": ["es5", "es6", "es2017", "dom"]
   },
   "exclude": [
     "dist",

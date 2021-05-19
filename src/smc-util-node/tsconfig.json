@@ -1,16 +1,11 @@
 {
+  "extends": "../packages/tsconfig.json",
   "compilerOptions": {
     "target": "es5",
     "types": ["node"],
     "lib": ["es7"],
-    "strictNullChecks": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "downlevelIteration": true,
     "rootDir": "./",
-    "skipLibCheck": true,
-    "outDir": "dist",
-    "allowJs": true
+    "outDir": "dist"
   },
   "exclude": ["node_modules", "dist", "test"]
 }

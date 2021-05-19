@@ -10,6 +10,7 @@
     "noUnusedParameters": true,
     "downlevelIteration": true,
     "skipLibCheck": true,
-    "allowJs": true
+    "allowJs": true,
+    "sourceMap": true
   }
 }

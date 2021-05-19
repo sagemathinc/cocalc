@@ -4,3 +4,4 @@ tsconfig.tsbuildinfo
 *.term.init
 *.sage-chat
 a
+out
