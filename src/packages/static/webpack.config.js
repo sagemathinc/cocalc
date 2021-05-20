@@ -222,11 +222,17 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 // we need our own chunk sorter, because just by dependency doesn't work
 // this way, we can be 100% sure
 function smcChunkSorter(a, b) {
+  console.log("a = ", a, "  b = ", b);
   const order = ["css", "fill", "vendor", "smc"];
-  if (order.indexOf(a.names[0]) < order.indexOf(b.names[0])) {
+  try {
+    if (order.indexOf(a) < order.indexOf(b)) {
+      return -1;
+    } else {
+      return 1;
+    }
+  } catch (err) {
+    console.log("WARNING in smcChunkSorter", err);
     return -1;
-  } else {
-    return 1;
   }
 }
 
@@ -412,7 +418,8 @@ module.exports = {
   // https://webpack.js.org/configuration/devtool/#devtool
   // **do** use cheap-module-eval-source-map; it produces too large files, but who cares since we are not
   // using this in production.  DO NOT use 'source-map', which is VERY slow.
-  devtool: SOURCE_MAP ? "#cheap-module-eval-source-map" : undefined,
+  //devtool: SOURCE_MAP ? "#cheap-module-eval-source-map" : undefined,
+  devtool: SOURCE_MAP ? "eval" : undefined,
 
   mode: PRODMODE ? "production" : "development",
 
@@ -433,7 +440,10 @@ module.exports = {
   module: {
     rules: [
       { test: /\.coffee$/, loader: "coffee-loader" },
-      { test: /\.cjsx$/, loader: ["coffee-loader", "cjsx-loader"] },
+      {
+        test: /\.cjsx$/,
+        use: [{ loader: "coffee-loader" }, { loader: "cjsx-loader" }],
+      },
       { test: [/node_modules\/prom-client\/.*\.js$/], loader: "babel-loader" },
       { test: [/latex-editor\/.*\.jsx?$/], loader: "babel-loader" },
       { test: [/build\/pdf.js$/], loader: "babel-loader" }, // since they messed up their release including Optional Chaining in built files!
@@ -579,6 +589,14 @@ module.exports = {
       path.resolve(__dirname, "node_modules", "smc-webapp"),
       path.resolve(__dirname, "node_modules", "smc-webapp/node_modules"),
     ],
+    preferRelative: true,
+    fallback: {
+      stream: require.resolve("stream-browserify"),
+      util: require.resolve("util/"),
+      path: require.resolve("path-browserify"),
+      crypto: require.resolve("crypto-browserify"),
+      assert: require.resolve("assert/"),
+    },
   },
 
   plugins,
