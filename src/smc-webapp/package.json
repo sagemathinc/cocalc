@@ -144,6 +144,7 @@
     "use-async-effect": "^2.2.2",
     "use-debounce": "^3.4.2",
     "use-interval": "^1.3.0",
+    "utility-types": "^3.10.0",
     "webapp-lib": "*",
     "xterm": "^4.9.0",
     "xterm-addon-fit": "^0.4.0",

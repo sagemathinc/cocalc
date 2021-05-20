@@ -14,7 +14,7 @@ import * as CodeMirror from "codemirror";
 import { startswith } from "smc-util/misc";
 
 const data = require("codemirror-extra/data/latex-completions.txt").default;
-let completions = data.split("\n");
+const completions : string[] = data.split("\n");
 
 function tex_hint(editor) {
   const cur = editor.getCursor();

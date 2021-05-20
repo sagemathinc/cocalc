@@ -14,6 +14,7 @@
     "node_modules",
     "account/test",
     "jupyter/test",
+    "app-framework/__tests__/",
     "frame-editors/sagews-editor",
     "frame-editors/generic/mocha-tests",
     "frame-editors/settings/__tests__",

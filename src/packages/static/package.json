@@ -11,18 +11,13 @@
   "description": "CoCalc's Static Frontend Webapp Assets",
   "main": "index.js",
   "babel": {
-    "presets": [
-      "@babel/preset-env"
-    ],
-    "plugins": [
-      "@babel/plugin-transform-react-jsx"
-    ]
+    "presets": ["@babel/preset-env"],
+    "plugins": ["@babel/plugin-transform-react-jsx"]
   },
   "scripts": {
-    "dev": "CC_NOCLEAN=true SOURCE_MAP=true NODE_ENV=development webpack --progress --color --watch",
-    "clean": "rm -rf dist",
-    "build": "BABEL_ENV=production NODE_ENV=production NODE_OPTIONS=--max_old_space_size=16000   webpack --progress --color",
-    "publish": "npm run clean && npm run build && npm publish --access=public"
+    "webpack": "CC_NOCLEAN=true SOURCE_MAP=true NODE_ENV=development webpack --progress --color --watch",
+    "tsc": "cd node_modules/smc-webapp && tsc --watch",
+    "build": "rm -rf dist && BABEL_ENV=production NODE_ENV=production NODE_OPTIONS=--max_old_space_size=8000 webpack --progress --color"
   },
   "repository": {
     "type": "git",
@@ -84,7 +79,6 @@
     "eslint-plugin-react-hooks": "^2.2.0",
     "file-loader": "^6.2.0",
     "forever": "^0.15.3",
-    "fork-ts-checker-webpack-plugin": "^6.2.10",
     "handlebars": "^4.7.6",
     "handlebars-loader": "^1.1.4",
     "html-loader": "^0.5.5",
@@ -117,14 +111,13 @@
     "style-loader": "^0.13.1",
     "temp": "^0.9.1",
     "ts-jest": "^26.5.4",
-    "ts-loader": "^4.4.1",
+    "ts-loader": "^8.3.0",
     "ts-node": "=7.0.0",
     "tsd": "^0.14.0",
     "typescript": "^4.1.3",
     "uglify-js": "^3.9.3",
     "uglifyjs-webpack-plugin": "^1.3.0",
     "url-loader": "^4.1.1",
-    "utility-types": "^3.10.0",
     "webpack": "^4.46.0",
     "webpack-bundle-analyzer": "^3.8.0",
     "webpack-cli": "^4.7.0",
