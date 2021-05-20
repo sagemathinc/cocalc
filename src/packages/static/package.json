@@ -9,7 +9,7 @@
   ],
   "version": "1.0.0",
   "description": "CoCalc's Static Frontend Webapp Assets",
-  "main": "index.js",
+  "main": "./src/index.js",
   "babel": {
     "presets": ["@babel/preset-env"],
     "plugins": ["@babel/plugin-transform-react-jsx"]

@@ -21,6 +21,8 @@ In another terminal (also in this package/static directory!), start watching for
 npm run tsc
 ```
 
+The files that are produced by webpack, and that your hub serves up are in the subdirectory `dist/`.
+
 ## Making a release
 
 When you're ready to make a release of the static part of CoCalc, stop the above watch servers (for development), then do a clean build:
