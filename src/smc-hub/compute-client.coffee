@@ -2137,7 +2137,8 @@ class ProjectClient extends EventEmitter
         # pass in additional quota settings.
         dbg = @dbg("set_quotas")
         dbg("set various quotas...")
-        opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network', 'mintime', 'member_host', 'ephemeral_state', 'ephemeral_disk', 'always_running', 'cb'])
+        # the fields are the old and the new schema + a callback
+        opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'memory_limit', 'memory_request', 'cpu_shares', 'cpu_limit', 'cpu_request', 'network', 'mintime', 'member_host', 'ephemeral_state', 'ephemeral_disk', 'idle_timeout', 'always_running', 'privileged', 'cb'])
         commands = undefined
         async.series([
             (cb) =>

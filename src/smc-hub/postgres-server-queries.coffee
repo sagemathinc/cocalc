@@ -32,6 +32,8 @@ required = defaults.required
 
 {SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('smc-util/schema')
 
+{ quota } = require("smc-util/upgrades/quota")
+
 { DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images")
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
@@ -2468,23 +2470,39 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             project_id : required
             cb         : required
-        settings = project_upgrades = undefined
+        settings = upgrades = undefined
         async.parallel([
+            #(cb) =>
+            #    @get_project_settings
+            #        project_id : opts.project_id
+            #        cb         : (err, x) =>
+            #            settings = x; cb(err)
+            ## don't use the sum of upgrades, but instead the quota() function
+            #(cb) =>
+            #    @get_project_upgrades
+            #        project_id : opts.project_id
+            #        cb         : (err, x) =>
+            #            upgrades = x; cb(err)
             (cb) =>
-                @get_project_settings
-                    project_id : opts.project_id
-                    cb         : (err, x) =>
-                        settings = x; cb(err)
+                @_query
+                    query : 'SELECT settings FROM projects'
+                    where : 'project_id = $::UUID' : opts.project_id
+                    cb    : one_result 'settings', (err, x) =>
+                        settings = x
+                        cb(err)
             (cb) =>
-                @get_project_upgrades
-                    project_id : opts.project_id
-                    cb         : (err, x) =>
-                        project_upgrades = x; cb(err)
+                @_query
+                    query : 'SELECT users FROM projects'
+                    where : 'project_id = $::UUID' : opts.project_id
+                    cb    : one_result 'users', (err, users) =>
+                        upgrades = users
+                        cb(err)
         ], (err) =>
             if err
                 opts.cb(err)
             else
-                opts.cb(undefined, misc.map_sum(settings, project_upgrades))
+                console.log("XXXXXXXXXXXXXXXXXXX get_project_quotas", JSON.stringify(settings), JSON.stringify(upgrades), "->", JSON.stringify(quota(settings, upgrades)))
+                opts.cb(undefined, quota(settings, upgrades))
         )
 
     # Return mapping from project_id to map listing the upgrades this particular user

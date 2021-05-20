@@ -7,7 +7,15 @@
 
 import { List } from "immutable";
 
-import { redux, Redux, rclass, rtypes, Store, Actions } from "./app-framework";
+import {
+  redux,
+  Redux,
+  rclass,
+  rtypes,
+  Store,
+  Actions,
+  TypedMap,
+} from "./app-framework";
 import * as React from "react";
 import {
   Loading,
@@ -17,6 +25,7 @@ import {
   smc_git_rev,
   UNIT,
 } from "./r_misc";
+import { Quota } from "smc-util/upgrades/quota";
 
 // import { SiteSettings as SiteSettingsConfig } from "smc-util/db-schema/site-defaults";
 import { callback2, retry_until_success } from "smc-util/async-utils";
@@ -79,7 +88,7 @@ export interface CustomizeState {
   kucalc: string;
   logo_rectangular: string;
   logo_square: string;
-  max_upgrades: string;
+  max_upgrades: TypedMap<Quota>;
   nonfree_countries?: List<string>;
   onprem_quota_heading: string;
   organization_email: string;
