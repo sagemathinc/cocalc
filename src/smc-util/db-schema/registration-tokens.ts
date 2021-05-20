@@ -13,7 +13,7 @@ import {
   RegistrationTokenSetFields,
   RegistrationTokenGetFields,
 } from "./types";
-import { callback2 as cb2 } from "smc-util/async-utils";
+import { callback2 as cb2 } from "../async-utils";
 
 function is_delete(options: Array<{ delete?: boolean }>) {
   return options.some((v) => v?.delete === true);

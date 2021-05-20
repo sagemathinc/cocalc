@@ -7,16 +7,18 @@
     "./run/*": "./dist/run/*.js"
   },
   "workspaces": [
+    "./",
     "../smc-util",
     "../smc-util-node",
     "../smc-webapp",
     "../webapp-lib",
-    "./",
     "../packages/cdn",
-    "../packages/landing"
+    "../packages/landing",
+    "../packages/static"
   ],
   "dependencies": {
     "@cocalc/cdn": "*",
+    "@cocalc/static": "*",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.1",
     "@sendgrid/client": "^6.5.1",

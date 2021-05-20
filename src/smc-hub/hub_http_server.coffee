@@ -40,8 +40,11 @@ manifest = require('./manifest')
 open_cocalc = require('./open-cocalc-server')
 
 SMC_ROOT    = process.env.SMC_ROOT
-STATIC_PATH = path_module.join(SMC_ROOT, 'static')
+STATIC_PATH = require('@cocalc/static').path
+winston.debug("STATIC_PATH='#{STATIC_PATH}'")
+
 WEBAPP_RES_PATH = require('@cocalc/cdn').path
+winston.debug("WEBAPP_RES_PATH='#{WEBAPP_RES_PATH}'")
 
 exports.init_express_http_server = (opts) ->
     opts = defaults opts,

@@ -19,7 +19,7 @@
   "author": "Hal Snyder",
   "license": "ISC",
   "devDependencies": {
-    "@babel/core": "^7.7.4",
+    "@babel/core": "^7.14.3",
     "@babel/preset-env": "^7.7.4",
     "@babel/preset-typescript": "^7.9.0",
     "@types/chai": "^4.2.11",

@@ -93,7 +93,7 @@ require("coffeescript/register");
 // So we can require Typescript code.
 require("ts-node").register();
 
-let cleanWebpackPlugin, entries, hashname, MATHJAX_URL, output_fn, publicPath;
+let cleanWebpackPlugin, entries, hashname, MATHJAX_URL, output_fn;
 const plugins = [];
 const _ = require("lodash");
 const webpack = require("webpack");
@@ -118,7 +118,7 @@ const SMC_REPO = "https://github.com/sagemathinc/cocalc";
 const SMC_LICENSE = "AGPLv3";
 const { WEBAPP_LIB } = misc_node;
 const INPUT = path.resolve(__dirname, "node_modules", WEBAPP_LIB);
-const OUTPUT = path.resolve(__dirname, "dist", misc_node.OUTPUT_DIR);
+const OUTPUT = path.resolve(__dirname, "dist");
 const DEVEL = "development";
 const NODE_ENV = process.env.NODE_ENV || DEVEL;
 const { NODE_DEBUG } = process.env;
@@ -127,7 +127,6 @@ const COMP_ENV =
   (process.env.CC_COMP_ENV || PRODMODE) &&
   fs.existsSync("webapp-lib/compute-components.json");
 const COMMERCIAL = !!COMP_ENV; // assume to be in the commercial setup, if we show the compute environment
-let { CDN_BASE_URL } = process.env; // CDN_BASE_URL must have a trailing slash
 const DEVMODE = !PRODMODE;
 const MINIFY = !!process.env.WP_MINIFY;
 const DEBUG = process.argv.includes("--debug");
@@ -156,18 +155,6 @@ const DISABLE_TS_LOADER_OPTIMIZATIONS =
 // create a file base_url to set a base url
 const { BASE_URL } = misc_node;
 
-// check and sanitiziation (e.g. an exising but empty env variable is ignored)
-// CDN_BASE_URL must have a trailing slash
-if (CDN_BASE_URL == null || CDN_BASE_URL.length === 0) {
-  CDN_BASE_URL = null;
-} else {
-  if (CDN_BASE_URL.slice(-1) !== "/") {
-    throw new Error(
-      `CDN_BASE_URL must be an URL-string ending in a '/' -- but it is ${CDN_BASE_URL}`
-    );
-  }
-}
-
 // output build environment variables of webpack
 console.log(`SMC_VERSION      = ${SMC_VERSION}`);
 console.log(`SMC_GIT_REV      = ${GIT_REV}`);
@@ -175,7 +162,6 @@ console.log(`NODE_ENV         = ${NODE_ENV}`);
 console.log(`NODE_DEBUG       = ${NODE_DEBUG}`);
 console.log(`COMP_ENV         = ${COMP_ENV}`);
 console.log(`BASE_URL         = ${BASE_URL}`);
-console.log(`CDN_BASE_URL     = ${CDN_BASE_URL}`);
 console.log(`DEBUG            = ${DEBUG}`);
 console.log(`MINIFY           = ${MINIFY}`);
 console.log(`MEASURE          = ${MEASURE}`);
@@ -188,14 +174,7 @@ console.log(
   `DISABLE_TS_LOADER_OPTIMIZATIONS = ${DISABLE_TS_LOADER_OPTIMIZATIONS}`
 );
 
-// mathjax version → symlink with version info from package.json/version
-if (CDN_BASE_URL != null) {
-  // the CDN url does not have the /static/... prefix!
-  MATHJAX_URL =
-    CDN_BASE_URL + path.join(misc_node.MATHJAX_SUBDIR, "MathJax.js");
-} else {
-  ({ MATHJAX_URL } = misc_node); // from where the files are served
-}
+({ MATHJAX_URL } = misc_node); // from where the files are served
 const { MATHJAX_ROOT } = misc_node; // where the symlink originates
 const { MATHJAX_LIB } = misc_node; // where the symlink points to
 console.log(`MATHJAX_URL      = ${MATHJAX_URL}`);
@@ -441,10 +420,11 @@ if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
 
 if (DEVMODE) {
   console.log(`\
-******************************************************
-*             You have to visit:                     *
-*   https://cocalc.com/[project_id]/port/[...]/app   *
-******************************************************`);
+*************************************************************************************
+
+    https://cocalc.com/${BASE_URL}app
+
+*************************************************************************************`);
 }
 
 if (PRODMODE) {
@@ -475,22 +455,16 @@ const svgconfig = { name: hashname, limit: 16000, mimetype: "image/svg+xml" };
 const icoconfig = { name: hashname, mimetype: "image/x-icon" };
 const woffconfig = { name: hashname, mimetype: "application/font-woff" };
 
-// publicPath: either locally, or a CDN, see https://github.com/webpack/docs/wiki/configuration#outputpublicpath
-// In order to use the CDN, copy all files from the `OUTPUT` directory over there.
-// Caching: files ending in .html (like index.html or those in /policies/) and those matching '*.nocache.*' shouldn't be cached
-//          all others have a hash and can be cached long-term (especially when they match '*.cacheme.*')
-if (CDN_BASE_URL != null) {
-  publicPath = CDN_BASE_URL;
-} else {
-  publicPath = path.join(BASE_URL, misc_node.OUTPUT_DIR) + "/";
-}
+// This is the path that is encoded in the static files, so it's
+// what they reference when grabbing more content.
+const publicPath = path.join(BASE_URL, "static") + "/";
 
 if (MEASURE) {
   const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
   const bundleAnalyzerPlugin = new BundleAnalyzerPlugin({
     analyzerMode: "static",
   });
-  plugins.push(...[bundleAnalyzerPlugin]);
+  plugins.push(bundleAnalyzerPlugin);
 }
 
 module.exports = {
@@ -523,7 +497,7 @@ module.exports = {
       { test: /\.cjsx$/, loader: ["coffee-loader", "cjsx-loader"] },
       { test: [/node_modules\/prom-client\/.*\.js$/], loader: "babel-loader" },
       { test: [/latex-editor\/.*\.jsx?$/], loader: "babel-loader" },
-      { test: [/build\/pdf.js$/], loader: "babel-loader" },   // since they messed up their release including Optional Chaining in built files!
+      { test: [/build\/pdf.js$/], loader: "babel-loader" }, // since they messed up their release including Optional Chaining in built files!
       // Note: see https://github.com/TypeStrong/ts-loader/issues/552
       // for discussion of issues with ts-loader + webpack.
       {

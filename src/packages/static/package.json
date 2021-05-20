@@ -1,5 +1,5 @@
 {
-  "name": "cocalc",
+  "name": "@cocalc/static",
   "workspaces": [
     "../../smc-util",
     "../../smc-util-node",
@@ -11,27 +11,15 @@
   "description": "CoCalc's Static Frontend Webapp Assets",
   "main": "index.js",
   "babel": {
-    "presets": [
-      "@babel/preset-env"
-    ],
-    "plugins": [
-      "@babel/plugin-transform-react-jsx"
-    ]
+    "presets": ["@babel/preset-env"],
+    "plugins": ["@babel/plugin-transform-react-jsx"]
   },
   "scripts": {
-    "build": "BABEL_ENV=production NODE_ENV=production NODE_OPTIONS='--max_old_space_size=8192' webpack --progress --color",
+    "dev": "CC_NOCLEAN=true SOURCE_MAP=true NODE_ENV=development NODE_OPTIONS=--max_old_space_size=16000  webpack --progress --color --watch",
     "test": "echo 'todo'",
-    "webpack-watch": "cd $SALVUS_ROOT; scripts/check_npm_packages.py && node scripts/update-color-scheme.js && webapp-lib/primus/update_primus && unset CC_STATICPAGES && CC_NOCLEAN=true SOURCE_MAP=true NODE_ENV=development node --max_old_space_size=8192 node_modules/webpack/bin/webpack.js --debug --output-pathinfo --progress --color --watch --watch-poll=1000",
-    "webpack-debug": "cd $SALVUS_ROOT; node scripts/update-color-scheme.js; webapp-lib/primus/update_primus; SOURCE_MAP=true NODE_ENV=development webpack --debug --progress --color",
-    "webpack-production": "cd $SALVUS_ROOT;node  scripts/update-color-scheme.js; webapp-lib/primus/update_primus;  BABEL_ENV=production NODE_ENV=production node --max_old_space_size=8192 node_modules/webpack/bin/webpack.js --progress --color",
-    "webpack-clean": "rm -rvf $SALVUS_ROOT/static/",
-    "webpack-static": "cd $SALVUS_ROOT; node scripts/update-color-scheme.js; scripts/update_react_static && NODE_OPTIONS='--max-old-space-size=3000' CC_STATICPAGES=true NODE_ENV=development webpack --debug --output-pathinfo --progress --color",
-    "make": "npm run install-all",
-    "delete-package-lock": "git ls-files '../*/package-lock.json' | xargs rm -f",
-    "restore-package-lock": "git ls-files '../*/package-lock.json' | xargs git checkout --",
-    "clean": "find $SMC_ROOT -type d -name dist | grep -v node_modules | grep \\/dist\\$ | xargs rm -rf && find $SMC_ROOT -type d -name node_modules | xargs rm -rf && rm -rf $SMC_ROOT/static && npm cache verify",
-    "audit-fix": "scripts/npm-audit.sh fix",
-    "prettier-all": "git ls-files '*.ts' '*.tsx' '**/*.ts' '**/*.tsx' | parallel -j5 --eta prettier --write :::"
+    "clean": "rm -rf dist",
+    "build": "BABEL_ENV=production NODE_ENV=production NODE_OPTIONS=--max_old_space_size=8192   webpack --progress --color",
+    "publish": "npm run clean && npm run build && npm publish --access=public"
   },
   "repository": {
     "type": "git",
@@ -136,9 +124,7 @@
     "webpack-dev-middleware": "^3.7.2",
     "webpack-path-rewriter": "^1.1.4",
     "webpack-sha-hash": "^2",
-    "webpack-stats-plugin": "^0.3.1"
-  },
-  "dependencies": {
+    "webpack-stats-plugin": "^0.3.1",
     "entities": "^1.1.2",
     "json-loader": "^0.5.7",
     "raw-loader": "^4.0.2",

@@ -7,7 +7,7 @@
     "test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test && cd ../smc-project && npm test",
     "coverage": "cd smc-util && npm run coverage && cd ../smc-util-node && npm run coverage && cd ../smc-hub && npm run coverage && cd ../smc-webapp && npm run coverage",
     "install-all": "scripts/smc-install-all",
-    "build": "echo 'no-op for now; just here for consistency'",
+    "build": "scripts/check_npm_packages.py && NODE_PATH=`pwd`/smc-util node scripts/update-color-scheme.js && webapp-lib/primus/update_primus",
     "make": "npm run install-all",
     "delete-package-lock": "git ls-files '../*/package-lock.json' | xargs rm -f",
     "restore-package-lock": "git ls-files '../*/package-lock.json' | xargs git checkout --",
