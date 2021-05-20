@@ -48,10 +48,21 @@ reportException = (exception, name, severity, comment) ->
         severity: severity || "default"
     )
 
+WHITELIST = ['componentWillMount has been renamed', 'componentWillReceiveProps has been renamed', 'a whole package of antd']
+isWhitelisted = (opts) ->
+    s = JSON.stringify(opts)
+    for x in WHITELIST
+        if s.indexOf(x) != -1
+            return true
+    return false
+
 # this is the final step sending the error report.
 # it gathers additional information about the webapp client.
 sendError = (opts) ->
-    #console.log opts
+    # console.log 'sendError', opts
+    if isWhitelisted(opts)
+        # Ignore this antd message in browser.
+        return
     misc = require('smc-util/misc')
     opts = misc.defaults opts,
         name            : misc.required
@@ -91,7 +102,7 @@ sendError = (opts) ->
         {webapp_client} = require('smc-webapp/webapp-client')   # can possibly be undefined
         await webapp_client.tracking_client.webapp_error(opts)  # might fail.
     catch err
-        console.info("failed to report error; trying again in 10 seconds", err)
+        console.info("failed to report error; trying again in 10 seconds", opts)
         await delay(10000)
         try
             {webapp_client} = require('smc-webapp/webapp-client')

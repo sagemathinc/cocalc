@@ -11,12 +11,12 @@ import * as fullscreen from "./fullscreen";
 
 // FUTURE: This is needed only for the old non-react editors; will go away.
 const html =
-  require("./console.html") +
-  require("./editor.html") +
-  require("./jupyter.html") +
-  require("./sagews/interact.html") +
-  require("./sagews/3d.html") +
-  require("./sagews/d3.html");
+  require("./console.html").default +
+  require("./editor.html").default +
+  require("./jupyter.html").default +
+  require("./sagews/interact.html").default +
+  require("./sagews/3d.html").default +
+  require("./sagews/d3.html").default;
 $("body").append(html);
 
 // deferred initialization of buttonbars until after global imports -- otherwise, the sagews sage mode bar might be blank
@@ -76,6 +76,6 @@ $(window).on("beforeunload", redux.getActions("page").check_unload);
 import "./last";
 
 // adding a banner in case react crashes (it will be revealed)
-const crash = require("./crash.html");
+const crash = require("./crash.html").default;
 import { HELP_EMAIL } from "smc-util/theme";
 $("body").append(crash.replace(/HELP_EMAIL/g, HELP_EMAIL));

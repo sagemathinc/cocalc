@@ -1108,7 +1108,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, status });
     let my_group: any;
     let the_listing: any;
-    return async.series(
+    async.series(
       [
         (cb) => {
           // make sure the user type is known;
