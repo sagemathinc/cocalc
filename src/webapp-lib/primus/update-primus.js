@@ -16,7 +16,7 @@ const BASE_URL = fs.existsSync(path_to_base_url)
   ? fs.readFileSync(path_to_base_url).toString().trim()
   : "";
 
-const update = function (base_url) {
+function update() {
   const opts = { pathname: path.join(BASE_URL, "/hub") };
   console.log(opts);
   const primus = new require("primus")(require("http").createServer(), opts);

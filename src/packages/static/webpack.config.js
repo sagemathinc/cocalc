@@ -321,7 +321,7 @@ registerPlugin(
 
 // https://webpack.js.org/guides/migrating/#uglifyjsplugin-minimize-loaders
 registerPlugin(
-  "LoaderOptionsPlugin -- configure how html loader works",
+  "html-minify-loader options -- configure how html loader works",
   new webpack.LoaderOptionsPlugin({
     minimize: true,
     options: {
