@@ -94,7 +94,6 @@ require("coffeescript/register");
 require("ts-node").register();
 
 let entries, hashname, MATHJAX_URL, output_fn;
-const plugins = [];
 const _ = require("lodash");
 const webpack = require("webpack");
 const path = require("path");
@@ -109,6 +108,16 @@ const program = require("commander");
 const SMC_VERSION = require("smc-util/smc-version").version;
 const theme = require("smc-util/theme");
 const RES_VERSIONS = require("@cocalc/cdn").versions;
+
+const plugins = [];
+function registerPlugin(desc, plugin, disable) {
+  if (disable) {
+    console.log("Disabling plugin:  ", desc);
+    return;
+  }
+  console.log("Registering plugin:", desc);
+  plugins.push(plugin);
+}
 
 const git_head = child_process.execSync("git rev-parse HEAD");
 const GIT_REV = git_head.toString().trim();
@@ -199,19 +208,23 @@ if (!COMP_ENV) {
 
 // adds a banner to each compiled and minified source .js file
 // webpack2: https://webpack.js.org/guides/migrating/#bannerplugin-breaking-change
-const bannerPlugin = new webpack.BannerPlugin({
-  banner: `\
+registerPlugin(
+  "BannerPlugin -- adds banner to each compiled source .js file",
+  new webpack.BannerPlugin({
+    banner: `\
 This file is part of ${TITLE}.
 It was compiled ${BUILD_DATE} at revision ${GIT_REV} and version ${SMC_VERSION}.
 See ${SMC_REPO} for its ${SMC_LICENSE} code.\
 `,
-  entryOnly: true,
-});
+    entryOnly: true,
+  })
+);
 
 // webpack plugin to do the linking after it's "done"
 class MathjaxVersionedSymlink {
   apply(compiler) {
-    // make absolute path to the mathjax lib (lives in node_module of smc-webapp)
+    // make absolute path to the mathjax lib (lives in node_module
+    // of smc-webapp)
     const symto = path.resolve(__dirname, `${MATHJAX_LIB}`);
     console.log(`mathjax symlink: pointing to ${symto}`);
     const mksymlink = (dir, cb) =>
@@ -227,33 +240,42 @@ class MathjaxVersionedSymlink {
   }
 }
 
-const mathjaxPlugin = new MathjaxVersionedSymlink();
-const CleanWebpackPlugin = require("clean-webpack-plugin");
+registerPlugin(
+  "MathjaxVersionedSymlink -- creates mathjax symlinks",
+  new MathjaxVersionedSymlink(),
+  true
+);
 
 if (!CC_NOCLEAN) {
-  // cleanup like "make distclean"
+  // cleanup like "make distclean".
   // otherwise, compiles create an evergrowing pile of files
-  cleanWebpackPlugin = new CleanWebpackPlugin([OUTPUT], {
-    verbose: true,
-    dry: false,
-  });
-  plugins.push(cleanWebpackPlugin);
+  const CleanWebpackPlugin = require("clean-webpack-plugin");
+  registerPlugin(
+    "CleanWebpackPlugin -- cleanup generated dist directory to save space",
+    new CleanWebpackPlugin([OUTPUT], {
+      verbose: true,
+      dry: false,
+    })
+  );
 }
 
 // assets.json file
 const AssetsPlugin = require("assets-webpack-plugin");
-const assetsPlugin = new AssetsPlugin({
-  path: OUTPUT,
-  filename: "assets.json",
-  fullPath: false,
-  prettyPrint: true,
-  metadata: {
-    git_ref: GIT_REV,
-    version: SMC_VERSION,
-    built: BUILD_DATE,
-    timestamp: BUILD_TS,
-  },
-});
+registerPlugin(
+  "AssetsPlugin -- create assets.json file",
+  new AssetsPlugin({
+    path: OUTPUT,
+    filename: "assets.json",
+    fullPath: false,
+    prettyPrint: true,
+    metadata: {
+      git_ref: GIT_REV,
+      version: SMC_VERSION,
+      built: BUILD_DATE,
+      timestamp: BUILD_TS,
+    },
+  })
+);
 
 // https://www.npmjs.com/package/html-webpack-plugin
 const HtmlWebpackPlugin = require("html-webpack-plugin");
@@ -288,39 +310,42 @@ while (base_url_html && base_url_html[base_url_html.length - 1] === "/") {
 
 // this is the main app.html file, which should be served without any caching
 // config: https://github.com/jantimon/html-webpack-plugin#configuration
-const pugPlugin = new HtmlWebpackPlugin({
-  filename: "app.html",
-  chunksSortMode: smcChunkSorter,
-  hash: PRODMODE,
-  template: path.join(INPUT, "app.pug"),
-  minify: htmlMinifyOpts,
-  inject: false,
-  templateParameters: function (compilation, assets, options) {
-    return {
-      files: assets,
-      htmlWebpackPlugin: {
-        options: {
-          ...options,
-          ...{
-            date: BUILD_DATE,
-            title: TITLE,
-            description: DESCRIPTION,
-            BASE_URL: base_url_html,
-            RES_VERSIONS,
-            theme,
-            COMP_ENV,
-            components: {}, // no data needed, empty is fine
-            inventory: {}, // no data needed, empty is fine
-            git_rev: GIT_REV,
-            mathjax: MATHJAX_URL,
-            GOOGLE_ANALYTICS,
-            COMMERCIAL,
+registerPlugin(
+  "PugPlugin -- process the app.pug template",
+  new HtmlWebpackPlugin({
+    filename: "app.html",
+    chunksSortMode: smcChunkSorter,
+    hash: PRODMODE,
+    template: path.join(INPUT, "app.pug"),
+    minify: htmlMinifyOpts,
+    inject: false,
+    templateParameters: function (compilation, assets, options) {
+      return {
+        files: assets,
+        htmlWebpackPlugin: {
+          options: {
+            ...options,
+            ...{
+              date: BUILD_DATE,
+              title: TITLE,
+              description: DESCRIPTION,
+              BASE_URL: base_url_html,
+              RES_VERSIONS,
+              theme,
+              COMP_ENV,
+              components: {}, // no data needed, empty is fine
+              inventory: {}, // no data needed, empty is fine
+              git_rev: GIT_REV,
+              mathjax: MATHJAX_URL,
+              GOOGLE_ANALYTICS,
+              COMMERCIAL,
+            },
           },
         },
-      },
-    };
-  },
-});
+      };
+    },
+  })
+);
 
 // global css loader configuration
 const cssConfig = JSON.stringify({
@@ -330,42 +355,49 @@ const cssConfig = JSON.stringify({
 // this is like C's #ifdef for the source code. It is particularly useful in the
 // source code of CoCalc's webapp, such that it knows about itself's version and where
 // mathjax is. The version&date is shown in the hover-title in the footer (year).
-const nodeEnvironmentPlugin = new webpack.DefinePlugin({
-  "process.env": {
-    NODE_ENV: JSON.stringify(NODE_ENV),
-  },
-  MATHJAX_URL: JSON.stringify(MATHJAX_URL),
-  SMC_VERSION: JSON.stringify(SMC_VERSION),
-  SMC_GIT_REV: JSON.stringify(GIT_REV),
-  BUILD_DATE: JSON.stringify(BUILD_DATE),
-  BUILD_TS: JSON.stringify(BUILD_TS),
-  DEBUG: JSON.stringify(DEBUG),
-});
+registerPlugin(
+  "nodeEnvironmentPlugin -- inject some global variables into the frontend (versions, modes, dates, etc)",
+  new webpack.DefinePlugin({
+    "process.env": {
+      NODE_ENV: JSON.stringify(NODE_ENV),
+    },
+    MATHJAX_URL: JSON.stringify(MATHJAX_URL),
+    SMC_VERSION: JSON.stringify(SMC_VERSION),
+    SMC_GIT_REV: JSON.stringify(GIT_REV),
+    BUILD_DATE: JSON.stringify(BUILD_DATE),
+    BUILD_TS: JSON.stringify(BUILD_TS),
+    DEBUG: JSON.stringify(DEBUG),
+  })
+);
 
 // Writes a JSON file containing the main webpack-assets and their filenames.
 const { StatsWriterPlugin } = require("webpack-stats-plugin");
-const statsWriterPlugin = new StatsWriterPlugin({
-  filename: "webpack-stats.json",
-});
+registerPlugin(
+  "StatsWriterPlugin -- write json file with webpack assets",
+  new StatsWriterPlugin({
+    filename: "webpack-stats.json",
+  })
+);
 
 // https://webpack.js.org/guides/migrating/#uglifyjsplugin-minimize-loaders
-const loaderOptionsPlugin = new webpack.LoaderOptionsPlugin({
-  minimize: true,
-  options: {
-    "html-minify-loader": {
-      empty: true, // KEEP empty attributes
-      cdata: true, // KEEP CDATA from scripts
-      comments: false,
-      removeComments: true,
-      minifyJS: true,
-      minifyCSS: true,
-      collapseWhitespace: true,
-      conservativeCollapse: true,
+registerPlugin(
+  "LoaderOptionsPlugin -- configure how html loader works",
+  new webpack.LoaderOptionsPlugin({
+    minimize: true,
+    options: {
+      "html-minify-loader": {
+        empty: true, // KEEP empty attributes
+        cdata: true, // KEEP CDATA from scripts
+        comments: false,
+        removeComments: true,
+        minifyJS: true,
+        minifyCSS: true,
+        collapseWhitespace: true,
+        conservativeCollapse: true,
+      },
     },
-  },
-});
-
-plugins.push(...[nodeEnvironmentPlugin, bannerPlugin, loaderOptionsPlugin]);
+  })
+);
 
 // ATTN don't alter or add names here, without changing the sorting function above!
 entries = {
@@ -382,10 +414,7 @@ entries = {
     "./node_modules/smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry",
 };
 
-plugins.push(...[pugPlugin, mathjaxPlugin]);
-
 if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
-  console.log("Enabling ForkTsCheckerWebpackPlugin...");
   if (process.env.TSC_WATCHDIRECTORY == null || process.env.TSC_WATCHFILE) {
     console.log(
       "To workaround performance issues with the default typescript watch, we set TSC_WATCH* env vars:"
@@ -399,7 +428,8 @@ if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
   }
 
   const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
-  plugins.push(
+  registerPlugin(
+    "ForkTsCheckerWebpackPlugin -- show typescript errors",
     new ForkTsCheckerWebpackPlugin({
       // async false makes it much easy to see the error messages and
       // be aware of when compilation is done,
@@ -411,7 +441,7 @@ if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
       //     TSC_WATCHFILE=UseFsEventsWithFallbackDynamicPolling
       // in package.json's watch. See
       //  https://blog.johnnyreilly.com/2019/05/typescript-and-high-cpu-usage-watch.html
-      async: true,
+      async: false,
     })
   );
 }
@@ -427,10 +457,11 @@ if (DEVMODE) {
 
 if (PRODMODE) {
   // configuration for the number of chunks and their minimum size
-  plugins.push(new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 5 }));
+  registerPlugin(
+    "LimitChunkCountPlugin -- number of chunks and their minimum size",
+    new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 5 })
+  );
 }
-
-plugins.push(...[assetsPlugin, statsWriterPlugin]);
 
 const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 const minimizerPlugin = new UglifyJsPlugin({
@@ -439,7 +470,7 @@ const minimizerPlugin = new UglifyJsPlugin({
       comments: new RegExp(`This file is part of ${TITLE}`, "g"),
     },
   },
-}); // to keep the banner inserted above
+});
 
 // tuning generated filenames and the configs for the aux files loader.
 // FIXME this setting isn't picked up properly
@@ -459,10 +490,12 @@ const publicPath = path.join(BASE_URL, "static") + "/";
 
 if (MEASURE) {
   const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
-  const bundleAnalyzerPlugin = new BundleAnalyzerPlugin({
-    analyzerMode: "static",
-  });
-  plugins.push(bundleAnalyzerPlugin);
+  registerPlugin(
+    "BundleAnalyzerPlugin -- visualize size of webpack output files with an interactive zoomable treemap",
+    new BundleAnalyzerPlugin({
+      analyzerMode: "static",
+    })
+  );
 }
 
 module.exports = {
@@ -646,7 +679,5 @@ module.exports = {
     ],
   },
 
-  plugins: [nodeEnvironmentPlugin],
-
-  /* plugins, */
+  plugins,
 };
