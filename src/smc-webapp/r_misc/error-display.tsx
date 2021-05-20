@@ -16,7 +16,7 @@ const ELEMENT_STYLE: React.CSSProperties = {
 // use "body_style" prop to customize
 const BODY_STYLE: React.CSSProperties = {
   marginRight: "10px",
-  whiteSpace: "pre",
+  whiteSpace: "pre-wrap",
   fontSize: "85%",
 } as const;
 
