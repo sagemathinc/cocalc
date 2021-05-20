@@ -15,10 +15,10 @@
     "plugins": ["@babel/plugin-transform-react-jsx"]
   },
   "scripts": {
-    "dev": "CC_NOCLEAN=true SOURCE_MAP=true NODE_ENV=development NODE_OPTIONS=--max_old_space_size=16000  webpack --progress --color --watch",
+    "dev": "CC_NOCLEAN=true SOURCE_MAP=true NODE_ENV=development webpack --progress --color --watch",
     "test": "echo 'todo'",
     "clean": "rm -rf dist",
-    "build": "BABEL_ENV=production NODE_ENV=production NODE_OPTIONS=--max_old_space_size=8192   webpack --progress --color",
+    "build": "BABEL_ENV=production NODE_ENV=production NODE_OPTIONS=--max_old_space_size=16000   webpack --progress --color",
     "publish": "npm run clean && npm run build && npm publish --access=public"
   },
   "repository": {

@@ -93,7 +93,7 @@ require("coffeescript/register");
 // So we can require Typescript code.
 require("ts-node").register();
 
-let cleanWebpackPlugin, entries, hashname, MATHJAX_URL, output_fn;
+let entries, hashname, MATHJAX_URL, output_fn;
 const plugins = [];
 const _ = require("lodash");
 const webpack = require("webpack");
@@ -199,7 +199,7 @@ if (!COMP_ENV) {
 
 // adds a banner to each compiled and minified source .js file
 // webpack2: https://webpack.js.org/guides/migrating/#bannerplugin-breaking-change
-const banner = new webpack.BannerPlugin({
+const bannerPlugin = new webpack.BannerPlugin({
   banner: `\
 This file is part of ${TITLE}.
 It was compiled ${BUILD_DATE} at revision ${GIT_REV} and version ${SMC_VERSION}.
@@ -227,16 +227,17 @@ class MathjaxVersionedSymlink {
   }
 }
 
-const mathjaxVersionedSymlink = new MathjaxVersionedSymlink();
+const mathjaxPlugin = new MathjaxVersionedSymlink();
+const CleanWebpackPlugin = require("clean-webpack-plugin");
 
 if (!CC_NOCLEAN) {
   // cleanup like "make distclean"
   // otherwise, compiles create an evergrowing pile of files
-  const CleanWebpackPlugin = require("clean-webpack-plugin");
   cleanWebpackPlugin = new CleanWebpackPlugin([OUTPUT], {
     verbose: true,
     dry: false,
   });
+  plugins.push(cleanWebpackPlugin);
 }
 
 // assets.json file
@@ -287,7 +288,7 @@ while (base_url_html && base_url_html[base_url_html.length - 1] === "/") {
 
 // this is the main app.html file, which should be served without any caching
 // config: https://github.com/jantimon/html-webpack-plugin#configuration
-const pug2app = new HtmlWebpackPlugin({
+const pugPlugin = new HtmlWebpackPlugin({
   filename: "app.html",
   chunksSortMode: smcChunkSorter,
   hash: PRODMODE,
@@ -329,7 +330,7 @@ const cssConfig = JSON.stringify({
 // this is like C's #ifdef for the source code. It is particularly useful in the
 // source code of CoCalc's webapp, such that it knows about itself's version and where
 // mathjax is. The version&date is shown in the hover-title in the footer (year).
-const setNODE_ENV = new webpack.DefinePlugin({
+const nodeEnvironmentPlugin = new webpack.DefinePlugin({
   "process.env": {
     NODE_ENV: JSON.stringify(NODE_ENV),
   },
@@ -348,7 +349,7 @@ const statsWriterPlugin = new StatsWriterPlugin({
 });
 
 // https://webpack.js.org/guides/migrating/#uglifyjsplugin-minimize-loaders
-const loaderOptions = new webpack.LoaderOptionsPlugin({
+const loaderOptionsPlugin = new webpack.LoaderOptionsPlugin({
   minimize: true,
   options: {
     "html-minify-loader": {
@@ -364,11 +365,7 @@ const loaderOptions = new webpack.LoaderOptionsPlugin({
   },
 });
 
-if (cleanWebpackPlugin != null) {
-  plugins.push(cleanWebpackPlugin);
-}
-
-plugins.push(...[setNODE_ENV, banner, loaderOptions]);
+plugins.push(...[nodeEnvironmentPlugin, bannerPlugin, loaderOptionsPlugin]);
 
 // ATTN don't alter or add names here, without changing the sorting function above!
 entries = {
@@ -384,7 +381,8 @@ entries = {
   "pdf.worker":
     "./node_modules/smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry",
 };
-plugins.push(...[pug2app, mathjaxVersionedSymlink]);
+
+plugins.push(...[pugPlugin, mathjaxPlugin]);
 
 if (!DISABLE_TS_LOADER_OPTIMIZATIONS) {
   console.log("Enabling ForkTsCheckerWebpackPlugin...");
@@ -435,7 +433,7 @@ if (PRODMODE) {
 plugins.push(...[assetsPlugin, statsWriterPlugin]);
 
 const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
-const minimizer = new UglifyJsPlugin({
+const minimizerPlugin = new UglifyJsPlugin({
   uglifyOptions: {
     output: {
       comments: new RegExp(`This file is part of ${TITLE}`, "g"),
@@ -478,7 +476,7 @@ module.exports = {
   mode: PRODMODE ? "production" : "development",
 
   optimization: {
-    minimizer: [minimizer],
+    minimizer: [minimizerPlugin],
   },
 
   entry: entries,
@@ -648,5 +646,7 @@ module.exports = {
     ],
   },
 
-  plugins,
+  plugins: [nodeEnvironmentPlugin],
+
+  /* plugins, */
 };
