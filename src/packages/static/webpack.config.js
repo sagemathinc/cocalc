@@ -632,7 +632,7 @@ module.exports = {
       stream: require.resolve("stream-browserify"),
       util: require.resolve("util/"),
       path: require.resolve("path-browserify"),
-      crypto: require.resolve("crypto-browserify"),
+      crypto: require.resolve("crypto-browserify"), /* needed for @phosphor/widgets */
       assert: require.resolve("assert/"),
     },
   },

@@ -5,12 +5,13 @@
 
 // Multiplex'd worksheet mode
 
-let sagews_decorator_modes;
 import { MARKERS } from "smc-util/sagews";
 import { clone, object } from "underscore";
 import * as CodeMirror from "codemirror";
+import "codemirror/addon/mode/multiplex";
+import "./multiplex";
 
-let _sagews_decorator_modes = (sagews_decorator_modes = [
+export const sagews_decorator_modes: [string, string][] = [
   ["cjsx", "text/cjsx"],
   ["coffeescript", "coffeescript"],
   ["cython", "cython"],
@@ -35,15 +36,9 @@ let _sagews_decorator_modes = (sagews_decorator_modes = [
   ["julia", "text/x-julia"],
   ["wiki", "mediawiki"],
   ["mediawiki", "mediawiki"],
-]);
-
-export { _sagews_decorator_modes as sagews_decorator_modes };
+];
 
 // Many of the modes below are multiplexed
-
-import "codemirror/addon/mode/multiplex.js";
-
-import "./multiplex";
 
 interface MultiplexOption {
   open: string | RegExp;
@@ -55,6 +50,7 @@ interface MultiplexOption {
 
 // not using these two gfm2 and htmlmixed2 modes, with their sub-latex mode, since
 // detection of math isn't good enough.  e.g., \$ causes math mode and $ doesn't seem to...   \$500 and $\sin(x)$.
+
 CodeMirror.defineMode("gfm2", function (config) {
   const options: MultiplexOption[] = [];
   for (let x of [

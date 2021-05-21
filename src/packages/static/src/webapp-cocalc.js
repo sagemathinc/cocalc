@@ -5,6 +5,9 @@
 
 // Library file for SMC webapp
 
+// node.js polyfill -- needed for some modules to load in the browser.
+window.Buffer = require("buffer").Buffer;
+
 import "script-loader!primus/primus-engine.min.js";
 
 // this must come before anything that touches event handling, etc.

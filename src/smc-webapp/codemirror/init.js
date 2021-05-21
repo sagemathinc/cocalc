@@ -5,7 +5,7 @@
 
 // Loading and configuring the codemirror editor
 
-window.CodeMirror = CodeMirror = require("codemirror");
+//window.CodeMirror = CodeMirror = require("codemirror");
 
 require("codemirror/addon/mode/overlay.js");
 require("codemirror/addon/selection/active-line.js");
