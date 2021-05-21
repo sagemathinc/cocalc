@@ -104,7 +104,7 @@ interface Settings {
   always_running?: number;
 }
 
-interface Upgrades {
+export interface Upgrades {
   cores: number;
   cpu_shares: number; // 1024
   mintime: number;

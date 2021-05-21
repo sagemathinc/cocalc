@@ -16,11 +16,13 @@ import { isEqual } from "lodash";
 import { Tip } from "../../r_misc";
 import { useTypedRedux, useState } from "../../app-framework";
 import { PROJECT_UPGRADES } from "smc-util/schema";
-import { seconds2hms } from "smc-util/misc";
+import * as misc from "smc-util/misc";
 import { COLORS } from "smc-util/theme";
 const PARAMS = PROJECT_UPGRADES.params;
-import { Quota } from "smc-util/upgrades/quota";
+import { Quota, Upgrades } from "smc-util/upgrades/quota";
 type RunQuota = Partial<Quota>;
+type Value = string | boolean;
+type DisplayQuota = { [key in keyof Quota]: Value };
 
 const SHOW_MAX: readonly string[] = [
   "disk_quota",
@@ -45,6 +47,20 @@ function upgrade2quota_key(key: string): keyof RunQuota {
   return key as keyof RunQuota;
 }
 
+function quota2upgrade_key(key: string): keyof Upgrades {
+  switch (key) {
+    case "idle_timeout":
+      return "mintime";
+    case "memory_limit":
+      return "memory";
+    case "cpu_limit":
+      return "cores";
+    case "cpu_request":
+      return "cpu_shares";
+  }
+  return key as keyof Upgrades;
+}
+
 const Q: React.FC<{ children; tip }> = ({ children, tip }) => {
   return (
     <Tip tip={tip}>
@@ -56,7 +72,7 @@ const Q: React.FC<{ children; tip }> = ({ children, tip }) => {
 interface QuotaData {
   key: string;
   display: string;
-  value: string | boolean;
+  value: Value;
   maximum: string | undefined;
 }
 
@@ -65,38 +81,84 @@ interface Props {
   project_state?: "opened" | "running" | "starting" | "stopping";
 }
 
-function useRunQuota(project_id: string): RunQuota {
-  const [run_quota, set_run_quota] = useState<RunQuota>({});
+function render_val(val, unit) {
+  val = misc.round2(val);
+  return `${val} ${misc.plural(val, unit)}`;
+}
+
+function useRunQuota(project_id: string): DisplayQuota {
+  const [run_quota, set_run_quota] = useState<DisplayQuota>({});
   const project_map = useTypedRedux("projects", "project_map");
   const rq = project_map?.getIn([project_id, "run_quota"]);
-
   if (rq != null) {
     const next = rq.toJS();
-    if (!isEqual(next, run_quota)) set_run_quota(next);
+    for (const [key, val] of Object.entries(next)) {
+      if (typeof val !== "number") continue;
+      if (key == "idle_timeout") {
+        next[key] = misc.seconds2hms(val, false, false);
+      } else {
+        const up_key = quota2upgrade_key(key);
+        // no display factor!
+        const unit = PARAMS[up_key].display_unit;
+        next[key] = render_val(val, unit);
+      }
+    }
+    if (!isEqual(next, run_quota)) {
+      set_run_quota(next);
+    }
   }
   return run_quota;
 }
 
-function useMaxUpgrades(): RunQuota {
-  const [max_upgrades, set_max_upgrades] = useState<RunQuota>({});
+function useMaxUpgrades(): DisplayQuota {
+  const [max_upgrades, set_max_upgrades] = useState<DisplayQuota>({});
   const mu = useTypedRedux("customize", "max_upgrades");
   if (mu != null) {
     const next = mu.toJS();
-    if (!isEqual(next, max_upgrades)) set_max_upgrades(next);
+    for (const [key, val] of Object.entries(next)) {
+      if (typeof val !== "number") continue;
+      if (key == "idle_timeout") {
+        next[key] = misc.seconds2hms(val, false, false);
+      } else {
+        const up_key = quota2upgrade_key(key);
+        const dval = PARAMS[up_key].display_factor * val;
+        const unit = PARAMS[up_key].display_unit;
+        next[key] = render_val(dval, unit);
+      }
+    }
+    if (!isEqual(next, max_upgrades)) {
+      set_max_upgrades(next);
+    }
   }
   return max_upgrades;
+}
+
+function useCurrentUsage(run_quota): DisplayQuota {
+  const [cu, set_cu] = useState<DisplayQuota>({});
+  const next: DisplayQuota = {};
+  PROJECT_UPGRADES.field_order.map((name: string) => {
+    const key = upgrade2quota_key(name);
+    if (["member_host", "network", "always_running"].includes(name)) {
+      next[name] = run_quota[name];
+    } else {
+      next[name] = name + "→" + key;
+    }
+  });
+  if (!isEqual(next, cu)) {
+    set_cu(next);
+  }
+  return cu;
 }
 
 export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
   const { project_id, project_state: state } = props;
   const run_quota = useRunQuota(project_id);
   const max_upgrades = useMaxUpgrades();
+  const cur_usage = useCurrentUsage(run_quota);
 
   function quota_limit(key: keyof RunQuota): string | boolean | number {
     const val = run_quota[key];
     if (val == null) return "N/A";
-    if (key == "idle_timeout" && typeof val === "number")
-      return seconds2hms(val, true);
     return val;
   }
 
@@ -108,24 +170,24 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
       const desc = PARAMS[name]?.desc ?? "";
       const limit = key == "idle_timeout" && ar ? "&infin;" : quota_limit(key);
       const maximum = max_upgrades?.[name] ?? "N/A";
-      const usage = "123";
+      const usage = cur_usage?.[name] ?? "";
       return { key, display, limit, maximum, desc, usage };
     });
-  }, [run_quota]);
+  }, [run_quota, cur_usage, max_upgrades]);
 
-  function render_limit(_, record) {
+  function render_value(record, type: "usage" | "limit") {
     if (state != "running") {
+      const what = type === "usage" ? "current usage" : "effective quotas";
       return (
         <Tip
-          tip={
-            "The project is currently not running. Start the project to see the effective quotas."
-          }
+          tip={`The project is currently not running. Start the project to see the ${what}.`}
         >
           <PoweroffOutlined />
         </Tip>
       );
     }
-    if (record.key === "idle_timeout" && record.limit === "&infin;") {
+    const val = record[type];
+    if (record.key === "idle_timeout" && val === "&infin;") {
       return (
         <Q tip="If the project stops or the underlying VM goes into maintenance, the project will automatically restart.">
           &infin;
@@ -133,7 +195,6 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
       );
     }
 
-    const val = record.limit;
     if (typeof val === "boolean") {
       if (val) {
         return <CheckCircleTwoTone twoToneColor={COLORS.ANTD_GREEN} />;
@@ -141,11 +202,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
         return <CloseCircleTwoTone twoToneColor={COLORS.ANTD_RED} />;
       }
     }
-    return <Text strong>{val}</Text>;
-  }
-
-  function render_usage(_, record) {
-    return record.usage;
+    return <Text strong={type === "limit"}>{val}</Text>;
   }
 
   function render_maximum(text, record) {
@@ -186,7 +243,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
           key="key"
           title={<Q tip="Current usage of the project.">Usage</Q>}
           dataIndex="usage"
-          render={render_usage}
+          render={(_, record) => render_value(record, "usage")}
           width={1}
           align={"right"}
         />
@@ -198,7 +255,7 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
             </Q>
           }
           dataIndex="value"
-          render={render_limit}
+          render={(_, record) => render_value(record, "limit")}
           width={1}
           align={"right"}
         />
