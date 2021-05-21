@@ -104,7 +104,10 @@ const { GOOGLE_ANALYTICS } = misc_node;
 const CC_NOCLEAN = !!process.env.CC_NOCLEAN;
 
 // The regexp removes the trailing slash, if there is one.
-const BASE_URL = misc_node.BASE_URL.replace(/\/$/, "");
+const BASE_URL = (process.env.COCALC_BASE_URL
+  ? process.env.COCALC_BASE_URL
+  : misc_node.BASE_URL
+).replace(/\/$/, "");
 
 // output build environment variables of webpack
 console.log(`SMC_VERSION         = ${SMC_VERSION}`);
@@ -234,7 +237,7 @@ function chunksSortMode(a, b) {
 }
 
 registerPlugin(
-  "HTML",
+  "HTML -- generates the app.html file",
   new HtmlWebpackPlugin({
     filename: "app.html",
     template: "src/app.html",
@@ -323,14 +326,6 @@ if (DEVMODE) {
     https://cocalc.com${BASE_URL}/app
 
 *************************************************************************************`);
-}
-
-if (PRODMODE) {
-  // configuration for the number of chunks and their minimum size
-  registerPlugin(
-    "LimitChunkCountPlugin -- number of chunks and their minimum size",
-    new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 5 })
-  );
 }
 
 // tuning generated filenames and the configs for the aux files loader.
@@ -553,7 +548,7 @@ module.exports = {
       path.resolve(__dirname, "node_modules", "smc-webapp"),
       path.resolve(__dirname, "node_modules", "smc-webapp/node_modules"),
     ],
-    preferRelative: true,
+    preferRelative: false /* do not use true: it may workaround some weird cases, but breaks tons of things (e.g., slate) */,
     fallback: {
       stream: require.resolve("stream-browserify"),
       util: require.resolve("util/"),

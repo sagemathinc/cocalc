@@ -11,17 +11,14 @@
   "description": "CoCalc's Static Frontend Webapp Assets",
   "main": "./src/index.js",
   "babel": {
-    "presets": [
-      "@babel/preset-env"
-    ],
-    "plugins": [
-      "@babel/plugin-transform-react-jsx"
-    ]
+    "presets": ["@babel/preset-env"],
+    "plugins": ["@babel/plugin-transform-react-jsx"]
   },
   "scripts": {
     "webpack": "CC_NOCLEAN=true SOURCE_MAP=true NODE_ENV=development webpack --progress --color --watch",
     "tsc": "cd node_modules/smc-webapp && tsc --watch",
-    "build": "rm -rf dist && BABEL_ENV=production NODE_ENV=production NODE_OPTIONS=--max_old_space_size=8000 webpack --stats-children --progress --color"
+    "prod": "BABEL_ENV=production NODE_ENV=production webpack --progress --color --watch",
+    "build": "COCALC_BASE_URL='/' BABEL_ENV=production NODE_ENV=production webpack --progress --color"
   },
   "repository": {
     "type": "git",
