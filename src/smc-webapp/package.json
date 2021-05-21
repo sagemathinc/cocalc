@@ -7,6 +7,7 @@
     "./app-framework": "./dist/app-framework/index.js",
     "./r_misc": "./dist/r_misc/index.js",
     "./misc": "./dist/misc/index.js",
+    "./course": "./dist/course/index.js",
     "./billing": "./dist/billing/index.js",
     "./landing-page": "./dist/landing-page/index.js",
     "./admin/users/projects": "./dist/admin/users/projects.js"

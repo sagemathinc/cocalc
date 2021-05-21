@@ -5,6 +5,7 @@
   "exports": {
     "./*": "./dist/*.js",
     "./db-schema": "./dist/db-schema/index.js",
+    "./fill": "./dist/fill/index.js",
     "./sync/table": "./dist/sync/table/index.js",
     "./sync/editor/db": "./dist/sync/editor/db/index.js"
   },

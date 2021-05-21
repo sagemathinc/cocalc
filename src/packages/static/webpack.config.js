@@ -222,7 +222,6 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 // we need our own chunk sorter, because just by dependency doesn't work
 // this way, we can be 100% sure
 function smcChunkSorter(a, b) {
-  console.log("a = ", a, "  b = ", b);
   const order = ["css", "fill", "vendor", "smc"];
   try {
     if (order.indexOf(a) < order.indexOf(b)) {
@@ -295,7 +294,7 @@ registerPlugin(
 
 // global css loader configuration
 const cssConfig = JSON.stringify({
-  sourceMap: false,
+  sourceMap: false
 });
 
 // this is like C's #ifdef for the source code. It is particularly useful in the
@@ -496,7 +495,7 @@ module.exports = {
             },
           },
           "postcss-loader",
-          `sass-loader?${cssConfig}&indentedSyntax`,
+          `sass-loader?${cssConfig}`,
         ],
       },
       {
@@ -566,6 +565,9 @@ module.exports = {
   },
 
   resolve: {
+    alias: {
+      "smc-webapp": path.resolve(__dirname, "node_modules", "smc-webapp"),
+    },
     // So we can require('file') instead of require('file.coffee')
     extensions: [
       ".js",
