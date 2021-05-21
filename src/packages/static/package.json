@@ -21,7 +21,7 @@
   "scripts": {
     "webpack": "CC_NOCLEAN=true SOURCE_MAP=true NODE_ENV=development webpack --progress --color --watch",
     "tsc": "cd node_modules/smc-webapp && tsc --watch",
-    "build": "rm -rf dist && BABEL_ENV=production NODE_ENV=production NODE_OPTIONS=--max_old_space_size=8000 webpack --progress --color"
+    "build": "rm -rf dist && BABEL_ENV=production NODE_ENV=production NODE_OPTIONS=--max_old_space_size=8000 webpack --stats-children --progress --color"
   },
   "repository": {
     "type": "git",

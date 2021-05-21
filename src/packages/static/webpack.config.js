@@ -95,7 +95,6 @@ const COMP_ENV =
   fs.existsSync("webapp-lib/compute-components.json");
 const COMMERCIAL = !!COMP_ENV; // assume to be in the commercial setup, if we show the compute environment
 const DEVMODE = !PRODMODE;
-const MINIFY = !!process.env.WP_MINIFY;
 const DEBUG = process.argv.includes("--debug");
 const { MEASURE } = process.env;
 const SOURCE_MAP = !!process.env.SOURCE_MAP;
@@ -116,7 +115,6 @@ console.log(`NODE_DEBUG       = ${NODE_DEBUG}`);
 console.log(`COMP_ENV         = ${COMP_ENV}`);
 console.log(`BASE_URL         = ${BASE_URL}`);
 console.log(`DEBUG            = ${DEBUG}`);
-console.log(`MINIFY           = ${MINIFY}`);
 console.log(`MEASURE          = ${MEASURE}`);
 console.log(`INPUT            = ${INPUT}`);
 console.log(`OUTPUT           = ${OUTPUT}`);
@@ -189,10 +187,11 @@ registerPlugin(
 if (!CC_NOCLEAN) {
   // cleanup like "make distclean".
   // otherwise, compiles create an evergrowing pile of files
-  const CleanWebpackPlugin = require("clean-webpack-plugin");
+  const { CleanWebpackPlugin } = require("clean-webpack-plugin");
   registerPlugin(
     "CleanWebpackPlugin -- cleanup generated dist directory to save space",
-    new CleanWebpackPlugin([OUTPUT], {
+    new CleanWebpackPlugin({
+      cleanOnceBeforeBuildPatterns: [OUTPUT],
       verbose: true,
       dry: false,
     })
@@ -253,6 +252,9 @@ while (base_url_html && base_url_html[base_url_html.length - 1] === "/") {
   base_url_html = base_url_html.slice(0, base_url_html.length - 1);
 }
 
+/*
+// Minimal entry point html for testing to avoid all the
+// pug template machinery.
 registerPlugin(
   "HTML",
   new HtmlWebpackPlugin({
@@ -260,11 +262,71 @@ registerPlugin(
     chunksSortMode: smcChunkSorter,
     hash: PRODMODE,
     minify: htmlMinifyOpts,
+    templateContent: `
+    <html>
+      <head>
+      <script type="text/javascript">
+        window.app_base_url="${base_url_html}";
+      </script>
+      </head>
+      <body>
+        <div id="smc-react-container"></div>
+      </body>
+    </html>
+  `,
   })
 );
+*/
+
+function legacyFiles(assets, assetTags) {
+  // I have no clue how to get the file sizes or if it is even possible anymore.
+  // So since this is only used for some graphical display, I'm copying these
+  // from a recent version...
+  let FAKE_SIZES = {};
+  if (PRODMODE) {
+    // TODO: need production versions too.
+    FAKE_SIZES = {
+      css: 1715895,
+      fill: 90089,
+      "pdf.worker": 670368,
+      smc: 15954895,
+      vendor: 32598,
+    };
+  } else {
+    FAKE_SIZES = {
+      css: 1913616,
+      fill: 224966,
+      "pdf.worker": 1712753,
+      smc: 28187583,
+      vendor: 47171,
+    };
+  }
+  // chunks : { [key: string]: { size: number; entry: string; hash: string } }
+  const chunks = {};
+  for (const entry of assets.js) {
+    const i = entry.lastIndexOf("/");
+    const j = entry.lastIndexOf(".nocache.js");
+    const s = entry.slice(i + 1, j);
+    const k = s.indexOf("-");
+    let name,
+      hash = "";
+    if (k == -1) {
+      name = s;
+    } else {
+      name = s.slice(0, k);
+      hash = s.slice(k + 1);
+    }
+    chunks[name] = {
+      size: FAKE_SIZES[name] ? FAKE_SIZES[name] : 2000000,
+      entry,
+      hash,
+    };
+  }
+  return { chunks };
+}
+
 // this is the main app.html file, which should be served without any caching
 // config: https://github.com/jantimon/html-webpack-plugin#configuration
-/*
 registerPlugin(
   "PugPlugin -- process the app.pug template",
   new HtmlWebpackPlugin({
@@ -275,21 +337,10 @@ registerPlugin(
     minify: htmlMinifyOpts,
     inject: false,
     templateParameters: function (compilation, assets, assetTags, options) {
-      console.log("*******************************");
-      console.log(
-        "templateParameters",
-        JSON.stringify(
-          {
-            assets,
-            assetTags,
-            options,
-          },
-          undefined,
-          2
-        )
-      );
+      const files = legacyFiles(assets, assetTags);
+      console.log("***\nlegacyFiles = ", files, "\n***");
       return {
-        files: assets,
+        files,
         compilation,
         webpackConfig: compilation.options,
         htmlWebpackPlugin: {
@@ -297,7 +348,7 @@ registerPlugin(
           options: {
             ...options,
             ...{
-              files: assets,
+              files,
               date: BUILD_DATE,
               title: TITLE,
               description: DESCRIPTION,
@@ -318,7 +369,6 @@ registerPlugin(
     },
   })
 );
-*/
 
 // global css loader configuration
 const cssConfig = JSON.stringify({
@@ -574,7 +624,6 @@ module.exports = {
         test: /\.eot(\?[a-z0-9\.-=]+)?$/,
         use: [{ loader: "file-loader", options: { name: hashname } }],
       },
-      // ---
       {
         test: /\.css$/i,
         use: [
@@ -632,7 +681,9 @@ module.exports = {
       stream: require.resolve("stream-browserify"),
       util: require.resolve("util/"),
       path: require.resolve("path-browserify"),
-      crypto: require.resolve("crypto-browserify"), /* needed for @phosphor/widgets */
+      crypto: require.resolve(
+        "crypto-browserify"
+      ) /* needed for @phosphor/widgets */,
       assert: require.resolve("assert/"),
     },
   },
