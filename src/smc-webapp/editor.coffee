@@ -35,6 +35,7 @@ misc = require('smc-util/misc')
 {drag_start_iframe_disable, drag_stop_iframe_enable, sagews_canonical_mode} = require('./misc-page')
 
 # Ensure CodeMirror is available and configured
+CodeMirror = require("codemirror")
 require('./codemirror/init')
 
 # Ensure the console jquery plugin is available

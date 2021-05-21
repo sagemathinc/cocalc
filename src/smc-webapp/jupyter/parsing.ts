@@ -11,7 +11,7 @@ This can *ONLY* be used from the browser!
 const { endswith } = require("smc-util/misc");
 import { Syntax } from "smc-util/code-formatter";
 
-declare const CodeMirror: any; // TODO: import?
+import * as CodeMirror from "codemirror";
 
 export function run_mode(code: string, mode: string, language: string) {
   if (!code) {

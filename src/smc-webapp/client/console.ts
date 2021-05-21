@@ -25,6 +25,7 @@ http://stackoverflow.com/questions/3275816/debugging-iframes-with-chrome-develop
 */
 
 declare var DEBUG; //  this comes from webpack.
+console.log("DEBUG = ", DEBUG);
 
 import { IS_TOUCH } from "../feature";
 import { redux } from "../app-framework";

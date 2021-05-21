@@ -12,10 +12,15 @@ const STYLE: React.CSSProperties = {
 } as const;
 
 export const AppLogo: React.FC = React.memo(() => {
-  const logo_square: string | undefined = useTypedRedux("customize", "logo_square");
+  const logo_square: string | undefined = useTypedRedux(
+    "customize",
+    "logo_square"
+  );
 
   const backgroundImage = `url('${logo_square ? logo_square : APP_ICON}')`;
 
+  console.log(APP_ICON, backgroundImage);
+  
   return (
     <div
       style={{

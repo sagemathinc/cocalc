@@ -5,6 +5,9 @@
 
 // Library file for SMC webapp
 
+// Set the base url. 
+window.app_base_url = BASE_URL;
+
 // node.js polyfill -- needed for some modules to load in the browser.
 window.Buffer = require("buffer").Buffer;
 

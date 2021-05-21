@@ -95,7 +95,6 @@ const COMP_ENV =
   fs.existsSync("webapp-lib/compute-components.json");
 const COMMERCIAL = !!COMP_ENV; // assume to be in the commercial setup, if we show the compute environment
 const DEVMODE = !PRODMODE;
-const DEBUG = process.argv.includes("--debug");
 const { MEASURE } = process.env;
 const SOURCE_MAP = !!process.env.SOURCE_MAP;
 const date = new Date();
@@ -104,8 +103,8 @@ const BUILD_TS = date.getTime();
 const { GOOGLE_ANALYTICS } = misc_node;
 const CC_NOCLEAN = !!process.env.CC_NOCLEAN;
 
-// create a file base_url to set a base url
-const { BASE_URL } = misc_node;
+// The regexp removes the trailing slash, if there is one.
+const BASE_URL = misc_node.BASE_URL.replace(/\/$/, "");
 
 // output build environment variables of webpack
 console.log(`SMC_VERSION      = ${SMC_VERSION}`);
@@ -114,7 +113,6 @@ console.log(`NODE_ENV         = ${NODE_ENV}`);
 console.log(`NODE_DEBUG       = ${NODE_DEBUG}`);
 console.log(`COMP_ENV         = ${COMP_ENV}`);
 console.log(`BASE_URL         = ${BASE_URL}`);
-console.log(`DEBUG            = ${DEBUG}`);
 console.log(`MEASURE          = ${MEASURE}`);
 console.log(`INPUT            = ${INPUT}`);
 console.log(`OUTPUT           = ${OUTPUT}`);
@@ -244,15 +242,6 @@ const htmlMinifyOpts = {
   conservativeCollapse: true,
 };
 
-// when base_url_html is set, it is hardcoded into the index page
-// it mimics the logic of the hub, where all trailing slashes are removed
-// i.e. the production page has a base url of '' and smc-in-smc has '/.../...'
-let base_url_html = BASE_URL; // do *not* modify BASE_URL, it's needed with a '/' down below
-while (base_url_html && base_url_html[base_url_html.length - 1] === "/") {
-  base_url_html = base_url_html.slice(0, base_url_html.length - 1);
-}
-
-/*
 // Minimal entry point html for testing to avoid all the
 // pug template machinery.
 registerPlugin(
@@ -265,9 +254,10 @@ registerPlugin(
     templateContent: `
     <html>
       <head>
-      <script type="text/javascript">
-        window.app_base_url="${base_url_html}";
-      </script>
+        <link rel="stylesheet" href="${BASE_URL}/res/bootstrap-${RES_VERSIONS.bootstrap}/bootstrap.min.css">
+        <link rel="stylesheet" href="${BASE_URL}/res/roboto-fontface-${RES_VERSIONS["roboto-fontface"]}/css/roboto-slab/roboto-slab-fontface.css">
+        <link rel="stylesheet" href="${BASE_URL}/res/katex-${RES_VERSIONS.katex}/katex.min.css">
+        <link rel="stylesheet" href="${BASE_URL}/res/fontawesome-free-${RES_VERSIONS["fontawesome-free"]}/css/all.min.css">
       </head>
       <body>
         <div id="smc-react-container"></div>
@@ -276,8 +266,8 @@ registerPlugin(
   `,
   })
 );
-*/
 
+/*
 function legacyFiles(assets, assetTags) {
   // I have no clue how to get the file sizes or if it is even possible anymore.
   // So since this is only used for some graphical display, I'm copying these
@@ -352,7 +342,7 @@ registerPlugin(
               date: BUILD_DATE,
               title: TITLE,
               description: DESCRIPTION,
-              BASE_URL: base_url_html,
+              BASE_URL: app_base_url,
               RES_VERSIONS,
               theme,
               COMP_ENV,
@@ -369,6 +359,7 @@ registerPlugin(
     },
   })
 );
+*/
 
 // global css loader configuration
 const cssConfig = JSON.stringify({
@@ -389,7 +380,8 @@ registerPlugin(
     SMC_GIT_REV: JSON.stringify(GIT_REV),
     BUILD_DATE: JSON.stringify(BUILD_DATE),
     BUILD_TS: JSON.stringify(BUILD_TS),
-    DEBUG: JSON.stringify(DEBUG),
+    DEBUG: JSON.stringify(!PRODMODE),
+    BASE_URL: JSON.stringify(BASE_URL),
   })
 );
 
@@ -441,7 +433,7 @@ if (DEVMODE) {
   console.log(`\
 *************************************************************************************
 
-    https://cocalc.com${BASE_URL}app
+    https://cocalc.com${BASE_URL}/app
 
 *************************************************************************************`);
 }

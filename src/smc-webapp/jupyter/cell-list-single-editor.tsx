@@ -14,7 +14,7 @@ NOT used right now...
 
 import * as underscore from "underscore";
 import * as immutable from "immutable";
-declare const CodeMirror: any; // TODO: type
+import * as CodeMirror from "codemirror";
 
 import { React, Component, ReactDOM, Rendered } from "../app-framework";
 import { Loading } from "../r_misc";
