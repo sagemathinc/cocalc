@@ -296,6 +296,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       return;
     }
     if (this.cm.somethingSelected()) {
+      // @ts-ignore
       CodeMirror.commands.defaultTab(this.cm);
     } else {
       this.tab_nothing_selected();
@@ -391,6 +392,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
     if (this.whitespace_before_cursor()) {
       if (this.cm.options.indentWithTabs) {
+        // @ts-ignore
         CodeMirror.commands.defaultTab(this.cm);
       } else {
         this.cm.tab_as_space();

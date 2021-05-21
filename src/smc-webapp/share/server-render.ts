@@ -19,7 +19,7 @@ import { set_share_server } from "../r_misc/share-server";
 set_share_server(true);
 
 // Load katex jQuery plugin.
-require("../jquery-plugins/katex");
+require("../jquery-plugins/katex-plugin");
 // this highlights code in .md, .ipynb, etc.
 require("../jquery-plugins/codemirror");
 

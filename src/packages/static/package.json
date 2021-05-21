@@ -117,6 +117,7 @@
     "sass": "^1.32.13",
     "sass-loader": "^11.1.1",
     "script-loader": "^0.7.2",
+    "source-map-loader": "^3.0.0",
     "stream-browserify": "^3.0.0",
     "style-loader": "^2.0.0",
     "temp": "^0.9.4",

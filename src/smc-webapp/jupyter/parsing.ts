@@ -31,9 +31,11 @@ export function run_mode(code: string, mode: string, language: string) {
   return "execute";
 }
 
-function last_style(code: string, mode = "python") {
-  let style = undefined;
-  CodeMirror.runMode(code, mode, (_, s) => (style = s));
+function last_style(code: string, mode = "python"): string | null | undefined {
+  let style: string | null | undefined = undefined;
+  CodeMirror.runMode(code, mode, (_, s) => {
+    style = s;
+  });
   return style;
 }
 

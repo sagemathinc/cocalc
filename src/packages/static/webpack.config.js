@@ -118,6 +118,7 @@ console.log(`INPUT            = ${INPUT}`);
 console.log(`OUTPUT           = ${OUTPUT}`);
 console.log(`GOOGLE_ANALYTICS = ${GOOGLE_ANALYTICS}`);
 console.log(`CC_NOCLEAN       = ${CC_NOCLEAN}`);
+console.log(`SOURCE_MAP       = ${SOURCE_MAP}`);
 
 ({ MATHJAX_URL } = misc_node); // from where the files are served
 const { MATHJAX_ROOT } = misc_node; // where the symlink originates
@@ -252,6 +253,7 @@ registerPlugin(
     hash: PRODMODE,
     minify: htmlMinifyOpts,
     templateContent: `
+    <<strong></strong>n<strong></strong>''!DOCTYPE html>
     <html>
       <head>
         <link rel="stylesheet" href="${BASE_URL}/res/bootstrap-${RES_VERSIONS.bootstrap}/bootstrap.min.css">
@@ -366,11 +368,14 @@ const cssConfig = JSON.stringify({
   sourceMap: false,
 });
 
-// this is like C's #ifdef for the source code. It is particularly useful in the
+// Tthis is like C's #ifdef for the source code. It is particularly useful in the
 // source code of CoCalc's webapp, such that it knows about itself's version and where
 // mathjax is. The version&date is shown in the hover-title in the footer (year).
+// If any of these are not used, then they get removed.  They are textually
+// substituted in when the key identifier on the left is used, hence the
+// JSON.stringify of all of them.
 registerPlugin(
-  "nodeEnvironmentPlugin -- inject some global variables into the frontend (versions, modes, dates, etc)",
+  "DefinePlugin -- define frontend constants -- versions, modes, dates, etc.",
   new webpack.DefinePlugin({
     "process.env": {
       NODE_ENV: JSON.stringify(NODE_ENV),
@@ -446,6 +451,7 @@ if (PRODMODE) {
   );
 }
 
+/*
 const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 const minimizerPlugin = new UglifyJsPlugin({
   uglifyOptions: {
@@ -454,6 +460,7 @@ const minimizerPlugin = new UglifyJsPlugin({
     },
   },
 });
+*/
 
 // tuning generated filenames and the configs for the aux files loader.
 // FIXME this setting isn't picked up properly
@@ -492,9 +499,9 @@ module.exports = {
 
   mode: PRODMODE ? "production" : "development",
 
-  optimization: {
+  /*optimization: {
     minimizer: [minimizerPlugin],
-  },
+  },*/
 
   entry: entries,
 
@@ -630,6 +637,13 @@ module.exports = {
         ],
       },
       { test: /\.pug$/, loader: "pug-loader" },
+      {
+        // This rule makes source maps compatible with other modules like smc-util.
+        // https://stackoverflow.com/questions/61767538/devtools-failed-to-load-sourcemap-for-webpack-node-modules-js-map-http-e
+        test: /\.(j|t)s$/,
+        enforce: "pre",
+        use: ["source-map-loader"],
+      },
     ],
   },
 

@@ -172,7 +172,7 @@ export const HTML: React.FC<Props> = (props) => {
          can crash on "big" documents (e.g., 500K).
       */
       // ensure have plugin here.
-      const { jQuery } = require("smc-webapp/jquery-plugins/katex");
+      const { jQuery } = require("smc-webapp/jquery-plugins/katex-plugin");
       const elt = jQuery("<div>") as any;
       elt.html(props.value);
       if (props.auto_render_math) {
