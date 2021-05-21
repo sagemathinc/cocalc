@@ -13,4 +13,7 @@ export function render(): void {
     </Redux>,
     document.getElementById("cocalc-webapp-container")
   );
+  // Loading is done, so remove any visible artifacts of loading.
+  // This doesn't remove anything added to the head.
+  document.getElementById("cocalc-load-container").innerHTML = '';
 }
