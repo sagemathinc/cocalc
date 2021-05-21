@@ -30,4 +30,9 @@ export type AlertType = Alert["type"];
 export interface ProjectStatus {
   version: number;
   alerts: Alert[];
+  usage: {
+    disk_mb?: number;
+    mem_pct?: number;
+    cpu_pct?: number;
+  };
 }

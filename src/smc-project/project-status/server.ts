@@ -5,12 +5,14 @@
 
 /*
 Project status server, doing the heavy lifting of telling the client
-if there is something funny going on in the project.
+what's going on in the project, especially if there is a problem.
 
 Under the hood, it subscribes to the ProjectInfoServer, which updates
 various statistics at a high-frequency. Therefore, this here filters
 that information to a low-frequency low-volume stream of important
 status updates.
+
+Hence in particular, information like cpu, memory and disk are smoothed out and throttled.
 */
 
 // only for testing, see bottom
@@ -34,6 +36,11 @@ import { ProjectInfo } from "../project-info/types";
 import { version } from "../../smc-util/smc-version";
 import { cgroup_stats } from "./utils";
 
+// only return the "next" value, if it is significantly different from "prev"
+//function threshold(prev?: number, next?: number): number | undefined {
+//  return next;
+//}
+
 // tracks, when for the first time we saw an elevated value
 // we clear it if we're below a threshold (in the clear)
 interface Elevated {
@@ -56,6 +63,9 @@ export class ProjectStatusServer extends EventEmitter {
     memory: null,
   };
   private elevated_cpu_procs: { [pid: string]: number } = {};
+  private disk_mb?: number;
+  private cpu_pct?: number;
+  private mem_pct?: number;
 
   constructor(L: Function, testing = false) {
     super();
@@ -93,11 +103,14 @@ export class ProjectStatusServer extends EventEmitter {
     };
 
     do_alert("disk", du.free < ALERT_DISK_FREE);
+    this.disk_mb = du.usage;
 
     const cg = this.info.cgroup;
     const du_tmp = this.info.disk_usage.tmp;
     if (cg != null) {
       const { mem_pct, cpu_pct } = cgroup_stats(cg, du_tmp);
+      this.mem_pct = mem_pct;
+      this.cpu_pct = cpu_pct;
       do_alert("memory", mem_pct > ALERT_HIGH_PCT);
       do_alert("cpu-cgroup", cpu_pct > ALERT_HIGH_PCT);
     }
@@ -151,13 +164,29 @@ export class ProjectStatusServer extends EventEmitter {
     return alerts;
   }
 
+  private disk(): number | undefined {
+    return this.disk_mb;
+  }
+  private cpu() {
+    return this.cpu_pct;
+  }
+  private memory() {
+    return this.mem_pct;
+  }
+
   // this function takes the "info" we have (+ more maybe?)
-  // and derives various states from it. It is wrapped in reuseInFlight
-  // in case there are too many calls and it shouldn't really matter how often
-  // it is being called
+  // and derives various states from it.
+  // It shouldn't really matter how often it is being called,
+  // but still only emit new objects if it is either really necessary (new alert)
+  // or after some time. This must be a low-frequency and low-volume stream of data.
   private update(): void {
     this.status = {
-      alerts: this.alerts(),
+      alerts: this.alerts(), // alerts must come first, it updates some fields
+      usage: {
+        disk_mb: this.disk(),
+        mem_pct: this.memory(),
+        cpu_pct: this.cpu(),
+      },
       version: version,
     };
     // deep comparison check via lodash

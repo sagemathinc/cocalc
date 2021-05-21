@@ -156,6 +156,9 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
   const max_upgrades = useMaxUpgrades();
   const cur_usage = useCurrentUsage(run_quota);
 
+  const project_status = useTypedRedux({ project_id }, "status");
+  console.log("project_status", project_status?.toJS());
+
   function quota_limit(key: keyof RunQuota): string | boolean | number {
     const val = run_quota[key];
     if (val == null) return "N/A";
@@ -236,6 +239,9 @@ export const RunQuota: React.FC<Props> = React.memo((props: Props) => {
               Quota
             </Q>
           }
+          render={(text) => (
+            <span style={{ whiteSpace: "nowrap" }}>{text}</span>
+          )}
           dataIndex="display"
           width={6}
         />
