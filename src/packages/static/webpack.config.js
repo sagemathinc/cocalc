@@ -253,8 +253,18 @@ while (base_url_html && base_url_html[base_url_html.length - 1] === "/") {
   base_url_html = base_url_html.slice(0, base_url_html.length - 1);
 }
 
+registerPlugin(
+  "HTML",
+  new HtmlWebpackPlugin({
+    filename: "app.html",
+    chunksSortMode: smcChunkSorter,
+    hash: PRODMODE,
+    minify: htmlMinifyOpts,
+  })
+);
 // this is the main app.html file, which should be served without any caching
 // config: https://github.com/jantimon/html-webpack-plugin#configuration
+/*
 registerPlugin(
   "PugPlugin -- process the app.pug template",
   new HtmlWebpackPlugin({
@@ -264,13 +274,30 @@ registerPlugin(
     template: path.join(INPUT, "app.pug"),
     minify: htmlMinifyOpts,
     inject: false,
-    templateParameters: function (compilation, assets, options) {
+    templateParameters: function (compilation, assets, assetTags, options) {
+      console.log("*******************************");
+      console.log(
+        "templateParameters",
+        JSON.stringify(
+          {
+            assets,
+            assetTags,
+            options,
+          },
+          undefined,
+          2
+        )
+      );
       return {
         files: assets,
+        compilation,
+        webpackConfig: compilation.options,
         htmlWebpackPlugin: {
+          tags: assetTags,
           options: {
             ...options,
             ...{
+              files: assets,
               date: BUILD_DATE,
               title: TITLE,
               description: DESCRIPTION,
@@ -291,10 +318,11 @@ registerPlugin(
     },
   })
 );
+*/
 
 // global css loader configuration
 const cssConfig = JSON.stringify({
-  sourceMap: false
+  sourceMap: false,
 });
 
 // this is like C's #ifdef for the source code. It is particularly useful in the
@@ -363,7 +391,7 @@ if (DEVMODE) {
   console.log(`\
 *************************************************************************************
 
-    https://cocalc.com/${BASE_URL}app
+    https://cocalc.com${BASE_URL}app
 
 *************************************************************************************`);
 }
@@ -566,9 +594,17 @@ module.exports = {
 
   resolve: {
     alias: {
+      // smc-webapp alias so we can write `require("smc-webapp/...")`
+      // anywhere in that library:
       "smc-webapp": path.resolve(__dirname, "node_modules", "smc-webapp"),
+      // This entities/maps alias is needed due to a weird markdown-it import
+      // that webpack 5 won't resolve:
+      "entities/maps": path.resolve(
+        __dirname,
+        "node_modules/entities/lib/maps"
+      ),
     },
-    // So we can require('file') instead of require('file.coffee')
+    // So we can require('file') instead of require('file.coffee'), etc.
     extensions: [
       ".js",
       ".jsx",

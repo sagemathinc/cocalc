@@ -79,7 +79,7 @@
     "jquery-highlight": "^3.3",
     "jquery-mouse-exit": "^0.2",
     "jquery-stick": "^0.1",
-    "jquery-tooltip": "^0.1",
+    "jquery-tooltip": "^0.2.1",
     "jquery-ui": "^1.12",
     "jquery-ui-touch-punch": "^0.2",
     "jquery.payment": "^3.0.0",

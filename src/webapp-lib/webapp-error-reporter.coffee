@@ -3,6 +3,8 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
+{delay} = require('awaiting');
+
 # Catch and report webapp client errors to the SMC server.
 # This is based on bugsnag's MIT licensed lib: https://github.com/bugsnag/bugsnag-js
 # The basic idea is to wrap very early at a very low level of the event system,

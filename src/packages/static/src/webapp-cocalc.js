@@ -24,7 +24,7 @@ require("../node_modules/smc-webapp/node_modules/jquery-focusable/jquery.focusab
 require("../node_modules/smc-webapp/node_modules/jquery-focus-exit/jquery.focusexit.js"); // jquery-focus-exit is a peer dependency.
 require("../node_modules/smc-webapp/node_modules/jquery-mouse-exit/jquery.mouseexit.js"); // jquery-mouse-exit is a peer dependency.
 require("../node_modules/smc-webapp/node_modules/jquery-stick/jquery.stick.js"); // jquery-stick is a peer dependency.
-require("imports-loader?jQuery=jquery!../node_modules/smc-webapp/node_modules/jquery-tooltip/jquery.tooltip.js");
+require("../node_modules/smc-webapp/node_modules/jquery-tooltip/jquery.tooltip.js");
 
 // Hack to make jQuery UI work on mobile devices: http://touchpunch.furf.com/
 require("../node_modules/smc-webapp/node_modules/jquery-ui-touch-punch");
@@ -58,7 +58,9 @@ require("script-loader!webapp-lib/term/term.js");
 require("script-loader!webapp-lib/term/color_themes.js");
 
 // after this lib.js package, the real smc.js app starts loading
-window.smcLoadStatus("Starting main application ...");
+if (window.smcLoadStatus != null) {
+  window.smcLoadStatus("Starting main application ...");
+}
 
 require("../node_modules/smc-webapp/node_modules/antd/dist/antd.css");
 
