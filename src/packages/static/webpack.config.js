@@ -86,10 +86,9 @@ const SMC_LICENSE = "AGPLv3";
 const { WEBAPP_LIB } = misc_node;
 const INPUT = path.resolve(__dirname, "node_modules", WEBAPP_LIB);
 const OUTPUT = path.resolve(__dirname, "dist");
-const DEVEL = "development";
-const NODE_ENV = process.env.NODE_ENV || DEVEL;
+const NODE_ENV = process.env.NODE_ENV || "development";
 const { NODE_DEBUG } = process.env;
-const PRODMODE = NODE_ENV !== DEVEL;
+const PRODMODE = NODE_ENV == "production";
 const COMP_ENV =
   (process.env.CC_COMP_ENV || PRODMODE) &&
   fs.existsSync("webapp-lib/compute-components.json");

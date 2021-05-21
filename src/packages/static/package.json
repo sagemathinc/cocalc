@@ -11,8 +11,12 @@
   "description": "CoCalc's Static Frontend Webapp Assets",
   "main": "./src/index.js",
   "babel": {
-    "presets": ["@babel/preset-env"],
-    "plugins": ["@babel/plugin-transform-react-jsx"]
+    "presets": [
+      "@babel/preset-env"
+    ],
+    "plugins": [
+      "@babel/plugin-transform-react-jsx"
+    ]
   },
   "scripts": {
     "webpack": "CC_NOCLEAN=true SOURCE_MAP=true NODE_ENV=development webpack --progress --color --watch",
@@ -133,9 +137,7 @@
     "webpack-dev-middleware": "^4.3.0",
     "webpack-path-rewriter": "^1.1.4",
     "webpack-sha-hash": "^2",
-    "webpack-stats-plugin": "^1.0.3"
-  },
-  "dependencies": {
+    "webpack-stats-plugin": "^1.0.3",
     "worker-loader": "^3.0.8"
   }
 }
