@@ -11,6 +11,6 @@ export function render(): void {
     <Redux>
       <Page />
     </Redux>,
-    document.getElementById("smc-react-container")
+    document.getElementById("cocalc-webapp-container")
   );
 }

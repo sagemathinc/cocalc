@@ -88,7 +88,7 @@ sendError = (opts) ->
     opts.responsive  = feature.is_responsive_mode()
     opts.smc_version = SMC_VERSION
     opts.build_date  = BUILD_DATE
-    opts.smc_git_rev = SMC_GIT_REV
+    opts.smc_git_rev = COCALC_GIT_REVISION
     opts.uptime      = misc.get_uptime()
     opts.start_time  = misc.get_start_time_ts()
     if DEBUG then console.info('error reporter sending:', opts)

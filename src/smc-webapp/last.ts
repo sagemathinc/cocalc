@@ -8,7 +8,7 @@
 declare var $: any;
 declare var MathJax: any;
 declare var MATHJAX_URL: string;
-declare var SMC_GIT_REV: string;
+declare var COCALC_GIT_REVISION: string;
 
 import { webapp_client } from "./webapp-client";
 import { wrap_log } from "smc-util/misc";
@@ -87,7 +87,7 @@ $(function () {
       ["browser", "mobile", "touch", "git_version"]
     );
     browser_info_gauge
-      .labels(get_browser(), IS_MOBILE, IS_TOUCH, SMC_GIT_REV ?? "N/A")
+      .labels(get_browser(), IS_MOBILE, IS_TOUCH, COCALC_GIT_REVISION ?? "N/A")
       .set(1);
     const initialization_time_gauge = prom_client.new_gauge(
       "initialization_seconds",

@@ -78,7 +78,7 @@ function registerPlugin(desc, plugin, disable) {
 }
 
 const git_head = child_process.execSync("git rev-parse HEAD");
-const GIT_REV = git_head.toString().trim();
+const COCALC_GIT_REVISION = git_head.toString().trim();
 const TITLE = theme.SITE_NAME;
 const DESCRIPTION = theme.APP_TAGLINE;
 const SMC_REPO = "https://github.com/sagemathinc/cocalc";
@@ -107,18 +107,18 @@ const CC_NOCLEAN = !!process.env.CC_NOCLEAN;
 const BASE_URL = misc_node.BASE_URL.replace(/\/$/, "");
 
 // output build environment variables of webpack
-console.log(`SMC_VERSION      = ${SMC_VERSION}`);
-console.log(`SMC_GIT_REV      = ${GIT_REV}`);
-console.log(`NODE_ENV         = ${NODE_ENV}`);
-console.log(`NODE_DEBUG       = ${NODE_DEBUG}`);
-console.log(`COMP_ENV         = ${COMP_ENV}`);
-console.log(`BASE_URL         = ${BASE_URL}`);
-console.log(`MEASURE          = ${MEASURE}`);
-console.log(`INPUT            = ${INPUT}`);
-console.log(`OUTPUT           = ${OUTPUT}`);
-console.log(`GOOGLE_ANALYTICS = ${GOOGLE_ANALYTICS}`);
-console.log(`CC_NOCLEAN       = ${CC_NOCLEAN}`);
-console.log(`SOURCE_MAP       = ${SOURCE_MAP}`);
+console.log(`SMC_VERSION         = ${SMC_VERSION}`);
+console.log(`COCALC_GIT_REVISION = ${COCALC_GIT_REVISION}`);
+console.log(`NODE_ENV            = ${NODE_ENV}`);
+console.log(`NODE_DEBUG          = ${NODE_DEBUG}`);
+console.log(`COMP_ENV            = ${COMP_ENV}`);
+console.log(`BASE_URL            = ${BASE_URL}`);
+console.log(`MEASURE             = ${MEASURE}`);
+console.log(`INPUT               = ${INPUT}`);
+console.log(`OUTPUT              = ${OUTPUT}`);
+console.log(`GOOGLE_ANALYTICS    = ${GOOGLE_ANALYTICS}`);
+console.log(`CC_NOCLEAN          = ${CC_NOCLEAN}`);
+console.log(`SOURCE_MAP          = ${SOURCE_MAP}`);
 
 ({ MATHJAX_URL } = misc_node); // from where the files are served
 const { MATHJAX_ROOT } = misc_node; // where the symlink originates
@@ -150,7 +150,7 @@ registerPlugin(
   new webpack.BannerPlugin({
     banner: `\
 This file is part of ${TITLE}.
-It was compiled ${BUILD_DATE} at revision ${GIT_REV} and version ${SMC_VERSION}.
+It was compiled ${BUILD_DATE} at revision ${COCALC_GIT_REVISION} and version ${SMC_VERSION}.
 See ${SMC_REPO} for its ${SMC_LICENSE} code.\
 `,
     entryOnly: true,
@@ -207,7 +207,7 @@ registerPlugin(
     fullPath: false,
     prettyPrint: true,
     metadata: {
-      git_ref: GIT_REV,
+      git_ref: COCALC_GIT_REVISION,
       version: SMC_VERSION,
       built: BUILD_DATE,
       timestamp: BUILD_TS,
@@ -219,8 +219,8 @@ registerPlugin(
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 // we need our own chunk sorter, because just by dependency doesn't work
 // this way, we can be 100% sure
-function smcChunkSorter(a, b) {
-  const order = ["css", "fill", "vendor", "smc"];
+function chunksSortMode(a, b) {
+  const order = ["load", "css", "fill", "vendor", "smc"];
   try {
     if (order.indexOf(a) < order.indexOf(b)) {
       return -1;
@@ -233,135 +233,15 @@ function smcChunkSorter(a, b) {
   }
 }
 
-// https://github.com/kangax/html-minifier#options-quick-reference
-const htmlMinifyOpts = {
-  empty: true,
-  removeComments: true,
-  minifyJS: true,
-  minifyCSS: true,
-  collapseWhitespace: true,
-  conservativeCollapse: true,
-};
-
-// Minimal entry point html for testing to avoid all the
-// pug template machinery.
 registerPlugin(
   "HTML",
   new HtmlWebpackPlugin({
     filename: "app.html",
-    chunksSortMode: smcChunkSorter,
+    template: "src/app.html",
+    chunksSortMode,
     hash: PRODMODE,
-    minify: htmlMinifyOpts,
-    templateContent: `
-    <<strong></strong>n<strong></strong>''!DOCTYPE html>
-    <html>
-      <head>
-        <link rel="stylesheet" href="${BASE_URL}/res/bootstrap-${RES_VERSIONS.bootstrap}/bootstrap.min.css">
-        <link rel="stylesheet" href="${BASE_URL}/res/roboto-fontface-${RES_VERSIONS["roboto-fontface"]}/css/roboto-slab/roboto-slab-fontface.css">
-        <link rel="stylesheet" href="${BASE_URL}/res/katex-${RES_VERSIONS.katex}/katex.min.css">
-        <link rel="stylesheet" href="${BASE_URL}/res/fontawesome-free-${RES_VERSIONS["fontawesome-free"]}/css/all.min.css">
-      </head>
-      <body>
-        <div id="smc-react-container"></div>
-      </body>
-    </html>
-  `,
   })
 );
-
-/*
-function legacyFiles(assets, assetTags) {
-  // I have no clue how to get the file sizes or if it is even possible anymore.
-  // So since this is only used for some graphical display, I'm copying these
-  // from a recent version...
-  let FAKE_SIZES = {};
-  if (PRODMODE) {
-    // TODO: need production versions too.
-    FAKE_SIZES = {
-      css: 1715895,
-      fill: 90089,
-      "pdf.worker": 670368,
-      smc: 15954895,
-      vendor: 32598,
-    };
-  } else {
-    FAKE_SIZES = {
-      css: 1913616,
-      fill: 224966,
-      "pdf.worker": 1712753,
-      smc: 28187583,
-      vendor: 47171,
-    };
-  }
-  // chunks : { [key: string]: { size: number; entry: string; hash: string } }
-  const chunks = {};
-  for (const entry of assets.js) {
-    const i = entry.lastIndexOf("/");
-    const j = entry.lastIndexOf(".nocache.js");
-    const s = entry.slice(i + 1, j);
-    const k = s.indexOf("-");
-    let name,
-      hash = "";
-    if (k == -1) {
-      name = s;
-    } else {
-      name = s.slice(0, k);
-      hash = s.slice(k + 1);
-    }
-    chunks[name] = {
-      size: FAKE_SIZES[name] ? FAKE_SIZES[name] : 2000000,
-      entry,
-      hash,
-    };
-  }
-  return { chunks };
-}
-
-// this is the main app.html file, which should be served without any caching
-// config: https://github.com/jantimon/html-webpack-plugin#configuration
-registerPlugin(
-  "PugPlugin -- process the app.pug template",
-  new HtmlWebpackPlugin({
-    filename: "app.html",
-    chunksSortMode: smcChunkSorter,
-    hash: PRODMODE,
-    template: path.join(INPUT, "app.pug"),
-    minify: htmlMinifyOpts,
-    inject: false,
-    templateParameters: function (compilation, assets, assetTags, options) {
-      const files = legacyFiles(assets, assetTags);
-      console.log("***\nlegacyFiles = ", files, "\n***");
-      return {
-        files,
-        compilation,
-        webpackConfig: compilation.options,
-        htmlWebpackPlugin: {
-          tags: assetTags,
-          options: {
-            ...options,
-            ...{
-              files,
-              date: BUILD_DATE,
-              title: TITLE,
-              description: DESCRIPTION,
-              BASE_URL: app_base_url,
-              RES_VERSIONS,
-              theme,
-              COMP_ENV,
-              components: {}, // no data needed, empty is fine
-              inventory: {}, // no data needed, empty is fine
-              git_rev: GIT_REV,
-              mathjax: MATHJAX_URL,
-              GOOGLE_ANALYTICS,
-              COMMERCIAL,
-            },
-          },
-        },
-      };
-    },
-  })
-);
-*/
 
 // global css loader configuration
 const cssConfig = JSON.stringify({
@@ -382,11 +262,12 @@ registerPlugin(
     },
     MATHJAX_URL: JSON.stringify(MATHJAX_URL),
     SMC_VERSION: JSON.stringify(SMC_VERSION),
-    SMC_GIT_REV: JSON.stringify(GIT_REV),
+    COCALC_GIT_REVISION: JSON.stringify(COCALC_GIT_REVISION),
     BUILD_DATE: JSON.stringify(BUILD_DATE),
     BUILD_TS: JSON.stringify(BUILD_TS),
     DEBUG: JSON.stringify(!PRODMODE),
     BASE_URL: JSON.stringify(BASE_URL),
+    RES_VERSIONS: JSON.stringify(RES_VERSIONS),
   })
 );
 
@@ -421,6 +302,7 @@ registerPlugin(
 
 // ATTN don't alter or add names here, without changing the sorting function above!
 entries = {
+  load: "./src/load.tsx",
   css: "./src/webapp-css.js",
   fill: "@babel/polyfill",
   smc: "./src/webapp-cocalc.js",
@@ -450,17 +332,6 @@ if (PRODMODE) {
     new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 5 })
   );
 }
-
-/*
-const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
-const minimizerPlugin = new UglifyJsPlugin({
-  uglifyOptions: {
-    output: {
-      comments: new RegExp(`This file is part of ${TITLE}`, "g"),
-    },
-  },
-});
-*/
 
 // tuning generated filenames and the configs for the aux files loader.
 // FIXME this setting isn't picked up properly
@@ -499,9 +370,9 @@ module.exports = {
 
   mode: PRODMODE ? "production" : "development",
 
-  /*optimization: {
-    minimizer: [minimizerPlugin],
-  },*/
+  optimization: {
+    usedExports: true,
+  },
 
   entry: entries,
 
