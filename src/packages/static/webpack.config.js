@@ -104,7 +104,7 @@ if (!COCALC_NOCLEAN) {
 
 require("./src/plugins/app-loader")(registerPlugin, PRODMODE, TITLE);
 
-const MATHJAX_URL = require("./src/plugins/mathjax")(registerPlugin);
+const MATHJAX_URL = `${BASE_URL}/cdn/mathjax-${CDN_VERSIONS.mathjax}/MathJax.js`;
 
 require("./src/plugins/define-constants")(registerPlugin, {
   MATHJAX_URL,
