@@ -222,7 +222,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 // we need our own chunk sorter, because just by dependency doesn't work
 // this way, we can be 100% sure
 function chunksSortMode(a, b) {
-  const order = ["load", "css", "fill", "vendor", "smc"];
+  const order = ["load", "css", "fill", "smc"];
   try {
     if (order.indexOf(a) < order.indexOf(b)) {
       return -1;
@@ -308,12 +308,6 @@ entries = {
   css: "./src/webapp-css.js",
   fill: "@babel/polyfill",
   smc: "./src/webapp-cocalc.js",
-  // code splitting: we take all of our vendor code and put it in a separate bundle (vendor.min.js)
-  // this way it will have better caching/cache hits since it changes infrequently
-  vendor: [
-    // local packages
-    "./node_modules/webapp-lib/primus/primus-engine.min.js",
-  ],
   "pdf.worker":
     "./node_modules/smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry",
 };

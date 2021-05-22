@@ -8,7 +8,7 @@ export CWD=`pwd`
 
 # Create  primus-engine.min.js
 # NOTE This is horribly wrong because the script to make it is crazy, AND it hardcodes
-# the base url. NOT ACCEPTABLE.
+# the base url.
 cd primus
 ./update_primus
 
