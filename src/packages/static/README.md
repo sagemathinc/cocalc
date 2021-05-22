@@ -9,6 +9,11 @@ When doing development, use `npm run webpack` and `npm run tsc` in two terminals
 
 Use `npm run prod` to build and test the production version locally. This is the same as `npm run webpack`, but with more aggressive chunking, caching, minification, etc. It's a good idea to test this before making a release, in case something surprising changes.  Also, check in the Network tab of Chrome dev tools that loading cocalc doesn't transfer too much data (e.g., due to installing a huge package).
 
+### Measuring size
+
+Run `npm run measure` and when it finishes, look at `dist/report.html` for an interactive graphic that
+shows how much space each part of CoCalc is using.
+
 ### Releases
 To make a release, use `npm run build` to create a version with / as the base url that is suitable to deploy on https://cocalc.com and cocalc-docker; this pushes to [npmjs.com](http://npmjs.com), but the version in dist can't be used locally.
 
