@@ -83,77 +83,30 @@ const plugins = [];
 function registerPlugin(desc, plugin, disable) {
   if (disable) {
     console.log("Disabling plugin:  ", desc);
-    return;
-  }
-  console.log("Registering plugin:", desc);
-  plugins.push(plugin);
-}
-
-// adds a banner to each compiled and minified source .js file
-// webpack2: https://webpack.js.org/guides/migrating/#bannerplugin-breaking-change
-registerPlugin(
-  "BannerPlugin -- adds banner to each compiled source .js file",
-  new webpack.BannerPlugin({
-    banner: `\
-This file is part of ${TITLE}.
-It was compiled ${BUILD_DATE} at revision ${COCALC_GIT_REVISION} and version ${SMC_VERSION}.
-See ${COCALC_GITHUB_REPO} for its ${COCALC_LICENSE} licensed code.\
-`,
-    entryOnly: true,
-  })
-);
-
-// MATHJAX
-const { MATHJAX_URL } = misc_node; // from where the files are served
-const { MATHJAX_ROOT } = misc_node; // where the symlink originates
-const { MATHJAX_LIB } = misc_node; // where the symlink points to
-console.log(`MATHJAX_URL         = ${MATHJAX_URL}`);
-console.log(`MATHJAX_ROOT        = ${MATHJAX_ROOT}`);
-console.log(`MATHJAX_LIB         = ${MATHJAX_LIB}`);
-const async = require("async");
-const fs = require("fs");
-class MathjaxVersionedSymlink {
-  apply(compiler) {
-    // make absolute path to the mathjax lib (lives in node_module
-    // of smc-webapp)
-    const symto = path.resolve(__dirname, `${MATHJAX_LIB}`);
-    console.log(`mathjax symlink: pointing to ${symto}`);
-    const mksymlink = (dir, cb) =>
-      fs.access(dir, function (err) {
-        if (err) {
-          fs.symlink(symto, dir, cb);
-        }
-      });
-    const done = (compilation) =>
-      async.concat([MATHJAX_ROOT, misc_node.MATHJAX_NOVERS], mksymlink);
-    const plugin = { name: "MathjaxVersionedSymlink" };
-    compiler.hooks.done.tap(plugin, done);
+  } else {
+    console.log("Registering plugin:", desc);
+    plugins.push(plugin);
   }
 }
-registerPlugin(
-  "MathjaxVersionedSymlink -- creates mathjax symlinks",
-  new MathjaxVersionedSymlink(),
-  true
-);
-// END MATHJAX
+
+require("./src/plugins/banner")(registerPlugin, {
+  TITLE,
+  BUILD_DATE,
+  COCALC_GIT_REVISION,
+  SMC_VERSION,
+  COCALC_GITHUB_REPO,
+  COCALC_LICENSE,
+});
 
 if (!COCALC_NOCLEAN) {
-  // cleanup like "make distclean".
-  // otherwise, compiles create an evergrowing pile of files
-  const { CleanWebpackPlugin } = require("clean-webpack-plugin");
-  registerPlugin(
-    "CleanWebpackPlugin -- cleanup generated dist directory to save space",
-    new CleanWebpackPlugin({
-      cleanOnceBeforeBuildPatterns: [OUTPUT],
-      verbose: true,
-      dry: false,
-    })
-  );
+  require("./src/plugins/clean")(registerPlugin, OUTPUT);
 }
 
-require("./src/app-loader")(registerPlugin, PRODMODE, TITLE);
+require("./src/plugins/app-loader")(registerPlugin, PRODMODE, TITLE);
 
-require("./src/define-constants")(registerPlugin, {
+const MATHJAX_URL = require("./src/plugins/mathjax")(registerPlugin);
+
+require("./src/plugins/define-constants")(registerPlugin, {
   MATHJAX_URL,
   SMC_VERSION,
   COCALC_GIT_REVISION,
@@ -172,24 +125,15 @@ if (!PRODMODE) {
 }
 
 if (MEASURE) {
-  const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
-  // We use analyzerMode="static" to get a static file (dist/report.html)
-  // instead of running a webserver, which gets complicated in some environments.
-  registerPlugin(
-    "BundleAnalyzerPlugin -- visualize size and content of webpack output files",
-    new BundleAnalyzerPlugin({ analyzerMode: "static" })
-  );
+  require("./src/plugins/measure")(registerPlugin);
 }
 
 module.exports = {
   cache: true,
-
   // eval is considered optimal for source maps according to
   // https://webpack.js.org/configuration/devtool/
   devtool: PRODMODE ? undefined : "eval",
-
   mode: PRODMODE ? "production" : "development",
-
   entry: {
     load: "./src/load.tsx",
     css: "./src/webapp-css.js",
@@ -198,7 +142,6 @@ module.exports = {
     "pdf.worker":
       "./node_modules/smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry",
   },
-
   output: {
     path: OUTPUT,
     // publicPath is encoded in the static files; they reference it when grabbing more content from server
@@ -207,11 +150,9 @@ module.exports = {
     chunkFilename: PRODMODE ? "[id]-[hash].cacheme.js" : "[id].nocache.js",
     hashFunction: "sha256",
   },
-
   module: {
     rules: require("./src/module-rules")(PRODMODE),
   },
-
   resolve: {
     alias: {
       // smc-webapp alias so we can write `require("smc-webapp/...")`
