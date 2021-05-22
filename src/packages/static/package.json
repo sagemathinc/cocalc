@@ -7,16 +7,16 @@
     "../../smc-webapp",
     "../cdn"
   ],
+  "dependencies": {
+    "@cocalc/cdn": "*",
+    "webapp-lib": "*"
+  },
   "version": "1.0.0",
   "description": "CoCalc's Static Frontend Webapp Assets",
   "main": "./src/index.js",
   "babel": {
-    "presets": [
-      "@babel/preset-env"
-    ],
-    "plugins": [
-      "@babel/plugin-transform-react-jsx"
-    ]
+    "presets": ["@babel/preset-env"],
+    "plugins": ["@babel/plugin-transform-react-jsx"]
   },
   "scripts": {
     "webpack": "CC_NOCLEAN=true SOURCE_MAP=true NODE_ENV=development webpack --progress --color --watch",
@@ -52,7 +52,6 @@
     "@babel/polyfill": "^7.10.4",
     "@babel/preset-env": "^7.14.2",
     "@babel/runtime": "^7.14.0",
-    "@cocalc/cdn": "*",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^26.0.23",
     "@types/jquery": "^3.5.5",
