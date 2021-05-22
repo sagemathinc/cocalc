@@ -217,42 +217,16 @@ registerPlugin(
   })
 );
 
-// https://www.npmjs.com/package/html-webpack-plugin
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-// we need our own chunk sorter, because just by dependency doesn't work
-// this way, we can be 100% sure
-function chunksSortMode(a, b) {
-  const order = ["load", "css", "fill", "smc"];
-  try {
-    if (order.indexOf(a) < order.indexOf(b)) {
-      return -1;
-    } else {
-      return 1;
-    }
-  } catch (err) {
-    console.log("WARNING in smcChunkSorter", err);
-    return -1;
-  }
-}
-
-registerPlugin(
-  "HTML -- generates the app.html file",
-  new HtmlWebpackPlugin({
-    filename: "app.html",
-    template: "src/app.html",
-    chunksSortMode,
-    hash: PRODMODE,
-  })
-);
+require("./src/app-loader")(registerPlugin, PRODMODE);
 
 // global css loader configuration
 const cssConfig = JSON.stringify({
   sourceMap: false,
 });
 
-// Tthis is like C's #ifdef for the source code. It is particularly useful in the
+// This is like C's #ifdef for the source code. It is particularly useful in the
 // source code of CoCalc's webapp, such that it knows about itself's version and where
-// mathjax is. The version&date is shown in the hover-title in the footer (year).
+// mathjax is. The version & date is shown in the hover-title in the footer (year).
 // If any of these are not used, then they get removed.  They are textually
 // substituted in when the key identifier on the left is used, hence the
 // JSON.stringify of all of them.
