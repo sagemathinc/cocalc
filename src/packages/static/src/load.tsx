@@ -7,11 +7,13 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 
 import Stylesheets from "./stylesheets";
+import LoadScripts from "./load-scripts";
 
 ReactDOM.render(
   <div>
     <h1>Loading CoCalc...</h1>
     <Stylesheets />
+    <LoadScripts />
   </div>,
   document.getElementById("cocalc-load-container")
 );
