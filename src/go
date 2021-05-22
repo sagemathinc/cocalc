@@ -1,2 +1,10 @@
+#!/usr/bin/env bash
+set -ev
+
 . smc-env
-./dev/project/start_hub.py >out 2>err
+cd smc-hub
+npm run build
+cd ..
+./dev/project/start_hub.py >out 2>err &
+
+tail -f out err

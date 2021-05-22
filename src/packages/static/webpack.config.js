@@ -65,7 +65,7 @@ const program = require("commander");
 
 const SMC_VERSION = require("smc-util/smc-version").version;
 const theme = require("smc-util/theme");
-const RES_VERSIONS = require("@cocalc/cdn").versions;
+const CDN_VERSIONS = require("@cocalc/cdn").versions;
 
 const plugins = [];
 function registerPlugin(desc, plugin, disable) {
@@ -269,7 +269,7 @@ registerPlugin(
     BUILD_TS: JSON.stringify(BUILD_TS),
     DEBUG: JSON.stringify(!PRODMODE),
     BASE_URL: JSON.stringify(BASE_URL),
-    RES_VERSIONS: JSON.stringify(RES_VERSIONS),
+    CDN_VERSIONS: JSON.stringify(CDN_VERSIONS),
   })
 );
 

@@ -8,10 +8,12 @@ import * as ReactDOM from "react-dom";
 
 import Stylesheets from "./stylesheets";
 import LoadScripts from "./load-scripts";
+import Favicons from "./favicons";
 
 ReactDOM.render(
   <div>
     <h1>Loading CoCalc...</h1>
+    <Favicons />
     <Stylesheets />
     <LoadScripts />
   </div>,

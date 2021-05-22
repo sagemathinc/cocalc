@@ -9,7 +9,7 @@ import * as React from "react";
 import { Helmet } from "react-helmet";
 
 function linkHref(name: string, file: string): string {
-  return `${BASE_URL}/res/${name}-${RES_VERSIONS[name]}/${file}`;
+  return `${BASE_URL}/cdn/${name}-${CDN_VERSIONS[name]}/${file}`;
 }
 
 export default function Stylesheets() {

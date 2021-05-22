@@ -3,10 +3,10 @@
 import * as React from "react";
 import { Helmet } from "react-helmet";
 
-export default function LoadScripts() {
+export default function LoadFavicons() {
   return (
     <Helmet>
-      <script src={`${BASE_URL}/customize?type=full`} type="text/javascript" />
+      <link rel="icon" href={`${BASE_URL}/webapp/favicon.ico`} />
     </Helmet>
   );
 }

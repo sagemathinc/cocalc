@@ -1,3 +1,1 @@
-exports.dirname = function dirname() {
-  return __dirname;
-};
+exports.path = __dirname;
