@@ -288,7 +288,7 @@ export const site_settings_conf: SiteSettings = {
   commercial: {
     name: "Commercial",
     desc:
-      "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements.",
+      "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements. IMPORTANT: You must restart your server after changing this setting for it to take effect.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

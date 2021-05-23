@@ -500,12 +500,10 @@ export const PolicyCopyrightPageUrl = app_base_url + "/policies/copyright.html";
 export const PolicyTOSPageUrl = app_base_url + "/policies/terms.html";
 
 import { gtag_id } from "smc-util/theme";
-
-declare var document;
-
-async function init_gtag() {
+async function init_analytics() {
   await store.until_configured();
   if (!store.get("is_commercial")) return;
+  // 1. Google analytics
   let w: any;
   try {
     w = window;
@@ -531,6 +529,13 @@ async function init_gtag() {
   jtag.src = `https://www.googletagmanager.com/gtag/js?id=${theme.gtag_id}`;
   jtag.async = true;
   w.document.getElementsByTagName("head")[0].appendChild(jtag);
+
+  // 2. CoCalc analytics
+  const ctag = w.document.createElement("script");
+  ctag.src = `${w.app_base_url}/analytics.js?fqd=false`;
+  ctag.async = true;
+  ctag.defer = true;
+  w.document.getElementsByTagName("head")[0].appendChild(ctag);
 }
 
-init_gtag();
+init_analytics();
