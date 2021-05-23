@@ -13,9 +13,15 @@ import Favicons from "./favicons";
 ReactDOM.render(
   <div>
     <h1>Loading CoCalc...</h1>
+  </div>,
+  document.getElementById("cocalc-load-container")
+);
+
+ReactDOM.render(
+  <span>
     <Favicons />
     <Stylesheets />
     <LoadScripts />
-  </div>,
-  document.getElementById("cocalc-load-container")
+  </span>,
+  document.getElementById("cocalc-scripts-container")
 );

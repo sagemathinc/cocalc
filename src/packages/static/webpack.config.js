@@ -60,7 +60,6 @@ const { MEASURE } = process.env;
 const date = new Date();
 const BUILD_DATE = date.toISOString();
 const BUILD_TS = date.getTime();
-const { GOOGLE_ANALYTICS } = misc_node;
 const COCALC_NOCLEAN = !!process.env.COCALC_NOCLEAN;
 
 // The regexp removes the trailing slash, if there is one.
@@ -76,7 +75,6 @@ console.log(`NODE_ENV            = ${NODE_ENV}`);
 console.log(`BASE_URL            = ${BASE_URL}`);
 console.log(`MEASURE             = ${MEASURE}`);
 console.log(`OUTPUT              = ${OUTPUT}`);
-console.log(`GOOGLE_ANALYTICS    = ${GOOGLE_ANALYTICS}`);
 console.log(`COCALC_NOCLEAN      = ${COCALC_NOCLEAN}`);
 
 const plugins = [];
