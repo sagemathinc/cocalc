@@ -153,7 +153,7 @@ export const site_settings_conf: SiteSettings = {
   site_description: {
     name: "Site description",
     desc: "A tagline describing your site.",
-    default: "Collaborative Calculation Online",
+    default: "Collaborative Calculation",
     clearable: true,
     show: show_theming_vars,
   },

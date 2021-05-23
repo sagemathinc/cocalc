@@ -18,7 +18,7 @@ This is used mainly in the front-end, but some aspects are also used on the back
 exports.SITE_NAME = "CoCalc";
 exports.COMPANY_NAME = "SageMath, Inc.";
 exports.COMPANY_EMAIL = "office@sagemath.com";
-exports.APP_TAGLINE = "Collaborative Calculation and Data Science";
+exports.APP_TAGLINE = "Collaborative Calculation";
 exports.DNS = "cocalc.com";
 exports.DOMAIN_NAME = `https://${exports.DNS}`;
 exports.DISCUSSION_GROUP = "https://groups.google.com/forum/#!forum/cocalc";

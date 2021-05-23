@@ -3,7 +3,7 @@
 
 ###############################################################################
 #
-#    CoCalc: Collaborative Calculation in the Cloud
+#    CoCalc: Collaborative Calculation
 #
 #    Copyright (C) 2016, Sagemath Inc.
 #

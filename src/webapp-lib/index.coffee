@@ -3,7 +3,7 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
-# CoCalc: Collaborative Calculation in the Cloud
+# CoCalc: Collaborative Calculation
 # Copyright (C) 2017, Sagemath Inc.
 # License: AGPLv3+
 

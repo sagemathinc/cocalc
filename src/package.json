@@ -1,7 +1,7 @@
 {
   "name": "cocalc",
   "version": "1.0.0",
-  "description": "Collaborative Calculation in the Cloud",
+  "description": "Collaborative Calculation",
   "scripts": {
     "lint": "npx eslint --ignore-pattern '**/node_modules/**' '**/*.ts?(x)'",
     "test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test && cd ../smc-project && npm test",

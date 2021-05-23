@@ -7,7 +7,7 @@ from __future__ import print_function
 
 # *********************************************************************************************
 #
-#    CoCalc: Collaborative Calculation in the Cloud
+#    CoCalc: Collaborative Calculation
 #
 #    Copyright (C) 2015 -- 2017, SageMath, Inc.
 #
