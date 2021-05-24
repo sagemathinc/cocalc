@@ -62,7 +62,7 @@ export function set_leafs(
     if (node == null) {
       return node;
     }
-    if (exports.is_leaf(node)) {
+    if (is_leaf(node)) {
       // change it
       for (const k in obj) {
         const v = obj[k];
@@ -135,22 +135,12 @@ function walk(tree: ImmutableFrameTree, f: Function): void {
 export function get_leaf_ids(tree: ImmutableFrameTree): SetMap {
   const ids = {};
   walk(tree, function (node) {
-    if (exports.is_leaf(node)) {
+    if (is_leaf(node)) {
       ids[node.get("id")] = true;
     }
   });
   return ids;
 }
-
-/*
-* not used...
-exports.num_leaves = (tree) ->
-    n = 0
-    walk tree, (node) ->
-        if exports.is_leaf(node)
-            n += 1
-    return n
-*/
 
 // Ensure ids are unique (changing tree if necessary).
 // We assume every node has an id, and that they are all strings.
@@ -327,13 +317,15 @@ export function split_leaf(
   let t1 = process(tree);
   if (t1 !== tree) {
     // some change -- make sure any newly generated id's are unique...
-    t1 = exports.ensure_ids_are_unique(t1);
+    t1 = ensure_ids_are_unique(t1);
   }
   return t1;
 }
 
 export function is_leaf_id(tree: ImmutableFrameTree, id: string): boolean {
-  return exports.is_leaf(exports.get_node(tree, id));
+  const node = get_node(tree, id);
+  if (node == null) return false;
+  return is_leaf(node);
 }
 
 // Get id of some leaf node.  Assumes all ids are set.

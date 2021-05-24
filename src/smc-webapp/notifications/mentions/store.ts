@@ -10,6 +10,7 @@ export interface MentionsState {
   mentions: MentionsMap;
   filter: MentionFilter;
 }
+export const MentionsState = null; // webpack + TS es2020 modules need this
 
 export class MentionsStore extends Store<MentionsState> {
   constructor(name, redux) {

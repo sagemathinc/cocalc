@@ -21,7 +21,6 @@ $("body").append(html);
 
 // deferred initialization of buttonbars until after global imports -- otherwise, the sagews sage mode bar might be blank
 const { init_buttonbars } = require("./editors/editor-button-bar");
-init_buttonbars();
 
 // Load/initialize Redux-based react functionality
 import { redux } from "./app-framework";
@@ -39,43 +38,53 @@ import "./jquery-plugins";
 // Another jquery plugin:
 import "./process-links";
 
-/*
- * Initialize app stores, actions, etc.
- */
-import "./app/init";
+// Initialize app stores, actions, etc.
+import { init as account_init } from "./account";
+import { init as app_init } from "./app/init";
+import { init as projects_init } from "./projects";
 
 import { init as custom_software_init } from "./custom-software/init";
-custom_software_init();
 
-import { init as account_init } from "./account";
-account_init(redux);
+import { init as file_use_init } from "./file-use/init";
 
-import "./file-use/init";
-import "./webapp-hooks";
+import { init as webapp_hooks_init } from "./webapp-hooks";
 
-import { init as notifications_init } from "./notifications";
-if (!fullscreen.COCALC_MINIMAL) {
-  notifications_init(redux);
-}
+import { init as notifications_init } from "./notifications/init";
 
 import { init as markdown_init } from "./widget-markdown-input/main";
-markdown_init();
 
 // only enable iframe comms in minimal kiosk mode
 import { init as iframe_comm_init } from "./iframe-communication";
-if (fullscreen.COCALC_MINIMAL) {
-  iframe_comm_init();
-}
 
 import { render } from "./app/render";
-render();
 
-$(window).on("beforeunload", redux.getActions("page").check_unload);
+import { init as init_crash_banner } from "./crash-banner";
 
 // Should be loaded last
-import "./last";
+import { init as init_last } from "./last";
 
-// adding a banner in case react crashes (it will be revealed)
-const crash = require("./crash.html").default;
-import { HELP_EMAIL } from "smc-util/theme";
-$("body").append(crash.replace(/HELP_EMAIL/g, HELP_EMAIL));
+export async function init() {
+  init_buttonbars();
+  account_init(redux);
+  app_init();
+  projects_init();
+  custom_software_init();
+  file_use_init();
+  webapp_hooks_init();
+  if (!fullscreen.COCALC_MINIMAL) {
+    notifications_init(redux);
+  }
+  markdown_init();
+  if (fullscreen.COCALC_MINIMAL) {
+    iframe_comm_init();
+  }
+  $(window).on("beforeunload", redux.getActions("page").check_unload);
+  init_last();
+  try {
+    await render();
+  } finally {
+    // don't insert the crash banner until the main app has rendered,
+    // or user would see the banner for a moment.
+    init_crash_banner();
+  }
+}

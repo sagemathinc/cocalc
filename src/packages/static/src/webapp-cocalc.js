@@ -79,7 +79,9 @@ require("../node_modules/smc-webapp/index.sass");
 
 require("../node_modules/smc-webapp/webapp-client");
 require("../node_modules/smc-webapp/set-version-cookie.js");
-require("../node_modules/smc-webapp/entry-point");
+
+const { init } = require("../node_modules/smc-webapp/entry-point");
+init();
 
 require("./webapp-css");
 

@@ -652,9 +652,13 @@ const init_store = {
   project_websockets: Map<string, WebsocketState>(),
 } as ProjectsState;
 
-export const store = redux.createStore("projects", ProjectsStore, init_store);
+export let store: ProjectsStore;
 
-// Every time a project actions gets created or useRedux(['projects', ...]),
-// there is a new listener on the projects store, and there can be
-// many projectActions, e.g., when working with a course with 200 students.
-store.setMaxListeners(1000);
+export function init() {
+  store = redux.createStore("projects", ProjectsStore, init_store);
+
+  // Every time a project actions gets created or useRedux(['projects', ...]),
+  // there is a new listener on the projects store, and there can be
+  // many projectActions, e.g., when working with a course with 200 students.
+  store.setMaxListeners(1000);
+}

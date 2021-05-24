@@ -93,7 +93,7 @@ function check_for_clock_skew() {
     ) / 1000
   );
   if (s > 120) {
-    return exports.alert_message({
+    return alert_message({
       type: "error",
       timeout: 9999,
       message: `Your computer's clock is off by about ${s} seconds!  You MUST set it correctly then refresh your browser.  Expect nothing to work until you fix this.`,
@@ -115,5 +115,5 @@ alert_message({ type: "info", message: "This is an info alert" });
 
 // Make it so alert_message can be used by user code, e.g., in sage worksheets and Jupyter notebooks.
 if (window !== null) {
-  (window as any).alert_message = exports.alert_message;
+  (window as any).alert_message = alert_message;
 }

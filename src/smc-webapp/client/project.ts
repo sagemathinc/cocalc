@@ -47,6 +47,7 @@ export interface ExecOpts {
   env?: { [key: string]: string }; // custom environment variables.
   cb?: Function; // if given use a callback interface *instead* of async.
 }
+export const ExecOpts = null; // webpack + TS es2020 modules need this
 
 export interface ExecOutput {
   stdout: string;
@@ -54,6 +55,8 @@ export interface ExecOutput {
   exit_code: number;
   time: number; // time in ms, from user point of view.
 }
+export const ExecOutput = null; // webpack + TS es2020 modules need this
+
 
 export class ProjectClient {
   private client: WebappClient;

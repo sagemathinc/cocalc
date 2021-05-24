@@ -141,8 +141,6 @@ module.exports = {
   entry: {
     load: "./src/load.tsx",
     app: "./src/webapp-cocalc.js",
-    "pdf.worker":
-      "./node_modules/smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry",
   },
   output: {
     path: OUTPUT,

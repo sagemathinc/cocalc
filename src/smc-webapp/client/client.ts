@@ -74,6 +74,9 @@ export interface WebappClient extends EventEmitter {
   version: Function;
 }
 
+export const WebappClient = null; // webpack + TS es2020 modules need this
+
+
 /*
 Connection events:
    - 'connecting' -- trying to establish a connection

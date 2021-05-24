@@ -8,7 +8,7 @@ import { store } from "./store";
 import { actions } from "./actions";
 import { COCALC_MINIMAL } from "../fullscreen";
 
-// Create and register projects table, which gets automatically
+// Create and register users table, which gets automatically
 // synchronized with the server.
 class UsersTable extends Table {
   query() {

@@ -1883,7 +1883,7 @@ for (k = 1, i = k; k <= 6; k++, i = k) {
       return result1;
     })().join("") +
     " ";
-  exports.commands.md[`format_heading_${i}`] = {
+  commands.md[`format_heading_${i}`] = {
     strip,
     wrap: {
       left,

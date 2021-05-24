@@ -58,3 +58,15 @@ where `minor` could instead be `major` for breaking changes, `minor` for new fea
 ### The module search path:
 
 If there is a package installed in `packages/static/node_modules` it will get included by webpack before the same (but different version) package in `smc-webapp/node_modules`, because of what we listed in `resolve.modules` in `webpack.config.js`. This can cause confusion. E.g., maybe an old version of the `async` library gets indirectly installed in `packages/static/node_modules`, which is wrong. That's why a specific version of async is installed here. The one good thing about this is it makes it easier to override modules installed in `smc-webapp/` if necessary, like we do with `pdfjs-dist` since otherwise it ends up with its own copy of webpack.
+
+### tsconfig.json and code splitting
+
+Code splitting can't work without this tsconfig.json option:
+```js
+{
+  "compilerOptions": {
+    "module": "esnext"
+  }
+}
+```
+See https://davidea.st/articles/webpack-typescript-code-split-wont-work
