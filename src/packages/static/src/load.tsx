@@ -6,7 +6,6 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
-import Stylesheets from "./stylesheets";
 import LoadScripts from "./load-scripts";
 import Favicons from "./favicons";
 
@@ -20,7 +19,6 @@ ReactDOM.render(
 ReactDOM.render(
   <span>
     <Favicons />
-    <Stylesheets />
     <LoadScripts />
   </span>,
   document.getElementById("cocalc-scripts-container")

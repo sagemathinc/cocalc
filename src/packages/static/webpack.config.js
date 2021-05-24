@@ -10,10 +10,12 @@ This webpack config file might look scary, but it only consists of a few moving 
 
 The Entry Points:
   - load: showed immediately when you start loading the page
-  - css: all the css is bundled and loaded from here
-  - fill: polyfills
   - app: the main web application -- this is the entire application.
   - pdf.worker: pdfjs does work in a separate webworker thread.
+
+NOTE: we used to have css and polyfill entry point, but the webpack
+author specifically says this is an old antipattern about 38 minutes
+into his ReactConf 2017 talk.
 
 There might also be chunks ([number]-hash.js) that are
 loaded later on demand (read up on `require.ensure`).
@@ -128,14 +130,16 @@ if (MEASURE) {
 
 module.exports = {
   cache: true,
-  // eval is considered optimal for source maps according to
+  optimization: {
+    splitChunks: {
+      minSize: 10,
+    },
+  },
   // https://webpack.js.org/configuration/devtool/
-  devtool: PRODMODE ? undefined : "eval",
+  devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
   mode: PRODMODE ? "production" : "development",
   entry: {
     load: "./src/load.tsx",
-    css: "./src/webapp-css.js",
-    fill: "@babel/polyfill",
     app: "./src/webapp-cocalc.js",
     "pdf.worker":
       "./node_modules/smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry",

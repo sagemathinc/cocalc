@@ -384,7 +384,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   //            or a file_redux_name
   // Pushes to browser history
   // Updates the URL
-  public set_active_tab(
+  public async set_active_tab(
     key: string,
     opts: {
       update_file_listing?: boolean;
@@ -394,7 +394,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       update_file_listing: true,
       change_history: true,
     }
-  ): void {
+  ): Promise<void> {
     const store = this.get_store();
     if (store == undefined) return; // project closed
     const prev_active_project_tab = store.get("active_project_tab");
@@ -489,7 +489,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         // session restore (where all tabs are restored).
         if (info.redux_name == null || info.Editor == null) {
           if (this.open_files == null) return;
-          const { name, Editor } = this.init_file_react_redux(path, is_public);
+          const { name, Editor } = await this.init_file_react_redux(
+            path,
+            is_public
+          );
           info.redux_name = name;
           info.Editor = Editor;
           this.open_files.set(path, "component", info);
@@ -729,12 +732,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   /* Initialize the redux store and react component for editing
      a particular file.
   */
-  private init_file_react_redux(
+  private async init_file_react_redux(
     path: string,
     is_public: boolean
-  ): { name: string | undefined; Editor: any } {
+  ): Promise<{ name: string | undefined; Editor: any }> {
     // Initialize the file's store and actions
-    const name = project_file.initialize(
+    const name = await project_file.initializeAsync(
       path,
       this.redux,
       this.project_id,
@@ -742,7 +745,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
 
     // Make the Editor react component
-    const Editor = project_file.generate(
+    const Editor = await project_file.generateAsync(
       path,
       this.redux,
       this.project_id,

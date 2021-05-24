@@ -13,6 +13,8 @@ export {
   register_file_editor,
   initialize,
   generate,
+  initializeAsync,
+  generateAsync,
   remove,
   save,
 } from "./file-editors";

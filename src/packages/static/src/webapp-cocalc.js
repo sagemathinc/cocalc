@@ -16,6 +16,10 @@ import "script-loader!primus/primus-engine.min.js";
 // this must come before anything that touches event handling, etc.
 import "webapp-lib/webapp-error-reporter.coffee";
 
+// Bootstrap must go early, since a lot of our CSS overrides it.
+// TODO: get rid of bootstrap!  We intend to switch to antd entirely!
+import "bootstrap/dist/css/bootstrap.min.css";
+
 // require("script!jquery/jquery.min.js")
 const jQuery = (window.$ = window.jQuery = require("jquery"));
 const $ = jQuery;
@@ -76,3 +80,7 @@ require("../node_modules/smc-webapp/index.sass");
 require("../node_modules/smc-webapp/webapp-client");
 require("../node_modules/smc-webapp/set-version-cookie.js");
 require("../node_modules/smc-webapp/entry-point");
+
+require("./webapp-css");
+
+require("@babel/polyfill");
