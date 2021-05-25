@@ -26,7 +26,7 @@
     "webpack": "COCALC_NOCLEAN=true NODE_ENV=development webpack --progress --color --watch",
     "tsc": "cd node_modules/smc-webapp && tsc --watch",
     "prod": "BABEL_ENV=production NODE_ENV=production webpack --progress --color --watch",
-    "measure": "MEASURE=true NODE_ENV=development  webpack --progress --color",
+    "measure": "MEASURE=true NODE_ENV=development NODE_OPTIONS=--max_old_space_size=8000 webpack --progress --color --watch",
     "build": "COCALC_BASE_URL='/' BABEL_ENV=production NODE_ENV=production webpack --progress --color"
   },
   "repository": {

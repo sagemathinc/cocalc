@@ -9,6 +9,9 @@ module.exports = function (registerPlugin, params) {
   const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
   registerPlugin(
     "BundleAnalyzerPlugin -- visualize size and content of webpack output files",
-    new BundleAnalyzerPlugin({ analyzerMode: "static" })
+    new BundleAnalyzerPlugin({
+      analyzerMode: "static",
+      reportFilename: "measure.html",
+    })
   );
 };

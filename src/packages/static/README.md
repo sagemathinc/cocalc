@@ -5,16 +5,17 @@ Using webpack we build the static assets that run in the client's browser.
 ## The `npm run` scripts
 
 ### Development
+
 When doing development, use `npm run webpack` and `npm run tsc` in two terminals. The first runs webpack to package everything up, and the second independently checks for errors in the typescript files in the `smc-webapp` package (the two should not interfere in any way with each other). If you're using an editor like vscode that tells you Typescript errors, you don't need to bother with `npm run tsc`.
 
 Use `npm run prod` to build and test the production version locally. This is the same as `npm run webpack`, but with more aggressive chunking, caching, minification, etc. It's a good idea to test this before making a release, in case something surprising changes.  Also, check in the Network tab of Chrome dev tools that loading cocalc doesn't transfer too much data (e.g., due to installing a huge package).
 
 ### Measuring size
 
-Run `npm run measure` and when it finishes, look at `dist/report.html` for an interactive graphic that
-shows how much space each part of CoCalc is using.
+Run `npm run measure` and when it finishes, look at `dist/measure.html` for an interactive graphic thatshows how much space each part of CoCalc is using.
 
 ### Releases
+
 To make a release, use `npm run build` to create a version with / as the base url that is suitable to deploy on https://cocalc.com and cocalc-docker; this pushes to [npmjs.com](http://npmjs.com), but the version in dist can't be used locally.
 
 ## More about development
@@ -26,6 +27,7 @@ To do development, in one terminal session (in this package/static directory!) s
 ```sh
 npm run webpack
 ```
+
 As you edit code, this quickly shows any errors webpack finds in bundling
 all your code up.
 
@@ -62,6 +64,7 @@ If there is a package installed in `packages/static/node_modules` it will get in
 ### tsconfig.json and code splitting
 
 Code splitting can't work without this tsconfig.json option:
+
 ```js
 {
   "compilerOptions": {
@@ -69,4 +72,5 @@ Code splitting can't work without this tsconfig.json option:
   }
 }
 ```
+
 See https://davidea.st/articles/webpack-typescript-code-split-wont-work
