@@ -35,7 +35,7 @@ window.THREE = require("three")
 require("../node_modules/three/examples/js/controls/OrbitControls")
 require("../node_modules/three/examples/js/renderers/CanvasRenderer")
 require("../node_modules/three/examples/js/renderers/Projector")
-require("../node_modules/three/examples/js/Detector")
+Detector = require("../node_modules/three/examples/js/Detector")
 
 _scene_using_renderer  = undefined
 _renderer = {webgl:undefined, canvas:undefined}
@@ -889,10 +889,10 @@ exports.render_3d_scene = (opts) ->
                                 opts.scene = misc.from_json(data)
                                 cb()
                             catch e
-                                #console.log("ERROR")
+                                console.log("ERROR", e)
                                 cb(e)
                     ).fail () ->
-                        #console.log("FAIL")
+                        console.log("FAIL")
                         cb(true)
                 misc.retry_until_success
                     f         : f
@@ -900,8 +900,11 @@ exports.render_3d_scene = (opts) ->
                     max_delay : 5
                     cb        : (err) ->
                         if err
-                            cb("error downloading #{opts.url}")
+                            msg = "error downloading #{opts.url} - ${err}"
+                            console.log(msg)
+                            cb(msg)
                         else
+                            console.log("success")
                             cb()
         (cb) =>
             e.remove()

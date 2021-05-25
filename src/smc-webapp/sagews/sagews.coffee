@@ -1295,9 +1295,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if mesg.d3?
             e = $("<div>")
             output.append(e)
-            # TODO this is a hotfix. Make this loading lazy again -- #2860
-            #require.ensure [], () =>
-            if true
+            require.ensure [], () =>
                 require('./d3')  # install the d3 plugin
                 e.d3
                     viewer : mesg.d3.viewer
@@ -1363,9 +1361,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         elt = $("<div class='webapp-3d-container'></div>")
                         elt.data('uuid',val.uuid)
                         output.append(elt)
-                        # TODO this is a temporary fix -- uncomment it again and remove the if true line once "require.ensure" works again
-                        #require.ensure [], () =>   # only load 3d library if needed
-                        if true
+                        require.ensure [], () =>
+                            # only load 3d library when needed
                             {render_3d_scene} = require('./3d')
                             render_3d_scene
                                 url     : target
