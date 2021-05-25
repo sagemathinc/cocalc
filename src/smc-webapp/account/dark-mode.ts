@@ -4,7 +4,6 @@
  */
 
 import { throttle, isEqual } from "lodash";
-import { enable, disable } from "darkreader";
 import { AccountStore } from "./store";
 
 export const dark_mode_mins = {
@@ -50,20 +49,32 @@ export function get_dark_mode_config(other_settings): Config {
     dark_mode_mins.contrast,
     to_number(other_settings.get("dark_mode_contrast"), 90)
   );
-  const sepia = to_number(other_settings.get("dark_mode_sepia"), dark_mode_mins.sepia);
-  const grayscale = to_number(other_settings.get("dark_mode_grayscale"), dark_mode_mins.grayscale);
+  const sepia = to_number(
+    other_settings.get("dark_mode_sepia"),
+    dark_mode_mins.sepia
+  );
+  const grayscale = to_number(
+    other_settings.get("dark_mode_grayscale"),
+    dark_mode_mins.grayscale
+  );
   return { brightness, contrast, sepia, grayscale };
 }
 
-let last_dark_mode: boolean | undefined = undefined;
+let last_dark_mode: boolean = false;
 let last_config: Config | undefined = undefined;
 export function init_dark_mode(account_store: AccountStore): void {
   account_store.on(
     "change",
-    throttle(() => {
-      const dark_mode = account_store.getIn(["other_settings", "dark_mode"]);
+    throttle(async () => {
+      const dark_mode = !!account_store.getIn(["other_settings", "dark_mode"]);
       const config = get_dark_mode_config(account_store.get("other_settings"));
-      if (dark_mode === last_dark_mode && isEqual(last_config, config)) return;
+      if (
+        dark_mode == last_dark_mode &&
+        (!dark_mode || isEqual(last_config, config))
+      ) {
+        return;
+      }
+      const { enable, disable } = await import("darkreader");
       last_dark_mode = dark_mode;
       last_config = config;
       if (dark_mode) {
