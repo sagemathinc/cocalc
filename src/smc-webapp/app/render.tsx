@@ -5,7 +5,7 @@
 
 import { React, ReactDOM, Redux } from "../app-framework";
 
-export async function render(): void {
+export async function render(): Promise<void> {
   const { Page } = await import("./page");
   ReactDOM.render(
     <Redux>

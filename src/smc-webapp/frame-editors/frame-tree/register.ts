@@ -9,6 +9,7 @@ Generic register function -- used by each frame tree editor to register itself w
 Basically, this is like register_file_editor, but much more specialized.
 */
 
+import { reuseInFlight } from "async-await-utils/hof";
 import { register_file_editor as general_register_file_editor } from "../../file-editors";
 import { redux_name } from "../../app-framework";
 
@@ -17,8 +18,12 @@ interface Register {
   ext:
     | string
     | string[] /* the filename extension or extensions that this editor should handle. */;
-  component: any /* the renderable react component used for this editor */;
-  Actions: any /* the class that defines the actions. */;
+  component?: any /* the renderable react component used for this editor */;
+  Actions?: any /* the class that defines the actions. */;
+  asyncData?: () => Promise<{
+    component: any;
+    Actions: any;
+  }> /* async function that returns the component and Actions instead. */;
   is_public?: boolean /* if given, only register public or not public editors (not both) */;
 }
 
@@ -31,7 +36,14 @@ export function register_file_editor(opts: Register) {
     v.push(false);
   }
   for (const is_public of v) {
-    register(opts.icon, opts.ext, opts.component, opts.Actions, is_public);
+    register(
+      opts.icon,
+      opts.ext,
+      opts.component,
+      opts.Actions,
+      opts.asyncData,
+      is_public
+    );
   }
 }
 
@@ -43,35 +55,20 @@ const reference_count: { [name: string]: number } = {};
 function register(
   icon: string | undefined,
   ext: string | string[],
-  component,
-  Actions,
+  component: any,
+  Actions: any,
+  asyncData:
+    | undefined
+    | (() => Promise<{
+        component: any;
+        Actions: any;
+      }>),
   is_public: boolean
 ) {
-  const data = {
+  let data: any = {
     icon,
     ext,
     is_public,
-    component,
-    init(path: string, redux, project_id: string) {
-      const name = redux_name(project_id, path, is_public);
-      if (reference_count[name] == undefined) {
-        reference_count[name] = 1;
-      } else {
-        reference_count[name] += 1;
-      }
-      if (redux.getActions(name) != null) {
-        return name; // already initialized
-      }
-      // We purposely are just using the simple default store; that's all that is needed
-      // for these editors.
-      const store = redux.createStore(name);
-      const actions = redux.createActions(name, Actions);
-
-      // Call the base class init.  (NOTE: it also calls _init2 if defined.)
-      actions._init(project_id, path, is_public, store);
-
-      return name;
-    },
 
     remove(path: string, redux, project_id: string): string {
       const name = redux_name(project_id, path, is_public);
@@ -102,6 +99,58 @@ function register(
       }
     },
   };
+
+  function init(Actions) {
+    return (path: string, redux, project_id: string) => {
+      const name = redux_name(project_id, path, is_public);
+      if (reference_count[name] == undefined) {
+        reference_count[name] = 1;
+      } else {
+        reference_count[name] += 1;
+      }
+      if (redux.getActions(name) != null) {
+        return name; // already initialized
+      }
+      // We purposely are just using the simple default store; that's all that is needed
+      // for these editors.
+      const store = redux.createStore(name);
+      const actions = redux.createActions(name, Actions);
+
+      // Call the base class init.  (NOTE: it also calls _init2 if defined.)
+      actions._init(project_id, path, is_public, store);
+
+      return name;
+    };
+  }
+
+  if (component != null && Actions != null) {
+    data.component = component;
+    data.init = init(Actions);
+  } else {
+    if (asyncData == null) {
+      throw Error(
+        "either asyncData must be given or components and Actions must be given (or both)"
+      );
+    }
+    let async_data: any = undefined;
+    // so calls to componentAsync and initAsync don't happen at once!
+    const getAsyncData = reuseInFlight(asyncData);
+
+    data.componentAsync = async () => {
+      if (async_data == null) {
+        async_data = await getAsyncData();
+      }
+      return async_data.component;
+    };
+
+    data.initAsync = async (path: string, redux, project_id: string) => {
+      if (async_data == null) {
+        async_data = await getAsyncData();
+      }
+      return init(async_data.Actions)(path, redux, project_id);
+    };
+  }
+
   general_register_file_editor(data);
   if (typeof ext == "string") {
     ext = [ext];
@@ -113,8 +162,8 @@ function register(
 
 const REGISTRY: { [key: string]: any } = {};
 
-export function get_file_editor(ext: string, is_public: boolean=false) {
-  return REGISTRY[key(ext, is_public)]
+export function get_file_editor(ext: string, is_public: boolean = false) {
+  return REGISTRY[key(ext, is_public)];
 }
 
 function key(ext: string, is_public: boolean): string {
