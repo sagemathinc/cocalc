@@ -98,7 +98,7 @@
     "mathjax": "^2.7.7",
     "md5": "^2",
     "memoize-one": "^5.1.1",
-    "moment": "^2.27.0",
+    "moment": "^2.29.1",
     "node-forge": "^0.10.0",
     "nyc": "^15.0.1",
     "octicons": "^3.5.0",

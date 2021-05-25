@@ -436,6 +436,7 @@ export class Actions<
   // Update the reload key in the store, which may *trigger* UI to
   // update itself as a result (e.g. a pdf preview or markdown preview pane).
   set_reload(type: string, hash?: number): void {
+    if (this.store == null) return;
     const reload: Map<string, any> = this.store.get("reload", Map());
     if (!reload) {
       return;

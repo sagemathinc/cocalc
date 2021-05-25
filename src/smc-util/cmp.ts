@@ -4,7 +4,6 @@
  */
 
 import { isEqual } from "lodash";
-import { Moment } from "moment";
 
 export function cmp(a: any, b: any): number {
   if (a < b) {
@@ -45,7 +44,7 @@ export function cmp_Date(
   return 0; // note: a == b for Date objects doesn't work as expected, but that's OK here.
 }
 
-export function cmp_moment(a?: Moment, b?: Moment, null_last = false): number {
+export function cmp_moment(a?, b?, null_last = false): number {
   return cmp_Date(a?.toDate(), b?.toDate(), null_last);
 }
 

@@ -16,11 +16,6 @@ import "../chat/register";
 import "./archive/actions";
 import "../stopwatch/register";
 
-// public read-only jupyter view (TODO: we are deprecating this, so...)
-import { webapp_client } from "../webapp-client";
-import { register as jupyter_register } from "../jupyter/nbviewer/register";
-jupyter_register(webapp_client);
-
 import "./media-viewer/register";
 
 // Raw data editors

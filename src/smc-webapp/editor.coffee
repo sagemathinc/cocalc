@@ -1933,8 +1933,6 @@ exports.register_nonreact_editors = ->
     if feature.IS_TOUCH
         register(false, Terminal, ['term', 'sage-term'])
 
-    {HistoryEditor} = require('./editor_history')
-    register(false, HistoryEditor,    ['sage-history'])
     exports.switch_to_ipynb_classic = ->
         register(false, JupyterNotebook,  ['ipynb'])
 

@@ -10,6 +10,7 @@ Make it so Codemirror has an option to insert LEAN symbols
 import { substitute_symbols } from "./symbols";
 
 import * as CodeMirror from "codemirror";
+
 declare module "codemirror" {
   function innerMode(mode: any, state: any): any;
 }

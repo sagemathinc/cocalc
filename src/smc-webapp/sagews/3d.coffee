@@ -901,10 +901,9 @@ exports.render_3d_scene = (opts) ->
                     cb        : (err) ->
                         if err
                             msg = "error downloading #{opts.url} - ${err}"
-                            console.log(msg)
+                            console.warn(msg)
                             cb(msg)
                         else
-                            console.log("success")
                             cb()
         (cb) =>
             e.remove()

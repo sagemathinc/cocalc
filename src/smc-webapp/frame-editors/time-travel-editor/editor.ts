@@ -12,7 +12,14 @@ TimeTravel for them.
 */
 
 import { createEditor } from "../frame-tree/editor";
-import { TimeTravel } from "./time-travel";
+
+import { AsyncComponent } from "smc-webapp/misc/async-component";
+
+// import { TimeTravel } from "./time-travel";
+const TimeTravel = AsyncComponent(
+  async () => (await import("./time-travel")).TimeTravel
+);
+
 import { set } from "smc-util/misc";
 
 export const time_travel = {
