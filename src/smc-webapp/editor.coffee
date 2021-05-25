@@ -1930,7 +1930,8 @@ exports.register_nonreact_editors = ->
                     console.error('You have to call super(@project_id, @filename) in the constructor to properly initialize this FileEditor instance.')
                 return e
 
-    register(false, Terminal,         ['term', 'sage-term'])
+    if feature.IS_TOUCH
+        register(false, Terminal, ['term', 'sage-term'])
 
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])
