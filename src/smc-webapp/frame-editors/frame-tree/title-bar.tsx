@@ -49,7 +49,6 @@ import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 import { Actions } from "../code-editor/actions";
 import { EditorFileInfoDropdown } from "../../editors/file-info-dropdown";
 import { useStudentProjectFunctionality } from "smc-webapp/course";
-import { RmdActions } from "../rmd-editor/actions";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -201,7 +200,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   ]);
   const is_saving: boolean = useRedux([props.editor_actions.name, "is_saving"]);
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
-  const is_rmd = props.actions instanceof RmdActions;
 
   // comes from actions's store:
   const switch_to_files: List<string> = useRedux([
@@ -1079,9 +1077,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (!is_visible("build", true)) {
       return;
     }
-    const title = is_rmd
-      ? "Build (disable automatic builds in Account → Editor → 'Build on save')"
-      : "Build project";
+    const title = "Build (disable automatic builds in Account → Editor → 'Build on save')";
     return (
       <Button
         key={"build"}

@@ -11,7 +11,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { debounce } from "lodash";
 import { Set } from "immutable";
 import { callback2 } from "smc-util/async-utils";
-import { Actions } from "../markdown-editor/actions";
+import { Actions as MarkdownActions } from "../markdown-editor/actions";
 import { convert } from "./rmd-converter";
 import { markdown_to_html_frontmatter } from "../../markdown";
 import { FrameTree } from "../frame-tree/types";
@@ -46,7 +46,7 @@ output: html_document
 \`\`\`
 `;
 
-export class RmdActions extends Actions {
+export class Actions extends MarkdownActions {
   private _last_rmd_hash: string | null = null;
   private is_building: boolean = false;
   private run_rmd_converter: Function;

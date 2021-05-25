@@ -13,6 +13,14 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { register_file_editor as general_register_file_editor } from "../../file-editors";
 import { redux_name } from "../../app-framework";
 
+interface AsyncRegister {
+  icon?: string;
+  ext: string | string[];
+  editor: () => Promise<any>;
+  actions: () => Promise<any>;
+  is_public?: boolean;
+}
+
 interface Register {
   icon?: string;
   ext:
@@ -27,7 +35,27 @@ interface Register {
   is_public?: boolean /* if given, only register public or not public editors (not both) */;
 }
 
-export function register_file_editor(opts: Register) {
+function isAsyncRegister(
+  opts: Register | AsyncRegister
+): opts is AsyncRegister {
+  return opts["editor"] != null;
+}
+
+export function register_file_editor(opts: Register | AsyncRegister) {
+  if (isAsyncRegister(opts)) {
+    // AsyncRegister
+    register_file_editor({
+      icon: opts.icon,
+      ext: opts.ext,
+      asyncData: async () => {
+        const component = (await opts.editor()).Editor;
+        const Actions = (await opts.actions()).Actions;
+        return { component, Actions };
+      },
+      is_public: opts.is_public,
+    });
+    return;
+  }
   const v: boolean[] = [];
   if (opts.is_public != undefined) {
     v.push(!!opts.is_public);

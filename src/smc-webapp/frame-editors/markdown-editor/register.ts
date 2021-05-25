@@ -12,10 +12,7 @@ import { register_file_editor } from "../frame-tree/register";
 ["md", "markdown"].map((ext) =>
   register_file_editor({
     ext,
-    async asyncData() {
-      const { Editor } = await import("./editor");
-      const { Actions } = await import("./actions");
-      return { component: Editor, Actions };
-    },
+    editor: async () => await import("./editor"),
+    actions: async () => await import("./actions"),
   })
 );
