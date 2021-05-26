@@ -741,6 +741,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // but simply doesn't, perhaps due to how complicated
     // our codebase is (with legacy coffescript, etc.)
     await callback((cb) => {
+      // @ts-ignore
       require.ensure([], () => {
         require("./editors/register-all");
         cb();

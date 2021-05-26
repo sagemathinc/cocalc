@@ -13,13 +13,10 @@ import "katex/dist/katex.min.css";
 import "jquery/jquery-ui/css/humanity/jquery-ui.css";
 
 // Font Awesome
-import "@fortawesome/fontawesome-free/js/all.js";
-import "@fortawesome/fontawesome-free/js/brands.js";
-import "@fortawesome/fontawesome-free/css/all.min.css";
-
-// Shim is needed until we manually/automatically rename ALL icons as
-// explained here: https://fontawesome.com/how-to-use/upgrading-from-4#upgrade-steps
-import "@fortawesome/fontawesome-free/js/v4-shims.js";
+import "@fortawesome/fontawesome-free/js/all.min.js";
+import "@fortawesome/fontawesome-free/js/brands.min.js";
+// little shim needed until we rename our icons...
+import "@fortawesome/fontawesome-free/js/v4-shims.min.js";
 
 import "jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css";
 
