@@ -19,7 +19,7 @@
     "plugins": ["@babel/plugin-transform-react-jsx"]
   },
   "scripts": {
-    "webpack": "COCALC_NOCLEAN=true NODE_ENV=development webpack --progress --color --watch",
+    "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development webpack --progress --color --watch",
     "tsc": "cd node_modules/smc-webapp && tsc --watch",
     "measure": "NODE_OPTIONS=--max_old_space_size=8000  COCALC_OUTPUT=dist-measure MEASURE=true npm run webpack",
     "prod": "NODE_OPTIONS=--max_old_space_size=8000  BABEL_ENV=production NODE_ENV=production webpack --progress --color --watch",

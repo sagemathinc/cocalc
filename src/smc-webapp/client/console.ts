@@ -35,7 +35,7 @@ export function setup_global_cocalc(client): void {
     return;
   }
 
-  const cocalc: any = {};
+  const cocalc: any = (window as any).cc ?? {};
   cocalc.client = client;
   cocalc.misc = require("smc-util/misc");
   cocalc.immutable = require("immutable");
@@ -48,12 +48,6 @@ export function setup_global_cocalc(client): void {
   console.log(
     "DEBUG: Enabling extra CoCalc library functionality.  Type cocalc or cc.[tab]."
   );
-  if ((window as any).cocalc != null) {
-    throw Error("why is window.cocalc already defined?");
-  }
-  if ((window as any).cc != null) {
-    throw Error("why is window.cc already defined?");
-  }
   (window as any).cocalc = (window as any).cc = cocalc;
 
   if (IS_TOUCH) {

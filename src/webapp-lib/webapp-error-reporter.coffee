@@ -3,7 +3,6 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
-{delay} = require('awaiting');
 
 # Catch and report webapp client errors to the SMC server.
 # This is based on bugsnag's MIT licensed lib: https://github.com/bugsnag/bugsnag-js
@@ -61,56 +60,58 @@ isWhitelisted = (opts) ->
 # this is the final step sending the error report.
 # it gathers additional information about the webapp client.
 sendError = (opts) ->
-    # console.log 'sendError', opts
-    if isWhitelisted(opts)
-        # Ignore this antd message in browser.
-        return
-    misc = require('smc-util/misc')
-    opts = misc.defaults opts,
-        name            : misc.required
-        message         : misc.required
-        comment         : ''
-        stacktrace      : ''
-        file            : ''
-        path            : ''
-        lineNumber      : -1
-        columnNumber    : -1
-        severity        : 'default'
-    fingerprint = misc.uuidsha1([opts.name, opts.message, opts.comment].join('::'))
-    if fingerprint in already_reported and not DEBUG
-        return
-    already_reported.push(fingerprint)
-    # attaching some additional info
-    feature = require('smc-webapp/feature')
-    opts.user_agent  = navigator?.userAgent
-    opts.browser     = feature.get_browser()
-    opts.mobile      = feature.IS_MOBILE
-    opts.responsive  = feature.is_responsive_mode()
-    opts.smc_version = SMC_VERSION
-    opts.build_date  = BUILD_DATE
-    opts.smc_git_rev = COCALC_GIT_REVISION
-    opts.uptime      = misc.get_uptime()
-    opts.start_time  = misc.get_start_time_ts()
-    if DEBUG then console.info('error reporter sending:', opts)
-    try
-        # During initial load in some situations evidently webapp_client
-        # is not yet initialized, and webapp_client is undefined.  (Maybe
-        # a typescript rewrite of everything relevant will help...).  In
-        # any case, for now we
-        #   https://github.com/sagemathinc/cocalc/issues/4769
-        # As an added bonus, by try/catching and retrying once at least,
-        # we are more likely to get the error report in case of a temporary
-        # network or other glitch....
-        {webapp_client} = require('smc-webapp/webapp-client')   # can possibly be undefined
-        await webapp_client.tracking_client.webapp_error(opts)  # might fail.
-    catch err
-        console.info("failed to report error; trying again in 10 seconds", opts)
-        await delay(10000)
+    require.ensure [], =>
+        # console.log 'sendError', opts
+        if isWhitelisted(opts)
+            # Ignore this antd message in browser.
+            return
+        misc = require('smc-util/misc')
+        opts = misc.defaults opts,
+            name            : misc.required
+            message         : misc.required
+            comment         : ''
+            stacktrace      : ''
+            file            : ''
+            path            : ''
+            lineNumber      : -1
+            columnNumber    : -1
+            severity        : 'default'
+        fingerprint = misc.uuidsha1([opts.name, opts.message, opts.comment].join('::'))
+        if fingerprint in already_reported and not DEBUG
+            return
+        already_reported.push(fingerprint)
+        # attaching some additional info
+        feature = require('smc-webapp/feature')
+        opts.user_agent  = navigator?.userAgent
+        opts.browser     = feature.get_browser()
+        opts.mobile      = feature.IS_MOBILE
+        opts.responsive  = feature.is_responsive_mode()
+        opts.smc_version = SMC_VERSION
+        opts.build_date  = BUILD_DATE
+        opts.smc_git_rev = COCALC_GIT_REVISION
+        opts.uptime      = misc.get_uptime()
+        opts.start_time  = misc.get_start_time_ts()
+        if DEBUG then console.info('error reporter sending:', opts)
         try
-            {webapp_client} = require('smc-webapp/webapp-client')
-            await webapp_client.tracking_client.webapp_error(opts)
+            # During initial load in some situations evidently webapp_client
+            # is not yet initialized, and webapp_client is undefined.  (Maybe
+            # a typescript rewrite of everything relevant will help...).  In
+            # any case, for now we
+            #   https://github.com/sagemathinc/cocalc/issues/4769
+            # As an added bonus, by try/catching and retrying once at least,
+            # we are more likely to get the error report in case of a temporary
+            # network or other glitch....
+            {webapp_client} = require('smc-webapp/webapp-client')   # can possibly be undefined
+            await webapp_client.tracking_client.webapp_error(opts)  # might fail.
         catch err
-            console.info("failed to report error", err)
+            console.info("failed to report error; trying again in 10 seconds", opts)
+            {delay} = require('awaiting');
+            await delay(10000)
+            try
+                {webapp_client} = require('smc-webapp/webapp-client')
+                await webapp_client.tracking_client.webapp_error(opts)
+            catch err
+                console.info("failed to report error", err)
 
 # neat trick to get a stacktrace when there is none
 generateStacktrace = () ->
@@ -279,21 +280,22 @@ if ENABLED and window.setImmediate
 # console terminal
 
 sendLogLine = (severity, args) ->
-    misc = require('smc-util/misc')
-    if typeof(args) == 'object'
-        message = misc.trunc_middle(misc.to_json(args), 1000)
-    else
-        message = Array.prototype.slice.call(args).join(", ")
-    sendError(
-        name        : 'Console Output'
-        message     : message
-        file        : ''
-        path        : window.location.href
-        lineNumber  : -1
-        columnNumber: -1
-        stacktrace  : generateStacktrace()
-        severity    : severity
-    )
+    require.ensure [], =>
+        misc = require('smc-util/misc')
+        if typeof(args) == 'object'
+            message = misc.trunc_middle(misc.to_json(args), 1000)
+        else
+            message = Array.prototype.slice.call(args).join(", ")
+        sendError(
+            name        : 'Console Output'
+            message     : message
+            file        : ''
+            path        : window.location.href
+            lineNumber  : -1
+            columnNumber: -1
+            stacktrace  : generateStacktrace()
+            severity    : severity
+        )
 
 wrapFunction = (object, property, newFunction) ->
     oldFunction = object[property]
@@ -308,21 +310,22 @@ if ENABLED and window.console?
 
 if ENABLED
     window.addEventListener "unhandledrejection",(e) ->
-        # just to make sure there is a message
-        reason = e.reason ? '<no reason>'
-        if typeof(reason) == 'object'
-            misc = require('smc-util/misc')
-            reason = "#{reason.stack ? reason.message ? misc.trunc_middle(misc.to_json(reason), 1000)}"
-        e.message = "unhandledrejection: #{reason}"
-        reportException(e, "unhandledrejection")
+        require.ensure [], =>
+            # just to make sure there is a message
+            reason = e.reason ? '<no reason>'
+            if typeof(reason) == 'object'
+                misc = require('smc-util/misc')
+                reason = "#{reason.stack ? reason.message ? misc.trunc_middle(misc.to_json(reason), 1000)}"
+            e.message = "unhandledrejection: #{reason}"
+            reportException(e, "unhandledrejection")
 
 # public API
 
 exports.reportException = reportException
 
 if DEBUG
-    window.smc ?= {}
-    window.smc.webapp_error_reporter =
+    window.cc ?= {}
+    window.cc.webapp_error_reporter =
         shouldCatch             : -> shouldCatch
         ignoreOnError           : -> ignoreOnError
         already_reported        : -> already_reported

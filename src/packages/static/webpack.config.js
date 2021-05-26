@@ -131,7 +131,11 @@ if (MEASURE) {
 }
 
 module.exports = {
-  cache: true,
+  cache: {
+    type: "filesystem",
+    cacheDirectory: "/tmp/",
+  },
+  //stats: "verbose",
   optimization: {
     splitChunks: {
       minSize: 5000,

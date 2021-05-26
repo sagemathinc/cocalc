@@ -33,6 +33,7 @@ module.exports = function (PRODMODE) {
                   libraryName: "antd",
                   libraryDirectory: "lib",
                   style: true,
+                  failIfNotFound: true,
                 }),
               ],
             }),

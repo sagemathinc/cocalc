@@ -56,12 +56,12 @@ import { init as markdown_init } from "./widget-markdown-input/main";
 // only enable iframe comms in minimal kiosk mode
 import { init as iframe_comm_init } from "./iframe-communication";
 
-import { render } from "./app/render";
-
 import { init as init_crash_banner } from "./crash-banner";
 
 // Should be loaded last
 import { init as init_last } from "./last";
+
+import { render } from "./app/render";
 
 export async function init() {
   init_buttonbars();

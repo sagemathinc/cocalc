@@ -24,7 +24,7 @@ import "@fortawesome/fontawesome-free/js/v4-shims.js";
 import "jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css";
 
 // Dropzone CSS style
-import "../node_modules/smc-webapp/node_modules/dropzone/dist/min/dropzone.min.css";
+import "smc-webapp/node_modules/dropzone/dist/min/dropzone.min.css";
 
 // custom cocalc icon font
 import 'webapp-lib/cocalc-icons-font/style.css';
