@@ -8,10 +8,10 @@ import * as $ from "jquery";
 const show = $.fn.show;
 $.fn.show = function () {
   this.removeClass("hidden hide");
-  show.apply(this, arguments);
+  return show.apply(this, arguments);
 };
 const hide = $.fn.hide;
 $.fn.hide = function () {
   this.addClass("hidden hide");
-  hide.apply(this, arguments);
+  return hide.apply(this, arguments);
 };

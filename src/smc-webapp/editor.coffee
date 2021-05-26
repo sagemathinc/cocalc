@@ -166,6 +166,15 @@ else
     console.warn("cursor saving won't work due to lack of localStorage")
     local_storage_delete = local_storage = () ->
 
+templates_html = \
+  require("./console.html").default +
+  require("./editor.html").default +
+  require("./jupyter.html").default +
+  require("./sagews/interact.html").default +
+  require("./sagews/3d.html").default +
+  require("./sagews/d3.html").default;
+$("body").append(templates_html);
+
 templates = $("#webapp-editor-templates")
 
 ###############################################

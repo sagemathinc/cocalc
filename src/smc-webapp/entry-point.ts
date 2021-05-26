@@ -9,16 +9,6 @@
 
 import * as fullscreen from "./fullscreen";
 
-// FUTURE: This is needed only for the old non-react editors; will go away.
-const html =
-  require("./console.html").default +
-  require("./editor.html").default +
-  require("./jupyter.html").default +
-  require("./sagews/interact.html").default +
-  require("./sagews/3d.html").default +
-  require("./sagews/d3.html").default;
-$("body").append(html);
-
 // deferred initialization of buttonbars until after global imports -- otherwise, the sagews sage mode bar might be blank
 const { init_buttonbars } = require("./editors/editor-button-bar");
 

@@ -23,13 +23,12 @@ import "@fortawesome/fontawesome-free/js/v4-shims.js";
 
 import "jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css";
 
-// Dropzone CSS style
-import "smc-webapp/node_modules/dropzone/dist/min/dropzone.min.css";
-
 // custom cocalc icon font
-import 'webapp-lib/cocalc-icons-font/style.css';
+import "webapp-lib/cocalc-icons-font/style.css";
+
+import "./dropzone.css";
 
 // info at the bottom about the next step in startup sequence
 if (window.smcLoadStatus != null) {
-    window.smcLoadStatus("Loading ...");
+  window.smcLoadStatus("Loading ...");
 }

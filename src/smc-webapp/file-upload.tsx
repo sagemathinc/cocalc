@@ -2,7 +2,9 @@
 Drag'n'Drop file upload area
 */
 
+import "react-dropzone-component/styles/filepicker.css";
 import * as Dropzone from "dropzone";
+Dropzone.autoDiscover = false;
 export { Dropzone };
 import {
   DropzoneComponent,
