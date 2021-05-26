@@ -142,7 +142,7 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
         title += " (NOT IMPLEMENTED)";
       }
       return (
-        <Tip title={`Disable ${title}`} tip={option.description}>
+        <Tip key={title} title={`Disable ${title}`} tip={option.description}>
           <Checkbox
             disabled={saving}
             checked={state[option.name]}
