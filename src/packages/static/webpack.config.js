@@ -55,7 +55,9 @@ const TITLE = theme.SITE_NAME;
 const DESCRIPTION = theme.APP_TAGLINE;
 const COCALC_GITHUB_REPO = "https://github.com/sagemathinc/cocalc";
 const COCALC_LICENSE = "custom";
-const OUTPUT = path.resolve(__dirname, "dist");
+const OUTPUT = process.env.COCALC_OUTPUT
+  ? path.resolve(__dirname, process.env.COCALC_OUTPUT)
+  : path.resolve(__dirname, "dist");
 const NODE_ENV = process.env.NODE_ENV || "development";
 const PRODMODE = NODE_ENV == "production";
 const { MEASURE } = process.env;
@@ -132,10 +134,9 @@ module.exports = {
   cache: true,
   optimization: {
     splitChunks: {
-      minSize: 10,
+      minSize: 5000,
     },
   },
-  // https://webpack.js.org/configuration/devtool/
   devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
   mode: PRODMODE ? "production" : "development",
   entry: {

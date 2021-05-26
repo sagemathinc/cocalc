@@ -12,7 +12,7 @@ Use `npm run prod` to build and test the production version locally. This is the
 
 ### Measuring size
 
-Run `npm run measure` and when it finishes, look at `dist/measure.html` for an interactive graphic thatshows how much space each part of CoCalc is using.
+Run `npm run measure` and when it finishes, look at `dist-measure/measure.html` for an interactive graphic thatshows how much space each part of CoCalc is using.
 
 ### Releases
 

@@ -21,10 +21,10 @@
   "scripts": {
     "webpack": "COCALC_NOCLEAN=true NODE_ENV=development webpack --progress --color --watch",
     "tsc": "cd node_modules/smc-webapp && tsc --watch",
-    "measure": "MEASURE=true npm run webpack",
-    "prod": "BABEL_ENV=production NODE_ENV=production webpack --progress --color --watch",
-    "measure-prod": "MEASURE=true npm run prod",
-    "build": "COCALC_BASE_URL='/' BABEL_ENV=production NODE_ENV=production webpack --progress --color"
+    "measure": "NODE_OPTIONS=--max_old_space_size=8000  COCALC_OUTPUT=dist-measure MEASURE=true npm run webpack",
+    "prod": "NODE_OPTIONS=--max_old_space_size=8000  BABEL_ENV=production NODE_ENV=production webpack --progress --color --watch",
+    "measure-prod": "NODE_OPTIONS=--max_old_space_size=8000  COCALC_OUTPUT=dist-measure MEASURE=true npm run prod",
+    "build": "NODE_OPTIONS=--max_old_space_size=8000  COCALC_BASE_URL='/' BABEL_ENV=production NODE_ENV=production webpack --progress --color"
   },
   "repository": {
     "type": "git",

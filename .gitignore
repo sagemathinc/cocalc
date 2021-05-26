@@ -129,6 +129,7 @@ src/smc_sagews/.pytest_cache/
 src/go-landing
 
 **/dist/
+**/dist-measure/
 
 src/packages/landing
 tsconfig.tsbuildinfo

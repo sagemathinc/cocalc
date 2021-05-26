@@ -5,3 +5,4 @@ tsconfig.tsbuildinfo
 *.sage-chat
 a
 out
+dist-measure
