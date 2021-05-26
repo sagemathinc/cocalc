@@ -3,10 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// CoCalc specific wrapper around the redux library
-
 // Important: code below now assumes that a global variable called "DEBUG" is **defined**!
-declare var DEBUG: boolean, smc;
+declare var DEBUG: boolean;
 if (DEBUG == null) {
   var DEBUG = false;
 }
@@ -700,9 +698,10 @@ export { UNSAFE_NONNULLABLE };
 //export { ReactDOM };
 export const ReactDOM = require("react-dom");
 
+declare var cc;
 if (DEBUG) {
-  if (typeof smc !== "undefined" && smc !== null) {
-    smc.redux = redux;
+  if (typeof cc !== "undefined" && cc !== null) {
+    cc.redux = redux;
   } // for convenience in the browser (mainly for debugging)
 }
 

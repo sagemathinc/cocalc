@@ -5,5 +5,4 @@
 
 require("./webapp-globals");
 const { init } = require("./webapp-libraries");
-
 init();

@@ -41,16 +41,15 @@ import "bootstrap-colorpicker";
 import "script-loader!webapp-lib/term/term.js";
 import "script-loader!webapp-lib/term/color_themes.js";
 
-import "smc-webapp/webapp-client";
 import "smc-webapp/set-version-cookie.js";
 
 import "./webapp-css";
-
-export { init } from "smc-webapp/entry-point";
-
 
 // SASS style file for CoCalc.  This must be at
 // the very end, and by using a dynamic import, it
 // is imported in another chunk, hence after antd.
 // That's important so this overrides antd.
 import("smc-webapp/index.sass"); // this is a dynamic import on purpose!
+
+export { init } from "smc-webapp/entry-point";
+
