@@ -311,3 +311,5 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     return path;
   }
 }
+
+export { TimeTravelActions as Actions };

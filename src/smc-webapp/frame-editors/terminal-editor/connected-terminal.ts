@@ -17,7 +17,7 @@ import { redux, ProjectActions } from "../../app-framework";
 import { debounce } from "lodash";
 import { aux_file } from "../frame-tree/util";
 import { Terminal as XTerminal } from "xterm";
-require("xterm/css/xterm.css");
+import "xterm/css/xterm.css";
 
 import { FitAddon } from "xterm-addon-fit";
 import { WebLinksAddon } from "xterm-addon-web-links";
