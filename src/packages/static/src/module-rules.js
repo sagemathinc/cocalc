@@ -2,6 +2,12 @@
 This module defines how webpack loads each type of file.
 */
 
+// This ts-import-plugin is the right way to do webpack + ts-loader + antd tree shaking.
+// It took quite a lot of work to find, because webpack and antd don't seem to ever point
+// to it.  However, it is the right approach to this problem. It could also be used to
+// tree shake lodash, but I haven't done that yet.
+const tsImportPluginFactory = require("ts-import-plugin");
+
 module.exports = function (PRODMODE) {
   // tuning generated filenames and the configs for the aux files loader.
   const hashname = PRODMODE
@@ -14,18 +20,28 @@ module.exports = function (PRODMODE) {
       test: /\.cjsx$/,
       use: [{ loader: "coffee-loader" }, { loader: "cjsx-loader" }],
     },
-    { test: [/node_modules\/prom-client\/.*\.js$/], loader: "babel-loader" },
-    { test: [/latex-editor\/.*\.jsx?$/], loader: "babel-loader" },
-    { test: [/build\/pdf.js$/], loader: "babel-loader" }, // since they messed up their release including Optional Chaining in built files!
     {
-      test: /\.tsx?$/,
-      use: {
-        loader: "ts-loader",
-        options: { transpileOnly: true },
-        // NOTE: We must disable typescript checking, since it is way too slow and uses
-        // too much RAM.  Instead you must use `tsc --watch` directly in another shell,
-        // or an IDE that supports typescript.
-      },
+      test: /\.(jsx|tsx|js|ts)$/,
+      use: [
+        {
+          loader: "ts-loader",
+          options: {
+            transpileOnly: true,
+            getCustomTransformers: () => ({
+              before: [
+                tsImportPluginFactory({
+                  libraryName: "antd",
+                  libraryDirectory: "lib",
+                  style: true,
+                }),
+              ],
+            }),
+          },
+          // NOTE: We must disable typescript checking, since it is way too slow and uses
+          // too much RAM.  Instead you must use `tsc --watch` directly in another shell,
+          // or an IDE that supports typescript.  For CoCalc, use `npm tsc`.
+        },
+      ],
     },
     {
       test: /\.less$/,
@@ -38,7 +54,10 @@ module.exports = function (PRODMODE) {
           },
         },
         "postcss-loader",
-        "less-loader",
+        {
+          loader: "less-loader",
+          options: { lessOptions: { javascriptEnabled: true } },
+        }, // javascriptEnabled needed for antd.
       ],
     },
     {

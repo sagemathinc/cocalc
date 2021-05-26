@@ -74,9 +74,6 @@ if (window.smcLoadStatus != null) {
 
 require("../node_modules/smc-webapp/node_modules/antd/dist/antd.css");
 
-// SASS style file for CoCalc
-require("../node_modules/smc-webapp/index.sass");
-
 require("../node_modules/smc-webapp/webapp-client");
 require("../node_modules/smc-webapp/set-version-cookie.js");
 
@@ -86,3 +83,11 @@ init();
 require("./webapp-css");
 
 require("@babel/polyfill");
+
+// SASS style file for CoCalc.  This must be at
+// the very end, and by using a dynamic import, it
+// is imported in another chunk, hence after antd.
+// That's important so this overrides antd.
+import("../node_modules/smc-webapp/index.sass");
+
+

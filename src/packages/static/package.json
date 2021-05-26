@@ -15,18 +15,15 @@
   "description": "CoCalc's Static Frontend Webapp Assets",
   "main": "./src/index.js",
   "babel": {
-    "presets": [
-      "@babel/preset-env"
-    ],
-    "plugins": [
-      "@babel/plugin-transform-react-jsx"
-    ]
+    "presets": ["@babel/preset-env"],
+    "plugins": ["@babel/plugin-transform-react-jsx"]
   },
   "scripts": {
     "webpack": "COCALC_NOCLEAN=true NODE_ENV=development webpack --progress --color --watch",
     "tsc": "cd node_modules/smc-webapp && tsc --watch",
+    "measure": "MEASURE=true npm run webpack",
     "prod": "BABEL_ENV=production NODE_ENV=production webpack --progress --color --watch",
-    "measure": "MEASURE=true NODE_ENV=development NODE_OPTIONS=--max_old_space_size=8000 webpack --progress --color --watch",
+    "measure-prod": "MEASURE=true npm run prod",
     "build": "COCALC_BASE_URL='/' BABEL_ENV=production NODE_ENV=production webpack --progress --color"
   },
   "repository": {
@@ -51,12 +48,6 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "devDependencies": {
-    "@babel/core": "^7.14.3",
-    "@babel/plugin-proposal-optional-chaining": "^7.14.2",
-    "@babel/plugin-transform-react-jsx": "^7.14.3",
-    "@babel/polyfill": "^7.10.4",
-    "@babel/preset-env": "^7.14.2",
-    "@babel/runtime": "^7.14.0",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^26.0.23",
     "@types/jquery": "^3.5.5",
@@ -68,7 +59,6 @@
     "assert": "^2.0.0",
     "async": "^3.2.0",
     "autoprefixer": "^10.2.5",
-    "babel-loader": "^8.2.2",
     "buffer": "^6.0.3",
     "cjsx-loader": "^3.0.0",
     "clean-webpack-plugin": "^3.0",
@@ -126,6 +116,7 @@
     "stream-browserify": "^3.0.0",
     "style-loader": "^2.0.0",
     "temp": "^0.9.4",
+    "ts-import-plugin": "^1.6.7",
     "ts-jest": "^26.5.6",
     "ts-loader": "^9.2.1",
     "ts-node": "=9.1.1",
