@@ -309,6 +309,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     const items: Rendered[] = [];
     for (const type in props.editor_spec) {
       const spec = props.editor_spec[type];
+      if (spec == null) {
+        // typescript should prevent this but, also double checking
+        // makes this easier to debug.
+        console.log(props.editor_spec);
+        throw Error(
+          `BUG -- ${type} must be defined by the editor_spec, but is not`
+        );
+      }
       if (is_public && spec.hide_public) {
         // editor that is explicitly excluded from public view for file,
         // e.g., settings or terminal might use this.
@@ -1077,7 +1085,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (!is_visible("build", true)) {
       return;
     }
-    const title = "Build (disable automatic builds in Account → Editor → 'Build on save')";
+    const title =
+      "Build (disable automatic builds in Account → Editor → 'Build on save')";
     return (
       <Button
         key={"build"}
