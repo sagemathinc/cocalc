@@ -132,8 +132,15 @@ if (MEASURE) {
 
 module.exports = {
   cache: {
+    // This is supposed to cache the in-memory state to disk
+    // so initial startup time is less.  Don't do this in
+    // user home directory on cocalc, since it uses a LOT
+    // of disk IO, which makes everything very slow.
     type: "filesystem",
-    cacheDirectory: "/tmp/",
+    buildDependencies: {
+      config: [__filename],
+    },
+    cacheDirectory: "/tmp/cache",
   },
   //stats: "verbose",
   optimization: {
