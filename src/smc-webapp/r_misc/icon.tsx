@@ -4,8 +4,133 @@
  */
 
 import * as React from "react";
-import * as misc from "smc-util/misc";
 import { CSS } from "../app-framework";
+
+import {
+  BellFilled,
+  BellOutlined,
+  BoldOutlined,
+  BorderOutlined,
+  CaretDownFilled,
+  CaretLeftFilled,
+  CaretRightFilled,
+  CaretUpFilled,
+  CheckSquareOutlined,
+  CloudDownloadOutlined,
+  CloseCircleOutlined,
+  CloseOutlined,
+  CodeOutlined,
+  CommentOutlined,
+  ControlOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  DownOutlined,
+  EditOutlined,
+  ExpandOutlined,
+  EyeInvisibleOutlined,
+  EyeOutlined,
+  FilterOutlined,
+  FolderOpenOutlined,
+  HistoryOutlined,
+  InfoCircleOutlined,
+  KeyOutlined,
+  LeftOutlined,
+  LeftSquareFilled,
+  LockFilled,
+  LogoutOutlined,
+  MedicineBoxOutlined,
+  MinusCircleOutlined,
+  MinusSquareOutlined,
+  PauseCircleOutlined,
+  PlayCircleOutlined,
+  PlusCircleFilled,
+  PlusCircleOutlined,
+  PlusSquareFilled,
+  PlusSquareOutlined,
+  QuestionCircleOutlined,
+  RightOutlined,
+  RightSquareFilled,
+  SearchOutlined,
+  SettingOutlined,
+  ShareAltOutlined,
+  ShrinkOutlined,
+  SlidersOutlined,
+  StopOutlined,
+  StrikethroughOutlined,
+  UpOutlined,
+  UserAddOutlined,
+  UserDeleteOutlined,
+  UsergroupAddOutlined,
+  UserOutlined,
+  WifiOutlined,
+} from "@ant-design/icons";
+
+const FA2ANTD = {
+  bell: BellFilled,
+  "bell-o": BellOutlined,
+  bold: BoldOutlined,
+  "caret-down": CaretDownFilled,
+  "caret-left": CaretLeftFilled,
+  "caret-right": CaretRightFilled,
+  "caret-up": CaretUpFilled,
+  "caret-square-left": LeftSquareFilled,
+  "caret-square-right": RightSquareFilled,
+  "check-square": CheckSquareOutlined,
+  "check-square-o": CheckSquareOutlined,
+  "chevron-down": DownOutlined,
+  "chevron-left": LeftOutlined,
+  "chevron-right": RightOutlined,
+  "chevron-up": UpOutlined,
+  "cloud-download": CloudDownloadOutlined,
+  "cloud-download-alt": CloudDownloadOutlined,
+  cogs: ControlOutlined,
+  comment: CommentOutlined,
+  comments: CommentOutlined,
+  compress: ShrinkOutlined,
+  copy: CopyOutlined,
+  edit: EditOutlined,
+  expand: ExpandOutlined,
+  eye: EyeOutlined,
+  "eye-slash": EyeInvisibleOutlined,
+  "folder-open-o": FolderOpenOutlined,
+  gears: ControlOutlined,
+  history: HistoryOutlined,
+  "info-circle": InfoCircleOutlined,
+  key: KeyOutlined,
+  lock: LockFilled,
+  mask: FilterOutlined,
+  medkit: MedicineBoxOutlined,
+  microchip: SlidersOutlined,
+  "minus-circle": MinusCircleOutlined,
+  "minus-square": MinusSquareOutlined,
+  pause: PauseCircleOutlined,
+  play: PlayCircleOutlined,
+  "plus-circle": PlusCircleFilled,
+  "plus-circle-o": PlusCircleOutlined,
+  "plus-square": PlusSquareFilled,
+  "plus-square-o": PlusSquareOutlined,
+  "question-circle": QuestionCircleOutlined,
+  search: SearchOutlined,
+  "sign-out-alt": LogoutOutlined,
+  "share-square": ShareAltOutlined,
+  square: BorderOutlined,
+  "square-o": BorderOutlined,
+  stop: StopOutlined,
+  strikethrough: StrikethroughOutlined,
+  terminal: CodeOutlined,
+  times: CloseOutlined,
+  "times-circle": CloseCircleOutlined,
+  trash: DeleteOutlined,
+  user: UserOutlined,
+  UserAddOutlined,
+  "user-plus": UsergroupAddOutlined,
+  "user-times": UserDeleteOutlined,
+  users: UsergroupAddOutlined,
+  wifi: WifiOutlined,
+  wrench: SettingOutlined,
+};
+
+// TODO:  play square-o book upload eye-slash mask life-saver caret-down check fa-file-code-o cloud-download fa-terminal fa-question-circle fa-file-pdf-o cc-icon-tex-file fa-comment fa-graduation-cap fa-file-image-o cc-icon-sagemath-file fa-window-restore bullhorn cc-icon-r fa-tasks cc-icon-markdown cc-icon-python cc-icon-sagemath-bold folder file cc-icon-jupyter window-restore comment graduation-cap tasks stopwatch cloud cloud-upload lock save search-minus search-plus undo repeat scissors paste fa-sitemap print align-right magic columns plus arrow-up arrow-down step-forward stop refresh forward keyboard-o hand-stop-o slideshare info user-clock circle-o compress trash-o pencil clone arrows files-o share-square-o arrow-circle-o-left minus-square-o eye user  rocket door-open file-code-o file-image-o file-pdf-o file-alt dashboard arrow-circle-up key redo shopping-cart clipboard warning list-ul life-ring bars database clipboard-check check-square user-times gears hdd list-alt table file-text-o flash external-link header envelope share-square laptop-code cogs share-alt video-camera chevron-circle-right money google gear tachometer-alt credit-card fab fa-cc-visa external-link-alt line-chart paper-plane-o fa-stopwatch at bell
 
 interface Props {
   name?: string;
@@ -26,32 +151,15 @@ interface Props {
   onMouseOut?: () => void;
 }
 
-function is_equal(prev, next): boolean {
-  // always update if there are children
-  if (prev.children != null || next.children != null) return false;
-
-  if (
-    misc.is_different(prev, next, [
-      "name",
-      "unicode",
-      "size",
-      "rotate",
-      "flip",
-      "spin",
-      "pulse",
-      "fixedWidth",
-      "stack",
-      "inverse",
-      "className",
-    ]) ||
-    !misc.is_equal(prev.style, next.style)
-  )
-    return false;
-  return true;
-}
-
 // Converted from https://github.com/andreypopp/react-fa
-export const Icon: React.FC<Props> = React.memo((props: Props) => {
+export const Icon: React.FC<Props> = (props: Props) => {
+  if (props.name != null) {
+    const C = FA2ANTD[props.name];
+    if (C != null) {
+      return <C {...props} />;
+    }
+  }
+
   const {
     name: name_prop,
     onClick: onClick_prop,
@@ -179,4 +287,4 @@ export const Icon: React.FC<Props> = React.memo((props: Props) => {
       {render_icon()}
     </span>
   );
-}, is_equal);
+};

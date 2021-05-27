@@ -239,7 +239,7 @@ export const Body = rclass<ReactProps>(
                 user_map={this.props.user_map}
               />
               {!student.disableCollaborators && (
-                <SettingBox title="Add new collaborators" icon="plus">
+                <SettingBox title="Add new collaborators" icon="UserAddOutlined">
                   <AddCollaborators
                     project_id={this.props.project.get("project_id")}
                   />
