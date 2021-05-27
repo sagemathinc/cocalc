@@ -140,7 +140,7 @@ module.exports = {
     buildDependencies: {
       config: [__filename],
     },
-    cacheDirectory: "/tmp/cache",
+    cacheDirectory: "/tmp/webpack",
   },
   //stats: "verbose",
   optimization: {
