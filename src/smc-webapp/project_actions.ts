@@ -736,17 +736,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     path: string,
     is_public: boolean
   ): Promise<{ name: string | undefined; Editor: any }> {
-    // Force code spliting in loading register-all.
-    // Using await import(...) **should** force this,
-    // but simply doesn't, perhaps due to how complicated
-    // our codebase is (with legacy coffescript, etc.)
-    await callback((cb) => {
-      // @ts-ignore
-      require.ensure([], () => {
-        require("./editors/register-all");
-        cb();
-      });
-    });
+    // LAZY IMPORT, so that editors are only available
+    // when you are going to use them.  Helps with code splitting.
+    await import("./editors/register-all");
 
     // Initialize the file's store and actions
     const name = await project_file.initializeAsync(

@@ -39,6 +39,8 @@ export class FakeSyncstring extends EventEmitter {
 
   redo() {}
 
+  commit() {}
+
   is_read_only(): boolean {
     return false;
   }

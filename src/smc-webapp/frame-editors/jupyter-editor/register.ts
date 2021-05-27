@@ -11,6 +11,7 @@ import { register_file_editor } from "../frame-tree/register";
 import { init_jupyter_classic_support } from "../../jupyter/jupyter-classic-support";
 
 export function register_cocalc_jupyter(): void {
+  console.log("register_cocalc_jupyter now!");
   register_file_editor({
     ext: "ipynb",
     editor: async () => await import("./editor"),

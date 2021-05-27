@@ -18,8 +18,7 @@ export function init_jupyter_classic_support(
   const account_store = redux.getStore("account");
   const account_table = redux.getTable("account");
   let last_jupyter_classic: boolean | undefined = undefined;
-
-  account_store.on("change", () => {
+  const f = () => {
     const jupyter_classic = account_store.getIn([
       "editor_settings",
       "jupyter_classic",
@@ -33,5 +32,10 @@ export function init_jupyter_classic_support(
     } else {
       register_cocalc_jupyter();
     }
-  });
+  };
+
+  // Do it once **immediately** so definitely something handles ipynb files.
+  f();
+  // Then do a quick check any time the account store changes.
+  account_store.on("change", f);
 }

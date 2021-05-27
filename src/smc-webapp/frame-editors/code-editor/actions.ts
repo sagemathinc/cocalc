@@ -1397,6 +1397,7 @@ export class Actions<
   }
 
   syncstring_commit(): void {
+    if (this._state === "closed") return;
     if (this._syncstring != null) {
       this._syncstring.commit();
     }
