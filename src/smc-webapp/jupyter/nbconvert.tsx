@@ -373,7 +373,7 @@ export class NBConvert extends Component<NBConvertProps> {
       >
         <Modal.Header closeButton>
           <Modal.Title>
-            <Icon name="slideshare" /> Jupyter Notebook Slideshow
+            <Icon name="FundProjectionScreenOutlined" /> Jupyter Notebook Slideshow
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>

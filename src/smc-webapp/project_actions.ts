@@ -686,9 +686,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     store.get("open_files").forEach((val, path) => {
-      const is_public = val.get("component")
-        ? val.get("component").is_public
-        : false; // might still in theory someday be true.
+      const component = val.get("component");
+      if (component == null) {
+        // This happens, e.g., if you have a tab for a file,
+        // but it hasn't been focused, so there's no actual
+        // information to save (basically a background tab
+        // that has not yet been initialized).
+        return;
+      }
+      const { is_public } = component;
       project_file.save(path, this.redux, this.project_id, is_public);
     });
   }

@@ -23,7 +23,7 @@ import { set } from "smc-util/misc";
 export const time_travel = {
   short: "TimeTravel",
   name: "TimeTravel",
-  icon: "user-clock",
+  icon: "history",
   component: TimeTravel,
   buttons: set(["decrease_font_size", "increase_font_size", "help", "-file"]),
   hide_file_menu: true,

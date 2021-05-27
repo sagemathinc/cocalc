@@ -430,7 +430,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           }
         }}
       >
-        <Icon name="columns" rotate={"90"} />
+        <Icon name="horizontal-split" />
       </Button>
     );
   }
@@ -450,7 +450,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           }
         }}
       >
-        <Icon name="columns" />
+        <Icon name="vertical-split" />
       </Button>
     );
   }
@@ -524,7 +524,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         bsSize={button_size()}
         onClick={() => props.actions.zoom_page_width?.(props.id)}
       >
-        <Icon name={"arrows-alt-h"} />
+        <Icon name={"ColumnWidthOutlined"} />
       </Button>
     );
   }
@@ -537,7 +537,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         bsSize={button_size()}
         onClick={() => props.actions.zoom_page_height?.(props.id)}
       >
-        <Icon name={"arrows-alt-v"} />
+        <Icon name={"ColumnHeightOutlined"} />
       </Button>
     );
   }
@@ -554,7 +554,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         bsSize={button_size()}
         onClick={() => props.actions.sync?.(props.id, props.editor_actions)}
       >
-        <Icon name={"fab fa-staylinked"} />{" "}
+        <Icon name="sync" />{" "}
         {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
       </Button>
     );
@@ -626,7 +626,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         disabled={read_only}
         bsSize={button_size()}
       >
-        <Icon name="exchange" />
+        <Icon name="replace" />
       </Button>
     );
   }
@@ -1161,7 +1161,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={() => props.actions.kick_other_users_out(props.id)}
         title={"Kick all other users out"}
       >
-        <Icon name={"door-open"} />
+        <Icon name={"leave_conference"} />
       </Button>
     );
   }
@@ -1254,7 +1254,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={() => set_close_and_halt_confirm(true)}
         title={"Close and halt server"}
       >
-        <Icon name={"hand-stop-o"} />{" "}
+        <Icon name={"PoweroffOutlined"} />{" "}
         <VisibleMDLG>{labels ? "Halt" : undefined}</VisibleMDLG>
       </Button>
     );
@@ -1520,7 +1520,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           }}
           bsStyle="danger"
         >
-          <Icon name={"hand-stop-o"} /> Close and Halt
+          <Icon name={"PoweroffOutlined"} /> Close and Halt
         </Button>
         <Button onClick={() => set_close_and_halt_confirm(false)}>
           Cancel

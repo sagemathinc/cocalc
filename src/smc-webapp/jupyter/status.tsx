@@ -176,14 +176,14 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           name = "unlink";
           break;
         case "ready":
-          name = "circle-o-notch";
+          name = "circle-notch";
           break;
         case "spawning":
-          name = "circle-o-notch";
+          name = "circle-notch";
           spin = true;
           break;
         case "starting":
-          name = "circle-o-notch";
+          name = "circle-notch";
           spin = true;
           break;
         case "running":
@@ -193,10 +193,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
               color = "#5cb85c";
               break;
             case "idle":
-              name = "circle-o";
+              name = "circle-notch";
               break;
             default:
-              name = "circle-o";
+              name = "circle-notch";
           }
           break;
       }

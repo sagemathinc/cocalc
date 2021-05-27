@@ -112,7 +112,7 @@ export class FindAndReplace extends Component<
         title="Replace in all cells"
         active={this.state.all}
       >
-        <Icon name="arrows-v" />
+        <Icon name="replace" />
       </Button>
     );
   }

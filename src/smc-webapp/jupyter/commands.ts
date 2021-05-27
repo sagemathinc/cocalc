@@ -146,7 +146,7 @@ export function commands(
     },
 
     "close and halt": {
-      i: "hand-stop-o",
+      i: "PoweroffOutlined",
       m: "Close and halt",
       f: () => jupyter_actions.confirm_close_and_halt(),
     },

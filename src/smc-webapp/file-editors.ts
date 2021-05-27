@@ -160,7 +160,10 @@ function get_ed(
       ? file_editors[is_pub][ext]
       : file_editors[is_pub][""];
   if (spec == null) {
-    throw Error("bug -- spec must include fallback extension ''");
+    // This happens if the editors haven't been loaded yet.  A valid use
+    // case is you open a project and session restore creates one *background*
+    // file tab, which you then close (without ever looking at the file).
+    return {};
   }
   return spec;
 }

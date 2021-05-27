@@ -16,7 +16,7 @@ args = ' '.join(sys.argv[1:])
 if id != '':
     cmd = "cp run/hub.js run/hub%s.js && node  --enable-source-maps  run/hub%s.js %s" % (id, id, args)
 else:
-    cmd = "node --enable-source-maps --max-old-space-size=8000 run/hub.js " + args
+    cmd = "node --enable-source-maps  run/hub.js " + args
 print(cmd)
 
 if os.WEXITSTATUS(os.system(cmd)):
