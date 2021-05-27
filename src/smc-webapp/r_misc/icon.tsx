@@ -10,6 +10,8 @@ import {
   AlignLeftOutlined,
   AlignCenterOutlined,
   AlignRightOutlined,
+  ArrowDownOutlined,
+  ArrowUpOutlined,
   BellFilled,
   BellOutlined,
   BoldOutlined,
@@ -32,20 +34,20 @@ import {
   ControlOutlined,
   CopyOutlined,
   DeleteOutlined,
+  DesktopOutlined,
   DownOutlined,
   EditOutlined,
   ExpandOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
   FieldTimeOutlined,
-  FileExcelOutlined,
   FileImageOutlined,
   FileOutlined,
   FilePdfOutlined,
   FileTextOutlined,
-  FilterOutlined,
   FolderOutlined,
   FolderOpenOutlined,
+  ForwardOutlined,
   HistoryOutlined,
   InfoCircleOutlined,
   KeyOutlined,
@@ -58,7 +60,6 @@ import {
   MinusCircleOutlined,
   MinusOutlined,
   MinusSquareOutlined,
-  NotificationOutlined,
   PauseCircleOutlined,
   PlayCircleOutlined,
   PlusCircleFilled,
@@ -67,7 +68,6 @@ import {
   PlusSquareFilled,
   PlusSquareOutlined,
   PrinterOutlined,
-  QuestionCircleFilled,
   QuestionCircleOutlined,
   RedoOutlined,
   RightOutlined,
@@ -75,36 +75,36 @@ import {
   SaveOutlined,
   ScissorOutlined,
   SearchOutlined,
-  SettingOutlined,
   ShareAltOutlined,
   ShrinkOutlined,
-  SlidersOutlined,
-  SnippetsFilled,
   SplitCellsOutlined,
+  StepForwardOutlined,
   StopOutlined,
   StrikethroughOutlined,
-  ThunderboltTwoTone,
-  TrophyOutlined,
   UndoOutlined,
-  UnorderedListOutlined,
   UpOutlined,
   UploadOutlined,
-  UserAddOutlined,
   UserDeleteOutlined,
   UsergroupAddOutlined,
   UserOutlined,
   WifiOutlined,
 } from "@ant-design/icons";
 
+import { createFromIconfontCN } from "@ant-design/icons";
+const scriptUrl = `${window.app_base_url}/webapp/iconfont.cn/iconfont.js`;
+const IconFont = createFromIconfontCN({ scriptUrl });
+
 const FA2ANTD = {
   "align-left": AlignLeftOutlined,
   "align-center": AlignCenterOutlined,
   "align-right": AlignRightOutlined,
+  "arrow-down": ArrowDownOutlined,
+  "arrow-up": ArrowUpOutlined,
   bell: BellFilled,
   "bell-o": BellOutlined,
   bold: BoldOutlined,
   book: BookOutlined,
-  bullhorn: NotificationOutlined,
+  bullhorn: { IconFont: "bullhorn" },
   "caret-down": CaretDownFilled,
   "caret-left": CaretLeftFilled,
   "caret-right": CaretRightFilled,
@@ -141,21 +141,23 @@ const FA2ANTD = {
   "folder-open-o": FolderOpenOutlined,
   "file-pdf": FilePdfOutlined,
   folder: FolderOutlined,
+  forward: ForwardOutlined,
   gears: ControlOutlined,
-  "graduation-cap": TrophyOutlined, // ugh
+  "graduation-cap": { IconFont: "graduation" },
   history: HistoryOutlined,
   "info-circle": InfoCircleOutlined,
   key: KeyOutlined,
-  "life-saver": QuestionCircleFilled,
+  keyboard: { IconFont: "keyboard" },
+  "life-saver": { IconFont: "life-ring" },
   lock: LockFilled,
-  magic: ThunderboltTwoTone,
-  mask: FilterOutlined,
+  magic: { IconFont: "magic" },
+  mask: { IconFont: "cpu" },
   medkit: MedicineBoxOutlined,
-  microchip: SlidersOutlined,
+  microchip: { IconFont: "cpu" },
   "minus-circle": MinusCircleOutlined,
   "minus-square": MinusSquareOutlined,
   pause: PauseCircleOutlined,
-  paste: SnippetsFilled,
+  paste: { IconFont: "paste" },
   pencil: EditOutlined,
   "pencil-alt": EditOutlined,
   play: PlayCircleOutlined,
@@ -167,6 +169,7 @@ const FA2ANTD = {
   print: PrinterOutlined,
   "question-circle": QuestionCircleOutlined,
   redo: RedoOutlined,
+  refresh: RedoOutlined,
   repeat: RedoOutlined,
   save: SaveOutlined,
   scissors: ScissorOutlined,
@@ -178,10 +181,11 @@ const FA2ANTD = {
   "share-square": ShareAltOutlined,
   square: BorderOutlined,
   "square-o": BorderOutlined,
+  "step-forward": StepForwardOutlined,
   stop: StopOutlined,
   stopwatch: FieldTimeOutlined,
   strikethrough: StrikethroughOutlined,
-  tasks: UnorderedListOutlined,
+  tasks: { IconFont: "tasks" },
   terminal: CodeOutlined,
   times: CloseOutlined,
   "times-circle": CloseCircleOutlined,
@@ -189,16 +193,15 @@ const FA2ANTD = {
   undo: UndoOutlined,
   upload: UploadOutlined,
   user: UserOutlined,
-  UserAddOutlined,
   "user-plus": UsergroupAddOutlined,
   "user-times": UserDeleteOutlined,
   users: UsergroupAddOutlined,
   wifi: WifiOutlined,
-  "window-restore": FileExcelOutlined, // since we only use for x11 and this has big X.
-  wrench: SettingOutlined,
+  "window-restore": DesktopOutlined, //  we only use for x11 and this has big X.
+  wrench: { IconFont: "tasks" },
 };
 
-// TODO:    columns  arrow-up arrow-down step-forward stop refresh forward keyboard-o hand-stop-o slideshare info user-clock circle-o compress trash-o pencil clone arrows files-o share-square-o arrow-circle-o-left minus-square-o eye user  rocket door-open file-code-o file-image-o file-pdf-o file-alt dashboard arrow-circle-up key redo shopping-cart clipboard warning list-ul life-ring bars database clipboard-check check-square user-times gears hdd list-alt table file-text-o flash external-link header envelope share-square laptop-code cogs share-alt video-camera chevron-circle-right money google gear tachometer-alt credit-card fab fa-cc-visa external-link-alt line-chart paper-plane-o fa-stopwatch at bell
+// TODO:     hand-stop-o slideshare info user-clock circle-o compress trash-o pencil clone arrows files-o share-square-o arrow-circle-o-left minus-square-o eye user  rocket door-open file-code-o file-image-o file-pdf-o file-alt dashboard arrow-circle-up key redo shopping-cart clipboard warning list-ul life-ring bars database clipboard-check check-square user-times gears hdd list-alt table file-text-o flash external-link header envelope share-square laptop-code cogs share-alt video-camera chevron-circle-right money google gear tachometer-alt credit-card fab fa-cc-visa external-link-alt line-chart paper-plane-o fa-stopwatch at bell
 
 interface Props {
   name?: string;
@@ -231,6 +234,10 @@ export const Icon: React.FC<Props> = (props: Props) => {
       C = FA2ANTD[name.slice(0, name.length - 2)];
     }
     if (C != null) {
+      if (typeof C.IconFont == "string") {
+        // @ts-ignore
+        return <IconFont type={"icon-" + C.IconFont} {...props} />;
+      }
       return <C {...props} />;
     }
   }

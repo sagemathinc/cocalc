@@ -1169,7 +1169,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if @[x][key]
             return true
         @[x][key] = true
-        setTimeout((()=>delete @[x][key]), time_s*1000)
+        setTimeout((()=>delete @[x]?[key]), time_s*1000)
         return false
 
     # Ensure that the actual schema in the database matches the one defined in SCHEMA.
