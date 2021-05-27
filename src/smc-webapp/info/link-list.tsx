@@ -68,7 +68,7 @@ export class LinkList extends Component<Props> {
       }
       result.push(
         <div key={name} style={style}>
-          <Icon name={data.icon} fixedWidth />{" "}
+          <Icon name={data.icon} style={{ width: "1.125em" }} />{" "}
           {this.render_link(data.href, data.link)}
           {this.render_text(data.href, data.text)}
         </div>

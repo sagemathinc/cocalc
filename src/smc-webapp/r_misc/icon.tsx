@@ -7,18 +7,26 @@ import * as React from "react";
 import { CSS } from "../app-framework";
 
 import {
+  AlignLeftOutlined,
+  AlignCenterOutlined,
+  AlignRightOutlined,
   BellFilled,
   BellOutlined,
   BoldOutlined,
+  BookOutlined,
   BorderOutlined,
   CaretDownFilled,
   CaretLeftFilled,
   CaretRightFilled,
   CaretUpFilled,
+  CheckOutlined,
   CheckSquareOutlined,
   CloudDownloadOutlined,
   CloseCircleOutlined,
   CloseOutlined,
+  CloudFilled,
+  CloudUploadOutlined,
+  ClusterOutlined,
   CodeOutlined,
   CommentOutlined,
   ControlOutlined,
@@ -29,35 +37,58 @@ import {
   ExpandOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
+  FieldTimeOutlined,
+  FileExcelOutlined,
+  FileImageOutlined,
+  FileOutlined,
+  FilePdfOutlined,
+  FileTextOutlined,
   FilterOutlined,
+  FolderOutlined,
   FolderOpenOutlined,
   HistoryOutlined,
   InfoCircleOutlined,
   KeyOutlined,
   LeftOutlined,
   LeftSquareFilled,
+  LoadingOutlined,
   LockFilled,
   LogoutOutlined,
   MedicineBoxOutlined,
   MinusCircleOutlined,
+  MinusOutlined,
   MinusSquareOutlined,
+  NotificationOutlined,
   PauseCircleOutlined,
   PlayCircleOutlined,
   PlusCircleFilled,
   PlusCircleOutlined,
+  PlusOutlined,
   PlusSquareFilled,
   PlusSquareOutlined,
+  PrinterOutlined,
+  QuestionCircleFilled,
   QuestionCircleOutlined,
+  RedoOutlined,
   RightOutlined,
   RightSquareFilled,
+  SaveOutlined,
+  ScissorOutlined,
   SearchOutlined,
   SettingOutlined,
   ShareAltOutlined,
   ShrinkOutlined,
   SlidersOutlined,
+  SnippetsFilled,
+  SplitCellsOutlined,
   StopOutlined,
   StrikethroughOutlined,
+  ThunderboltTwoTone,
+  TrophyOutlined,
+  UndoOutlined,
+  UnorderedListOutlined,
   UpOutlined,
+  UploadOutlined,
   UserAddOutlined,
   UserDeleteOutlined,
   UsergroupAddOutlined,
@@ -66,24 +97,35 @@ import {
 } from "@ant-design/icons";
 
 const FA2ANTD = {
+  "align-left": AlignLeftOutlined,
+  "align-center": AlignCenterOutlined,
+  "align-right": AlignRightOutlined,
   bell: BellFilled,
   "bell-o": BellOutlined,
   bold: BoldOutlined,
+  book: BookOutlined,
+  bullhorn: NotificationOutlined,
   "caret-down": CaretDownFilled,
   "caret-left": CaretLeftFilled,
   "caret-right": CaretRightFilled,
   "caret-up": CaretUpFilled,
   "caret-square-left": LeftSquareFilled,
   "caret-square-right": RightSquareFilled,
+  check: CheckOutlined,
   "check-square": CheckSquareOutlined,
   "check-square-o": CheckSquareOutlined,
   "chevron-down": DownOutlined,
   "chevron-left": LeftOutlined,
   "chevron-right": RightOutlined,
   "chevron-up": UpOutlined,
+  "cc-icon-cocalc-ring": LoadingOutlined, // because icon-cocalc-ring can't sping anyways...
+  "circle-notch": LoadingOutlined,
+  cloud: CloudFilled,
   "cloud-download": CloudDownloadOutlined,
   "cloud-download-alt": CloudDownloadOutlined,
+  "cloud-upload": CloudUploadOutlined,
   cogs: ControlOutlined,
+  columns: SplitCellsOutlined,
   comment: CommentOutlined,
   comments: CommentOutlined,
   compress: ShrinkOutlined,
@@ -92,45 +134,71 @@ const FA2ANTD = {
   expand: ExpandOutlined,
   eye: EyeOutlined,
   "eye-slash": EyeInvisibleOutlined,
+  file: FileOutlined,
+  "file-code-o": FileTextOutlined,
+  "file-code": FileTextOutlined,
+  "file-image-o": FileImageOutlined,
   "folder-open-o": FolderOpenOutlined,
+  "file-pdf": FilePdfOutlined,
+  folder: FolderOutlined,
   gears: ControlOutlined,
+  "graduation-cap": TrophyOutlined, // ugh
   history: HistoryOutlined,
   "info-circle": InfoCircleOutlined,
   key: KeyOutlined,
+  "life-saver": QuestionCircleFilled,
   lock: LockFilled,
+  magic: ThunderboltTwoTone,
   mask: FilterOutlined,
   medkit: MedicineBoxOutlined,
   microchip: SlidersOutlined,
   "minus-circle": MinusCircleOutlined,
   "minus-square": MinusSquareOutlined,
   pause: PauseCircleOutlined,
+  paste: SnippetsFilled,
+  pencil: EditOutlined,
+  "pencil-alt": EditOutlined,
   play: PlayCircleOutlined,
+  plus: PlusOutlined,
   "plus-circle": PlusCircleFilled,
   "plus-circle-o": PlusCircleOutlined,
   "plus-square": PlusSquareFilled,
   "plus-square-o": PlusSquareOutlined,
+  print: PrinterOutlined,
   "question-circle": QuestionCircleOutlined,
+  redo: RedoOutlined,
+  repeat: RedoOutlined,
+  save: SaveOutlined,
+  scissors: ScissorOutlined,
   search: SearchOutlined,
+  "search-minus": MinusOutlined, // we actually use this for zoom
+  "search-plus": PlusOutlined,
   "sign-out-alt": LogoutOutlined,
+  sitemap: ClusterOutlined,
   "share-square": ShareAltOutlined,
   square: BorderOutlined,
   "square-o": BorderOutlined,
   stop: StopOutlined,
+  stopwatch: FieldTimeOutlined,
   strikethrough: StrikethroughOutlined,
+  tasks: UnorderedListOutlined,
   terminal: CodeOutlined,
   times: CloseOutlined,
   "times-circle": CloseCircleOutlined,
   trash: DeleteOutlined,
+  undo: UndoOutlined,
+  upload: UploadOutlined,
   user: UserOutlined,
   UserAddOutlined,
   "user-plus": UsergroupAddOutlined,
   "user-times": UserDeleteOutlined,
   users: UsergroupAddOutlined,
   wifi: WifiOutlined,
+  "window-restore": FileExcelOutlined, // since we only use for x11 and this has big X.
   wrench: SettingOutlined,
 };
 
-// TODO:  play square-o book upload eye-slash mask life-saver caret-down check fa-file-code-o cloud-download fa-terminal fa-question-circle fa-file-pdf-o cc-icon-tex-file fa-comment fa-graduation-cap fa-file-image-o cc-icon-sagemath-file fa-window-restore bullhorn cc-icon-r fa-tasks cc-icon-markdown cc-icon-python cc-icon-sagemath-bold folder file cc-icon-jupyter window-restore comment graduation-cap tasks stopwatch cloud cloud-upload lock save search-minus search-plus undo repeat scissors paste fa-sitemap print align-right magic columns plus arrow-up arrow-down step-forward stop refresh forward keyboard-o hand-stop-o slideshare info user-clock circle-o compress trash-o pencil clone arrows files-o share-square-o arrow-circle-o-left minus-square-o eye user  rocket door-open file-code-o file-image-o file-pdf-o file-alt dashboard arrow-circle-up key redo shopping-cart clipboard warning list-ul life-ring bars database clipboard-check check-square user-times gears hdd list-alt table file-text-o flash external-link header envelope share-square laptop-code cogs share-alt video-camera chevron-circle-right money google gear tachometer-alt credit-card fab fa-cc-visa external-link-alt line-chart paper-plane-o fa-stopwatch at bell
+// TODO:    columns  arrow-up arrow-down step-forward stop refresh forward keyboard-o hand-stop-o slideshare info user-clock circle-o compress trash-o pencil clone arrows files-o share-square-o arrow-circle-o-left minus-square-o eye user  rocket door-open file-code-o file-image-o file-pdf-o file-alt dashboard arrow-circle-up key redo shopping-cart clipboard warning list-ul life-ring bars database clipboard-check check-square user-times gears hdd list-alt table file-text-o flash external-link header envelope share-square laptop-code cogs share-alt video-camera chevron-circle-right money google gear tachometer-alt credit-card fab fa-cc-visa external-link-alt line-chart paper-plane-o fa-stopwatch at bell
 
 interface Props {
   name?: string;
@@ -139,7 +207,6 @@ interface Props {
   size?: "lg" | "2x" | "3x" | "4x" | "5x";
   rotate?: "45" | "90" | "135" | "180" | "225" | "270" | "315";
   flip?: "horizontal" | "vertical";
-  fixedWidth?: boolean;
   spin?: boolean;
   pulse?: boolean;
   stack?: "1x" | "2x";
@@ -154,7 +221,15 @@ interface Props {
 // Converted from https://github.com/andreypopp/react-fa
 export const Icon: React.FC<Props> = (props: Props) => {
   if (props.name != null) {
-    const C = FA2ANTD[props.name];
+    let name = props.name;
+    if (name.startsWith("fa-")) {
+      name = name.slice(3);
+    }
+    let C = FA2ANTD[name];
+    if (C == null && name.endsWith("-o")) {
+      // try without -o
+      C = FA2ANTD[name.slice(0, name.length - 2)];
+    }
     if (C != null) {
       return <C {...props} />;
     }
@@ -169,7 +244,6 @@ export const Icon: React.FC<Props> = (props: Props) => {
     flip,
     spin,
     pulse,
-    fixedWidth,
     stack,
     inverse,
     className,
@@ -244,9 +318,6 @@ export const Icon: React.FC<Props> = (props: Props) => {
       }
       if (flip) {
         classNames += ` fa-flip-${flip}`;
-      }
-      if (fixedWidth) {
-        classNames += " fa-fw";
       }
       if (spin) {
         classNames += " fa-spin";

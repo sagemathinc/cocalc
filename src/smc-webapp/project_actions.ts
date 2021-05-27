@@ -1162,10 +1162,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               max_time_s: 15 * 60, // keep trying for up to 15 minutes
               group: my_group,
             });
-            cb();
           } catch (err) {
             cb(err.message);
+            return;
           }
+          cb();
         },
       ],
       (err) => {
