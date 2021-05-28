@@ -12,11 +12,14 @@ import {
   AlignRightOutlined,
   ArrowDownOutlined,
   ArrowUpOutlined,
+  BackwardOutlined,
   BellFilled,
   BellOutlined,
   BoldOutlined,
   BookOutlined,
   BorderOutlined,
+  BulbOutlined,
+  CalendarOutlined,
   CaretDownFilled,
   CaretLeftFilled,
   CaretRightFilled,
@@ -30,39 +33,54 @@ import {
   CloudUploadOutlined,
   ClusterOutlined,
   CodeOutlined,
+  CoffeeOutlined,
   ColumnHeightOutlined,
   ColumnWidthOutlined,
   CommentOutlined,
   ControlOutlined,
+  CreditCardOutlined,
   CopyOutlined,
   DashboardOutlined,
+  DatabaseOutlined,
   DeleteOutlined,
   DesktopOutlined,
+  DownCircleOutlined,
   DownOutlined,
   EditOutlined,
   ExpandOutlined,
+  ExportOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
+  FacebookOutlined,
   FieldTimeOutlined,
   FileImageOutlined,
   FileOutlined,
   FilePdfOutlined,
   FileTextOutlined,
+  FileZipOutlined,
   FolderOutlined,
   FolderOpenOutlined,
   ForwardOutlined,
   FundProjectionScreenOutlined,
+  GithubOutlined,
+  GlobalOutlined,
+  GoogleOutlined,
+  HddOutlined,
   HistoryOutlined,
+  HourglassOutlined,
   InfoCircleOutlined,
   InfoOutlined,
   ItalicOutlined,
   KeyOutlined,
+  LaptopOutlined,
   LeftOutlined,
   LeftSquareFilled,
+  LineChartOutlined,
   LineHeightOutlined,
   LinkOutlined,
   LoadingOutlined,
   LockFilled,
+  LoginOutlined,
   LogoutOutlined,
   MedicineBoxOutlined,
   MinusCircleOutlined,
@@ -70,37 +88,45 @@ import {
   MinusSquareOutlined,
   OrderedListOutlined,
   PauseCircleOutlined,
+  PercentageOutlined,
   PlayCircleOutlined,
-  PlusCircleFilled,
   PlusCircleOutlined,
   PlusOutlined,
-  PlusSquareFilled,
   PlusSquareOutlined,
   PoweroffOutlined,
   PrinterOutlined,
   QuestionCircleOutlined,
   RedoOutlined,
+  RightCircleFilled,
   RightOutlined,
   RightSquareFilled,
   RocketOutlined,
   SaveOutlined,
   ScissorOutlined,
   SearchOutlined,
+  SendOutlined,
   ShareAltOutlined,
+  ShoppingCartOutlined,
   ShrinkOutlined,
+  StepBackwardOutlined,
   StepForwardOutlined,
   StopOutlined,
   StrikethroughOutlined,
   TableOutlined,
   ThunderboltOutlined,
+  TwitterOutlined,
   UnderlineOutlined,
   UndoOutlined,
   UnorderedListOutlined,
+  UpCircleOutlined,
   UpOutlined,
   UploadOutlined,
+  UserAddOutlined,
   UserDeleteOutlined,
   UsergroupAddOutlined,
   UserOutlined,
+  VideoCameraOutlined,
+  WarningOutlined,
   WifiOutlined,
 } from "@ant-design/icons";
 
@@ -111,30 +137,49 @@ const IconFont = createFromIconfontCN({ scriptUrl });
 const FA2ANTD = {
   "align-left": AlignLeftOutlined,
   "align-center": AlignCenterOutlined,
+  "align-justify": { IconFont: "align-justify" },
   "align-right": AlignRightOutlined,
+  "angle-down": DownOutlined,
+  "angle-right": RightOutlined,
   "arrow-circle-o-left": { IconFont: "arrow-circle-o-left" },
+  "arrow-circle-down": DownCircleOutlined,
+  "arrow-circle-up": UpCircleOutlined,
   "arrow-down": ArrowDownOutlined,
   "arrow-up": ArrowUpOutlined,
+  backward: BackwardOutlined,
+  bars: { IconFont: "bars" },
   bell: BellFilled,
   "bell-o": BellOutlined,
+  blog: { IconFont: "blog" },
   bold: BoldOutlined,
   bolt: ThunderboltOutlined,
   book: BookOutlined,
+  briefcase: { IconFont: "briefcase" },
   bullhorn: { IconFont: "bullhorn" },
+  calendar: CalendarOutlined,
+  "calendar-week": { IconFont: "calendar-week" },
+  "calendar-check": { IconFont: "calendar-check" },
+  "calendar-times": { IconFont: "calendar-times" },
   "caret-down": CaretDownFilled,
   "caret-left": CaretLeftFilled,
   "caret-right": CaretRightFilled,
   "caret-up": CaretUpFilled,
   "caret-square-left": LeftSquareFilled,
   "caret-square-right": RightSquareFilled,
+  "cc-visa": { IconFont: "cc-visa" },
+  "cc-discover": { IconFont: "cc-discover" },
+  "cc-mastercard": { IconFont: "cc-mastercard" },
   check: CheckOutlined,
   "check-square": CheckSquareOutlined,
   "check-square-o": CheckSquareOutlined,
   "chevron-down": DownOutlined,
   "chevron-left": LeftOutlined,
   "chevron-right": RightOutlined,
+  "chevron-circle-right": RightCircleFilled,
   "chevron-up": UpOutlined,
   "circle-notch": LoadingOutlined,
+  clipboard: { IconFont: "clipboard" },
+  "clipboard-check": { IconFont: "clipboard-check" },
   clone: { IconFont: "clone" },
   cloud: CloudFilled,
   "cloud-download": CloudDownloadOutlined,
@@ -142,6 +187,8 @@ const FA2ANTD = {
   "cloud-upload": CloudUploadOutlined,
   code: { IconFont: "code" },
   CodeOutlined,
+  coffee: CoffeeOutlined,
+  cog: ControlOutlined,
   cogs: ControlOutlined,
   colors: { IconFont: "colors" },
   ColumnHeightOutlined,
@@ -150,55 +197,89 @@ const FA2ANTD = {
   comments: CommentOutlined,
   compress: ShrinkOutlined,
   copy: CopyOutlined,
+  "credit-card": CreditCardOutlined,
   dashboard: DashboardOutlined,
+  database: DatabaseOutlined,
+  desktop: DesktopOutlined,
+  discord: { IconFont: "discord" },
   "dot-circle": { IconFont: "dot-circle" },
   edit: EditOutlined,
+  envelope: { IconFont: "envelope" },
+  "exclamation-triangle": WarningOutlined,
   expand: ExpandOutlined,
+  "external-link-alt": { IconFont: " external-link-alt" },
   eye: EyeOutlined,
   "eye-slash": EyeInvisibleOutlined,
+  facebook: FacebookOutlined,
   file: FileOutlined,
+  "file-archive": FileZipOutlined,
   "file-alt": FileTextOutlined,
   "file-code": FileTextOutlined,
   "file-image": FileImageOutlined,
   "file-pdf": FilePdfOutlined,
   "folder-open": FolderOpenOutlined,
   files: CopyOutlined,
+  "file-export": ExportOutlined,
   folder: FolderOutlined,
   font: { IconFont: "font" },
   forward: ForwardOutlined,
   FundProjectionScreenOutlined,
+  gavel: { IconFont: "gavel" },
   gears: ControlOutlined,
+  gear: ControlOutlined,
+  github: GithubOutlined,
+  "git-square": { IconFont: "git-square" },
+  global: GlobalOutlined,
+  google: GoogleOutlined,
   "graduation-cap": { IconFont: "graduation" },
+  "hand-stop": PoweroffOutlined,
   header: { IconFont: "header" },
+  hdd: HddOutlined,
   history: HistoryOutlined,
   "horizontal-split": { IconFont: "horizontal-split" },
+  "hourglass-half": HourglassOutlined,
   image: { IconFont: "image" },
   "info-circle": InfoCircleOutlined,
   info: InfoOutlined,
   italic: ItalicOutlined,
+  "js-square": { IconFont: "js-square" },
   key: KeyOutlined,
   keyboard: { IconFont: "keyboard" },
+  laptop: LaptopOutlined,
   leave_conference: { IconFont: "leave_conference" },
+  "life-ring": { IconFont: "life-ring" },
   "life-saver": { IconFont: "life-ring" },
+  lightbulb: BulbOutlined,
+  "line-chart": LineChartOutlined,
   link: LinkOutlined,
+  linux: { IconFont: "linux" },
   list: UnorderedListOutlined,
+  "list-ul": UnorderedListOutlined,
+  "list-alt": UnorderedListOutlined,
   "list-ol": OrderedListOutlined,
   lock: LockFilled,
   magic: { IconFont: "magic" },
-  mask: { IconFont: "cpu" },
+  mask: { IconFont: "mask" },
   medkit: MedicineBoxOutlined,
   microchip: { IconFont: "cpu" },
   "minus-circle": MinusCircleOutlined,
   "minus-square": MinusSquareOutlined,
+  money: CreditCardOutlined,
+  "money-check": { IconFont: "money-check" },
+  move: { IconFont: "move" },
+  "network-wired": ClusterOutlined,
+  "node-js": { IconFont: "node-js" },
   pause: PauseCircleOutlined,
+  "paper-plane": SendOutlined,
   paste: { IconFont: "paste" },
   pencil: EditOutlined,
   "pencil-alt": EditOutlined,
+  percentage: PercentageOutlined,
   play: PlayCircleOutlined,
   plus: PlusOutlined,
-  "plus-circle": PlusCircleFilled,
+  "plus-circle": PlusCircleOutlined,
   "plus-circle-o": PlusCircleOutlined,
-  "plus-square": PlusSquareFilled,
+  "plus-square": PlusSquareOutlined,
   "plus-square-o": PlusSquareOutlined,
   PoweroffOutlined,
   print: PrinterOutlined,
@@ -209,44 +290,59 @@ const FA2ANTD = {
   repeat: RedoOutlined,
   replace: { IconFont: "find-replace" },
   rocket: RocketOutlined,
+  run: { IconFont: "run" },
   save: SaveOutlined,
   scissors: ScissorOutlined,
   search: SearchOutlined,
   "search-minus": MinusOutlined, // we actually use this for zoom
   "search-plus": PlusOutlined,
+  "sign-in": LoginOutlined,
   "sign-out-alt": LogoutOutlined,
   sitemap: ClusterOutlined,
   "share-square": ShareAltOutlined,
+  "shopping-cart": ShoppingCartOutlined,
+  "sort-amount-up": { IconFont: "sort-amount-up" },
   square: BorderOutlined,
   "square-o": BorderOutlined,
+  "step-backward": StepBackwardOutlined,
   "step-forward": StepForwardOutlined,
   stop: StopOutlined,
   stopwatch: FieldTimeOutlined,
+  store: { IconFont: "store" },
   strikethrough: StrikethroughOutlined,
   subscript: { IconFont: "subscript" },
   superscript: { IconFont: "superscript" },
+  support: { IconFont: "life-ring" },
   sync: { IconFont: "sync" },
+  tab: { IconFont: "tab" },
   table: TableOutlined,
+  "tachometer-alt": DashboardOutlined,
   tasks: { IconFont: "tasks" },
   terminal: CodeOutlined,
   "text-height": LineHeightOutlined,
   times: CloseOutlined,
   "times-circle": CloseCircleOutlined,
   trash: DeleteOutlined,
+  twitter: TwitterOutlined,
   underline: UnderlineOutlined,
   undo: UndoOutlined,
+  unlink: { IconFont: "unlink" },
   upload: UploadOutlined,
   user: UserOutlined,
+  UserAddOutlined,
+  "user-check": { IconFont: "user-check" },
   "user-plus": UsergroupAddOutlined,
+  "user-slash": { IconFont: "user-slash" },
   "user-times": UserDeleteOutlined,
   users: UsergroupAddOutlined,
   "vertical-split": { IconFont: "vertical-split" },
+  "video-camera": VideoCameraOutlined,
+  warning: WarningOutlined,
   wifi: WifiOutlined,
+  "window-maximize": { IconFont: "window-maximize" },
   "window-restore": DesktopOutlined, //  we only use for x11 and this has big X.
   wrench: { IconFont: "tasks" },
 };
-
-// TODO:  dashboard arrow-circle-up key redo shopping-cart clipboard warning list-ul life-ring bars database clipboard-check check-square user-times gears hdd list-alt table file-text-o flash external-link header envelope share-square laptop-code cogs share-alt video-camera chevron-circle-right money google gear tachometer-alt credit-card fab fa-cc-visa external-link-alt line-chart paper-plane-o fa-stopwatch at bell
 
 interface Props {
   name?: string;
@@ -259,39 +355,91 @@ interface Props {
   pulse?: boolean;
   stack?: "1x" | "2x";
   inverse?: boolean;
-  Component?: JSX.Element | JSX.Element[];
   style?: CSS;
   onClick?: (event?: React.MouseEvent) => void; // https://fettblog.eu/typescript-react/events/
   onMouseOver?: () => void;
   onMouseOut?: () => void;
 }
 
+const UNICODE_STYLE = {
+  fontSize: "120%",
+  fontWeight: "bold",
+  lineHeight: "1",
+  verticalAlign: "middle",
+} as React.CSSProperties;
+
+/*
+log.js?a35c:52 [8.22s Δ 6.46s] ICON TODO --  server
+log.js?a35c:52 [8.85s Δ 0.63s] ICON TODO --  square-root-alt
+log.js?a35c:52 [8.85s Δ 0s] ICON TODO --  connectdevelop
+log.js?a35c:52 [8.85s Δ 0s] ICON TODO --  laugh
+log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  atom
+log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  pen
+log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  git
+log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  globe
+log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  tv
+log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  pen-fancy
+log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  book-open
+log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  cube
+log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  star
+log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  calculator
+log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  address-card
+log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  camera
+log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  heartbeat
+log.js?a35c:52 [55.6s Δ 46.7s] ICON TODO --  external-link-square
+log.js?a35c:52 [59.9s Δ 4.28s] ICON TODO --  play-circle
+log.js?a35c:52 [59.9s Δ 0.01s] ICON TODO --  bug
+log.js?a35c:52 [1m2s Δ 1.31s] ICON TODO --  exclamation-circle
+log.js?a35c:52 [1m16s Δ 14.3s] ICON TODO --  file-text-o
+log.js?a35c:52 [1m16s Δ 0s] ICON TODO --  flash
+log.js?a35c:52 [1m16s Δ 0.01s] ICON TODO --  external-link
+log.js?a35c:52 [1m17s Δ 0.03s] ICON TODO --  laptop-code
+log.js?a35c:52 [1m46s Δ 29.9s] ICON TODO --  remove
+log.js?a35c:52 [1m47s Δ 0.73s] ICON TODO --  compass
+*/
+
+
+
+const missing: any = {};
 // Converted from https://github.com/andreypopp/react-fa
 export const Icon: React.FC<Props> = (props: Props) => {
-  if (props.name != null) {
-    let name = props.name;
-    if (name.startsWith("fa-")) {
-      name = name.slice(3);
-    }
-    let C;
-    if (name.startsWith("cc-icon-")) {
-      C = { IconFont: name.slice("cc-icon-".length) };
-    } else {
-      C = FA2ANTD[name];
-      if (C == null && name.endsWith("-o")) {
-        // try without -o
-        C = FA2ANTD[name.slice(0, name.length - 2)];
-      }
-    }
-    if (C != null) {
-      if (typeof C.IconFont == "string") {
-        // @ts-ignore
-        return <IconFont type={"icon-" + C.IconFont} {...props} />;
-      }
-      return <C {...props} />;
-    }
+  if (props.unicode != null) {
+    return (
+      <span style={UNICODE_STYLE}>{String.fromCharCode(props.unicode!)}</span>
+    );
   }
 
+  let name = props.name ?? "square";
+  if (name.startsWith("fab ")) {
+    name = name.slice(4);
+  }
+  if (name.startsWith("fa-")) {
+    name = name.slice(3);
+  }
+  let C;
+  if (name.startsWith("cc-icon-")) {
+    C = { IconFont: name.slice("cc-icon-".length) };
+  } else {
+    C = FA2ANTD[name];
+    if (C == null && name.endsWith("-o")) {
+      // try without -o
+      C = FA2ANTD[name.slice(0, name.length - 2)];
+    }
+  }
+  if (C != null) {
+    if (typeof C.IconFont == "string") {
+      // @ts-ignore
+      return <IconFont type={"icon-" + C.IconFont} {...props} />;
+    }
+    return <C {...props} />;
+  }
+  if (missing[props.name] == null) {
+    missing[props.name] = true;
+    console.log("ICON TODO -- ", props.name);
+  }
+  return null;
+
+  /*
   const {
     name: name_prop,
     onClick: onClick_prop,
@@ -415,4 +563,5 @@ export const Icon: React.FC<Props> = (props: Props) => {
       {render_icon()}
     </span>
   );
+  */
 };

@@ -140,7 +140,7 @@ export const FILE_ACTIONS = {
   },
   move: {
     name: "Move",
-    icon: "arrows",
+    icon: "move",
     allows_multiple_files: true,
   },
   copy: {

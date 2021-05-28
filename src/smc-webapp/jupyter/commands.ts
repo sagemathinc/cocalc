@@ -746,6 +746,7 @@ export function commands(
     "tab key": {
       k: [{ mode: "escape", which: 9 }],
       m: "Tab key (completion)",
+      i: "tab",
       f: () => frame_actions.tab_key(),
     },
 

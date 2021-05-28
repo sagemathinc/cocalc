@@ -138,22 +138,22 @@ export const CONNECT_LINKS = {
     link: <span>Mailing list</span>,
   },
   sagemath_blog: {
-    icon: "rss",
+    icon: "blog",
     href: "http://blog.sagemath.com/",
     link: "News and updates on our blog",
   },
   twitter: {
-    icon: "twitter-square",
+    icon: "twitter",
     href: `https://twitter.com/${TWITTER_HANDLE}`,
     link: `Follow @${TWITTER_HANDLE} on twitter`,
   },
   facebook: {
-    icon: "facebook-square",
+    icon: "facebook",
     href: "https://www.facebook.com/CoCalcOnline/",
     link: "Like our facebook page",
   },
   github: {
-    icon: "github-square",
+    icon: "github",
     href: "https://github.com/sagemathinc/cocalc",
     link: "GitHub",
     text: (

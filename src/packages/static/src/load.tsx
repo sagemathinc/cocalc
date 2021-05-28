@@ -10,8 +10,8 @@ import LoadScripts from "./load-scripts";
 import Favicons from "./favicons";
 
 ReactDOM.render(
-  <div>
-    <h1>Loading CoCalc...</h1>
+  <div style={{ margin: "auto" }}>
+    <h1>Loading CoCalc</h1>
   </div>,
   document.getElementById("cocalc-load-container")
 );

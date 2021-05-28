@@ -135,7 +135,7 @@ const InfoPageElement = rclass<{}>(
                 icon="support"
                 links={SUPPORT_LINKS}
               />
-              <LinkList title="Connect" icon="plug" links={CONNECT_LINKS} />
+              <LinkList title="Connect" icon="global" links={CONNECT_LINKS} />
             </Row>
             <Row style={{ marginTop: "20px" }}>
               <ThirdPartySoftware />
@@ -178,7 +178,7 @@ export function render_static_about() {
     <Col>
       <Row>
         <LinkList title="Help & Support" icon="support" links={SUPPORT_LINKS} />
-        <LinkList title="Connect" icon="plug" links={CONNECT_LINKS} />
+        <LinkList title="Connect" icon="global" links={CONNECT_LINKS} />
       </Row>
       <Row style={{ marginTop: "20px" }}>
         <ThirdPartySoftware />
@@ -193,7 +193,7 @@ export const _test = {
     <LinkList title="Help & Support" icon="support" links={SUPPORT_LINKS} />
   ),
   ConnectSection: (
-    <LinkList title="Connect" icon="plug" links={CONNECT_LINKS} />
+    <LinkList title="Connect" icon="global" links={CONNECT_LINKS} />
   ),
   SUPPORT_LINKS,
   CONNECT_LINKS,
