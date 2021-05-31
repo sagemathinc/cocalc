@@ -87,6 +87,12 @@ export const COMPUTE_IMAGES: { [key: string]: ComputeImage } = {
     group: "Ubuntu 20.04",
     descr: "Frozen on 2021-02-01 and no longer updated",
   },
+  "ubuntu2004-2021-05-31": {
+    title: "Ubuntu 20.04 (2021-05-31)",
+    short: "2021-05-31",
+    group: "Ubuntu 20.04",
+    descr: "Frozen on 2021-05-31 and no longer updated",
+  },
   previous: {
     order: -2,
     title: "Ubuntu 18.04 (Previous)",
