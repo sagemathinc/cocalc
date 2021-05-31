@@ -14,8 +14,15 @@ depending on your tastes.  It also has a dependency on chromium.
 
 from __future__ import absolute_import, print_function
 from shutil import which
-import os, sys, time
+import os, sys, time, glob
 from subprocess import check_call
+from itertools import repeat, chain
+
+
+def sanitize_nbconvert_path(path):
+    # same functionality as in smc-util/sanitize-nbconvert.ts
+    # https://github.com/jupyter/nbconvert/issues/911
+    return glob.escape(path)
 
 
 def ipynb_to_pdf(path):
@@ -42,7 +49,7 @@ def ipynb_to_pdf(path):
     check_call([
         "jupyter",
         "nbconvert",
-        path,
+        sanitize_nbconvert_path(path),
         "--to",
         "html",
         "--output=%s" % html,
