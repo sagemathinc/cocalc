@@ -7,7 +7,7 @@
 UGLY.
 
 Support for jupyter classic...  Only load this in the browser, obviously,
-and **after** the account store.
+and **after** the account store and editor have been loaded.
 */
 
 import { redux } from "../app-framework";

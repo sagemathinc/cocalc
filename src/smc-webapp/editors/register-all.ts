@@ -21,9 +21,6 @@ import "./media-viewer/register";
 // Raw data editors
 import "../editor-data/generic";
 
-// All the non-react editors.
-require("../editor").register_nonreact_editors();
-
 import "./task-editor/register";
 
 // All the frame-tree editors
@@ -34,3 +31,12 @@ import "./whiteboard/register";
 
 // Unknown files
 import "./unknown/register";
+
+import { init as init_jupyter } from "smc-webapp/frame-editors/jupyter-editor/register";
+
+// All the non-react editors.
+const { register_nonreact_editors } = require("../editor");
+register_nonreact_editors();
+
+// And configure jupyter and jupyter classic.
+init_jupyter(); // must run after register_nonreact_editors
