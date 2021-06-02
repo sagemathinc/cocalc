@@ -226,7 +226,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     <Card
       title={
         <>
-          <Icon name="laptop-code" /> Software environment:{" "}
+          <Icon name="laptop" /> Software environment:{" "}
           {current_environment}
         </>
       }

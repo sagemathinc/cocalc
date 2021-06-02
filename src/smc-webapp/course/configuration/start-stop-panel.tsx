@@ -115,7 +115,7 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
                   actions.student_projects.action_all_student_projects("start");
                 }}
               >
-                <Icon name="flash" /> Start all
+                <Icon name="bolt" /> Start all
               </Button>
               <Button onClick={() => set_confirm_start_all_projects(false)}>
                 Cancel
@@ -133,7 +133,7 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
     <Card
       title={
         <>
-          <Icon name="flash" /> Start or stop all student projects
+          <Icon name="bolt" /> Start or stop all student projects
         </>
       }
     >
@@ -154,7 +154,7 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
                 action_all_projects_state === "starting"
               }
             >
-              <Icon name="flash" /> Start all...
+              <Icon name="bolt" /> Start all...
             </Button>
             <Button
               onClick={() => set_confirm_stop_all_projects(true)}

@@ -261,10 +261,15 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
   const x_button_style: React.CSSProperties = {
     float: "right",
     whiteSpace: "nowrap",
+    fontSize: "10px",
+    marginRight: "2.5px",
   };
-  if (x_hovered) {
-    x_button_style.color = "lightblue";
-  }
+
+  const x_button_style_hovered: React.CSSProperties = {
+    float: "right",
+    whiteSpace: "nowrap",
+    marginTop: "-5px",
+  };
 
   const icon =
     path != null
@@ -295,17 +300,17 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
           cursor: "pointer",
         }}
       >
-        <div style={x_button_style}>
+        <div style={x_hovered ? x_button_style_hovered : x_button_style}>
           {path != null && (
             <Icon
-              onMouseOver={() => {
+              onMouseEnter={() => {
                 set_x_hovered(true);
               }}
-              onMouseOut={() => {
+              onMouseLeave={() => {
                 set_x_hovered(false);
                 actions?.clear_ghost_file_tabs();
               }}
-              name="times"
+              name={x_hovered ? "close-circle-two-tone" : "times"}
               onClick={close_file}
             />
           )}

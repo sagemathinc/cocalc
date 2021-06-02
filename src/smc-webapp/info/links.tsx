@@ -279,7 +279,7 @@ export const THIRD_PARTY = {
 
 export const ABOUT_LINKS = {
   legal: {
-    icon: "cc-icon-section",
+    icon: "files",
     link: "Terms of Service, Pricing, Copyright and Privacy policies",
     href: `${BASE_URL}/policies/index.html`,
   },

@@ -290,7 +290,7 @@ export class QuotaConsole extends React.Component<Props, State> {
               <Button
                 onClick={this.start_admin_editing.bind(this)}
                 bsStyle="warning"
-                style={{ float: "right" }}
+                style={{ float: "right", marginTop: "15px" }}
               >
                 <Icon name="pencil" /> Admin Edit...
               </Button>

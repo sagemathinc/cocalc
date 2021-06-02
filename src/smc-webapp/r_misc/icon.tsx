@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+declare var DEBUG: boolean; // comes from webpack.
+
 import * as React from "react";
 import { CSS } from "../app-framework";
 
@@ -18,8 +20,11 @@ import {
   BoldOutlined,
   BookOutlined,
   BorderOutlined,
+  BugOutlined,
   BulbOutlined,
+  CalculatorOutlined,
   CalendarOutlined,
+  CameraOutlined,
   CaretDownFilled,
   CaretLeftFilled,
   CaretRightFilled,
@@ -27,7 +32,9 @@ import {
   CheckOutlined,
   CheckSquareOutlined,
   CloudDownloadOutlined,
+  CloudServerOutlined,
   CloseCircleOutlined,
+  CloseCircleTwoTone,
   CloseOutlined,
   CloudFilled,
   CloudUploadOutlined,
@@ -37,6 +44,7 @@ import {
   ColumnHeightOutlined,
   ColumnWidthOutlined,
   CommentOutlined,
+  CompassOutlined,
   ControlOutlined,
   CreditCardOutlined,
   CopyOutlined,
@@ -49,6 +57,7 @@ import {
   EditOutlined,
   ExpandOutlined,
   ExportOutlined,
+  ExclamationCircleFilled,
   EyeInvisibleOutlined,
   EyeOutlined,
   FacebookOutlined,
@@ -68,6 +77,7 @@ import {
   HddOutlined,
   HistoryOutlined,
   HourglassOutlined,
+  IdcardOutlined,
   InfoCircleOutlined,
   InfoOutlined,
   ItalicOutlined,
@@ -89,6 +99,7 @@ import {
   OrderedListOutlined,
   PauseCircleOutlined,
   PercentageOutlined,
+  PlayCircleFilled,
   PlayCircleOutlined,
   PlusCircleOutlined,
   PlusOutlined,
@@ -110,7 +121,6 @@ import {
   ShrinkOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
-  StopOutlined,
   StrikethroughOutlined,
   TableOutlined,
   ThunderboltOutlined,
@@ -130,11 +140,13 @@ import {
   WifiOutlined,
 } from "@ant-design/icons";
 
+// Icon Fonts coming from https://www.iconfont.cn/?lang=en-us
 import { createFromIconfontCN } from "@ant-design/icons";
 const scriptUrl = `${window.app_base_url}/webapp/iconfont.cn/iconfont.js`;
 const IconFont = createFromIconfontCN({ scriptUrl });
 
 const FA2ANTD = {
+  "address-card": IdcardOutlined,
   "align-left": AlignLeftOutlined,
   "align-center": AlignCenterOutlined,
   "align-justify": { IconFont: "align-justify" },
@@ -146,6 +158,7 @@ const FA2ANTD = {
   "arrow-circle-up": UpCircleOutlined,
   "arrow-down": ArrowDownOutlined,
   "arrow-up": ArrowUpOutlined,
+  atom: { IconFont: "Atom" },
   backward: BackwardOutlined,
   bars: { IconFont: "bars" },
   bell: BellFilled,
@@ -155,11 +168,15 @@ const FA2ANTD = {
   bolt: ThunderboltOutlined,
   book: BookOutlined,
   briefcase: { IconFont: "briefcase" },
+  brush: { IconFont: "brush" },
   bullhorn: { IconFont: "bullhorn" },
+  bug: BugOutlined,
+  calculator: CalculatorOutlined,
   calendar: CalendarOutlined,
   "calendar-week": { IconFont: "calendar-week" },
   "calendar-check": { IconFont: "calendar-check" },
   "calendar-times": { IconFont: "calendar-times" },
+  camera: CameraOutlined,
   "caret-down": CaretDownFilled,
   "caret-left": CaretLeftFilled,
   "caret-right": CaretRightFilled,
@@ -177,9 +194,11 @@ const FA2ANTD = {
   "chevron-right": RightOutlined,
   "chevron-circle-right": RightCircleFilled,
   "chevron-up": UpOutlined,
+  circle: { IconFont: "circle" },
   "circle-notch": LoadingOutlined,
   clipboard: { IconFont: "clipboard" },
   "clipboard-check": { IconFont: "clipboard-check" },
+  "close-circle-two-tone": CloseCircleTwoTone,
   clone: { IconFont: "clone" },
   cloud: CloudFilled,
   "cloud-download": CloudDownloadOutlined,
@@ -195,9 +214,12 @@ const FA2ANTD = {
   ColumnWidthOutlined,
   comment: CommentOutlined,
   comments: CommentOutlined,
+  compass: CompassOutlined,
   compress: ShrinkOutlined,
   copy: CopyOutlined,
   "credit-card": CreditCardOutlined,
+  csv: { IconFont: "csv" },
+  cube: { IconFont: "cube" },
   dashboard: DashboardOutlined,
   database: DatabaseOutlined,
   desktop: DesktopOutlined,
@@ -205,9 +227,10 @@ const FA2ANTD = {
   "dot-circle": { IconFont: "dot-circle" },
   edit: EditOutlined,
   envelope: { IconFont: "envelope" },
+  "exclamation-circle": ExclamationCircleFilled,
   "exclamation-triangle": WarningOutlined,
   expand: ExpandOutlined,
-  "external-link-alt": { IconFont: " external-link-alt" },
+  "external-link": { IconFont: "external-link-alt" },
   eye: EyeOutlined,
   "eye-slash": EyeInvisibleOutlined,
   facebook: FacebookOutlined,
@@ -220,6 +243,8 @@ const FA2ANTD = {
   "folder-open": FolderOpenOutlined,
   files: CopyOutlined,
   "file-export": ExportOutlined,
+  flash: ThunderboltOutlined,
+  "flow-chart": { IconFont: "flow-chart" },
   folder: FolderOutlined,
   font: { IconFont: "font" },
   forward: ForwardOutlined,
@@ -228,10 +253,13 @@ const FA2ANTD = {
   gears: ControlOutlined,
   gear: ControlOutlined,
   github: GithubOutlined,
+  git: { IconFont: "git1" },
   "git-square": { IconFont: "git-square" },
   global: GlobalOutlined,
+  emacs: { IconFont: "gnuemacs" },
   google: GoogleOutlined,
   "graduation-cap": { IconFont: "graduation" },
+  grass: { IconFont: "grass" },
   "hand-stop": PoweroffOutlined,
   header: { IconFont: "header" },
   hdd: HddOutlined,
@@ -241,12 +269,14 @@ const FA2ANTD = {
   image: { IconFont: "image" },
   "info-circle": InfoCircleOutlined,
   info: InfoOutlined,
+  inkscape: { IconFont: "inkscape" },
   italic: ItalicOutlined,
   "js-square": { IconFont: "js-square" },
   key: KeyOutlined,
   keyboard: { IconFont: "keyboard" },
   laptop: LaptopOutlined,
   leave_conference: { IconFont: "leave_conference" },
+  libreoffice: { IconFont: "libreoffice" },
   "life-ring": { IconFont: "life-ring" },
   "life-saver": { IconFont: "life-ring" },
   lightbulb: BulbOutlined,
@@ -276,6 +306,7 @@ const FA2ANTD = {
   "pencil-alt": EditOutlined,
   percentage: PercentageOutlined,
   play: PlayCircleOutlined,
+  "play-circle": PlayCircleFilled,
   plus: PlusOutlined,
   "plus-circle": PlusCircleOutlined,
   "plus-circle-o": PlusCircleOutlined,
@@ -283,19 +314,24 @@ const FA2ANTD = {
   "plus-square-o": PlusSquareOutlined,
   PoweroffOutlined,
   print: PrinterOutlined,
+  qgis: { IconFont: "qgis" },
   "question-circle": QuestionCircleOutlined,
   "quote-left": { IconFont: "quote-left" },
+  racket: { IconFont: "racket" },
   redo: RedoOutlined,
   refresh: RedoOutlined,
+  remove: CloseOutlined,
   repeat: RedoOutlined,
   replace: { IconFont: "find-replace" },
   rocket: RocketOutlined,
   run: { IconFont: "run" },
   save: SaveOutlined,
+  scheme: { IconFont: "scheme" },
   scissors: ScissorOutlined,
   search: SearchOutlined,
   "search-minus": MinusOutlined, // we actually use this for zoom
   "search-plus": PlusOutlined,
+  server: CloudServerOutlined,
   "sign-in": LoginOutlined,
   "sign-out-alt": LogoutOutlined,
   sitemap: ClusterOutlined,
@@ -304,13 +340,15 @@ const FA2ANTD = {
   "sort-amount-up": { IconFont: "sort-amount-up" },
   square: BorderOutlined,
   "square-o": BorderOutlined,
+  "square-root-alt": { IconFont: "square-root-alt" },
   "step-backward": StepBackwardOutlined,
   "step-forward": StepForwardOutlined,
-  stop: StopOutlined,
+  stop: { IconFont: "stop" }, // the ant-design "stop" looks weird.
   stopwatch: FieldTimeOutlined,
   store: { IconFont: "store" },
   strikethrough: StrikethroughOutlined,
   subscript: { IconFont: "subscript" },
+  sun: { IconFont: "sun" },
   superscript: { IconFont: "superscript" },
   support: { IconFont: "life-ring" },
   sync: { IconFont: "sync" },
@@ -319,6 +357,7 @@ const FA2ANTD = {
   "tachometer-alt": DashboardOutlined,
   tasks: { IconFont: "tasks" },
   terminal: CodeOutlined,
+  tex: { IconFont: "tex" },
   "text-height": LineHeightOutlined,
   times: CloseOutlined,
   "times-circle": CloseCircleOutlined,
@@ -337,6 +376,8 @@ const FA2ANTD = {
   users: UsergroupAddOutlined,
   "vertical-split": { IconFont: "vertical-split" },
   "video-camera": VideoCameraOutlined,
+  vim: { IconFont: "vim" },
+  vscode: { IconFont: "vscode" },
   warning: WarningOutlined,
   wifi: WifiOutlined,
   "window-maximize": { IconFont: "window-maximize" },
@@ -359,6 +400,8 @@ interface Props {
   onClick?: (event?: React.MouseEvent) => void; // https://fettblog.eu/typescript-react/events/
   onMouseOver?: () => void;
   onMouseOut?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 const UNICODE_STYLE = {
@@ -367,38 +410,6 @@ const UNICODE_STYLE = {
   lineHeight: "1",
   verticalAlign: "middle",
 } as React.CSSProperties;
-
-/*
-log.js?a35c:52 [8.22s Δ 6.46s] ICON TODO --  server
-log.js?a35c:52 [8.85s Δ 0.63s] ICON TODO --  square-root-alt
-log.js?a35c:52 [8.85s Δ 0s] ICON TODO --  connectdevelop
-log.js?a35c:52 [8.85s Δ 0s] ICON TODO --  laugh
-log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  atom
-log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  pen
-log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  git
-log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  globe
-log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  tv
-log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  pen-fancy
-log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  book-open
-log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  cube
-log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  star
-log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  calculator
-log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  address-card
-log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  camera
-log.js?a35c:52 [8.86s Δ 0s] ICON TODO --  heartbeat
-log.js?a35c:52 [55.6s Δ 46.7s] ICON TODO --  external-link-square
-log.js?a35c:52 [59.9s Δ 4.28s] ICON TODO --  play-circle
-log.js?a35c:52 [59.9s Δ 0.01s] ICON TODO --  bug
-log.js?a35c:52 [1m2s Δ 1.31s] ICON TODO --  exclamation-circle
-log.js?a35c:52 [1m16s Δ 14.3s] ICON TODO --  file-text-o
-log.js?a35c:52 [1m16s Δ 0s] ICON TODO --  flash
-log.js?a35c:52 [1m16s Δ 0.01s] ICON TODO --  external-link
-log.js?a35c:52 [1m17s Δ 0.03s] ICON TODO --  laptop-code
-log.js?a35c:52 [1m46s Δ 29.9s] ICON TODO --  remove
-log.js?a35c:52 [1m47s Δ 0.73s] ICON TODO --  compass
-*/
-
-
 
 const missing: any = {};
 // Converted from https://github.com/andreypopp/react-fa
@@ -433,11 +444,32 @@ export const Icon: React.FC<Props> = (props: Props) => {
     }
     return <C {...props} />;
   }
-  if (missing[props.name] == null) {
-    missing[props.name] = true;
-    console.log("ICON TODO -- ", props.name);
+
+  // this is when the icon is broken.
+  if (DEBUG) {
+    if (missing[props.name ?? ""] == null) {
+      missing[props.name ?? ""] = true;
+      console.warn(
+        `Icon "${props.name}" is not defined -- fix this in r_misc/icon.tsx.`
+      );
+    }
+    // make it hopefully clear to devs that this icon is broken
+    return (
+      <span
+        style={{ background: "red", color: "white" }}
+        className="blink"
+        title={`Icon "${props.name}" is not defined -- fix this in r_misc/icon.tsx.`}
+      >
+        {/* @ts-ignore */}
+        <BugOutlined {...props} />
+      </span>
+    );
+  } else {
+    // In production, just show a very generic icon so the user
+    // doesn't realize we messed up.
+    // @ts-ignore
+    return <BorderOutlined {...props} />;
   }
-  return null;
 
   /*
   const {

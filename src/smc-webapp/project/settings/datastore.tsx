@@ -303,7 +303,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         <Tooltip title={`Open ${record.name} in Files`}>
           <Button
             onClick={() => open(record)}
-            icon={<Icon name="external-link-alt" />}
+            icon={<Icon name="external-link" />}
           ></Button>
         </Tooltip>
 

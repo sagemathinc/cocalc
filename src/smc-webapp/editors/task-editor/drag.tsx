@@ -11,7 +11,7 @@ import { Icon, Tip } from "../../r_misc";
 import { SortableHandle } from "react-sortable-hoc";
 
 const HandleIcon: React.FC = () => {
-  return <Icon style={{ cursor: "pointer" }} name="reorder" />;
+  return <Icon style={{ cursor: "pointer" }} name="bars" />;
 };
 
 const SortableDragHandle = SortableHandle(HandleIcon);
