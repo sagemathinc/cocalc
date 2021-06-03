@@ -5,6 +5,22 @@
 
 $ = window.$
 
+# Do this first, before any templates are initialized (e.g., elsewhere too).
+
+templates_html = \
+  require("./console.html").default +
+  require("./editor.html").default +
+  require("./jupyter.html").default +
+  require("./sagews/interact.html").default +
+  require("./sagews/3d.html").default +
+  require("./sagews/d3.html").default;
+$("body").append(templates_html);
+
+templates = $("#webapp-editor-templates")
+
+{ init_buttonbars } = require("./editors/editor-button-bar")
+init_buttonbars()
+
 # Editor files in a project
 # Show button labels if there are at most this many file tabs opened.
 # This is in exports so that an elite user could customize this by doing, e.g.,
@@ -166,16 +182,6 @@ else
     console.warn("cursor saving won't work due to lack of localStorage")
     local_storage_delete = local_storage = () ->
 
-templates_html = \
-  require("./console.html").default +
-  require("./editor.html").default +
-  require("./jupyter.html").default +
-  require("./sagews/interact.html").default +
-  require("./sagews/3d.html").default +
-  require("./sagews/d3.html").default;
-$("body").append(templates_html);
-
-templates = $("#webapp-editor-templates")
 
 ###############################################
 # Abstract base class for editors (not exports.Editor)

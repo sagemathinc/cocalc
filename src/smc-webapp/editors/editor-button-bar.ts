@@ -2670,7 +2670,7 @@ function initialize_latex_buttonbar() {
 // NOT READY YET.
 //initialize_latex_buttonbar()
 
-// used in entry-point
+// must get called before using the button bars.
 export function init_buttonbars() {
   initialize_sagews_editor();
   initialize_md_html_editor();

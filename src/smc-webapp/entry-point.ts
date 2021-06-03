@@ -9,9 +9,6 @@
 
 import * as fullscreen from "./fullscreen";
 
-// deferred initialization of buttonbars until after global imports -- otherwise, the sagews sage mode bar might be blank
-const { init_buttonbars } = require("./editors/editor-button-bar");
-
 // Load/initialize Redux-based react functionality
 import { redux } from "./app-framework";
 
@@ -54,7 +51,6 @@ import { init as init_last } from "./last";
 import { render } from "./app/render";
 
 export async function init() {
-  init_buttonbars();
   account_init(redux);
   app_init();
   projects_init();
