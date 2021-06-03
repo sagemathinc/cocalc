@@ -154,7 +154,7 @@ const FA2ANTD = {
   "align-right": AlignRightOutlined,
   "angle-down": DownOutlined,
   "angle-right": RightOutlined,
-  "arrow-circle-o-left": { IconFont: "arrow-circle-o-left" },
+  "arrow-circle-o-left": { IconFont: "arrowcircleoleft" },
   "arrow-circle-down": DownCircleOutlined,
   "arrow-circle-up": UpCircleOutlined,
   "arrow-down": ArrowDownOutlined,
