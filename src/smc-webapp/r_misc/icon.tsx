@@ -122,6 +122,7 @@ import {
   StepBackwardOutlined,
   StepForwardOutlined,
   StrikethroughOutlined,
+  SyncOutlined,
   TableOutlined,
   ThunderboltOutlined,
   TwitterOutlined,
@@ -227,6 +228,7 @@ const FA2ANTD = {
   "dot-circle": { IconFont: "dot-circle" },
   edit: EditOutlined,
   envelope: { IconFont: "envelope" },
+  exchange: { IconFont: "exchange" },
   "exclamation-circle": ExclamationCircleFilled,
   "exclamation-triangle": WarningOutlined,
   expand: ExpandOutlined,
@@ -268,6 +270,7 @@ const FA2ANTD = {
   "hourglass-half": HourglassOutlined,
   image: { IconFont: "image" },
   "info-circle": InfoCircleOutlined,
+  indent: { IconFont: "indent" },
   info: InfoOutlined,
   inkscape: { IconFont: "inkscape" },
   italic: ItalicOutlined,
@@ -299,6 +302,7 @@ const FA2ANTD = {
   move: { IconFont: "move" },
   "network-wired": ClusterOutlined,
   "node-js": { IconFont: "node-js" },
+  outdent: { IconFont: "outdent" },
   pause: PauseCircleOutlined,
   "paper-plane": SendOutlined,
   paste: { IconFont: "paste" },
@@ -352,6 +356,7 @@ const FA2ANTD = {
   superscript: { IconFont: "superscript" },
   support: { IconFont: "life-ring" },
   sync: { IconFont: "sync" },
+  "sync-alt": SyncOutlined,
   tab: { IconFont: "tab" },
   table: TableOutlined,
   "tachometer-alt": DashboardOutlined,
@@ -361,6 +366,9 @@ const FA2ANTD = {
   "text-height": LineHeightOutlined,
   times: CloseOutlined,
   "times-circle": CloseCircleOutlined,
+  "thumbs-up": { IconFont: "thumbs-up" },
+  "toggle-off": { IconFont: "toggle-off" },
+  "toggle-on": { IconFont: "toggle-on" },
   trash: DeleteOutlined,
   twitter: TwitterOutlined,
   underline: UnderlineOutlined,
@@ -470,130 +478,29 @@ export const Icon: React.FC<Props> = (props: Props) => {
     // @ts-ignore
     return <BorderOutlined {...props} />;
   }
+};
 
-  /*
-  const {
-    name: name_prop,
-    onClick: onClick_prop,
-    size,
-    unicode,
-    rotate,
-    flip,
-    spin,
-    pulse,
-    stack,
-    inverse,
-    className,
-    onMouseOver,
-    onMouseOut,
-    style,
-  } = props;
-  let name = name_prop ?? "square-o";
-  const onClick = onClick_prop ?? undefined;
+/* Here we define a jQuery plugin that turns the old font-awesome css elements
+   into react-rendered Icon's.  This is, of course, meant to be some temporary
+   code until Jupyter classic and Sage worksheets are rewritten using React.
+*/
 
-  function render_unicode() {
-    const style: CSS = {
-      fontSize: "120%",
-      fontWeight: "bold",
-      lineHeight: "1",
-      verticalAlign: "middle",
-    };
-    // we know unicode is not undefined, see render_icon
-    return <span style={style}>{String.fromCharCode(unicode!)}</span>;
-  }
-
-  function render_icon() {
-    if (unicode != null) {
-      return render_unicode();
-    }
-
-    let classNames;
-
-    let i = name.indexOf("cc-icon");
-
-    if (i !== -1 && spin) {
-      // Temporary workaround because cc-icon-cocalc-ring is not a font awesome JS+SVG icon, so
-      // spin, etc., doesn't work on it.  There is a discussion at
-      // https://stackoverflow.com/questions/19364726/issue-making-bootstrap3-icon-spin
-      // about spinning icons, but it's pretty subtle and hard to get right, so I hope
-      // we don't have to implement our own.  Also see
-      // "Icon animation wobble foibles" at https://fontawesome.com/how-to-use/web-fonts-with-css
-      // where they say "witch to the SVG with JavaScript version, it's working a lot better for this".
-      name = "fa-circle-notch";
-      i = -1;
-    }
-
-    if (i !== -1) {
-      // A custom Cocalc font icon.  Don't even bother with font awesome at all!
-      classNames = name.slice(i);
-    } else {
-      const left = name.slice(0, 3);
-      if (left === "fas" || left === "fab" || left === "far") {
-        // version 5 names are different!  https://fontawesome.com/how-to-use/use-with-node-js
-        // You give something like: 'fas fa-blah'.
-        classNames = name;
-      } else {
-        // temporary until file_associations can be changed
-        if (name.slice(0, 3) === "cc-" && name !== "cc-stripe") {
-          classNames = `fab ${name}`;
-          // the cocalc icon font can't do any extra tricks
-        } else {
-          // temporary until file_associations can be changed
-          if (name.slice(0, 3) === "fa-") {
-            classNames = `fa ${name}`;
-          } else {
-            classNames = `fa fa-${name}`;
-          }
+import * as ReactDOM from "react-dom";
+declare var $: any;
+$.fn.processIcons = function () {
+  return this.each(function () {
+    // @ts-ignore
+    const that = $(this);
+    for (const elt of that.find(".fa")) {
+      for (const cls of elt.className.split(/\s+/)) {
+        if (cls.startsWith("fa-")) {
+          ReactDOM.render(
+            <Icon name={cls} spin={cls == "fa-cc-icon-cocalc-ring"} />,
+            elt
+          );
+          break;
         }
       }
-      // These only make sense for font awesome.
-      if (size) {
-        classNames += ` fa-${size}`;
-      }
-      if (rotate) {
-        classNames += ` fa-rotate-${rotate}`;
-      }
-      if (flip) {
-        classNames += ` fa-flip-${flip}`;
-      }
-      if (spin) {
-        classNames += " fa-spin";
-      }
-      if (pulse) {
-        classNames += " fa-pulse";
-      }
-      if (stack) {
-        classNames += ` fa-stack-${stack}`;
-      }
-      if (inverse) {
-        classNames += " fa-inverse";
-      }
     }
-
-    if (className) {
-      classNames += ` ${className}`;
-    }
-    return <i className={classNames} />;
-  }
-
-  // Wrap in a span for **two** reasons.
-  // 1. A reasonable one -- have to wrap the i, since when rendered using js and svg by new fontawesome 5,
-  // the click handlers of the <i> object are just ignored, since it is removed from the DOM!
-  // This is important the close button on tabs.
-  // 2. An evil one -- FontAwesome's javascript mutates the DOM.  Thus we put a random key in so,
-  // that React just replaces the whole part of the DOM where the SVG version of the icon is,
-  // and doesn't get tripped up by this.   A good example where this is used is when *running* Jupyter
-  // notebooks.
-  return (
-    <span
-      onClick={onClick}
-      onMouseOver={onMouseOver}
-      onMouseOut={onMouseOut}
-      key={Math.random()}
-      style={style}
-    >
-      {render_icon()}
-    </span>
-  );
-  */
+  });
 };

@@ -248,7 +248,11 @@ class JupyterWrapper extends EventEmitter
     # save notebook file from DOM to disk
     save: (cb) =>
         # could be called when notebook is being initialized before nb is defined.
-        @nb?.save_notebook(false).then(cb)
+        try
+            await @nb?.save_notebook(false)
+            cb()
+        catch err
+            cb(err)
 
     disable_autosave: () =>
         # We have our own auto-save system
@@ -871,6 +875,7 @@ class JupyterNotebook extends EventEmitter
         async.parallel [@init_syncstring, @init_dom, @ipynb_timestamp], (err) =>
             @element.find(".smc-jupyter-startup-message").hide()
             @element.find(".smc-jupyter-notebook-buttons").show()
+            @element.processIcons()
 
             if not err and not @dom?.nb?
                 # I read through all code and there is "no possible way" this can
@@ -1234,15 +1239,22 @@ class JupyterNotebook extends EventEmitter
         else
             @save_button.addClass('disabled')
 
+    save_syncstring: (cb) =>
+        try
+            await @syncstring.save()
+            cb()
+        catch err
+            cb(err)
+
     save: (cb) =>
         if @state != 'ready' or not @save_button?  # save button isn't defined when document is readonly.
             cb?()
             return
         @save_button.icon_spin(start:true, delay:5000)
-        async.parallel [@dom.save, @syncstring.save], (err) =>
+        async.parallel [@dom.save, @save_syncstring], (err) =>
+            @save_button.icon_spin(false)
             if @state != 'ready'
                 return
-            @save_button.icon_spin(false)
             @update_save_state()
             cb?(err)
 

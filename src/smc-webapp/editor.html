@@ -63,13 +63,27 @@
                         </span>
 
 
-                        <a class="btn btn-primary btn-lg hide" href="#copy-to-another-project"><i class="fa fa-send-o"> </i> <span>Copy To Your Project...</span></a>
+                        <a class="btn btn-primary btn-lg hide" href="#copy-to-another-project"><i class="fa fa-paper-plane"> </i> <span>Copy To Your Project...</span></a>
 
                     </span>
+
+                   <span class="btn-group webapp-editor-write-only">
+                        <a href="#save" class="hidden-xs btn btn-success webapp-editor-save-group" data-toggle="tooltip" data-placement="bottom" title="Save file to disk.">
+                            <i class="fa fa-save primary-icon"></i>
+                            <i class="fa fa-cc-icon-cocalc-ring hide"></i>
+                            Save
+                            <span class="smc-uncommitted hide" data-toggle="tooltip" data-placement="bottom" title="DANGER: File NOT sent to server and not saved to disk.  You will lose work if you close this file."> NOT saved!</span>
+                        </a>
+                        <a href="#history" class="hidden-xs btn btn-info webapp-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
+                            <i class="fa fa-history"></i>
+                            <span class="hidden-sm">TimeTravel</span>
+                        </a>
+                    </span>
+
                     <span class="hidden-xs">
                         <span class="webapp-editor-codemirror-worksheet-buttons hide">
                             <span class="btn-group webapp-editor-write-only">
-                                <a href="#execute" class="btn btn-success" data-toggle="tooltip" data-placement="bottom" title="Execute current or selected cells (unless input hidden)."><i class="fa fa-play"></i> &nbsp;Run</a>
+                                <a href="#execute" class="btn btn-default " data-toggle="tooltip" data-placement="bottom" title="Execute current or selected cells (unless input hidden)."><i class="fa fa-play"></i> &nbsp;Run</a>
                                 <a href="#tab" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Tab completion."> <i class="fa fa-step-forward"></i> <span class="hidden-sm hidden-md">Tab</span></a>
                                 <a href="#interrupt" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Stop the running calculation."><i class="fa fa-stop"></i> <span class="hidden-sm hidden-md">Stop</span></a>
                                 <a href="#kill" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Restart the running Sage process (all variables reset)."><i class="fa fa-refresh"></i> <span class="hidden-sm hidden-md">Restart</span></a>
@@ -91,9 +105,9 @@
                         <a href="#next" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Next"><i class="fa fa-chevron-down"></i></a>-->
                         <a href="#replace" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Replace"><i class="fa fa-exchange"></i></a>
                         <a href="#split-view" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Split view of document">
-                            <i class="fa fa-columns fa-rotate-270 webapp-editor-layout-0 hide"></i>
-                            <i class="fa fa-columns webapp-editor-layout-1 hide"></i>
-                            <i class="fa fa-tablet fa-rotate-90 webapp-editor-layout-2 hide" style="font-size: 12pt;"></i>
+                            <i class="fa fa-horizontal-split webapp-editor-layout-0 hide"></i>
+                            <i class="fa fa-vertical-split webapp-editor-layout-1 hide"></i>
+                            <i class="fa fa-window-maximize webapp-editor-layout-2 hide" style="font-size: 12pt;"></i>
                         </a>
                         <a href="#decrease-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Decrease text size"><i class="fa fa-font" style="font-size:7pt"> </i> </a>
                         <a href="#increase-font" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Increase text size"><i class="fa fa-font" style="font-size:11pt"> </i> </a>
@@ -101,7 +115,7 @@
                         <a href="#copy" class="btn btn-default btn-history webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Copy"><i class="fa fa-copy"> </i> </a>
                         <a href="#paste" class="btn btn-default btn-history webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Paste"><i class="fa fa-paste"> </i> </a>
                         <a href="#sagews2pdf" class="hidden-sm btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to PDF"><i class="fa fa-file-pdf-o"> </i> </a>
-                        <a href="#print" class=" hidden-sm btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
+                        <a href="#print" class=" hidden-sm btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> <i class="fa fa-cc-icon-cocalc-ring hide"></i></a> </a>
                         <a href="#sagews2ipynb" class="hidden-sm btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to ipynb"><i class="cc-icon-ipynb"> </i> <span class="hidden-sm hidden-md">Jupyter</span></a>
                     </span>
 
@@ -116,37 +130,19 @@
                         </a>
                     </span>
 
-                    <span class="btn-group webapp-editor-write-only">
-                        <a href="#save" class="hidden-xs btn btn-success webapp-editor-save-group" data-toggle="tooltip" data-placement="bottom" title="Save file to disk.">
-                            <i class="fa fa-save"></i>
-                            Save
-                            <span class="smc-uncommitted hide" data-toggle="tooltip" data-placement="bottom" title="DANGER: File NOT sent to server and not saved to disk.  You will lose work if you close this file."> NOT saved!</span>
-                        </a>
-                        <a href="#history" class="hidden-xs btn btn-info webapp-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
-                            <i class="fa fa-history"></i>
-                            <span class="hidden-sm">TimeTravel</span>
-                        </a>
-                    </span>
 
                     <span class="hidden-xs">
-                        <a class="btn btn-primary hide" href="#copy-to-another-project"><i class="fa fa-send-o"> </i> <span>Copy To Your Project...</span></a>
+                        <a class="btn btn-primary hide" href="#copy-to-another-project"><i class="fa fa-paper-plane"> </i> <span>Copy To Your Project...</span></a>
                         <!--<a class="btn btn-success" href="#download-file"><i class="fa fa-cloud-download"> </i> <span class="hidden-sm">Download</span></a>-->
                     </span>
 
                     <span class="webapp-editor-codemirror-loading hide">
-                        <i class="fa fa-spinner"></i> load…
-                    </span>
-
-                    <span class="webapp-editor-latex-buttons hide">
-                        <span class="btn-group">
-                           <a href="#forward-search" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Forward search (Alt+Enter)"><i class="fa fa-mail-forward"></i><span class="hidden-xs"> Forward</span></a>
-                           <a href="#inverse-search" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Inverse search (Double or Ctrl+Click)"><i class="fa fa-mail-reply"></i><span class="hidden-xs">  Inverse</span></a>
-                        </span>
+                        <i class="fa fa-cc-icon-cocalc-ring"></i> load…
                     </span>
 
                     <span class="webapp-editor-codemirror-sync">
-                        <span class="webapp-editor-codemirror-not-synced hide"><i class="fa fa-spinner"></i> sync…</span>
-                        <span class="webapp-editor-codemirror-synced hide"><i class="fa fa-ok"></i></span>
+                        <span class="webapp-editor-codemirror-not-synced hide"><i class="fa fa-cc-icon-cocalc-ring"></i> sync…</span>
+                        <span class="webapp-editor-codemirror-synced hide"><i class="fa fa-check"></i></span>
                     </span>
 
 
@@ -420,7 +416,9 @@
             <span class="webapp-ipython-notebook-status-messages lighten"> </span>
             <span class="hide webapp-ipython-notebook-danger">DANGER: Users on this VM could connect unless you stop your ipython-notebook server (they would have to know secret internal project-id).</span>
             <span class="btn-group">
-                <a href="#save" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Save .ipynb file to disk (file is constantly sync'd with server)."> <i class="fa fa-save"></i> Save</a>
+                <a href="#save" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Save .ipynb file to disk (file is constantly sync'd with server).">
+                  <i class="fa fa-save primary-icon"></i><i class="fa fa-cc-icon-cocalc-ring hide"></i> Save
+              </a>
                 <a href="#history" class="btn btn-sm btn-info webapp-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
                         <i class="fa fa-history"></i>
                         <span class="hidden-sm">TimeTravel</span>
@@ -435,10 +433,10 @@
                 <a href="#save" class="btn btn-success btn-lg"> <i class="fa fa-save"></i> Save</a>
             </span>
             <span class="btn-group webapp-editor-codemirror-worksheet-buttons hide">
-                <a href="#execute" class="btn btn-success btn-lg"> <i class="fa fa-play"></i>
+                <a href="#execute" class="btn btn-default  btn-lg"> <i class="fa fa-play"></i>
                     <span>Run</span>
                 </a>
-                <a href="#interrupt" class="btn btn-warning btn-lg"> <i class="fa fa-stop"></i>
+                <a href="#interrupt" class="btn btn-default btn-lg"> <i class="fa fa-stop"></i>
                     <span>Stop</span>
                 </a>
                 <a href="#tab" class="btn btn-default btn-lg"> <i class="fa fa-info-circle"></i>
@@ -489,7 +487,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-close pull-left btn-default btn-lg">Close</button>
-                    <button class="btn btn-primary btn-submit pull-left btn-lg"><i class="fa fa-bolt"> </i> Generate PDF</button>
+                    <button class="btn btn-primary btn-submit pull-left btn-lg"><i class="fa fa-bolt primary-icon"> </i> <i class="fa fa-cc-icon-cocalc-ring hide"></i> Generate PDF</button>
                     <span class="webapp-file-printing-progress hide">Preparing PDF version...</span>
                     <a class="webapp-file-printing-link hide" target="_blank">link to PDF version</a>
                 </div>

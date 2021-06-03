@@ -579,6 +579,8 @@ class CodeMirrorEditor extends FileEditor
             @init_sagews_edit_buttons()
 
         @snippets_dialog = null
+        # Render all icons using React.
+        @element.processIcons()
 
     programmatical_goto_line: (line) =>
         cm = @codemirror_with_last_focus
