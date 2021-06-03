@@ -12,12 +12,6 @@ import "katex/dist/katex.min.css";
 
 import "jquery/jquery-ui/css/humanity/jquery-ui.css";
 
-// Font Awesome
-//import "@fortawesome/fontawesome-free/js/all.min.js";
-//import "@fortawesome/fontawesome-free/js/brands.min.js";
-// little shim needed until we rename our icons...
-//import "@fortawesome/fontawesome-free/js/v4-shims.min.js";
-
 import "jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css";
 
 // custom cocalc icon font

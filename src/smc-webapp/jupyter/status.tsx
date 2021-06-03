@@ -347,8 +347,6 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       // RENDERING BUG, where the cpu burns at like 50% anytime a Jupyter
       // notebook is being displayed. See
       //      https://github.com/sagemathinc/cocalc/issues/5185
-      // This may be a weird conflict between antd and fontawesome icons.
-
       // we calibrate "100%" at the median – color changes at 2 x timings_q
       const cpu_val = Math.min(
         100,
