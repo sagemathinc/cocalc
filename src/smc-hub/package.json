@@ -42,7 +42,7 @@
     "express": "^4.17.1",
     "express-session": "^1.10.4",
     "http-proxy": "^1.18.1",
-    "immutable": "^4.0.0-rc.12",
+    "immutable": "^3.8.2",
     "jquery": "^3.5.1",
     "jsdom": "^16.2.2",
     "json-stable-stringify": "^1.0.1",
