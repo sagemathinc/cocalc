@@ -91,11 +91,7 @@ const COMMANDS: {
 
 COMMANDS.bz2 = COMMANDS.bzip2;
 
-function init_redux(
-  path: string,
-  redux,
-  project_id: string
-): string  {
+function init_redux(path: string, redux, project_id: string): string {
   const name = redux_name(project_id, path);
   if (redux.getActions(name) != null) {
     return name;
@@ -260,9 +256,11 @@ class ArchiveActions extends Actions<State> {
 }
 
 // TODO: change ext below to use keys(COMMANDS).  We don't now, since there are a
-// ton of extensions that shoud open in the archive editor, but aren't implemented
+// ton of extensions that should open in the archive editor, but aren't implemented
 // yet and we don't want to open those in codemirror -- see https://github.com/sagemathinc/cocalc/issues/1720
-const TODO_TYPES = split("z lz lzma tgz tbz tbz2 tb2 taz tz tlz txz");
+// NOTE: One you implement one of these (so it is in commands), be
+// sure to delete it from the list below.
+const TODO_TYPES = split("z lz lzma tbz tbz2 tb2 taz tz tlz txz");
 register_file_editor({
   ext: keys(COMMANDS).concat(TODO_TYPES),
   icon: "file-archive-o",

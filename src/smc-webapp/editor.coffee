@@ -1948,7 +1948,6 @@ exports.register_nonreact_editors = ->
         register(false, JupyterNotebook,  ['ipynb'])
 
     # "Editors" for read-only public files
-    register(true, PublicHTML,              ['html'])
     register(true, PublicSagews,            ['sagews'])
 
     # Editing Sage worksheets

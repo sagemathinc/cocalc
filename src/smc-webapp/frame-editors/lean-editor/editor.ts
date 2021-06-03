@@ -44,7 +44,7 @@ const EDITOR_SPEC = {
   "lean-info": {
     short: "Info",
     name: "Info at Cursor", // more focused -- usually used in "tactic mode"
-    icon: "bullseye",
+    icon: "info-circle",
     component: LeanInfo,
     buttons: set(["decrease_font_size", "increase_font_size"]),
   },
