@@ -384,7 +384,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   //            or a file_redux_name
   // Pushes to browser history
   // Updates the URL
-  public async set_active_tab(
+  public set_active_tab(
     key: string,
     opts: {
       update_file_listing?: boolean;
@@ -394,7 +394,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       update_file_listing: true,
       change_history: true,
     }
-  ): Promise<void> {
+  ): void {
     const store = this.get_store();
     if (store == undefined) return; // project closed
     const prev_active_project_tab = store.get("active_project_tab");
@@ -489,13 +489,24 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         // session restore (where all tabs are restored).
         if (info.redux_name == null || info.Editor == null) {
           if (this.open_files == null) return;
-          const { name, Editor } = await this.init_file_react_redux(
-            path,
-            is_public
-          );
-          info.redux_name = name;
-          info.Editor = Editor;
-          this.open_files.set(path, "component", info);
+          // We configure the Editor component and redux.  This is async,
+          // due to the Editor component being async loaded only when needed,
+          // e.g., we don't want to load all of Slate for users that aren't
+          // using Slate.  However, we wrap this in a function that we call,
+          // since there is no need to wait for this to be done before showing
+          // the tab (with a Loading spinner).  In fact, waiting would make
+          // the UI appear to weirdly block the first time you open a given type
+          // of file.
+          (async () => {
+            const { name, Editor } = await this.init_file_react_redux(
+              path,
+              is_public
+            );
+            if (this.open_files == null) return;
+            info.redux_name = name;
+            info.Editor = Editor;
+            this.open_files.set(path, "component", info);
+          })();
         }
 
         this.show_file(path);
@@ -764,7 +775,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     // Log that we opened the file.
     log_file_open(this.project_id, path);
-
     return { name, Editor };
   }
 
