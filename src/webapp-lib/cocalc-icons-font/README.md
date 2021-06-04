@@ -14,3 +14,5 @@
          font-style: normal;
        }
 ```
+
+3. IMPORTANT: somehow Harald uploaded these to our collection of icons at https://www.iconfont.cn/?lang=en-us, and that's how they get get loaded into cocalc (via r_misc/icon.tsx).

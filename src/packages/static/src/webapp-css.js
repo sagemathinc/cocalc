@@ -4,20 +4,14 @@
  */
 
 // definition of the common css for webpack
-
-import "katex/dist/katex.min.css";
-
-// note, there is also webapp-lib/_inc_head.pug, which loads CSS from the /res/
-// endpoint, which is used across all pages. most importantly, this loads bootstrap 3.x
-
 import "jquery/jquery-ui/css/humanity/jquery-ui.css";
-
 import "jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css";
-
-// custom cocalc icon font
-import "webapp-lib/cocalc-icons-font/style.css";
-
 import "./dropzone.css";
+
+// This katex css is pretty small, and is needed so that katex
+// will work laterwhen the large javsacript/fonts chunk gets
+// loaded on demand.
+import "katex/dist/katex.min.css";
 
 // info at the bottom about the next step in startup sequence
 if (window.smcLoadStatus != null) {

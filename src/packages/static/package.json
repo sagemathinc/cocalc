@@ -25,9 +25,9 @@
   "scripts": {
     "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development webpack --progress --color --watch",
     "tsc": "cd node_modules/smc-webapp && tsc --watch",
-    "measure": "NODE_OPTIONS=--max_old_space_size=8000 COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development webpack --progress --color ",
+    "measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development npm run webpack ",
     "prod": "NODE_OPTIONS=--max_old_space_size=8000  BABEL_ENV=production NODE_ENV=production webpack --progress --color --watch",
-    "measure-prod": "COCALC_OUTPUT=dist-measure MEASURE=true npm run prod",
+    "measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true npm run prod",
     "build": "NODE_OPTIONS=--max_old_space_size=8000  COCALC_BASE_URL='/' BABEL_ENV=production NODE_ENV=production webpack --progress --color"
   },
   "repository": {
@@ -55,7 +55,6 @@
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^26.0.23",
     "@types/jquery": "^3.5.5",
-    "@types/katex": "^0.11.0",
     "@types/node": "^15.3.1",
     "@types/react": "^17.0.6",
     "@typescript-eslint/eslint-plugin": "^4.24.0",
@@ -96,7 +95,6 @@
     "jstransformer-markdown-it": "^2.1.0",
     "jstransformer-sass": "^1.0.0",
     "jstransformer-typescript": "^2.0.0",
-    "katex": "=0.13.11",
     "less": "^4.1.1",
     "less-loader": "^9.0.0",
     "node-cjsx": "^2.0.0",
