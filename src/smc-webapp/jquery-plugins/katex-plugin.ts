@@ -14,7 +14,8 @@ is explicitly known and set to false.
 
 const CACHE_SIZE = 300;
 
-import { renderToString, KatexOptions } from "katex";
+import { is_share_server } from "../r_misc/share-server";
+
 export const jQuery = $;
 declare var $: any;
 import { tex2jax } from "./tex2jax";
@@ -22,7 +23,9 @@ import * as LRU from "lru-cache";
 
 import { macros } from "./math-katex";
 import { redux } from "../app-framework";
-import { is_share_server } from "../r_misc/share-server";
+
+// gets defined below.
+let renderToString: any = undefined;
 
 declare global {
   interface JQuery {
@@ -62,7 +65,7 @@ function katex_plugin(): void {
     redux.getStore("account")?.getIn(["other_settings", "katex"]) === false;
 
   // Select all the math and try to use katex on each part.
-  elt.find("script").each(function () {
+  elt.find("script").each(async function () {
     // @ts-ignore
     const node = $(this);
     if (
@@ -73,7 +76,7 @@ function katex_plugin(): void {
         displayMode: (node[0] as any).type == "math/tex; mode=display",
         macros,
         trust: true,
-      } as KatexOptions; // cast required due to macros not being in the typescript def file yet.
+      };
       let text = node.text();
       const key: string = get_key(text, katex_options.displayMode);
       const cached: any = math_cache.get(key);
@@ -112,9 +115,19 @@ function katex_plugin(): void {
       } else {
         // Try to do it with katex.
         try {
+          if (renderToString == null) {
+            // important to share server that we only do this once
+            ({ renderToString } = await import("katex"));
+            if (!is_share_server()) {
+              // @ts-ignore -- see https://github.com/vaadin/flow/issues/6335
+              import("katex/dist/katex.min.css");
+            }
+          }
           const rendered = $(renderToString(text, katex_options));
           node.replaceWith(rendered);
           math_cache.set(key, rendered.clone());
+          // Only load css if not on share server (where css import doesn't make
+          // sense, and the share server imports this its own way).
         } catch (err) {
           if (is_share_server()) {
             node.replaceWith(
