@@ -8,16 +8,18 @@ import * as ReactDOM from "react-dom";
 
 import LoadScripts from "./load-scripts";
 import Favicons from "./favicons";
+import Meta from "./meta";
 
 ReactDOM.render(
-  <div style={{ margin: "auto" }}>
-    <h1>Loading CoCalc</h1>
+  <div style={{ fontFamily: "sans-serif" }}>
+    <img src={`${BASE_URL}/webapp/favicon.ico`} />
   </div>,
   document.getElementById("cocalc-load-container")
 );
 
 ReactDOM.render(
   <span>
+    <Meta />
     <Favicons />
     <LoadScripts />
   </span>,

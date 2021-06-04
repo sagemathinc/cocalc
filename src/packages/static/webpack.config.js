@@ -11,7 +11,6 @@ This webpack config file might look scary, but it only consists of a few moving 
 The Entry Points:
   - load: showed immediately when you start loading the page
   - app: the main web application -- this is the entire application.
-  - pdf.worker: pdfjs does work in a separate webworker thread.
 
 NOTE: we used to have css and polyfill entry point, but the webpack
 author specifically says this is an old antipattern about 38 minutes
