@@ -614,6 +614,7 @@ const withIsVoid = (editor) => {
   const { isVoid } = editor;
 
   editor.isVoid = (element) => {
+    if (element === editor) return false;
     return element.isVoid != null ? element.isVoid : isVoid(element);
   };
 

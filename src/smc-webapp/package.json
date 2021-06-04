@@ -131,7 +131,7 @@
     "resize-observer-polyfill": "^1.5.1",
     "shallowequal": "^1.1.0",
     "shell-escape": "^0.2.0",
-    "slate": "^0.62.0",
+    "slate": "^0.63.0",
     "smc-hub": "*",
     "smc-project": "*",
     "smc-util": "*",

@@ -21,7 +21,7 @@ module.exports = function (PRODMODE) {
       use: [{ loader: "coffee-loader" }, { loader: "cjsx-loader" }],
     },
     {
-      test: /\.(jsx|tsx|js|ts)$/,
+      test: /\.(tsx|ts)$/,
       use: [
         {
           loader: "ts-loader",
