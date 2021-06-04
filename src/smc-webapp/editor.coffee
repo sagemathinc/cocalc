@@ -52,7 +52,6 @@ misc = require('smc-util/misc')
 
 # Ensure CodeMirror is available and configured
 CodeMirror = require("codemirror")
-require('./codemirror/init')
 
 # Ensure the console jquery plugin is available
 require('./console')
