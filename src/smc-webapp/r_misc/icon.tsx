@@ -145,10 +145,16 @@ import {
 
 // Icon Fonts coming from https://www.iconfont.cn/?lang=en-us
 import { createFromIconfontCN } from "@ant-design/icons";
-const scriptUrl = `${window.app_base_url}/webapp/iconfont.cn/iconfont.js`;
-const IconFont = createFromIconfontCN({ scriptUrl });
+let IconFont: any = undefined;
+try {
+  const scriptUrl = `${window.app_base_url}/webapp/iconfont.cn/iconfont.js`;
+  IconFont = createFromIconfontCN({ scriptUrl });
+} catch (err) {
+  // relatively gracefull fallback when used from node.js...
+  console.log(`IconFont not available -- ${err}`);
+}
 
-const FA2ANTD = {
+const IconSpec = {
   "address-card": IdcardOutlined,
   "align-left": AlignLeftOutlined,
   "align-center": AlignCenterOutlined,
@@ -271,7 +277,7 @@ const FA2ANTD = {
   history: HistoryOutlined,
   "horizontal-split": { IconFont: "horizontal-split" },
   "hourglass-half": HourglassOutlined,
-  'html5': Html5Outlined,
+  html5: Html5Outlined,
   image: { IconFont: "image" },
   "info-circle": InfoCircleOutlined,
   indent: { IconFont: "indent" },
@@ -443,15 +449,18 @@ export const Icon: React.FC<Props> = (props: Props) => {
   if (name.startsWith("cc-icon-")) {
     C = { IconFont: name.slice("cc-icon-".length) };
   } else {
-    C = FA2ANTD[name];
+    C = IconSpec[name];
     if (C == null && name.endsWith("-o")) {
       // try without -o
-      C = FA2ANTD[name.slice(0, name.length - 2)];
+      C = IconSpec[name.slice(0, name.length - 2)];
     }
   }
   if (C != null) {
     if (typeof C.IconFont == "string") {
       // @ts-ignore
+      if (IconFont == null) {
+        return <div>(IconFonts not available)</div>;
+      }
       return <IconFont type={"icon-" + C.IconFont} {...props} />;
     }
     return <C {...props} />;
@@ -491,20 +500,25 @@ export const Icon: React.FC<Props> = (props: Props) => {
 
 import * as ReactDOM from "react-dom";
 declare var $: any;
-$.fn.processIcons = function () {
-  return this.each(function () {
-    // @ts-ignore
-    const that = $(this);
-    for (const elt of that.find(".fa")) {
-      for (const cls of elt.className.split(/\s+/)) {
-        if (cls.startsWith("fa-")) {
-          ReactDOM.render(
-            <Icon name={cls} spin={cls == "fa-cc-icon-cocalc-ring"} />,
-            elt
-          );
-          break;
+try {
+  $.fn.processIcons = function () {
+    return this.each(function () {
+      // @ts-ignore
+      const that = $(this);
+      for (const elt of that.find(".fa")) {
+        for (const cls of elt.className.split(/\s+/)) {
+          if (cls.startsWith("fa-")) {
+            ReactDOM.render(
+              <Icon name={cls} spin={cls == "fa-cc-icon-cocalc-ring"} />,
+              elt
+            );
+            break;
+          }
         }
       }
-    }
-  });
-};
+    });
+  };
+} catch (err) {
+  // relatively gracefull fallback when used from node.js without jQuery available
+  console.log(`jQuery processIcon plugin not available -- ${err}`);
+}

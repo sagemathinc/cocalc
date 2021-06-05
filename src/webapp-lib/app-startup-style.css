@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-#smc-startup-banner {
+#cocalc-startup-banner {
   width: 350px;
   /* bootstrap 3.3 has this line height. fix it, if it changes! */
   line-height: 1.42857143;
@@ -87,7 +87,7 @@
   }
 }
 
-#smc-startup-banner-status {
+#cocalc-startup-banner-status {
   font-family: sans-serif;
   font-size: 12pt;
   color: #666;
@@ -100,35 +100,35 @@
   padding: 20px;
   opacity: 0.85;
 }
-#smc-startup-banner img {
+#cocalc-startup-banner img {
   vertical-align: middle;
   width: 282px; /* original 94px */
   height: 231px; /* original 77px */
 }
-#smc-startup-banner div {
+#cocalc-startup-banner div {
   width: 350px;
   background-color: #4474c0;
   border-radius: 5px;
   padding: 5px;
   margin-bottom: 5px;
 }
-#smc-startup-banner .banner-error {
+#cocalc-startup-banner .banner-error {
   opacity: 0;
   animation: banner-error ease-in 2s forwards;
   float: left;
 }
-#smc-startup-banner .banner-error .message {
+#cocalc-startup-banner .banner-error .message {
   width: auto;
   background-color: #bf1919;
 }
-#cc-banner2 {
+#cocalc-banner2 {
   background-color: "white";
 }
-#cc-banner2 img.logo-square {
+#cocalc-banner2 img.logo-square {
   height: 200px;
   width: auto;
 }
-#cc-banner2 img.logo-rectangular {
+#cocalc-banner2 img.logo-rectangular {
   width: 200px;
   height: auto;
 }
@@ -141,13 +141,13 @@
     background-color: #bf1919;
   }
 }
-#smc-startup-banner .message {
+#cocalc-startup-banner .message {
   font-size: 14px;
 }
-#smc-startup-banner .ready {
+#cocalc-startup-banner .ready {
   background-color: #43a047;
 }
-#smc-startup-banner a {
+#cocalc-startup-banner a {
   color: white;
   text-decoration: underline;
 }

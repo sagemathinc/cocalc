@@ -6,6 +6,7 @@
 import { React, ReactDOM, Redux } from "../app-framework";
 
 export async function render(): Promise<void> {
+  finishedLoading();
   const { Page } = await import("./page");
   ReactDOM.render(
     <Redux>
@@ -13,7 +14,6 @@ export async function render(): Promise<void> {
     </Redux>,
     document.getElementById("cocalc-webapp-container")
   );
-  finishedLoading();
 }
 
 // When loading is done, remove any visible artifacts.

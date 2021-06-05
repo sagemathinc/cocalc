@@ -9,11 +9,10 @@ import * as ReactDOM from "react-dom";
 import LoadScripts from "./load-scripts";
 import Favicons from "./favicons";
 import Meta from "./meta";
+import StartupBanner from "./startup-banner";
 
 ReactDOM.render(
-  <div style={{ fontFamily: "sans-serif" }}>
-    <img src={`${BASE_URL}/webapp/favicon.ico`} />
-  </div>,
+  <StartupBanner />,
   document.getElementById("cocalc-load-container")
 );
 
