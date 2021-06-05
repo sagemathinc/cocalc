@@ -146,6 +146,7 @@ stacktraceFromException = (exception) ->
     return exception.stack || exception.backtrace || exception.stacktrace
 
 # Disable catching on IE < 10 as it destroys stack-traces from generateStackTrace()
+# OF COURSE, COCALC doesn't support any version of IE at all, so ...
 if (not window.atob)
     shouldCatch = false
 

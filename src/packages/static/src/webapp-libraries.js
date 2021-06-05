@@ -1,7 +1,7 @@
 import "script-loader!primus/primus-engine.min.js";
 
 // this must come before anything that touches event handling, etc.
-import "webapp-lib/webapp-error-reporter.coffee";
+import "./webapp-error-reporter.coffee";
 
 // Bootstrap must go early, since a lot of our CSS overrides it.
 // TODO: get rid of bootstrap!  We intend to switch to antd entirely!
