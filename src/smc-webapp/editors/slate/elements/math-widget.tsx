@@ -5,7 +5,7 @@
 
 // Katex support -- NOTE: this import of katex is pretty LARGE.
 import { renderToString } from "katex";
-import "katex/dist/katex.min.css"
+import "katex/dist/katex.min.css";
 
 // Everything else.
 import {
