@@ -120,7 +120,7 @@ export function setup_open_cocalc(opts: Setup) {
 
   const handle_index = async (req, res) => {
     winston.debug("open cocalc/handle_index", req.path);
-    // for convenicnece, a simple heuristic checks for the presence of the remember_me cookie
+    // for convenience, a simple heuristic checks for the presence of the remember_me cookie
     // that's not a security issue b/c the hub will do the heavy lifting
     // TODO code in comments is a heuristic looking for the remember_me cookie, while when deployed the haproxy only
     // looks for the has_remember_me value (set by the client in accounts).
