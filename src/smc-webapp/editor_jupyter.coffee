@@ -142,6 +142,7 @@ underscore = require('underscore')
 class JupyterWrapper extends EventEmitter
     constructor: (element, server_url, filename, read_only, project_id, timeout, cb) ->
         super()
+        @register_editor_history()
         @element = element
         @server_url = server_url
         @filename = filename
@@ -222,6 +223,15 @@ class JupyterWrapper extends EventEmitter
 
     dbg: (f) =>
         return (m) -> webapp_client.dbg("JupyterWrapper.#{f}:")(misc.to_json(m))
+
+    register_editor_history: =>
+        # in case the user clicks the TimeTravel button, we register the
+        # ancient history editor
+        require.ensure [], () =>
+            {register} = require("./editor")
+            {HistoryEditor} = require('./editor_history')
+            register(false, HistoryEditor, ['sage-history'])
+
 
     # Position the iframe to exactly match the underlying element; I'm calling this
     # "refresh" since that's the name of the similar method for CodeMirror.
@@ -1216,7 +1226,7 @@ class JupyterNotebook extends EventEmitter
         return false
 
     show_history_viewer: () =>
-        path = misc.history_path(@filename, true)
+        path = misc.hidden_meta_file(@filename, "sage-history")
         #@dbg("show_history_viewer")(path)
         redux.getProjectActions(@project_id).open_file
             path       : path

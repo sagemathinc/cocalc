@@ -1934,7 +1934,7 @@ exports.register_nonreact_editors = ->
     reg = require('./editors/react-wrapper').register_nonreact_editor
 
     # wrapper for registering private and public editors
-    register = (is_public, cls, extensions) ->
+    exports.register = register = (is_public, cls, extensions) ->
         icon = file_icon_class(extensions[0])
         reg
             ext       : extensions
