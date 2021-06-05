@@ -505,7 +505,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             if (this.open_files == null) return;
             info.redux_name = name;
             info.Editor = Editor;
-            this.open_files.set(path, "component", info);
+            // IMPORTANT: we make a *copy* of info below to trigger an update
+            // of the component that displays this editor.  Otherwise, the user
+            // would just see a spinner until they tab away and tab back.
+            this.open_files.set(path, "component", { ...info });
           })();
         }
 

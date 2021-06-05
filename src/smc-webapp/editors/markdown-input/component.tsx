@@ -83,6 +83,10 @@ import { Complete, Item } from "./complete";
 import { submit_mentions } from "./mentions";
 import { mentionableUsers } from "./mentionable-users";
 
+// This code depends on codemirror being initialized.
+import "smc-webapp/codemirror/init";
+
+
 const BLURED_STYLE: React.CSSProperties = {
   border: "1px solid rgb(204,204,204)", // focused will be rgb(112, 178, 230);
 };
