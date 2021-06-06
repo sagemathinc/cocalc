@@ -13,6 +13,8 @@ import {
   AlignCenterOutlined,
   AlignRightOutlined,
   ArrowDownOutlined,
+  ArrowLeftOutlined,
+  ArrowRightOutlined,
   ArrowUpOutlined,
   BackwardOutlined,
   BellFilled,
@@ -167,6 +169,8 @@ const IconSpec = {
   "arrow-circle-down": DownCircleOutlined,
   "arrow-circle-up": UpCircleOutlined,
   "arrow-down": ArrowDownOutlined,
+  "arrow-left": ArrowLeftOutlined,
+  "arrow-right": ArrowRightOutlined,
   "arrow-up": ArrowUpOutlined,
   atom: { IconFont: "Atom" },
   backward: BackwardOutlined,
@@ -305,7 +309,7 @@ const IconSpec = {
   magic: { IconFont: "magic" },
   mask: { IconFont: "mask" },
   medkit: MedicineBoxOutlined,
-  microchip: { IconFont: "cpu" },
+  microchip: { IconFont: "microchip" },
   "minus-circle": MinusCircleOutlined,
   "minus-square": MinusSquareOutlined,
   money: CreditCardOutlined,
@@ -402,7 +406,7 @@ const IconSpec = {
   wifi: WifiOutlined,
   "window-maximize": { IconFont: "window-maximize" },
   "window-restore": DesktopOutlined, //  we only use for x11 and this has big X.
-  wrench: { IconFont: "tasks" },
+  wrench: { IconFont: "wrench" },
 };
 
 interface Props {

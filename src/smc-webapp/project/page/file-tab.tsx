@@ -25,7 +25,7 @@ import { path_split, path_to_tab, trunc_left } from "smc-util/misc";
 import { HiddenXS, Icon, Tip } from "../../r_misc";
 import { COLORS } from "smc-util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
-import { IS_SAFARI } from "../../feature";
+import { IS_SAFARI, IS_TOUCH } from "../../feature";
 
 export const FIXED_PROJECT_TABS = {
   files: {
@@ -303,13 +303,21 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
         <div style={x_hovered ? x_button_style_hovered : x_button_style}>
           {path != null && (
             <Icon
-              onMouseEnter={() => {
-                set_x_hovered(true);
-              }}
-              onMouseLeave={() => {
-                set_x_hovered(false);
-                actions?.clear_ghost_file_tabs();
-              }}
+              onMouseEnter={
+                IS_TOUCH
+                  ? undefined
+                  : () => {
+                      set_x_hovered(true);
+                    }
+              }
+              onMouseLeave={
+                IS_TOUCH
+                  ? undefined
+                  : () => {
+                      set_x_hovered(false);
+                      actions?.clear_ghost_file_tabs();
+                    }
+              }
               name={x_hovered ? "close-circle-two-tone" : "times"}
               onClick={close_file}
             />
