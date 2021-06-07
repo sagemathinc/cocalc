@@ -14,10 +14,11 @@ That seems likely.  I've thus rewritten it so that is impossible, e.g., by
 making it so that if it is triggered, it disables itself after running once.
 */
 
-// @ts-ignore -- webpack thing:
-import crash from "./crash.html";
-
-import { HELP_EMAIL } from "smc-util/theme";
+import Crash from "./crash";
+import CrashMessage from "./crash-message";
+import React from "react";
+// @ts-ignore
+import * as ReactDOM from "react-dom";
 
 function handle_window_error(msg, url, lineNo, columnNo, error) {
   if (error == null) {
@@ -33,49 +34,45 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
   const crash = document.getElementById("cocalc-react-crash");
   if (crash == null) return;
   crash.style.display = "block";
-  crash.style.zIndex = "100000";
+
   let errorbox = document.getElementById("cocalc-error-report-startup");
-  let show_explanation = true;
+  let showExplanation = true;
   if (errorbox == null) {
     // app did startup, hence the banner is removed from the DOM
     // instead, check if there is the react error report banner and insert it there!
     errorbox = document.getElementById("cocalc-error-report-react");
-    show_explanation = false;
+    showExplanation = false;
     if (errorbox == null) return;
   }
-  errorbox.style.display = "block";
   const stack = error?.stack ?? "<no stacktrace>"; // note: we actually ignore error == null above.
-  errorbox.innerHTML = error_msg({
-    msg,
-    lineNo,
-    columnNo,
-    url,
-    stack,
-    show_explanation,
-  });
-}
-
-function error_msg({ msg, lineNo, columnNo, url, stack, show_explanation }) {
-  const explanation = show_explanation
-    ? `<div>
-Please report the full error, your browser and operating system to ${HELP_EMAIL}.
-In the mean time, try switching to another browser or upating to the
-latest version of your browser.
-</div>`
-    : "";
-  return `<div><strong>Application Error:</strong> <code>${msg} @ ${lineNo}/${columnNo} of ${url}</code></div>
-${explanation}
-<pre style="overflow:auto">
-${stack}
-</pre>`;
+  ReactDOM.render(
+    React.createElement(CrashMessage, {
+      msg,
+      lineNo,
+      columnNo,
+      url,
+      stack,
+      showExplanation,
+    }),
+    errorbox
+  );
 }
 
 export default function init() {
   // console.log("installing window error handler");
   // Add a banner in case react crashes (it will be revealed)
-  const div = document.createElement("div");
-  div.innerHTML = crash.replace(/HELP_EMAIL/g, HELP_EMAIL);
-  document.body.appendChild(div);
-  // Handle any error.
+  ReactDOM.render(
+    React.createElement(Crash),
+    document.getElementById("cocalc-crash-container")
+  );
+
+  // Install error handler.
   window.onerror = handle_window_error;
+}
+
+export function startedUp() {
+  const elt = document.getElementById("cocalc-error-report-startup");
+  if (elt) {
+    elt.remove();
+  }
 }

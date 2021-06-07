@@ -49,11 +49,6 @@ export function init() {
   // load the mathjax configuration before mathjax starts up
   (window as any).MathJax = MathJaxConfig;
 
-  $("#smc-startup-banner")?.remove();
-  $("#smc-startup-banner-status")?.remove();
-  $("#cocalc-error-report-startup")?.remove();
-  $("#cocalc-assets-loading")?.remove();
-
   $(function () {
     try {
       $(parent).trigger("initialize:frame");
