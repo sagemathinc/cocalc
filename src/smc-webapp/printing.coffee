@@ -13,6 +13,7 @@ misc            = require('smc-util/misc')
 {redux}         = require('./app-framework')
 {file_nonzero_size, url_fullpath} = require('./project/utils')
 markdown        = require('./markdown')
+CodeMirror = require("codemirror")
 
 # abstract class
 class Printer

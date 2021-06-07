@@ -73,6 +73,16 @@ copypaste = require('./copy-paste-buffer')
 
 {file_associations, VIDEO_EXTS} = require('./file-associations')
 
+file_nonzero_size_cb = (project_id, path, cb) =>
+    try
+        if not await file_nonzero_size(project_id, path)
+            cb("Unable to convert file to PDF")
+        else
+            cb()
+    catch err
+        cb(err)
+
+
 initialize_new_file_type_list = () ->
     file_types_so_far = {}
     v = misc.keys(file_associations)
@@ -1109,6 +1119,7 @@ class CodeMirrorEditor extends FileEditor
     # WARNING: this "print" is actually for printing Sage worksheets, not arbitrary files.
     print_sagews: =>
         dialog = templates.find(".webapp-file-print-dialog").clone()
+        dialog.processIcons()
         p = misc.path_split(@filename)
         v = p.tail.split('.')
         if v.length <= 1
@@ -1156,16 +1167,7 @@ class CodeMirrorEditor extends FileEditor
                                 pdf = _pdf
                                 cb()
                 (cb) =>
-                    if is_subdir or not pdf?
-                        cb(); return
-                    # does the pdf file exist?
-                    if not await file_nonzero_size(@project_id, pdf)
-                        err_msg = 'Unable to convert file to PDF. '
-                        if not is_subdir
-                            err_msg += "Enable 'Keep generated files in a sub-directory...' and check for Latex errors."
-                        cb(err_msg)
-                    else
-                        cb()
+                    file_nonzero_size_cb(@project_id, pdf, cb)
                 (cb) =>
                     if is_subdir or not pdf?
                         cb(); return
@@ -1181,9 +1183,10 @@ class CodeMirrorEditor extends FileEditor
                     {join} = require('path')
                     subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
                     # check if generated tmp.tex exists and has nonzero size
-                    if not await file_nonzero_size(@project_id, subdir_texfile)
-                        cb('Unable to create directory of temporary Latex files.')
-                    else
+                    file_nonzero_size_cb @project_id, subdir_texfile, (err) =>
+                        if err
+                            cb("Unable to create directory of temporary Latex files. -- #{err}")
+                            return
                         tempdir_link = $('<a>').text('Click to open temporary file')
                         tempdir_link.click =>
                             redux.getProjectActions(@project_id).open_file

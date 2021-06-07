@@ -45,7 +45,7 @@
     "@zippytech/react-notify-resize": "^4.0.4",
     "ansi-to-react": "^6.0.10",
     "antd": "^4.11.1",
-    "async": "^1.5.2",
+    "async": "^2.6.3",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "bootbox": "^4.4.0",

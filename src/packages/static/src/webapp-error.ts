@@ -33,7 +33,7 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
   const crash = document.getElementById("cocalc-react-crash");
   if (crash == null) return;
   crash.style.display = "block";
-  crash.style.zIndex = "100";
+  crash.style.zIndex = "100000";
   let errorbox = document.getElementById("cocalc-error-report-startup");
   let show_explanation = true;
   if (errorbox == null) {

@@ -380,7 +380,22 @@ export class KernelSelector extends Component<
     );
   }
 
-  render(): Rendered {
+  private checkObvious(): boolean {
+    const name = this.props.closestKernel?.get("name");
+    if (!name) return false;
+    const { kernel } = this.props;
+    if (kernel != "sagemath") return false;
+    // just do it -- this happens when automatically converting
+    // a sage worksheet to jupyter via the "Jupyter" button.
+    setTimeout(() => this.props.actions.select_kernel(name), 0);
+    return true;
+  }
+
+  render() {
+    if (this.checkObvious()) {
+      // avoid flicker displaying big error.
+      return null;
+    }
     return (
       <div style={main_style} className={"smc-vfill"}>
         <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
