@@ -3,6 +3,8 @@
 import * as React from "react";
 import { Helmet } from "react-helmet";
 
+declare const BASE_URL : string;  // defined via webpack
+
 export default function LoadFavicons() {
   return (
     <Helmet>

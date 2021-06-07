@@ -14,7 +14,9 @@ That seems likely.  I've thus rewritten it so that is impossible, e.g., by
 making it so that if it is triggered, it disables itself after running once.
 */
 
+// @ts-ignore -- webpack thing:
 import crash from "./crash.html";
+
 import { HELP_EMAIL } from "smc-util/theme";
 
 function handle_window_error(msg, url, lineNo, columnNo, error) {
@@ -31,7 +33,7 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
   const crash = document.getElementById("cocalc-react-crash");
   if (crash == null) return;
   crash.style.display = "block";
-  crash.style.zIndex = 100000; // instead of -10, so copy is possible (and it is more likely visible)
+  crash.style.zIndex = "100";
   let errorbox = document.getElementById("cocalc-error-report-startup");
   let show_explanation = true;
   if (errorbox == null) {
@@ -42,7 +44,7 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
     if (errorbox == null) return;
   }
   errorbox.style.display = "block";
-  const stack = error?.stack ?? "<no stacktrace>";  // note: we actually ignore error == null above.
+  const stack = error?.stack ?? "<no stacktrace>"; // note: we actually ignore error == null above.
   errorbox.innerHTML = error_msg({
     msg,
     lineNo,
@@ -56,7 +58,7 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
 function error_msg({ msg, lineNo, columnNo, url, stack, show_explanation }) {
   const explanation = show_explanation
     ? `<div>
-Please report the full error, your browser and operating system to ${email()}.
+Please report the full error, your browser and operating system to ${HELP_EMAIL}.
 In the mean time, try switching to another browser or upating to the
 latest version of your browser.
 </div>`

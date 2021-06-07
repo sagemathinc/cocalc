@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "module": "es2020",
+    "incremental": false,
+    "rootDir": "./",
+    "outDir": "../dist/src",
+    "jsx": "react",
+    "target": "es5",
+    "sourceMap": true,
+    "allowJs": false,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "lib": ["es5", "es6", "es2017", "dom"]
+  }
+}

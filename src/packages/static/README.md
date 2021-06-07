@@ -39,6 +39,12 @@ npm run tsc
 
 The files that are produced by webpack, and that your hub serves up are in the subdirectory `dist/`.  The hub server serves these static files to your browser.
 
+If you're editing Typescript files in `src/`, you should also run
+```sh
+npm run tsc-src
+```
+which will check those files for typescript errors.
+
 ## Making a release
 
 When you're ready to make a release of the static part of CoCalc, stop the above watch servers (for development), then do a clean build:

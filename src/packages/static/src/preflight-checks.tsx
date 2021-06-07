@@ -16,7 +16,7 @@ Chrome is wrong on that page, I assume we should check for 61 or 62.
 
 const APP_NAME = "CoCalc";
 
-const A: React.FC = ({ href, children }) => (
+const A: React.FC<{ href: string; children }> = ({ href, children }) => (
   <a
     href={href}
     target={"_blank"}
@@ -86,7 +86,7 @@ const STYLE = {
   padding: "30px",
   backgroundColor: "#f8f8f8",
   fontFamily: "sans-serif",
-};
+} as React.CSSProperties;
 
 function allowedToRun(spec: Spec) {
   if (window.location.href.includes(SKIP_TOKEN)) {

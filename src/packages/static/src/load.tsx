@@ -4,6 +4,7 @@
 // (NOTE: this replaces what was once "webapp-lib/app.pug".)
 
 import * as React from "react";
+// @ts-ignore
 import * as ReactDOM from "react-dom";
 
 import PreflightCheck from "./preflight-checks";
