@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "CoCalc: Collaborative Calculation",
   "scripts": {
-    "build": "scripts/check_npm_packages.py && ./build.py",
+    "build": "./workspaces.py build $*",
+    "status": "./workspaces.py status $*",
     "hub": "./go",
     "lint": "npx eslint --ignore-pattern '**/node_modules/**' '**/*.ts?(x)'",
     "test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test && cd ../smc-project && npm test",
