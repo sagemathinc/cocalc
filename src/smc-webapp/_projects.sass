@@ -86,11 +86,15 @@
     background-color: $COL_GRAY_LLL
     border-radius: 3px
 
+// The !important below are because we are directly overriding
+// what is defined for breadcrumbs in antd, in particular, in the
+// antd-breadcrumb class. We do this, so things look right in
+// the particular place we are using this.
 .cc-path-navigator
   flex: 5 1 auto
-  margin-bottom: 15px
+  margin-bottom: 15px !important
   max-width: 50vw
-  padding: 5px 10px
+  padding: 5px 10px !important
 
 .cc-path-navigator > span
   cursor: pointer
