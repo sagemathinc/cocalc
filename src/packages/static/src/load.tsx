@@ -6,6 +6,7 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
+import PreflightCheck from "./preflight-checks";
 import initError from "./webapp-error";
 import LoadScripts from "./load-scripts";
 import Favicons from "./favicons";
@@ -15,7 +16,10 @@ import StartupBanner from "./startup-banner";
 initError();
 
 ReactDOM.render(
-  <StartupBanner />,
+  <>
+    <PreflightCheck />
+    <StartupBanner />
+  </>,
   document.getElementById("cocalc-load-container")
 );
 

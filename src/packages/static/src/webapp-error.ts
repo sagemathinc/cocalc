@@ -69,7 +69,7 @@ ${stack}
 }
 
 export default function init() {
-  console.log("installing window error handler");
+  // console.log("installing window error handler");
   // Add a banner in case react crashes (it will be revealed)
   const div = document.createElement("div");
   div.innerHTML = crash.replace(/HELP_EMAIL/g, HELP_EMAIL);
