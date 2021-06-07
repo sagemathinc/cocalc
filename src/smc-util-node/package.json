@@ -16,7 +16,7 @@
     "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee"
   },
   "author": "SageMath, Inc.",
-  "license": "SEE LICENSE IN LICENSE.md",
+  "license": "SEE LICENSE.md",
   "workspaces": [
     "../smc-util"
   ],

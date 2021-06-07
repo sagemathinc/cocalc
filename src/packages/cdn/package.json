@@ -17,5 +17,5 @@
     "build": "rm -rf dist && mkdir dist && ./setup.py"
   },
   "author": "SageMath, Inc.",
-  "license": "SEE LICENSE IN LICENSE.md"
+  "license": "SEE LICENSE.md"
 }

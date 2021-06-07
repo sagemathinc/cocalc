@@ -14,7 +14,7 @@
     "cocalc"
   ],
   "author": "SageMath, Inc.",
-  "license": "SEE LICENSE IN LICENSE.md",
+  "license": "SEE LICENSE.md",
   "dependencies": {
     "postcss-loader": "^3.0.0",
     "url-loader": "^4.1.1"

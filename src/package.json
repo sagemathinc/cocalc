@@ -1,20 +1,17 @@
 {
   "name": "cocalc",
   "version": "1.0.0",
-  "description": "Collaborative Calculation",
+  "description": "CoCalc: Collaborative Calculation",
   "scripts": {
+    "build": "scripts/check_npm_packages.py && ./build.py",
+    "hub": "./go",
     "lint": "npx eslint --ignore-pattern '**/node_modules/**' '**/*.ts?(x)'",
     "test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test && cd ../smc-project && npm test",
-    "coverage": "cd smc-util && npm run coverage && cd ../smc-util-node && npm run coverage && cd ../smc-hub && npm run coverage && cd ../smc-webapp && npm run coverage",
-    "install-all": "scripts/smc-install-all",
-    "build": "scripts/check_npm_packages.py && NODE_PATH=`pwd`/smc-util node scripts/update-color-scheme.js && webapp-lib/primus/update_primus",
-    "make": "npm run install-all",
     "delete-package-lock": "git ls-files '../*/package-lock.json' | xargs rm -f",
     "restore-package-lock": "git ls-files '../*/package-lock.json' | xargs git checkout --",
     "clean": "find $SMC_ROOT -type d -name dist | grep -v node_modules | grep \\/dist\\$ | xargs rm -rf && find $SMC_ROOT -type d -name node_modules | xargs rm -rf && rm -rf $SMC_ROOT/static && npm cache verify",
     "audit-fix": "scripts/npm-audit.sh fix",
     "prettier-all": "git ls-files '*.ts' '*.tsx' '**/*.ts' '**/*.tsx' | parallel -j5 --eta prettier --write :::",
-    "hub": "./go"
   },
   "repository": {
     "type": "git",
@@ -32,13 +29,9 @@
     "mathematics"
   ],
   "author": "SageMath, Inc.",
-  "license": "GPL-3.0+",
+  "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/cocalc",
-  "dependencies": {
-    "autoprefixer": "^9.8.6",
-    "cssnano": "^5.0.2"
-  }
+  "homepage": "https://github.com/sagemathinc/cocalc"
 }
