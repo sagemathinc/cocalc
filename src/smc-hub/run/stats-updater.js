@@ -4,7 +4,7 @@
 Periodically update the stats in the database.
 */
 
-import * as postgres from "smc-hub/postgres";
+const postgres = require("smc-hub/postgres");
 
 const ttl = parseInt(process.env.STATS_TTL_S ?? "300");
 const db = postgres.db({

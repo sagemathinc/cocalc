@@ -3,7 +3,8 @@
 Moving patches from non-recently-used syncstrings to blobs.
 */
 
-import * as postgres from "smc-hub/postgres";
+const postgres = require("smc-hub/postgres");
+
 const db = postgres.db({ ensure_exists: false });
 
 let {
@@ -30,15 +31,15 @@ if (DELAY_MS == null) {
   DELAY_MS = "5000";
 }
 
-function syncstring_maintenance(cb: Function): void {
+function syncstring_maintenance(cb) {
   console.log(
     `syncstring_maintenance: moving patches for up to ${MAX_SYNCSTRINGS_PER_RUN} syncstrings at least ${MIN_AGE_DAYS} days old to compressed blobs...`
   );
   db.syncstring_maintenance({
-    limit: parseInt(MAX_SYNCSTRINGS_PER_RUN as string),
-    map_limit: parseInt(SYNCSTRINGS_AT_ONCE as string),
-    age_days: parseFloat(MIN_AGE_DAYS as string),
-    delay: parseInt(DELAY_MS as string),
+    limit: parseInt(MAX_SYNCSTRINGS_PER_RUN),
+    map_limit: parseInt(SYNCSTRINGS_AT_ONCE),
+    age_days: parseFloat(MIN_AGE_DAYS),
+    delay: parseInt(DELAY_MS),
     repeat_until_done: false,
     cb,
   });
@@ -53,7 +54,7 @@ function go() {
     console.log(
       `now waiting ${WAIT_BETWEEN_RUNS_S} seconds before doing another syncstring_maintenance...`
     );
-    setTimeout(go, parseInt(WAIT_BETWEEN_RUNS_S as string) * 1000);
+    setTimeout(go, parseInt(WAIT_BETWEEN_RUNS_S) * 1000);
   });
 }
 

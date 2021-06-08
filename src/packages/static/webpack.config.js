@@ -129,6 +129,12 @@ if (MEASURE) {
   require("./src/plugins/measure")(registerPlugin);
 }
 
+const cacheDirectory = "/tmp/webpack";
+
+console.log(
+  `\nUsing '${cacheDirectory}' as filesystem cache.  If things break, stop webpack\nand delete this directory!  Disk-based caching is amazing, but still buggy.\n`
+);
+
 module.exports = {
   cache: {
     // This is supposed to cache the in-memory state to disk
@@ -139,7 +145,7 @@ module.exports = {
     buildDependencies: {
       config: [__filename],
     },
-    cacheDirectory: "/tmp/webpack",
+    cacheDirectory,
   },
   //stats: "verbose",
   optimization: {

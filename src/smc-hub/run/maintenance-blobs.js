@@ -3,7 +3,8 @@
 Delete expired rows in the database.
 */
 
-import * as postgres from "smc-hub/postgres";
+const postgres = require("smc-hub/postgres");
+
 const db = postgres.db({ ensure_exists: false });
 
 let {
@@ -34,17 +35,17 @@ if (CUTOFF == null) {
   CUTOFF = "2 months";
 }
 
-function move_blobs_to_gcloud(cb: Function) {
+function move_blobs_to_gcloud(cb) {
   console.log(
     `move_blobs_to_gcloud: copying up to ${MAX_BLOBS_PER_RUN} non-expiring blobs to bucket ${COCALC_BLOB_STORE} and deleting them from the database`
   );
   db.copy_all_blobs_to_gcloud({
     bucket: COCALC_BLOB_STORE,
-    limit: parseInt(MAX_BLOBS_PER_RUN as string),
-    map_limit: parseInt(BLOBS_AT_ONCE as string),
+    limit: parseInt(MAX_BLOBS_PER_RUN),
+    map_limit: parseInt(BLOBS_AT_ONCE),
     repeat_until_done_s: 0,
     remove: true,
-    throttle: parseFloat(WAIT_BETWEEN_UPLOADS_S as string),
+    throttle: parseFloat(WAIT_BETWEEN_UPLOADS_S),
     cutoff: CUTOFF,
     cb,
   });
@@ -59,7 +60,7 @@ function go() {
     console.log(
       `now waiting ${WAIT_BETWEEN_RUNS_S} seconds before doing another move_blobs_to_gcloud...`
     );
-    setTimeout(go, parseFloat(WAIT_BETWEEN_RUNS_S as string) * 1000);
+    setTimeout(go, parseFloat(WAIT_BETWEEN_RUNS_S) * 1000);
   });
 }
 

@@ -3,7 +3,8 @@
 Delete expired rows in the database.
 */
 
-import * as postgres from "smc-hub/postgres";
+const postgres = require("smc-hub/postgres");
+
 const WAIT_BETWEEN_RUNS_S = process.env.WAIT_BETWEEN_RUNS_S ?? "7200";
 const INTERVAL_MS = parseInt(WAIT_BETWEEN_RUNS_S) * 1000;
 const db = postgres.db({ ensure_exists: false });

@@ -132,7 +132,7 @@
     "shallowequal": "^1.1.0",
     "shell-escape": "^0.2.0",
     "slate": "^0.63.0",
-    "smc-hub": "*",
+    "smc-hub": "file:../smc-hub",
     "smc-project": "*",
     "smc-util": "*",
     "superb": "^3.0.0",

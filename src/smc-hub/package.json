@@ -4,7 +4,7 @@
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",
-    "./run/*": "./dist/run/*.js"
+    "./run/*": "./run/*.js"
   },
   "workspaces": [
     "./",
@@ -147,11 +147,11 @@
   "homepage": "https://github.com/sagemathinc/cocalc",
   "bin": {
     "cocalc-hub-server": "./run/hub.js",
-    "cocalc-hub-stats-updater": "./dist/run/stats-updater.js",
-    "cocalc-hub-deleted-projects": "./dist/run/delete-projects.js",
-    "cocalc-hub-maintenance-expired": "./dist/run/maintenance-expired.js",
-    "cocalc-hub-maintenance-syncstrings": "./dist/run/maintenance-syncstrings.js",
-    "cocalc-hub-maintenance-blobs": "./dist/run/maintenance-blobs.js",
-    "cocalc-hub-stripe-sync": "./dist/run/stripe-sync.js"
+    "cocalc-hub-stats-updater": "./run/stats-updater.js",
+    "cocalc-hub-delete-projects": "./run/delete-projects.js",
+    "cocalc-hub-maintenance-expired": "./run/maintenance-expired.js",
+    "cocalc-hub-maintenance-syncstrings": "./run/maintenance-syncstrings.js",
+    "cocalc-hub-maintenance-blobs": "./run/maintenance-blobs.js",
+    "cocalc-hub-stripe-sync": "./run/stripe-sync.js"
   }
 }

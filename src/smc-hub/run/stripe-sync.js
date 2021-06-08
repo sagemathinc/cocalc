@@ -15,14 +15,14 @@ also have a webhook so that any changes in stripe are immediately reflected here
 This is run as a singleton deployment on some preemptible.
 */
 
-import * as ms from "ms";
-import * as postgres from "smc-hub/postgres";
-import { stripe_sync } from "smc-hub/stripe/sync";
-import { callback2 } from "smc-util/async-utils";
+const ms = require("ms");
+const postgres = require("smc-hub/postgres");
+const { stripe_sync } = require("smc-hub/stripe/sync");
+const { callback2 } = require("smc-util/async-utils");
 
 const db = postgres.db({ ensure_exists: false });
 
-async function do_stripe_sync(): Promise<void> {
+async function do_stripe_sync() {
   console.log("doing stripe_sync...");
   await stripe_sync({
     database: db,
@@ -33,7 +33,7 @@ async function do_stripe_sync(): Promise<void> {
 
 // make sure site licenses subscriptions are not expired iff they are active in stripe
 // 2021-03: this now also checks if each license's subscription is still funding it (not cancelled)
-async function do_sync_site_licenses(): Promise<void> {
+async function do_sync_site_licenses() {
   console.log("doing sync site licenses...");
   await db.sync_site_license_subscriptions();
   console.log("did sync site licenses");
@@ -41,7 +41,7 @@ async function do_sync_site_licenses(): Promise<void> {
 
 // make sure all user upgrades to projects are valid and consistent
 // (e.g. if upgrades expire remove them)
-async function upgrade_check(): Promise<void> {
+async function upgrade_check() {
   console.log("doing project upgrade_check...");
   await callback2(db.ensure_all_user_project_upgrades_are_valid.bind(db), {
     limit: 1,
