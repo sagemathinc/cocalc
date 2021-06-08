@@ -9,4 +9,3 @@ import { startedUp } from "./webapp-error";
 
 init();
 startedUp();
-throw Error('failed after starting up!')

@@ -14,7 +14,7 @@
     "mathjax": "^2.7.9"
   },
   "scripts": {
-    "build": "rm -rf dist && mkdir dist && ./setup.py"
+    "build": "rm -rf dist && mkdir -p dist && ./setup.py"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md"

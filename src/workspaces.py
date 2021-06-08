@@ -1,25 +1,47 @@
 #!/usr/bin/env python
 """
-- build:
-build one or all packages
+PURPOSE: Automate building, installing, and publishing our modules.  This is like a
+little clone of "lerna" for our purposes.
 
-- status
-   -
+NOTES:
+ - We cannot run "npm ci" in parallel across modules, since we're using workspaces,
+   and doing several npm ci at once totally breaks npm.  Of course, it also makes
+   it difficult to understand error messages too.
+ - Similar for "npm run build" in parallel -- it subtly breaks.
+
 """
 
-import argparse, os, shutil, time
+import argparse, os, shutil, subprocess, time
 
 
-def cmd(s, path=None):
+def handle_path(s, path=None, verbose=True):
+    desc = s
+    if path is not None:
+        os.chdir(path)
+        desc += " # in '%s'" % path
+    if verbose:
+        print(desc)
+
+
+def cmd(s, path=None, verbose=True):
     home = os.path.abspath(os.curdir)
     try:
-        desc = s
-        if path is not None:
-            os.chdir(path)
-            desc += " # in '%s'" % path
-        print(desc)
+        handle_path(s, path, verbose)
         if os.system(s):
             raise RuntimeError("Error executing '%s'" % s)
+    finally:
+        os.chdir(home)
+
+
+def run(s, path=None, verbose=True):
+    home = os.path.abspath(os.curdir)
+    try:
+        handle_path(s, path, verbose)
+        a = subprocess.run(s, shell=True, stdout=subprocess.PIPE)
+        out = a.stdout.decode('utf8')
+        if a.returncode:
+            raise RuntimeError("Error executing '%s'" % s)
+        return out
     finally:
         os.chdir(home)
 
@@ -44,11 +66,14 @@ def matches(package, packages):
 
 
 def packages(args):
-    # Compute the packages
-    # The order *is* important, since it's assumed by
-    # the make command below!
-    # We may automate figuring out dependencies later.
-    v = ['packages/cdn', 'smc-util', 'smc-webapp', 'smc-hub', 'webapp-lib', ]
+    # Compute the packages.  Explicit order in some cases *does* matter as noted in comments.
+    v = [
+        'packages/cdn',  # smc-hub assumes this is built
+        'smc-util',
+        'smc-hub',
+        'smc-webapp',
+        'webapp-lib'
+    ]
     for x in os.listdir('packages'):
         path = os.path.join("packages", x)
         if path not in v and os.path.isdir(path):
@@ -64,25 +89,38 @@ def banner(s):
     print("=" * 70 + "\n")
 
 
-def make(args):
+def ci(args):
+    v = packages(args)
+    # First do npm ci not in parallel (which doesn't work with workspaces):
+    for path in v:
+        cmd("npm ci", path)
+
+
+def build(args):
     v = packages(args)
 
-    # We do NOT do this in parallel, since there are significant
-    # subtle dependencies, even with `npm ci` due to workspaces.
-    # Also, when there are errors, it is difficult to understand
-    # where they come from when building and installing in parallel.
     for path in v:
-        banner("Installing and building %s..." % path)
-        cmd("time npm ci", path)
+        if path != 'packages/static':
+            dist = os.path.join(path, 'dist')
+            if os.path.exists(dist):
+                # clear dist/ dir
+                shutil.rmtree(dist)
         cmd("time npm run build", path)
 
 
 def clean(args):
     v = packages(args)
 
+    if args.dist_only:
+        folders = ['dist']
+    elif args.node_modules_only:
+        folders = ['node_modules']
+    else:
+        folders = ['node_modules', 'dist']
+
     paths = []
     for path in v:
-        for x in ['node_modules', 'dist']:
+        for x in folders:
             y = os.path.abspath(os.path.join(path, x))
             if os.path.exists(y):
                 paths.append(y)
@@ -109,10 +147,8 @@ def npm(args):
     v = packages(args)
     inputs = []
     for path in v:
-        inputs.append([
-            'time npm ' + ' '.join(['%s' % x for x in args.args]),
-            os.path.abspath(path)
-        ])
+        s = 'time npm ' + ' '.join(['%s' % x for x in args.args])
+        inputs.append([s, os.path.abspath(path)])
 
     def f(args):
         cmd(*args)
@@ -124,14 +160,39 @@ def version_check(args):
     cmd("scripts/check_npm_packages.py")
 
 
-def package_status(path):
-    banner("Status %s" % path)
+def last_commit_when_version_changed(path):
+    return run('git blame package.json |grep \'  "version":\'', path,
+               False).split()[0]
+
+
+def package_status(args, path):
+    commit = last_commit_when_version_changed(path)
+    cmd("git diff  --name-status %s ." % commit, path, False)
+
+
+def package_diff(args, path):
+    commit = last_commit_when_version_changed(path)
+    cmd("git diff  %s ." % commit, path, False)
 
 
 def status(args):
-    v = packages(args)
-    for path in v:
-        package_status(path)
+    for path in packages(args):
+        package_status(args, path)
+
+
+def diff(args):
+    for path in packages(args):
+        package_diff(args, path)
+
+
+def publish_package(args, path):
+    c = run("git status .", path)
+    print(c)
+
+
+def publish(args):
+    for path in packages(args):
+        publish_package(args, path)
 
 
 if __name__ == '__main__':
@@ -145,12 +206,24 @@ if __name__ == '__main__':
     )
     subparsers = parser.add_subparsers(help='sub-command help')
 
-    subparser = subparsers.add_parser('make',
-                                      help='install and build everything')
-    subparser.set_defaults(func=make)
+    subparser = subparsers.add_parser('ci',
+                                      help='install deps for all modules')
+    subparser.set_defaults(func=ci)
+
+    subparser = subparsers.add_parser('build',
+                                      help='build all modules (use ci first)')
+    subparser.set_defaults(func=build)
 
     subparser = subparsers.add_parser(
         'clean', help='delete dist and node_modules folders')
+    subparser.add_argument('--dist-only',
+                           action="store_const",
+                           const=True,
+                           help="only delete dist directory")
+    subparser.add_argument('--node-modules-only',
+                           action="store_const",
+                           const=True,
+                           help="only delete node_modules directory")
     subparser.set_defaults(func=clean)
 
     subparser = subparsers.add_parser(
@@ -166,9 +239,29 @@ if __name__ == '__main__':
         'version-check', help='version consistency checks across packages')
     subparser.set_defaults(func=version_check)
 
-    subparser = subparsers.add_parser('status',
-                                      help='get status of each package')
+    subparser = subparsers.add_parser(
+        'status', help='files changed in package since last version change')
     subparser.set_defaults(func=status)
+
+    subparser = subparsers.add_parser(
+        'diff', help='diff in package since last version change')
+    subparser.set_defaults(func=diff)
+
+    subparser = subparsers.add_parser(
+        'publish', help='update version, commit git repo, and publish to npm')
+    subparser.add_argument('--major',
+                           action="store_const",
+                           const=True,
+                           help="a major update")
+    subparser.add_argument('--minor',
+                           action="store_const",
+                           const=True,
+                           help="a minor update")
+    subparser.add_argument('--bugfix',
+                           action="store_const",
+                           const=True,
+                           help="a bugfix")
+    subparser.set_defaults(func=publish)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
