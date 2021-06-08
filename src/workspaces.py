@@ -11,7 +11,7 @@ NOTES:
 
 """
 
-import argparse, os, shutil, subprocess, time
+import argparse, os, shutil, subprocess, sys, time
 
 
 def handle_path(s, path=None, verbose=True):
@@ -160,6 +160,9 @@ def version_check(args):
     cmd("scripts/check_npm_packages.py")
 
 
+NEVER = '0000000000'
+
+
 def last_commit_when_version_changed(path):
     return run('git blame package.json |grep \'  "version":\'', path,
                False).split()[0]
@@ -167,12 +170,43 @@ def last_commit_when_version_changed(path):
 
 def package_status(args, path):
     commit = last_commit_when_version_changed(path)
+    print("\nPackage:", path)
+    sys.stdout.flush()
+    if commit == NEVER:
+        print("never committed")
+        return
     cmd("git diff  --name-status %s ." % commit, path, False)
 
 
 def package_diff(args, path):
     commit = last_commit_when_version_changed(path)
+    print("\nPackage:", path)
+    sys.stdout.flush()
+    if commit == NEVER:
+        print("never committed")
+        return
     cmd("git diff  %s ." % commit, path, False)
+
+
+def publish_package(args, path):
+    print("\nPackage:", path)
+    sys.stdout.flush()
+    commit = last_commit_when_version_changed(path)
+    if commit != NEVER:
+        n = len(
+            run("git diff  --name-status %s ." % commit, path, False).strip())
+        if n == 0:
+            print("nothing to publish")
+            return
+    cmd("npm run build", path)
+    cmd(f"npm --no-git-tag-version version {args.newversion}", path)
+    try:
+        cmd("npm publish", path)
+    except:
+        print(
+            f"Publish failed; you might need to manually revert the version in '{path}/package.json'."
+        )
+    cmd(f"git commit -v . -m 'Publish new version of package {path} to npm package repo.'", path)
 
 
 def status(args):
@@ -185,37 +219,37 @@ def diff(args):
         package_diff(args, path)
 
 
-def publish_package(args, path):
-    c = run("git status .", path)
-    print(c)
-
-
 def publish(args):
     for path in packages(args):
         publish_package(args, path)
 
 
-if __name__ == '__main__':
+def main():
+    def packages_arg(parser):
+        parser.add_argument(
+            '--packages',
+            type=str,
+            default='',
+            help=
+            '(default: everything) "foo,bar" matches only packages with "foo" or "bar" in  their name'
+        )
+
     parser = argparse.ArgumentParser(prog='workspaces')
-    parser.add_argument(
-        '--packages',
-        type=str,
-        default='',
-        help=
-        '(default: everything) "foo,bar" matches only packages with "foo" or "bar" in  their name'
-    )
     subparsers = parser.add_subparsers(help='sub-command help')
 
     subparser = subparsers.add_parser('ci',
                                       help='install deps for all modules')
+    packages_arg(subparser)
     subparser.set_defaults(func=ci)
 
     subparser = subparsers.add_parser('build',
                                       help='build all modules (use ci first)')
+    packages_arg(subparser)
     subparser.set_defaults(func=build)
 
     subparser = subparsers.add_parser(
         'clean', help='delete dist and node_modules folders')
+    packages_arg(subparser)
     subparser.add_argument('--dist-only',
                            action="store_const",
                            const=True,
@@ -228,6 +262,7 @@ if __name__ == '__main__':
 
     subparser = subparsers.add_parser(
         'npm', help='do "npm ..." in each package; e.g., use for "npm ci"')
+    packages_arg(subparser)
     subparser.add_argument('args',
                            type=str,
                            nargs='*',
@@ -241,28 +276,28 @@ if __name__ == '__main__':
 
     subparser = subparsers.add_parser(
         'status', help='files changed in package since last version change')
+    packages_arg(subparser)
     subparser.set_defaults(func=status)
 
     subparser = subparsers.add_parser(
         'diff', help='diff in package since last version change')
+    packages_arg(subparser)
     subparser.set_defaults(func=diff)
 
     subparser = subparsers.add_parser(
         'publish', help='update version, commit git repo, and publish to npm')
-    subparser.add_argument('--major',
-                           action="store_const",
-                           const=True,
-                           help="a major update")
-    subparser.add_argument('--minor',
-                           action="store_const",
-                           const=True,
-                           help="a minor update")
-    subparser.add_argument('--bugfix',
-                           action="store_const",
-                           const=True,
-                           help="a bugfix")
+    packages_arg(subparser)
+    subparser.add_argument(
+        "newversion",
+        type=str,
+        help=
+        "major | minor | patch | premajor | preminor | prepatch | prerelease")
     subparser.set_defaults(func=publish)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):
         args.func(args)
+
+
+if __name__ == '__main__':
+    main()
