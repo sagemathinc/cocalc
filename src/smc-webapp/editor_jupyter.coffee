@@ -52,6 +52,7 @@ misc                 = require('smc-util/misc')
 syncdoc              = require('./syncdoc')
 {JUPYTER_CLASSIC_OPEN}  = require('./misc/commands')
 {cm_define_diffApply_extension} = require('./codemirror/extensions')
+{ sanitize_nbconvert_path } = require("smc-util/sanitize-nbconvert")
 
 templates            = $(".smc-jupyter-templates")
 editor_templates     = $("#webapp-editor-templates")
@@ -1279,7 +1280,7 @@ class JupyterNotebook extends EventEmitter
             path        : @path
             project_id  : @project_id
             command     : 'jupyter'
-            args        : ['nbconvert', @file, "--to=#{opts.format}"]
+            args        : ['nbconvert', sanitize_nbconvert_path(@file), "--to=#{opts.format}"]
             bash        : false
             err_on_exit : true
             timeout     : 30
