@@ -150,10 +150,17 @@ import {
 import { createFromIconfontCN } from "@ant-design/icons";
 let IconFont: any = undefined;
 try {
-  const scriptUrl = `${window.app_base_url}/webapp/iconfont.cn/iconfont.js`;
-  IconFont = createFromIconfontCN({ scriptUrl });
+  require("./iconfont.cn");
+  // note -- we do NOT pass scriptUrl in, as in the docs!  Why?  Because
+  // we want everything bundled up into webpack, rather than having to pull
+  // from some random place, which just causes confusion with releases
+  // and caching.  Fortunately, just evaluating the js from iconfont, then
+  // running createFromIconfontCN with no arguments does work, as I deduced
+  // by reading the code, then trying this.
+  IconFont = createFromIconfontCN();
 } catch (err) {
-  // relatively gracefull fallback when used from node.js...
+  // Might as well have option for a graceful fallback, e.g., when
+  // used from node.js...
   console.log(`IconFont not available -- ${err}`);
 }
 

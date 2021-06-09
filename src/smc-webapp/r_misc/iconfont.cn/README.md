@@ -8,8 +8,6 @@ The steps are:
 2. Add them to a project
 3. Download the code of a project (the js).
 4. Upload the js file in that zip download here.
-5. Update `smc-webapp/r_misc/icon.tsx` to load this js file.
 
-We could have multiple js files and give an array of them to 
-`createFromIconfontCN` in icon.tsx, or just keep updating this
-one js file.
+I don't know if we can have multiple js files or if it will only
+work to have one large file.  If so, we would update `index.js` here.
