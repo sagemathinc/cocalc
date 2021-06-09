@@ -65,11 +65,11 @@ const BUILD_DATE = date.toISOString();
 const BUILD_TS = date.getTime();
 const COCALC_NOCLEAN = !!process.env.COCALC_NOCLEAN;
 
-// The regexp removes the trailing slash, if there is one.
-const BASE_URL = (process.env.COCALC_BASE_URL
+// The regexp removes the trailing slash, if there is one (except
+// when COCALC_BASE_URL is set).
+const BASE_URL = process.env.COCALC_BASE_URL
   ? process.env.COCALC_BASE_URL
-  : misc_node.BASE_URL
-).replace(/\/$/, "");
+  : misc_node.BASE_URL.replace(/\/$/, "");
 
 // output build environment variables of webpack
 console.log(`SMC_VERSION         = ${SMC_VERSION}`);
