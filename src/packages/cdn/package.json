@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/cdn",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Files that CoCalc uses that would be natural in various contexts to get from a CDN",
   "main": "dist/index.js",
   "keywords": [
@@ -14,7 +14,8 @@
     "mathjax": "^2.7.9"
   },
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && ./setup.py"
+    "build": "rm -rf dist && mkdir -p dist && ./setup.py",
+    "postinstall": "./postinstall.js"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md"
