@@ -148,9 +148,9 @@ module.exports = {
     cacheDirectory,
   },
   //stats: "verbose",
-  /*optimization: {
+  /* optimization: {
     splitChunks: {
-      minSize: 5000,
+      minSize: 30000,
     },
   },*/
   devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
@@ -163,8 +163,8 @@ module.exports = {
     path: OUTPUT,
     // publicPath is encoded in the static files; they reference it when grabbing more content from server
     publicPath: BASE_URL + "/static/",
-    filename: PRODMODE ? "[name]-[hash].cacheme.js" : "[name].nocache.js",
-    chunkFilename: PRODMODE ? "[id]-[hash].cacheme.js" : "[id].nocache.js",
+    filename: PRODMODE ? "[name]-[chunkhash].cacheme.js" : "[id].nocache.js",
+    chunkFilename: PRODMODE ? "[chunkhash].cacheme.js" : "[id]-[chunkhash].nocache.js",
     hashFunction: "sha256",
   },
   module: {

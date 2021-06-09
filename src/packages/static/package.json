@@ -24,11 +24,11 @@
   },
   "scripts": {
     "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development webpack --progress --color --watch",
-    "tsc": "cd node_modules/smc-webapp && tsc --watch",
-    "tsc-src": "cd src && tsc --watch",
-    "prod": "NODE_OPTIONS=--max_old_space_size=8000  BABEL_ENV=production NODE_ENV=production webpack --progress --color --watch",
-    "measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development npm run webpack ",
-    "measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true npm run prod",
+    "tsc-webapp": "cd node_modules/smc-webapp && tsc --watch",
+    "tsc-static": "cd src && tsc --watch",
+    "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production webpack --progress --color --watch",
+    "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development npm run webpack ",
+    "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true npm run prod",
     "build": "./production-build.py"
   },
   "repository": {
@@ -105,7 +105,6 @@
     "parse-asn1": "^5.1.6",
     "path-browserify": "^1.0.1",
     "pdfjs-dist": "^2.7.570",
-    "postcss-loader": "^5.3.0",
     "prettier": "^2.3.0",
     "pug": "^3.0.2",
     "pug-loader": "^2.4.0",

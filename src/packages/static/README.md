@@ -4,19 +4,54 @@ Using webpack we build the static assets that run in the client's browser.
 
 ## The `npm run` scripts
 
-### Development
+### 1. Development
 
-When doing development, use `npm run webpack` and `npm run tsc` in two terminals. The first runs webpack to package everything up, and the second independently checks for errors in the typescript files in the `smc-webapp` package (the two should not interfere in any way with each other). If you're using an editor like vscode that tells you Typescript errors, you don't need to bother with `npm run tsc`.
+When doing development, use `npm run webpack` and `npm run tsc-webapp` and `npm run tsc-static` in three terminals.
 
-Use `npm run prod` to build and test the production version locally. This is the same as `npm run webpack`, but with more aggressive chunking, caching, minification, etc. It's a good idea to test this before making a release, in case something surprising changes.  Also, check in the Network tab of Chrome dev tools that loading cocalc doesn't transfer too much data (e.g., due to installing a huge package).
+```sh
+npm run weppack
+npm run tsc-webapp
+npm run tsc-static
+```
 
-### Measuring size
+The first runs webpack to package everything up, the second independently checks for errors in the typescript files in the `smc-webapp` package (the two should not interfere in any way with each other), and the third does the same for code in `packages/static/src`. If you're using an editor like vscode that tells you Typescript errors, you don't need to bother with `npm run tsc-*`.
 
-Run `npm run measure` and when it finishes, look at `dist-measure/measure.html` for an interactive graphic thatshows how much space each part of CoCalc is using.
+Use `npm run webpack-prod` to build and test the production version locally:
 
-### Releases
+```sh
+npm run webpack-prod
+```
 
-To make a release, use `npm run build` to create a version with / as the base url that is suitable to deploy on https://cocalc.com and cocalc-docker; this pushes to [npmjs.com](http://npmjs.com), but the version in dist can't be used locally.
+This is the same as `npm run webpack`, but with more aggressive chunking, caching, minification, etc. It's a good idea to test this before making a release, in case something surprising changes.  Also, check in the Network tab of Chrome dev tools that loading cocalc doesn't transfer too much data (e.g., due to installing a huge package).
+
+If you get really weird errors that make no sense, the on-disk cashing may be broken.  In that case, delete it and restart webpack:
+
+```sh
+rm -rf /tmp/webpack
+```
+
+### 2. Measuring size
+
+Run `npm run webpack-measure` and when it finishes, look at `dist-measure/measure.html` for an interactive graphic that shows how much space each part of CoCalc is using.  Use `npm run webpack-measure-prod` to see what the situation is for the production build.
+
+It's often useful to do:
+
+```sh
+ls -lh dist/*.js |more
+```
+
+### 3. Making a release to npmjs.
+
+Everything to make a release is automated by going to `~/cocalc/src` and using `npm run publish ...`:
+
+```sh
+$ cd ../..
+$ pwd
+/home/user/cocalc/src
+$ time npm run publish --packages=static --newversion=minor
+```
+
+Here `newversion` could be major, minor, or patch.  This does a full production build (also properly changing the primus stuff in `webapp-lib` to use a base url of /), updates the version in `package.json`, then pushes the result to npm, fixes `webapp-lib` back, and commits the change to package.json to git.
 
 ## More about development
 
@@ -40,9 +75,11 @@ npm run tsc
 The files that are produced by webpack, and that your hub serves up are in the subdirectory `dist/`.  The hub server serves these static files to your browser.
 
 If you're editing Typescript files in `src/`, you should also run
+
 ```sh
 npm run tsc-src
 ```
+
 which will check those files for typescript errors.
 
 ## Making a release
@@ -69,7 +106,7 @@ If there is a package installed in `packages/static/node_modules` it will get in
 
 ### tsconfig.json and code splitting
 
-Code splitting can't work without this tsconfig.json option:
+Code splitting [can't work](https://davidea.st/articles/webpack-typescript-code-split-wont-work) without this tsconfig.json option:
 
 ```js
 {
@@ -79,4 +116,7 @@ Code splitting can't work without this tsconfig.json option:
 }
 ```
 
-See https://davidea.st/articles/webpack-typescript-code-split-wont-work
+### Changing code in other packages such as `smc-util`
+
+1. Change something in `smc-util`.
+2. You **must** do `npm run build` in `smc-util` to make the changes visible to webpack!  This is because anything outside of `smc-util` actually only sees `smc-util/dist` which is the compiled versions of everything.   This is a significant change from before.

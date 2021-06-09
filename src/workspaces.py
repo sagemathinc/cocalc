@@ -192,12 +192,6 @@ def publish_package(args, path):
     print("\nPackage:", path)
     sys.stdout.flush()
     commit = last_commit_when_version_changed(path)
-    if commit != NEVER:
-        n = len(
-            run("git diff  --name-status %s ." % commit, path, False).strip())
-        if n == 0:
-            print("nothing to publish")
-            return
     cmd("npm run build", path)
     cmd(f"npm --no-git-tag-version version {args.newversion}", path)
     try:

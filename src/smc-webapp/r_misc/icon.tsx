@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+
 declare var DEBUG: boolean; // comes from webpack.
 
 import * as React from "react";

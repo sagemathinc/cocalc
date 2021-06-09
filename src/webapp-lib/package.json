@@ -16,7 +16,6 @@
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "postcss-loader": "^3.0.0",
     "url-loader": "^4.1.1"
   }
 }
