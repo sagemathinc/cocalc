@@ -148,11 +148,11 @@ module.exports = {
     cacheDirectory,
   },
   //stats: "verbose",
-  optimization: {
+  /*optimization: {
     splitChunks: {
       minSize: 5000,
     },
-  },
+  },*/
   devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
   mode: PRODMODE ? "production" : "development",
   entry: {
