@@ -11,12 +11,16 @@
     "@cocalc/cdn": "*",
     "webapp-lib": "*"
   },
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "CoCalc's Static Frontend Webapp Assets",
   "main": "./src/index.js",
   "babel": {
-    "presets": ["@babel/preset-env"],
-    "plugins": ["@babel/plugin-transform-react-jsx"]
+    "presets": [
+      "@babel/preset-env"
+    ],
+    "plugins": [
+      "@babel/plugin-transform-react-jsx"
+    ]
   },
   "scripts": {
     "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development webpack --progress --color --watch",
