@@ -146,6 +146,11 @@ export const CellList: React.FC<CellListProps> = React.memo(
       }
     }, [scroll]);
 
+    const cellListRef = React.useCallback((node: any) => {
+      cell_list_node.current = node;
+      frame_actions?.set_cell_list_div(node);
+    }, []);
+
     function save_scroll(): void {
       if (frame_actions == null) return;
       if (use_windowed_list) {
@@ -474,10 +479,7 @@ export const CellList: React.FC<CellListProps> = React.memo(
         key="cells"
         className="smc-vfill"
         style={style}
-        ref={(node: any) => {
-          cell_list_node.current = node;
-          frame_actions?.set_cell_list_div(node);
-        }}
+        ref={cellListRef}
         onClick={actions != null && complete != null ? on_click : undefined}
         onScroll={debounce(() => {
           save_scroll();
