@@ -131,34 +131,32 @@ export let commercial: boolean = defaults.is_commercial;
 // For now, hopefully not used (this was the old approach).
 // in the future we might want to reload the configuration, though.
 // Note that this *is* clearly used as a fallback below though...!
-export function reload_configuration() {
+async function init_customize() {
+  console.log("load_configuration");
+  if (typeof process != "undefined") {
+    console.log("running in node");
+    // running in node.js
+    return;
+  }
   retry_until_success({
     f: async () => {
+      const url = (window as any).app_base_url + "/customize";
       try {
-        const obj = await $.get((window as any).app_base_url + "/customize");
-        process_customize(obj);
+        const { configuration, strategies } = await (await fetch(url)).json();
+        process_customize(configuration);
+        redux.getActions("account").setState({ strategies });
       } catch (err) {
-        const msg = `$.get /customize failed -- retrying`;
+        const msg = `fetch /customize failed -- retrying - ${err}`;
         console.warn(msg);
         throw new Error(msg);
       }
     },
     start_delay: 2000,
-    max_delay: 15000,
+    max_delay: 30000,
   });
 }
 
-// BACKEND injected by jsdom-support.ts
-if (typeof $ !== "undefined" && $ != undefined && global["BACKEND"] !== true) {
-  // the app.html page loads the configuration and here we unpack the data
-  const data = global["CUSTOMIZE"];
-  if (data != null) {
-    process_customize(Object.assign({}, data));
-  } else {
-    // this is a fallback, in case something went terribly wrong
-    reload_configuration();
-  }
-}
+init_customize();
 
 function process_customize(obj) {
   // TODO make this a to_val function in site_settings_conf.kucalc
