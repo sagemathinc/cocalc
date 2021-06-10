@@ -12,11 +12,11 @@ Meant as a simple proof of concept.
 NOT used right now...
 */
 
-import * as underscore from "underscore";
+import { debounce } from "lodash";
 import * as immutable from "immutable";
 declare const CodeMirror: any; // TODO: type
 
-import { React, Component, ReactDOM, Rendered } from "../app-framework";
+import { React, ReactDOM, Rendered } from "../app-framework";
 import { Loading } from "../r_misc";
 import * as syncstring from "../../smc-util/sync/editor/generic/util";
 import { JupyterActions } from "./browser-actions";
@@ -34,194 +34,206 @@ interface CellListProps {
   cm_options?: immutable.Map<string, any>;
 }
 
-export class CellList extends Component<CellListProps> {
-  private cm: any;
-  private cm_change: any;
-  private cm_last_remote: any;
+export const CellList: React.FC<CellListProps> = React.memo(
+  (props: CellListProps) => {
+    const {
+      actions,
+      cell_list,
+      cells,
+      font_size,
+      sel_ids,
+      md_edit_ids,
+      cur_id,
+      mode,
+      cm_options: cm_options_props,
+    } = props;
 
-  private render_loading(): Rendered {
-    return (
-      <div
-        style={{
-          fontSize: "32pt",
-          color: "#888",
-          textAlign: "center",
-          marginTop: "15px",
-        }}
-      >
-        <Loading />
-      </div>
-    );
-  }
+    const [cm_options, set_cm_options] = React.useState<
+      immutable.Map<string, any>
+    >(immutable.Map());
 
-  private compute_value(
-    cell_list: immutable.List<string>,
-    cells: immutable.Map<string, any>
-  ): string {
-    const v: string[] = [];
-    cell_list.forEach((id: string): void => {
-      const cell = cells.get(id);
-      let s = `In[${id}] ${cell.get("input")}`;
-      const output = cell.get("output");
-      if (output != null) {
-        s += `\nOut[${id}] ${JSON.stringify(output)}`;
-      }
-      v.push(s);
-    });
-    return v.join("\n\n");
-  }
+    const cm = React.useRef<any>(null);
+    const cm_change = React.useRef<any>(null);
+    const cm_last_remote = React.useRef<any>(null);
 
-  private parse_and_save(value: string): void {
-    while (true) {
-      let i = value.indexOf("In[");
-      if (i === -1) {
-        return;
+    React.useEffect(() => {
+      init_codemirror();
+      return () => {
+        if (cm.current != null) {
+          cm_save();
+          const doc: any = cm.current.getDoc();
+          delete doc.cm; // so @cm gets freed from memory when destroyed and doc is not attached to it.
+          cm_destroy();
+        }
+      };
+    }, []);
+
+    React.useEffect(() => {
+      if (!cm_options.equals(cm_options_props)) {
+        set_cm_options(cm_options_props);
       }
-      value = value.slice(i + 3);
-      i = value.indexOf("]");
-      if (i === -1) {
-        return;
-      }
-      const id = value.slice(0, i);
-      value = value.slice(i + 2);
-      const prompt = `\nOut[${id}]`;
-      i = value.indexOf(prompt);
-      if (i !== -1) {
-        value = value.slice(0, i);
-      }
-      this.props.actions.set_cell_input(id, value);
-      value = value.slice(i + 1);
+    }, [cm_options_props]);
+
+    React.useEffect(() => {
+      if (cm.current == null) return;
+
+      cm_merge_remote(cell_list, cells);
+    }, [cells, cell_list]);
+
+    // if cm_options (after the check above) or font_size changes,
+    // redo the codemirror
+    React.useEffect(() => {
+      init_codemirror();
+    }, [cm_options, font_size]);
+
+    function render_loading(): Rendered {
+      return (
+        <div
+          style={{
+            fontSize: "32pt",
+            color: "#888",
+            textAlign: "center",
+            marginTop: "15px",
+          }}
+        >
+          <Loading />
+        </div>
+      );
     }
-  }
 
-  public componentDidMount(): void {
-    this.init_codemirror();
-  }
-
-  private cm_destroy = (): void => {
-    if (this.cm != null) {
-      this.cm.toTextArea();
-      if (this.cm_change != null) {
-        this.cm.off("change", this.cm_change);
-        delete this.cm_change;
-      }
-      delete this.cm_last_remote;
-      delete this.cm;
-    }
-  };
-
-  private cm_save = (): void => {
-    if (this.cm == null) {
-      return;
-    }
-    const value = this.cm.getValue();
-    if (value !== this.cm_last_remote) {
-      // only save if we actually changed something
-      this.cm_last_remote = value;
-      this.parse_and_save(value);
-    }
-  };
-
-  private cm_merge_remote = (cell_list: any, cells: any): void => {
-    let new_val: any;
-    if (this.cm == null) {
-      return;
-    }
-    const remote = this.compute_value(cell_list, cells);
-    if (this.cm_last_remote != null) {
-      if (this.cm_last_remote === remote) {
-        return; // nothing to do
-      }
-      const local = this.cm.getValue();
-      new_val = syncstring.three_way_merge({
-        base: this.cm_last_remote,
-        local,
-        remote,
+    function compute_value(
+      cell_list: immutable.List<string>,
+      cells: immutable.Map<string, any>
+    ): string {
+      const v: string[] = [];
+      cell_list.forEach((id: string): void => {
+        const cell = cells.get(id);
+        let s = `In[${id}] ${cell.get("input")}`;
+        const output = cell.get("output");
+        if (output != null) {
+          s += `\nOut[${id}] ${JSON.stringify(output)}`;
+        }
+        v.push(s);
       });
-    } else {
-      new_val = remote;
+      return v.join("\n\n");
     }
-    this.cm_last_remote = new_val;
-    this.cm.setValueNoJump(new_val);
-  };
 
-  private cm_undo = (): void => {
-    if (
-      !this.props.actions.syncdb.in_undo_mode() ||
-      this.cm.getValue() !== this.cm_last_remote
-    ) {
-      this.cm_save();
+    function parse_and_save(value: string): void {
+      while (true) {
+        let i = value.indexOf("In[");
+        if (i === -1) {
+          return;
+        }
+        value = value.slice(i + 3);
+        i = value.indexOf("]");
+        if (i === -1) {
+          return;
+        }
+        const id = value.slice(0, i);
+        value = value.slice(i + 2);
+        const prompt = `\nOut[${id}]`;
+        i = value.indexOf(prompt);
+        if (i !== -1) {
+          value = value.slice(0, i);
+        }
+        actions.set_cell_input(id, value);
+        value = value.slice(i + 1);
+      }
     }
-    this.props.actions.undo();
-  };
 
-  private cm_redo = (): void => {
-    this.props.actions.redo();
-  };
-
-  private init_codemirror(): void {
-    this.cm_destroy();
-    // TODO: avoid findDOMNode using refs
-    const node: any = $(ReactDOM.findDOMNode(this)).find("textarea")[0];
-    const options =
-      this.props.cm_options != null ? this.props.cm_options.toJS() : {};
-    this.cm = CodeMirror.fromTextArea(node, options);
-    $(this.cm.getWrapperElement()).css({
-      height: "auto",
-      backgroundColor: "#f7f7f7",
-    });
-    this.cm_merge_remote(this.props.cell_list, this.props.cells);
-    this.cm_change = underscore.debounce(this.cm_save, 1000);
-    this.cm.on("change", this.cm_change);
-
-    // replace undo/redo by our sync aware versions
-    this.cm.undo = this.cm_undo;
-    this.cm.redo = this.cm_redo;
-  }
-
-  public componentWillReceiveProps(nextProps): void {
-    if (
-      this.cm == null ||
-      !(
-        this.props.cm_options &&
-        this.props.cm_options.equals(nextProps.cm_options)
-      ) ||
-      this.props.font_size !== nextProps.font_size
-    ) {
-      this.init_codemirror();
-      return;
+    function cm_destroy(): void {
+      if (cm.current != null) {
+        cm.current.toTextArea();
+        if (cm_change.current != null) {
+          cm.current.off("change", cm_change.current);
+          cm_change.current = null;
+        }
+        cm_last_remote.current = null;
+        cm.current = null;
+      }
     }
-    if (
-      nextProps.cells !== this.props.cells ||
-      nextProps.cell_list !== this.props.cell_list
-    ) {
-      return this.cm_merge_remote(nextProps.cell_list, nextProps.cells);
-    }
-  }
 
-  public componentWillUnmount(): void {
-    if (this.cm != null) {
-      this.cm_save();
-      const doc: any = this.cm.getDoc();
-      delete doc.cm; // so @cm gets freed from memory when destroyed and doc is not attached to it.
-      this.cm_destroy();
+    function cm_save(): void {
+      if (cm.current == null) {
+        return;
+      }
+      const value = cm.current.getValue();
+      if (value !== cm_last_remote.current) {
+        // only save if we actually changed something
+        cm_last_remote.current = value;
+        parse_and_save(value);
+      }
     }
-  }
 
-  public render(): Rendered {
-    if (this.props.cell_list == null) {
-      return this.render_loading();
+    function cm_merge_remote(cell_list: any, cells: any): void {
+      let new_val: any;
+      if (cm.current == null) {
+        return;
+      }
+      const remote = compute_value(cell_list, cells);
+      if (cm_last_remote.current != null) {
+        if (cm_last_remote.current === remote) {
+          return; // nothing to do
+        }
+        const local = cm.current.getValue();
+        new_val = syncstring.three_way_merge({
+          base: cm_last_remote.current,
+          local,
+          remote,
+        });
+      } else {
+        new_val = remote;
+      }
+      cm_last_remote.current = new_val;
+      cm.current.setValueNoJump(new_val);
+    }
+
+    function cm_undo(): void {
+      if (
+        !actions.syncdb.in_undo_mode() ||
+        cm.current.getValue() !== cm_last_remote.current
+      ) {
+        cm_save();
+      }
+      actions.undo();
+    }
+
+    function cm_redo(): void {
+      actions.redo();
+    }
+
+    function init_codemirror(): void {
+      cm_destroy();
+      // TODO: avoid findDOMNode using refs
+      const node: any = $(ReactDOM.findDOMNode(this)).find("textarea")[0];
+      const options = cm_options != null ? cm_options.toJS() : {};
+      cm.current = CodeMirror.fromTextArea(node, options);
+      $(cm.current.getWrapperElement()).css({
+        height: "auto",
+        backgroundColor: "#f7f7f7",
+      });
+      cm_merge_remote(cell_list, cells);
+      cm_change.current = debounce(cm_save, 1000);
+      cm.current.on("change", cm_change.current);
+
+      // replace undo/redo by our sync aware versions
+      cm.current.undo = cm_undo;
+      cm.current.redo = cm_redo;
+    }
+
+    if (cell_list == null) {
+      return render_loading();
     }
 
     const style: React.CSSProperties = {
-      fontSize: `${this.props.font_size}px`,
+      fontSize: `${font_size}px`,
       paddingLeft: "20px",
       padding: "20px",
       backgroundColor: "#eee",
       height: "100%",
       overflowY: "auto",
       overflowX: "hidden",
-    };
+    } as const;
 
     return (
       <div key="cells" style={style} ref="cell_list">
@@ -237,4 +249,4 @@ export class CellList extends Component<CellListProps> {
       </div>
     );
   }
-}
+);
