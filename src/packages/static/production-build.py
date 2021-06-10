@@ -29,7 +29,8 @@ try:
     cmd('BASE_URL="" npm run build', '../../webapp-lib')
     if os.path.exists('dist'):
         shutil.rmtree('dist')
-    cmd("NODE_OPTIONS=--max_old_space_size=8000 COCALC_BASE_URL='/' NODE_ENV=production webpack --progress --color"
+    NODE_ENV = os.environ.get('NODE_ENV', 'production')
+    cmd(f"NODE_ENV={NODE_ENV} NODE_OPTIONS=--max_old_space_size=8000 COCALC_BASE_URL='/' webpack --progress --color"
         )
 finally:
     # Build again with non-production base url.

@@ -69,7 +69,7 @@ all your code up.
 In a second terminal (also in this package/static directory!), start watching for errors via typescript:
 
 ```sh
-npm run tsc
+npm run tsc-webapp
 ```
 
 The files that are produced by webpack, and that your hub serves up are in the subdirectory `dist/`.  The hub server serves these static files to your browser.
@@ -81,22 +81,6 @@ npm run tsc-src
 ```
 
 which will check those files for typescript errors.
-
-## Making a release
-
-When you're ready to make a release of the static part of CoCalc, stop the above watch servers (for development), then do a clean build:
-
-```sh
-npm run build
-```
-
-This should take a significant amount of time and RAM. Once it is done, be sure to test it using your local CoCalc server (the one running in your project), which will be using the production version of your files. Once you're happy, use npm to publish a new version to npmjs.com. Type `npm help version` for instructions. In particular, you'll likely type
-
-```sh
-npm version minor -m "Description of what I did."
-```
-
-where `minor` could instead be `major` for breaking changes, `minor` for new features, and `patch` for a bugfix.
 
 ## Landmines to watch out for
 
