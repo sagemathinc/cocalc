@@ -928,7 +928,6 @@ class JupyterNotebook extends EventEmitter
                         @syncstring.live(live)
                         @syncstring.sync()
             @emit(@state)
-            @show()
             cb?(err)
 
     init_syncstring: (cb) =>
@@ -1167,6 +1166,8 @@ class JupyterNotebook extends EventEmitter
         return @syncstring._syncstring.last_changed() - 0
 
     show: =>
+        # This should ONLY be called externally from
+        # ./project_actions.ts!
         @element.show()
         @dom?.refresh()
 
