@@ -40,9 +40,9 @@ It's often useful to do:
 ls -lh dist/*.js |more
 ```
 
-### 3. Making a release to npmjs.
+### 3. Making a release to npmjs
 
-Everything to make a release is automated by going to `~/cocalc/src` and using `npm run publish ...`:
+Make sure to kill any running webpack first.  Everything to make a release is automated by going to `~/cocalc/src` and using `npm run publish ...`:
 
 ```sh
 $ cd ../..
@@ -52,6 +52,12 @@ $ time npm run publish --packages=static --newversion=minor
 ```
 
 Here `newversion` could be major, minor, or patch.  This does a full production build (also properly changing the primus stuff in `webapp-lib` to use a base url of /), updates the version in `package.json`, then pushes the result to npm, fixes `webapp-lib` back, and commits the change to package.json to git.
+
+If you want to make a _development release,_ e.g., to make it easier to debug something on [test.cocalc.com](http://test.cocalc.com), do
+
+```sh
+time NODE_ENV=development npm run publish --packages=static --newversion=minor
+```
 
 ## More about development
 
@@ -77,7 +83,7 @@ The files that are produced by webpack, and that your hub serves up are in the s
 If you're editing Typescript files in `src/`, you should also run
 
 ```sh
-npm run tsc-src
+npm run tsc-static
 ```
 
 which will check those files for typescript errors.
