@@ -31,8 +31,9 @@ import { PassportStrategy } from "../account/passport-types";
 import { capitalize } from "smc-util/misc";
 import { COLORS, DOC_URL } from "smc-util/theme";
 import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
-import { init } from "./registration";
-init(); // this is a fallback
+
+// Load whether or not a registration token is required.
+import "./registration";
 
 const DESC_FONT = "sans-serif";
 

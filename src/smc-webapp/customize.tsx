@@ -138,13 +138,12 @@ async function init_customize() {
     // running in node.js
     return;
   }
-  retry_until_success({
+  let customize;
+  await retry_until_success({
     f: async () => {
       const url = (window as any).app_base_url + "/customize";
       try {
-        const { configuration, strategies } = await (await fetch(url)).json();
-        process_customize(configuration);
-        redux.getActions("account").setState({ strategies });
+        customize = await (await fetch(url)).json();
       } catch (err) {
         const msg = `fetch /customize failed -- retrying - ${err}`;
         console.warn(msg);
@@ -154,6 +153,10 @@ async function init_customize() {
     start_delay: 2000,
     max_delay: 30000,
   });
+
+  const { configuration, strategies } = customize;
+  process_customize(configuration);
+  redux.getActions("account").setState({ strategies });
 }
 
 init_customize();
