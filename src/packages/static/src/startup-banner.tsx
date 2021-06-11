@@ -7,19 +7,31 @@ import cocalc_circle from "./cocalc-circle.svg";
 import "./startup-banner.css";
 
 export default function StartupBanner() {
+  // The hook business below loads the custom logo via the customize
+  // JSON endpoint, then updates the component and displays the
+  // logo if still mounted.  We have to wrap the async calls in
+  // an async function, since useEffect has to return a normal function.
   const isMountedRef = React.useRef<boolean>(true);
   const [logo, setLogo] = React.useState<string | undefined>(undefined);
-
   React.useEffect(() => {
     (async () => {
-      // check for custom logo
-      const logo = (await (await fetch("customize")).json())?.configuration
-        ?.logo_rectangular;
-      if (logo) {
+      let logo: string | undefined = undefined;
+      try {
+        // check for a custom logo
+        logo = (await (await fetch("customize")).json())?.configuration
+          ?.logo_rectangular;
+      } catch (err) {
+        console.log("WARNING: problem loading customize data", err);
+      }
+      if (logo && isMountedRef.current) {
+        // got a logo and still mounted, so set the logo.
         setLogo(logo);
       }
     })();
-    return () => (isMountedRef.current = false);
+    return () => {
+      // component unmounted, so don't bother setting the logo.
+      isMountedRef.current = false;
+    };
   }, []);
 
   return (
