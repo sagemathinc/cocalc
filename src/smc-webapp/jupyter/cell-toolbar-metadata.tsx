@@ -7,7 +7,7 @@
 The metadata editing toolbar.
 */
 
-import { React, Component } from "../app-framework";
+import { React } from "../app-framework";
 
 import { Button } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";
@@ -18,15 +18,16 @@ interface MetadataProps {
   cell: ImmutableMap<string, any>;
 }
 
-export class Metadata extends Component<MetadataProps> {
-  edit = () => this.props.actions.edit_cell_metadata(this.props.cell.get("id"));
-  render() {
-    return (
-      <div style={{ width: "100%" }}>
-        <Button bsSize="small" onClick={this.edit} style={{ float: "right" }}>
-          Edit Custom Metadata...
-        </Button>
-      </div>
-    );
+export const Metadata: React.FC<MetadataProps> = (props: MetadataProps) => {
+  const { actions, cell } = props;
+  function edit() {
+    actions.edit_cell_metadata(cell.get("id"));
   }
-}
+  return (
+    <div style={{ width: "100%" }}>
+      <Button bsSize="small" onClick={edit} style={{ float: "right" }}>
+        Edit Custom Metadata...
+      </Button>
+    </div>
+  );
+};
