@@ -192,14 +192,15 @@ def publish_package(args, path):
     print("\nPackage:", path)
     sys.stdout.flush()
     commit = last_commit_when_version_changed(path)
-    if path == 'packages/static':
+    if path.endswith('static'):
         # We bump the version *before* for the static build, since
         # the version is part of what is included in the build.
+        print("BUMP VERSION")
         cmd(f"npm --no-git-tag-version version {args.newversion}", path)
     # Do the build
     cmd("npm run build", path)
 
-    if path != 'packages/static':
+    if not path.endswith('static'):
         # Success -- bump the version before publishing
         cmd(f"npm --no-git-tag-version version {args.newversion}", path)
 
@@ -210,7 +211,9 @@ def publish_package(args, path):
         print(
             f"Publish failed; you might need to manually revert the version in '{path}/package.json'."
         )
-    cmd(f"git commit -v . -m 'Publish new version of package {path} to npm package repo.'", path)
+    cmd(
+        f"git commit -v . -m 'Publish new version of package {path} to npm package repo.'",
+        path)
 
 
 def status(args):
