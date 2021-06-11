@@ -9,7 +9,7 @@ React component that renders the ordered list of cells
 
 Meant as a simple proof of concept.
 
-NOT used right now...
+ATTN: THIS IS NOT USED RIGHT NOW – TREAT IT AS POTENTIALLY BROKEN
 */
 
 import { debounce } from "lodash";
