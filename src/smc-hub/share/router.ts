@@ -21,6 +21,8 @@ import { handle_share_listing } from "./handle-share-listing";
 import { handle_user_request } from "./handle-user-request";
 import { handle_path_request } from "./handle-path-request";
 
+import { path as WEBAPP_PATH } from "webapp-lib";
+
 import * as util from "./util";
 
 import { Database, Logger } from "./types";
@@ -96,14 +98,11 @@ export function share_router(opts: {
     await callback((cb) => ready_queue.push(cb));
   }
 
-  if (process.env.SMC_ROOT == null) {
-    throw Error("process.env.SMC_ROOT must be defined");
-  }
   const router = express.Router();
   for (const name of ["favicon-32x32.png", "cocalc-icon.svg"]) {
     router.use(
       `/${name}`,
-      express.static(os_path.join(process.env.SMC_ROOT, `webapp-lib/${name}`), {
+      express.static(os_path.join(WEBAPP_PATH, name), {
         immutable: true,
         maxAge: 86000000,
       })
