@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, shutil
+import json, os, shutil
 
 
 def handle_path(s, path=None):
@@ -20,12 +20,15 @@ def cmd(s, path=None):
     finally:
         os.chdir(home)
 
+
 def app_version():
     # We also create a versioned app.html file, named "app-[version].html", where
     # version is taken from package.json.  We do this entirely so we easily
     # run specific versions of the cocalc client code by slightly changing
     # the URL.  Nothing else should depend on this.
-    cmd("cp dist/app.html dist/app-`npm view @cocalc/static version`.html")
+    version = json.loads(open('package.json').read())['version']
+    cmd(f"cp dist/app.html dist/app-{version}.html")
+
 
 def main():
     try:
@@ -44,6 +47,6 @@ def main():
         # Build again with non-production base url.
         cmd('npm run build', '../../webapp-lib')
 
+
 if __name__ == "__main__":
     main()
-
