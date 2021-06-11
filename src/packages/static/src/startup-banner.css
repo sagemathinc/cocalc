@@ -15,3 +15,16 @@
     transform: rotate(360deg);
   }
 }
+
+.cocalc-fade-in {
+  animation: cocalc-fadein 2s;
+}
+
+@keyframes cocalc-fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
