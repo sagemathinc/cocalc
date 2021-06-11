@@ -159,6 +159,10 @@ module.exports = {
     load: "./src/load.tsx",
     app: "./src/webapp-cocalc.js",
   },
+  /* Why chunkhash below, rather than contenthash? This says contenthash is a special
+     thing for css and other text files only (??):
+        https://medium.com/@sahilkkrazy/hash-vs-chunkhash-vs-contenthash-e94d38a32208
+  */
   output: {
     path: OUTPUT,
     // publicPath is encoded in the static files; they reference it when grabbing more content from server
