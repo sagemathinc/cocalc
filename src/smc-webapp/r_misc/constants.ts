@@ -7,14 +7,14 @@
 export const UNIT = 15;
 
 // injected by webpack, but not for react-static renderings
-// (ATTN don't assign to uppercase vars!)
+declare var SMC_VERSION, BUILD_DATE, COCALC_GIT_REVISION;
 export let smc_version, build_date, smc_git_rev;
 try {
-  smc_version = (window as any)?.SMC_VERSION ?? "N/A";
-  build_date = (window as any)?.BUILD_DATE ?? "N/A";
-  smc_git_rev = (window as any)?.COCALC_GIT_REVISION ?? "N/A";
+  smc_version = SMC_VERSION ?? "N/A";
+  build_date = BUILD_DATE ?? "N/A";
+  smc_git_rev = COCALC_GIT_REVISION ?? "N/A";
 } catch (_err) {
-  // Happens if window is not defined (e.g., running on backend).
+  // Happens potentially when running on backend.
   smc_version = "N/A";
   build_date = "N/A";
   smc_git_rev = "N/A";

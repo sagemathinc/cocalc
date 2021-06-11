@@ -168,7 +168,9 @@ module.exports = {
     // publicPath is encoded in the static files; they reference it when grabbing more content from server
     publicPath: BASE_URL + "/static/",
     filename: PRODMODE ? "[name]-[chunkhash].cacheme.js" : "[id].nocache.js",
-    chunkFilename: PRODMODE ? "[chunkhash].cacheme.js" : "[id]-[chunkhash].nocache.js",
+    chunkFilename: PRODMODE
+      ? "[chunkhash].cacheme.js"
+      : "[id]-[chunkhash].nocache.js",
     hashFunction: "sha256",
   },
   module: {
