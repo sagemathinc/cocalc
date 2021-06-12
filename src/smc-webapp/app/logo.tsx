@@ -19,8 +19,6 @@ export const AppLogo: React.FC = React.memo(() => {
 
   const backgroundImage = `url('${logo_square ? logo_square : APP_ICON}')`;
 
-  console.log(APP_ICON, backgroundImage);
-  
   return (
     <div
       style={{
