@@ -1,3 +1,9 @@
+/* The startup banner
+
+If you want to develop this, edit smc-webapp/app/render.tsx as indicated there so the
+startup banner doesn't vanish.
+*/
+
 import * as React from "react";
 // @ts-ignore -- this is a webpack thing, which confuses typescript.
 import cocalc_word from "./cocalc-word.svg";
@@ -6,7 +12,7 @@ import cocalc_circle from "./cocalc-circle.svg";
 // @ts-ignore
 import "./startup-banner.css";
 
-declare const BASE_URL : string;  // defined via webpack
+declare const BASE_URL: string; // defined via webpack
 
 export default function StartupBanner() {
   // The hook business below loads the custom logo via the customize
@@ -20,8 +26,8 @@ export default function StartupBanner() {
       let logo: string | undefined = undefined;
       try {
         // check for a custom logo
-        logo = (await (await fetch(`${BASE_URL}/customize`)).json())?.configuration
-          ?.logo_rectangular;
+        logo = (await (await fetch(`${BASE_URL}/customize`)).json())
+          ?.configuration?.logo_rectangular;
       } catch (err) {
         console.log("WARNING: problem loading customize data", err);
       }
@@ -56,6 +62,8 @@ export default function StartupBanner() {
             padding: "15px",
             height: "75vh",
             width: "90%",
+            maxWidth: "350px",
+            textAlign: "center",
           }}
         >
           <img
@@ -63,7 +71,7 @@ export default function StartupBanner() {
             className={"cocalc-spin"}
             style={{
               height: "70%",
-              width: "100%",
+              maxWidth: "75%",
             }}
           />
           <br />

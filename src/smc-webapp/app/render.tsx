@@ -6,7 +6,7 @@
 import { React, ReactDOM, Redux } from "../app-framework";
 
 export async function render(): Promise<void> {
-  finishedLoading();
+  finishedLoading();  // comment this out to leave the loading/sartup banner visible
   const { Page } = await import("./page");
   ReactDOM.render(
     <Redux>

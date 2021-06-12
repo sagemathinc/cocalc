@@ -60,7 +60,7 @@ export class PasswordReset extends Component<Props, State> {
         }}
       >
         <Icon
-          name={this.state.running ? "sync" : "unlock-alt"}
+          name={this.state.running ? "sync" : "lock-open"}
           spin={this.state.running}
         />{" "}
         Request Password Reset Link...

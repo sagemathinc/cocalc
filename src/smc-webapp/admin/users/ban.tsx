@@ -58,7 +58,7 @@ export class Ban extends Component<Props, State> {
         }}
       >
         <Icon
-          name={this.state.running ? "sync" : "unlock-alt"}
+          name={this.state.running ? "sync" : "lock-open"}
           spin={this.state.running}
         />{" "}
         {this.state.banned ? "Unban" : "Ban"} User

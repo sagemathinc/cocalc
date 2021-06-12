@@ -101,7 +101,7 @@ export const ForgotPassword: React.FC<Props> = (props: Props) => {
       <Modal.Body>
         <div>
           <h4>
-            <Icon name="unlock-alt" /> Forgot Password?
+            <Icon name="lock-open" /> Forgot Password?
           </h4>
           Enter your email address to reset your password
         </div>
