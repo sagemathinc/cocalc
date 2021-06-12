@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
 declare var DEBUG: boolean; // comes from webpack.
 
 import * as React from "react";
@@ -243,6 +242,7 @@ const IconSpec = {
   "credit-card": CreditCardOutlined,
   csv: { IconFont: "csv" },
   cube: { IconFont: "cube" },
+  cut: ScissorOutlined,
   dashboard: DashboardOutlined,
   database: DatabaseOutlined,
   desktop: DesktopOutlined,

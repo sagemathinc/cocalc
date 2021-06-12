@@ -54,6 +54,7 @@ const BACKEND_STATE_STYLE: CSS = {
   display: "flex",
   marginRight: "5px",
   color: KERNEL_NAME_STYLE.color,
+  paddingTop: "2.5px",
 } as const;
 
 interface KernelProps {
@@ -176,14 +177,14 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           name = "unlink";
           break;
         case "ready":
-          name = "circle-notch";
+          name = "cc-icon-cocalc-ring";
           break;
         case "spawning":
-          name = "circle-notch";
+          name = "cc-icon-cocalc-ring";
           spin = true;
           break;
         case "starting":
-          name = "circle-notch";
+          name = "cc-icon-cocalc-ring";
           spin = true;
           break;
         case "running":
@@ -193,10 +194,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
               color = "#5cb85c";
               break;
             case "idle":
-              name = "circle-notch";
+              name = "cc-icon-cocalc-ring";
               break;
             default:
-              name = "circle-notch";
+              name = "cc-icon-cocalc-ring";
           }
           break;
       }
