@@ -7,6 +7,7 @@ import * as React from "react";
 // @ts-ignore
 import * as ReactDOM from "react-dom";
 
+import Manifest from "./manifest";
 import PreflightCheck from "./preflight-checks";
 import initError from "./webapp-error";
 import Favicons from "./favicons";
@@ -17,6 +18,7 @@ initError();
 
 ReactDOM.render(
   <>
+    <Manifest />
     <PreflightCheck />
     <StartupBanner />
   </>,

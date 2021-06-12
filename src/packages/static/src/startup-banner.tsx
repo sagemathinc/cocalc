@@ -6,6 +6,8 @@ import cocalc_circle from "./cocalc-circle.svg";
 // @ts-ignore
 import "./startup-banner.css";
 
+declare const BASE_URL : string;  // defined via webpack
+
 export default function StartupBanner() {
   // The hook business below loads the custom logo via the customize
   // JSON endpoint, then updates the component and displays the
@@ -18,7 +20,7 @@ export default function StartupBanner() {
       let logo: string | undefined = undefined;
       try {
         // check for a custom logo
-        logo = (await (await fetch("customize")).json())?.configuration
+        logo = (await (await fetch(`${BASE_URL}/customize`)).json())?.configuration
           ?.logo_rectangular;
       } catch (err) {
         console.log("WARNING: problem loading customize data", err);

@@ -1,4 +1,4 @@
-// Load various scripts from the server.
+// Specify the favicion.
 
 import * as React from "react";
 import { Helmet } from "react-helmet";
