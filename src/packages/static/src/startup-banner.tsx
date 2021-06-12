@@ -63,6 +63,7 @@ export default function StartupBanner() {
             height: "75vh",
             width: "90%",
             maxWidth: "350px",
+            maxHeight: "400px",
             textAlign: "center",
           }}
         >
