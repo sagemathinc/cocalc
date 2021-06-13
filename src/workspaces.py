@@ -153,6 +153,16 @@ def clean(args):
     thread_map(g, [os.path.abspath(path) for path in v], nb_threads=10)
 
 
+def delete_package_lock(args):
+    def f(path):
+        p = os.path.join(path, 'package-lock.json')
+        if os.path.exists(p):
+            os.unlink(p)
+
+    thread_map(f, [os.path.abspath(path) for path in packages(args)],
+               nb_threads=10)
+
+
 def npm(args):
     v = packages(args)
     inputs = []
@@ -163,7 +173,10 @@ def npm(args):
     def f(args):
         cmd(*args)
 
-    thread_map(f, inputs)
+    if args.parallel:
+        thread_map(f, inputs)
+    else:
+        thread_map(f, inputs, 1)
 
 
 def version_check(args):
@@ -278,6 +291,12 @@ def main():
     subparser.set_defaults(func=clean)
 
     subparser = subparsers.add_parser(
+        'delete-package-lock',
+        help='delete package lock files so they can be recreated')
+    packages_arg(subparser)
+    subparser.set_defaults(func=delete_package_lock)
+
+    subparser = subparsers.add_parser(
         'npm', help='do "npm ..." in each package; e.g., use for "npm ci"')
     packages_arg(subparser)
     subparser.add_argument('args',
@@ -285,6 +304,10 @@ def main():
                            nargs='*',
                            default='',
                            help='arguments to npm')
+    subparser.add_argument('--parallel',
+                           action="store_const",
+                           const=True,
+                           help="run in parallel")
     subparser.set_defaults(func=npm)
 
     subparser = subparsers.add_parser(
