@@ -108,6 +108,15 @@ function allowedToRun(spec: Spec) {
       spec.name
     ) == -1;
 
+  if (oldOther) {
+    // It doesn't match any of our tests.  This currently *does* happen
+    // with the Juno iPad app, whose agent looks like this
+    // "Mozilla/5.0 (iPad; CPU iPhone OS like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
+    // We just allow anything like this, since it's much likely to be new/good,
+    // rather than a known old broken browser.
+    return true;
+  }
+
   const old =
     oldFF || oldIE || oldEdge || oldSafari || oldOpera || oldChrome || oldOther;
 
