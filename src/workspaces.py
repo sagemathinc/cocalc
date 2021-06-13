@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 PURPOSE: Automate building, installing, and publishing our modules.  This is like a
 little clone of "lerna" for our purposes.
