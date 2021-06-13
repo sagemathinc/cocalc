@@ -13,6 +13,10 @@ NOTES:
 
 import argparse, os, shutil, subprocess, sys, time
 
+# Unfortunately some parts of the build assume these are defined.  So for
+# now we define them.
+os.environ['SALVUS_ROOT'] = os.environ['SMC_ROOT'] = os.path.dirname(__file__)
+
 
 def handle_path(s, path=None, verbose=True):
     desc = s
