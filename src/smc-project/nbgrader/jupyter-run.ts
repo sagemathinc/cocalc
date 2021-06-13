@@ -120,6 +120,7 @@ export async function jupyter_run_notebook(
     log("in finally");
     if (jupyter != null) {
       log("jupyter != null so closing");
+      // @ts-ignore
       jupyter.close();
       jupyter = undefined;
     }

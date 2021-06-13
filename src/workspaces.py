@@ -70,8 +70,10 @@ def packages(args):
     v = [
         'packages/cdn',  # smc-hub assumes this is built
         'smc-util',
+        'smc-util-node',
         'smc-hub',
         'smc-webapp',
+        'smc-project',
         'webapp-lib'
     ]
     for x in os.listdir('packages'):
