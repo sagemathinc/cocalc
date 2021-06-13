@@ -12,18 +12,14 @@
 // - "webapp" refers to files in SMC_ROOT/webapp-lib
 // - several aspects can be modified via the administrator's tab / "site settings"
 
-import { PostgreSQL } from "smc-hub/postgres/types";
+import { PostgreSQL } from "./postgres/types";
 import { callback2 } from "smc-util/async-utils";
 import * as express from "express";
 import * as path_module from "path";
 const auth = require("./auth");
-import { get_smc_root } from "./utils";
 import { have_active_registration_tokens } from "./utils";
-//import { SiteSettingsKeys } from "smc-util/db-schema/site-defaults";
-import * as winston from "winston";
-import { versions as RES_VERSIONS } from "../webapp-lib/resources/versions";
-
-const WEBAPP_PATH = path_module.join(get_smc_root(), "webapp-lib");
+import { versions as CDN_VERSIONS } from "@cocalc/cdn";
+import { path as WEBAPP_PATH } from "webapp-lib";
 
 interface GetData {
   base_url: string;
@@ -71,7 +67,7 @@ async function get_params(opts: GetData) {
     htmlWebpackPlugin: {
       options: {
         BASE_URL,
-        RES_VERSIONS,
+        CDN_VERSIONS,
         PREFIX,
         COMMERCIAL,
       },
@@ -100,10 +96,12 @@ interface Setup {
   db: PostgreSQL;
   base_url: string;
   cacheLongTerm: (res, path) => void;
+  winston: any;
 }
 
 export function setup_open_cocalc(opts: Setup) {
-  const { app, router, db, base_url, cacheLongTerm } = opts;
+  const { app, router, db, base_url, cacheLongTerm, winston } = opts;
+  winston.debug(`serving /webapp from filesystem: "${WEBAPP_PATH}"`);
   app.set("views", "../webapp-lib");
   app.set("view engine", "pug");
 
@@ -114,6 +112,7 @@ export function setup_open_cocalc(opts: Setup) {
   });
 
   // static content for the main page
+  console.log("/webapp serving ", WEBAPP_PATH);
   router.use(
     "/webapp",
     express.static(WEBAPP_PATH, { setHeaders: cacheLongTerm })
@@ -121,7 +120,7 @@ export function setup_open_cocalc(opts: Setup) {
 
   const handle_index = async (req, res) => {
     winston.debug("open cocalc/handle_index", req.path);
-    // for convenicnece, a simple heuristic checks for the presence of the remember_me cookie
+    // for convenience, a simple heuristic checks for the presence of the remember_me cookie
     // that's not a security issue b/c the hub will do the heavy lifting
     // TODO code in comments is a heuristic looking for the remember_me cookie, while when deployed the haproxy only
     // looks for the has_remember_me value (set by the client in accounts).

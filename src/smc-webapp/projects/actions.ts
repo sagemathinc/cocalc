@@ -973,4 +973,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
 }
 
 // Register projects actions
-redux.createActions("projects", ProjectsActions);
+export function init() {
+  redux.createActions("projects", ProjectsActions);
+}

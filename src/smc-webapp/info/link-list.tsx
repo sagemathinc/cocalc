@@ -9,7 +9,7 @@ import { copy } from "smc-util/misc";
 import { COLORS } from "smc-util/theme";
 import { Links } from "./links";
 import { li_style } from "./style";
-import { Icon } from "../r_misc";
+import { Icon } from "../r_misc/icon";
 
 interface Props {
   title: string;
@@ -68,7 +68,7 @@ export class LinkList extends Component<Props> {
       }
       result.push(
         <div key={name} style={style}>
-          <Icon name={data.icon} fixedWidth />{" "}
+          <Icon name={data.icon} style={{ width: "1.125em" }} />{" "}
           {this.render_link(data.href, data.link)}
           {this.render_text(data.href, data.text)}
         </div>

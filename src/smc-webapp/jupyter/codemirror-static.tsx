@@ -17,8 +17,7 @@
 import { React, Component, Rendered } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 import { copy, merge } from "smc-util/misc";
-
-declare const CodeMirror: any; // TODO: find typings for this UMD
+import * as CodeMirror from "codemirror";
 
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
@@ -98,6 +97,7 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
     };
 
     try {
+      // @ts-ignore -- fails in smc-hub right now...
       CodeMirror.runMode(this.props.value, mode, append);
     } catch (err) {
       /* This does happen --

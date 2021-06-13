@@ -16,7 +16,7 @@ import { Map as ImmutableMap } from "immutable";
 import { three_way_merge } from "smc-util/sync/editor/generic/util";
 import { Complete } from "./complete";
 import { Cursors } from "./cursors";
-declare const CodeMirror: any; // TODO: type
+import * as CodeMirror from "codemirror";
 
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
@@ -296,6 +296,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       return;
     }
     if (this.cm.somethingSelected()) {
+      // @ts-ignore
       CodeMirror.commands.defaultTab(this.cm);
     } else {
       this.tab_nothing_selected();
@@ -391,6 +392,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
     if (this.whitespace_before_cursor()) {
       if (this.cm.options.indentWithTabs) {
+        // @ts-ignore
         CodeMirror.commands.defaultTab(this.cm);
       } else {
         this.cm.tab_as_space();

@@ -3,6 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// Katex support -- NOTE: this import of katex is pretty LARGE.
+import { renderToString } from "katex";
+import "katex/dist/katex.min.css";
+
+// Everything else.
 import {
   React,
   useEffect,
@@ -11,7 +16,6 @@ import {
   useState,
 } from "smc-webapp/app-framework";
 import { macros } from "smc-webapp/jquery-plugins/math-katex";
-import { renderToString } from "katex";
 import { startswith } from "smc-util/misc";
 import { SlateCodeMirror } from "./codemirror";
 import * as LRU from "lru-cache";

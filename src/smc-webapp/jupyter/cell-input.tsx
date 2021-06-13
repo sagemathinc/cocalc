@@ -14,7 +14,7 @@ import { Map, fromJS } from "immutable";
 import { Button, ButtonGroup } from "react-bootstrap";
 import { startswith, filename_extension } from "smc-util/misc";
 import { Icon, Markdown } from "../r_misc";
-import { CodeMirror } from "./codemirror";
+import { CodeMirror } from "./codemirror-component";
 import { InputPrompt } from "./prompt";
 import { Complete } from "./complete";
 import { CellToolbar } from "./cell-toolbar";

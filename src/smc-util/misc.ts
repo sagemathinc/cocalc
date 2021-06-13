@@ -942,7 +942,13 @@ export function search_match(s: string, v: string[]): boolean {
   return true;
 }
 
-export const RUNNING_IN_NODE: boolean = process?.title == "node";
+export let RUNNING_IN_NODE: boolean;
+try {
+  RUNNING_IN_NODE = process?.title == "node";
+} catch(_err) {
+  // error since process probably not defined at all (unless there is a node polyfill).
+  RUNNING_IN_NODE = false;
+}
 
 /*
 The functions to_json_socket and from_json_socket are for sending JSON data back
@@ -2154,7 +2160,7 @@ export function closest_kernel_match(
       v > bestValue ||
       (v === bestValue &&
         bestMatch &&
-        compareVersionStrings(k.get("name"), bestMatch.get("name")) === 1)
+        compareVersionStrings(k.get("name") ?? "", bestMatch.get("name") ?? "") === 1)
     ) {
       bestValue = v;
       bestMatch = k;

@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { join } from "path";
 import * as ms from "ms";
 import { isEqual } from "lodash";
 import { Router } from "express";
@@ -14,7 +15,6 @@ import {
 import { PostgreSQL } from "./postgres/types";
 import { get_server_settings, pii_retention_to_future } from "./utils";
 import * as fs from "fs";
-import * as TS from "typescript";
 const UglifyJS = require("uglify-js");
 // express-js cors plugin
 import * as cors from "cors";
@@ -25,11 +25,12 @@ import {
   ParseResult,
 } from "parse-domain";
 
-// compiling analytics-script.ts and minifying it.
+// Minifying analytics-script.js.  Note
+// that this file analytics.ts gets compiled to
+// dist/analytics.js and also analytics-script.ts
+// gets compiled to dist/analytics-script.js.
 export const analytics_js = UglifyJS.minify(
-  TS.transpileModule(fs.readFileSync("./analytics-script.ts").toString(), {
-    compilerOptions: { module: TS.ModuleKind.CommonJS },
-  }).outputText
+  fs.readFileSync(join(__dirname, "analytics-script.js")).toString()
 ).code;
 
 function create_log(name, logger) {

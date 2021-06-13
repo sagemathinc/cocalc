@@ -195,7 +195,11 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     } catch (err) {
       // This is normal if the PDF is being modified *as* it is being loaded...
       console.log(`WARNING: error loading PDF -- ${err}`);
-      if (isMounted.current && err.toString().indexOf("Missing") != -1) {
+      if (
+        isMounted.current &&
+        err != null && // err can be null!!
+        err.toString().indexOf("Missing") != -1
+      ) {
         set_missing(true);
         await delay(3000);
         if (isMounted.current && missing && actions.update_pdf != null) {

@@ -143,6 +143,7 @@ underscore = require('underscore')
 class JupyterWrapper extends EventEmitter
     constructor: (element, server_url, filename, read_only, project_id, timeout, cb) ->
         super()
+        @register_editor_history()
         @element = element
         @server_url = server_url
         @filename = filename
@@ -224,6 +225,15 @@ class JupyterWrapper extends EventEmitter
     dbg: (f) =>
         return (m) -> webapp_client.dbg("JupyterWrapper.#{f}:")(misc.to_json(m))
 
+    register_editor_history: =>
+        # in case the user clicks the TimeTravel button, we register the
+        # ancient history editor
+        require.ensure [], () =>
+            {register} = require("./editor")
+            {HistoryEditor} = require('./editor_history')
+            register(false, HistoryEditor, ['sage-history'])
+
+
     # Position the iframe to exactly match the underlying element; I'm calling this
     # "refresh" since that's the name of the similar method for CodeMirror.
     refresh: =>
@@ -249,7 +259,11 @@ class JupyterWrapper extends EventEmitter
     # save notebook file from DOM to disk
     save: (cb) =>
         # could be called when notebook is being initialized before nb is defined.
-        @nb?.save_notebook(false).then(cb)
+        try
+            await @nb?.save_notebook(false)
+            cb()
+        catch err
+            cb(err)
 
     disable_autosave: () =>
         # We have our own auto-save system
@@ -872,6 +886,7 @@ class JupyterNotebook extends EventEmitter
         async.parallel [@init_syncstring, @init_dom, @ipynb_timestamp], (err) =>
             @element.find(".smc-jupyter-startup-message").hide()
             @element.find(".smc-jupyter-notebook-buttons").show()
+            @element.processIcons()
 
             if not err and not @dom?.nb?
                 # I read through all code and there is "no possible way" this can
@@ -913,7 +928,6 @@ class JupyterNotebook extends EventEmitter
                         @syncstring.live(live)
                         @syncstring.sync()
             @emit(@state)
-            @show()
             cb?(err)
 
     init_syncstring: (cb) =>
@@ -1152,6 +1166,8 @@ class JupyterNotebook extends EventEmitter
         return @syncstring._syncstring.last_changed() - 0
 
     show: =>
+        # This should ONLY be called externally from
+        # ./project_actions.ts!
         @element.show()
         @dom?.refresh()
 
@@ -1212,7 +1228,7 @@ class JupyterNotebook extends EventEmitter
         return false
 
     show_history_viewer: () =>
-        path = misc.history_path(@filename, true)
+        path = misc.hidden_meta_file(@filename, "sage-history")
         #@dbg("show_history_viewer")(path)
         redux.getProjectActions(@project_id).open_file
             path       : path
@@ -1235,15 +1251,22 @@ class JupyterNotebook extends EventEmitter
         else
             @save_button.addClass('disabled')
 
+    save_syncstring: (cb) =>
+        try
+            await @syncstring.save()
+            cb()
+        catch err
+            cb(err)
+
     save: (cb) =>
         if @state != 'ready' or not @save_button?  # save button isn't defined when document is readonly.
             cb?()
             return
         @save_button.icon_spin(start:true, delay:5000)
-        async.parallel [@dom.save, @syncstring.save], (err) =>
+        async.parallel [@dom.save, @save_syncstring], (err) =>
+            @save_button.icon_spin(false)
             if @state != 'ready'
                 return
-            @save_button.icon_spin(false)
             @update_save_state()
             cb?(err)
 

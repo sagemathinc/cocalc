@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import * as CodeMirror from "codemirror";
+
 CodeMirror.defineMode('ocaml', function() {
 
   var words = {

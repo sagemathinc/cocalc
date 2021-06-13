@@ -51,7 +51,7 @@ export function launchcode2display(
   return img.get("display") || id2name(id);
 }
 
-class ComputeImagesActions<ComputeImagesState> extends Actions<
+export class ComputeImagesActions<ComputeImagesState> extends Actions<
   ComputeImagesState
 > {}
 

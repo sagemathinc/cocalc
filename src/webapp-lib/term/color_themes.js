@@ -1,30 +1,25 @@
-/*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
- */
-
 Terminal.color_schemes={
-  "solarized-dark":{
-    "comment":"Solarized dark",
+  "default":{
+    "comment":"Default black on white",
     "colors":[
-      "#eee8d5",
-      "#dc322f",
-      "#859900",
-      "#b58900",
-      "#268bd2",
-      "#d33682",
-      "#2aa198",
-      "#073642",
-      "#fdf6e3",
-      "#cb4b16",
-      "#93a1a1",
-      "#839496",
-      "#657b83",
-      "#6c71c4",
-      "#586e75",
-      "#002b36",
-      "#eee8d5",
-      "#002b36"
+      "#2e3436",
+      "#cc0000",
+      "#4e9a06",
+      "#c4a000",
+      "#3465a4",
+      "#75507b",
+      "#06989a",
+      "#d3d7cf",
+      "#555753",
+      "#ef2929",
+      "#8ae234",
+      "#fce94f",
+      "#729fcf",
+      "#ad7fa8",
+      "#34e2e2",
+      "#eeeeec",
+      "#000000",
+      "#ffffff"
     ]
   },
   "solarized-light":{
@@ -50,6 +45,29 @@ Terminal.color_schemes={
       "#fdf6e3"
     ]
   },
+  "solarized-dark":{
+    "comment":"Solarized dark",
+    "colors":[
+      "#eee8d5",
+      "#dc322f",
+      "#859900",
+      "#b58900",
+      "#268bd2",
+      "#d33682",
+      "#2aa198",
+      "#073642",
+      "#fdf6e3",
+      "#cb4b16",
+      "#93a1a1",
+      "#839496",
+      "#657b83",
+      "#6c71c4",
+      "#586e75",
+      "#002b36",
+      "#eee8d5",
+      "#002b36"
+    ]
+  },
   "low-contrast":{
     "comment":"Low contrast dark",
     "colors":[
@@ -71,75 +89,6 @@ Terminal.color_schemes={
       "#cdcdcd",
       "#cdcdcd",
       "#343434"
-    ]
-  },
-  "raven-dark":{
-    "comment":"Raven dark",
-    "colors":[
-      "#3f3e3b",
-      "#b36b65",
-      "#4f8c61",
-      "#8d7e45",
-      "#6181b8",
-      "#a46d9d",
-      "#0e8e9a",
-      "#b6b7bb",
-      "#7f7f83",
-      "#efa29b",
-      "#86c596",
-      "#c7b679",
-      "#9ab9f3",
-      "#dfa4d7",
-      "#5ec7d4",
-      "#feffff",
-      "#a6a7aa",
-      "#32312e"
-    ]
-  },
-  "default":{
-    "comment":"Default black on white",
-    "colors":[
-      "#2e3436",
-      "#cc0000",
-      "#4e9a06",
-      "#c4a000",
-      "#3465a4",
-      "#75507b",
-      "#06989a",
-      "#d3d7cf",
-      "#555753",
-      "#ef2929",
-      "#8ae234",
-      "#fce94f",
-      "#729fcf",
-      "#ad7fa8",
-      "#34e2e2",
-      "#eeeeec",
-      "#000000",
-      "#ffffff"
-    ]
-  },
-  "mono":{
-    "comment":"Monochrome dark",
-    "colors":[
-      "#000000",
-      "#434343",
-      "#6b6b6b",
-      "#969696",
-      "#4a4a4a",
-      "#707070",
-      "#a9a9a9",
-      "#ffffff",
-      "#222222",
-      "#434343",
-      "#a5a5a5",
-      "#e5e5e5",
-      "#4d4d4d",
-      "#747474",
-      "#c4c4c4",
-      "#dedede",
-      "#b0b0b0",
-      "#282828"
     ]
   },
   "tango":{
@@ -188,6 +137,29 @@ Terminal.color_schemes={
       "#101010"
     ]
   },
+  "mono":{
+    "comment":"Monochrome dark",
+    "colors":[
+      "#000000",
+      "#434343",
+      "#6b6b6b",
+      "#969696",
+      "#4a4a4a",
+      "#707070",
+      "#a9a9a9",
+      "#ffffff",
+      "#222222",
+      "#434343",
+      "#a5a5a5",
+      "#e5e5e5",
+      "#4d4d4d",
+      "#747474",
+      "#c4c4c4",
+      "#dedede",
+      "#b0b0b0",
+      "#282828"
+    ]
+  },
   "raven-light":{
     "comment":"Raven light",
     "colors":[
@@ -209,6 +181,29 @@ Terminal.color_schemes={
       "#00020e",
       "#69717a",
       "#faf0e6"
+    ]
+  },
+  "raven-dark":{
+    "comment":"Raven dark",
+    "colors":[
+      "#3f3e3b",
+      "#b36b65",
+      "#4f8c61",
+      "#8d7e45",
+      "#6181b8",
+      "#a46d9d",
+      "#0e8e9a",
+      "#b6b7bb",
+      "#7f7f83",
+      "#efa29b",
+      "#86c596",
+      "#c7b679",
+      "#9ab9f3",
+      "#dfa4d7",
+      "#5ec7d4",
+      "#feffff",
+      "#a6a7aa",
+      "#32312e"
     ]
   }
 }

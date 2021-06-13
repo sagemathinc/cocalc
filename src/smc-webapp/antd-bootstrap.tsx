@@ -6,13 +6,14 @@
 /*
 We use so little of react-bootstrap in CoCalc that for a first quick round
 of switching to antd, I'm going to see if it isn't easy to re-implement
-much of the same functionality on top of antd.
+much of the same functionality on top of antd
 
 Obviously, this is meant to be temporary, since it is far better if our
 code consistently uses the antd api explicitly.  However, there are
 some serious problems / bug /issues with using our stupid old react-bootstrap
 *at all*, hence this.
 */
+
 
 // TODO: What we haven't converted yet, but do use in CoCalc:
 export {
@@ -29,7 +30,16 @@ export {
 import { React, Rendered } from "./app-framework";
 import { r_join, Space } from "./r_misc";
 
-import * as antd from "antd";
+import {
+  Button as AntdButton,
+  Card as AntdCard,
+  Checkbox as AntdCheckbox,
+  Row as AntdRow,
+  Col as AntdCol,
+  Tabs as AntdTabs,
+  Modal as AntdModal,
+  Alert as AntdAlert,
+} from "antd";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
 // only four in antd, and it we can't automatically collapse them down in a meaningful
@@ -147,7 +157,7 @@ export function Button(props: {
     style.boxShadow = "inset 0 3px 5px rgb(0 0 0 / 13%)";
   }
   return (
-    <antd.Button
+    <AntdButton
       onClick={props.onClick}
       type={type}
       disabled={props.disabled}
@@ -164,7 +174,7 @@ export function Button(props: {
       id={props.id}
     >
       <>{props.children}</>
-    </antd.Button>
+    </AntdButton>
   );
 }
 
@@ -173,7 +183,7 @@ export function ButtonGroup(props: {
   children?: any;
 }) {
   return (
-    <antd.Button.Group style={props.style}>{props.children}</antd.Button.Group>
+    <AntdButton.Group style={props.style}>{props.children}</AntdButton.Group>
   );
 }
 
@@ -216,14 +226,14 @@ export function Well(props: {
     ...props.style,
   };
   return (
-    <antd.Card
+    <AntdCard
       style={style}
       className={props.className}
       onDoubleClick={props.onDoubleClick}
       onMouseDown={props.onMouseDown}
     >
       {props.children}
-    </antd.Card>
+    </AntdCard>
   );
 }
 
@@ -248,7 +258,7 @@ export function Checkbox(props: {
   // has that margin.
   return (
     <div style={{ margin: "10px 0" }}>
-      <antd.Checkbox
+      <AntdCheckbox
         autoFocus={props.autoFocus}
         checked={props.checked}
         disabled={props.disabled}
@@ -256,14 +266,14 @@ export function Checkbox(props: {
         onChange={props.onChange}
       >
         {props.children}
-      </antd.Checkbox>
+      </AntdCheckbox>
     </div>
   );
 }
 
 export function Row(props: any) {
   props = { ...{ gutter: 16 }, ...props };
-  return <antd.Row {...props}>{props.children}</antd.Row>;
+  return <AntdRow {...props}>{props.children}</AntdRow>;
 }
 
 export function Col(props: {
@@ -298,7 +308,7 @@ export function Col(props: {
   for (const p of ["className", "onClick", "style"]) {
     props2[p] = props[p];
   }
-  return <antd.Col {...props2}>{props.children}</antd.Col>;
+  return <AntdCol {...props2}>{props.children}</AntdCol>;
 }
 
 export function Tabs(props: {
@@ -324,7 +334,7 @@ export function Tabs(props: {
     tabs = Tab(props.children);
   }
   return (
-    <antd.Tabs
+    <AntdTabs
       activeKey={props.activeKey}
       onChange={props.onSelect}
       animated={props.animation ?? false}
@@ -334,7 +344,7 @@ export function Tabs(props: {
       size={props.size}
     >
       {tabs}
-    </antd.Tabs>
+    </AntdTabs>
   );
 }
 
@@ -360,9 +370,9 @@ export function Tab(props: {
   const style = { ...{ transition: "0s" }, ...props.style };
 
   return (
-    <antd.Tabs.TabPane key={props.eventKey} tab={title} style={style}>
+    <AntdTabs.TabPane key={props.eventKey} tab={title} style={style}>
       {props.children}
-    </antd.Tabs.TabPane>
+    </AntdTabs.TabPane>
   );
 }
 
@@ -372,9 +382,9 @@ export function Modal(props: {
   children?: any;
 }) {
   return (
-    <antd.Modal visible={props.show} footer={null} closable={false}>
+    <AntdModal visible={props.show} footer={null} closable={false}>
       {props.children}
-    </antd.Modal>
+    </AntdModal>
   );
 }
 
@@ -405,7 +415,7 @@ export function Alert(props: {
     type = "success";
   }
   return (
-    <antd.Alert
+    <AntdAlert
       message={props.children}
       type={type}
       style={props.style}
@@ -422,12 +432,12 @@ export function Panel(props: {
 }) {
   const style = { ...{ marginBottom: "20px" }, ...props.style };
   return (
-    <antd.Card
+    <AntdCard
       style={style}
       title={props.header}
       headStyle={{ color: "#333", backgroundColor: "#f5f5f5" }}
     >
       {props.children}
-    </antd.Card>
+    </AntdCard>
   );
 }

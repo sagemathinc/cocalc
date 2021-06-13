@@ -168,7 +168,7 @@ exports.COMPUTE_STATES = {
 
   running: {
     desc: "Project is running.",
-    icon: "edit",
+    icon: "run",
     display: "Running",
     stable: true,
     to: {

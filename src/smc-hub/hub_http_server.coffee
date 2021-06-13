@@ -40,9 +40,10 @@ manifest = require('./manifest')
 open_cocalc = require('./open-cocalc-server')
 
 SMC_ROOT    = process.env.SMC_ROOT
-STATIC_PATH = path_module.join(SMC_ROOT, 'static')
-WEBAPP_RES_PATH = path_module.join(SMC_ROOT, 'webapp-lib', 'resources')
+STATIC_PATH = require('@cocalc/static').path
+winston.debug("STATIC_PATH='#{STATIC_PATH}'")
 
+CDN_PATH = require('@cocalc/cdn').path
 
 exports.init_express_http_server = (opts) ->
     opts = defaults opts,
@@ -129,15 +130,17 @@ exports.init_express_http_server = (opts) ->
     setup_healthchecks(router:router, db:opts.database)
 
     # this is basically the "/" index page + assets, for docker, on-prem, dev, etc. calls itself "open cocalc"
-    open_cocalc.setup_open_cocalc(app:app, router:router, db:opts.database, cacheLongTerm:cacheLongTerm, base_url:opts.base_url)
+    open_cocalc.setup_open_cocalc(app:app, router:router, db:opts.database, cacheLongTerm:cacheLongTerm, base_url:opts.base_url, winston:winston)
 
     # The /static content, used by docker, development, etc.
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: cacheLongTerm)
 
-    # This is webapp-lib/resources – cocalc serves everything it needs on its own. no info leaks, less dependency!
-    router.use '/res',
-        express.static(WEBAPP_RES_PATH, setHeaders: cacheLongTerm)
+    # This is @cocalc/cdn – cocalc serves everything it needs on its own. no
+    # info leaks, less dependency!
+    # See the comments in packages/cdn.
+    router.use '/cdn',
+        express.static(CDN_PATH, setHeaders: cacheLongTerm)
 
     # docker and development needs this endpoint in addition to serving /static
     router.get '/app', (req, res) ->

@@ -8,6 +8,8 @@
 
 "use strict";
 
+import * as CodeMirror from "codemirror";
+
 CodeMirror.defineMode('rst', function (config, options) {
 
   var rx_strong = /^\*\*[^\*\s](?:[^\*]*[^\*\s])?\*\*/;

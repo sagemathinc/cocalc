@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import * as CodeMirror from "codemirror";
+
 CodeMirror.defineMode("pari", function(config, parserConfig) {
   var indentUnit = config.indentUnit,
       statementIndentUnit = parserConfig.statementIndentUnit || indentUnit,

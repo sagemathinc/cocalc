@@ -17,7 +17,7 @@ import { redux, React, useMemo, useTypedRedux } from "../app-framework";
 import { A, Icon, ProjectState, Space, VisibleMDLG } from "../r_misc";
 import { DOC_TRIAL } from "./trial-banner";
 import { allow_project_to_run } from "./client-side-throttle";
-import { server_minutes_ago } from "smc-util/misc";
+import { server_seconds_ago } from "smc-util/misc";
 
 interface Props {
   project_id: string;
@@ -30,24 +30,33 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
   }, [project_map]);
 
   // start_requested is true precisely if a start of this project
-  // is currently requested,,and obviously didn't get done.
+  // is currently requested, and obviously didn't get done.
   // Making the UI depend on this instead of *just* the state
   // makes things feel more responsive.
   const starting = useMemo(() => {
     if (state?.get("state") == "starting" || state?.get("state") == "opening")
       return true;
-    const x = project_map?.getIn([project_id, "action_request"]);
-    if (
-      state?.get("state") == "running" ||
-      x == null /* no action request at all */ ||
-      x.get("action") != "start" /* a non-start action */ ||
-      x.get("finished") >= new Date(x.get("time")) /* already done */ ||
-      new Date(x.get("time")) <= server_minutes_ago(10) /* old -- ignore */
-    ) {
-      // already happened
+    if (state?.get("state") == "running") return false;
+    const action_request = project_map
+      ?.getIn([project_id, "action_request"])
+      ?.toJS();
+    if (action_request == null) {
+      return false; // no action request at all
+    }
+    if (action_request.action != "start") {
+      return false; // a non-start action
+    }
+    if (action_request.finished >= new Date(action_request.time)) {
+      return false; // already done
+    }
+    if (new Date(action_request.time) <= server_seconds_ago(20)) {
+      // Something is wrong, and the request got ignored for at least 20s,
+      // so allow user to try again.
       return false;
     }
-    // action is start and it didn't get taken care of yet:
+
+    // action is start and it didn't quite get taken care of yet by backend server,
+    // but keep disabled so the user doesn't keep making the request.
     return true;
   }, [project_map]);
 

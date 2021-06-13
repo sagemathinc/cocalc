@@ -215,12 +215,7 @@ export const Avatar: React.FC<Props> = (props) => {
 
   function render_inside() {
     if (image) {
-      return (
-        <img
-          style={{ borderRadius: "50%", width: "100%", verticalAlign: "top" }}
-          src={image}
-        />
-      );
+      return <img style={{ borderRadius: "50%", width: "100%" }} src={image} />;
     } else {
       return render_letter();
     }

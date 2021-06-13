@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { TypedMap } from "../../smc-webapp/app-framework";
+import { TypedMap } from "smc-webapp/app-framework";
 
 export interface UsageInfo {
   time: number; // server timestamp

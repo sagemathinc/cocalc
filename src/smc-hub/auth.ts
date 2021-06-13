@@ -58,7 +58,7 @@ import { PostgreSQL } from "./postgres/types";
 import {
   PassportStrategy,
   PRIMARY_SSO,
-} from "../smc-webapp/account/passport-types";
+} from "smc-webapp/account/passport-types";
 const safeJsonStringify = require("safe-json-stringify");
 
 // primary strategies -- all other ones are "extra"
@@ -492,7 +492,7 @@ export class PassportManager {
 
     // Define user serialization
     passport.serializeUser((user, done) => done(null, user));
-    passport.deserializeUser((user, done) => done(null, user));
+    passport.deserializeUser((user : Express.User, done) => done(null, user));
 
     // Return the configured and supported authentication strategies.
     this.router.get(`${AUTH_BASE}/strategies`, (req, res) => {

@@ -11,6 +11,7 @@ TODO: a lot!
  and so much more!
 */
 
+import { delay } from "awaiting";
 import { Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import { file_associations } from "smc-webapp/file-associations";

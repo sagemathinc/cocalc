@@ -128,36 +128,38 @@ actions.setState({ is_commercial: true, ssh_gateway: true });
 // to generate static content, which can't be customized.
 export let commercial: boolean = defaults.is_commercial;
 
-// for now, not used (this was the old approach)
-// in the future we might want to reload the configuration, though
-export function reload_configuration() {
-  retry_until_success({
+// For now, hopefully not used (this was the old approach).
+// in the future we might want to reload the configuration, though.
+// Note that this *is* clearly used as a fallback below though...!
+async function init_customize() {
+  console.log("load_configuration");
+  if (typeof process != "undefined") {
+    console.log("running in node");
+    // running in node.js
+    return;
+  }
+  let customize;
+  await retry_until_success({
     f: async () => {
+      const url = (window as any).app_base_url + "/customize";
       try {
-        const obj = await $.get((window as any).app_base_url + "/customize");
-        process_customize(obj);
+        customize = await (await fetch(url)).json();
       } catch (err) {
-        const msg = `$.get /customize failed -- retrying`;
+        const msg = `fetch /customize failed -- retrying - ${err}`;
         console.warn(msg);
         throw new Error(msg);
       }
     },
     start_delay: 2000,
-    max_delay: 15000,
+    max_delay: 30000,
   });
+
+  const { configuration, strategies } = customize;
+  process_customize(configuration);
+  redux.getActions("account").setState({ strategies });
 }
 
-// BACKEND injected by jsdom-support.ts
-if (typeof $ !== "undefined" && $ != undefined && global["BACKEND"] !== true) {
-  // the app.html page loads the configuration and here we unpack the data
-  const data = global["CUSTOMIZE"];
-  if (data != null) {
-    process_customize(Object.assign({}, data));
-  } else {
-    // this is a fallback, in case something went terribly wrong
-    reload_configuration();
-  }
-}
+init_customize();
 
 function process_customize(obj) {
   // TODO make this a to_val function in site_settings_conf.kucalc
@@ -486,7 +488,12 @@ export function Footer() {
 // first step of centralizing these URLs in one place → collecting all such pages into one
 // react-class with a 'type' prop is the next step (TODO)
 // then consolidate this with the existing site-settings database (e.g. TOS above is one fixed HTML string with an anchor)
-const app_base_url = (window && (window as any).app_base_url) || ""; // fallback for react-static
+let app_base_url = "";
+try {
+  app_base_url = (window as any).app_base_url || ""; // fallback for react-static
+} catch (_err) {
+  // would fail on backend where window not defined.
+}
 export const PolicyIndexPageUrl = app_base_url + "/policies/index.html";
 export const PolicyPricingPageUrl = app_base_url + "/policies/pricing.html";
 export const PolicyPrivacyPageUrl = app_base_url + "/policies/privacy.html";
@@ -494,15 +501,19 @@ export const PolicyCopyrightPageUrl = app_base_url + "/policies/copyright.html";
 export const PolicyTOSPageUrl = app_base_url + "/policies/terms.html";
 
 import { gtag_id } from "smc-util/theme";
-
-declare var document;
-
-async function init_gtag() {
+async function init_analytics() {
   await store.until_configured();
   if (!store.get("is_commercial")) return;
-  const w: any = window;
+  // 1. Google analytics
+  let w: any;
+  try {
+    w = window;
+  } catch (_err) {
+    // Make it so this code can be run on the backend...
+    return;
+  }
   if (w?.document == null) {
-    // Make it so this code can be run on the backend (not in a browser).
+    // Double check that this code can be run on the backend (not in a browser).
     // see https://github.com/sagemathinc/cocalc-landing/issues/2
     return;
   }
@@ -519,6 +530,13 @@ async function init_gtag() {
   jtag.src = `https://www.googletagmanager.com/gtag/js?id=${theme.gtag_id}`;
   jtag.async = true;
   w.document.getElementsByTagName("head")[0].appendChild(jtag);
+
+  // 2. CoCalc analytics
+  const ctag = w.document.createElement("script");
+  ctag.src = `${w.app_base_url}/analytics.js?fqd=false`;
+  ctag.async = true;
+  ctag.defer = true;
+  w.document.getElementsByTagName("head")[0].appendChild(ctag);
 }
 
-init_gtag();
+init_analytics();

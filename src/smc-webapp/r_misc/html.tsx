@@ -15,6 +15,8 @@ import {
 import { is_share_server } from "./share-server";
 import { sanitize_html, sanitize_html_safe } from "../misc-page/sanitize";
 
+declare var $;
+
 export interface Props {
   value?: string;
   style?: CSS;
@@ -169,11 +171,9 @@ export const HTML: React.FC<Props> = (props) => {
          from a different subdomain and user can't sign into it,
          so XSS is not an issue.  Note that the sanitizing
          in the else below (on non-share server) is expensive and
-         can crash on "big" documents (e.g., 500K).
+         can crash on "big" documents (e.g., 500K). 
       */
-      // ensure have plugin here.
-      const { jQuery } = require("smc-webapp/jquery-plugins/katex");
-      const elt = jQuery("<div>") as any;
+      const elt = $("<div>") as any;
       elt.html(props.value);
       if (props.auto_render_math) {
         elt.katex();

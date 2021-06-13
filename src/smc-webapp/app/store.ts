@@ -35,6 +35,7 @@ export interface PageState {
   session?: string; // session query in the URL
   last_status_time?: Date;
   get_api_key?: string; // Set, e.g., when you visit https://cocalc.com/app?get_api_key=myapp -- see https://doc.cocalc.com/api/index.html#authentication
+  kiosk_project_id?: string;
 }
 
 export class PageStore extends Store<PageState> {}

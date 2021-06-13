@@ -11,7 +11,7 @@
 import { delay } from "awaiting";
 import memoizeOne from "memoize-one";
 import { redux } from "./app-framework";
-import { is_valid_uuid_string } from "../smc-util/misc";
+import { is_valid_uuid_string } from "smc-util/misc";
 import { Map, List } from "immutable";
 
 let initialized = false;

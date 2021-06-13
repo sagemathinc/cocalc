@@ -19,7 +19,11 @@ import { set_share_server } from "../r_misc/share-server";
 set_share_server(true);
 
 // Load katex jQuery plugin.
-require("../jquery-plugins/katex");
+import { jQuery } from "../jquery-plugins/katex-plugin";
+// Also load text itself, since plugin only
+// async loades katex when needed, which won't work
+// the first time we show a katex formula that is SSR'd!
+jQuery('<div>$x^2$</div>').katex();
 // this highlights code in .md, .ipynb, etc.
 require("../jquery-plugins/codemirror");
 

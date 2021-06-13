@@ -7,21 +7,17 @@
 Register the LEAN theorem prover editor
 */
 
-require("./_lean.sass");
-
-import { Editor } from "./editor";
-import { Actions } from "./actions";
-
 import { register_file_editor } from "../frame-tree/register";
-
-// Load plugin so that codemirror can automatically insert LEAN symbols
-import "./codemirror-lean-symbols";
-
-// Register the tab completion helper for lean mode.
-require("./tab-completion");
+require("./_lean.sass");
 
 register_file_editor({
   ext: "lean",
-  component: Editor,
-  Actions,
+  editor: async () => {
+    // Load plugin so that codemirror can automatically insert LEAN symbols
+    await import("./codemirror-lean-symbols");
+    // Register the tab completion helper for lean mode.
+    await import("./tab-completion");
+    return await import("./editor");
+  },
+  actions: async () => await import("./actions"),
 });

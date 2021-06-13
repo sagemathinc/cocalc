@@ -28,13 +28,13 @@ import { debounce } from "lodash";
 // code in the project as well as here, due to me not
 // being able to properly figure out some typescript path issue.
 // **It's just a hack.**
-import { callback2, retry_until_success } from "../../smc-util/async-utils";
-import * as misc from "../../smc-util/misc";
+import { callback2, retry_until_success } from "smc-util/async-utils";
+import * as misc from "smc-util/misc";
 const { close, required, defaults } = misc;
 import * as awaiting from "awaiting";
-import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
+import { three_way_merge } from "smc-util/sync/editor/generic/util";
 import { Cell, KernelInfo } from "./types";
-import { Syntax } from "../../smc-util/code-formatter";
+import { Syntax } from "smc-util/code-formatter";
 
 import { Actions } from "../app-framework";
 import {
@@ -62,9 +62,9 @@ import {
   char_idx_to_js_idx,
 } from "./util";
 
-import { Config as FormatterConfig } from "../../smc-project/formatters";
+import { Config as FormatterConfig } from "smc-project/formatters";
 
-import { SyncDB } from "../../smc-util/sync/editor/db/sync";
+import { SyncDB } from "smc-util/sync/editor/db/sync";
 
 /*
 The actions -- what you can do with a jupyter notebook, and also the

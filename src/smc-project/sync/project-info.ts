@@ -4,8 +4,8 @@
  */
 
 import { reuseInFlight } from "async-await-utils/hof";
-import { close } from "../smc-util/misc";
-import { SyncTable } from "../smc-util/sync/table";
+import { close } from "smc-util/misc";
+import { SyncTable } from "smc-util/sync/table";
 import { get_ProjectInfoServer } from "../project-info";
 import { ProjectInfo } from "../project-info/types";
 import { ProjectInfoServer } from "../project-info";

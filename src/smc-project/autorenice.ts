@@ -17,11 +17,6 @@ import { ProjectInfoServer, get_ProjectInfoServer } from "./project-info";
 import { ProjectInfo, Processes, Process } from "./project-info/types";
 import { is_free_project, DEFAULT_FREE_PROCS_NICENESS } from "./project-setup";
 
-// only for testing, see bottom
-if (require.main === module) {
-  require("coffee-register");
-}
-
 const INTERVAL_S = 10;
 
 // renice configuration -- the first time values must be decreasing

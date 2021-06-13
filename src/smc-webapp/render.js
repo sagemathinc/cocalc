@@ -3,12 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// Enable transparent server-side requiring of cjsx files.
-require("node-cjsx").transform();
-
-// Loading of ts/tsx.
-require("ts-node").register();
-
 const ReactDOMServer = require("react-dom/server");
 const { writeFileSync } = require("fs");
 const { join } = require("path");

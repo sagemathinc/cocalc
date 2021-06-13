@@ -24,7 +24,10 @@ export const ProjectsFilterButtons: React.FC = () => {
         bsStyle={style}
         cocalc-test={"deleted-filter"}
       >
-        <Icon name={deleted ? "check-square-o" : "square-o"} fixedWidth />{" "}
+        <Icon
+          name={deleted ? "check-square-o" : "square-o"}
+          style={{ width: "1.125em" }}
+        />{" "}
         Deleted
       </Button>
     );
@@ -41,7 +44,11 @@ export const ProjectsFilterButtons: React.FC = () => {
         bsStyle={style}
         cocalc-test={"hidden-filter"}
       >
-        <Icon name={hidden ? "check-square-o" : "square-o"} fixedWidth /> Hidden
+        <Icon
+          name={hidden ? "check-square-o" : "square-o"}
+          style={{ width: "1.125em" }}
+        />{" "}
+        Hidden
       </Button>
     );
   }

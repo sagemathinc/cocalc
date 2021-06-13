@@ -13,7 +13,7 @@ import { React, Rendered, useRedux } from "../../app-framework";
 import { TypedMap } from "../../app-framework";
 import { BuildLogs } from "./actions";
 import { Icon, Loading } from "smc-webapp/r_misc";
-import { COLORS } from "../../../smc-util/theme";
+import { COLORS } from "smc-util/theme";
 import { use_build_logs } from "./hooks";
 import { EditorState } from "../frame-tree/types"
 

@@ -73,3 +73,5 @@ export class SageWorksheetActions extends Actions<SageWorksheetEditorState> {
     return code_executor({ path: this.path, code, data, cell_id, preparse });
   }
 }
+
+export { SageWorksheetActions as Actions };

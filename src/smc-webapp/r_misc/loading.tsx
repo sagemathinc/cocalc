@@ -11,6 +11,8 @@ export type Estimate = TypedMap<{
   time: number; // Time in seconds
   type: "new" | "ready" | "archived";
 }>;
+export const Estimate = null; // webpack + TS es2020 modules need this
+
 
 interface Props {
   style?: React.CSSProperties;
@@ -63,3 +65,4 @@ export class Loading extends React.Component<Props> {
     );
   }
 }
+

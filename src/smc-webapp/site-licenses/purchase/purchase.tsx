@@ -354,7 +354,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           disabled={disabled}
           options={[
             {
-              icon: "calendar-alt",
+              icon: "calendar",
               label: "Monthly subscription",
               value: "monthly",
               desc: `pay once every month (${discount_monthly_pct}% discount)`,

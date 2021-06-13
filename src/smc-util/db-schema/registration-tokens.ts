@@ -13,8 +13,7 @@ import {
   RegistrationTokenSetFields,
   RegistrationTokenGetFields,
 } from "./types";
-import { PostgreSQL } from "../../smc-hub/postgres/types";
-import { callback2 as cb2 } from "../../smc-util/async-utils";
+import { callback2 as cb2 } from "../async-utils";
 
 function is_delete(options: Array<{ delete?: boolean }>) {
   return options.some((v) => v?.delete === true);
@@ -22,7 +21,7 @@ function is_delete(options: Array<{ delete?: boolean }>) {
 
 // this covers 3 cases: selecting all, updating one, and deleting one
 async function instead_of_query(
-  db: PostgreSQL,
+  db,
   opts: any,
   cb: Function
 ): Promise<void> {

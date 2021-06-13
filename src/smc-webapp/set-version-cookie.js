@@ -19,7 +19,7 @@ import Cookies from "universal-cookie";
 const cookies = new Cookies();
 
 import { version } from "smc-util/smc-version";
-import { APP_BASE_URL } from "./misc";
+import { APP_BASE_URL } from "./misc/base-url";
 import { VERSION_COOKIE_NAME } from "smc-util/consts";
 
 // We don't really want this cookie to expire.  All it does is record the version of

@@ -159,7 +159,7 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
       </Col>
       <Col md={2}>
         <a onClick={download} href="">
-          <Icon name="external-link-alt" />
+          <Icon name="external-link" />
           {hide_line_items ? "" : " Download..."}
         </a>
       </Col>

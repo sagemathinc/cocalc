@@ -109,4 +109,4 @@ require('./mode/mediawiki/mediawiki.js')
 
 require('./mode/lean')
 
-require('./mode/ada.ts')
+require('./mode/ada')

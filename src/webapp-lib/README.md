@@ -1,18 +1,26 @@
 # Static Webapp Assets
 
+This code is part of https://github.com/sagemathinc/cocalc and isn't currently designed to be used standalone. Our plan is to refactor this code into smaller useful modules that are published under the @cocalc npm organization.
+
+**TODO:** this module _should_ be called `packages/assets`.  The current name `webapp-lib` isn't very useful, since everything is a "lib" (=library), and also CoCalc itself is a webapp, so neither part of the name conveys information or limits what can go in here. Calling it "assets" is perhaps more, since you immediately think "I better not put things other than assets here", and usually "assets" refers to static assets in the context of web application.   Of course, just to keep things confusing, right now this webapp-lib directory also has a subdirectory called "assets", but also tons of static assets at the top level.  It's a confusing mess.
+
+---
+
 This sub-directory contains assets (images, code, etc.) for the smc-webapp and static pages.
 
-* [Licensing](./LICENSE.md)
+- [Licensing](./LICENSE.md)
 
 ## Compute Environment
 
 Here is a description of two optional files describing the content of the computational environment (programming languages, libraries, ...)
 
 Do this if you want to test rendering with the full production data for `compute-*.json`:
+
 ```
 ~/cocalc/src/webapp-lib$ curl https://storage.googleapis.com/cocalc-compute-environment/compute-components.json > compute-components.json
 ~/cocalc/src/webapp-lib$ curl https://storage.googleapis.com/cocalc-compute-environment/compute-inventory.json > compute-inventory.json
 ```
+
 Do NOT commit this to the repo.   It's unlikely you accidentally will, because
 neither file is in the cocalc git repo.
 

@@ -25,7 +25,7 @@ import { path_split, path_to_tab, trunc_left } from "smc-util/misc";
 import { HiddenXS, Icon, Tip } from "../../r_misc";
 import { COLORS } from "smc-util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
-import { IS_SAFARI } from "../../feature";
+import { IS_SAFARI, IS_TOUCH } from "../../feature";
 
 export const FIXED_PROJECT_TABS = {
   files: {
@@ -225,6 +225,7 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
   const label_style: React.CSSProperties = {
     flex: 1,
     padding: "0 5px",
+    marginTop: "-5px",
     overflow: "hidden",
   };
 
@@ -260,10 +261,15 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
   const x_button_style: React.CSSProperties = {
     float: "right",
     whiteSpace: "nowrap",
+    fontSize: "10px",
+    marginRight: "2.5px",
   };
-  if (x_hovered) {
-    x_button_style.color = "lightblue";
-  }
+
+  const x_button_style_hovered: React.CSSProperties = {
+    float: "right",
+    whiteSpace: "nowrap",
+    marginTop: "-5px",
+  };
 
   const icon =
     path != null
@@ -294,17 +300,25 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
           cursor: "pointer",
         }}
       >
-        <div style={x_button_style}>
+        <div style={x_hovered ? x_button_style_hovered : x_button_style}>
           {path != null && (
             <Icon
-              onMouseOver={() => {
-                set_x_hovered(true);
-              }}
-              onMouseOut={() => {
-                set_x_hovered(false);
-                actions?.clear_ghost_file_tabs();
-              }}
-              name="times"
+              onMouseEnter={
+                IS_TOUCH
+                  ? undefined
+                  : () => {
+                      set_x_hovered(true);
+                    }
+              }
+              onMouseLeave={
+                IS_TOUCH
+                  ? undefined
+                  : () => {
+                      set_x_hovered(false);
+                      actions?.clear_ghost_file_tabs();
+                    }
+              }
+              name={x_hovered ? "close-circle-two-tone" : "times"}
               onClick={close_file}
             />
           )}

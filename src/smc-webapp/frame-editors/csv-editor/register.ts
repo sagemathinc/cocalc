@@ -4,18 +4,16 @@
  */
 
 /*
-Register the HTML editor
+Register the CSV editor
 */
 
-import { CsvEditor } from "./editor";
-import { Actions } from "./actions";
 import { register_file_editor } from "../frame-tree/register";
 
 export const ICON = "table";
 
 register_file_editor({
   ext: "csv",
-  icon: ICON,
-  component: CsvEditor,
-  Actions,
+  icon: "table",
+  editor: async () => await import("./editor"),
+  actions: async () => await import("./actions"),
 });

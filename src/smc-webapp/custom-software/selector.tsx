@@ -240,7 +240,7 @@ export const SoftwareEnvironment: React.FC<Props> = ({
       return (
         <div style={{ marginTop: "5px" }}>
           <a href={url} target={"_blank"} rel={"noopener"}>
-            <Icon name="external-link-alt" /> Website
+            <Icon name="external-link" /> Website
           </a>
         </div>
       );

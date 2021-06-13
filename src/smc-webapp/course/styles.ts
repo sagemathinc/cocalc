@@ -16,7 +16,7 @@ export const selected_entry: CSSProperties = merge(
     borderRadius: "3px",
     marginBottom: "10px",
   },
-  exports.entry_style
+  entry_style
 );
 
 export const note: CSSProperties = {
@@ -26,7 +26,7 @@ export const note: CSSProperties = {
 };
 
 export function show_hide_deleted(opts): CSSProperties {
-  types(opts, { needs_margin: types.bool.isRequired });
+  types(opts, { needs_margin: types["bool"]?.isRequired });
 
   return {
     marginTop: opts.needs_margin ? "15px" : "0px",

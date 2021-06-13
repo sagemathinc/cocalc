@@ -58,7 +58,8 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     function render_menu_item(name: string, icon: string): JSX.Element {
       return (
         <MenuItem key={name} eventKey={name}>
-          <Icon name={icon} fixedWidth /> {`${capitalize(name)}...`}
+          <Icon name={icon} style={{ width: "1.125em" }} />{" "}
+          {`${capitalize(name)}...`}
         </MenuItem>
       );
     }

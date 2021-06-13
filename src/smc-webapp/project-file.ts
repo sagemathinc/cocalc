@@ -13,6 +13,8 @@ export {
   register_file_editor,
   initialize,
   generate,
+  initializeAsync,
+  generateAsync,
   remove,
   save,
 } from "./file-editors";
@@ -30,4 +32,3 @@ export function special_filenames_with_no_extension(): string[] {
   return v;
 }
 
-import "./editors/register-all";

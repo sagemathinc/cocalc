@@ -4,9 +4,9 @@
  */
 
 import { delay } from "awaiting";
-import { once } from "../smc-util/async-utils";
-import { SyncTable, SyncTableState } from "../smc-util/sync/table";
-import { TypedMap } from "../smc-webapp/app-framework";
+import { once } from "smc-util/async-utils";
+import { SyncTable, SyncTableState } from "smc-util/sync/table";
+import { TypedMap } from "smc-webapp/app-framework";
 import {
   close,
   endswith,
@@ -15,13 +15,13 @@ import {
   startswith,
   field_cmp,
   seconds_ago,
-} from "../smc-util/misc";
-import { DirectoryListingEntry } from "../smc-util/types";
+} from "smc-util/misc";
+import { DirectoryListingEntry } from "smc-util/types";
 import { get_listing } from "../directory-listing";
 import {
   WATCH_TIMEOUT_MS,
   MAX_FILES_PER_PATH,
-} from "../smc-util/db-schema/listings";
+} from "smc-util/db-schema/listings";
 import { Watcher } from "./path-watcher";
 import { close_all_syncdocs_in_tree } from "./sync-doc";
 import { remove_jupyter_backend } from "../jupyter/jupyter";
@@ -46,7 +46,7 @@ const INTEREST_THRESH_SECONDS = WATCH_TIMEOUT_MS / 1000;
 // Periodically, info about older paths beyond this number will be purged
 // from the database.   NOTE that synctable.delete is "barely" implemented,
 // so there may be some issues with this working.
-import { MAX_PATHS } from "../smc-util/db-schema/listings";
+import { MAX_PATHS } from "smc-util/db-schema/listings";
 
 interface Listing {
   path: string;

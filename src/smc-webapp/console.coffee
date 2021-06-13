@@ -107,6 +107,7 @@ class Console extends EventEmitter
 
         # Create the DOM element that realizes this console, from an HTML template.
         @element = console_template.clone()
+        @element.processIcons()
         @textarea = @element.find(".webapp-console-textarea")
 
         # Record on the DOM element a reference to the console

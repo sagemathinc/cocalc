@@ -67,6 +67,7 @@ export interface RenderElementProps {
     ref: any;
   };
 }
+export const RenderElementProps = null; // webpack + TS es2020 modules need this
 
 /**
  * `RenderLeafProps` are passed to the `renderLeaf` handler.
@@ -80,6 +81,8 @@ export interface RenderLeafProps {
     "data-slate-leaf": true;
   };
 }
+export const RenderLeafProps = null; // webpack + TS es2020 modules need this
+
 
 /**
  * `EditableProps` are passed to the `<Editable>` component.

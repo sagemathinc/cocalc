@@ -146,7 +146,7 @@ export function commands(
     },
 
     "close and halt": {
-      i: "hand-stop-o",
+      i: "PoweroffOutlined",
       m: "Close and halt",
       f: () => jupyter_actions.confirm_close_and_halt(),
     },
@@ -746,6 +746,7 @@ export function commands(
     "tab key": {
       k: [{ mode: "escape", which: 9 }],
       m: "Tab key (completion)",
+      i: "tab",
       f: () => frame_actions.tab_key(),
     },
 

@@ -3,14 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Rendered } from "../app-framework";
+import * as React from "react";
 
 // smc-util/theme is set in ./render.coffee
-const BASE_URL = global["BACKEND"]
-  ? require("smc-util/theme").DOMAIN_NAME
-  : require("../misc").BASE_URL;
 
+import { DOMAIN_NAME } from "smc-util/theme";
+import { BASE_URL as DEFAULT_BASE_URL } from "smc-webapp/misc/base-url";
 import { SiteName, PolicyPricingPageUrl } from "../customize";
+
+const BASE_URL = global["BACKEND"] ? DOMAIN_NAME : DEFAULT_BASE_URL;
 
 import {
   HELP_EMAIL,
@@ -25,8 +26,8 @@ interface LinkInfo {
   bold?: boolean;
   icon: string;
   href?: string;
-  link?: Rendered | string;
-  text?: Rendered | string;
+  link?: JSX.Element | string;
+  text?: JSX.Element | string;
 }
 
 export type Links = { [name: string]: LinkInfo };
@@ -81,11 +82,7 @@ export const SUPPORT_LINKS: Links = {
   cocalc_api: {
     icon: "gears",
     href: "https://doc.cocalc.com/api/",
-    link: (
-      <span>
-        Embed and control CoCalc using the API
-      </span>
-    ),
+    link: <span>Embed and control CoCalc using the API</span>,
   },
   desktop: {
     commercial: true,
@@ -141,22 +138,22 @@ export const CONNECT_LINKS = {
     link: <span>Mailing list</span>,
   },
   sagemath_blog: {
-    icon: "rss",
+    icon: "blog",
     href: "http://blog.sagemath.com/",
     link: "News and updates on our blog",
   },
   twitter: {
-    icon: "twitter-square",
+    icon: "twitter",
     href: `https://twitter.com/${TWITTER_HANDLE}`,
     link: `Follow @${TWITTER_HANDLE} on twitter`,
   },
   facebook: {
-    icon: "facebook-square",
+    icon: "facebook",
     href: "https://www.facebook.com/CoCalcOnline/",
     link: "Like our facebook page",
   },
   github: {
-    icon: "github-square",
+    icon: "github",
     href: "https://github.com/sagemathinc/cocalc",
     link: "GitHub",
     text: (
@@ -282,7 +279,7 @@ export const THIRD_PARTY = {
 
 export const ABOUT_LINKS = {
   legal: {
-    icon: "cc-icon-section",
+    icon: "files",
     link: "Terms of Service, Pricing, Copyright and Privacy policies",
     href: `${BASE_URL}/policies/index.html`,
   },

@@ -191,6 +191,13 @@ file_associations["html"] = {
   name: "html",
 };
 
+file_associations["lean"] = {
+  editor: "lean", // so frame-editors/code-editor won't try to register the lean extension.
+  icon: "fa-file-code-o",
+  opts: { indent_unit: 4, tab_size: 4, mode: "lean" },
+  name: "lean",
+};
+
 file_associations["md"] = file_associations["markdown"] = {
   icon: "cc-icon-markdown",
   opts: {

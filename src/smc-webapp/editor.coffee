@@ -5,6 +5,22 @@
 
 $ = window.$
 
+# Do this first, before any templates are initialized (e.g., elsewhere too).
+
+templates_html = \
+  require("./console.html").default +
+  require("./editor.html").default +
+  require("./jupyter.html").default +
+  require("./sagews/interact.html").default +
+  require("./sagews/3d.html").default +
+  require("./sagews/d3.html").default;
+$("body").append(templates_html);
+
+templates = $("#webapp-editor-templates")
+
+{ init_buttonbars } = require("./editors/editor-button-bar")
+init_buttonbars()
+
 # Editor files in a project
 # Show button labels if there are at most this many file tabs opened.
 # This is in exports so that an elite user could customize this by doing, e.g.,
@@ -35,8 +51,7 @@ misc = require('smc-util/misc')
 {drag_start_iframe_disable, drag_stop_iframe_enable, sagews_canonical_mode} = require('./misc-page')
 
 # Ensure CodeMirror is available and configured
-require('./codemirror/codemirror')
-require('./codemirror/multiplex')
+CodeMirror = require("codemirror")
 
 # Ensure the console jquery plugin is available
 require('./console')
@@ -57,6 +72,16 @@ copypaste = require('./copy-paste-buffer')
 {extra_alt_keys} = require('mobile/codemirror')
 
 {file_associations, VIDEO_EXTS} = require('./file-associations')
+
+file_nonzero_size_cb = (project_id, path, cb) =>
+    try
+        if not await file_nonzero_size(project_id, path)
+            cb("Unable to convert file to PDF")
+        else
+            cb()
+    catch err
+        cb(err)
+
 
 initialize_new_file_type_list = () ->
     file_types_so_far = {}
@@ -166,7 +191,6 @@ else
     console.warn("cursor saving won't work due to lack of localStorage")
     local_storage_delete = local_storage = () ->
 
-templates = $("#webapp-editor-templates")
 
 ###############################################
 # Abstract base class for editors (not exports.Editor)
@@ -570,6 +594,8 @@ class CodeMirrorEditor extends FileEditor
             @init_sagews_edit_buttons()
 
         @snippets_dialog = null
+        # Render all icons using React.
+        @element.processIcons()
 
     programmatical_goto_line: (line) =>
         cm = @codemirror_with_last_focus
@@ -1093,6 +1119,7 @@ class CodeMirrorEditor extends FileEditor
     # WARNING: this "print" is actually for printing Sage worksheets, not arbitrary files.
     print_sagews: =>
         dialog = templates.find(".webapp-file-print-dialog").clone()
+        dialog.processIcons()
         p = misc.path_split(@filename)
         v = p.tail.split('.')
         if v.length <= 1
@@ -1140,16 +1167,7 @@ class CodeMirrorEditor extends FileEditor
                                 pdf = _pdf
                                 cb()
                 (cb) =>
-                    if is_subdir or not pdf?
-                        cb(); return
-                    # does the pdf file exist?
-                    if not await file_nonzero_size(@project_id, pdf)
-                        err_msg = 'Unable to convert file to PDF. '
-                        if not is_subdir
-                            err_msg += "Enable 'Keep generated files in a sub-directory...' and check for Latex errors."
-                        cb(err_msg)
-                    else
-                        cb()
+                    file_nonzero_size_cb(@project_id, pdf, cb)
                 (cb) =>
                     if is_subdir or not pdf?
                         cb(); return
@@ -1165,9 +1183,10 @@ class CodeMirrorEditor extends FileEditor
                     {join} = require('path')
                     subdir_texfile = join(p.head, "#{base}-sagews2pdf", "tmp.tex")
                     # check if generated tmp.tex exists and has nonzero size
-                    if not await file_nonzero_size(@project_id, subdir_texfile)
-                        cb('Unable to create directory of temporary Latex files.')
-                    else
+                    file_nonzero_size_cb @project_id, subdir_texfile, (err) =>
+                        if err
+                            cb("Unable to create directory of temporary Latex files. -- #{err}")
+                            return
                         tempdir_link = $('<a>').text('Click to open temporary file')
                         tempdir_link.click =>
                             redux.getProjectActions(@project_id).open_file
@@ -1918,7 +1937,7 @@ exports.register_nonreact_editors = ->
     reg = require('./editors/react-wrapper').register_nonreact_editor
 
     # wrapper for registering private and public editors
-    register = (is_public, cls, extensions) ->
+    exports.register = register = (is_public, cls, extensions) ->
         icon = file_icon_class(extensions[0])
         reg
             ext       : extensions
@@ -1930,15 +1949,13 @@ exports.register_nonreact_editors = ->
                     console.error('You have to call super(@project_id, @filename) in the constructor to properly initialize this FileEditor instance.')
                 return e
 
-    register(false, Terminal,         ['term', 'sage-term'])
+    if feature.IS_TOUCH
+        register(false, Terminal, ['term', 'sage-term'])
 
-    {HistoryEditor} = require('./editor_history')
-    register(false, HistoryEditor,    ['sage-history'])
     exports.switch_to_ipynb_classic = ->
         register(false, JupyterNotebook,  ['ipynb'])
 
     # "Editors" for read-only public files
-    register(true, PublicHTML,              ['html'])
     register(true, PublicSagews,            ['sagews'])
 
     # Editing Sage worksheets

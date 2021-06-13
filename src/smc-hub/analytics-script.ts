@@ -15,7 +15,8 @@
  * e.g. this filters the SSO auth pages, which are uninteresting referrals
  */
 
-// variable PREFIX, DOMAIN and ID are injected in the hub's http server
+// variable PREFIX, NAME, DOMAIN and ID are injected in the hub's http server
+declare var NAME, ID, DOMAIN, PREFIX;
 
 // write cookie. it would be cool to set this via the http request itself,
 // but for reasons I don't know it doesn't work across subdomains.
@@ -38,10 +39,10 @@ const response: any = {};
 const UTM = {};
 const params = href.slice(href.indexOf("?") + 1).split("&");
 let have_utm = false;
-for (const i = 0; i < params.length; i++) {
+for (let i = 0; i < params.length; i++) {
   const part = params[i];
   const k_v = part.split("=");
-  const k = k_v[0];
+  let k = k_v[0];
   const v = k_v[1];
   if (k == null || v == null) continue;
   if (k.slice(0, 4) !== "utm_") continue;

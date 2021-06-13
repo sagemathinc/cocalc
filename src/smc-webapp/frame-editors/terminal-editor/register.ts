@@ -7,22 +7,16 @@
 Register the terminal editor
 */
 
-import { Editor } from "./editor";
-import { TerminalActions } from "./actions";
 import { register_file_editor } from "../frame-tree/register";
+import { IS_TOUCH } from "smc-webapp/feature";
 
-let ext;
-if (require("smc-webapp/feature").IS_TOUCH) {
-  // For now, on mobile, we stay with old terminal, since copy/paste don't work, etc.
-  // The new one is still available for testing using an extension of .term2.
-  ext = "term2";
-} else {
-  ext = "term";
-}
+// For now, on mobile, we stay with old terminal, since copy/paste don't work, etc.
+// The new one is still available for testing using an extension of .term2.
+const ext = IS_TOUCH ? "term2" : "term";
 
 register_file_editor({
   icon: "terminal",
   ext,
-  component: Editor,
-  Actions: TerminalActions,
+  editor: async () => await import("./editor"),
+  actions: async () => await import("./actions"),
 });

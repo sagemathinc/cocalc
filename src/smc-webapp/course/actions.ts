@@ -135,7 +135,7 @@ export class CourseActions extends Actions<CourseState> {
     ) {
       return;
     }
-    const x = this.syncdb.get_one(obj);
+    const x : any = this.syncdb.get_one(obj);
     if (x == null) return;
     return x.toJS();
   }

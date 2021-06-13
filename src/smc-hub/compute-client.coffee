@@ -3,8 +3,6 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
-require('coffee2-cache')
-
 EXPERIMENTAL = false
 
 if process.env.DEVEL
@@ -202,7 +200,7 @@ class ComputeServerClient
                         cb(undefined, output.stdout)
 
         port = undefined; secret = undefined
-        {program} = require('smc-hub/compute-server')
+        {program} = require('./compute-server')
         async.series([
             (cb) =>
                 async.parallel([
@@ -232,7 +230,7 @@ class ComputeServerClient
         dbg = @dbg("_add_server_single")
         dbg("adding the compute server to the database by grabbing conf files, etc.")
         port = secret = undefined
-        {program} = require('smc-hub/compute-server')
+        {program} = require('./compute-server')
         async.series([
             (cb) =>
                 async.parallel([

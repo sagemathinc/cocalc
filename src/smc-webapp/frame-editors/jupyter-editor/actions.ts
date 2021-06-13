@@ -9,7 +9,10 @@ Jupyter Frame Editor Actions
 
 import { delay } from "awaiting";
 import { FrameTree } from "../frame-tree/types";
-import { Actions, CodeEditorState } from "../code-editor/actions";
+import {
+  Actions as BaseActions,
+  CodeEditorState,
+} from "../code-editor/actions";
 import { revealjs_slideshow_html } from "./slideshow-revealjs/nbconvert";
 
 import {
@@ -28,7 +31,7 @@ import { JupyterActions } from "../../jupyter/browser-actions";
 
 import { NotebookFrameActions } from "./cell-notebook/actions";
 
-export class JupyterEditorActions extends Actions<JupyterEditorState> {
+export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   protected doctype: string = "none"; // actual document is managed elsewhere
   public jupyter_actions: JupyterActions;
   private frame_actions: { [id: string]: NotebookFrameActions } = {};
@@ -354,3 +357,5 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     this.close_recently_focused_frame_of_type("introspect");
   }
 }
+
+export { JupyterEditorActions as Actions };

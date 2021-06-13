@@ -12,9 +12,11 @@ import { React, Component, Rendered } from "../app-framework";
 import { CellInput } from "./input";
 import { CellOutput } from "./output";
 
+import { OutputMessages } from "./parse-sagews";
+
 interface Props {
   input: string;
-  output: object;
+  output: OutputMessages;
   flags: string;
 }
 

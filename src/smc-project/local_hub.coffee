@@ -14,12 +14,7 @@ that it simultaneously manages numerous sessions, since simultaneously
 doing a lot of IO-based things is what Node.JS is good at.
 ###
 
-{program, do_not_laod_transpilers} = require('./init-program')
-
-if do_not_laod_transpilers
-    console.warn("ts-node transpiler is not enabled!")
-else
-    require('ts-node').register(project:"#{__dirname}/tsconfig.json", cacheDirectory:'/tmp')
+{program} = require('./init-program')
 
 path    = require('path')
 async   = require('async')
@@ -49,8 +44,6 @@ exports.get_bugs_total = ->
 # Set the log level
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
-
-require('coffeescript/register')
 
 message     = require('smc-util/message')
 misc        = require('smc-util/misc')

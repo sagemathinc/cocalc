@@ -2050,7 +2050,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     const data = this.syncstring_table_get_one();
-    const x = data != null ? data.toJS() : undefined;
+    const x : any = data != null ? data.toJS() : undefined;
 
     if (x != null && x.save != null) {
       this.handle_syncstring_save_state(x.save.state, x.save.time);
@@ -2071,7 +2071,7 @@ export class SyncDoc extends EventEmitter {
     this.emit("load-time-estimate", { type: "new", time: 1 });
     this.last_snapshot = undefined;
     this.snapshot_interval =
-      schema.SCHEMA.syncstrings.user_query.get.fields.snapshot_interval;
+      schema.SCHEMA.syncstrings.user_query?.get?.fields.snapshot_interval;
 
     // Brand new syncstring
     // TODO: worry about race condition with everybody making themselves

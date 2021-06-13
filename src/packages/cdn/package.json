@@ -1,0 +1,22 @@
+{
+  "name": "@cocalc/cdn",
+  "version": "1.0.5",
+  "description": "Files that CoCalc uses that would be natural in various contexts to get from a CDN",
+  "main": "dist/index.js",
+  "keywords": [
+    "cdn",
+    "cocalc"
+  ],
+  "devDependencies": {
+    "bootstrap": "=3.4.1",
+    "codemirror": "^5.59.2",
+    "katex": "^0.13.11",
+    "mathjax": "^2.7.9"
+  },
+  "scripts": {
+    "build": "rm -rf dist && mkdir -p dist && ./setup.py",
+    "postinstall": "./postinstall.js"
+  },
+  "author": "SageMath, Inc.",
+  "license": "SEE LICENSE.md"
+}

@@ -344,7 +344,8 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
         <Modal show={nbconvert_dialog != null} bsSize="large" onHide={close}>
           <Modal.Header closeButton>
             <Modal.Title>
-              <Icon name="slideshare" /> Jupyter Notebook Slideshow
+              <Icon name="FundProjectionScreenOutlined" /> Jupyter Notebook
+              Slideshow
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>

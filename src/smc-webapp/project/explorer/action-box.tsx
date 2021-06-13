@@ -464,7 +464,7 @@ export const ActionBox = rclass<ReactProps>(
                   onClick={this.move_click}
                   disabled={!this.valid_move_input()}
                 >
-                  <Icon name="arrows" /> Move {size} {misc.plural(size, "Item")}
+                  <Icon name="move" /> Move {size} {misc.plural(size, "Item")}
                 </Button>
                 <Button onClick={this.cancel_action}>Cancel</Button>
               </ButtonToolbar>

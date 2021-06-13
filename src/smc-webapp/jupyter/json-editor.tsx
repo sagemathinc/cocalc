@@ -18,7 +18,7 @@ const json_stable = require("json-stable-stringify");
 import { make_patch, apply_patch } from "smc-util/sync/editor/generic/util";
 import * as immutable from "immutable";
 import * as underscore from "underscore";
-declare const CodeMirror: any; // TODO: import this
+import * as CodeMirror from "codemirror";
 
 const ERROR_STYLE: React.CSSProperties = {
   color: "white",

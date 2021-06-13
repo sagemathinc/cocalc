@@ -190,6 +190,7 @@ interact_control = (desc, update, process_html_output) ->
         # nothing to do -- the control no longer exists (deprecated?)
         # WARNING: we should probably send a message somewhere saying this no longer exists.
         return
+    control.processIcons()
     if desc.label?
         control.find(".webapp-interact-label").html(desc.label).mathjax()
 

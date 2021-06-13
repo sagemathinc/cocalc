@@ -10,7 +10,7 @@ Keyboard event handler
 declare const $: any; // jQuery
 
 import * as json from "json-stable-stringify";
-import { merge, copy_without } from "../../smc-util/misc";
+import { merge, copy_without } from "smc-util/misc";
 import { KeyboardCommand, commands } from "./commands";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";

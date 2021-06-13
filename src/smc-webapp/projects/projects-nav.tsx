@@ -124,10 +124,10 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
         <Icon
           name="times"
           onClick={close_tab}
-          onMouseOver={() => {
+          onMouseEnter={() => {
             set_x_hovered(true);
           }}
-          onMouseOut={() => {
+          onMouseLeave={() => {
             actions.clear_ghost_tabs();
             set_x_hovered(false);
           }}

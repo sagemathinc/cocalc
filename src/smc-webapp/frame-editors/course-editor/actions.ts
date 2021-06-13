@@ -106,3 +106,5 @@ export class CourseEditorActions extends Actions<CourseEditorState> {
     this.course_actions.syncdb.commit();
   }
 }
+
+export { CourseEditorActions as Actions };

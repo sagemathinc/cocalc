@@ -4,10 +4,9 @@
  */
 
 import { register_file_editor } from "../../project-file";
-import { UnknownEditor } from "./editor";
 
 register_file_editor({
   ext: [""],
   icon: "question-circle",
-  component: UnknownEditor,
+  componentAsync: async () => (await import("./editor")).UnknownEditor,
 });

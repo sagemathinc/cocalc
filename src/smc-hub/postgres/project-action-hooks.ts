@@ -14,6 +14,6 @@ export async function project_action_request_pre_hook(
 ): Promise<void> {
   if (action == "start" || action == "restart") {
     dbg("project_action_request_pre_hook -- doing site_license hook");
-    await site_license_hook(db, project_id, dbg);
+    await site_license_hook(db, project_id);
   }
 }

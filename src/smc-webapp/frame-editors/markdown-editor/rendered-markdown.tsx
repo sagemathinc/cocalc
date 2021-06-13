@@ -12,6 +12,7 @@
 //    - [x] is zoomable
 //    - [x] math is properly typeset
 
+import { delay } from "awaiting";
 import { Markdown } from "smc-webapp/r_misc";
 import { is_different, path_split } from "smc-util/misc";
 import { debounce } from "lodash";

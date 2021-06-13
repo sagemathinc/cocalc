@@ -1,83 +1,9 @@
 {
   "name": "smc-project",
-  "version": "1.0.0",
-  "description": "CoCalc: project daemons",
-  "main": "index.js",
-  "workspaces-disabled": [
-    "../smc-util"
-  ],
-  "dependencies": {
-    "@types/better-sqlite3": "^5.4.0",
-    "@types/body-parser": "^1.19.0",
-    "@types/express": "^4.17.6",
-    "@types/jquery": "^3.3.38",
-    "@types/mocha": "^5.2.7",
-    "@types/node": "^12.12.70",
-    "async": "^1.5.2",
-    "async-await-utils": "^3.0.1",
-    "awaiting": "^3.0.0",
-    "better-sqlite3": "^7.1.0",
-    "body-parser": "^1.19.0",
-    "coffee-cache": "^1.0.2",
-    "coffee-loader": "^0.9.0",
-    "coffee-register": "^2.2.0",
-    "coffeescript": "^2.5.1",
-    "commander": "^2.20.3",
-    "compression": "^1.7.4",
-    "debug": "^4.3.1",
-    "diskusage": "^1.1.3",
-    "expect": "^26.6.2",
-    "express": "^4.17.1",
-    "express-rate-limit": "^3.4.0",
-    "formidable": "^1.2.2",
-    "fs-extra": "^9.0.0",
-    "googlediff": "^0.1.0",
-    "json-stable-stringify": "^1.0.1",
-    "lean-client-js-node": "^1.2.12",
-    "lru-cache": "^5.1.1",
-    "mkdirp": "^1.0.4",
-    "mocha": "^7.1.2",
-    "node-pty": "^0.9.0",
-    "pidusage": "^1.2.0",
-    "posix": "^4.2.0",
-    "prettier": "^2.1.1",
-    "primus": "^7.3.4",
-    "primus-multiplex": "github:STRML/primus-multiplex",
-    "primus-responder": "^1.0.4",
-    "prom-client": "^13.0.0",
-    "prometheus-gc-stats": "^0.6.2",
-    "request": "^2.88.0",
-    "serve-index": "^1.9.1",
-    "temp": "^0.9.1",
-    "tmp": "0.0.33",
-    "ts-node": "=7.0.0",
-    "typescript": "^4.1.3",
-    "underscore": "^1.12.1",
-    "uuid": "^8.0.0",
-    "which": "^1.3.1",
-    "winston": "^2.4.4",
-    "ws": "^6.0.0"
-  },
-  "devDependencies": {
-    "coffeelint": "^2.1.0"
-  },
-  "scripts": {
-    "test": "npm run testproj && npm run testjup",
-    "testproj": "echo 'TEST PROJECT'; node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
-    "testjup": "echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee"
-  },
-  "author": "SageMath, Inc.",
-  "contributors": [
-    "William Stein <wstein@sagemath.com>"
-  ],
-  "license": "GPL-3.0+",
-  "bugs": {
-    "url": "https://github.com/sagemathinc/cocalc/issues"
-  },
-  "homepage": "https://github.com/sagemathinc/cocalc",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/sagemathinc/cocalc"
+  "version": "1.2.1",
+  "description": "CoCalc: project daemon",
+  "exports": {
+    "./*": "./dist/*.js"
   },
   "keywords": [
     "python",
@@ -90,7 +16,94 @@
     "math",
     "mathematics"
   ],
+  "workspaces": [
+    "../smc-util",
+    "../smc-webapp",
+    "../smc-util-node",
+    "."
+  ],
+  "dependencies": {
+    "async": "^1.5.2",
+    "async-await-utils": "^3.0.1",
+    "awaiting": "^3.0.0",
+    "better-sqlite3": "^7.1.0",
+    "body-parser": "^1.19.0",
+    "commander": "^2.20.3",
+    "compression": "^1.7.4",
+    "debug": "^4.3.1",
+    "diskusage": "^1.1.3",
+    "enchannel-zmq-backend": "^9.1.23",
+    "execa": "^5.0.0",
+    "expect": "^26.6.2",
+    "express": "^4.17.1",
+    "express-rate-limit": "^3.4.0",
+    "formidable": "^1.2.2",
+    "fs-extra": "^9.0.0",
+    "googlediff": "^0.1.0",
+    "json-stable-stringify": "^1.0.1",
+    "jsonfile": "^6.1.0",
+    "jupyter-paths": "^2.0.3",
+    "kernelspecs": "^2.0.1",
+    "lean-client-js-node": "^1.2.12",
+    "lru-cache": "^5.1.1",
+    "mkdirp": "^1.0.4",
+    "mocha": "^7.1.2",
+    "node-pty": "^0.9.0",
+    "pidusage": "^1.2.0",
+    "portfinder": "^1.0.28",
+    "posix": "^4.2.0",
+    "prettier": "^2.1.1",
+    "primus": "^7.3.5",
+    "primus-multiplex": "github:STRML/primus-multiplex",
+    "primus-responder": "^1.0.4",
+    "prom-client": "^13.0.0",
+    "prometheus-gc-stats": "^0.6.2",
+    "request": "^2.88.0",
+    "serve-index": "^1.9.1",
+    "smc-util": "*",
+    "smc-util-node": "*",
+    "smc-webapp": "*",
+    "temp": "^0.9.1",
+    "tmp": "0.0.33",
+    "underscore": "^1.12.1",
+    "uuid": "^8.0.0",
+    "which": "^1.3.1",
+    "winston": "^2.4.4",
+    "ws": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^5.4.0",
+    "@types/body-parser": "^1.19.0",
+    "@types/express": "^4.17.6",
+    "@types/jquery": "^3.5.5",
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^12.20.14",
+    "coffeelint": "^2.1.0",
+    "coffeescript": "^2.5.1",
+    "typescript": "^4.3.2"
+  },
+  "scripts": {
+    "local-hub": "node dist/local_hub.js",
+    "build": "tsc && coffee -m -c -o dist/ .",
+    "test": "npm run testproj && npm run testjup",
+    "testproj": "echo 'TEST PROJECT'; node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
+    "testjup": "echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee"
+  },
+  "author": "SageMath, Inc.",
+  "contributors": [
+    "William Stein <wstein@sagemath.com>"
+  ],
+  "license": "SEE LICENSE.md",
+  "bugs": {
+    "url": "https://github.com/sagemathinc/cocalc/issues"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
   "bin": {
+    "cocalc-start-project-server": "./bin/start-project-server.js",
     "smc-local-hub": "./bin/smc-local-hub"
   }
 }

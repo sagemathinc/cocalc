@@ -12,7 +12,8 @@
 
 import { debounce } from "lodash";
 import { delay } from "awaiting";
-import { NotifyResize } from "../notify-resize/index";
+import { NotifyResize } from '@zippytech/react-notify-resize'
+
 import {
   React,
   ReactDOM,

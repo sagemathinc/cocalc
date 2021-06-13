@@ -49,7 +49,6 @@ import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 import { Actions } from "../code-editor/actions";
 import { EditorFileInfoDropdown } from "../../editors/file-info-dropdown";
 import { useStudentProjectFunctionality } from "smc-webapp/course";
-import { RmdActions } from "../rmd-editor/actions";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -201,7 +200,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   ]);
   const is_saving: boolean = useRedux([props.editor_actions.name, "is_saving"]);
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
-  const is_rmd = props.actions instanceof RmdActions;
 
   // comes from actions's store:
   const switch_to_files: List<string> = useRedux([
@@ -311,6 +309,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     const items: Rendered[] = [];
     for (const type in props.editor_spec) {
       const spec = props.editor_spec[type];
+      if (spec == null) {
+        // typescript should prevent this but, also double checking
+        // makes this easier to debug.
+        console.log(props.editor_spec);
+        throw Error(
+          `BUG -- ${type} must be defined by the editor_spec, but is not`
+        );
+      }
       if (is_public && spec.hide_public) {
         // editor that is explicitly excluded from public view for file,
         // e.g., settings or terminal might use this.
@@ -424,7 +430,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           }
         }}
       >
-        <Icon name="columns" rotate={"90"} />
+        <Icon name="horizontal-split" />
       </Button>
     );
   }
@@ -444,7 +450,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           }
         }}
       >
-        <Icon name="columns" />
+        <Icon name="vertical-split" />
       </Button>
     );
   }
@@ -518,7 +524,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         bsSize={button_size()}
         onClick={() => props.actions.zoom_page_width?.(props.id)}
       >
-        <Icon name={"arrows-alt-h"} />
+        <Icon name={"ColumnWidthOutlined"} />
       </Button>
     );
   }
@@ -531,7 +537,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         bsSize={button_size()}
         onClick={() => props.actions.zoom_page_height?.(props.id)}
       >
-        <Icon name={"arrows-alt-v"} />
+        <Icon name={"ColumnHeightOutlined"} />
       </Button>
     );
   }
@@ -548,7 +554,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         bsSize={button_size()}
         onClick={() => props.actions.sync?.(props.id, props.editor_actions)}
       >
-        <Icon name={"fab fa-staylinked"} />{" "}
+        <Icon name="sync" />{" "}
         {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
       </Button>
     );
@@ -620,7 +626,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         disabled={read_only}
         bsSize={button_size()}
       >
-        <Icon name="exchange" />
+        <Icon name="replace" />
       </Button>
     );
   }
@@ -1079,9 +1085,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (!is_visible("build", true)) {
       return;
     }
-    const title = is_rmd
-      ? "Build (disable automatic builds in Account → Editor → 'Build on save')"
-      : "Build project";
+    const title =
+      "Build (disable automatic builds in Account → Editor → 'Build on save')";
     return (
       <Button
         key={"build"}
@@ -1156,7 +1161,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={() => props.actions.kick_other_users_out(props.id)}
         title={"Kick all other users out"}
       >
-        <Icon name={"door-open"} />
+        <Icon name={"leave_conference"} />
       </Button>
     );
   }
@@ -1249,7 +1254,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={() => set_close_and_halt_confirm(true)}
         title={"Close and halt server"}
       >
-        <Icon name={"hand-stop-o"} />{" "}
+        <Icon name={"PoweroffOutlined"} />{" "}
         <VisibleMDLG>{labels ? "Halt" : undefined}</VisibleMDLG>
       </Button>
     );
@@ -1515,7 +1520,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           }}
           bsStyle="danger"
         >
-          <Icon name={"hand-stop-o"} /> Close and Halt
+          <Icon name={"PoweroffOutlined"} /> Close and Halt
         </Button>
         <Button onClick={() => set_close_and_halt_confirm(false)}>
           Cancel

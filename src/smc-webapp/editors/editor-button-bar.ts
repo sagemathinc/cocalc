@@ -1883,7 +1883,7 @@ for (k = 1, i = k; k <= 6; k++, i = k) {
       return result1;
     })().join("") +
     " ";
-  exports.commands.md[`format_heading_${i}`] = {
+  commands.md[`format_heading_${i}`] = {
     strip,
     wrap: {
       left,
@@ -2670,7 +2670,7 @@ function initialize_latex_buttonbar() {
 // NOT READY YET.
 //initialize_latex_buttonbar()
 
-// used in entry-point
+// must get called before using the button bars.
 export function init_buttonbars() {
   initialize_sagews_editor();
   initialize_md_html_editor();

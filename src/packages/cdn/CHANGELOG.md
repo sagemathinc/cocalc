@@ -1,0 +1,3 @@
+- 2021-05-17: rewrite to be an npm package instead of whatever it was.
+- 2020-04-29: initial setup including bootstrap css, katex, a font, ...
+

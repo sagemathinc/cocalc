@@ -9,9 +9,12 @@ This can *ONLY* be used from the browser!
 */
 
 const { endswith } = require("smc-util/misc");
-import { Syntax } from "../../smc-util/code-formatter";
+import { Syntax } from "smc-util/code-formatter";
 
-declare const CodeMirror: any; // TODO: import?
+// We use a special version of runMode that can be run on the backend
+// or frontend, to better support next.js.
+// @ts-ignore -- issue with runMode having any type
+import { runMode } from "codemirror/addon/runmode/runmode.node";
 
 export function run_mode(code: string, mode: string, language: string) {
   if (!code) {
@@ -31,9 +34,11 @@ export function run_mode(code: string, mode: string, language: string) {
   return "execute";
 }
 
-function last_style(code: string, mode = "python") {
-  let style = undefined;
-  CodeMirror.runMode(code, mode, (_, s) => (style = s));
+function last_style(code: string, mode = "python"): string | null | undefined {
+  let style: string | null | undefined = undefined;
+  runMode(code, mode, (_, s) => {
+    style = s;
+  });
   return style;
 }
 

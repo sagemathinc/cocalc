@@ -44,7 +44,7 @@ const EDITOR_SPEC = {
   time_travel,
 };
 
-export const CsvEditor = createEditor({
+export const Editor = createEditor({
   format_bar: true,
   editor_spec: EDITOR_SPEC,
   display_name: "CSV Editor",

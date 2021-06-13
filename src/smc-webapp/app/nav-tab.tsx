@@ -33,7 +33,7 @@ export const NavTab: React.FC<Props> = React.memo((props) => {
     if (!props.hide_label && props.label != null) {
       return (
         <span
-          style={{ marginLeft: 5 }}
+          style={{ marginLeft: "5px", marginTop: "-3px" }}
           className={props.label_class}
           cocalc-test={props.name}
         >

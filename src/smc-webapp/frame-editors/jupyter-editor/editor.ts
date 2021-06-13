@@ -79,7 +79,7 @@ export const EDITOR_SPEC = {
   jupyter_slideshow_revealjs: {
     short: "Slideshow",
     name: "Slideshow (Reveal.js)",
-    icon: "slideshare",
+    icon: "FundProjectionScreenOutlined",
     component: Slideshow,
     buttons: set(["build"]),
   },

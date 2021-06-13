@@ -13,6 +13,7 @@ misc            = require('smc-util/misc')
 {redux}         = require('./app-framework')
 {file_nonzero_size, url_fullpath} = require('./project/utils')
 markdown        = require('./markdown')
+CodeMirror = require("codemirror")
 
 # abstract class
 class Printer
@@ -116,12 +117,8 @@ class SagewsPrinter extends Printer
                 when 'html'
                     @html(cb, progress)
         catch e
-            # TODO: why is this even here -- the error would go to the callback.  WEIRD/broken, for sure.
             err = "Exception trying to print to #{target_ext} -- #{e}"
-            console.error(err, e)
-            console.trace()
-            {reportException} = require('webapp-lib/webapp-error-reporter')
-            reportException(e, null, 'warning', 'SagewPrinter.print: '+ err)
+            console.warn(err)
             cb(err)
 
     generate_html: (data) ->

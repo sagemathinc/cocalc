@@ -8,9 +8,9 @@
 
 import * as debug from "debug";
 const L = debug("project:sync:usage-info");
-import { once } from "../smc-util/async-utils";
-import { SyncTable, SyncTableState } from "../smc-util/sync/table";
-import { close, merge } from "../smc-util/misc";
+import { once } from "smc-util/async-utils";
+import { SyncTable, SyncTableState } from "smc-util/sync/table";
+import { close, merge } from "smc-util/misc";
 import { UsageInfoServer } from "../usage-info";
 import { UsageInfo, ImmutableUsageInfo } from "../usage-info/types";
 

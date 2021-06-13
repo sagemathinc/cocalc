@@ -9,6 +9,7 @@ import { LabeledRow, SelectorInput } from "../../r_misc";
 import { CodeMirrorStatic } from "../../jupyter/codemirror-static";
 import { cm_options } from "../../frame-editors/codemirror/cm-options";
 import { Button } from "../../antd-bootstrap";
+import { AsyncComponent } from "smc-webapp/misc/async-component";
 
 export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   default: "Default",
@@ -117,20 +118,24 @@ def is_prime_lucas_lehmer(p):
     return s == 0\
 `;
 
-// Todo -- could move this out to reflect *all* settings...
-function CodeMirrorPreview(props: {
-  editor_settings: Map<string, any>;
-  font_size?: number;
-}) {
-  const options = fromJS(cm_options("a.py", props.editor_settings)).set(
-    "lineNumbers",
-    false
-  );
-  return (
-    <CodeMirrorStatic
-      options={options}
-      value={VALUE}
-      font_size={props.font_size}
-    />
-  );
-}
+// We make this async to avoid configuring codemirror as part of the initial
+// bundle.  This probably doesn't work so well yet though.
+const CodeMirrorPreview = AsyncComponent(async () => {
+  await import("smc-webapp/codemirror/init");
+  return (props: { editor_settings: Map<string, any>; font_size?: number }) => {
+    // Ensure that we load all the codemirror plugins, modes, etc., so that
+    // we can show the codemirror preview of the current theme, fonts, etc.
+    import("smc-webapp/codemirror/init");
+    const options = fromJS(cm_options("a.py", props.editor_settings)).set(
+      "lineNumbers",
+      false
+    );
+    return (
+      <CodeMirrorStatic
+        options={options}
+        value={VALUE}
+        font_size={props.font_size}
+      />
+    );
+  };
+});

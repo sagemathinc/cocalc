@@ -9,8 +9,8 @@ import { callback2 } from "smc-util/async-utils";
 import { query } from "./query";
 import * as debug from "debug";
 const L = debug("hub:project-queries");
-import { DUMMY_SECRET } from "../../smc-webapp/project/settings/const";
-import { DatastoreConfig } from "../../smc-webapp/project/settings/types";
+import { DUMMY_SECRET } from "smc-webapp/project/settings/const";
+import { DatastoreConfig } from "smc-webapp/project/settings/types";
 
 export async function project_has_network_access(
   db: PostgreSQL,

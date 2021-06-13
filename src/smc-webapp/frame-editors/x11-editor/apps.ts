@@ -20,29 +20,29 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     label: "Unknown App",
   },
   drracket: {
-    icon: "laugh",
+    icon: "scheme",
     label: "DrRacket",
     desc:
       "Racket is a general-purpose programming language as well as the world’s first ecosystem for language-oriented programming.",
   },
   /* xclock: { icon: "clock", desc:"Shows UTC time" }, */
   emacs: {
-    icon: "edit",
+    icon: "emacs",
     desc: "An extensible, customizable, text editor — and more.",
     label: "Emacs",
   },
-  gvim: { icon: "edit", desc: "The ubiquitous text editor", label: "Vim" },
+  gvim: { icon: "vim", desc: "The ubiquitous text editor", label: "Vim" },
   inkscape: {
-    icon: "pen-fancy",
+    icon: "inkscape",
     desc: "Vector graphics editor",
     label: "Inkscape",
   },
-  gimp: { icon: "pen", desc: "Image editing", label: "GIMP" },
-  krita: { icon: "pen", desc: "Image editing", label: "Krita" },
+  gimp: { icon: "brush", desc: "Image editing", label: "GIMP" },
+  krita: { icon: "brush", desc: "Image editing", label: "Krita" },
   vscode: {
     label: "VS Code",
     command: "code",
-    icon: "code",
+    icon: "vscode",
     desc: "Visual Studio code",
   },
   terminal: {
@@ -64,24 +64,24 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     label: "Okular",
   },
   libreoffice: {
-    icon: "file-alt",
+    icon: "libreoffice",
     desc:
       "A powerful office suite (spreadsheet, word processor, presentations, etc. -- open Word, Excel, Powerpoint, etc.)",
     label: "LibreOffice",
   },
   lowriter: {
     desc: "LibreOffice Writer",
-    icon: "file-alt",
+    icon: "libreoffice",
     label: "Writer",
   },
   localc: {
     desc: "LibreOffice Calc",
-    icon: "table",
+    icon: "libreoffice",
     label: "Calc",
   },
   loimpress: {
     desc: "LibreOffice Impress",
-    icon: "tv",
+    icon: "libreoffice",
     label: "Impress",
   },
   nteract: {
@@ -159,7 +159,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   },
   dia: {
     desc: "Dia is a program to draw structured diagrams.",
-    icon: "connectdevelop",
+    icon: "flow-chart",
     label: "Dia",
   },
   pycharm: {
@@ -203,16 +203,16 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   },
   qgis: {
     label: "QGIS",
-    icon: "globe",
+    icon: "qgis",
     desc: "A user friendly Open Source Geographic Information System.",
   },
   grass: {
     label: "GRASS",
-    icon: "globe",
+    icon: "grass",
     desc: "Geographic Resources Analysis Support System",
   },
   ds9: {
-    icon: "star",
+    icon: "sun",
     label: "SAOImage DS9",
     desc: "An astronomical imaging and data visualization application.",
   },
@@ -223,7 +223,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
       "An interface to perform computer algebra, function graphs, interactive geometry (2-d and 3-d), spreadsheet and statistics, programmation.",
   },
   "gnome-system-monitor": {
-    icon: "heartbeat",
+    icon: "microchip",
     label: "System Monitor",
     desc:
       "Shows you what programs are running and how much processor time, memory, and disk space are being used.",
@@ -250,7 +250,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     desc: "Gaining intuition about Variational Quantum Eigensolver",
   },
   kbibtex: {
-    icon: "book-open",
+    icon: "cc-icon-tex-file",
     label: "KBibTeX",
     desc: "A reference management software primarily for BibTeX",
   },

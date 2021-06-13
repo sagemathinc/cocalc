@@ -140,7 +140,7 @@ export const FindAndReplace: React.FC<FindAndReplaceProps> = React.memo(
           title="Replace in all cells"
           active={all}
         >
-          <Icon name="arrows-v" />
+          <Icon name="replace" />
         </Button>
       );
     }

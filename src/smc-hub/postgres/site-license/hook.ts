@@ -7,11 +7,12 @@ import { Map } from "immutable";
 import { isEqual } from "lodash";
 import { PostgreSQL } from "../types";
 import { query } from "../query";
-import { TypedMap } from "../../../smc-webapp/app-framework";
+import { TypedMap } from "smc-webapp/app-framework";
 import { is_valid_uuid_string, len } from "smc-util/misc";
 import { callback2 } from "smc-util/async-utils";
 import { number_of_running_projects_using_license } from "./analytics";
-import { QuotaMap } from "smc-util/db-schema/site-licenses";
+import { Quota } from "smc-util/db-schema/site-licenses";
+type QuotaMap = TypedMap<Quota>;
 import {
   quota as compute_total_quota,
   SiteLicenseQuotaSetting,

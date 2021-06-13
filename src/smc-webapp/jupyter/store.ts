@@ -9,15 +9,15 @@ The Store
 
 declare const localStorage: any;
 
-import { from_json, cmp, startswith } from "../../smc-util/misc";
+import { from_json, cmp, startswith } from "smc-util/misc";
 import { Store } from "../app-framework";
 import { Set, Map, List, OrderedMap, fromJS } from "immutable";
 import { export_to_ipynb } from "./export-to-ipynb";
-import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
+import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
 import { Kernels, Kernel } from "./util";
 import { KernelInfo, Cell, CellToolbarName } from "./types";
-import { Syntax } from "../../smc-util/code-formatter";
-import { ImmutableUsageInfo } from "../../smc-project/usage-info/types";
+import { Syntax } from "smc-util/code-formatter";
+import { ImmutableUsageInfo } from "smc-project/usage-info/types";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.

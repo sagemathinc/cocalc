@@ -8,6 +8,7 @@ Markdown Editor Actions
 */
 
 import { debounce } from "lodash";
+import { delay } from "awaiting";
 import { toggle_checkbox } from "smc-webapp/editors/task-editor/desc-rendering";
 import * as $ from "jquery";
 import {

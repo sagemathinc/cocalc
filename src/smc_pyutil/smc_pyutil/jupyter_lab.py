@@ -101,7 +101,7 @@ def command():
     # --NotebookApp.allow_remote_access=True
     #     is suddenly needed, at least for cocalc-docker.
 
-    cmd = "jupyter lab --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=/static/mathjax/MathJax.js %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True" % (
+    cmd = "jupyter lab --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=/cdn/mathjax/MathJax.js %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True" % (
         base, ip, port)
     return cmd, base, port
 

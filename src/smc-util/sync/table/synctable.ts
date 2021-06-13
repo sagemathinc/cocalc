@@ -229,7 +229,10 @@ export class SyncTable extends EventEmitter {
       for (const k of arg) {
         const key: string | undefined = to_key(k);
         if (key != null) {
-          x = x.set(key, this.value.get(key));
+          const y = this.value.get(key);
+          if (y != null) {
+            x = x.set(key, y);
+          }
         }
       }
       return x;
@@ -1099,6 +1102,9 @@ export class SyncTable extends EventEmitter {
     }
     let specs;
     if (t.virtual != null) {
+      if (t.virtual === true) {
+        throw Error(`t.virtual can't be true for ${this.table}`);
+      }
       const x = schema.SCHEMA[t.virtual];
       if (x == null) {
         throw Error(`invalid virtual table spec for ${this.table}`);
@@ -1429,7 +1435,7 @@ export class SyncTable extends EventEmitter {
         if (this.value == null) {
           throw Error("value must not be null");
         }
-        let obj = this.value.get(key);
+        let obj : any = this.value.get(key);
         if (obj == null) {
           throw Error(`there must be an object in this.value with key ${key}`);
         }

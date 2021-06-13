@@ -14,11 +14,11 @@ ATTN: THIS IS NOT USED RIGHT NOW – TREAT IT AS POTENTIALLY BROKEN
 
 import { debounce } from "lodash";
 import * as immutable from "immutable";
-declare const CodeMirror: any; // TODO: type
+import * as CodeMirror from "codemirror";
 
 import { React, ReactDOM, Rendered } from "../app-framework";
 import { Loading } from "../r_misc";
-import * as syncstring from "../../smc-util/sync/editor/generic/util";
+import * as syncstring from "smc-util/sync/editor/generic/util";
 import { JupyterActions } from "./browser-actions";
 import { NotebookMode } from "./types";
 
