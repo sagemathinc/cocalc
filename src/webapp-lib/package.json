@@ -16,7 +16,9 @@
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "uglify-js": "^3.13.9",
     "url-loader": "^4.1.1"
+  },
+  "devDependencies": {
+    "uglify-js": "^3.13.9"
   }
 }
