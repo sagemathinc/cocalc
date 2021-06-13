@@ -43,7 +43,7 @@ export class SSHPanel extends React.Component<Props> {
     const addr = `${user}@ssh.cocalc.com`;
     return (
       <div>
-        <span>Use the following username@host:</span>
+        <span>Use the following username@host to connect to this project:</span>
         <pre>{addr}</pre>
         <a
           href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key"
@@ -69,11 +69,13 @@ export class SSHPanel extends React.Component<Props> {
           project_id={this.props.project.get("project_id")}
         >
           <div>
-            <span>
-              NOTE: If you want to use the same ssh key for all your projects,
-              add a key using the "SSH keys" tab under Account Settings. If you
-              have done that, there is no need to configure an ssh key here.
-            </span>
+            <p>Easily access this project directly via ssh by adding an ssh public
+            key here.</p>
+            <p>It takes <b>about 30 seconds</b> for any changes to take effect.</p>
+            <p>
+            If you want to use the same ssh key for all your projects, add a key
+            using the "SSH keys" tab under Account Settings. If you have done
+            that, there is no need to also configure an ssh key here.</p>
           </div>
           <SSHKeyAdder
             add_ssh_key={this.add_ssh_key}
