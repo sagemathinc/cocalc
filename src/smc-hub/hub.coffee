@@ -478,7 +478,7 @@ exports.start_server = start_server = (cb) ->
     BASE_URL = base_url.init(program.base_url)
     winston.debug("base_url='#{BASE_URL}'")
 
-    if program.port
+    if program.port and SMC_ROOT
         # ONLY write the base_url file if we are serving the main hub.
         # This file is used by webpack to know what base_url to use, and
         # we don't want webpack using the base_url for the share server (say).
