@@ -20,13 +20,4 @@ meta(name="apple-mobile-web-app-title", content="CoCalc")
 meta(name="application-name", content="CoCalc")
 meta(name="theme-color", content="#fbb635")
 
-// - I'm putting this here as a hack to minize the embarassing style flicker as -- I guess (?) -- react-bootstrap loads.
-// This is meant to be "better than nothing", but not much better!
-// See https://github.com/sagemathinc/cocalc/issues/2510
 link(rel="stylesheet", href=BASE_URL + "/cdn/bootstrap-" + CDN_VERSIONS.bootstrap + "/bootstrap.min.css")
-
-link(rel="stylesheet", href=BASE_URL + "/cdn/roboto-fontface-" + CDN_VERSIONS["roboto-fontface"] + "/css/roboto-slab/roboto-slab-fontface.css")
-
-link(rel="stylesheet", href=BASE_URL + "/cdn/katex-" + CDN_VERSIONS.katex + "/katex.min.css")
-
-link(rel="stylesheet", href=BASE_URL + "/cdn/fontawesome-free-" + CDN_VERSIONS["fontawesome-free"] + "/css/all.min.css")
