@@ -1307,6 +1307,7 @@ try
         .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
         .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
         .option('--single',                  'if given, assume no storage servers and everything is running on one VM')
+        .option('--foreground',              'if specified, do not run as a deamon')
         .option('--kubernetes',              'if given, assumes running in cocalc-kubernetes, so projects are stored at /projects/home are NFS exported via a service called cocalc-kubernetes-server-nfs; projects run as pods in the cluster.  This is all taken care of by the smc-compute script, which gets the --kubernetes option.')
         .parse(process.argv)
 catch e
@@ -1338,8 +1339,13 @@ main = () ->
                 if err
                     winston.debug("WARNING: something went wrong fixing configuration directory permissions", err)
 
-    daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
-    daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
+    if program.foreground
+        start_server (err) ->
+            if err
+                process.exit(1)
+    else
+        daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
+        daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
 
-if program._name.split('.')[0] == 'compute'
+if program._name.split('.')[0] == 'cocalc-compute-server'
     main()
