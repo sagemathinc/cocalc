@@ -70,7 +70,26 @@ interface CodeMirrorEditorProps {
   complete?: ImmutableMap<any, any>;
 }
 
-export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
+export const CodeMirrorEditor :React.FC <CodeMirrorEditorProps>  = React.memo((props: CodeMirrorEditorProps) => {
+  
+  const { 
+    actions, 
+frame_actions, 
+id, 
+options, 
+value, 
+font_size, 
+cursors, 
+set_click_coords, 
+click_coords, 
+set_last_cursor, 
+last_cursor, 
+is_focused, 
+is_scrolling, 
+complete, 
+  }
+  = props;
+  
   private cm: any;
   private _cm_last_remote: any;
   private _cm_change: any;
@@ -85,6 +104,61 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
     this.init_codemirror(this.props.options, this.props.value);
   }
+  
+  
+  async componentWillReceiveProps(nextProps: CodeMirrorEditorProps) {
+    if (this.cm == null) {
+      this.init_codemirror(nextProps.options, nextProps.value);
+      return;
+    }
+    if (!this.props.options.equals(nextProps.options)) {
+      this.update_codemirror_options(nextProps.options, this.props.options);
+    }
+    if (
+      this.props.font_size !== nextProps.font_size ||
+      (this.props.is_scrolling && !nextProps.is_scrolling)
+    ) {
+      this.cm_refresh();
+    }
+    // In some cases (e.g., tab completion when selecting via keyboard)
+    // nextProps.value and this.props.value are the same, but they
+    // do not equal this.cm.getValue().  The complete prop changes
+    // so the component updates, but without checking cm.getValue(),
+    // we would fail to update the cm editor, which would is
+    // a disaster.  May be root cause of
+    //    https://github.com/sagemathinc/cocalc/issues/3978
+    if (
+      nextProps.value !== this.props.value ||
+      (this.cm != null && nextProps.value != this.cm.getValue())
+    ) {
+      this.cm_merge_remote(nextProps.value);
+    }
+    if (nextProps.is_focused && !this.props.is_focused) {
+      // gain focus
+      if (this.cm != null) {
+        this.focus_cm();
+      }
+    }
+    if (!nextProps.is_focused && this.cm_is_focused) {
+      // controlled loss of focus from store; we have to force
+      // this somehow.  Note that codemirror has no .blur().
+      // See http://codemirror.977696.n3.nabble.com/Blur-CodeMirror-editor-td4026158.html
+      await delay(1);
+      if (this.cm != null) {
+        this.cm.getInputField().blur();
+      }
+    }
+    if (this._vim_mode && !nextProps.is_focused && this.props.is_focused) {
+      $(this.cm.getWrapperElement()).css({ paddingBottom: 0 });
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.cm != null) {
+      this.cm_save();
+      this.cm_destroy();
+    }
+  }
 
   has_frame_actions = (): boolean => {
     return (
@@ -98,13 +172,13 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       if (this.has_frame_actions()) {
         this.props.frame_actions.unregister_input_editor(this.props.id);
       }
-      delete this._cm_last_remote;
+      delete this.cm_last_remote;
       delete this.cm.save;
-      if (this._cm_change != null) {
-        this.cm.off("change", this._cm_change);
-        this.cm.off("focus", this._cm_focus);
-        this.cm.off("blur", this._cm_blur);
-        delete this._cm_change;
+      if (this.cm_change != null) {
+        this.cm.off("change", this.cm_change);
+        this.cm.off("focus", this.cm_focus);
+        this.cm.off("blur", this.cm_blur);
+        delete this.cm_change;
       }
       $(this.cm.getWrapperElement()).remove(); // remove from DOM
       if (this.cm.getOption("extraKeys") != null) {
@@ -115,7 +189,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   };
 
   _cm_focus = (): void => {
-    this._cm_is_focused = true;
+    this.cm_is_focused = true;
     if (this.cm == null || this.props.actions == null) {
       return;
     }
@@ -127,11 +201,11 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (this._vim_mode) {
       $(this.cm.getWrapperElement()).css({ paddingBottom: "1.5em" });
     }
-    this._cm_cursor();
+    this.cm_cursor();
   };
 
   _cm_blur = (): void => {
-    this._cm_is_focused = false;
+    this.cm_is_focused = false;
     if (this.cm == null || this.props.actions == null) {
       return;
     }
@@ -198,14 +272,14 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this.cm.refresh();
   };
 
-  _cm_save = (): string | undefined => {
+  function cm_save  (): string | undefined {
     if (this.cm == null || this.props.actions == null) {
       return;
     }
     const value = this.cm.getValue();
-    if (value !== this._cm_last_remote) {
+    if (value !== this.cm_last_remote) {
       // only save if we actually changed something
-      this._cm_last_remote = value;
+      this.cm_last_remote = value;
       // The true makes sure the Store has its state set immediately,
       // with no debouncing/throttling, etc., which is important
       // since some code, e.g., for introspection when doing evaluation,
@@ -216,35 +290,35 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     return value;
   };
 
-  _cm_merge_remote = (remote: string): void => {
+  function cm_merge_remote (remote: string): void {
     if (this.cm == null) {
       return;
     }
-    if (this._cm_last_remote == null) {
-      this._cm_last_remote = "";
+    if (this.cm_last_remote == null) {
+      this.cm_last_remote = "";
     }
-    if (this._cm_last_remote === remote) {
+    if (this.cm_last_remote === remote) {
       return; // nothing to do
     }
     const local = this.cm.getValue();
     const new_val = three_way_merge({
-      base: this._cm_last_remote,
+      base: this.cm_last_remote,
       local,
       remote,
     });
-    this._cm_last_remote = remote;
+    this.cm_last_remote = remote;
     this.cm.setValueNoJump(new_val);
   };
 
-  _cm_undo = (): void => {
+  function cm_undo  (): void  {
     if (this.cm == null || this.props.actions == null) {
       return;
     }
     if (
       !this.props.actions.syncdb.in_undo_mode() ||
-      this.cm.getValue() !== this._cm_last_remote
+      this.cm.getValue() !== this.cm_last_remote
     ) {
-      this._cm_save();
+      this.cm_save();
     }
     this.props.actions.undo();
   };
@@ -256,7 +330,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this.props.actions.redo();
   };
 
-  shift_tab_key = (): void => {
+  function shift_tab_key  (): void> {
     if (this.cm == null) return;
     if (this.cm.somethingSelected() || this.whitespace_before_cursor()) {
       // Something is selected or there is whitespace before
@@ -291,7 +365,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
   };
 
-  tab_key = (): void => {
+  function tab_key  (): void  {
     if (this.cm == null) {
       return;
     }
@@ -303,7 +377,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
   };
 
-  up_key = (): void => {
+  function up_key  (): void {
     if (this.cm == null) {
       return;
     }
@@ -318,7 +392,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
   };
 
-  down_key = (): void => {
+  function down_key  (): void  {
     if (this.cm == null) {
       return;
     }
@@ -335,7 +409,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
   };
 
-  page_up_key = (): void => {
+  function page_up_key (): void  {
     if (this.cm == null) {
       return;
     }
@@ -350,7 +424,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
   };
 
-  page_down_key = (): void => {
+  function page_down_key  (): void  {
     if (this.cm == null) {
       return;
     }
@@ -367,7 +441,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
   };
 
-  adjacent_cell = (y: number, delta: number): void => {
+  function adjacent_cell (y: number, delta: number): void {
     if (!this.has_frame_actions()) return;
     this.props.frame_actions.move_cursor(delta);
     this.props.frame_actions.set_input_editor_cursor(
@@ -380,13 +454,13 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this.props.frame_actions.scroll("cell visible");
   };
 
-  whitespace_before_cursor = (): boolean => {
+  function whitespace_before_cursor (): boolean {
     if (this.cm == null) return false;
     const cur = this.cm.getCursor();
     return cur.ch === 0 || /\s/.test(this.cm.getLine(cur.line)[cur.ch - 1]);
   };
 
-  tab_nothing_selected = async (): Promise<void> => {
+  async function tab_nothing_selected   (): Promise<void>  {
     if (this.cm == null || this.props.actions == null) {
       return;
     }
@@ -405,7 +479,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     const { left } = pos;
     const gutter = $(this.cm.getGutterElement()).width();
     // ensure that store has same version of cell as we're completing
-    this._cm_save();
+    this.cm_save();
     // do the actual completion:
     try {
       const show_dialog: boolean = await this.props.actions.complete(
@@ -426,7 +500,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
   };
 
-  update_codemirror_options = (next: any, current: any): void => {
+  function update_codemirror_options  (next: any, current: any): void  {
     next.forEach((value: any, option: any) => {
       if (value !== current.get(option)) {
         if (typeof value.toJS === "function") {
@@ -438,7 +512,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   };
 
   // NOTE: init_codemirror is VERY expensive, e.g., on the order of 10's of ms.
-  private init_codemirror(
+  function init_codemirror(
     options: ImmutableMap<string, any>,
     value: string
   ): void {
@@ -506,7 +580,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
     $(this.cm.getWrapperElement()).css(css);
 
-    this._cm_last_remote = value;
+    this.cm_last_remote = value;
     this.cm.setValue(value);
     if (this.key != null) {
       const info = cache[this.key];
@@ -514,29 +588,29 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         this.cm.getDoc().setSelections(info.sel, undefined, { scroll: false });
       }
     }
-    this._cm_change = underscore.debounce(this._cm_save, SAVE_DEBOUNCE_MS);
-    this.cm.on("change", this._cm_change);
+    this.cm_change = underscore.debounce(this.cm_save, SAVE_DEBOUNCE_MS);
+    this.cm.on("change", this.cm_change);
     this.cm.on("beforeChange", (_, changeObj) => {
       if (changeObj.origin == "paste") {
         // See https://github.com/sagemathinc/cocalc/issues/5110
-        this._cm_save();
+        this.cm_save();
       }
     });
-    this.cm.on("focus", this._cm_focus);
-    this.cm.on("blur", this._cm_blur);
-    this.cm.on("cursorActivity", this._cm_cursor);
+    this.cm.on("focus", this.cm_focus);
+    this.cm.on("blur", this.cm_blur);
+    this.cm.on("cursorActivity", this.cm_cursor);
 
     // replace undo/redo by our sync aware versions
-    this.cm.undo = this._cm_undo;
-    this.cm.redo = this._cm_redo;
+    this.cm.undo = this.cm_undo;
+    this.cm.redo = this.cm_redo;
 
     if (this.has_frame_actions()) {
       const editor: EditorFunctions = {
-        save: this._cm_save,
-        set_cursor: this._cm_set_cursor,
+        save: this.cm_save,
+        set_cursor: this.cm_set_cursor,
         tab_key: this.tab_key,
         shift_tab_key: this.shift_tab_key,
-        refresh: this._cm_refresh,
+        refresh: this.cm_refresh,
         get_cursor: () => this.cm.getCursor(),
         get_cursor_xy: () => {
           const pos = this.cm.getCursor();
@@ -560,61 +634,8 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
   }
 
-  async componentWillReceiveProps(nextProps: CodeMirrorEditorProps) {
-    if (this.cm == null) {
-      this.init_codemirror(nextProps.options, nextProps.value);
-      return;
-    }
-    if (!this.props.options.equals(nextProps.options)) {
-      this.update_codemirror_options(nextProps.options, this.props.options);
-    }
-    if (
-      this.props.font_size !== nextProps.font_size ||
-      (this.props.is_scrolling && !nextProps.is_scrolling)
-    ) {
-      this._cm_refresh();
-    }
-    // In some cases (e.g., tab completion when selecting via keyboard)
-    // nextProps.value and this.props.value are the same, but they
-    // do not equal this.cm.getValue().  The complete prop changes
-    // so the component updates, but without checking cm.getValue(),
-    // we would fail to update the cm editor, which would is
-    // a disaster.  May be root cause of
-    //    https://github.com/sagemathinc/cocalc/issues/3978
-    if (
-      nextProps.value !== this.props.value ||
-      (this.cm != null && nextProps.value != this.cm.getValue())
-    ) {
-      this._cm_merge_remote(nextProps.value);
-    }
-    if (nextProps.is_focused && !this.props.is_focused) {
-      // gain focus
-      if (this.cm != null) {
-        this.focus_cm();
-      }
-    }
-    if (!nextProps.is_focused && this._cm_is_focused) {
-      // controlled loss of focus from store; we have to force
-      // this somehow.  Note that codemirror has no .blur().
-      // See http://codemirror.977696.n3.nabble.com/Blur-CodeMirror-editor-td4026158.html
-      await delay(1);
-      if (this.cm != null) {
-        this.cm.getInputField().blur();
-      }
-    }
-    if (this._vim_mode && !nextProps.is_focused && this.props.is_focused) {
-      $(this.cm.getWrapperElement()).css({ paddingBottom: 0 });
-    }
-  }
 
-  componentWillUnmount() {
-    if (this.cm != null) {
-      this._cm_save();
-      this._cm_destroy();
-    }
-  }
-
-  private focus_cm(): void {
+  function focus_cm(): void {
     if (this.cm == null) return;
     // Because we use react-window, it is critical to preventScroll
     // when focusing!  Unfortunately, CodeMirror's api does not
@@ -629,7 +650,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
   }
 
-  render_complete() {
+  function render_complete() {
     if (
       this.props.complete != null &&
       this.props.complete.get("matches") &&
@@ -646,13 +667,12 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
   }
 
-  render_cursors() {
+  function render_cursors() {
     if (this.props.cursors != null) {
       return <Cursors cursors={this.props.cursors} codemirror={this.cm} />;
     }
   }
 
-  render() {
     return (
       <div style={{ width: "100%", overflow: "auto" }}>
         {this.render_cursors()}
@@ -671,5 +691,5 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         {this.render_complete()}
       </div>
     );
-  }
 }
+)

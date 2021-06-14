@@ -16,7 +16,7 @@ import { debounce } from "lodash";
 import * as immutable from "immutable";
 import * as CodeMirror from "codemirror";
 
-import { React, ReactDOM, Rendered } from "../app-framework";
+import { React, ReactDOM, useRef } from "../app-framework";
 import { Loading } from "../r_misc";
 import * as syncstring from "smc-util/sync/editor/generic/util";
 import { JupyterActions } from "./browser-actions";
@@ -41,10 +41,10 @@ export const CellList: React.FC<CellListProps> = React.memo(
       cell_list,
       cells,
       font_size,
-      sel_ids,
-      md_edit_ids,
-      cur_id,
-      mode,
+      // sel_ids,
+      // md_edit_ids,
+      // cur_id,
+      // mode,
       cm_options: cm_options_props,
     } = props;
 
@@ -52,9 +52,10 @@ export const CellList: React.FC<CellListProps> = React.memo(
       immutable.Map<string, any>
     >(immutable.Map());
 
-    const cm = React.useRef<any>(null);
-    const cm_change = React.useRef<any>(null);
-    const cm_last_remote = React.useRef<any>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const cm = useRef<any>(null);
+    const cm_change = useRef<any>(null);
+    const cm_last_remote = useRef<any>(null);
 
     React.useEffect(() => {
       init_codemirror();
@@ -69,7 +70,7 @@ export const CellList: React.FC<CellListProps> = React.memo(
     }, []);
 
     React.useEffect(() => {
-      if (!cm_options.equals(cm_options_props)) {
+      if (cm_options_props != null && !cm_options.equals(cm_options_props)) {
         set_cm_options(cm_options_props);
       }
     }, [cm_options_props]);
@@ -86,7 +87,7 @@ export const CellList: React.FC<CellListProps> = React.memo(
       init_codemirror();
     }, [cm_options, font_size]);
 
-    function render_loading(): Rendered {
+    function render_loading() {
       return (
         <div
           style={{
@@ -205,7 +206,9 @@ export const CellList: React.FC<CellListProps> = React.memo(
     function init_codemirror(): void {
       cm_destroy();
       // TODO: avoid findDOMNode using refs
-      const node: any = $(ReactDOM.findDOMNode(this)).find("textarea")[0];
+      const node: any = $(ReactDOM.findDOMNode(wrapperRef.current)).find(
+        "textarea"
+      )[0];
       const options = cm_options != null ? cm_options.toJS() : {};
       cm.current = CodeMirror.fromTextArea(node, options);
       $(cm.current.getWrapperElement()).css({
@@ -238,6 +241,7 @@ export const CellList: React.FC<CellListProps> = React.memo(
     return (
       <div key="cells" style={style} ref="cell_list">
         <div
+          ref={wrapperRef}
           style={{
             backgroundColor: "#fff",
             padding: "15px",
