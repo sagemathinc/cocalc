@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-set -ev
-
-cd packages/static
-npm run webpack
