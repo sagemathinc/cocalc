@@ -215,7 +215,7 @@ export const ProjectControl = rclass<ReactProps>(
       return (
         <LabeledRow key="uptime" label="Uptime" style={this.rowstyle()}>
           <span style={{ color: "#666" }}>
-            <Icon name="clock-o" /> project started{" "}
+            <Icon name="clock" /> project started{" "}
             <b>{<TimeElapsed start_ts={start_ts} />}</b> ago
           </span>
         </LabeledRow>
