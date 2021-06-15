@@ -14,6 +14,7 @@ TODO:
 
 import { React, useIsMountedRef, useRef, useState } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
+import { all_fields_equal } from "smc-util/misc";
 
 import { CodeMirrorEditor } from "./codemirror-editor";
 import { CodeMirrorStatic } from "./codemirror-static";
@@ -35,16 +36,16 @@ interface CodeMirrorProps {
 }
 
 function should_memoize(prev, next) {
-  return (
-    next.id === prev.id &&
-    next.options === prev.options &&
-    next.value === prev.value &&
-    next.font_size === prev.font_size &&
-    next.is_focused === prev.is_focused &&
-    next.is_scrolling === prev.is_scrolling &&
-    next.cursors === prev.cursors &&
-    next.complete === prev.complete
-  );
+  return all_fields_equal(prev, next, [
+    "id",
+    "options",
+    "value",
+    "font_size",
+    "is_focused",
+    "is_scrolling",
+    "cursors",
+    "complete",
+  ]);
 }
 
 export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
