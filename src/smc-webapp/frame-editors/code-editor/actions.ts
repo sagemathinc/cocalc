@@ -165,10 +165,10 @@ export class Actions<
     this.store = store;
     this.is_public = is_public;
     this.terminals = new TerminalManager<CodeEditorState>(
-      (this as unknown) as Actions<CodeEditorState>
+      this as unknown as Actions<CodeEditorState>
     );
     this.code_editors = new CodeEditorManager<CodeEditorState>(
-      (this as unknown) as Actions<CodeEditorState>
+      this as unknown as Actions<CodeEditorState>
     );
 
     this.format = reuseInFlight(this.format);
@@ -1840,7 +1840,7 @@ export class Actions<
         // This happens when you have a different file being
         // edited in the same tab, e.g., multifile latex uses this.
         try {
-          return await editor.get_actions().format_action(cmd, args, true);
+          return await editor.get_actions()?.format_action(cmd, args, true);
         } catch (err) {
           // active frame is not a different code editor, so we fallback
           // to case below that we want the main doc (if there is one).
@@ -2409,9 +2409,8 @@ export class Actions<
     first: boolean = false,
     pos: number | undefined = undefined
   ): string {
-    let id: string | undefined = this._get_most_recent_active_frame_id_of_type(
-      type
-    );
+    let id: string | undefined =
+      this._get_most_recent_active_frame_id_of_type(type);
     if (id == null) {
       // no such frame, so make one
       const active_id = this._get_active_id();
@@ -2452,9 +2451,8 @@ export class Actions<
   public close_recently_focused_frame_of_type(
     type: string
   ): string | undefined {
-    const id:
-      | string
-      | undefined = this._get_most_recent_active_frame_id_of_type(type);
+    const id: string | undefined =
+      this._get_most_recent_active_frame_id_of_type(type);
     if (id != null) {
       this.close_frame(id);
       return id;
@@ -2549,17 +2547,20 @@ export class Actions<
   }
 
   // Init actions and set our new cm frame to the given path.
-  private set_frame_to_code_editor(id: string, path: string): void {
+  private async set_frame_to_code_editor(
+    id: string,
+    path: string
+  ): Promise<void> {
     const node = this._get_frame_node(id);
     if (node == null) throw Error(`no frame with id ${id}`);
 
-    // This call to get_code_editor ensures the
-    // actions/manager is already initialized.  We need
+    // This call to init_code_editor ensures the
+    // actions/manager is initialized.  We need
     // to do this here rather than in the frame-tree render
     // loop, in order to ensure that the actions aren't created
     // while rendering, as that causes a state transition which
     // react does NOT appreciate.
-    this.code_editors.get_code_editor(id, path);
+    await this.code_editors.init_code_editor(id, path);
 
     // Now actually change the path field of the frame tree, which causes
     // a render.
@@ -2568,6 +2569,10 @@ export class Actions<
 
   public get_code_editor(id: string): CodeEditor | undefined {
     return this.code_editors.get_code_editor(id);
+  }
+
+  public async init_code_editor(id: string, path: string): Promise<void> {
+    this.code_editors.init_code_editor(id, path);
   }
 
   public get_matching_frame(obj: object): string | undefined {

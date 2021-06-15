@@ -51,5 +51,6 @@ import "./webapp-css";
 // That's important so this overrides antd.
 import("smc-webapp/index.sass"); // this is a dynamic import on purpose!
 
-export { init } from "smc-webapp/entry-point";
-
+// webpack was complaining for some reason about "export { init } from...":
+import { init } from "smc-webapp/entry-point";
+export { init };
