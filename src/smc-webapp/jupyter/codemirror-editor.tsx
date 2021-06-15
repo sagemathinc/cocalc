@@ -11,7 +11,7 @@ import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 
 import * as LRU from "lru-cache";
 import { delay } from "awaiting";
-import { React, usePrevious, useState, useRef } from "../app-framework";
+import { React, usePrevious, useRef, useCallback } from "../app-framework";
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
 import { three_way_merge } from "smc-util/sync/editor/generic/util";
@@ -96,7 +96,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = React.memo(
     const vim_mode = useRef<boolean>(false);
     const cm_ref = React.createRef<HTMLPreElement>();
 
-    const [key, set_key] = useState<string | null>(null);
+    const key = useRef<string | null>(null);
+
     const prev_options = usePrevious(options);
 
     function has_frame_actions(): boolean {
@@ -105,7 +106,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = React.memo(
 
     React.useEffect(() => {
       if (has_frame_actions()) {
-        set_key(`${frame_actions.frame_id}${id}`);
+        key.current = `${frame_actions.frame_id}${id}`;
       }
       init_codemirror(options, value);
 
@@ -145,8 +146,11 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = React.memo(
     }, [value, cm.current?.getValue()]);
 
     React.useEffect(() => {
+      // can't do anything if there is no codemirror editor
+      if (cm.current == null) return;
+
       // gain focus
-      if (cm.current != null) {
+      if (is_focused && !cm_is_focused.current) {
         focus_cm();
       }
 
@@ -156,12 +160,12 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = React.memo(
           // this somehow.  Note that codemirror has no .blur().
           // See http://codemirror.977696.n3.nabble.com/Blur-CodeMirror-editor-td4026158.html
           await delay(1);
-          cm.current?.getInputField().blur();
+          cm.current.getInputField().blur();
         }
       })();
 
       if (vim_mode.current && !is_focused) {
-        $(cm.current?.getWrapperElement()).css({ paddingBottom: 0 });
+        $(cm.current.getWrapperElement()).css({ paddingBottom: 0 });
       }
     }, [is_focused]);
 
@@ -172,7 +176,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = React.memo(
           frame_actions.unregister_input_editor(id);
         }
         cm_last_remote.current = null;
-        delete cm.current.current?.save;
+        cm.current.save = null;
         if (cm_change.current != null) {
           cm.current.off("change", cm_change.current);
           cm.current.off("focus", cm_focus);
@@ -224,10 +228,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = React.memo(
         return;
       }
       const sel = cm.current.listSelections();
-      if (key != null) {
-        const cached_val = cache.get(key) ?? {}
+      if (key.current != null) {
+        const cached_val = cache.get(key.current) ?? {};
         cached_val.sel = sel;
-        cache.set(key, cached_val);
+        cache.set(key.current, cached_val);
       }
       const locs = sel.map((c) => ({
         x: c.anchor.ch,
@@ -342,8 +346,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = React.memo(
       const pos = cm.current.getCursor();
       let last_introspect_pos: undefined | { line: number; ch: number } =
         undefined;
-      if (key != null) {
-        const cached_val = cache.get(key);
+      if (key.current != null) {
+        const cached_val = cache.get(key.current);
         if (cached_val != null) {
           last_introspect_pos = cached_val.last_introspect_pos;
         }
@@ -361,10 +365,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = React.memo(
         actions.introspect_at_pos(cm.current.getValue(), 0, pos);
         last_introspect_pos = pos;
       }
-      if (key != null) {
-        const cached_val = cache.get(key) ?? {}
+      if (key.current != null) {
+        const cached_val = cache.get(key.current) ?? {};
         cached_val.last_introspect_pos = last_introspect_pos;
-        cache.set(key, cached_val);
+        cache.set(key.current, cached_val);
       }
     }
 
@@ -584,18 +588,15 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = React.memo(
 
       cm_last_remote.current = value;
       cm.current.setValue(value);
-      if (key != null) {
-        const info = cache.get(key);
+      if (key.current != null) {
+        const info = cache.get(key.current);
         if (info != null && info.sel != null) {
           cm.current
             .getDoc()
             .setSelections(info.sel, undefined, { scroll: false });
         }
       }
-      cm_change.current = underscore.debounce(
-        cm_save,
-        SAVE_DEBOUNCE_MS
-      );
+      cm_change.current = underscore.debounce(cm_save, SAVE_DEBOUNCE_MS);
       cm.current.on("change", cm_change.current);
       cm.current.on("beforeChange", (_, changeObj) => {
         if (changeObj.origin == "paste") {
