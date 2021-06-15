@@ -52,7 +52,7 @@ async function get_params(opts: GetData) {
 
   const SPLASH_IMG = fallback(
     settings.splash_image,
-    base_url + "/res/pix/cocalc-screenshot-20200128-nq8.png"
+    base_url + "/cdn/pix/cocalc-screenshot-20200128-nq8.png"
   );
 
   const BASE_URL = base_url ?? "";
@@ -102,7 +102,7 @@ interface Setup {
 export function setup_open_cocalc(opts: Setup) {
   const { app, router, db, base_url, cacheLongTerm, winston } = opts;
   winston.debug(`serving /webapp from filesystem: "${WEBAPP_PATH}"`);
-  app.set("views", "../webapp-lib");
+  app.set("views", "../webapp-lib/landing");
   app.set("view engine", "pug");
 
   // expand the scope of the service worker
@@ -122,19 +122,12 @@ export function setup_open_cocalc(opts: Setup) {
     winston.debug("open cocalc/handle_index", req.path);
     // for convenience, a simple heuristic checks for the presence of the remember_me cookie
     // that's not a security issue b/c the hub will do the heavy lifting
-    // TODO code in comments is a heuristic looking for the remember_me cookie, while when deployed the haproxy only
-    // looks for the has_remember_me value (set by the client in accounts).
-    // This could be done in different ways, it's not clear what works best.
-    //remember_me = req.cookies[opts.base_url + 'remember_me']
     const has_remember_me =
       req.cookies[auth.remember_me_cookie_name(base_url, false)] ||
       req.cookies[auth.remember_me_cookie_name(base_url, true)];
     if (has_remember_me == "true") {
-      // and remember_me?.split('$').length == 4 and not req.query.signed_out?
       res.redirect(opts.base_url + "/app");
     } else {
-      //res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
-      //res.sendFile(path_module.join(STATIC_PATH, 'index.html'), {maxAge: 0})
       const params = await get_params({ base_url, db });
       res.render("index.pug", params);
     }

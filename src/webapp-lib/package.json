@@ -1,6 +1,6 @@
 {
   "name": "webapp-lib",
-  "version": "1.2.1",
+  "version": "1.3.1",
   "description": "This sub-directory contains assets (images, code, etc.) for the smc-webapp and static pages.",
   "main": "index.js",
   "directories": {
@@ -17,5 +17,8 @@
   "license": "SEE LICENSE.md",
   "dependencies": {
     "url-loader": "^4.1.1"
+  },
+  "devDependencies": {
+    "uglify-js": "^3.13.9"
   }
 }

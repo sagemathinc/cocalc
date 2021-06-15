@@ -4,6 +4,7 @@
   "description": "CoCalc: Collaborative Calculation",
   "scripts": {
     "make": "./workspaces.py ci --packages=$npm_config_packages  && ./workspaces.py build --packages=$npm_config_packages ",
+    "build": "./workspaces.py build --packages=$npm_config_packages ",
     "clean": "./workspaces.py clean --packages=$npm_config_packages",
     "delete-package-lock": "./workspaces.py delete-package-lock --packages=$npm_config_packages",
     "status": "./workspaces.py status --packages=$npm_config_packages  2>&1 |more",

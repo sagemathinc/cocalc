@@ -31,9 +31,6 @@ program = undefined  # defined below -- can't import with nodev6 at module level
 misc_node      = require('smc-util-node/misc_node')
 SMC_ROOT       = misc_node.SMC_ROOT
 SALVUS_HOME    = misc_node.SALVUS_HOME
-OUTPUT_DIR     = misc_node.OUTPUT_DIR
-STATIC_PATH    = path_module.join(SALVUS_HOME, OUTPUT_DIR)
-WEBAPP_LIB     = misc_node.WEBAPP_LIB
 
 underscore = require('underscore')
 
@@ -353,13 +350,6 @@ init_compute_server = (cb) ->
             base_url : BASE_URL
             cb       : f
 
-update_primus = (cb) ->
-    misc_node.execute_code
-        command : path_module.join(SMC_ROOT, WEBAPP_LIB, '/primus/update_primus')
-        cb      : cb
-
-
-
 # Delete expired data from the database.
 delete_expired = (cb) ->
     async.series([
@@ -488,7 +478,7 @@ exports.start_server = start_server = (cb) ->
     BASE_URL = base_url.init(program.base_url)
     winston.debug("base_url='#{BASE_URL}'")
 
-    if program.port
+    if program.port and SMC_ROOT
         # ONLY write the base_url file if we are serving the main hub.
         # This file is used by webpack to know what base_url to use, and
         # we don't want webpack using the base_url for the share server (say).
@@ -661,11 +651,6 @@ exports.start_server = start_server = (cb) ->
                         base_url : BASE_URL
                         host     : program.host
                         cb       : cb
-                (cb) ->
-                    if (program.dev or program.update) and not program.kucalc
-                        update_primus(cb)
-                    else
-                        cb()
             ], cb)
     ], (err) =>
         if err

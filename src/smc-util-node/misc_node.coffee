@@ -21,22 +21,22 @@ exports.SALVUS_HOME = exports.SMC_ROOT = SMC_ROOT = process.env.SMC_ROOT
 exports.WEBAPP_LIB = 'webapp-lib' # was 'static' in the old days, contains js libraries
 
 # Asynchronous JSON functionality: these are slower but block the main thread *less*.
-# 
+#
 # - to_json_async - convert object to JSON string without blocking.
 #   This uses https://github.com/ckknight/async-json
-# 
+#
 # - from_json_async - convert JSON string to object/etc., without blocking,
 #   though 2x times as slow as JSON.parse.  This uses https://github.com/bjouhier/i-json
-# 
+#
 # TESTS:
-# 
+#
 # m=require('misc_node');s=JSON.stringify({x:Buffer.alloc(10000000).toString('hex')}); d=new Date(); m.from_json_async(string: s, chunk_size:10000, cb: (e, r) -> console.log(e, new Date() - d)); new Date() - d
 
 # exports.to_json_async = (opts) ->
 #     opts = defaults opts,
 #         obj        : required    # Javascript object to convert to a JSON string
 #         cb         : required    # cb(err, JSON string)
-# 
+#
 # ijson = require('i-json')
 # exports.from_json_async = (opts) ->
 #     opts = defaults opts,
@@ -617,49 +617,11 @@ exports.sanitize_html_safe = (html, cb) -> exports.sanitize_html(html, cb, false
 
 # common configuration for webpack and hub
 # inside the project, there is no SALVUS_HOME set, and the code below can't work anyways?
+# TODO: eliminate this as much as possible; it is fragile!
 if exports.SALVUS_HOME?
-    # this is the directory where webpack builds everything
-    exports.OUTPUT_DIR = "static"
     base_url_fn = path.resolve(exports.SALVUS_HOME, 'data/base_url')
     try
         exports.BASE_URL = if fs.existsSync(base_url_fn) then fs.readFileSync(base_url_fn).toString().trim() + "/" else '/'
     catch
         exports.BASE_URL = '/'  # might fail when starting local_hub due to permissions, e.g., it does in cocalc-docker,
                                 # where the base url is /
-
-    # mathjax location and version: we read it from its package.json
-    # webpack symlinks with the version in the path (MATHJAX_ROOT)
-    # this is used by the webapp (via webpack.config and the hub)
-    # the purpose is, that both of them have to know where the final directory of the mathjax root is
-
-    exports.MATHJAX_LIB      = 'smc-webapp/node_modules/mathjax'
-    mathjax_package_json     = path.resolve(exports.SALVUS_HOME, "#{exports.MATHJAX_LIB}", 'package.json')
-    # if the line below causes an exception, there is no mathjax or at the wrong location (should be in MATHJAX_LIB)
-    # without that information here, the jupyter notebook can't work
-    # hsy: disabling this for the hub, until we have a better solution.
-    # fallback: mathjax for jupyter is served from the unversioned /mathjax/ path
-    if fs.existsSync(mathjax_package_json)
-        exports.MATHJAX_VERSION = JSON.parse(fs.readFileSync(mathjax_package_json, 'utf8')).version
-    else
-        exports.MATHJAX_VERSION = null
-    # that's where webpack writes the symlink to
-    exports.MATHJAX_NOVERS   = path.join(exports.OUTPUT_DIR, "mathjax")
-    if exports.MATHJAX_VERSION?
-        exports.MATHJAX_SUBDIR = "mathjax-#{exports.MATHJAX_VERSION}"
-        exports.MATHJAX_ROOT   = path.join(exports.OUTPUT_DIR, exports.MATHJAX_SUBDIR)
-    else
-        exports.MATHJAX_SUBDIR = "mathjax"
-        exports.MATHJAX_ROOT   = exports.MATHJAX_NOVERS
-    # this is where the webapp and the jupyter notebook should get mathjax from
-    exports.MATHJAX_URL        = path.join(exports.BASE_URL, exports.MATHJAX_ROOT, 'MathJax.js')
-
-    # google analytics (or later on some other analytics provider) needs a token as a parameter
-    # if defined in data/config/google_analytics, tell webpack about it.
-    ga_snippet_fn            = path.join(exports.SALVUS_HOME, 'data', 'config', 'google_analytics')
-    # file could contain the token or nothing (empty string, see k8s/smc-webapp-static)
-    ga = null
-    if fs.existsSync(ga_snippet_fn)
-        token = fs.readFileSync(ga_snippet_fn).toString().trim()
-        if token.length > 0
-            ga = token
-    exports.GOOGLE_ANALYTICS = ga
