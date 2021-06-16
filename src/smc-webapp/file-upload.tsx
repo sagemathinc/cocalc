@@ -122,7 +122,7 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
           className="close-button-x"
           style={{ cursor: "pointer", fontSize: "18px", color: "gray" }}
         >
-          <i className="fa fa-times"></i>
+          <Icon name={"times"} />
         </span>
       </div>
     );
@@ -311,7 +311,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
               marginRight: "20px",
             }}
           >
-            <i className="fa fa-times"></i>
+            <Icon name={"times"} />
           </span>
         </div>
         {<Header />}
