@@ -41,7 +41,6 @@ USER_SWAP_MB = 1000  # amount of swap users get
 
 import errno, hashlib, json, math, os, platform, shutil, signal, socket, sys, time, uuid, random
 
-
 from subprocess import Popen, PIPE
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
@@ -150,7 +149,8 @@ def uid(project_id, kubernetes=False):
     # 2020-08-04: But it's used for cc-in-cc dev projects, and probably also docker?
     # adding .encode('utf-8') in order to fix a bug with Ubuntu 20.04's Python 3.8
     # This works all the way back to Python 2 as well.
-    n = int(hashlib.sha512(project_id.encode('utf-8')).hexdigest()[:8], 16)  # up to 2^32
+    n = int(hashlib.sha512(project_id.encode('utf-8')).hexdigest()[:8],
+            16)  # up to 2^32
     n //= 8  # up to 2^29  (floor div so will work with python3 too)
     return n if n > 65537 else n + 65537  # 65534 used by linux for user sync, etc.
 
@@ -191,13 +191,13 @@ def thread_map(callable, inputs):
 
 class Project(object):
     def __init__(
-        self,
-        project_id,  # v4 uuid string
-        dev=False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
-        projects=PROJECTS,
-        single=False,
-        kucalc=False,
-        kubernetes=False):
+            self,
+            project_id,  # v4 uuid string
+            dev=False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
+            projects=PROJECTS,
+            single=False,
+            kucalc=False,
+            kubernetes=False):
         self._dev = dev
         self._single = single
         self._kucalc = kucalc
@@ -472,10 +472,12 @@ class Project(object):
         home = os.environ['HOME']
         if os.path.exists(f"{home}/Library/Python"):
             # dev mode on macOS
-            os.environ['PYTHONPATH'] = f"{home}/Library/Python/3.8/lib/python/site-packages"
+            os.environ[
+                'PYTHONPATH'] = f"{home}/Library/Python/3.8/lib/python/site-packages"
         else:
             # dev mode on Linux
-            os.environ['PYTHONPATH'] = f"{home}/.local/lib/python3.8/site-packages"
+            os.environ[
+                'PYTHONPATH'] = f"{home}/.local/lib/python3.8/site-packages"
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
@@ -577,8 +579,6 @@ class Project(object):
                     os.environ['COFFEE_CACHE_DIR'] = os.path.join(
                         self.smc_path, 'coffee-cache')
                     # Needed to read code from system-wide installed location.
-                    os.environ[
-                        'NODE_PATH'] = '/cocalc/src/node_modules/smc-util:/cocalc/src/node_modules:/cocalc/src:/cocalc/src/smc-project/node_modules::/cocalc/src/smc-webapp/node_modules'
                     if self._single:
                         # In single-machine mode, everything is on localhost.
                         os.environ['SMC_HOST'] = 'localhost'
@@ -587,7 +587,9 @@ class Project(object):
                         if y in os.environ:
                             del os.environ[y]
                     os.chdir(self.project_path)
-                    self.cmd("smc-start")
+                    self.cmd(
+                        "cocalc-start-project-server > %s/local_hub.log 2>%s/local_hub.err &"
+                        % (self.smc_path, self.smc_path))
                 else:
                     os._exit(0)
             finally:
