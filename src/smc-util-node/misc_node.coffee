@@ -615,13 +615,3 @@ exports.sanitize_html = (html, cb, keepScripts = true, keepUnsafeAttributes = tr
 
 exports.sanitize_html_safe = (html, cb) -> exports.sanitize_html(html, cb, false, false)
 
-# common configuration for webpack and hub
-# inside the project, there is no SALVUS_HOME set, and the code below can't work anyways?
-# TODO: eliminate this as much as possible; it is fragile!
-if exports.SALVUS_HOME?
-    base_url_fn = path.resolve(exports.SALVUS_HOME, 'data/base_url')
-    try
-        exports.BASE_URL = if fs.existsSync(base_url_fn) then fs.readFileSync(base_url_fn).toString().trim() + "/" else '/'
-    catch
-        exports.BASE_URL = '/'  # might fail when starting local_hub due to permissions, e.g., it does in cocalc-docker,
-                                # where the base url is /
