@@ -18,14 +18,14 @@ import {
   useMemo,
   useRedux,
   useRef,
-  useState,
   useTypedRedux,
 } from "../../app-framework";
 import { path_split, path_to_tab, trunc_left } from "smc-util/misc";
 import { HiddenXS, Icon, Tip } from "../../r_misc";
 import { COLORS } from "smc-util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
-import { IS_SAFARI, IS_TOUCH } from "../../feature";
+import { IS_SAFARI } from "../../feature";
+import CloseX from "./close-x";
 
 export const FIXED_PROJECT_TABS = {
   files: {
@@ -90,7 +90,6 @@ type Props = PropsPath | PropsName;
 export const FileTab: React.FC<Props> = React.memo((props: Props) => {
   const { project_id, path, name, label: label_prop } = props;
   let label = label_prop; // label might be modified in some situations
-  const [x_hovered, set_x_hovered] = useState<boolean>(false);
   const actions = useActions({ project_id });
   const active_project_tab = useTypedRedux(
     { project_id },
@@ -121,9 +120,7 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     ReactDOM.findDOMNode(tab_ref.current)?.children[0].removeAttribute("href");
   });
 
-  function close_file(e) {
-    e.stopPropagation();
-    e.preventDefault();
+  function closeFile() {
     if (path == null || actions == null) return;
     actions.close_tab(path);
   }
@@ -148,7 +145,9 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
   // middle mouse click closes
   function onMouseDown(e) {
     if (e.button === 1) {
-      close_file(e);
+      e.stopPropagation();
+      e.preventDefault();
+      closeFile();
     }
   }
 
@@ -258,19 +257,6 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  const x_button_style: React.CSSProperties = {
-    float: "right",
-    whiteSpace: "nowrap",
-    fontSize: "10px",
-    marginRight: "2.5px",
-  };
-
-  const x_button_style_hovered: React.CSSProperties = {
-    float: "right",
-    whiteSpace: "nowrap",
-    marginTop: "-5px",
-  };
-
   const icon =
     path != null
       ? file_options(path)?.icon ?? "code-o"
@@ -300,29 +286,12 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
           cursor: "pointer",
         }}
       >
-        <div style={x_hovered ? x_button_style_hovered : x_button_style}>
-          {path != null && (
-            <Icon
-              onMouseEnter={
-                IS_TOUCH
-                  ? undefined
-                  : () => {
-                      set_x_hovered(true);
-                    }
-              }
-              onMouseLeave={
-                IS_TOUCH
-                  ? undefined
-                  : () => {
-                      set_x_hovered(false);
-                      actions?.clear_ghost_file_tabs();
-                    }
-              }
-              name={x_hovered ? "close-circle-two-tone" : "times"}
-              onClick={close_file}
-            />
-          )}
-        </div>
+        {path != null && (
+          <CloseX
+            closeFile={closeFile}
+            clearGhostFileTabs={() => actions?.clear_ghost_file_tabs()}
+          />
+        )}
         <div style={content_style}>
           <Icon style={icon_style} name={icon} /> {displayed_label}
         </div>
@@ -330,3 +299,4 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     </NavItem>
   );
 });
+
