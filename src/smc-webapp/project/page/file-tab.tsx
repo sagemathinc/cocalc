@@ -212,7 +212,6 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
 
   const label_style: React.CSSProperties = {
     overflow: "hidden",
-    textOverflow: "ellipsis",
     flex: 1 /* expand pushing x to the right */,
     whiteSpace: "nowrap",
   };
