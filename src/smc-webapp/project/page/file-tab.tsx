@@ -206,18 +206,13 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  const icon_style: React.CSSProperties = { fontSize: "15pt" };
-  if (path != null) {
-    icon_style.fontSize = "10pt";
-  }
-  if (has_activity) {
-    icon_style.color = "orange";
-  }
+  const icon_style: React.CSSProperties = has_activity
+    ? { color: "orange" }
+    : {};
 
   const label_style: React.CSSProperties = {
     overflow: "hidden",
     textOverflow: "ellipsis",
-    paddingLeft: "2px",
     flex: 1 /* expand pushing x to the right */,
     whiteSpace: "nowrap",
   };
@@ -281,7 +276,7 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
           display: "flex",
         }}
       >
-        <div>
+        <div style={{ paddingRight: "2px", fontSize: "10pt" }}>
           <Icon style={icon_style} name={icon} />
         </div>
         {displayed_label}

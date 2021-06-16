@@ -247,7 +247,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
           )}
           <div style={{ display: "flex", overflow: "hidden", flex: 1 }}>
             <SortableNav
-              className=""
+              className="smc-file-tabs-sortable-desktop"
               id="sortable-file-tabs"
               helperClass={"smc-file-tab-floating"}
               onSortEnd={on_sort_end}
@@ -257,7 +257,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
               distance={!IS_TOUCH ? 3 : undefined}
               pressDelay={IS_TOUCH ? 200 : undefined}
               bsStyle="pills"
-              style={{ display: "flex", overflow: "hidden", height:'32px' }}
+              style={{ display: "flex", overflow: "hidden", height: "32px" }}
             >
               {file_tabs()}
             </SortableNav>
