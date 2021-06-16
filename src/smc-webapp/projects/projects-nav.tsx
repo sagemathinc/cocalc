@@ -45,6 +45,7 @@ const GHOST_STYLE: React.CSSProperties = {
 const PROJECT_NAME_STYLE: React.CSSProperties = {
   whiteSpace: "nowrap",
   overflow: "hidden",
+  textOverflow: "ellipsis",
 } as const;
 
 const PROJECT_TAB_STYLE: React.CSSProperties = {
@@ -194,7 +195,7 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
           <Tip title={title} tip={render_tip()} placement="bottom" size="small">
             {icon}
             <span style={{ marginLeft: 5, position: "relative" }}>
-              {trunc(title, 24)}
+              {title}
             </span>
           </Tip>
         </div>

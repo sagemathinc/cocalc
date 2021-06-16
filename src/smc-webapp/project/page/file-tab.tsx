@@ -71,6 +71,7 @@ export const DEFAULT_FILE_TAB_STYLES = {
   borderRadius: "5px 5px 0px 0px",
   flexShrink: 1,
   overflow: "hidden",
+  padding: 0,
 } as const;
 
 interface Props0 {
@@ -215,6 +216,10 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
 
   const label_style: React.CSSProperties = {
     overflow: "hidden",
+    textOverflow: "ellipsis",
+    paddingLeft: "2px",
+    flex: 1 /* expand pushing x to the right */,
+    whiteSpace: "nowrap",
   };
 
   if (label == null) {
@@ -279,15 +284,7 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
         <div>
           <Icon style={icon_style} name={icon} />
         </div>
-        <div
-          style={{
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            padding: "0 3px",
-          }}
-        >
-          {displayed_label}
-        </div>
+        {displayed_label}
         {path != null && (
           <CloseX
             closeFile={closeFile}
