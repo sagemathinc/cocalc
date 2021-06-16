@@ -14,7 +14,11 @@ import * as json from "json-stable-stringify";
 import { capitalize, copy_without, field_cmp, split } from "smc-util/misc";
 import { Button, Modal, Grid, Row, Col } from "react-bootstrap";
 import { A, Icon, SearchInput, r_join } from "../r_misc";
-import { commands, CommandDescription, KeyboardCommand } from "./commands";
+import {
+  commands as create_commands,
+  CommandDescription,
+  KeyboardCommand,
+} from "./commands";
 import { evt_to_obj, keyCode_to_chr } from "./keyboard";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
@@ -111,19 +115,20 @@ interface ShortcutsProps {
   actions: JupyterActions;
   name: string;
   shortcuts: KeyboardCommand[];
-  taken: boolean;
+  taken: string;
 }
 
 const Shortcuts: React.FC<ShortcutsProps> = React.memo(
   (props: ShortcutsProps) => {
-    const { actions, name, shortcuts, taken } = props;
+    const { actions, name, shortcuts, taken: prop_taken } = props;
 
+    // TODO: editing shortcuts disabled until @ws implements it!
     const [hover, set_hover] = useState<boolean>(false);
-    const [add, set_add] = useState<boolean>(false);
+    //const [add, set_add] = useState<boolean>(false);
     const [value, set_value] = useState<string>("");
-    const [taken, set_taken] = useState<boolean>(false);
+    const [taken, set_taken] = useState<string | undefined>(undefined);
     const [shortcut, set_shortcut] = useState<
-      ReturnType<evt_to_obj> | undefined
+      ReturnType<typeof evt_to_obj> | undefined
     >(undefined);
 
     function edit_shortcut(e: any): void {
@@ -172,8 +177,8 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
     }
 
     function cancel_edit(): void {
-      set_add(false);
-      set_taken(false);
+      //set_add(false);
+      set_taken(undefined);
       set_value("");
       set_shortcut(undefined);
     }
@@ -192,9 +197,9 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
       }
       const shortcut = evt_to_obj(e, "escape");
       // Is this shortcut already taken, either in escape mode or both modes?
-      let taken = taken[json(evt_to_obj(e, "edit"))];
+      let taken = prop_taken[json(evt_to_obj(e, "edit"))];
       if (taken == null) {
-        taken = taken[json(shortcut)];
+        taken = prop_taken[json(shortcut)];
       }
       set_value(shortcut_to_string(shortcut));
       set_shortcut(shortcut);
@@ -252,7 +257,8 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
       );
     }
 
-    const enable_hover = false; // TODO: editing shortcuts disabled until I implement it!
+    // TODO: editing shortcuts disabled until @ws implements it!
+    const enable_hover = hover && false;
     return (
       <div
         style={SHORTCUTS_STYLE}
@@ -291,7 +297,7 @@ interface CommandProps {
   desc: string;
   icon?: string;
   shortcuts: KeyboardCommand[];
-  taken: boolean;
+  taken: string;
 }
 
 const Command: React.FC<CommandProps> = React.memo((props: CommandProps) => {
@@ -335,8 +341,8 @@ const Command: React.FC<CommandProps> = React.memo((props: CommandProps) => {
     <div
       style={style}
       onClick={on_click}
-      onMouseEnter={set_highlight(true)}
-      onMouseLeave={set_highlight(false)}
+      onMouseEnter={() => set_highlight(true)}
+      onMouseLeave={() => set_highlight(false)}
     >
       <Grid style={{ width: "100%" }}>
         <Row>
@@ -366,7 +372,7 @@ interface CommandListProps {
   actions: JupyterActions;
   frame_actions: NotebookFrameActions;
   editor_actions: JupyterEditorActions;
-  taken: { [name: string]: boolean };
+  taken: { [name: string]: string };
   search?: string;
 }
 
@@ -380,7 +386,7 @@ const CommandList: React.FC<CommandListProps> = React.memo(
 
     function render_commands(): Rendered[] {
       const v: any[] = [];
-      const obj = commands(actions, frame_actions, editor_actions);
+      const obj = create_commands(actions, frame_actions, editor_actions);
       for (const name in obj) {
         const val = obj[name];
         if (val != null) {
@@ -389,7 +395,8 @@ const CommandList: React.FC<CommandListProps> = React.memo(
       }
       v.sort(field_cmp("name"));
       const cmds: Rendered[] = [];
-      const search = search != null ? search.toLowerCase() || "" : undefined;
+      const search_str =
+        search != null ? search.toLowerCase() || "" : undefined;
       for (const x of v) {
         if (x.val.f == null) {
           continue;
@@ -398,7 +405,7 @@ const CommandList: React.FC<CommandListProps> = React.memo(
         if (desc == null) {
           continue;
         }
-        if (desc.toLowerCase().indexOf(search) === -1) {
+        if (desc.toLowerCase().indexOf(search_str) === -1) {
           continue;
         }
         const icon = x.val.i;
@@ -437,11 +444,11 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
       props;
 
     const [search, set_search] = useState<string>("");
-    const [commands, set_commands] = useState<{
+    const commands: {
       [name: string]: CommandDescription;
-    }>(commands(actions, frame_actions, editor_actions));
+    } = create_commands(actions, frame_actions, editor_actions);
 
-    const init_taken: { [name: string]: boolean } = {};
+    const taken: { [name: string]: string } = {};
     for (const name in commands) {
       const val = commands[name];
       if (val != null && val.k != null) {
@@ -450,13 +457,19 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
             // TODO: remove this when we switch from using event.which to event.key!
             s = copy_without(s, ["key"]) as any;
           }
-          init_taken[json(s)] = val.m || name;
+          console.log(
+            "taken[json(s)] = val.m || name;",
+            json(s),
+            taken[json(s)],
+            "val.m",
+            val.m,
+            "name",
+            name
+          );
+          taken[json(s)] = val.m || name;
         }
       }
     }
-
-    const [taken, set_taken] =
-      useState<{ [name: string]: boolean }>(init_taken);
 
     function close(): void {
       actions.close_keyboard_shortcuts();
@@ -472,7 +485,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
     }
 
     function render_symbols_list(): Rendered[] {
-      return Object.entries(SYMBOLS).map((key, val) => (
+      return Object.entries(SYMBOLS).map(([key, val]) => (
         <li key={key}>
           <span style={{ width: "20px", display: "inline-block" }}>{val}</span>{" "}
           {key}
@@ -531,7 +544,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
               <Col md={12}>
                 <SearchInput
                   autoFocus={true}
-                  value={state.search}
+                  value={search}
                   on_change={search_change}
                   placeholder={"Search commands..."}
                 />
