@@ -66,9 +66,8 @@ const BUILD_TS = date.getTime();
 const COCALC_NOCLEAN = !!process.env.COCALC_NOCLEAN;
 
 // The regexp removes the trailing slash, if there is one.
-const BASE_URL = (process.env.COCALC_BASE_URL
-  ? process.env.COCALC_BASE_URL
-  : misc_node.BASE_URL
+const BASE_URL = (
+  process.env.COCALC_BASE_URL ? process.env.COCALC_BASE_URL : misc_node.BASE_URL
 ).replace(/\/$/, "");
 
 // output build environment variables of webpack
@@ -131,9 +130,13 @@ if (MEASURE) {
 
 const cacheDirectory = "/tmp/webpack";
 
-console.log(
-  `\nUsing '${cacheDirectory}' as filesystem cache.  If things break, stop webpack\nand delete this directory!  Disk-based caching is amazing, but still buggy.\n`
-);
+if (process.env.NO_WEBPACK_DISK_CACHE) {
+  console.log(`\nNOT using filesystem cache.\n`);
+} else {
+  console.log(
+    `\nUsing '${cacheDirectory}' as filesystem cache.  If things break, stop webpack\nand delete this directory!  Disk-based caching is amazing, but still buggy.\n`
+  );
+}
 
 module.exports = {
   cache: process.env.NO_WEBPACK_DISK_CACHE
