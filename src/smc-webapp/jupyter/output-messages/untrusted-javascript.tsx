@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component, Rendered } from "smc-webapp/app-framework";
+import { React } from "smc-webapp/app-framework";
 import { List } from "immutable";
 
 interface UntrustedJavascriptProps {
@@ -11,10 +11,8 @@ interface UntrustedJavascriptProps {
   value?: string | List<string>;
 }
 
-export class UntrustedJavascript extends Component<UntrustedJavascriptProps> {
-  render(): Rendered {
-    return (
-      <span style={{ color: "#888" }}>(not running untrusted Javascript)</span>
-    );
-  }
-}
+export const UntrustedJavascript: React.FC<UntrustedJavascriptProps> = () => {
+  return (
+    <span style={{ color: "#888" }}>(not running untrusted Javascript)</span>
+  );
+};
