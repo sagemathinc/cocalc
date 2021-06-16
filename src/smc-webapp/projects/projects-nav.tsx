@@ -5,6 +5,7 @@
 
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
 import { Nav, NavItem } from "react-bootstrap";
+import CloseX from "smc-webapp/project/page/close-x";
 
 import { trunc } from "smc-util/misc";
 import { COLORS } from "smc-util/theme";
@@ -89,7 +90,6 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
       );
     });
 
-    const [x_hovered, set_x_hovered] = useState<boolean>(false);
     const actions = useActions("page");
     const active_top_tab = useTypedRedux("page", "active_top_tab");
     const project = useRedux(["projects", "project_map", project_id]);
@@ -100,12 +100,6 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
     const project_websockets = useTypedRedux("projects", "project_websockets");
     const is_anonymous = useTypedRedux("account", "is_anonymous");
     const any_alerts = useProjectStatusAlerts(project_id);
-
-    function close_tab(e) {
-      e.stopPropagation();
-      e.preventDefault();
-      actions.close_project_tab(project_id);
-    }
 
     function render_websocket_indicator() {
       return (
@@ -121,16 +115,9 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
         return;
       }
       return (
-        <Icon
-          name="times"
-          onClick={close_tab}
-          onMouseEnter={() => {
-            set_x_hovered(true);
-          }}
-          onMouseLeave={() => {
-            actions.clear_ghost_tabs();
-            set_x_hovered(false);
-          }}
+        <CloseX
+          closeFile={() => actions.close_project_tab(project_id)}
+          clearGhostFileTabs={() => actions.clear_ghost_tabs()}
         />
       );
     }
@@ -157,7 +144,6 @@ const ProjectTab: React.FC<ProjectTabProps> = React.memo(
     const nav_style_inner: CSS = {
       float: "right",
       whiteSpace: "nowrap",
-      color: x_hovered ? COLORS.TOP_BAR.X_HOVER : COLORS.TOP_BAR.X,
     };
 
     const project_state = project?.getIn(["state", "state"]);

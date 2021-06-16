@@ -213,18 +213,7 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     icon_style.color = "orange";
   }
 
-  const content_style: React.CSSProperties = {
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-  };
-  if (path != null) {
-    content_style.display = "flex";
-  }
-
   const label_style: React.CSSProperties = {
-    flex: 1,
-    padding: "0 5px",
-    marginTop: "-5px",
     overflow: "hidden",
   };
 
@@ -284,19 +273,28 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
           width: "100%",
           color,
           cursor: "pointer",
+          display: "flex",
         }}
       >
+        <div>
+          <Icon style={icon_style} name={icon} />
+        </div>
+        <div
+          style={{
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            padding: "0 3px",
+          }}
+        >
+          {displayed_label}
+        </div>
         {path != null && (
           <CloseX
             closeFile={closeFile}
             clearGhostFileTabs={() => actions?.clear_ghost_file_tabs()}
           />
         )}
-        <div style={content_style}>
-          <Icon style={icon_style} name={icon} /> {displayed_label}
-        </div>
       </div>
     </NavItem>
   );
 });
-
