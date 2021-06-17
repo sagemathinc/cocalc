@@ -93,3 +93,16 @@ export function useWindowDimensions() {
 
   return windowDimensions;
 }
+
+export function useToggle(init: boolean = false): [boolean, () => void] {
+  const [val, set_val] = useState(init);
+  const toggle = () => set_val(!val);
+  return [val, toggle];
+}
+
+export function useCounter(init: number = 0) {
+  const [val, set_val] = useState(init);
+  const inc = () => set_val(val + 1);
+  const dec = () => set_val(val - 1);
+  return { val, inc, dec };
+}
