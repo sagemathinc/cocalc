@@ -20,7 +20,7 @@ import { ReloadOutlined, DeleteOutlined } from "@ant-design/icons";
 import { PlusCircleOutlined, EditOutlined } from "@ant-design/icons";
 import { Button, Table, Typography, Form, Input, Checkbox } from "antd";
 import { Space as AntdSpace, Alert, Switch, Popconfirm, Tooltip } from "antd";
-import { ErrorDisplay, SettingBox, Space, Icon, Tip, A } from "../../r_misc";
+import { ErrorDisplay, SettingBox, Icon, Tip, A } from "../../r_misc";
 import { RestartProject } from "./restart-project";
 import { unreachable } from "smc-util/misc";
 import { DUMMY_SECRET } from "./const";
@@ -91,9 +91,8 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   const editing = new_config != null;
   const is_mounted_ref = useIsMountedRef();
   const [configs, set_configs] = useState<Config[]>([]);
-  const [form_readonly, set_form_readonly] = useState<boolean>(
-    READONLY_DEFAULT
-  );
+  const [form_readonly, set_form_readonly] =
+    useState<boolean>(READONLY_DEFAULT);
 
   const [form_gcs] = Form.useForm();
   const [form_s3] = Form.useForm();
@@ -642,7 +641,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     if (new_config == null) return;
     return (
       <>
-        <Space />
+        <span>&nbsp;</span>
         <h3 style={{ textAlign: "center" }}>
           <Typography.Text strong>
             {new_config.type.toUpperCase()}
@@ -659,13 +658,11 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   function render_body() {
     return (
       <>
-        {false && <pre>{JSON.stringify(configs, null, 2)}</pre>}
-        {false && <Space />}
         {render_controls()}
         {render_help()}
         {render_new_config()}
         {render_instructions()}
-        <Space />
+        <span>&nbsp;</span>
         {render_list()}
       </>
     );

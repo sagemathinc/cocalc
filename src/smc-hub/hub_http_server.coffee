@@ -50,7 +50,7 @@ CDN_PATH = require('@cocalc/cdn').path
 exports.init_express_http_server = (opts) ->
     opts = defaults opts,
         dev            : false       # if true, serve additional dev stuff, e.g., a proxyserver.
-        is_personal       : false       # if true, includes that is in personal mode in customize info (so frontend can take this into account).
+        is_personal    : false       # if true, includes that is in personal mode in customize info (so frontend can take this into account).
         database       : required
         compute_server : required
         cookie_options : undefined   # they're for the new behavior (legacy fallback implemented below)

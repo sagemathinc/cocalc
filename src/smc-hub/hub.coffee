@@ -24,7 +24,7 @@ underscore     = require('underscore')
 mime           = require('mime')
 winston        = require('./winston-metrics').get_logger('hub')
 memory         = require('smc-util-node/memory')
-port           = require('smc-util-node/hub-port').default
+port           = require('smc-util-node/port').default
 
 program = undefined  # defined below -- can't import with nodev6 at module level when hub.coffee used as a module.
 
@@ -653,7 +653,6 @@ exports.start_server = start_server = (cb) ->
                 hub_proxy.init_http_proxy_server
                     database       : database
                     compute_server : compute_server
-                    port           : port
                     host           : program.host
                     is_personal    : program.personal
 

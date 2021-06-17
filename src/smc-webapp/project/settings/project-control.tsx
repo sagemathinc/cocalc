@@ -20,7 +20,6 @@ import {
   TimeAgo,
   LabeledRow,
   TimeElapsed,
-  Space,
   Icon,
   SettingBox,
 } from "../../r_misc";
@@ -318,7 +317,7 @@ export const ProjectControl = rclass<ReactProps>(
             <SoftwareImageDisplay
               image={this.props.project.get("compute_image")}
             />
-            <Space />
+            &nbsp;
             <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
               <br /> You cannot change a custom software image. Instead, create
               a new project and select it there.{" "}
@@ -375,7 +374,7 @@ export const ProjectControl = rclass<ReactProps>(
               >
                 Save and Restart
               </Button>
-              <Space />
+              &nbsp;
               <Button onClick={() => this.cancel_compute_image(current_image)}>
                 Cancel
               </Button>
