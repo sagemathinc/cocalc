@@ -21,7 +21,7 @@ exports.COMPUTE_STATES = {
   archived: {
     desc:
       "Project is stored in longterm storage, and will take even longer to start.",
-    icon: "archive", // font awesome icon
+    icon: "file-archive",
     display: "Archived", // displayed name for users
     stable: true,
     to: {
@@ -42,7 +42,7 @@ exports.COMPUTE_STATES = {
 
   archiving: {
     desc: "Project is being moved to longterm storage.",
-    icon: "globe",
+    icon: "paper-plane",
     display: "Archiving",
     to: {},
     timeout: 5 * 60,
@@ -146,7 +146,7 @@ exports.COMPUTE_STATES = {
 
   stopping: {
     desc: "Project is stopping.",
-    icon: "hand-stop-o",
+    icon: "hand-stop",
     display: "Stopping",
     to: {
       save: "saving",
