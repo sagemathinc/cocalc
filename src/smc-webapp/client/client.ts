@@ -243,8 +243,8 @@ class Client extends EventEmitter implements WebappClient {
   }
 
   public remember_me_key(): string {
-    const app_base_url = (window as any).app_base_url ?? "";
-    return "remember_me" + app_base_url;
+    const app_base_path = (window as any).app_base_path ?? "";
+    return "remember_me" + app_base_path;
   }
 
   public dbg(f): Function {

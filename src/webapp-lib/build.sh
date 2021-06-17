@@ -6,9 +6,7 @@ export CWD=`pwd`
 # There are a bunch of random auto-generated bits and pieces in webapp-lib.
 # This is really bad (IMHO), but at least I can automate it here in this script.
 
-# Create  primus-engine.min.js
-# NOTE This is horribly wrong because the script to make it is crazy, AND it hardcodes
-# the base url.
+# Create  primus-engine.min.js, so we can easily serve it to clients.
 cd primus
 ./update_primus
 

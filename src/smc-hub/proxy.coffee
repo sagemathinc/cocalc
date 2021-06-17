@@ -18,7 +18,7 @@ ms      = require('ms')
 misc    = require('smc-util/misc')
 {defaults, required} = misc
 theme   = require('smc-util/theme')
-{DOMAIN_NAME} = theme
+{DOMAIN_URL} = theme
 {VERSION_COOKIE_NAME} = require('smc-util/consts')
 
 hub_projects = require('./projects')
@@ -27,6 +27,8 @@ access = require('./access')
 {process_alive, process_healthcheck, setup_agent_check} = require('./healthchecks')
 
 {once} = require('smc-util/async-utils')
+
+base_path   = require('smc-util-node/base-path').default
 
 DEBUG2 = false
 
@@ -42,7 +44,7 @@ exports.init_smc_version = init_smc_version = (db) ->
         await once(server_settings.table, 'init')
     winston.debug("init_smc_version: Table now ready!", server_settings.version)
 
-exports.version_check = (req, res, base_url) ->
+exports.version_check = (req, res) ->
     c = new Cookies(req)
     # The arbitrary name of the cookie $VERSION_COOKIE_NAME ('cocalc_version') is
     # also used in the frontend code file
@@ -50,12 +52,12 @@ exports.version_check = (req, res, base_url) ->
     # pre Nov'19: The encodeURIComponent below is because js-cookie does
     #             the same in order to *properly* deal with / characters.
     # post Nov'19: switching to universal-cookie in the client, because it supports
-    #              SameSite=none. Now, the client explicitly encodes the base_url.
+    #              SameSite=none. Now, the client explicitly encodes the base_path.
     #              The cookie name is set in smc-util/misc
-    raw_val = c.get(encodeURIComponent(base_url) + VERSION_COOKIE_NAME)
+    raw_val = c.get(encodeURIComponent(base_path) + VERSION_COOKIE_NAME)
     if not raw_val?
         # try legacy cookie fallback
-        raw_val = c.get(encodeURIComponent(base_url) + VERSION_COOKIE_NAME + "-legacy")
+        raw_val = c.get(encodeURIComponent(base_path) + VERSION_COOKIE_NAME + "-legacy")
     version = parseInt(raw_val)
     min_version = server_settings.version.version_min_browser
     winston.debug('client version_check', version, min_version)
@@ -72,7 +74,7 @@ exports.version_check = (req, res, base_url) ->
 # In the interest of security and "XSS", we strip the "remember_me" cookie from the header before
 # passing anything along via the proxy.
 # Nov'19: actually two cookies due to same-site changes. See https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
-#         also, there was no base_url support. no clue why...
+#         also, there was no base_path support. no clue why...
 exports.strip_remember_me_cookie = (cookie) ->
     if not cookie?
         return {cookie: cookie, remember_me:undefined}
@@ -81,10 +83,10 @@ exports.strip_remember_me_cookie = (cookie) ->
         remember_me = undefined
         for c in cookie.split(';')
             z = c.split('=')
-            if z[0].trim() == auth.remember_me_cookie_name('', false)
+            if z[0].trim() == auth.remember_me_cookie_name(false)
                 remember_me = z[1].trim()
             # fallback, "true" for legacy variant
-            else if (not remember_me?) and (z[0].trim() == auth.remember_me_cookie_name('', true))
+            else if (not remember_me?) and (z[0].trim() == auth.remember_me_cookie_name(true))
                 remember_me = z[1].trim()
             else
                 v.push(c)
@@ -118,11 +120,10 @@ exports.init_http_proxy_server = (opts) ->
     opts = defaults opts,
         database       : required
         compute_server : required
-        base_url       : required
         port           : required
         host           : required
         is_personal    : undefined
-    {database, compute_server, base_url, is_personal} = opts
+    {database, compute_server, is_personal} = opts
 
     winston.debug("init_http_proxy_server")
 
@@ -389,10 +390,10 @@ exports.init_http_proxy_server = (opts) ->
     http_proxy_server = http.createServer (req, res) ->
         tm = misc.walltime()
         {query, pathname} = url.parse(req.url, true)
-        req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
+        req_url = req.url.slice(base_path.length)  # strip base_path for purposes of determining project location/permissions
 
         health_data = null
-        # keep in mind, "internally", there is no base url prefix – we check for both situations
+        # keep in mind, "internally", there is no base path prefix – we check for both situations
         if req_url == "/alive" or req.url == '/alive'
             health_data = process_alive()
         else if req_url == '/healthcheck' or req.url == '/healthcheck'
@@ -413,7 +414,7 @@ exports.init_http_proxy_server = (opts) ->
         dbg('got request')
 
         # version check not needed in personal mode
-        if not is_personal and exports.version_check(req, res, base_url)
+        if not is_personal and exports.version_check(req, res)
             dbg("version check failed")
             return
 
@@ -430,7 +431,7 @@ exports.init_http_proxy_server = (opts) ->
             public_raw req_url, query, res, (err, is_public) ->
                 if err or not is_public
                     res.writeHead(500, {'Content-Type':'text/html'})
-                    res.end("Please login to <a target='_blank' href='#{DOMAIN_NAME}'>#{DOMAIN_NAME}</a> with cookies enabled, then refresh this page.")
+                    res.end("Please login to <a target='_blank' href='#{DOMAIN_URL}'>#{DOMAIN_URL}</a> with cookies enabled, then refresh this page.")
 
             return
 
@@ -441,7 +442,7 @@ exports.init_http_proxy_server = (opts) ->
                     if err or not is_public
                         winston.debug("proxy denied -- #{err}")
                         res.writeHead(500, {'Content-Type':'text/html'})
-                        res.end("Access denied. Please login to <a target='_blank' href='#{DOMAIN_NAME}'>#{DOMAIN_NAME}</a> as a user with access to this project, then refresh this page.")
+                        res.end("Access denied. Please login to <a target='_blank' href='#{DOMAIN_URL}'>#{DOMAIN_URL}</a> as a user with access to this project, then refresh this page.")
             else
                 t = "http://#{location.host}:#{location.port}"
                 if proxy_cache[t]?
@@ -491,11 +492,11 @@ exports.init_http_proxy_server = (opts) ->
         # Strip remember_me cookie from req used for websocket upgrade.
         req.headers['cookie'] = exports.strip_remember_me_cookie(req.headers['cookie']).cookie
 
-        req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
+        req_url = req.url.slice(base_path.length)  # strip base_path for purposes of determining project location/permissions
         dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
 
         # version check not needed in personal mode
-        if not is_personal and exports.version_check(req, undefined, base_url)
+        if not is_personal and exports.version_check(req)
             dbg("websocket upgrade -- version check failed")
             return
 

@@ -24,6 +24,8 @@ const hub_proxy = require("../proxy");
 
 import { createProxyServer } from "http-proxy";
 import { callback_opts } from "smc-util/async-utils";
+import { join } from "path";
+import base_path from "smc-util-node/base-path";
 
 function target_parse_req(
   url: string
@@ -72,7 +74,6 @@ async function get_port(
 export async function init_http_proxy(
   express_app: any,
   database: any,
-  base_url: string,
   compute_server: any,
   logger: any,
   is_personal: boolean = false
@@ -80,7 +81,7 @@ export async function init_http_proxy(
   await hub_proxy.init_smc_version(database);
 
   async function handle_proxy_request(req, res): Promise<void> {
-    if (!is_personal && hub_proxy.version_check(req, res, base_url)) {
+    if (!is_personal && hub_proxy.version_check(req, res)) {
       logger.debug("http_proxy: version check failed");
       return;
     }
@@ -89,7 +90,7 @@ export async function init_http_proxy(
         req.headers["cookie"]
       ).cookie;
     }
-    const req_url: string = req.url.slice(base_url.length);
+    const req_url: string = req.url.slice(base_path.length);
     const { type, key, port_number, project_id } = target_parse_req(req_url);
 
     let proxy = proxy_cache[key];
@@ -143,7 +144,7 @@ export async function init_http_proxy(
     proxy.web(req, res);
   }
 
-  const port_regexp = `^${base_url}\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/*`;
+  const port_regexp = `^${base_path}\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/*`;
 
   express_app.get(port_regexp, handle_proxy_request);
   express_app.post(port_regexp, handle_proxy_request);
@@ -152,20 +153,19 @@ export async function init_http_proxy(
 export function init_websocket_proxy(
   http_server: any,
   database: any,
-  base_url: string,
   compute_server: any,
   logger: any,
   is_personal: boolean = false
 ): void {
   async function handle_upgrade(req, socket, head): Promise<void> {
-    if (!is_personal && hub_proxy.version_check(req, undefined, base_url)) {
+    if (!is_personal && hub_proxy.version_check(req)) {
       logger.debug(
         "http_proxy.init_websocket_proxy: websocket upgrade -- version check failed"
       );
       return;
     }
     let proxy;
-    const req_url = req.url.slice(base_url.length);
+    const req_url = req.url.slice(base_path.length);
     logger.debug(
       `http_proxy.init_websocket_proxy.handle_upgrade: "${req_url}"`
     );
@@ -217,16 +217,14 @@ export function init_websocket_proxy(
 export function init_share_server(
   express_app: any,
   database: object,
-  base_url: string,
   logger: any
 ) {
-  const url = base_url + "/share";
+  const url = join(base_path, "share");
   logger.debug("init_share_server: initializing share server at ", url);
   const PROJECT_PATH: string = require("../conf").project_path();
   const share_router = require("../share/server").share_router({
     database: database,
     path: `${PROJECT_PATH}/[project_id]`,
-    base_url: base_url,
     logger: logger,
   });
   express_app.use(url, share_router);

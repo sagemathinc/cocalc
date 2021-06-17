@@ -18,8 +18,8 @@ import {
 } from "smc-util/misc";
 import { define, required } from "smc-util/fill";
 import { set_url } from "../history";
-import { APP_BASE_URL } from "../misc";
 import { track_conversion } from "../misc-page";
+import { join } from "path";
 
 // Define account actions
 export class AccountActions extends Actions<AccountState> {
@@ -236,7 +236,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     // (existence of cookie signals this is a known client)
     // note: similar code is in account.coffee → signed_in
     const exp = server_days_ago(-30).toUTCString();
-    document.cookie = `${APP_BASE_URL}has_remember_me=false; expires=${exp} ;path=/`;
+    document.cookie = `${window.app_base_path}has_remember_me=false; expires=${exp} ;path=/`;
     // Send a message to the server that the user explicitly
     // requested to sign out.  The server must clean up resources
     // and *invalidate* the remember_me cookie for this client.
@@ -260,7 +260,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     $(window).off("beforeunload", this.redux.getActions("page").check_unload);
     window.location.hash = "";
     // redirect to sign in page
-    window.location = (APP_BASE_URL + "/" + (sign_in ? "app" : "")) as any;
+    window.location = join(window.app_base_path, sign_in ? "app" : "");
   }
 
   push_state(url?: string): void {

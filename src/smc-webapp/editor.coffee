@@ -1153,7 +1153,7 @@ class CodeMirrorEditor extends FileEditor
                         date       : dialog.find(".webapp-file-print-date").text()
                         contents   : dialog.find(".webapp-file-print-contents").is(":checked")
                         subdir     : is_subdir
-                        base_url   : require('./misc').BASE_URL
+                        base_url   : require('./misc').BASE_URL  # really is a base url (not base path)
                         extra_data : misc.to_json(@syncdoc.print_to_pdf_data())  # avoid de/re-json'ing
 
                     printing.Printer(@, @filename + '.pdf').print
@@ -1921,7 +1921,7 @@ class JupyterNBViewerEmbedded extends FileEditor
             @iframe = @element.find(".smc-jupyter-nbviewer-content").find('iframe')
             {join} = require('path')
             ipynb_src = join(window.location.hostname,
-                             window.app_base_url,
+                             window.app_base_path,
                              @project_id,
                              'raw',
                              @filename)

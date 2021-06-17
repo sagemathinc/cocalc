@@ -161,7 +161,7 @@ function check_cors(
 /*
 cocalc analytics setup -- this is used in http_hub_server to setup the /analytics.js endpoint
 
-this extracts tracking information about lading pages, measure campaign performance, etc.
+this extracts tracking information about landing pages, measure campaign performance, etc.
 
 1. it sends a static js file (which is included in a script tag) to a page
 2. a unique ID is generated and stored in a cookie
@@ -172,11 +172,12 @@ The query param "fqd" (fully qualified domain) can be set to true or false (defa
 It controls if the bounce back URL mentions the domain.
 */
 
+import base_path from "smc-util-node/base-path";
+
 export async function setup_analytics_js(
   router: Router,
   database: PostgreSQL,
-  logger: any,
-  base_url: string
+  logger: any
 ): Promise<void> {
   const dbg = create_log("analytics_js/cors", logger);
 
@@ -248,11 +249,11 @@ export async function setup_analytics_js(
     res.write(`var NAME = '${analytics_cookie_name}';\n`);
     res.write(`var ID = '${uuid()}';\n`);
     res.write(`var DOMAIN = '${DOMAIN}';\n`);
-    //  BASE_URL
+    //  BASE_PATH
     if (req.query.fqd === "false") {
-      res.write(`var PREFIX = '${base_url}';\n`);
+      res.write(`var PREFIX = '${base_path}';\n`);
     } else {
-      const prefix = `//${DOMAIN}${base_url}`;
+      const prefix = `//${DOMAIN}${base_path}`;
       res.write(`var PREFIX = '${prefix}';\n\n`);
     }
     res.write(analytics_js);

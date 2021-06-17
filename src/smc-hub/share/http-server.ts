@@ -16,6 +16,7 @@ const fs_access = promisify(fs.access);
 
 import * as express from "express";
 import * as http from "http";
+import base_path from "smc-util-node/base-path";
 
 import { setup_healthchecks, Check } from "../healthchecks";
 
@@ -45,13 +46,12 @@ function extra_healthcheck(share_path: string): () => Promise<Check> {
 
 export async function init(opts: {
   database: PostgreSQL;
-  base_url: string;
   share_path: string;
   logger?: Logger;
 }): Promise<{ http_server: any; express_router: any }> {
   if (opts.logger != null) {
     opts.logger.debug(
-      `initializing share server using share_path='${opts.share_path}', base_url='${opts.base_url}'`
+      `initializing share server using share_path='${opts.share_path}', base_path='${base_path}'`
     );
   }
 
@@ -67,7 +67,6 @@ export async function init(opts: {
   const vhost = await virtual_hosts({
     database: opts.database,
     share_path: opts.share_path,
-    base_url: opts.base_url,
     logger: opts.logger,
   });
 
@@ -86,17 +85,16 @@ export async function init(opts: {
       database: opts.database,
       path: opts.share_path,
       logger: opts.logger,
-      base_url: opts.base_url,
     });
   }
 
-  if (opts.base_url) {
-    app.use(opts.base_url, router);
+  if (base_path != "/") {
+    app.use(base_path, router);
     if (opts.share_path) {
-      app.use(opts.base_url + "/share", share_router);
+      app.use(path.join(base_path, "share"), share_router);
     }
     if ((global as any).window != null) {
-      (global as any).window["app_base_url"] = opts.base_url;
+      (global as any).window["app_base_path"] = base_path;
     }
   } else {
     app.use(router);

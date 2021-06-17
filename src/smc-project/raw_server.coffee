@@ -12,24 +12,19 @@ async          = require('async')
 express        = require('express')
 express_index  = require('serve-index')
 body_parser    = require('body-parser')
+{join}         = require('path')
 misc_node = require('smc-util-node/misc_node')
-
 {defaults, required} = require('smc-util/misc')
-
 {jupyter_router} = require('./jupyter/http-server')
-
 {init_websocket_server} = require('./browser-websocket/server')
-
 {directory_listing_router} = require('./directory-listing')  # still used by HUB
-
 {upload_endpoint} = require('./upload')
-
 kucalc = require('./kucalc')
 
 exports.start_raw_server = (opts) ->
     opts = defaults opts,
         project_id : required
-        base_url   : required
+        base_path  : required
         host       : required
         data_path  : required
         home       : required
@@ -37,7 +32,7 @@ exports.start_raw_server = (opts) ->
         port       : undefined
         logger     : undefined
         cb         : cb
-    {project_id, base_url, host, data_path, home, cb} = opts
+    {project_id, base_path, host, data_path, home, cb} = opts
     opts.logger?.info("starting express http server...")
 
     raw_port_file  = misc_node.abspath("#{data_path}/raw.port")
@@ -85,7 +80,7 @@ exports.start_raw_server = (opts) ->
                     port = _port
                     fs.writeFile(raw_port_file, port+"", cb) # since not specified, write it
         (cb) ->
-            base = "#{base_url}/#{project_id}/raw/"
+            base = join(base_path, project_id, 'raw') + "/"
             opts.logger?.info("raw server: port=#{port}, host='#{host}', base='#{base}'")
 
             if kucalc.IN_KUCALC

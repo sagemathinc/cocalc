@@ -45,6 +45,7 @@ The URI schema is as follows:
 import { redux } from "./app-framework";
 import { QueryParams } from "./misc/query-params";
 import * as query_string from "query-string";
+import { join } from "path";
 
 // Determine query params part of URL based on state of the project store.
 // This also leaves unchanged any *other* params already there (i.e., not
@@ -86,7 +87,7 @@ export function update_params() {
 export function set_url(url: string) {
   last_url = url;
   const query_params = params();
-  const full_url = window.app_base_url + url + query_params;
+  const full_url = join(window.app_base_path, url + query_params);
   if (full_url === last_full_url) {
     // nothing to do
     return;
@@ -179,16 +180,14 @@ export function load_target(
 window.onpopstate = (_) => {
   load_target(
     decodeURIComponent(
-      document.location.pathname.slice((window as any).app_base_url.length + 1)
+      document.location.pathname.slice(window.app_base_path.length + 1)
     ),
     false,
     false
   );
 };
 
-export function parse_target(
-  target?: string
-):
+export function parse_target(target?: string):
   | { page: "projects" | "help" | "file-use" | "notifications" | "admin" }
   | { page: "project"; target: string }
   | {

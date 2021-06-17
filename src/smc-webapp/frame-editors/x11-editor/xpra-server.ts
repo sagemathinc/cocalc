@@ -203,9 +203,9 @@ export class XpraServer {
     if (!hostname) {
       // this will fail if hostname hasn't been set yet via an async call
       // and NOT in kucalc (where there hostname is canonical).
-      if ((window as any).app_base_url) {
+      if (window.app_base_path != "/") {
         // cocalc-in-cocalc dev
-        hostname = `project-${(window as any).app_base_url.slice(1, 37)}`;
+        hostname = `project-${window.app_base_path.slice(1, 37)}`;
       } else {
         // kucalc
         hostname = `project-${this.project_id}`;

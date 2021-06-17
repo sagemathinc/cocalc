@@ -33,6 +33,7 @@ import {
 import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
 import { ensure_project_running } from "../project/project-start-warning";
 import { Configuration, ConfigurationAspect } from "../project_configuration";
+import { join } from "path";
 
 export interface ExecOpts {
   project_id: string;
@@ -56,7 +57,6 @@ export interface ExecOutput {
   time: number; // time in ms, from user point of view.
 }
 export const ExecOutput = null; // webpack + TS es2020 modules need this
-
 
 export class ProjectClient {
   private client: WebappClient;
@@ -92,12 +92,12 @@ export class ProjectClient {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
   }): string {
-    const base = (window as any).app_base_url ?? "";
+    const base_path = (window as any).app_base_path ?? "/";
     if (opts.path[0] === "/") {
       // absolute path to the root
       opts.path = ".smc/root" + opts.path; // use root symlink, which is created by start_smc
     }
-    return encode_path(`${base}/${opts.project_id}/raw/${opts.path}`);
+    return encode_path(join(base_path, `${opts.project_id}/raw/${opts.path}`));
   }
 
   public async copy_path_between_projects(opts: {

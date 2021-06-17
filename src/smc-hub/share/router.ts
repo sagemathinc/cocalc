@@ -27,12 +27,12 @@ import * as util from "./util";
 
 import { Database, Logger } from "./types";
 import { PostgreSQL } from "../postgres/types";
+import base_path from "smc-util-node/base-path";
 
 export function share_router(opts: {
   database: Database;
   path: string;
   logger?: Logger;
-  base_url?: string;
 }) {
   let dbg;
 
@@ -41,10 +41,8 @@ export function share_router(opts: {
     (opts.database as any) as PostgreSQL
   );
 
-  const base_url: string = opts.base_url != null ? opts.base_url : "";
-
   if ((global as any).window != null) {
-    (global as any).window["app_base_url"] = base_url;
+    (global as any).window["app_base_path"] = base_path;
   }
 
   if (opts.logger != null) {
@@ -54,7 +52,7 @@ export function share_router(opts: {
     dbg = (..._args) => {};
   }
 
-  dbg("base_url = ", base_url);
+  dbg("base_path = ", base_path);
   dbg("path = ", opts.path);
 
   function log_ip(req): void {
@@ -117,7 +115,7 @@ export function share_router(opts: {
   router.get("/", async (req, res) => {
     log_ip(req);
     await ready();
-    handle_share_listing({ public_paths, base_url, settings_dao, req, res });
+    handle_share_listing({ public_paths, settings_dao, req, res });
   });
 
   router.get("/users/:account_id", async (req, res) => {
@@ -129,7 +127,6 @@ export function share_router(opts: {
       settings_dao,
       req,
       res,
-      base_url,
     });
   });
 
@@ -145,7 +142,6 @@ export function share_router(opts: {
       res,
       viewer: "raw",
       path_to_files,
-      base_url,
     });
   });
 
@@ -159,7 +155,6 @@ export function share_router(opts: {
       req,
       res,
       path_to_files,
-      base_url,
     });
   });
 

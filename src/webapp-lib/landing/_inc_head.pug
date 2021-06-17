@@ -1,4 +1,4 @@
-- var BASE_URL = htmlWebpackPlugin.options.BASE_URL;
+- var BASE_PATH = htmlWebpackPlugin.options.BASE_PATH;
 - var CDN_VERSIONS = htmlWebpackPlugin.options.CDN_VERSIONS;
 
 meta(charset="utf-8")
@@ -10,14 +10,14 @@ meta(http-equiv="X-UA-Compatible" content="IE=edge")
 meta(name="google"      content="notranslate")
 
 //- http://realfavicongenerator.net
-link(rel="apple-touch-icon", sizes="180x180", href= BASE_URL + "/webapp/apple-touch-icon.png")
-link(rel="icon", type="image/png", href=BASE_URL + "/webapp/favicon-32x32.png", sizes="32x32")
-link(rel="icon", type="image/png", href=BASE_URL + "/webapp/favicon-16x16.png", sizes="16x16")
-link(rel="manifest" href=BASE_URL + "/customize?type=manifest")
-link(rel="mask-icon", href=BASE_URL + "/webapp/safari-pinned-tab.svg", color="#fbb635")
+link(rel="apple-touch-icon", sizes="180x180", href= BASE_PATH + "/webapp/apple-touch-icon.png")
+link(rel="icon", type="image/png", href=BASE_PATH + "/webapp/favicon-32x32.png", sizes="32x32")
+link(rel="icon", type="image/png", href=BASE_PATH + "/webapp/favicon-16x16.png", sizes="16x16")
+link(rel="manifest" href=BASE_PATH + "/customize?type=manifest")
+link(rel="mask-icon", href=BASE_PATH + "/webapp/safari-pinned-tab.svg", color="#fbb635")
 
 meta(name="apple-mobile-web-app-title", content="CoCalc")
 meta(name="application-name", content="CoCalc")
 meta(name="theme-color", content="#fbb635")
 
-link(rel="stylesheet", href=BASE_URL + "/cdn/bootstrap-" + CDN_VERSIONS.bootstrap + "/bootstrap.min.css")
+link(rel="stylesheet", href=BASE_PATH + "/cdn/bootstrap-" + CDN_VERSIONS.bootstrap + "/bootstrap.min.css")

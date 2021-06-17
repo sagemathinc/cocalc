@@ -5,12 +5,6 @@
 
 /*
 This fails upon importing misc_page.
-
-To run it, change this in local-storage.ts:
-
-//const { APP_BASE_URL } = require("../misc");
-const APP_BASE_URL = "";
-
 */
 
 // trivial test, otherwise jest also fails

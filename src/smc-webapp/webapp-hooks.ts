@@ -14,7 +14,6 @@ import * as misc from "smc-util/misc";
 import { webapp_client } from "./webapp-client";
 import { should_load_target_url } from "./misc-page";
 import { get_cookie } from "./misc-page";
-import { APP_BASE_URL } from "./misc";
 import { reset_password_key } from "./client/password-reset";
 import { load_target } from "./history";
 
@@ -45,7 +44,7 @@ export function init() {
     // next time the main landing page is visited, haproxy or hub will redirect to the client
     // note: similar code is in account/AccountActions.ts → AccountActions::sign_out
     const exp = misc.server_days_ago(-30).toUTCString();
-    document.cookie = `${APP_BASE_URL}has_remember_me=true; expires=${exp} ;path=/`;
+    document.cookie = `${window.app_base_path}has_remember_me=true; expires=${exp} ;path=/`;
     // Record which hub we're connected to.
     redux.getActions("account").setState({ hub: mesg.hub });
     console.log(`Signed into ${mesg.hub} at ${new Date()}`);
@@ -102,7 +101,7 @@ export function init() {
   // Check if user has a has_remember_me cookie (regardless if it is valid or not)
   // the real "remember_me" is set to be http-only and hence not accessible from javascript (security).
   redux.getActions("account").setState({
-    has_remember_me: get_cookie(`${APP_BASE_URL}has_remember_me`) === "true",
+    has_remember_me: get_cookie(`${window.app_base_path}has_remember_me`) === "true",
   });
 
   // Ensure the hooks to process various things after user signs in

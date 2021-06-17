@@ -84,9 +84,7 @@ const Header = () => {
 
 function postUrl(project_id: string, path: string): string {
   const dest_dir = encode_path(path);
-  return (
-    window.app_base_url + `/${project_id}/raw/.smc/upload?dest_dir=${dest_dir}`
-  );
+  return join(window.app_base_path, project_id, `raw/.smc/upload?dest_dir=${dest_dir}`)
 }
 
 interface FileUploadProps {

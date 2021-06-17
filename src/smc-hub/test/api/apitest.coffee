@@ -60,7 +60,6 @@ exports.setup = (cb) ->
                 database : exports.db
                 dev      : true
                 single   : true
-                base_url : ''
                 cb       : (err, compute_server) ->
                     if err
                         cb(err)

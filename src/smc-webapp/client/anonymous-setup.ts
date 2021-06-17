@@ -7,7 +7,6 @@ import { once } from "smc-util/async-utils";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
 import { get_cookie } from "../misc-page";
-import { APP_BASE_URL } from "../misc";
 import { WelcomeFile } from "./welcome-file";
 import { WebappClient } from "./client";
 import { NAME as LAUNCH_NAME } from "../launch/actions";
@@ -27,13 +26,9 @@ the user has an account.
 let project_invite_query_param = QueryParams.get(PROJECT_INVITE_QUERY_PARAM);
 export function should_do_anonymous_setup(): boolean {
   const anonymous_query_param = QueryParams.get("anonymous");
-  // console.log("anonymous_query_param = ", anonymous_query_param);
-  // console.log("project_invite_query_param = ", project_invite_query_param);
-  // console.log("cookie = ", get_cookie(`${APP_BASE_URL}has_remember_me`));
   const resp =
     (anonymous_query_param != null || project_invite_query_param != null) &&
-    get_cookie(`${APP_BASE_URL}has_remember_me`) != "true";
-  // console.log("should_do_anonymous_setup ", resp);
+    get_cookie(`${window.app_base_path}has_remember_me`) != "true";
   return resp;
 }
 

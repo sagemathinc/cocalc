@@ -11,6 +11,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "tsc": "tsc -w",
     "testsync": "cd sync && npx jest",
     "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee; cd test && npx jest"
   },

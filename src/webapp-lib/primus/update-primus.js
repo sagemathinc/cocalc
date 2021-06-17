@@ -6,22 +6,10 @@
 const fs = require("fs");
 const path = require("path");
 const program = require("commander");
-
-const path_to_base_url = path.join(
-  process.env["SALVUS_ROOT"],
-  "data",
-  "base_url"
-);
-
-let BASE_URL = process.env.BASE_URL;
-if (BASE_URL == null) {
-  BASE_URL = fs.existsSync(path_to_base_url)
-    ? fs.readFileSync(path_to_base_url).toString().trim()
-    : "";
-}
+const BASE_PATH = require("smc-util-node/base-path").default;
 
 function update() {
-  const opts = { pathname: path.join(BASE_URL, "/hub") };
+  const opts = { pathname: path.join(BASE_PATH, "hub") };
   console.log(opts);
   const primus = new require("primus")(require("http").createServer(), opts);
   fs.writeFileSync("primus-engine.js", primus.library());

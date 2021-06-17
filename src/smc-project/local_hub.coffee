@@ -157,12 +157,12 @@ init_info_json = (cb) ->  # NOTE: cb should only be required to guarantee info.j
         nics = require('os').networkInterfaces()
         mynic = nics.eth0 ? nics.ens4
         host = mynic?[0].address
-    base_url = process.env.SMC_BASE_URL ? ''
+    base_path = process.env.SMC_BASE_PATH ? '/'
     port     = 22
     INFO =
         project_id : project_id
         location   : {host:host, username:username, port:port, path:'.'}
-        base_url   : base_url
+        base_path  : base_path
     exports.client = hub_client = new Client(INFO.project_id, winston.debug)
     fs.writeFile filename, misc.to_json(INFO), (err) ->
         if err
@@ -314,7 +314,7 @@ start_server = (tcp_port, raw_port, cb) ->
             winston.debug("starting raw server...")
             raw_server.start_raw_server
                 project_id : INFO.project_id
-                base_url   : INFO.base_url
+                base_path  : INFO.base_path
                 host       : process.env.SMC_PROXY_HOST ? INFO.location.host ? 'localhost'
                 data_path  : DATA
                 home       : process.env.HOME

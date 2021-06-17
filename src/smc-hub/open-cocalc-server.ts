@@ -20,11 +20,7 @@ const auth = require("./auth");
 import { have_active_registration_tokens } from "./utils";
 import { versions as CDN_VERSIONS } from "@cocalc/cdn";
 import { path as WEBAPP_PATH } from "webapp-lib";
-
-interface GetData {
-  base_url: string;
-  db: PostgreSQL;
-}
+import base_path from "smc-util-node/base-path";
 
 function fallback(val: string | undefined, fallback: string): string {
   if (typeof val === "string" && val.length > 0) {
@@ -34,13 +30,12 @@ function fallback(val: string | undefined, fallback: string): string {
   }
 }
 
-async function get_params(opts: GetData) {
-  const { db, base_url } = opts;
+async function get_params(db: PostgreSQL) {
   const settings = await callback2(db.get_server_settings_cached, {});
   const ANONYMOUS_SIGNUP = !(await have_active_registration_tokens(db));
   const NAME = settings.site_name;
   const DESCRIPTION = settings.site_description;
-  const PREFIX = ""; // this is unrelated of base_url, used for subdirectories
+  const PREFIX = ""; // this is unrelated of base_path, used for subdirectories
   const LOGO_SQUARE_URL = fallback(
     settings.logo_square,
     PREFIX + "webapp/cocalc-icon.svg"
@@ -52,10 +47,15 @@ async function get_params(opts: GetData) {
 
   const SPLASH_IMG = fallback(
     settings.splash_image,
-    base_url + "/cdn/pix/cocalc-screenshot-20200128-nq8.png"
+    join(base_path, "cdn/pix/cocalc-screenshot-20200128-nq8.png")
   );
 
-  const BASE_URL = base_url ?? "";
+  // NOTE: we violate the definition of base path in this one place,
+  // since this var is only used for the landing server, and the
+  // _inc_head.pug template would be really complicated having to
+  // distinguish between / and /foo... (and I plan to rewrite this
+  // very soon).
+  const BASE_PATH = base_path == '/' ? '' : base_path;
   const ORGANIZATION_EMAIL = settings.organization_email;
   const ORGANIZATION_NAME = settings.organization_name;
   const ORGANIZATION_URL = settings.organization_url;
@@ -66,7 +66,7 @@ async function get_params(opts: GetData) {
     // to be compatible with webpack
     htmlWebpackPlugin: {
       options: {
-        BASE_URL,
+        BASE_PATH,
         CDN_VERSIONS,
         PREFIX,
         COMMERCIAL,
@@ -75,7 +75,7 @@ async function get_params(opts: GetData) {
     PREFIX,
     NAME,
     DESCRIPTION,
-    BASE_URL,
+    BASE_PATH,
     LOGO_SQUARE_URL,
     LOGO_RECTANGULAR_URL,
     SPLASH_IMG,
@@ -94,20 +94,19 @@ interface Setup {
   app: any;
   router: any;
   db: PostgreSQL;
-  base_url: string;
   cacheLongTerm: (res, path) => void;
   winston: any;
 }
 
 export function setup_open_cocalc(opts: Setup) {
-  const { app, router, db, base_url, cacheLongTerm, winston } = opts;
+  const { app, router, db, cacheLongTerm, winston } = opts;
   winston.debug(`serving /webapp from filesystem: "${WEBAPP_PATH}"`);
   app.set("views", "../webapp-lib/landing");
   app.set("view engine", "pug");
 
   // expand the scope of the service worker
   router.use("/webapp/serviceWorker.js", (_req, res, next) => {
-    res.set("service-worker-allowed", path_module.join("/", base_url));
+    res.set("service-worker-allowed", base_path);
     next();
   });
 
@@ -123,12 +122,12 @@ export function setup_open_cocalc(opts: Setup) {
     // for convenience, a simple heuristic checks for the presence of the remember_me cookie
     // that's not a security issue b/c the hub will do the heavy lifting
     const has_remember_me =
-      req.cookies[auth.remember_me_cookie_name(base_url, false)] ||
-      req.cookies[auth.remember_me_cookie_name(base_url, true)];
+      req.cookies[auth.remember_me_cookie_name(false)] ||
+      req.cookies[auth.remember_me_cookie_name(true)];
     if (has_remember_me == "true") {
-      res.redirect(opts.base_url + "/app");
+      res.redirect(join(base_path, "app"));
     } else {
-      const params = await get_params({ base_url, db });
+      const params = await get_params(db);
       res.render("index.pug", params);
     }
   };

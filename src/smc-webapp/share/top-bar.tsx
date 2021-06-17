@@ -12,9 +12,9 @@ import { Settings } from "smc-hub/share/settings";
 
 interface TopBarProps {
   viewer?: string;
-  path: string; // The share url. Must have a leading `/`. {base_url}/share{path}
+  path: string; // The share url. Must have a leading `/`. {base_path}/share{path}
   project_id?: string;
-  base_url: string;
+  base_path: string;
   site_name?: string;
   is_public: IsPublicFunction;
   launch_path?: string;
@@ -26,7 +26,7 @@ export class TopBar extends Component<TopBarProps> {
     return (
       <span style={{ marginRight: "10px" }}>
         <a href={top} style={{ textDecoration: "none" }}>
-          <CoCalcLogo base_url={this.props.base_url} />{" "}
+          <CoCalcLogo base_path={this.props.base_path} />{" "}
           {this.props.settings.site_name} Public Files
         </a>
       </span>

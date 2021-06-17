@@ -37,6 +37,8 @@ MetricsRecorder  = require('./metrics-recorder')
 {setup_healthchecks} = require('./healthchecks')
 manifest = require('./manifest')
 
+base_path = require('smc-util-node/base-path').default
+
 open_cocalc = require('./open-cocalc-server')
 
 SMC_ROOT    = process.env.SMC_ROOT
@@ -47,7 +49,6 @@ CDN_PATH = require('@cocalc/cdn').path
 
 exports.init_express_http_server = (opts) ->
     opts = defaults opts,
-        base_url       : required
         dev            : false       # if true, serve additional dev stuff, e.g., a proxyserver.
         is_personal       : false       # if true, includes that is in personal mode in customize info (so frontend can take this into account).
         database       : required
@@ -124,13 +125,13 @@ exports.init_express_http_server = (opts) ->
         res.end()
 
     # setup the /analytics.js endpoint
-    setup_analytics_js(router, opts.database, winston, opts.base_url)
+    setup_analytics_js(router, opts.database, winston)
 
     # setup all healthcheck endpoints
     setup_healthchecks(router:router, db:opts.database)
 
     # this is basically the "/" index page + assets, for docker, on-prem, dev, etc. calls itself "open cocalc"
-    open_cocalc.setup_open_cocalc(app:app, router:router, db:opts.database, cacheLongTerm:cacheLongTerm, base_url:opts.base_url, winston:winston)
+    open_cocalc.setup_open_cocalc(app:app, router:router, db:opts.database, cacheLongTerm:cacheLongTerm, winston:winston)
 
     # The /static content, used by docker, development, etc.
     router.use '/static',
@@ -144,12 +145,11 @@ exports.init_express_http_server = (opts) ->
 
     # docker and development needs this endpoint in addition to serving /static
     router.get '/app', (req, res) ->
-        #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })
         res.sendFile(path_module.join(STATIC_PATH, 'app.html'), {maxAge: 0})
 
-    # The base_url javascript, which sets the base_url for the client.
-    router.get '/base_url.js', (req, res) ->
-        res.send("window.app_base_url='#{opts.base_url}';")
+    # The base_path.js javascript, which sets the base_path for the client.
+    router.get '/base_path.js', (req, res) ->
+        res.send("window.app_base_path='#{base_path}';")
 
     router.get '/metrics', (req, res) ->
         res.header("Content-Type", "text/plain")
@@ -231,7 +231,7 @@ exports.init_express_http_server = (opts) ->
             # https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
 
             winston.debug("hub_http_server/cookies #{req.query.set}=#{req.query.value}")
-            if req.query.set.endsWith(auth.remember_me_cookie_name('', true))
+            if req.query.set.endsWith(auth.remember_me_cookie_name(true))
                 # legacy = true case, without sameSite
                 cookies = new Cookies(req, res)
                 conf = misc.copy_without(opts.cookie_options, ['sameSite'])
@@ -269,7 +269,7 @@ exports.init_express_http_server = (opts) ->
                 mapping = '{configuration:window.CUSTOMIZE, registration:window.REGISTER, strategies:window.STRATEGIES}'
                 res.send("(#{mapping} = Object.freeze(#{JSON.stringify(config)}))")
             else if req.query.type == 'manifest'
-                manifest.send(res, config, opts.base_url)
+                manifest.send(res, config)
             else
                 # this is deprecated
                 if req.query.type == 'embed'
@@ -283,7 +283,7 @@ exports.init_express_http_server = (opts) ->
     router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*', '/notifications*'], (req, res) ->
         url = require('url')
         q = url.parse(req.url, true).search || "" # gives exactly "?key=value,key=..."
-        res.redirect(opts.base_url + "/app#" + req.path.slice(1) + q)
+        res.redirect(path_module.join(base_path, "app#") + req.path.slice(1) + q)
 
     # Return global status information about CoCalc
     router.get '/stats', (req, res) ->
@@ -302,15 +302,15 @@ exports.init_express_http_server = (opts) ->
                     res.send(JSON.stringify(stats, null, 1))
 
     # Get the http server and return it.
-    if opts.base_url
-        app.use(opts.base_url, router)
+    if base_path != '/'
+        app.use(base_path, router)
     else
         app.use(router)
 
     if opts.dev
         dev = require('./dev/hub-http-server')
-        await dev.init_http_proxy(app, opts.database, opts.base_url, opts.compute_server, winston, opts.is_personal)
-        dev.init_websocket_proxy(http_server, opts.database, opts.base_url, opts.compute_server, winston, opts.is_personal)
-        dev.init_share_server(app, opts.database, opts.base_url, winston);
+        await dev.init_http_proxy(app, opts.database, opts.compute_server, winston, opts.is_personal)
+        dev.init_websocket_proxy(http_server, opts.database, opts.compute_server, winston, opts.is_personal)
+        dev.init_share_server(app, opts.database, winston);
 
     return {http_server:http_server, express_router:router}

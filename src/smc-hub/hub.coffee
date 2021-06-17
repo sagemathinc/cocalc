@@ -41,7 +41,7 @@ message    = require('smc-util/message')     # message protocol between front-en
 client     = require('./client')
 sage       = require('./sage')               # sage server
 auth       = require('./auth')
-base_url   = require('./base-url')
+base_path   = require('smc-util-node/base-path').default
 {migrate_account_token} = require('./postgres/migrate-account-token')
 {init_start_always_running_projects} = require('./postgres/always-running')
 healthchecks = require('./healthchecks')
@@ -150,7 +150,7 @@ init_primus_server = (http_server) ->
     Primus = require('primus')
     # change also requires changing head.html
     opts =
-        pathname    : path_module.join(BASE_URL, '/hub')
+        pathname : path_module.join(base_path, 'hub')
     primus_server = new Primus(http_server, opts)
     dbg = (args...) -> winston.debug('primus_server:', args...)
     dbg("listening on #{opts.pathname}")
@@ -347,7 +347,6 @@ init_compute_server = (cb) ->
             dev      : program.dev
             single   : program.single
             kubernetes : program.kubernetes
-            base_url : BASE_URL
             cb       : f
 
 # Delete expired data from the database.
@@ -370,19 +369,17 @@ blob_maintenance = (cb) ->
     ], cb)
 
 start_lti_service = (cb) ->
-    BASE_URL = base_url.init(program.base_url)
     async.series([
         (cb) ->
             connect_to_database(error:99999, pool:5, cb:cb)
         (cb) ->
             init_compute_server(cb)
         (cb) ->
-            lti_service = new LTIService(port:program.port, db:database, base_url:BASE_URL, compute_server:compute_server)
+            lti_service = new LTIService(port:program.port, db:database, compute_server:compute_server)
             await lti_service.start()
     ])
 
 start_landing_service = (cb) ->
-    BASE_URL = base_url.init(program.base_url)
     # This @cocalc/landing is a private npm package that is installed on https://cocalc.com only.
     {LandingServer} = require('@cocalc/landing')
     async.series([
@@ -391,7 +388,7 @@ start_landing_service = (cb) ->
         (cb) ->
             connect_to_database(error:99999, pool:5, cb:cb)
         (cb) ->
-            landing_server = new LandingServer(port:program.port, db:database, base_url:BASE_URL)
+            landing_server = new LandingServer(port:program.port, db:database)
             await landing_server.start()
     ])
 
@@ -463,7 +460,6 @@ init_metrics = (cb) ->
 #############################################
 # Start everything running
 #############################################
-BASE_URL = ''
 metric_blocked  = undefined
 uncaught_exception_total = undefined
 
@@ -475,14 +471,7 @@ exports.start_server = start_server = (cb) ->
     if not client.COOKIE_OPTIONS.secure
         throw Error("client cookie options are not secure")
 
-    BASE_URL = base_url.init(program.base_url)
-    winston.debug("base_url='#{BASE_URL}'")
-
-    if program.port and SMC_ROOT
-        # ONLY write the base_url file if we are serving the main hub.
-        # This file is used by webpack to know what base_url to use, and
-        # we don't want webpack using the base_url for the share server (say).
-        fs.writeFileSync(path_module.join(SMC_ROOT, 'data', 'base_url'), BASE_URL)
+    winston.debug("base_path='#{path_path}'")
 
     # the order of init below is important
     winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
@@ -614,7 +603,6 @@ exports.start_server = start_server = (cb) ->
             # However it can still serve many things without database.  TODO: Eventually it could inform user
             # that database isn't working.
             x = await hub_http_server.init_express_http_server
-                base_url       : BASE_URL
                 dev            : program.dev
                 is_personal    : program.personal
                 compute_server : compute_server
@@ -631,7 +619,6 @@ exports.start_server = start_server = (cb) ->
             winston.debug("...... (takes about 10 seconds) ......")
             x = await require('./share/server').init
                 database       : database
-                base_url       : BASE_URL
                 share_path     : program.share_path
                 logger         : winston
             winston.debug("Time to initialize share server (jsdom, etc.): #{(new Date() - t0)/1000} seconds")
@@ -648,7 +635,6 @@ exports.start_server = start_server = (cb) ->
                     auth.init_passport
                         router   : express_router
                         database : database
-                        base_url : BASE_URL
                         host     : program.host
                         cb       : cb
             ], cb)
@@ -657,7 +643,7 @@ exports.start_server = start_server = (cb) ->
             winston.error("Error starting hub services! err=#{err}")
         else
             # Synchronous initialize of other functionality, now that the database, etc., are working.
-            winston.debug("base_url='#{BASE_URL}'")
+            winston.debug("base_path='#{base_path}'")
 
             if program.port and not database.is_standby
                 winston.debug("initializing primus websocket server")
@@ -669,7 +655,6 @@ exports.start_server = start_server = (cb) ->
                 hub_proxy.init_http_proxy_server
                     database       : database
                     compute_server : compute_server
-                    base_url       : BASE_URL
                     port           : program.proxy_port
                     host           : program.host
                     is_personal    : program.personal
@@ -753,7 +738,6 @@ command_line = () ->
         .option('--delete_expired', 'Delete expired data from the database', String, 'yes')
         .option('--blob_maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', String, 'yes')
         .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
-        .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
         .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)')
         .option('--foreground', 'If specified, do not run as a deamon')
         .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')

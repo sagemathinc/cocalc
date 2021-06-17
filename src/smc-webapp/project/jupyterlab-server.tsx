@@ -8,6 +8,7 @@ A button that when clicked, shows a loading indicator until the backend
 Jupyter notebook server is running, then pops it up in a new tab.
 */
 
+import { join } from "path";
 import { exec } from "../frame-editors/generic/client";
 import { React, useIsMountedRef } from "smc-webapp/app-framework";
 import { Icon, SettingBox } from "../r_misc";
@@ -20,9 +21,8 @@ interface Props {
 
 export const JupyterLabServerPanel: React.FC<Props> = ({ project_id }) => {
   const isMountedRef = useIsMountedRef();
-  const student_project_functionality = useStudentProjectFunctionality(
-    project_id
-  );
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
 
   async function get_href(): Promise<string> {
     const url = await jupyterlab_server_url(project_id);
@@ -87,5 +87,5 @@ export async function jupyterlab_server_url(
   } else {
     port = out.port;
   }
-  return `${window.app_base_url}/${project_id}/port/${port}`;
+  return join(window.app_base_path, project_id, "port", port);
 }

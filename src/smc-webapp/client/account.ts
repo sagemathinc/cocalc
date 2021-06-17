@@ -93,10 +93,10 @@ export class AccountClient {
   private async delete_remember_me_cookie(): Promise<void> {
     // This actually sets the content of the cookie to empty.
     // (I just didn't implement a delete action on the backend yet.)
-    const base_url = (window as any).app_base_url ?? "";
+    const base_path = (window as any).app_base_path ?? "/";
     const mesg = {
-      url: base_url + "/cookies",
-      set: base_url + "remember_me",
+      url: join(base_path, "cookies"),
+      set: base_path + "remember_me", // correct that there is no slash -- it's name of a cookie.
     };
     await this.cookies(mesg);
   }

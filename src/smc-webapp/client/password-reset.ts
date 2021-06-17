@@ -4,9 +4,8 @@
  */
 
 import { QueryParams } from "../misc/query-params";
-import { APP_BASE_URL } from "../misc";
 
-const NAME = `${encodeURIComponent(APP_BASE_URL)}PWRESET`;
+const NAME = `${encodeURIComponent(window.app_base_path)}PWRESET`;
 
 import Cookies from "universal-cookie";
 const cookies = new Cookies();

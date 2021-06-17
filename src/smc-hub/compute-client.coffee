@@ -81,7 +81,6 @@ compute_server_cache = undefined
 exports.compute_server = compute_server = (opts) ->
     opts = defaults opts,
         database : undefined
-        base_url : ''
         dev      : false          # dev -- for single-user *development*; compute server runs in same process as client on localhost
         single   : false          # single -- for single-server use/development; everything runs on a single machine.
         kubernetes : false        # kubernetes -- monolithic cocalc-kubernetes mode
@@ -98,11 +97,9 @@ class ComputeServerClient
             dev      : false
             single   : false
             kubernetes : false
-            base_url : ''     # base url of webserver -- passed on to local_hub so it can start servers with correct base_url
             cb       : required
         dbg = @dbg("constructor")
         dbg(misc.to_json(misc.copy_without(opts, ['cb', 'database'])))
-        @_base_url = opts.base_url
         @_project_cache = {}
         @_project_cache_cb = {}
         @_dev = opts.dev
@@ -1356,7 +1353,7 @@ class ProjectClient extends EventEmitter
                 dbg("issuing the start command")
                 @_action
                     action : "start"
-                    args   : ['--base_url', @compute_server._base_url, '--extra_env', locals.env]
+                    args   : ['--extra_env', locals.env]
                     cb     : cb
             (cb) =>
                 dbg("waiting until running")

@@ -494,10 +494,10 @@ class Project(object):
         if extra_env:
             os.environ['COCALC_EXTRA_ENV'] = extra_env
 
-    def start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
+    def start(self, cores, memory, cpu_shares, base_path, ephemeral_state,
               ephemeral_disk, member, network, extra_env):
         if self._kubernetes:
-            return self.kubernetes_start(cores, memory, cpu_shares, base_url,
+            return self.kubernetes_start(cores, memory, cpu_shares, base_path,
                                          ephemeral_state, ephemeral_disk,
                                          member, network, extra_env)
 
@@ -512,7 +512,7 @@ class Project(object):
         # Sometimes /projects/[project_id] doesn't have group/owner equal to that of the project.
         self.chown(self.project_path, False)
 
-        os.environ['SMC_BASE_URL'] = base_url
+        os.environ['SMC_BASE_PATH'] = base_path
 
         if ephemeral_state:
             os.environ['COCALC_EPHEMERAL_STATE'] = 'yes'
@@ -621,7 +621,7 @@ class Project(object):
             time.sleep(delay)
             delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
 
-    def kubernetes_start(self, cores, memory, cpu_shares, base_url,
+    def kubernetes_start(self, cores, memory, cpu_shares, base_path,
                          ephemeral_state, ephemeral_disk, member, network,
                          extra_env):
         log = self._log("kubernetes_start")
@@ -732,19 +732,19 @@ spec:
             delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
             self.cmd(cmd)
 
-    def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state,
+    def restart(self, cores, memory, cpu_shares, base_path, ephemeral_state,
                 ephemeral_disk, member, network, extra_env):
         log = self._log("restart")
         log("first stop")
         self.stop(ephemeral_state, ephemeral_disk)
         log("then start")
-        self.start(cores, memory, cpu_shares, base_url, ephemeral_state,
+        self.start(cores, memory, cpu_shares, base_path, ephemeral_state,
                    ephemeral_disk, member, network, extra_env)
 
     def get_memory(self, s):
         return 0  # no longer supported
 
-    def status(self, timeout=60, base_url=''):
+    def status(self, timeout=60, base_path=''):
         if self._kubernetes:
             return self.kubernetes_status()
         log = self._log("status")
@@ -816,7 +816,7 @@ spec:
         return s
 
     # State is just like status but *ONLY* includes the state field in the object.
-    def state(self, timeout=60, base_url=''):
+    def state(self, timeout=60, base_path=''):
         if self._kubernetes:
             return self.kubernetes_state()
 
@@ -1420,7 +1420,7 @@ def main():
         type=int,
         default=0)
     parser_start.add_argument(
-        "--base_url",
+        "--base_path",
         help=
         "passed on to local hub server so it can properly launch raw server, jupyter, etc.",
         type=str,
@@ -1453,7 +1453,7 @@ def main():
                                help="seconds to run command",
                                default=60,
                                type=int)
-    parser_status.add_argument("--base_url",
+    parser_status.add_argument("--base_path",
                                help="ignored",
                                type=str,
                                default='')
@@ -1466,7 +1466,7 @@ def main():
                               help="seconds to run command",
                               default=60,
                               type=int)
-    parser_state.add_argument("--base_url",
+    parser_state.add_argument("--base_path",
                               help="ignored",
                               type=str,
                               default='')
@@ -1565,7 +1565,7 @@ def main():
         type=int,
         default=0)
     parser_restart.add_argument(
-        "--base_url",
+        "--base_path",
         help=
         "passed on to local hub server so it can properly launch raw server, jupyter, etc.",
         type=str,

@@ -19,6 +19,7 @@ const winston = require("./winston-metrics").get_logger("email");
 import { template } from "lodash";
 import { AllSiteSettingsCached } from "smc-util/db-schema/types";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import base_path from "smc-util-node/base-path";
 
 // sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 import * as sendgrid from "@sendgrid/client";
@@ -299,13 +300,12 @@ function create_email_body(
   allow_urls_in_emails
 ): string {
   let direct_link: string;
-  let base_url: string;
   if (link2proj != null) {
-    const base_url_tokens = link2proj.split("/");
-    base_url = `${base_url_tokens[0]}//${base_url_tokens[2]}`;
+    const base_url_segments = link2proj.split("/");
+    base_url = `${base_url_segments[0]}//${base_url_segments[2]}`;
     direct_link = `Open <a href='${link2proj}'>the project '${project_title}'</a>.`;
   } else {
-    // no link2proj provided -- at show something useful:
+    // no link2proj provided -- show something useful:
     direct_link = "";
     base_url = "https://cocalc.com";
   }
@@ -817,11 +817,10 @@ export function welcome_email(opts): void {
   const site_name = fallback(settings.site_name, SITE_NAME);
   const dns = fallback(settings.dns, DNS);
   const url = `https://${dns}`;
-  const base_url = require("./base-url").base_url();
   const token_query = encodeURI(
     `email=${encodeURIComponent(opts.to)}&token=${opts.token}`
   );
-  const endpoint = os_path.join("/", base_url, "auth", "verify");
+  const endpoint = os_path.join(base_path, "auth", "verify");
   const token_url = `${url}${endpoint}?${token_query}`;
   const verify_emails = opts.settings.verify_emails ?? true;
 

@@ -16,7 +16,7 @@ import { resource_links } from "smc-webapp/misc/resource-links";
 export type IsPublicFunction = (project_id: string, path: string) => boolean;
 
 interface BasePageProps {
-  base_url: string;
+  base_path: string;
   subtitle?: string;
   viewer: "share" | "embed";
   settings: Settings;
@@ -60,12 +60,12 @@ export class BasePage extends Component<BasePageProps> {
   }
 
   private render_css(): Rendered {
-    const css = `${this.props.base_url}/share/share.css`;
+    const css = join(this.props.base_path, "share/share.css");
     return <link rel="stylesheet" href={css} />;
   }
 
   private render_favicon(): Rendered {
-    const favicon = `${this.props.base_url}/share/favicon-32x32.png`;
+    const favicon = join(this.props.base_path, "share/favicon-32x32.png");
     return <link rel="shortcut icon" href={favicon} type="image/png" />;
   }
 
@@ -103,7 +103,7 @@ gtag('config', '${this.props.settings.google_analytics}');\
   private render_resource_links(): Rendered[] {
     const prefix = `https://${join(
       this.props.settings.dns,
-      this.props.base_url
+      this.props.base_path
     )}`;
     return resource_links(prefix, true).map((link, key) => (
       <link key={key} {...link} />

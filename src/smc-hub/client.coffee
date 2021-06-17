@@ -21,7 +21,6 @@ Cookies              = require('cookies')            # https://github.com/jed/co
 misc                 = require('smc-util/misc')
 {defaults, required, to_safe_str} = misc
 message              = require('smc-util/message')
-base_url_lib         = require('./base-url')
 access               = require('./access')
 clients              = require('./clients').get_clients()
 auth                 = require('./auth')
@@ -39,6 +38,9 @@ hub_projects         = require('./projects')
 db_schema            = require('smc-util/db-schema')
 { escapeHtml }       = require("escape-html")
 {CopyPath}           = require('./copy-path')
+{remember_me_cookie_name} = require('./auth')
+path_join = require('path').join
+{base_path} = require('smc-util-node/base-path').default
 
 underscore = require('underscore')
 
@@ -164,8 +166,7 @@ class exports.Client extends EventEmitter
         # Setup remember-me related cookie handling
         @cookies = {}
         c = new Cookies(@conn.request, COOKIE_OPTIONS)
-        ##@dbg('init_conn')("cookies = '#{@conn.request.headers['cookie']}', #{base_url_lib.base_url() + 'remember_me'}, #{@_remember_me_value}")
-        @_remember_me_value = c.get(base_url_lib.base_url() + 'remember_me')
+        @_remember_me_value = c.get(remember_me_cookie_name())
 
         @check_for_remember_me()
 
@@ -435,7 +436,7 @@ class exports.Client extends EventEmitter
             # no connection or connection died
             return
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
-        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:base_url_lib.base_url()+"/cookies"))
+        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:path_join(base_path, "cookies"))
 
     set_cookie: (opts) =>
         opts = defaults opts,
@@ -450,7 +451,7 @@ class exports.Client extends EventEmitter
         if opts.ttl?
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
         @cookies[opts.name] = {value:opts.value, options:options}
-        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:base_url_lib.base_url()+"/cookies", value:opts.value))
+        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:path_join(base_path, "cookies"), value:opts.value))
 
     remember_me: (opts) =>
         return if not @conn?
@@ -504,7 +505,7 @@ class exports.Client extends EventEmitter
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
         @set_cookie  # same name also hardcoded in the client!
-            name  : base_url_lib.base_url() + 'remember_me'
+            name  : remember_me_cookie_name()
             value : @_remember_me_value
             ttl   : ttl
 

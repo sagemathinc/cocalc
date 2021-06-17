@@ -22,13 +22,13 @@ interface Logger {
 export function init_websocket_server(
   express: any,
   http_server: any,
-  base_url: string,
+  base_path: sring,
   logger: Logger,
   client: any
 ): any {
   // Create primus server object:
   const opts = {
-    pathname: join(base_url, "/.smc/ws"),
+    pathname: join(base_path, ".smc", "ws"),
     transformer: "websockets",
   };
   const primus = new Primus(http_server, opts);

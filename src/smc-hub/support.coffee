@@ -259,7 +259,7 @@ class Support
             body = body + "\n\nNo location provided."
 
         if misc.is_valid_uuid_string(opts.info.course)
-            body += "\n\nCourse: #{theme.DOMAIN_NAME}/projects/#{opts.info.course}?session="
+            body += "\n\nCourse: #{theme.DOMAIN_URL}/projects/#{opts.info.course}?session="
 
         # https://developer.zendesk.com/rest_api/docs/core/tickets#request-parameters
         ticket =

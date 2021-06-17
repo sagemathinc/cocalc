@@ -2,8 +2,6 @@
 
 Scripts for doing development of CoCalc inside of a CoCalc project.
 
-**Requirement:** 1.5GB RAM and 1GB disk space
-
 ## Initial check
 
 Things you might want to check when starting a new cocalc dev task. Use a .term for these.
@@ -15,36 +13,27 @@ Things you might want to check when starting a new cocalc dev task. Use a .term 
   - any files in ~/bin that override system commands
 
 - It also helps to restart your project before starting a new dev task, to kill leftover processes and environment settings.
-  * If you delete `~/.smc`, you **must** restart your project
+  - If you delete `~/.smc`, you **must** restart your project
 
 ## Setup
 
 Make a fork of the cocalc repository (optionally) and then clone via `git clone --recursive git://...`.
 You should have a `$HOME/cocalc` directory now.
 
-Run `npm run make` inside the `cocalc/src/` subdirectory.
-This will install all the dependencies and does some additional setup.
+Run `npm run make` inside the `cocalc/src/` subdirectory.This will install all the dependencies and does some additional setup. See `cocalc/src` for more discussion.
 
 If you ever need to update dependencies or think there is a problem with them,
 just run `npm run clean` to get rid of them and run `npm run make` again.
 
-If, after running `npm run clean`, `which forever` produces empty output, do
-```
-npm install --prefix=~/.local -g forever
-```
-before running `npm run make`. (`forever` should be installed globally, though)
-
-
 ## The servers
 
-Explicitly start each of the following scripts in their own terminal session (they will run in the foreground).  Make sure to set the environment with `source smc-env` first:
+Explicitly start each of the following scripts in their own terminal session (they will run in the foreground).  Make sure to set the environment with `source smc-env` first from `~/cocalc/src` :
 
 - `./start_postgres.py`
 
 - `./start_webpack.py`
 
 - `./start_hub.py`
-
 
 ## Information
 
@@ -62,11 +51,9 @@ to create a single tmux session with each of the servers running.
 
 Try editing smc-webapp/r_help.cjsx, e.g., changing the heading "Support" to something else.  Watch the webpack process notice the change and build.   Refresh your browser and see the change.
 
-
 ## Changing the hub server backend
 
-Edit files in smc-hub, e.g., `hub.coffee`.  Then hit control+c, then run `./start_hub.py` again.  It's slightly faster if you comment out the `./update_schema.coffee` line in `./start_hub.py`, which is safe unless the schema changes.
-
+Edit files in smc-hub, e.g., `hub.coffee`.  Then hit control+c, then run `./start_hub.py` again.  
 
 ## Connecting directly to the compute client from command line
 
@@ -130,6 +117,6 @@ Puppeteer page fetch:
     http://localhost:39187/92234d52-8a1c-4e63-bde3-f2727f5ab8b1/port/39187/app
 
 NOTES:
-* It's not https encrypted
-* The explicit port is used (:39187)
 
+- It's not https encrypted
+- The explicit port is used (:39187)

@@ -160,7 +160,13 @@ export class XpraClient extends EventEmitter {
     const i = origin.indexOf(":");
     origin = origin.slice(i);
 
-    const uri = `wss${origin}${window.app_base_url}/${this.options.project_id}/server/${port}/`;
+    const path = join(
+      window.app_base_path,
+      this.options.project_id,
+      "server",
+      `${port}`
+    );
+    const uri = `wss${origin}${path}`;
     const dpi = Math.round(BASE_DPI * window.devicePixelRatio);
     return { uri, dpi };
   }
