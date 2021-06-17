@@ -6,6 +6,7 @@
 // TODO: we should refactor our code to not have these window/document/$ references here.
 declare let window, document, $;
 
+import './editors/register-all';
 import * as async from "async";
 import * as underscore from "underscore";
 import * as immutable from "immutable";
@@ -758,7 +759,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   ): Promise<{ name: string | undefined; Editor: any }> {
     // LAZY IMPORT, so that editors are only available
     // when you are going to use them.  Helps with code splitting.
-    await import("./editors/register-all");
+    // This seemed to somehow fail for .ipynb for less
+    // than 1% of users, so we're going to disable it for now
+    // to see if that helps.
+    //await import("./editors/register-all");
 
     // Initialize the file's store and actions
     const name = await project_file.initializeAsync(
