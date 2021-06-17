@@ -508,12 +508,16 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = React.memo(
     }
 
     function update_codemirror_options(next: any, current: any): void {
-      next.forEach((value: any, option: any) => {
+      next.forEach((value: any, option: string) => {
         if (value !== current.get(option)) {
-          if (typeof value.toJS === "function") {
-            value = value.toJS();
+          if (option != "inputStyle") {
+            // note: inputStyle can not (yet) be changed in a running editor
+            // -- see https://github.com/sagemathinc/cocalc/issues/5383
+            if (typeof value?.toJS === "function") {
+              value = value.toJS();
+            }
+            cm.current.setOption(option, value);
           }
-          cm.current.setOption(option, value);
         }
       });
     }

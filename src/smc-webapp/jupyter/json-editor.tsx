@@ -165,10 +165,13 @@ export const JSONEditor: React.FC<JSONEditorProps> = React.memo(
         return;
       }
       const next_options = options(next);
-      next.forEach((value: any, option: any) => {
-        if (current == null || value !== current.get(option)) {
-          value = value?.toJS?.() ?? value;
-          cm.current.setOption(option, next_options[option]);
+      next.forEach((value: any, option: string) => {
+        if (value !== current.get(option)) {
+          if (option != "inputStyle") {
+            // note: inputStyle can not (yet) be changed in a running editor
+            // -- see https://github.com/sagemathinc/cocalc/issues/5383
+            cm.current.setOption(option, next_options[option]);
+          }
         }
       });
     }
