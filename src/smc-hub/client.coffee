@@ -436,7 +436,7 @@ class exports.Client extends EventEmitter
             # no connection or connection died
             return
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
-        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:path_join(base_path, "cookies"))
+        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:path_join(base_path, "cookies")))
 
     set_cookie: (opts) =>
         opts = defaults opts,

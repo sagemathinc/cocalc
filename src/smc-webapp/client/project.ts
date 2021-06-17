@@ -92,7 +92,7 @@ export class ProjectClient {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
   }): string {
-    const base_path = (window as any).app_base_path ?? "/";
+    const base_path = window.app_base_path;
     if (opts.path[0] === "/") {
       // absolute path to the root
       opts.path = ".smc/root" + opts.path; // use root symlink, which is created by start_smc

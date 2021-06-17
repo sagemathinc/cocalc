@@ -25,15 +25,15 @@ if len(sys.argv) > 1:
     if 'kucalc' in sys.argv[1:]:
         kucalc = '--kucalc'
     if 'lti' in sys.argv[1:]:
-        lti = '--lti'
+        lti = '--lti-server'
     if 'landing' in sys.argv[1:]:
-        landing = '--landing'
+        landing = '--landing-server'
     if 'personal' in sys.argv[1:]:
         personal = '--personal'
     if 'prod' in sys.argv[1:]:
         devmode = ''
 
-cmd = "cd ../../ && . smc-env &&  service_hub.py {devmode} --foreground --hostname=0.0.0.0 --port={hub_port} --agent_port={agent_port} --share_port=0 --proxy_port=0 --gap=0 --mentions --base_url={base_url} {test} {kucalc} {lti} {landing} {personal} start".format(
+cmd = "cd ../../ && . smc-env &&  service_hub.py {devmode} --foreground --hostname=0.0.0.0 --websocket-server --agent_port={agent_port} --gap=0 --mentions {test} {kucalc} {lti} {landing} {personal} start".format(
     base_url=base_url,
     hub_port=ports['hub'],
     agent_port=ports['agent-port'],

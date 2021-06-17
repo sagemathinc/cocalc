@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -ev
 
-. smc-env
 cd smc-hub
+
 npm run build
-cd ..
+
 pkill -f run/hub.js || true
 pkill -f dist/local_hub.js  || true
-./dev/project/start_hub.py >out 2>err &
+
+NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --dev --websocket_server  --foreground --host=0.0.0.0 --mentions >out 2>err &
 
 tail -f out err

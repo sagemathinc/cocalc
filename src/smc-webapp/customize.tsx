@@ -139,7 +139,7 @@ async function init_customize() {
   let customize;
   await retry_until_success({
     f: async () => {
-      const url = join((window as any).app_base_path, "customize");
+      const url = join(window.app_base_path, "customize");
       try {
         customize = await (await fetch(url)).json();
       } catch (err) {

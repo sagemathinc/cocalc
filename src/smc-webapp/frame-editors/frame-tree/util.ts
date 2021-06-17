@@ -22,7 +22,7 @@ export function parse_path(path: string): {
 }
 
 /* Declare to Typescript that window has an extra app_base_path
-   string param, so we don't have to write (window as any).app_base_path */
+   string attribute that is defined. */
 
 declare global {
   interface Window {

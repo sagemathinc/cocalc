@@ -24,6 +24,7 @@ underscore     = require('underscore')
 mime           = require('mime')
 winston        = require('./winston-metrics').get_logger('hub')
 memory         = require('smc-util-node/memory')
+port           = require('smc-util-node/hub-port').default
 
 program = undefined  # defined below -- can't import with nodev6 at module level when hub.coffee used as a module.
 
@@ -164,7 +165,6 @@ init_primus_server = (http_server) ->
             database       : database
             compute_server : compute_server
             host           : program.host
-            port           : program.port
             personal       : program.personal
         dbg("num_clients=#{misc.len(clients)}")
 
@@ -375,7 +375,7 @@ start_lti_service = (cb) ->
         (cb) ->
             init_compute_server(cb)
         (cb) ->
-            lti_service = new LTIService(port:program.port, db:database, compute_server:compute_server)
+            lti_service = new LTIService(db:database, compute_server:compute_server)
             await lti_service.start()
     ])
 
@@ -388,7 +388,7 @@ start_landing_service = (cb) ->
         (cb) ->
             connect_to_database(error:99999, pool:5, cb:cb)
         (cb) ->
-            landing_server = new LandingServer(port:program.port, db:database)
+            landing_server = new LandingServer(db:database)
             await landing_server.start()
     ])
 
@@ -471,10 +471,9 @@ exports.start_server = start_server = (cb) ->
     if not client.COOKIE_OPTIONS.secure
         throw Error("client cookie options are not secure")
 
-    winston.debug("base_path='#{path_path}'")
+    winston.debug("base_path='#{base_path}'")
 
     # the order of init below is important
-    winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
     winston.info("using database #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     http_server = express_router = undefined
@@ -493,7 +492,7 @@ exports.start_server = start_server = (cb) ->
 
     async.series([
         (cb) ->
-            if not program.port
+            if not program.websocket_server
                 cb(); return
             init_metrics(cb)
         (cb) ->
@@ -507,7 +506,8 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
-            if not program.port
+            console.log("XXX", program.websocket_server, program.dev, database.is_standby)
+            if not program.websocket_server
                 cb(); return
             if not database.is_standby and (program.dev or program.update)
                 winston.debug("updating the database schema...")
@@ -538,7 +538,7 @@ exports.start_server = start_server = (cb) ->
                 winston.debug("not handling mentions");
             cb()
         (cb) ->
-            if not program.port
+            if not program.websocket_server
                 cb(); return
             try
                 winston.debug("initializing stripe support...")
@@ -547,7 +547,7 @@ exports.start_server = start_server = (cb) ->
             catch err
                 cb(err)
         (cb) ->
-            if not program.port
+            if not program.websocket_server
                 cb(); return
             winston.debug("initializing zendesk support...")
             init_support(cb)
@@ -597,8 +597,6 @@ exports.start_server = start_server = (cb) ->
             init_start_always_running_projects(database)  # is async but runs forever, so don't wait for it!
             cb(); return
         (cb) ->
-            if not program.port
-                cb(); return
             # proxy server and http server; Some of this working etc. *relies* on compute_server having been created.
             # However it can still serve many things without database.  TODO: Eventually it could inform user
             # that database isn't working.
@@ -609,11 +607,14 @@ exports.start_server = start_server = (cb) ->
                 database       : database
                 cookie_options : client.COOKIE_OPTIONS
             {http_server, express_router} = x
-            winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
-            http_server.listen(program.port, program.host, cb)
+            winston.debug("starting express webserver listening on #{program.host}:#{port}")
+            http_server.listen(port, program.host, cb)
         (cb) ->
-            if not program.share_port
+            if not program.share_server
                 cb(); return
+            # TODO: we need to redo this like the dev server, so
+            # it's just a different path on the same server, not
+            # a separate server fighting for the port.
             t0 = new Date()
             winston.debug("initializing the share server on port #{program.share_port}")
             winston.debug("...... (takes about 10 seconds) ......")
@@ -622,22 +623,19 @@ exports.start_server = start_server = (cb) ->
                 share_path     : program.share_path
                 logger         : winston
             winston.debug("Time to initialize share server (jsdom, etc.): #{(new Date() - t0)/1000} seconds")
-            winston.debug("starting share express webserver listening on #{program.share_host}:#{program.port}")
-            x.http_server.listen(program.share_port, program.host, cb)
+            winston.debug("starting share express webserver listening on #{program.share_host}:#{port}")
+            x.http_server.listen(port, program.host, cb)
         (cb) ->
             if database.is_standby
                 cb(); return
-            if not program.port
+            if not program.websocket_server
                 cb(); return
-            async.parallel([
-                (cb) ->
-                    # init authentication via passport (requires database)
-                    auth.init_passport
-                        router   : express_router
-                        database : database
-                        host     : program.host
-                        cb       : cb
-            ], cb)
+            # init authentication via passport (requires database)
+            auth.init_passport
+                router   : express_router
+                database : database
+                host     : program.host
+                cb       : cb
     ], (err) =>
         if err
             winston.error("Error starting hub services! err=#{err}")
@@ -645,43 +643,20 @@ exports.start_server = start_server = (cb) ->
             # Synchronous initialize of other functionality, now that the database, etc., are working.
             winston.debug("base_path='#{base_path}'")
 
-            if program.port and not database.is_standby
+            if program.websocket_server and not database.is_standby
                 winston.debug("initializing primus websocket server")
                 init_primus_server(http_server)
 
-            if program.proxy_port
-                winston.debug("initializing the http proxy server on port #{program.proxy_port}")
+            if program.proxy_server
+                winston.debug("initializing the http proxy server on port #{port}")
                 # proxy's http server has its own minimal health check – we only enable the agent check
                 hub_proxy.init_http_proxy_server
                     database       : database
                     compute_server : compute_server
-                    port           : program.proxy_port
+                    port           : port
                     host           : program.host
                     is_personal    : program.personal
 
-            if program.port or program.share_port or program.proxy_port
-                winston.debug("Starting registering periodically with the database and updating a health check...")
-
-                if program.test
-                    winston.debug("setting up hub_register_cb for testing")
-                    hub_register_cb = (err) ->
-                        if err
-                            winston.debug("hub_register_cb err:", err)
-                            process.exit(1)
-                        else
-                            process.exit(0)
-                else
-                    hub_register_cb = undefined
-
-                hub_register.start
-                    database   : database
-                    clients    : clients
-                    host       : program.host
-                    port       : program.port
-                    interval_s : REGISTER_INTERVAL_S
-                    cb         : hub_register_cb
-
-                winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
         cb?(err)
     )
 
@@ -720,11 +695,13 @@ command_line = () ->
     default_db = process.env.PGHOST ? 'localhost'
 
     program.usage('[start/stop/restart/status/nodaemon] [options]')
-        .option('--port <n>', 'port to listen on (default: 5000; 0 -- do not start)', ((n)->parseInt(n)), 5000)
-        .option('--proxy_port <n>', 'port that the proxy server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
-        .option('--agent_port <n>', 'port for HAProxy agent-check (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
+        .option('--websocket_server', 'run the websocket server')
+        .option('--proxy_server', 'run the proxy server')
+        .option('--share_server', 'run the share server')
+        .option('--lti_server', 'just start the LTI service')
+        .option('--landing_server', 'run the landing pages server')
         .option('--share_path [string]', 'path that the share server finds shared files at (default: "")', String, '')
-        .option('--share_port <n>', 'port that the share server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
+        .option('--agent_port <n>', 'port for HAProxy agent-check (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
         .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
         .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
         .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
@@ -748,8 +725,6 @@ command_line = () ->
         .option('--kubernetes', 'if given, then run in mode for cocalc-kubernetes (monolithic but in Kubernetes)')
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
         .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
-        .option('--lti', 'just start the LTI service')
-        .option('--landing', 'serve landing pages')
         .option('--personal', 'run in VERY UNSAFE personal mode; there is only one user and no authentication')
         .parse(process.argv)
 
@@ -796,14 +771,14 @@ command_line = () ->
             else
                  console.log("User added to project.")
             process.exit()
-    else if program.lti
+    else if program.lti_server
         console.log("LTI MODE")
         start_lti_service()
     else if program.landing
         console.log("LANDING PAGE MODE")
         start_landing_service()
     else
-        console.log("Running hub; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}, share_port=#{program.share_port}")
+        console.log("Running hub; pidfile=#{program.pidfile}")
         # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
         if program.foreground
             start_server (err) ->

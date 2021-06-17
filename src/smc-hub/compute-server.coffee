@@ -31,7 +31,7 @@ misc        = require('smc-util/misc')
 
 sqlite      = require('smc-util-node/sqlite')
 
-conf        = require('./conf')
+PROJECT_PATH = require('smc-util-node/data').projects
 
 
 # Set the log level
@@ -76,7 +76,6 @@ smc_compute = (opts) =>
         # prior to encapsulating the global "/cocalc/..." setup, this would have picked up the global installation.
         env = {PYTHONPATH: os_path.join(process.env.SMC_ROOT, 'smc_pyutil/')}
         command = os_path.join(process.env.SMC_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
-        PROJECT_PATH = conf.project_path()
         v = ['--dev', "--projects", PROJECT_PATH]
     else
         winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")

@@ -26,6 +26,7 @@ import { createProxyServer } from "http-proxy";
 import { callback_opts } from "smc-util/async-utils";
 import { join } from "path";
 import base_path from "smc-util-node/base-path";
+import { projects as PROJECT_PATH } from "smc-util-node/data";
 
 function target_parse_req(
   url: string
@@ -221,7 +222,6 @@ export function init_share_server(
 ) {
   const url = join(base_path, "share");
   logger.debug("init_share_server: initializing share server at ", url);
-  const PROJECT_PATH: string = require("../conf").project_path();
   const share_router = require("../share/server").share_router({
     database: database,
     path: `${PROJECT_PATH}/[project_id]`,
