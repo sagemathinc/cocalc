@@ -4,7 +4,6 @@
  */
 
 import { DOMAIN_URL } from "smc-util/theme";
-import { join } from "path";
 
 // this BASE_URL really is the base *url* -- it starts with http,
 // and does NOT end with /

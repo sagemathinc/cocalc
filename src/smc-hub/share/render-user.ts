@@ -25,7 +25,6 @@ export function render_user(opts: {
   paths_order: List<string>;
   settings: Settings;
 }): void {
-  opts.base_path = base_path;
-  const component = React.createElement(UserPage, opts);
+  const component = React.createElement(UserPage, { ...opts, base_path });
   react_support.render(opts.res, component);
 }

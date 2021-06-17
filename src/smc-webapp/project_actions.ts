@@ -6,6 +6,7 @@
 // TODO: we should refactor our code to not have these window/document/$ references here.
 declare let window, document, $;
 
+import { join } from "path";
 import * as async from "async";
 import * as underscore from "underscore";
 import * as immutable from "immutable";

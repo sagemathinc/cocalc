@@ -12,10 +12,10 @@
 // - "webapp" refers to files in SMC_ROOT/webapp-lib
 // - several aspects can be modified via the administrator's tab / "site settings"
 
+import { join } from "path";
 import { PostgreSQL } from "./postgres/types";
 import { callback2 } from "smc-util/async-utils";
 import * as express from "express";
-import * as path_module from "path";
 const auth = require("./auth");
 import { have_active_registration_tokens } from "./utils";
 import { versions as CDN_VERSIONS } from "@cocalc/cdn";

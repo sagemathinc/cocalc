@@ -6,6 +6,7 @@
 /*
 Functions for getting or formatting url's for various backend endpoints
 */
+import { join } from "path";
 
 // TODO: seperate front specific code that uses this stuff;
 // interestingly, removing "window" here triggers a problem

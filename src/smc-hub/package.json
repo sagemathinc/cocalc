@@ -118,6 +118,7 @@
   },
   "scripts": {
     "build": "tsc && coffee -m -c -o dist/ .",
+    "tsc": "tsc -w",
     "test": "(npm run testpg && npm run testapi && npm run testmisc && npm run testkucalc); rc=$?; ../scripts/mocha_clean.sh; exit $rc",
     "testpg": "echo 'TEST POSTGRES'; SMC_DB_RESET=true SMC_TEST=true time node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/postgres/*.coffee",
     "testapi": "echo 'TEST API'; SMC_DB_RESET=true SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/api/*.coffee",

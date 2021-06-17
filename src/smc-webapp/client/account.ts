@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { join } from "path";
 import { callback } from "awaiting";
 declare const $: any; // jQuery
 import * as message from "smc-util/message";
@@ -93,7 +94,7 @@ export class AccountClient {
   private async delete_remember_me_cookie(): Promise<void> {
     // This actually sets the content of the cookie to empty.
     // (I just didn't implement a delete action on the backend yet.)
-    const base_path = (window as any).app_base_path ?? "/";
+    const base_path = window.app_base_path;
     const mesg = {
       url: join(base_path, "cookies"),
       set: base_path + "remember_me", // correct that there is no slash -- it's name of a cookie.

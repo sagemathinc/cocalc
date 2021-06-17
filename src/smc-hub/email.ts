@@ -300,6 +300,7 @@ function create_email_body(
   allow_urls_in_emails
 ): string {
   let direct_link: string;
+  let base_url: string;
   if (link2proj != null) {
     const base_url_segments = link2proj.split("/");
     base_url = `${base_url_segments[0]}//${base_url_segments[2]}`;

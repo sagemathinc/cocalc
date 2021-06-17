@@ -5,6 +5,7 @@
 
 // Use Xpra to provide X11 server.
 
+import { join } from "path";
 import { retry_until_success } from "smc-util/async-utils";
 import { reuseInFlight } from "async-await-utils/hof";
 import { ConnectionStatus } from "../frame-tree/types";
