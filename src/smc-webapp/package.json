@@ -42,6 +42,7 @@
     "@jupyter-widgets/output": "^1.1.2",
     "@jupyterlab/services": "^3.2.1",
     "@phosphor/widgets": "^1.9.3",
+    "@react-hook/hover": "^4.0.0",
     "@zippytech/react-notify-resize": "^4.0.4",
     "ansi-to-react": "^6.0.10",
     "antd": "^4.11.1",

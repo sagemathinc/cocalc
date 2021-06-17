@@ -266,9 +266,8 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
     // Otherwise, Shift+tab in Jupyter is introspect.
     const pos = this.cm.getCursor();
-    let last_introspect_pos:
-      | undefined
-      | { line: number; ch: number } = undefined;
+    let last_introspect_pos: undefined | { line: number; ch: number } =
+      undefined;
     if (this.key != null && cache[this.key]) {
       last_introspect_pos = cache[this.key].last_introspect_pos;
     }
@@ -427,12 +426,16 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   };
 
   update_codemirror_options = (next: any, current: any): void => {
-    next.forEach((value: any, option: any) => {
+    next.forEach((value: any, option: string) => {
       if (value !== current.get(option)) {
-        if (typeof value.toJS === "function") {
-          value = value.toJS();
+        if (option != "inputStyle") {
+          // note: inputStyle can not (yet) be changed in a running editor
+          // -- see https://github.com/sagemathinc/cocalc/issues/5383
+          if (typeof value?.toJS === "function") {
+            value = value.toJS();
+          }
+          this.cm.setOption(option, value);
         }
-        this.cm.setOption(option, value);
       }
     });
   };

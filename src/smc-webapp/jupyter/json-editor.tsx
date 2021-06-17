@@ -143,10 +143,13 @@ export class JSONEditor extends Component<JSONEditorProps, JSONEditorState> {
       return;
     }
     const next_options = this.options(next);
-    next.forEach((value: any, option: any) => {
+    next.forEach((value: any, option: string) => {
       if (value !== current.get(option)) {
-        value = (value != null && value.toJS && value.toJS()) || value;
-        this.cm.setOption(option, next_options[option]);
+        if (option != "inputStyle") {
+          // note: inputStyle can not (yet) be changed in a running editor
+          // -- see https://github.com/sagemathinc/cocalc/issues/5383
+          this.cm.setOption(option, next_options[option]);
+        }
       }
     });
   }

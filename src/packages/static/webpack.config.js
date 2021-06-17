@@ -129,9 +129,13 @@ if (MEASURE) {
 
 const cacheDirectory = "/tmp/webpack";
 
-console.log(
-  `\nUsing '${cacheDirectory}' as filesystem cache.  If things break, stop webpack\nand delete this directory!  Disk-based caching is amazing, but still buggy.\n`
-);
+if (process.env.NO_WEBPACK_DISK_CACHE) {
+  console.log(`\nNOT using filesystem cache.\n`);
+} else {
+  console.log(
+    `\nUsing '${cacheDirectory}' as filesystem cache.  If things break, stop webpack\nand delete this directory!  Disk-based caching is amazing, but still buggy.\n`
+  );
+}
 
 module.exports = {
   cache: process.env.NO_WEBPACK_DISK_CACHE
