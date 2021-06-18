@@ -258,6 +258,7 @@ const IconSpec = {
   database: DatabaseOutlined,
   desktop: DesktopOutlined,
   discord: { IconFont: "discord" },
+  docker: { IconFont: "docker" },
   "dot-circle": { IconFont: "dot-circle" },
   edit: EditOutlined,
   envelope: { IconFont: "envelope" },
