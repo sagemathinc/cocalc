@@ -150,7 +150,7 @@ for (const ext in codemirror_associations) {
 // noext = means file with no extension but the given name.
 file_associations["noext-dockerfile"] = {
   editor: "codemirror",
-  icon: "fa-ship",
+  icon: "docker",
   opts: { mode: "dockerfile", indent_unit: 2, tab_size: 2 },
   name: "Dockerfile",
   exclude_from_menu: true,
