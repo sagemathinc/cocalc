@@ -457,15 +457,6 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
             // TODO: remove this when we switch from using event.which to event.key!
             s = copy_without(s, ["key"]) as any;
           }
-          console.log(
-            "taken[json(s)] = val.m || name;",
-            json(s),
-            taken[json(s)],
-            "val.m",
-            val.m,
-            "name",
-            name
-          );
           taken[json(s)] = val.m || name;
         }
       }
