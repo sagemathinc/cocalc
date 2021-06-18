@@ -11,8 +11,7 @@ import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 
 import * as LRU from "lru-cache";
 import { delay } from "awaiting";
-import { usePrevious } from "rooks";
-import { React, useRef } from "../app-framework";
+import { React, useRef, usePrevious } from "../app-framework";
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
 import { three_way_merge } from "smc-util/sync/editor/generic/util";

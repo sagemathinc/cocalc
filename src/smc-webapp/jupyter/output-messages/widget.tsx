@@ -13,8 +13,6 @@ import { Map, Set, List, fromJS } from "immutable";
 
 import { Tabs, Tab } from "../../antd-bootstrap";
 
-import { usePrevious } from "rooks";
-
 import {
   React,
   ReactDOM,
@@ -22,6 +20,7 @@ import {
   Rendered,
   useRedux,
   useState,
+  usePrevious,
   useIsMountedRef,
 } from "smc-webapp/app-framework";
 
@@ -205,13 +204,13 @@ export const Widget: React.FC<WidgetProps> = React.memo(
     function remove_view(): void {
       if (view.current != null) {
         try {
-        view.current.remove(); // no clue what this does...
+          view.current.remove(); // no clue what this does...
         } catch (err) {
           // after changing this to an FC, calling remove() causes
           // 'Widget is not attached.' in phosphorjs.
           // The only way I found to trigger this is to concurrently work
           // on the same cell with two tabs. It recovers fine from catching this!
-          console.warn(`widget/remove_view error: ${err}`)
+          console.warn(`widget/remove_view error: ${err}`);
         }
         view.current.send = undefined;
         view.current = undefined;

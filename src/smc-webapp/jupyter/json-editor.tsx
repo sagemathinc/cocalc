@@ -12,8 +12,7 @@ There is a ticket regarding removing this component, but it is currently used fo
 SEE https://github.com/sagemathinc/cocalc/issues/4295
 */
 
-import { usePrevious } from "rooks";
-import { React, useRef, useState } from "../app-framework";
+import { React, useRef, useState, usePrevious } from "../app-framework";
 const json_stable = require("json-stable-stringify");
 import { make_patch, apply_patch } from "smc-util/sync/editor/generic/util";
 import * as immutable from "immutable";

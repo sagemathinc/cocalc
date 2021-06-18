@@ -94,12 +94,28 @@ export function useWindowDimensions() {
   return windowDimensions;
 }
 
+// if val changes, it updates the reference to the previous value.
+// With that, from the component itself, you always have access to the previous value.
+// Watch out, initially it's certainly undefined!
+export function usePrevious<T>(val: T): T | null {
+  const prevRef = useRef<T | null>(null);
+
+  useEffect(() => {
+    prevRef.current = val;
+  }, [val]);
+
+  return prevRef.current;
+}
+
+// This is a simple boolean toggle.
 export function useToggle(init: boolean = false): [boolean, () => void] {
   const [val, set_val] = useState(init);
   const toggle = () => set_val(!val);
   return [val, toggle];
 }
 
+// Use this to count up or down. e.g.
+// const {val: counter_value, inc: inc_counter} = useCounter()
 export function useCounter(init: number = 0) {
   const [val, set_val] = useState(init);
   const inc = () => set_val(val + 1);

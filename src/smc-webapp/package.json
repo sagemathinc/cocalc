@@ -130,7 +130,6 @@
     "requirejs": "^2.3.6",
     "reselect": "^4.0.0",
     "resize-observer-polyfill": "^1.5.1",
-    "rooks": "^5.0.2",
     "shallowequal": "^1.1.0",
     "shell-escape": "^0.2.0",
     "slate": "^0.63.0",
