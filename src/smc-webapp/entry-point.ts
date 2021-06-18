@@ -3,13 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
-declare global {
-  interface Window {
-    app_base_path: string;
-  }
-}
-
 /*
  * Global app initialization
  */

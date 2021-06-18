@@ -38,7 +38,7 @@ def main():
     #
     # TODO -- this is dumb and we must get rid of hardcoding of the base url. But that is another problem for later...
     NODE_ENV = os.environ.get('NODE_ENV', 'production')
-    cmd(f"NO_WEBPACK_DISK_CACHE=true NODE_ENV={NODE_ENV} NODE_OPTIONS=--max_old_space_size=8000 BASE_PATH='/' webpack --progress --color"
+    cmd(f"NO_WEBPACK_DISK_CACHE=true NODE_ENV={NODE_ENV} NODE_OPTIONS=--max_old_space_size=8000 webpack --progress --color"
         )
     app_version()
 

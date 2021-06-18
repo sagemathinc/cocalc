@@ -6,14 +6,12 @@ import * as React from "react";
 import { Helmet } from "react-helmet";
 import { join } from "path";
 
-declare const BASE_PATH: string; // defined via webpack
-
 const path = "./webapp/serviceWorker.js";
 
 window.addEventListener("load", async function () {
   try {
     await navigator.serviceWorker.register(path, {
-      scope: BASE_PATH,
+      scope: window.app_base_path,
     });
     console.log(`${path} registered successful`);
   } catch (err) {
@@ -24,7 +22,7 @@ window.addEventListener("load", async function () {
 export default function Manifest() {
   return (
     <Helmet>
-      <link rel="manifest" href={join(BASE_PATH, "customize?type=manifest")} />
+      <link rel="manifest" href={join(window.app_base_path, "customize?type=manifest")} />
     </Helmet>
   );
 }

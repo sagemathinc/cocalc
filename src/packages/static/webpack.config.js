@@ -41,7 +41,6 @@ const path = require("path");
 const child_process = require("child_process");
 const misc = require("smc-util/misc");
 const misc_node = require("smc-util-node/misc_node");
-const BASE_PATH = require("smc-util-node/base-path").default;
 const SMC_VERSION = require("smc-util/smc-version").version;
 const theme = require("smc-util/theme");
 const CDN_VERSIONS = require("@cocalc/cdn").versions;
@@ -70,7 +69,6 @@ const COCALC_NOCLEAN = !!process.env.COCALC_NOCLEAN;
 console.log(`SMC_VERSION         = ${SMC_VERSION}`);
 console.log(`COCALC_GIT_REVISION = ${COCALC_GIT_REVISION}`);
 console.log(`NODE_ENV            = ${NODE_ENV}`);
-console.log(`BASE_PATH           = ${BASE_PATH}`);
 console.log(`MEASURE             = ${MEASURE}`);
 console.log(`OUTPUT              = ${OUTPUT}`);
 console.log(`COCALC_NOCLEAN      = ${COCALC_NOCLEAN}`);
@@ -109,12 +107,6 @@ require("./src/plugins/define-constants")(registerPlugin, {
   CDN_VERSIONS,
   "process.env": {}, // the util polyfill assumes this is defined.
 });
-
-if (!PRODMODE) {
-  console.log(`\n*************************************************************************************\n
-    https://cocalc.com${path.join(BASE_PATH, "app")}/
-\n*************************************************************************************\n`);
-}
 
 if (MEASURE) {
   require("./src/plugins/measure")(registerPlugin);
@@ -162,8 +154,6 @@ module.exports = {
   */
   output: {
     path: OUTPUT,
-    // publicPath is encoded in the static files; they reference it when grabbing more content from server
-    publicPath: path.join(BASE_PATH, "static/"),
     filename: PRODMODE ? "[name]-[chunkhash].cacheme.js" : "[id].nocache.js",
     chunkFilename: PRODMODE
       ? "[chunkhash].cacheme.js"

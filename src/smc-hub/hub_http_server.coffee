@@ -145,7 +145,11 @@ exports.init_express_http_server = (opts) ->
 
     # docker and development needs this endpoint in addition to serving /static
     router.get '/app', (req, res) ->
-        res.sendFile(path_module.join(STATIC_PATH, 'app.html'), {maxAge: 0})
+        url = require('url')
+        q = url.parse(req.url, true).search || "" # gives exactly "?key=value,key=..."
+        res.redirect(path_module.join(base_path, "static/app.html") + q)
+
+        #res.sendFile(path_module.join(STATIC_PATH, 'app.html'), {maxAge: 0})
 
     # The base_path.js javascript, which sets the base_path for the client.
     router.get '/base_path.js', (req, res) ->
@@ -284,7 +288,7 @@ exports.init_express_http_server = (opts) ->
     router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*', '/notifications*'], (req, res) ->
         url = require('url')
         q = url.parse(req.url, true).search || "" # gives exactly "?key=value,key=..."
-        res.redirect(path_module.join(base_path, "app#") + req.path.slice(1) + q)
+        res.redirect(path_module.join(base_path, "static/app.html#") + req.path.slice(1) + q)
 
     # Return global status information about CoCalc
     router.get '/stats', (req, res) ->

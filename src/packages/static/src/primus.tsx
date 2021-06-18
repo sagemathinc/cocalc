@@ -6,14 +6,12 @@ import * as React from "react";
 import { Helmet } from "react-helmet";
 import { join } from "path";
 
-declare const BASE_PATH: string; // defined via webpack
-
 export default function Primus() {
   return (
     <Helmet>
       <script
         type="text/javascript"
-        src={join(BASE_PATH, "primus.min.js")}
+        src={join(window.app_base_path, "primus.min.js")}
       ></script>
     </Helmet>
   );

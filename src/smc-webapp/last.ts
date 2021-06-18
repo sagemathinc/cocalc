@@ -8,7 +8,6 @@
 declare var $: any;
 declare var MathJax: any;
 
-declare var BASE_PATH: string; // set by webpack
 declare var CDN_VERSIONS: any; // set by webpack
 
 declare var COCALC_GIT_REVISION: string;
@@ -58,21 +57,21 @@ export function init() {
       $(parent).trigger("initialize:frame");
     } catch (error) {}
 
-    if (!CDN_VERSIONS || !BASE_PATH) {
-      // These global variables should be set by Webpack.
+    if (!CDN_VERSIONS) {
+      // Should be set by Webpack.
       console.log(
         "WARNING: MathJax rendering fallback is NOT enabled.  Only katex rendering is available for math formulas!"
       );
     } else {
       // mathjax startup. config is set above, now we dynamically insert the mathjax script URL
-      const MATHJAX_URL = join(
-        BASE_PATH,
+      const src = join(
+        window.app_base_path,
         `cdn/mathjax-${CDN_VERSIONS.mathjax}/MathJax.js`
       );
 
       const mjscript = document.createElement("script");
       mjscript.type = "text/javascript";
-      mjscript.src = MATHJAX_URL;
+      mjscript.src = src;
       mjscript.onload = function () {
         // once loaded, we finalize the configuration and process pending rendering requests
         MathJax.Hub?.Queue([mathjax_finish_startup]);

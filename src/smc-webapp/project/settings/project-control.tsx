@@ -24,7 +24,7 @@ import {
   SettingBox,
 } from "../../r_misc";
 import { COLORS } from "smc-util/theme";
-import { Space as AntdSpace } from "antd";
+import { Space } from "antd";
 import {
   CUSTOM_SOFTWARE_HELP_URL,
   compute_image2name,
@@ -133,25 +133,25 @@ export const ProjectControl = rclass<ReactProps>(
 
     render_stop_button(commands): Rendered {
       return (
-        <AntdSpace>
+        <Space>
           {" "}
           <StopProject
             project_id={this.props.project.get("project_id")}
             disabled={!commands.includes("stop")}
           />
-        </AntdSpace>
+        </Space>
       );
     }
 
     render_restart_button(commands): Rendered {
       return (
-        <AntdSpace>
+        <Space>
           {" "}
           <RestartProject
             project_id={this.props.project.get("project_id")}
             disabled={!commands.includes("start") && !commands.includes("stop")}
           />{" "}
-        </AntdSpace>
+        </Space>
       );
     }
 
