@@ -40,7 +40,7 @@ db_schema            = require('smc-util/db-schema')
 {CopyPath}           = require('./copy-path')
 {remember_me_cookie_name} = require('./auth')
 path_join = require('path').join
-{base_path} = require('smc-util-node/base-path').default
+base_path = require('smc-util-node/base-path').default
 
 underscore = require('underscore')
 

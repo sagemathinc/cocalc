@@ -12,6 +12,8 @@ const { join } = require("path");
 // Primus devs don't care about typescript: https://github.com/primus/primus/pull/623
 const Primus = require("primus");
 
+const UglifyJS = require("uglify-js");
+
 import { init_websocket_api } from "./api";
 
 interface Logger {
@@ -22,7 +24,7 @@ interface Logger {
 export function init_websocket_server(
   express: any,
   http_server: any,
-  base_path: sring,
+  base_path: string,
   logger: Logger,
   client: any
 ): any {
@@ -60,7 +62,7 @@ export function init_websocket_server(
   */
 
   const router = express.Router();
-  const library: string = primus.library();
+  const library: string = UglifyJS.minify(primus.library()).code;
 
   router.get("/.smc/primus.js", (_, res) => {
     logger.debug("primus", "serving up primus.js to a specific client");

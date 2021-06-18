@@ -147,7 +147,7 @@ normalize_path = (path) ->
 # Create the Primus realtime socket server
 ##############################
 primus_server = undefined
-init_primus_server = (http_server) ->
+init_primus_server = (http_server, express_router) ->
     Primus = require('primus')
     # change also requires changing head.html
     opts =
@@ -167,6 +167,9 @@ init_primus_server = (http_server) ->
             host           : program.host
             personal       : program.personal
         dbg("num_clients=#{misc.len(clients)}")
+
+    setup_primus_client = require('./primus-client').default
+    setup_primus_client(express_router, primus_server)
 
 #######################################################
 # Pushing a message to clients; querying for clients.
@@ -645,7 +648,7 @@ exports.start_server = start_server = (cb) ->
 
             if program.websocket_server and not database.is_standby
                 winston.debug("initializing primus websocket server")
-                init_primus_server(http_server)
+                init_primus_server(http_server, express_router)
 
             if program.proxy_server
                 winston.debug("initializing the http proxy server on port #{port}")

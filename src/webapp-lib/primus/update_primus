@@ -1,7 +1,0 @@
-#!/bin/sh
-
-set -ev
-
-node update-primus.js $*
-
-uglifyjs primus-engine.js > primus-engine.min.js

@@ -51,7 +51,9 @@ $ pwd
 $ time npm run publish --packages=static --newversion=minor
 ```
 
-Here `newversion` could be major, minor, or patch.  This does a full production build (also properly changing the primus stuff in `webapp-lib` to use a base url of /), updates the version in `package.json`, then pushes the result to npm, fixes `webapp-lib` back, and commits the change to package.json to git.
+Here `newversion` could be major, minor, or patch.  This does a full production build, updates 
+the version in `package.json`, then pushes the result to npmjs.com, and commits the change 
+to package.json to git.
 
 If you want to make a _development release,_ e.g., to make it easier to debug something on [test.cocalc.com](http://test.cocalc.com), do
 
