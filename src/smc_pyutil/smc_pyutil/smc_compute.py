@@ -468,7 +468,7 @@ class Project(object):
     def dev_env(self, extra_env=None):
         os.environ[
             'PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
-                salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
+                salvus_root=os.environ['SMC_ROOT'], path=os.environ['PATH'])
         home = os.environ['HOME']
         if os.path.exists(f"{home}/Library/Python"):
             # dev mode on macOS

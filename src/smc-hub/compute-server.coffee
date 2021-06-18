@@ -20,7 +20,6 @@ os          = require('os')
 
 async       = require('async')
 winston     = require('winston')
-{program}     = require('commander')
 
 uuid        = require('node-uuid')
 
@@ -376,6 +375,7 @@ class Project
                         if opts.action == 'network'  # length==0 is allow network
                             dbg("do network setting")
                             # NO-op -- no longer supported at this level.
+                            resp = {}
                             cb()
                         else
                             dbg("doing action #{opts.action}")
@@ -1146,7 +1146,11 @@ exports.fake_dev_socket = (cb) ->
 ###########################
 # Command line interface
 ###########################
+# Will delete soon and instead always run like dev does.
 
+exports.program = program = {}
+
+###
 try
     program
         .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
@@ -1200,3 +1204,4 @@ main = () ->
 
 if program._name.split('.')[0] == 'cocalc-compute-server'
     main()
+###
