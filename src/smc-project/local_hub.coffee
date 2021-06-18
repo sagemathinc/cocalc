@@ -372,7 +372,7 @@ if program.kucalc
     kucalc.IN_KUCALC = true
     project_setup.cleanup()
 
-    if program.test_firewall
+    if program.testFirewall
         kucalc.init_gce_firewall_test(winston)
 else
     winston.debug("NOT running in kucalc")
@@ -385,7 +385,7 @@ if process.env.COCALC_PROJECT_AUTORENICE? or program.kucalc
 project_setup.configure()
 project_setup.set_extra_env()
 
-start_server program.tcp_port, program.raw_port, (err) ->
+start_server program.tcpPort, program.rawPort, (err) ->
     if err
         process.exit(1)
 

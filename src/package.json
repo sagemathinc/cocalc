@@ -10,7 +10,7 @@
     "status": "./workspaces.py status --packages=$npm_config_packages  2>&1 |more",
     "diff": "./workspaces.py diff --packages=$npm_config_packages 2>&1 |more",
     "publish": "./workspaces.py publish --packages=$npm_config_packages $npm_config_newversion",
-    "hub": "./go",
+    "hub": "cd smc-hub && npm run build && NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --dev --host=0.0.0.0",
     "webpack": "cd packages/static && npm run webpack",
     "old-lint": "npx eslint --ignore-pattern '**/node_modules/**' '**/*.ts?(x)'",
     "old-test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test && cd ../smc-project && npm test",

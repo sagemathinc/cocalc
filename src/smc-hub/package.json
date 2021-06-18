@@ -31,7 +31,7 @@
     "body-parser": "^1.19.0",
     "bottleneck": "^2.19.5",
     "codemirror": "^5.61.1",
-    "commander": "^2.20.3",
+    "commander": "^7.2.0",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.3",
     "cookies": "^0.8.0",

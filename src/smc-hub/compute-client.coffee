@@ -33,7 +33,6 @@ os          = require('os')
 
 async       = require('async')
 winston     = require('winston')
-program     = require('commander')
 
 uuid        = require('node-uuid')
 
@@ -202,10 +201,10 @@ class ComputeServerClient
             (cb) =>
                 async.parallel([
                     (cb) =>
-                        get_file program.port_file, (err, x) =>
+                        get_file program.portFile, (err, x) =>
                             port = parseInt(x); cb(err)
                     (cb) =>
-                        get_file program.secret_file, (err, x) =>
+                        get_file program.secretFile, (err, x) =>
                             secret = x; cb(err)
                 ], cb)
             (cb) =>
@@ -232,12 +231,12 @@ class ComputeServerClient
             (cb) =>
                 async.parallel([
                     (cb) =>
-                        fs.readFile program.port_file, (err, x) =>
+                        fs.readFile program.portFile, (err, x) =>
                             if x?
                                 port = parseInt(x.toString())
                             cb(err)
                     (cb) =>
-                        fs.readFile program.secret_file, (err, x) =>
+                        fs.readFile program.secretFile, (err, x) =>
                             if x?
                                 secret = x.toString().trim()
                             cb(err)

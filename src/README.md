@@ -51,4 +51,4 @@ npm run publish --packages=static --newversion=minor
 
 Where it says `--newversion=`, reasonable options are `"major"`, `"minor"`, and `"patch"`.
 
-**IMPORTANT:** _Do NOT do `npm publish` -- the word "run" above is important._
+**VERY IMPORTANT:** _Do NOT do "`npm publish`" -- the word "run" above is important!!_

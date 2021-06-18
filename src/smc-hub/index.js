@@ -7,5 +7,3 @@ exports["compute-client"] = require("./compute-client");
 exports["compute-server"] = require("./compute-server");
 exports.hub = require("./hub.coffee");
 exports.postgres = require("./postgres");
-exports.smc_gcloud = require("./smc_gcloud");
-exports.storage = require("./storage");

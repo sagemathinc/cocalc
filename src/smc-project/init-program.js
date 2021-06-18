@@ -3,12 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// NOTE: this must stay as javascript as long as local_hub and client are…
-
 // parses command line arguments -- https://github.com/visionmedia/commander.js/
-const program = require("commander");
+const { program } = require("commander");
 
 program
+  .name("my-command")
   .usage("[?] [options]")
   .option(
     "--tcp_port <n>",
@@ -39,6 +38,7 @@ program
   )
   .parse(process.argv);
 
-exports.program = program;
-const IN_KUCALC = program.kucalc;
-exports.running_in_kucalc = () => !!IN_KUCALC;
+exports.program = program.opts(); // note -- clients of this code only worry about what options got set.
+
+const IN_KUCALC = !!program.opts().kucalc;
+exports.running_in_kucalc = () => IN_KUCALC;

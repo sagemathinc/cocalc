@@ -303,7 +303,7 @@ database = undefined
 connect_to_database = (opts) ->
     opts = defaults opts,
         error : undefined   # ignored
-        pool  : program.db_pool
+        pool  : program.dbPool
         cb    : required
     dbg = (m) -> winston.debug("connect_to_database (PostgreSQL): #{m}")
     if database? # already did this
@@ -311,9 +311,9 @@ connect_to_database = (opts) ->
         opts.cb(); return
     dbg("connecting...")
     database = require('./postgres').db
-        host            : program.database_nodes
+        host            : program.databaseNodes
         database        : program.keyspace
-        concurrent_warn : program.db_concurrent_warn
+        concurrent_warn : program.dbConcurrentWarn
     database.connect(cb:opts.cb)
 
 # client for compute servers
@@ -477,8 +477,8 @@ exports.start_server = start_server = (cb) ->
     winston.debug("base_path='#{base_path}'")
 
     # the order of init below is important
-    winston.info("using database #{program.keyspace}")
-    hosts = program.database_nodes.split(',')
+    winston.info("using database #{program.keyspace} and database-nodes=#{program.databaseNodes}")
+    hosts = program.databaseNodes.split(',')
     http_server = express_router = undefined
 
     # Log anything that blocks the CPU for more than 10ms -- see https://github.com/tj/node-blocked
@@ -495,7 +495,7 @@ exports.start_server = start_server = (cb) ->
 
     async.series([
         (cb) ->
-            if not program.websocket_server
+            if not program.websocketServer
                 cb(); return
             init_metrics(cb)
         (cb) ->
@@ -509,8 +509,8 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
-            console.log("XXX", program.websocket_server, program.dev, database.is_standby)
-            if not program.websocket_server
+            console.log("XXX", program.websocketServer, program.dev, database.is_standby)
+            if not program.websocketServer
                 cb(); return
             if not database.is_standby and (program.dev or program.update)
                 winston.debug("updating the database schema...")
@@ -522,8 +522,8 @@ exports.start_server = start_server = (cb) ->
             init_smc_version(database, cb)
         (cb) ->
             # setting port must come before the hub_http_server.init_express_http_server below
-            if program.agent_port
-                healthchecks.set_agent_endpoint(program.agent_port, program.host)
+            if program.agentPort
+                healthchecks.set_agent_endpoint(program.agentPort, program.host)
             cb()
         (cb) ->
             try
@@ -541,7 +541,7 @@ exports.start_server = start_server = (cb) ->
                 winston.debug("not handling mentions");
             cb()
         (cb) ->
-            if not program.websocket_server
+            if not program.websocketServer
                 cb(); return
             try
                 winston.debug("initializing stripe support...")
@@ -550,7 +550,7 @@ exports.start_server = start_server = (cb) ->
             catch err
                 cb(err)
         (cb) ->
-            if not program.websocket_server
+            if not program.websocketServer
                 cb(); return
             winston.debug("initializing zendesk support...")
             init_support(cb)
@@ -613,25 +613,25 @@ exports.start_server = start_server = (cb) ->
             winston.debug("starting express webserver listening on #{program.host}:#{port}")
             http_server.listen(port, program.host, cb)
         (cb) ->
-            if not program.share_server
+            if not program.shareServer or program.dev  # TODO: right now dev gets its own share server
                 cb(); return
             # TODO: we need to redo this like the dev server, so
             # it's just a different path on the same server, not
             # a separate server fighting for the port.
             t0 = new Date()
-            winston.debug("initializing the share server on port #{program.share_port}")
+            winston.debug("initializing the share server on port #{program.sharePort}")
             winston.debug("...... (takes about 10 seconds) ......")
             x = await require('./share/server').init
                 database       : database
-                share_path     : program.share_path
+                share_path     : program.sharePath
                 logger         : winston
             winston.debug("Time to initialize share server (jsdom, etc.): #{(new Date() - t0)/1000} seconds")
-            winston.debug("starting share express webserver listening on #{program.share_host}:#{port}")
+            winston.debug("starting share express webserver listening on #{program.host}:#{port}")
             x.http_server.listen(port, program.host, cb)
         (cb) ->
             if database.is_standby
                 cb(); return
-            if not program.websocket_server
+            if not program.websocketServer
                 cb(); return
             # init authentication via passport (requires database)
             auth.init_passport
@@ -646,11 +646,11 @@ exports.start_server = start_server = (cb) ->
             # Synchronous initialize of other functionality, now that the database, etc., are working.
             winston.debug("base_path='#{base_path}'")
 
-            if program.websocket_server and not database.is_standby
+            if program.websocketServer and not database.isStandby
                 winston.debug("initializing primus websocket server")
                 init_primus_server(http_server, express_router)
 
-            if program.proxy_server
+            if program.proxyServer
                 winston.debug("initializing the http proxy server on port #{port}")
                 # proxy's http server has its own minimal health check – we only enable the agent check
                 hub_proxy.init_http_proxy_server
@@ -688,49 +688,7 @@ add_user_to_project = (project_id, email_address, cb) ->
     ], cb)
 
 
-#############################################
-# Process command line arguments
-#############################################
-
-command_line = () ->
-    program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
-    default_db = process.env.PGHOST ? 'localhost'
-
-    program.usage('[start/stop/restart/status/nodaemon] [options]')
-        .option('--websocket_server', 'run the websocket server')
-        .option('--proxy_server', 'run the proxy server')
-        .option('--share_server', 'run the share server')
-        .option('--lti_server', 'just start the LTI service')
-        .option('--landing_server', 'run the landing pages server')
-        .option('--share_path [string]', 'path that the share server finds shared files at (default: "")', String, '')
-        .option('--agent_port <n>', 'port for HAProxy agent-check (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
-        .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
-        .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
-        .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
-        .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
-        .option('--database_nodes <string,string,...>', "database address (default: '#{default_db}')", String, default_db)
-        .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
-        .option('--passwd [email_address]', 'Reset password of given user', String, '')
-        .option('--update', 'Update schema and primus on startup (always true for --dev; otherwise, false)')
-        .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
-        .option('--update_stats', 'Calculates the statistics for the /stats endpoint and stores them in the database', String, 'yes')
-        .option('--delete_expired', 'Delete expired data from the database', String, 'yes')
-        .option('--blob_maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', String, 'yes')
-        .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
-        .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)')
-        .option('--foreground', 'If specified, do not run as a deamon')
-        .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
-        .option('--mentions', 'if given, periodically handle mentions')
-        .option('--test', 'terminate after setting up the hub -- used to test if it starts up properly')
-        .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
-        .option('--single', 'if given, then run in LESS SAFE single-machine mode')
-        .option('--kubernetes', 'if given, then run in mode for cocalc-kubernetes (monolithic but in Kubernetes)')
-        .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
-        .option('--db_concurrent_warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
-        .option('--personal', 'run in VERY UNSAFE personal mode; there is only one user and no authentication')
-        .parse(process.argv)
-
-    #if program.rawArgs[1] in ['start', 'restart']
+addErrorListeners = () ->
     process.addListener "uncaughtException", (err) ->
         winston.debug("BUG ****************************************************************************")
         winston.debug("Uncaught exception: " + err)
@@ -746,25 +704,77 @@ command_line = () ->
         database?.uncaught_exception(p)
         uncaught_exception_total?.inc(1)
 
+
+#############################################
+# Process command line arguments
+#############################################
+program = {}
+
+command_line = () ->
+    { program } = require('commander')
+    default_db = process.env.PGHOST ? 'localhost'
+
+    program.option('--dev', 'if given, then run in VERY UNSAFE single-user dev mode; sets most servers enabled')
+        .option('--websocket-server', 'run the websocket server')
+        .option('--proxy-server', 'run the proxy server')
+        .option('--share-server', 'run the share server')
+        .option('--lti-server', 'just start the LTI service')
+        .option('--landing-server', 'run the closed source landing pages server (requires @cocalc/landing installed)')
+        .option('--share-path [string]', 'path that the share server finds shared files at (default: "")', '')
+        .option('--agent-port <n>', 'port for HAProxy agent-check (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
+        .option('--log-level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", "debug")
+        .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', "127.0.0.1")
+        .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', "data/pids/hub.pid")
+        .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', "data/logs/hub.log")
+        .option('--database-nodes <string,string,...>', "database address (default: '#{default_db}')", default_db)
+        .option('--keyspace [string]', 'Database name to use (default: "smc")', 'smc')
+        .option('--passwd [email_address]', 'Reset password of given user', '')
+        .option('--update', 'Update schema and primus on startup (always true for --dev; otherwise, false)')
+        .option('--stripe-sync', 'Sync stripe subscriptions to database for all users with stripe id', 'yes')
+        .option('--update-stats', 'Calculates the statistics for the /stats endpoint and stores them in the database', 'yes')
+        .option('--delete-expired', 'Delete expired data from the database', 'yes')
+        .option('--blob-maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', 'yes')
+        .option('--add-user-to-project [project_id,email_address]', 'Add user with given email address to project with given ID', '')
+        .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)')
+        .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
+        .option('--mentions', 'if given, periodically handle mentions')
+        .option('--test', 'terminate after setting up the hub -- used to test if it starts up properly')
+        .option('--single', 'if given, then run in LESS SAFE single-machine mode')
+        .option('--kubernetes', 'if given, then run in mode for cocalc-kubernetes (monolithic but in Kubernetes)')
+        .option('--db-pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
+        .option('--db-concurrent-warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
+        .option('--personal', 'run in VERY UNSAFE personal mode; there is only one user and no authentication')
+        .parse(process.argv)
+    # Everywhere else in our code, we just refer to program.[options] since we
+    # wrote this code against an ancient version of commander.
+    program = program.opts()
+
+    if program.dev
+        # dev implies numerous other options
+        program.websocketServer = true
+        program.shareServer = true
+        program.mentions = true
+
+
     if program.passwd
         winston.debug("Resetting password")
         reset_password(program.passwd, (err) -> process.exit())
-    else if program.stripe_sync
+    else if program.stripeSync
         winston.debug("Stripe sync")
         stripe_sync((err) -> winston.debug("DONE", err); process.exit())
-    else if program.delete_expired
+    else if program.deleteExpired
         delete_expired (err) ->
             winston.debug("DONE", err)
             process.exit()
-    else if program.blob_maintenance
+    else if program.blobMaintenance
         blob_maintenance (err) ->
             winston.debug("DONE", err)
             process.exit()
-    else if program.update_stats
+    else if program.updateStats
         update_stats (err) ->
             winston.debug("DONE", err)
             process.exit()
-    else if program.add_user_to_project
+    else if program.addUserToProject
         console.log("Adding user to project")
         v = program.add_user_to_project.split(',')
         add_user_to_project v[0], v[1], (err) ->
@@ -773,24 +783,26 @@ command_line = () ->
             else
                  console.log("User added to project.")
             process.exit()
-    else if program.lti_server
+    else if program.ltiServer
         console.log("LTI MODE")
-        start_lti_service()
+        start_lti_service (err) ->
+            if not err
+                addErrorListeners()
     else if program.landing
         console.log("LANDING PAGE MODE")
-        start_landing_service()
+        start_landing_service (err) ->
+            if not err
+                addErrorListeners()
     else
         console.log("Running hub; pidfile=#{program.pidfile}")
         # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
-        if program.foreground
-            start_server (err) ->
-                if err and program.dev
-                    process.exit(1)
-        else
-            # TODO get rid of start-stop-daemon
-            daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
-            daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)
-
+        start_server (err) ->
+            if err and program.dev
+                process.exit(1)
+            else
+                # successful startup -- now don't crash on routine errors.
+                # We don't do this until startup, since we do want to crash on errors on startup.
+                addErrorListeners()
 
 if process.argv.length > 1
     command_line()
