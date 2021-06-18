@@ -7,7 +7,10 @@
 
 declare var $: any;
 declare var MathJax: any;
-declare var MATHJAX_URL: string;
+
+declare var BASE_PATH: string; // set by webpack
+declare var CDN_VERSIONS: any; // set by webpack
+
 declare var COCALC_GIT_REVISION: string;
 
 import { webapp_client } from "./webapp-client";
@@ -16,6 +19,7 @@ import { get_browser, IS_MOBILE, IS_TOUCH } from "./feature";
 import { mathjax_finish_startup } from "./misc";
 import * as prom_client from "./prom-client";
 import { MathJaxConfig } from "smc-util/mathjax-config";
+import { join } from "path";
 
 export function init() {
   // see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
@@ -54,13 +58,18 @@ export function init() {
       $(parent).trigger("initialize:frame");
     } catch (error) {}
 
-    if (!MATHJAX_URL) {
-      // This global variable MATHJAX_URL should be set by Webpack.
+    if (!CDN_VERSIONS || !BASE_PATH) {
+      // These global variables should be set by Webpack.
       console.log(
         "WARNING: MathJax rendering fallback is NOT enabled.  Only katex rendering is available for math formulas!"
       );
     } else {
       // mathjax startup. config is set above, now we dynamically insert the mathjax script URL
+      const MATHJAX_URL = join(
+        BASE_PATH,
+        `cdn/mathjax-${CDN_VERSIONS.mathjax}/MathJax.js`
+      );
+
       const mjscript = document.createElement("script");
       mjscript.type = "text/javascript";
       mjscript.src = MATHJAX_URL;

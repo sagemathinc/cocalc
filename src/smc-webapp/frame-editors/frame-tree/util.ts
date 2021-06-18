@@ -21,15 +21,6 @@ export function parse_path(path: string): {
   return { directory: x.head, base: y.name, filename: x.tail };
 }
 
-/* Declare to Typescript that window has an extra app_base_path
-   string attribute that is defined. */
-
-declare global {
-  interface Window {
-    app_base_path: string;
-  }
-}
-
 export function raw_url(project_id: string, path: string): string {
   return join(window.app_base_path, project_id, "raw", path);
 }

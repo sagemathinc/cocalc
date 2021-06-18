@@ -3,6 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+
+declare global {
+  interface Window {
+    app_base_path: string;
+  }
+}
+
 /*
  * Global app initialization
  */
@@ -29,22 +36,14 @@ import "./process-links";
 import { init as account_init } from "./account";
 import { init as app_init } from "./app/init";
 import { init as projects_init } from "./projects";
-
 import { init as custom_software_init } from "./custom-software/init";
-
 import { init as file_use_init } from "./file-use/init";
-
 import { init as webapp_hooks_init } from "./webapp-hooks";
-
 import { init as notifications_init } from "./notifications/init";
-
 import { init as markdown_init } from "./widget-markdown-input/main";
-
 // only enable iframe comms in minimal kiosk mode
 import { init as iframe_comm_init } from "./iframe-communication";
-
 import { init as init_crash_banner } from "./crash-banner";
-
 // Should be loaded last
 import { init as init_last } from "./last";
 

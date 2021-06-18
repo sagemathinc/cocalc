@@ -100,19 +100,12 @@ if (!COCALC_NOCLEAN) {
 
 require("./src/plugins/app-loader")(registerPlugin, PRODMODE, TITLE);
 
-const MATHJAX_URL = path.join(
-  BASE_PATH,
-  `cdn/mathjax-${CDN_VERSIONS.mathjax}/MathJax.js`
-);
-
 require("./src/plugins/define-constants")(registerPlugin, {
-  MATHJAX_URL,
   SMC_VERSION,
   COCALC_GIT_REVISION,
   BUILD_DATE,
   BUILD_TS,
   DEBUG: !PRODMODE,
-  BASE_PATH,
   CDN_VERSIONS,
   "process.env": {}, // the util polyfill assumes this is defined.
 });

@@ -3,10 +3,10 @@
 // loading everything else.
 // (NOTE: this replaces what was once "webapp-lib/app.pug".)
 
+import initAppBasePath from "./init-app-base-path";
 import * as React from "react";
 // @ts-ignore
 import * as ReactDOM from "react-dom";
-
 import Primus from "./primus";
 import Manifest from "./manifest";
 import PreflightCheck from "./preflight-checks";
@@ -15,6 +15,7 @@ import Favicons from "./favicons";
 import Meta from "./meta";
 import StartupBanner from "./startup-banner";
 
+initAppBasePath();
 initError();
 
 ReactDOM.render(

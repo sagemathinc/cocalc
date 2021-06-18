@@ -280,6 +280,7 @@ exports.init_express_http_server = (opts) ->
                     res.json(config)
 
     # Save other paths in # part of URL then redirect to the single page app.
+    # That this happened is assumed, e.g., in packages/static/src/init-app-base-path.ts
     router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*', '/notifications*'], (req, res) ->
         url = require('url')
         q = url.parse(req.url, true).search || "" # gives exactly "?key=value,key=..."
