@@ -10,20 +10,14 @@ program
   .name("my-command")
   .usage("[?] [options]")
   .option(
-    "--tcp_port <n>",
+    "--tcp-port <n>",
     "TCP server port to listen on (default: 0 = os assigned)",
     (n) => parseInt(n),
     0
   )
   .option(
-    "--raw_port <n>",
+    "--raw-port <n>",
     "RAW server port to listen on (default: 0 = os assigned)",
-    (n) => parseInt(n),
-    0
-  )
-  .option(
-    "--console_port <n>",
-    "port to find console server on (optional; uses port file if not given); if this is set we assume some other system is managing the console server and do not try to start it -- just assume it is listening on this port always",
     (n) => parseInt(n),
     0
   )

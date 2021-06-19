@@ -28,9 +28,7 @@ import { join } from "path";
 import base_path from "smc-util-node/base-path";
 import { projects as PROJECT_PATH } from "smc-util-node/data";
 
-function target_parse_req(
-  url: string
-): {
+function target_parse_req(url: string): {
   key: string;
   port_number: string; // yes, as a string.
   project_id: string;
@@ -80,13 +78,16 @@ export async function init_http_proxy(
   is_personal: boolean = false
 ): Promise<void> {
   await hub_proxy.init_smc_version(database);
+  const dbg = (s) => logger?.debug(`http_proxy: ${s}`);
+  dbg("init");
 
   async function handle_proxy_request(req, res): Promise<void> {
     if (!is_personal && hub_proxy.version_check(req, res)) {
-      logger.debug("http_proxy: version check failed");
+      dbg("version check failed");
       return;
     }
     if (req.headers["cookie"] != null) {
+      // prevent a potentially worrisome attack
       req.headers["cookie"] = hub_proxy.strip_remember_me_cookie(
         req.headers["cookie"]
       ).cookie;
@@ -102,7 +103,7 @@ export async function init_http_proxy(
     }
 
     // We have to make the proxy.
-    logger.debug(`http_proxy: req_url='${req_url}', port='${port_number}'`);
+    dbg(`req_url='${req_url}', port='${port_number}'`);
     let port;
     try {
       port = await get_port(
@@ -113,11 +114,11 @@ export async function init_http_proxy(
         database
       );
     } catch (err) {
-      logger.debug(`http_proxy: internal error: ${err}`);
+      dbg(`internal error: ${err}`);
       res.status(500).send(`internal error: ${err}`);
       return;
     }
-    logger.debug(`http_proxy: port='${port}'`);
+    dbg(`port=${port}`);
     const target = `http://localhost:${port}`;
     proxy = createProxyServer({
       ws: false,
@@ -158,18 +159,16 @@ export function init_websocket_proxy(
   logger: any,
   is_personal: boolean = false
 ): void {
+  const dbg = (s) => logger?.debug(`websocket_proxy: ${s}`);
+  dbg("init");
   async function handle_upgrade(req, socket, head): Promise<void> {
     if (!is_personal && hub_proxy.version_check(req)) {
-      logger.debug(
-        "http_proxy.init_websocket_proxy: websocket upgrade -- version check failed"
-      );
+      dbg("websocket upgrade -- version check failed");
       return;
     }
     let proxy;
     const req_url = req.url.slice(base_path.length);
-    logger.debug(
-      `http_proxy.init_websocket_proxy.handle_upgrade: "${req_url}"`
-    );
+    dbg(`handle_upgrade: "${req_url}"`);
     const { type, key, port_number, project_id } = target_parse_req(req_url);
     proxy = websocket_proxy_cache[key];
     if (proxy !== undefined) {
@@ -178,10 +177,7 @@ export function init_websocket_proxy(
       return;
     }
 
-    logger.debug(
-      "http_proxy.init_websocket_proxy.handle_upgrade",
-      "upgrade -- creating proxy"
-    );
+    dbg("handle_upgrade -- creating proxy");
     let port;
     try {
       port = await get_port(
@@ -193,6 +189,7 @@ export function init_websocket_proxy(
       );
     } catch (err) {
       // TODO: I don't know how to fail this...
+      dbg(`error getting port -- ${err}`);
       //res.status(500).send(`internal error: ${err}`);
       return;
     }
@@ -202,10 +199,7 @@ export function init_websocket_proxy(
       target: `ws://localhost:${port}`,
     });
     proxy.on("error", function (e) {
-      logger.debug(
-        "http_proxy.init_websocket_proxy.error event",
-        `websocket proxy error, so clearing cache -- ${e}`
-      );
+      dbg(`websocket proxy error, so clearing cache -- ${e}`);
       delete websocket_proxy_cache[key];
     });
     websocket_proxy_cache[key] = proxy;

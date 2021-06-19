@@ -10,6 +10,7 @@ export default function Primus() {
   return (
     <Helmet>
       <script
+        async
         type="text/javascript"
         src={join(window.app_base_path, "primus.min.js")}
       ></script>

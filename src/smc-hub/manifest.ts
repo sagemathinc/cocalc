@@ -17,7 +17,9 @@ interface Custom {
 export function send(res: Response, custom: Custom) {
   const config = custom.configuration;
 
-  res.header("Content-Type", "application/json");
+  // See https://developer.mozilla.org/en-US/docs/Web/Manifest, which says
+  // "the response of the manifest file should return Content-Type: application/manifest+json)"
+  res.header("Content-Type", "application/manifest+json");
 
   const base_app = join(base_path, "app");
 
@@ -41,5 +43,5 @@ export function send(res: Response, custom: Custom) {
     ],
   };
 
-  res.end(JSON.stringify(manifest, null, 2));
+  res.send(JSON.stringify(manifest, null, 2));
 }

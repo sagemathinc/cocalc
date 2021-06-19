@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 import { throttle } from "lodash";
 import { WebappClient } from "./client";
 import { delete_cookie } from "../misc-page/cookies";
@@ -23,8 +23,6 @@ import {
   do_anonymous_setup,
   should_do_anonymous_setup,
 } from "./anonymous-setup";
-
-declare var Primus: any;
 
 // Maximum number of outstanding concurrent messages (that have responses)
 // to send at once to hub-websocket.
@@ -396,7 +394,7 @@ export class HubClient {
     this.emit_mesg_data();
   }
 
-  private init_hub_websocket() {
+  private async init_hub_websocket(): Promise<void> {
     const log = (...mesg) => console.log("hub_websocket -", ...mesg);
     log("connect");
     this.client.emit("connecting");
@@ -409,7 +407,17 @@ export class HubClient {
     });
 
     this.delete_websocket_cookie();
-    const conn = (this.conn = new Primus());
+    // Important: window.Primus is usually defined when we get to the point
+    // of running this code.  However, sometimes it doesn't -- timing is random
+    // and whether it is defined here depends on a hub being available to
+    // serve it up.  So we just keep trying until it is defined.
+    let d = 100;
+    while ((window as any).Primus == null) {
+      console.log("Waiting for global websocket client library...");
+      await delay(d);
+      d = Math.max(3000, d * 1.3);
+    }
+    const conn = (this.conn = new (window as any).Primus());
 
     conn.on("open", () => {
       this.connected = true;

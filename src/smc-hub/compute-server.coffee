@@ -31,6 +31,8 @@ misc        = require('smc-util/misc')
 sqlite      = require('smc-util-node/sqlite')
 
 PROJECT_PATH = require('smc-util-node/data').projects
+base_path   = require('smc-util-node/base-path').default
+
 
 
 # Set the log level
@@ -73,10 +75,11 @@ smc_compute = (opts) =>
         os_path = require('path')
         # 2021: we have to be explicit to smc_compute where it's modules are now.
         # prior to encapsulating the global "/cocalc/..." setup, this would have picked up the global installation.
-        env = {PYTHONPATH: os_path.join(process.env.SMC_ROOT, 'smc_pyutil/')}
+        env = {BASE_PATH:base_path, PYTHONPATH: os_path.join(process.env.SMC_ROOT, 'smc_pyutil/')}
         command = os_path.join(process.env.SMC_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
         v = ['--dev', "--projects", PROJECT_PATH]
     else
+        env = {BASE_PATH:base_path}
         winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
         if USERNAME != 'root'
             command = "sudo"

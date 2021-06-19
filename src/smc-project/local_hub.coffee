@@ -49,6 +49,7 @@ message     = require('smc-util/message')
 misc        = require('smc-util/misc')
 smc_version = require('smc-util/smc-version')
 misc_node   = require('smc-util-node/misc_node')
+base_path   = require('smc-util-node/base-path').default
 
 # I'm disabling memwatch because this code is in typescript, and gets
 # compiled and cached at runtime, and as of now, that completely breaks
@@ -157,7 +158,6 @@ init_info_json = (cb) ->  # NOTE: cb should only be required to guarantee info.j
         nics = require('os').networkInterfaces()
         mynic = nics.eth0 ? nics.ens4
         host = mynic?[0].address
-    base_path = process.env.SMC_BASE_PATH ? '/'
     port     = 22
     INFO =
         project_id : project_id
@@ -301,20 +301,19 @@ start_tcp_server = (secret_token, port, cb) ->
 start_server = (tcp_port, raw_port, cb) ->
     the_secret_token = undefined
 
-    # We run init_info_json to determine the INFO variable.
-    # However, we do NOT wait for the cb of init_info_json to be called, since we don't care in this process that the file info.json was written.
-    init_info_json()
-
     # setup some files to help users working with Git
     # this is an async function, but we don't wait for it -- no need
     init_gitconfig(winston)
 
     async.series([
         (cb) ->
+            # We run init_info_json to determine the INFO variable.
+            init_info_json(cb)
+        (cb) ->
             winston.debug("starting raw server...")
             raw_server.start_raw_server
                 project_id : INFO.project_id
-                base_path  : INFO.base_path
+                base_path  : base_path
                 host       : process.env.SMC_PROXY_HOST ? INFO.location.host ? 'localhost'
                 data_path  : DATA
                 home       : process.env.HOME

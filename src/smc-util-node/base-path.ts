@@ -20,14 +20,21 @@ These are not valid:
 - /foo/
 - https://cocalc.com/
 
-If the environment variable BASE_PATH is set then use that, or
-throw an error if our assumptions are not satisfied.
+If the environment variable BASE_PATH is set then use that (e.g., used
+when running a project), or throw an error if our assumptions are not satisfied.
 
-If this code is running in a CoCalc project (i.e., if the env variable
+Otherwise, if this code is running in a CoCalc project (i.e., if the env variable
 COCALC_PROJECT_ID is set), then the base path is a combination of
 COCALC_PROJECT_ID and the port that the hub will serve on.
 
 If neither of the above conditions are met, then the base path is /.
+
+NOTES:
+
+- We use this code in a project started by the hub to determine the base path;
+in that case, the env variable BASE_PATH is set, since otherwise the project
+itself would view the base path as being relative to its own id.
+
 `;
 
 import PORT from "./port";

@@ -3,10 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// this unifies the entire webapp configuration – endpoint /customize?type=full
-// the main goal is to optimize this, to use as little DB interactions as necessary, use caching, etc.
-
-// this manages the webapp's configuration based on the hostname (allows whitelabeling)
+// This unifies the entire webapp configuration – endpoint /customize
+// The main goal is to optimize this, to use as little DB interactions
+// as necessary, use caching, etc.
+// This manages the webapp's configuration based on the hostname
+// (allows whitelabeling).
 
 import { parseDomain, ParseResultType } from "parse-domain";
 import * as debug from "debug";

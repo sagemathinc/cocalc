@@ -259,29 +259,20 @@ exports.init_express_http_server = (opts) ->
 
     if server_settings?
         router.get '/customize', (req, res) ->
-            # if we're behind cloudflare, we expose the detected country in the client
+            # If we're behind cloudflare, we expose the detected country in the client
             # use a lib like https://github.com/michaelwittig/node-i18n-iso-countries
             # to read the ISO 3166-1 Alpha 2 codes.
-            # if it is unknown, the code will be XX and K1 is the Tor-Network.
+            # If it is unknown, the code will be XX and K1 is the Tor-Network.
             country = req.headers['cf-ipcountry'] ? 'XX'
             host = req.headers["host"]
             config = await webapp_config.get(host:host, country:country)
             if opts.is_personal
                 config.configuration.is_personal = true
-            if req.query.type == 'full'
-                res.header("Content-Type", "text/javascript")
-                mapping = '{configuration:window.CUSTOMIZE, registration:window.REGISTER, strategies:window.STRATEGIES}'
-                res.send("(#{mapping} = Object.freeze(#{JSON.stringify(config)}))")
-            else if req.query.type == 'manifest'
+            if req.query.type == 'manifest'
                 manifest.send(res, config)
             else
-                # this is deprecated
-                if req.query.type == 'embed'
-                    res.header("Content-Type", "text/javascript")
-                    res.send("window.CUSTOMIZE = Object.freeze(#{JSON.stringify(config.configuration)})")
-                else
-                    # even more deprecated
-                    res.json(config)
+                # Otherwise, just send the data back as json, for the client to parse.
+                res.json(config)
 
     # Save other paths in # part of URL then redirect to the single page app.
     # That this happened is assumed, e.g., in packages/static/src/init-app-base-path.ts
