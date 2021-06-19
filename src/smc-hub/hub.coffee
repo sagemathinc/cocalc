@@ -659,6 +659,31 @@ exports.start_server = start_server = (cb) ->
                     host           : program.host
                     is_personal    : program.personal
 
+
+            if program.websocketServer or program.proxyServer or program.shareServer
+                winston.debug("Starting registering periodically with the database and updating a health check...")
+
+                if program.test
+                    winston.debug("setting up hub_register_cb for testing")
+                    hub_register_cb = (err) ->
+                        if err
+                            winston.debug("hub_register_cb err:", err)
+                            process.exit(1)
+                        else
+                            process.exit(0)
+                else
+                    hub_register_cb = undefined
+
+                hub_register.start
+                    database   : database
+                    clients    : clients
+                    host       : program.host
+                    port       : port
+                    interval_s : REGISTER_INTERVAL_S
+                    cb         : hub_register_cb
+
+                winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+
         cb?(err)
     )
 
