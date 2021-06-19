@@ -380,6 +380,7 @@ const IconSpec = {
   "share-square": ShareAltOutlined,
   "shopping-cart": ShoppingCartOutlined,
   "sort-amount-up": { IconFont: "sort-amount-up" },
+  spinner: { IconFont: "cc-icon-cocalc-ring" },
   square: BorderOutlined,
   "square-o": BorderOutlined,
   "square-root-alt": { IconFont: "square-root-alt" },

@@ -260,7 +260,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     $(window).off("beforeunload", this.redux.getActions("page").check_unload);
     window.location.hash = "";
     // redirect to sign in page
-    window.location.href = join(window.app_base_path, sign_in ? "app" : "");
+    window.location.href = join(window.app_base_path, sign_in ? "app" : "/");
   }
 
   push_state(url?: string): void {
