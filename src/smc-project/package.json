@@ -81,7 +81,7 @@
     "@types/node": "^12.20.14",
     "coffeelint": "^2.1.0",
     "coffeescript": "^2.5.1",
-    "typescript": "^4.3.2"
+    "typescript": "^4.3.4"
   },
   "scripts": {
     "local-hub": "node dist/local_hub.js",
