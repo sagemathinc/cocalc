@@ -20,7 +20,7 @@ import { template } from "lodash";
 import { AllSiteSettingsCached } from "smc-util/db-schema/types";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import base_path from "smc-util-node/base-path";
-import DATA from "smc-util-node/data";
+import { secrets } from "smc-util-node/data";
 
 // sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 import * as sendgrid from "@sendgrid/client";
@@ -114,7 +114,7 @@ async function init_sendgrid(opts: Opts, dbg): Promise<void> {
       dbg("... using site settings/sendgrid_key");
       api_key = ssgk.trim();
     } else {
-      const filename = os_path.join(DATA, "secrets/sendgrid");
+      const filename = os_path.join(secrets, "sendgrid");
       try {
         api_key = await fs_readFile_prom(filename, "utf8");
         api_key = api_key.toString().trim();

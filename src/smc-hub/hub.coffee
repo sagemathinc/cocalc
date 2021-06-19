@@ -509,7 +509,6 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
-            console.log("XXX", program.websocketServer, program.dev, database.is_standby)
             if not program.websocketServer
                 cb(); return
             if not database.is_standby and (program.dev or program.update)

@@ -9,7 +9,7 @@ import os, sys, time, util
 
 path = os.path.split(os.path.realpath(__file__))[0]; os.chdir(path); sys.path.insert(0, path)
 
-PG_DATA = os.path.join(path, "postgres_data")
+PG_DATA = os.path.abspath(os.path.join(path, "../../data/postgres"))
 
 if not os.path.exists(PG_DATA):
     util.cmd("pg_ctl init -D '%s'"%PG_DATA)

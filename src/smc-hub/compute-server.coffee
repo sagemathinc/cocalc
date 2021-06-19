@@ -1064,8 +1064,7 @@ start_fake_server = (cb) ->
     winston.debug("start_fake_server")
     # change global CONF path for local dev purposes
     DEV = true
-    {data} = require('smc-util-node/data')
-    SQLITE_FILE = require('path').join(data, 'compute.sqlite3')
+    SQLITE_FILE = require('smc-util-node/data').compute_sqlite
     # For the fake dev server, we always reset the database on startup, since
     # we always kill all projects on startup.
     try
