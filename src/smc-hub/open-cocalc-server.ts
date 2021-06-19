@@ -35,7 +35,7 @@ async function get_params(db: PostgreSQL) {
   const ANONYMOUS_SIGNUP = !(await have_active_registration_tokens(db));
   const NAME = settings.site_name;
   const DESCRIPTION = settings.site_description;
-  const PREFIX = ""; // this is unrelated of base_path, used for subdirectories
+  const PREFIX = ""; // this is unrelated to the base_path, used for subdirectories
   const LOGO_SQUARE_URL = fallback(
     settings.logo_square,
     PREFIX + "webapp/cocalc-icon.svg"
