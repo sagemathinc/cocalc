@@ -5,7 +5,7 @@
 
 // Hub Registration (recording number of clients)
 
-const winston = require("./winston-metrics").get_logger("hub");
+const winston = require("./logger").get_logger("hub");
 import * as misc from "smc-util/misc";
 const { defaults, required } = misc;
 import { PostgreSQL } from "./postgres/types";

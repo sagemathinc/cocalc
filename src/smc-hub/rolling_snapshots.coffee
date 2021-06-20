@@ -9,7 +9,7 @@ Create rolling snapshots of a given ZFS volume
 
 fs          = require('fs')
 async       = require('async')
-winston     = require('./winston-metrics').get_logger('rolling_snapshots')
+winston     = require('./logger').get_logger('rolling_snapshots')
 
 misc_node = require('smc-util-node/misc_node')
 misc      = require('smc-util/misc')

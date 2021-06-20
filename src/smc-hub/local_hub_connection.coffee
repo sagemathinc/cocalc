@@ -11,7 +11,7 @@ async   = require('async')
 {callback2} = require('smc-util/async-utils')
 
 uuid    = require('node-uuid')
-winston = require('winston')
+winston = require('./logger').get_logger('local-hub-connection')
 underscore = require('underscore')
 
 message = require('smc-util/message')

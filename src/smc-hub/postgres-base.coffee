@@ -39,7 +39,7 @@ if not pg?
 #               syncstring system was breaking... until I switched to native.  Not sure.
 #pg      = require('pg')
 
-winston      = require('./winston-metrics').get_logger('postgres')
+winston      = require('./logger').get_logger('postgres')
 {do_query_with_pg_params} = require('./postgres/set-pg-params')
 
 misc_node = require('smc-util-node/misc_node')

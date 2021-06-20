@@ -11,12 +11,13 @@
     "downlevelIteration": true,
     "skipLibCheck": true,
     "allowJs": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "declaration": true
   },
   "watchOptions": {
     "watchFile": "useFsEvents",
     "watchDirectory": "useFsEvents",
     "fallbackPolling": "dynamicPriority",
-    "synchronousWatchDirectory": true,
+    "synchronousWatchDirectory": true
   }
 }

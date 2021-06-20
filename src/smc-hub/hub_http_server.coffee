@@ -17,9 +17,8 @@ body_parser  = require('body-parser')
 express      = require('express')
 http_proxy   = require('http-proxy')
 http         = require('http')
-winston      = require('winston')
 
-winston      = require('./winston-metrics').get_logger('hub_http_server')
+winston      = require('./logger').get_logger('hub_http_server')
 
 misc         = require('smc-util/misc')
 {defaults, required} = misc

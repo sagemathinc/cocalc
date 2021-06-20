@@ -28,7 +28,7 @@ That will change to the `packages/static` directory where `npm run webpack` is a
 npm run hub
 ```
 
-That will ensure the latest version of the hub Typescript and Coffeescript gets compiled, will quit any running hubs and projects, and start a new hub running, showing the log files.
+That will ensure the latest version of the hub Typescript and Coffeescript gets compiled, and start a new hub running in the foreground logging what is happening to the console _**and also logging to files in**_ `data/logs/hub` .  Hit Control+C to terminate this server.
 
 ## Starting the database
 

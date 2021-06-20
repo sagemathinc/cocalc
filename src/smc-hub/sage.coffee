@@ -40,7 +40,7 @@
 #
 
 net     = require('net')
-winston = require('./winston-metrics').get_logger('sage')
+winston = require('./logger').get_logger('sage')
 
 message = require("smc-util/message")
 misc    = require('smc-util/misc')

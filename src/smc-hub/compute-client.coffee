@@ -32,7 +32,8 @@ os          = require('os')
 {EventEmitter} = require('events')
 
 async       = require('async')
-winston     = require('winston')
+winston     = require('./logger').get_logger('compute-client')
+
 
 uuid        = require('node-uuid')
 
@@ -42,13 +43,6 @@ message     = require('smc-util/message')
 misc        = require('smc-util/misc')
 
 {site_license_hook} = require('./postgres/site-license/hook')
-
-# Set the log level
-try
-    winston.remove(winston.transports.Console)
-    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
-catch err
-    # ignore
 
 {defaults, required} = misc
 

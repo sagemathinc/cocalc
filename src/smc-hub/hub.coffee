@@ -22,7 +22,7 @@ path_module    = require('path')
 underscore     = require('underscore')
 {EventEmitter} = require('events')
 mime           = require('mime')
-winston        = require('./winston-metrics').get_logger('hub')
+winston        = require('./logger').get_logger('hub')
 memory         = require('smc-util-node/memory')
 port           = require('smc-util-node/port').default
 
@@ -143,33 +143,7 @@ normalize_path = (path) ->
     #    path = undefined
     return {path:path, action:action}
 
-##############################
-# Create the Primus realtime socket server
-##############################
-primus_server = undefined
-init_primus_server = (http_server, express_router) ->
-    Primus = require('primus')
-    # change also requires changing head.html
-    opts =
-        pathname : path_module.join(base_path, 'hub')
-    primus_server = new Primus(http_server, opts)
-    dbg = (args...) -> winston.debug('primus_server:', args...)
-    dbg("listening on #{opts.pathname}")
 
-    primus_server.on "connection", (conn) ->
-        # Now handle the connection
-        dbg("new connection from #{conn.address.ip} -- #{conn.id}")
-        clients[conn.id] = new client.Client
-            conn           : conn
-            logger         : winston
-            database       : database
-            compute_server : compute_server
-            host           : program.host
-            personal       : program.personal
-        dbg("num_clients=#{misc.len(clients)}")
-
-    setup_primus_client = require('./primus-client').default
-    setup_primus_client(express_router, primus_server)
 
 #######################################################
 # Pushing a message to clients; querying for clients.
@@ -647,7 +621,14 @@ exports.start_server = start_server = (cb) ->
 
             if program.websocketServer and not database.isStandby
                 winston.debug("initializing primus websocket server")
-                init_primus_server(http_server, express_router)
+                require('./servers/primus').init
+                    http_server : http_server
+                    express_router : express_router
+                    compute_server: compute_server
+                    clients: clients
+                    database: database
+                    host: program.host
+                    isPersonal: program.personal
 
             if program.proxyServer
                 winston.debug("initializing the http proxy server on port #{port}")

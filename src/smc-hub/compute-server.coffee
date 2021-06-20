@@ -19,7 +19,8 @@ fs          = require('fs')
 os          = require('os')
 
 async       = require('async')
-winston     = require('winston')
+winston = require('./logger').get_logger('compute-server')
+
 
 uuid        = require('node-uuid')
 
@@ -32,15 +33,6 @@ sqlite      = require('smc-util-node/sqlite')
 
 PROJECT_PATH = require('smc-util-node/data').projects
 base_path   = require('smc-util-node/base-path').default
-
-
-
-# Set the log level
-try
-    winston.remove(winston.transports.Console)
-    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
-catch err
-    # ignore
 
 {defaults, required} = misc
 
