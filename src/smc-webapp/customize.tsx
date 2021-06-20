@@ -98,7 +98,7 @@ export interface CustomizeState {
   // we expect this to follow "ISO 3166-1 Alpha 2" + K1 (Tor network) + XX (unknown)
   // use a lib like https://github.com/michaelwittig/node-i18n-iso-countries
   country: string;
-  // flag to signal "global.CUSTOMIZE" was applied
+  // flag to signal data stored in the Store.
   _is_configured: boolean;
 }
 
@@ -117,7 +117,7 @@ export class CustomizeStore extends Store<CustomizeState> {
 
 export class CustomizeActions extends Actions<CustomizeState> {}
 
-const store = redux.createStore("customize", CustomizeStore, defaults);
+export const store = redux.createStore("customize", CustomizeStore, defaults);
 const actions = redux.createActions("customize", CustomizeActions);
 // really simple way to have a default value -- gets changed below once the $?.get returns.
 actions.setState({ is_commercial: true, ssh_gateway: true });
@@ -130,9 +130,7 @@ export let commercial: boolean = defaults.is_commercial;
 // in the future we might want to reload the configuration, though.
 // Note that this *is* clearly used as a fallback below though...!
 async function init_customize() {
-  console.log("load_configuration");
   if (typeof process != "undefined") {
-    console.log("running in node");
     // running in node.js
     return;
   }

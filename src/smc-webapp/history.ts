@@ -110,6 +110,7 @@ export function load_target(
   switch (segments[0]) {
     case "help":
       redux.getActions("page").set_active_tab("about", change_history);
+      break;
     case "projects":
       if (segments.length > 1) {
         redux
