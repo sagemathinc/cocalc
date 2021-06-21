@@ -11,7 +11,7 @@
     "@cocalc/cdn": "*",
     "webapp-lib": "*"
   },
-  "version": "1.9.0",
+  "version": "1.12.0",
   "description": "CoCalc's Static Frontend Webapp Assets",
   "main": "./src/index.js",
   "babel": {
