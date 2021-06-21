@@ -209,8 +209,8 @@ export class NotebookFrameActions {
     if (obj["id"]) {
       const id = obj["id"];
       const store = this.jupyter_actions.store;
-      if (store.getIn(["cells", id]) === undefined) {
-        throw Error(`NotebookFrameActions.validate -- invalid id ${id}`);
+      if (store.getIn(["cells", id]) == null) {
+        console.warn(`NotebookFrameActions.validate -- invalid id ${id}`);
       }
     }
   }
