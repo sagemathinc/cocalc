@@ -37,6 +37,7 @@ export interface ComputeImagesState {
   images?: ComputeImages;
 }
 
+export Store;  // for .d.ts file
 export class ComputeImagesStore extends Store<ComputeImagesState> {}
 
 export function launchcode2display(
@@ -51,6 +52,7 @@ export function launchcode2display(
   return img.get("display") || id2name(id);
 }
 
+export Actions; // for .d.ts file
 export class ComputeImagesActions<ComputeImagesState> extends Actions<
   ComputeImagesState
 > {}
