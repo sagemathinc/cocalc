@@ -6,7 +6,7 @@
 import { List } from "immutable";
 //declare const $: any;
 const $ = require("jquery");
-import { React, Component, Rendered } from "smc-webapp/app-framework";
+import { React, useState } from "smc-webapp/app-framework";
 import { is_array } from "smc-util/misc";
 import { javascript_eval } from "./javascript-eval";
 import { STDERR_STYLE } from "./style";
@@ -15,57 +15,61 @@ interface JavascriptProps {
   value: string | List<string>;
 }
 
-interface JavascriptState {
-  errors?: string;
-}
+// ATTN: better don't memoize this, since JS code evaluation happens when this is mounted
+export const Javascript: React.FC<JavascriptProps> = (
+  props: JavascriptProps
+) => {
+  const { value } = props;
 
-export class Javascript extends Component<JavascriptProps, JavascriptState> {
-  private node: HTMLElement;
+  // ATTN don't make this an actual ref to the div. It's easy to break everything!
+  // instead (before this was turned into an FC) keep the node undefined...
+  // TODO here is certainly room for improvement.
+  //const node = useRef<HTMLDivElement>(null);
+  const node: HTMLElement | undefined = undefined;
 
-  constructor(props) {
-    super(props);
-    this.state = {};
-  }
+  const [errors, set_errors] = useState<string | undefined>(undefined);
 
-  componentDidMount(): void {
-    const element = $(this.node);
+  React.useEffect(() => {
+    if (value == null) {
+      return;
+    }
+    //const element = $(node.current);
+    const element = $(node);
     element.empty();
-    let value: string[];
-    if (typeof this.props.value == "string") {
-      value = [this.props.value];
+    let blocks: string[];
+    if (typeof value == "string") {
+      blocks = [value];
     } else {
-      const x = this.props.value.toJS();
+      const x = value.toJS();
       if (!is_array(x)) {
         console.warn("not evaluating javascript since wrong type:", x);
         return;
       } else {
-        value = x;
+        blocks = x;
       }
     }
     let block: string;
     let errors: string = "";
-    for (block of value) {
+    for (block of blocks) {
       errors += javascript_eval(block, element);
       if (errors.length > 0) {
-        this.setState({ errors });
+        set_errors(errors);
       }
     }
-  }
+  }, [value]);
 
-  render(): Rendered {
-    if (this.state.errors) {
-      // This conflicts with official Jupyter
-      return (
-        <div style={STDERR_STYLE}>
-          <span>
-            {this.state.errors}
-            <br />
-            See your browser Javascript console for more details.
-          </span>
-        </div>
-      );
-    } else {
-      return <div />;
-    }
+  if (errors) {
+    // This conflicts with official Jupyter
+    return (
+      <div style={STDERR_STYLE}>
+        <span>
+          {errors}
+          <br />
+          See your browser Javascript console for more details.
+        </span>
+      </div>
+    );
+  } else {
+    return <div /* ref={node} */ />;
   }
-}
+};

@@ -7,8 +7,7 @@
 Modal for inserting an image
 */
 
-import { React, Component, Rendered } from "../app-framework";
-
+import { React } from "../app-framework";
 import { Icon } from "../r_misc";
 const { Button, Modal } = require("react-bootstrap"); // TODO: import types
 import { FileUpload } from "../file-upload";
@@ -22,29 +21,24 @@ interface InsertImageProps {
   insert_image: string;
 }
 
-export class InsertImage extends Component<InsertImageProps> {
-  public shouldComponentUpdate(nextProps): boolean {
-    return nextProps.insert_image !== this.props.insert_image;
-  }
+function should_memoize(prev, next) {
+  return next.insert_image === prev.insert_image;
+}
 
-  private close(): void {
-    this.props.actions.setState({ insert_image: undefined });
-  }
+export const InsertImage: React.FC<InsertImageProps> = React.memo(
+  (props: InsertImageProps) => {
+    const { actions, project_id, insert_image } = props;
 
-  private add_file(file: { name: string }): void {
-    this.props.actions.add_attachment_to_cell(
-      this.props.insert_image,
-      TMP + "/" + file.name
-    );
-  }
+    function close(): void {
+      actions.setState({ insert_image: undefined });
+    }
 
-  render(): Rendered {
+    function add_file(file: { name: string }): void {
+      actions.add_attachment_to_cell(insert_image, TMP + "/" + file.name);
+    }
+
     return (
-      <Modal
-        show={this.props.insert_image != null}
-        bsSize="large"
-        onHide={this.close.bind(this)}
-      >
+      <Modal show={insert_image != null} bsSize="large" onHide={close}>
         <Modal.Header closeButton>
           <Modal.Title>
             <Icon name="image" /> Pick image files to attach to this markdown
@@ -53,17 +47,18 @@ export class InsertImage extends Component<InsertImageProps> {
         </Modal.Header>
         <Modal.Body>
           <FileUpload
-            project_id={this.props.project_id}
+            project_id={project_id}
             current_path={TMP}
-            dropzone_handler={{ addedfile: this.add_file.bind(this) }}
+            dropzone_handler={{ addedfile: add_file }}
             show_header={true}
           />
         </Modal.Body>
 
         <Modal.Footer>
-          <Button onClick={this.close.bind(this)}>Done</Button>
+          <Button onClick={close}>Done</Button>
         </Modal.Footer>
       </Modal>
     );
-  }
-}
+  },
+  should_memoize
+);

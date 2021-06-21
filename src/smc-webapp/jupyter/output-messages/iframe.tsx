@@ -15,6 +15,7 @@ import {
   useIsMountedRef,
   useRef,
   useState,
+  useCounter,
 } from "smc-webapp/app-framework";
 import { get_blob_url } from "../server-urls";
 
@@ -27,8 +28,10 @@ const MAX_ATTEMPTS = 10;
 const MAX_WAIT = 5000;
 const BACKOFF = 1.3;
 
-export const IFrame: React.FC<Props> = ({ sha1, project_id }) => {
-  const [attempts, set_attempts] = useState<number>(0);
+export const IFrame: React.FC<Props> = (props: Props) => {
+  const { sha1, project_id } = props;
+
+  const { val: attempts, inc: inc_attempts } = useCounter();
   const [failed, set_failed] = useState<boolean>(false);
   const delay_ref = useRef<number>(500);
   const isMountedRef = useIsMountedRef();
@@ -50,7 +53,7 @@ export const IFrame: React.FC<Props> = ({ sha1, project_id }) => {
     await delay(delay_ref.current);
     if (!isMountedRef.current) return;
     delay_ref.current = Math.max(MAX_WAIT, delay_ref.current * BACKOFF);
-    set_attempts(attempts + 1);
+    inc_attempts();
   }
 
   if (failed) {
