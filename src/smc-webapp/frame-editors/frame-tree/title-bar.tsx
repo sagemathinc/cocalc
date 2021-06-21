@@ -164,9 +164,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     force_update();
   }, [props.type]);
 
-  const [close_and_halt_confirm, set_close_and_halt_confirm] = useState<
-    boolean
-  >(false);
+  const [close_and_halt_confirm, set_close_and_halt_confirm] =
+    useState<boolean>(false);
 
   const student_project_functionality = useStudentProjectFunctionality(
     props.project_id
@@ -927,7 +926,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         bsSize={button_size()}
         onClick={() => props.actions.reload(props.id)}
       >
-        <Icon name="sync" />
+        <Icon name="reload" />
         <VisibleMDLG>{labels ? " Reload" : undefined}</VisibleMDLG>
       </Button>
     );
