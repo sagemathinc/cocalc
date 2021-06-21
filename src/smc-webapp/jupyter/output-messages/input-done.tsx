@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component, Rendered } from "smc-webapp/app-framework";
+import { React } from "smc-webapp/app-framework";
 import { Map } from "immutable";
 import { INPUT_STYLE, STDOUT_STYLE } from "./style";
 
@@ -11,22 +11,25 @@ interface InputDoneProps {
   message: Map<string, any>;
 }
 
-export class InputDone extends Component<InputDoneProps> {
-  render(): Rendered {
-    const value: string = this.props.message.getIn(["opts", "prompt"], "");
+export const InputDone: React.FC<InputDoneProps> = React.memo(
+  (props: InputDoneProps) => {
+    const { message } = props;
+
+    const prompt: string = message.getIn(["opts", "prompt"], "");
+    const value: string = message.get("value", "");
+    const type = message.getIn(["opts", "password"]) ? "password" : "text";
+
     return (
       <div style={STDOUT_STYLE}>
-        {value}
+        {prompt}
         <input
           style={INPUT_STYLE}
-          type={
-            this.props.message.getIn(["opts", "password"]) ? "password" : "text"
-          }
+          type={type}
           size={Math.max(47, value.length + 10)}
           readOnly={true}
-          value={this.props.message.get("value", "")}
+          value={value}
         />
       </div>
     );
   }
-}
+);

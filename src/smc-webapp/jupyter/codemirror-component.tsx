@@ -12,8 +12,9 @@ TODO:
 
 */
 
-import { React, Component } from "../app-framework";
+import { React, useIsMountedRef, useRef, useState } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
+import { all_fields_equal } from "smc-util/misc";
 
 import { CodeMirrorEditor } from "./codemirror-editor";
 import { CodeMirrorStatic } from "./codemirror-static";
@@ -34,100 +35,97 @@ interface CodeMirrorProps {
   is_scrolling?: boolean;
 }
 
-interface CodeMirrorState {
-  click_coords?: any;
-  last_cursor?: any;
+function should_memoize(prev, next) {
+  return all_fields_equal(prev, next, [
+    "id",
+    "options",
+    "value",
+    "font_size",
+    "is_focused",
+    "is_scrolling",
+    "cursors",
+    "complete",
+  ]);
 }
 
-export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
-  private is_mounted: boolean;
-  private has_rendered_nonstatic: boolean = false;
+export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
+  (props: CodeMirrorProps) => {
+    const {
+      actions,
+      frame_actions,
+      id,
+      options,
+      value,
+      font_size,
+      is_focused,
+      cursors,
+      complete,
+      is_scrolling,
+    } = props;
 
-  constructor(props: CodeMirrorProps, context: any) {
-    super(props, context);
-    this.state = {
-      click_coords: undefined, // coordinates if static input was just clicked on
-      last_cursor: undefined,
-    }; // last cursor position when editing
-  }
+    const is_mounted = useIsMountedRef();
 
-  set_click_coords = (coords: any) => {
-    this.setState({ click_coords: coords });
-  };
+    // coordinates if static input was just clicked on
+    const [click_coords, set_click_coords] = useState<any>();
 
-  set_last_cursor = (pos: any) => {
-    if (this.is_mounted) {
-      // ignore unless mounted -- can still get called due to caching of cm editor
-      this.setState({ last_cursor: pos });
+    // last cursor position when editing
+    const [last_cursor, set_last_cursor_state] = useState<any>();
+
+    // For some reason the static renderer has some REALLY bad performance, especially for
+    // larger documents.  This may be an issue with using react at all (i.e., we should just
+    // directly generate html).  For now, probably the best fix is not to use the static
+    // renderer, since it causes so much trouble...
+    // See https://github.com/sagemathinc/cocalc/issues/3652
+    // Instead, we should optimize how the normal render works, e.g., by caching it.
+
+    const has_rendered_nonstatic = useRef<boolean>(false);
+
+    function set_last_cursor(pos: any) {
+      if (is_mounted.current) {
+        // ignore unless mounted -- can still get called due to caching of cm editor
+        set_last_cursor_state(pos);
+      }
     }
-  };
 
-  componentDidMount() {
-    this.is_mounted = true;
-  }
-
-  componentWillUnmount() {
-    this.is_mounted = false;
-  }
-
-  shouldComponentUpdate(next) {
-    return (
-      next.id !== this.props.id ||
-      next.options !== this.props.options ||
-      next.value !== this.props.value ||
-      next.font_size !== this.props.font_size ||
-      next.is_focused !== this.props.is_focused ||
-      next.is_scrolling !== this.props.is_scrolling ||
-      next.cursors !== this.props.cursors ||
-      next.complete !== this.props.complete
-    );
-  }
-
-  render() {
     // Regarding IS_TOUCH, see https://github.com/sagemathinc/cocalc/issues/2584 -- fix that properly and then
     // we can remove this use of the slower non-static fallback...
     if (
-      (this.has_rendered_nonstatic || !this.props.is_scrolling) &&
-      this.props.actions != null &&
-      this.props.frame_actions != null
+      (has_rendered_nonstatic.current || !is_scrolling) &&
+      actions != null &&
+      frame_actions != null
     ) {
-      // For some reason the static renderer has some REALLY bad performance, especially for
-      // larger documents.  This may be an issue with using react at all (i.e., we should just
-      // directly generate html).  For now, probably the best fix is not to use the static
-      // renderer, since it causes so much trouble...
-      // See https://github.com/sagemathinc/cocalc/issues/3652
-      // Instead, we should optimize how the normal render works, e.g., by caching it.
-      this.has_rendered_nonstatic = true;
+      has_rendered_nonstatic.current = true;
       return (
         <CodeMirrorEditor
-          actions={this.props.actions}
-          frame_actions={this.props.frame_actions}
-          id={this.props.id}
-          options={this.props.options}
-          value={this.props.value}
-          font_size={this.props.font_size}
-          cursors={this.props.cursors}
-          click_coords={this.state.click_coords}
-          set_click_coords={this.set_click_coords}
-          set_last_cursor={this.set_last_cursor}
-          last_cursor={this.state.last_cursor}
-          is_focused={this.props.is_focused}
-          is_scrolling={this.props.is_scrolling}
-          complete={this.props.complete}
+          actions={actions}
+          frame_actions={frame_actions}
+          id={id}
+          options={options}
+          value={value}
+          font_size={font_size}
+          cursors={cursors}
+          click_coords={click_coords}
+          set_click_coords={set_click_coords}
+          set_last_cursor={set_last_cursor}
+          last_cursor={last_cursor}
+          is_focused={is_focused}
+          is_scrolling={is_scrolling}
+          complete={complete}
         />
       );
     } else {
-      this.has_rendered_nonstatic = false;
+      has_rendered_nonstatic.current = false;
       return (
         <CodeMirrorStatic
-          id={this.props.id}
-          options={this.props.options}
-          value={this.props.value}
-          font_size={this.props.font_size}
-          complete={this.props.complete}
-          set_click_coords={this.set_click_coords}
+          id={id}
+          options={options}
+          value={value}
+          font_size={font_size}
+          complete={complete}
+          set_click_coords={set_click_coords}
         />
       );
     }
-  }
-}
+  },
+  should_memoize
+);

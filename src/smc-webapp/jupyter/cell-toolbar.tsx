@@ -8,7 +8,7 @@ The toolbar at the top of each cell
 */
 
 import { Map } from "immutable";
-import { React, Component, Rendered } from "../app-framework";
+import { React, CSS } from "../app-framework";
 
 import { Slideshow } from "./cell-toolbar-slideshow";
 import { Attachments } from "./cell-toolbar-attachments";
@@ -20,12 +20,12 @@ import { JupyterActions } from "./browser-actions";
 
 import { PROMPT_MIN_WIDTH } from "./prompt";
 
-const STYLE = {
+const STYLE: CSS = {
   marginLeft: PROMPT_MIN_WIDTH,
   display: "flex",
   background: "#eee",
   border: "1px solid rgb(247, 247, 247)",
-};
+} as const;
 
 export interface CellToolbarProps {
   actions: JupyterActions;
@@ -41,16 +41,18 @@ const TOOLBARS = {
   create_assignment: CreateAssignmentToolbar,
 };
 
-export class CellToolbar extends Component<CellToolbarProps> {
-  public render(): Rendered {
-    const T = TOOLBARS[this.props.cell_toolbar];
+export const CellToolbar: React.FC<CellToolbarProps> = React.memo(
+  (props: CellToolbarProps) => {
+    const { actions, cell_toolbar, cell } = props;
+
+    const T = TOOLBARS[cell_toolbar];
     if (T === undefined) {
-      return <span> Toolbar not implemented: {this.props.cell_toolbar} </span>;
+      return <span> Toolbar not implemented: {cell_toolbar} </span>;
     }
     return (
       <div style={STYLE}>
-        <T actions={this.props.actions} cell={this.props.cell} />
+        <T actions={actions} cell={cell} />
       </div>
     );
   }
-}
+);

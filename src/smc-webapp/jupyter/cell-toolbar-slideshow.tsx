@@ -7,7 +7,7 @@
 The slideshow toolbar functionality for cells.
 */
 
-import { React, Component } from "../app-framework";
+import { React } from "../app-framework";
 
 import { FormControl } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";
@@ -33,25 +33,22 @@ interface SlideshowProps {
   cell: ImmutableMap<string, any>;
 }
 
-export class Slideshow extends Component<SlideshowProps> {
-  select = (e: any) =>
-    this.props.actions.set_cell_slide(
-      this.props.cell.get("id"),
-      e.target.value
-    );
-  render() {
-    return (
-      <div style={{ width: "100%" }}>
-        <FormControl
-          componentClass="select"
-          placeholder="select"
-          onChange={this.select}
-          value={this.props.cell.get("slide", "")}
-          style={{ float: "right", width: "200px" }}
-        >
-          {rendered_options}
-        </FormControl>
-      </div>
-    );
+export const Slideshow: React.FC<SlideshowProps> = (props: SlideshowProps) => {
+  const { actions, cell } = props;
+  function select(e: any): void {
+    actions.set_cell_slide(cell.get("id"), e.target.value);
   }
-}
+  return (
+    <div style={{ width: "100%" }}>
+      <FormControl
+        componentClass="select"
+        placeholder="select"
+        onChange={select}
+        value={cell.get("slide", "")}
+        style={{ float: "right", width: "200px" }}
+      >
+        {rendered_options}
+      </FormControl>
+    </div>
+  );
+};

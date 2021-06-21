@@ -48,7 +48,7 @@ export const DatastoreConfig: React.FC<Props> = (props: Props) => {
   function render_control() {
     return (
       <Form layout="inline">
-        <Form.Item label="Inherit Datastores:" style={{ marginBottom: 0 }}>
+        <Form.Item label="Inherit settings:" style={{ marginBottom: 0 }}>
           <Switch
             checked={next_val}
             onChange={(val) => on_inherit_change(val)}
@@ -71,17 +71,17 @@ export const DatastoreConfig: React.FC<Props> = (props: Props) => {
     <Card
       title={
         <>
-          <Icon name="database" /> Datastores
+          <Icon name="database" /> Cloud storage & remote file systems
         </>
       }
     >
       <p>
         If enabled, all student projects will have{" "}
         <Typography.Text strong>read-only</Typography.Text> access to the same
-        datastores as this instructor project. To configure datastores, please
-        check this project's settings for more details. Any changes to the
-        datastore configuration of this project will be reflected after the next
-        start of a student project.
+        cloud stores and remote file systems as this instructor project. To
+        configure them, please check this project's settings for more details.
+        Any changes to the configuration of this project will be reflected after
+        the next start of a student project.
       </p>
       {render_control()}
     </Card>

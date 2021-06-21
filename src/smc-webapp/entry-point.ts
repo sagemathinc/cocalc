@@ -37,6 +37,12 @@ import { init as markdown_init } from "./widget-markdown-input/main";
 // only enable iframe comms in minimal kiosk mode
 import { init as iframe_comm_init } from "./iframe-communication";
 import { init as init_crash_banner } from "./crash-banner";
+
+// Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
+// This import of codemirror is force the initial full load of codemirror as part of the
+// main webpack entry point.
+import "codemirror";
+
 // Should be loaded last
 import { init as init_last } from "./last";
 
