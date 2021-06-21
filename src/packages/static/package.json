@@ -11,7 +11,7 @@
     "@cocalc/cdn": "*",
     "webapp-lib": "*"
   },
-  "version": "1.7.1",
+  "version": "1.8.0",
   "description": "CoCalc's Static Frontend Webapp Assets",
   "main": "./src/index.js",
   "babel": {
@@ -28,7 +28,7 @@
     "tsc-static": "cd src && tsc --watch",
     "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production webpack --progress --color --watch",
     "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development npm run webpack ",
-    "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true npm run prod",
+    "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true npm run webpack-prod",
     "build": "./production-build.py"
   },
   "repository": {
