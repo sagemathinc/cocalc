@@ -5,7 +5,7 @@
 
 declare const $: any;
 
-import { React, Component, Rendered } from "../app-framework";
+import { React, Rendered } from "../app-framework";
 import { Map } from "immutable";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
@@ -20,97 +20,85 @@ interface CompleteProps {
 // WARNING: Complete closing when clicking outside the complete box
 // is handled in cell-list on_click.  This is ugly code (since not localized),
 // but seems to work well for now.  Could move.
-export class Complete extends Component<CompleteProps> {
-  private node: HTMLElement;
+export const Complete: React.FC<CompleteProps> = React.memo(
+  (props: CompleteProps) => {
+    const { actions, frame_actions, id, complete } = props;
 
-  private select(item: string): void {
-    // Save contents of editor to the store so that completion properly *places* the
-    // completion in the correct place: see https://github.com/sagemathinc/cocalc/issues/3978
-    this.props.frame_actions.save_input_editor(this.props.id);
+    const nodeRef = React.useRef<HTMLDivElement | null>(null);
 
-    // Actually insert the completion:
-    this.props.actions.select_complete(this.props.id, item);
+    React.useEffect(() => {
+      $(window).on("keypress", keypress);
+      $(nodeRef.current).find("a:first").focus();
+      return () => {
+        $(window).off("keypress", keypress);
+      };
+    }, []);
 
-    // Start working on the cell:
-    this.props.frame_actions.set_mode("edit");
-  }
+    function select(item: string): void {
+      // Save contents of editor to the store so that completion properly *places* the
+      // completion in the correct place: see https://github.com/sagemathinc/cocalc/issues/3978
+      frame_actions.save_input_editor(id);
 
-  private render_item(item: string): Rendered {
-    return (
-      <li key={item}>
-        <a role="menuitem" tabIndex={-1} onClick={() => this.select(item)}>
-          {item}
-        </a>
-      </li>
-    );
-  }
+      // Actually insert the completion:
+      actions.select_complete(id, item);
 
-  private keypress = (evt: any) => {
-    this.props.actions.complete_handle_key(this.props.id, evt.keyCode);
-  };
-
-  public componentDidMount(): void {
-    $(window).on("keypress", this.keypress);
-    $(this.node).find("a:first").focus();
-  }
-
-  public componentDidUpdate(): void {
-    $(this.node).find("a:first").focus();
-  }
-
-  public componentWillUnmount(): void {
-    $(window).off("keypress", this.keypress);
-  }
-
-  private key(e: any): void {
-    if (e.keyCode === 27) {
-      this.props.actions.clear_complete();
-      this.props.frame_actions.set_mode("edit");
+      // Start working on the cell:
+      frame_actions.set_mode("edit");
     }
-    if (e.keyCode !== 13) {
-      return;
+
+    function render_item(item: string): Rendered {
+      return (
+        <li key={item}>
+          <a role="menuitem" tabIndex={-1} onClick={() => select(item)}>
+            {item}
+          </a>
+        </li>
+      );
     }
-    e.preventDefault();
-    e.stopPropagation();
-    const item = $(this.node).find("a:focus").text();
-    this.select(item);
-  }
 
-  private get_style(): React.CSSProperties {
-    const top = this.props.complete.getIn(["offset", "top"], 0);
-    const left = this.props.complete.getIn(["offset", "left"], 0);
-    const gutter = this.props.complete.getIn(["offset", "gutter"], 0);
-    return {
-      cursor: "pointer",
-      top: top + "px",
-      left: left + gutter + "px",
-      opacity: 0.95,
-      zIndex: 10,
-      width: 0,
-      height: 0,
-    };
-  }
+    function keypress(evt: any) {
+      actions.complete_handle_key(id, evt.keyCode);
+    }
 
-  private get_items(): Rendered[] {
-    return this.props.complete
-      .get("matches", [])
-      .map(this.render_item.bind(this));
-  }
+    function key(e: any): void {
+      if (e.keyCode === 27) {
+        actions.clear_complete();
+        frame_actions.set_mode("edit");
+      }
+      if (e.keyCode !== 13) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      const item = $(nodeRef.current).find("a:focus").text();
+      select(item);
+    }
 
-  public render(): Rendered {
+    function get_style(): React.CSSProperties {
+      const top = complete.getIn(["offset", "top"], 0);
+      const left = complete.getIn(["offset", "left"], 0);
+      const gutter = complete.getIn(["offset", "gutter"], 0);
+      return {
+        cursor: "pointer",
+        top: top + "px",
+        left: left + gutter + "px",
+        opacity: 0.95,
+        zIndex: 10,
+        width: 0,
+        height: 0,
+      };
+    }
+
+    function get_items(): Rendered[] {
+      return complete.get("matches", []).map(render_item);
+    }
+
     return (
-      <div
-        className="dropdown open"
-        style={this.get_style()}
-        ref={(node: any) => (this.node = node)}
-      >
-        <ul
-          className="dropdown-menu cocalc-complete"
-          onKeyDown={this.key.bind(this)}
-        >
-          {this.get_items()}
+      <div className="dropdown open" style={get_style()} ref={nodeRef}>
+        <ul className="dropdown-menu cocalc-complete" onKeyDown={key}>
+          {get_items()}
         </ul>
       </div>
     );
   }
-}
+);

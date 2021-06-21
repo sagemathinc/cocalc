@@ -8,9 +8,9 @@ About dialog -- provides info about the Jupyter Notebook
 */
 
 import Ansi from "ansi-to-react";
-import { React, Component, Rendered } from "../app-framework";
+import { React } from "../app-framework";
 import { Button, Modal } from "react-bootstrap";
-import { Icon } from "../r_misc";
+import { Icon, A } from "../r_misc";
 const { ShowSupportLink } = require("../support");
 import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
 import { KernelInfo } from "./types";
@@ -22,16 +22,18 @@ interface AboutProps {
   backend_kernel_info?: KernelInfo;
 }
 
-export class About extends Component<AboutProps> {
-  private close(): void {
-    this.props.actions.setState({ about: false });
-    this.props.actions.focus(true);
+export const About: React.FC<AboutProps> = React.memo((props: AboutProps) => {
+  const { actions, about, backend_kernel_info } = props;
+
+  function close(): void {
+    actions.setState({ about: false });
+    actions.focus(true);
   }
 
-  private render_server_info(): Rendered {
+  function render_server_info(): JSX.Element {
     const version =
-      this.props.backend_kernel_info != null
-        ? this.props.backend_kernel_info.get("nodejs_version")
+      backend_kernel_info != null
+        ? backend_kernel_info.get("nodejs_version")
         : undefined;
     if (!version) {
       return <div>Waiting for server to be available...</div>;
@@ -39,10 +41,10 @@ export class About extends Component<AboutProps> {
     return <pre>Node.js Version {version}</pre>;
   }
 
-  private render_kernel_info(): Rendered {
+  function render_kernel_info(): JSX.Element {
     const banner =
-      this.props.backend_kernel_info != null
-        ? this.props.backend_kernel_info.get("banner")
+      backend_kernel_info != null
+        ? backend_kernel_info.get("banner")
         : undefined;
     if (banner == null) {
       return <div>Waiting for kernel to be available...</div>;
@@ -54,26 +56,17 @@ export class About extends Component<AboutProps> {
     );
   }
 
-  private render_faq(): Rendered {
+  function render_faq(): JSX.Element {
     return (
       <span>
-        Read{" "}
-        <a
-          href="https://doc.cocalc.com/jupyter.html"
-          target="_blank"
-          rel="noopener"
-        >
-          documentation
-        </a>
+        Read <A href="https://doc.cocalc.com/jupyter.html">documentation</A>
         , create a <ShowSupportLink />, or check the latest{" "}
-        <a href={JUPYTER_CLASSIC_MODERN} target="_blank" rel="noopener">
-          status of Jupyter in CoCalc.
-        </a>
+        <A href={JUPYTER_CLASSIC_MODERN}>status of Jupyter in CoCalc.</A>
       </span>
     );
   }
 
-  private render_features(): Rendered {
+  function render_features(): JSX.Element {
     return (
       <ul
         style={{
@@ -120,13 +113,9 @@ export class About extends Component<AboutProps> {
         <li>
           <b>Background capture of output:</b> works if no user has the notebook
           open (
-          <a
-            href="https://github.com/jupyterlab/jupyterlab/issues/6545#issuecomment-501259211"
-            target="_blank"
-            rel="noopener"
-          >
+          <A href="https://github.com/jupyterlab/jupyterlab/issues/6545#issuecomment-501259211">
             discussion
-          </a>
+          </A>
           )
         </li>
         <li>
@@ -152,59 +141,47 @@ export class About extends Component<AboutProps> {
     );
   }
 
-  public render(): Rendered {
-    return (
-      <Modal
-        show={this.props.about}
-        bsSize="large"
-        onHide={this.close.bind(this)}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <Icon name="question-circle" /> About CoCalc Jupyter notebook
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>You are using the CoCalc Jupyter notebook.</p>
+  return (
+    <Modal show={about} bsSize="large" onHide={close}>
+      <Modal.Header closeButton>
+        <Modal.Title>
+          <Icon name="question-circle" /> About CoCalc Jupyter notebook
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <p>You are using the CoCalc Jupyter notebook.</p>
 
-          <div style={{ color: "#333", margin: "0px 45px" }}>
-            CoCalc Jupyter notebook is a complete open source rewrite by
-            SageMath, Inc. of the classical Jupyter notebook client from the{" "}
-            <a href="http://jupyter.org/" target="_blank" rel="noopener">
-              Jupyter project
-            </a>
-            . CoCalc Jupyter notebook maintains full compatibility with the file
-            format and general look and feel of the classical notebook. It
-            improves on the classical notebook as follows:
-            {this.render_features()}
-            Some functionality of classical extensions are not yet supported (if
-            you need something,{" "}
-            <a
-              href="https://github.com/sagemathinc/cocalc/issues?q=is%3Aissue+is%3Aopen+label%3AA-jupyter"
-              target="_blank"
-              rel="noopener"
-            >
-              check here
-            </a>{" "}
-            and create a <ShowSupportLink />
-            ), and some of the above is also available in classical Jupyter via
-            extensions.
-          </div>
+        <div style={{ color: "#333", margin: "0px 45px" }}>
+          CoCalc Jupyter notebook is a complete open source rewrite by SageMath,
+          Inc. of the classical Jupyter notebook client from the{" "}
+          <A href="http://jupyter.org/">Jupyter project</A>. CoCalc Jupyter
+          notebook maintains full compatibility with the file format and general
+          look and feel of the classical notebook. It improves on the classical
+          notebook as follows:
+          {render_features()}
+          Some functionality of classical extensions are not yet supported (if
+          you need something,{" "}
+          <A href="https://github.com/sagemathinc/cocalc/issues?q=is%3Aissue+is%3Aopen+label%3AA-jupyter">
+            check here
+          </A>{" "}
+          and create a <ShowSupportLink />
+          ), and some of the above is also available in classical Jupyter via
+          extensions.
+        </div>
 
-          <h4>Questions</h4>
-          {this.render_faq()}
+        <h4>Questions</h4>
+        {render_faq()}
 
-          <h4>Server Information</h4>
-          {this.render_server_info()}
+        <h4>Server Information</h4>
+        {render_server_info()}
 
-          <h4>Current Kernel Information</h4>
-          {this.render_kernel_info()}
-        </Modal.Body>
+        <h4>Current Kernel Information</h4>
+        {render_kernel_info()}
+      </Modal.Body>
 
-        <Modal.Footer>
-          <Button onClick={this.close.bind(this)}>Close</Button>
-        </Modal.Footer>
-      </Modal>
-    );
-  }
-}
+      <Modal.Footer>
+        <Button onClick={close}>Close</Button>
+      </Modal.Footer>
+    </Modal>
+  );
+});

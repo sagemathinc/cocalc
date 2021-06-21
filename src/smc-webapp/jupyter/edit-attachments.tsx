@@ -7,7 +7,7 @@
 Modal for editing attachments that are attached to a markdown cell
 */
 
-import { React, Component } from "../app-framework";
+import { React } from "../app-framework";
 import { Icon } from "../r_misc";
 import { Button, Modal } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";
@@ -18,80 +18,81 @@ const ROW_STYLE: React.CSSProperties = {
   border: "1px solid #ddd",
   padding: "7px",
   borderRadius: "3px",
-};
+} as const;
 
 interface EditAttachmentsProps {
   actions: JupyterActions;
   cell: ImmutableMap<string, any>;
 }
 
-export class EditAttachments extends Component<EditAttachmentsProps> {
-  shouldComponentUpdate(nextProps) {
-    return nextProps.cell !== this.props.cell;
-  }
+function should_memoize(prev, next) {
+  return next.cell === prev.cell;
+}
 
-  close = () => {
-    this.props.actions.setState({ edit_attachments: undefined });
-    this.props.actions.focus(true);
-  };
+export const EditAttachments: React.FC<EditAttachmentsProps> = React.memo(
+  (props: EditAttachmentsProps) => {
+    const { actions, cell } = props;
 
-  delete_attachment = (name: string) => {
-    this.props.actions.delete_attachment_from_cell(
-      this.props.cell.get("id"),
-      name
-    );
-  };
-
-  render_attachment = (name: string) => {
-    return (
-      <div key={name} style={{ ...ROW_STYLE, width: "100%" }}>
-        <div style={{ flex: 1 }}>{name}</div>
-        <div>
-          <Button onClick={() => this.delete_attachment(name)} bsStyle="danger">
-            <Icon name="trash" /> Delete
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
-  render_attachments = () => {
-    const v: any[] = [];
-    if (this.props.cell) {
-      const attachments = this.props.cell.get("attachments");
-      if (attachments) {
-        attachments.forEach((_, name) => {
-          if (v.length > 0) {
-            v.push(<div style={{ marginTop: "7px" }} key={name + "space"} />);
-          }
-          return v.push(this.render_attachment(name));
-        });
-      }
+    function close() {
+      actions.setState({ edit_attachments: undefined });
+      actions.focus(true);
     }
-    if (v.length === 0) {
+
+    function delete_attachment(name: string) {
+      actions.delete_attachment_from_cell(cell.get("id"), name);
+    }
+
+    function render_attachment(name: string) {
       return (
-        <span>
-          There are no attachments. To attach images, use Edit &rarr; Insert Image.
-        </span>
+        <div key={name} style={{ ...ROW_STYLE, width: "100%" }}>
+          <div style={{ flex: 1 }}>{name}</div>
+          <div>
+            <Button onClick={() => delete_attachment(name)} bsStyle="danger">
+              <Icon name="trash" /> Delete
+            </Button>
+          </div>
+        </div>
       );
     }
-    return v;
-  };
 
-  render() {
+    function render_attachments() {
+      const v: any[] = [];
+      if (cell) {
+        const attachments = cell.get("attachments");
+        if (attachments) {
+          attachments.forEach((_, name) => {
+            if (v.length > 0) {
+              v.push(<div style={{ marginTop: "7px" }} key={name + "space"} />);
+            }
+            return v.push(render_attachment(name));
+          });
+        }
+      }
+      if (v.length === 0) {
+        return (
+          <span>
+            There are no attachments. To attach images, use Edit &rarr; Insert
+            Image.
+          </span>
+        );
+      }
+      return v;
+    }
+
     return (
-      <Modal show={this.props.cell != null} onHide={this.close}>
+      <Modal show={cell != null} onHide={close}>
         <Modal.Header closeButton>
           <Modal.Title>
             <Icon name="trash" /> Delete Cell Attachments
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body>{this.render_attachments()}</Modal.Body>
+        <Modal.Body>{render_attachments()}</Modal.Body>
 
         <Modal.Footer>
-          <Button onClick={this.close}>Close</Button>
+          <Button onClick={close}>Close</Button>
         </Modal.Footer>
       </Modal>
     );
-  }
-}
+  },
+  should_memoize
+);

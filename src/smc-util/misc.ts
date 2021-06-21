@@ -38,6 +38,7 @@ export {
   is_different,
   is_different_array,
   shallowCompare,
+  all_fields_equal,
 } from "./cmp";
 
 export {
@@ -124,9 +125,10 @@ export function filename_extension_notilde(filename: string): string {
 
 // If input name foo.bar, returns object {name:'foo', ext:'bar'}.
 // If there is no . in input name, returns {name:name, ext:''}
-export function separate_file_extension(
-  name: string
-): { name: string; ext: string } {
+export function separate_file_extension(name: string): {
+  name: string;
+  ext: string;
+} {
   const ext: string = filename_extension(name);
   if (ext !== "") {
     name = name.slice(0, name.length - ext.length - 1); // remove the ext and the .
@@ -643,7 +645,8 @@ export function human_readable_size(bytes: number | null | undefined): string {
 // (2) it's not bad if we are extra conservative.  E.g., url-regex "matches the TLD against a list of valid TLDs."
 //     which is really overkill for preventing abuse, and is clearly more aimed at highlighting URL's
 //     properly (not our use case).
-export const re_url = /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?/gi;
+export const re_url =
+  /(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?/gi;
 
 export function contains_url(str: string): boolean {
   return !!str.toLowerCase().match(re_url);
@@ -808,9 +811,9 @@ export function parse_number_input(
 // with false->0 and true->1
 // Non finite values coerce to 0.
 // Also, returns map.
-export function coerce_codomain_to_numbers(map: {
-  [k: string]: any;
-}): { [k: string]: number } {
+export function coerce_codomain_to_numbers(map: { [k: string]: any }): {
+  [k: string]: number;
+} {
   for (const k in map) {
     const x = map[k];
     if (typeof x === "boolean") {
@@ -945,7 +948,7 @@ export function search_match(s: string, v: string[]): boolean {
 export let RUNNING_IN_NODE: boolean;
 try {
   RUNNING_IN_NODE = process?.title == "node";
-} catch(_err) {
+} catch (_err) {
   // error since process probably not defined at all (unless there is a node polyfill).
   RUNNING_IN_NODE = false;
 }
@@ -1025,7 +1028,8 @@ export function to_safe_str(x: any): string {
 
 // convert from a JSON string to Javascript (properly dealing with ISO dates)
 //   e.g.,   2016-12-12T02:12:03.239Z    and    2016-12-12T02:02:53.358752
-const reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
+const reISO =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
 export function date_parser(_key: string, value) {
   if (typeof value === "string" && value.length >= 20 && reISO.exec(value)) {
     return ISO_to_Date(value);
@@ -2160,7 +2164,10 @@ export function closest_kernel_match(
       v > bestValue ||
       (v === bestValue &&
         bestMatch &&
-        compareVersionStrings(k.get("name") ?? "", bestMatch.get("name") ?? "") === 1)
+        compareVersionStrings(
+          k.get("name") ?? "",
+          bestMatch.get("name") ?? ""
+        ) === 1)
     ) {
       bestValue = v;
       bestMatch = k;
