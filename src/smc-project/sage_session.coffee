@@ -8,7 +8,7 @@ Start the Sage server and also get a new socket connection to it.
 ###
 
 async     = require('async')
-winston   = require('winston')
+winston = require('./logger').get_logger('sage-session')
 
 misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')

@@ -8,7 +8,7 @@ Manage Jupyter server
 ###
 
 async     = require('async')
-winston   = require('winston')
+winston = require('./logger').get_logger('jupyter-manager')
 misc_node = require('smc-util-node/misc_node')
 misc      = require('smc-util/misc')
 message   = require('smc-util/message')

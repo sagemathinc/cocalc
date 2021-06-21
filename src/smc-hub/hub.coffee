@@ -84,7 +84,7 @@ init_smc_version = (db, cb) ->
         cb()
     # winston.debug("init smc_version: #{misc.to_json(smc_version.version)}")
     server_settings.table.on 'change', ->
-        winston.debug("version changed -- sending updates to clients")
+        winston.info("version changed -- sending updates to clients")
         for id, c of clients
             if c.smc_version < server_settings.version.version_recommended_browser
                 c.push_version_update()
@@ -262,9 +262,9 @@ reset_password = (email_address, cb) ->
                 cb : cb
     ], (err) ->
         if err
-            winston.debug("Error -- #{err}")
+            winston.info("Error -- #{err}")
         else
-            winston.debug("Password changed for #{email_address}")
+            winston.info("Password changed for #{email_address}")
         cb?()
     )
 
@@ -279,11 +279,10 @@ connect_to_database = (opts) ->
         error : undefined   # ignored
         pool  : program.dbPool
         cb    : required
-    dbg = (m) -> winston.debug("connect_to_database (PostgreSQL): #{m}")
     if database? # already did this
-        dbg("already done")
+        winston.debug("connect_to_database (PostgreSQL): already done")
         opts.cb(); return
-    dbg("connecting...")
+    winston.info("connect_to_database (PostgreSQL): connecting...")
     database = require('./postgres').db
         host            : program.databaseNodes
         database        : program.keyspace
@@ -295,12 +294,12 @@ connect_to_database = (opts) ->
 # remote server.
 compute_server = undefined
 init_compute_server = (cb) ->
-    winston.debug("init_compute_server: creating compute_server client")
+    winston.info("init_compute_server: creating compute_server client")
     f = (err, x) ->
         if not err
-            winston.debug("compute server created")
+            winston.info("compute server created")
         else
-            winston.debug("FATAL ERROR creating compute server -- #{err}")
+            winston.info("FATAL ERROR creating compute server -- #{err}")
             cb?(err)
             return
         compute_server = x
@@ -407,7 +406,7 @@ init_update_site_license_usage_log = (cb) ->
 
 
 stripe_sync = (cb) ->
-    dbg = (m) -> winston.debug("stripe_sync: #{m}")
+    dbg = (m) -> winston.info("stripe_sync: #{m}")
     dbg()
     async.series([
         (cb) ->
@@ -424,7 +423,7 @@ stripe_sync = (cb) ->
     ], cb)
 
 init_metrics = (cb) ->
-    winston.debug("Initializing Metrics Recorder")
+    winston.info("Initializing Metrics Recorder")
     MetricsRecorder.init(winston, (err, mr) ->
         if err?
             cb(err)
@@ -441,14 +440,14 @@ metric_blocked  = undefined
 uncaught_exception_total = undefined
 
 exports.start_server = start_server = (cb) ->
-    winston.debug("start_server")
+    winston.info("start_server")
 
-    winston.debug("dev = #{program.dev}")
+    winston.info("dev = #{program.dev}")
     # Be very sure cookies do NOT work unless over https.  IMPORTANT.
     if not client.COOKIE_OPTIONS.secure
         throw Error("client cookie options are not secure")
 
-    winston.debug("base_path='#{base_path}'")
+    winston.info("base_path='#{base_path}'")
 
     # the order of init below is important
     winston.info("using database #{program.keyspace} and database-nodes=#{program.databaseNodes}")
@@ -474,19 +473,19 @@ exports.start_server = start_server = (cb) ->
             init_metrics(cb)
         (cb) ->
             # this defines the global (to this file) database variable.
-            winston.debug("Connecting to the database.")
+            winston.info("Connecting to the database.")
             misc.retry_until_success
                 f           : (cb) -> connect_to_database(cb:cb)
                 start_delay : 1000
                 max_delay   : 10000
                 cb          : () ->
-                    winston.debug("connected to database.")
+                    winston.info("connected to database.")
                     cb()
         (cb) ->
             if not program.websocketServer
                 cb(); return
             if not database.is_standby and (program.dev or program.update)
-                winston.debug("updating the database schema...")
+                winston.info("updating the database schema...")
                 database.update_schema(cb:cb)
             else
                 cb()
@@ -506,18 +505,18 @@ exports.start_server = start_server = (cb) ->
                 return
             cb()
         (cb) ->
-            winston.debug("mentions=#{program.mentions}")
+            winston.info("mentions=#{program.mentions}")
             if program.mentions
-                winston.debug("enabling handling of mentions...")
+                winston.info("enabling handling of mentions...")
                 handle_mentions_loop(database)
             else
-                winston.debug("not handling mentions");
+                winston.info("not handling mentions");
             cb()
         (cb) ->
             if not program.websocketServer
                 cb(); return
             try
-                winston.debug("initializing stripe support...")
+                winston.info("initializing stripe support...")
                 await require('./stripe').init_stripe(database, winston)
                 cb()
             catch err
@@ -525,10 +524,10 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.websocketServer
                 cb(); return
-            winston.debug("initializing zendesk support...")
+            winston.info("initializing zendesk support...")
             init_support(cb)
         (cb) ->
-            winston.debug("initializing compute server...")
+            winston.info("initializing compute server...")
             init_compute_server(cb)
         (cb) ->
             if not program.dev or process.env.USER.length == 32
@@ -539,7 +538,7 @@ exports.start_server = start_server = (cb) ->
             # all projects are stopped, since assuming they are
             # running when they are not is bad.  Something similar
             # is done in cocalc-docker.
-            winston.debug("killing dev projects...")
+            winston.info("killing dev projects...")
             misc_node.execute_code  # in the scripts/ path...
                 command : "cocalc_kill_all_dev_projects.py"
 
@@ -583,7 +582,7 @@ exports.start_server = start_server = (cb) ->
                 database       : database
                 cookie_options : client.COOKIE_OPTIONS
             {http_server, express_router} = x
-            winston.debug("starting express webserver listening on #{program.host}:#{port}")
+            winston.info("starting express webserver listening on #{program.host}:#{port}")
             http_server.listen(port, program.host, cb)
         (cb) ->
             if not program.shareServer or program.dev  # TODO: right now dev gets its own share server
@@ -592,14 +591,14 @@ exports.start_server = start_server = (cb) ->
             # it's just a different path on the same server, not
             # a separate server fighting for the port.
             t0 = new Date()
-            winston.debug("initializing the share server on port #{program.sharePort}")
-            winston.debug("...... (takes about 10 seconds) ......")
+            winston.info("initializing the share server on port #{program.sharePort}")
+            winston.info("...... (takes about 10 seconds) ......")
             x = await require('./share/server').init
                 database       : database
                 share_path     : program.sharePath
                 logger         : winston
-            winston.debug("Time to initialize share server (jsdom, etc.): #{(new Date() - t0)/1000} seconds")
-            winston.debug("starting share express webserver listening on #{program.host}:#{port}")
+            winston.info("Time to initialize share server (jsdom, etc.): #{(new Date() - t0)/1000} seconds")
+            winston.info("starting share express webserver listening on #{program.host}:#{port}")
             x.http_server.listen(port, program.host, cb)
         (cb) ->
             if database.is_standby
@@ -617,10 +616,10 @@ exports.start_server = start_server = (cb) ->
             winston.error("Error starting hub services! err=#{err}")
         else
             # Synchronous initialize of other functionality, now that the database, etc., are working.
-            winston.debug("base_path='#{base_path}'")
+            winston.info("base_path='#{base_path}'")
 
             if program.websocketServer and not database.isStandby
-                winston.debug("initializing primus websocket server")
+                winston.info("initializing primus websocket server")
                 require('./servers/primus').init
                     http_server : http_server
                     express_router : express_router
@@ -631,7 +630,7 @@ exports.start_server = start_server = (cb) ->
                     isPersonal: program.personal
 
             if program.proxyServer
-                winston.debug("initializing the http proxy server on port #{port}")
+                winston.info("initializing the http proxy server on port #{port}")
                 # proxy's http server has its own minimal health check – we only enable the agent check
                 hub_proxy.init_http_proxy_server
                     database       : database
@@ -641,13 +640,13 @@ exports.start_server = start_server = (cb) ->
 
 
             if program.websocketServer or program.proxyServer or program.shareServer
-                winston.debug("Starting registering periodically with the database and updating a health check...")
+                winston.info("Starting registering periodically with the database and updating a health check...")
 
                 if program.test
-                    winston.debug("setting up hub_register_cb for testing")
+                    winston.info("setting up hub_register_cb for testing")
                     hub_register_cb = (err) ->
                         if err
-                            winston.debug("hub_register_cb err:", err)
+                            winston.info("hub_register_cb err:", err)
                             process.exit(1)
                         else
                             process.exit(0)
@@ -695,17 +694,17 @@ add_user_to_project = (project_id, email_address, cb) ->
 
 addErrorListeners = () ->
     process.addListener "uncaughtException", (err) ->
-        winston.debug("BUG ****************************************************************************")
-        winston.debug("Uncaught exception: " + err)
-        winston.debug(err.stack)
-        winston.debug("BUG ****************************************************************************")
+        winston.error("BUG ****************************************************************************")
+        winston.error("Uncaught exception: " + err)
+        winston.error(err.stack)
+        winston.error("BUG ****************************************************************************")
         database?.uncaught_exception(err)
         uncaught_exception_total?.inc(1)
 
     process.on 'unhandledRejection', (reason, p) ->
-        winston.debug("BUG UNHANDLED REJECTION *********************************************************")
-        winston.debug('Unhandled Rejection at:', p, 'reason:', reason)
-        winston.debug("BUG UNHANDLED REJECTION *********************************************************")
+        winston.error("BUG UNHANDLED REJECTION *********************************************************")
+        winston.error('Unhandled Rejection at:', p, 'reason:', reason)
+        winston.error("BUG UNHANDLED REJECTION *********************************************************")
         database?.uncaught_exception(p)
         uncaught_exception_total?.inc(1)
 

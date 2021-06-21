@@ -10,10 +10,12 @@ Jupyter's in-memory blob store (based on sqlite), which hooks into the raw http 
 import { BlobStoreInterface } from "smc-webapp/jupyter/project-interface";
 import * as fs from "fs";
 import { readFile } from "./async-utils-node";
-const winston = require("winston");
+import Logger from "smc-project/logger";
 import { months_ago, to_json } from "smc-util/misc";
 const misc_node = require("smc-util-node/misc_node");
 import * as Database from "better-sqlite3";
+
+const winston = Logger("jupyter-blobs-sqlite");
 
 const JUPYTER_BLOBS_DB_FILE: string =
   process.env.JUPYTER_BLOBS_DB_FILE ??

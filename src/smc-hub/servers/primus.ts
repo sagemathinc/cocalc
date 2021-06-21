@@ -10,7 +10,7 @@ interface Options {
   http_server: any;
   express_router: any;
   compute_server: any;
-  clients: { [id: string]: typeof Client };
+  clients: { [id: string]: any }; // todo: when client is in typescript, use proper type...
   database: any;
   host: string;
   isPersonal: boolean;
@@ -31,12 +31,12 @@ export function init({
   // doesn't require changing anything anywhere else.
   const primusOpts = { pathname: join(base_path, "hub") };
   const primus_server = new Primus(http_server, primusOpts);
-  logger.debug(`listening on ${primusOpts.pathname}`);
+  logger.info(`listening on ${primusOpts.pathname}`);
 
   // Make it so new websocket connection requests get handled:
   primus_server.on("connection", function (conn) {
     // Now handle the connection
-    logger.debug(`new connection from ${conn.address.ip} -- ${conn.id}`);
+    logger.info(`new connection from ${conn.address.ip} -- ${conn.id}`);
     clients[conn.id] = new Client({
       conn,
       logger,
@@ -45,7 +45,7 @@ export function init({
       host,
       personal: isPersonal,
     });
-    return logger.debug(`num_clients=${len(clients)}`);
+    logger.info(`num_clients=${len(clients)}`);
   });
 
   // Serve the primus.js client code via the express router.

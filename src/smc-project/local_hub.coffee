@@ -16,13 +16,24 @@ doing a lot of IO-based things is what Node.JS is good at.
 
 {program} = require('./init-program')
 
+# Before anything else set environment variables.
+# (WARNING -- the sage_server.py program can't get these definitions from
+# here, since it is not written in node; if this path changes, it has
+# to be change there as well (it will use the SMC environ
+# variable though).)
+if process.env.SMC_LOCAL_HUB_HOME?
+    process.env.HOME = process.env.SMC_LOCAL_HUB_HOME
+if not process.env.SMC?
+    process.env.SMC = path.join(process.env.HOME, '.smc')
+SMC = if program.test then '/tmp' else process.env.SMC
+winston = require('./logger').get_logger('local-hub') # must be after SMC above
+
 path    = require('path')
 async   = require('async')
 fs      = require('fs')
 os      = require('os')
 net     = require('net')
 uuid    = require('uuid')
-winston = require('winston')
 request = require('request')
 
 init_gitconfig = require('./gitconfig').init_gitconfig
@@ -30,20 +41,16 @@ init_gitconfig = require('./gitconfig').init_gitconfig
 BUG_COUNTER = 0
 
 process.addListener "uncaughtException", (err) ->
-    winston.debug("BUG ****************************************************************************")
-    winston.debug("Uncaught exception: " + err)
-    winston.debug(err.stack)
-    winston.debug("BUG ****************************************************************************")
+    winston.error("BUG ****************************************************************************")
+    winston.error("Uncaught exception: " + err)
+    winston.error(err.stack)
+    winston.error("BUG ****************************************************************************")
     if console? and console.trace?
         console.trace()
     BUG_COUNTER += 1
 
 exports.get_bugs_total = ->
     return BUG_COUNTER
-
-# Set the log level
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 message     = require('smc-util/message')
 misc        = require('smc-util/misc')
@@ -101,24 +108,11 @@ project_setup = require('./project-setup')
 # Client for connecting back to a hub
 {Client} = require('./client')
 
-# WARNING -- the sage_server.py program can't get these definitions from
-# here, since it is not written in node; if this path changes, it has
-# to be change there as well (it will use the SMC environ
-# variable though).
-
-if process.env.SMC_LOCAL_HUB_HOME?
-    process.env.HOME = process.env.SMC_LOCAL_HUB_HOME
-
-if not process.env.SMC?
-    process.env.SMC = path.join(process.env.HOME, '.smc')
-
-SMC = if program.test then '/tmp' else process.env.SMC
-
 process.chdir(process.env.HOME)
 
 DATA = path.join(SMC, 'local_hub')
 
-winston.debug("DATA='#{DATA}'")
+winston.info("DATA='#{DATA}'")
 
 # See https://github.com/sagemathinc/cocalc/issues/174 -- some stupid (?)
 # code sometimes assumes this exists, and it's not so hard to just ensure
@@ -138,7 +132,7 @@ json = common.json
 INFO = undefined
 hub_client = undefined
 init_info_json = (cb) ->  # NOTE: cb should only be required to guarantee info.json file written, not that INFO var is initialized.
-    winston.debug("initializing INFO")
+    winston.info("initializing INFO")
     filename = "#{SMC}/info.json"
     if process.env.COCALC_PROJECT_ID? and process.env.COCALC_USERNAME?
         project_id = process.env.COCALC_PROJECT_ID
@@ -163,12 +157,12 @@ init_info_json = (cb) ->  # NOTE: cb should only be required to guarantee info.j
         project_id : project_id
         location   : {host:host, username:username, port:port, path:'.'}
         base_path  : base_path
-    exports.client = hub_client = new Client(INFO.project_id, winston.debug)
+    exports.client = hub_client = new Client(INFO.project_id, winston)
     fs.writeFile filename, misc.to_json(INFO), (err) ->
         if err
-            winston.debug("Writing 'info.json' -- #{err}")
+            winston.info("Writing 'info.json' -- #{err}")
         else
-            winston.debug("Wrote 'info.json'")
+            winston.info("Wrote 'info.json'")
         cb?(err)
 
 # Connecting to existing session or making a new one.
@@ -220,11 +214,11 @@ handle_mesg = (socket, mesg, handler) ->
         when 'save_blob'
             blobs.handle_save_blob_message(mesg)
         when 'error'
-            winston.debug("ERROR from hub: #{mesg.error}")
+            winston.info("ERROR from hub: #{mesg.error}")
         when 'hello'
             # No action -- this is used by the hub to send an initial control message that has no effect, so that
             # we know this socket will be used for control messages.
-            winston.debug("hello from hub -- sending back our version = #{smc_version.version}")
+            winston.info("hello from hub -- sending back our version = #{smc_version.version}")
             socket.write_mesg('json', message.version(version:smc_version.version))
         else
             if mesg.id?
@@ -310,7 +304,7 @@ start_server = (tcp_port, raw_port, cb) ->
             # We run init_info_json to determine the INFO variable.
             init_info_json(cb)
         (cb) ->
-            winston.debug("starting raw server...")
+            winston.info("starting raw server...")
             raw_server.start_raw_server
                 project_id : INFO.project_id
                 base_path  : base_path
@@ -330,7 +324,7 @@ start_server = (tcp_port, raw_port, cb) ->
             # to run the local_hub server in a console, which is useful for debugging and development.
             fs.writeFile(misc_node.abspath("#{DATA}/local_hub.pid"), "#{process.pid}", cb)
         (cb) ->
-            winston.debug("initializing secret token...")
+            winston.info("initializing secret token...")
             if program.test
                 exports.client.secret_token = "1234567890"
             else
@@ -342,14 +336,14 @@ start_server = (tcp_port, raw_port, cb) ->
                         exports.client.secret_token = token
                         cb()
         (cb) ->
-            winston.debug("start API server...")
+            winston.info("start API server...")
             try
                 await start_api_server({port_path:misc_node.abspath("#{DATA}/api_server.port"), client:exports.client})
                 cb()
             catch err
                 cb(err)
         (cb) ->
-            winston.debug("starting tcp server...")
+            winston.info("starting tcp server...")
             start_tcp_server(the_secret_token, tcp_port, cb)
         (cb) ->
             if program.kucalc
@@ -357,24 +351,24 @@ start_server = (tcp_port, raw_port, cb) ->
             cb()
     ], (err) ->
         if err
-            winston.debug("ERROR starting server -- #{err}")
+            winston.info("ERROR starting server -- #{err}")
         else
             public_paths_monitor = public_paths.monitor(hub_client) # monitor for changes to public paths
-            winston.debug("Successfully started servers.")
+            winston.info("Successfully started servers.")
         cb(err)
     )
 
 # Final steps: kucalc specific setup, environment variable cleanup, and then we issue the "start_server" command …
 
 if program.kucalc
-    winston.debug("running in kucalc")
+    winston.info("running in kucalc")
     kucalc.IN_KUCALC = true
     project_setup.cleanup()
 
     if program.testFirewall
         kucalc.init_gce_firewall_test(winston)
 else
-    winston.debug("NOT running in kucalc")
+    winston.info("NOT running in kucalc")
     kucalc.IN_KUCALC = false
 
 if process.env.COCALC_PROJECT_AUTORENICE? or program.kucalc
@@ -389,9 +383,9 @@ start_server program.tcpPort, program.rawPort, (err) ->
         process.exit(1)
 
 if program.test
-    winston.debug("Test mode -- waiting 10 seconds")
+    winston.info("Test mode -- waiting 10 seconds")
     setTimeout ->
-        winston.debug("Test mode -- now exiting")
+        winston.info("Test mode -- now exiting")
         process.exit(0)
     , 10000
 

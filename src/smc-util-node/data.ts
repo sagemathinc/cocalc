@@ -36,7 +36,7 @@ export const logs: string = process.env.LOGS ?? join(data, "logs");
 // TODO: This will hopefully be dreprecated once I simplify the compute server
 export const compute_sqlite: string = join(data, "compute.sqlite3");
 
-console.log("data: ", {
+console.log("data paths", {
   data,
   pgdata,
   pghost,

@@ -8,7 +8,7 @@
 assert  = require('assert')
 fs      = require('fs')
 net     = require('net')
-winston = require('winston')
+winston = require('./logger')
 async   = require('async')
 path    = require('path')
 

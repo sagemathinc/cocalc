@@ -15,7 +15,7 @@ Copyright 2015, SageMath, Inc., GPL v3.
 fs = require('fs')
 
 async = require('async')
-winston = require('winston')
+winston = require('./logger').get_logger('secret-token')
 
 common = require('./common')
 

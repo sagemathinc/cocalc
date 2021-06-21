@@ -4,9 +4,9 @@
 #########################################################################
 
 fs      = require('fs')
-winston = require('winston')
 misc    = require('smc-util/misc')
 kucalc  = require('./kucalc')
+winston = require('./logger').get_logger('common')
 
 exports.secret_token_filename = ->
     if kucalc.IN_KUCALC
