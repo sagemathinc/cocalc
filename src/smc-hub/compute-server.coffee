@@ -19,7 +19,7 @@ fs          = require('fs')
 os          = require('os')
 
 async       = require('async')
-winston = require('./logger').get_logger('compute-server')
+winston = require('./logger').getLogger('compute-server')
 
 
 uuid        = require('node-uuid')
@@ -63,7 +63,6 @@ smc_compute = (opts) =>
         cb      : required
     env = undefined
     if DEV
-        winston.debug("dev_smc_compute: running #{misc.to_json(opts.args)}")
         os_path = require('path')
         # 2021: we have to be explicit to smc_compute where it's modules are now.
         # prior to encapsulating the global "/cocalc/..." setup, this would have picked up the global installation.
@@ -84,9 +83,13 @@ smc_compute = (opts) =>
     if program.kubernetes
         v.push("--kubernetes")
 
+    args = v.concat(opts.args)
+    if DEV  # potential security issue with logging this is not dev..
+        winston.debug("smc_compute: #{command} #{args.join(' ')}")
+
     misc_node.execute_code
         command : command
-        args    : v.concat(opts.args)
+        args    : args
         timeout : opts.timeout
         bash    : false
         path    : process.cwd()

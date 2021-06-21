@@ -22,7 +22,7 @@ path_module    = require('path')
 underscore     = require('underscore')
 {EventEmitter} = require('events')
 mime           = require('mime')
-winston        = require('./logger').get_logger('hub')
+winston        = require('./logger').getLogger('hub')
 memory         = require('smc-util-node/memory')
 port           = require('smc-util-node/port').default
 

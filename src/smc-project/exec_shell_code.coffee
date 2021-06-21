@@ -10,7 +10,7 @@ Copyright 2015, SageMath, Inc., GPL v3.
 Execute a command line or block of BASH code
 ###
 
-#winston = require('./logger').get_logger('exec-shell-code')
+#winston = require('./logger').getLogger('exec-shell-code')
 
 misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')

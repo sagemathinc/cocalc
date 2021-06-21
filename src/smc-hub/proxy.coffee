@@ -8,7 +8,7 @@
 
 Cookies = require('cookies')            # https://github.com/jed/cookies
 async   = require('async')
-winston = require('./logger').get_logger('proxy')
+winston = require('./logger').getLogger('proxy')
 http_proxy = require('http-proxy')
 url     = require('url')
 http    = require('http')

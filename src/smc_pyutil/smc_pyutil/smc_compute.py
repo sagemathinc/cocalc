@@ -481,6 +481,7 @@ class Project(object):
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
+        os.environ['DATA'] = self.smc_path
         # Important to set this since when running in a cocalc project, this will already be set to the
         # id of the containing project.
         os.environ['COCALC_PROJECT_ID'] = self.project_id
@@ -494,8 +495,8 @@ class Project(object):
         if extra_env:
             os.environ['COCALC_EXTRA_ENV'] = extra_env
 
-    def start(self, cores, memory, cpu_shares, ephemeral_state,
-              ephemeral_disk, member, network, extra_env):
+    def start(self, cores, memory, cpu_shares, ephemeral_state, ephemeral_disk,
+              member, network, extra_env):
         if self._kubernetes:
             return self.kubernetes_start(cores, memory, cpu_shares,
                                          ephemeral_state, ephemeral_disk,
@@ -565,6 +566,7 @@ class Project(object):
                 if pid == 0:
                     os.environ['HOME'] = self.project_path
                     os.environ['SMC'] = self.smc_path
+                    os.environ['DATA'] = self.smc_path
                     os.environ['COCALC_SECRET_TOKEN'] = os.path.join(
                         self.smc_path, 'secret_token')
                     os.environ['COCALC_PROJECT_ID'] = self.project_id
@@ -619,9 +621,8 @@ class Project(object):
             time.sleep(delay)
             delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
 
-    def kubernetes_start(self, cores, memory, cpu_shares,
-                         ephemeral_state, ephemeral_disk, member, network,
-                         extra_env):
+    def kubernetes_start(self, cores, memory, cpu_shares, ephemeral_state,
+                         ephemeral_disk, member, network, extra_env):
         log = self._log("kubernetes_start")
         if self.kubernetes_state()["state"] == 'running':
             log("already running")
@@ -736,8 +737,8 @@ spec:
         log("first stop")
         self.stop(ephemeral_state, ephemeral_disk)
         log("then start")
-        self.start(cores, memory, cpu_shares, ephemeral_state,
-                   ephemeral_disk, member, network, extra_env)
+        self.start(cores, memory, cpu_shares, ephemeral_state, ephemeral_disk,
+                   member, network, extra_env)
 
     def get_memory(self, s):
         return 0  # no longer supported

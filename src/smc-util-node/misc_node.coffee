@@ -8,7 +8,7 @@
 assert  = require('assert')
 fs      = require('fs')
 net     = require('net')
-winston = require('./logger')
+{getLogger}   = require('./logger')
 async   = require('async')
 path    = require('path')
 
@@ -72,6 +72,7 @@ exports.WEBAPP_LIB = 'webapp-lib' # was 'static' in the old days, contains js li
 
 
 exports.enable_mesg = enable_mesg = (socket, desc) ->
+    winston = getLogger('misc_node.enable_mesg')
     socket.setMaxListeners(500)  # we use a lot of listeners for listening for messages
     socket._buf = null
     socket._buf_target_length = -1
@@ -223,6 +224,7 @@ exports.connect_to_locked_socket = (opts) ->
     if not (port > 0 and port <  65536)
         cb("connect_to_locked_socket -- RangeError: port should be > 0 and < 65536: #{port}")
         return
+    winston = getLogger('misc_node.connect_to_locked_socket')
 
     winston.debug("misc_node: connecting to a locked socket on port #{port}...")
     timer = undefined
@@ -398,6 +400,7 @@ exports.unforward_port = (opts) ->
     opts = defaults opts,
         port : required
         cb   : required
+    winston = getLogger('unforward_port')
     winston.debug("Unforwarding port #{opts.port}")
     r = local_port_to_child_process[local_port]
     if r?
@@ -433,6 +436,7 @@ exports.forward_remote_port_to_localhost = (opts) ->
                              # seconds.; lower to more quickly detect
                              # a broken connection; raise to reduce resources
         cb          : required  # cb(err, local_port)
+    winston = getLogger('forward_remote_port_to_localhost')
 
     opts.ssh_port = parseInt(opts.ssh_port)
     if not (opts.ssh_port >= 1 and opts.ssh_port <= 66000)
@@ -514,6 +518,7 @@ exports.forward_remote_port_to_localhost = (opts) ->
 
 
 exports.process_kill = (pid, signal) ->
+    winston = getLogger('process_kill')
     switch signal
         when 2
             signal = 'SIGINT'

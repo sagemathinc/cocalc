@@ -28,7 +28,7 @@ theme   = require('smc-util/theme')
 _       = require('underscore')
 {defaults, required} = misc
 
-winston      = require('./logger').get_logger('support')
+winston      = require('./logger').getLogger('support')
 
 
 zendesk_password_filename = ->

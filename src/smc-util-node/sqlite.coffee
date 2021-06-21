@@ -5,7 +5,7 @@
 
 async    = require('async')
 sqlite3  = require('sqlite3')  # from https://github.com/mapbox/node-sqlite3
-winston  = require('./logger')
+{getLogger}   = require('./logger')
 
 misc     = require('smc-util/misc')
 {defaults, required} = misc
@@ -56,6 +56,7 @@ class SQLite
             query : required
             vals  : []
             cb    : undefined
+        winston = getLogger('sqlite')
         winston.debug("sql: query='#{opts.query}', vals=#{misc.to_json(opts.vals)}")
         @db.prepare(opts.query, opts.vals).all (err, rows) =>
             opts.cb?(err, rows)

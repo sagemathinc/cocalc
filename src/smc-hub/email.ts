@@ -15,7 +15,7 @@ import * as os_path from "path";
 import { isEqual } from "lodash";
 const fs_readFile_prom = promisify(fs.readFile);
 const async = require("async");
-const winston = require("./logger").get_logger("email");
+const winston = require("./logger").getLogger("email");
 import { template } from "lodash";
 import { AllSiteSettingsCached } from "smc-util/db-schema/types";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";

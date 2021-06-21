@@ -4,7 +4,7 @@
 #########################################################################
 
 async   = require('async')
-winston = require('./logger').get_logger('smc-manager')
+winston = require('./logger').getLogger('smc-manager')
 
 misc = require('smc-util/misc')
 {defaults, required} = misc

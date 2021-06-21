@@ -32,7 +32,7 @@ os          = require('os')
 {EventEmitter} = require('events')
 
 async       = require('async')
-winston     = require('./logger').get_logger('compute-client')
+winston     = require('./logger').getLogger('compute-client')
 
 
 uuid        = require('node-uuid')

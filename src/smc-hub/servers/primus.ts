@@ -1,7 +1,7 @@
 import { join } from "path";
 const Primus = require("primus");
 import base_path from "smc-util-node/base-path";
-import Logger from "smc-hub/logger";
+import Logger from "smc-util-node/logger";
 import setup_primus_client from "smc-hub/primus-client";
 const { Client } = require("smc-hub/client");
 import { len } from "smc-util/misc";

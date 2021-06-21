@@ -26,7 +26,7 @@ if process.env.SMC_LOCAL_HUB_HOME?
 if not process.env.SMC?
     process.env.SMC = path.join(process.env.HOME, '.smc')
 SMC = if program.test then '/tmp' else process.env.SMC
-winston = require('./logger').get_logger('local-hub') # must be after SMC above
+winston = require('./logger').getLogger('local-hub') # must be after SMC above
 
 path    = require('path')
 async   = require('async')

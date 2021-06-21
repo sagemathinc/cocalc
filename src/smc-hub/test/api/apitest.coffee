@@ -32,7 +32,7 @@ exports.db = exports.account_id = exports.api_key = exports.compute_server = und
 
 {http_message_api_v1} = require('../../api/handler')
 
-exports.winston = require('./../../logger').get_logger('api_test')
+exports.winston = require('./../../logger').getLogger('api_test')
 
 # a little reset for beforeEach
 exports.reset = (done) ->
