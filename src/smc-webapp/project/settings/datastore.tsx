@@ -91,9 +91,8 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   const editing = new_config != null;
   const is_mounted_ref = useIsMountedRef();
   const [configs, set_configs] = useState<Config[]>([]);
-  const [form_readonly, set_form_readonly] = useState<boolean>(
-    READONLY_DEFAULT
-  );
+  const [form_readonly, set_form_readonly] =
+    useState<boolean>(READONLY_DEFAULT);
 
   const [form_gcs] = Form.useForm();
   const [form_s3] = Form.useForm();
@@ -167,7 +166,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   // send the new data to the database
   async function set(config: any) {
     if (config.name == "delete") {
-      set_error(`Sorry, you can't name the datastore "delete"`);
+      set_error(`Sorry, you can't use the name "delete"`);
       return;
     }
     // we have to check if the name isn't ""
@@ -274,7 +273,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     return (
       <Tip
         title="Read-only"
-        tip="An open lock indicates the datastore will be mounted with read/write rights, while a closed lock means it will be mounted with read-only options."
+        tip="An open lock indicates the cloud store / remote file system will be mounted with read/write rights, while a closed lock means it will be mounted with read-only options."
       >
         <Icon name="edit" />
       </Tip>
@@ -405,11 +404,11 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         message={
           <div>
             <p>
-              A datastore is a remote collection of files or file-like objects.
-              It can be mounted into a CoCalc project, if the project has access
-              to the internet (quota "internet"). The configuration for each
-              datastore is passed on to the back-end and activated upon project
-              startup.
+              This configuration allows you to mount a cloud store (a remote
+              collection of file-like objects) or a remote file-system into a
+              CoCalc project. The configuration is passed on to the back-end and
+              activated upon project startup. The project must have access to
+              the internet (quota "internet").
             </p>
             <p>
               If everything works out fine, you will be able to access the data
@@ -424,7 +423,8 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
               entered value.
             </p>
             <p>
-              More information: <A href={DOC}>Project Settings / Datastore</A>
+              More information:{" "}
+              <A href={DOC}>Project Settings / Cloud storage & remote file systems</A>
             </p>
           </div>
         }
@@ -442,7 +442,8 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
             <h3>No internet access</h3>
             <p>
               You need to have your project upgraded in order to activate the
-              "internet access" quota. Otherwise you can't access datastores.
+              "internet access" quota. Otherwise you can't access cloud storage
+              or remote file systems.
             </p>
           </div>
         }
@@ -491,7 +492,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         rules={RULE_ALPHANUM}
         tooltip={
           <div>
-            Choose a name for the datastore.
+            Choose a name.
             <br />
             It will be mounted at{" "}
             <code style={{ color: "white" }}>/data/[name]</code>.
@@ -598,7 +599,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     const pk_help =
       "This must be a passphrase-less private key, which allows to connect to the remove OpenSSH server.";
     const pk_example =
-      "-----BEGIN OPENSSH PRIVATE KEY-----\naNmQfie...\n...\n...\n-----END OPENSSH PRIVATE KEY-----";
+      "This must be a passphrase-less private key!\n\n-----BEGIN OPENSSH PRIVATE KEY-----\naNmQfie...\n...\n...\n-----END OPENSSH PRIVATE KEY-----";
     return (
       <ConfigForm form={form_sshfs} type={"sshfs"}>
         {render_form_name()}
@@ -675,7 +676,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     return (
       <>
         <span>
-          Datastore
+          Cloud storage & remote file-systems
           <sup>
             <i>beta</i>
           </sup>
