@@ -106,42 +106,6 @@ database           = null
 # the connected clients
 clients = require('./clients').get_clients()
 
-##############################
-# File use tracking
-##############################
-
-normalize_path = (path) ->
-    # Rules:
-    # kdkd/tmp/.test.sagews.sage-chat --> kdkd/tmp/test.sagews, comment "chat"
-    # foo/bar/.2014-11-01-175408.ipynb.syncdoc --> foo/bar/2014-11-01-175408.ipynb
-    path = misc.trunc_middle(path, 2048)  # prevent potential attacks/mistakes involving a large path breaking things...
-    ext = misc.filename_extension(path)
-    action = 'edit'
-    {head, tail} = misc.path_split(path)
-    if ext == "sage-chat"
-        action = 'chat'  # editing sage-chat gets the extra important chat action (instead of just edit)
-        if tail?[0] == '.'
-            # hidden sage-chat associated to a regular file, so notify about the regular file
-            path = path.slice(0, path.length-'.sage-chat'.length)
-            {head, tail} = misc.path_split(path)
-            tail = tail.slice(1) # get rid of .
-            if head
-                path = head + '/' + tail
-            else
-                path = tail
-    else if ext.slice(0,7) == 'syncdoc'   # for IPython, and possibly other things later
-        path = path.slice(0, path.length - ext.length - 1)
-        {head, tail} = misc.path_split(path)
-        tail = tail.slice(1) # get rid of .
-        if head
-            path = head + '/' + tail
-        else
-            path = tail
-    else if ext == "sage-history"
-        path = undefined
-    #else if ext == '.sagemathcloud.log'  # ignore for now
-    #    path = undefined
-    return {path:path, action:action}
 
 
 
@@ -254,7 +218,6 @@ reset_password = (email_address, cb) ->
     async.series([
         (cb) ->
             connect_to_database
-                pool : 1
                 cb   : cb
         (cb) ->
             database.reset_password
@@ -272,22 +235,13 @@ reset_password = (email_address, cb) ->
 ###
 Connect to database
 ###
+# database gets initialized below.
 database = undefined
 
 connect_to_database = (opts) ->
     opts = defaults opts,
-        error : undefined   # ignored
-        pool  : program.dbPool
         cb    : required
-    if database? # already did this
-        winston.debug("connect_to_database (PostgreSQL): already done")
-        opts.cb(); return
-    winston.info("connect_to_database (PostgreSQL): connecting...")
-    database = require('./postgres').db
-        host            : program.databaseNodes
-        database        : program.keyspace
-        concurrent_warn : program.dbConcurrentWarn
-    database.connect(cb:opts.cb)
+    opts.cb()
 
 # client for compute servers
 # The name "compute_server" below is CONFUSING; this is really a client for a
@@ -339,7 +293,7 @@ delete_expired = (cb) ->
 blob_maintenance = (cb) ->
     async.series([
         (cb) ->
-            connect_to_database(error:99999, pool:5, cb:cb)
+            connect_to_database(cb:cb)
         (cb) ->
             database.blob_maintenance(cb:cb)
     ], cb)
@@ -347,7 +301,7 @@ blob_maintenance = (cb) ->
 start_lti_service = (cb) ->
     async.series([
         (cb) ->
-            connect_to_database(error:99999, pool:5, cb:cb)
+            connect_to_database(cb:cb)
         (cb) ->
             init_compute_server(cb)
         (cb) ->
@@ -362,7 +316,7 @@ start_landing_service = (cb) ->
         (cb) ->
             init_metrics(cb)
         (cb) ->
-            connect_to_database(error:99999, pool:5, cb:cb)
+            connect_to_database(cb:cb)
         (cb) ->
             landing_server = new LandingServer(db:database)
             await landing_server.start()
@@ -373,7 +327,7 @@ update_stats = (cb) ->
     # It's important that we call this periodically, because otherwise the /stats data is outdated.
     async.series([
         (cb) ->
-            connect_to_database(error:99999, pool:5, cb:cb)
+            connect_to_database(cb:cb)
         (cb) ->
             database.get_stats(cb:cb)
     ], (err) -> cb?(err))
@@ -391,7 +345,7 @@ update_site_license_usage_log = (cb) ->
     # by default only for dev mode (so for development).
     async.series([
         (cb) ->
-            connect_to_database(error:99999, pool:5, cb:cb)
+            connect_to_database(cb:cb)
         (cb) ->
             try
                 await database.update_site_license_usage_log()
@@ -625,7 +579,6 @@ exports.start_server = start_server = (cb) ->
                     express_router : express_router
                     compute_server: compute_server
                     clients: clients
-                    database: database
                     host: program.host
                     isPersonal: program.personal
 
@@ -745,13 +698,22 @@ command_line = () ->
         .option('--test', 'terminate after setting up the hub -- used to test if it starts up properly')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
         .option('--kubernetes', 'if given, then run in mode for cocalc-kubernetes (monolithic but in Kubernetes)')
-        .option('--db-pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
         .option('--db-concurrent-warn <n>', 'be very unhappy if number of concurrent db requests exceeds this (default: 300)', ((n)->parseInt(n)), 300)
         .option('--personal', 'run in VERY UNSAFE personal mode; there is only one user and no authentication')
         .parse(process.argv)
     # Everywhere else in our code, we just refer to program.[options] since we
     # wrote this code against an ancient version of commander.
     program = program.opts()
+
+    # Everything we do here requires the database to be initialized. Once
+    # this is called, require('./postgres/database').default() is a valid db
+    # instance that can be used.
+    db = require('./postgres/database')
+    db.init
+        host            : program.databaseNodes
+        database        : program.keyspace
+        concurrent_warn : program.dbConcurrentWarn
+    database = db.database
 
     if program.dev
         # dev implies numerous other options
@@ -808,5 +770,4 @@ command_line = () ->
                 # We don't do this until startup, since we do want to crash on errors on startup.
                 addErrorListeners()
 
-if process.argv.length > 1
-    command_line()
+command_line()

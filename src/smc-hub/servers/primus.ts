@@ -5,13 +5,13 @@ import Logger from "smc-util-node/logger";
 import setup_primus_client from "smc-hub/primus-client";
 const { Client } = require("smc-hub/client");
 import { len } from "smc-util/misc";
+import { database } from "smc-hub/postgres/database";
 
 interface Options {
   http_server: any;
   express_router: any;
   compute_server: any;
   clients: { [id: string]: any }; // todo: when client is in typescript, use proper type...
-  database: any;
   host: string;
   isPersonal: boolean;
 }
@@ -21,7 +21,6 @@ export function init({
   express_router,
   compute_server,
   clients,
-  database,
   host,
   isPersonal,
 }: Options): void {
