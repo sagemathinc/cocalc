@@ -19,14 +19,14 @@ init_smc_version = (db, cb) ->
 */
 
 import { database } from "./database";
-const { get_clients } = require("../clients");
+import { getClients } from "../clients";
 import getServerSettings from "./server-settings";
 
 export default function init() {
   if (database.is_standby) {
     return;
   }
-  const clients = get_clients();
+  const clients = getClients();
   const settings = getServerSettings();
   let version_recommended_browser: number = 0; // first time.
   settings.table.on("change", () => {

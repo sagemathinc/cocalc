@@ -405,7 +405,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             # know the client's id, which is a random uuid, assigned each time the user connects.
             # It obviously is known to the local hub -- but if the user has connected to the local
             # hub then they should be allowed to receive messages.
-            clients.push_to_client(mesg)
+            clients.pushToClient(mesg)
             return
         if mesg.event == 'version'
             @local_hub_version(mesg.version)
