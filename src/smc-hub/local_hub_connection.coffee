@@ -88,8 +88,8 @@ exports.all_local_hubs = () ->
     return v
 
 server_settings = undefined
-init_server_settings = (database) ->
-    server_settings = require('./server-settings')(database)
+init_server_settings = () ->
+    server_settings = require('./servers/server-settings').default()
     server_settings.table.on 'change', () ->
         winston.debug("local_hub_connection (version might have changed) -- checking on clients")
         for x in exports.all_local_hubs()
@@ -98,7 +98,7 @@ init_server_settings = (database) ->
 class LocalHub # use the function "new_local_hub" above; do not construct this directly!
     constructor: (@project_id, @database, @compute_server) ->
         if not server_settings?  # module being used -- make sure server_settings is initialized
-            init_server_settings(@database)
+            init_server_settings()
         @_local_hub_socket_connecting = false
         @_sockets = {}  # key = session_uuid:client_id
         @_sockets_by_client_id = {}   #key = client_id, value = list of sockets for that client

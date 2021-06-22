@@ -38,7 +38,7 @@ exports.init_smc_version = init_smc_version = (db) ->
     winston.debug("init_smc_version: ")
     if db.is_standby
         return
-    server_settings = require('./server-settings')(db)
+    server_settings = require('./servers/server-settings').default()
     if server_settings.table._state == 'init'
         winston.debug("init_smc_version: Waiting for init to finish")
         await once(server_settings.table, 'init')

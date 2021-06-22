@@ -73,22 +73,6 @@ hub_register = require('./hub_register')
 # and also report number of connected clients
 REGISTER_INTERVAL_S = 20
 
-init_smc_version = (db, cb) ->
-    if db.is_standby
-        cb()
-        return
-    server_settings = require('./server-settings')(db)
-    if server_settings.table._state == 'init'
-        server_settings.table.once('init', => cb())
-    else
-        cb()
-    # winston.debug("init smc_version: #{misc.to_json(smc_version.version)}")
-    server_settings.table.on 'change', ->
-        winston.info("version changed -- sending updates to clients")
-        for id, c of clients
-            if c.smc_version < server_settings.version.version_recommended_browser
-                c.push_version_update()
-
 to_json = misc.to_json
 from_json = misc.from_json
 
@@ -445,7 +429,8 @@ exports.start_server = start_server = (cb) ->
                 cb()
         (cb) ->
             # This must happen *AFTER* update_schema above.
-            init_smc_version(database, cb)
+            require('./servers/version').default()
+            cb()
         (cb) ->
             # setting port must come before the hub_http_server.init_express_http_server below
             if program.agentPort
@@ -708,7 +693,7 @@ command_line = () ->
     # Everything we do here requires the database to be initialized. Once
     # this is called, require('./postgres/database').default() is a valid db
     # instance that can be used.
-    db = require('./postgres/database')
+    db = require('./servers/database')
     db.init
         host            : program.databaseNodes
         database        : program.keyspace

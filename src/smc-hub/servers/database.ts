@@ -1,4 +1,4 @@
-import { PostgreSQL } from "./types";
+import { PostgreSQL } from "../postgres/types";
 import { db } from "../postgres";
 
 // IMPORTANT: For typescript we make the default export have type PostgreSQL.

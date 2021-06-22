@@ -5,7 +5,7 @@ import Logger from "smc-util-node/logger";
 import setup_primus_client from "smc-hub/primus-client";
 const { Client } = require("smc-hub/client");
 import { len } from "smc-util/misc";
-import { database } from "smc-hub/postgres/database";
+import { database } from "./database";
 
 interface Options {
   http_server: any;
