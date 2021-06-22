@@ -91,141 +91,15 @@ database           = null
 clients = require('./clients').get_clients()
 
 
-
-
-#######################################################
-# Pushing a message to clients; querying for clients.
-# This is (or will be) subtle, due to having
-# multiple HUBs running on different computers.
-#######################################################
-
-# get_client_ids -- given query parameters, returns a list of id's,
-#   where the id is the connection id, which we assume is
-#   globally unique across all of space and time.
-get_client_ids = (opts) ->
-    opts = defaults opts,
-        account_id : undefined      # include connected clients logged in under this account
-        project_id : undefined      # include connected clients that are a user of this project
-        exclude    : undefined      # array of id's to exclude from results
-        cb         : required
-    result = []   # will have list of client id's in it
-
-    # include a given client id in result, if it isn't in the exclude array
-    include = (id) ->
-        if id not in result
-            if opts.exclude?
-                if id in opts.exclude
-                    return
-            result.push(id)
-
-    account_ids = {}   # account_id's to consider
-
-    if opts.account_id?
-        account_ids[opts.account_id] = true
-
-    async.series([
-        # If considering a given project, then get all the relevant account_id's.
-        (cb) ->
-            if opts.project_id?
-                database.get_account_ids_using_project
-                    project_id : opts.project_id
-                    cb         : (err, result) ->
-                        if err
-                            cb(err); return
-                        for r in result
-                            account_ids[r] = true
-                        cb()
-            else
-                cb()
-        # Now get the corresponding connected client id's.
-        (cb) ->
-            for id, client of clients
-                if account_ids[client.account_id]?
-                    include(id)
-            cb()
-    ], (err) ->
-        opts.cb(err, result)
-    )
-
-
-# Send a message to a bunch of clients connected to this hub.
-# This does not send anything to other hubs or clients at other hubs; the only
-# way for a message to go to a client at another hub is via some local hub.
-# This design means that we do not have to track which hubs which
-# clients are connected to in a database or registry, which wold be a nightmare
-# especially due to synchronization issues (some TODO comments might refer to such
-# a central design, because that *was* the non-implemented design at some point).
-push_to_clients = (opts) ->
-    opts = defaults opts,
-        mesg     : required
-        where    : undefined  # see the get_client_ids function
-        to       : undefined
-        cb       : undefined
-
-    dest = []
-
-    async.series([
-        (cb) ->
-            if opts.where?
-                get_client_ids(misc.merge(opts.where, cb:(error, result) ->
-                    if error
-                        opts.cb?(true)
-                        cb(true)
-                    else
-                        dest = dest.concat(result)
-                        cb()
-                ))
-            else
-                cb()
-
-        (cb) ->
-            # include all clients explicitly listed in "to"
-            if opts.to?
-                dest = dest.concat(opts.to)
-
-            for id in dest
-                client = clients[id]
-                if client?
-                    winston.debug("pushing a message to client #{id}")
-                    client.push_to_client(opts.mesg)
-                else
-                    winston.debug("not pushing message to client #{id} since not actually connected")
-            opts.cb?(false)
-            cb()
-
-
-    ])
-
-
-
 reset_password = (email_address, cb) ->
-    async.series([
-        (cb) ->
-            connect_to_database
-                cb   : cb
-        (cb) ->
-            database.reset_password
-                email_address : email_address
-                cb : cb
-    ], (err) ->
-        if err
-            winston.info("Error -- #{err}")
-        else
-            winston.info("Password changed for #{email_address}")
-        cb?()
-    )
-
-
-###
-Connect to database
-###
-# database gets initialized below.
-database = undefined
-
-connect_to_database = (opts) ->
-    opts = defaults opts,
-        cb    : required
-    opts.cb()
+    database.reset_password
+        email_address : email_address
+        cb            : (err) ->
+            if err
+                winston.info("Error -- #{err}")
+            else
+                winston.info("Password changed for #{email_address}")
+            cb(err)
 
 # client for compute servers
 # The name "compute_server" below is CONFUSING; this is really a client for a
@@ -263,29 +137,13 @@ init_compute_server = (cb) ->
             kubernetes : program.kubernetes
             cb       : f
 
-# Delete expired data from the database.
-delete_expired = (cb) ->
-    async.series([
-        (cb) ->
-            connect_to_database(cb:cb)
-        (cb) ->
-            database.delete_expired
-                count_only : false
-                cb         : cb
-    ], cb)
+
 
 blob_maintenance = (cb) ->
-    async.series([
-        (cb) ->
-            connect_to_database(cb:cb)
-        (cb) ->
-            database.blob_maintenance(cb:cb)
-    ], cb)
+    database.blob_maintenance(cb:cb)
 
 start_lti_service = (cb) ->
     async.series([
-        (cb) ->
-            connect_to_database(cb:cb)
         (cb) ->
             init_compute_server(cb)
         (cb) ->
@@ -300,8 +158,6 @@ start_landing_service = (cb) ->
         (cb) ->
             init_metrics(cb)
         (cb) ->
-            connect_to_database(cb:cb)
-        (cb) ->
             landing_server = new LandingServer(db:database)
             await landing_server.start()
     ])
@@ -309,17 +165,11 @@ start_landing_service = (cb) ->
 update_stats = (cb) ->
     # This calculates and updates the statistics for the /stats endpoint.
     # It's important that we call this periodically, because otherwise the /stats data is outdated.
-    async.series([
-        (cb) ->
-            connect_to_database(cb:cb)
-        (cb) ->
-            database.get_stats(cb:cb)
-    ], (err) -> cb?(err))
+    database.get_stats(cb:cb)
 
 init_update_stats = (cb) ->
     setInterval(update_stats, 30000)
     update_stats(cb)
-
 
 # async function
 update_site_license_usage_log = (cb) ->
@@ -327,16 +177,11 @@ update_site_license_usage_log = (cb) ->
     # It's important that we call this periodically, if we want
     # to be able to monitor site license usage. This is enabled
     # by default only for dev mode (so for development).
-    async.series([
-        (cb) ->
-            connect_to_database(cb:cb)
-        (cb) ->
-            try
-                await database.update_site_license_usage_log()
-                cb()
-            catch err
-                cb(err)
-    ], (err) -> cb?(err))
+    try
+        await database.update_site_license_usage_log()
+        cb?()
+    catch err
+        cb?(err)
 
 init_update_site_license_usage_log = (cb) ->
     setInterval(update_site_license_usage_log, 30000)
@@ -346,19 +191,13 @@ init_update_site_license_usage_log = (cb) ->
 stripe_sync = (cb) ->
     dbg = (m) -> winston.info("stripe_sync: #{m}")
     dbg()
-    async.series([
-        (cb) ->
-            dbg("connect to the database")
-            connect_to_database(error:99999, cb:cb)
-        (cb) ->
-            try
-                await require('./stripe/sync').stripe_sync
-                    database  : database
-                    logger    : winston
-                cb()
-            catch err
-                cb(err)
-    ], cb)
+    try
+        await require('./stripe/sync').stripe_sync
+            database  : database
+            logger    : winston
+        cb()
+    catch err
+        cb(err)
 
 init_metrics = (cb) ->
     winston.info("Initializing Metrics Recorder")
@@ -413,7 +252,7 @@ exports.start_server = start_server = (cb) ->
             # this defines the global (to this file) database variable.
             winston.info("Connecting to the database.")
             misc.retry_until_success
-                f           : (cb) -> connect_to_database(cb:cb)
+                f           : (cb) -> database.connect(cb:cb)
                 start_delay : 1000
                 max_delay   : 10000
                 cb          : () ->
@@ -604,36 +443,12 @@ exports.start_server = start_server = (cb) ->
         cb?(err)
     )
 
-###
-# Command line admin stuff -- should maybe be moved to another program?
-###
-add_user_to_project = (project_id, email_address, cb) ->
-    account_id = undefined
-    async.series([
-        # ensure database object is initialized
-        (cb) ->
-            connect_to_database(cb:cb)
-        # find account id corresponding to email address
-        (cb) ->
-            database.account_exists
-                email_address : email_address
-                cb            : (err, _account_id) ->
-                    account_id = _account_id
-                    cb(err)
-        # add user to that project as a collaborator
-        (cb) ->
-            database.add_user_to_project
-                project_id : project_id
-                account_id : account_id
-                group      : 'collaborator'
-                cb         : cb
-    ], cb)
-
 
 addErrorListeners = () ->
     process.addListener "uncaughtException", (err) ->
         winston.error("BUG ****************************************************************************")
         winston.error("Uncaught exception: " + err)
+        consoel.error(err.stack)
         winston.error(err.stack)
         winston.error("BUG ****************************************************************************")
         database?.uncaught_exception(err)
@@ -641,6 +456,7 @@ addErrorListeners = () ->
 
     process.on 'unhandledRejection', (reason, p) ->
         winston.error("BUG UNHANDLED REJECTION *********************************************************")
+        console.error(p, reason)  # strangely sometimes winston.error doesn't actually show the traceback...
         winston.error('Unhandled Rejection at:', p, 'reason:', reason)
         winston.error("BUG UNHANDLED REJECTION *********************************************************")
         database?.uncaught_exception(p)
@@ -676,7 +492,6 @@ command_line = () ->
         .option('--update-stats', 'Calculates the statistics for the /stats endpoint and stores them in the database', 'yes')
         .option('--delete-expired', 'Delete expired data from the database', 'yes')
         .option('--blob-maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', 'yes')
-        .option('--add-user-to-project [project_id,email_address]', 'Add user with given email address to project with given ID', '')
         .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)')
         .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
         .option('--mentions', 'if given, periodically handle mentions')
@@ -714,25 +529,19 @@ command_line = () ->
         winston.debug("Stripe sync")
         stripe_sync((err) -> winston.debug("DONE", err); process.exit())
     else if program.deleteExpired
-        delete_expired (err) ->
-            winston.debug("DONE", err)
-            process.exit()
+        database.delete_expired
+            count_only : false
+            cb         : (err) ->
+                winston.debug("DONE", err)
+                process.exit()
     else if program.blobMaintenance
-        blob_maintenance (err) ->
-            winston.debug("DONE", err)
-            process.exit()
+        database.blob_maintenance
+            cb: (err) ->
+                winston.debug("DONE", err)
+                process.exit()
     else if program.updateStats
         update_stats (err) ->
             winston.debug("DONE", err)
-            process.exit()
-    else if program.addUserToProject
-        console.log("Adding user to project")
-        v = program.add_user_to_project.split(',')
-        add_user_to_project v[0], v[1], (err) ->
-            if err
-                 console.log("Failed to add user: #{err}")
-            else
-                 console.log("User added to project.")
             process.exit()
     else if program.ltiServer
         console.log("LTI MODE")
