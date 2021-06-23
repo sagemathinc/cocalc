@@ -1,11 +1,10 @@
-import { PostgreSQL } from "../postgres/types";
 import { db } from "../postgres";
 
 // IMPORTANT: For typescript we make the default export have type PostgreSQL.
 // In reality the default could be undefined until init gets called.
 // We thus assume for convenience that init gets called before this default
 // object gets used.
-export let database: PostgreSQL = undefined as any;
+export let database: any = undefined;
 export default database;
 
 export function init(opts) {

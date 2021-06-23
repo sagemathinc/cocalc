@@ -3,7 +3,7 @@ import { getLogger } from "../logger";
 import { callback2 } from "smc-util/async-utils";
 const { connect_to_project } = require("../local_hub_connection");
 
-export default function init(program) {
+export default async function init(program) {
   const winston = getLogger("project-control");
   winston.info("creating project control client");
 
@@ -30,4 +30,6 @@ export default function init(program) {
     );
     connect_to_project(project_id, database, projectControl, cb);
   };
+
+  return projectControl;
 }

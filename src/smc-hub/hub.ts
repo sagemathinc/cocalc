@@ -12,22 +12,20 @@ import { getLogger } from "./logger";
 import { database, init as initDatabase } from "./servers/database";
 import { init as initMemory } from "smc-util-node/memory";
 import port from "smc-util-node/port";
-import { execute_code } from "smc-util-node/misc_node";
+const { execute_code } = require("smc-util-node/misc_node"); // import { execute_code } from "smc-util-node/misc_node";
 import { retry_until_success } from "smc-util/async-utils";
-import { COOKIE_OPTIONS } from "./client";
+const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
 import { init_passport } from "./auth";
 import base_path from "smc-util-node/base-path";
 import { migrate_account_token } from "./postgres/migrate-account-token";
 import { init_start_always_running_projects } from "./postgres/always-running";
 import { set_agent_endpoint } from "./healthchecks";
 import { handle_mentions_loop } from "./mentions/handle";
-import { connect_to_project } from "./local_hub_connection";
-import { init_http_proxy_server } from "./proxy";
-import * as MetricsRecorder from "./metrics-recorder";
-// express http server -- serves some static/dynamic endpoints
-import { init_express_http_server } from "./hub_http_server";
+const { init_http_proxy_server } = require("./proxy"); // import { init_http_proxy_server } from "./proxy";
+const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
+const { init_express_http_server } = require("./hub_http_server"); // import { init_express_http_server } from "./hub_http_server";
 import { start as startHubRegister } from "./hub_register";
-import { init_support as initZendesk } from "./support";
+const initZendesk = require("./support").init_support; // import { init_support as initZendesk } from "./support";
 import { getClients } from "./clients";
 import { callback2 } from "smc-util/async-utils";
 import { callback } from "awaiting";
@@ -66,18 +64,20 @@ async function startLandingService(): Promise<void> {
   // since it need not be here.
   // TODO: can we do `await import(...)?`
   const { LandingServer } = require("@cocalc/landing");
-  await init_metrics();
+  const { uncaught_exception_total } = await initMetrics();
   const landing_server = new LandingServer({ db: database });
   await landing_server.start();
+
+  addErrorListeners(uncaught_exception_total);
 }
 
 // This calculates and updates the statistics for the /stats endpoint.
 // It's important that we call this periodically, because otherwise the /stats data is outdated.
 async function init_update_stats(): Promise<void> {
   winston.info("init updating stats periodically");
-  const update = callback2((opts) => database.get_stats(opts));
+  const update = () => callback2(database.get_stats);
   // Do it every minute:
-  setInterval(update, 60000);
+  setInterval(() => update(), 60000);
   // Also do it once now:
   await update();
 }
@@ -122,8 +122,6 @@ async function startServer(): Promise<void> {
     `using database "${program.keyspace}" and database-nodes="${program.databaseNodes}"`
   );
 
-  const hosts = program.databaseNodes.split(",");
-
   const { metric_blocked, uncaught_exception_total } = await initMetrics();
 
   // Log anything that blocks the CPU for more than 10ms -- see https://github.com/tj/node-blocked
@@ -140,7 +138,7 @@ async function startServer(): Promise<void> {
 
   // Wait for database connection to work
   await retry_until_success({
-    f: callback2(database.connect),
+    f: async () => await callback2(database.connect),
     start_delay: 1000,
     max_delay: 10000,
   });
@@ -174,6 +172,10 @@ async function startServer(): Promise<void> {
     handle_mentions_loop(database);
   }
 
+  // Project control (aka "compute server")
+  winston.info("initializing compute server...");
+  const projectControl = await initProjectControl(program);
+
   if (program.websocketServer) {
     // Stripe
     winston.info("initializing stripe support...");
@@ -182,10 +184,6 @@ async function startServer(): Promise<void> {
     // Zendesk
     winston.info("initializing zendesk support...");
     await callback(initZendesk);
-
-    // Project control (aka "compute server")
-    winston.info("initializing compute server...");
-    const projectControl = await initProjectControl(program);
 
     if (program.dev && process.env.USER == "user") {
       // Definitely in dev mode, probably on cocalc.com, so we kill
@@ -239,7 +237,7 @@ async function startServer(): Promise<void> {
   winston.info(
     `starting express webserver listening on ${program.host}:${port}`
   );
-  await callback(http_server.listen, port, program.host);
+  await callback(http_server.listen.bind(http_server), port, program.host);
 
   if (program.shareServer && !program.dev) {
     // TODO: we omit program.dev right now, since it gets share server setup itself.
@@ -319,24 +317,26 @@ async function startServer(): Promise<void> {
       `Started hub. HTTP port ${program.port}; keyspace ${program.keyspace}`
     );
   }
+
+  addErrorListeners(uncaught_exception_total);
 }
 
 // addErrorListeners: after successful startup, don't crash on routine errors.
 // We don't do this until startup, since we do want to crash on errors on startup.
 // TODO: could alternatively be handled via winston (?).
-function addErrorListeners() {
+function addErrorListeners(uncaught_exception_total) {
   process.addListener("uncaughtException", function (err) {
     winston.error(
       "BUG ****************************************************************************"
     );
     winston.error("Uncaught exception: " + err);
-    consoel.error(err.stack);
+    console.error(err.stack);
     winston.error(err.stack);
     winston.error(
       "BUG ****************************************************************************"
     );
     database?.uncaught_exception(err);
-    uncaught_exception_total?.inc(1);
+    uncaught_exception_total.inc(1);
   });
 
   return process.on("unhandledRejection", function (reason, p) {
@@ -349,7 +349,7 @@ function addErrorListeners() {
       "BUG UNHANDLED REJECTION *********************************************************"
     );
     database?.uncaught_exception(p);
-    uncaught_exception_total?.inc(1);
+    uncaught_exception_total.inc(1);
   });
 }
 
@@ -382,7 +382,7 @@ async function main(): Promise<void> {
       (n) => parseInt(n),
       0
     )
-    .options(
+    .option(
       "--host [string]",
       'host of interface to bind to (default: "127.0.0.1")',
       "127.0.0.1"
@@ -449,7 +449,7 @@ async function main(): Promise<void> {
     .parse(process.argv);
   // Everywhere else in our code, we just refer to program.[options] since we
   // wrote this code against an ancient version of commander.
-  const opts = program.opts();
+  const opts = commander.opts();
   for (const name in opts) {
     program[name] = opts[name];
   }
@@ -488,15 +488,13 @@ async function main(): Promise<void> {
       await callback2(database.blob_maintenance);
       process.exit();
     } else if (program.updateStats) {
-      await update_stats();
+      await callback2(database.get_stats);
       process.exit();
     } else if (program.landing) {
       console.log("LANDING PAGE MODE");
       await startLandingService();
-      addErrorListeners();
     } else {
       await startServer();
-      addErrorListeners();
     }
   } catch (err) {
     console.log(err);
