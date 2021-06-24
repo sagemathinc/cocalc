@@ -16,7 +16,7 @@ interface Options {
   isPersonal: boolean;
 }
 
-export function init({
+export default function init({
   http_server,
   express_router,
   compute_server,

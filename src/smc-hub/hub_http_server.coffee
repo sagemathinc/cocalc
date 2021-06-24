@@ -24,7 +24,6 @@ misc         = require('smc-util/misc')
 {defaults, required} = misc
 misc_node    = require('smc-util-node/misc_node')
 hub_register = require('./hub_register')
-auth         = require('./auth')
 access       = require('./access')
 hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
@@ -234,14 +233,9 @@ exports.init_express_http_server = (opts) ->
             # https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
 
             winston.debug("hub_http_server/cookies #{req.query.set}=#{req.query.value}")
-            if req.query.set.endsWith(auth.remember_me_cookie_name(true))
-                # legacy = true case, without sameSite
-                cookies = new Cookies(req, res)
-                conf = misc.copy_without(opts.cookie_options, ['sameSite'])
-                conf = Object.assign(conf, {maxAge:maxAge})
-            else
-                cookies = new Cookies(req, res)
-                conf = Object.assign({}, opts.cookie_options, {maxAge:maxAge})
+            cookies = new Cookies(req, res)
+            conf = Object.assign({}, opts.cookie_options, {maxAge:maxAge})
+
             winston.debug("hub_http_server/cookies conf=#{JSON.stringify(conf)}")
             cookies.set(req.query.set, req.query.value, conf)
         res.end()
@@ -302,10 +296,4 @@ exports.init_express_http_server = (opts) ->
     else
         app.use(router)
 
-    if opts.dev
-        dev = require('./dev/hub-http-server')
-        await dev.init_http_proxy(app, opts.database, opts.compute_server, winston, opts.is_personal)
-        dev.init_websocket_proxy(http_server, opts.database, opts.compute_server, winston, opts.is_personal)
-        dev.init_share_server(app, opts.database, winston);
-
-    return {http_server:http_server, express_router:router}
+    return {http_server:http_server, express_router:router, express_app:app}

@@ -25,35 +25,27 @@ import { path as WEBAPP_PATH } from "webapp-lib";
 
 import * as util from "./util";
 
-import { Database, Logger } from "./types";
+import { Database } from "./types";
 import { PostgreSQL } from "../postgres/types";
 import base_path from "smc-util-node/base-path";
+import getLogger from "../logger";
 
-export function share_router(opts: {
-  database: Database;
-  path: string;
-  logger?: Logger;
-}) {
+export function share_router(opts: { database: Database; path: string }) {
   let dbg;
 
   const author_info: AuthorInfo = new AuthorInfo(opts.database);
   const settings_dao: SettingsDAO = new SettingsDAO(
-    (opts.database as any) as PostgreSQL
+    opts.database as any as PostgreSQL
   );
 
   if ((global as any).window != null) {
     (global as any).window["app_base_path"] = base_path;
   }
 
-  if (opts.logger != null) {
-    const logger = opts.logger;
-    dbg = (...args) => logger.debug("share_router: ", ...args);
-  } else {
-    dbg = (..._args) => {};
-  }
-
-  dbg("base_path = ", base_path);
-  dbg("path = ", opts.path);
+  const logger = getLogger("share-router");
+  dbg = logger.debug.bind(logger);
+  logger.info("base_path = ", base_path);
+  logger.info("path = ", opts.path);
 
   function log_ip(req): void {
     const ip_addresses =

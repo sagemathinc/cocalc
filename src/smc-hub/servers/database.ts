@@ -5,9 +5,8 @@ import { db } from "../postgres";
 // We thus assume for convenience that init gets called before this default
 // object gets used.
 export let database: any = undefined;
-export default database;
 
-export function init(opts) {
+export default function init(opts) {
   if (database != null) {
     throw Error("only call database init once");
   }

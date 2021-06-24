@@ -93,8 +93,9 @@ const API_KEY_COOKIE_NAME = base_path + "get_api_key";
 
 // Nov'19: actually two cookies due to same-site changes.
 // See https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
-export const remember_me_cookie_name = (legacy?) =>
-  `${base_path}remember_me${!!legacy ? "-legacy" : ""}`;
+export function remember_me_cookie_name(): string {
+  `${base_path.length <= 1 ? "" : encodeURIComponent(base_path)}remember_me`;
+}
 
 //#######################################
 // Password hashing
@@ -1181,7 +1182,7 @@ export class PassportManager {
 
   private async handle_new_sign_in(
     opts: PassportLogin,
-    locals: PassportLoginLocals,
+    locals: PassportLoginLocals
   ): Promise<void> {
     if (locals.has_valid_remember_me) return;
 

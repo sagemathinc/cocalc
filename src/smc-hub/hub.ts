@@ -7,9 +7,12 @@
 // middle of the action, connected to potentially thousands of clients,
 // many Sage sessions, and PostgreSQL database.
 
+import * as blocked from "blocked";
 import { program as commander } from "commander";
+import { callback2 } from "smc-util/async-utils";
+import { callback } from "awaiting";
+
 import { getLogger } from "./logger";
-import { database, init as initDatabase } from "./servers/database";
 import { init as initMemory } from "smc-util-node/memory";
 import port from "smc-util-node/port";
 const { execute_code } = require("smc-util-node/misc_node"); // import { execute_code } from "smc-util-node/misc_node";
@@ -21,20 +24,22 @@ import { migrate_account_token } from "./postgres/migrate-account-token";
 import { init_start_always_running_projects } from "./postgres/always-running";
 import { set_agent_endpoint } from "./healthchecks";
 import { handle_mentions_loop } from "./mentions/handle";
-const { init_http_proxy_server } = require("./proxy"); // import { init_http_proxy_server } from "./proxy";
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 const { init_express_http_server } = require("./hub_http_server"); // import { init_express_http_server } from "./hub_http_server";
 import { start as startHubRegister } from "./hub_register";
 const initZendesk = require("./support").init_support; // import { init_support as initZendesk } from "./support";
 import { getClients } from "./clients";
-import { callback2 } from "smc-util/async-utils";
-import { callback } from "awaiting";
-import initProjectControl from "./servers/project-control";
 import { stripe_sync } from "./stripe/sync";
 import { init_stripe } from "./stripe";
-import * as blocked from "blocked";
+import { projects } from "smc-util-node/data";
+
+import { database } from "./servers/database";
+import initDatabase from "./servers/database";
+import initProjectControl from "./servers/project-control";
 import initVersionServer from "./servers/version";
-import { init as initPrimus } from "./servers/primus";
+import initPrimus from "./servers/primus";
+import initShareServer from "./servers/share";
+import initProxy from "./proxy";
 
 // Logger tagged with 'hub' for this file.
 const winston = getLogger("hub");
@@ -225,46 +230,27 @@ async function startServer(): Promise<void> {
     init_start_always_running_projects(database);
   }
 
+  // We always create the express HTTP server, since the other servers
+  // (websocket, proxy, and share) are attached to this.
   winston.info("creating express http server");
-  const { http_server, express_router } = await init_express_http_server({
-    dev: program.dev,
-    is_personal: program.personal,
-    compute_server: projectControl,
-    database,
-    cookie_options: COOKIE_OPTIONS,
-  });
+  const { http_server, express_router, express_app } =
+    await init_express_http_server({
+      dev: program.dev,
+      is_personal: program.personal,
+      compute_server: projectControl,
+      database,
+      cookie_options: COOKIE_OPTIONS,
+    });
 
   winston.info(
     `starting express webserver listening on ${program.host}:${port}`
   );
   await callback(http_server.listen.bind(http_server), port, program.host);
 
-  if (program.shareServer && !program.dev) {
-    // TODO: we omit program.dev right now, since it gets share server setup itself.
-    /*
-     // TODO: we need to redo this like the dev server, so
-        // it's just a different path on the same server, not
-        // a separate server fighting for the port.
-        const t0 = new Date();
-        winston.info(
-          `initializing the share server on port ${program.sharePort}`
-        );
-        winston.info("...... (takes about 10 seconds) ......");
-        const x = await require("./share/server").init({
-          database,
-          share_path: program.sharePath,
-          logger: winston,
-        });
-        winston.info(
-          `Time to initialize share server (jsdom, etc.): ${
-            (new Date() - t0) / 1000
-          } seconds`
-        );
-        winston.info(
-          `starting share express webserver listening on ${program.host}:${port}`
-        );
-        return x.http_server.listen(port, program.host, cb);
-      */
+  if (program.shareServer) {
+    winston.info("initialize the share server");
+    initShareServer(express_app, program.sharePath);
+    winston.info("finished initializing the share server");
   }
 
   if (program.websocketServer && !database.is_standby) {
@@ -289,12 +275,11 @@ async function startServer(): Promise<void> {
 
   if (program.proxyServer) {
     winston.info(`initializing the http proxy server on port ${port}`);
-    // proxy's http server has its own minimal health check – we only enable the agent check
-    init_http_proxy_server({
-      database,
-      compute_server: projectControl,
-      host: program.host,
-      is_personal: program.personal,
+    initProxyServer({
+      projectControl,
+      isPersonal: program.personal,
+      http_server,
+      express_app,
     });
   }
 
@@ -373,8 +358,8 @@ async function main(): Promise<void> {
     )
     .option(
       "--share-path [string]",
-      'path that the share server finds shared files at (default: "")',
-      ""
+      `describes where the share server finds shared files for each project at (default: ${projects}/[project_id])`,
+      `${projects}/[project_id]`
     )
     .option(
       "--agent-port <n>",
@@ -468,6 +453,7 @@ async function main(): Promise<void> {
       // dev implies numerous other options
       program.websocketServer = true;
       program.shareServer = true;
+      program.proxyServer = true;
       program.mentions = true;
     }
 

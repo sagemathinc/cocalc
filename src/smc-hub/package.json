@@ -97,7 +97,7 @@
     "webapp-lib": "*"
   },
   "devDependencies": {
-    "@types/http-proxy": "^1.17.4",
+    "@types/http-proxy": "^1.17.6",
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.20.14",
     "@types/passport": "^1.0.3",
