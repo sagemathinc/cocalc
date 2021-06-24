@@ -29,7 +29,7 @@ interface ServerSettings {
 
 let serverSettings: ServerSettings | undefined = undefined;
 
-export default function getTable() {
+export default function getTable(): ServerSettings {
   if (serverSettings != null) {
     return serverSettings;
   }

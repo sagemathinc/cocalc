@@ -2,9 +2,9 @@ import * as Cookies from "cookies";
 
 import { once } from "smc-util/async-utils";
 import { versionCookieName } from "smc-util/consts";
-import base_path from "smc-util/base-path";
+import base_path from "smc-util-node/base-path";
 
-import serverSettings from "../servers/server-settings";
+import getServerSettings from "../servers/server-settings";
 import getLogger from "../logger";
 
 let minVersion: number = 0;
@@ -13,14 +13,15 @@ const winston = getLogger("proxy: version");
 
 // Import to wait until we know the valid min_version before serving.
 export async function init(): Promise<void> {
-  serverSettings.on("change", () => {
-    minVersion = serverSettings.version.min_version;
+  const serverSettings = getServerSettings();
+  serverSettings.table.on("change", () => {
+    minVersion = serverSettings.version["min_version"] ?? 0;
   });
   if (serverSettings.table._state == "init") {
     winston.info("waiting to initialize server settings");
     await once(serverSettings.table, "init");
     winston.info("server settings initialized!");
-    version.minVersion = serverSettings.version.minVersion;
+    minVersion = serverSettings.version["min_version"] ?? 0;
   }
 }
 

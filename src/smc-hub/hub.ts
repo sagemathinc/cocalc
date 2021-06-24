@@ -275,9 +275,9 @@ async function startServer(): Promise<void> {
 
   if (program.proxyServer) {
     winston.info(`initializing the http proxy server on port ${port}`);
-    initProxyServer({
+    initProxy({
       projectControl,
-      isPersonal: program.personal,
+      isPersonal: !!program.personal,
       http_server,
       express_app,
     });

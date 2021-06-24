@@ -94,7 +94,7 @@ const API_KEY_COOKIE_NAME = base_path + "get_api_key";
 // Nov'19: actually two cookies due to same-site changes.
 // See https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
 export function remember_me_cookie_name(): string {
-  `${base_path.length <= 1 ? "" : encodeURIComponent(base_path)}remember_me`;
+  return `${base_path.length <= 1 ? "" : encodeURIComponent(base_path)}remember_me`;
 }
 
 //#######################################

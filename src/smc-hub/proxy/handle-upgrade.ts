@@ -1,25 +1,26 @@
 // Websocket support
 
 import * as LRU from "lru-cache";
+import { createProxyServer } from "http-proxy";
 import { versionCheckFails } from "./version";
 import { getTarget } from "./target";
 import getLogger from "../logger";
-import base_path from "smc-util/base-path";
+import base_path from "smc-util-node/base-path";
 
 const winston = getLogger("proxy: handle-upgrade");
 
+interface Options {
+  projectControl;
+  isPersonal: boolean;
+}
 
 export default function init({ projectControl, isPersonal }: Options) {
   const cache = new LRU({
     max: 5000,
     maxAge: 1000 * 60 * 3,
   });
-  
-  export async function handleProxyUpgradeRequest(
-    req,
-    socket,
-    head
-  ): Promise<void> {
+
+  async function handleProxyUpgradeRequest(req, socket, head): Promise<void> {
     const dbg = (m) => {
       winston.silly(`${req.url}: ${m}`);
     };
@@ -38,9 +39,9 @@ export default function init({ projectControl, isPersonal }: Options) {
 
     const target = `ws://${host}:${port}`;
     req.url = internal_url;
-    if (cache.has(key)) {
+    if (cache.has(target)) {
       dbg("using cache");
-      const proxy = cache.get(key);
+      const proxy = cache.get(target);
       proxy.ws(req, socket, head);
       return;
     }
@@ -52,14 +53,14 @@ export default function init({ projectControl, isPersonal }: Options) {
       target,
       timeout: 0,
     });
-    cache.set(key, proxy);
+    cache.set(target, proxy);
     proxy.on("error", (err) => {
       winston.debug(`websocket proxy error, so clearing cache -- ${err}`);
-      cache.del(key);
+      cache.del(target);
     });
     proxy.on("close", () => {
       dbg("websocket proxy close, so removing from cache");
-      cache.del(key);
+      cache.del(target);
     });
     proxy.ws(req, socket, head);
   }

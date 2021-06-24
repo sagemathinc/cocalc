@@ -1,5 +1,5 @@
 import getLogger from "../logger";
-import initProxy from "./handle";
+import initProxy from "./handle-request";
 import initUpgrade from "./handle-upgrade";
 import base_path from "smc-util-node/base-path";
 

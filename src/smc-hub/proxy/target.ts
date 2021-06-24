@@ -10,9 +10,11 @@ import * as LRU from "lru-cache";
 import { callback2 } from "smc-util/async-utils";
 import { parseReq } from "./parse";
 import getLogger from "../logger";
-const winston = getLogger("proxy: target");
-import hasAccess from "check-for-access-to-project";
+import hasAccess from "./check-for-access-to-project";
 const hub_projects = require("../projects");
+import { database } from "../servers/database";
+
+const winston = getLogger("proxy: target");
 
 // The cached entries expire after 30 seconds.  Caching the target
 // helps enormously when there is a burst of requests.
@@ -26,7 +28,7 @@ const cache = new LRU({ max: 20000, maxAge: 1000 * 30 });
 
 // This gets explicitly called from outside when certain errors occur.
 export function invalidateTargetCache(remember_me: string, url: string): void {
-  const { key } = parseReq(remember_me, url);
+  const { key } = parseReq(url, remember_me);
   winston.debug(`invalidateCache: ${url}`);
   cache.del(key);
 }
@@ -38,23 +40,21 @@ interface Options {
   projectControl;
 }
 
-export async function getTarget(opts: Options): {
+export async function getTarget(opts: Options): Promise<{
   host: string;
   port: number;
   internal_url: string;
-} {
+}> {
   const { remember_me, url, isPersonal, projectControl } = opts;
 
   const { key, type, project_id, port_desc, internal_url } = parseReq(
-    remember_me,
-    url
+    url,
+    remember_me
   );
 
-  let t = cache.get(key);
-  if (t != null) {
-    return t;
+  if (cache.has(key)) {
+    return cache.get(key);
   }
-
   const dbg = (m) => winston.debug(`target(${key}): ${m}`);
   dbg(`url=${url}`);
 
@@ -82,6 +82,7 @@ export async function getTarget(opts: Options): {
   }
   dbg(`host=${host}`);
 
+  let port: number;
   if (type === "port" || type === "server") {
     if (port_desc === "jupyter") {
       dbg("determining jupyter server port...");
@@ -104,12 +105,15 @@ export async function getTarget(opts: Options): {
   }
 
   dbg(`finished: host=${host}; port=${port}; type=${type}`);
-  const t = { host, port, internal_url };
-  cache.set(key, t);
-  return t;
+  const target = { host, port, internal_url };
+  cache.set(key, target);
+  return target;
 }
 
-async function jupyterPort(project_id: string, projectControl): number {
+async function jupyterPort(
+  project_id: string,
+  projectControl
+): Promise<number> {
   const project = hub_projects.new_project(
     project_id,
     database,

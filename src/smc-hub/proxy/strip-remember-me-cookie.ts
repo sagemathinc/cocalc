@@ -16,7 +16,7 @@ export default function stripRememberMeCookie(cookie): {
   if (cookie == null) {
     return { cookie, remember_me: undefined };
   } else {
-    const v = [];
+    const v : string[] = [];
     let remember_me: string | undefined = undefined;
     for (const c of cookie.split(";")) {
       const z = c.split("=");

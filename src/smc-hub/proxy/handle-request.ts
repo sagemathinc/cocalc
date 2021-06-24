@@ -1,15 +1,19 @@
 /* Handle a proxy request */
 
-import { DOMAIN_URL } from "smc-util/theme";
-import base_path from "smc-util/base-path";
+import { createProxyServer } from "http-proxy";
+import * as LRU from "lru-cache";
+import base_path from "smc-util-node/base-path";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
 import { versionCheckFails } from "./version";
-import { parseReq } from "./parse";
 import { getTarget, invalidateTargetCache } from "./target";
 import getLogger from "../logger";
-import * as LRU from "lru-cache";
 
 const winston = getLogger("proxy: handle-request");
+
+interface Options {
+  projectControl;
+  isPersonal: boolean;
+}
 
 export default function init({ projectControl, isPersonal }: Options) {
   /* Cache at most 5000 proxies, each for up to 3 minutes.
@@ -84,7 +88,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       proxy = cache.get(target);
     } else {
       dbg("make a new proxy server to ${target}");
-      proxy = http_proxy.createProxyServer({
+      proxy = createProxyServer({
         ws: false,
         target,
         timeout: 7000,
