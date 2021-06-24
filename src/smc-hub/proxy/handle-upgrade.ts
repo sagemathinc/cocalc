@@ -31,23 +31,28 @@ export default function init(
     };
     dbg("got upgrade request");
     if (!isPersonal && versionCheckFails(req)) {
-      dbg("websocket upgrade -- version check failed");
+      dbg("version check failed");
       return;
     }
 
-    const url = stripBasePath(req.url);
-    if (!url.match(re)) {
-      // don't do anything -- doesn't need to be proxied.
+    if (!req.url.match(re)) {
+      dbg(`nothing to do; req.url="${req.url}" doesn't need to be proxied`);
       return;
     }
+    const url = stripBasePath(req.url);
+
+    dbg("calling getTarget");
     const { host, port, internal_url } = await getTarget({
       url,
       isPersonal,
       projectControl,
     });
+    dbg(`got ${host}, ${port}`);
 
     const target = `ws://${host}:${port}`;
-    req.url = internal_url;
+    if (internal_url != null) {
+      req.url = internal_url;
+    }
     if (cache.has(target)) {
       dbg("using cache");
       const proxy = cache.get(target);

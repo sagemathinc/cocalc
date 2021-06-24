@@ -8,7 +8,7 @@ export function parseReq(
   type: ProxyType;
   project_id: string; // the uuid of the target project containing the service being proxied
   port_desc: string; // description of port; "" for raw, or a number or "jupyter"
-  internal_url: string; // url at target of thing we are proxying to
+  internal_url: string | undefined; // url at target of thing we are proxying to; this is ONLY set in case type == 'server'.
 } {
   if (url[0] != "/") {
     throw Error(`invalid url -- it should start with / but is "${url}"`);
@@ -21,14 +21,12 @@ export function parseReq(
     );
   }
   const type: ProxyType = v[1];
-  let internal_url;
+  let internal_url: string | undefined = undefined;
   let port_desc: string;
   if (type == "raw") {
     port_desc = "";
-    internal_url = v.slice(2).join("/");
   } else if (type === "port") {
     port_desc = v[2];
-    internal_url = v.slice(3).join("/");
   } else if (type === "server") {
     port_desc = v[2];
     internal_url = v.slice(3).join("/");

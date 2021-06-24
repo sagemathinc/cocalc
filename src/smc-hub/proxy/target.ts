@@ -43,7 +43,7 @@ interface Options {
 export async function getTarget(opts: Options): Promise<{
   host: string;
   port: number;
-  internal_url: string;
+  internal_url: string | undefined;
 }> {
   const { remember_me, url, isPersonal, projectControl } = opts;
 
