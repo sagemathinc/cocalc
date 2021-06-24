@@ -1,7 +1,7 @@
 type ProxyType = "port" | "raw" | "server";
 
 export function parseReq(
-  url: string, // with base_path removed
+  url: string, // with base_path removed (url does start with /)
   remember_me?: string // only impacts the key that is returned
 ): {
   key: string; // used for caching
@@ -10,16 +10,15 @@ export function parseReq(
   port_desc: string; // description of port; "" for raw, or a number or "jupyter"
   internal_url: string; // url at target of thing we are proxying to
 } {
-  // If base_path is / and we remove it, then there's no slash, but if
-  // base_path is /foo and we remove it, then there is a slash.  Thus we
-  // strip any leading slashes to keep things uniform.
-  while (url.startsWith("/")) {
-    url = url.slice(1);
+  if (url[0] != "/") {
+    throw Error(`invalid url -- it should start with / but is "${url}"`);
   }
-  const v = url.split("/");
+  const v = url.split("/").slice(1);
   const project_id = v[0];
   if (v[1] != "port" && v[1] != "raw" && v[1] != "server") {
-    throw Error("invalid type");
+    throw Error(
+      `invalid type -- "${v[1]}" must be "port", "raw" or "server" in url="${url}"`
+    );
   }
   const type: ProxyType = v[1];
   let internal_url;

@@ -5,7 +5,7 @@ import { createProxyServer } from "http-proxy";
 import { versionCheckFails } from "./version";
 import { getTarget } from "./target";
 import getLogger from "../logger";
-import base_path from "smc-util-node/base-path";
+import { stripBasePath } from "./util";
 
 const winston = getLogger("proxy: handle-upgrade");
 
@@ -14,11 +14,16 @@ interface Options {
   isPersonal: boolean;
 }
 
-export default function init({ projectControl, isPersonal }: Options) {
+export default function init(
+  { projectControl, isPersonal }: Options,
+  proxy_regexp: string
+) {
   const cache = new LRU({
     max: 5000,
     maxAge: 1000 * 60 * 3,
   });
+
+  const re = new RegExp(proxy_regexp);
 
   async function handleProxyUpgradeRequest(req, socket, head): Promise<void> {
     const dbg = (m) => {
@@ -30,7 +35,11 @@ export default function init({ projectControl, isPersonal }: Options) {
       return;
     }
 
-    const url = req.url.slice(base_path.length);
+    const url = stripBasePath(req.url);
+    if (!url.match(re)) {
+      // don't do anything -- doesn't need to be proxied.
+      return;
+    }
     const { host, port, internal_url } = await getTarget({
       url,
       isPersonal,
@@ -42,7 +51,7 @@ export default function init({ projectControl, isPersonal }: Options) {
     if (cache.has(target)) {
       dbg("using cache");
       const proxy = cache.get(target);
-      proxy.ws(req, socket, head);
+      (proxy as any)?.ws(req, socket, head);
       return;
     }
 
@@ -64,11 +73,6 @@ export default function init({ projectControl, isPersonal }: Options) {
     });
     proxy.ws(req, socket, head);
   }
-  return async (req, socket, head) => {
-    try {
-      await handleProxyUpgradeRequest(req, socket, head);
-    } catch (err) {
-      winston.debug(`error upgrading to websocket -- ${err}`);
-    }
-  };
+
+  return handleProxyUpgradeRequest;
 }

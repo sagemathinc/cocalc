@@ -34,7 +34,7 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
   const key = project_id + remember_me + type;
 
   for (const cache of [yesCache, noCache]) {
-    if (cache.has(key)) return cache.get(key);
+    if (cache.has(key)) return !!cache.get(key);
   }
 
   // not cached, so we have to determine access.

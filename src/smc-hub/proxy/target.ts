@@ -53,7 +53,7 @@ export async function getTarget(opts: Options): Promise<{
   );
 
   if (cache.has(key)) {
-    return cache.get(key);
+    return cache.get(key) as any;
   }
   const dbg = (m) => winston.debug(`target(${key}): ${m}`);
   dbg(`url=${url}`);

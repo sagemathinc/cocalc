@@ -18,7 +18,7 @@ export default function init(opts: Options) {
   }\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/*`;
   winston.info(`creating proxy server with proxy_regexp="${proxy_regexp}"`);
   const handleProxy = initProxy(opts);
-  const handleUpgrade = initUpgrade(opts);
+  const handleUpgrade = initUpgrade(opts, proxy_regexp);
 
   opts.express_app.get(proxy_regexp, handleProxy);
   opts.express_app.post(proxy_regexp, handleProxy);

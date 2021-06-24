@@ -6,7 +6,7 @@ There is used both by the hub(s) and project(s).
 
 import { join } from "path";
 import * as winston from "winston";
-import "winston-daily-rotate-file"; // makes DailyRotateFile available
+//import "winston-daily-rotate-file"; // makes DailyRotateFile available
 const { format } = winston;
 const { colorize, combine, printf, timestamp } = format;
 import { logs } from "./data";
@@ -60,7 +60,8 @@ function getLoggerNoCache(name: string): winston.Logger {
       }),
     ];
   } else {
-    const filename = join(logs, "%DATE%.log");
+    //const filename = join(logs, "%DATE%.log");
+    const filename = join(logs, "hub.log");
     const f = combine(timestamp(), colorize(), myFormatter);
     transports = [
       new winston.transports.Console({
@@ -70,6 +71,14 @@ function getLoggerNoCache(name: string): winston.Logger {
         format: f,
         level: "info", // for us, info is NOT very verbose -- important since writing to console log blocks
       }),
+      new winston.transports.File({
+        filename,
+        format: f,
+        level: "silly",
+      }),
+
+      /*
+      // Would use something like this for cocalc-docker.
       // another logger that logs to files and doesn't waste all the disk space.
       new winston.transports.DailyRotateFile({
         // write debug and higher messages to a file
@@ -79,8 +88,9 @@ function getLoggerNoCache(name: string): winston.Logger {
         maxSize: "20m",
         maxFiles: "7d",
         format: f,
-        level: "debug",
+        level: "debug", // silly = everything
       }),
+      */
     ];
     showConfig(filename);
   }

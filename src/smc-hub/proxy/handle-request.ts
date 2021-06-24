@@ -2,11 +2,11 @@
 
 import { createProxyServer } from "http-proxy";
 import * as LRU from "lru-cache";
-import base_path from "smc-util-node/base-path";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
 import { versionCheckFails } from "./version";
 import { getTarget, invalidateTargetCache } from "./target";
 import getLogger from "../logger";
+import { stripBasePath } from "./util";
 
 const winston = getLogger("proxy: handle-request");
 
@@ -31,7 +31,7 @@ export default function init({ projectControl, isPersonal }: Options) {
     dispose: (_key, proxy) => {
       // important to close the proxy whenever it gets removed
       // from the cache, to avoid wasting resources.
-      proxy.close();
+      (proxy as any)?.close();
     },
   });
 
@@ -69,7 +69,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       return;
     }
 
-    const url = req.url.slice(base_path.length);
+    const url = stripBasePath(req.url);
     const { host, port, internal_url } = await getTarget({
       remember_me,
       url,
@@ -87,7 +87,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       dbg("using cached proxy");
       proxy = cache.get(target);
     } else {
-      dbg("make a new proxy server to ${target}");
+      dbg(`make a new proxy server to ${target}`);
       proxy = createProxyServer({
         ws: false,
         target,
@@ -123,16 +123,12 @@ export default function init({ projectControl, isPersonal }: Options) {
     }
 
     if (internal_url != null) {
+      dbg(`changing req url from ${req.url} to ${internal_url}`);
       req.url = internal_url;
     }
+    dbg("handling the request using the proxy");
     proxy.web(req, res);
   }
 
-  return async (req, res) => {
-    try {
-      await handleProxyRequest(req, res);
-    } catch (err) {
-      winston.error(`error proxying request -- ${err}`);
-    }
-  };
+  return handleProxyRequest;
 }

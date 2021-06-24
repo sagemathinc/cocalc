@@ -23,6 +23,7 @@
     "."
   ],
   "dependencies": {
+    "@types/lru-cache": "^5.1.0",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
@@ -45,7 +46,7 @@
     "jupyter-paths": "^2.0.3",
     "kernelspecs": "^2.0.1",
     "lean-client-js-node": "^1.2.12",
-    "lru-cache": "^5.1.1",
+    "lru-cache": "^6.0.0",
     "mkdirp": "^1.0.4",
     "mocha": "^7.1.2",
     "node-pty": "^0.9.0",

@@ -30,6 +30,8 @@ escapeString = require('sql-string-escape')
 validator = require('validator')
 {callback2} = require('smc-util/async-utils')
 
+LRU = require('lru-cache')
+
 pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
 if not pg?
     throw Error("YOU MUST INSTALL the pg-native npm module")
@@ -97,7 +99,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_init_metrics()
 
         if opts.cache_expiry and opts.cache_size
-            @_query_cache = (new require('expiring-lru-cache'))(size:opts.cache_size, expiry: opts.cache_expiry)
+            @_query_cache = new LRU({max:opts.cache_size, maxAge: opts.cache_expiry})
         if opts.connect
             @connect()  # start trying to connect
 
