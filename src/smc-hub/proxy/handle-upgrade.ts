@@ -79,5 +79,11 @@ export default function init(
     proxy.ws(req, socket, head);
   }
 
-  return handleProxyUpgradeRequest;
+  return async (req, socket, head) => {
+    try {
+      await handleProxyUpgradeRequest(req, socket, head);
+    } catch (err) {
+      winston.debug(`error upgrading to websocket url=${req.url} -- ${err}`);
+    }
+  };
 }

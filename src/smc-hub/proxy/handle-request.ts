@@ -61,8 +61,9 @@ export default function init({ projectControl, isPersonal }: Options) {
 
     if (!isPersonal && !remember_me) {
       dbg("no rememember me set, so blocking");
-      // Not in personal mode and there is no remember me set all, so definitely block access.
-      res.writeHead(500, { "Content-Type": "text/html" });
+      // Not in personal mode and there is no remember me set all, so
+      // definitely block access.  4xx since this is a *client* problem.
+      res.writeHead(426, { "Content-Type": "text/html" });
       res.end(
         "Please login to <a target='_blank' href='#{DOMAIN_URL}'>#{DOMAIN_URL}</a> with cookies enabled, then refresh this page."
       );
@@ -130,5 +131,14 @@ export default function init({ projectControl, isPersonal }: Options) {
     proxy.web(req, res);
   }
 
-  return handleProxyRequest;
+  return async (req, res) => {
+    try {
+      await handleProxyRequest(req, res);
+    } catch (err) {
+      const msg = `error proxying request ${req.url} -- ${err}`;
+      res.writeHead(500, { "Content-Type": "text/html" });
+      res.end(msg);
+      winston.error(msg);
+    }
+  };
 }
