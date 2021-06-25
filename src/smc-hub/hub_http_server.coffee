@@ -234,7 +234,9 @@ exports.init_express_http_server = (opts) ->
             # https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
 
             winston.debug("hub_http_server/cookies #{req.query.set}=#{req.query.value}")
-            cookies = new Cookies(req, res)
+            # The option { secure: true } is needed since ssl happens outside the hub; see
+            #    https://github.com/pillarjs/cookies/issues/51#issuecomment-568182639
+            cookies = new Cookies(req, res, { secure: true })
             conf = Object.assign({}, opts.cookie_options, {maxAge:maxAge})
 
             winston.debug("hub_http_server/cookies conf=#{JSON.stringify(conf)}")
