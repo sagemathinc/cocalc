@@ -54,8 +54,8 @@ export const JupyterLabServerPanel: React.FC<Props> = ({ project_id }) => {
           extensions.
           <br />
           <br />
-          Click the link below to start your Jupyter notebook server and open it
-          in a new browser tab.
+          Click the link below to start your JupyterLab notebook server and open
+          it in a new browser tab.
         </span>
         <div style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}>
           {render_jupyter_link()}
@@ -87,5 +87,5 @@ export async function jupyterlab_server_url(
   } else {
     port = out.port;
   }
-  return join(window.app_base_path, project_id, "port", port);
+  return join(window.app_base_path, project_id, "port", `${port}`);
 }
