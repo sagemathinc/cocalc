@@ -15,8 +15,8 @@ async        = require('async')
 cookieParser = require('cookie-parser')
 body_parser  = require('body-parser')
 express      = require('express')
-http_proxy   = require('http-proxy')
 http         = require('http')
+https         = require('https')
 
 winston      = require('./logger').getLogger('hub_http_server')
 
@@ -52,6 +52,7 @@ exports.init_express_http_server = (opts) ->
         database       : required
         compute_server : required
         cookie_options : undefined   # they're for the new behavior (legacy fallback implemented below)
+        https          : undefined   # if given, should be {key, cert} options for https.createServer node.js module.
     winston.debug("initializing express http server")
 
     if opts.database.is_standby
@@ -62,7 +63,10 @@ exports.init_express_http_server = (opts) ->
     # Create an express application
     router = express.Router()
     app    = express()
-    http_server = http.createServer(app)
+    if (!opts.https?)
+        http_server = http.createServer(app)
+    else
+        http_server = https.createServer(opts.https, app)
     app.use(cookieParser())
     webapp_config = new WebappConfiguration(db:opts.database)
 

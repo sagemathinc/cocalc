@@ -74,7 +74,7 @@ function getLoggerNoCache(name: string): winston.Logger {
       new winston.transports.File({
         filename,
         format: f,
-        level: "silly",
+        level: "debug", // or "silly" for everything
       }),
 
       /*
@@ -88,7 +88,7 @@ function getLoggerNoCache(name: string): winston.Logger {
         maxSize: "20m",
         maxFiles: "7d",
         format: f,
-        level: "debug", // silly = everything
+        level: "debug", // or "silly" for everything
       }),
       */
     ];

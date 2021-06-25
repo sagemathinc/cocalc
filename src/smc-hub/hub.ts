@@ -11,10 +11,11 @@ import * as blocked from "blocked";
 import { program as commander } from "commander";
 import { callback2 } from "smc-util/async-utils";
 import { callback } from "awaiting";
-
+import { readFileSync } from "fs";
 import { getLogger } from "./logger";
 import { init as initMemory } from "smc-util-node/memory";
 import port from "smc-util-node/port";
+import basePath from "smc-util-node/base-path";
 const { execute_code } = require("smc-util-node/misc_node"); // import { execute_code } from "smc-util-node/misc_node";
 import { retry_until_success } from "smc-util/async-utils";
 const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
@@ -233,6 +234,18 @@ async function startServer(): Promise<void> {
   // We always create the express HTTP server, since the other servers
   // (websocket, proxy, and share) are attached to this.
   winston.info("creating express http server");
+  let https;
+  if (program.httpsKey || program.httpsCert) {
+    if (!program.httpsKey || !program.httpsCert) {
+      throw Error("you must specify both https-key and https-cert or neither");
+    }
+    https = {
+      cert: readFileSync(program.httpsCert),
+      key: readFileSync(program.httpsKey),
+    };
+  } else {
+    https = undefined;
+  }
   const { http_server, express_router, express_app } =
     await init_express_http_server({
       dev: program.dev,
@@ -240,6 +253,7 @@ async function startServer(): Promise<void> {
       compute_server: projectControl,
       database,
       cookie_options: COOKIE_OPTIONS,
+      https,
     });
 
   winston.info(
@@ -249,7 +263,7 @@ async function startServer(): Promise<void> {
 
   if (program.shareServer) {
     winston.info("initialize the share server");
-    initShareServer(express_app, program.sharePath);
+    await initShareServer(express_app, program.sharePath);
     winston.info("finished initializing the share server");
   }
 
@@ -298,9 +312,8 @@ async function startServer(): Promise<void> {
       interval_s: REGISTER_INTERVAL_S,
     });
 
-    winston.info(
-      `Started hub. HTTP port ${program.port}; keyspace ${program.keyspace}`
-    );
+    const msg = `Started HUB!\n*****\n\n ${program.httpsKey ? 'https' : 'http'}://${program.host}:${port}${basePath}\n\n*****`;
+    winston.info(msg);
   }
 
   addErrorListeners(uncaught_exception_total);
@@ -345,6 +358,8 @@ async function main(): Promise<void> {
   const default_db = process.env.PGHOST ?? "localhost";
 
   commander
+    .name("cocalc-hub-server")
+    .usage("options")
     .option(
       "--dev",
       "if given, then run in VERY UNSAFE single-user dev mode; sets most servers enabled"
@@ -355,6 +370,14 @@ async function main(): Promise<void> {
     .option(
       "--landing-server",
       "run the closed source landing pages server (requires @cocalc/landing installed)"
+    )
+    .option(
+      "--https-key [string]",
+      "serve over https.  argument should be a key file (both https-key and https-cert must be specified)"
+    )
+    .option(
+      "--https-cert [string]",
+      "serve over https.  argument should be a cert file (both https-key and https-cert must be specified)"
     )
     .option(
       "--share-path [string]",
@@ -438,6 +461,7 @@ async function main(): Promise<void> {
   for (const name in opts) {
     program[name] = opts[name];
   }
+  //console.log("got opts", opts);
 
   try {
     // Everything we do here requires the database to be initialized. Once

@@ -120,7 +120,7 @@
   "scripts": {
     "build": "tsc && coffee -m -c -o dist/ .",
     "dev": "npm run build && SMC_ROOT=`pwd`/.. NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --dev --host=0.0.0.0",
-    "docker": "npm run build && PORT=5000 BASE=/ SMC_ROOT=`pwd`/.. NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --websocket-server --proxy-server --share-server --host=0.0.0.0",
+    "docker": "npm run build && PORT=443 SMC_ROOT=`pwd`/.. NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --websocket-server --proxy-server --share-server --host=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",
     "tsc": "tsc -w",
     "old-test": "(npm run testpg && npm run testapi && npm run testmisc && npm run testkucalc); rc=$?; ../scripts/mocha_clean.sh; exit $rc",
     "old-testpg": "echo 'TEST POSTGRES'; SMC_DB_RESET=true SMC_TEST=true time node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/postgres/*.coffee",
