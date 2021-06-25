@@ -473,11 +473,11 @@ class Project(object):
         if os.path.exists(f"{home}/Library/Python"):
             # dev mode on macOS
             os.environ[
-                'PYTHONPATH'] = f"{home}/Library/Python/3.8/lib/python/site-packages"
+                'PYTHONPATH'] = f"{os.environ['PYTHONPATH']}:{home}/Library/Python/3.8/lib/python/site-packages"
         else:
             # dev mode on Linux
             os.environ[
-                'PYTHONPATH'] = f"{home}/.local/lib/python3.8/site-packages"
+                'PYTHONPATH'] = f"{os.environ['PYTHONPATH']}:{home}/.local/lib/python3.8/site-packages"
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
