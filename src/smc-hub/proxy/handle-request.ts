@@ -135,10 +135,12 @@ export default function init({ projectControl, isPersonal }: Options) {
     try {
       await handleProxyRequest(req, res);
     } catch (err) {
-      const msg = `error proxying request ${req.url} -- ${err}`;
+      const msg = `WARNING: error proxying request ${req.url} -- ${err}`;
       res.writeHead(500, { "Content-Type": "text/html" });
       res.end(msg);
-      winston.error(msg);
+      // Not something to log as an error; it's normal for it to happen, e.g., when
+      // a project isn't running.
+      winston.debug(msg);
     }
   };
 }
