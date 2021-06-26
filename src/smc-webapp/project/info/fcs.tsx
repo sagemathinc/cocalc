@@ -8,7 +8,7 @@ import {
   Descriptions,
   Progress,
   Button,
-  Space as AntdSpace,
+  Space,
   Form,
   Popconfirm,
   Grid,
@@ -545,13 +545,13 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
     } else {
       return (
         <Form.Item label="Send signal:">
-          <AntdSpace>
+          <Space>
             {render_signal(Signal.Interrupt)}
             {render_signal(Signal.Terminate)}
             {render_signal(Signal.Kill)}
             {render_signal(Signal.Pause)}
             {render_signal(Signal.Resume)}
-          </AntdSpace>
+          </Space>
         </Form.Item>
       );
     }

@@ -150,9 +150,13 @@ async function init_customize() {
     max_delay: 30000,
   });
 
-  const { configuration, strategies } = customize;
+  const { configuration, registration, strategies } = customize;
   process_customize(configuration);
-  redux.getActions("account").setState({ strategies });
+  const actions = redux.getActions("account");
+  // Which account creation strategies we support.
+  actions.setState({ strategies });
+  // Set whether or not a registration token is required when creating account.
+  actions.setState({ token: !!registration });
 }
 
 init_customize();
