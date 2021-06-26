@@ -35,7 +35,7 @@ export const analytics_js = UglifyJS.minify(
 ).code;
 
 function create_log(name) {
-  return getLogger(`analytics.${name}`);
+  return getLogger(`analytics.${name}`).debug;
 }
 
 // base64 encoded PNG (white), 1x1 pixels

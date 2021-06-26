@@ -1,8 +1,9 @@
 import * as Cookies from "cookies";
+import { Router } from "express";
 import { getLogger } from "smc-hub/logger";
 const { COOKIE_OPTIONS } = require("smc-hub/client"); // import { COOKIE_OPTIONS } from "smc-hub/client";
 
-export default function init(router) {
+export default function init(router : Router) {
   const winston = getLogger("set-cookie");
 
   router.get("/cookies", (req, res) => {

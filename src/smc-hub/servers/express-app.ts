@@ -14,7 +14,6 @@ import { initAnalytics } from "../analytics";
 import { getLogger } from "../logger";
 import { setup_health_checks as setupHealthChecks } from "../health-checks";
 import { setup_open_cocalc as initOpenCoCalc } from "../open-cocalc-server";
-import getServerSettings from "./server-settings";
 import { path as STATIC_PATH } from "@cocalc/static";
 import { path as CDN_PATH } from "@cocalc/cdn";
 import { database } from "./database";
@@ -43,8 +42,6 @@ export default function init(opts: Options): {
   const winston = getLogger("express-app");
   winston.info("creating express app");
 
-  const settings = getServerSettings();
-
   // Create an express application
   const router = express.Router();
   const app = express();
@@ -72,7 +69,6 @@ export default function init(opts: Options): {
   // and we use this function to set appropriate headers at various points below.
   const cacheLongTerm = (res) => {
     if (opts.dev) return; // ... unless in dev mode
-    const timeout = ms("100 days"); // more than a year would be invalid
     res.setHeader("Cache-Control", `public, max-age='${MAX_AGE}'`);
     res.setHeader(
       "Expires",
@@ -82,7 +78,7 @@ export default function init(opts: Options): {
 
   // robots.txt: disable everything except /share.  In particular, don't allow
   // indexing for published subdirectories to avoid a lot of 500/404 errors.
-  router.use("/robots.txt", (req, res) => {
+  router.use("/robots.txt", (_req, res) => {
     res.header("Content-Type", "text/plain");
     res.header("Cache-Control", "private, no-cache, must-revalidate");
     res.write(`User-agent: *
@@ -122,7 +118,7 @@ export default function init(opts: Options): {
 
   // The base_path.js endpoint is javascript that sets the
   // app_base_path global variable for the client when loaded.
-  router.get("/base_path.js", (req, res) => {
+  router.get("/base_path.js", (_req, res) => {
     res.send(`window.app_base_path='${basePath}';`);
   });
 

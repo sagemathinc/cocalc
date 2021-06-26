@@ -30,6 +30,13 @@ export function clear_cache(): void {
 
 type Theme = { [key: string]: string | boolean };
 
+interface Config {
+  // todo
+  configuration: any;
+  registration: any;
+  strategies: object;
+}
+
 async function get_passport_manager_async(): Promise<PassportManager> {
   // the only issue here is, that the http server already starts up before the
   // passport manager is configured – but, the passport manager depends on the http server
@@ -54,7 +61,7 @@ const VANITY_HARDCODED = {
 
 export class WebappConfiguration {
   private readonly db: PostgreSQL;
-  private readonly data: any;
+  private data?: any;
   private passport_manager: PassportManager;
 
   constructor({ db }) {
@@ -76,6 +83,10 @@ export class WebappConfiguration {
       cache: true,
       where: { "id = $::TEXT": vid },
     });
+    if (this.data == null) {
+      // settings not yet initialized
+      return {};
+    }
     const data = res.rows[0];
     if (data != null) {
       return { ...this.data.all, ...data.settings };
@@ -136,6 +147,10 @@ export class WebappConfiguration {
 
   // returns the global configuration + eventually vanity specific site config settings
   private async get_configuration({ host, country }) {
+    if (this.data == null) {
+      // settings not yet initialized
+      return {};
+    }
     const vid = this.get_vanity_id(host);
     const config = this.data.pub;
     const vanity = this.get_vanity(vid);
@@ -152,7 +167,7 @@ export class WebappConfiguration {
     return strategies as object;
   }
 
-  private async get_config({ country, host }) {
+  private async get_config({ country, host }): Promise<Config> {
     const [configuration, registration] = await Promise.all([
       this.get_configuration({ host, country }),
       have_active_registration_tokens(this.db),
@@ -162,7 +177,7 @@ export class WebappConfiguration {
   }
 
   // it returns a shallow copy, hence you can modify/add keys in the returned map!
-  public async get({ country, host }) {
+  public async get({ country, host }): Promise<Config> {
     const key = `config::${country}::${host}`;
     let config = CACHE.get(key);
     if (config == null) {
@@ -171,6 +186,6 @@ export class WebappConfiguration {
     } else {
       L(`cache hit -- '${key}'`);
     }
-    return config;
+    return config as Config;
   }
 }

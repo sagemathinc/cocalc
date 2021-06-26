@@ -267,7 +267,7 @@ async function startServer(): Promise<void> {
     initPrimus({
       httpServer,
       router,
-      compute_server: projectControl,
+      projectControl,
       clients,
       host: program.host,
       isPersonal: program.personal,

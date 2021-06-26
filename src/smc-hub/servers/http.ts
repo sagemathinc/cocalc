@@ -3,6 +3,9 @@
 
 import { Application } from "express";
 import { readFileSync } from "fs";
+import { getLogger } from "../logger";
+import { createServer as httpsCreateServer } from "https";
+import { createServer as httpCreateServer } from "http";
 
 interface Options {
   cert?: string;
@@ -17,7 +20,7 @@ export default function init({ cert, key, app }: Options) {
       throw Error("specify *both* key and cert or neither");
     }
     winston.info("Creating HTTPS server...");
-    https.createServer(
+    return httpsCreateServer(
       {
         cert: readFileSync(cert),
         key: readFileSync(key),
@@ -26,6 +29,6 @@ export default function init({ cert, key, app }: Options) {
     );
   } else {
     winston.info("Creating HTTP server...");
-    return http.createServer(app);
+    return httpCreateServer(app);
   }
 }

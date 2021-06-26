@@ -3,6 +3,7 @@
 
 import { parse } from "url";
 import { join } from "path";
+import { Router } from "express";
 import basePath from "smc-util-node/base-path";
 
 // All top level page "entry points" in the webapp must be listed here.
@@ -10,7 +11,7 @@ import basePath from "smc-util-node/base-path";
 // and smc-webapp/app/actions.ts
 const ROUTES = ["admin", "help", "projects", "settings", "notifications"];
 
-export default function (app) {
+export default function init(router: Router) {
   const v: string[] = [];
   for (const path of ROUTES) {
     v.push(`/${path}*`);

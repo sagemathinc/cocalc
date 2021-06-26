@@ -1,9 +1,11 @@
+import { Router } from "express";
 import { callback2 } from "smc-util/async-utils";
 import { database_is_working } from "smc-hub/hub_register";
+import { database } from "../database";
 
-export default function init(router) {
+export default function init(router: Router) {
   // Return global status information about CoCalc
-  router.get("/stats", (req, res) => {
+  router.get("/stats", async (_req, res) => {
     if (!database_is_working()) {
       res.json({ error: "not connected to database" });
       return;

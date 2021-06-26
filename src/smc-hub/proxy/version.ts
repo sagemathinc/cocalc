@@ -1,6 +1,5 @@
 import * as Cookies from "cookies";
 
-import { once } from "smc-util/async-utils";
 import { versionCookieName } from "smc-util/consts";
 import base_path from "smc-util-node/base-path";
 

@@ -3,6 +3,7 @@ Express middleware for recording metrics about response time to requests.
 */
 
 import { dirname } from "path";
+import { Router } from "express";
 const { get, new_histogram } = require("smc-hub/metrics-recorder");
 
 // initialize metrics
@@ -15,8 +16,8 @@ const responseTimeHistogram = new_histogram("http_histogram", "http server", {
 function metrics(req, res, next) {
   const resFinished = responseTimeHistogram.startTimer();
   const originalEnd = res.end;
-  res.end = () => {
-    originalEnd.apply(res, arguments);
+  res.end = (...args) => {
+    originalEnd.apply(res, args);
     if (!req.path) {
       return;
     }
@@ -40,10 +41,10 @@ function metrics(req, res, next) {
   next();
 }
 
-export default function initMetrics(router) {
+export default function initMetrics(router: Router) {
   router.use(metrics);
 
-  router.get("/metrics", (req, res) => {
+  router.get("/metrics", async (_req, res) => {
     res.header("Content-Type", "text/plain");
     res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
     const metricsRecorder = get();
