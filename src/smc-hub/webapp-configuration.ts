@@ -59,12 +59,12 @@ export class WebappConfiguration {
 
   constructor({ db }) {
     this.db = db;
-    // this.data.pub updates automatically – do not modify it!
-    this.data = getServerSettings();
     this.init();
   }
 
   private async init(): Promise<void> {
+    // this.data.pub updates automatically – do not modify it!
+    this.data = await getServerSettings();
     this.passport_manager = await get_passport_manager_async();
   }
 

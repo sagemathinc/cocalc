@@ -12,7 +12,7 @@ export default async function init(app, path: string): Promise<void> {
     `initializing share server at "${url}", with files from "${path}"`
   );
 
-  const {share_router} = await import('../share/server');
+  const { share_router } = await import("../share/server");
   const router = share_router({ database, path });
   app.use(url, router);
   winston.info("finished initializing the share server");

@@ -12,9 +12,7 @@ Client = a client that is connected via a persistent connection to the hub
 uuid                 = require('node-uuid')
 async                = require('async')
 
-# we also have to support legacy behavior for older browsers,
-# but this setting is for newer ones.
-# https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
+# TODO: I'm very suspicious about this sameSite:"none" config option.
 exports.COOKIE_OPTIONS = COOKIE_OPTIONS = Object.freeze(secure:true, sameSite:'none')
 
 Cookies              = require('cookies')            # https://github.com/jed/cookies
@@ -1578,12 +1576,12 @@ class exports.Client extends EventEmitter
         # The version of the client...
         @smc_version = mesg.version
         @dbg('mesg_version')("client.smc_version=#{mesg.version}")
-        {version} = require('./servers/server-settings').default()
+        {version} = await require('./servers/server-settings').default()
         if mesg.version < version.version_recommended_browser ? 0
             @push_version_update()
 
     push_version_update: =>
-        {version} = require('./servers/server-settings').default()
+        {version} = await require('./servers/server-settings').default()
         @push_to_client(message.version(version:version.version_recommended_browser, min_version:version.version_min_browser))
         if version.version_min_browser and @smc_version < version.version_min_browser
             # Client is running an unsupported bad old version.

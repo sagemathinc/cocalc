@@ -127,7 +127,7 @@ class MetricsRecorder
         ###
         get a serialized representation of the metrics status
         (was a dict that should be JSON, now it is for prometheus)
-        it's only called by hub_http_server for the /metrics endpoint
+        it's only called by the HTTP stuff in servers for the /metrics endpoint
         ###
         hub     = await prom_client.register.metrics()
         clients = await @client_metrics()

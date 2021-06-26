@@ -1,4 +1,5 @@
 import { join } from "path";
+import { Router } from "express";
 const Primus = require("primus");
 import base_path from "smc-util-node/base-path";
 import Logger from "smc-util-node/logger";
@@ -8,18 +9,18 @@ import { len } from "smc-util/misc";
 import { database } from "./database";
 
 interface Options {
-  http_server: any;
-  express_router: any;
-  compute_server: any;
+  httpServer;
+  router: Router;
+  projectControl;
   clients: { [id: string]: any }; // todo: when client is in typescript, use proper type...
   host: string;
   isPersonal: boolean;
 }
 
 export default function init({
-  http_server,
-  express_router,
-  compute_server,
+  httpServer,
+  router,
+  projectControl,
   clients,
   host,
   isPersonal,
@@ -29,7 +30,7 @@ export default function init({
   // It is now safe to change the primusOpts below, and this
   // doesn't require changing anything anywhere else.
   const primusOpts = { pathname: join(base_path, "hub") };
-  const primus_server = new Primus(http_server, primusOpts);
+  const primus_server = new Primus(httpServer, primusOpts);
   logger.info(`listening on ${primusOpts.pathname}`);
 
   // Make it so new websocket connection requests get handled:
@@ -40,7 +41,7 @@ export default function init({
       conn,
       logger,
       database,
-      compute_server,
+      compute_server:projectControl,
       host,
       personal: isPersonal,
     });
@@ -48,5 +49,5 @@ export default function init({
   });
 
   // Serve the primus.js client code via the express router.
-  setup_primus_client(express_router, primus_server);
+  setup_primus_client(router, primus_server);
 }

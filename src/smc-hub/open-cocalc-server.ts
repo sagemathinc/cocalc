@@ -8,7 +8,7 @@
  */
 
 // Open CoCalc Server
-// this is a small part of hub_http_server, which serves the main index page and associated assets.
+// this is a small part of the HTTP server, which serves the main index page and associated assets.
 // - "webapp" refers to files in SMC_ROOT/webapp-lib
 // - several aspects can be modified via the administrator's tab / "site settings"
 
@@ -55,7 +55,7 @@ async function get_params(db: PostgreSQL) {
   // _inc_head.pug template would be really complicated having to
   // distinguish between / and /foo... (and I plan to rewrite this
   // very soon).
-  const BASE_PATH = base_path == '/' ? '' : base_path;
+  const BASE_PATH = base_path == "/" ? "" : base_path;
   const ORGANIZATION_EMAIL = settings.organization_email;
   const ORGANIZATION_NAME = settings.organization_name;
   const ORGANIZATION_URL = settings.organization_url;

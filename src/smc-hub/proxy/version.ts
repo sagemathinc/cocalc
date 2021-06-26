@@ -13,16 +13,11 @@ const winston = getLogger("proxy: version");
 
 // Import to wait until we know the valid min_version before serving.
 export async function init(): Promise<void> {
-  const serverSettings = getServerSettings();
+  const serverSettings = await getServerSettings();
+  minVersion = serverSettings.version["min_version"] ?? 0;
   serverSettings.table.on("change", () => {
     minVersion = serverSettings.version["min_version"] ?? 0;
   });
-  if (serverSettings.table._state == "init") {
-    winston.info("waiting to initialize server settings");
-    await once(serverSettings.table, "init");
-    winston.info("server settings initialized!");
-    minVersion = serverSettings.version["min_version"] ?? 0;
-  }
 }
 
 // Returns true if the version check **fails**

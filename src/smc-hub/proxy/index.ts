@@ -1,3 +1,4 @@
+import { Application } from "express";
 import getLogger from "../logger";
 import initProxy from "./handle-request";
 import initUpgrade from "./handle-upgrade";
@@ -6,8 +7,8 @@ import base_path from "smc-util-node/base-path";
 const winston = getLogger("proxy");
 
 interface Options {
-  express_app; // express application
-  http_server; // got from express_app via http_server = http.createServer(app).
+  app: Application;
+  httpServer; // got from express_app via httpServer = http.createServer(app).
   projectControl; // controls projects (aka "compute server")
   isPersonal: boolean; // if true, disables all access controls
 }
@@ -20,8 +21,8 @@ export default function init(opts: Options) {
   const handleProxy = initProxy(opts);
   const handleUpgrade = initUpgrade(opts, proxy_regexp);
 
-  opts.express_app.get(proxy_regexp, handleProxy);
-  opts.express_app.post(proxy_regexp, handleProxy);
+  opts.app.get(proxy_regexp, handleProxy);
+  opts.app.post(proxy_regexp, handleProxy);
 
-  opts.http_server.on("upgrade", handleUpgrade);
+  opts.httpServer.on("upgrade", handleUpgrade);
 }

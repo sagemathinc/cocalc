@@ -8,7 +8,7 @@ import { target } from "smc-webapp/client/handle-hash-url";
 import { redux, Store, TypedMap } from "../app-framework";
 
 type TopTab =
-  | "about" // the info page
+  | "about" // the "/help" page
   | "account"
   | "admin"
   | "help" // i.e., the support dialog that makes a ZenDesk ticket....

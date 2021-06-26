@@ -29,7 +29,7 @@ interface ServerSettings {
 
 let serverSettings: ServerSettings | undefined = undefined;
 
-export default function getTable(): ServerSettings {
+export default async function getServerSettings(): Promise<ServerSettings> {
   if (serverSettings != null) {
     return serverSettings;
   }
@@ -72,5 +72,6 @@ export default function getTable(): ServerSettings {
   };
   table.on("change", update);
   table.on("init", update);
+  await once(table, "init");
   return serverSettings;
 }

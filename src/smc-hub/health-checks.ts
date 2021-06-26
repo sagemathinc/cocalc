@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// endpoints for various healthchecks
+// endpoints for various health checks
 
 import * as debug from "debug";
 const L = debug("hub:healthcheck");
@@ -87,7 +87,7 @@ let agent_check_server: any;
 // export COCALC_HUB_SELF_TERMINATE=.1,.2,1
 // and then query it like that
 // $ telnet 0.0.0.0 $(cat $SMC_ROOT/dev/project/ports/agent-port)
-export function setup_agent_check() {
+function setup_agent_check() {
   if (agent_port == 0 || drain == null) {
     L("setup_agent_check: agent_port not set, no agent checks");
     return;
@@ -115,10 +115,10 @@ export interface Check {
 interface Opts {
   router: Router;
   db: PostgreSQL;
-  extra?: (() => Promise<Check>)[]; // additional healthchecks
+  extra?: (() => Promise<Check>)[]; // additional health checks
 }
 
-// this could be directly in setup_healthchecks, but we also need it in proxy.coffee
+// this could be directly in setup_health_checks, but we also need it in proxy.coffee
 // proxy.coffee must be rewritten and restructured first – just wrapping it with a router
 // didn't work at all for me
 export function process_alive(): HealthcheckData {
@@ -175,7 +175,7 @@ function check_uptime(): Check {
 }
 
 // same note as above for process_alive()
-export async function process_healthcheck(
+async function process_health_check(
   db: PostgreSQL,
   extra: (() => Promise<Check>)[] = []
 ): Promise<HealthcheckData> {
@@ -190,7 +190,7 @@ export async function process_healthcheck(
   return { code, txt };
 }
 
-export async function setup_healthchecks(opts: Opts): Promise<void> {
+export async function setup_health_checks(opts: Opts): Promise<void> {
   const { router, db, extra } = opts;
   setup_agent_check();
 
@@ -207,7 +207,7 @@ export async function setup_healthchecks(opts: Opts): Promise<void> {
   // this hub if it is running for quite some time. beyond that, in the future
   // there could be even more checks on top of that.
   router.get("/healthcheck", async (_, res: Response) => {
-    const { txt, code } = await process_healthcheck(db, extra);
+    const { txt, code } = await process_health_check(db, extra);
     res.status(code);
     res.type("txt");
     res.send(txt);

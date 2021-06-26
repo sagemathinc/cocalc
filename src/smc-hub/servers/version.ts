@@ -1,35 +1,15 @@
-/*
-
-init_smc_version = (db, cb) ->
-    if db.is_standby
-        cb()
-        return
-    server_settings = require('./server-settings')(db)
-    if server_settings.table._state == 'init'
-        server_settings.table.once('init', => cb())
-    else
-        cb()
-    # winston.debug("init smc_version: #{misc.to_json(smc_version.version)}")
-    server_settings.table.on 'change', ->
-        winston.info("version changed -- sending updates to clients")
-        for id, c of clients
-            if c.smc_version < server_settings.version.version_recommended_browser
-                c.push_version_update()
-
-*/
-
 import { database } from "./database";
 import { getClients } from "../clients";
 import getServerSettings from "./server-settings";
 
-export default function init() {
+export default async function init() {
   if (database.is_standby) {
     return;
   }
   const clients = getClients();
-  const settings = getServerSettings();
+  const settings = await getServerSettings();
   let version_recommended_browser: number = 0; // first time.
-  settings.table.on("change", () => {
+  const update = () => {
     if (
       settings.version["version_recommended_browser"] ==
       version_recommended_browser
@@ -45,5 +25,7 @@ export default function init() {
         client.push_version_update();
       }
     }
-  });
+  };
+  update();
+  settings.table.on("change", update);
 }

@@ -11,7 +11,6 @@ import * as blocked from "blocked";
 import { program as commander } from "commander";
 import { callback2 } from "smc-util/async-utils";
 import { callback } from "awaiting";
-import { readFileSync } from "fs";
 import { getLogger } from "./logger";
 import { init as initMemory } from "smc-util-node/memory";
 import port from "smc-util-node/port";
@@ -23,10 +22,9 @@ import { init_passport } from "./auth";
 import base_path from "smc-util-node/base-path";
 import { migrate_account_token } from "./postgres/migrate-account-token";
 import { init_start_always_running_projects } from "./postgres/always-running";
-import { set_agent_endpoint } from "./healthchecks";
+import { set_agent_endpoint } from "./health-checks";
 import { handle_mentions_loop } from "./mentions/handle";
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
-const { init_express_http_server } = require("./hub_http_server"); // import { init_express_http_server } from "./hub_http_server";
 import { start as startHubRegister } from "./hub_register";
 const initZendesk = require("./support").init_support; // import { init_support as initZendesk } from "./support";
 import { getClients } from "./clients";
@@ -35,6 +33,8 @@ import { init_stripe } from "./stripe";
 import { projects } from "smc-util-node/data";
 
 import { database } from "./servers/database";
+import initExpressApp from "./servers/express-app";
+import initHttpServer from "./servers/http";
 import initDatabase from "./servers/database";
 import initProjectControl from "./servers/project-control";
 import initVersionServer from "./servers/version";
@@ -162,7 +162,6 @@ async function startServer(): Promise<void> {
   // Initial the version server -- must happen after updating schema (for first ever run).
   await initVersionServer();
 
-  // setting port must come before the hub_http_server.init_express_http_server below
   if (program.agentPort) {
     winston.info("Configure agent port");
     set_agent_endpoint(program.agentPort, program.host);
@@ -231,45 +230,33 @@ async function startServer(): Promise<void> {
     init_start_always_running_projects(database);
   }
 
-  // We always create the express HTTP server, since the other servers
-  // (websocket, proxy, and share) are attached to this.
-  winston.info("creating express http server");
-  let https;
-  if (program.httpsKey || program.httpsCert) {
-    if (!program.httpsKey || !program.httpsCert) {
-      throw Error("you must specify both https-key and https-cert or neither");
-    }
-    https = {
-      cert: readFileSync(program.httpsCert),
-      key: readFileSync(program.httpsKey),
-    };
-  } else {
-    https = undefined;
-  }
-  const { http_server, express_router, express_app } =
-    await init_express_http_server({
-      dev: program.dev,
-      is_personal: program.personal,
-      compute_server: projectControl,
-      database,
-      cookie_options: COOKIE_OPTIONS,
-      https,
-    });
+
+  const { router, app } = initExpressApp({
+    dev: program.dev,
+    isPersonal: program.personal,
+    projectControl,
+  });
+
+  const httpServer = initHttpServer({
+    cert: program.httpsCert,
+    key: program.httpsKey,
+    app,
+  });
 
   winston.info(
-    `starting express webserver listening on ${program.host}:${port}`
+    `starting webserver listening on ${program.host}:${port}`
   );
-  await callback(http_server.listen.bind(http_server), port, program.host);
+  await callback(httpServer.listen.bind(httpServer), port, program.host);
 
   if (program.shareServer) {
     winston.info("initialize the share server");
-    await initShareServer(express_app, program.sharePath);
+    await initShareServer(app, program.sharePath);
     winston.info("finished initializing the share server");
   }
 
   if (program.websocketServer && !database.is_standby) {
     await callback2(init_passport, {
-      router: express_router,
+      router,
       database,
       host: program.host,
     });
@@ -278,8 +265,8 @@ async function startServer(): Promise<void> {
   if (program.websocketServer && !database.isStandby) {
     winston.info("initializing primus websocket server");
     initPrimus({
-      http_server,
-      express_router,
+      httpServer,
+      router,
       compute_server: projectControl,
       clients,
       host: program.host,
@@ -292,8 +279,8 @@ async function startServer(): Promise<void> {
     initProxy({
       projectControl,
       isPersonal: !!program.personal,
-      http_server,
-      express_app,
+      httpServer,
+      app,
     });
   }
 
@@ -312,7 +299,9 @@ async function startServer(): Promise<void> {
       interval_s: REGISTER_INTERVAL_S,
     });
 
-    const msg = `Started HUB!\n*****\n\n ${program.httpsKey ? 'https' : 'http'}://${program.host}:${port}${basePath}\n\n*****`;
+    const msg = `Started HUB!\n*****\n\n ${
+      program.httpsKey ? "https" : "http"
+    }://${program.host}:${port}${basePath}\n\n*****`;
     winston.info(msg);
   }
 

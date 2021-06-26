@@ -169,6 +169,8 @@ export function load_target(
       break;
 
     case "file-use":
+      // not implemented
+      break;
     case "admin":
       if (!logged_in) {
         return;

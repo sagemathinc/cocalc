@@ -89,11 +89,13 @@ exports.all_local_hubs = () ->
 
 server_settings = undefined
 init_server_settings = () ->
-    server_settings = require('./servers/server-settings').default()
-    server_settings.table.on 'change', () ->
+    server_settings = await require('./servers/server-settings').default()
+    update = () ->
         winston.debug("local_hub_connection (version might have changed) -- checking on clients")
         for x in exports.all_local_hubs()
             x.restart_if_version_too_old()
+    update()
+    server_settings.table.on('change', update)
 
 class LocalHub # use the function "new_local_hub" above; do not construct this directly!
     constructor: (@project_id, @database, @compute_server) ->
