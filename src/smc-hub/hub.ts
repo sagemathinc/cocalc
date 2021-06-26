@@ -35,6 +35,7 @@ import { projects } from "smc-util-node/data";
 import { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
 import initHttpServer from "./servers/http";
+import initHttpRedirect from "./servers/http-redirect";
 import initDatabase from "./servers/database";
 import initProjectControl from "./servers/project-control";
 import initVersionServer from "./servers/version";
@@ -230,7 +231,6 @@ async function startServer(): Promise<void> {
     init_start_always_running_projects(database);
   }
 
-
   const { router, app } = initExpressApp({
     dev: program.dev,
     isPersonal: program.personal,
@@ -243,10 +243,13 @@ async function startServer(): Promise<void> {
     app,
   });
 
-  winston.info(
-    `starting webserver listening on ${program.host}:${port}`
-  );
+  winston.info(`starting webserver listening on ${program.host}:${port}`);
   await callback(httpServer.listen.bind(httpServer), port, program.host);
+
+  if (port == 443 && program.httpsCert && program.httpsKey) {
+    // also start a redirect from port 80 to port 443.
+    await initHttpRedirect(program.host);
+  }
 
   if (program.shareServer) {
     winston.info("initialize the share server");
