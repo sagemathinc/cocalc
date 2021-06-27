@@ -8,6 +8,7 @@ Top-level react component for editing HTML documents
 */
 
 import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { set } from "smc-util/misc";
 import { QuickHTMLPreview } from "./rendered-html";
 import { IFrameHTML } from "./iframe-html";
@@ -38,7 +39,7 @@ const EDITOR_SPEC = {
       "redo",
       "format",
     ]),
-  },
+  } as EditorDescription,
 
   iframe: {
     short: "HTML",
@@ -53,7 +54,7 @@ const EDITOR_SPEC = {
       "decrease_font_size",
       "increase_font_size",
     ]),
-  },
+  } as EditorDescription,
 
   preview: {
     short: "Preview",
@@ -68,7 +69,7 @@ const EDITOR_SPEC = {
       "time_travel",
       "reload",
     ]),
-  },
+  } as EditorDescription,
 
   terminal,
 

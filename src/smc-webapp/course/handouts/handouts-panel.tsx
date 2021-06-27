@@ -721,7 +721,7 @@ Select "Replace student files!" in case you do not want to create any backups an
           title={
             <span>
               Handout: <Icon name="user-secret" /> You{" "}
-              <Icon name="long-arrow-right" /> <Icon name="users" /> Students{" "}
+              <Icon name="arrow-right" /> <Icon name="users" /> Students{" "}
             </span>
           }
           tip="Copy the files for this handout from this project to all other student projects."

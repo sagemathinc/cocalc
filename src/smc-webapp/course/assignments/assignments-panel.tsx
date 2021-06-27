@@ -872,7 +872,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           title={
             <span>
               Assign: <Icon name="user-secret" /> You{" "}
-              <Icon name="long-arrow-right" /> <Icon name="users" /> Students{" "}
+              <Icon name="arrow-right" /> <Icon name="users" /> Students{" "}
             </span>
           }
           tip="Copy the files for this assignment from this project to all other student projects."
@@ -1268,7 +1268,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           title={
             <span>
               Collect: <Icon name="users" /> Students{" "}
-              <Icon name="long-arrow-right" /> <Icon name="user-secret" /> You
+              <Icon name="arrow-right" /> <Icon name="user-secret" /> You
             </span>
           }
           tip={this.render_collect_tip()}
@@ -1337,7 +1337,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           title={
             <span>
               Peer Assign: <Icon name="users" /> You{" "}
-              <Icon name="long-arrow-right" /> <Icon name="user-secret" />{" "}
+              <Icon name="arrow-right" /> <Icon name="user-secret" />{" "}
               Students
             </span>
           }
@@ -1400,7 +1400,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           title={
             <span>
               Peer Collect: <Icon name="users" /> Students{" "}
-              <Icon name="long-arrow-right" /> <Icon name="user-secret" /> You
+              <Icon name="arrow-right" /> <Icon name="user-secret" /> You
             </span>
           }
           tip={this.render_peer_collect_tip()}
@@ -1511,7 +1511,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           title={
             <span>
               Return: <Icon name="user-secret" /> You{" "}
-              <Icon name="long-arrow-right" /> <Icon name="users" /> Students{" "}
+              <Icon name="arrow-right" /> <Icon name="users" /> Students{" "}
             </span>
           }
           tip="Copy the graded versions of files for this assignment from this project to all other student projects."

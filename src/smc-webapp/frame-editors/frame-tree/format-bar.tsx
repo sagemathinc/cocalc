@@ -15,7 +15,7 @@ import { SetMap } from "./types";
 import { DropdownMenu, MenuItem } from "../../r_misc";
 import { ButtonGroup, Button } from "../../antd-bootstrap";
 import { FONT_FACES } from "../../editors/editor-button-bar";
-import { Icon, Space } from "smc-webapp/r_misc";
+import { Icon, isIconName, Space } from "smc-webapp/r_misc";
 
 const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
   " "
@@ -43,9 +43,9 @@ export class FormatBar extends Component<Props, {}> {
     if (this.props.exclude?.[name]) {
       return;
     }
-    if (label == null) {
+    if (label == null && isIconName(name)) {
       label = <Icon name={name} />;
-    } else if (typeof label === "string") {
+    } else if (typeof label === "string" && isIconName(label)) {
       label = <Icon name={label} />;
     }
 

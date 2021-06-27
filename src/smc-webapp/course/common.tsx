@@ -507,7 +507,7 @@ export class StudentAssignmentInfo extends Component<
           }}
         >
           <Icon
-            name="share-square-o"
+            name="share-square"
             rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}
           />{" "}
           Yes, {name.toLowerCase()} again
@@ -547,7 +547,7 @@ export class StudentAssignmentInfo extends Component<
         >
           <Tip title={name} placement={placement} tip={<span>{copy_tip}</span>}>
             <Icon
-              name="share-square-o"
+              name="share-square"
               rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}
             />{" "}
             {name}...
@@ -603,7 +603,7 @@ export class StudentAssignmentInfo extends Component<
       <Tip key="copy" title={name} tip={copy_tip} placement={placement}>
         <Button onClick={copy} bsStyle={"primary"}>
           <Icon
-            name="share-square-o"
+            name="share-square"
             rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}
           />{" "}
           {name}

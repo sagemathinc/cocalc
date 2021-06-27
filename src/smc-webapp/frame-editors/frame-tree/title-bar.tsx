@@ -207,33 +207,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     "switch_to_files",
   ]);
 
-  /*
-  shouldComponentUpdate(next, state): boolean {
-    // note 'type' field dealt with above.
-    return (
-      is_different(this.props, next, [
-        "active_id",
-        "id",
-        "is_full",
-        "is_only",
-        "read_only",
-        "has_unsaved_changes",
-        "has_uncommitted_changes",
-        "is_public",
-        "is_saving",
-        "is_paused",
-        "status",
-        "title",
-        "connection_status",
-        "font_size",
-        "available_features",
-        "switch_to_files",
-        "path",
-      ]) || is_different(this.state, state, ["close_and_halt_confirm"])
-    );
-  }
-  */
-
   function button_height(): string {
     return props.is_only || props.is_full ? "34px" : "30px";
   }
@@ -304,7 +277,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function render_types(): Rendered {
     const selected_type: string = props.type;
-    let selected_icon = "";
+    let selected_icon: IconName | undefined = undefined;
     let selected_short = "";
     const items: Rendered[] = [];
     for (const type in props.editor_spec) {
@@ -342,7 +315,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           {title} {selected_short}
         </span>
       );
-    } else {
+    } else if (selected_icon != null) {
       title = <Icon name={selected_icon} />;
     }
 
@@ -962,7 +935,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       ...{
         title: "Guide",
         descr: "Show guidebook",
-        icon: "book",
+        icon: "book" as IconName,
       },
       ...props.editor_spec[props.type].guide_info,
     };
@@ -1161,7 +1134,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={() => props.actions.kick_other_users_out(props.id)}
         title={"Kick all other users out"}
       >
-        <Icon name={"leave_conference"} />
+        <Icon name={"skull-crossbones"} />
       </Button>
     );
   }

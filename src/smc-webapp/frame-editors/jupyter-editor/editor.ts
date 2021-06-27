@@ -9,6 +9,7 @@ Spec for editing Jupyter notebooks via a frame tree.
 
 import { set } from "smc-util/misc";
 import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { CellNotebook } from "./cell-notebook/cell-notebook";
@@ -53,35 +54,35 @@ export const EDITOR_SPEC = {
           "Open command line Jupyter console session attached to the same kernel as notebook",
       },
     },
-  },
+  } as EditorDescription,
   commands_guide: {
     short: "Snippets",
     name: "Snippets",
     icon: SNIPPET_ICON_NAME,
     component: JupyterSnippets,
     buttons: set(["decrease_font_size", "increase_font_size"]),
-  },
+  } as EditorDescription,
   jupyter_slideshow_revealjs: {
     short: "Slideshow",
     name: "Slideshow (Reveal.js)",
     icon: "FundProjectionScreenOutlined",
     component: Slideshow,
     buttons: set(["build"]),
-  },
+  } as EditorDescription,
   jupyter_table_of_contents: {
     short: "Contents",
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
     buttons: set(["decrease_font_size", "increase_font_size"]),
-  },
+  } as EditorDescription,
   introspect: {
     short: "Introspect",
     name: "Introspection",
     icon: "info",
     component: Introspect,
     buttons: set(["decrease_font_size", "increase_font_size"]),
-  },
+  } as EditorDescription,
   terminal,
   time_travel,
   jupyter_raw: {
@@ -90,7 +91,7 @@ export const EDITOR_SPEC = {
     icon: "markdown",
     component: RawIPynb,
     buttons: set(["decrease_font_size", "increase_font_size"]),
-  },
+  } as EditorDescription,
 };
 
 export const Editor = createEditor({

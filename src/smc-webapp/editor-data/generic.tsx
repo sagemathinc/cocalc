@@ -131,6 +131,6 @@ const DataGeneric: React.FC<Props> = React.memo((props: Props) => {
 
 register_file_editor({
   ext: keys(INFO),
-  icon: "question",
+  icon: "question-circle",
   component: DataGeneric,
 });

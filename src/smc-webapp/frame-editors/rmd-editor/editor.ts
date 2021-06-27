@@ -10,6 +10,7 @@ Top-level react component for editing R markdown documents
 import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
 import { set } from "smc-util/misc";
 import { derive_rmd_output_filename } from "./utils";
+import { EditorDescription } from "../frame-tree/types";
 import { createEditor } from "../frame-tree/editor";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
@@ -43,7 +44,7 @@ const EDITOR_SPEC = {
       "format",
       "build",
     ]),
-  },
+  } as EditorDescription,
 
   iframe: {
     short: "HTML",
@@ -62,14 +63,14 @@ const EDITOR_SPEC = {
       "decrease_font_size",
       "increase_font_size",
     ]),
-  },
+  } as EditorDescription,
 
   // By default, only html is generated. This viewer is still there in case the user explicitly tells RMarkdown to generate a PDF
 
   pdfjs_canvas: {
     short: "PDF",
     name: "PDF (Converted)",
-    icon: "file-pdf-o",
+    icon: "file-pdf",
     component: PDFJS,
     mode: "rmd",
     buttons: pdfjs_buttons,
@@ -78,7 +79,7 @@ const EDITOR_SPEC = {
     path(path) {
       return derive_rmd_output_filename(path, "pdf");
     },
-  },
+  } as EditorDescription,
 
   markdown: {
     short: "Markdown",
@@ -94,7 +95,7 @@ const EDITOR_SPEC = {
       "time_travel",
       "reload",
     ]),
-  },
+  } as EditorDescription,
 
   build: {
     short: "Build Log",
@@ -103,7 +104,7 @@ const EDITOR_SPEC = {
     component: BuildLog,
     style: { background: "#525659" },
     buttons: set(["build", "decrease_font_size", "increase_font_size"]),
-  },
+  } as EditorDescription,
 
   terminal,
 

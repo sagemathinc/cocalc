@@ -64,7 +64,7 @@ export const SUPPORT_LINKS: Links = {
   },
   live_demo: {
     commercial: true,
-    icon: "comments-o",
+    icon: "comment",
     link: (
       <span>
         Request a live video chat with the <SiteName /> developers about how to
@@ -116,11 +116,11 @@ export const SUPPORT_LINKS: Links = {
   },
 };
 
-export const CONNECT_LINKS = {
+export const CONNECT_LINKS : Links = {
   discord: {
     commercial: true,
     bold: true,
-    icon: "fab fa-discord",
+    icon: "discord",
     href: DISCORD_INVITE,
     link: (
       <span>
@@ -187,7 +187,7 @@ export const CONNECT_LINKS = {
   },
 };
 
-export const THIRD_PARTY = {
+export const THIRD_PARTY : Links = {
   sagemath: {
     icon: "sagemath",
     href: "http://www.sagemath.org/",
@@ -259,7 +259,7 @@ export const THIRD_PARTY = {
     text: "scientific programming language, largely compatible with MATLAB",
   },
   tensorflow: {
-    icon: "lightbulb-o",
+    icon: "lightbulb",
     href: "https://www.tensorflow.org/get_started/get_started",
     link: "Tensorflow",
     text: "open-source software library for machine intelligence",
@@ -278,14 +278,14 @@ export const THIRD_PARTY = {
   },
 };
 
-export const ABOUT_LINKS = {
+export const ABOUT_LINKS : Links = {
   legal: {
     icon: "files",
     link: "Terms of Service, Pricing, Copyright and Privacy policies",
     href: `${BASE_URL}/policies/index.html`,
   },
   developers: {
-    icon: "keyboard-o",
+    icon: "keyboard",
     text: (
       <span>
         <a

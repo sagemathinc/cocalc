@@ -9,6 +9,7 @@ Settings and configuration for editing this file.
 
 import { Map } from "immutable";
 import { React, Rendered, Component } from "../../app-framework";
+import { EditorDescription } from "../frame-tree/types";
 import { is_different } from "smc-util/misc";
 // import from icon only necessary for testing via Jest
 // Change to import from r_misc when it's all typescript
@@ -89,4 +90,4 @@ export const SETTINGS_SPEC = {
   buttons: {},
   component: Settings,
   hide_public: true,
-};
+} as EditorDescription;

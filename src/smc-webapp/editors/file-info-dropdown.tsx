@@ -65,13 +65,13 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     }
 
     function render_menu_items() {
-      let items: { [key: string]: string };
+      let items: { [key: string]: IconName };
       const v: JSX.Element[] = [];
       if (is_public) {
         // Fewer options when viewing the action dropdown in public mode:
         items = {
           download: "cloud-download",
-          copy: "files-o",
+          copy: "files",
         };
       } else {
         v.push(render_menu_item("new", "plus-circle"));

@@ -15,6 +15,7 @@ import { React } from "./app-framework";
 
 import { delay } from "awaiting";
 import { getStudentProjectFunctionality } from "./course";
+import { IconName } from "./r_misc/icon";
 
 declare let DEBUG: boolean;
 
@@ -32,7 +33,7 @@ remove    : function (path, redux, project_id) -> string (redux name)
 */
 
 interface FileEditorSpec {
-  icon?: string;
+  icon?: IconName;
   component?: Elt | Function;
   componentAsync?: () => Promise<Elt | Function>;
   generator?: (

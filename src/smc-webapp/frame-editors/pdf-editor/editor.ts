@@ -8,6 +8,7 @@ Spec for editing PDF documents.
 */
 
 import { set } from "smc-util/misc";
+import { EditorDescription } from "../frame-tree/types";
 import { createEditor } from "../frame-tree/editor";
 import { PDFJS } from "../latex-editor/pdfjs";
 import { PDFEmbed } from "../latex-editor/pdf-embed";
@@ -27,22 +28,22 @@ export const EDITOR_SPEC = {
   pdfjs_canvas: {
     short: "PDF.js",
     name: "PDF.js - Canvas",
-    icon: "file-pdf-o",
+    icon: "file-pdf",
     component: PDFJS,
     buttons: pdfjs_buttons,
     style: { background: "#525659" },
     renderer: "canvas",
-  },
+  } as EditorDescription,
 
   pdfjs_svg: {
     short: "PDF.js (svg)",
     name: "PDF.js - SVG",
-    icon: "file-pdf-o",
+    icon: "file-pdf",
     component: PDFJS,
     buttons: pdfjs_buttons,
     style: { background: "#525659" },
     renderer: "svg",
-  },
+  } as EditorDescription,
 };
 
 // NOTE: the native viewer is epically bad on ipad/ios:
@@ -51,10 +52,10 @@ if (!IS_IPAD && !IS_IOS) {
   (EDITOR_SPEC as any).pdf_embed = {
     short: "PDF (native)",
     name: "PDF - Native",
-    icon: "file-pdf-o",
+    icon: "file-pdf",
     buttons: set(["reload", "print", "download"]),
     component: PDFEmbed,
-  };
+  } as EditorDescription;
 }
 
 export const Editor = createEditor({

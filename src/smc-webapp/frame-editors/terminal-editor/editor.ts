@@ -8,6 +8,7 @@ Top-level React component for the terminal
 */
 
 import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { TerminalFrame } from "./terminal";
 import { CommandsGuide } from "./commands-guide";
 import { set } from "smc-util/misc";
@@ -43,7 +44,7 @@ export const terminal = {
     title: "Guide",
     descr: "Show a panel guiding you working with the terminal.",
   },
-};
+} as EditorDescription;
 
 const commands_guide = {
   short: "Guide",
@@ -51,7 +52,7 @@ const commands_guide = {
   icon: "book",
   component: CommandsGuide,
   buttons: set(["decrease_font_size", "increase_font_size"]),
-};
+} as EditorDescription;
 
 const EDITOR_SPEC = {
   terminal,

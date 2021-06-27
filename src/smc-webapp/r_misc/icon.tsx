@@ -9,6 +9,7 @@ import * as React from "react";
 import { CSS } from "../app-framework";
 
 import {
+  AimOutlined,
   AlignLeftOutlined,
   AlignCenterOutlined,
   AlignRightOutlined,
@@ -16,6 +17,7 @@ import {
   ArrowLeftOutlined,
   ArrowRightOutlined,
   ArrowUpOutlined,
+  AudioOutlined,
   BackwardOutlined,
   BellFilled,
   BellOutlined,
@@ -92,6 +94,7 @@ import {
   ItalicOutlined,
   KeyOutlined,
   LaptopOutlined,
+  LayoutOutlined,
   LeftOutlined,
   LeftSquareFilled,
   LineChartOutlined,
@@ -118,6 +121,7 @@ import {
   QuestionCircleOutlined,
   RedoOutlined,
   ReloadOutlined,
+  RetweetOutlined,
   RightCircleFilled,
   RightOutlined,
   RightSquareFilled,
@@ -156,6 +160,7 @@ import {
 
 const IconSpec = {
   "address-card": IdcardOutlined,
+  aim: AimOutlined,
   "align-left": AlignLeftOutlined,
   "align-center": AlignCenterOutlined,
   "align-justify": { IconFont: "align-justify" },
@@ -172,6 +177,7 @@ const IconSpec = {
   "arrow-right": ArrowRightOutlined,
   "arrow-up": ArrowUpOutlined,
   atom: { IconFont: "Atom" },
+  audio: AudioOutlined,
   backward: BackwardOutlined,
   "battery-empty": { IconFont: "battery-empty" },
   "battery-quarter": { IconFont: "battery-quarter" },
@@ -309,7 +315,8 @@ const IconSpec = {
   key: KeyOutlined,
   keyboard: { IconFont: "keyboard" },
   laptop: LaptopOutlined,
-  leave_conference: { IconFont: "leave_conference" },
+  layout: LayoutOutlined,
+  "skull-crossbones": { IconFont: "leave_conference" },
   libreoffice: { IconFont: "libreoffice" },
   "life-ring": { IconFont: "life-ring" },
   "life-saver": { IconFont: "life-ring" },
@@ -364,6 +371,7 @@ const IconSpec = {
   remove: CloseOutlined,
   repeat: RedoOutlined,
   replace: { IconFont: "find-replace" },
+  retweet: RetweetOutlined,
   robot: RobotOutlined,
   rocket: RocketOutlined,
   run: { IconFont: "run" },
@@ -484,6 +492,7 @@ try {
 }
 
 export type IconName = keyof typeof IconSpec;
+export const IconName = undefined; // Javascript needs this, though we are only using IconName for the type
 
 // Typeguard so can tell if a string is name of an icon and also
 // make typescript happy.
@@ -589,7 +598,7 @@ try {
         for (const cls of elt.className.split(/\s+/)) {
           if (cls.startsWith("fa-")) {
             ReactDOM.render(
-              <Icon name={cls} spin={cls == "fa-cocalc-ring"} />,
+              <Icon name={cls.slice(3)} spin={cls == "fa-cocalc-ring"} />,
               elt
             );
             break;

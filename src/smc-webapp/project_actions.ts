@@ -145,12 +145,12 @@ export const FILE_ACTIONS = {
   },
   copy: {
     name: "Copy",
-    icon: "files-o",
+    icon: "files",
     allows_multiple_files: true,
   },
   share: {
     name: "Public",
-    icon: "share-square-o",
+    icon: "share-square",
     allows_multiple_files: false,
   },
   download: {

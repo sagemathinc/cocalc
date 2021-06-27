@@ -15,7 +15,7 @@ import { redux_name } from "smc-webapp/app-framework";
 import { IconName } from "smc-webapp/r_misc/icon";
 
 interface AsyncRegister {
-  icon?: string;
+  icon?: IconName;
   ext: string | string[];
   editor: () => Promise<any>;
   actions: () => Promise<any>;
@@ -23,7 +23,7 @@ interface AsyncRegister {
 }
 
 interface Register {
-  icon?: string;
+  icon?: IconName;
   ext:
     | string
     | string[] /* the filename extension or extensions that this editor should handle. */;
@@ -78,6 +78,7 @@ export function register_file_editor(opts: Register | AsyncRegister) {
 
 const reference_count: { [name: string]: number } = {};
 
+declare const DEBUG;  // webpack.
 if (DEBUG) {
   // uncomment for low level debugging
   // (window as any).frame_editor_reference_count = reference_count;

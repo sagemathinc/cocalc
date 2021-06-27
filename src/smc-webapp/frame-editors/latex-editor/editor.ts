@@ -9,6 +9,7 @@ Spec for editing LaTeX documents.
 
 import { set } from "smc-util/misc";
 import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { PDFJS } from "./pdfjs";
 import { PDFEmbed } from "./pdf-embed";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
@@ -58,18 +59,18 @@ const EDITOR_SPEC = {
       "switch_to_file",
     ]),
     gutters: ["Codemirror-latex-errors"],
-  },
+  } as EditorDescription,
 
   pdfjs_canvas: {
     short: "PDF (preview)",
     name: "PDF - Preview",
-    icon: "file-pdf-o",
+    icon: "file-pdf",
     component: PDFJS,
     buttons: pdfjs_buttons,
     path: pdf_path,
     style: { background: "#525659" },
     renderer: "canvas",
-  },
+  } as EditorDescription,
 
   error: {
     short: "Errors",
@@ -77,7 +78,7 @@ const EDITOR_SPEC = {
     icon: "bug",
     component: ErrorsAndWarnings,
     buttons: set(["build"]),
-  },
+  } as EditorDescription,
 
   build: {
     short: "Build",
@@ -91,7 +92,7 @@ const EDITOR_SPEC = {
       "decrease_font_size",
       "increase_font_size",
     ]),
-  },
+  } as EditorDescription,
 
   word_count: {
     short: "Word Count",
@@ -99,7 +100,7 @@ const EDITOR_SPEC = {
     icon: "file-alt",
     buttons: set(["word_count"]),
     component: LatexWordCount,
-  },
+  } as EditorDescription,
 
   terminal,
 
@@ -107,33 +108,6 @@ const EDITOR_SPEC = {
 
   time_travel,
 
-  /*
-
-    latexjs: {
-        short: "Preview 1",
-        name: "Rough Preview  1 - LaTeX.js",
-        icon: "file-pdf-o",
-        component: LaTeXJS,
-        buttons: set([
-            "print",
-            "save",
-            "decrease_font_size",
-            "increase_font_size"
-        ])
-    },
-
-    peg: {
-        short: "Preview 2",
-        name: "Rough Preview 2 - PEG.js",
-        icon: "file-pdf-o",
-        component: PEG,
-        buttons: set([
-            "print",
-            "save",
-            "decrease_font_size",
-            "increase_font_size"
-        ])
-    } */
 };
 
 // See https://github.com/sagemathinc/cocalc/issues/5114
@@ -141,11 +115,11 @@ if (!IS_IPAD && !IS_IOS) {
   (EDITOR_SPEC as any).pdf_embed = {
     short: "PDF (native)",
     name: "PDF - Native",
-    icon: "file-pdf-o",
+    icon: "file-pdf",
     buttons: set(["print", "save", "download"]),
     component: PDFEmbed,
     path: pdf_path,
-  };
+  } as EditorDescription;
 }
 
 export const Editor = createEditor({

@@ -12,7 +12,7 @@ The **complete** list of extensions --> what edits them is done
 via the newer registration system.
 */
 
-import { IconName } from "r_misc/icon";
+import { IconName } from "./r_misc/icon";
 
 const codemirror_associations: { [ext: string]: string } = {
   adb: "ada",
@@ -119,13 +119,13 @@ export interface FileSpec {
 
 export const file_associations: { [ext: string]: FileSpec } = {};
 
-const MODE_TO_ICON: { [mode: string]: string } = {
+const MODE_TO_ICON: { [mode: string]: IconName } = {
   python: "python",
-  coffeescript: "fa-coffee",
-  javascript: "fab fa-js-square",
-  jsx: "fab fa-node-js",
-  "application/typescript": "fab fa-js-square", // it would be nice to have proper TS icons...
-  "text/typescript-jsx": "fab fa-node-js", // would be nice to have proper TS...
+  coffeescript: "coffee",
+  javascript: "js-square",
+  jsx: "node-js",
+  "application/typescript": "js-square", // it would be nice to have proper TS icons...
+  "text/typescript-jsx": "node-js", // would be nice to have proper TS...
   "text/x-rustsrc": "cog",
   r: "r",
   rmd: "r",
@@ -139,7 +139,7 @@ for (const ext in codemirror_associations) {
     name = name.slice(i + 2);
   }
   name = name.replace("src", "");
-  const icon = MODE_TO_ICON[mode] ? MODE_TO_ICON[mode] : "fa-file-code";
+  const icon = MODE_TO_ICON[mode] ?? "file-code";
 
   file_associations[ext] = {
     editor: "codemirror",
@@ -317,7 +317,7 @@ file_associations["v"] = file_associations["vh"] = {
 for (const ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
   file_associations[ext] = {
     editor: "media",
-    icon: "file-image-o",
+    icon: "file-image",
     opts: {},
     name: ext,
     binary: true,
@@ -361,7 +361,7 @@ export const AUDIO_EXTS = Object.freeze([
 
 file_associations["pdf"] = {
   editor: "pdf",
-  icon: "file-pdf-o",
+  icon: "file-pdf",
   opts: {},
   name: "pdf",
   binary: true,
@@ -414,10 +414,10 @@ file_associations["sage-history"] = {
 // For tar, see http://en.wikipedia.org/wiki/Tar_%28computing%29
 const archive_association = {
   editor: "archive",
-  icon: "file-archive-o",
+  icon: "file-archive",
   opts: {},
   name: "archive",
-};
+} as FileSpec;
 
 // Fallback for any type not otherwise explicitly specified
 file_associations[""] = {
