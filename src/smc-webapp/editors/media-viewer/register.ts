@@ -14,21 +14,21 @@ import { IMAGE_EXTS, VIDEO_EXTS, AUDIO_EXTS } from "../../file-associations";
 for (const is_public of [true, false]) {
   register_file_editor({
     ext: IMAGE_EXTS,
-    icon: "file-image-o",
+    icon: "file-image",
     component: MediaViewer,
     is_public,
   });
 
   register_file_editor({
     ext: VIDEO_EXTS,
-    icon: "file-video-o",
+    icon: "video-camera",
     component: MediaViewer,
     is_public,
   });
 
   register_file_editor({
     ext: AUDIO_EXTS,
-    icon: "file-audio-o",
+    icon: "audio",
     component: MediaViewer,
     is_public,
   });

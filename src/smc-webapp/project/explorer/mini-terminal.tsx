@@ -190,7 +190,7 @@ class MiniTerminal0 extends React.Component<Props, State> {
       case "run":
         return (
           <Button onClick={this.execute_command}>
-            <Icon name="cc-icon-cocalc-ring" spin />
+            <Icon name="cocalc-ring" spin />
           </Button>
         );
     }

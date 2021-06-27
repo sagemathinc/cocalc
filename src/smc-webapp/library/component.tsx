@@ -281,7 +281,7 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
           </span>
         ) : (
           <span>
-            <Icon name="files-o" /> Get a Copy
+            <Icon name="files" /> Get a Copy
           </span>
         )}
       </Button>

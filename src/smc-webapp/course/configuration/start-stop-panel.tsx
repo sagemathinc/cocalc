@@ -52,7 +52,7 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
         message={
           <div>
             {capitalize(state_name)} all projects...{" "}
-            <Icon name="cc-icon-cocalc-ring" spin />
+            <Icon name="cocalc-ring" spin />
             <br />
             <Button
               onClick={() =>

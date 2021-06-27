@@ -8,6 +8,7 @@ import * as React from "react";
 import { DOMAIN_URL} from "smc-util/theme";
 import { BASE_URL as DEFAULT_BASE_URL } from "smc-webapp/misc/base-url";
 import { SiteName, PolicyPricingPageUrl } from "../customize";
+import { IconName } from "smc-webapp/r_misc/icon";
 
 const BASE_URL = global["BACKEND"] ? DOMAIN_URL : DEFAULT_BASE_URL;
 
@@ -22,7 +23,7 @@ import {
 interface LinkInfo {
   commercial?: boolean;
   bold?: boolean;
-  icon: string;
+  icon: IconName;
   href?: string;
   link?: JSX.Element | string;
   text?: JSX.Element | string;
@@ -61,7 +62,7 @@ export const SUPPORT_LINKS: Links = {
   },
   live_demo: {
     commercial: true,
-    icon: "comments-o",
+    icon: "comment",
     link: (
       <span>
         Request a live video chat with the <SiteName /> developers about how to
@@ -113,11 +114,11 @@ export const SUPPORT_LINKS: Links = {
   },
 };
 
-export const CONNECT_LINKS = {
+export const CONNECT_LINKS : Links = {
   discord: {
     commercial: true,
     bold: true,
-    icon: "fab fa-discord",
+    icon: "discord",
     href: DISCORD_INVITE,
     link: (
       <span>
@@ -184,21 +185,21 @@ export const CONNECT_LINKS = {
   },
 };
 
-export const THIRD_PARTY = {
+export const THIRD_PARTY : Links = {
   sagemath: {
-    icon: "cc-icon-sagemath",
+    icon: "sagemath",
     href: "http://www.sagemath.org/",
     link: "SageMath",
     text: <span>open-source mathematical software</span>,
   },
   r: {
-    icon: "cc-icon-r",
+    icon: "r",
     href: "https://cran.r-project.org/doc/manuals/r-release/R-intro.html",
     link: "R project",
     text: "the #1 open-source statistics software",
   },
   python: {
-    icon: "cc-icon-python",
+    icon: "python",
     href: "http://www.scipy-lectures.org/",
     link: "Scientific Python",
     text: (
@@ -244,25 +245,25 @@ export const THIRD_PARTY = {
     ),
   },
   julia: {
-    icon: "cc-icon-julia",
+    icon: "julia",
     href: "https://www.julialang.org/",
     link: "Julia",
     text: "programming language for numerical computing",
   },
   octave: {
-    icon: "cc-icon-octave",
+    icon: "octave",
     href: "https://www.gnu.org/software/octave/",
     link: "GNU Octave",
     text: "scientific programming language, largely compatible with MATLAB",
   },
   tensorflow: {
-    icon: "lightbulb-o",
+    icon: "lightbulb",
     href: "https://www.tensorflow.org/get_started/get_started",
     link: "Tensorflow",
     text: "open-source software library for machine intelligence",
   },
   latex: {
-    icon: "cc-icon-tex-file",
+    icon: "tex-file",
     href: "https://en.wikibooks.org/wiki/LaTeX",
     link: "LaTeX",
     text: "high-quality typesetting program",
@@ -275,14 +276,14 @@ export const THIRD_PARTY = {
   },
 };
 
-export const ABOUT_LINKS = {
+export const ABOUT_LINKS : Links = {
   legal: {
     icon: "files",
     link: "Terms of Service, Pricing, Copyright and Privacy policies",
     href: join(BASE_URL, "policies/index.html"),
   },
   developers: {
-    icon: "keyboard-o",
+    icon: "keyboard",
     text: (
       <span>
         <a

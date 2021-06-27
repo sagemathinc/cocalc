@@ -82,7 +82,7 @@ export const CollapsedOutput: React.FC<CollapsedOutputProps> = React.memo(
           padding: 0,
         }}
       >
-        <Icon name="ellipsis-h" />
+        <Icon name="ellipsis" />
       </div>
     );
   }

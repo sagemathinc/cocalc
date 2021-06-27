@@ -263,7 +263,7 @@ class ArchiveActions extends Actions<State> {
 const TODO_TYPES = split("z lz lzma tbz tbz2 tb2 taz tz tlz txz");
 register_file_editor({
   ext: keys(COMMANDS).concat(TODO_TYPES),
-  icon: "file-archive-o",
+  icon: "file-archive",
   init: init_redux,
   remove: remove_redux,
   component: Archive,

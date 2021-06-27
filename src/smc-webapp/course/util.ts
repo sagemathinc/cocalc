@@ -16,6 +16,7 @@ import {
   merge,
   cmp,
 } from "smc-util/misc";
+import { IconName } from "smc-webapp/r_misc/icon";
 
 // Pure functions used in the course manager
 
@@ -280,9 +281,9 @@ export function autograded_filename(filename: string): string {
 export function projectStatus(
   project_id: string | undefined,
   redux
-): { description: string; icon: string; state: string; tip?: string } {
+): { description: string; icon: IconName; state: string; tip?: string } {
   if (!project_id) {
-    return { description: "(not created)", icon: "checkbox", state: "" };
+    return { description: "(not created)", icon: "square", state: "" };
   }
   const store = redux.getStore("projects");
   const upgrades = store.get_total_project_quotas(project_id);
@@ -290,7 +291,7 @@ export function projectStatus(
     // user opening the course, but isn't a collaborator on
     // this student project for some reason.  This will get fixed
     // when configure all projects runs.
-    return { description: "(not available)", icon: "question", state: "" };
+    return { description: "(not available)", icon: "question-circle", state: "" };
   }
   const state = ` (${store.get_state(project_id)})`;
   if (upgrades.member_host) {

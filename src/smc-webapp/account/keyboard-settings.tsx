@@ -89,7 +89,7 @@ export const KeyboardSettings: React.FC = () => {
     <Panel
       header={
         <>
-          <Icon name="keyboard-o" /> Keyboard shortcuts
+          <Icon name="keyboard" /> Keyboard shortcuts
         </>
       }
     >

@@ -30,7 +30,7 @@ import CloseX from "./close-x";
 export const FIXED_PROJECT_TABS = {
   files: {
     label: "Files",
-    icon: "folder-open-o",
+    icon: "folder-open",
     tooltip: "Browse files",
     no_anonymous: false,
   },

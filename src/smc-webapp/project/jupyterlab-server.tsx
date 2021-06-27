@@ -35,7 +35,7 @@ export const JupyterLabServerPanel: React.FC<Props> = ({ project_id }) => {
   function render_jupyter_link(): JSX.Element {
     return (
       <LinkRetryUntilSuccess get_href={get_href}>
-        <Icon name="cc-icon-ipynb" /> JupyterLab Server
+        <Icon name="ipynb" /> JupyterLab Server
       </LinkRetryUntilSuccess>
     );
   }

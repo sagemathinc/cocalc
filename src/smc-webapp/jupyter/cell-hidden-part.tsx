@@ -19,7 +19,7 @@ export const CellHiddenPart: React.FC<Props> = (props: Props) => {
       style={{ color: "#aaa", fontSize: "14pt", paddingLeft: "15px" }}
       title={props.title}
     >
-      <Icon name={"ellipsis-h"} />
+      <Icon name={"ellipsis"} />
     </div>
   );
 };

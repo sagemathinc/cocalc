@@ -9,11 +9,11 @@ import { copy } from "smc-util/misc";
 import { COLORS } from "smc-util/theme";
 import { Links } from "./links";
 import { li_style } from "./style";
-import { Icon } from "../r_misc/icon";
+import { Icon, IconName } from "../r_misc/icon";
 
 interface Props {
   title: string;
-  icon: string;
+  icon: IconName;
   links: Links;
   width: number;
 }

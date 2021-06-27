@@ -11,7 +11,7 @@ import Ansi from "ansi-to-react";
 import { path_split } from "smc-util/misc";
 import { React, Rendered, useRedux } from "../../app-framework";
 import { BuildCommand } from "./build-command";
-import { Loading } from "smc-webapp/r_misc";
+import { IconName, Loading } from "smc-webapp/r_misc";
 import { Tab, Tabs } from "../../antd-bootstrap";
 import { COLORS } from "smc-util/theme";
 import { BuildLogs } from "./actions";
@@ -20,7 +20,7 @@ import { use_build_logs } from "./hooks";
 interface IBuildSpec {
   button: boolean;
   label: string;
-  icon: string;
+  icon: IconName;
   tip: string;
 }
 
@@ -45,35 +45,35 @@ const BUILD_SPECS: IBuildSpecs = {
   latex: {
     button: false,
     label: "LaTeX",
-    icon: "cc-icon-tex-file",
+    icon: "tex-file",
     tip: "Run the LaTeX build command (typically latexmk)",
   },
 
   bibtex: {
     button: false,
     label: "BibTeX",
-    icon: "file-code-o",
+    icon: "file-code",
     tip: "Process bibliography using Bibtex",
   },
 
   sagetex: {
     button: false,
     label: "SageTex",
-    icon: "cc-icon-sagemath-bold",
+    icon: "sagemath-bold",
     tip: "Run SageTex, if necessary",
   },
 
   pythontex: {
     button: false,
     label: "PythonTeX",
-    icon: "cc-icon-python",
+    icon: "python",
     tip: "Run PythonTeX3, if necessary",
   },
 
   knitr: {
     button: false,
     label: "Knitr",
-    icon: "cc-icon-r",
+    icon: "r",
     tip: "Run Knitr, if necessary",
   },
 

@@ -5,8 +5,9 @@
 
 import { join as path_join } from "path";
 import { COLORS } from "smc-util/theme";
+import { IconName } from "smc-webapp/r_misc/icon";
 
-export const RESET_ICON = "redo-alt";
+export const RESET_ICON: IconName = "redo";
 
 // Do NOT change this:
 export type NAME_TYPE = "compute_images";

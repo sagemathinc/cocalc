@@ -13,7 +13,15 @@ import { Rendered, redux } from "../../app-framework";
 
 import { Grid, Col, Row } from "react-bootstrap";
 
-import { Icon, TimeAgo, PathLink, r_join, Space, Tip } from "../../r_misc";
+import {
+  Icon,
+  IconName,
+  TimeAgo,
+  PathLink,
+  r_join,
+  Space,
+  Tip,
+} from "../../r_misc";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { User } = require("../../users");
 import { file_actions } from "../../project_store";
@@ -529,27 +537,23 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
     }
   }
 
-  function icon(): string {
+  function icon(): IconName {
     if (typeof props.event === "string" || props.event == undefined) {
-      return "dot-circle-o";
+      return "dot-circle";
     }
 
     switch (props.event.event) {
       case "open_project":
-        return "folder-open-o";
+        return "folder-open";
       case "open": // open a file
         const ext = misc.filename_extension(props.event.filename);
         const info = file_associations[ext];
-        if (info == null) return "file-code-o";
+        if (info == null) return "file-code";
         let x = info.icon;
         if (x != undefined) {
-          if (x.slice(0, 3) === "fa-") {
-            // temporary -- until change code there?
-            x = x.slice(3);
-          }
           return x;
         } else {
-          return "file-code-o";
+          return "file-code";
         }
       case "set":
         return "wrench";
@@ -567,7 +571,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
     if (props.event.event.indexOf("project") !== -1) {
       return "edit";
     } else {
-      return "dot-circle-o";
+      return "dot-circle";
     }
   }
 

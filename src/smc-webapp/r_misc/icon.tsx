@@ -9,6 +9,7 @@ import * as React from "react";
 import { CSS } from "../app-framework";
 
 import {
+  AimOutlined,
   AlignLeftOutlined,
   AlignCenterOutlined,
   AlignRightOutlined,
@@ -16,6 +17,7 @@ import {
   ArrowLeftOutlined,
   ArrowRightOutlined,
   ArrowUpOutlined,
+  AudioOutlined,
   BackwardOutlined,
   BellFilled,
   BellOutlined,
@@ -62,6 +64,7 @@ import {
   DownCircleOutlined,
   DownOutlined,
   EditOutlined,
+  EllipsisOutlined,
   ExpandOutlined,
   ExportOutlined,
   ExclamationCircleFilled,
@@ -92,6 +95,7 @@ import {
   ItalicOutlined,
   KeyOutlined,
   LaptopOutlined,
+  LayoutOutlined,
   LeftOutlined,
   LeftSquareFilled,
   LineChartOutlined,
@@ -118,6 +122,7 @@ import {
   QuestionCircleOutlined,
   RedoOutlined,
   ReloadOutlined,
+  RetweetOutlined,
   RightCircleFilled,
   RightOutlined,
   RightSquareFilled,
@@ -154,26 +159,9 @@ import {
   WifiOutlined,
 } from "@ant-design/icons";
 
-// Icon Fonts coming from https://www.iconfont.cn/?lang=en-us
-import { createFromIconfontCN } from "@ant-design/icons";
-let IconFont: any = undefined;
-try {
-  require("./iconfont.cn");
-  // note -- we do NOT pass scriptUrl in, as in the docs!  Why?  Because
-  // we want everything bundled up into webpack, rather than having to pull
-  // from some random place, which just causes confusion with releases
-  // and caching.  Fortunately, just evaluating the js from iconfont, then
-  // running createFromIconfontCN with no arguments does work, as I deduced
-  // by reading the code, then trying this.
-  IconFont = createFromIconfontCN();
-} catch (err) {
-  // Might as well have option for a graceful fallback, e.g., when
-  // used from node.js...
-  console.log(`IconFont not available -- ${err}`);
-}
-
 const IconSpec = {
   "address-card": IdcardOutlined,
+  aim: AimOutlined,
   "align-left": AlignLeftOutlined,
   "align-center": AlignCenterOutlined,
   "align-justify": { IconFont: "align-justify" },
@@ -190,7 +178,13 @@ const IconSpec = {
   "arrow-right": ArrowRightOutlined,
   "arrow-up": ArrowUpOutlined,
   atom: { IconFont: "Atom" },
+  audio: AudioOutlined,
   backward: BackwardOutlined,
+  "battery-empty": { IconFont: "battery-empty" },
+  "battery-quarter": { IconFont: "battery-quarter" },
+  "battery-half": { IconFont: "battery-half" },
+  "battery-three-quarters": { IconFont: "battery-three-quarters" },
+  "battery-full": { IconFont: "battery-full" },
   ban: StopOutlined,
   bars: { IconFont: "bars" },
   bell: BellFilled,
@@ -215,9 +209,10 @@ const IconSpec = {
   "caret-up": CaretUpFilled,
   "caret-square-left": LeftSquareFilled,
   "caret-square-right": RightSquareFilled,
-  "cc-visa": { IconFont: "cc-visa" },
   "cc-discover": { IconFont: "cc-discover" },
   "cc-mastercard": { IconFont: "cc-mastercard" },
+  "cc-visa": { IconFont: "cc-visa" },
+  "cc-stripe": { IconFont: "cc-stripe" },
   check: CheckOutlined,
   "check-circle": CheckCircleOutlined,
   "check-square": CheckSquareOutlined,
@@ -238,6 +233,7 @@ const IconSpec = {
   "cloud-download": CloudDownloadOutlined,
   "cloud-download-alt": CloudDownloadOutlined,
   "cloud-upload": CloudUploadOutlined,
+  "cocalc-ring": { IconFont: "cocalc-ring" },
   code: { IconFont: "code" },
   CodeOutlined,
   coffee: CoffeeOutlined,
@@ -262,6 +258,7 @@ const IconSpec = {
   docker: { IconFont: "docker" },
   "dot-circle": { IconFont: "dot-circle" },
   edit: EditOutlined,
+  ellipsis: EllipsisOutlined,
   envelope: { IconFont: "envelope" },
   exchange: { IconFont: "exchange" },
   "exclamation-circle": ExclamationCircleFilled,
@@ -277,12 +274,13 @@ const IconSpec = {
   "file-code": FileTextOutlined,
   "file-image": FileImageOutlined,
   "file-pdf": FilePdfOutlined,
-  "folder-open": FolderOpenOutlined,
+  "file-zip": FileZipOutlined,
   files: CopyOutlined,
   "file-export": ExportOutlined,
   flash: ThunderboltOutlined,
   "flow-chart": { IconFont: "flow-chart" },
   folder: FolderOutlined,
+  "folder-open": FolderOpenOutlined,
   font: { IconFont: "font" },
   forward: ForwardOutlined,
   FundProjectionScreenOutlined,
@@ -310,12 +308,16 @@ const IconSpec = {
   indent: { IconFont: "indent" },
   info: InfoOutlined,
   inkscape: { IconFont: "inkscape" },
+  ipynb: { IconFont: "ipynb" },
   italic: ItalicOutlined,
   "js-square": { IconFont: "js-square" },
+  julia: { IconFont: "julia" },
+  jupyter: { IconFont: "ipynb" },
   key: KeyOutlined,
   keyboard: { IconFont: "keyboard" },
   laptop: LaptopOutlined,
-  leave_conference: { IconFont: "leave_conference" },
+  layout: LayoutOutlined,
+  "skull-crossbones": { IconFont: "leave_conference" },
   libreoffice: { IconFont: "libreoffice" },
   "life-ring": { IconFont: "life-ring" },
   "life-saver": { IconFont: "life-ring" },
@@ -330,6 +332,7 @@ const IconSpec = {
   lock: LockFilled,
   "lock-open": UnlockFilled,
   magic: { IconFont: "magic" },
+  markdown: { IconFont: "markdown" },
   mask: { IconFont: "mask" },
   medkit: MedicineBoxOutlined,
   microchip: { IconFont: "microchip" },
@@ -340,6 +343,7 @@ const IconSpec = {
   move: { IconFont: "move" },
   "network-wired": ClusterOutlined,
   "node-js": { IconFont: "node-js" },
+  octave: { IconFont: "octave" },
   outdent: { IconFont: "outdent" },
   pause: PauseCircleOutlined,
   "paper-plane": SendOutlined,
@@ -356,9 +360,11 @@ const IconSpec = {
   "plus-square-o": PlusSquareOutlined,
   PoweroffOutlined,
   print: PrinterOutlined,
+  python: { IconFont: "python" },
   qgis: { IconFont: "qgis" },
   "question-circle": QuestionCircleOutlined,
   "quote-left": { IconFont: "quote-left" },
+  r: { IconFont: "r" },
   racket: { IconFont: "racket" },
   redo: RedoOutlined,
   refresh: RedoOutlined,
@@ -366,9 +372,13 @@ const IconSpec = {
   remove: CloseOutlined,
   repeat: RedoOutlined,
   replace: { IconFont: "find-replace" },
+  retweet: RetweetOutlined,
   robot: RobotOutlined,
   rocket: RocketOutlined,
   run: { IconFont: "run" },
+  sagemath: { IconFont: "sagemath" },
+  "sagemath-bold": { IconFont: "sagemath-bold" },
+  "sagemath-file": { IconFont: "sagemath-file" },
   save: SaveOutlined,
   scheme: { IconFont: "scheme" },
   scissors: ScissorOutlined,
@@ -404,10 +414,11 @@ const IconSpec = {
   tasks: { IconFont: "tasks" },
   terminal: CodeOutlined,
   tex: { IconFont: "tex" },
+  "tex-file": { IconFont: "tex-file" },
   "text-height": LineHeightOutlined,
   times: CloseOutlined,
   "times-circle": CloseCircleOutlined,
-  "times-rectangle": CloseSquareOutlined,
+  "times-rectangle": { IconFont: "times-rectangle" },
   "thumbs-up": { IconFont: "thumbs-up" },
   "toggle-off": { IconFont: "toggle-off" },
   "toggle-on": { IconFont: "toggle-on" },
@@ -418,6 +429,7 @@ const IconSpec = {
   unlink: { IconFont: "unlink" },
   upload: UploadOutlined,
   user: UserOutlined,
+  "user-secret": { IconFont: "user-secret" },
   UserAddOutlined,
   "user-check": { IconFont: "user-check" },
   "user-plus": UsergroupAddOutlined,
@@ -435,8 +447,63 @@ const IconSpec = {
   wrench: { IconFont: "wrench" },
 };
 
+// Icon Fonts coming from https://www.iconfont.cn/?lang=en-us
+import { createFromIconfontCN } from "@ant-design/icons";
+let IconFont: any = undefined;
+try {
+  // This loads a bunch of svg elements of the form <svg id="icon-<name>"... into the DOM.
+  // The antd Icon code then duplicates these via the <use> html tag
+  // (https://developer.mozilla.org/en-US/docs/Web/SVG/Element/use)
+  require("./iconfont.cn");
+  // note -- we do NOT pass scriptUrl in, as in the docs!  Why?  Because
+  // we want everything bundled up into webpack, rather than having to pull
+  // from some random place, which just causes confusion with releases
+  // and caching.  Fortunately, just evaluating the js from iconfont, then
+  // running createFromIconfontCN with no arguments does work, as I deduced
+  // by reading the code, then trying this.
+  // https://github.com/ant-design/ant-design-icons/blob/5be2afd296636ab4cfec5d3a2793d6cd41b1789b/packages/icons-vue/src/components/IconFont.tsx
+
+  IconFont = createFromIconfontCN();
+
+  // It would be easy to screw up and put an entry like
+  //        "arrow-circle-o-left": { IconFont: "arrowcircleoleft" }
+  // in IconSpec, but forget to actually include "arrowcircleoleft" in
+  // iconfont.cn, or -- just as bad -- make a typo or put the wrong name in.
+  // So we double check that all iconfonts are actually defined here:
+  if (DEBUG) {
+    setTimeout(() => {
+      // only do this during dev to save time.
+      for (const name in IconSpec) {
+        const spec = IconSpec[name];
+        const x = spec?.IconFont;
+        if (x != null) {
+          const id = `icon-${x}`;
+          if (document.getElementById(id) == null) {
+            console.error(
+              `ERROR -- the IconFont ${x} is not in r_misc/iconfont.cn!  Fix this or the icon ${name} will be broken.`
+            );
+          }
+        }
+      }
+    }, 5000);
+  }
+} catch (err) {
+  // Might as well have option for a graceful fallback, e.g., when
+  // used from node.js...
+  console.log(`IconFont not available -- ${err}`);
+}
+
+export type IconName = keyof typeof IconSpec;
+export const IconName = undefined; // Javascript needs this, though we are only using IconName for the type
+
+// Typeguard so can tell if a string is name of an icon and also
+// make typescript happy.
+export function isIconName(name: string): name is IconName {
+  return IconSpec[name] != null;
+}
+
 interface Props {
-  name?: string;
+  name?: IconName;
   unicode?: number; // (optional) set a hex 16 bit charcode to render a unicode char, e.g. 0x2620
   className?: string;
   size?: "lg" | "2x" | "3x" | "4x" | "5x";
@@ -463,6 +530,7 @@ const UNICODE_STYLE = {
 
 const missing: any = {};
 // Converted from https://github.com/andreypopp/react-fa
+
 export const Icon: React.FC<Props> = (props: Props) => {
   if (props.unicode != null) {
     return (
@@ -470,22 +538,13 @@ export const Icon: React.FC<Props> = (props: Props) => {
     );
   }
 
-  let name = props.name ?? "square";
-  if (name.startsWith("fab ")) {
-    name = name.slice(4);
-  }
-  if (name.startsWith("fa-")) {
-    name = name.slice(3);
-  }
+  let name: IconName = props.name ?? "square";
   let C;
-  if (name.startsWith("cc-icon-")) {
-    C = { IconFont: name.slice("cc-icon-".length) };
-  } else {
-    C = IconSpec[name];
-    if (C == null && name.endsWith("-o")) {
-      // try without -o
-      C = IconSpec[name.slice(0, name.length - 2)];
-    }
+  C = IconSpec[name];
+  if (C == null && name.endsWith("-o")) {
+    // should be impossible because of typescript...
+    // try without -o
+    C = IconSpec[name.slice(0, name.length - 2)];
   }
   if (C != null) {
     if (typeof C.IconFont == "string") {
@@ -541,7 +600,7 @@ try {
         for (const cls of elt.className.split(/\s+/)) {
           if (cls.startsWith("fa-")) {
             ReactDOM.render(
-              <Icon name={cls} spin={cls == "fa-cc-icon-cocalc-ring"} />,
+              <Icon name={cls.slice(3)} spin={cls == "fa-cocalc-ring"} />,
               elt
             );
             break;

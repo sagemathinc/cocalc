@@ -12,7 +12,7 @@ import { capitalize, is_different, path_split } from "smc-util/misc";
 import { React, Rendered, useRedux } from "../../app-framework";
 import { TypedMap } from "../../app-framework";
 import { BuildLogs } from "./actions";
-import { Icon, Loading } from "smc-webapp/r_misc";
+import { Icon, IconName, Loading } from "smc-webapp/r_misc";
 import { COLORS } from "smc-util/theme";
 import { use_build_logs } from "./hooks";
 import { EditorState } from "../frame-tree/types"
@@ -29,7 +29,7 @@ function group_to_level(group: string): string {
 }
 
 export interface SpecItem {
-  icon: string;
+  icon: IconName;
   color: string;
 }
 

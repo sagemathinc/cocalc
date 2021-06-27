@@ -8,6 +8,7 @@ Top-level React component for an X Window
 */
 
 import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { X11 } from "./x11";
 import { Launcher } from "./launcher";
 import { set } from "smc-util/misc";
@@ -25,13 +26,11 @@ export const x11 = {
     "reload",
     "copy",
     "paste",
-    /*"print",
-    "edit_init_script", */
     "close_and_halt",
     "help",
     "connection_status",
   ]),
-};
+} as EditorDescription;
 
 export const launcher = {
   short: "Apps",
@@ -39,7 +38,7 @@ export const launcher = {
   icon: "server",
   component: Launcher,
   buttons: set([]),
-};
+} as EditorDescription;
 
 const EDITOR_SPEC = {
   x11,

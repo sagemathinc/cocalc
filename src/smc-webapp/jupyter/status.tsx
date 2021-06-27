@@ -9,7 +9,7 @@ import { React, useRedux, CSS } from "../app-framework";
 import * as immutable from "immutable";
 import { Progress, Typography } from "antd";
 import { COLORS } from "smc-util/theme";
-import { A, Icon, Loading, Tip } from "../r_misc";
+import { A, Icon, IconName, Loading, Tip } from "../r_misc";
 import { closest_kernel_match, rpad_html } from "smc-util/misc";
 import { Logo } from "./logo";
 import { JupyterActions } from "./browser-actions";
@@ -170,21 +170,21 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           'idle' or 'running'
       */
       let spin = false;
-      let name: string | undefined;
+      let name: IconName | undefined;
       let color: string | undefined;
       switch (backend_state) {
         case "init":
           name = "unlink";
           break;
         case "ready":
-          name = "cc-icon-cocalc-ring";
+          name = "cocalc-ring";
           break;
         case "spawning":
-          name = "cc-icon-cocalc-ring";
+          name = "cocalc-ring";
           spin = true;
           break;
         case "starting":
-          name = "cc-icon-cocalc-ring";
+          name = "cocalc-ring";
           spin = true;
           break;
         case "running":
@@ -194,10 +194,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
               color = "#5cb85c";
               break;
             case "idle":
-              name = "cc-icon-cocalc-ring";
+              name = "cocalc-ring";
               break;
             default:
-              name = "cc-icon-cocalc-ring";
+              name = "cocalc-ring";
           }
           break;
       }

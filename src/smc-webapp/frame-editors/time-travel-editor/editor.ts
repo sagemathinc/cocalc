@@ -12,6 +12,7 @@ TimeTravel for them.
 */
 
 import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { AsyncComponent } from "smc-webapp/misc/async-component";
 
 const TimeTravel = AsyncComponent(
@@ -28,7 +29,7 @@ export const time_travel = {
   buttons: set(["decrease_font_size", "increase_font_size", "help", "-file"]),
   hide_file_menu: true,
   hide_public: true,
-};
+} as EditorDescription;
 
 const EDITOR_SPEC = {
   time_travel,

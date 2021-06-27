@@ -56,12 +56,12 @@ export const FileTypeSelector: React.FC<Props> = ({
         <Col sm={12}>
           {available.jupyter_notebook ? (
             <Tip
-              icon="cc-icon-jupyter"
+              icon="jupyter"
               title="Jupyter notebook"
               tip="Create an interactive notebook for using Python, Julia, R and more."
             >
               <NewFileButton
-                icon="cc-icon-jupyter"
+                icon="jupyter"
                 name="Jupyter notebook"
                 on_click={create_file}
                 ext={"ipynb"}
@@ -82,12 +82,12 @@ export const FileTypeSelector: React.FC<Props> = ({
           </Tip>
           {available.sage ? (
             <Tip
-              icon="cc-icon-sagemath-bold"
+              icon="sagemath-bold"
               title="Sage worksheet"
               tip="Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
             >
               <NewFileButton
-                icon="cc-icon-sagemath-bold"
+                icon="sagemath-bold"
                 name="Sage worksheet"
                 on_click={create_file}
                 ext="sagews"
@@ -97,11 +97,11 @@ export const FileTypeSelector: React.FC<Props> = ({
           {available.latex ? (
             <Tip
               title="LaTeX Document"
-              icon="cc-icon-tex-file"
+              icon="tex-file"
               tip="Create a professional quality technical paper that contains sophisticated mathematical formulas."
             >
               <NewFileButton
-                icon="cc-icon-tex-file"
+                icon="tex-file"
                 name="LaTeX document"
                 on_click={create_file}
                 ext="tex"
@@ -125,13 +125,13 @@ export const FileTypeSelector: React.FC<Props> = ({
           <Tip
             title={"Folder"}
             placement={"left"}
-            icon={"folder-open-o"}
+            icon={"folder-open"}
             tip={
               "Create a folder (sub-directory) in which to store and organize your files.  CoCalc provides a full featured filesystem."
             }
           >
             <NewFileButton
-              icon={"folder-open-o"}
+              icon={"folder-open"}
               name={"Folder"}
               on_click={create_folder}
             />
@@ -172,11 +172,11 @@ export const FileTypeSelector: React.FC<Props> = ({
         <Col sm={12}>
           <Tip
             title="Markdown File"
-            icon="cc-icon-markdown"
+            icon="markdown"
             tip="Create a Markdown formatted document with real-time preview."
           >
             <NewFileButton
-              icon="cc-icon-markdown"
+              icon="markdown"
               name="Markdown"
               on_click={create_file}
               ext="md"
@@ -185,11 +185,11 @@ export const FileTypeSelector: React.FC<Props> = ({
           {available.rmd ? (
             <Tip
               title="RMarkdown File"
-              icon="cc-icon-r"
+              icon="r"
               tip="RMarkdown document with real-time preview."
             >
               <NewFileButton
-                icon="cc-icon-r"
+                icon="r"
                 name="RMarkdown"
                 on_click={create_file}
                 ext="rmd"
@@ -230,14 +230,14 @@ export const FileTypeSelector: React.FC<Props> = ({
           {available.jupyter_notebook ? (
             <Tip
               title={"Jupyter server"}
-              icon={"cc-icon-ipynb"}
+              icon={"ipynb"}
               tip={
                 "Start a Jupyter classic notebook server running from your project, which only project collaborators can access."
               }
             >
               <NewFileButton
                 name={"Jupyter classic server..."}
-                icon={"cc-icon-ipynb"}
+                icon={"ipynb"}
                 on_click={(): void => {
                   set_show_jupyter_server(true);
                 }}
@@ -248,14 +248,14 @@ export const FileTypeSelector: React.FC<Props> = ({
           {available.jupyter_lab ? (
             <Tip
               title={"JupyterLab server"}
-              icon={"cc-icon-ipynb"}
+              icon={"ipynb"}
               tip={
                 "Start a JupyterLab server running from your project, which only project collaborators can access."
               }
             >
               <NewFileButton
                 name={"JupyterLab server..."}
-                icon={"cc-icon-ipynb"}
+                icon={"ipynb"}
                 on_click={(): void => {
                   set_show_jupyterlab_server(true);
                 }}

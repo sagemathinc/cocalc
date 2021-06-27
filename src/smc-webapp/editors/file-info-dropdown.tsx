@@ -7,7 +7,7 @@
 import { CSS, React, ReactDOM, useActions } from "../app-framework";
 import { capitalize, filename_extension } from "smc-util/misc";
 import { file_actions } from "../project_store";
-import { DropdownMenu, HiddenXS, MenuItem, Icon, Space } from "../r_misc";
+import { DropdownMenu, HiddenXS, MenuItem, Icon, IconName, Space } from "../r_misc";
 import { useStudentProjectFunctionality } from "smc-webapp/course";
 
 interface Props {
@@ -55,7 +55,7 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
       }
     }
 
-    function render_menu_item(name: string, icon: string): JSX.Element {
+    function render_menu_item(name: string, icon: IconName): JSX.Element {
       return (
         <MenuItem key={name} eventKey={name}>
           <Icon name={icon} style={{ width: "1.125em" }} />{" "}
@@ -65,13 +65,13 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     }
 
     function render_menu_items() {
-      let items: { [key: string]: string };
+      let items: { [key: string]: IconName };
       const v: JSX.Element[] = [];
       if (is_public) {
         // Fewer options when viewing the action dropdown in public mode:
         items = {
           download: "cloud-download",
-          copy: "files-o",
+          copy: "files",
         };
       } else {
         v.push(render_menu_item("new", "plus-circle"));

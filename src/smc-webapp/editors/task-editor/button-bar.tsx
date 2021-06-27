@@ -79,7 +79,7 @@ export const ButtonBar: React.FC<Props> = React.memo(
           disabled={!current_task_id || read_only}
           onClick={actions.undelete_current_task}
         >
-          <Icon name="trash-o" /> Undelete Task
+          <Icon name="trash" /> Undelete Task
         </Button>
       );
     }
@@ -99,7 +99,7 @@ export const ButtonBar: React.FC<Props> = React.memo(
           disabled={!current_task_id || read_only}
           onClick={actions.delete_current_task}
         >
-          <Icon name="trash-o" /> Delete
+          <Icon name="trash" /> Delete
         </Button>
       );
     }

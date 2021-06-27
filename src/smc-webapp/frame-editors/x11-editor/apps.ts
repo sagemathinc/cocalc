@@ -3,9 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { IconName } from "smc-webapp/r_misc/icon";
+
 interface APPS_Interface {
   [k: string]: {
-    icon: string;
+    icon: IconName;
     desc: string;
     label?: string;
     command?: string;
@@ -54,7 +56,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   gitk: { icon: "git", desc: "Explore Git repository in current directory" },
   gitg: { icon: "git", desc: "GNOME's client to work with Git repositories" },
   idle: {
-    icon: "cc-icon-python",
+    icon: "python",
     desc: "Minimalistic Python IDE",
     label: "IDLE",
   },
@@ -96,26 +98,26 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     label: "Maxima",
   },
   rstudio: {
-    icon: "cc-icon-r",
+    icon: "r",
     desc:
       "An integrated development environment (IDE) for R.  RStudio, Inc. is in no way affiliated with CoCalc",
     label: "RStudio",
   },
   octave: {
-    icon: "cc-icon-octave",
+    icon: "octave",
     desc: "Scientific programming largely compatible with Matlab",
     label: "Octave",
     command: "octave",
     args: ["--force-gui"],
   },
   texmacs: {
-    icon: "cc-icon-tex-file",
+    icon: "tex-file",
     desc:
       "A wysiwyw (what you see is what you want) editing platform with special features for scientists",
     label: "TeXMacs",
   },
   texstudio: {
-    icon: "cc-icon-tex-file",
+    icon: "tex-file",
     desc: "An integrated writing environment for creating LaTeX documents",
     label: "TeXstudio",
   },
@@ -165,7 +167,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   pycharm: {
     command: "pycharm.sh",
     desc: "A powerful and smart IDE for productive Python development.",
-    icon: "cc-icon-python",
+    icon: "python",
     label: "PyCharm",
   },
   intellij: {
@@ -250,7 +252,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     desc: "Gaining intuition about Variational Quantum Eigensolver",
   },
   kbibtex: {
-    icon: "cc-icon-tex-file",
+    icon: "tex-file",
     label: "KBibTeX",
     desc: "A reference management software primarily for BibTeX",
   },

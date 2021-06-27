@@ -5,7 +5,7 @@
 
 import { React, Rendered, useState } from "../app-framework";
 import { Alert, Button, ButtonToolbar, Row, Col } from "react-bootstrap";
-import { Icon } from "../r_misc/icon";
+import { Icon, IconName} from "../r_misc/icon";
 import { Space } from "../r_misc/space";
 import { brand_to_icon_name } from "./data";
 
@@ -22,7 +22,7 @@ export const PaymentMethod: React.FC<Props> = (props) => {
   const [confirm_default, set_confirm_default] = useState<boolean>(false);
   const [confirm_delete, set_confirm_delete] = useState<boolean>(false);
 
-  function icon_name(): string {
+  function icon_name(): IconName {
     return brand_to_icon_name(
       props.source.brand != null ? props.source.brand.toLowerCase() : undefined
     );

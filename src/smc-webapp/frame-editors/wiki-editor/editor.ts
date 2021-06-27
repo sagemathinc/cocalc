@@ -8,6 +8,7 @@ Top-level react component for editing MediaWiki documents
 */
 
 import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { aux_file } from "../frame-tree/util";
 import { set } from "smc-util/misc";
 import { IFrameHTML } from "../html-editor/iframe-html";
@@ -38,7 +39,7 @@ const EDITOR_SPEC = {
       "redo",
       "reload",
     ]),
-  },
+  } as EditorDescription,
 
   html: {
     short: "HTML",
@@ -61,7 +62,7 @@ const EDITOR_SPEC = {
       "max-width": "900px",
       margin: "auto",
     },
-  },
+  } as EditorDescription,
 
   terminal,
 

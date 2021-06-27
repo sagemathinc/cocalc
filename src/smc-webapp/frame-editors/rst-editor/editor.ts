@@ -11,6 +11,7 @@ import { IFrameHTML } from "../html-editor/iframe-html";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { set } from "smc-util/misc";
 import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { aux_file } from "../frame-tree/util";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
@@ -38,7 +39,7 @@ const EDITOR_SPEC = {
       "redo",
       "reload",
     ]),
-  },
+  } as EditorDescription,
   rst: {
     short: "View",
     name: "Rendered View (rst2html)",
@@ -60,7 +61,7 @@ const EDITOR_SPEC = {
       "max-width": "900px",
       margin: "auto",
     },
-  },
+  } as EditorDescription,
 
   terminal,
 

@@ -132,7 +132,7 @@ export class LinkRetryUntilSuccess extends Component<Props, State> {
 
   render_button_info(): Rendered {
     if (this.state.loading) {
-      return <Icon name="cc-icon-cocalc-ring" spin />;
+      return <Icon name="cocalc-ring" spin />;
     } else if (this.state.error) {
       <span style={{ color: "darkred" }}>(failed to load)</span>;
     } else {
