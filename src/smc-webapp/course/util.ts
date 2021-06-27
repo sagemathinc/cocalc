@@ -16,6 +16,7 @@ import {
   merge,
   cmp,
 } from "smc-util/misc";
+import { IconName } from "smc-webapp/r_misc/icon";
 
 // Pure functions used in the course manager
 
@@ -280,7 +281,7 @@ export function autograded_filename(filename: string): string {
 export function projectStatus(
   project_id: string | undefined,
   redux
-): { description: string; icon: string; state: string; tip?: string } {
+): { description: string; icon: IconName; state: string; tip?: string } {
   if (!project_id) {
     return { description: "(not created)", icon: "checkbox", state: "" };
   }

@@ -3,9 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { IconName } from "smc-webapp/r_misc/icon";
+
 interface APPS_Interface {
   [k: string]: {
-    icon: string;
+    icon: IconName;
     desc: string;
     label?: string;
     command?: string;

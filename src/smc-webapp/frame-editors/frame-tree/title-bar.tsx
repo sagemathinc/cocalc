@@ -36,6 +36,7 @@ import { IS_MACOS } from "../../feature";
 import {
   r_join,
   Icon,
+  IconName,
   VisibleMDLG,
   Space,
   DropdownMenu,
@@ -1169,7 +1170,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (!is_visible("pause")) {
       return;
     }
-    let icon: string, title: string, style: ButtonStyle | undefined;
+    let icon: IconName, title: string, style: ButtonStyle | undefined;
     if (props.is_paused) {
       icon = "play";
       title = "Play";
@@ -1462,7 +1463,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function render_title(is_active: boolean): Rendered {
     let title: string = "";
-    let icon: string = "";
+    let icon: IconName | undefined = undefined;
     if (props.title !== undefined) {
       title = props.title;
     }

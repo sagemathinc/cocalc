@@ -4,18 +4,19 @@
  */
 
 import memoizeOne from "memoize-one";
-import { React, useState } from "../../../app-framework";
-import { ProjectActions } from "../../../project_actions";
+import { React, useState } from "smc-webapp/app-framework";
+import { ProjectActions } from "smc-webapp/project_actions";
 import { CopyButton } from "./copy-button";
 import { PublicButton } from "./public-button";
 import { FileCheckbox } from "./file-checkbox";
 import { generate_click_for } from "./utils";
-import { TimeAgo, Tip, Icon } from "../../../r_misc";
+import { TimeAgo, Tip, Icon, IconName } from "smc-webapp/r_misc";
 import { COLORS } from "smc-util/theme";
 import { Button, Row, Col } from "react-bootstrap";
 import * as misc from "smc-util/misc";
 import { url_href } from "../../utils";
 import { useStudentProjectFunctionality } from "smc-webapp/course";
+import { file_options } from "smc-webapp/editor-tmp";
 
 interface Props {
   isdir: boolean;
@@ -41,10 +42,8 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
   const student_project_functionality = useStudentProjectFunctionality(
     props.actions.project_id
   );
-  const [
-    selection_at_last_mouse_down,
-    set_selection_at_last_mouse_down,
-  ] = useState<string | undefined>(undefined);
+  const [selection_at_last_mouse_down, set_selection_at_last_mouse_down] =
+    useState<string | undefined>(undefined);
 
   function render_icon() {
     const style: React.CSSProperties = {
@@ -56,7 +55,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       body = (
         <>
           <Icon
-            name="folder-open-o"
+            name="folder-open"
             style={{ fontSize: "14pt", verticalAlign: "sub" }}
           />
           <Icon
@@ -71,10 +70,9 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       );
     } else {
       // get the file_associations[ext] just like it is defined in the editor
-      let name: string;
-      const { file_options } = require("../../../editor");
+      let name: IconName;
       const info = file_options(props.name);
-      if (info != undefined) {
+      if (info != null) {
         name = info.icon;
       } else {
         name = "file";

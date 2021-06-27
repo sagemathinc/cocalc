@@ -10,8 +10,9 @@ Basically, this is like register_file_editor, but much more specialized.
 */
 
 import { reuseInFlight } from "async-await-utils/hof";
-import { register_file_editor as general_register_file_editor } from "../../file-editors";
-import { redux_name } from "../../app-framework";
+import { register_file_editor as general_register_file_editor } from "smc-webapp/file-editors";
+import { redux_name } from "smc-webapp/app-framework";
+import { IconName } from "smc-webapp/r_misc/icon";
 
 interface AsyncRegister {
   icon?: string;
@@ -77,11 +78,13 @@ export function register_file_editor(opts: Register | AsyncRegister) {
 
 const reference_count: { [name: string]: number } = {};
 
-// uncomment for debugging
-(window as any).frame_editor_reference_count = reference_count;
+if (DEBUG) {
+  // uncomment for low level debugging
+  // (window as any).frame_editor_reference_count = reference_count;
+}
 
 function register(
-  icon: string | undefined,
+  icon: IconName | undefined,
   ext: string | string[],
   component: any,
   Actions: any,

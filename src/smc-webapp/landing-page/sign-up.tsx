@@ -297,7 +297,7 @@ export class SignUp extends React.Component<Props, State> {
         cocalc-test={"sign-up-submit"}
         block
       >
-        {this.props.signing_up ? <Icon name="spinner" spin /> : undefined} Sign
+        {this.props.signing_up ? <Icon name="cocalc-ring" spin /> : undefined} Sign
         Up!
       </Button>
     );

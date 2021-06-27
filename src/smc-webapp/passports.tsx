@@ -6,7 +6,7 @@
 import * as React from "react";
 import { List } from "immutable";
 import { capitalize } from "smc-util/misc";
-import { Icon, Tip } from "./r_misc";
+import { isIconName, Icon, Tip } from "./r_misc";
 import { SiteName } from "./customize";
 import { PassportStrategy, PRIMARY_SSO } from "./account/passport-types";
 import { COLORS } from "smc-util/theme";
@@ -83,7 +83,7 @@ export function PassportStrategyIcon({
 }) {
   const { name, display, icon } = strategy;
   const small_icon = small ? { width: "25px", height: "25px", top: "0" } : {};
-  if (PRIMARY_SSO.indexOf(name) >= 0) {
+  if (PRIMARY_SSO.indexOf(name) >= 0 && isIconName(name)) {
     const icon_style: React.CSSProperties = {
       ...BASE_ICON_STYLE,
       ...PASSPORT_ICON_STYLES[name],
@@ -120,8 +120,7 @@ export class Passports extends React.Component<Props> {
   private strategy_tip_title(name: string, passport_name: string) {
     return (
       <span>
-        {PRIMARY_SSO.indexOf(name) >= 0 ? <Icon name={name} /> : undefined}{" "}
-        {passport_name}
+        {isIconName(name) ? <Icon name={name} /> : undefined} {passport_name}
       </span>
     );
   }

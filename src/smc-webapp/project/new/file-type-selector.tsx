@@ -125,7 +125,7 @@ export const FileTypeSelector: React.FC<Props> = ({
           <Tip
             title={"Folder"}
             placement={"left"}
-            icon={"folder-open-o"}
+            icon={"folder-open"}
             tip={
               "Create a folder (sub-directory) in which to store and organize your files.  CoCalc provides a full featured filesystem."
             }

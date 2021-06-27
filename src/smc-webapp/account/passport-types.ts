@@ -1,3 +1,5 @@
+import { IconName } from "smc-webapp/r_misc/icon";
+
 export const PRIMARY_SSO: readonly string[] = [
   "google",
   "facebook",
@@ -6,7 +8,7 @@ export const PRIMARY_SSO: readonly string[] = [
 ];
 
 export interface PassportStrategy {
-  name: string; // the internal ID
+  name: string; // the internal ID (also -- name of icon)
   display?: string; // the name to dispaly -- or capitalize(name)
   type?: string; // oauth2, ldap, ...
   icon?: string; // a URL to a square image

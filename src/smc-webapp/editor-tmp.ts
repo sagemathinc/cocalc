@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as misc from "smc-util/misc";
+import { filename_extension_notilde, path_split } from "smc-util/misc";
 import { file_associations } from "./file-associations";
 import { icon as file_icon } from "./file-editors";
 
@@ -37,16 +37,13 @@ function guess_file_extension_type(content: string): string {
 
 export function file_options(filename: string, content?: string) {
   let x;
-  let ext = misc.filename_extension_notilde(filename).toLowerCase();
+  let ext = filename_extension_notilde(filename).toLowerCase();
   if (ext == "" && content != null) {
     // no recognized extension, but have contents
     ext = guess_file_extension_type(content);
   }
   if (ext == "") {
-    x =
-      file_associations[
-        `noext-${misc.path_split(filename).tail.toLowerCase()}`
-      ];
+    x = file_associations[`noext-${path_split(filename).tail.toLowerCase()}`];
   } else {
     x = file_associations[ext];
   }
@@ -57,12 +54,11 @@ export function file_options(filename: string, content?: string) {
     delete x.icon;
   }
   if (x.icon == null) {
-    // Use the new react editor icons first, if they exist...
     const icon = file_icon(ext);
     if (icon != null) {
-      x.icon = "fa-" + icon;
+      x.icon = icon;
     } else {
-      x.icon = "fa-question-circle";
+      x.icon = "question-circle";
     }
   }
   return x;

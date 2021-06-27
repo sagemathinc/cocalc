@@ -4,6 +4,7 @@
  */
 
 import { Metadata } from "./types";
+import { IconName } from "smc-webapp/r_misc/icon";
 
 type Language = "python" | "julia" | "r" | "sage" | "octave";
 
@@ -25,7 +26,7 @@ interface CelltypeInfo {
   link?: string; // link to some html help (the nbgrader docs)
   hover: string; // hover text that is helpful about this cell type (summary of nbgrader docs)
   points?: number; // default number of points
-  icon?: string; // icon that would make sense for this type of cell
+  icon?: IconName; // icon that would make sense for this type of cell
   code_only?: boolean; // only code cells can be set to this type
   multiple_choice?: boolean; // either a markdown question or an answer cell for testing
   markdown_only?: boolean; // only markdown cells can be set to this type
@@ -282,7 +283,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     hover:
       "This cell will contain an answer that must be manually graded by a human grader.",
     value: "manual",
-    icon: "book-reader",
+    icon: "book",
     grade: true,
     locked: false,
     solution: true,

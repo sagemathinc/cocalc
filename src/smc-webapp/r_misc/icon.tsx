@@ -61,6 +61,7 @@ import {
   DownCircleOutlined,
   DownOutlined,
   EditOutlined,
+  EllipsisOutlined,
   ExpandOutlined,
   ExportOutlined,
   ExclamationCircleFilled,
@@ -152,24 +153,6 @@ import {
   WarningOutlined,
   WifiOutlined,
 } from "@ant-design/icons";
-
-// Icon Fonts coming from https://www.iconfont.cn/?lang=en-us
-import { createFromIconfontCN } from "@ant-design/icons";
-let IconFont: any = undefined;
-try {
-  require("./iconfont.cn");
-  // note -- we do NOT pass scriptUrl in, as in the docs!  Why?  Because
-  // we want everything bundled up into webpack, rather than having to pull
-  // from some random place, which just causes confusion with releases
-  // and caching.  Fortunately, just evaluating the js from iconfont, then
-  // running createFromIconfontCN with no arguments does work, as I deduced
-  // by reading the code, then trying this.
-  IconFont = createFromIconfontCN();
-} catch (err) {
-  // Might as well have option for a graceful fallback, e.g., when
-  // used from node.js...
-  console.log(`IconFont not available -- ${err}`);
-}
 
 const IconSpec = {
   "address-card": IdcardOutlined,
@@ -268,6 +251,7 @@ const IconSpec = {
   docker: { IconFont: "docker" },
   "dot-circle": { IconFont: "dot-circle" },
   edit: EditOutlined,
+  ellipsis: EllipsisOutlined,
   envelope: { IconFont: "envelope" },
   exchange: { IconFont: "exchange" },
   "exclamation-circle": ExclamationCircleFilled,
@@ -321,6 +305,7 @@ const IconSpec = {
   italic: ItalicOutlined,
   "js-square": { IconFont: "js-square" },
   julia: { IconFont: "julia" },
+  jupyter: { IconFont: "ipynb" },
   key: KeyOutlined,
   keyboard: { IconFont: "keyboard" },
   laptop: LaptopOutlined,
@@ -434,6 +419,7 @@ const IconSpec = {
   unlink: { IconFont: "unlink" },
   upload: UploadOutlined,
   user: UserOutlined,
+  "user-secret": { IconFont: "user-secret" },
   UserAddOutlined,
   "user-check": { IconFont: "user-check" },
   "user-plus": UsergroupAddOutlined,
@@ -451,8 +437,59 @@ const IconSpec = {
   wrench: { IconFont: "wrench" },
 };
 
+// Icon Fonts coming from https://www.iconfont.cn/?lang=en-us
+import { createFromIconfontCN } from "@ant-design/icons";
+let IconFont: any = undefined;
+try {
+  // This loads a bunch of svg elements of the form <svg id="icon-<name>"... into the DOM.
+  // The antd Icon code then duplicates these via the <use> html tag
+  // (https://developer.mozilla.org/en-US/docs/Web/SVG/Element/use)
+  require("./iconfont.cn");
+  // note -- we do NOT pass scriptUrl in, as in the docs!  Why?  Because
+  // we want everything bundled up into webpack, rather than having to pull
+  // from some random place, which just causes confusion with releases
+  // and caching.  Fortunately, just evaluating the js from iconfont, then
+  // running createFromIconfontCN with no arguments does work, as I deduced
+  // by reading the code, then trying this.
+  // https://github.com/ant-design/ant-design-icons/blob/5be2afd296636ab4cfec5d3a2793d6cd41b1789b/packages/icons-vue/src/components/IconFont.tsx
+
+  IconFont = createFromIconfontCN();
+
+  // It would be easy to screw up and put an entry like
+  //        "arrow-circle-o-left": { IconFont: "arrowcircleoleft" }
+  // in IconSpec, but forget to actually include "arrowcircleoleft" in
+  // iconfont.cn, or -- just as bad -- make a typo or put the wrong name in.
+  // So we double check that all iconfonts are actually defined here:
+  if (DEBUG) {
+    setTimeout(() => {
+      // only do this during dev to save time.
+      for (const name in IconSpec) {
+        const spec = IconSpec[name];
+        const x = spec?.IconFont;
+        if (x != null) {
+          const id = `icon-${x}`;
+          if (document.getElementById(id) == null) {
+            console.error(
+              `ERROR -- the IconFont ${x} is not in r_misc/iconfont.cn!  Fix this or the icon ${name} will be broken.`
+            );
+          }
+        }
+      }
+    }, 5000);
+  }
+} catch (err) {
+  // Might as well have option for a graceful fallback, e.g., when
+  // used from node.js...
+  console.log(`IconFont not available -- ${err}`);
+}
+
 export type IconName = keyof typeof IconSpec;
-const IconName = null;
+
+// Typeguard so can tell if a string is name of an icon and also
+// make typescript happy.
+export function isIconName(name: string): name is IconName {
+  return IconSpec[name] != null;
+}
 
 interface Props {
   name?: IconName;
@@ -493,7 +530,8 @@ export const Icon: React.FC<Props> = (props: Props) => {
   let name: IconName = props.name ?? "square";
   let C;
   C = IconSpec[name];
-  if (C == null && name.endsWith("-o")) { // should be impossible because of typescript...
+  if (C == null && name.endsWith("-o")) {
+    // should be impossible because of typescript...
     // try without -o
     C = IconSpec[name.slice(0, name.length - 2)];
   }

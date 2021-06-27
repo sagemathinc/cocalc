@@ -8,7 +8,7 @@ import * as React from "react";
 import { redux } from "../../app-framework";
 import { MentionInfo } from "./types";
 import { Avatar } from "../../account/avatar/avatar";
-import { Icon, TimeAgo } from "../../r_misc";
+import { Icon, IconName, TimeAgo } from "../../r_misc";
 import { User } from "../../users";
 
 export function MentionRow({
@@ -35,8 +35,8 @@ export function MentionRow({
 
   const is_read = mention.getIn(["users", target, "read"]);
   const is_saved = mention.getIn(["users", target, "saved"]);
-  let read_icon = "square-o";
-  let save_icon = "bookmark-o";
+  let read_icon : IconName = "square-o";
+  let save_icon : IconName  = "book";
   let row_style: React.CSSProperties = {};
 
   if (is_read) {
@@ -48,7 +48,7 @@ export function MentionRow({
   }
 
   if (is_saved) {
-    save_icon = "bookmark";
+    save_icon = "book";
   }
 
   const on_read_unread_click = (e) => {

@@ -18,10 +18,9 @@ import {
 import {
   QuestionCircleOutlined,
   PauseCircleOutlined,
-  //WarningOutlined,
 } from "@ant-design/icons";
 import { plural, seconds2hms, unreachable } from "smc-util/misc";
-import { Tip, TimeElapsed, Icon } from "../../r_misc";
+import { Tip, TimeElapsed, Icon, IconName } from "../../r_misc";
 import { CGroupInfo, DUState } from "./types";
 import { warning_color_pct, warning_color_disk, filename } from "./utils";
 import {
@@ -392,7 +391,7 @@ export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
 );
 
 interface CoCalcFileProps {
-  icon: string;
+  icon: IconName;
   path: string;
   project_actions;
 }
@@ -463,13 +462,13 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       const style: CSS = { marginRight: "5px" };
       switch (signal) {
         case 2: // Interrupt (ctrl-c like)
-          return <Icon name="hand-paper" style={style} />;
+          return <Icon name="hand-stop" style={style} />;
         case 15: // terminate
           return <Icon name="times-circle" style={style} />;
         case 9: // kill ☠
           return <Icon unicode={0x2620} style={style} />;
         case 19: // STOP
-          return <Icon name="pause-circle" style={style} />;
+          return <Icon name="pause" style={style} />;
         case 18: // CONT
           return <Icon name="play-circle" style={style} />;
       }

@@ -10,6 +10,7 @@ import * as React from "react";
 import { DOMAIN_NAME } from "smc-util/theme";
 import { BASE_URL as DEFAULT_BASE_URL } from "smc-webapp/misc/base-url";
 import { SiteName, PolicyPricingPageUrl } from "../customize";
+import { IconName } from "smc-webapp/r_misc/icon";
 
 const BASE_URL = global["BACKEND"] ? DOMAIN_NAME : DEFAULT_BASE_URL;
 
@@ -24,7 +25,7 @@ import {
 interface LinkInfo {
   commercial?: boolean;
   bold?: boolean;
-  icon: string;
+  icon: IconName;
   href?: string;
   link?: JSX.Element | string;
   text?: JSX.Element | string;

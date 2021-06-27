@@ -41,7 +41,7 @@ export class SkipCopy extends Component<SkipCopyProps> {
   };
 
   render() {
-    let icon: string;
+    let icon;
     let extra: Rendered = undefined;
     if (this.props.assignment.get(`skip_${this.props.step}` as any)) {
       icon = "check-square-o";

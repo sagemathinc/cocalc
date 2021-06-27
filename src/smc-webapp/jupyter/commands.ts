@@ -13,6 +13,7 @@ import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { NotebookMode } from "./types";
+import { IconName } from "smc-webapp/r_misc";
 
 export interface KeyboardCommand {
   mode?: NotebookMode;
@@ -29,7 +30,7 @@ export interface KeyboardCommand {
 }
 
 export interface CommandDescription {
-  i?: string; // icon name
+  i?: IconName;
   k?: KeyboardCommand[]; // keyboard commands
   m?: string; // fuller description for use in menus and commands
   menu?: string; // alternative to m just for dropdown menu
@@ -211,7 +212,7 @@ export function commands(
     },
 
     "copy cell": {
-      i: "files-o",
+      i: "files",
       m: "Copy cells",
       k: [{ mode: "escape", which: 67 }],
       f: () => frame_actions.copy_selected_cells(),
@@ -710,7 +711,7 @@ export function commands(
     },
 
     "show keyboard shortcuts": {
-      i: "keyboard-o",
+      i: "keyboard",
       m: "Show keyboard shortcuts...",
       k: [{ mode: "escape", which: 72 }],
       f: () => jupyter_actions.show_keyboard_shortcuts(),

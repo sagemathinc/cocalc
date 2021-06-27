@@ -12,7 +12,7 @@ import {
   OrderedMap /*, List as ImmutableList*/,
 } from "immutable";
 import * as misc from "smc-util/misc";
-import { Icon, Loading } from "../r_misc";
+import { isIconName, Icon, Loading } from "../r_misc";
 import { Col, Row } from "../antd-bootstrap";
 import {
   Descriptions,
@@ -119,7 +119,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       const lang = kernel_attr(name, "language");
       let icon: Rendered | undefined = undefined;
       if (lang != null && show_icon) {
-        if (["python", "r", "sagemath", "octave", "julia"].indexOf(lang) >= 0) {
+        if (isIconName(lang)) {
           icon = <Icon name={lang} />;
         } else if (lang.startsWith("bash")) {
           icon = <Icon name={"terminal"} />;

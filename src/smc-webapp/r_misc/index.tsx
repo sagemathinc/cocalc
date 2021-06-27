@@ -4,7 +4,7 @@
  */
 
 export { A } from "./A";
-export { Icon, IconName } from "./icon";
+export { Icon, IconName, isIconName } from "./icon";
 export { Tip } from "./tip";
 export { Loading, Estimate as LoadingEstimate } from "./loading";
 export { r_join } from "./r_join";

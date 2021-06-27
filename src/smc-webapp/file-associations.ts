@@ -12,6 +12,8 @@ The **complete** list of extensions --> what edits them is done
 via the newer registration system.
 */
 
+import { IconName } from "r_misc/icon";
+
 const codemirror_associations: { [ext: string]: string } = {
   adb: "ada",
   c: "text/x-c",
@@ -103,7 +105,7 @@ const codemirror_associations: { [ext: string]: string } = {
 export interface FileSpec {
   editor?: string;
   binary?: boolean;
-  icon: string;
+  icon: IconName;
   opts: {
     mode?: string;
     indent_unit?: number;
@@ -137,7 +139,7 @@ for (const ext in codemirror_associations) {
     name = name.slice(i + 2);
   }
   name = name.replace("src", "");
-  const icon = MODE_TO_ICON[mode] ? MODE_TO_ICON[mode] : "fa-file-code-o";
+  const icon = MODE_TO_ICON[mode] ? MODE_TO_ICON[mode] : "fa-file-code";
 
   file_associations[ext] = {
     editor: "codemirror",
@@ -186,14 +188,14 @@ file_associations["rtex"] = {
 };
 
 file_associations["html"] = {
-  icon: "fa-file-code-o",
+  icon: "file-code",
   opts: { indent_unit: 4, tab_size: 4, mode: "htmlmixed" },
   name: "html",
 };
 
 file_associations["lean"] = {
   editor: "lean", // so frame-editors/code-editor won't try to register the lean extension.
-  icon: "fa-file-code-o",
+  icon: "file-code",
   opts: { indent_unit: 4, tab_size: 4, mode: "lean" },
   name: "lean",
 };
@@ -221,49 +223,49 @@ file_associations["rmd"] = {
 };
 
 file_associations["rst"] = {
-  icon: "fa-file-code-o",
+  icon: "file-code",
   opts: { indent_unit: 4, tab_size: 4, mode: "rst", spellcheck: true },
   name: "ReST",
 };
 
 file_associations["java"] = {
   editor: "codemirror",
-  icon: "fa-file-code-o",
+  icon: "file-code",
   opts: { indent_unit: 4, tab_size: 4, mode: "text/x-java" },
   name: "Java",
 };
 
 file_associations["mediawiki"] = file_associations["wiki"] = {
   editor: "html-md",
-  icon: "fa-file-code-o",
+  icon: "file-code",
   opts: { indent_unit: 4, tab_size: 4, mode: "mediawiki", spellcheck: true },
   name: "MediaWiki",
 };
 
 file_associations["sass"] = {
   editor: "codemirror",
-  icon: "fa-file-code-o",
+  icon: "file-code",
   opts: { mode: "text/x-sass", indent_unit: 2, tab_size: 2 },
   name: "SASS",
 };
 
 file_associations["yml"] = file_associations["yaml"] = {
   editor: "codemirror",
-  icon: "fa-code",
+  icon: "code",
   opts: { mode: "yaml", indent_unit: 2, tab_size: 2 },
   name: "YAML",
 };
 
 file_associations["pug"] = file_associations["jade"] = {
   editor: "codemirror",
-  icon: "fa-code",
+  icon: "code",
   opts: { mode: "text/x-pug", indent_unit: 2, tab_size: 2, spellcheck: true },
   name: "PUG",
 };
 
 file_associations["css"] = {
   editor: "codemirror",
-  icon: "fa-file-code-o",
+  icon: "file-code",
   opts: { mode: "css", indent_unit: 4, tab_size: 4 },
   name: "CSS",
 };
@@ -271,7 +273,7 @@ file_associations["css"] = {
 for (const m of ["noext-makefile", "noext-gnumakefile", "make", "build"]) {
   file_associations[m] = {
     editor: "codemirror",
-    icon: "fa-cogs",
+    icon: "cogs",
     opts: {
       mode: "makefile",
       indent_unit: 4,
@@ -284,7 +286,7 @@ for (const m of ["noext-makefile", "noext-gnumakefile", "make", "build"]) {
 
 file_associations["term"] = {
   editor: "terminal",
-  icon: "fa-terminal",
+  icon: "terminal",
   opts: {},
   name: "Terminal",
 };
@@ -292,7 +294,7 @@ file_associations["term"] = {
 // This is just for the "Create" menu in files.
 file_associations["x11"] = {
   editor: "x11",
-  icon: "fa-window-restore",
+  icon: "window-restore",
   opts: {},
   name: "X11 Desktop",
 };
@@ -307,7 +309,7 @@ file_associations["ipynb"] = {
 // verilog files
 file_associations["v"] = file_associations["vh"] = {
   editor: "codemirror",
-  icon: "fa-microchip",
+  icon: "microchip",
   opts: { mode: "verilog", indent_unit: 2, tab_size: 2 },
   name: "Verilog",
 };
@@ -315,7 +317,7 @@ file_associations["v"] = file_associations["vh"] = {
 for (const ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
   file_associations[ext] = {
     editor: "media",
-    icon: "fa-file-image-o",
+    icon: "file-image-o",
     opts: {},
     name: ext,
     binary: true,
@@ -359,7 +361,7 @@ export const AUDIO_EXTS = Object.freeze([
 
 file_associations["pdf"] = {
   editor: "pdf",
-  icon: "fa-file-pdf-o",
+  icon: "file-pdf-o",
   opts: {},
   name: "pdf",
   binary: true,
@@ -368,42 +370,42 @@ file_associations["pdf"] = {
 
 file_associations["tasks"] = {
   editor: "tasks",
-  icon: "fa-tasks",
+  icon: "tasks",
   opts: {},
   name: "to do list",
 };
 
 file_associations["course"] = {
   editor: "course",
-  icon: "fa-graduation-cap",
+  icon: "graduation-cap",
   opts: {},
   name: "course",
 };
 
 file_associations["sage-chat"] = {
   editor: "chat",
-  icon: "fa-comment",
+  icon: "comment",
   opts: {},
   name: "chat",
 };
 
 file_associations["sage-git"] = {
   editor: "git",
-  icon: "fa-git-square",
+  icon: "git-square",
   opts: {},
   name: "git",
 };
 
 file_associations["sage-template"] = {
   editor: "template",
-  icon: "fa-clone",
+  icon: "clone",
   opts: {},
   name: "template",
 };
 
 file_associations["sage-history"] = {
   editor: "history",
-  icon: "fa-history",
+  icon: "history",
   opts: {},
   name: "sage history",
   exclude_from_menu: true,
@@ -412,7 +414,7 @@ file_associations["sage-history"] = {
 // For tar, see http://en.wikipedia.org/wiki/Tar_%28computing%29
 const archive_association = {
   editor: "archive",
-  icon: "fa-file-archive-o",
+  icon: "file-archive-o",
   opts: {},
   name: "archive",
 };
@@ -420,7 +422,7 @@ const archive_association = {
 // Fallback for any type not otherwise explicitly specified
 file_associations[""] = {
   editor: "unknown",
-  icon: "fa-question-circle",
+  icon: "question-circle",
   opts: {},
   name: "",
 };

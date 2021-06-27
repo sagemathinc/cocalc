@@ -5,6 +5,8 @@
 
 import { Map } from "immutable";
 
+import { IconName } from "smc-webapp/r_misc/icon";
+
 export type FrameDirection = "row" | "col";
 
 /* Interface for object that describes a binary tree. */
@@ -43,7 +45,7 @@ type ButtonFunction = (path: string) => { [button_name: string]: true };
 export interface EditorDescription {
   short: string; // short description of the editor
   name: string; // slightly longer description
-  icon: string;
+  icon: IconName;
   component: any; // React component
   buttons?: { [button_name: string]: true } | ButtonFunction;
   // NOTE: customize is only implemented for shell button right now!

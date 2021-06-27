@@ -13,7 +13,7 @@ import { Map } from "immutable";
 import * as json from "json-stable-stringify";
 import { capitalize, copy_without, field_cmp, split } from "smc-util/misc";
 import { Button, Modal, Grid, Row, Col } from "react-bootstrap";
-import { A, Icon, SearchInput, r_join } from "../r_misc";
+import { A, Icon, IconName, SearchInput, r_join } from "../r_misc";
 import {
   commands as create_commands,
   CommandDescription,
@@ -295,7 +295,7 @@ interface CommandProps {
   frame_actions: NotebookFrameActions;
   name: string;
   desc: string;
-  icon?: string;
+  icon?: IconName;
   shortcuts: KeyboardCommand[];
   taken: string;
 }
@@ -499,26 +499,6 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
         </Grid>
       );
     }
-
-    /*
-  function render_instructions(): Rendered {
-    return (
-      <div style={{ color: "#666", marginBottom: "10px" }}>
-        NOTE: Keyboard shortcuts are{" "}
-        <a
-          href="https://github.com/sagemathinc/cocalc/issues/3242"
-          target="_blank"
-          rel="noopener"
-        >
-          not yet
-        </a>{" "}
-        customizable.}
-        {//To add a keyboard shortcut, click plus next to the key combination then type the new keys.
-        }
-      </div>
-    );
-  }
-  */
 
     if (keyboard_shortcuts == null) return <span />;
 

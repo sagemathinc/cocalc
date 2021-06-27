@@ -10,8 +10,6 @@ import { MentionFilter } from "./mentions/types";
 
 import { redux, rclass, rtypes } from "../app-framework";
 
-import { Icon } from "../r_misc";
-
 interface ReduxProps {
   account_id?: string;
   mentions?: any;
@@ -44,7 +42,7 @@ export const NotificationPage = rclass(
       return (
         <div style={outer_container_style} className="smc-vfill">
           <h3 style={{ color: "#666" }}>
-            <Icon name="at" /> Mentions
+            Mentions
           </h3>
           <div style={inner_container_style}>
             <NotificationNav
