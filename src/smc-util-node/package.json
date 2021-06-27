@@ -1,6 +1,6 @@
 {
   "name": "smc-util-node",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "CoCalc compute server code",
   "exports": {
     "./*": "./dist/*.js"
