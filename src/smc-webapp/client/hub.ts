@@ -412,7 +412,7 @@ export class HubClient {
     // and whether it is defined here depends on a hub being available to
     // serve it up.  So we just keep trying until it is defined.
     let d = 100;
-    while ((window as any).Primus == null) {
+    while (window.Primus == null) {
       console.log("Waiting for global websocket client library...");
       await delay(d);
       d = Math.max(3000, d * 1.3);
