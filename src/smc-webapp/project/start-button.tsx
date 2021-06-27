@@ -111,7 +111,7 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
           }}
         >
           {starting ? (
-            <Icon name="cc-icon-cocalc-ring" spin />
+            <Icon name="cocalc-ring" spin />
           ) : (
             <Icon name="play" />
           )}

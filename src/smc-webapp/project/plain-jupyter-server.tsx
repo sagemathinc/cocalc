@@ -28,7 +28,7 @@ export const JupyterServerPanel: React.FC<Props> = ({ project_id }) => {
     const url = jupyter_server_url(project_id);
     return (
       <LinkRetryUntilSuccess href={url}>
-        <Icon name="cc-icon-ipynb" /> Plain Jupyter Classic Server
+        <Icon name="ipynb" /> Plain Jupyter Classic Server
       </LinkRetryUntilSuccess>
     );
   }

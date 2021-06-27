@@ -570,7 +570,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
             key="help-keyboard"
             onClick={command("edit keyboard shortcuts")}
           >
-            <Icon name="keyboard-o" /> Keyboard shortcuts...
+            <Icon name="keyboard" /> Keyboard shortcuts...
           </MenuItem>
           <MenuDivider />
           {external_link(

@@ -98,7 +98,7 @@ class MultipleAddSearch extends Component<
       // Currently doing a search, so show a spinner
       return (
         <Button>
-          <Icon name="cc-icon-cocalc-ring" spin />
+          <Icon name="cocalc-ring" spin />
         </Button>
       );
     } else if (this.state.show_selector) {

@@ -120,7 +120,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       let icon: Rendered | undefined = undefined;
       if (lang != null && show_icon) {
         if (["python", "r", "sagemath", "octave", "julia"].indexOf(lang) >= 0) {
-          icon = <Icon name={`cc-icon-${lang}`} />;
+          icon = <Icon name={lang} />;
         } else if (lang.startsWith("bash")) {
           icon = <Icon name={"terminal"} />;
         }

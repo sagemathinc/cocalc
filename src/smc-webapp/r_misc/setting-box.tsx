@@ -4,13 +4,13 @@
  */
 
 import * as React from "react";
-import { Icon } from "./icon";
+import { Icon, IconName } from "./icon";
 import { CloseX2 } from "./close-x2";
 
 const { Panel } = require("react-bootstrap");
 
 interface Props {
-  icon: string;
+  icon: IconName;
   title?: string | JSX.Element;
   show_header?: boolean;
   close?: () => void;

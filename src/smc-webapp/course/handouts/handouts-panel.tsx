@@ -342,7 +342,7 @@ export function HandoutsPanelHeader(props: { n: number }) {
       tip="This tab lists all of the handouts associated with your course."
     >
       <span>
-        <Icon name="files-o" /> Handouts{" "}
+        <Icon name="files" /> Handouts{" "}
         {props.n != null ? ` (${props.n})` : ""}
       </span>
     </Tip>
@@ -396,7 +396,7 @@ class Handout extends Component<HandoutProps, HandoutState> {
           {this.props.handout.get("path")}
         </div>
         <Button onClick={this.open_handout_path}>
-          <Icon name="folder-open-o" /> Edit Handout
+          <Icon name="folder-open" /> Edit Handout
         </Button>
       </div>
     );
@@ -726,7 +726,7 @@ Select "Replace student files!" in case you do not want to create any backups an
           }
           tip="Copy the files for this handout from this project to all other student projects."
         >
-          <Icon name="share-square-o" /> Distribute...
+          <Icon name="share-square" /> Distribute...
         </Tip>
       </Button>
     );
@@ -785,7 +785,7 @@ Select "Replace student files!" in case you do not want to create any backups an
             onClick={this.undelete_handout}
             style={this.outside_button_style}
           >
-            <Icon name="trash-o" /> Undelete
+            <Icon name="trash" /> Undelete
           </Button>
         </Tip>
       );
@@ -1141,7 +1141,7 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
             return copy();
           }}
         >
-          <Icon name="share-square-o" /> Yes, {name.toLowerCase()} again
+          <Icon name="share-square" /> Yes, {name.toLowerCase()} again
         </Button>
       );
       v.push(
@@ -1161,7 +1161,7 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
           onClick={() => this.setState({ [key]: true })}
         >
           <Tip title={name} tip={<span>{copy_tip}</span>}>
-            <Icon name="share-square-o" /> {name}...
+            <Icon name="share-square" /> {name}...
           </Tip>
         </Button>
       );
@@ -1174,7 +1174,7 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
         {this.render_open_recopy_confirm(name, copy, copy_tip)}
         <Button key="open" onClick={open}>
           <Tip title="Open Directory" tip={open_tip}>
-            <Icon name="folder-open-o" /> Open directory...
+            <Icon name="folder-open" /> Open directory...
           </Tip>
         </Button>
       </ButtonGroup>
@@ -1185,13 +1185,13 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
     return (
       <ButtonGroup key="open_copying">
         <Button key="copy" bsStyle="success" disabled={true}>
-          <Icon name="cc-icon-cocalc-ring" spin /> Working...
+          <Icon name="cocalc-ring" spin /> Working...
         </Button>
         <Button key="stop" bsStyle="danger" onClick={stop}>
           <Icon name="times" />
         </Button>
         <Button key="open" onClick={open}>
-          <Icon name="folder-open-o" /> Open
+          <Icon name="folder-open" /> Open
         </Button>
       </ButtonGroup>
     );
@@ -1201,7 +1201,7 @@ class StudentHandoutInfo extends Component<StudentHandoutInfoProps> {
     return (
       <Tip key="copy" title={name} tip={copy_tip}>
         <Button onClick={copy} bsStyle={"primary"}>
-          <Icon name="share-square-o" /> {name}
+          <Icon name="share-square" /> {name}
         </Button>
       </Tip>
     );

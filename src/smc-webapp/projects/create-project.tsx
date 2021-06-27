@@ -139,7 +139,7 @@ export const NewProjectCreator: React.FC<Props> = ({
       return (
         <div style={{ marginTop: "30px" }}>
           <Alert bsStyle="info">
-            <Icon name="cc-icon-cocalc-ring" spin />
+            <Icon name="cocalc-ring" spin />
             <Space /> Creating project...
           </Alert>
         </div>

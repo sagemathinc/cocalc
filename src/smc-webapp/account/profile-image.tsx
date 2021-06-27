@@ -6,7 +6,7 @@
 import { Map as ImmutableMap } from "immutable";
 import { Button, ButtonToolbar, FormControl, Well } from "../antd-bootstrap";
 import { React, Component, Rendered, redux } from "../app-framework";
-import { ErrorDisplay, Icon, ProfileIcon } from "../r_misc";
+import { ErrorDisplay, Loading, ProfileIcon } from "../r_misc";
 import * as md5 from "md5";
 
 import * as ReactCrop from "react-image-crop";
@@ -328,7 +328,7 @@ export class ProfileImageSelector extends Component<
   render_loading() {
     return (
       <div>
-        Saving... <Icon name="spinner" spin={true} />
+        Saving... <Loading />
       </div>
     );
   }

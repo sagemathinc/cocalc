@@ -177,14 +177,14 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           name = "unlink";
           break;
         case "ready":
-          name = "cc-icon-cocalc-ring";
+          name = "cocalc-ring";
           break;
         case "spawning":
-          name = "cc-icon-cocalc-ring";
+          name = "cocalc-ring";
           spin = true;
           break;
         case "starting":
-          name = "cc-icon-cocalc-ring";
+          name = "cocalc-ring";
           spin = true;
           break;
         case "running":
@@ -194,10 +194,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
               color = "#5cb85c";
               break;
             case "idle":
-              name = "cc-icon-cocalc-ring";
+              name = "cocalc-ring";
               break;
             default:
-              name = "cc-icon-cocalc-ring";
+              name = "cocalc-ring";
           }
           break;
       }

@@ -48,6 +48,7 @@ import { ReactElement } from "react";
 import {
   DateTimePicker,
   Icon,
+  IconName,
   Loading,
   MarkdownInput,
   Space,
@@ -406,7 +407,7 @@ export function AssignmentsPanelHeader(props: { n: number }) {
       tip="This tab lists all of the assignments associated to your course, along with student grades and status about each assignment.  You can also quickly find assignments by name on the left.   An assignment is a directory in your project, which may contain any files.  Add an assignment to your course by searching for the directory name in the search box on the right."
     >
       <span>
-        <Icon name="share-square-o" /> Assignments{" "}
+        <Icon name="share-square" /> Assignments{" "}
         {props.n != null ? ` (${props.n})` : ""}
       </span>
     </Tip>
@@ -635,11 +636,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   render_more_header(num_files: number) {
     let width;
-    const status:
-      | AssignmentStatus
-      | undefined = this.get_store().get_assignment_status(
-      this.props.assignment.get("assignment_id")
-    );
+    const status: AssignmentStatus | undefined =
+      this.get_store().get_assignment_status(
+        this.props.assignment.get("assignment_id")
+      );
     if (status == null) {
       return <Loading key="loading_more" />;
     }
@@ -825,13 +825,13 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         key="open"
         title={
           <span>
-            <Icon name="folder-open-o" /> Open Directory
+            <Icon name="folder-open" /> Open Directory
           </span>
         }
         tip="Open the directory in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment."
       >
         <Button onClick={this.open_assignment_path}>
-          <Icon name="folder-open-o" /> Open...
+          <Icon name="folder-open" /> Open...
         </Button>
       </Tip>
     );
@@ -840,9 +840,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   private show_copy_confirm(): void {
     this.setState({ copy_confirm_assignment: true, copy_confirm: true });
     const actions = this.get_actions();
-    const assignment_id: string | undefined = this.props.assignment.get(
-      "assignment_id"
-    );
+    const assignment_id: string | undefined =
+      this.props.assignment.get("assignment_id");
     actions.assignments.update_listing(assignment_id);
   }
 
@@ -878,7 +877,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           }
           tip="Copy the files for this assignment from this project to all other student projects."
         >
-          <Icon name="share-square-o" /> Assign...
+          <Icon name="share-square" /> Assign...
         </Tip>
       </Button>,
       <Progress
@@ -980,9 +979,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   copy_assignment(step, new_only: boolean, overwrite: boolean = false) {
     // assign assignment to all (non-deleted) students
     const actions = this.get_actions();
-    const assignment_id: string | undefined = this.props.assignment.get(
-      "assignment_id"
-    );
+    const assignment_id: string | undefined =
+      this.props.assignment.get("assignment_id");
     if (assignment_id == null) throw Error("bug");
     switch (step) {
       case "assignment":
@@ -1275,7 +1273,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           }
           tip={this.render_collect_tip()}
         >
-          <Icon name="share-square-o" rotate={"180"} /> Collect...
+          <Icon name="share-square" rotate={"180"} /> Collect...
         </Tip>
       </Button>,
       <Progress
@@ -1345,7 +1343,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           }
           tip={this.render_peer_assign_tip()}
         >
-          <Icon name="share-square-o" /> Peer Assign...
+          <Icon name="share-square" /> Peer Assign...
         </Tip>
       </Button>,
       <Progress
@@ -1407,7 +1405,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           }
           tip={this.render_peer_collect_tip()}
         >
-          <Icon name="share-square-o" rotate="180" /> Peer Collect...
+          <Icon name="share-square" rotate="180" /> Peer Collect...
         </Tip>
       </Button>,
       <Progress
@@ -1440,7 +1438,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       // No button if nothing collected.
       return;
     }
-    const icon: string = this.props.assignment.get("skip_grading")
+    const icon: IconName = this.props.assignment.get("skip_grading")
       ? "check-square-o"
       : "square-o";
     return (
@@ -1518,7 +1516,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           }
           tip="Copy the graded versions of files for this assignment from this project to all other student projects."
         >
-          <Icon name="share-square-o" /> Return...
+          <Icon name="share-square" /> Return...
         </Tip>
       </Button>,
       <Progress
@@ -1575,7 +1573,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
           tip="Make the assignment visible again in the assignment list and in student grade lists."
         >
           <Button onClick={this.undelete_assignment}>
-            <Icon name="trash-o" /> Undelete
+            <Icon name="trash" /> Undelete
           </Button>
         </Tip>
       );
@@ -1715,9 +1713,7 @@ interface StudentListForAssignmentProps {
   search: string;
 }
 
-class StudentListForAssignment extends Component<
-  StudentListForAssignmentProps
-> {
+class StudentListForAssignment extends Component<StudentListForAssignmentProps> {
   private student_list: string[] | undefined = undefined;
 
   public shouldComponentUpdate(props): boolean {

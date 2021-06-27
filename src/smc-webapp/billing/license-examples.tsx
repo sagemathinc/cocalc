@@ -6,7 +6,7 @@
 import { React } from "../app-framework";
 const { Panel } = require("react-bootstrap");
 import { Col, Row, Table } from "react-bootstrap";
-import { Space, Icon } from "../r_misc";
+import { Space, Icon, IconName } from "../r_misc";
 import { COLORS } from "smc-util/theme";
 import {
   Cost,
@@ -20,7 +20,7 @@ import {
 
 export interface Example {
   title: string;
-  icon: string;
+  icon: IconName;
   user: User;
   lines: { value: number; unit: string; resource: string }[];
   price?: Cost;

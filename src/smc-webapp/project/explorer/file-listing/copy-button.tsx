@@ -13,7 +13,7 @@ export function CopyButton({ on_click }) {
     <span>
       <Space />
       <Button bsStyle="info" bsSize="xsmall" onClick={on_click}>
-        <Icon name="files-o" /> <span className="hidden-xs">Copy</span>
+        <Icon name="files" /> <span className="hidden-xs">Copy</span>
       </Button>
     </span>
   );

@@ -19,7 +19,7 @@ export const ProjectState: React.FC<Props> = ({ state, show_desc }) => {
   function render_spinner() {
     return (
       <span style={{ marginRight: "15px" }}>
-        ... <Icon name="cc-icon-cocalc-ring" spin />
+        ... <Icon name="cocalc-ring" spin />
       </span>
     );
   }

@@ -55,7 +55,7 @@ class TerminalCommandPanel extends Component<Props> {
         onClick={() => this.run_terminal_command()}
         disabled={running}
       >
-        <Icon name={running ? "cc-icon-cocalc-ring" : "play"} spin={running} />{" "}
+        <Icon name={running ? "cocalc-ring" : "play"} spin={running} />{" "}
         <Space /> Run
       </Button>
     );
@@ -99,7 +99,7 @@ class TerminalCommandPanel extends Component<Props> {
             fontWeight: "bold",
           }}
         >
-          <Icon name={"cc-icon-cocalc-ring"} spin /> Running...
+          <Icon name={"cocalc-ring"} spin /> Running...
         </div>
       );
     }

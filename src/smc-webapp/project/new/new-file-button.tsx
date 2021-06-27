@@ -6,11 +6,11 @@
 import * as React from "react";
 
 import { Button } from "antd";
-import { Icon, Space } from "../../r_misc";
+import { Icon, IconName, Space } from "../../r_misc";
 
 interface Props {
   name: string;
-  icon: string;
+  icon: IconName;
   on_click: (ext?: string) => void;
   ext?: string;
   className?: string;
@@ -32,7 +32,7 @@ export const NewFileButton = React.memo(function NewFileButton({
   let displayed_icon = <Icon name={icon} />;
 
   if (loading) {
-    displayed_icon = <Icon name="cc-icon-cocalc-ring" spin />;
+    displayed_icon = <Icon name="cocalc-ring" spin />;
   }
 
   return (

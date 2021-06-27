@@ -243,6 +243,7 @@ const IconSpec = {
   "cloud-download": CloudDownloadOutlined,
   "cloud-download-alt": CloudDownloadOutlined,
   "cloud-upload": CloudUploadOutlined,
+  "cocalc-ring": { IconFont: "cocalc-ring" },
   code: { IconFont: "code" },
   CodeOutlined,
   coffee: CoffeeOutlined,
@@ -282,12 +283,13 @@ const IconSpec = {
   "file-code": FileTextOutlined,
   "file-image": FileImageOutlined,
   "file-pdf": FilePdfOutlined,
-  "folder-open": FolderOpenOutlined,
+  "file-zip": FileZipOutlined,
   files: CopyOutlined,
   "file-export": ExportOutlined,
   flash: ThunderboltOutlined,
   "flow-chart": { IconFont: "flow-chart" },
   folder: FolderOutlined,
+  "folder-open": FolderOpenOutlined,
   font: { IconFont: "font" },
   forward: ForwardOutlined,
   FundProjectionScreenOutlined,
@@ -315,8 +317,10 @@ const IconSpec = {
   indent: { IconFont: "indent" },
   info: InfoOutlined,
   inkscape: { IconFont: "inkscape" },
+  ipynb: { IconFont: "ipynb" },
   italic: ItalicOutlined,
   "js-square": { IconFont: "js-square" },
+  julia: { IconFont: "julia" },
   key: KeyOutlined,
   keyboard: { IconFont: "keyboard" },
   laptop: LaptopOutlined,
@@ -335,6 +339,7 @@ const IconSpec = {
   lock: LockFilled,
   "lock-open": UnlockFilled,
   magic: { IconFont: "magic" },
+  markdown: { IconFont: "markdown" },
   mask: { IconFont: "mask" },
   medkit: MedicineBoxOutlined,
   microchip: { IconFont: "microchip" },
@@ -345,6 +350,7 @@ const IconSpec = {
   move: { IconFont: "move" },
   "network-wired": ClusterOutlined,
   "node-js": { IconFont: "node-js" },
+  octave: { IconFont: "octave" },
   outdent: { IconFont: "outdent" },
   pause: PauseCircleOutlined,
   "paper-plane": SendOutlined,
@@ -361,9 +367,11 @@ const IconSpec = {
   "plus-square-o": PlusSquareOutlined,
   PoweroffOutlined,
   print: PrinterOutlined,
+  python: { IconFont: "python" },
   qgis: { IconFont: "qgis" },
   "question-circle": QuestionCircleOutlined,
   "quote-left": { IconFont: "quote-left" },
+  r: { IconFont: "r" },
   racket: { IconFont: "racket" },
   redo: RedoOutlined,
   refresh: RedoOutlined,
@@ -374,6 +382,9 @@ const IconSpec = {
   robot: RobotOutlined,
   rocket: RocketOutlined,
   run: { IconFont: "run" },
+  sagemath: { IconFont: "sagemath" },
+  "sagemath-bold": { IconFont: "sagemath-bold" },
+  "sagemath-file": { IconFont: "sagemath-file" },
   save: SaveOutlined,
   scheme: { IconFont: "scheme" },
   scissors: ScissorOutlined,
@@ -408,6 +419,7 @@ const IconSpec = {
   tasks: { IconFont: "tasks" },
   terminal: CodeOutlined,
   tex: { IconFont: "tex" },
+  "tex-file": { IconFont: "tex-file" },
   "text-height": LineHeightOutlined,
   times: CloseOutlined,
   "times-circle": CloseCircleOutlined,
@@ -439,8 +451,11 @@ const IconSpec = {
   wrench: { IconFont: "wrench" },
 };
 
+export type IconName = keyof typeof IconSpec;
+const IconName = null;
+
 interface Props {
-  name?: string;
+  name?: IconName;
   unicode?: number; // (optional) set a hex 16 bit charcode to render a unicode char, e.g. 0x2620
   className?: string;
   size?: "lg" | "2x" | "3x" | "4x" | "5x";
@@ -467,6 +482,7 @@ const UNICODE_STYLE = {
 
 const missing: any = {};
 // Converted from https://github.com/andreypopp/react-fa
+
 export const Icon: React.FC<Props> = (props: Props) => {
   if (props.unicode != null) {
     return (
@@ -474,22 +490,12 @@ export const Icon: React.FC<Props> = (props: Props) => {
     );
   }
 
-  let name = props.name ?? "square";
-  if (name.startsWith("fab ")) {
-    name = name.slice(4);
-  }
-  if (name.startsWith("fa-")) {
-    name = name.slice(3);
-  }
+  let name: IconName = props.name ?? "square";
   let C;
-  if (name.startsWith("cc-icon-")) {
-    C = { IconFont: name.slice("cc-icon-".length) };
-  } else {
-    C = IconSpec[name];
-    if (C == null && name.endsWith("-o")) {
-      // try without -o
-      C = IconSpec[name.slice(0, name.length - 2)];
-    }
+  C = IconSpec[name];
+  if (C == null && name.endsWith("-o")) { // should be impossible because of typescript...
+    // try without -o
+    C = IconSpec[name.slice(0, name.length - 2)];
   }
   if (C != null) {
     if (typeof C.IconFont == "string") {
@@ -545,7 +551,7 @@ try {
         for (const cls of elt.className.split(/\s+/)) {
           if (cls.startsWith("fa-")) {
             ReactDOM.render(
-              <Icon name={cls} spin={cls == "fa-cc-icon-cocalc-ring"} />,
+              <Icon name={cls} spin={cls == "fa-cocalc-ring"} />,
               elt
             );
             break;

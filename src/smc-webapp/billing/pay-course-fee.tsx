@@ -103,7 +103,7 @@ class PayCourseFee extends Component<Props, State> {
     if (this.props.course_pay.has(this.props.project_id)) {
       return (
         <Button bsStyle="primary" disabled={true}>
-          <Icon name="cc-icon-cocalc-ring" spin /> Currently paying the one-time
+          <Icon name="cocalc-ring" spin /> Currently paying the one-time
           ${STUDENT_COURSE_PRICE} fee for this course...
         </Button>
       );

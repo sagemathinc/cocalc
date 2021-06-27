@@ -188,19 +188,19 @@ export const CONNECT_LINKS = {
 
 export const THIRD_PARTY = {
   sagemath: {
-    icon: "cc-icon-sagemath",
+    icon: "sagemath",
     href: "http://www.sagemath.org/",
     link: "SageMath",
     text: <span>open-source mathematical software</span>,
   },
   r: {
-    icon: "cc-icon-r",
+    icon: "r",
     href: "https://cran.r-project.org/doc/manuals/r-release/R-intro.html",
     link: "R project",
     text: "the #1 open-source statistics software",
   },
   python: {
-    icon: "cc-icon-python",
+    icon: "python",
     href: "http://www.scipy-lectures.org/",
     link: "Scientific Python",
     text: (
@@ -246,13 +246,13 @@ export const THIRD_PARTY = {
     ),
   },
   julia: {
-    icon: "cc-icon-julia",
+    icon: "julia",
     href: "https://www.julialang.org/",
     link: "Julia",
     text: "programming language for numerical computing",
   },
   octave: {
-    icon: "cc-icon-octave",
+    icon: "octave",
     href: "https://www.gnu.org/software/octave/",
     link: "GNU Octave",
     text: "scientific programming language, largely compatible with MATLAB",
@@ -264,7 +264,7 @@ export const THIRD_PARTY = {
     text: "open-source software library for machine intelligence",
   },
   latex: {
-    icon: "cc-icon-tex-file",
+    icon: "tex-file",
     href: "https://en.wikibooks.org/wiki/LaTeX",
     link: "LaTeX",
     text: "high-quality typesetting program",

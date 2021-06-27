@@ -118,15 +118,15 @@ export interface FileSpec {
 export const file_associations: { [ext: string]: FileSpec } = {};
 
 const MODE_TO_ICON: { [mode: string]: string } = {
-  python: "cc-icon-python",
+  python: "python",
   coffeescript: "fa-coffee",
   javascript: "fab fa-js-square",
   jsx: "fab fa-node-js",
   "application/typescript": "fab fa-js-square", // it would be nice to have proper TS icons...
   "text/typescript-jsx": "fab fa-node-js", // would be nice to have proper TS...
   "text/x-rustsrc": "cog",
-  r: "cc-icon-r",
-  rmd: "cc-icon-r",
+  r: "r",
+  rmd: "r",
 };
 
 for (const ext in codemirror_associations) {
@@ -158,14 +158,14 @@ file_associations["noext-dockerfile"] = {
 
 file_associations["tex"] = {
   editor: "latex",
-  icon: "cc-icon-tex-file",
+  icon: "tex-file",
   opts: { mode: "stex2", indent_unit: 2, tab_size: 2 },
   name: "LaTeX",
 };
 
 file_associations["rnw"] = {
   editor: "latex",
-  icon: "cc-icon-tex-file",
+  icon: "tex-file",
   opts: {
     mode: codemirror_associations["rnw"],
     indent_unit: 4,
@@ -176,7 +176,7 @@ file_associations["rnw"] = {
 
 file_associations["rtex"] = {
   editor: "latex",
-  icon: "cc-icon-tex-file",
+  icon: "tex-file",
   opts: {
     mode: codemirror_associations["rtex"],
     indent_unit: 4,
@@ -199,7 +199,7 @@ file_associations["lean"] = {
 };
 
 file_associations["md"] = file_associations["markdown"] = {
-  icon: "cc-icon-markdown",
+  icon: "markdown",
   opts: {
     indent_unit: 4,
     tab_size: 4,
@@ -210,7 +210,7 @@ file_associations["md"] = file_associations["markdown"] = {
 };
 
 file_associations["rmd"] = {
-  icon: "cc-icon-r",
+  icon: "r",
   opts: {
     indent_unit: 4,
     tab_size: 4,
@@ -299,7 +299,7 @@ file_associations["x11"] = {
 
 file_associations["ipynb"] = {
   editor: "ipynb",
-  icon: "cc-icon-ipynb",
+  icon: "ipynb",
   opts: {},
   name: "Jupyter Notebook",
 };
@@ -432,12 +432,12 @@ for (const ext of "zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip"
 }
 
 file_associations["sage"].name = "sage code";
-file_associations["sage"].icon = "cc-icon-sagemath-bold";
+file_associations["sage"].icon = "sagemath-bold";
 
 file_associations["sagews"] = {
   editor: "sagews",
   binary: false,
-  icon: "cc-icon-sagemath-file",
+  icon: "sagemath-file",
   opts: { mode: "sagews" },
   name: "sagews",
   exclude_from_menu: true,

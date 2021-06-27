@@ -17,7 +17,7 @@ export function Connecting(_props) {
         color: COLORS.GRAY,
       }}
     >
-      <Icon name="cc-icon-cocalc-ring" spin />{" "}
+      <Icon name="cocalc-ring" spin />{" "}
       Connecting...
     </div>
   );

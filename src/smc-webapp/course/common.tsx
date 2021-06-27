@@ -395,7 +395,7 @@ export class StudentAssignmentInfo extends Component<
     label = running ? (
       <span>
         {" "}
-        <Icon name="cc-icon-cocalc-ring" spin /> Running nbgrader
+        <Icon name="cocalc-ring" spin /> Running nbgrader
       </span>
     ) : (
       <span>{label}</span>
@@ -571,7 +571,7 @@ export class StudentAssignmentInfo extends Component<
         <Space />
         <Button key="open" onClick={open}>
           <Tip title="Open assignment" placement={placement} tip={open_tip}>
-            <Icon name="folder-open-o" /> Open
+            <Icon name="folder-open" /> Open
           </Tip>
         </Button>
       </div>
@@ -582,13 +582,13 @@ export class StudentAssignmentInfo extends Component<
     return (
       <ButtonGroup key="open_copying">
         <Button key="copy" bsStyle="success" disabled={true}>
-          <Icon name="cc-icon-cocalc-ring" spin /> {name}ing
+          <Icon name="cocalc-ring" spin /> {name}ing
         </Button>
         <Button key="stop" bsStyle="danger" onClick={stop}>
           <Icon name="times" />
         </Button>
         <Button key="open" onClick={open}>
-          <Icon name="folder-open-o" /> Open
+          <Icon name="folder-open" /> Open
         </Button>
       </ButtonGroup>
     );

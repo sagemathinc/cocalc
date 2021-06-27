@@ -515,7 +515,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
         case "jupyter":
           return (
             <CoCalcFile
-              icon={"cc-icon-ipynb"}
+              icon={"ipynb"}
               path={cocalc.path}
               project_actions={project_actions}
             />

@@ -17,10 +17,10 @@ $.fn.icon_spin = function (start: any, _disable: boolean = false) {
     // @ts-ignore
     const elt = $(this);
     if (start) {
-      elt.find(".fa-cc-icon-cocalc-ring").show();
+      elt.find(".fa-cocalc-ring").show();
       elt.find(".primary-icon").hide();
     } else {
-      elt.find(".fa-cc-icon-cocalc-ring").hide();
+      elt.find(".fa-cocalc-ring").hide();
       elt.find(".primary-icon").show();
     }
   });

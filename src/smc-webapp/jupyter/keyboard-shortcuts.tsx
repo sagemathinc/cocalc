@@ -526,7 +526,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
       <Modal show={true} onHide={close} bsSize="large">
         <Modal.Header closeButton>
           <Modal.Title>
-            <Icon name="keyboard-o" /> Jupyter commands and keyboard shortcuts
+            <Icon name="keyboard" /> Jupyter commands and keyboard shortcuts
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>

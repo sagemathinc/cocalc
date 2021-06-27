@@ -187,7 +187,7 @@ class LeanMessages extends Component<Props, {}> {
           marginBottom: "15px",
         }}
       >
-        <Icon name="cc-icon-cocalc-ring" spin />
+        <Icon name="cocalc-ring" spin />
         <Space />
         {capitalize(task.desc)}
         <Space /> (Processing lines {task.pos_line}-{task.end_pos_line})

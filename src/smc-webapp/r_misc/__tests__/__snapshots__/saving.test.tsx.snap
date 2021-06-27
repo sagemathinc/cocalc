@@ -3,7 +3,7 @@
 exports[`smoke test 1`] = `
 <span>
   <Icon
-    name="cc-icon-cocalc-ring"
+    name="cocalc-ring"
     spin={true}
   />
    Saving...

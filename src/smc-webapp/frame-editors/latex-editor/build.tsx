@@ -45,35 +45,35 @@ const BUILD_SPECS: IBuildSpecs = {
   latex: {
     button: false,
     label: "LaTeX",
-    icon: "cc-icon-tex-file",
+    icon: "tex-file",
     tip: "Run the LaTeX build command (typically latexmk)",
   },
 
   bibtex: {
     button: false,
     label: "BibTeX",
-    icon: "file-code-o",
+    icon: "file-code",
     tip: "Process bibliography using Bibtex",
   },
 
   sagetex: {
     button: false,
     label: "SageTex",
-    icon: "cc-icon-sagemath-bold",
+    icon: "sagemath-bold",
     tip: "Run SageTex, if necessary",
   },
 
   pythontex: {
     button: false,
     label: "PythonTeX",
-    icon: "cc-icon-python",
+    icon: "python",
     tip: "Run PythonTeX3, if necessary",
   },
 
   knitr: {
     button: false,
     label: "Knitr",
-    icon: "cc-icon-r",
+    icon: "r",
     tip: "Run Knitr, if necessary",
   },
 

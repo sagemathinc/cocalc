@@ -8,7 +8,7 @@
 
 import { React, CSS } from "../../app-framework";
 import { Radio } from "antd";
-import { Icon } from "../../r_misc";
+import { Icon, IconName } from "../../r_misc";
 
 interface Props {
   disabled?: boolean;
@@ -18,7 +18,7 @@ interface Props {
     disabled?: boolean;
     desc?: string | JSX.Element;
     cost?: string;
-    icon?: string;
+    icon?: IconName;
   }[];
   onChange: (e) => void;
   value?: any;
