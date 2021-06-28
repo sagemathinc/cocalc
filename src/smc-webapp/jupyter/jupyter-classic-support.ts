@@ -27,8 +27,7 @@ export function init_jupyter_classic_support(
       // no change; do nothing
       // NOTE the triple === above, so the above equality is not true
       // if last_jupyter_classic is undefined, since jupyter_classic
-      // is either true or false (not undefined!).  This was a bug for
-      // a little while.
+      // is either true or false (not undefined!).
       return;
     }
     if (account_table._table.get_state() != "connected") {
@@ -47,7 +46,7 @@ export function init_jupyter_classic_support(
     }
   };
 
-  // Do it once **immediately** so definitely something handles ipynb files.
+  // Do it once **immediately**, so definitely something handles ipynb files.
   f();
   // Then do a quick check any time the account store changes.
   account_store.on("change", f);
