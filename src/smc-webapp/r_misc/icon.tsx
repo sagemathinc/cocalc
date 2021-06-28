@@ -39,7 +39,6 @@ import {
   ClockCircleOutlined,
   CloudDownloadOutlined,
   CloudServerOutlined,
-  CloseSquareOutlined,
   CloseCircleOutlined,
   CloseCircleTwoTone,
   CloseOutlined,
