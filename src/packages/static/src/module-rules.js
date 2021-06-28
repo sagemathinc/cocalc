@@ -38,7 +38,7 @@ module.exports = function (PRODMODE) {
               ],
             }),
           },
-          // NOTE: We must disable typescript checking, since it is way too slow and uses
+          // NOTE: Regarding "transpileOnly: true," above we must disable typescript checking, since it is way too slow and uses
           // too much RAM.  Instead you must use `tsc --watch` directly in another shell,
           // or an IDE that supports typescript.  For CoCalc, use `npm tsc`.
         },
