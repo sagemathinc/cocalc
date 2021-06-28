@@ -26,7 +26,8 @@ if process.env.SMC_LOCAL_HUB_HOME?
 if not process.env.SMC?
     process.env.SMC = path.join(process.env.HOME, '.smc')
 SMC = if program.test then '/tmp' else process.env.SMC
-winston = require('./logger').getLogger('local-hub') # must be after SMC above
+{getLogger} = require('./logger');
+winston = getLogger('local-hub') # must be after SMC above
 
 path    = require('path')
 async   = require('async')
@@ -312,7 +313,7 @@ start_server = (tcp_port, raw_port, cb) ->
                 data_path  : DATA
                 home       : process.env.HOME
                 port       : raw_port
-                logger     : winston
+                logger     : getLogger('raw-server')
                 client     : exports.client
                 cb         : cb
         (cb) ->
