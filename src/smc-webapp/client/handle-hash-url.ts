@@ -21,16 +21,16 @@ function handleHashUrl(): string {
   //   https://cocalc.com/45f4aab5-7698-4ac8-9f63-9fd307401ad7/port/8000/projects/f2b471ee-a300-4531-829d-472fa46c7eb7/files/2019-12-16-114812.ipynb?session=default
   // is converted to
   //   https://cocalc.com/45f4aab5-7698-4ac8-9f63-9fd307401ad7/port/8000/static/app.html#projects/f2b471ee-a300-4531-829d-472fa46c7eb7/files/2019-12-16-114812.ipynb?session=default
-  if (window.location.hash.length <= 1) {
-    // nothing to parse.
-    return "";
-  }
   const hash = decodeURIComponent(window.location.hash.slice(1));
   let target = hash;
   // the location hash could again contain a query param, hence this
   const i = target.indexOf("?");
   if (i >= 0) {
     target = target.slice(0, i);
+  }
+  if (!target) {
+    // if no target is encoded in the url, show user their list of projects
+    target = "projects";
   }
   let query_params = "";
   if (i >= 0) {

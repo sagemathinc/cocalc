@@ -1,5 +1,8 @@
-// Save other paths in # part of URL then redirect to the single page app.
-// That this happened is assumed, e.g., in packages/static/src/init-app-base-path.ts
+/* Save other paths in # part of URL then redirect to the single page app.
+   That this happened is assumed, e.g., in packages/static/src/init-app-base-path.ts
+
+   This redirect is *undone* in smc-webapp/client/handle-hash-url.ts
+*/
 
 import { parse } from "url";
 import { join } from "path";
