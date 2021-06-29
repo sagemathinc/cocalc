@@ -7,6 +7,8 @@ import "./webapp-error-reporter.coffee";
 // TODO: get rid of bootstrap!  We intend to switch to antd entirely!
 import "bootstrap/dist/css/bootstrap.min.css";
 
+import "antd/dist/antd.css";
+
 // explicit jQuery UI widgets that we use -- no need to load the entire library
 import "jquery-ui/ui/widgets/draggable"; // used in sage worksheets
 import "jquery-ui/ui/widgets/slider"; // used in sage worksheets
