@@ -23,7 +23,7 @@ import {
   Table,
   Switch,
 } from "antd";
-import * as antd from "../antd-bootstrap-imports";
+import * as antd from "antd";
 import { Alert } from "../antd-bootstrap";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { ErrorDisplay, Saving, Icon } from "../r_misc";

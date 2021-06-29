@@ -31,7 +31,7 @@ import { r_join, Space } from "./r_misc";
 
 // Workaround a webpack (or typescript) bug and also
 // avoid importing all of antd (just what we need).
-import * as antd from "./antd-bootstrap-imports";
+import * as antd from "antd";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
 // only four in antd, and it we can't automatically collapse them down in a meaningful

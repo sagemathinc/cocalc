@@ -15,7 +15,7 @@ import * as misc from "smc-util/misc";
 import { isIconName, Icon, Loading } from "../r_misc";
 import { Col, Row } from "../antd-bootstrap";
 import { Descriptions, Radio, Typography, Checkbox, Button } from "antd";
-import * as antd from "../antd-bootstrap-imports";
+import * as antd from "antd";
 import { Kernel } from "./util";
 import { COLORS } from "smc-util/theme";
 import { JupyterActions } from "./browser-actions";
