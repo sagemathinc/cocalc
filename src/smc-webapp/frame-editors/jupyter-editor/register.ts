@@ -20,6 +20,13 @@ export function init() {
     });
   }
 
+  // Purely to be paranoid, we register this once.  It will immediately get
+  // undone in init_jupyter_classic_support below, if user has selected
+  // jupyter classic.   We just don't want to be stuck waiting for the
+  // account settings table to be initialized, and provide user with
+  // no editor at all.
+  register_cocalc_jupyter();
+
   init_jupyter_classic_support(register_cocalc_jupyter);
 
   // We always register for "ipynb-cocalc-jupyter" purely as a hack so that
