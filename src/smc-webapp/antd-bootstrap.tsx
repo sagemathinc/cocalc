@@ -14,7 +14,6 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 *at all*, hence this.
 */
 
-
 // TODO: What we haven't converted yet, but do use in CoCalc:
 export {
   FormControl,
@@ -26,6 +25,8 @@ export {
   NavItem,
   Table,
 } from "react-bootstrap";
+
+import "antd/dist/antd.css";
 
 import { React, Rendered } from "./app-framework";
 import { r_join, Space } from "./r_misc";
