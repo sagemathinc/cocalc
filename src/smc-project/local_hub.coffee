@@ -26,6 +26,7 @@ if process.env.SMC_LOCAL_HUB_HOME?
 if not process.env.SMC?
     process.env.SMC = path.join(process.env.HOME, '.smc')
 SMC = if program.test then '/tmp' else process.env.SMC
+
 {getLogger} = require('./logger');
 winston = getLogger('local-hub') # must be after SMC above
 
@@ -166,15 +167,6 @@ init_info_json = (cb) ->  # NOTE: cb should only be required to guarantee info.j
             winston.info("Wrote 'info.json'")
         cb?(err)
 
-# Connecting to existing session or making a new one.
-connect_to_session = (socket, mesg) ->
-    winston.debug("connect_to_session -- type='#{mesg.type}'")
-    switch mesg.type
-        when 'console'
-            throw Error("Console Unsupported")
-        else
-            err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
-            socket.write_mesg('json', err)
 
 # Handle a message from the hub
 handle_mesg = (socket, mesg, handler) ->
@@ -188,11 +180,6 @@ handle_mesg = (socket, mesg, handler) ->
         when 'heartbeat'
             winston.debug("received heartbeat on socket '#{socket.id}'")
             socket.heartbeat = new Date()
-        when 'connect_to_session', 'start_session'
-            # These sessions completely take over this connection, so we stop listening
-            # for further control messages on this connection.
-            socket.removeListener('mesg', handler)
-            connect_to_session(socket, mesg)
         when 'jupyter_port'
             # start jupyter server if necessary and send back a message with the port it is serving on
             jupyter_manager.jupyter_port(socket, mesg)

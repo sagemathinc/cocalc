@@ -25,7 +25,7 @@ function determineFromPath(): string {
 // NOT exported, since we want to ensure that how the other directories
 // are derived from this is all centralized in this file, and that there
 // is no other data.
-const data: string = process.env.DATA ?? determineFromPath();
+export const data: string = process.env.DATA ?? determineFromPath();
 
 export const pgdata: string = process.env.PGDATA ?? join(data, "postgres");
 export const pghost: string = process.env.PGHOST ?? join(pgdata, "socket");
