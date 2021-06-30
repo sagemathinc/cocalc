@@ -13,7 +13,6 @@ import { callback2 } from "smc-util/async-utils";
 import { callback } from "awaiting";
 import { getLogger } from "./logger";
 import { init as initMemory } from "smc-util-node/memory";
-import port from "smc-util-node/port";
 import basePath from "smc-util-node/base-path";
 const { execute_code } = require("smc-util-node/misc_node"); // import { execute_code } from "smc-util-node/misc_node";
 import { retry_until_success } from "smc-util/async-utils";
@@ -165,7 +164,7 @@ async function startServer(): Promise<void> {
 
   if (program.agentPort) {
     winston.info("Configure agent port");
-    set_agent_endpoint(program.agentPort, program.host);
+    set_agent_endpoint(program.agentPort, program.hostname);
   }
 
   // Handle potentially ancient cocalc installs with old account registration token.
@@ -243,12 +242,18 @@ async function startServer(): Promise<void> {
     app,
   });
 
-  winston.info(`starting webserver listening on ${program.host}:${port}`);
-  await callback(httpServer.listen.bind(httpServer), port, program.host);
+  winston.info(
+    `starting webserver listening on ${program.hostname}:${program.port}`
+  );
+  await callback(
+    httpServer.listen.bind(httpServer),
+    program.port,
+    program.hostname
+  );
 
-  if (port == 443 && program.httpsCert && program.httpsKey) {
+  if (program.port == 443 && program.httpsCert && program.httpsKey) {
     // also start a redirect from port 80 to port 443.
-    await initHttpRedirect(program.host);
+    await initHttpRedirect(program.hostname);
   }
 
   if (program.shareServer) {
@@ -261,7 +266,7 @@ async function startServer(): Promise<void> {
     await callback2(init_passport, {
       router,
       database,
-      host: program.host,
+      host: program.hostname,
     });
   }
 
@@ -272,13 +277,13 @@ async function startServer(): Promise<void> {
       router,
       projectControl,
       clients,
-      host: program.host,
+      host: program.hostname,
       isPersonal: program.personal,
     });
   }
 
   if (program.proxyServer) {
-    winston.info(`initializing the http proxy server on port ${port}`);
+    winston.info(`initializing the http proxy server on port ${program.port}`);
     initProxy({
       projectControl,
       isPersonal: !!program.personal,
@@ -297,14 +302,14 @@ async function startServer(): Promise<void> {
     await callback2(startHubRegister, {
       database,
       clients,
-      host: program.host,
-      port,
+      host: program.hostname,
+      port: program.port,
       interval_s: REGISTER_INTERVAL_S,
     });
 
     const msg = `Started HUB!\n*****\n\n ${
       program.httpsKey ? "https" : "http"
-    }://${program.host}:${port}${basePath}\n\n*****`;
+    }://${program.hostname}:${program.port}${basePath}\n\n*****`;
     winston.info(msg);
   }
 
@@ -383,7 +388,7 @@ async function main(): Promise<void> {
       0
     )
     .option(
-      "--host [string]",
+      "--hostname [string]",
       'host of interface to bind to (default: "127.0.0.1")',
       "127.0.0.1"
     )

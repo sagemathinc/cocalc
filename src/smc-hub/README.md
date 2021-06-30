@@ -24,12 +24,13 @@ Run the hub server for use from cocalc-docker:
 npm run docker
 ```
 
-## Using a different BASE_PATH and PORT
+## Using a different BASE\_PATH and PORT
 
-Just set either the BASE_PATH or PORT environment variables when starting the
-hub, and it will use what you set. If you do not set a BASE_PATH it uses either
-"/" by default, or something involving the project id if you're inside a CoCalc
-project. If you don't set the PORT then 5000 is used by default.
+Just set either the BASE\_PATH or PORT environment variables when starting thehub, and it will use what you set. If you do not set a BASE\_PATH it uses either"/" by default, or something involving the project id if you're inside a CoCalcproject.
+
+If you don't set the PORT then 5000 is used by default.   The only way to set the port is via the PORT environment variable.
+
+You can use the `--hostname` command line options if you are starting the hub directly via the `cocalc-hub-server` script and need to specify a different interface (e.g., 0.0.0.0 instead of localhost).
 
 ## Listening on https
 
@@ -42,7 +43,7 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./selfsigned.key -ou
 to create self-signed key and cert. You can then start the hub with these two files as options:
 
 ```sh
-... cocalc-hub-server ... --https-key=./selfsigned.key --https-cert=./selfsigned.crt
+cd smc-hub; npx cocalc-hub-server ... --https-key=./selfsigned.key --https-cert=./selfsigned.crt
 ```
 
 and the hub will use https instead of http. Simple as that.

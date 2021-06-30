@@ -21,6 +21,11 @@ commander
     (n) => parseInt(n),
     0
   )
+  .option(
+    "--hostname [string]",
+    'hostname of interface to bind to (default: "127.0.0.1")',
+    "127.0.0.1"
+  )
   .option("--kucalc", "Running in the kucalc environment")
   .option(
     "--test-firewall",

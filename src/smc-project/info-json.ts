@@ -7,9 +7,10 @@ about the project.
 
 import { networkInterfaces } from "os";
 import { getLogger } from "./logger";
-import { infoJson } from "./data";
+import { infoJson, project_id, username } from "./data";
 import { is_valid_uuid_string } from "smc-util/misc";
 import { program } from "./init-program";
+import { basePath } from "smc-util-node/base-path";
 
 let INFO: {
   project_id: string;
@@ -22,20 +23,6 @@ export { INFO };
 export default async function init() {
   const winston = getLogger("info-json init");
   winston.info("initializing the info.json file...");
-  if (
-    process.env.COCALC_PROJECT_ID != null &&
-    process.env.COCALC_USERNAME != null
-  ) {
-    project_id = process.env.COCALC_PROJECT_ID;
-    username = process.env.COCALC_USERNAME;
-  } else {
-    const v = process.env.HOME.split("/");
-    project_id = v[v.length - 1];
-    if (!is_valid_uuid_string(project_id)) {
-      throw Error("unable to determine project_id from HOME directory path");
-    }
-    username = project_id.replace(/-/g, "");
-  }
   let host: string;
   if (process.env.HOST != null) {
     host = process.env.HOST;
