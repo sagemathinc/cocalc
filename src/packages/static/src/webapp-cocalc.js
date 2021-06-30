@@ -4,7 +4,8 @@
  */
 
 import "./webapp-globals";
-import { init } from "./webapp-libraries";
+import "./webapp-libraries";
+import { init } from "smc-webapp/entry-point";
 import { startedUp } from "./webapp-error";
 
 init();

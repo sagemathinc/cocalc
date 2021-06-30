@@ -127,7 +127,7 @@
     "uglify-js": "^3.13.7",
     "url-loader": "^4.1.1",
     "util": "^0.12.3",
-    "webpack": "^5.39.1",
+    "webpack": "^5.41.1",
     "webpack-bundle-analyzer": "^4.4.2",
     "webpack-cli": "^4.7.0",
     "webpack-dev-middleware": "^4.3.0",
