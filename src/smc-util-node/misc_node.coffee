@@ -410,19 +410,6 @@ exports.unforward_all_ports = () ->
     for port, r of local_port_to_child_process
         r.kill("SIGKILL")
 
-free_port = exports.free_port = (cb) ->    # cb(err, available port as assigned by the operating system)
-    server = require("net").createServer()
-    port = 0
-    server.on "listening", () ->
-        port = server.address().port
-        server.close()
-    server.on "close", ->
-        f = () ->
-            cb(null, port)
-        # give the OS a chance to really make the port available again.
-        setTimeout(f, 500)
-    server.listen(0)
-
 exports.forward_remote_port_to_localhost = (opts) ->
     opts = defaults opts,
         username    : required

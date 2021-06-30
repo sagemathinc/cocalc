@@ -14,6 +14,7 @@ import Logger from "smc-util-node/logger";
 import { months_ago, to_json } from "smc-util/misc";
 const misc_node = require("smc-util-node/misc_node");
 import * as Database from "better-sqlite3";
+import { Router } from "express";
 
 const winston = Logger("jupyter-blobs-sqlite");
 
@@ -205,8 +206,8 @@ export class BlobStore implements BlobStoreInterface {
     return this.stmt_keys.all().map((x) => x.sha1);
   }
 
-  express_router(base, express) {
-    const router = express.Router();
+  express_router(base): Router {
+    const router = Router();
     base += "blobs/";
 
     router.get(base, (_, res) => {
@@ -215,7 +216,7 @@ export class BlobStore implements BlobStoreInterface {
 
     router.get(base + "*", (req, res) => {
       const filename: string = req.path.slice(base.length);
-      const sha1: string = req.query.sha1;
+      const sha1: string = `${req.query.sha1}`;
       res.type(filename);
       res.send(this.get(sha1));
     });

@@ -1,13 +1,16 @@
 /* Create the TCP server that communicates with hubs */
 
 import { createServer } from "net";
+import { writeFile } from "fs";
 import { callback } from "awaiting";
 import { getLogger } from "smc-project/logger";
 import { hubPortFile } from "smc-project/data";
 const { enable_mesg, unlock_socket } = require("smc-util-node/misc_node");
 import { options } from "smc-project/init-program";
-import { secretToken } from "smc-hub/servers/secret-token";
+import { secretToken } from "smc-project/servers/secret-token";
 const client = require("smc-hub/client");
+import * as uuid from "uuid";
+import handleMessage from "./handle-message";
 
 const winston = getLogger("hub-tcp-server");
 
@@ -21,7 +24,14 @@ export default async function init(): Promise<void> {
   winston.info("starting tcp server: project <--> hub...");
   const server = createServer(handleConnection);
   await callback(server.listen, options.hubPort, options.hostname);
-  const { port } = server.address();
+  const address = server.address();
+  if (address == null || typeof address == "string") {
+    // null = failed; string doesn't happen since that's for unix domain
+    // sockets, which we aren't using.
+    // This is probably impossible, but it makes typescript happier.
+    throw Error("failed to assign a port");
+  }
+  const { port } = address;
   winston.info(`hub tcp_server listening ${options.hostname}:${port}`);
   await callback(writeFile, hubPortFile, `${port}`);
 }
@@ -52,7 +62,7 @@ async function handleConnection(socket) {
       // non-JSON types are handled elsewhere, e.g., for sending binary data.
       // I'm not sure that any other message types are actually used though.
       // winston.debug("received json mesg", mesg);
-      handle_mesg(socket, mesg);
+      handleMessage(socket, mesg);
     }
   });
 }

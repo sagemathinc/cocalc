@@ -2,13 +2,14 @@
 Paths to temporary files used by the project.
 */
 
-import join from "path";
+import { join } from "path";
 import { data } from "smc-util-node/data";
 import { is_valid_uuid_string } from "smc-util/misc";
 
 export const infoJson = join(data, "info.json");
 
 export const hubPortFile = join(data, "hub-server.port");
+export const apiServerPortFile = join(data, "api-server.port");
 export const browserPortFile = join(data, "browser-server.port");
 export const serverPidFile = join(data, "server.pid");
 export const rootSymlink = join(data, "root");
@@ -23,6 +24,9 @@ function getIDs() {
     project_id = process.env.COCALC_PROJECT_ID;
     username = process.env.COCALC_USERNAME;
   } else {
+    if (!process.env.HOME) {
+      throw Error("HOME not defined, so no way to determine project_id");
+    }
     const v = process.env.HOME.split("/");
     project_id = v[v.length - 1];
     if (!is_valid_uuid_string(project_id)) {

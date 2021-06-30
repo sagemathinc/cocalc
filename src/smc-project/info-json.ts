@@ -6,16 +6,18 @@ about the project.
 */
 
 import { networkInterfaces } from "os";
+import { writeFile } from "fs";
+import { callback } from "awaiting";
 import { getLogger } from "./logger";
 import { infoJson, project_id, username } from "./data";
-import { is_valid_uuid_string } from "smc-util/misc";
 import { options } from "./init-program";
-import { basePath } from "smc-util-node/base-path";
+import basePath from "smc-util-node/base-path";
 
 let INFO: {
   project_id: string;
   location: { host: string; username: string };
   basePath: string;
+  base_url: string; // backward compat
 };
 
 export { INFO };
@@ -42,6 +44,6 @@ export default async function init() {
     basePath,
     base_url: basePath, // for backwards compat userspace code
   };
-  await callback(fs.writeFile, infoJson, JSON.stringify(INFO));
+  await callback(writeFile, infoJson, JSON.stringify(INFO));
   winston.info(`Successfully wrote "${infoJson}"`);
 }

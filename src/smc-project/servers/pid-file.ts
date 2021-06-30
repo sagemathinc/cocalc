@@ -1,5 +1,5 @@
-import writeFile from "fs";
-import callback from "delay";
+import { writeFile } from "fs";
+import { callback } from "awaiting";
 
 import { serverPidFile } from "smc-project/data";
 

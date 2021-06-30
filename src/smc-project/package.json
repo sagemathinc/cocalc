@@ -81,6 +81,7 @@
   "scripts": {
     "start": "node dist/project.js",
     "build": "tsc && coffee -m -c -o dist/ .",
+    "tsc": "tsc -w",
     "old-test": "npm run testproj && npm run testjup",
     "old-testproj": "echo 'TEST PROJECT'; node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
     "old-testjup": "echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee"

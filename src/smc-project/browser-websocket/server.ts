@@ -8,19 +8,19 @@ Create the Primus realtime socket server
 */
 
 const { join } = require("path");
-import { Application } from "express";
+import { Router } from "express";
 import { Server } from "http";
 
 // Primus devs don't care about typescript: https://github.com/primus/primus/pull/623
 const Primus = require("primus");
 const UglifyJS = require("uglify-js");
 import { init_websocket_api } from "./api";
-import { basePath } from "smc-util-node/base-path";
+import basePath from "smc-util-node/base-path";
 
 import { getLogger } from "smc-project/logger";
 const winston = getLogger("websocket-server");
 
-export default function init(app: Application, server: Server): void {
+export default function init(server: Server): Router {
   // Create primus server object:
   const opts = {
     pathname: join(basePath, ".smc", "ws"),
@@ -35,7 +35,7 @@ export default function init(app: Application, server: Server): void {
 
   init_websocket_api(primus);
 
-  const router = app.Router();
+  const router = Router();
   const library: string = UglifyJS.minify(primus.library()).code;
 
   router.get("/.smc/primus.js", (_, res) => {
@@ -45,4 +45,6 @@ export default function init(app: Application, server: Server): void {
   winston.info(
     `waiting for clients to request mprimus.js (length=${library.length})...`
   );
+
+  return router;
 }

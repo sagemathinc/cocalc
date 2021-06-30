@@ -2,8 +2,11 @@ import { options } from "./init-program";
 const kucalc = require("./kucalc");
 import * as projectSetup from "./project-setup";
 import { activate as initAutorenice } from "./autorenice";
+import { getLogger } from "./logger";
 
 export default function init() {
+  const winston = getLogger("init kucalc");
+  winston.info("initializating state related to KuCalc");
   if (options.kucalc) {
     winston.info("running in kucalc");
     kucalc.IN_KUCALC = true;
@@ -18,10 +21,9 @@ export default function init() {
   }
 
   if (process.env.COCALC_PROJECT_AUTORENICE != null || options.kucalc) {
-    initAutorenice(process.env.COCALC_PROJECT_AUTORENICE);
+    initAutorenice();
   }
 
-  // this is only relevant for kucalc
   projectSetup.configure();
   projectSetup.set_extra_env();
 }

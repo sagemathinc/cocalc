@@ -1,8 +1,7 @@
-import { Application, static } from "express";
+import { Application, static as staticServer } from "express";
 import * as index from "serve-index";
 
 export default function init(app: Application, base: string) {
-
   // Setup the static raw HTTP server.  This must happen after anything above,
   // since it serves all URL's (so it has to be the fallback).
   app.use(base, (req, res, next) => {
@@ -18,7 +17,11 @@ export default function init(app: Application, base: string) {
     next();
   });
 
-  app.use(base, index(home, { hidden: true, icons: true }));
+  const home = process.env.HOME;
+  if (home == null) {
+    throw Error("HOME env variable must be defined");
+  }
 
-  app.use(base, static(home, { hidden: true }));
+  app.use(base, index(home, { hidden: true, icons: true }));
+  app.use(base, staticServer(home, { dotfiles: "allow" }));
 }

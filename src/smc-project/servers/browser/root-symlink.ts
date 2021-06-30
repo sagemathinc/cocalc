@@ -7,11 +7,11 @@ import { access, constants, symlink } from "fs";
 import { callback } from "awaiting";
 import { rootSymlink } from "smc-project/data";
 
-export default async function rootSymlink(): Promise<string> {
+export default async function init(): Promise<void> {
   try {
     // not using fs.exists, since it is DEPRECATED.
     await callback(access, rootSymlink, constants.F_OK);
-    return; // exists so nothing to do.
+    // exists so nothing to do.
   } catch (_err) {
     // doesn't exist, so create it
     await callback(symlink, "/", rootSymlink);

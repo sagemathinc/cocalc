@@ -25,7 +25,7 @@ async function createSecretToken(): Promise<string> {
   await callback(writeFile, secretTokenPath, secretToken);
   // set restrictive permissions; shouldn't be necessary
   await callback(chmod, secretTokenPath, 0o600);
-  return value;
+  return secretToken;
 }
 
 export default async function init(): Promise<string> {

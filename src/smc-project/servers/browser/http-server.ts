@@ -7,19 +7,20 @@ should be proxied through some hub.
 
 import * as express from "express";
 import { createServer } from "http";
+import { callback } from "awaiting";
 import * as compression from "compression";
 import * as bodyParser from "body-parser";
 import { join } from "path";
 import { writeFile } from "fs";
 
 import { options } from "smc-project/init-program";
-import { basePath } from "smc-util-node/base-path";
+import basePath from "smc-util-node/base-path";
 import { getLogger } from "smc-project/logger";
 import { browserPortFile, project_id } from "smc-project/data";
-import { directory_listing_router as initDirectoryListing } from "smc-project/directory-listing";
-import { jupyter_router as initJupyter } from "smc-project/jupyter/http-server";
+import initDirectoryListing from "smc-project/directory-listing";
+import initJupyter from "smc-project/jupyter/http-server";
 import initWebsocket from "smc-project/browser-websocket/server";
-import { upload_endpoint as initUpload } from "smc-project/upload";
+import initUpload from "smc-project/upload";
 import initStaticServer from "./static";
 import initRootSymbolicLink from "./root-symlink";
 const kucalc = require("smc-project/kucalc");
@@ -56,27 +57,34 @@ export default async function init(): Promise<void> {
   // to the hub (at least in KuCalc).  It is still used by HUB!  But why?  Maybe it is only
   // for the deprecated public access to a project?  If so, we can get rid of all of that.
   winston.info("initializing directory listings server (DEPRECATED)");
-  app.use(base, initDirectoryListing(express));
+  app.use(base, initDirectoryListing());
 
   // Setup the jupyter/... server, which is used by our jupyter server for blobs, etc.
   winston.info("initializing Jupyter support HTTP server");
-  app.use(base, initJupyter(express));
+  app.use(base, initJupyter());
 
   // Setup the ws websocket server, which is used by clients
   // for direct websocket connections to the project, and also
   // serves primus.js, which is the relevant client library.
   winston.info("initializing websocket server");
-  app.use(base, initWebsocket(app, server));
+  app.use(base, initWebsocket(server));
 
   // Setup the upload POST endpoint
   winston.info("initializing file upload server");
-  app.use(base, initUpload(express, opts.logger));
+  app.use(base, initUpload());
 
   winston.info("initializing static server");
   initStaticServer(app, base);
 
   await callback(server.listen, options.browserPort, options.hostname);
-  const assignedPort = server.address().port; // may be a server assigned random port.
+  const address = server.address();
+  if (address == null || typeof address == "string") {
+    // null = failed; string doesn't happen since that's for unix domain
+    // sockets, which we aren't using.
+    // This is probably impossible, but it makes typescript happier.
+    throw Error("failed to assign a port");
+  }
+  const assignedPort = address.port; // may be a server assigned random port.
   winston.info(
     `Started -- port=${assignedPort}, host='${options.hostname}', base='${base}'`
   );
