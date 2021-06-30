@@ -12,12 +12,13 @@ import * as bodyParser from "body-parser";
 import { join } from "path";
 import { writeFile } from "fs";
 
+import { options } from "smc-project/init-program";
 import { basePath } from "smc-util-node/base-path";
 import { getLogger } from "smc-project/logger";
 import { browserPortFile, project_id } from "smc-project/data";
 import { directory_listing_router as initDirectoryListing } from "smc-project/directory-listing";
 import { jupyter_router as initJupyter } from "smc-project/jupyter/http-server";
-import { init_websocket_server as initWebsocket } from "smc-project/browser-websocket/server";
+import initWebsocket from "smc-project/browser-websocket/server";
 import { upload_endpoint as initUpload } from "smc-project/upload";
 import initStaticServer from "./static";
 import initRootSymbolicLink from "./root-symlink";
@@ -25,19 +26,7 @@ const kucalc = require("smc-project/kucalc");
 
 const winston = getLogger("browser-http-server");
 
-interface Options {
-  port: number; // 0 for server assigned
-  host: string;
-  //secretToken: string; // **TODO** hub sends this as part of a token that the proxy server injects
-  client;
-}
-
-export default async function init({
-  port,
-  host,
-  //secretToken,
-  client,
-}: Options): Promise<void> {
+export default async function init(): Promise<void> {
   winston.info("starting server...");
 
   const app = express();
@@ -77,7 +66,7 @@ export default async function init({
   // for direct websocket connections to the project, and also
   // serves primus.js, which is the relevant client library.
   winston.info("initializing websocket server");
-  app.use(base, initWebsocket(app, server, base, winston, client));
+  app.use(base, initWebsocket(app, server));
 
   // Setup the upload POST endpoint
   winston.info("initializing file upload server");
@@ -86,10 +75,10 @@ export default async function init({
   winston.info("initializing static server");
   initStaticServer(app, base);
 
-  await callback(server.listen, port, host);
+  await callback(server.listen, options.browserPort, options.hostname);
   const assignedPort = server.address().port; // may be a server assigned random port.
   winston.info(
-    `Started -- port=${assignedPort}, host='${host}', base='${base}'`
+    `Started -- port=${assignedPort}, host='${options.hostname}', base='${base}'`
   );
 
   winston.info(`Writing port to ${browserPortFile}`);

@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-require("smc-project/local_hub");
+require("smc-project/project");

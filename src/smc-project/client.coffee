@@ -56,6 +56,9 @@ blobs = require('./blobs')
 
 {defaults, required} = misc
 
+{getLogger} = require('./logger')
+winston = getLogger('Client')
+
 DEBUG = false
 # Easy way to enable debugging in any project anywhere.
 DEBUG_FILE = process.env.HOME + '/.smc-DEBUG'
@@ -66,13 +69,17 @@ else if kucalc.IN_KUCALC
     # logging infrastructure...
     DEBUG = true
 
+exports.init = () =>
+    exports.client = new exports.Client()
+
 ALREADY_CREATED = false
 class exports.Client extends EventEmitter
-    constructor: (project_id, winston) ->
+    constructor: () ->
         super()
         if ALREADY_CREATED
             throw Error("BUG: Client already created!")
         ALREADY_CREATED = true
+        project_id = require('./data').project_id
         @project_id = project_id
         @dbg('constructor')()
         @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.

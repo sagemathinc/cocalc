@@ -8,69 +8,41 @@ Create the Primus realtime socket server
 */
 
 const { join } = require("path");
+import { Application } from "express";
+import { Server } from "http";
 
 // Primus devs don't care about typescript: https://github.com/primus/primus/pull/623
 const Primus = require("primus");
-
 const UglifyJS = require("uglify-js");
-
 import { init_websocket_api } from "./api";
+import { basePath } from "smc-util-node/base-path";
 
-interface Logger {
-  debug: Function;
-  info: Function;
-}
+import { getLogger } from "smc-project/logger";
+const winston = getLogger("websocket-server");
 
-export function init_websocket_server(
-  express: any,
-  http_server: any,
-  base_path: string,
-  logger: Logger,
-  client: any
-): any {
+export default function init(app: Application, server: Server): void {
   // Create primus server object:
   const opts = {
-    pathname: join(base_path, ".smc", "ws"),
+    pathname: join(basePath, ".smc", "ws"),
     transformer: "websockets",
   };
-  const primus = new Primus(http_server, opts);
+  const primus = new Primus(server, opts);
 
   // add multiplex to Primus so we have channels.
   primus.plugin("multiplex", require("primus-multiplex"));
 
-  logger.debug("primus", `listening on ${opts.pathname}`);
+  winston.info(`listening on ${opts.pathname}`);
 
-  init_websocket_api(primus, logger, client);
+  init_websocket_api(primus);
 
-  /*
-  const eval_channel = primus.channel("eval");
-  eval_channel.on("connection", function(spark) {
-    // Now handle the connection
-    logger.debug(
-      "primus eval",
-      `new connection from ${spark.address.ip} -- ${spark.id}`
-    );
-    spark.on("data", async function(data) {
-      logger.debug("primus", "data", typeof data, JSON.stringify(data));
-      try {
-        eval_channel.write(eval(data));
-      } catch (err) {
-        spark.write(err.toString());
-      }
-    });
-  });
-  */
-
-  const router = express.Router();
+  const router = app.Router();
   const library: string = UglifyJS.minify(primus.library()).code;
 
   router.get("/.smc/primus.js", (_, res) => {
-    logger.debug("primus", "serving up primus.js to a specific client");
+    winston.debug("serving up minified primus.js to a specific client");
     res.send(library);
   });
-  logger.debug(
-    "primus",
-    `waiting for clients to request primus.js (length=${library.length})...`
+  winston.info(
+    `waiting for clients to request mprimus.js (length=${library.length})...`
   );
-  return router;
 }

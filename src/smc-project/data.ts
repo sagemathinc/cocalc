@@ -12,6 +12,8 @@ export const hubPortFile = join(data, "hub-server.port");
 export const browserPortFile = join(data, "browser-server.port");
 export const serverPidFile = join(data, "server.pid");
 export const rootSymlink = join(data, "root");
+export const secretToken =
+  process.env.COCALC_SECRET_TOKEN ?? join(data, "secret_token");
 
 // note that the "username" need not be the output of `whoami`, e.g.,
 // when using a cc-in-cc dev project where users are "virtual".

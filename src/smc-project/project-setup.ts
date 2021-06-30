@@ -94,6 +94,3 @@ export function cleanup(): void {
   ];
   envrm.forEach((name) => delete process.env[name]);
 }
-
-// this is called after local services are already setup -- the project startup sequence does not wait for this!
-export async function finalize_kucalc_setup(): Promise<void> {}

@@ -1,13 +1,19 @@
 /* Initialize both the hub and browser servers. */
 
-import initPidFile from "smc-project/pid-file";
 import { getLogger } from "smc-project/logger";
+import initPidFile from "./pid-file";
+import initSecretToken from "./secret-token";
+import initAPIServer from "./api-server";
+import initBrowserServer from "./browser/http-server";
+import initHubServer from "./hub/tcp-server";
 
 const winston = getLogger("init-project-server");
 
-export default async function init() {
+export default async function init(client) {
   winston.info("Write pid file to disk.");
   await initPidFile();
-
-  
+  await initSecretToken(); // must be before servers, since they use this.
+  await initAPIServer();
+  await initBrowserServer(client);
+  await initHubServer(client);
 }

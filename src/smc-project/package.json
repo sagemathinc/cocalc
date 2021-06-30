@@ -16,12 +16,7 @@
     "math",
     "mathematics"
   ],
-  "workspaces": [
-    "../smc-util",
-    "../smc-webapp",
-    "../smc-util-node",
-    "."
-  ],
+  "workspaces": ["../smc-util", "../smc-webapp", "../smc-util-node", "."],
   "dependencies": {
     "@types/lru-cache": "^5.1.0",
     "async": "^1.5.2",
@@ -84,16 +79,14 @@
     "typescript": "^4.3.4"
   },
   "scripts": {
-    "local-hub": "node dist/local_hub.js",
+    "start": "node dist/project.js",
     "build": "tsc && coffee -m -c -o dist/ .",
-    "test": "npm run testproj && npm run testjup",
-    "testproj": "echo 'TEST PROJECT'; node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
-    "testjup": "echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee"
+    "old-test": "npm run testproj && npm run testjup",
+    "old-testproj": "echo 'TEST PROJECT'; node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
+    "old-testjup": "echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee"
   },
   "author": "SageMath, Inc.",
-  "contributors": [
-    "William Stein <wstein@sagemath.com>"
-  ],
+  "contributors": ["William Stein <wstein@sagemath.com>"],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"

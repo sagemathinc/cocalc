@@ -14,8 +14,10 @@ import { lstat } from "fs";
 import { execFile } from "child_process";
 import { callback, delay } from "awaiting";
 
-export function monitor(client) {
-  return new MonitorPublicPaths(client);
+let monitor: MonitorPublicPaths | undefined = undefined;
+export default function init(client) {
+  if (monitor !== undefined) return;
+  monitor = new MonitorPublicPaths(client);
 }
 
 interface Client {

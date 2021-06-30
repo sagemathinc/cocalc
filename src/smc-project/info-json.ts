@@ -9,7 +9,7 @@ import { networkInterfaces } from "os";
 import { getLogger } from "./logger";
 import { infoJson, project_id, username } from "./data";
 import { is_valid_uuid_string } from "smc-util/misc";
-import { program } from "./init-program";
+import { options } from "./init-program";
 import { basePath } from "smc-util-node/base-path";
 
 let INFO: {
@@ -26,7 +26,7 @@ export default async function init() {
   let host: string;
   if (process.env.HOST != null) {
     host = process.env.HOST;
-  } else if (program.kucalc) {
+  } else if (options.kucalc) {
     // what we want for the Google Compute engine deployment
     // earlier, there was eth0, but newer Ubuntu's on GCP have ens4
     const nics = networkInterfaces();

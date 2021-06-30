@@ -17,15 +17,14 @@ const {
 const { print_to_pdf } = require("smc-project/print_to_pdf");
 const { process_kill } = require("smc-util-node/misc_node");
 const { handle_save_blob_message } = require("smc-project/blobs");
+const client = require("smc-project/client");
 
 const winston = getLogger("handle-message-from-hub");
 
 export default function handle_message(socket, mesg: Message) {
   winston.debug("received ", mesg);
 
-  // TODO -- probably move this from here to wherever handle_message
-  // is called instead!
-  if (hub_client.handle_mesg(mesg, socket)) {
+  if (client.client?.handle_mesg(mesg, socket)) {
     return;
   }
 
