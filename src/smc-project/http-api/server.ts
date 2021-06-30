@@ -17,6 +17,7 @@ const MAX_REQUESTS_PER_MINUTE = 50;
 import * as express from "express";
 import { writeFile } from "fs";
 import { callback } from "awaiting";
+import { once } from "smc-util/async-utils";
 import { endswith, split, meta_file } from "smc-util/misc";
 import { json, urlencoded } from "body-parser";
 
@@ -34,7 +35,8 @@ export default async function init(): Promise<void> {
   dbg("configuring server...");
   configure(client, app, dbg);
 
-  const server = await callback(app.listen, "localhost");
+  const server = app.listen(0, "localhost");
+  await once(server, "listening");
   const address = server.address();
   if (address == null || typeof address == "string") {
     throw Error("failed to assign a port");

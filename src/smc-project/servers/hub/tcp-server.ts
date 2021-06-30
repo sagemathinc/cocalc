@@ -3,12 +3,13 @@
 import { createServer } from "net";
 import { writeFile } from "fs";
 import { callback } from "awaiting";
+import { once } from "smc-util/async-utils";
 import { getLogger } from "smc-project/logger";
 import { hubPortFile } from "smc-project/data";
 const { enable_mesg, unlock_socket } = require("smc-util-node/misc_node");
 import { options } from "smc-project/init-program";
 import { secretToken } from "smc-project/servers/secret-token";
-const client = require("smc-hub/client");
+const client = require("smc-project/client");
 import * as uuid from "uuid";
 import handleMessage from "./handle-message";
 
@@ -23,7 +24,8 @@ export default async function init(): Promise<void> {
 
   winston.info("starting tcp server: project <--> hub...");
   const server = createServer(handleConnection);
-  await callback(server.listen, options.hubPort, options.hostname);
+  server.listen(options.hubPort, options.hostname);
+  await once(server, "listening");
   const address = server.address();
   if (address == null || typeof address == "string") {
     // null = failed; string doesn't happen since that's for unix domain
@@ -37,10 +39,13 @@ export default async function init(): Promise<void> {
 }
 
 async function handleConnection(socket) {
-  winston.debug(`received new connection from ${socket.remoteAddress}`);
-  socket.on("error", (err) =>
-    winston.debug(`socket '${socket.remoteAddress}' error - ${err}`)
-  );
+  winston.info(`*new* connection from ${socket.remoteAddress}`);
+  socket.on("error", (err) => {
+    winston.error(`socket '${socket.remoteAddress}' error - ${err}`);
+  });
+  socket.on("close", () => {
+    winston.info(`*closed* a conection from ${socket.remoteAddress}`);
+  });
 
   try {
     await callback(unlock_socket, socket, secretToken);

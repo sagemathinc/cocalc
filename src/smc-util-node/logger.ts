@@ -61,7 +61,7 @@ function getLoggerNoCache(name: string): winston.Logger {
     ];
   } else {
     //const filename = join(logs, "%DATE%.log");
-    const filename = join(logs, "hub.log");
+    const filename = join(logs, "log");
     const f = combine(timestamp(), colorize(), myFormatter);
     transports = [
       new winston.transports.Console({

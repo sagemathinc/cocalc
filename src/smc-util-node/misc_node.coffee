@@ -194,7 +194,7 @@ exports.unlock_socket = (socket, token, cb) ->     # cb(err)
     user_token = ''
     listener = (data) ->
         user_token += data.toString()
-        if user_token == token
+        if user_token.slice(0,token.length) == token
             socket.removeListener('data', listener)
             # got it!
             socket.write('y')

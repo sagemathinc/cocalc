@@ -12,7 +12,7 @@ import * as compression from "compression";
 import * as bodyParser from "body-parser";
 import { join } from "path";
 import { writeFile } from "fs";
-
+import { once } from "smc-util/async-utils";
 import { options } from "smc-project/init-program";
 import basePath from "smc-util-node/base-path";
 import { getLogger } from "smc-project/logger";
@@ -76,7 +76,8 @@ export default async function init(): Promise<void> {
   winston.info("initializing static server");
   initStaticServer(app, base);
 
-  await callback(server.listen, options.browserPort, options.hostname);
+  server.listen(options.browserPort, options.hostname);
+  await once(server, "listening");
   const address = server.address();
   if (address == null || typeof address == "string") {
     // null = failed; string doesn't happen since that's for unix domain

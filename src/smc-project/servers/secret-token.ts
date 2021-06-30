@@ -21,7 +21,7 @@ export { secretToken };
 async function createSecretToken(): Promise<string> {
   winston.info(`creating '${secretTokenPath}'`);
 
-  secretToken = (await callback(randomBytes, LENGTH)).toString();
+  secretToken = (await callback(randomBytes, LENGTH)).toString("base64");
   await callback(writeFile, secretTokenPath, secretToken);
   // set restrictive permissions; shouldn't be necessary
   await callback(chmod, secretTokenPath, 0o600);
@@ -31,7 +31,7 @@ async function createSecretToken(): Promise<string> {
 export default async function init(): Promise<string> {
   try {
     winston.info(`checking for secret token in "${secretTokenPath}"`);
-    secretToken = await callback(readFile, secretTokenPath);
+    secretToken = (await callback(readFile, secretTokenPath)).toString();
     return secretToken;
   } catch (err) {
     return await createSecretToken();

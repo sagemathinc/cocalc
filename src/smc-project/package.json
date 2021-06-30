@@ -79,7 +79,7 @@
     "typescript": "^4.3.4"
   },
   "scripts": {
-    "start": "node dist/project.js",
+    "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' npx cocalc-start-project-server",
     "build": "tsc && coffee -m -c -o dist/ .",
     "tsc": "tsc -w",
     "old-test": "npm run testproj && npm run testjup",
@@ -98,7 +98,6 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "bin": {
-    "cocalc-start-project-server": "./bin/start-project-server.js",
-    "smc-local-hub": "./bin/smc-local-hub"
+    "cocalc-start-project-server": "./bin/start-project-server.js"
   }
 }
