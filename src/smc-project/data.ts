@@ -11,7 +11,7 @@ export const infoJson = join(data, "info.json");
 export const hubPortFile = join(data, "hub-server.port");
 export const apiServerPortFile = join(data, "api-server.port");
 export const browserPortFile = join(data, "browser-server.port");
-export const serverPidFile = join(data, "server.pid");
+export const projectPidFile = join(data, "project.pid");
 export const rootSymlink = join(data, "root");
 export const secretToken =
   process.env.COCALC_SECRET_TOKEN ?? join(data, "secret_token");

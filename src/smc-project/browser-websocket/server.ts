@@ -15,23 +15,20 @@ import { Server } from "http";
 const Primus = require("primus");
 const UglifyJS = require("uglify-js");
 import { init_websocket_api } from "./api";
-import basePath from "smc-util-node/base-path";
 
 import { getLogger } from "smc-project/logger";
-const winston = getLogger("websocket-server");
 
-export default function init(server: Server): Router {
-  // Create primus server object:
+export default function init(server: Server, basePath: string): Router {
+  const winston = getLogger("websocket-server");
   const opts = {
     pathname: join(basePath, ".smc", "ws"),
     transformer: "websockets",
   };
+  winston.info(`Initalizing primus websocket server at "${opts.pathname}"...`);
   const primus = new Primus(server, opts);
 
   // add multiplex to Primus so we have channels.
   primus.plugin("multiplex", require("primus-multiplex"));
-
-  winston.info(`listening on ${opts.pathname}`);
 
   init_websocket_api(primus);
 

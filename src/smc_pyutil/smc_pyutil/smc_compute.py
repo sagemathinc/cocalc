@@ -293,8 +293,10 @@ class Project(object):
         if self._dev:
             self.dev_env()
             os.chdir(self.project_path)
-            self.cmd("smc-local-hub stop")
             self.cmd("smc-sage-server stop")
+            s = self.status()
+            if 'project.pid' in s:
+                os.killpg(s['project.pid'], signal.SIGTERM)
             return
 
         log("killing all processes by user with id %s" % self.uid)
@@ -466,7 +468,6 @@ class Project(object):
             open(bashrc, 'w').write(s)
 
     def dev_env(self, extra_env=None):
-        os.environ['NODE_PATH'] = f"{os.environ['SMC_ROOT']}/smc-project/"
         os.environ['NODE_OPTIONS'] = '--trace-warnings --enable-source-maps'
         os.environ[
             'PATH'] = "{root}/smc-project/bin:{root}/smc_pyutil/smc_pyutil:{path}".format(
@@ -493,6 +494,7 @@ class Project(object):
         # to listen on localhost since that is where
         # the hub is running
         os.environ['SMC_PROXY_HOST'] = 'localhost'
+        os.environ['HOME'] = self.project_path
         if extra_env:
             os.environ['COCALC_EXTRA_ENV'] = extra_env
 
@@ -530,21 +532,8 @@ class Project(object):
             del os.environ['COCALC_SECRET_TOKEN']
         if self._dev:
             self.dev_env(extra_env)
-            os.chdir(self.project_path)
+            os.chdir(f"{os.environ['SMC_ROOT']}/smc-project/")
             self.cmd("npx cocalc-project --daemon")
-
-            def started():
-                return os.path.exists("%s/local_hub/local_hub.port" %
-                                      self.smc_path)
-
-            i = 0
-            while not started():
-                time.sleep(0.1)
-                i += 1
-                import sys
-                sys.stdout.flush()
-                if i >= 100:
-                    return
             return
 
         pid = os.fork()
@@ -765,7 +754,7 @@ spec:
                     t = os.popen("smc-status").read()
                     t = json.loads(t)
                     s.update(t)
-                    if bool(t.get('local_hub.pid', False)):
+                    if bool(t.get('project.pid', False)):
                         s['state'] = 'running'
                     self.get_memory(s)
                 except:
@@ -807,7 +796,7 @@ spec:
                 t = os.popen("smc-status").read()
                 t = json.loads(t)
                 s.update(t)
-                if bool(t.get('local_hub.pid', False)):
+                if bool(t.get('project.pid', False)):
                     s['state'] = 'running'
                 self.get_memory(s)
             except:
@@ -841,7 +830,7 @@ spec:
                     os.chdir(self.smc_path)
                     t = json.loads(os.popen("smc-status").read())
                     s.update(t)
-                    if bool(t.get('local_hub.pid', False)):
+                    if bool(t.get('project.pid', False)):
                         s['state'] = 'running'
                 except Exception as err:
                     log("error running status command -- %s", err)
@@ -865,7 +854,7 @@ spec:
                 os.chdir(self.smc_path)
                 t = json.loads(os.popen("smc-status").read())
                 s.update(t)
-                if bool(t.get('local_hub.pid', False)):
+                if bool(t.get('project.pid', False)):
                     s['state'] = 'running'
             except Exception as err:
                 log("error running status command -- %s", err)

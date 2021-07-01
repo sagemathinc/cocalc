@@ -67,7 +67,9 @@ export default async function init(): Promise<void> {
   // for direct websocket connections to the project, and also
   // serves primus.js, which is the relevant client library.
   winston.info("initializing websocket server");
-  app.use(base, initWebsocket(server));
+  // We have to explicitly also include the base as a parameter
+  // to initWebsocket, since of course it makes deeper user of server.
+  app.use(base, initWebsocket(server, base));
 
   // Setup the upload POST endpoint
   winston.info("initializing file upload server");

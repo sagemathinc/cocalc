@@ -30,6 +30,7 @@ import { getClients } from "./clients";
 import { stripe_sync } from "./stripe/sync";
 import { init_stripe } from "./stripe";
 import { projects } from "smc-util-node/data";
+import port from "smc-util-node/port";
 
 import { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
@@ -242,16 +243,10 @@ async function startServer(): Promise<void> {
     app,
   });
 
-  winston.info(
-    `starting webserver listening on ${program.hostname}:${program.port}`
-  );
-  await callback(
-    httpServer.listen.bind(httpServer),
-    program.port,
-    program.hostname
-  );
+  winston.info(`starting webserver listening on ${program.hostname}:${port}`);
+  await callback(httpServer.listen.bind(httpServer), port, program.hostname);
 
-  if (program.port == 443 && program.httpsCert && program.httpsKey) {
+  if (port == 443 && program.httpsCert && program.httpsKey) {
     // also start a redirect from port 80 to port 443.
     await initHttpRedirect(program.hostname);
   }
@@ -283,7 +278,7 @@ async function startServer(): Promise<void> {
   }
 
   if (program.proxyServer) {
-    winston.info(`initializing the http proxy server on port ${program.port}`);
+    winston.info(`initializing the http proxy server on port ${port}`);
     initProxy({
       projectControl,
       isPersonal: !!program.personal,
@@ -303,13 +298,13 @@ async function startServer(): Promise<void> {
       database,
       clients,
       host: program.hostname,
-      port: program.port,
+      port,
       interval_s: REGISTER_INTERVAL_S,
     });
 
     const msg = `Started HUB!\n*****\n\n ${
       program.httpsKey ? "https" : "http"
-    }://${program.hostname}:${program.port}${basePath}\n\n*****`;
+    }://${program.hostname}:${port}${basePath}\n\n*****`;
     winston.info(msg);
   }
 

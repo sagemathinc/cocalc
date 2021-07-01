@@ -1,7 +1,10 @@
 import { Application, static as staticServer } from "express";
 import * as index from "serve-index";
+import { getLogger } from "smc-project/logger";
 
 export default function init(app: Application, base: string) {
+  const winston = getLogger("serve-static-files-to-browser");
+  winston.info(`initialize with base="${base}"`);
   // Setup the static raw HTTP server.  This must happen after anything above,
   // since it serves all URL's (so it has to be the fallback).
   app.use(base, (req, res, next) => {
@@ -17,11 +20,12 @@ export default function init(app: Application, base: string) {
     next();
   });
 
-  const home = process.env.HOME;
-  if (home == null) {
+  const { HOME } = process.env;
+  if (HOME == null) {
     throw Error("HOME env variable must be defined");
   }
+  winston.info(`serving up HOME="${HOME}"`);
 
-  app.use(base, index(home, { hidden: true, icons: true }));
-  app.use(base, staticServer(home, { dotfiles: "allow" }));
+  app.use(base, index(HOME, { hidden: true, icons: true }));
+  app.use(base, staticServer(HOME, { dotfiles: "allow" }));
 }

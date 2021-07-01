@@ -1840,12 +1840,12 @@ class ProjectClient extends EventEmitter
                                 cb("not running")  # DO NOT CHANGE -- exact callback error is used by client code in the UI
                             else
                                 dbg("status includes info about address...")
-                                if not @host or not status['local_hub.port'] or not status.secret_token
+                                if not @host or not status['hub-server.port'] or not status.secret_token
                                     cb("unknown host, port, or secret_token")
                                     return
                                 address =
                                     host         : @host
-                                    port         : status['local_hub.port']
+                                    port         : status['hub-server.port']
                                     secret_token : status.secret_token
                                     ip           : status.ip
                                 cb()

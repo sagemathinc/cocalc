@@ -103,7 +103,13 @@ smc_compute = (opts) =>
                 else
                     opts.cb(err)
             else
-                opts.cb(undefined, if output.stdout then misc.from_json(output.stdout) else undefined)
+                out = undefined
+                try
+                    out = if output.stdout then misc.from_json(output.stdout) else undefined
+                    opts.cb(undefined, out)
+                catch err
+                    winston.error("smc_compute: error parsing output #{output.stdout}")
+                    opts.cb("error parsing smc_compute output")
 
 project_cache = {}
 project_cache_cb = {}

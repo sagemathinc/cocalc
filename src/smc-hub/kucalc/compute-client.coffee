@@ -20,10 +20,9 @@ What this modules should acomplish:
 
 ###
 
-LOCAL_HUB_PORT      = 6000
-RAW_PORT            = 6001
+HUB_SERVER_PORT     = 6000
+BROWSER_SERVER_PORT = 6001
 SAGE_SERVER_PORT    = 6002
-CONSOLE_SERVER_PORT = 6003
 
 {EventEmitter} = require('events')
 
@@ -233,10 +232,9 @@ class Project extends EventEmitter
         dbg()
         status = @get('status')?.toJS() ? {}
         misc.merge status,  # merge in canonical information
-            "local_hub.port"      : LOCAL_HUB_PORT
-            "raw.port"            : RAW_PORT
+            "hub-server.port"     : HUB_SERVER_PORT
+            "browser-server.port" : RAW_PORT
             "sage_server.port"    : SAGE_SERVER_PORT
-            "console_server.port" : CONSOLE_SERVER_PORT
         opts.cb(undefined, status)
 
     _action: (opts) =>
@@ -374,7 +372,7 @@ class Project extends EventEmitter
                 dbg('it is running')
                 address =
                     host         : @host
-                    port         : LOCAL_HUB_PORT
+                    port         : HUB_SERVER_PORT
                     secret_token : @getIn(['status', 'secret_token'])
                 if not address.secret_token
                     err = 'BUG -- running, but no secret_token!'

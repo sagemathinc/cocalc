@@ -18,7 +18,7 @@ const winston = getLogger("proxy: target");
 
 // The cached entries expire after 30 seconds.  Caching the target
 // helps enormously when there is a burst of requests.
-// Also if a project restarts, the raw port might change and we
+// Also if a project restarts, the browser port might change and we
 // don't want to have to fix this via getting an error.
 
 // Also, if the project stops and starts, the host=ip address could
@@ -92,13 +92,14 @@ export async function getTarget(opts: Options): Promise<{
       port = parseInt(port_desc);
     }
   } else if (type === "raw") {
+    // connection to the HTTP server in the project that serves web browsers
     const status = await callback2(project.status);
-    if (!status["raw.port"]) {
+    if (!status["browser-server.port"]) {
       throw Error(
-        "raw port not available -- project might not be opened or running"
+        "raw browser server port not available -- project might not be opened or running"
       );
     } else {
-      port = status["raw.port"];
+      port = status["browser-server.port"];
     }
   } else {
     throw Error(`unknown url type -- ${type}`);

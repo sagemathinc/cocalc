@@ -10,6 +10,11 @@ import { getLogger } from "./logger";
 const winston = getLogger("project-main");
 
 async function main() {
+  const { HOME } = process.env;
+  if (HOME == null) {
+    throw Error("HOME env var must be set");
+  }
+  process.chdir(HOME);
   const options = initProgram(); // must run before anything else.
   if (options.daemon) {
     winston.info("daemonize the process");
