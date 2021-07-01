@@ -6,6 +6,7 @@
 $         = window.$
 async     = require('async')
 stringify = require('json-stable-stringify')
+CodeMirror = require('codemirror')
 
 {MARKERS, FLAGS, ACTION_FLAGS, ACTION_SESSION_FLAGS} = require('smc-util/sagews')
 
