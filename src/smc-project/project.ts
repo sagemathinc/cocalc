@@ -1,3 +1,4 @@
+import * as daemonizeProcess from "daemonize-process";
 import initProgram from "./init-program";
 import initKucalc from "./init-kucalc";
 const { init: initClient } = require("./client"); // import { Client } from "./client";
@@ -9,7 +10,11 @@ import { getLogger } from "./logger";
 const winston = getLogger("project-main");
 
 async function main() {
-  initProgram(); // must run before anything else.
+  const options = initProgram(); // must run before anything else.
+  if (options.daemon) {
+    winston.info("daemonize the process");
+    daemonizeProcess();
+  }
   initKucalc();
   winston.info("main init function");
   winston.info("initialize INFO.json file");

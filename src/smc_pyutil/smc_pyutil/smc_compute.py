@@ -466,9 +466,11 @@ class Project(object):
             open(bashrc, 'w').write(s)
 
     def dev_env(self, extra_env=None):
+        os.environ['NODE_PATH'] = f"{os.environ['SMC_ROOT']}/smc-project/"
+        os.environ['NODE_OPTIONS'] = '--trace-warnings --enable-source-maps'
         os.environ[
-            'PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
-                salvus_root=os.environ['SMC_ROOT'], path=os.environ['PATH'])
+            'PATH'] = "{root}/smc-project/bin:{root}/smc_pyutil/smc_pyutil:{path}".format(
+                root=os.environ['SMC_ROOT'], path=os.environ['PATH'])
         home = os.environ['HOME']
         if os.path.exists(f"{home}/Library/Python"):
             # dev mode on macOS
@@ -487,7 +489,6 @@ class Project(object):
         os.environ['COCALC_PROJECT_ID'] = self.project_id
         # Obviously this doesn't really work since running as a normal user who can't create other users:
         os.environ['COCALC_USERNAME'] = self.project_id.replace('-', '')
-
         # for development, the raw server, jupyter, etc., have
         # to listen on localhost since that is where
         # the hub is running
@@ -530,7 +531,7 @@ class Project(object):
         if self._dev:
             self.dev_env(extra_env)
             os.chdir(self.project_path)
-            self.cmd("smc-local-hub start")
+            self.cmd("npx cocalc-project --daemon")
 
             def started():
                 return os.path.exists("%s/local_hub/local_hub.port" %

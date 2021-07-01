@@ -12,6 +12,7 @@ interface Options {
   hostname: string;
   kucalc: boolean;
   testFirewall: boolean;
+  daemon: boolean;
 }
 
 let options = {
@@ -20,6 +21,7 @@ let options = {
   hostname: "127.0.0.1",
   testFirewall: false,
   kucalc: false,
+  daemon: false,
 } as Options;
 
 export { options };
@@ -49,11 +51,13 @@ program
     "--test-firewall",
     "Abort and exit w/ code 99 if internal GCE information is accessible"
   )
+  .option("--daemon", "Run as a daemon")
   .parse(process.argv);
 
-export default function init() {
+export default function init(): Options {
   const opts = program.opts();
   for (const key in opts) {
     options[key] = opts[key];
   }
+  return options;
 }
