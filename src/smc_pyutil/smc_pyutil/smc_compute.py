@@ -46,7 +46,7 @@ from subprocess import Popen, PIPE
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 USER_SWAP_MB = 1000  # amount of swap users get in addition to how much RAM they have.
 PLATFORM = platform.system().lower()
-PROJECTS = os.environ.get("COCALC_PROJECTS_HOME", "/projects")
+PROJECTS = os.environ.get("PROJECTS", "/projects")
 
 KUBERNETES_UID = 2001
 KUBERNETES_PROJECTS = "/projects/home"

@@ -48,6 +48,7 @@ const winston = getLogger("hub");
 
 // program gets populated with the command line options below.
 let program: { [option: string]: any } = {};
+export { program };
 
 // How frequently to register with the database that this hub is up and running,
 // and also report number of connected clients.

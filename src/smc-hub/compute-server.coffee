@@ -7,7 +7,6 @@
 
 CONF = '/projects/conf'
 SQLITE_FILE = undefined
-DEV = false    # if true, in special single-process dev mode, where this code is being run directly by the hub.
 
 START_TIME = new Date().getTime() # milliseconds
 
@@ -17,7 +16,7 @@ STATES = require('smc-util/schema').COMPUTE_STATES
 net         = require('net')
 fs          = require('fs')
 os          = require('os')
-
+{join}      = require('path')
 async       = require('async')
 winston = require('./logger').getLogger('compute-server')
 
@@ -33,6 +32,7 @@ sqlite      = require('smc-util-node/sqlite')
 
 PROJECT_PATH = require('smc-util-node/data').projects
 base_path   = require('smc-util-node/base-path').default
+{program}   = require('smc-hub/hub')
 
 {defaults, required} = misc
 
@@ -61,31 +61,23 @@ smc_compute = (opts) =>
         args    : required
         timeout : TIMEOUT
         cb      : required
-    env = undefined
-    if DEV
-        os_path = require('path')
-        # 2021: we have to be explicit to smc_compute where it's modules are now.
-        # prior to encapsulating the global "/cocalc/..." setup, this would have picked up the global installation.
-        env = {BASE_PATH:base_path, PYTHONPATH: os_path.join(process.env.SMC_ROOT, 'smc_pyutil/')}
-        command = os_path.join(process.env.SMC_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
-        v = ['--dev', "--projects", PROJECT_PATH]
-    else
-        env = {BASE_PATH:base_path}
-        winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
-        if USERNAME != 'root'
-            command = "sudo"
-            v = ["/usr/local/bin/smc-compute"]
-        else
-            command = '/usr/local/bin/smc-compute'
-            v = []
-    if program.single
+    # 2021: we have to be explicit to smc_compute where it's modules are now.
+    # prior to encapsulating the global "/cocalc/..." setup, this would have
+    # picked up the global installation.
+    env = {BASE_PATH:base_path, PYTHONPATH: join(process.env.SMC_ROOT, 'smc_pyutil/')}
+    command = join(process.env.SMC_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
+    v = []
+    if program.dev
+        v.push("--dev")
+    else if program.single
         v.push("--single")
-    if program.kubernetes
+    else if program.kubernetes
         v.push("--kubernetes")
+    v.push("--projects")
+    v.push(PROJECT_PATH)
 
     args = v.concat(opts.args)
-    if DEV  # potential security issue with logging this is not dev..
-        winston.debug("smc_compute: #{command} #{args.join(' ')}")
+    winston.debug("smc_compute: #{command} #{args.join(' ')}")
 
     misc_node.execute_code
         command : command
@@ -96,7 +88,7 @@ smc_compute = (opts) =>
         env     : env
         cb      : (err, output) =>
             #winston.debug(misc.to_safe_str(output))
-            winston.debug("smc_compute: finished running #{opts.args.join(' ')} -- #{err}")
+            winston.debug("smc_compute: finished running #{command} #{opts.args.join(' ')} -- #{err}")
             if err
                 if output?.stderr
                     opts.cb(output.stderr)
@@ -108,7 +100,7 @@ smc_compute = (opts) =>
                     out = if output.stdout then misc.from_json(output.stdout) else undefined
                     opts.cb(undefined, out)
                 catch err
-                    winston.error("smc_compute: error parsing output #{output.stdout}")
+                    winston.error("smc_compute: error parsing output #{output.stdout} of '#{command} #{opts.args.join(' ')}'")
                     opts.cb("error parsing smc_compute output")
 
 project_cache = {}
@@ -663,65 +655,8 @@ handle_compute_mesg = (mesg, socket, cb) ->
 
 handle_status_mesg = (mesg, socket, cb) ->
     dbg = (m) => winston.debug("handle_status_mesg(hub -> compute, id=#{mesg.id}): #{m}")
-    dbg()
-    status = {nproc:STATS.nproc}
-    async.parallel([
-        (cb) =>
-            sqlite_db.select
-                table   : 'projects'
-                columns : ['state']
-                cb      : (err, result) =>
-                    if err
-                        cb(err)
-                    else
-                        projects = status.projects = {}
-                        for x in result
-                            s = x.state
-                            if not projects[s]?
-                                projects[s] = 1
-                            else
-                                projects[s] += 1
-                        cb()
-        (cb) =>
-            if DEV
-                cb(); return
-            fs.readFile '/proc/loadavg', (err, data) =>
-                if err
-                    cb(err)
-                else
-                    # http://stackoverflow.com/questions/11987495/linux-proc-loadavg
-                    x = misc.split(data.toString())
-                    # this is normalized based on number of procs
-                    # TODO: I just looked at the source code and
-                    # STATS.nproc is never updated, so this is silly.
-                    status.load = (parseFloat(x[i])/STATS.nproc for i in [0..2])
-                    v = x[3].split('/')
-                    status.num_tasks   = parseInt(v[1])
-                    status.num_active = parseInt(v[0])
-                    cb()
-        (cb) =>
-            if DEV
-                cb(); return
-            fs.readFile '/proc/meminfo', (err, data) =>
-                if err
-                    cb(err)
-                else
-                    # See this about what MemAvailable is:
-                    #   https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=34e431b0ae398fc54ea69ff85ec700722c9da773
-                    x = data.toString()
-                    status.memory = memory = {}
-                    for k in ['MemAvailable', 'SwapTotal', 'MemTotal', 'SwapFree']
-                        i = x.indexOf(k)
-                        y = x.slice(i)
-                        i = y.indexOf('\n')
-                        memory[k] = parseInt(misc.split(y.slice(0,i).split(':')[1]))/1000
-                    cb()
-    ], (err) =>
-        if err
-            cb(message.error(error:err))
-        else
-            cb(message.compute_server_status(status:status))
-    )
+    dbg("stub")
+    cb(message.compute_server_status(status:{}))
 
 handle_mesg = (socket, mesg) ->
     dbg = (m) => winston.debug("handle_mesg(hub -> compute, id=#{mesg.id}): #{m}")
@@ -918,22 +853,6 @@ start_tcp_server = (cb) ->
     get_port () ->
         listen(cb)
 
-# Initialize basic information about this node once and for all.
-# So far, not much -- just number of processors.
-STATS = {nproc:1}
-init_stats = (cb) =>
-    if DEV or program.kubernetes
-        # not meaningful
-        cb()
-        return
-    misc_node.execute_code
-        command : "nproc"
-        cb      : (err, output) =>
-            if err
-                cb(err)
-            else
-                STATS.nproc = parseInt(output.stdout)
-                cb()
 
 # Gets metadata from Google, or if that fails, from the local SQLITe database.  Saves
 # result in database for future use in case metadata fails.
@@ -1051,7 +970,7 @@ update_states = (cb) ->
 
 start_server = (cb) ->
     winston.debug("start_server")
-    async.series [init_stats, read_secret_token, init_sqlite_db, init_mintime, start_tcp_server, update_states], (err) ->
+    async.series [read_secret_token, init_sqlite_db, init_mintime, start_tcp_server, update_states], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else
@@ -1064,7 +983,6 @@ start_server = (cb) ->
 start_fake_server = (cb) ->
     winston.debug("start_fake_server")
     # change global CONF path for local dev purposes
-    DEV = true
     SQLITE_FILE = require('smc-util-node/data').compute_sqlite
     # For the fake dev server, we always reset the database on startup, since
     # we always kill all projects on startup.
@@ -1143,68 +1061,3 @@ exports.fake_dev_socket = (cb) ->
             cb(undefined, new FakeDevSocketFromHub())
     )
 
-
-
-
-###########################
-# Command line interface
-###########################
-# Will delete soon and instead always run like dev does.
-
-exports.program = program = {}
-
-###
-try
-    program
-        .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
-        .option('--logfile [string]',        'write log to this file', String, "#{CONF}/compute.log")
-        .option('--port-file [string]',      'write port number to this file', String, "#{CONF}/compute.port")
-        .option('--secret-file [string]',    'write secret token to this file', String, "#{CONF}/compute.secret")
-        .option('--sqlite-file [string]',    'store sqlite3 database here', String, "#{CONF}/compute.sqlite3")
-        .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
-        .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
-        .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
-        .option('--single',                  'if given, assume no storage servers and everything is running on one VM')
-        .option('--kubernetes',              'if given, assumes running in cocalc-kubernetes, so projects are stored at /projects/home are NFS exported via a service called cocalc-kubernetes-server-nfs; projects run as pods in the cluster.  This is all taken care of by the smc-compute script, which gets the --kubernetes option.')
-        .parse(process.argv)
-    program = program.opts()  # use ancient api
-catch e
-    # Stupid bug in the command module when loaded as a module (?? TODO still ??)
-    program._name = 'xxx'
-
-program.port = parseInt(program.port)
-
-exports.program = program  # so can use the defaults above in other libraries, namely compute-client
-
-main = () ->
-    if program.debug
-        winston.remove(winston.transports.Console)
-        winston.add(winston.transports.Console, {level: program.debug, timestamp:true, colorize:true})
-
-    SQLITE_FILE = program.sqliteFile
-
-    winston.debug("running as a deamon")
-    # run as a server/daemon (otherwise, is being imported as a library)
-    process.addListener "uncaughtException", (err) ->
-        winston.debug("BUG ****************************************************************************")
-        winston.debug("Uncaught exception: " + err)
-        winston.debug(err.stack)
-        winston.debug("BUG ****************************************************************************")
-
-    fs.exists CONF, (exists) ->
-        if exists
-            fs.chmod CONF, 0o700, (err) ->
-                if err
-                    winston.debug("WARNING: something went wrong fixing configuration directory permissions", err)
-
-    if program.foreground
-        start_server (err) ->
-            if err
-                process.exit(1)
-    else
-        daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
-        daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
-
-if program._name.split('.')[0] == 'cocalc-compute-server'
-    main()
-###
