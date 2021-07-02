@@ -554,6 +554,12 @@ class Project(object):
                     raise Exception("%s [%d]" % (e.strerror, e.errno))
 
                 if pid == 0:
+                    os.environ[
+                        'NODE_OPTIONS'] = '--trace-warnings --enable-source-maps'
+                    os.environ['PATH'] = \
+                        "{root}/smc-project/bin:{root}/smc_pyutil/smc_pyutil:{path}".format(
+                            root=os.environ['SMC_ROOT'],
+                            path=os.environ['PATH'])
                     os.environ['HOME'] = self.project_path
                     os.environ['SMC'] = self.smc_path
                     os.environ['DATA'] = self.smc_path
@@ -577,9 +583,8 @@ class Project(object):
                         if y in os.environ:
                             del os.environ[y]
                     os.chdir(self.project_path)
-                    self.cmd(
-                        "cocalc-start-project-server > %s/local_hub.log 2>%s/local_hub.err &"
-                        % (self.smc_path, self.smc_path))
+                    os.chdir(f"{os.environ['SMC_ROOT']}/smc-project/")
+                    self.cmd("npx cocalc-project --daemon")
                 else:
                     os._exit(0)
             finally:
