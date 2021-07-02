@@ -16,7 +16,7 @@ import basePath from "smc-util-node/base-path";
 let INFO: {
   project_id: string;
   location: { host: string; username: string };
-  basePath: string;
+  base_path: string;
   base_url: string; // backward compat
 };
 
@@ -41,7 +41,7 @@ export default async function init() {
   INFO = {
     project_id,
     location: { host, username },
-    basePath,
+    base_path: basePath,
     base_url: basePath, // for backwards compat userspace code
   };
   await callback(writeFile, infoJson, JSON.stringify(INFO));
