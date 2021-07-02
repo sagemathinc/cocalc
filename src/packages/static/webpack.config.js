@@ -112,20 +112,22 @@ if (MEASURE) {
   require("./src/plugins/measure")(registerPlugin);
 }
 
+// We always use disk cache now:
+const useDiskCache = true;
+
+// It's critical that the caching filesystem is VERY fast, but
+// it is fine if the data is wiped, so use /tmp.
 const cacheDirectory = "/tmp/webpack";
 
-if (process.env.NO_WEBPACK_DISK_CACHE) {
-  console.log(`\nNOT using filesystem cache.\n`);
+if (useDiskCache) {
+  console.log(`\nUsing '${cacheDirectory}' as filesystem cache.\n`);
 } else {
-  console.log(
-    `\nUsing '${cacheDirectory}' as filesystem cache.\n`
-  );
+  console.log(`\nNOT using filesystem cache.\n`);
 }
 
 module.exports = {
-  cache: process.env.NO_WEBPACK_DISK_CACHE
-    ? undefined
-    : {
+  cache: useDiskCache
+    ? {
         // This is supposed to cache the in-memory state to disk
         // so initial startup time is less.  Don't do this in
         // user home directory on cocalc, since it uses a LOT
@@ -135,13 +137,8 @@ module.exports = {
           config: [__filename],
         },
         cacheDirectory,
-      },
-  //stats: "verbose",
-  /* optimization: {
-    splitChunks: {
-      minSize: 30000,
-    },
-  },*/
+      }
+    : undefined,
   devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
   mode: PRODMODE ? "production" : "development",
   entry: {
