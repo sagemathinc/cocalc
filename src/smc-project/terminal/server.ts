@@ -193,7 +193,6 @@ export async function terminal(
           return; // nothing to worry about
         }
         // stringify it so it is easy to see what is there:
-        logger.debug(`handle_backend_message...`);
         backend_messages_state = "READING";
         backend_messages_buffer = data.slice(i);
       } else {
