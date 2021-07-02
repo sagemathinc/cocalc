@@ -75,7 +75,7 @@ exports.compute_server = compute_server = (opts) ->
     opts = defaults opts,
         database : undefined
         dev      : false          # dev -- for single-user *development*; compute server runs in same process as client on localhost
-        single   : false          # single -- for single-server use/development; everything runs on a single machine.
+        single   : false          # single -- for single-server use/development; everything runs on a single machine (and computer server also in same process)
         kubernetes : false        # kubernetes -- monolithic cocalc-kubernetes mode
         cb       : required
     if compute_server_cache?
@@ -360,8 +360,8 @@ class ComputeServerClient
     # checking or caching.
     _get_socket: (host, cb) =>
         dbg = @dbg("socket(#{host})")
-        if @_dev
-            dbg("development mode 'socket'")
+        if @_dev or @_single
+            dbg("single process mode simulated 'socket'")
             require('./compute-server').fake_dev_socket (err, socket) =>
                 if err
                     cb(err)
@@ -543,7 +543,7 @@ class ComputeServerClient
             min_interval_s : 60   # don't connect to compute servers and update their status more frequently than this.
             cb             : required    # cb(err, {host1:status, host2:status2, ...})
         dbg = @dbg('status')
-        if @_dev
+        if @_dev or @_single
             opts.hosts = ['localhost']
         result = {}
         if opts.hosts?
@@ -1568,7 +1568,7 @@ class ProjectClient extends EventEmitter
             cb      : required
         dbg = (m) => winston.debug("wait_for_a_state in #{misc.to_json(opts.states)}, state='#{@_synctable.getIn([@project_id, 'state', 'state'])}': #{m}")
         dbg("cause state update")
-        if @_dev
+        if @_dev or @_single
             @_wait_for_a_state_dev(opts)
             return
         @state
@@ -1587,7 +1587,7 @@ class ProjectClient extends EventEmitter
                                 dbg("wait longer...")
 
     _wait_for_a_state_dev: (opts) =>
-        # For smc-in-smc dev, we have to **manually** cause another check,
+        # We have to **manually** cause another check,
         # since there is no separate compute server running!
         dbg = (m) => winston.debug("_wait_for_a_state(dev) in #{misc.to_json(opts.states)}, state='#{@_synctable.getIn([@project_id, 'state', 'state'])}': #{m}")
         dbg("retry until succeess")
