@@ -1,8 +1,20 @@
 {
   "name": "@cocalc/landing-free",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Landing pages for the free version of CoCalc.",
   "main": "index.js",
+  "files": [
+    ".next/*",
+    "styles/*",
+    "public/*",
+    "pages/*",
+    "index.js",
+    "README.md",
+    "package.json",
+    "tsconfig.json",
+    "next-env.d.ts",
+    "next.config.js"
+  ],
   "scripts": {
     "cocalc-dev": "BASE_PATH=/$COCALC_PROJECT_ID/port/3000 next dev",
     "cocalc-prod": "export BASE_PATH=/$COCALC_PROJECT_ID/port/3000 && next build && next start",

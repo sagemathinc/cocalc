@@ -13,7 +13,6 @@ import { join } from "path";
 import { initAnalytics } from "../analytics";
 import { getLogger } from "../logger";
 import { setup_health_checks as setupHealthChecks } from "../health-checks";
-import { setup_open_cocalc as initOpenCoCalc } from "../open-cocalc-server";
 import { path as STATIC_PATH } from "@cocalc/static";
 import { path as CDN_PATH } from "@cocalc/cdn";
 import { database } from "./database";
@@ -25,6 +24,10 @@ import initSetCookies from "./app/set-cookies";
 import initCustomize from "./app/customize";
 import initStats from "./app/stats";
 import initAppRedirect from "./app/app-redirect";
+import initLanding from "./app/landing";
+
+// TODO: delete this import and the open-cocalc-server code itself.
+//import { setup_open_cocalc as initOpenCoCalc } from "../open-cocalc-server";
 
 // Used for longterm caching of files
 const MAX_AGE = ms("100 days"); // NOTE: more than a year would be invalid
@@ -95,7 +98,8 @@ export default function init(opts: Options): {
   setupHealthChecks({ router, db: database });
 
   // Landing page content: this is the "/" index page + assets, for docker, on-prem, dev.
-  initOpenCoCalc({ app, router, db: database, cacheLongTerm, winston });
+  initLanding(router);
+  // initOpenCoCalc({ app, router, db: database, cacheLongTerm, winston });
 
   // The /static content, used by docker, development, etc.  Served by the static middleware.
   router.use(
