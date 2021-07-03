@@ -14,10 +14,12 @@
     "../webapp-lib",
     "../packages/cdn",
     "../packages/landing",
-    "../packages/static"
+    "../packages/static",
+    "../packages/landing-free"
   ],
   "dependencies": {
     "@cocalc/cdn": "*",
+    "@cocalc/landing-free": "file:../packages/landing-free",
     "@cocalc/static": "*",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.1",

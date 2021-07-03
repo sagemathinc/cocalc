@@ -1,10 +1,15 @@
 {
-  "name": "landing-free",
+  "name": "@cocalc/landing-free",
   "version": "0.1.0",
   "description": "Landing pages for the free version of CoCalc.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "cocalc-dev": "BASE_PATH=/$COCALC_PROJECT_ID/port/3000 next dev",
+    "cocalc-prod": "export BASE_PATH=/$COCALC_PROJECT_ID/port/3000 && next build && next start",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "repository": {
     "type": "git",
@@ -17,13 +22,8 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc#readme",
   "private": false,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
   "dependencies": {
+    "antd": "^4.16.6",
     "next": "11.0.1",
     "react": "17.0.2",
     "react-dom": "17.0.2"
