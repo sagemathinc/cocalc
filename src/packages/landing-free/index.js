@@ -1,8 +1,9 @@
 const { parse } = require("url");
 const next = require("next");
 
-async function init() {
-  const app = next({ dev: false, dir: __dirname });
+async function init({ basePath, dev }) {
+  if (basePath == "/") basePath = "";
+  const app = next({ dev, dir: __dirname, basePath, renderOpts: { basePath } });
   const handle = app.getRequestHandler();
   await app.prepare();
   return (req, res) => {
