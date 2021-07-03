@@ -1,5 +1,4 @@
-// next.js defines / to be an invalid basepath, whereas in cocalc it is valid.
-
+// next.js defines / to be an invalid basepath, whereas in cocalc it is valid:
 const basePath =
   process.env.BASE_PATH == "/" ? "" : process.env.BASE_PATH ?? "";
 

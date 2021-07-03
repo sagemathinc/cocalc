@@ -232,7 +232,7 @@ async function startServer(): Promise<void> {
     init_start_always_running_projects(database);
   }
 
-  const { router, app } = initExpressApp({
+  const { router, app } = await initExpressApp({
     dev: program.dev,
     isPersonal: program.personal,
     projectControl,

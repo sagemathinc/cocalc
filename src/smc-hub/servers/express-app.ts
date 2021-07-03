@@ -38,16 +38,17 @@ interface Options {
   isPersonal: boolean;
 }
 
-export default function init(opts: Options): {
+export default async function init(opts: Options): Promise<{
   app: express.Application;
   router: express.Router;
-} {
+}> {
   const winston = getLogger("express-app");
   winston.info("creating express app");
 
   // Create an express application
-  const router = express.Router();
   const app = express();
+  const router = express.Router();
+
   app.use(cookieParser());
 
   // Enable compression, as suggested by
@@ -92,13 +93,13 @@ export default function init(opts: Options): {
   });
 
   // setup the analytics.js endpoint
-  initAnalytics(router, database);
+  await initAnalytics(router, database);
 
   // setup all healthcheck endpoints
-  setupHealthChecks({ router, db: database });
+  await setupHealthChecks({ router, db: database });
 
   // Landing page content: this is the "/" index page + assets, for docker, on-prem, dev.
-  initLanding(router);
+  await initLanding(app);
   // initOpenCoCalc({ app, router, db: database, cacheLongTerm, winston });
 
   // The /static content, used by docker, development, etc.  Served by the static middleware.

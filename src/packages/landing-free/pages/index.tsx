@@ -21,7 +21,7 @@ export default function Home() {
         </Button>
       </main>
 
-      <footer className={styles.footer}>todo: footer.</footer>
+      <footer className={styles.footer}>todo: FOOTER</footer>
     </div>
   );
 }
