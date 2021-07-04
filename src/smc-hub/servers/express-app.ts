@@ -14,6 +14,7 @@ import { initAnalytics } from "../analytics";
 import { getLogger } from "../logger";
 import { setup_health_checks as setupHealthChecks } from "../health-checks";
 import { path as STATIC_PATH } from "@cocalc/static";
+import { path as WEBAPP_PATH } from "webapp-lib";
 import { path as CDN_PATH } from "@cocalc/cdn";
 import { database } from "./database";
 import basePath from "smc-util-node/base-path";
@@ -102,10 +103,17 @@ export default async function init(opts: Options): Promise<{
   await initLanding(app);
   // initOpenCoCalc({ app, router, db: database, cacheLongTerm, winston });
 
-  // The /static content, used by docker, development, etc.  Served by the static middleware.
+  // The /static content, used by docker, development, etc.
+  // This is the stuff that's packaged up via webpack in packages/static.
   router.use(
     "/static",
     express.static(STATIC_PATH, { setHeaders: cacheLongTerm })
+  );
+
+  // Static assets that are used by the webapp, the landing page, etc.
+  router.use(
+    "/webapp",
+    express.static(WEBAPP_PATH, { setHeaders: cacheLongTerm })
   );
 
   // This is @cocalc/cdn – cocalc serves everything it might get from a CDN on its own.
