@@ -6,6 +6,7 @@ module.exports = {
   basePath,
   env: {
     BASE_PATH: basePath, // make visible to frontend code.
+    CUSTOMIZE: JSON.stringify({ siteName: "CoCalc" }),
   },
   reactStrictMode: true,
   eslint: {

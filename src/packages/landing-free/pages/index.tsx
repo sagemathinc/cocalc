@@ -21,22 +21,17 @@ import Footer from "components/landing/footer";
 const FAVICON = "/webapp/favicon.ico";
 
 export default function Home() {
+  const { siteName } = JSON.parse(process.env.CUSTOMIZE);
+
   return (
     <div className={styles.container}>
       <Head>
-        <title>Open CoCalc -- Collaborative Calculation</title>
+        <title>{siteName} -- Collaborative Calculation</title>
         <meta name="description" content="CoCalc" />
         <link rel="icon" href={FAVICON} />
       </Head>
-
       <main className={styles.main}>todo: main body.</main>
-
-      <Footer
-        siteName={"dev1"}
-        organizationName={"CoCalc DEV"}
-        termsOfServiceURL={"https://wstein.org"}
-        contactEmail={"wstein@sagemath.com"}
-      />
+      <Footer />
     </div>
   );
 }

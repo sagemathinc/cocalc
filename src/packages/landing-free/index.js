@@ -23,16 +23,21 @@ async function init({
   dev,
   // winston = an instance of the winston logger.
   winston,
+  // and finally the information that describes the cocalc server
+  customize,
 }) {
   if (basePath == "/") {
     basePath = "";
   }
+  winston.info(`initialized customize data ${JSON.stringify(customize)}`);
   // We do this to ensure that our config is exactly like when
   // running things directly (via npm run dev), without having
   // to set the BASE_PATH env variable, which might have
   // a strange impact somewhere else in CoCalc.
   conf.basePath = basePath;
   conf.env.BASE_PATH = basePath;
+  conf.env.CUSTOMIZE = JSON.stringify(customize);
+
   winston.info(
     `creating next.js app with basePath="${basePath}", and dev=${dev}`
   );
