@@ -17,7 +17,10 @@ export default async function getCustomize(): Promise<Customize> {
   const settings = await callback2(database.get_server_settings_cached, {});
   return {
     siteName: fallback(settings.site_name, "On Premises CoCalc"),
-    siteDescription: fallback(settings.site_description, "Collaborative Calculation using Python, Sage, R, Julia, and more."),
+    siteDescription: fallback(
+      settings.site_description,
+      "Collaborative Calculation using Python, Sage, R, Julia, and more."
+    ),
 
     organizationName: settings.organization_name,
     organizationEmail: settings.organization_email,
@@ -45,5 +48,7 @@ export default async function getCustomize(): Promise<Customize> {
     ),
 
     indexInfo: settings.index_info_html,
+
+    basePath,
   };
 }

@@ -1,7 +1,7 @@
 import styles from "styles/Home.module.css";
 import A from "components/misc/A";
 import Logo from "./logo-rectangular";
-import customize from "lib/customize";
+import CUSTOMIZE from "lib/customize";
 
 function Item({ first, children }) {
   if (first) return children;
@@ -14,7 +14,7 @@ function Item({ first, children }) {
 
 export default function Footer() {
   const { siteName, organizationName, termsOfServiceURL, contactEmail } =
-    customize;
+    CUSTOMIZE;
   return (
     <footer className={styles.footer}>
       <div>

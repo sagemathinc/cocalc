@@ -13,8 +13,6 @@ const next = require("next");
 const conf = require("./next.config");
 
 async function init({
-  // The basePath of the hub server
-  basePath,
   // dev = Whether or not to run in dev mode.  This features hot module reloading
   // and you can change the basePath without having to do `npm run build`.
   // If dev is false, things will only work if `npm run build` happened
@@ -23,10 +21,13 @@ async function init({
   dev,
   // winston = an instance of the winston logger.
   winston,
-  // and finally the information that describes the cocalc server
+  // and finally the information that describes the cocalc server, including the basePath.
   customize,
 }) {
-  if (basePath == "/") {
+  let { basePath } = customize;
+  if (basePath == null || basePath == "/") {
+    // this is the next.js definition of "basePath";
+    // it differs from what we use in cocalc and internally here too.
     basePath = "";
   }
   winston.info(`initialized customize data ${JSON.stringify(customize)}`);
@@ -41,14 +42,13 @@ async function init({
   winston.info(
     `creating next.js app with basePath="${basePath}", and dev=${dev}`
   );
-  process.env.BASE_PATH = basePath;
   const app = next({ dev, conf, dir: __dirname });
   const handle = app.getRequestHandler();
   winston.info("preparing next.js app...");
   await app.prepare();
   winston.info("ready to handle next.js requests");
   return (req, res) => {
-    winston.http(`got request to ${req.url}`);
+    winston.http(`req.url=${req.url}`);
     handle(req, res);
   };
 }

@@ -5,7 +5,7 @@ import { Button } from "antd";
 import "antd/dist/antd.css";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
-import customize from "lib/customize";
+import CUSTOMIZE from "lib/customize";
 import SquareLogo from "components/landing/logo-square";
 import A from "components/misc/A";
 
@@ -24,7 +24,7 @@ export default function Home() {
     siteDescription,
     siteName,
     splashImage,
-  } = customize;
+  } = CUSTOMIZE;
 
   return (
     <div className={styles.container}>

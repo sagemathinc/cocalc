@@ -1,6 +1,6 @@
 import SquareLogo from "./logo-square";
 import RectangularLogo from "./logo-rectangular";
-import customize from "lib/customize";
+import CUSTOMIZE from "lib/customize";
 import A from "components/misc/A";
 import { join } from "path";
 
@@ -22,7 +22,7 @@ const LinkStyle = { color: "#666", marginRight: "30px" };
 
 export default function Header() {
   const { anonymousSignup, basePath, helpEmail, siteName, termsOfServiceURL } =
-    customize;
+    CUSTOMIZE;
   return (
     <>
       <div style={{ width: "100%" }}>

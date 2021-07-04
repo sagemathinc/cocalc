@@ -17,17 +17,20 @@ export interface Customize {
   logoRectangularURL?: string;
   splashImage?: string;
   indexInfo?: string;
-  basePath?: string;
+  basePath: string;
 }
 
 // I tried many ways, and using next.js's process.env support
-// seems by far the best approach.  It's the way that ensures that
-// you can't change the result, which makes nextjs happy.
-const customize: Customize = process.env.CUSTOMIZE
+// seems by far the best approach.  Using process.env ensures that
+// you can't change the result once the app is running, which
+// makes nextjs happy.
+
+const CUSTOMIZE: Customize = process.env.CUSTOMIZE
   ? JSON.parse(process.env.CUSTOMIZE)
-  : {};
+  : { basePath: "/" };
 
-// as defined in cocalc (not next.js!), so "/" is the nothing base path.
-customize.basePath = process.env.BASE_PATH ? process.env.BASE_PATH : "/";
+if (CUSTOMIZE.basePath == null) {
+  CUSTOMIZE.basePath = "/"; // ensure guarantee of type
+}
 
-export default customize;
+export default CUSTOMIZE;
