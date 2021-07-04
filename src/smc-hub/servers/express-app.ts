@@ -27,9 +27,6 @@ import initStats from "./app/stats";
 import initAppRedirect from "./app/app-redirect";
 import initLanding from "./app/landing";
 
-// TODO: delete this import and the open-cocalc-server code itself.
-//import { setup_open_cocalc as initOpenCoCalc } from "../open-cocalc-server";
-
 // Used for longterm caching of files
 const MAX_AGE = ms("100 days"); // NOTE: more than a year would be invalid
 
