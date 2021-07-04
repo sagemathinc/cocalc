@@ -3,6 +3,7 @@ import RectangularLogo from "./logo-rectangular";
 import CUSTOMIZE from "lib/customize";
 import A from "components/misc/A";
 import { join } from "path";
+import { Row, Col } from "antd";
 
 const HeaderStyle = {
   // Inspired by nextjs.org's header.
@@ -35,20 +36,26 @@ export default function Header() {
             display: "flex",
           }}
         >
-          {anonymousSignup && (
-            <a
-              style={{ color: "#fff" }}
-              href={join(basePath, "static/app.html")}
-            >
-              Try {siteName} without an account
-            </a>
-          )}
-
-          <div style={{ flex: 1 }}></div>
-
-          <a style={{ color: "#fff" }} href={join(basePath, "static/app.html")}>
-            Sign Up
-          </a>
+          <Row>
+            <Col span={12}>
+              {anonymousSignup && (
+                <a
+                  style={{ color: "#fff" }}
+                  href={join(basePath, "static/app.html")}
+                >
+                  Try {siteName} without an account
+                </a>
+              )}
+            </Col>
+            <Col span={12}>
+              <a
+                style={{ color: "#fff" }}
+                href={join(basePath, "static/app.html")}
+              >
+                Sign Up
+              </a>
+            </Col>
+          </Row>
         </div>
       </div>
       <header style={HeaderStyle}>
