@@ -4,6 +4,7 @@ import styles from "../styles/Home.module.css";
 import { join } from "path";
 import { Button } from "antd";
 import "antd/dist/antd.css";
+import Footer from "components/landing/footer";
 
 /*
         <Button href={join(process.env.BASE_PATH ?? "/", "static/app.html")}>
@@ -30,7 +31,12 @@ export default function Home() {
 
       <main className={styles.main}>todo: main body.</main>
 
-      <footer className={styles.footer}>todo: FOOTER</footer>
+      <Footer
+        siteName={"dev1"}
+        organizationName={"CoCalc DEV"}
+        termsOfServiceURL={"https://wstein.org"}
+        contactEmail={"wstein@sagemath.com"}
+      />
     </div>
   );
 }
