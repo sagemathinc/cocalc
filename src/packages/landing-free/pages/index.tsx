@@ -21,7 +21,7 @@ import Footer from "components/landing/footer";
 const FAVICON = "/webapp/favicon.ico";
 
 export default function Home() {
-  const { siteName } = JSON.parse(process.env.CUSTOMIZE);
+  const { siteName, splashImage } = JSON.parse(process.env.CUSTOMIZE);
 
   return (
     <div className={styles.container}>
@@ -30,7 +30,13 @@ export default function Home() {
         <meta name="description" content="CoCalc" />
         <link rel="icon" href={FAVICON} />
       </Head>
-      <main className={styles.main}>todo: main body.</main>
+      <main className={styles.main}>
+        {splashImage && <img src={splashImage} style={{ width: "50%" }} />}
+        <br/>
+        <a href={join(process.env.BASE_PATH ?? "/", "static/app.html")}>
+          Sign In...
+        </a>
+      </main>
       <Footer />
     </div>
   );

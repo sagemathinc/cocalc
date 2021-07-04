@@ -7,4 +7,6 @@ export interface Customize {
   organizationName?: string;
   termsOfServiceURL?: string;
   contactEmail?: string;
+  splashImage?: string;
+  anonymousSignup?: boolean;
 }
