@@ -1,5 +1,9 @@
-import customize from "lib/customize";
+import { logoRectangularURL } from "lib/customize";
 
-export default function RectangularLogo({ style }) {
-  return <img src={customize.logoRectangularURL} style={style} />;
+export default function RectangularLogo({
+  style,
+}: {
+  style: React.CSSProperties;
+}) {
+  return <img src={logoRectangularURL} style={style} />;
 }

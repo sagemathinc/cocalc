@@ -1,9 +1,15 @@
 import SquareLogo from "./logo-square";
 import RectangularLogo from "./logo-rectangular";
-import CUSTOMIZE from "lib/customize";
+import {
+  anonymousSignup,
+  basePath,
+  helpEmail,
+  siteName,
+  termsOfServiceURL,
+} from "lib/customize";
 import A from "components/misc/A";
 import { join } from "path";
-import { Row, Col } from "antd";
+import { Layout, Row, Col } from "antd";
 
 const HeaderStyle = {
   // Inspired by nextjs.org's header.
@@ -17,15 +23,13 @@ const HeaderStyle = {
   alignItems: "center",
   width: "100%",
   padding: "15px",
-};
+} as React.CSSProperties;
 
 const LinkStyle = { color: "#666", marginRight: "30px" };
 
 export default function Header() {
-  const { anonymousSignup, basePath, helpEmail, siteName, termsOfServiceURL } =
-    CUSTOMIZE;
   return (
-    <>
+    <Layout.Header>
       <div style={{ width: "100%" }}>
         <div
           style={{
@@ -58,7 +62,7 @@ export default function Header() {
           </Row>
         </div>
       </div>
-      <header style={HeaderStyle}>
+      <div style={HeaderStyle}>
         <SquareLogo style={{ height: "40px" }} />
         <div style={{ width: "15px" }} />
         <RectangularLogo style={{ height: "24px" }} />
@@ -82,7 +86,7 @@ export default function Header() {
         <a style={LinkStyle} href={join(basePath, "static/app.html")}>
           Sign In
         </a>
-      </header>
-    </>
+      </div>
+    </Layout.Header>
   );
 }

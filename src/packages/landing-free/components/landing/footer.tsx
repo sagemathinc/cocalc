@@ -1,10 +1,21 @@
-import styles from "styles/Home.module.css";
 import A from "components/misc/A";
 import Logo from "./logo-rectangular";
-import CUSTOMIZE from "lib/customize";
+import {
+  siteName,
+  organizationName,
+  termsOfServiceURL,
+  contactEmail,
+} from "lib/customize";
+import { Layout } from "antd";
 
-function Item({ first, children }) {
-  if (first) return children;
+function Item({
+  first,
+  children,
+}: {
+  first?: boolean;
+  children: string | JSX.Element;
+}) {
+  if (first) return <>{children}</>;
   return (
     <>
       &nbsp;{" – "}&nbsp;{children}
@@ -13,10 +24,14 @@ function Item({ first, children }) {
 }
 
 export default function Footer() {
-  const { siteName, organizationName, termsOfServiceURL, contactEmail } =
-    CUSTOMIZE;
   return (
-    <footer className={styles.footer}>
+    <Layout.Footer
+      style={{
+        textAlign: "center",
+        borderTop: "1px solid lightgrey",
+        marginTop: "15px",
+      }}
+    >
       <div>
         {siteName ?? <Item first>CoCalc</Item>}
         <Item>
@@ -25,7 +40,6 @@ export default function Footer() {
         {organizationName && <Item>{organizationName}</Item>}
         {termsOfServiceURL && (
           <Item>
-            {" "}
             <A href={termsOfServiceURL}>Terms of Service</A>
           </Item>
         )}
@@ -39,6 +53,6 @@ export default function Footer() {
       <div>
         <Logo style={{ height: "24px" }} />
       </div>
-    </footer>
+    </Layout.Footer>
   );
 }

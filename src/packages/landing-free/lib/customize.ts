@@ -33,4 +33,42 @@ if (CUSTOMIZE.basePath == null) {
   CUSTOMIZE.basePath = "/"; // ensure guarantee of type
 }
 
-export default CUSTOMIZE;
+// The following is redundant, but Typescript checks it and
+// it is very convenient regarding making this easy to use
+// from other modules.
+
+const {
+  siteName,
+  siteDescription,
+  organizationName,
+  organizationEmail,
+  organizationURL,
+  termsOfServiceURL,
+  helpEmail,
+  contactEmail,
+  isCommercial,
+  anonymousSignup,
+  logoSquareURL,
+  logoRectangularURL,
+  splashImage,
+  indexInfo,
+  basePath,
+} = CUSTOMIZE;
+
+export {
+  siteName,
+  siteDescription,
+  organizationName,
+  organizationEmail,
+  organizationURL,
+  termsOfServiceURL,
+  helpEmail,
+  contactEmail,
+  isCommercial,
+  anonymousSignup,
+  logoSquareURL,
+  logoRectangularURL,
+  splashImage,
+  indexInfo,
+  basePath,
+};
