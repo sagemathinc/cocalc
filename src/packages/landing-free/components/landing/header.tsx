@@ -11,82 +11,86 @@ import A from "components/misc/A";
 import { join } from "path";
 import { Layout, Row, Col } from "antd";
 
-const HeaderStyle = {
-  // Inspired by nextjs.org's header.
-  position: "sticky",
-  top: 0,
-  zIndex: 1000,
-  background: "#fff",
-  display: "flex",
-  flexDirection: "row",
-  justifyContent: "center",
-  alignItems: "center",
-  width: "100%",
-  padding: "15px",
-} as React.CSSProperties;
+const GAP = "32px";
 
-const LinkStyle = { color: "#666", marginRight: "30px" };
+const LinkStyle = {
+  color: "white",
+  marginRight: GAP,
+  display: "inline-block",
+};
 
 export default function Header() {
   return (
-    <Layout.Header>
-      <div style={{ width: "100%" }}>
-        <div
-          style={{
-            color: "#fff",
-            width: "100%",
-            background: "#444",
-            padding: "5px 15px",
-            display: "flex",
-          }}
+    <Layout.Header
+      style={{
+        minHeight: "64px",
+        height: "auto",
+        lineHeight: "32px",
+        padding: "16px",
+      }}
+    >
+      <SquareLogo style={{ height: "40px", marginRight: GAP }} />
+      <RectangularLogo
+        style={{
+          height: "28px",
+          backgroundColor: "white",
+          padding: "5px",
+          marginRight: GAP,
+        }}
+      />
+      {anonymousSignup && (
+        <a
+          style={LinkStyle}
+          href={join(basePath, "static/app.html")}
+          title={`Try ${siteName} immediately without creating an account.`}
         >
-          <Row>
-            <Col span={12}>
-              {anonymousSignup && (
-                <a
-                  style={{ color: "#fff" }}
-                  href={join(basePath, "static/app.html")}
-                >
-                  Try {siteName} without an account
-                </a>
-              )}
-            </Col>
-            <Col span={12}>
-              <a
-                style={{ color: "#fff" }}
-                href={join(basePath, "static/app.html")}
-              >
-                Sign Up
-              </a>
-            </Col>
-          </Row>
-        </div>
-      </div>
-      <div style={HeaderStyle}>
-        <SquareLogo style={{ height: "40px" }} />
-        <div style={{ width: "15px" }} />
+          Try {siteName}
+        </a>
+      )}
+      {termsOfServiceURL && (
+        <A
+          style={LinkStyle}
+          href={termsOfServiceURL}
+          title="View the terms of service and other legal documents."
+        >
+          Legal
+        </A>
+      )}
+      {helpEmail && (
+        <A
+          style={LinkStyle}
+          href={`mailto:${helpEmail}`}
+          title={`Ask us a question via email to ${helpEmail}.`}
+        >
+          Help
+        </A>
+      )}
+      <A
+        style={LinkStyle}
+        href={join(basePath, "share")}
+        title="View files that people have published."
+      >
+        Published Files
+      </A>
+      <A
+        style={LinkStyle}
+        href="https://doc.cocalc.com"
+        title="View the CoCalc documenation."
+      >
+        Documentation
+      </A>
+      <a
+        style={LinkStyle}
+        href={join(basePath, "static/app.html")}
+        title={`Sign in to ${siteName} or create an account.`}
+      >
+        Sign In
+      </a>
+      {/*
+      <div>
         <RectangularLogo style={{ height: "24px" }} />
         <div style={{ flex: 1 }}></div>
-        {termsOfServiceURL && (
-          <A style={LinkStyle} href={termsOfServiceURL}>
-            Terms of Service
-          </A>
-        )}
-        {helpEmail && (
-          <A style={LinkStyle} href={`mailto:${helpEmail}`}>
-            Help
-          </A>
-        )}
-        <A style={LinkStyle} href={join(basePath, "share")}>
-          Published Files
-        </A>
-        <A style={LinkStyle} href="https://doc.cocalc.com">
-          Doc
-        </A>
-        <a style={LinkStyle} href={join(basePath, "static/app.html")}>
-          Sign In
-        </a>
-      </div>
+      </div>*/}
     </Layout.Header>
   );
 }
