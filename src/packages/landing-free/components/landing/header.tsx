@@ -9,7 +9,7 @@ import {
 } from "lib/customize";
 import A from "components/misc/A";
 import { join } from "path";
-import { Layout, Row, Col } from "antd";
+import { Layout } from "antd";
 
 const GAP = "32px";
 
@@ -27,6 +27,7 @@ export default function Header() {
         height: "auto",
         lineHeight: "32px",
         padding: "16px",
+        textAlign: "center",
       }}
     >
       <SquareLogo style={{ height: "40px", marginRight: GAP }} />
@@ -86,11 +87,6 @@ export default function Header() {
       >
         Sign In
       </a>
-      {/*
-      <div>
-        <RectangularLogo style={{ height: "24px" }} />
-        <div style={{ flex: 1 }}></div>
-      </div>*/}
     </Layout.Header>
   );
 }
