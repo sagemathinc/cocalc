@@ -1,6 +1,7 @@
 import { join } from "path";
 import { Layout, Row, Col } from "antd";
 import {
+  anonymousSignup,
   basePath,
   siteName,
   siteDescription,
@@ -25,8 +26,8 @@ export default function Content() {
             <br />
             <h2>{siteName}</h2>
             <h3>{siteDescription}</h3>
-            An instance of <A href="https://cocalc.com">CoCalc</A>, hosted by{" "}
-            <A href={organizationURL}>{organizationName}</A>.
+            An instance of <A href="https://cocalc.com/index.html">CoCalc</A>{" "}
+            hosted by <A href={organizationURL}>{organizationName}</A>
           </div>
         </Col>
         <Col sm={12} xs={24} style={{ display: "flex", alignItems: "center" }}>
@@ -38,18 +39,20 @@ export default function Content() {
       <div style={{ textAlign: "center" }}>
         {/* We use className="ant-btn" instead of an actual Button, because otherwise
             we get a ton of useLayoutEffects due to server-side rendering.*/}
-        <a
-          className="ant-btn"
-          style={{
-            backgroundColor: "#5cb85c",
-            borderColor: "#4cae4c",
-            color: "white",
-          }}
-          href={join(basePath, "static/app.html")}
-          title={`Immediately run ${siteName} without creating an account.`}
-        >
-          Run {siteName} Now
-        </a>
+        {anonymousSignup && (
+          <a
+            className="ant-btn"
+            style={{
+              backgroundColor: "#5cb85c",
+              borderColor: "#4cae4c",
+              color: "white",
+            }}
+            href={join(basePath, "static/app.html?anonymous=jupyter")}
+            title={`Immediately run ${siteName} without creating an account.`}
+          >
+            Run {siteName} Now
+          </a>
+        )}
         <a
           className="ant-btn"
           href={join(basePath, "static/app.html")}

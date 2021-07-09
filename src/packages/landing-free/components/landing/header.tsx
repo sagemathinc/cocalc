@@ -42,7 +42,7 @@ export default function Header() {
       {anonymousSignup && (
         <a
           style={LinkStyle}
-          href={join(basePath, "static/app.html")}
+          href={join(basePath, "static/app.html?anonymous=jupyter")}
           title={`Try ${siteName} immediately without creating an account.`}
         >
           Try {siteName}
