@@ -463,7 +463,9 @@ const FooterElement = rclass<{}>(
         <footer style={style}>
           <hr />
           <Space />
-          <SiteName /> by {orga} &middot;{" "}
+          <a href={window.app_base_path}>
+            <SiteName /> by {orga} &middot;{" "}
+          </a>
           <a target="_blank" rel="noopener" href={TOSurl}>
             Terms of Service
           </a>{" "}
