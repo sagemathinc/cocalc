@@ -1,5 +1,5 @@
 import { join } from "path";
-import { Button, Layout, Row, Col } from "antd";
+import { Layout, Row, Col } from "antd";
 import {
   basePath,
   siteName,
@@ -36,14 +36,22 @@ export default function Content() {
         </Col>
       </Row>
       <div style={{ textAlign: "center" }}>
-        <Button
-          type="primary"
+        {/* We use className="ant-btn" instead of an actual Button, because otherwise
+            we get a ton of useLayoutEffects due to server-side rendering.*/}
+        <a
+          className="ant-btn"
+          style={{
+            backgroundColor: "#5cb85c",
+            borderColor: "#4cae4c",
+            color: "white",
+          }}
           href={join(basePath, "static/app.html")}
           title={`Immediately run ${siteName} without creating an account.`}
         >
           Run {siteName} Now
-        </Button>
-        <Button
+        </a>
+        <a
+          className="ant-btn"
           href={join(basePath, "static/app.html")}
           style={{ margin: "15px" }}
           title={
@@ -51,7 +59,7 @@ export default function Content() {
           }
         >
           Create Account or Sign In
-        </Button>
+        </a>
       </div>
     </Layout.Content>
   );
