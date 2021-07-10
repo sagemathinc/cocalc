@@ -9,21 +9,27 @@ This is mentioned here, and it's maybe a bug in next?
 https://www.gitmemory.com/issue/vercel/next.js/26127/862661818
 */
 
+const { join } = require("path");
 const next = require("next");
-const conf = require("./next.config");
+const conf = require("../next.config");
+const buildIfNecessary = require("./build.js");
 
 async function init({
-  // dev = Whether or not to run in dev mode.  This features hot module reloading
-  // and you can change the basePath without having to do `npm run build`.
-  // If dev is false, things will only work if `npm run build` happened
-  // with a basePath='', i.e., that's just for a production https://cocalc.com
-  // deployment.  It's faster though!
-  dev,
   // winston = an instance of the winston logger.
   winston,
   // and finally the information that describes the cocalc server, including the basePath.
   customize,
 }) {
+  // dev = Whether or not to run in dev mode.  This features hot module reloading,
+  // but navigation between pages and serving pages is much slower.
+  const dev = process.env.NODE_ENV != "production";
+
+  // If dev is false, things will only work if `npm run build` happened
+  // with the right configuration!
+  if (!dev) {
+    await buildIfNecessary(customize);
+  }
+
   let { basePath } = customize;
   if (basePath == null || basePath == "/") {
     // this is the next.js definition of "basePath";
@@ -42,7 +48,7 @@ async function init({
   winston.info(
     `creating next.js app with basePath="${basePath}", and dev=${dev}`
   );
-  const app = next({ dev, conf, dir: __dirname });
+  const app = next({ dev, conf, dir: join(__dirname, "..") });
   const handle = app.getRequestHandler();
   winston.info("preparing next.js app...");
   await app.prepare();

@@ -10,7 +10,7 @@
     "status": "./workspaces.py status --packages=$npm_config_packages  2>&1 |more",
     "diff": "./workspaces.py diff --packages=$npm_config_packages 2>&1 |more",
     "publish": "./workspaces.py publish --packages=$npm_config_packages $npm_config_newversion",
-    "hub": "cd smc-hub && npm run dev",
+    "hub": "cd smc-hub && npm run hub-project-dev",
     "database": "cd dev/project && ./start_postgres.py",
     "webpack": "cd packages/static && npm run webpack",
     "old-lint": "npx eslint --ignore-pattern '**/node_modules/**' '**/*.ts?(x)'",

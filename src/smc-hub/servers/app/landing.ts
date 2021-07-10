@@ -10,14 +10,10 @@ import getCustomize from "./landing-customize";
 
 export default async function init(app: Application) {
   const winston = getLogger("landing");
-  const dev = process.env.NODE_ENV !== "production";
-  winston.info(
-    `Initializing the landing server: basePath="${basePath}", dev=${dev}`
-  );
   const customize = await getCustomize();
+  winston.info(`Initializing the landing server: ${JSON.stringify(customize)}...`);
   const handler = await initLandingServer({
     basePath,
-    dev,
     winston,
     customize,
   });
