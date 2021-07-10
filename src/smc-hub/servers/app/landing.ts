@@ -1,6 +1,7 @@
 /* Serve the landing server on /
  */
 
+import { join } from "path";
 import { Application } from "express";
 import * as initLandingServer from "@cocalc/landing-free";
 import { getLogger } from "smc-hub/logger";
@@ -22,5 +23,5 @@ export default async function init(app: Application) {
   });
   winston.info("Now using next.js handler to handle select endpoints");
   app.all(basePath, handler);
-  app.all(basePath + "/_next/*", handler);
+  app.all(join(basePath, "_next/*"), handler);
 }
