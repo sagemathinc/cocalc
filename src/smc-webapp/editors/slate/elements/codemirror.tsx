@@ -25,7 +25,7 @@ import {
   useRef,
   useState,
 } from "smc-webapp/app-framework";
-import * as CodeMirror from "codemirror";
+import { fromTextArea, Editor, commands } from "codemirror";
 import { FOCUSED_COLOR } from "../util";
 import {
   useActions,
@@ -84,7 +84,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     const actions = useActions();
     const { id } = useFrameContext();
 
-    const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
+    const cmRef = useRef<Editor | undefined>(undefined);
     const [isFocused, setIsFocused] = useState<boolean>(!!options?.autofocus);
     const textareaRef = useRef<any>(null);
 
@@ -191,7 +191,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         if (cm.getSelection() != cm.getValue()) {
           // not everything is selected (or editor is empty), so
           // select everything.
-          CodeMirror.commands.selectAll(cm);
+          commands.selectAll(cm);
         } else {
           // everything selected, so now select all editor content.
           // NOTE that this only makes sense if we change focus
@@ -204,7 +204,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
 
       cursorHandlers(options, editor, isInline);
 
-      const cm = (cmRef.current = CodeMirror.fromTextArea(node, options));
+      const cm = (cmRef.current = fromTextArea(node, options));
 
       cm.on("change", (_, _changeObj) => {
         if (onChange != null) {
@@ -303,7 +303,7 @@ function cursorHandlers(options, editor, isInline: boolean | undefined): void {
         moveCursorToBeginningOfBlock(editor);
       }
     } else {
-      CodeMirror.commands.goLineUp(cm);
+      commands.goLineUp(cm);
     }
   };
 
@@ -313,19 +313,19 @@ function cursorHandlers(options, editor, isInline: boolean | undefined): void {
       Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
       ReactEditor.focus(editor);
     } else {
-      CodeMirror.commands.goCharLeft(cm);
+      commands.goCharLeft(cm);
     }
   };
 
   options.extraKeys["Right"] = (cm) => {
     if (!exitDown(cm)) {
-      CodeMirror.commands.goCharRight(cm);
+      commands.goCharRight(cm);
     }
   };
 
   options.extraKeys["Down"] = (cm) => {
     if (!exitDown(cm)) {
-      CodeMirror.commands.goLineDown(cm);
+      commands.goLineDown(cm);
     }
   };
 }
