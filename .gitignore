@@ -136,3 +136,4 @@ src/go-landing
 src/packages/landing
 tsconfig.tsbuildinfo
 **/landing-free/cache/
+**/.next

@@ -29,7 +29,6 @@ export default function Footer() {
       style={{
         textAlign: "center",
         borderTop: "1px solid lightgrey",
-        marginTop: "15px",
       }}
     >
       <div>
@@ -51,7 +50,7 @@ export default function Footer() {
       </div>
       <br />
       <div>
-        <Logo style={{ height: "24px" }} />
+        <Logo style={{ height: "40px" }} />
       </div>
     </Layout.Footer>
   );

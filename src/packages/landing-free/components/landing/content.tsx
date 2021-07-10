@@ -27,7 +27,7 @@ export default function Content() {
             <h2>{siteName}</h2>
             <h3>{siteDescription}</h3>
             An instance of <A href="https://cocalc.com/index.html">CoCalc</A>{" "}
-            hosted by <A href={organizationURL}>{organizationName}</A>
+            {organizationName && organizationURL && <>hosted by <A href={organizationURL}>{organizationName}</A></>}
           </div>
         </Col>
         <Col sm={12} xs={24} style={{ display: "flex", alignItems: "center" }}>

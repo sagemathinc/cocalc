@@ -1,5 +1,4 @@
 import SquareLogo from "./logo-square";
-import RectangularLogo from "./logo-rectangular";
 import {
   anonymousSignup,
   basePath,
@@ -31,14 +30,6 @@ export default function Header() {
       }}
     >
       <SquareLogo style={{ height: "40px", marginRight: GAP }} />
-      <RectangularLogo
-        style={{
-          height: "28px",
-          backgroundColor: "white",
-          padding: "5px",
-          marginRight: GAP,
-        }}
-      />
       {anonymousSignup && (
         <a
           style={LinkStyle}
