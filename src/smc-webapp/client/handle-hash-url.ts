@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { hasRememberMe } from "smc-util/remember-me";
 import { join } from "path";
 
 function handleHashUrl(): string {
@@ -29,8 +30,14 @@ function handleHashUrl(): string {
     target = target.slice(0, i);
   }
   if (!target) {
-    // if no target is encoded in the url, show user their list of projects
-    target = "projects";
+    // if no target is encoded in the url:
+    if (hasRememberMe(window.app_base_path)) {
+      // probably signed in -- show user their list of projects
+      target = "projects";
+    } else {
+      // not signed in -- show sign in page (which is currently part of "settings", which is dumb)
+      target = "settings";
+    }
   }
   let query_params = "";
   if (i >= 0) {

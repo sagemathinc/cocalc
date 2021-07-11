@@ -10,10 +10,8 @@ import { delete_cookie } from "../misc-page/cookies";
 import { QueryParams } from "../misc/query-params";
 import {
   copy_without,
-  delete_local_storage,
   from_json_socket,
   to_json_socket,
-  set_local_storage,
   defaults,
   required,
   uuid,
@@ -23,6 +21,7 @@ import {
   do_anonymous_setup,
   should_do_anonymous_setup,
 } from "./anonymous-setup";
+import { deleteRememberMe, setRememberMe } from "smc-util/remember-me";
 
 // Maximum number of outstanding concurrent messages (that have responses)
 // to send at once to hub-websocket.
@@ -186,13 +185,13 @@ export class HubClient {
         this.client.account_id = mesg.account_id;
         this.set_signed_in();
         this.signed_in_time = new Date().valueOf();
-        set_local_storage(this.client.remember_me_key(), "true");
+        setRememberMe(window.app_base_path);
         this.signed_in_mesg = mesg;
         this.client.emit("signed_in", mesg);
         break;
 
       case "remember_me_failed":
-        delete_local_storage(this.client.remember_me_key());
+        deleteRememberMe(window.app_base_path);
         this.client.emit(mesg.event, mesg);
         break;
 

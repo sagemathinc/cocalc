@@ -52,60 +52,52 @@ export function init() {
   // load the mathjax configuration before mathjax starts up
   (window as any).MathJax = MathJaxConfig;
 
-  $(function () {
-    try {
-      $(parent).trigger("initialize:frame");
-    } catch (error) {}
+  try {
+    $(parent).trigger("initialize:frame");
+  } catch (error) {}
 
-    if (!CDN_VERSIONS) {
-      // Should be set by Webpack.
-      console.log(
-        "WARNING: MathJax rendering fallback is NOT enabled.  Only katex rendering is available for math formulas!"
-      );
-    } else {
-      // mathjax startup. config is set above, now we dynamically insert the mathjax script URL
-      const src = join(
-        window.app_base_path,
-        `cdn/mathjax-${CDN_VERSIONS.mathjax}/MathJax.js`
-      );
+  if (!CDN_VERSIONS) {
+    // Should be set by Webpack.
+    console.log(
+      "WARNING: MathJax rendering fallback is NOT enabled.  Only katex rendering is available for math formulas!"
+    );
+  } else {
+    // mathjax startup. config is set above, now we dynamically insert the mathjax script URL
+    const src = join(
+      window.app_base_path,
+      `cdn/mathjax-${CDN_VERSIONS.mathjax}/MathJax.js`
+    );
 
-      const mjscript = document.createElement("script");
-      mjscript.type = "text/javascript";
-      mjscript.src = src;
-      mjscript.onload = function () {
-        // once loaded, we finalize the configuration and process pending rendering requests
-        MathJax.Hub?.Queue([mathjax_finish_startup]);
-      };
-      document.getElementsByTagName("head")[0].appendChild(mjscript);
-    }
+    const mjscript = document.createElement("script");
+    mjscript.type = "text/javascript";
+    mjscript.src = src;
+    mjscript.onload = function () {
+      // once loaded, we finalize the configuration and process pending rendering requests
+      MathJax.Hub?.Queue([mathjax_finish_startup]);
+    };
+    document.getElementsByTagName("head")[0].appendChild(mjscript);
+  }
 
-    // enable logging
-    wrap_log();
+  // enable logging
+  wrap_log();
 
-    // finally, record start time
-    // TODO compute and report startup initialization time
-    if (prom_client.enabled) {
-      const browser_info_gauge = prom_client.new_gauge(
-        "browser_info",
-        "Information about the browser",
-        ["browser", "mobile", "touch", "git_version"]
-      );
-      browser_info_gauge
-        .labels(
-          get_browser(),
-          IS_MOBILE,
-          IS_TOUCH,
-          COCALC_GIT_REVISION ?? "N/A"
-        )
-        .set(1);
-      const initialization_time_gauge = prom_client.new_gauge(
-        "initialization_seconds",
-        "Time from loading app.html page until last.coffee is completely done"
-      );
-      initialization_time_gauge.set(
-        (new Date().getTime() - (window as any).webapp_initial_start_time) /
-          1000
-      );
-    }
-  });
+  // finally, record start time
+  // TODO compute and report startup initialization time
+  if (prom_client.enabled) {
+    const browser_info_gauge = prom_client.new_gauge(
+      "browser_info",
+      "Information about the browser",
+      ["browser", "mobile", "touch", "git_version"]
+    );
+    browser_info_gauge
+      .labels(get_browser(), IS_MOBILE, IS_TOUCH, COCALC_GIT_REVISION ?? "N/A")
+      .set(1);
+    const initialization_time_gauge = prom_client.new_gauge(
+      "initialization_seconds",
+      "Time from loading app.html page until last.coffee is completely done"
+    );
+    initialization_time_gauge.set(
+      (new Date().getTime() - (window as any).webapp_initial_start_time) / 1000
+    );
+  }
 }
