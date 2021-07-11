@@ -15,7 +15,7 @@ const { CreateSupportTicket } = require("../support");
 
 import { COLORS } from "smc-util/theme";
 
-import { Button, Navbar, Nav, NavItem } from "../antd-bootstrap";
+import { Button, Navbar, Nav } from "../antd-bootstrap";
 import {
   React,
   useActions,
@@ -284,7 +284,6 @@ export const Page: React.FC = () => {
           active_top_tab={active_top_tab}
           hide_label={!show_label}
         />
-        <NavItem className="divider-vertical hidden-xs" />
         {render_support()}
         {logged_in && render_account_tab()}
         {render_bell()}
