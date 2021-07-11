@@ -82,8 +82,6 @@ export const load_all_projects = reuseInFlight(async () => {
 
 async function load_recent_projects(): Promise<void> {
   const table = redux.createTable("projects", ProjectsTable);
-  console.log("load_recent_projects table=", table);
-  console.log("load_recent_projects table._table=", table._table);
   await once(table._table, "connected");
   if (table._table.get().size === 0) {
     // WARNING: that the following is done is assumed in
