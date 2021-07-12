@@ -56,7 +56,7 @@ def server_setup():
     if os.path.exists(INFO_FILE):
         info = json.loads(open(INFO_FILE).read())
         project_id = info['project_id']
-        base_path = info['base_path']
+        base_path = info['basePath']
         ip = info['location']['host']
         if ip == 'localhost':
             # Listening on localhost for devel purposes -- NOTE: this is a *VERY* significant security risk!

@@ -110,17 +110,6 @@ export default function init({ projectControl, isPersonal }: Options) {
       });
 
       proxy.on("close", remove_from_cache);
-
-      // Workaround for bug https://github.com/nodejitsu/node-http-proxy/issues/1142; otherwise
-      // POST's with body just hang.
-      proxy.on("proxyReq", (proxyReq, req) => {
-        if (req.body && req.complete) {
-          const bodyData = JSON.stringify(req.body);
-          proxyReq.setHeader("Content-Type", "application/json");
-          proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
-          proxyReq.write(bodyData);
-        }
-      });
     }
 
     if (internal_url != null) {

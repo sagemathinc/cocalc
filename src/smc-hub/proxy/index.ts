@@ -21,8 +21,7 @@ export default function init(opts: Options) {
   const handleProxy = initProxy(opts);
   const handleUpgrade = initUpgrade(opts, proxy_regexp);
 
-  opts.app.get(proxy_regexp, handleProxy);
-  opts.app.post(proxy_regexp, handleProxy);
+  opts.app.all(proxy_regexp, handleProxy);
 
   opts.httpServer.on("upgrade", handleUpgrade);
 }
