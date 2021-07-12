@@ -44,6 +44,14 @@ function handleHashUrl(): string {
     // We must also preserve the query params
     query_params = hash.slice(i + 1);
   }
+  if (!hash) {
+    // if there is no hash param, e.g., directly visiting static/app.html, then
+    // just get the normal query params
+    const j = window.location.href.indexOf("?");
+    if (j != -1) {
+      query_params = window.location.href.slice(j + 1);
+    }
+  }
 
   // Finally remove the hash from the url (without refreshing the page, of course).
   let full_url = document.location.origin + join(window.app_base_path, target);

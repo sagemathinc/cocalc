@@ -862,6 +862,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         key={"timetravel"}
         title={"Show complete edit history"}
         bsStyle={"info"}
+        style={button_style()}
         bsSize={button_size()}
         onClick={(event) => {
           if (props.actions.name != props.editor_actions.name) {
