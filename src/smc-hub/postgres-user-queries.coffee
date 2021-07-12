@@ -1246,7 +1246,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb("FATAL: changes.cb must be a function")
             return
         for primary_key in primary_keys
-            if not user_query[primary_key]? and user_query[primary_key] != null
+            if not user_query[primary_key]? and user_query[primary_key] != null  # TODO: this seems slightly off
                 cb("FATAL: changefeed MUST include primary key (='#{primary_key}') in query")
                 return
         watch  = []

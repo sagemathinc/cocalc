@@ -50,7 +50,6 @@ function handleHashUrl(): string {
   if (query_params) {
     full_url += "?" + query_params;
   }
-
   window.history.pushState("", "", full_url);
   return target;
 }

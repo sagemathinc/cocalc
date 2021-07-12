@@ -278,7 +278,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb: required
 
         settings = SERVER_SETTINGS_CACHE.get('server_settings')
-        if settings? and settings != null
+        if settings
             opts.cb(undefined, settings)
             return
 
@@ -368,7 +368,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             cb       : required
         passports = SERVER_SETTINGS_CACHE.get('passports')
-        if passports != null
+        if passports
             opts.cb(undefined, passports)
             return
         @get_all_passport_settings
@@ -376,6 +376,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 if err
                     opts.cb(err)
                 else
+                    console.log("** GOT res = ", res)
                     SERVER_SETTINGS_CACHE.set('passports', res)
                     opts.cb(undefined, res)
 

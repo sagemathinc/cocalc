@@ -735,7 +735,6 @@ class exports.Client extends EventEmitter
             client   : @
             mesg     : mesg
             database : @database
-            logger   : @logger.debug
             host     : @_opts.host
             port     : @_opts.port
             sign_in  : @conn?  # browser clients have a websocket conn
@@ -745,7 +744,6 @@ class exports.Client extends EventEmitter
             client   : @
             mesg     : mesg
             database : @database
-            logger   : @logger.debug
 
     mesg_sign_in: (mesg) =>
         sign_in.sign_in
