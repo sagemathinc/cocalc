@@ -296,7 +296,7 @@ file_associations["x11"] = {
   editor: "x11",
   icon: "window-restore",
   opts: {},
-  name: "X11 Desktop",
+  name: "Linux Graphical X11 Desktop",
 };
 
 file_associations["ipynb"] = {

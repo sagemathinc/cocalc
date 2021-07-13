@@ -276,6 +276,7 @@ const IconSpec = {
   "file-zip": FileZipOutlined,
   files: CopyOutlined,
   "file-export": ExportOutlined,
+  firefox: { IconFont: "firefox" },
   flash: ThunderboltOutlined,
   "flow-chart": { IconFont: "flow-chart" },
   folder: FolderOutlined,
@@ -551,9 +552,9 @@ export const Icon: React.FC<Props> = (props: Props) => {
       if (IconFont == null) {
         return <div>(IconFonts not available)</div>;
       }
-      return <IconFont type={"icon-" + C.IconFont} {...props} />;
+      return <IconFont type={"icon-" + C.IconFont} {...props} alt={name} />;
     }
-    return <C {...props} />;
+    return <C {...props} alt={name} />;
   }
 
   // this is when the icon is broken.
@@ -572,14 +573,14 @@ export const Icon: React.FC<Props> = (props: Props) => {
         title={`Icon "${props.name}" is not defined -- fix this in r_misc/icon.tsx.`}
       >
         {/* @ts-ignore */}
-        <BugOutlined {...props} />
+        <BugOutlined {...props} alt={name} />
       </span>
     );
   } else {
     // In production, just show a very generic icon so the user
     // doesn't realize we messed up.
     // @ts-ignore
-    return <BorderOutlined {...props} />;
+    return <BorderOutlined {...props} alt={name} />;
   }
 };
 

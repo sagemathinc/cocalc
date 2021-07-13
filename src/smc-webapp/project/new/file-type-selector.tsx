@@ -110,20 +110,20 @@ export const FileTypeSelector: React.FC<Props> = ({
           ) : undefined}
           {available.x11 ? (
             <Tip
-              title="X11 desktop"
+              title="Linux Graphical X11 desktop"
               icon="window-restore"
               tip="Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser."
             >
               <NewFileButton
                 icon="window-restore"
-                name="X11 desktop"
+                name="Linux Graphical X11 desktop"
                 on_click={create_file}
                 ext="x11"
               />
             </Tip>
           ) : undefined}
           <Tip
-            title={"Folder"}
+            title={"Create a Folder"}
             placement={"left"}
             icon={"folder-open"}
             tip={
@@ -132,7 +132,7 @@ export const FileTypeSelector: React.FC<Props> = ({
           >
             <NewFileButton
               icon={"folder-open"}
-              name={"Folder"}
+              name={"Create a folder"}
               on_click={create_folder}
             />
           </Tip>
