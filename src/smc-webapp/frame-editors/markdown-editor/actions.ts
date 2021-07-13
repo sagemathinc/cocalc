@@ -199,6 +199,10 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
   }
 
   public updateTableOfContents(force: boolean = false): void {
+    if (this._state == "closed" || this._syncstring == null) {
+      // no need since not initialized yet or already closed.
+      return;
+    }
     if (
       !force &&
       !this.get_matching_frame({ type: "markdown_table_of_contents" })

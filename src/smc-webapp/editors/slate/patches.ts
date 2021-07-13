@@ -48,3 +48,19 @@ export const withNonfatalRange = (editor) => {
 
   return editor;
 };
+
+// We patch the Editor.string command so that if the input
+// location is invalid, it returns "" instead of crashing.
+// This is useful, since Editor.string is mainly used
+// for heuristic selection adjustment, copy, etc.
+// In theory it should never get invalid input, but due to
+// the loose nature of Slate, it's difficult to ensure this.
+const unpatchedEditorString = Editor.string;
+Editor.string = function (...args): string {
+  try {
+    return unpatchedEditorString(...args);
+  } catch (err) {
+    console.warn("WARNING: slate Editor.string -- invalid range", err);
+    return "";
+  }
+};
