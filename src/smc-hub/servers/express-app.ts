@@ -5,7 +5,6 @@ The main hub express app.
 import * as express from "express";
 import * as cookieParser from "cookie-parser";
 import * as compression from "compression";
-import * as bodyParser from "body-parser";
 import * as ms from "ms";
 import { parse as parseURL } from "url";
 import { join } from "path";
@@ -54,11 +53,6 @@ export default async function init(opts: Options): Promise<{
   // NOTE "Express runs everything in order" --
   // https://github.com/expressjs/compression/issues/35#issuecomment-77076170
   app.use(compression());
-
-  // Very large limit, since can be used to send, e.g., large single patches, and
-  // the default is only 100kb!  https://github.com/expressjs/body-parser#limit-2
-  router.use(bodyParser.json({ limit: "3mb" }));
-  router.use(bodyParser.urlencoded({ extended: true, limit: "3mb" }));
 
   // Install custom middleware to track response time metrics via prometheus, and
   // also serve them up at /metrics.
