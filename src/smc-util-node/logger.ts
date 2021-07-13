@@ -6,7 +6,7 @@ There is used both by the hub(s) and project(s).
 
 import { join } from "path";
 import * as winston from "winston";
-//import "winston-daily-rotate-file"; // makes DailyRotateFile available
+import "winston-daily-rotate-file"; // makes DailyRotateFile available
 const { format } = winston;
 const { colorize, combine, printf, timestamp } = format;
 import { logs } from "./data";
@@ -50,7 +50,22 @@ function getLoggerNoCache(name: string): winston.Logger {
   });
 
   let transports;
-  if (process.env.NODE_ENV == "production") {
+  if (process.env.COCALC_DOCKER) {
+    const filename = join("/var/log/hub", "%DATE%.log");
+    const f = combine(timestamp(), colorize(), myFormatter);
+    transports = [
+      new winston.transports.DailyRotateFile({
+        // write debug and higher messages to these files
+        filename,
+        datePattern: "YYYY-MM-DD-HH",
+        zippedArchive: true,
+        maxSize: "200m",
+        maxFiles: "7d",
+        format: f,
+        level: "debug", // or "silly" for everything
+      }),
+    ];
+  } else if (process.env.NODE_ENV == "production") {
     // For now, just fall back to what we've done forever (console logging),
     // since our infrastructure assumes that.
     transports = [
@@ -60,7 +75,6 @@ function getLoggerNoCache(name: string): winston.Logger {
       }),
     ];
   } else {
-    //const filename = join(logs, "%DATE%.log");
     const filename = join(logs, "log");
     const f = combine(timestamp(), colorize(), myFormatter);
     transports = [
@@ -76,21 +90,6 @@ function getLoggerNoCache(name: string): winston.Logger {
         format: f,
         level: "debug", // or "silly" for everything
       }),
-
-      /*
-      // Would use something like this for cocalc-docker.
-      // another logger that logs to files and doesn't waste all the disk space.
-      new winston.transports.DailyRotateFile({
-        // write debug and higher messages to a file
-        filename,
-        datePattern: "YYYY-MM-DD-HH",
-        zippedArchive: true,
-        maxSize: "20m",
-        maxFiles: "7d",
-        format: f,
-        level: "debug", // or "silly" for everything
-      }),
-      */
     ];
     showConfig(filename);
   }
