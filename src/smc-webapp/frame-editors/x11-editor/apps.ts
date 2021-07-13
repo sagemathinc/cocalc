@@ -24,8 +24,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   drracket: {
     icon: "scheme",
     label: "DrRacket",
-    desc:
-      "Racket is a general-purpose programming language as well as the world’s first ecosystem for language-oriented programming.",
+    desc: "Racket is a general-purpose programming language as well as the world’s first ecosystem for language-oriented programming.",
   },
   /* xclock: { icon: "clock", desc:"Shows UTC time" }, */
   emacs: {
@@ -53,6 +52,11 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     icon: "terminal",
     desc: "Command line terminal",
   },
+  firefox: {
+    icon: "firefox",
+    desc: "A powerful free web browser backed by Mozilla",
+    label: "Firefox",
+  },
   gitk: { icon: "git", desc: "Explore Git repository in current directory" },
   gitg: { icon: "git", desc: "GNOME's client to work with Git repositories" },
   idle: {
@@ -67,8 +71,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   },
   libreoffice: {
     icon: "libreoffice",
-    desc:
-      "A powerful office suite (spreadsheet, word processor, presentations, etc. -- open Word, Excel, Powerpoint, etc.)",
+    desc: "A powerful office suite (spreadsheet, word processor, presentations, etc. -- open Word, Excel, Powerpoint, etc.)",
     label: "LibreOffice",
   },
   lowriter: {
@@ -99,8 +102,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   },
   rstudio: {
     icon: "r",
-    desc:
-      "An integrated development environment (IDE) for R.  RStudio, Inc. is in no way affiliated with CoCalc",
+    desc: "An integrated development environment (IDE) for R.  RStudio, Inc. is in no way affiliated with CoCalc",
     label: "RStudio",
   },
   octave: {
@@ -112,8 +114,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   },
   texmacs: {
     icon: "tex-file",
-    desc:
-      "A wysiwyw (what you see is what you want) editing platform with special features for scientists",
+    desc: "A wysiwyw (what you see is what you want) editing platform with special features for scientists",
     label: "TeXMacs",
   },
   texstudio: {
@@ -123,8 +124,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   },
   openmodelica: {
     icon: "cogs",
-    desc:
-      "an open-source Modelica-based modeling and simulation environment intended for industrial and academic usage",
+    desc: "an open-source Modelica-based modeling and simulation environment intended for industrial and academic usage",
     label: "OpenModelica",
     command: "OMEdit",
   },
@@ -136,8 +136,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   },
   gnumeric: {
     icon: "table",
-    desc:
-      "Gnumeric is a spreadsheet, a computer program used to manipulate and analyze numeric data",
+    desc: "Gnumeric is a spreadsheet, a computer program used to manipulate and analyze numeric data",
     label: "Gnumeric",
     command: "gnumeric",
   },
@@ -149,8 +148,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   },
   spyder: {
     command: "spyder3",
-    desc:
-      "Spyder is a powerful scientific environment written in Python, for Python, and designed by and for scientists, engineers and data analysts.",
+    desc: "Spyder is a powerful scientific environment written in Python, for Python, and designed by and for scientists, engineers and data analysts.",
     icon: "calculator",
     label: "Spyder",
   },
@@ -178,14 +176,12 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   },
   sqlitebrowser: {
     label: "SQLite",
-    desc:
-      "A high quality, visual, open source tool to create, design, and edit database files compatible with SQLite.",
+    desc: "A high quality, visual, open source tool to create, design, and edit database files compatible with SQLite.",
     icon: "database",
   },
   avogadro: {
     label: "Avogadro",
-    desc:
-      "An advanced molecule editor and visualizer designed for cross-platform use in computational chemistry, molecular modeling, bioinformatics, materials science, and related areas",
+    desc: "An advanced molecule editor and visualizer designed for cross-platform use in computational chemistry, molecular modeling, bioinformatics, materials science, and related areas",
     icon: "atom",
   },
   shotwell: {
@@ -221,14 +217,12 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   xcas: {
     icon: "square-root-alt",
     label: "Xcas",
-    desc:
-      "An interface to perform computer algebra, function graphs, interactive geometry (2-d and 3-d), spreadsheet and statistics, programmation.",
+    desc: "An interface to perform computer algebra, function graphs, interactive geometry (2-d and 3-d), spreadsheet and statistics, programmation.",
   },
   "gnome-system-monitor": {
     icon: "microchip",
     label: "System Monitor",
-    desc:
-      "Shows you what programs are running and how much processor time, memory, and disk space are being used.",
+    desc: "Shows you what programs are running and how much processor time, memory, and disk space are being used.",
   },
   gedit: {
     icon: "edit",
