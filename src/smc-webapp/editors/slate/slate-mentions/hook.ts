@@ -71,7 +71,14 @@ export const useMentions: (Options) => MentionsControl = ({
         const { selection } = editor;
         if (selection && Range.isCollapsed(selection)) {
           const { focus } = selection;
-          const [current] = Editor.node(editor, focus);
+          let current;
+          try {
+            [current] = Editor.node(editor, focus);
+          } catch (_err) {
+            // I think due to debounce, somehow this Editor.node above is
+            // often invalid while user is typing.
+            return;
+          }
           if (Text.isText(current)) {
             const charBeforeCursor = current.text[focus.offset - 1];
             let afterMatch, beforeMatch, beforeRange, search;

@@ -243,21 +243,44 @@ function findMarkedFragmentWithPrefix(
 }
 
 // TODO: make this part of a focus/last selection plugin.
+// Is definitely a valid focus point, in that Editor.node will
+// work on it.
 export function getFocus(editor: SlateEditor): Point {
-  return (
-    editor.selection?.focus ??
-    editor.lastSelection?.focus ?? { path: [0, 0], offset: 0 }
-  );
+  if (editor.selection?.focus == null && editor.lastSelection?.focus == null) {
+    return { path: [0, 0], offset: 0 };
+  }
+  const focus = editor.selection?.focus ?? editor.lastSelection?.focus;
+  try {
+    Editor.node(editor, focus);
+  } catch (_err) {
+    return { path: [0, 0], offset: 0 };
+  }
 }
 
+// Return a definitely valid selection which is most likely
+// to be the current selection (or what it would be, say if
+// user recently blurred).  Valid means that Editor.node will
+// work on both ends.
 export function getSelection(editor: SlateEditor): Range {
-  return (
-    editor.selection ??
-    editor.lastSelection ?? {
+  if (editor.selection == null && editor.lastSelection == null) {
+    return {
       focus: { path: [0, 0], offset: 0 },
       anchor: { path: [0, 0], offset: 0 },
+    };
+  }
+  const selection = editor.selection ?? editor.lastSelection;
+  try {
+    Editor.node(editor, selection.focus);
+    if (!Range.isCollapsed(selection)) {
+      Editor.node(editor, selection.anchor);
     }
-  );
+  } catch (_err) {
+    return {
+      focus: { path: [0, 0], offset: 0 },
+      anchor: { path: [0, 0], offset: 0 },
+    };
+  }
+  return selection;
 }
 
 // get range that's the selection collapsed to the focus point.
