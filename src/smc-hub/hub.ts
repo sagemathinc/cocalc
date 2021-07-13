@@ -7,6 +7,17 @@
 // middle of the action, connected to potentially thousands of clients,
 // many Sage sessions, and PostgreSQL database.
 
+/*
+TEMPORARY: There is still some code that assumes that process.env.SMC_ROOT is
+defined, we for now we define it here on startup using the directory of the
+dist/hub.js file typescript creates.  This will NOT work if we use cocalc via
+the smc-hub npm package, so you better set SMC_ROOT properly in that case.
+*/
+import { join, resolve } from "path";
+if (!process.env.SMC_ROOT) {
+  process.env.SMC_ROOT = resolve(join(__dirname, "..", ".."));
+}
+
 import * as blocked from "blocked";
 import { program as commander } from "commander";
 import { callback2 } from "smc-util/async-utils";
@@ -349,7 +360,6 @@ function addErrorListeners(uncaught_exception_total) {
 //############################################
 async function main(): Promise<void> {
   const default_db = process.env.PGHOST ?? "localhost";
-
   commander
     .name("cocalc-hub-server")
     .usage("options")
