@@ -183,7 +183,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
       const v: Promise<PDFPageProxy>[] = [];
       for (let n = 1; n <= doc.numPages; n++) {
         // their promises are slightly different now...
-        const page = (doc.getPage(n) as unknown) as Promise<PDFPageProxy>;
+        const page = doc.getPage(n) as unknown as Promise<PDFPageProxy>;
         v.push(page);
       }
       const pages: PDFPageProxy[] = await Promise.all(v);
@@ -246,7 +246,7 @@ export const PDFJS: React.FC<PDFJSProps> = React.memo((props: PDFJSProps) => {
     const page_promises: Promise<PDFPageProxy>[] = [];
     for (let n = 1; n <= page; n++) {
       // their promises are slightly different now...
-      const page = (doc.getPage(n) as unknown) as Promise<PDFPageProxy>;
+      const page = doc.getPage(n) as unknown as Promise<PDFPageProxy>;
       page_promises.push(page);
     }
 

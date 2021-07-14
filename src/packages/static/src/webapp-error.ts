@@ -30,6 +30,10 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
     return;
   }
   console.warn("handle_window_error", { msg, url, lineNo, columnNo, error });
+  if (isWhitelisted({ msg, url, error })) {
+    console.warn("handle_window_error -- whitelisted");
+    return;
+  }
   window.onerror = null; // only once!!
   const crash = document.getElementById("cocalc-react-crash");
   if (crash == null) return;
@@ -75,4 +79,16 @@ export function startedUp() {
   if (elt) {
     elt.remove();
   }
+}
+
+function isWhitelisted({ msg, url, error }): boolean {
+  if (url.includes("darkreader")) {
+    // darkreader causes "TypeError: Cannot read property 'cssRules' of null"
+    // sometimes when editing PDF files previewed using PDFjs.  It's probably a complicated
+    // issue involving PDFJS.
+    return true;
+  }
+  msg = msg;
+  error = error; // typescript
+  return false;
 }
