@@ -64,7 +64,12 @@ smc_compute = (opts) =>
     # 2021: we have to be explicit to smc_compute where it's modules are now.
     # prior to encapsulating the global "/cocalc/..." setup, this would have
     # picked up the global installation.
-    env = {SMC_ROOT:process.env.SMC_ROOT, BASE_PATH:base_path, PYTHONPATH: join(process.env.SMC_ROOT, 'smc_pyutil/')}
+    env =
+        SMC_ROOT   : process.env.SMC_ROOT
+        PATH       : process.env.PATH
+        PROJECTS   : process.env.PROJECTS
+        BASE_PATH  : base_path
+        PYTHONPATH : join(process.env.SMC_ROOT, 'smc_pyutil/')
     command = join(process.env.SMC_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
     v = []
     if program.dev
