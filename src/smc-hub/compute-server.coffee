@@ -82,7 +82,10 @@ smc_compute = (opts) =>
     v.push(PROJECT_PATH)
 
     args = v.concat(opts.args)
-    winston.debug("smc_compute: #{command} #{args.join(' ')}")
+    env0 = ''
+    for k of env
+        env0 += "#{k}=#{env[k]} "
+    winston.debug("smc_compute: '#{env0} #{command} #{args.join(' ')}'")
 
     misc_node.execute_code
         command : command
@@ -92,7 +95,7 @@ smc_compute = (opts) =>
         path    : process.cwd()
         env     : env
         cb      : (err, output) =>
-            #winston.debug(misc.to_safe_str(output))
+            winston.debug(misc.to_safe_str(output))
             winston.debug("smc_compute: finished running #{command} #{opts.args.join(' ')} -- #{err}")
             if err
                 if output?.stderr

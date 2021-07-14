@@ -164,6 +164,5 @@
     "cocalc-hub-maintenance-syncstrings": "./run/maintenance-syncstrings.js",
     "cocalc-hub-maintenance-blobs": "./run/maintenance-blobs.js",
     "cocalc-hub-stripe-sync": "./run/stripe-sync.js",
-    "cocalc-compute-server": "./run/compute.js"
   }
 }
