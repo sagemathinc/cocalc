@@ -154,14 +154,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             else
                 project.restart(cb:cb)
 
-    close: (cb) =>
-        @dbg("close: stop the project and delete from disk (but leave in cloud storage)")
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.ensure_closed(cb:cb)
-
     save: (cb) =>
         @dbg("save: save a snapshot of the project")
         @project (err, project) =>

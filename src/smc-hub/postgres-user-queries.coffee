@@ -1673,7 +1673,7 @@ awaken_project = (db, project_id, cb) ->
                         locals.project = project
                         cb()
         (cb) ->
-            locals.project.ensure_running
+            locals.project.start
                 cb : (err) =>
                     if err
                         cb("failed to ensure project running -- #{err}")

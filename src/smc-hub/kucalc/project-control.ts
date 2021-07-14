@@ -1,20 +1,17 @@
-//########################################################################
-// This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-// License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
-//########################################################################
-
 /*
 Compute client for use in Kubernetes cluster by the hub.
 
 The hub uses this module to get information about a project.  This is meant
-to be used as part of kucalc, and replaces the other variants
-of compute-client.coffee.
+to be used as part of kucalc, and replaces the other variants.
 
 What this modules should acomplish:
 
-- Modify database in response to requests to start/stop/etc project.
-- Provide the project secret token to the hub
-
+- **Modify database** in response to requests to start/stop/etc project.
+- Provide the project secret token to the hub.
+- A few other things that also depend a lot on where cocalc is running:
+   - directory_listing fallback
+   - copying files around
+   - reading/writing files
 */
 
 const HUB_SERVER_PORT = 6000;
@@ -82,10 +79,6 @@ class Client {
   private _synctable_cbs;
 
   constructor(database) {
-    this.copy_paths_synctable = this.copy_paths_synctable.bind(this);
-    this.dbg = this.dbg.bind(this);
-    this.project = this.project.bind(this);
-
     this.database = database;
     this.dbg("constructor")();
     if (this.database == null) {
@@ -93,7 +86,7 @@ class Client {
     }
   }
 
-  copy_paths_synctable(cb: Function): void {
+  private copy_paths_synctable(cb: Function): void {
     if (this._synctable) {
       cb(undefined, this._synctable);
       return;
@@ -172,27 +165,6 @@ class Project extends EventEmitter {
 
   constructor(client: Client, project_id: string, database) {
     super();
-    this.get = this.get.bind(this);
-    this.getIn = this.getIn.bind(this);
-    this._action_request = this._action_request.bind(this);
-    this.dbg = this.dbg.bind(this);
-    this.free = this.free.bind(this);
-    this.state = this.state.bind(this);
-    this.status = this.status.bind(this);
-    this.query = this.query.bind(this);
-    this.open = this.open.bind(this);
-    this.start = this.start.bind(this);
-    this.stop = this.stop.bind(this);
-    this.restart = this.restart.bind(this);
-    this.ensure_running = this.ensure_running.bind(this);
-    this.ensure_closed = this.ensure_closed.bind(this);
-    this.move = this.move.bind(this);
-    this.address = this.address.bind(this);
-    this.save = this.save.bind(this);
-    this.copy_path = this.copy_path.bind(this);
-    this.directory_listing = this.directory_listing.bind(this);
-    this.read_file = this.read_file.bind(this);
-    this.set_all_quotas = this.set_all_quotas.bind(this);
     this.client = client;
     this.project_id = project_id;
     this.database = database;
@@ -448,19 +420,6 @@ class Project extends EventEmitter {
     this.start(opts); // it's just the same
   }
 
-  ensure_closed(opts: { cb?: Function }): void {
-    opts = defaults(opts, { cb: undefined });
-    const dbg = this.dbg("ensure_closed");
-    dbg();
-    this._action({
-      action: "close",
-      goal(project) {
-        return project?.getIn(["state", "state"]) === "closed";
-      },
-      cb: opts.cb,
-    });
-  }
-
   move(opts: { target?: string; force?: boolean; cb: Function }): void {
     opts = defaults(opts, {
       target: undefined, // ignored
@@ -610,7 +569,7 @@ class Project extends EventEmitter {
           }
           if (opts.wait_until_done == true) {
             dbg("waiting for copy to finish...");
-            var handle_change = () => {
+            const handle_change = () => {
               this.active();
               const obj = synctable.get(copy_id);
               if (obj?.get("started")) {
@@ -663,8 +622,8 @@ class Project extends EventEmitter {
           this.start({ cb });
         },
         (cb) => {
-          // TODO: This URL is obviously very specific to KuCalc -- hardcoded port and base url.
-          let url = `http://${this.host}:6001/${this.project_id}/raw/.smc/directory_listing/${opts.path}`;
+          // TODO: This URL is obviously very specific to KuCalc -- hardcoded port and base path.
+          let url = `http://${this.host}:${BROWSER_SERVER_PORT}/${this.project_id}/raw/.smc/directory_listing/${opts.path}`;
           dbg(`fetching listing from '${url}'`);
           if (opts.hidden) {
             url += "?hidden=true";
@@ -738,7 +697,7 @@ class Project extends EventEmitter {
             cb("project not running");
             return;
           }
-          const url = `http://${this.host}:6001/${this.project_id}/raw/${opts.path}`;
+          const url = `http://${this.host}:${BROWSER_SERVER_PORT}/${this.project_id}/raw/${opts.path}`;
           dbg(`fetching file from '${url}'`);
           retry_until_success({
             f: (cb) => {

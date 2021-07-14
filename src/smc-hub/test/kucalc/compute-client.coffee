@@ -213,17 +213,6 @@ describe 'test the lifecyle of project client (mocking the manager) -- ', ->
                             cb          : (err) ->
                                 expect(!!err).toBe(false)
 
-    it 'close the project (means moving it to longterm storage)', (done) ->
-        project.ensure_closed
-            cb : done
-        project.once 'change', ->
-            project._query
-                jsonb_merge :
-                    state          : {state:'closed', time:new Date(), error:undefined}
-                    action_request : {finished:new Date()}
-                cb          : (err) ->
-                    expect(!!err).toBe(false)
-
     it 'move gives an error', (done) ->
         project.move
             cb : (err) ->

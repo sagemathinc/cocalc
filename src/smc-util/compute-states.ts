@@ -17,10 +17,9 @@
 //
 // The icon names below refer to font-awesome, and are used in the UI.
 
-exports.COMPUTE_STATES = {
+export const COMPUTE_STATES = {
   archived: {
-    desc:
-      "Project is stored in longterm storage, and will take even longer to start.",
+    desc: "Project is stored in longterm storage, and will take even longer to start.",
     icon: "file-archive",
     display: "Archived", // displayed name for users
     stable: true,
@@ -31,8 +30,7 @@ exports.COMPUTE_STATES = {
   },
 
   unarchiving: {
-    desc:
-      "Project is being copied from longterm storage; this may take several minutes depending on how many files you have.",
+    desc: "Project is being copied from longterm storage; this may take several minutes depending on how many files you have.",
     icon: "globe",
     display: "Unarchiving",
     to: {},
@@ -50,8 +48,7 @@ exports.COMPUTE_STATES = {
   },
 
   closed: {
-    desc:
-      "Project is stored only as ZFS streams, which must be imported, so it will take longer to start.",
+    desc: "Project is stored only as ZFS streams, which must be imported, so it will take longer to start.",
     icon: "file-archive", // font awesome icon
     display: "Closed", // displayed name for users
     stable: true,
@@ -63,8 +60,7 @@ exports.COMPUTE_STATES = {
   },
 
   opening: {
-    desc:
-      "Project is being imported; this may take several minutes depending on size and history.",
+    desc: "Project is being imported; this may take several minutes depending on size and history.",
     icon: "gears",
     display: "Opening",
     to: {},
@@ -111,8 +107,7 @@ exports.COMPUTE_STATES = {
   },
 
   pending: {
-    desc:
-      "Finding a place to run your project.  If nothing becomes available, reduce dedicated RAM or CPU, pay for members only hosting, or contact support.",
+    desc: "Finding a place to run your project.  If nothing becomes available, reduce dedicated RAM or CPU, pay for members only hosting, or contact support.",
     icon: "times-rectangle",
     display: "Pending",
     stable: true,
@@ -193,8 +188,7 @@ exports.COMPUTE_STATES = {
   },
 
   saving: {
-    desc:
-      "Project is being copied to a central file server for longterm storage.",
+    desc: "Project is being copied to a central file server for longterm storage.",
     icon: "save",
     display: "Saving to server",
     to: {},
@@ -212,4 +206,6 @@ exports.COMPUTE_STATES = {
       "status",
     ],
   },
-};
+} as const;
+
+export type State = keyof typeof COMPUTE_STATES;

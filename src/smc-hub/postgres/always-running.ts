@@ -40,7 +40,7 @@ export async function init_start_always_running_projects(
         const compute_server = (database as any).compute_server;
         if (compute_server == null) continue; // not initialized (?)
         const project = await callback2(compute_server.project, { project_id });
-        project.ensure_running(); // we fire this off, but do not wait on it
+        project.start(); // we fire this off, but do not wait on it
       }
     } catch (err) {
       console.warn("init_start_always_running_projects", err);

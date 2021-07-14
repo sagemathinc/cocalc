@@ -341,16 +341,6 @@ class Project extends EventEmitter
     ensure_running: (opts) =>
         @start(opts)  # it's just the same
 
-    ensure_closed: (opts) =>
-        opts = defaults opts,
-            cb     : undefined
-        dbg = @dbg("ensure_closed")
-        dbg()
-        @_action
-            action : 'close'
-            goal   : (project) -> project?.getIn(['state', 'state']) == 'closed'
-            cb     : opts.cb
-
     move: (opts) =>
         opts = defaults opts,
             target : undefined # ignored
