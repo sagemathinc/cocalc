@@ -18,16 +18,24 @@ What this modules should acomplish:
 */
 
 const HUB_SERVER_PORT = 6000;
+const BROWSER_SERVER_PORT = 6001;
 const SAGE_SERVER_PORT = 6002;
 
 import { EventEmitter } from "events";
-import request from "request";
-import async from "async";
+import * as request from "request";
+import { series } from "async";
 import { debounce, isEqual } from "lodash";
-import misc from "smc-util/misc";
-// We keep the defaults/required redundancy until all client code is in
+
+// For now, we keep the defaults/required redundancy until all client code is in
 // typescript, since much is still in CoffeeScript.
-const { defaults, required } = misc;
+import {
+  defaults,
+  required,
+  merge,
+  uuid,
+  retry_until_success,
+} from "smc-util/misc";
+
 import { site_license_hook } from "../postgres/site-license/hook";
 import { quota } from "smc-util/upgrades/quota";
 import getLogger from "smc-hub/logger";
@@ -37,14 +45,14 @@ const winston = getLogger("project-control");
 export function get_json(url, cb) {
   request.get(url, function (err, response, body) {
     if (err) {
-      return cb(err);
+      cb(err);
     } else if (response.statusCode !== 200) {
-      return cb(`ERROR: statusCode ${response.statusCode}`);
+      cb(`ERROR: statusCode ${response.statusCode}`);
     } else {
       try {
-        return cb(undefined, JSON.parse(body));
+        cb(undefined, JSON.parse(body));
       } catch (e) {
-        return cb(`ERROR: invalid JSON -- ${e} -- '${body}'`);
+        cb(`ERROR: invalid JSON -- ${e} -- '${body}'`);
       }
     }
   });
@@ -53,11 +61,11 @@ export function get_json(url, cb) {
 export function get_file(url, cb) {
   request.get(url, { encoding: null }, function (err, response, body) {
     if (err) {
-      return cb(err);
+      cb(err);
     } else if (response.statusCode !== 200) {
-      return cb(`ERROR: statusCode ${response.statusCode}`);
+      cb(`ERROR: statusCode ${response.statusCode}`);
     } else {
-      return cb(undefined, body);
+      cb(undefined, body);
     }
   });
 }
@@ -69,10 +77,15 @@ export function compute_client(db): Client {
 const project_cache = {};
 
 class Client {
+  public readonly database;
+  private _synctable;
+  private _synctable_cbs;
+
   constructor(database) {
     this.copy_paths_synctable = this.copy_paths_synctable.bind(this);
     this.dbg = this.dbg.bind(this);
     this.project = this.project.bind(this);
+
     this.database = database;
     this.dbg("constructor")();
     if (this.database == null) {
@@ -80,7 +93,7 @@ class Client {
     }
   }
 
-  copy_paths_synctable(cb) {
+  copy_paths_synctable(cb: Function): void {
     if (this._synctable) {
       cb(undefined, this._synctable);
       return;
@@ -115,11 +128,11 @@ class Client {
     });
   }
 
-  dbg(f) {
+  dbg(f: string): Function {
     return (...args) => winston.debug(`kucalc.Client.${f}`, ...args);
   }
 
-  project(opts: { project_id: string; cb: Function }) {
+  project(opts: { project_id: string; cb: Function }): void {
     opts = defaults(opts, {
       project_id: required,
       cb: required,
@@ -149,7 +162,16 @@ class Client {
 // NOTE: I think (and am assuming) that EventEmitter aspect of Project is
 // NOT used in KuCalc by any client code.
 class Project extends EventEmitter {
+  private client: Client;
+  private project_id: string;
+  private database;
+  private active: () => void;
+  public is_ready: boolean = false;
+  private synctable?;
+  private host?: string; // ip address of project, when known.
+
   constructor(client: Client, project_id: string, database) {
+    super();
     this.get = this.get.bind(this);
     this.getIn = this.getIn.bind(this);
     this._action_request = this._action_request.bind(this);
@@ -157,7 +179,7 @@ class Project extends EventEmitter {
     this.free = this.free.bind(this);
     this.state = this.state.bind(this);
     this.status = this.status.bind(this);
-    this._query = this._query.bind(this);
+    this.query = this.query.bind(this);
     this.open = this.open.bind(this);
     this.start = this.start.bind(this);
     this.stop = this.stop.bind(this);
@@ -171,7 +193,6 @@ class Project extends EventEmitter {
     this.directory_listing = this.directory_listing.bind(this);
     this.read_file = this.read_file.bind(this);
     this.set_all_quotas = this.set_all_quotas.bind(this);
-    super();
     this.client = client;
     this.project_id = project_id;
     this.database = database;
@@ -196,23 +217,22 @@ class Project extends EventEmitter {
         if (err) {
           dbg("error creating synctable ", err);
           this.emit("ready", err);
-          return this.close();
         } else {
           dbg("successfully created synctable; now ready");
           this.is_ready = true;
           this.synctable = synctable;
           this.host = this.getIn(["state", "ip"]);
-          this.synctable.on("change", () => {
+          this.synctable?.on("change", () => {
             this.host = this.getIn(["state", "ip"]);
-            return this.emit("change");
+            this.emit("change");
           });
-          return this.emit("ready");
+          this.emit("ready");
         }
       },
     });
   }
 
-  // Get the current data about the project from the database.
+  // Get current data about the project from the database.
   get(field?: string) {
     const t = this.synctable.get(this.project_id);
     if (field != null) {
@@ -226,8 +246,14 @@ class Project extends EventEmitter {
     return this.get()?.getIn(v);
   }
 
-  _action_request() {
-    const x = this.get("action_request")?.toJS();
+  // only used internally by testing code that probably doesn't work...
+  _action_request(): {
+    action?: "restart" | "stop" | "save" | "close";
+    err?: string;
+    started?: Date;
+    finished?: Date;
+  } {
+    const x = this.get("action_request")?.toJS() ?? {};
     if (x.started != null) {
       x.started = new Date(x.started);
     }
@@ -237,35 +263,26 @@ class Project extends EventEmitter {
     return x;
   }
 
-  dbg(f) {
+  dbg(f: string): Function {
     return (...args) => winston.debug(`kucalc.Project.${f}`, ...args);
   }
 
   // free -- stop listening for status updates from the database and broadcasting
   // updates about this project.
-  free() {
+  free(): void {
     this.dbg("free")();
-    delete this.idle;
-    if (this.free_check != null) {
-      clearInterval(this.free_check);
-      delete this.free_check;
-    }
     // Ensure that next time this project gets requested, a fresh one is created,
     // rather than this cached one, which has been free'd up, and will no longer work.
     delete project_cache[this.project_id];
     // Close the changefeed, so get no further data from database.
     this.synctable?.close();
     delete this.synctable;
-    delete this.project_id;
-    delete this.compute_server;
-    delete this.is_ready;
-    delete this.host;
     // Make sure nothing else reacts to changes on this ProjectClient,
     // since they won't happen.
     this.removeAllListeners();
   }
 
-  state(opts: { force?: boolean; update?: boolean; cb: Function }) {
+  state(opts: { force?: boolean; update?: boolean; cb: Function }): void {
     opts = defaults(opts, {
       force: false, // ignored
       update: false, // ignored
@@ -276,16 +293,15 @@ class Project extends EventEmitter {
     opts.cb(undefined, this.get("state")?.toJS());
   }
 
-  status(opts: { cb: Function }) {
-    let left;
+  status(opts: { cb: Function }): void {
     opts = defaults(opts, { cb: required });
     const dbg = this.dbg("status");
     dbg();
-    const status = (left = this.get("status")?.toJS()) != null ? left : {};
-    misc.merge(status, {
-      // merge in canonical information
+    const status = this.get("status")?.toJS() ?? {};
+    merge(status, {
+      // merge in canonical information (for KuCalc).
       "hub-server.port": HUB_SERVER_PORT,
-      "browser-server.port": RAW_PORT,
+      "browser-server.port": BROWSER_SERVER_PORT,
       "sage_server.port": SAGE_SERVER_PORT,
     });
     opts.cb(undefined, status);
@@ -296,7 +312,7 @@ class Project extends EventEmitter {
     goal;
     timeout_s?: number;
     cb?: Function;
-  }) => {
+  }): Promise<void> => {
     opts = defaults(opts, {
       action: required, // action to do
       goal: required, // wait until goal(project) is true, where project is immutable js obj
@@ -338,7 +354,7 @@ class Project extends EventEmitter {
 
     dbg("request action to happen");
     this.active();
-    this._query({
+    this.query({
       jsonb_set: {
         action_request: {
           action: opts.action,
@@ -360,14 +376,13 @@ class Project extends EventEmitter {
     });
   };
 
-  _query(opts: any) {
-    opts.query = "UPDATE projects";
-    opts.where = { "project_id  = $::UUID": this.project_id };
+  private query(opts: object): void {
+    opts["query"] = "UPDATE projects";
+    opts["where"] = { "project_id  = $::UUID": this.project_id };
     this.client.database._query(opts);
   }
 
-  open(opts: { cb?: Function }) {
-    let left;
+  open(opts: { cb?: Function }): void {
     opts = defaults(opts, { cb: undefined });
     const dbg = this.dbg("open");
     dbg();
@@ -379,7 +394,7 @@ class Project extends EventEmitter {
     });
   }
 
-  start(opts: { set_quotas?: boolean; cb?: Function }) {
+  start(opts: { set_quotas?: boolean; cb?: Function }): void {
     opts = defaults(opts, {
       set_quotas: true, // ignored
       cb: undefined,
@@ -395,7 +410,7 @@ class Project extends EventEmitter {
     });
   }
 
-  stop(opts: { cb: Function }) {
+  stop(opts: { cb: Function }): void {
     opts = defaults(opts, { cb: undefined });
     const dbg = this.dbg("stop");
     dbg();
@@ -409,14 +424,14 @@ class Project extends EventEmitter {
     });
   }
 
-  restart(opts: { set_quotas?: boolean; cb?: Function }) {
+  restart(opts: { set_quotas?: boolean; cb?: Function }): void {
     opts = defaults(opts, {
       set_quotas: true, // ignored
       cb: undefined,
     });
     const dbg = this.dbg("restart");
     dbg();
-    async.series(
+    series(
       [
         (cb) => {
           this.stop({ cb });
@@ -429,11 +444,11 @@ class Project extends EventEmitter {
     );
   }
 
-  ensure_running(opts) {
+  ensure_running(opts): void {
     this.start(opts); // it's just the same
   }
 
-  ensure_closed(opts: { cb?: Function }) {
+  ensure_closed(opts: { cb?: Function }): void {
     opts = defaults(opts, { cb: undefined });
     const dbg = this.dbg("ensure_closed");
     dbg();
@@ -446,7 +461,7 @@ class Project extends EventEmitter {
     });
   }
 
-  move(opts: { target?: string; force?: boolean; cb: Function }) {
+  move(opts: { target?: string; force?: boolean; cb: Function }): void {
     opts = defaults(opts, {
       target: undefined, // ignored
       force: false, // ignored for now
@@ -457,7 +472,7 @@ class Project extends EventEmitter {
     );
   }
 
-  address(opts: { cb: Function }) {
+  address(opts: { cb: Function }): void {
     opts = defaults(opts, { cb: required });
     const dbg = this.dbg("address");
     dbg("first ensure is running");
@@ -487,7 +502,7 @@ class Project extends EventEmitter {
 
   // this is a no-op for Kubernetes; this was only used for serving
   // some static websites, e.g., wstein.org, so may evolve into that...
-  save(opts: { min_interval?: number; cb?: Function }) {
+  save(opts: { min_interval?: number; cb?: Function }): void {
     opts = defaults(opts, {
       min_interval: undefined, // ignored
       cb: undefined,
@@ -508,10 +523,10 @@ class Project extends EventEmitter {
     timeout?: number;
     bwlimit?: number;
     wait_until_done?: boolean;
-    scheduled?: string;
+    scheduled?: string | Date;
     public?: boolean;
     cb?: Function;
-  }) {
+  }): void {
     opts = defaults(opts, {
       path: "",
       target_project_id: "",
@@ -523,11 +538,12 @@ class Project extends EventEmitter {
       timeout: undefined,
       bwlimit: undefined,
       wait_until_done: true, // by default, wait until done. false only gives the ID to query the status later
-      scheduled: undefined, // string, parseable by new Date()
+      scheduled: undefined, // string (parseable by new Date()), or a Date
       public: false, // if true, will use the share server files rather than start the source project running.
       cb: undefined,
     });
 
+    const copy_id = uuid();
     const dbg = this.dbg(`copy_path('${opts.path}', id='${copy_id}')`);
 
     if (!opts.target_project_id) {
@@ -538,9 +554,9 @@ class Project extends EventEmitter {
       opts.target_path = opts.path;
     }
 
-    if (opts.scheduled) {
-      // we have to remove the timezone info, b/c the pg field is without tz
-      // ideally though, this is always UTC, e.g. "2019-08-08T18:34:49"
+    if (opts.scheduled && opts.scheduled instanceof Date) {
+      // We have to remove the timezone info, b/c the PostgreSQL field is without timezone.
+      // Ideally though, this is always UTC, e.g. "2019-08-08T18:34:49".
       const d = new Date(opts.scheduled);
       const offset = d.getTimezoneOffset() / 60;
       opts.scheduled = new Date(d.getTime() - offset);
@@ -548,23 +564,22 @@ class Project extends EventEmitter {
       dbg(`opts.scheduled = ${opts.scheduled}`);
     }
 
-    let synctable = undefined;
-    var copy_id = misc.uuid();
+    let synctable: any = undefined;
     dbg("copy a path using rsync from one project to another");
     this.active();
-    return async.series(
+    return series(
       [
         (cb) => {
           dbg("get synctable");
-          return this.client.copy_paths_synctable((err, s) => {
+          this.client.copy_paths_synctable((err, s) => {
             synctable = s;
-            return cb(err);
+            cb(err);
           });
         },
         (cb) => {
           this.active();
           dbg("write query requesting the copy to the database");
-          return this.database._query({
+          this.database._query({
             query: "INSERT INTO copy_paths",
             values: {
               "id                ::UUID": copy_id,
@@ -629,7 +644,7 @@ class Project extends EventEmitter {
     start?: number;
     limit?: number;
     cb: Function;
-  }) {
+  }): void {
     opts = defaults(opts, {
       path: "",
       hidden: false, // used
@@ -641,7 +656,7 @@ class Project extends EventEmitter {
     const dbg = this.dbg("directory_listing");
     dbg();
     let listing = undefined;
-    async.series(
+    series(
       [
         (cb) => {
           dbg("starting project if necessary...");
@@ -654,12 +669,12 @@ class Project extends EventEmitter {
           if (opts.hidden) {
             url += "?hidden=true";
           }
-          misc.retry_until_success({
+          retry_until_success({
             f: (cb) => {
               this.active();
               get_json(url, (err, x) => {
                 listing = x;
-                return cb(err);
+                cb(err);
               });
             },
             max_time: 30000,
@@ -676,7 +691,7 @@ class Project extends EventEmitter {
     );
   }
 
-  read_file(opts: { path: string; maxsize?: number; cb: Function }) {
+  read_file(opts: { path: string; maxsize?: number; cb: Function }): void {
     opts = defaults(opts, {
       path: required,
       maxsize: 5000000, // maximum file size in bytes to read
@@ -686,7 +701,7 @@ class Project extends EventEmitter {
     dbg("read a file from disk");
     let content = undefined;
     this.active();
-    async.series(
+    series(
       [
         (cb) => {
           // (this also starts the project)
@@ -707,7 +722,7 @@ class Project extends EventEmitter {
               } else {
                 for (let x of listing?.files != null ? listing?.files : []) {
                   if (x.name === base) {
-                    if (x.size <= opts.maxsize) {
+                    if (x.size <= (opts.maxsize ?? 5000000)) {
                       cb();
                       return;
                     }
@@ -725,12 +740,12 @@ class Project extends EventEmitter {
           }
           const url = `http://${this.host}:6001/${this.project_id}/raw/${opts.path}`;
           dbg(`fetching file from '${url}'`);
-          misc.retry_until_success({
+          retry_until_success({
             f: (cb) => {
               this.active();
               get_file(url, (err, x) => {
                 content = x;
-                return cb(err);
+                cb(err);
               });
             },
             max_time: 30000,
@@ -751,7 +766,7 @@ class Project extends EventEmitter {
     set_all_quotas ensures that if the project is running and the quotas
     (except idle_timeout) have changed, then the project is restarted.
     */
-  set_all_quotas(opts: { cb: Function }) {
+  set_all_quotas(opts: { cb: Function }): void {
     opts = defaults(opts, { cb: required });
     const dbg = this.dbg("set_all_quotas");
     dbg();
@@ -785,7 +800,7 @@ class Project extends EventEmitter {
           // CRITICAL: do NOT wait on this before returning!  The set_all_quotas call must
           // complete quickly (in an HTTP requrest), whereas restart can easily take 20s,
           // and there is no reason to wait on this.
-          this.restart();
+          this.restart({});
         }
       },
     });
