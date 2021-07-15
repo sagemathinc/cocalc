@@ -125,58 +125,46 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             delete @_heartbeat_interval
 
     project: (cb) =>
-        @compute_server.project
-            project_id : @project_id
-            cb         : cb
+        try
+            cb(undefined, await @compute_server(@project_id))
+        catch err
+            cb(err)
 
     dbg: (m) =>
         ## only enable when debugging
         if DEBUG
             winston.debug("local_hub('#{@project_id}'): #{misc.to_json(m)}")
 
-    move: (opts) =>
-        opts = defaults opts,
-            target : undefined
-            cb     : undefined          # cb(err, {host:hostname})
-        @dbg("move")
-        @project (err, project) =>
-            if err
-                cb?(err)
-            else
-                project.move(opts)
-
     restart: (cb) =>
         @dbg("restart")
         @free_resources()
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.restart(cb:cb)
+        try
+            await (await @compute_server(@project_id)).restart()
+            cb()
+        catch err
+            cb(err)
 
     save: (cb) =>
         @dbg("save: save a snapshot of the project")
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.save(cb:cb)
+        try
+            await (await @compute_server(@project_id)).save()
+            cb()
+        catch err
+            cb(err)
 
     status: (cb) =>
         @dbg("status: get status of a project")
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.status(cb:cb)
+        try
+            cb(undefined, await (await @compute_server(@project_id)).status())
+        catch err
+            cb(err)
 
     state: (cb) =>
         @dbg("state: get state of a project")
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.state(cb:cb)
+        try
+            cb(undefined, await (await @compute_server(@project_id)).state())
+        catch err
+            cb(err)
 
     free_resources: () =>
         @dbg("free_resources")
@@ -563,14 +551,11 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             (cb) =>
                 if not @address?
                     @dbg("get address of a working local hub")
-                    @project (err, project) =>
-                        if err
-                            cb(err)
-                        else
-                            @dbg("get address")
-                            project.address
-                                cb : (err, address) =>
-                                    @address = address; cb(err)
+                    try
+                        @address = await (await @compute_server(@project_id)).address()
+                        cb()
+                    catch err
+                        cb(err)
                 else
                     cb()
             (cb) =>
@@ -581,14 +566,11 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         cb()
                     else
                         @dbg("failed to get address of a working local hub")
-                        @project (err, project) =>
-                            if err
-                                cb(err)
-                            else
-                                @dbg("get address")
-                                project.address
-                                    cb : (err, address) =>
-                                        @address = address; cb(err)
+                        try
+                            @address = await (await @compute_server(@project_id)).address()
+                            cb()
+                        catch err
+                            cb(err)
             (cb) =>
                 if not socket?
                     @dbg("still don't have our connection -- try again")

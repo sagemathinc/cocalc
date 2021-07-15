@@ -997,32 +997,22 @@ class exports.Client extends EventEmitter
                     cb          : (err, _project_id) =>
                         project_id = _project_id; cb(err)
             (cb) =>
+                cb() # we don't need to wait for project to open before responding to user that project was created.
                 dbg("open project...")
                 # We do the open/start below so that when user tries to open it in a moment it opens more quickly;
                 # also, in single dev mode, this ensures that project path is created, so can copy
                 # files to the project, etc.
                 # Also, if mesg.start is set, the project gets started below.
-                @compute_server.project
-                    project_id : project_id
-                    cb         : (err, project) =>
-                        if err
-                            dbg("failed to get project -- #{err}")
-                        else
-                            async.series([
-                                (cb) =>
-                                    project.open(cb:cb)
-                                (cb) =>
-                                    project.state(cb:cb, force:true, update:true)
-                                (cb) =>
-                                    if mesg.start
-                                        project.start(cb:cb)
-                                    else
-                                        dbg("not auto-starting the new project")
-                                        cb()
-                            ], (err) =>
-                                dbg("open project and get state: #{err}")
-                            )
-                cb() # we don't need to wait for project to open before responding to user that project was created.
+                try
+                    project = await @compute_server(project_id)
+                    await project.open()
+                    await project.state(force:true, update:true)
+                    if mesg.start
+                        await project.start()
+                    else
+                        dbg("not auto-starting the new project")
+                catch err
+                    dbg("failed to start project running -- #{err}")
         ], (err) =>
             if err
                 dbg("error; project #{project_id} -- #{err}")
@@ -1618,10 +1608,11 @@ class exports.Client extends EventEmitter
                     cb         : cb
             (cb) =>
                 dbg("get project from compute server")
-                @compute_server.project
-                    project_id : mesg.project_id
-                    cb         : (err, p) =>
-                        project = p; cb(err)
+                try
+                    project = await @compute_server(mesg.project_id)
+                    cb()
+                catch err
+                    cb(err)
             (cb) =>
                 dbg("determine total quotas and apply")
                 project.set_all_quotas(cb:cb)
@@ -1667,9 +1658,10 @@ class exports.Client extends EventEmitter
                     opts.cb(err)
                     return
                 if is_public
-                    @compute_server.project
-                        project_id : opts.project_id
-                        cb         : opts.cb
+                    try
+                        opts.cb(undefined, await @compute_server(opts.project_id))
+                    catch err
+                        opts.cb(err)
                 else
                     # no
                     opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public")
@@ -1705,10 +1697,11 @@ class exports.Client extends EventEmitter
                             cb()
             (cb) =>
                 dbg("get the project")
-                @compute_server.project
-                    project_id : mesg.project_id
-                    cb         : (err, x) =>
-                        project = x; cb(err)
+                try
+                    project = await @compute_server(mesg.project_id)
+                    cb()
+                catch err
+                    cb(err)
             (cb) =>
                 dbg("get the directory listing")
                 project.directory_listing

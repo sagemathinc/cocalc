@@ -6,11 +6,12 @@ import { versionCheckFails } from "./version";
 import { getTarget } from "./target";
 import getLogger from "../logger";
 import { stripBasePath } from "./util";
+import { ProjectControlFunction } from "smc-hub/servers/project-control";
 
 const winston = getLogger("proxy: handle-upgrade");
 
 interface Options {
-  projectControl;
+  projectControl : ProjectControlFunction;
   isPersonal: boolean;
 }
 

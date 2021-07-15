@@ -39,7 +39,7 @@ export async function init_start_always_running_projects(
       )) {
         const compute_server = (database as any).compute_server;
         if (compute_server == null) continue; // not initialized (?)
-        const project = await callback2(compute_server.project, { project_id });
+        const project = await compute_server(project_id);
         project.start(); // we fire this off, but do not wait on it
       }
     } catch (err) {

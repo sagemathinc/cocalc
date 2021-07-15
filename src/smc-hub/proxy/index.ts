@@ -3,13 +3,14 @@ import getLogger from "../logger";
 import initProxy from "./handle-request";
 import initUpgrade from "./handle-upgrade";
 import base_path from "smc-util-node/base-path";
+import { ProjectControlFunction } from "smc-hub/servers/project-control";
 
 const winston = getLogger("proxy");
 
 interface Options {
   app: Application;
   httpServer; // got from express_app via httpServer = http.createServer(app).
-  projectControl; // controls projects (aka "compute server")
+  projectControl: ProjectControlFunction; // controls projects (aka "compute server")
   isPersonal: boolean; // if true, disables all access controls
 }
 
