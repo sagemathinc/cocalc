@@ -13,6 +13,7 @@ import getLogger from "../logger";
 import hasAccess from "./check-for-access-to-project";
 const hub_projects = require("../projects");
 import { database } from "../servers/database";
+import { ProjectControlFunction } from "smc-hub/servers/project-control";
 
 const winston = getLogger("proxy: target");
 
@@ -37,7 +38,7 @@ interface Options {
   remember_me?: string; // undefined = allow; only used for websocket upgrade.
   url: string;
   isPersonal: boolean;
-  projectControl;
+  projectControl: ProjectControlFunction;
 }
 
 export async function getTarget(opts: Options): Promise<{
@@ -69,18 +70,13 @@ export async function getTarget(opts: Options): Promise<{
     }
   }
 
-  const project = await callback2(projectControl.project, { project_id });
-  let { host } = project;
-  if (project._kubernetes) {
-    // this is ugly -- need to determine host in case of kubernetes, since
-    // host as set in the project object is old/wrong.
-    const status = await callback2(project.status);
-    if (!status.ip) {
-      throw Error("must wait for project to start");
-    }
-    host = status.ip;
-  }
+  const project = await projectControl(project_id);
+  const { host } = project;
   dbg(`host=${host}`);
+
+  if (host == null) {
+    throw Error("host is undefined -- project not running");
+  }
 
   let port: number;
   if (type === "port" || type === "server") {

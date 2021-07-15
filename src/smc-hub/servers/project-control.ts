@@ -1,22 +1,47 @@
 import { database } from "./database";
 import { getLogger } from "../logger";
-import { callback2 } from "smc-util/async-utils";
 const { connect_to_project } = require("../local_hub_connection");
 
-export default async function init(program) {
+import { BaseProject } from "smc-hub/project-control/base";
+import singleUser from "smc-hub/project-control/single-user";
+import multiUser from "smc-hub/project-control/multi-user";
+import kucalc from "smc-hub/project-control/kucalc";
+import kubernetes from "smc-hub/project-control/kubernetes";
+
+export const COCALC_MODES = [
+  "single-user",
+  "multi-user",
+  "kucalc",
+  "kubernetes",
+];
+
+export type ProjectControlFunction = (
+  project_id: string
+) => Promise<BaseProject>;
+
+export default function init(program): ProjectControlFunction {
   const winston = getLogger("project-control");
   winston.info("creating project control client");
 
-  const projectControl = program.kucalc
-    ? require("../kucalc/compute-client").compute_client(database, winston)
-    : await callback2(require("../compute-client").compute_server, {
-        database,
-        dev: program.dev,
-        single: program.single,
-        kubernetes: program.kubernetes,
-      });
-  winston.info("project controller created");
-  database.compute_server = projectControl;
+  let getProject;
+  switch (program.mode) {
+    case "single-user":
+      getProject = singleUser;
+      break;
+    case "multi-user":
+      getProject = multiUser;
+      break;
+    case "kucalc":
+      getProject = kucalc;
+      break;
+    case "kubernetes":
+      getProject = kubernetes;
+      break;
+    default:
+      throw Error(`invalid mode "${program.mode}"`);
+  }
+  winston.info("project controller created with mode ${program.mode}");
+  database.compute_server = getProject;
 
   // This is used by the database when handling certain writes to make sure
   // that the there is a connection to the corresponding project, so that
@@ -28,8 +53,8 @@ export default async function init(program) {
     winston.debug(
       `database.ensure_connection_to_project -- project_id=${project_id}`
     );
-    connect_to_project(project_id, database, projectControl, cb);
+    connect_to_project(project_id, database, getProject, cb);
   };
 
-  return projectControl;
+  return getProject;
 }

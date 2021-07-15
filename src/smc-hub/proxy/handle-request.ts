@@ -7,11 +7,12 @@ import { versionCheckFails } from "./version";
 import { getTarget, invalidateTargetCache } from "./target";
 import getLogger from "../logger";
 import { stripBasePath } from "./util";
+import { ProjectControlFunction } from "smc-hub/servers/project-control";
 
 const winston = getLogger("proxy: handle-request");
 
 interface Options {
-  projectControl;
+  projectControl: ProjectControlFunction;
   isPersonal: boolean;
 }
 

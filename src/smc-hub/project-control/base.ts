@@ -15,66 +15,38 @@ What this modules should acomplish:
    - reading/writing files
 */
 
-import { defaults, required } from "smc-util/misc";
-import { once } from "smc-util/async-utils";
+import { defaults } from "smc-util/misc";
+import { callback2, once } from "smc-util/async-utils";
 import { database } from "smc-hub/servers/database";
 import { EventEmitter } from "events";
 import { debounce, isEqual } from "lodash";
 import { State as ProjectState } from "smc-util/compute-states";
 import { ProjectStatus } from "smc-util/db-schema/projects";
+import { quota } from "smc-util/upgrades/quota";
 import getLogger from "smc-hub/logger";
+
+export { ProjectState, ProjectStatus };
 
 const winston = getLogger("project-control");
 
-type Action = "open" | "start" | "stop" | "restart";
+export type Action = "open" | "start" | "stop" | "restart";
 
-class Projects {
-  public readonly project_cache: { [string]: Project } = {};
-
-  constructor(cls: Project) {
-    this.cls = cls;
-  }
-
-  async project(opts: { project_id: string }): Promise<Project> {
-    opts = defaults(opts, {
-      project_id: required,
-    });
-    let P = this.project_cache[opts.project_id];
-    if (P != null) {
-      winston.debug(`Got project '${opts.project_id}' from cache`);
-      if (P.is_ready) {
-        P.active();
-        return P;
-      } else {
-        await once(P, "ready");
-        return P;
-      }
-    }
-    winston.debug(`Creating and caching project '${opts.project_id}'`);
-    P = this.project_cache[opts.project_id] = new this.cls(
-      this,
-      opts.project_id
-    );
-    await once(P, "ready");
-    return P;
-  }
+const projectCache: { [project_id: string]: BaseProject } = {};
+export function getProject(project_id: string): BaseProject | undefined {
+  return projectCache[project_id];
 }
 
-export function init(cls: Project): Projects {
-  return new Projects(cls);
-}
-
-export class Project extends EventEmitter {
-  private readonly projects: Projects;
+export abstract class BaseProject extends EventEmitter {
   public readonly project_id: string;
-  private active: () => void;
+  public readonly active: () => void;
   public is_ready: boolean = false;
+  public is_freed: boolean = false;
   private synctable?;
-  private host?: string; // ip address of project, when known.
+  public host?: string; // ip address of project, when known.
 
-  constructor(projects: Client, project_id: string) {
+  constructor(project_id: string) {
     super();
-    this.projects = projects;
+    projectCache[project_id] = this;
     this.project_id = project_id;
     const dbg = this.dbg("constructor");
     dbg("initializing");
@@ -85,11 +57,25 @@ export class Project extends EventEmitter {
     // is **then** freed, because that's how debounce works.
     this.active = debounce(this.free, 10 * 60 * 1000);
     this.active();
-
     this.initSynctable();
   }
 
+  protected assertNotFreed() {
+    if (this.is_freed) {
+      throw Error("attempt to use Project that was freed");
+    }
+  }
+
+  async waitUntilReady(): Promise<void> {
+    this.assertNotFreed();
+    this.active();
+    if (this.is_ready) return;
+    await once(this, "ready");
+    this.active();
+  }
+
   async initSynctable(): Promise<void> {
+    this.assertNotFreed();
     const dbg = this.dbg("initSynctable");
     try {
       this.synctable = await database.synctable({
@@ -119,7 +105,8 @@ export class Project extends EventEmitter {
 
   // Get current data about the project from the database.
   get(field?: string): any {
-    const t = this.synctable.get(this.project_id);
+    this.assertNotFreed();
+    const t = this.synctable?.get(this.project_id);
     if (field != null) {
       return t?.get(field);
     } else {
@@ -128,6 +115,7 @@ export class Project extends EventEmitter {
   }
 
   getIn(v): any {
+    this.assertNotFreed();
     return this.get()?.getIn(v);
   }
 
@@ -140,10 +128,13 @@ export class Project extends EventEmitter {
   // this.active() doesn't get called for a few minutes.  This is purely an
   // optimization to reduce resource usage by the hub.
   private free(): void {
+    this.assertNotFreed();
     this.dbg("free")();
+    this.is_ready = false;
+    this.is_freed = true;
     // Ensure that next time this project gets requested, a fresh one is created,
     // rather than this cached one, which has been free'd up, and will no longer work.
-    delete this.projects.project_cache[this.project_id];
+    delete projectCache[this.project_id];
     // Close the changefeed, so get no further data from database.
     this.synctable?.close();
     delete this.synctable;
@@ -154,19 +145,19 @@ export class Project extends EventEmitter {
 
   // Get the state of the project -- state is just whether or not
   // it is runnig, stopping, starting.  It's not much info.
-  async state(opts: {
+  abstract state(opts: {
     force?: boolean;
     update?: boolean;
   }): Promise<{ error?: string; state?: ProjectState; time?: Date }>;
 
   // Get the status of the project -- status is MUCH more information
   // about the project, including ports of various services.
-  async status(): Promise<ProjectStatus>;
+  abstract status(): Promise<ProjectStatus>;
 
   // Perform an action, e.g., 'start' the project.
   // Promise resolves when the goal is satisfied/true, or timeout is hit.
   // The goal is just a function of the state.
-  private async action(opts: {
+  abstract action(opts: {
     action: Action;
     goal: (state: ProjectState | undefined) => boolean;
     timeout_s?: number;
@@ -181,6 +172,7 @@ export class Project extends EventEmitter {
   }
 
   async start(): Promise<void> {
+    this.assertNotFreed();
     this.dbg("start")();
     await this.action({
       action: "start",
@@ -189,6 +181,7 @@ export class Project extends EventEmitter {
   }
 
   async stop(): Promise<void> {
+    this.assertNotFreed();
     this.dbg("stop")();
     await this.action({
       action: "stop",
@@ -197,23 +190,35 @@ export class Project extends EventEmitter {
   }
 
   async restart(): Promise<void> {
+    this.assertNotFreed();
     this.dbg("restart")();
     await this.stop();
     await this.start();
   }
 
   // Everything the hub needs to know to connect to the project
-  // via the TCP connection.
+  // via the TCP connection.  Raises error if anything can't be
+  // determined.
   async address(): Promise<{
     host: string;
     port: number;
     secret_token: string;
   }> {
+    this.assertNotFreed();
     const dbg = this.dbg("address");
     dbg("first ensure is running");
     await this.start();
     dbg("it is running");
     const status = await this.status();
+    if (this.host == null) {
+      throw Error("unable to determine host");
+    }
+    if (status["hub-server.port"] == null) {
+      throw Error("unable to determine hub-server port");
+    }
+    if (status["secret_token"] == null) {
+      throw Error("unable to determine secret_token");
+    }
     return {
       host: this.host,
       port: status["hub-server.port"],
@@ -221,7 +226,8 @@ export class Project extends EventEmitter {
     };
   }
 
-  async copy_path(opts: CopyOptions): Promise<?string> {
+  async copyPath(opts: CopyOptions): Promise<string> {
+    this.assertNotFreed();
     // Returns a copy_id string if scheduled is true.
     opts = defaults(opts, {
       path: "",
@@ -237,14 +243,14 @@ export class Project extends EventEmitter {
       scheduled: undefined,
       public: false,
     });
-    return await this._copy_path(opts);
+    return await this.doCopyPath(opts);
   }
   // Implements copy path (must be defined in derived class);
   // it can assume the params are reasonably valid (via defaults above).
-  private async _copy_path(opts);
+  abstract doCopyPath(opts);
 
   // returns a directoy listing
-  async directory_listing(opts: {
+  abstract directoryListing(opts: {
     path?: string;
     hidden?: boolean;
     time?: number;
@@ -253,24 +259,25 @@ export class Project extends EventEmitter {
   }): Promise<any>;
 
   // Read a file from disk in the project.
-  async read_file(opts: { path: string; maxsize?: number }): Promise<Buffer> {
-    opts = defaults(opts, {
-      path: required,
-      maxsize: 5000000, // maximum file size in bytes to read
-    });
+  async readFile(opts: { path: string; maxsize?: number }): Promise<Buffer> {
+    this.assertNotFreed();
     const dbg = this.dbg(`read_file(path:'${opts.path}')`);
     dbg("read a file from disk");
-    return await this._read_file(opts);
+    return await this.doReadFile({
+      path: opts.path,
+      maxsize: opts.maxsize ?? 5000000,
+    });
   }
 
   // Must be implemented in derived class.
-  async _read_file(opts: { path: string; maxsize: number }): Promise<Buffer>;
+  abstract doReadFile(opts: { path: string; maxsize: number }): Promise<Buffer>;
 
   /*
     set_all_quotas ensures that if the project is running and the quotas
     (except idle_timeout) have changed, then the project is restarted.
     */
-  async set_all_quotas(): Promise<void> {
+  async setAllQuotas(): Promise<void> {
+    this.assertNotFreed();
     const dbg = this.dbg("set_all_quotas");
     dbg();
     // 1. Get data about project from the database, namely:

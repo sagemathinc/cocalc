@@ -18,6 +18,7 @@ if (!process.env.SMC_ROOT) {
   process.env.SMC_ROOT = resolve(join(__dirname, "..", ".."));
 }
 
+import { COCALC_MODES } from "./servers/project-control";
 import * as blocked from "blocked";
 import { program as commander } from "commander";
 import { callback2 } from "smc-util/async-utils";
@@ -364,8 +365,8 @@ async function main(): Promise<void> {
     .name("cocalc-hub-server")
     .usage("options")
     .option(
-      "--dev",
-      "if given, then run in VERY UNSAFE single-user dev mode; sets most servers enabled"
+      "--mode",
+      `mode in which to run CoCalc (${COCALC_MODES.join(", ")})`
     )
     .option("--websocket-server", "run the websocket server")
     .option("--proxy-server", "run the proxy server")
@@ -429,23 +430,10 @@ async function main(): Promise<void> {
       "Do blob-related maintenance (dump to tarballs, offload to gcloud)",
       "yes"
     )
-    .option(
-      "--local",
-      "If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)"
-    )
-    .option(
-      "--kucalc",
-      "if given, assume running in the KuCalc kubernetes environment"
-    )
     .option("--mentions", "if given, periodically handle mentions")
     .option(
       "--test",
       "terminate after setting up the hub -- used to test if it starts up properly"
-    )
-    .option("--single", "if given, then run in LESS SAFE single-machine mode")
-    .option(
-      "--kubernetes",
-      "if given, then run in mode for cocalc-kubernetes (monolithic but in Kubernetes)"
     )
     .option(
       "--db-concurrent-warn <n>",
@@ -455,7 +443,7 @@ async function main(): Promise<void> {
     )
     .option(
       "--personal",
-      "run in VERY UNSAFE personal mode; there is only one user and no authentication"
+      "run VERY UNSAFE: there is only one user and no authentication"
     )
     .parse(process.argv);
   // Everywhere else in our code, we just refer to program.[options] since we
@@ -464,6 +452,14 @@ async function main(): Promise<void> {
   for (const name in opts) {
     program[name] = opts[name];
   }
+  if (!COCALC_MODES.includes(program.mode)) {
+    throw Error(
+      `the --mode option must be specified and be one of ${COCALC_MODES.join(
+        ", "
+      )}`
+    );
+  }
+
   //console.log("got opts", opts);
 
   try {
