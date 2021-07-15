@@ -82,13 +82,19 @@ export function startedUp() {
 }
 
 function isWhitelisted({ msg, url, error }): boolean {
-  if (url.includes("darkreader")) {
-    // darkreader causes "TypeError: Cannot read property 'cssRules' of null"
-    // sometimes when editing PDF files previewed using PDFjs.  It's probably a complicated
-    // issue involving PDFJS.
-    return true;
+  try {
+    if (url.includes("darkreader") || msg.includes("Cannot read property 'cssRules'")) {
+      // darkreader causes "TypeError: Cannot read property 'cssRules' of null"
+      // sometimes when editing PDF files previewed using PDFjs.  It's probably a complicated
+      // issue involving PDFJS.
+      // The url includes darkreader in dev mode, but in prod mode webpack bundles it all
+      // together, so it doesn't.
+      return true;
+    }
+    error = error; // typescript
+    return false;
+  } catch (_err) {
+    // if anything is wrong with checking above, still show error.
+    return false;
   }
-  msg = msg;
-  error = error; // typescript
-  return false;
 }
