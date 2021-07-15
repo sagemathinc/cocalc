@@ -18,6 +18,8 @@ if (!process.env.SMC_ROOT) {
   process.env.SMC_ROOT = resolve(join(__dirname, "..", ".."));
 }
 
+import { spawn } from "child_process";
+
 import { COCALC_MODES } from "./servers/project-control";
 import * as blocked from "blocked";
 import { program as commander, Option } from "commander";
@@ -26,7 +28,6 @@ import { callback } from "awaiting";
 import { getLogger } from "./logger";
 import { init as initMemory } from "smc-util-node/memory";
 import basePath from "smc-util-node/base-path";
-const { execute_code } = require("smc-util-node/misc_node"); // import { execute_code } from "smc-util-node/misc_node";
 import { retry_until_success } from "smc-util/async-utils";
 const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
 import { init_passport } from "./auth";
@@ -204,7 +205,7 @@ async function startServer(): Promise<void> {
     winston.info("initializing zendesk support...");
     await callback(initZendesk);
 
-    if (program.dev && process.env.USER == "user") {
+    if (program.mode == "single-user" && process.env.USER == "user") {
       // Definitely in dev mode, probably on cocalc.com, so we kill
       // all the running projects when starting the hub:
       // Whenever we start the dev server, we just assume
@@ -212,15 +213,11 @@ async function startServer(): Promise<void> {
       // running when they are not is bad.  Something similar
       // is done in cocalc-docker.
       winston.info("killing all projects...");
-      await execute_code({
-        // in the scripts/ path...
-        command: "cocalc_kill_all_dev_projects.py",
-      });
-
       await callback2(database._query, {
         safety_check: false,
         query: 'update projects set state=\'{"state":"opened"}\'',
       });
+      await spawn("pkill", ["-f", "node_modules/.bin/cocalc-project"]);
 
       // Also, unrelated to killing projects, for purposes of developing
       // custom software images, we inject a couple of random nonsense entries

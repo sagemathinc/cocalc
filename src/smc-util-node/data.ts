@@ -19,14 +19,11 @@ function determineFromPath(): string {
   const cur = __dirname;
   const search = "/src/";
   const i = cur.lastIndexOf(search);
-  return resolve(cur.slice(0, i + search.length - 1), "data");
+  return resolve(cur.slice(0, i + search.length - 1));
 }
 
-// NOT exported, since we want to ensure that how the other directories
-// are derived from this is all centralized in this file, and that there
-// is no other data.
-export const data: string = process.env.DATA ?? determineFromPath();
-
+export const root: string = process.env.SMC_ROOT ?? determineFromPath();
+export const data: string = process.env.DATA ?? join(root, "data");
 export const pgdata: string = process.env.PGDATA ?? join(data, "postgres");
 export const pghost: string = process.env.PGHOST ?? join(pgdata, "socket");
 export const projects: string = process.env.PROJECTS ?? join(data, "projects");

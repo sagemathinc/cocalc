@@ -14,14 +14,17 @@ What this modules should acomplish:
    - reading/writing files
 */
 
+
 import {
   BaseProject,
   CopyOptions,
   ProjectStatus,
   ProjectState,
-  Action,
   getProject,
 } from "./base";
+
+import getLogger from "smc-hub/logger";
+const winston = getLogger("project-control-kucalc");
 
 class Project extends BaseProject {
   async state(opts: {
@@ -33,20 +36,22 @@ class Project extends BaseProject {
   }
 
   async status(): Promise<ProjectStatus> {
+    winston.debug("status ", this.project_id);
     throw Error("implement me");
   }
 
-  async action(opts: {
-    action: Action;
-    goal: (state: ProjectState | undefined) => boolean;
-    timeout_s?: number;
-  }): Promise<void> {
-    console.log("action", opts);
+  async start(): Promise<void> {
+    winston.debug("start ", this.project_id);
+    throw Error("implement me");
+  }
+
+  async stop(): Promise<void> {
+    winston.debug("stop ", this.project_id);
     throw Error("implement me");
   }
 
   async doCopyPath(opts: CopyOptions) {
-    console.log("_copy_path", opts);
+    winston.debug("doCopyPath ", this.project_id, opts);
     throw Error("implement me");
   }
 
@@ -57,12 +62,12 @@ class Project extends BaseProject {
     start?: number;
     limit?: number;
   }): Promise<any> {
-    console.log("directory_listing", opts);
+    winston.debug("directoryListing ", this.project_id, opts);
     throw Error("implement me");
   }
 
   async doReadFile(opts: { path: string; maxsize: number }): Promise<Buffer> {
-    console.log("_read_file", opts);
+    winston.debug("doReadFile ", this.project_id, opts);
     throw Error("implement me");
   }
 }

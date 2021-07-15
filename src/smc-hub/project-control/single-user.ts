@@ -3,14 +3,27 @@ Implementation of project control for development of CoCalc
 from inside of a CoCalc project.
 */
 
+import { join } from "path";
+import {
+  dataPath,
+  launchProjectDaemon,
+  mkdir,
+  sanitizedEnv,
+  setupDataPath,
+  isProjectRunning,
+} from "./util";
 import {
   BaseProject,
   CopyOptions,
   ProjectStatus,
   ProjectState,
-  Action,
   getProject,
 } from "./base";
+import getLogger from "smc-hub/logger";
+
+import { projects } from "smc-util-node/data";
+
+const winston = getLogger("project-control:single-user");
 
 class Project extends BaseProject {
   async state(opts: {
@@ -22,20 +35,57 @@ class Project extends BaseProject {
   }
 
   async status(): Promise<ProjectStatus> {
+    winston.debug("status ", this.project_id);
     throw Error("implement me");
   }
 
-  async action(opts: {
-    action: Action;
-    goal: (state: ProjectState | undefined) => boolean;
-    timeout_s?: number;
-  }): Promise<void> {
-    console.log("action", opts);
+  async start(): Promise<void> {
+    winston.debug(`start ${this.project_id}`);
+
+    // Determine home directory and ensure it exists
+    const HOME = join(projects, this.project_id);
+
+    if (await isProjectRunning(HOME)) {
+      winston.debug("start -- already running");
+      return;
+    }
+
+    await mkdir(HOME, { recursive: true });
+
+    // Get extra env vars for project (from synctable):
+    const extra_env: string = Buffer.from(
+      JSON.stringify(this.get("env") ?? {})
+    ).toString("base64");
+
+    // Setup environment (will get merged in after process.env):
+    const env = {
+      ...sanitizedEnv(process.env),
+      ...{
+        HOME,
+        DATA: dataPath(HOME),
+        // important to reset the COCALC_ vars since server env has own in a project
+        COCALC_PROJECT_ID: this.project_id,
+        COCALC_USERNAME: this.project_id.split("-").join(""),
+        COCALC_EXTRA_ENV: extra_env,
+        PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
+      },
+    };
+    winston.debug(`start: env = ${JSON.stringify(env)}`);
+
+    // Setup files
+    await setupDataPath(HOME);
+
+    // Fork and launch project server
+    await launchProjectDaemon(env);
+  }
+
+  async stop(): Promise<void> {
+    winston.debug("stop ", this.project_id);
     throw Error("implement me");
   }
 
   async doCopyPath(opts: CopyOptions) {
-    console.log("_copy_path", opts);
+    winston.debug("doCopyPath ", this.project_id, opts);
     throw Error("implement me");
   }
 
@@ -46,12 +96,12 @@ class Project extends BaseProject {
     start?: number;
     limit?: number;
   }): Promise<any> {
-    console.log("directory_listing", opts);
+    winston.debug("directoryListing ", this.project_id, opts);
     throw Error("implement me");
   }
 
   async doReadFile(opts: { path: string; maxsize: number }): Promise<Buffer> {
-    console.log("_read_file", opts);
+    winston.debug("doReadFile ", this.project_id, opts);
     throw Error("implement me");
   }
 }

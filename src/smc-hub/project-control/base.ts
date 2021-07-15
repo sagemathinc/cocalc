@@ -80,7 +80,7 @@ export abstract class BaseProject extends EventEmitter {
     try {
       this.synctable = await database.synctable({
         table: "projects",
-        columns: ["state", "status", "action_request"],
+        columns: ["state", "status", "action_request", "env"],
         where: { "project_id = $::UUID": this.project_id },
         where_function: (project_id) => {
           // fast easy test for matching
@@ -154,43 +154,11 @@ export abstract class BaseProject extends EventEmitter {
   // about the project, including ports of various services.
   abstract status(): Promise<ProjectStatus>;
 
-  // Perform an action, e.g., 'start' the project.
-  // Promise resolves when the goal is satisfied/true, or timeout is hit.
-  // The goal is just a function of the state.
-  abstract action(opts: {
-    action: Action;
-    goal: (state: ProjectState | undefined) => boolean;
-    timeout_s?: number;
-  }): Promise<void>;
+  abstract start(): Promise<void>;
 
-  async open(): Promise<void> {
-    this.dbg("open")();
-    await this.action({
-      action: "open",
-      goal: (state) => (state ?? "closed") != "closed",
-    });
-  }
-
-  async start(): Promise<void> {
-    this.assertNotFreed();
-    this.dbg("start")();
-    await this.action({
-      action: "start",
-      goal: (state) => state == "running",
-    });
-  }
-
-  async stop(): Promise<void> {
-    this.assertNotFreed();
-    this.dbg("stop")();
-    await this.action({
-      action: "stop",
-      goal: (state) => state == "opened" || state == "closed",
-    });
-  }
+  abstract stop(): Promise<void>;
 
   async restart(): Promise<void> {
-    this.assertNotFreed();
     this.dbg("restart")();
     await this.stop();
     await this.start();

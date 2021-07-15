@@ -978,7 +978,6 @@ class exports.Client extends EventEmitter
                 # Also, if mesg.start is set, the project gets started below.
                 try
                     project = await @compute_server(project_id)
-                    await project.open()
                     await project.state(force:true, update:true)
                     if mesg.start
                         await project.start()
