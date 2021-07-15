@@ -698,33 +698,6 @@ class exports.Client extends EventEmitter
                 # TODO
                 @push_to_client(message.error(id:mesg.id, error:"Connecting to session of type '#{mesg.type}' not yet implemented"))
 
-    # TODO: I think this is deprecated:
-    connect_to_console_session: (mesg) =>
-        # TODO -- implement read-only console sessions too (easy and amazing).
-        @get_project mesg, 'write', (err, project) =>
-            if not err  # get_project sends error to client
-                project.console_session
-                    client       : @
-                    params       : mesg.params
-                    session_uuid : mesg.session_uuid
-                    cb           : (err, connect_mesg) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            connect_mesg.id = mesg.id
-                            @push_to_client(connect_mesg)
-
-    # TODO: I think this is deprecated:
-    mesg_terminate_session: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if not err  # get_project sends error to client
-                project.terminate_session
-                    session_uuid : mesg.session_uuid
-                    cb           : (err, resp) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            @push_to_client(mesg)  # same message back.
 
     # Messages: Account creation, deletion, sign in, sign out
     mesg_create_account: (mesg) =>
@@ -1615,7 +1588,11 @@ class exports.Client extends EventEmitter
                     cb(err)
             (cb) =>
                 dbg("determine total quotas and apply")
-                project.set_all_quotas(cb:cb)
+                try
+                    project.setAllQuotas()
+                    cb()
+                catch err
+                    cb(err)
         ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:"problem setting project quota -- #{err}")
@@ -1704,14 +1681,16 @@ class exports.Client extends EventEmitter
                     cb(err)
             (cb) =>
                 dbg("get the directory listing")
-                project.directory_listing
-                    path    : mesg.path
-                    hidden  : mesg.hidden
-                    time    : mesg.time
-                    start   : mesg.start
-                    limit   : mesg.limit
-                    cb      : (err, x) =>
-                        listing = x; cb(err)
+                try
+                    listing = await project.directoryListing
+                        path    : mesg.path
+                        hidden  : mesg.hidden
+                        time    : mesg.time
+                        start   : mesg.start
+                        limit   : mesg.limit
+                    cb()
+                catch err
+                    cb(err)
             (cb) =>
                 dbg("filtering out public paths from listing")
                 @database.filter_public_paths
@@ -1790,17 +1769,20 @@ class exports.Client extends EventEmitter
                         project = x
                         cb(err)
             (cb) =>
-                project.copy_path
-                    path            : mesg.src_path
-                    target_project_id : mesg.target_project_id
-                    target_path     : mesg.target_path
-                    overwrite_newer : mesg.overwrite_newer
-                    delete_missing  : mesg.delete_missing
-                    timeout         : mesg.timeout
-                    exclude_history : mesg.exclude_history
-                    backup          : mesg.backup
-                    public          : true
-                    cb              : cb
+                try
+                    await project.copyPath
+                        path            : mesg.src_path
+                        target_project_id : mesg.target_project_id
+                        target_path     : mesg.target_path
+                        overwrite_newer : mesg.overwrite_newer
+                        delete_missing  : mesg.delete_missing
+                        timeout         : mesg.timeout
+                        exclude_history : mesg.exclude_history
+                        backup          : mesg.backup
+                        public          : true
+                    cb()
+                catch err
+                    cb(err)
         ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)

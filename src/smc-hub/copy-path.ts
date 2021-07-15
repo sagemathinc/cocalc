@@ -140,7 +140,7 @@ export class CopyPath {
       const project = await projectControl(mesg.src_project_id);
 
       // do the copy
-      const copy_id = await project.copy_path({
+      const copy_id = await project.copyPath({
         path: mesg.src_path,
         target_project_id: mesg.target_project_id,
         target_path: mesg.target_path,

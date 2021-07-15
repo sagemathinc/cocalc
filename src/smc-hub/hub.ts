@@ -20,7 +20,7 @@ if (!process.env.SMC_ROOT) {
 
 import { COCALC_MODES } from "./servers/project-control";
 import * as blocked from "blocked";
-import { program as commander } from "commander";
+import { program as commander, Option } from "commander";
 import { callback2 } from "smc-util/async-utils";
 import { callback } from "awaiting";
 import { getLogger } from "./logger";
@@ -364,9 +364,11 @@ async function main(): Promise<void> {
   commander
     .name("cocalc-hub-server")
     .usage("options")
-    .option(
-      "--mode",
-      `mode in which to run CoCalc (${COCALC_MODES.join(", ")})`
+    .addOption(
+      new Option(
+        "--mode [string]",
+        `mode in which to run CoCalc (${COCALC_MODES.join(", ")})`
+      ).choices(COCALC_MODES)
     )
     .option("--websocket-server", "run the websocket server")
     .option("--proxy-server", "run the proxy server")
@@ -452,12 +454,8 @@ async function main(): Promise<void> {
   for (const name in opts) {
     program[name] = opts[name];
   }
-  if (!COCALC_MODES.includes(program.mode)) {
-    throw Error(
-      `the --mode option must be specified and be one of ${COCALC_MODES.join(
-        ", "
-      )}`
-    );
+  if (!program.mode) {
+    throw Error("the --mode option must be specified");
   }
 
   //console.log("got opts", opts);
