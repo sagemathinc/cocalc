@@ -33,7 +33,7 @@ class Project extends BaseProject {
   async state(opts: {
     force?: boolean;
     update?: boolean;
-  }): Promise<{ error?: string; state?: ProjectState; time?: Date }> {
+  }): Promise<ProjectState> {
     console.log("state", opts);
     throw Error("implement me");
   }

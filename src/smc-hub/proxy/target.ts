@@ -78,6 +78,10 @@ export async function getTarget(opts: Options): Promise<{
     throw Error("host is undefined -- project not running");
   }
 
+  if ((await project.state()).state != "running") {
+    throw Error("project is not running");
+  }
+
   let port: number;
   if (type === "port" || type === "server") {
     if (port_desc === "jupyter") {
@@ -88,14 +92,14 @@ export async function getTarget(opts: Options): Promise<{
       port = parseInt(port_desc);
     }
   } else if (type === "raw") {
+    const status = await project.status();
     // connection to the HTTP server in the project that serves web browsers
-    const status = await callback2(project.status);
-    if (!status["browser-server.port"]) {
-      throw Error(
-        "raw browser server port not available -- project might not be opened or running"
-      );
-    } else {
+    if (status["browser-server.port"]) {
       port = status["browser-server.port"];
+    } else {
+      throw Error(
+        "project browser server port not available -- project might not be opened or running"
+      );
     }
   } else {
     throw Error(`unknown url type -- ${type}`);

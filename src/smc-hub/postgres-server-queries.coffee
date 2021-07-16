@@ -376,7 +376,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 if err
                     opts.cb(err)
                 else
-                    console.log("** GOT res = ", res)
                     SERVER_SETTINGS_CACHE.set('passports', res)
                     opts.cb(undefined, res)
 

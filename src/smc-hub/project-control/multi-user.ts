@@ -1,3 +1,9 @@
+/*
+multi-user: a multi-user Linux system where the hub runs as root,
+so can create and delete user accounts, etc.
+*/
+
+import { join } from "path";
 
 import {
   BaseProject,
@@ -6,15 +12,25 @@ import {
   ProjectState,
   getProject,
 } from "./base";
+import { projects } from "smc-util-node/data";
 
 import getLogger from "smc-hub/logger";
 const winston = getLogger("project-control-kubernetes");
 
 class Project extends BaseProject {
+  private HOME: string;
+
+  constructor(project_id: string) {
+    super(project_id);
+    this.host = "localhost";
+    this.HOME = join(projects, this.project_id);
+    console.log(this.HOME);
+  }
+
   async state(opts: {
     force?: boolean;
     update?: boolean;
-  }): Promise<{ error?: string; state?: ProjectState; time?: Date }> {
+  }): Promise<ProjectState> {
     console.log("state", opts);
     throw Error("implement me");
   }
@@ -57,7 +73,8 @@ class Project extends BaseProject {
 }
 
 export default async function get(project_id: string): Promise<Project> {
-  const P: Project = getProject(project_id) ?? new Project(project_id);
+  const P: Project =
+    (getProject(project_id) as Project) ?? new Project(project_id);
   await P.waitUntilReady();
   return P;
 }

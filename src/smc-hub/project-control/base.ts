@@ -16,12 +16,11 @@ What this modules should acomplish:
 */
 
 import { defaults } from "smc-util/misc";
-import { callback2, once } from "smc-util/async-utils";
+import { callback2 } from "smc-util/async-utils";
 import { database } from "smc-hub/servers/database";
 import { EventEmitter } from "events";
-import { debounce, isEqual } from "lodash";
-import { State as ProjectState } from "smc-util/compute-states";
-import { ProjectStatus } from "smc-util/db-schema/projects";
+import { isEqual } from "lodash";
+import { ProjectState, ProjectStatus } from "smc-util/db-schema/projects";
 import { quota } from "smc-util/upgrades/quota";
 import getLogger from "smc-hub/logger";
 
@@ -38,7 +37,6 @@ export function getProject(project_id: string): BaseProject | undefined {
 
 export abstract class BaseProject extends EventEmitter {
   public readonly project_id: string;
-  public readonly active: () => void;
   public is_ready: boolean = false;
   public is_freed: boolean = false;
   private synctable?;
@@ -50,6 +48,21 @@ export abstract class BaseProject extends EventEmitter {
     this.project_id = project_id;
     const dbg = this.dbg("constructor");
     dbg("initializing");
+  }
+
+  active() {}
+  assertNotFreed() {}
+  async waitUntilReady(): Promise<void> {}
+
+  /*
+
+
+ This will be in the kucalc version only,
+     since there are multiple servers.  Maybe rename
+     that to mode="distributed" or mode="database",
+     since the whole point is it is database controlled.
+     For all single host servers with one hub, there
+     is no point in doing this.
 
     // We debounce the free function (which cleans everything up).
     // Every time we're doing something, we call active();
@@ -102,28 +115,7 @@ export abstract class BaseProject extends EventEmitter {
     });
     this.emit("ready");
   }
-
-  // Get current data about the project from the database.
-  get(field?: string): any {
-    this.assertNotFreed();
-    const t = this.synctable?.get(this.project_id);
-    if (field != null) {
-      return t?.get(field);
-    } else {
-      return t;
-    }
-  }
-
-  getIn(v): any {
-    this.assertNotFreed();
-    return this.get()?.getIn(v);
-  }
-
-  dbg(f: string): Function {
-    return (...args) => winston.debug(`kucalc.Project.${f}`, ...args);
-  }
-
-  // free -- stop listening for status updates from the database and broadcasting
+    // free -- stop listening for status updates from the database and broadcasting
   // updates about this project.  This is called automatically as soon as
   // this.active() doesn't get called for a few minutes.  This is purely an
   // optimization to reduce resource usage by the hub.
@@ -143,12 +135,48 @@ export abstract class BaseProject extends EventEmitter {
     this.removeAllListeners();
   }
 
+     */
+
+  protected async saveStateToDatabase(state: ProjectState): Promise<void> {
+    await callback2(database.set_project_state, {
+      ...state,
+      project_id: this.project_id,
+    });
+  }
+
+  protected async saveStatusToDatabase(status: ProjectStatus): Promise<void> {
+    await callback2(database.set_project_status, {
+      project_id: this.project_id,
+      status,
+    });
+  }
+
+  // Get current data about the project from the database.
+  get(field?: string): any {
+    this.assertNotFreed();
+    const t = this.synctable?.get(this.project_id);
+    if (field != null) {
+      return t?.get(field);
+    } else {
+      return t;
+    }
+  }
+
+  getIn(v): any {
+    this.assertNotFreed();
+    return this.get()?.getIn(v);
+  }
+
+  dbg(f: string): Function {
+    return (...args) => winston.debug(`Project.${f}`, ...args);
+  }
+
   // Get the state of the project -- state is just whether or not
   // it is runnig, stopping, starting.  It's not much info.
-  abstract state(opts: {
+  abstract state(opts?: {
     force?: boolean;
     update?: boolean;
-  }): Promise<{ error?: string; state?: ProjectState; time?: Date }>;
+  }): Promise<ProjectState>;
 
   // Get the status of the project -- status is MUCH more information
   // about the project, including ports of various services.
@@ -188,7 +216,7 @@ export abstract class BaseProject extends EventEmitter {
       throw Error("unable to determine secret_token");
     }
     return {
-      host: this.host,
+      host: status["host"],
       port: status["hub-server.port"],
       secret_token: status.secret_token,
     };

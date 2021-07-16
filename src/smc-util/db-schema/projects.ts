@@ -167,11 +167,11 @@ Table({
     },
     status: {
       type: "map",
-      desc: "This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project. See the exported ProjectState interface defined in the code here.",
+      desc: "This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project. See the exported ProjectStatus interface defined in the code here.",
     },
     state: {
       type: "map",
-      desc: 'Info about the state of this project of the form  {error: "", state: "running", time: timestamp}, where time is when the state was last computed.  See COMPUTE_STATES in the compute-states file.',
+      desc: 'Info about the state of this project of the form  {error: "", state: "running" (etc), time: timestamp, ip?:"ip address where project is"}, where time is when the state was last computed.  See COMPUTE_STATES in the compute-states file for state.state and the ProjectState interface defined below in code.',
       date: ["time"],
     },
     last_edited: {
@@ -455,13 +455,16 @@ Table({
 });
 
 export interface ProjectStatus {
-  disk_MB?: number; // MB of used disk
-  installed?: boolean; // whether code is installed
   "project.pid"?: number; // pid of project server process
   "hub-server.port"?: number; // port of tcp server that is listening for conn from hub
   "browser-server.port"?: number; // port listening for http/websocket conn from browser client
   "sage_server.port"?: number; // port where sage server is listening.
   "sage_server.pid"?: number; // pid of sage server process
+  secret_token?: string; // long random secret token that is needed to communicate with local_hub
+  state?: State; // see COMPUTE_STATES in the compute-states.ts
+  version?: number; // version number of project code
+  disk_MB?: number; // MB of used disk
+  installed?: boolean; // whether code is installed
   memory?: {
     count?: number;
     pss?: number;
@@ -469,7 +472,10 @@ export interface ProjectStatus {
     swap?: number;
     uss?: number;
   }; // output by smem
-  secret_token?: string; // long random secret token that is needed to communicate with local_hub
-  state?: State; // see COMPUTE_STATES in the compute-states.ts
-  version?: number; // version number of project code
+}
+
+export interface ProjectState {
+  error?: string;
+  state?: State; // running, stopped, etc.
+  time?: Date;
 }

@@ -40,7 +40,7 @@ export default function init(program): ProjectControlFunction {
     default:
       throw Error(`invalid mode "${program.mode}"`);
   }
-  winston.info("project controller created with mode ${program.mode}");
+  winston.info(`project controller created with mode ${program.mode}`);
   database.compute_server = getProject;
 
   // This is used by the database when handling certain writes to make sure
