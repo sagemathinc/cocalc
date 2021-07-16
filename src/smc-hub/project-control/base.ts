@@ -216,7 +216,7 @@ export abstract class BaseProject extends EventEmitter {
       throw Error("unable to determine secret_token");
     }
     return {
-      host: status["host"],
+      host: this.host,
       port: status["hub-server.port"],
       secret_token: status.secret_token,
     };

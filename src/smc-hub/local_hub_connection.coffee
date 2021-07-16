@@ -144,14 +144,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         catch err
             cb(err)
 
-    save: (cb) =>
-        @dbg("save: save a snapshot of the project")
-        try
-            await (await @compute_server(@project_id)).save()
-            cb()
-        catch err
-            cb(err)
-
     status: (cb) =>
         @dbg("status: get status of a project")
         try
@@ -565,7 +557,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         socket = _socket
                         cb()
                     else
-                        @dbg("failed to get address of a working local hub")
+                        @dbg("failed to get address of a working local hub -- #{err}")
                         try
                             @address = await (await @compute_server(@project_id)).address()
                             cb()
