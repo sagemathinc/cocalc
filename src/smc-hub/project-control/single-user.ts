@@ -15,6 +15,7 @@ import { kill } from "process";
 
 import {
   dataPath,
+  ensureConfFilesExists,
   launchProjectDaemon,
   mkdir,
   getProjectPID,
@@ -88,6 +89,8 @@ class Project extends BaseProject {
     }
 
     await mkdir(HOME, { recursive: true });
+
+    await ensureConfFilesExists(HOME);
 
     // Get extra env vars for project (from synctable):
     const extra_env: string = Buffer.from(

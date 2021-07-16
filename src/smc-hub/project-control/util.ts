@@ -1,15 +1,18 @@
 import { promisify } from "util";
 import { join } from "path";
 import { spawn } from "child_process";
-import { mkdir as fs_mkdir, rm, readFile as fs_readFile } from "fs";
+import * as fs from "fs";
 import { root } from "smc-util-node/data";
 import getLogger from "smc-hub/logger";
 import { ProjectState, ProjectStatus } from "./base";
 
 const winston = getLogger("project-control:util");
 
-export const mkdir = promisify(fs_mkdir);
-const readFile = promisify(fs_readFile);
+export const mkdir = promisify(fs.mkdir);
+const readFile = promisify(fs.readFile);
+const stat = promisify(fs.stat);
+const copyFile = promisify(fs.copyFile);
+const rm = promisify(fs.rm);
 
 export function dataPath(HOME: string): string {
   return join(HOME, ".smc");
@@ -45,7 +48,7 @@ export async function isProjectRunning(HOME: string): Promise<boolean> {
 export async function setupDataPath(HOME: string): Promise<void> {
   const data = dataPath(HOME);
   winston.debug(`setup "${data}"...`);
-  await promisify(rm)(data, { recursive: true, force: true });
+  await rm(data, { recursive: true, force: true });
   await mkdir(data);
 }
 
@@ -127,4 +130,26 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
   }
   status.state = status["project.pid"] ? "running" : "opened";
   return status;
+}
+
+export async function ensureConfFilesExists(HOME: string): Promise<void> {
+  for (const path of ["bashrc", "bash_profile"]) {
+    const target = join(HOME, `.${path}`);
+    try {
+      await stat(target);
+    } catch (_) {
+      // file does NOT exist, so create
+      const source = join(
+        root,
+        "smc_pyutil/smc_pyutil/templates",
+        process.platform,
+        path
+      );
+      try {
+        await copyFile(source, target);
+      } catch (err) {
+        winston.error(`ensureConfFilesExists -- ${err}`);
+      }
+    }
+  }
 }
