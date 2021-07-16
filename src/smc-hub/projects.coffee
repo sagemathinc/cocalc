@@ -88,10 +88,11 @@ class Project
 
     jupyter_port: (opts) =>
         opts = defaults opts,
+            lab : undefined
             cb : required
         @dbg("jupyter_port")
         @call
-            mesg    : message.jupyter_port()
+            mesg    : message.jupyter_port(lab:lab)
             timeout : 30
             cb      : (err, resp) =>
                 if err
