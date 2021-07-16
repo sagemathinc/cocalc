@@ -15,6 +15,14 @@ async function main() {
     throw Error("HOME env var must be set");
   }
   process.chdir(HOME);
+
+  if (process.env.DATA == null) {
+    throw Error("DATA env var must be set");
+  }
+  // TODO: some code, e.g., smc_pyutil's cc-jupyter script, assumes
+  // that SMC is defined still.
+  process.env.SMC = process.env.DATA;
+
   const options = initProgram(); // must run before anything else.
   if (options.daemon) {
     winston.info("daemonize the process");
