@@ -85,7 +85,7 @@ def command():
         port = random_port()
         name = str(port)
     if project_id:
-        b = os.path.join(base_path, project_id, 'port', name)
+        b = os.path.join(base_path, project_id, 'port', 'jupyterlab')
         base = " --NotebookApp.base_url=%s " % (b)
     else:
         base = ''

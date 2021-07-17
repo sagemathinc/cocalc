@@ -86,8 +86,12 @@ export async function getTarget(opts: Options): Promise<{
   if (type === "port" || type === "server") {
     if (port_desc === "jupyter") {
       dbg("determining jupyter server port...");
-      port = await jupyterPort(project_id, projectControl);
+      port = await jupyterPort(project_id, projectControl, false);
       dbg(`got jupyter port=${port}`);
+    } else if (port_desc === "jupyterlab") {
+      dbg("determining jupyter server port...");
+      port = await jupyterPort(project_id, projectControl, true);
+      dbg(`got jupyterlab port=${port}`);
     } else {
       port = parseInt(port_desc);
     }
@@ -113,12 +117,13 @@ export async function getTarget(opts: Options): Promise<{
 
 async function jupyterPort(
   project_id: string,
-  projectControl
+  projectControl,
+  lab: boolean
 ): Promise<number> {
   const project = hub_projects.new_project(
     project_id,
     database,
     projectControl
   );
-  return await callback2(project.jupyter_port);
+  return await callback2(project.jupyter_port, { lab });
 }

@@ -92,13 +92,13 @@ class Project
             cb : required
         @dbg("jupyter_port")
         @call
-            mesg    : message.jupyter_port(lab:lab)
+            mesg    : message.jupyter_port(lab:opts.lab)
             timeout : 30
             cb      : (err, resp) =>
                 if err
                     opts.cb(err)
                 else
-                    @dbg("jupyter_port -- #{resp.port}")
+                    @dbg("jupyter_port lab=#{opts.lab} -- #{resp.port}")
                     opts.cb(undefined, resp.port)
 
     move_project: (opts) =>

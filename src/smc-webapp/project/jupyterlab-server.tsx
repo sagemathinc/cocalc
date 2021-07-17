@@ -74,18 +74,5 @@ export const JupyterLabServerPanel: React.FC<Props> = ({ project_id }) => {
 export async function jupyterlab_server_url(
   project_id: string
 ): Promise<string> {
-  const out = JSON.parse(
-    (await exec({ project_id, command: "cc-jupyterlab", args: ["status"] }))
-      .stdout
-  );
-  let port;
-  if (out.status === "stopped") {
-    port = JSON.parse(
-      (await exec({ project_id, command: "cc-jupyterlab", args: ["start"] }))
-        .stdout
-    ).port;
-  } else {
-    port = out.port;
-  }
-  return join(window.app_base_path, project_id, "port", `${port}`);
+  return join(window.app_base_path, project_id, "port", "jupyterlab");
 }

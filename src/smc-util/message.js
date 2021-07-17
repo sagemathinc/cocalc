@@ -1037,7 +1037,7 @@ message({
 // hub <--> project
 message({
   event: "jupyter_port",
-  lab: undefined, // if true, jupyterlab
+  lab: undefined, // if true, jupyterlab; if false (or not given), then jupyter classic.
   port: undefined, // gets set in response
   id: undefined,
 });
