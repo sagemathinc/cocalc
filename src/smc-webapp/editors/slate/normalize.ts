@@ -35,14 +35,18 @@ export const withNormalize = (editor) => {
 
     for (const f of NORMALIZERS) {
       //const before = JSON.stringify(editor.children);
+      const before = editor.children;
       f({ editor, node, path });
-      //const after = JSON.stringify(editor.children);
-      //if (before != after) {
-      //  console.log(`${f.name}, BEFORE ${before}\n${f.name}, AFTER  ${after}`);
-      //}
+      if (before !== editor.children) {
+        // changed so return; normalize will get called again by
+        // slate until no changes.
+        return;
+      }
     }
 
-    // Fall back to the original `normalizeNode` to enforce other constraints.
+    // No changes above, so fall back to the original `normalizeNode`
+    // to enforce other constraints.  Important to not call any normalize
+    // if there were any changes, since they can make the entry invalid!
     normalizeNode(entry);
   };
 
