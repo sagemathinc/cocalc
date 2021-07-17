@@ -278,27 +278,6 @@ export class ProjectClient {
     return { files: listing };
   }
 
-  public async public_directory_listing(opts: {
-    project_id: string;
-    path: string;
-    time?: boolean;
-    start?: number;
-    limit?: number;
-    timeout?: number;
-    hidden: false;
-  }): Promise<any> {
-    if (opts.start == null) opts.start = 0;
-    if (opts.limit == null) opts.limit = -1;
-    const timeout = opts.timeout;
-    delete opts.timeout;
-    return (
-      await this.client.async_call({
-        message: message.public_get_directory_listing(opts),
-        timeout: timeout ?? 30,
-      })
-    ).result;
-  }
-
   public async public_get_text_file(opts: {
     project_id: string;
     path: string;

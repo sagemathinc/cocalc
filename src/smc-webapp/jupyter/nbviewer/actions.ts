@@ -19,22 +19,16 @@ import { NBViewerState, NBViewerStore } from "./store";
 import { close } from "smc-util/misc";
 
 export class NBViewerActions extends Actions<NBViewerState> {
-  private store: NBViewerStore;
-  private client?: WebappClient;
-  private _state: "ready" | "closed";
-
   public _init = (
     project_id: string,
     path: string,
-    store: NBViewerStore,
-    client?: WebappClient,
+    _store: NBViewerStore,
+    _client?: WebappClient,
     content?: string
   ): void => {
-    this.store = store;
-    if (client == null && content == null) {
-      throw Error("this.client or content must be defined");
+    if (content == null) {
+      throw Error("content must be defined");
     }
-    this.client = client;
     this.setState({
       project_id,
       path,
@@ -42,7 +36,6 @@ export class NBViewerActions extends Actions<NBViewerState> {
         this.redux.getStore("account") &&
         this.redux.getStore("account").get("font_size", 14),
     });
-    this._state = "ready";
     if (content == null) {
       throw Error("NBViewer without content is deprecated");
       return;
@@ -120,6 +113,5 @@ export class NBViewerActions extends Actions<NBViewerState> {
   };
   close = () => {
     close(this);
-    this._state = "closed";
   };
 }
