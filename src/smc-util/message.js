@@ -1779,17 +1779,13 @@ API(
         init: undefined,
         desc: 'seconds to wait before reporting "error" (though copy could still succeed)',
       },
-      exclude_history: {
-        init: false,
-        desc: "if true, exclude all files of the form `*.sage-history`",
-      },
       wait_until_done: {
         init: false,
-        desc: "if false, the operation returns immediately with the copy_path_id for querying copy_path_status",
+        desc: "if false, the operation returns immediately with the copy_path_id for querying copy_path_status.  (Only implemented for https://cocalc.com.)",
       },
       scheduled: {
         init: undefined,
-        desc: "if set, the copy operation runs earliest after the given time and wait_until_done is automatically set to false. Must be a `new Date(...)` parseable string.",
+        desc: "if set, the copy operation runs earliest after the given time and wait_until_done is automatically set to false. Must be a `new Date(...)` parseable string.  (Only implemented for https://cocalc.com.)",
       },
     },
     desc: `\
@@ -2057,10 +2053,6 @@ API(
       timeout: {
         init: undefined,
         desc: "how long to wait for the copy to complete before reporting error (though it could still succeed)",
-      },
-      exclude_history: {
-        init: false,
-        desc: "if true, exclude all files of the form `*.sage-history`",
       },
     },
     desc: `\

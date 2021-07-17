@@ -50,22 +50,11 @@ class Project extends BaseProject {
     throw Error("implement me");
   }
 
-  async doCopyPath(opts: CopyOptions) {
+
+  async copyPath(opts: CopyOptions) : Promise<string> {
     winston.debug("doCopyPath ", this.project_id, opts);
     throw Error("implement me");
   }
-
-  async directoryListing(opts: {
-    path?: string;
-    hidden?: boolean;
-    time?: number;
-    start?: number;
-    limit?: number;
-  }): Promise<any> {
-    winston.debug("directoryListing ", this.project_id, opts);
-    throw Error("implement me");
-  }
-
 }
 
 export default async function get(project_id: string): Promise<Project> {

@@ -15,7 +15,6 @@ What this modules should acomplish:
    - reading/writing files
 */
 
-import { defaults } from "smc-util/misc";
 import { callback2 } from "smc-util/async-utils";
 import { database } from "smc-hub/servers/database";
 import { EventEmitter } from "events";
@@ -161,37 +160,11 @@ export abstract class BaseProject extends EventEmitter {
     };
   }
 
-  async copyPath(opts: CopyOptions): Promise<string> {
-    this.assertNotFreed();
-    // Returns a copy_id string if scheduled is true.
-    opts = defaults(opts, {
-      path: "",
-      target_project_id: "",
-      target_path: "",
-      overwrite_newer: undefined,
-      delete_missing: undefined,
-      backup: undefined,
-      exclude_history: undefined,
-      timeout: undefined,
-      bwlimit: undefined,
-      wait_until_done: true,
-      scheduled: undefined,
-      public: false,
-    });
-    return await this.doCopyPath(opts);
-  }
-  // Implements copy path (must be defined in derived class);
-  // it can assume the params are reasonably valid (via defaults above).
-  abstract doCopyPath(opts);
-
-  // returns a directoy listing
-  abstract directoryListing(opts: {
-    path?: string;
-    hidden?: boolean;
-    time?: number;
-    start?: number;
-    limit?: number;
-  }): Promise<any>;
+  // Copy files from one project and path to another.  This doesn't
+  // worry at all about permissions; it's assumed the caller has already
+  // figured out whether the copy is allowed.
+  // Returns a copy_id string if scheduled is true (otherwise return '').
+  abstract copyPath(opts: CopyOptions): Promise<string>;
 
   /*
     set_all_quotas ensures that if the project is running and the quotas
@@ -239,16 +212,15 @@ export abstract class BaseProject extends EventEmitter {
 }
 
 export interface CopyOptions {
-  path?: string;
+  path: string;
   target_project_id?: string;
-  target_path?: string; // path into project; if "", defaults to path above.
+  target_path?: string; // path into project; if not given, defaults to source path above.
   overwrite_newer?: boolean; // if true, newer files in target are copied over (otherwise, uses rsync's --update)
   delete_missing?: boolean; // if true, delete files in dest path not in source, **including** newer files
   backup?: boolean; // make backup files
-  exclude_history?: boolean;
   timeout?: number;
   bwlimit?: number;
-  wait_until_done?: boolean; // by default, wait until done. false only gives the ID to query the status later
-  scheduled?: string | Date; // string (parseable by new Date()), or a Date
-  public?: boolean; // if true, will use the share server files rather than start the source project running.
+  wait_until_done?: boolean; // kucalc only: by default, wait until done. false only gives the ID to query the status later
+  scheduled?: string | Date; // kucalc only: string (parseable by new Date()), or a Date
+  public?: boolean; // kucalc only: if true, may use the share server files rather than start the source project running
 }

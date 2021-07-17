@@ -10,7 +10,6 @@ This is useful for:
     laptop, e.g., when you're on an airplane.
 */
 
-import { join } from "path";
 import { kill } from "process";
 
 import {
@@ -24,6 +23,8 @@ import {
   sanitizedEnv,
   setupDataPath,
   isProjectRunning,
+  copyPath,
+  homePath,
 } from "./util";
 import {
   BaseProject,
@@ -34,7 +35,6 @@ import {
 } from "./base";
 import getLogger from "smc-hub/logger";
 
-import { projects } from "smc-util-node/data";
 import base_path from "smc-util-node/base-path";
 
 const winston = getLogger("project-control:single-user");
@@ -49,7 +49,7 @@ class Project extends BaseProject {
   constructor(project_id: string) {
     super(project_id);
     this.host = "localhost";
-    this.HOME = join(projects, this.project_id);
+    this.HOME = homePath(this.project_id);
   }
 
   async state(
@@ -168,22 +168,11 @@ class Project extends BaseProject {
     }
   }
 
-  async doCopyPath(opts: CopyOptions) {
-    winston.debug("doCopyPath ", this.project_id, opts);
-    throw Error("implement me");
+  async copyPath(opts: CopyOptions): Promise<string> {
+    winston.debug("copyPath ", this.project_id, opts);
+    await copyPath(opts, this.project_id);
+    return "";
   }
-
-  async directoryListing(opts: {
-    path?: string;
-    hidden?: boolean;
-    time?: number;
-    start?: number;
-    limit?: number;
-  }): Promise<any> {
-    winston.debug("directoryListing ", this.project_id, opts);
-    throw Error("implement me");
-  }
-
 }
 
 export default async function get(project_id: string): Promise<Project> {

@@ -1,10 +1,11 @@
 import { promisify } from "util";
-import { join } from "path";
+import { join, resolve } from "path";
 import { spawn } from "child_process";
 import * as fs from "fs";
-import { root } from "smc-util-node/data";
+import { projects, root } from "smc-util-node/data";
+import { is_valid_uuid_string } from "smc-util/misc";
 import getLogger from "smc-hub/logger";
-import { ProjectState, ProjectStatus } from "./base";
+import { CopyOptions, ProjectState, ProjectStatus } from "./base";
 
 const winston = getLogger("project-control:util");
 
@@ -16,6 +17,10 @@ const rm = promisify(fs.rm);
 
 export function dataPath(HOME: string): string {
   return join(HOME, ".smc");
+}
+
+export function homePath(project_id: string): string {
+  return join(projects, project_id);
 }
 
 function pidIsRunning(pid: number): boolean {
@@ -157,4 +162,93 @@ export async function ensureConfFilesExists(HOME: string): Promise<void> {
       }
     }
   }
+}
+
+// Copy a path using rsync and the specified options
+// on the local filesystem. (TODO) When running as root,
+// we can also specify the user to change the target
+// ownership of the files to.
+// NOTE: the wait_until_done and scheduled CopyOptions
+// are not implemented at all here.
+export async function copyPath(
+  opts: CopyOptions,
+  project_id: string,
+  target_uid?: number
+): Promise<void> {
+  winston.info(
+    `copyPath(target="${project_id}"): opts=${JSON.stringify(opts)}`
+  );
+  const { path, overwrite_newer, delete_missing, backup, timeout, bwlimit } =
+    opts;
+  if (path == null) {
+    // typescript already enforces this...
+    throw Error("path must be specified");
+  }
+  const target_project_id = opts.target_project_id ?? project_id;
+  const target_path = opts.target_path ?? path;
+
+  // check that both UUID's are valid
+  if (!is_valid_uuid_string(project_id)) {
+    throw Error(`project_id=${project_id} is invalid`);
+  }
+  if (!is_valid_uuid_string(target_project_id)) {
+    throw Error(`target_project_id=${target_project_id} is invalid`);
+  }
+
+  // determine canonical absolute path to source
+  const sourceHome = homePath(project_id);
+  const source_abspath = resolve(join(sourceHome, path));
+  if (!source_abspath.startsWith(sourceHome)) {
+    throw Error(`source path must be contained in project home dir`);
+  }
+  // determine canonical absolute path to target
+  const targetHome = homePath(target_project_id);
+  const target_abspath = resolve(join(targetHome, target_path));
+  if (!target_abspath.startsWith(targetHome)) {
+    throw Error(`target path must be contained in target project home dir`);
+  }
+
+  // check for trivial special case.
+  if (source_abspath == target_abspath) {
+    return;
+  }
+
+  // This can throw an exception if path doesn't exist, which is fine.
+  const stats = await stat(source_abspath);
+  // We will use this to decide if we need to add / at end in rsync args.
+  const isDir = stats.isDirectory();
+
+  // Handle args and options to rsync.
+  // saxz = compressed, archive mode (so leave symlinks, etc.), don't cross filesystem boundaries
+  // However, omit-link-times -- see http://forums.whirlpool.net.au/archive/2317650 and
+  //                                 https://github.com/sagemathinc/cocalc/issues/2713
+  const args: string[] = ["-zaxs", "--omit-link-times"];
+  if (!overwrite_newer) {
+    args.push("--update");
+  }
+  if (backup) {
+    args.push("--backup");
+  }
+  if (delete_missing) {
+    // IMPORTANT: newly created files will be deleted even if overwrite_newer is true
+    args.push("--delete");
+  }
+  if (bwlimit) {
+    args.push(`--bwlimit=${bwlimit}`);
+  }
+  if (timeout) {
+    args.push(`--timeout=${timeout}`);
+  }
+  if (target_uid && target_project_id != project_id) {
+    // change target ownership on copy; only do this if explicitly requested and needed.
+    args.push(`--chown=${target_uid}:${target_uid}`);
+  }
+  args.push("--ignore-errors");
+
+  args.push(source_abspath + (isDir ? "/" : ""));
+  args.push(target_abspath + (isDir ? "/" : ""));
+
+  // do the copy!
+  winston.info(`rsync ${args.join(" ")}`);
+  await spawn("rsync", args);
 }

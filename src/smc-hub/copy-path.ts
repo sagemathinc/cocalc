@@ -148,7 +148,6 @@ export class CopyPath {
         delete_missing: mesg.delete_missing,
         backup: mesg.backup,
         timeout: mesg.timeout,
-        exclude_history: mesg.exclude_history,
         wait_until_done: mesg.wait_until_done,
         scheduled: mesg.scheduled,
       });

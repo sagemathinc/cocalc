@@ -1688,9 +1688,9 @@ class exports.Client extends EventEmitter
                         overwrite_newer : mesg.overwrite_newer
                         delete_missing  : mesg.delete_missing
                         timeout         : mesg.timeout
-                        exclude_history : mesg.exclude_history
                         backup          : mesg.backup
                         public          : true
+                        wait_until_done : true
                     cb()
                 catch err
                     cb(err)

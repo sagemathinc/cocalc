@@ -49,22 +49,10 @@ class Project extends BaseProject {
     throw Error("implement me");
   }
 
-  async doCopyPath(opts: CopyOptions) {
+  async copyPath(opts: CopyOptions): Promise<string> {
     winston.debug("doCopyPath ", this.project_id, opts);
     throw Error("implement me");
   }
-
-  async directoryListing(opts: {
-    path?: string;
-    hidden?: boolean;
-    time?: number;
-    start?: number;
-    limit?: number;
-  }): Promise<any> {
-    winston.debug("directoryListing ", this.project_id, opts);
-    throw Error("implement me");
-  }
-
 }
 
 export default async function get(project_id: string): Promise<Project> {
@@ -621,7 +609,6 @@ class Project extends EventEmitter {
     overwrite_newer?: boolean;
     delete_missing?: boolean;
     backup?: boolean;
-    exclude_history?: boolean;
     timeout?: number;
     bwlimit?: number;
     wait_until_done?: boolean;
@@ -636,7 +623,6 @@ class Project extends EventEmitter {
       overwrite_newer: undefined, // if true, newer files in target are copied over (otherwise, uses rsync's --update)
       delete_missing: undefined, // if true, delete files in dest path not in source, **including** newer files
       backup: undefined, // make backup files
-      exclude_history: undefined,
       timeout: undefined,
       bwlimit: undefined,
       wait_until_done: true, // by default, wait until done. false only gives the ID to query the status later
