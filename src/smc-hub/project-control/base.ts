@@ -22,6 +22,7 @@ import { EventEmitter } from "events";
 import { isEqual } from "lodash";
 import { ProjectState, ProjectStatus } from "smc-util/db-schema/projects";
 import { quota } from "smc-util/upgrades/quota";
+import { delay } from "awaiting";
 import getLogger from "smc-hub/logger";
 
 export { ProjectState, ProjectStatus };
@@ -39,8 +40,9 @@ export abstract class BaseProject extends EventEmitter {
   public readonly project_id: string;
   public is_ready: boolean = false;
   public is_freed: boolean = false;
-  private synctable?;
   public host?: string; // ip address of project, when known.
+  protected stateChanging: ProjectState | undefined = undefined;
+  protected synctable?;
 
   constructor(project_id: string) {
     super();
@@ -190,6 +192,26 @@ export abstract class BaseProject extends EventEmitter {
     this.dbg("restart")();
     await this.stop();
     await this.start();
+  }
+
+  protected async wait(opts: {
+    until: () => Promise<boolean>;
+    maxTime: number;
+  }): Promise<void> {
+    const { until, maxTime } = opts;
+    const t0 = new Date().valueOf();
+    let d = 250;
+    while (new Date().valueOf() - t0 <= maxTime) {
+      if (await until()) {
+        winston.debug(`wait ${this.project_id} -- satisfied`);
+        return;
+      }
+      await delay(d);
+      d *= 1.2;
+    }
+    const err = `wait ${this.project_id} -- FAILED`;
+    winston.debug(err);
+    throw Error(err);
   }
 
   // Everything the hub needs to know to connect to the project

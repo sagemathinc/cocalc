@@ -38,8 +38,11 @@ export async function getProjectPID(HOME: string): Promise<number> {
 
 export async function isProjectRunning(HOME: string): Promise<boolean> {
   try {
+    const pid = await getProjectPID(HOME);
+    winston.debug(`isProjectRunning(HOME="${HOME}") -- pid=${pid}`);
     return pidIsRunning(await getProjectPID(HOME));
-  } catch (_err) {
+  } catch (err) {
+    winston.debug(`isProjectRunning(HOME="${HOME}") -- no pid ${err}`);
     // err would happen if file doesn't exist, which means nothing to do.
     return false;
   }
@@ -88,7 +91,7 @@ export async function getState(HOME: string, _opts?): Promise<ProjectState> {
   winston.debug(`getState("${HOME}")`);
   try {
     return {
-      state: isProjectRunning(HOME) ? "running" : "opened",
+      state: (await isProjectRunning(HOME)) ? "running" : "opened",
       time: new Date(),
     };
   } catch (err) {
@@ -104,6 +107,9 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
   winston.debug(`getStatus("${HOME}")`);
   const data = dataPath(HOME);
   const status: ProjectStatus = {};
+  if (!(await isProjectRunning(HOME))) {
+    return status;
+  }
   for (const path of [
     "project.pid",
     "hub-server.port",
@@ -128,7 +134,6 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
       //winston.debug(`getStatus: ${_err}`);
     }
   }
-  status.state = status["project.pid"] ? "running" : "opened";
   return status;
 }
 

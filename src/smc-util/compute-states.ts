@@ -10,10 +10,10 @@
 //                     ----------[closing] ------- --------- [stopping] <--------
 //                    \|/                        \|/                           |
 // [archived] <-->  [closed] --> [opening] --> [opened] --> [starting] --> [running]
-//                                              /|\                          /|\
-//        [unarchiving]                          |                            |
-//        [archiving]                           \|/                          \|/
-//                                       [saving]  [pending]               [saving]
+//
+//        [unarchiving]                       [pending]
+//        [archiving]
+//
 //
 // The icon names below refer to font-awesome, and are used in the UI.
 
@@ -85,7 +85,6 @@ export const COMPUTE_STATES = {
     to: {
       start: "starting",
       close: "closing",
-      save: "saving",
     },
     commands: [
       "start",
@@ -121,9 +120,6 @@ export const COMPUTE_STATES = {
     desc: "Project is starting up.",
     icon: "flash",
     display: "Starting",
-    to: {
-      save: "saving",
-    },
     timeout: 60,
     commands: [
       "save",
@@ -143,9 +139,6 @@ export const COMPUTE_STATES = {
     desc: "Project is stopping.",
     icon: "hand-stop",
     display: "Stopping",
-    to: {
-      save: "saving",
-    },
     timeout: 60,
     commands: [
       "save",
@@ -168,7 +161,6 @@ export const COMPUTE_STATES = {
     stable: true,
     to: {
       stop: "stopping",
-      save: "saving",
     },
     commands: [
       "stop",
@@ -184,26 +176,6 @@ export const COMPUTE_STATES = {
       "compute_quota",
       "status",
       "migrate_live",
-    ],
-  },
-
-  saving: {
-    desc: "Project is being copied to a central file server for longterm storage.",
-    icon: "save",
-    display: "Saving to server",
-    to: {},
-    timeout: 30 * 60,
-    commands: [
-      "address",
-      "copy_path",
-      "mkdir",
-      "directory_listing",
-      "read_file",
-      "network",
-      "mintime",
-      "disk_quota",
-      "compute_quota",
-      "status",
     ],
   },
 } as const;

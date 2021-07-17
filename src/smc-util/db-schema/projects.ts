@@ -461,7 +461,6 @@ export interface ProjectStatus {
   "sage_server.port"?: number; // port where sage server is listening.
   "sage_server.pid"?: number; // pid of sage server process
   secret_token?: string; // long random secret token that is needed to communicate with local_hub
-  state?: State; // see COMPUTE_STATES in the compute-states.ts
   version?: number; // version number of project code
   disk_MB?: number; // MB of used disk
   installed?: boolean; // whether code is installed

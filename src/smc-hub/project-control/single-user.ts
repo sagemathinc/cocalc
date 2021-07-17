@@ -37,12 +37,11 @@ import getLogger from "smc-hub/logger";
 import { projects } from "smc-util-node/data";
 import base_path from "smc-util-node/base-path";
 
-import { delay } from "awaiting";
-
 const winston = getLogger("project-control:single-user");
 
-// Usually should fully start in about 1 second in this setting...
-const MAX_START_TIME_MS = 30000;
+// Usually should fully start in about 5 seconds, but we give it 20s.
+const MAX_START_TIME_MS = 20000;
+const MAX_STOP_TIME_MS = 10000;
 
 class Project extends BaseProject {
   private HOME: string;
@@ -59,6 +58,9 @@ class Project extends BaseProject {
       update?: boolean;
     } = {}
   ): Promise<ProjectState> {
+    if (this.stateChanging != null) {
+      return this.stateChanging;
+    }
     winston.debug(`computing STATE of ${this.project_id}`);
     const state = await getState(this.HOME, opts);
     winston.debug(`got STATE of ${this.project_id} = ${JSON.stringify(state)}`);
@@ -79,77 +81,93 @@ class Project extends BaseProject {
 
   async start(): Promise<void> {
     winston.debug(`start ${this.project_id}`);
+    if (this.stateChanging != null) return;
 
     // Determine home directory and ensure it exists
     const HOME = this.HOME;
 
     if (await isProjectRunning(HOME)) {
       winston.debug("start -- already running");
+      await this.saveStateToDatabase({ state: "running" });
       return;
     }
+    try {
+      this.stateChanging = { state: "starting" };
+      await this.saveStateToDatabase(this.stateChanging);
 
-    await mkdir(HOME, { recursive: true });
+      await mkdir(HOME, { recursive: true });
 
-    await ensureConfFilesExists(HOME);
+      await ensureConfFilesExists(HOME);
 
-    // Get extra env vars for project (from synctable):
-    const extra_env: string = Buffer.from(
-      JSON.stringify(this.get("env") ?? {})
-    ).toString("base64");
+      // Get extra env vars for project (from synctable):
+      const extra_env: string = Buffer.from(
+        JSON.stringify(this.get("env") ?? {})
+      ).toString("base64");
 
-    // Setup environment (will get merged in after process.env):
-    const env = {
-      ...sanitizedEnv(process.env),
-      ...{
-        HOME,
-        BASE_PATH: base_path,
-        DATA: dataPath(HOME),
-        // important to reset the COCALC_ vars since server env has own in a project
-        COCALC_PROJECT_ID: this.project_id,
-        COCALC_USERNAME: this.project_id.split("-").join(""),
-        COCALC_EXTRA_ENV: extra_env,
-        PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
-      },
-    };
-    winston.debug(`start ${this.project_id}: env = ${JSON.stringify(env)}`);
+      // Setup environment (will get merged in after process.env):
+      const env = {
+        ...sanitizedEnv(process.env),
+        ...{
+          HOME,
+          BASE_PATH: base_path,
+          DATA: dataPath(HOME),
+          // important to reset the COCALC_ vars since server env has own in a project
+          COCALC_PROJECT_ID: this.project_id,
+          COCALC_USERNAME: this.project_id.split("-").join(""),
+          COCALC_EXTRA_ENV: extra_env,
+          PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
+        },
+      };
+      winston.debug(`start ${this.project_id}: env = ${JSON.stringify(env)}`);
 
-    // Setup files
-    await setupDataPath(HOME);
+      // Setup files
+      await setupDataPath(HOME);
 
-    // Fork and launch project server
-    await launchProjectDaemon(env);
+      // Fork and launch project server
+      await launchProjectDaemon(env);
 
-    const t = new Date().valueOf();
-    let d = 250;
-    while (new Date().valueOf() - t <= MAX_START_TIME_MS) {
-      const status = await this.status();
-      if (
-        status.state == "running" &&
-        status.secret_token &&
-        status["hub-server.port"]
-      ) {
-        winston.debug(`start ${this.project_id} -- now fully running`);
-        // Update state too
-        await this.state();
-        return;
-      }
-      await delay(d);
-      d *= 1.3;
+      await this.wait({
+        until: async () => {
+          if (!(await isProjectRunning(this.HOME))) {
+            return false;
+          }
+          const status = await this.status();
+          return !!status.secret_token && !!status["hub-server.port"];
+        },
+        maxTime: MAX_START_TIME_MS,
+      });
+    } finally {
+      this.stateChanging = undefined;
+      // ensure state valid
+      await this.state();
     }
-    throw Error("failed to start");
   }
 
   async stop(): Promise<void> {
     winston.debug("stop ", this.project_id);
-    try {
-      const pid = await getProjectPID(this.HOME);
-      kill(-pid);
-    } catch (_err) {
-      // expected exception if no pid
+    if (this.stateChanging != null) return;
+    if (!(await isProjectRunning(this.HOME))) {
+      await this.saveStateToDatabase({ state: "opened" });
+      return;
     }
-    // cause db updates...
-    await this.status();
-    await this.state();
+    try {
+      this.stateChanging = { state: "stopping" };
+      await this.saveStateToDatabase(this.stateChanging);
+      try {
+        const pid = await getProjectPID(this.HOME);
+        kill(-pid);
+      } catch (_err) {
+        // expected exception if no pid
+      }
+      await this.wait({
+        until: async () => !(await isProjectRunning(this.HOME)),
+        maxTime: MAX_STOP_TIME_MS,
+      });
+    } finally {
+      this.stateChanging = undefined;
+      // ensure state valid.
+      await this.state();
+    }
   }
 
   async doCopyPath(opts: CopyOptions) {
