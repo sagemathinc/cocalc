@@ -115,12 +115,6 @@ export async function write_text_file_to_project(
   await webapp_client.project_client.write_text_file(opts);
 }
 
-export async function public_get_text_file(
-  opts: ReadTextFileOpts
-): Promise<string> {
-  return await webapp_client.project_client.public_get_text_file(opts);
-}
-
 export async function formatter(
   project_id: string,
   path: string,
