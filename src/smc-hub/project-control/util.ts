@@ -23,6 +23,10 @@ export function homePath(project_id: string): string {
   return join(projects, project_id);
 }
 
+export function getUsername(project_id: string): string {
+  return project_id.split("-").join("");
+}
+
 function pidIsRunning(pid: number): boolean {
   try {
     process.kill(pid, 0);

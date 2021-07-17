@@ -2,11 +2,12 @@
 This is meant to run on a multi-user system, but where the hub
 runs as a single user and all projects also run as that same
 user, but with there own HOME directories.  There is thus no
-security or isolation at all between projects.
+security or isolation at all between projects.  There is still
+a notion of multiple cocalc projects and cocalc users.
 
 This is useful for:
   - development of cocalc from inside of a CoCalc project
-  - non-collaborative single-user use of cocalc on your own
+  - non-collaborative use of cocalc on your own
     laptop, e.g., when you're on an airplane.
 */
 
@@ -25,6 +26,7 @@ import {
   isProjectRunning,
   copyPath,
   homePath,
+  getUsername,
 } from "./util";
 import {
   BaseProject,
@@ -111,7 +113,7 @@ class Project extends BaseProject {
           DATA: dataPath(HOME),
           // important to reset the COCALC_ vars since server env has own in a project
           COCALC_PROJECT_ID: this.project_id,
-          COCALC_USERNAME: this.project_id.split("-").join(""),
+          COCALC_USERNAME: getUsername(this.project_id),
           COCALC_EXTRA_ENV: extra_env,
           PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
         },

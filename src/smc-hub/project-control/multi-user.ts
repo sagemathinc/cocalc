@@ -1,10 +1,36 @@
 /*
 multi-user: a multi-user Linux system where the hub runs as root,
 so can create and delete user accounts, etc.
+
+There is some security and isolation between projects, coming from
+different operating system users.
+
+This is mainly used for cocalc-docker, which is a deployment of
+CoCalc running in a single docker container, with one hub running
+as root.
+
+This code is very similar to single-user.ts, except with some
+small modifications due to having to create and delete
+Linux users.
 */
 
-import { join } from "path";
+import { kill } from "process";
 
+import {
+  dataPath,
+  ensureConfFilesExists,
+  launchProjectDaemon,
+  mkdir,
+  getProjectPID,
+  getState,
+  getStatus,
+  sanitizedEnv,
+  setupDataPath,
+  isProjectRunning,
+  copyPath,
+  homePath,
+  getUsername,
+} from "./util";
 import {
   BaseProject,
   CopyOptions,
@@ -12,10 +38,14 @@ import {
   ProjectState,
   getProject,
 } from "./base";
-import { projects } from "smc-util-node/data";
-
 import getLogger from "smc-hub/logger";
-const winston = getLogger("project-control-kubernetes");
+import { getUid } from "smc-util-node/misc";
+import base_path from "smc-util-node/base-path";
+
+const winston = getLogger("project-control:single-user");
+
+const MAX_START_TIME_MS = 30000;
+const MAX_STOP_TIME_MS = 20000;
 
 class Project extends BaseProject {
   private HOME: string;
@@ -23,37 +53,133 @@ class Project extends BaseProject {
   constructor(project_id: string) {
     super(project_id);
     this.host = "localhost";
-    this.HOME = join(projects, this.project_id);
-    console.log(this.HOME);
+    this.HOME = homePath(this.project_id);
   }
 
-  async state(opts: {
-    force?: boolean;
-    update?: boolean;
-  }): Promise<ProjectState> {
-    console.log("state", opts);
-    throw Error("implement me");
+  async state(
+    opts: {
+      force?: boolean;
+      update?: boolean;
+    } = {}
+  ): Promise<ProjectState> {
+    if (this.stateChanging != null) {
+      return this.stateChanging;
+    }
+    const state = await getState(this.HOME, opts);
+    winston.debug(`got state of ${this.project_id} = ${JSON.stringify(state)}`);
+    this.saveStateToDatabase(state);
+    return state;
   }
 
   async status(): Promise<ProjectStatus> {
-    winston.debug("status ", this.project_id);
-    throw Error("implement me");
+    const status = await getStatus(this.HOME);
+    // TODO: don't include secret token in log message.
+    winston.debug(
+      `got status of ${this.project_id} = ${JSON.stringify(status)}`
+    );
+    this.saveStatusToDatabase(status);
+    return status;
   }
 
   async start(): Promise<void> {
-    winston.debug("start ", this.project_id);
-    throw Error("implement me");
+    winston.debug(`start ${this.project_id}`);
+    if (this.stateChanging != null) return;
+
+    // Determine home directory and ensure it exists
+    const HOME = this.HOME;
+
+    if (await isProjectRunning(HOME)) {
+      winston.debug("start -- already running");
+      await this.saveStateToDatabase({ state: "running" });
+      return;
+    }
+    try {
+      this.stateChanging = { state: "starting" };
+      await this.saveStateToDatabase(this.stateChanging);
+
+      await mkdir(HOME, { recursive: true });
+
+      await ensureConfFilesExists(HOME);
+
+      // Get extra env vars for project (from synctable):
+      const extra_env: string = Buffer.from(
+        JSON.stringify(this.get("env") ?? {})
+      ).toString("base64");
+
+      // Setup environment (will get merged in after process.env):
+      const env = {
+        ...sanitizedEnv(process.env),
+        ...{
+          HOME,
+          BASE_PATH: base_path,
+          DATA: dataPath(HOME),
+          // important to reset the COCALC_ vars since server env has own in a project
+          COCALC_PROJECT_ID: this.project_id,
+          COCALC_USERNAME: getUsername(this.project_id),
+          COCALC_EXTRA_ENV: extra_env,
+          PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
+        },
+      };
+      winston.debug(`start ${this.project_id}: env = ${JSON.stringify(env)}`);
+
+      // Setup files
+      await setupDataPath(HOME);
+
+      // Fork and launch project server daemon
+      await launchProjectDaemon(env);
+
+      await this.wait({
+        until: async () => {
+          if (!(await isProjectRunning(this.HOME))) {
+            return false;
+          }
+          const status = await this.status();
+          return !!status.secret_token && !!status["hub-server.port"];
+        },
+        maxTime: MAX_START_TIME_MS,
+      });
+    } finally {
+      this.stateChanging = undefined;
+      // ensure state valid
+      await this.state();
+    }
   }
 
   async stop(): Promise<void> {
     winston.debug("stop ", this.project_id);
-    throw Error("implement me");
+    if (this.stateChanging != null) return;
+    if (!(await isProjectRunning(this.HOME))) {
+      await this.saveStateToDatabase({ state: "opened" });
+      return;
+    }
+    try {
+      this.stateChanging = { state: "stopping" };
+      await this.saveStateToDatabase(this.stateChanging);
+      try {
+        const pid = await getProjectPID(this.HOME);
+        kill(-pid);
+      } catch (_err) {
+        // expected exception if no pid
+      }
+      await this.wait({
+        until: async () => !(await isProjectRunning(this.HOME)),
+        maxTime: MAX_STOP_TIME_MS,
+      });
+    } finally {
+      this.stateChanging = undefined;
+      // ensure state valid.
+      await this.state();
+    }
   }
 
-
-  async copyPath(opts: CopyOptions) : Promise<string> {
-    winston.debug("doCopyPath ", this.project_id, opts);
-    throw Error("implement me");
+  async copyPath(opts: CopyOptions): Promise<string> {
+    winston.debug("copyPath ", this.project_id, opts);
+    await copyPath(
+      opts,
+      this.project_id,
+      opts.target_project_id ? getUid(opts.target_project_id) : undefined
+    );
+    return "";
   }
 }
 
