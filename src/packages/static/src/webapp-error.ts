@@ -30,6 +30,10 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
     return;
   }
   console.warn("handle_window_error", { msg, url, lineNo, columnNo, error });
+  if (isWhitelisted({ msg, url, error })) {
+    console.warn("handle_window_error -- whitelisted");
+    return;
+  }
   window.onerror = null; // only once!!
   const crash = document.getElementById("cocalc-react-crash");
   if (crash == null) return;
@@ -74,5 +78,23 @@ export function startedUp() {
   const elt = document.getElementById("cocalc-error-report-startup");
   if (elt) {
     elt.remove();
+  }
+}
+
+function isWhitelisted({ msg, url, error }): boolean {
+  try {
+    if (url.includes("darkreader") || msg.includes("Cannot read property 'cssRules'")) {
+      // darkreader causes "TypeError: Cannot read property 'cssRules' of null"
+      // sometimes when editing PDF files previewed using PDFjs.  It's probably a complicated
+      // issue involving PDFJS.
+      // The url includes darkreader in dev mode, but in prod mode webpack bundles it all
+      // together, so it doesn't.
+      return true;
+    }
+    error = error; // typescript
+    return false;
+  } catch (_err) {
+    // if anything is wrong with checking above, still show error.
+    return false;
   }
 }
