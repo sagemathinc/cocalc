@@ -399,8 +399,7 @@ API(
       },
       get_api_key: {
         init: undefined,
-        desc:
-          "if set to anything truth-ish, will create (if needed) and return api key with signed_in message",
+        desc: "if set to anything truth-ish, will create (if needed) and return api key with signed_in message",
       },
       usage_intent: {
         init: undefined,
@@ -926,8 +925,7 @@ API(
       },
       aggregate: {
         init: undefined,
-        desc:
-          "If there are multiple attempts to run the given command with the same time, they are all aggregated and run only one time by the project; if requests comes in with a greater value (time, sequence number, etc.), they all run in  another group after the first one finishes.  Meant for compiling code on save.",
+        desc: "If there are multiple attempts to run the given command with the same time, they are all aggregated and run only one time by the project; if requests comes in with a greater value (time, sequence number, etc.), they all run in  another group after the first one finishes.  Meant for compiling code on save.",
       },
       max_output: {
         init: undefined,
@@ -939,8 +937,7 @@ API(
       },
       err_on_exit: {
         init: true,
-        desc:
-          "if exit code is nonzero send error return message instead of the usual output",
+        desc: "if exit code is nonzero send error return message instead of the usual output",
       },
     },
     desc: `\
@@ -1091,8 +1088,7 @@ API(
       },
       project_id: {
         init: required,
-        desc:
-          "id of project containing file to be read (or array of project_id's)",
+        desc: "id of project containing file to be read (or array of project_id's)",
       },
       path: {
         init: required,
@@ -1235,13 +1231,11 @@ API(
       },
       license: {
         init: undefined,
-        desc:
-          "(optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license",
+        desc: "(optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license",
       },
       start: {
         init: false,
-        desc:
-          "start running the moment the project is created -- uses more resources, but possibly better user experience",
+        desc: "start running the moment the project is created -- uses more resources, but possibly better user experience",
       },
     },
     desc: `\
@@ -1279,13 +1273,11 @@ API(
       },
       query: {
         init: required,
-        desc:
-          "comma separated list of email addresses or strings such as 'foo bar'",
+        desc: "comma separated list of email addresses or strings such as 'foo bar'",
       },
       admin: {
         init: false,
-        desc:
-          "if true and user is an admin, includes email addresses in result, and does more permissive search",
+        desc: "if true and user is an admin, includes email addresses in result, and does more permissive search",
       },
       active: {
         init: "",
@@ -1506,18 +1498,15 @@ API(
       },
       project_id: {
         init: undefined,
-        desc:
-          "project_id of project to add user to (can be an array to add multiple users to multiple projects); isn't needed if token_id is specified",
+        desc: "project_id of project to add user to (can be an array to add multiple users to multiple projects); isn't needed if token_id is specified",
       },
       account_id: {
         init: required,
-        desc:
-          "account_id of user (can be an array to add multiple users to multiple projects)",
+        desc: "account_id of user (can be an array to add multiple users to multiple projects)",
       },
       token_id: {
         init: undefined,
-        desc:
-          "project_invite_token that is needed in case the user **making the request** is not already a project collab",
+        desc: "project_invite_token that is needed in case the user **making the request** is not already a project collab",
       },
     },
     desc: `\
@@ -1788,22 +1777,19 @@ API(
       },
       timeout: {
         init: undefined,
-        desc:
-          'seconds to wait before reporting "error" (though copy could still succeed)',
+        desc: 'seconds to wait before reporting "error" (though copy could still succeed)',
       },
       exclude_history: {
         init: false,
         desc: "if true, exclude all files of the form `*.sage-history`",
       },
       wait_until_done: {
-        init: true,
-        desc:
-          "if false, the operation returns immediately with the copy_path_id for querying copy_path_status",
+        init: false,
+        desc: "if false, the operation returns immediately with the copy_path_id for querying copy_path_status",
       },
       scheduled: {
         init: undefined,
-        desc:
-          "if set, the copy operation runs earliest after the given time and wait_until_done is false. Must be a `new Date(...)` parseable string.",
+        desc: "if set, the copy operation runs earliest after the given time and wait_until_done is automatically set to false. Must be a `new Date(...)` parseable string.",
       },
     },
     desc: `\
@@ -1854,8 +1840,7 @@ message({
   event: "copy_path_between_projects_response",
   id: required,
   copy_path_id: undefined,
-  note:
-    "Query copy_path_status with the copy_path_id to learn if the copy operation was successful.",
+  note: "Query copy_path_status with the copy_path_id to learn if the copy operation was successful.",
 });
 
 API(
@@ -1888,13 +1873,11 @@ API(
       },
       pending: {
         init: true,
-        desc:
-          "(src/targ only) true returns copy ops, which did not finish yet (default: true)",
+        desc: "(src/targ only) true returns copy ops, which did not finish yet (default: true)",
       },
       failed: {
         init: false,
-        desc:
-          "(src/targ only) if true, only show finished and failed copy ops (default: false)",
+        desc: "(src/targ only) if true, only show finished and failed copy ops (default: false)",
       },
     },
     desc: `\
@@ -2035,7 +2018,6 @@ message({
   now: undefined,
 }); // timestamp
 
-
 API(
   message2({
     event: "copy_public_path_between_projects",
@@ -2074,8 +2056,7 @@ API(
       },
       timeout: {
         init: undefined,
-        desc:
-          "how long to wait for the copy to complete before reporting error (though it could still succeed)",
+        desc: "how long to wait for the copy to complete before reporting error (though it could still succeed)",
       },
       exclude_history: {
         init: false,
@@ -2367,8 +2348,7 @@ API(
       },
       email_address: {
         init: required,
-        desc:
-          "if there is no email_address in the account, there cannot be a ticket!",
+        desc: "if there is no email_address in the account, there cannot be a ticket!",
       },
       subject: {
         init: required,
@@ -2888,8 +2868,7 @@ message2({
   fields: {
     interval_s: {
       init: required,
-      desc:
-        "tells client that it should submit metrics to the hub every interval_s seconds",
+      desc: "tells client that it should submit metrics to the hub every interval_s seconds",
     },
   },
 });
@@ -2955,8 +2934,7 @@ API(
         desc: "id of project to touch",
       },
     },
-    desc:
-      "Mark this project as being actively used by the user sending this message.  This keeps the project from idle timing out, among other things.",
+    desc: "Mark this project as being actively used by the user sending this message.  This keeps the project from idle timing out, among other things.",
   })
 );
 
@@ -2974,8 +2952,7 @@ API(
         desc: "id of project to disconnect from",
       },
     },
-    desc:
-      "Disconnect the hub that gets this message from the project.   This is used entirely for internal debugging and development.",
+    desc: "Disconnect the hub that gets this message from the project.   This is used entirely for internal debugging and development.",
   })
 );
 
