@@ -6,6 +6,7 @@ import { projects, root } from "smc-util-node/data";
 import { is_valid_uuid_string } from "smc-util/misc";
 import getLogger from "smc-hub/logger";
 import { CopyOptions, ProjectState, ProjectStatus } from "./base";
+import { getUid } from "smc-util-node/misc";
 
 const winston = getLogger("project-control:util");
 
@@ -14,6 +15,10 @@ const readFile = promisify(fs.readFile);
 const stat = promisify(fs.stat);
 const copyFile = promisify(fs.copyFile);
 const rm = promisify(fs.rm);
+
+export async function chown(path: string, uid: number): Promise<void> {
+  await promisify(fs.chown)(path, uid, uid);
+}
 
 export function dataPath(HOME: string): string {
   return join(HOME, ".smc");
@@ -57,19 +62,48 @@ export async function isProjectRunning(HOME: string): Promise<boolean> {
   }
 }
 
-export async function setupDataPath(HOME: string): Promise<void> {
+export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
   const data = dataPath(HOME);
   winston.debug(`setup "${data}"...`);
   await rm(data, { recursive: true, force: true });
   await mkdir(data);
+  if (uid != null) {
+    await chown(data, uid);
+  }
 }
 
-export async function launchProjectDaemon(env): Promise<void> {
+export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   winston.debug(`launching project daemon at "${env.HOME}"...`);
   await spawn("npx", ["cocalc-project", "--daemon"], {
     env,
     cwd: join(root, "smc-project"),
+    uid,
+    gid: uid,
   });
+}
+
+export async function createUser(project_id: string): Promise<void> {
+  const username = getUsername(project_id);
+  const uid = `${getUid(project_id)}`;
+  await spawn("/usr/sbin/groupadd", ["-g", uid, "-o", username]);
+  await spawn("/usr/sbin/useradd", [
+    "-u",
+    uid,
+    "-g",
+    uid,
+    "-o",
+    username,
+    "-d",
+    homePath(username),
+  ]);
+}
+
+export async function deleteUser(project_id: string): Promise<void> {
+  const username = getUsername(project_id);
+  const uid = `${getUid(project_id)}`;
+  await spawn("pkill", ["-9", "-u", uid]);
+  await spawn("/usr/sbin/userdel", [username]);
+  await spawn("/usr/sbin/groupdel", [username]);
 }
 
 export function sanitizedEnv(env: { [key: string]: string | undefined }): {
@@ -146,7 +180,10 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
   return status;
 }
 
-export async function ensureConfFilesExists(HOME: string): Promise<void> {
+export async function ensureConfFilesExists(
+  HOME: string,
+  uid?: number
+): Promise<void> {
   for (const path of ["bashrc", "bash_profile"]) {
     const target = join(HOME, `.${path}`);
     try {
@@ -161,6 +198,9 @@ export async function ensureConfFilesExists(HOME: string): Promise<void> {
       );
       try {
         await copyFile(source, target);
+        if (uid != null) {
+          await chown(target, uid);
+        }
       } catch (err) {
         winston.error(`ensureConfFilesExists -- ${err}`);
       }

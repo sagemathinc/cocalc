@@ -14,29 +14,29 @@ small modifications due to having to create and delete
 Linux users.
 */
 
-import { kill } from "process";
-
 import {
+  chown,
+  copyPath,
+  createUser,
   dataPath,
+  deleteUser,
   ensureConfFilesExists,
-  launchProjectDaemon,
-  mkdir,
-  getProjectPID,
   getState,
   getStatus,
+  getUsername,
+  homePath,
+  isProjectRunning,
+  launchProjectDaemon,
+  mkdir,
   sanitizedEnv,
   setupDataPath,
-  isProjectRunning,
-  copyPath,
-  homePath,
-  getUsername,
 } from "./util";
 import {
   BaseProject,
   CopyOptions,
+  getProject,
   ProjectStatus,
   ProjectState,
-  getProject,
 } from "./base";
 import getLogger from "smc-hub/logger";
 import { getUid } from "smc-util-node/misc";
@@ -49,11 +49,13 @@ const MAX_STOP_TIME_MS = 20000;
 
 class Project extends BaseProject {
   private HOME: string;
+  private uid: number;
 
   constructor(project_id: string) {
     super(project_id);
     this.host = "localhost";
     this.HOME = homePath(this.project_id);
+    this.uid = getUid(this.project_id);
   }
 
   async state(
@@ -85,7 +87,7 @@ class Project extends BaseProject {
     winston.debug(`start ${this.project_id}`);
     if (this.stateChanging != null) return;
 
-    // Determine home directory and ensure it exists
+    // Home directory
     const HOME = this.HOME;
 
     if (await isProjectRunning(HOME)) {
@@ -98,8 +100,10 @@ class Project extends BaseProject {
       await this.saveStateToDatabase(this.stateChanging);
 
       await mkdir(HOME, { recursive: true });
+      await createUser(this.project_id);
+      await chown(HOME, this.uid);
 
-      await ensureConfFilesExists(HOME);
+      await ensureConfFilesExists(HOME, this.uid);
 
       // Get extra env vars for project (from synctable):
       const extra_env: string = Buffer.from(
@@ -123,10 +127,10 @@ class Project extends BaseProject {
       winston.debug(`start ${this.project_id}: env = ${JSON.stringify(env)}`);
 
       // Setup files
-      await setupDataPath(HOME);
+      await setupDataPath(HOME, this.uid);
 
       // Fork and launch project server daemon
-      await launchProjectDaemon(env);
+      await launchProjectDaemon(env, this.uid);
 
       await this.wait({
         until: async () => {
@@ -155,12 +159,7 @@ class Project extends BaseProject {
     try {
       this.stateChanging = { state: "stopping" };
       await this.saveStateToDatabase(this.stateChanging);
-      try {
-        const pid = await getProjectPID(this.HOME);
-        kill(-pid);
-      } catch (_err) {
-        // expected exception if no pid
-      }
+      await deleteUser(this.project_id);
       await this.wait({
         until: async () => !(await isProjectRunning(this.HOME)),
         maxTime: MAX_STOP_TIME_MS,

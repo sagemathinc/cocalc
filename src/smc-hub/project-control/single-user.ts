@@ -83,7 +83,7 @@ class Project extends BaseProject {
     winston.debug(`start ${this.project_id}`);
     if (this.stateChanging != null) return;
 
-    // Determine home directory and ensure it exists
+    // Home directory
     const HOME = this.HOME;
 
     if (await isProjectRunning(HOME)) {
@@ -91,6 +91,7 @@ class Project extends BaseProject {
       await this.saveStateToDatabase({ state: "running" });
       return;
     }
+
     try {
       this.stateChanging = { state: "starting" };
       await this.saveStateToDatabase(this.stateChanging);
