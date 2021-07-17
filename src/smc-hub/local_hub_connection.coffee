@@ -798,10 +798,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             timeout : 30
             cb      : opts.cb
 
-    # Read a file from a project into memory on the hub.  This is
-    # used, e.g., for client-side editing, worksheets, etc.  This does
-    # not pull the file from the database; instead, it loads it live
-    # from the project_server virtual machine.
+    # Read a file from a project into memory on the hub.
+    # I think this is used only by the API, but not by browser clients anymore.
     read_file: (opts) => # cb(err, content_of_file)
         {path, project_id, archive, cb} = defaults opts,
             path       : required
@@ -862,7 +860,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 cb(undefined, data)
         )
 
-    # Write a file
+    # Write a file to a project
+    # I think this is used only by the API, but not by browser clients anymore.
     write_file: (opts) => # cb(err)
         {path, project_id, cb, data} = defaults opts,
             path       : required

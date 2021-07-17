@@ -50,10 +50,6 @@ class Project extends BaseProject {
     throw Error("implement me");
   }
 
-  async doReadFile(opts: { path: string; maxsize: number }): Promise<Buffer> {
-    winston.debug("doReadFile ", this.project_id, opts);
-    throw Error("implement me");
-  }
 }
 
 export default async function get(project_id: string): Promise<Project> {

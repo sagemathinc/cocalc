@@ -14,7 +14,6 @@ What this modules should acomplish:
    - reading/writing files
 */
 
-
 import {
   BaseProject,
   CopyOptions,
@@ -66,10 +65,6 @@ class Project extends BaseProject {
     throw Error("implement me");
   }
 
-  async doReadFile(opts: { path: string; maxsize: number }): Promise<Buffer> {
-    winston.debug("doReadFile ", this.project_id, opts);
-    throw Error("implement me");
-  }
 }
 
 export default async function get(project_id: string): Promise<Project> {
@@ -78,6 +73,88 @@ export default async function get(project_id: string): Promise<Project> {
   return P;
 }
 
+/*
+
+
+ This will be in the kucalc version only,
+     since there are multiple servers.  Maybe rename
+     that to mode="distributed" or mode="database",
+     since the whole point is it is database controlled.
+     For all single host servers with one hub, there
+     is no point in doing this.
+
+    // We debounce the free function (which cleans everything up).
+    // Every time we're doing something, we call active();
+    // once we DON'T call it for a few minutes, the project
+    // is **then** freed, because that's how debounce works.
+    this.active = debounce(this.free, 10 * 60 * 1000);
+    this.active();
+    this.initSynctable();
+  }
+
+  protected assertNotFreed() {
+    if (this.is_freed) {
+      throw Error("attempt to use Project that was freed");
+    }
+  }
+
+  async waitUntilReady(): Promise<void> {
+    this.assertNotFreed();
+    this.active();
+    if (this.is_ready) return;
+    await once(this, "ready");
+    this.active();
+  }
+
+  async initSynctable(): Promise<void> {
+    this.assertNotFreed();
+    const dbg = this.dbg("initSynctable");
+    try {
+      this.synctable = await database.synctable({
+        table: "projects",
+        columns: ["state", "status", "action_request", "env"],
+        where: { "project_id = $::UUID": this.project_id },
+        where_function: (project_id) => {
+          // fast easy test for matching
+          return project_id === this.project_id;
+        },
+      });
+    } catch (err) {
+      dbg("error creating synctable ", err);
+      this.emit("ready", err);
+      return;
+    }
+    this.active();
+    dbg("successfully created synctable; now ready");
+    this.is_ready = true;
+    this.host = this.getIn(["state", "ip"]);
+    this.synctable?.on("change", () => {
+      this.host = this.getIn(["state", "ip"]);
+      this.emit("change");
+    });
+    this.emit("ready");
+  }
+    // free -- stop listening for status updates from the database and broadcasting
+  // updates about this project.  This is called automatically as soon as
+  // this.active() doesn't get called for a few minutes.  This is purely an
+  // optimization to reduce resource usage by the hub.
+  private free(): void {
+    this.assertNotFreed();
+    this.dbg("free")();
+    this.is_ready = false;
+    this.is_freed = true;
+    // Ensure that next time this project gets requested, a fresh one is created,
+    // rather than this cached one, which has been free'd up, and will no longer work.
+    delete projectCache[this.project_id];
+    // Close the changefeed, so get no further data from database.
+    this.synctable?.close();
+    delete this.synctable;
+    // Make sure nothing else reacts to changes on this ProjectClient,
+    // since they won't happen.
+    this.removeAllListeners();
+  }
+
+     */
 
 /*
 const HUB_SERVER_PORT = 6000;
