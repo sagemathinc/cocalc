@@ -245,7 +245,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   public is_collaborator(project_id: string): boolean {
     return (
       webapp_client.account_id != null &&
-      this.getIn(["project_map", project_id, webapp_client.account_id]) != null
+      this.getIn(["project_map", project_id, 'users', webapp_client.account_id]) != null
     );
   }
 
