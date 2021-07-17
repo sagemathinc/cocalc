@@ -100,9 +100,9 @@ async function connection_to_project0(project_id: string): Promise<any> {
           await once(webapp_client, "signed_in");
         }
 
-        log("start_project...");
+        log("wait_for_project_to_start...");
         await wait_for_project_to_start(project_id);
-        log("start_project: done");
+        log("wait_for_project_to_start: done");
 
         // Now project is thought to be running, so maybe this will work:
         try {

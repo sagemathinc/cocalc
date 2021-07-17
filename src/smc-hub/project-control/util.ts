@@ -39,10 +39,10 @@ export async function getProjectPID(HOME: string): Promise<number> {
 export async function isProjectRunning(HOME: string): Promise<boolean> {
   try {
     const pid = await getProjectPID(HOME);
-    winston.debug(`isProjectRunning(HOME="${HOME}") -- pid=${pid}`);
-    return pidIsRunning(await getProjectPID(HOME));
+    //winston.debug(`isProjectRunning(HOME="${HOME}") -- pid=${pid}`);
+    return pidIsRunning(pid);
   } catch (err) {
-    winston.debug(`isProjectRunning(HOME="${HOME}") -- no pid ${err}`);
+    //winston.debug(`isProjectRunning(HOME="${HOME}") -- no pid ${err}`);
     // err would happen if file doesn't exist, which means nothing to do.
     return false;
   }

@@ -61,19 +61,17 @@ class Project extends BaseProject {
     if (this.stateChanging != null) {
       return this.stateChanging;
     }
-    winston.debug(`computing STATE of ${this.project_id}`);
     const state = await getState(this.HOME, opts);
-    winston.debug(`got STATE of ${this.project_id} = ${JSON.stringify(state)}`);
+    winston.debug(`got state of ${this.project_id} = ${JSON.stringify(state)}`);
     this.saveStateToDatabase(state);
     return state;
   }
 
   async status(): Promise<ProjectStatus> {
-    winston.debug(`computing STATUS of ${this.project_id}`);
     const status = await getStatus(this.HOME);
     // TODO: don't include secret token in log message.
     winston.debug(
-      `got STATUS of ${this.project_id} = ${JSON.stringify(status)}`
+      `got status of ${this.project_id} = ${JSON.stringify(status)}`
     );
     this.saveStatusToDatabase(status);
     return status;
