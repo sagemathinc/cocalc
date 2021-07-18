@@ -4,15 +4,11 @@
  */
 
 import { Button, ButtonToolbar, Row, Col, Well } from "../antd-bootstrap";
-
 import { Component, React, Rendered, redux } from "../app-framework";
-
 import { ErrorDisplay, Loading } from "../r_misc";
-
 import { HelpEmailLink } from "../customize";
-
 import { powered_by_stripe } from "./util";
-import { load_stripe, StripeCard } from "./stripe";
+import { loadStripe, StripeCard } from "./stripe";
 
 interface Props {
   on_close?: Function; // optionally called when this should be closed
@@ -48,7 +44,7 @@ export class AddPaymentMethod extends Component<Props, State> {
 
   public async componentDidMount(): Promise<void> {
     this.mounted = true;
-    const stripe = await load_stripe();
+    const stripe = await loadStripe();
     if (!this.mounted) return;
     this.setState({ loading: false });
     const elements = stripe.elements();
@@ -68,7 +64,7 @@ export class AddPaymentMethod extends Component<Props, State> {
     if (store.get("customer") == null) {
       actions.setState({ continue_first_purchase: true });
     }
-    const stripe = await load_stripe();
+    const stripe = await loadStripe();
     let result: {
       error?: { message: string };
       token?: { id: string };

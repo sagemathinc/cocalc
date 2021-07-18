@@ -21,7 +21,7 @@ async   = require('async')
 random_key = require("random-key")
 
 misc_node = require('smc-util-node/misc_node')
-misc2_node = require('smc-util-node/misc2_node')
+misc2_node = require('smc-util-node/misc')
 
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
@@ -59,7 +59,8 @@ collab = require('./postgres/collab')
 
 SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
 SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
-SERVER_SETTINGS_CACHE = require("expiring-lru-cache")({ size: 10, expiry: 60 * 1000 })
+LRU = require('lru-cache');
+SERVER_SETTINGS_CACHE = new LRU({ max: 50, maxAge: 60 * 1000 })
 {pii_expire} = require("./utils")
 webapp_config_clear_cache = require("./webapp-configuration").clear_cache
 
@@ -277,7 +278,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb: required
 
         settings = SERVER_SETTINGS_CACHE.get('server_settings')
-        if settings != null
+        if settings
             opts.cb(undefined, settings)
             return
 
@@ -367,7 +368,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             cb       : required
         passports = SERVER_SETTINGS_CACHE.get('passports')
-        if passports != null
+        if passports
             opts.cb(undefined, passports)
             return
         @get_all_passport_settings

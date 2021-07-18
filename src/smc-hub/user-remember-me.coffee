@@ -9,14 +9,14 @@ Cache expires after 60s, to stop accepting requests from user
 in case they invalidate their cookie.
 ###
 
-Cache = require('expiring-lru-cache')
+Cache = require('lru-cache')
 
 auth    = require('./auth')
 
 # Do NOT change this - this exact string is assumed in smc-util/client
 {NOT_SIGNED_IN} = require("smc-util/consts")
 
-remember_me_cache = new Cache(size:5000, expiry:60000)
+remember_me_cache = new Cache(max:5000, maxAge:60000)
 
 exports.get_account_id = (database, remember_me, cb) ->
     if not remember_me?

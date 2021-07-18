@@ -11,6 +11,7 @@ Upload form handler
 // not the total size of the file...
 const MAX_FILE_SIZE_MB = 10000;
 
+import { Router } from "express";
 import { appendFile, mkdir, copyFile, rename, readFile, unlink } from "fs";
 import { join } from "path";
 import { IncomingForm } from "formidable";
@@ -18,28 +19,22 @@ import { callback } from "awaiting";
 const {
   ensure_containing_directory_exists,
 } = require("smc-util-node/misc_node");
+import { getLogger } from "./logger";
 
-export function upload_endpoint(
-  express,
-  logger?: { debug: (...args) => void }
-) {
-  if (logger != null) {
-    logger.debug("upload_endpoint conf");
-  }
+export default function init(): Router {
+  const winston = getLogger("upload");
+  winston.info("configuring the upload endpoint");
 
-  const router = express.Router();
+  const router = Router();
 
   router.get("/.smc/upload", function (_, res) {
-    if (logger != null) {
-      logger.debug("upload GET");
-    }
+    winston.http("upload GET");
     return res.send("hello");
   });
 
   router.post("/.smc/upload", async function (req, res): Promise<void> {
     function dbg(...m): void {
-      if (logger == null) return;
-      logger.debug("upload POST ", ...m);
+      winston.http("upload POST ", ...m);
     }
     // See https://github.com/felixge/node-formidable; user uploaded a file
     dbg();
@@ -47,10 +42,16 @@ export function upload_endpoint(
     // See http://stackoverflow.com/questions/14022353/how-to-change-upload-path-when-use-formidable-with-express-in-node-js
     // Important to set maxFileSize, since the default is 200MB!
     // See https://stackoverflow.com/questions/13374238/how-to-limit-upload-file-size-in-express-js
-    const uploadDir = join(
-      process.env.HOME ?? "/home/user",
-      req.query.dest_dir
-    );
+    const { dest_dir } = req.query;
+    if (typeof dest_dir != "string") {
+      res.status(500).send("query parm dest_dir must be a string");
+      return;
+    }
+    const { HOME } = process.env;
+    if (!HOME) {
+      throw Error("HOME env var must be set");
+    }
+    const uploadDir = join(HOME, dest_dir);
     const options = {
       uploadDir,
       keepExtensions: true,
@@ -80,11 +81,7 @@ export function upload_endpoint(
         )}`
       );
 
-      const dest = join(
-        process.env.HOME ?? "/home/user",
-        req.query.dest_dir ?? "",
-        fields.fullPath ?? files.file.name
-      );
+      const dest = join(HOME, dest_dir, fields.fullPath ?? files.file.name);
       dbg(`dest='${dest}'`);
       await callback(ensure_containing_directory_exists, dest);
       dbg("append the next chunk onto the destination file...");

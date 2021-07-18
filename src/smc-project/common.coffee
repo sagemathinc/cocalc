@@ -4,19 +4,9 @@
 #########################################################################
 
 fs      = require('fs')
-winston = require('winston')
 misc    = require('smc-util/misc')
 kucalc  = require('./kucalc')
-
-exports.secret_token_filename = ->
-    if kucalc.IN_KUCALC
-        return process.env.COCALC_SECRET_TOKEN
-    else
-        return "#{process.env.SMC}/secret_token"
-
-_secret_token = undefined
-exports.secret_token = ->  # doing sync is ok since only happens rarely at startup and is quick
-    return _secret_token ?= fs.readFileSync(exports.secret_token_filename())
+winston = require('./logger').getLogger('common')
 
 # We make it an error for a client to try to edit a file larger than MAX_FILE_SIZE.
 # I decided on this, because attempts to open a much larger file leads

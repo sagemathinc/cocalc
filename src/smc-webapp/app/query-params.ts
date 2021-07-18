@@ -9,6 +9,7 @@ import { QueryParams } from "../misc/query-params";
 import { COCALC_FULLSCREEN } from "../fullscreen";
 import { redux } from "../app-framework";
 import { parse_target } from "../history";
+import { target } from "smc-webapp/client/handle-hash-url";
 
 export function init_query_params(): void {
   const actions = redux.getActions("page");
@@ -20,7 +21,7 @@ export function init_query_params(): void {
     // (which is the only thing they should ever do!), and in that
     // case we record the project_id, so that we can make various
     // query optimizations elsewhere.
-    const x = parse_target((window as any).cocalc_target);
+    const x = parse_target(target);
     if (x.page === "project" && x.target != null) {
       const kiosk_project_id = x.target.slice(0, 36);
       if (is_valid_uuid_string(kiosk_project_id)) {

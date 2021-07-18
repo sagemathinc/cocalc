@@ -5,18 +5,10 @@
 
 async    = require('async')
 sqlite3  = require('sqlite3')  # from https://github.com/mapbox/node-sqlite3
-winston  = require('winston')
+{getLogger}   = require('./logger')
 
 misc     = require('smc-util/misc')
 {defaults, required} = misc
-
-# Set the log level
-if !!process.env.SMC_DEBUG
-    winston.remove(winston.transports.Console)
-    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
-
-
-
 
 #
 # Interface to a SQlite Database.
@@ -64,6 +56,7 @@ class SQLite
             query : required
             vals  : []
             cb    : undefined
+        winston = getLogger('sqlite')
         winston.debug("sql: query='#{opts.query}', vals=#{misc.to_json(opts.vals)}")
         @db.prepare(opts.query, opts.vals).all (err, rows) =>
             opts.cb?(err, rows)

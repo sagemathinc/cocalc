@@ -1,2 +1,0 @@
-cd $SALVUS_ROOT/scripts && coffee -e "require('./pingall.coffee')" $@
-

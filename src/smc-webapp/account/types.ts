@@ -60,7 +60,7 @@ export interface AccountState {
   lti_id?: immutable.List<string>;
   created?: Date;
   strategies?: immutable.List<TypedMap<PassportStrategy>>;
-  token?: string;
+  token?: boolean; // whether or not a registration token is required when creating an account
   keyboard_variant_options?: immutable.List<any>;
   show_forgot_password?: boolean;
   email_address_verified?: immutable.Map<string, Date>;

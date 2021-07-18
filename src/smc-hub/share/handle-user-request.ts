@@ -16,9 +16,8 @@ export async function handle_user_request(opts: {
   settings_dao: SettingsDAO;
   req: any;
   res: any;
-  base_url: string;
 }): Promise<void> {
-  const { public_paths, author_info, settings_dao, req, res, base_url } = opts;
+  const { public_paths, author_info, settings_dao, req, res } = opts;
   const account_id: string = req.params.account_id;
   if (!is_valid_uuid_string(account_id)) {
     res.sendStatus(404);
@@ -40,6 +39,5 @@ export async function handle_user_request(opts: {
     paths_order,
     public_paths: paths,
     settings,
-    base_url,
   });
 }

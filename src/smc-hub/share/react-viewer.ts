@@ -8,9 +8,9 @@ import { ContentPage } from "smc-webapp/share/content-page";
 import { IsPublicFunction } from "smc-webapp/share/types";
 import * as react_support from "smc-webapp/share/server-render";
 import { Settings } from "./settings";
+import base_path from "smc-util-node/base-path";
 
 export function react_viewer(
-  base_url: string,
   path: string,
   project_id: string | undefined,
   notranslate: boolean,
@@ -24,7 +24,7 @@ export function react_viewer(
     const the_page = React.createElement(
       ContentPage,
       {
-        base_url,
+        base_path,
         path,
         project_id,
         subtitle,

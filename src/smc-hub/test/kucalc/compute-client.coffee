@@ -86,7 +86,7 @@ describe 'test basic foundations of project client -- ', ->
     it 'get the default status', (done) ->
         project.status
             cb : (err, status) ->
-                expect(status).toEqual({ 'console_server.port': 6003, 'local_hub.port': 6000, 'raw.port': 6001, 'sage_server.port': 6002 })
+                expect(status).toEqual({ 'hub-server.port': 6000, 'browser-server.port': 6001, 'sage_server.port': 6002 })
                 done(err)
 
     it 'add some info to the status', (done) ->
@@ -212,17 +212,6 @@ describe 'test the lifecyle of project client (mocking the manager) -- ', ->
                                 action_request : {finished:new Date()}
                             cb          : (err) ->
                                 expect(!!err).toBe(false)
-
-    it 'close the project (means moving it to longterm storage)', (done) ->
-        project.ensure_closed
-            cb : done
-        project.once 'change', ->
-            project._query
-                jsonb_merge :
-                    state          : {state:'closed', time:new Date(), error:undefined}
-                    action_request : {finished:new Date()}
-                cb          : (err) ->
-                    expect(!!err).toBe(false)
 
     it 'move gives an error', (done) ->
         project.move

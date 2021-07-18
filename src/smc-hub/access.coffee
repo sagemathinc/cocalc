@@ -8,7 +8,7 @@ Access permissions related to projects for a given user (or project)
 ###
 
 async   = require('async')
-winston = require('winston')
+winston = require('./logger').getLogger('access')
 
 misc    = require('smc-util/misc')
 {defaults, required} = misc

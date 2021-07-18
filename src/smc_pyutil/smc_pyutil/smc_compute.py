@@ -46,7 +46,7 @@ from subprocess import Popen, PIPE
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 USER_SWAP_MB = 1000  # amount of swap users get in addition to how much RAM they have.
 PLATFORM = platform.system().lower()
-PROJECTS = os.environ.get("COCALC_PROJECTS_HOME", "/projects")
+PROJECTS = os.environ.get("PROJECTS", "/projects")
 
 KUBERNETES_UID = 2001
 KUBERNETES_PROJECTS = "/projects/home"
@@ -293,8 +293,10 @@ class Project(object):
         if self._dev:
             self.dev_env()
             os.chdir(self.project_path)
-            self.cmd("smc-local-hub stop")
             self.cmd("smc-sage-server stop")
+            s = self.status()
+            if 'project.pid' in s:
+                os.killpg(s['project.pid'], signal.SIGTERM)
             return
 
         log("killing all processes by user with id %s" % self.uid)
@@ -466,38 +468,40 @@ class Project(object):
             open(bashrc, 'w').write(s)
 
     def dev_env(self, extra_env=None):
+        os.environ['NODE_OPTIONS'] = '--trace-warnings --enable-source-maps'
         os.environ[
-            'PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
-                salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
+            'PATH'] = "{root}/smc-project/bin:{root}/smc_pyutil/smc_pyutil:{path}".format(
+                root=os.environ['SMC_ROOT'], path=os.environ['PATH'])
         home = os.environ['HOME']
         if os.path.exists(f"{home}/Library/Python"):
             # dev mode on macOS
             os.environ[
-                'PYTHONPATH'] = f"{home}/Library/Python/3.8/lib/python/site-packages"
+                'PYTHONPATH'] = f"{os.environ['PYTHONPATH']}:{home}/Library/Python/3.8/lib/python/site-packages"
         else:
             # dev mode on Linux
             os.environ[
-                'PYTHONPATH'] = f"{home}/.local/lib/python3.8/site-packages"
+                'PYTHONPATH'] = f"{os.environ['PYTHONPATH']}:{home}/.local/lib/python3.8/site-packages"
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
+        os.environ['DATA'] = self.smc_path
         # Important to set this since when running in a cocalc project, this will already be set to the
         # id of the containing project.
         os.environ['COCALC_PROJECT_ID'] = self.project_id
         # Obviously this doesn't really work since running as a normal user who can't create other users:
         os.environ['COCALC_USERNAME'] = self.project_id.replace('-', '')
-
         # for development, the raw server, jupyter, etc., have
         # to listen on localhost since that is where
         # the hub is running
         os.environ['SMC_PROXY_HOST'] = 'localhost'
+        os.environ['HOME'] = self.project_path
         if extra_env:
             os.environ['COCALC_EXTRA_ENV'] = extra_env
 
-    def start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
-              ephemeral_disk, member, network, extra_env):
+    def start(self, cores, memory, cpu_shares, ephemeral_state, ephemeral_disk,
+              member, network, extra_env):
         if self._kubernetes:
-            return self.kubernetes_start(cores, memory, cpu_shares, base_url,
+            return self.kubernetes_start(cores, memory, cpu_shares,
                                          ephemeral_state, ephemeral_disk,
                                          member, network, extra_env)
 
@@ -511,8 +515,6 @@ class Project(object):
         self.create_smc_path()
         # Sometimes /projects/[project_id] doesn't have group/owner equal to that of the project.
         self.chown(self.project_path, False)
-
-        os.environ['SMC_BASE_URL'] = base_url
 
         if ephemeral_state:
             os.environ['COCALC_EPHEMERAL_STATE'] = 'yes'
@@ -530,21 +532,8 @@ class Project(object):
             del os.environ['COCALC_SECRET_TOKEN']
         if self._dev:
             self.dev_env(extra_env)
-            os.chdir(self.project_path)
-            self.cmd("smc-local-hub start")
-
-            def started():
-                return os.path.exists("%s/local_hub/local_hub.port" %
-                                      self.smc_path)
-
-            i = 0
-            while not started():
-                time.sleep(0.1)
-                i += 1
-                import sys
-                sys.stdout.flush()
-                if i >= 100:
-                    return
+            os.chdir(f"{os.environ['SMC_ROOT']}/smc-project/")
+            self.cmd("npx cocalc-project --daemon")
             return
 
         pid = os.fork()
@@ -565,8 +554,15 @@ class Project(object):
                     raise Exception("%s [%d]" % (e.strerror, e.errno))
 
                 if pid == 0:
+                    os.environ[
+                        'NODE_OPTIONS'] = '--trace-warnings --enable-source-maps'
+                    os.environ['PATH'] = \
+                        "{root}/smc-project/bin:{root}/smc_pyutil/smc_pyutil:{path}".format(
+                            root=os.environ['SMC_ROOT'],
+                            path=os.environ['PATH'])
                     os.environ['HOME'] = self.project_path
                     os.environ['SMC'] = self.smc_path
+                    os.environ['DATA'] = self.smc_path
                     os.environ['COCALC_SECRET_TOKEN'] = os.path.join(
                         self.smc_path, 'secret_token')
                     os.environ['COCALC_PROJECT_ID'] = self.project_id
@@ -587,9 +583,8 @@ class Project(object):
                         if y in os.environ:
                             del os.environ[y]
                     os.chdir(self.project_path)
-                    self.cmd(
-                        "cocalc-start-project-server > %s/local_hub.log 2>%s/local_hub.err &"
-                        % (self.smc_path, self.smc_path))
+                    os.chdir(f"{os.environ['SMC_ROOT']}/smc-project/")
+                    self.cmd("npx cocalc-project --daemon")
                 else:
                     os._exit(0)
             finally:
@@ -621,9 +616,8 @@ class Project(object):
             time.sleep(delay)
             delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
 
-    def kubernetes_start(self, cores, memory, cpu_shares, base_url,
-                         ephemeral_state, ephemeral_disk, member, network,
-                         extra_env):
+    def kubernetes_start(self, cores, memory, cpu_shares, ephemeral_state,
+                         ephemeral_disk, member, network, extra_env):
         log = self._log("kubernetes_start")
         if self.kubernetes_state()["state"] == 'running':
             log("already running")
@@ -732,19 +726,19 @@ spec:
             delay = min(KUBECTL_MAX_DELAY_S, delay * 1.3)
             self.cmd(cmd)
 
-    def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state,
+    def restart(self, cores, memory, cpu_shares, ephemeral_state,
                 ephemeral_disk, member, network, extra_env):
         log = self._log("restart")
         log("first stop")
         self.stop(ephemeral_state, ephemeral_disk)
         log("then start")
-        self.start(cores, memory, cpu_shares, base_url, ephemeral_state,
-                   ephemeral_disk, member, network, extra_env)
+        self.start(cores, memory, cpu_shares, ephemeral_state, ephemeral_disk,
+                   member, network, extra_env)
 
     def get_memory(self, s):
         return 0  # no longer supported
 
-    def status(self, timeout=60, base_url=''):
+    def status(self, timeout=60):
         if self._kubernetes:
             return self.kubernetes_status()
         log = self._log("status")
@@ -765,7 +759,7 @@ spec:
                     t = os.popen("smc-status").read()
                     t = json.loads(t)
                     s.update(t)
-                    if bool(t.get('local_hub.pid', False)):
+                    if bool(t.get('project.pid', False)):
                         s['state'] = 'running'
                     self.get_memory(s)
                 except:
@@ -807,7 +801,7 @@ spec:
                 t = os.popen("smc-status").read()
                 t = json.loads(t)
                 s.update(t)
-                if bool(t.get('local_hub.pid', False)):
+                if bool(t.get('project.pid', False)):
                     s['state'] = 'running'
                 self.get_memory(s)
             except:
@@ -816,7 +810,7 @@ spec:
         return s
 
     # State is just like status but *ONLY* includes the state field in the object.
-    def state(self, timeout=60, base_url=''):
+    def state(self, timeout=60):
         if self._kubernetes:
             return self.kubernetes_state()
 
@@ -841,7 +835,7 @@ spec:
                     os.chdir(self.smc_path)
                     t = json.loads(os.popen("smc-status").read())
                     s.update(t)
-                    if bool(t.get('local_hub.pid', False)):
+                    if bool(t.get('project.pid', False)):
                         s['state'] = 'running'
                 except Exception as err:
                     log("error running status command -- %s", err)
@@ -865,7 +859,7 @@ spec:
                 os.chdir(self.smc_path)
                 t = json.loads(os.popen("smc-status").read())
                 s.update(t)
-                if bool(t.get('local_hub.pid', False)):
+                if bool(t.get('project.pid', False)):
                     s['state'] = 'running'
             except Exception as err:
                 log("error running status command -- %s", err)
@@ -1420,12 +1414,6 @@ def main():
         type=int,
         default=0)
     parser_start.add_argument(
-        "--base_url",
-        help=
-        "passed on to local hub server so it can properly launch raw server, jupyter, etc.",
-        type=str,
-        default='')
-    parser_start.add_argument(
         "--ephemeral_state",
         help=
         "sets the environment variable COCALC_EPHEMERAL_STATE so the project is aware that it can't make database queries",
@@ -1453,10 +1441,6 @@ def main():
                                help="seconds to run command",
                                default=60,
                                type=int)
-    parser_status.add_argument("--base_url",
-                               help="ignored",
-                               type=str,
-                               default='')
 
     f(parser_status)
 
@@ -1466,10 +1450,6 @@ def main():
                               help="seconds to run command",
                               default=60,
                               type=int)
-    parser_state.add_argument("--base_url",
-                              help="ignored",
-                              type=str,
-                              default='')
     f(parser_state)
 
     # disk quota
@@ -1564,12 +1544,6 @@ def main():
         "0 or 1; if 1 enable member hosting (ONLY used by cocalc-kubernetes)",
         type=int,
         default=0)
-    parser_restart.add_argument(
-        "--base_url",
-        help=
-        "passed on to local hub server so it can properly launch raw server, jupyter, etc.",
-        type=str,
-        default='')
     parser_restart.add_argument(
         "--ephemeral_state",
         help=

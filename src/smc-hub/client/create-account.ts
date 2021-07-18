@@ -21,7 +21,6 @@ import {
   defaults,
   is_valid_email_address,
   len,
-  to_json,
 } from "smc-util/misc";
 import { delay } from "awaiting";
 import { callback2 } from "smc-util/async-utils";
@@ -32,6 +31,9 @@ import {
   have_active_registration_tokens,
   get_passports,
 } from "../utils";
+import { getLogger } from "smc-hub/logger";
+
+const winston = getLogger("create-account");
 
 export function is_valid_password(password: string) {
   if (typeof password !== "string") {
@@ -81,6 +83,7 @@ async function is_domain_exclusive_sso(
   if (raw_domain == null) return;
   const parsed = parseDomain(raw_domain);
   const passports = await get_passports(db);
+
   const blocked = new Set<string>([]);
   for (const pp of passports) {
     for (const domain of pp.conf.exclusive_domains ?? []) {
@@ -172,7 +175,6 @@ interface AccountCreationOptions {
   client: any;
   mesg: CreateAccount;
   database: PostgreSQL;
-  logger?: Function;
   host?: string;
   port?: number;
   sign_in?: boolean; // if true, the newly created user will also be signed in; only makes sense for browser clients!
@@ -197,18 +199,17 @@ export async function create_account(
     client: required,
     mesg: required,
     database: required,
-    logger: undefined,
     host: undefined,
     port: undefined,
     sign_in: false, // if true, the newly created user will also be signed in; only makes sense for browser clients!
   });
   const id: string = opts.mesg.id;
   let mesg1: { [key: string]: any };
-
+  winston.info(
+    `create_account ${opts.mesg.first_name} ${opts.mesg.last_name} ${opts.mesg.email_address}`
+  );
   function dbg(m): void {
-    if (opts.logger != null) {
-      opts.logger(`create_account (${opts.mesg.email_address}): ${m}`);
-    }
+    winston.debug(`create_account (${opts.mesg.email_address}): ${m}`);
   }
 
   const tm = walltime();
@@ -216,17 +217,15 @@ export async function create_account(
     opts.mesg.email_address = lower_email_address(opts.mesg.email_address);
   }
 
-  let reason: any = undefined; // reason why something went wrong as object.
   let account_id: string = "";
 
-  try {
+  async function createAccount() {
     dbg("run tests on generic validity of input");
 
     // check if we even allow account creating via email/password
     const settings = await get_server_settings(opts.database);
     if (!settings.email_signup) {
-      reason = { other: "Signing up via email/password is disabled." };
-      throw new Error("email/password signup disabled");
+      return { other: "Signing up via email/password is disabled." };
     }
 
     // issues_with_create_account also does check is_valid_password!
@@ -238,8 +237,7 @@ export async function create_account(
     // delete issues['password']
 
     if (len(issues) > 0) {
-      reason = issues;
-      throw Error("invalid input");
+      return issues;
     }
 
     // Make sure this ip address hasn't requested too many accounts recently,
@@ -265,9 +263,9 @@ export async function create_account(
       }
 
       if (n >= m) {
-        throw Error(
-          `Too many accounts are being created from the ip address ${opts.client.ip_address}; try again later.  By default at most ${m} accounts can be created every 30 minutes from one IP; if you're using the API and need a higher limit, contact us.`
-        );
+        return {
+          other: `Too many accounts are being created from the ip address ${opts.client.ip_address}; try again later.  By default at most ${m} accounts can be created every 30 minutes from one IP; if you're using the API and need a higher limit, contact us.`,
+        };
       }
     }
 
@@ -278,8 +276,7 @@ export async function create_account(
         email_address: opts.mesg.email_address,
       });
       if (not_available) {
-        reason = { email_address: "This e-mail address is already taken." };
-        throw Error();
+        return { email_address: "This e-mail address is already taken." };
       }
 
       dbg("check that account is not banned");
@@ -287,8 +284,7 @@ export async function create_account(
         email_address: opts.mesg.email_address,
       });
       if (is_banned) {
-        reason = { email_address: "This e-mail address is banned." };
-        throw Error();
+        return { email_address: "This e-mail address is banned." };
       }
     }
 
@@ -298,8 +294,7 @@ export async function create_account(
       opts.mesg.token
     );
     if (check_token) {
-      reason = { token: check_token };
-      throw Error();
+      return { token: check_token };
     }
 
     dbg("check if email domain has to go through an SSO mechanism");
@@ -308,10 +303,9 @@ export async function create_account(
       opts.mesg.email_address
     );
     if (check_domain != null) {
-      reason = {
+      return {
         email_address: `To sign up with "@${check_domain}", you have to use the corresponding SSO connect mechanism listed above!`,
       };
-      throw Error();
     }
 
     dbg("create new account");
@@ -409,25 +403,18 @@ export async function create_account(
     }
 
     opts.client.push_to_client(mesg1);
-  } catch (err) {
-    if (err) {
-      // IMPORTANT: There are various settings where the user simply never sees
-      // this, since they aren't setup to listen for it...
-      dbg(
-        `send message to user that there was an error (in ${walltime(
-          tm
-        )}seconds) -- ${to_json(reason)} -- ${err}`
-      );
-      if (reason == null) {
-        // generic reason
-        reason = {
-          other: `Unable to create account. Error: "${err}"`,
-        };
-      }
-      opts.client.push_to_client(
-        message.account_creation_failed({ id, reason })
-      );
-    }
+  }
+
+  const reason = await createAccount();
+  if (reason) {
+    // IMPORTANT: There are various settings where the user simply never sees
+    // this, since they aren't setup to listen for it...
+    dbg(
+      `send message to user that there was an error (in ${walltime(
+        tm
+      )}seconds) -- ${JSON.stringify(reason)}`
+    );
+    opts.client.push_to_client(message.account_creation_failed({ id, reason }));
   }
 }
 
@@ -435,7 +422,6 @@ interface DeleteAccountOptions {
   client?: any;
   mesg?: any;
   database: PostgreSQL;
-  logger?: any;
 }
 
 // This should not actually throw in case of trouble, but instead send
@@ -447,12 +433,8 @@ export async function delete_account(
     client: undefined,
     mesg: required,
     database: required,
-    logger: undefined,
   });
-
-  if (typeof opts.logger === "function") {
-    opts.logger(`delete_account("${opts.mesg.account_id}")`);
-  }
+  winston.info(`delete_account("${opts.mesg.account_id}")`);
 
   let error: any = undefined;
   try {

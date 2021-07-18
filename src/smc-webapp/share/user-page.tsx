@@ -8,9 +8,7 @@ Renders a page that describes a user and links to some
 of the things they've publicly shared.
 */
 
-// import { Map, List} from "immutable";
 import { Component, Rendered, React } from "../app-framework";
-
 import { CoCalcLogo } from "./cocalc-logo";
 import { CoCalcLink } from "./cocalc-link";
 import { BasePage } from "./base-page";
@@ -20,7 +18,7 @@ import { Settings } from "smc-hub/share/settings";
 interface Props {
   account_id: string;
   name: string;
-  base_url: string;
+  base_path: string;
   settings: Settings;
   public_paths: any; //Map<string, any>;
   paths_order: any; // List<string>;
@@ -45,7 +43,7 @@ export class UserPage extends Component<Props> {
     return (
       <div style={{ margin: "30px" }}>
         <BasePage
-          base_url={this.props.base_url}
+          base_path={this.props.base_path}
           settings={this.props.settings}
           notranslate={true}
           noindex={true}
@@ -53,11 +51,11 @@ export class UserPage extends Component<Props> {
         >
           <div style={{ position: "absolute", top: "5px" }}>
             <a href="../">
-              <CoCalcLogo base_url={this.props.base_url} /> Shared
+              <CoCalcLogo base_path={this.props.base_path} /> Shared
             </a>
           </div>
           <CoCalcLink
-            base_url={this.props.base_url}
+            base_path={this.props.base_path}
             viewer="embed"
             settings={this.props.settings}
           />

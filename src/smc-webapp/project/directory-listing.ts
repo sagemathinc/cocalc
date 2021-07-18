@@ -57,12 +57,7 @@ export async function get_directory_listing(opts: ListingOpts): Promise<any> {
       timeout = 1;
     }
   } else {
-    state = time0 = undefined;
-    method = webapp_client.project_client.public_directory_listing;
-    timeout = 15;
-    if (prom_client.enabled) {
-      prom_labels.public = true;
-    }
+    throw Error("you do not have access to this project");
   }
 
   let listing_err: Error | undefined;

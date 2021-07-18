@@ -729,8 +729,7 @@ export const Explorer = rclass(
             "state",
           ]);
         }
-        const needle = (project_state && project_state.get("state")) || "";
-        project_is_running = ["running", "saving"].includes(needle);
+        project_is_running = project_state?.get("state") == "running";
       } else {
         project_is_running = false;
       }

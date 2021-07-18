@@ -37,6 +37,7 @@ import { EmailVerification } from "./email-verification";
 import { log } from "../../user-tracking";
 import { PassportStrategy } from "../passport-types";
 import { PassportStrategyIcon, strategy2display } from "../../passports";
+import { join } from "path";
 
 type ImmutablePassportStrategy = TypedMap<PassportStrategy>;
 
@@ -103,7 +104,7 @@ export class AccountSettings extends Component<Props, State> {
     if (strategy == null) return;
     const strategy_js = strategy.toJS();
     const name = strategy2display(strategy_js);
-    const href = `${window.app_base_url}/auth/${this.state.add_strategy_link}`;
+    const href = join(window.app_base_path, 'auth', this.state.add_strategy_link);
     return (
       <Well>
         <h4>

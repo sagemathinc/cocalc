@@ -19,8 +19,8 @@ import { useProjectHasInternetAccess } from "./has-internet-access-hook";
 import { ReloadOutlined, DeleteOutlined } from "@ant-design/icons";
 import { PlusCircleOutlined, EditOutlined } from "@ant-design/icons";
 import { Button, Table, Typography, Form, Input, Checkbox } from "antd";
-import { Space as AntdSpace, Alert, Switch, Popconfirm, Tooltip } from "antd";
-import { ErrorDisplay, SettingBox, Space, Icon, Tip, A } from "../../r_misc";
+import { Space, Alert, Switch, Popconfirm, Tooltip } from "antd";
+import { ErrorDisplay, SettingBox, Icon, Tip, A } from "../../r_misc";
 import { RestartProject } from "./restart-project";
 import { unreachable } from "smc-util/misc";
 import { DUMMY_SECRET } from "./const";
@@ -294,7 +294,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
 
   function render_action_buttons(_, record) {
     return (
-      <AntdSpace>
+      <Space>
         <Tooltip title={`Modify ${record.name}'s configuration.`}>
           <Button onClick={() => edit(record)} icon={<EditOutlined />}></Button>
         </Tooltip>
@@ -316,7 +316,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
             <Button icon={<DeleteOutlined />}></Button>{" "}
           </Tooltip>
         </Popconfirm>
-      </AntdSpace>
+      </Space>
     );
   }
 
@@ -361,7 +361,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
 
   function render_controls() {
     return (
-      <AntdSpace style={{ marginBottom: "10px" }}>
+      <Space style={{ marginBottom: "10px" }}>
         <Button
           icon={<PlusCircleOutlined />}
           onClick={() => add("sshfs")}
@@ -392,7 +392,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         <Form.Item label="Help:" style={{ marginBottom: 0 }}>
           <Switch checked={show_help} onChange={(val) => set_show_help(val)} />
         </Form.Item>
-      </AntdSpace>
+      </Space>
     );
   }
 
@@ -473,12 +473,12 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           />
         </Form.Item>
         <Form.Item {...form_layout_tail}>
-          <AntdSpace>
+          <Space>
             <Button type="primary" htmlType="submit">
               Save
             </Button>
             <Button onClick={cancel}>Cancel</Button>
-          </AntdSpace>
+          </Space>
         </Form.Item>
       </>
     );
@@ -643,7 +643,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     if (new_config == null) return;
     return (
       <>
-        <Space />
+        <span>&nbsp;</span>
         <h3 style={{ textAlign: "center" }}>
           <Typography.Text strong>
             {new_config.type.toUpperCase()}
@@ -660,13 +660,11 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   function render_body() {
     return (
       <>
-        {false && <pre>{JSON.stringify(configs, null, 2)}</pre>}
-        {false && <Space />}
         {render_controls()}
         {render_help()}
         {render_new_config()}
         {render_instructions()}
-        <Space />
+        <span>&nbsp;</span>
         {render_list()}
       </>
     );

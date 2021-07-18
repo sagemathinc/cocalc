@@ -626,6 +626,25 @@ class SiteSettingsComponent extends Component<
     );
   }
 
+  private render_warning() {
+    return (
+      <div
+        style={{
+          margin: " 15px 0",
+          background: "white",
+          padding: "15px",
+          border: "1px solid lightgrey",
+        }}
+      >
+        <b>Important:</b>{" "}
+        <i>
+          You must entirely restart the CoCalc server for most of these settings
+          to take effect.
+        </i>
+      </div>
+    );
+  }
+
   private render_main(): Rendered | undefined {
     switch (this.state.state) {
       case "edit":
@@ -636,6 +655,7 @@ class SiteSettingsComponent extends Component<
               maxWidth: "80%",
             }}
           >
+            {this.render_warning()}
             {this.render_buttons()}
             {this.render_editor()}
             {this.render_tests()}

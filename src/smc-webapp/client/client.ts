@@ -50,7 +50,6 @@ export interface WebappClient extends EventEmitter {
   server_time: Function;
   get_username: Function;
   is_signed_in: () => boolean;
-  remember_me_key: () => string;
   synctable_project: Function;
   project_websocket: Function;
   prettier: Function;
@@ -240,11 +239,6 @@ class Client extends EventEmitter implements WebappClient {
 
   private init_prom_client(): void {
     this.on("start_metrics", start_metrics);
-  }
-
-  public remember_me_key(): string {
-    const app_base_url = (window as any).app_base_url ?? "";
-    return "remember_me" + app_base_url;
   }
 
   public dbg(f): Function {

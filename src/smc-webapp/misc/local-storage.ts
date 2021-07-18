@@ -7,8 +7,6 @@
  * Typed wrapper around LocalStorage
  */
 
-import { APP_BASE_URL } from "./base-url";
-
 // tests at startup if localStorage exists and works. if not or disabled, uses memory as a fallback.
 
 const LS: { [k: string]: string | undefined } = (function () {
@@ -42,7 +40,7 @@ function make_key(keys: Keys): string {
     return keys.getKey();
   } else {
     const key = typeof keys == "string" ? keys : keys.join(".");
-    return [APP_BASE_URL, key].join("::");
+    return [window.app_base_path, key].join("::");
   }
 }
 

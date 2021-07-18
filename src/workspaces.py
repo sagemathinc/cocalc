@@ -103,10 +103,6 @@ def ci(args):
 
 
 # Build all the packages.
-# Exception: unless --packages explicitly includes packages/static, we do
-# not build static.  It takes a long time to make the production build, which
-# is the default for "npm run build" there, and is only useful to do when
-# publishing to npm.
 def build(args):
     v = packages(args)
 
@@ -116,9 +112,6 @@ def build(args):
             if os.path.exists(dist):
                 # clear dist/ dir
                 shutil.rmtree(dist)
-        if path == 'packages/static' and 'packages/static' not in args.packages:
-            # special case as documented above.
-            continue
         cmd("time npm run build", path)
 
 

@@ -77,7 +77,6 @@ const PROJECTS_STYLE: React.CSSProperties = {
   padding: "10px 7px",
 } as const;
 
-
 let page_height: string = "100vh";
 
 const PAGE_STYLE: React.CSSProperties = {
@@ -348,7 +347,7 @@ export const Page: React.FC = () => {
         <h1 style={{ color: COLORS.GRAY }}>
           <Loading />
         </h1>
-        <div style={{ color: COLORS.GRAY_L, width: "50vw" }}>
+        <div style={{ color: COLORS.GRAY, width: "50vw" }}>
           Please give <SiteName /> a couple of seconds to start your project and
           prepare a file...
         </div>

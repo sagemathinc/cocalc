@@ -10,13 +10,15 @@
  */
 import { alert_message } from "./alerts";
 import { redux } from "./app-framework";
-import * as misc from "smc-util/misc";
 import { webapp_client } from "./webapp-client";
 import { should_load_target_url } from "./misc-page";
-import { get_cookie } from "./misc-page";
-import { APP_BASE_URL } from "./misc";
 import { reset_password_key } from "./client/password-reset";
 import { load_target } from "./history";
+import {
+  deleteRememberMe,
+  hasRememberMe,
+  setRememberMe,
+} from "smc-util/remember-me";
 
 let first_login = true;
 
@@ -41,11 +43,7 @@ export function init() {
   });
 
   function signed_in(mesg) {
-    // the has_remember_me cookie is for usability: After a sign in we "mark" this client as being "known"
-    // next time the main landing page is visited, haproxy or hub will redirect to the client
-    // note: similar code is in account/AccountActions.ts → AccountActions::sign_out
-    const exp = misc.server_days_ago(-30).toUTCString();
-    document.cookie = `${APP_BASE_URL}has_remember_me=true; expires=${exp} ;path=/`;
+    setRememberMe(window.app_base_path);
     // Record which hub we're connected to.
     redux.getActions("account").setState({ hub: mesg.hub });
     console.log(`Signed into ${mesg.hub} at ${new Date()}`);
@@ -65,15 +63,14 @@ export function init() {
   //###############################################
   // Automatically log in
   //###############################################
-  const remember_me = webapp_client.remember_me_key();
   if (reset_password_key()) {
     // Attempting to do a password reset -- clearly we do NOT want to wait in the hopes
     // that sign in via a cookie is going to work.  Without deleting this, the reset
     // password dialog that appears will immediately vanish with a frustrating redirect.
-    delete localStorage[remember_me];
+    deleteRememberMe(window.app_base_path);
   }
 
-  if (misc.get_local_storage(remember_me)) {
+  if (hasRememberMe(window.app_base_path)) {
     redux.getActions("account").setState({ remember_me: true });
     // just in case, always show manual login screen after 45s.
     setTimeout(
@@ -87,7 +84,7 @@ export function init() {
     if (account_store && account_store.get("is_logged_in")) {
       // if we thought user was logged in, but the cookie was invalid, force them to sign in again
       const f = function () {
-        if (!misc.get_local_storage(remember_me)) {
+        if (!hasRememberMe(window.app_base_path)) {
           alert_message({
             type: "info",
             message: "You might have to sign in again.",
@@ -102,7 +99,7 @@ export function init() {
   // Check if user has a has_remember_me cookie (regardless if it is valid or not)
   // the real "remember_me" is set to be http-only and hence not accessible from javascript (security).
   redux.getActions("account").setState({
-    has_remember_me: get_cookie(`${APP_BASE_URL}has_remember_me`) === "true",
+    has_remember_me: hasRememberMe(window.app_base_path),
   });
 
   // Ensure the hooks to process various things after user signs in

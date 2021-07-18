@@ -33,7 +33,7 @@ const RENICE = reverse(
 
 interface Opts {
   verbose?: boolean;
-  config?: string; // set via env var COCALC_PROJECT_AUTORENICE -- TODO: there are only harcoded values
+  config?: string; // TODO: make it possible to set via env var COCALC_PROJECT_AUTORENICE (also there are only harcoded values).
 }
 
 class ProcessRenicer {
@@ -132,7 +132,7 @@ class ProcessRenicer {
 
 let singleton: ProcessRenicer | undefined = undefined;
 
-export function activate(opts: Opts) {
+export function activate(opts?: Opts) {
   if (singleton != null) {
     L("blocking attempt to run ProcessRenicer twice");
     return;

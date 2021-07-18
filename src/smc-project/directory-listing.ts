@@ -17,6 +17,7 @@ Use ?random= or ?time= if you're worried about cacheing.
 Browser client code only uses this through the websocket anyways.
 */
 
+import { Router } from "express";
 import { lstat, stat, readdir, readlink, Dirent, Stats } from "fs";
 import { callback } from "awaiting";
 import { DirectoryListingEntry } from "smc-util/types";
@@ -94,21 +95,18 @@ export async function get_listing(
   return files;
 }
 
-export function directory_listing_router(express): any {
+export default function init(): Router {
   const base = "/.smc/directory_listing/";
-  const router = express.Router();
-  return directory_listing_http_server(base, router);
-}
+  const router = Router();
 
-function directory_listing_http_server(base, router): void {
-  router.get(base + "*", async function (req, res) {
+  router.get(base + "*", async (req, res) => {
     // decodeURIComponent because decodeURI(misc.encode_path('asdf/te #1/')) != 'asdf/te #1/'
     // https://github.com/sagemathinc/cocalc/issues/2400
     const path = decodeURIComponent(req.path.slice(base.length).trim());
     const { hidden } = req.query;
     // Fast -- do directly in this process.
     try {
-      const files = await get_listing(path, hidden);
+      const files = await get_listing(path, !!hidden);
       res.json({ files });
     } catch (err) {
       res.json({ error: `${err}` });

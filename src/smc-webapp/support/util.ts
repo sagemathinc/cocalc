@@ -4,5 +4,5 @@
  */
 
 export function location(): string {
-  return window.location.pathname.slice(window.app_base_url.length);
+  return window.location.pathname.slice(window.app_base_path.length);
 }

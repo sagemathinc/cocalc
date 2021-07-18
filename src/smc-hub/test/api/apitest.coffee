@@ -32,7 +32,7 @@ exports.db = exports.account_id = exports.api_key = exports.compute_server = und
 
 {http_message_api_v1} = require('../../api/handler')
 
-exports.winston = require('./../../winston-metrics').get_logger('api_test')
+exports.winston = require('./../../logger').getLogger('api_test')
 
 # a little reset for beforeEach
 exports.reset = (done) ->
@@ -60,7 +60,6 @@ exports.setup = (cb) ->
                 database : exports.db
                 dev      : true
                 single   : true
-                base_url : ''
                 cb       : (err, compute_server) ->
                     if err
                         cb(err)

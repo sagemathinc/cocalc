@@ -15,29 +15,41 @@ everything is folded in all ranges, but if the first fold point is not folded, w
 make everything unfolded.
 */
 
-CodeMirror.defineExtension("foldCodeSelectionAware", function (
-  mode: undefined | "fold" | "unfold"
-) {
-  // @ts-ignore
-  const editor: any = this;
-  for (const selection of editor.listSelections()) {
-    const { start_line, end_line } = cm_start_end(selection);
-    for (let n = start_line; n <= end_line; n++) {
-      const pos = CodeMirror.Pos(n);
-      if (mode != null) {
-        editor.foldCode(pos, null, mode);
-      } else {
-        // try to toggle and see if anything happens
-        const is_folded = editor.isLineFolded(n);
-        editor.foldCode(pos);
-        if (editor.isLineFolded(n) !== is_folded) {
-          // this is a foldable line, and what did we just do?  What it was, keep doing it.
-          mode = editor.isLineFolded(n) ? "fold" : "unfold";
+CodeMirror.defineExtension(
+  "foldCodeSelectionAware",
+  function (mode: undefined | "fold" | "unfold") {
+    // @ts-ignore
+    const editor: any = this;
+    for (const selection of editor.listSelections()) {
+      const { start_line, end_line } = cm_start_end(selection);
+      for (let n = start_line; n <= end_line; n++) {
+        const pos = CodeMirror.Pos(n);
+        try {
+          if (mode != null) {
+            editor.foldCode(pos, null, mode);
+          } else {
+            // try to toggle and see if anything happens
+            const is_folded = editor.isLineFolded(n);
+            editor.foldCode(pos);
+            if (editor.isLineFolded(n) !== is_folded) {
+              // this is a foldable line, and what did we just do?  What it was, keep doing it.
+              mode = editor.isLineFolded(n) ? "fold" : "unfold";
+            }
+          }
+        } catch (err) {
+          // I've observed in production getting
+          //    "Inserting collapsed marker partially overlapping an existing one"
+          // raised in production.  It's way better to just log this in the console.
+          // In particular, this happens for the file fcs.tsx as of this writing, when
+          // you select all and hit control+Q:
+          // https://github.com/sagemathinc/cocalc/blob/250045ad8af9db9f485d810141f065096c52f11b/src/smc-webapp/project/info/fcs.tsx
+
+          console.warn(`WARNING: ${err}`);
         }
       }
     }
   }
-});
+);
 
 // This isFolded extension that comes with CodeMirror isn't useful for the above, since it
 // is only at a *point*, not a line.

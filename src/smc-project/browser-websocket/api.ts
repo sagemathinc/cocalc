@@ -36,41 +36,34 @@ import { realpath } from "./realpath";
 import { project_info_ws } from "../project-info";
 import { Mesg } from "smc-webapp/project/websocket/types";
 
-export function init_websocket_api(
-  primus: any,
-  logger: any,
-  client: any
-): void {
+import { getLogger } from "smc-project/logger";
+const winston = getLogger("websocket-api");
+
+export function init_websocket_api(primus: any): void {
   primus.plugin("responder", require("primus-responder"));
 
   primus.on("connection", function (spark) {
     // Now handle the connection
-    logger.debug(
-      "primus-api",
-      `new connection from ${spark.address.ip} -- ${spark.id}`
-    );
+    winston.debug(`new connection from ${spark.address.ip} -- ${spark.id}`);
 
     spark.on("request", async function (data, done) {
-      logger.debug("primus-api", "request", typeof data, JSON.stringify(data));
+      winston.debug("primus-api", "request", typeof data, JSON.stringify(data));
       try {
-        const resp = await handle_api_call(client, data, primus, logger);
-        //logger.debug("primus-api", "response", resp);
+        const resp = await handle_api_call(data, primus);
+        //winston.debug("primus-api", "response", resp);
         done(resp);
       } catch (err) {
         // put this in for debugging...
         // It's normal to sometimes get errors, e.g., when a Jupyter kernel
         // isn't yet available.
-        // console.trace(); logger.debug("primus-api error stacktrack", err.stack, err);
+        // console.trace(); winston.debug("primus-api error stacktrack", err.stack, err);
         done({ error: err.toString(), status: "error" });
       }
     });
-    /*spark.on("data", function(data) {
-      logger.debug("primus-api", "data", typeof data, JSON.stringify(data));
-    });*/
   });
 
   primus.on("disconnection", function (spark) {
-    logger.debug(
+    winston.debug(
       "primus-api",
       `end connection from ${spark.address.ip} -- ${spark.id}`
     );
@@ -78,36 +71,33 @@ export function init_websocket_api(
 }
 
 import { run_formatter, run_formatter_string } from "../formatters";
+const theClient = require("smc-project/client");
 
-async function handle_api_call(
-  client: any,
-  data: Mesg,
-  primus: any,
-  logger: any
-): Promise<any> {
+async function handle_api_call(data: Mesg, primus: any): Promise<any> {
+  const { client } = theClient;
   switch (data.cmd) {
     case "listing":
       return await listing(data.path, data.hidden);
     case "delete_files":
-      return await delete_files(data.paths, logger);
+      return await delete_files(data.paths, winston);
     case "move_files":
-      return await move_files(data.paths, data.dest, logger);
+      return await move_files(data.paths, data.dest, winston);
     case "rename_file":
-      return await rename_file(data.src, data.dest, logger);
+      return await rename_file(data.src, data.dest, winston);
     case "canonical_paths":
       return canonical_paths(data.paths);
     case "configuration":
       return await get_configuration(data.aspect, data.no_cache);
     case "prettier": // deprecated
     case "formatter":
-      return await run_formatter(client, data.path, data.options, logger);
+      return await run_formatter(client, data.path, data.options, winston);
     case "prettier_string": // deprecated
     case "formatter_string":
       return await run_formatter_string(
         data.path,
         data.str,
         data.options,
-        logger
+        winston
       );
     case "jupyter":
       return await jupyter(data.path, data.endpoint, data.query);
@@ -116,35 +106,46 @@ async function handle_api_call(
     case "eval_code":
       return eval_code(data.code);
     case "terminal":
-      return await terminal(primus, logger, data.path, data.options);
+      return await terminal(primus, winston, data.path, data.options);
     case "lean":
-      return await lean(client, primus, logger, data.opts);
+      return await lean(client, primus, winston, data.opts);
     case "nbgrader":
-      return await nbgrader(client, logger, data.opts);
+      return await nbgrader(client, winston, data.opts);
     case "jupyter_strip_notebook":
       return await jupyter_strip_notebook(data.ipynb_path);
     case "jupyter_run_notebook":
-      return await jupyter_run_notebook(client, logger, data.opts);
+      return await jupyter_run_notebook(client, winston, data.opts);
     case "lean_channel":
-      return await lean_channel(client, primus, logger, data.path);
+      return await lean_channel(client, primus, winston, data.path);
     case "x11_channel":
-      return await x11_channel(client, primus, logger, data.path, data.display);
+      return await x11_channel(
+        client,
+        primus,
+        winston,
+        data.path,
+        data.display
+      );
     case "synctable_channel":
       return await synctable_channel(
         client,
         primus,
-        logger,
+        winston,
         data.query,
         data.options
       );
     case "syncdoc_call":
-      return await syncdoc_call(data.path, logger, data.mesg);
+      return await syncdoc_call(data.path, winston, data.mesg);
     case "symmetric_channel":
-      return await browser_symmetric_channel(client, primus, logger, data.name);
+      return await browser_symmetric_channel(
+        client,
+        primus,
+        winston,
+        data.name
+      );
     case "realpath":
       return realpath(data.path);
     case "project_info":
-      return await project_info_ws(primus, logger);
+      return await project_info_ws(primus, winston);
     default:
       throw Error(
         `command "${

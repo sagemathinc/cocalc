@@ -11,6 +11,7 @@ import { callback2 } from "smc-util/async-utils";
 import * as message from "smc-util/message";
 const { one_result } = require("./postgres");
 import { is_valid_uuid_string, to_json } from "smc-util/misc";
+import { ProjectControlFunction } from "smc-hub/servers/project-control";
 
 type WhereQueries = ({ [query: string]: string } | string)[];
 
@@ -135,12 +136,11 @@ export class CopyPath {
       await Promise.all([write, read]);
 
       // get the "project" for issuing commands
-      const project = await callback2(this.client.compute_server.project, {
-        project_id: mesg.src_project_id,
-      });
+      const projectControl: ProjectControlFunction = this.client.compute_server;
+      const project = await projectControl(mesg.src_project_id);
 
       // do the copy
-      const copy_id = await callback2(project.copy_path, {
+      const copy_id = await project.copyPath({
         path: mesg.src_path,
         target_project_id: mesg.target_project_id,
         target_path: mesg.target_path,
@@ -148,7 +148,6 @@ export class CopyPath {
         delete_missing: mesg.delete_missing,
         backup: mesg.backup,
         timeout: mesg.timeout,
-        exclude_history: mesg.exclude_history,
         wait_until_done: mesg.wait_until_done,
         scheduled: mesg.scheduled,
       });

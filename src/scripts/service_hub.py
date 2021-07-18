@@ -40,16 +40,12 @@ def hub_args(server_id):
 
         agent_port = int(args.agent_port) if args.agent_port else 0
 
-    s = "--host={hostname} --port {port} --proxy_port {proxy_port} --agent_port {agent_port} --share_port {share_port} {mentions} --share_path {share_path}  --base_url={base_url}".format(
+    s = "--host={hostname} --websocket-server --agent_port {agent_port} {mentions} --share_path {share_path}  ".format(
         hostname=args.hostname,
         server_id=server_id,
-        port=port,
-        proxy_port=proxy_port,
-        share_port=share_port,
         agent_port=agent_port,
         mentions="--mentions" if args.mentions else "",
-        share_path=args.share_path,
-        base_url=args.base_url)
+        share_path=args.share_path)
 
     if args.database_nodes:
         s += ' --database_nodes {database_nodes} '.format(
@@ -153,11 +149,6 @@ if __name__ == "__main__":
         default="",
         type=str)
 
-    parser.add_argument('--base_url',
-                        help="base url",
-                        dest='base_url',
-                        default='')
-
     parser.add_argument('--database_nodes',
                         help="",
                         dest='database_nodes',
@@ -225,15 +216,6 @@ if __name__ == "__main__":
                         action="store_const",
                         const=True,
                         default=False)
-
-    parser.add_argument('--port', dest='port', type=int, default=-1)
-
-    parser.add_argument('--proxy_port',
-                        dest='proxy_port',
-                        type=int,
-                        default=-1)
-
-    parser.add_argument('--share_port', dest='share_port', type=int, default=0)
 
     parser.add_argument('--agent_port', dest='agent_port', type=int, default=0)
 

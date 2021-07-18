@@ -2,13 +2,15 @@
 
 import * as React from "react";
 import { Helmet } from "react-helmet";
-
-declare const BASE_URL : string;  // defined via webpack
+import { join } from "path";
 
 export default function LoadFavicons() {
   return (
     <Helmet>
-      <link rel="icon" href={`${BASE_URL}/webapp/favicon.ico`} />
+      <link
+        rel="icon"
+        href={join(window.app_base_path, "webapp/favicon.ico")}
+      />
     </Helmet>
   );
 }

@@ -1005,7 +1005,11 @@ export function to_safe_str(x: any): string {
     let value = x[key];
     let sanitize = false;
 
-    if (key.indexOf("pass") !== -1) {
+    if (
+      key.indexOf("pass") !== -1 ||
+      key.indexOf("token") !== -1 ||
+      key.indexOf("secret") !== -1
+    ) {
       sanitize = true;
     } else if (typeof value === "string" && value.slice(0, 7) === "sha512$") {
       sanitize = true;
@@ -1017,7 +1021,7 @@ export function to_safe_str(x: any): string {
       if (typeof value === "object") {
         value = "[object]"; // many objects, e.g., buffers can block for seconds to JSON...
       } else if (typeof value === "string") {
-        value = trunc(value, 250); // long strings are not SAFE -- since JSON'ing them for logging blocks for seconds!
+        value = trunc(value, 1000); // long strings are not SAFE -- since JSON'ing them for logging blocks for seconds!
       }
       obj[key] = value;
     }

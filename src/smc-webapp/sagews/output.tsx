@@ -7,23 +7,16 @@
 Rendering output part of a Sage worksheet cell
 */
 
+import { join } from "path";
 import { Component, React, Rendered } from "../app-framework";
-
 import { encode_path, filename_extension, keys, cmp, len } from "smc-util/misc";
-
 import { FLAGS } from "smc-util/sagews";
-
 import { Stdout } from "../jupyter/output-messages/stdout";
 import { Stderr } from "../jupyter/output-messages/stderr";
-
 import { HTML, Markdown } from "../r_misc";
-
 import { fromJS } from "immutable";
-
 import { CodeMirrorStatic } from "../jupyter/codemirror-static";
-
 import * as extensions from "../share/extensions";
-
 import { OutputMessage, OutputMessages } from "./parse-sagews";
 
 interface Props {
@@ -80,9 +73,10 @@ export class CellOutput extends Component<Props> {
     if (value.url != null) {
       src = value.url;
     } else {
-      src = `${
-        (window as any).app_base_url != null ? (window as any).app_base_url : ""
-      }/blobs/${encode_path(value.filename)}?uuid=${value.uuid}`;
+      src = join(
+        window.app_base_path,
+        `blobs/${encode_path(value.filename)}?uuid=${value.uuid}`
+      );
     }
     const ext = filename_extension(value.filename).toLowerCase();
     if (extensions.image.has(ext)) {

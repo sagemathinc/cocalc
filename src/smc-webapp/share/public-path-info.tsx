@@ -27,7 +27,7 @@ interface Props {
   path: string;
   isdir?: boolean;
   authors?: Author[];
-  base_url: string;
+  base_path: string;
   views?: number;
 }
 
@@ -99,7 +99,7 @@ export class PublicPathInfo extends Component<Props> {
           key={author.account_id}
           name={author.name}
           account_id={author.account_id}
-          base_url={this.props.base_url}
+          base_path={this.props.base_path}
         />
       );
       if (v.length >= MAX_AUTHORS) {

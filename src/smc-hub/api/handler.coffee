@@ -11,8 +11,8 @@ AGPLv3, (c) 2017, SageMath, Inc.
 
 async = require('async')
 
-Cache = require('expiring-lru-cache')
-auth_cache = new Cache(size:100, expiry:60000)
+Cache = require('lru-cache')
+auth_cache = new Cache(max:100, maxAge:60000)
 
 misc = require('smc-util/misc')
 {defaults, required} = misc

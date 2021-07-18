@@ -163,11 +163,6 @@ class Client {
   }
 }
 
-/*export function jupyter_backend_test() {
-  return jupyter_backend({_path:'x.ipynb'}, new Client());
-}
-*/
-
 interface KernelParams {
   name: string;
   client?: Client;

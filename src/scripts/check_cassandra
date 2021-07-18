@@ -1,4 +1,0 @@
-export P=`pidof java`
-ps -o etime --pid=$P
-echo "Load: `cat /proc/loadavg`"
-nodetool info |grep Heap 

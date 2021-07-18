@@ -8,14 +8,14 @@ import { Settings } from "smc-hub/share/settings";
 import { A } from "../r_misc";
 
 interface Props {
-  base_url: string;
+  base_path: string;
   viewer?: string;
   settings: Settings;
 }
 
 export class CoCalcLink extends Component<Props> {
   private target(): string {
-    return `https://${this.props.settings.dns}${this.props.base_url}`;
+    return `https://${this.props.settings.dns}${this.props.base_path}`;
   }
 
   private link(text: string): Rendered {

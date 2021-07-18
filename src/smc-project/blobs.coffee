@@ -12,7 +12,7 @@ Copyright 2015, SageMath, Inc., GPL v3.
 
 misc    = require('smc-util/misc')
 message = require('smc-util/message')
-winston = require('winston')
+winston = require('./logger').getLogger('blobs')
 
 {defaults, required} = misc
 

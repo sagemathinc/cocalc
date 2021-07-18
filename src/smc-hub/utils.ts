@@ -4,11 +4,11 @@
  */
 
 import * as fs from "fs";
-const winston = require("./winston-metrics").get_logger("utils");
+const winston = require("./logger").getLogger("utils");
 import { PostgreSQL } from "./postgres/types";
 import { AllSiteSettings } from "smc-util/db-schema/types";
 import { expire_time } from "smc-util/misc";
-import { callback2 as cb2 } from "smc-util/async-utils";
+import { callback2 } from "smc-util/async-utils";
 import { PassportStrategyDB } from "./auth";
 
 export function get_smc_root(): string {
@@ -28,7 +28,7 @@ export function read_db_password_from_disk(): string | null {
 export async function have_active_registration_tokens(
   db: PostgreSQL
 ): Promise<boolean> {
-  const resp = await cb2(db._query, {
+  const resp = await callback2(db._query, {
     query:
       "SELECT EXISTS(SELECT 1 FROM registration_tokens WHERE disabled IS NOT true) AS have_tokens",
     cache: true,
@@ -43,30 +43,14 @@ interface PassportConfig {
 export type PassportConfigs = PassportConfig[];
 
 export async function get_passports(db: PostgreSQL): Promise<PassportConfigs> {
-  return new Promise((done, fail) => {
-    db.get_all_passport_settings_cached({
-      cb: (err, passports) => {
-        err ? fail(err) : done(passports);
-      },
-    });
-  });
+  return await callback2(db.get_all_passport_settings_cached);
 }
 
 // just to make this async friendly, that's all
 export async function get_server_settings(
   db: PostgreSQL
 ): Promise<AllSiteSettings> {
-  return new Promise((done, fail) => {
-    db.get_server_settings_cached({
-      cb: (err, settings) => {
-        if (err) {
-          fail(err);
-        } else {
-          done(settings);
-        }
-      },
-    });
-  });
+  return await callback2(db.get_server_settings_cached);
 }
 
 // this converts what's in the pii_expired setting to a new Date in the future

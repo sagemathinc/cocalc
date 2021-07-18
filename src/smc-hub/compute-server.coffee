@@ -7,7 +7,6 @@
 
 CONF = '/projects/conf'
 SQLITE_FILE = undefined
-DEV = false    # if true, in special single-process dev mode, where this code is being run directly by the hub.
 
 START_TIME = new Date().getTime() # milliseconds
 
@@ -17,10 +16,10 @@ STATES = require('smc-util/schema').COMPUTE_STATES
 net         = require('net')
 fs          = require('fs')
 os          = require('os')
-
+{join}      = require('path')
 async       = require('async')
-winston     = require('winston')
-program     = require('commander')
+winston = require('./logger').getLogger('compute-server')
+
 
 uuid        = require('node-uuid')
 
@@ -31,15 +30,9 @@ misc        = require('smc-util/misc')
 
 sqlite      = require('smc-util-node/sqlite')
 
-conf        = require('./conf')
-
-
-# Set the log level
-try
-    winston.remove(winston.transports.Console)
-    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
-catch err
-    # ignore
+PROJECT_PATH = require('smc-util-node/data').projects
+base_path   = require('smc-util-node/base-path').default
+{program}   = require('smc-hub/hub')
 
 {defaults, required} = misc
 
@@ -68,46 +61,55 @@ smc_compute = (opts) =>
         args    : required
         timeout : TIMEOUT
         cb      : required
-    env = undefined
-    if DEV
-        winston.debug("dev_smc_compute: running #{misc.to_json(opts.args)}")
-        os_path = require('path')
-        # 2021: we have to be explicit to smc_compute where it's modules are now.
-        # prior to encapsulating the global "/cocalc/..." setup, this would have picked up the global installation.
-        env = {PYTHONPATH: os_path.join(process.env.SMC_ROOT, 'smc_pyutil/')}
-        command = os_path.join(process.env.SMC_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
-        PROJECT_PATH = conf.project_path()
-        v = ['--dev', "--projects", PROJECT_PATH]
-    else
-        winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
-        if USERNAME != 'root'
-            command = "sudo"
-            v = ["/usr/local/bin/smc-compute"]
-        else
-            command = '/usr/local/bin/smc-compute'
-            v = []
-    if program.single
+    # 2021: we have to be explicit to smc_compute where it's modules are now.
+    # prior to encapsulating the global "/cocalc/..." setup, this would have
+    # picked up the global installation.
+    env =
+        SMC_ROOT   : process.env.SMC_ROOT
+        PATH       : process.env.PATH
+        PROJECTS   : process.env.PROJECTS
+        BASE_PATH  : base_path
+        PYTHONPATH : join(process.env.SMC_ROOT, 'smc_pyutil/')
+    command = join(process.env.SMC_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
+    v = []
+    if program.dev
+        v.push("--dev")
+    else if program.single
         v.push("--single")
-    if program.kubernetes
+    else if program.kubernetes
         v.push("--kubernetes")
+    v.push("--projects")
+    v.push(PROJECT_PATH)
+
+    args = v.concat(opts.args)
+    env0 = ''
+    for k of env
+        env0 += "#{k}=#{env[k]} "
+    winston.debug("smc_compute: '#{env0} #{command} #{args.join(' ')}'")
 
     misc_node.execute_code
         command : command
-        args    : v.concat(opts.args)
+        args    : args
         timeout : opts.timeout
         bash    : false
         path    : process.cwd()
         env     : env
         cb      : (err, output) =>
-            #winston.debug(misc.to_safe_str(output))
-            winston.debug("smc_compute: finished running #{opts.args.join(' ')} -- #{err}")
+            winston.debug(misc.to_safe_str(output))
+            winston.debug("smc_compute: finished running #{command} #{opts.args.join(' ')} -- #{err}")
             if err
                 if output?.stderr
                     opts.cb(output.stderr)
                 else
                     opts.cb(err)
             else
-                opts.cb(undefined, if output.stdout then misc.from_json(output.stdout) else undefined)
+                out = undefined
+                try
+                    out = if output.stdout then misc.from_json(output.stdout) else undefined
+                    opts.cb(undefined, out)
+                catch err
+                    winston.error("smc_compute: error parsing output #{output.stdout} of '#{command} #{opts.args.join(' ')}'")
+                    opts.cb("error parsing smc_compute output")
 
 project_cache = {}
 project_cache_cb = {}
@@ -376,34 +378,9 @@ class Project
                         dbg("An action that doesn't involve state change")
                         if opts.action == 'network'  # length==0 is allow network
                             dbg("do network setting")
-                            # refactor this out
-                            network = opts.args.length == 0
-                            async.parallel([
-                                (cb) =>
-                                    sqlite_db.update  # store network state in database in case things get restarted.
-                                        table : 'projects'
-                                        set   :
-                                            network : network
-                                        where :
-                                            project_id : @project_id
-                                        cb    : cb
-                                (cb) =>
-                                    uname = @project_id.replace(/-/g,'')
-                                    if network
-                                        args = ['--whitelist_users', uname]
-                                    else
-                                        args = ['--blacklist_users', uname]
-                                    firewall
-                                        command : "outgoing"
-                                        args    : args
-                                        cb      : cb
-                            ], (err) =>
-                                if err
-                                    resp = message.error(error:err)
-                                else
-                                    resp = {network:network}
-                                cb(err)
-                            )
+                            # NO-op -- no longer supported at this level.
+                            resp = {}
+                            cb()
                         else
                             dbg("doing action #{opts.action}")
                             if opts.action == 'status' or opts.action == 'state'
@@ -616,24 +593,24 @@ read_secret_token = (cb) ->
         # is set and the file exists.
         (cb) ->
             dbg("check if file exists")
-            fs.exists program.secret_file, (exists) ->
+            fs.exists program.secretFile, (exists) ->
                 if exists
                     dbg("exists -- now reading '#{program.secret_file}'")
-                    fs.readFile program.secret_file, (err, buf) ->
+                    fs.readFile program.secretFile, (err, buf) ->
                         if err
-                            dbg("error reading the file '#{program.secret_file}'")
+                            dbg("error reading the file '#{program.secretFile}'")
                             cb(err)
                         else
                             secret_token = buf.toString().trim()
                             cb()
                 else
-                    dbg("creating '#{program.secret_file}'")
+                    dbg("creating '#{program.secretFile}'")
                     require('crypto').randomBytes 64, (ex, buf) ->
                         secret_token = buf.toString('base64')
-                        fs.writeFile(program.secret_file, secret_token, cb)
+                        fs.writeFile(program.secretFile, secret_token, cb)
         (cb) ->
             dbg("Ensure restrictive permissions on the secret token file.")
-            fs.chmod(program.secret_file, 0o600, cb)
+            fs.chmod(program.secretFile, 0o600, cb)
     ], cb)
 
 handle_compute_mesg = (mesg, socket, cb) ->
@@ -686,65 +663,8 @@ handle_compute_mesg = (mesg, socket, cb) ->
 
 handle_status_mesg = (mesg, socket, cb) ->
     dbg = (m) => winston.debug("handle_status_mesg(hub -> compute, id=#{mesg.id}): #{m}")
-    dbg()
-    status = {nproc:STATS.nproc}
-    async.parallel([
-        (cb) =>
-            sqlite_db.select
-                table   : 'projects'
-                columns : ['state']
-                cb      : (err, result) =>
-                    if err
-                        cb(err)
-                    else
-                        projects = status.projects = {}
-                        for x in result
-                            s = x.state
-                            if not projects[s]?
-                                projects[s] = 1
-                            else
-                                projects[s] += 1
-                        cb()
-        (cb) =>
-            if DEV
-                cb(); return
-            fs.readFile '/proc/loadavg', (err, data) =>
-                if err
-                    cb(err)
-                else
-                    # http://stackoverflow.com/questions/11987495/linux-proc-loadavg
-                    x = misc.split(data.toString())
-                    # this is normalized based on number of procs
-                    # TODO: I just looked at the source code and
-                    # STATS.nproc is never updated, so this is silly.
-                    status.load = (parseFloat(x[i])/STATS.nproc for i in [0..2])
-                    v = x[3].split('/')
-                    status.num_tasks   = parseInt(v[1])
-                    status.num_active = parseInt(v[0])
-                    cb()
-        (cb) =>
-            if DEV
-                cb(); return
-            fs.readFile '/proc/meminfo', (err, data) =>
-                if err
-                    cb(err)
-                else
-                    # See this about what MemAvailable is:
-                    #   https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=34e431b0ae398fc54ea69ff85ec700722c9da773
-                    x = data.toString()
-                    status.memory = memory = {}
-                    for k in ['MemAvailable', 'SwapTotal', 'MemTotal', 'SwapFree']
-                        i = x.indexOf(k)
-                        y = x.slice(i)
-                        i = y.indexOf('\n')
-                        memory[k] = parseInt(misc.split(y.slice(0,i).split(':')[1]))/1000
-                    cb()
-    ], (err) =>
-        if err
-            cb(message.error(error:err))
-        else
-            cb(message.compute_server_status(status:status))
-    )
+    dbg("stub")
+    cb(message.compute_server_status(status:{}))
 
 handle_mesg = (socket, mesg) ->
     dbg = (m) => winston.debug("handle_mesg(hub -> compute, id=#{mesg.id}): #{m}")
@@ -911,14 +831,14 @@ start_tcp_server = (cb) ->
             c()
         else
             dbg("attempt once to use the same port as in port file, if there is one")
-            fs.exists program.port_file, (exists) ->
+            fs.exists program.portFile, (exists) ->
                 if not exists
                     dbg("no port file so choose new port")
                     program.port = 0
                     c()
                 else
                     dbg("port file exists, so read")
-                    fs.readFile program.port_file, (err, data) ->
+                    fs.readFile program.portFile, (err, data) ->
                         if err
                             program.port = 0
                             c()
@@ -930,7 +850,7 @@ start_tcp_server = (cb) ->
         server.listen program.port, program.address, () ->
             dbg("listening on #{program.address}:#{program.port}")
             program.port = server.address().port
-            fs.writeFile(program.port_file, program.port, cb)
+            fs.writeFile(program.portFile, program.port, cb)
         server.on 'error', (e) ->
             dbg("error getting port -- #{e}; try again in one second (type 'netstat -tulpn |grep #{program.port}' to figure out what has the port)")
             try_again = () ->
@@ -941,22 +861,6 @@ start_tcp_server = (cb) ->
     get_port () ->
         listen(cb)
 
-# Initialize basic information about this node once and for all.
-# So far, not much -- just number of processors.
-STATS = {nproc:1}
-init_stats = (cb) =>
-    if DEV or program.kubernetes
-        # not meaningful
-        cb()
-        return
-    misc_node.execute_code
-        command : "nproc"
-        cb      : (err, output) =>
-            if err
-                cb(err)
-            else
-                STATS.nproc = parseInt(output.stdout)
-                cb()
 
 # Gets metadata from Google, or if that fails, from the local SQLITe database.  Saves
 # result in database for future use in case metadata fails.
@@ -1020,129 +924,6 @@ get_whitelisted_users = (opts) ->
             else
                 opts.cb(undefined, ['root','salvus','monitoring','_apt'].concat((x.project_id.replace(/-/g,'') for x in results)))
 
-NO_OUTGOING_FIREWALL = false
-firewall = (opts) ->
-    opts = defaults opts,
-        command : required
-        args    : []
-        cb      : required
-    if DEV
-        # no-op in dev mode.
-        opts.cb()
-        return
-    if opts.command == 'outgoing' and NO_OUTGOING_FIREWALL
-        opts.cb()
-        return
-    firewall_cmd = "#{process.env.SALVUS_ROOT}/scripts/smc_firewall.py"
-    if USERNAME != 'root'
-        command = 'sudo'
-        args = [firewall_cmd, opts.command].concat(opts.args)
-    else
-        command = firewall_cmd
-        args = [opts.command].concat(opts.args)
-
-    misc_node.execute_code
-        command : command
-        args    : args
-        bash    : false
-        timeout : 30
-        path    : process.cwd()
-        cb      : opts.cb
-
-#
-# Initialize the iptables based firewall.  Must be run after sqlite db is initialized.
-#
-#
-init_firewall = (cb) ->
-    dbg = (m) -> winston.debug("init_firewall: #{m}")
-    if program.single
-        dbg("running in single machine mode; not creating firewall")
-        cb()
-        return
-    if program.kubernetes
-        dbg("running as part of a Kubernetes cluster, so not compute server does not have to program the firewall")
-        cb()
-        return
-    hostname = require("os").hostname()
-    if not misc.startswith(hostname, 'compute')
-        dbg("not starting firewall since hostname does not start with 'compute'")
-        cb()
-        return
-    tm = misc.walltime()
-    dbg("starting firewall configuration")
-    incoming_whitelist_hosts = ''
-    outgoing_whitelist_hosts = 'sagemath.com'
-    whitelisted_users        = ''
-    admin_whitelist = ''
-    storage_whitelist = ''
-    async.series([
-        (cb) ->
-            async.parallel([
-                (cb) ->
-                    dbg("getting incoming_whitelist_hosts")
-                    get_metadata
-                        key : "smc-servers"
-                        cb  : (err, w) ->
-                            incoming_whitelist_hosts = w.replace(/ /g,',')
-                            outgoing_whitelist_hosts += ',' + w  # allow users to connect to get blobs when printing sage worksheets
-                            cb(err)
-                (cb) ->
-                    dbg("getting admin whitelist")
-                    get_metadata
-                        key : "admin-servers"
-                        cb  : (err, w) ->
-                            admin_whitelist = w.replace(/ /g,',')
-                            cb(err)
-                (cb) ->
-                    dbg("getting storage whitelist")
-                    get_metadata
-                        key : "storage-servers"
-                        cb  : (err, w) ->
-                            storage_whitelist = w.replace(/ /g,',')
-                            cb(err)
-                (cb) ->
-                    dbg('getting whitelisted users')
-                    get_whitelisted_users
-                        cb  : (err, users) ->
-                            whitelisted_users = users.join(',')
-                            cb(err)
-            ], cb)
-        (cb) ->
-            dbg("clear existing firewall")
-            firewall
-                command : "clear"
-                cb      : cb
-        (cb) ->
-            dbg("not disabling incoming connections -- no need to")
-            # CRITICAL: this causes a lot of trouble for no gain at all
-            cb()
-            return
-
-            dbg("starting firewall -- applying incoming rules")
-            if admin_whitelist
-                incoming_whitelist_hosts += ',' + admin_whitelist
-            if storage_whitelist
-                incoming_whitelist_hosts += ',' + storage_whitelist
-            firewall
-                command : "incoming"
-                args    : ["--whitelist_hosts", incoming_whitelist_hosts]
-                cb      : cb
-        (cb) ->
-            if incoming_whitelist_hosts.split(',').indexOf(require('os').hostname()) != -1
-                dbg("this is a frontend web node, so not applying outgoing firewall rules (probably being used for development)")
-                NO_OUTGOING_FIREWALL = true
-                cb()
-            else
-                dbg("starting firewall -- applying outgoing rules")
-                firewall
-                    command : "outgoing"
-                    args    : ["--whitelist_hosts_file", "#{process.env.SALVUS_ROOT}/scripts/outgoing_whitelist_hosts",
-                               "--whitelist_users", whitelisted_users]
-                    cb      : cb
-    ], (err) ->
-        dbg("finished firewall configuration in #{misc.walltime(tm)} seconds")
-        cb(err)
-    )
 
 update_states = (cb) ->
     # TEMPORARY until I have time to fix a bug.
@@ -1197,7 +978,7 @@ update_states = (cb) ->
 
 start_server = (cb) ->
     winston.debug("start_server")
-    async.series [init_stats, read_secret_token, init_sqlite_db, init_firewall, init_mintime, start_tcp_server, update_states], (err) ->
+    async.series [read_secret_token, init_sqlite_db, init_mintime, start_tcp_server, update_states], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else
@@ -1210,8 +991,7 @@ start_server = (cb) ->
 start_fake_server = (cb) ->
     winston.debug("start_fake_server")
     # change global CONF path for local dev purposes
-    DEV = true
-    SQLITE_FILE = require('path').join(process.env.SALVUS_ROOT, 'data', 'compute.sqlite3')
+    SQLITE_FILE = require('smc-util-node/data').compute_sqlite
     # For the fake dev server, we always reset the database on startup, since
     # we always kill all projects on startup.
     try
@@ -1289,63 +1069,3 @@ exports.fake_dev_socket = (cb) ->
             cb(undefined, new FakeDevSocketFromHub())
     )
 
-
-
-
-###########################
-# Command line interface
-###########################
-
-try
-    program.usage('[start/stop/restart/status] [options]')
-        .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
-        .option('--logfile [string]',        'write log to this file', String, "#{CONF}/compute.log")
-        .option('--port_file [string]',      'write port number to this file', String, "#{CONF}/compute.port")
-        .option('--secret_file [string]',    'write secret token to this file', String, "#{CONF}/compute.secret")
-        .option('--sqlite_file [string]',    'store sqlite3 database here', String, "#{CONF}/compute.sqlite3")
-        .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
-        .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
-        .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
-        .option('--single',                  'if given, assume no storage servers and everything is running on one VM')
-        .option('--foreground',              'if specified, do not run as a deamon')
-        .option('--kubernetes',              'if given, assumes running in cocalc-kubernetes, so projects are stored at /projects/home are NFS exported via a service called cocalc-kubernetes-server-nfs; projects run as pods in the cluster.  This is all taken care of by the smc-compute script, which gets the --kubernetes option.')
-        .parse(process.argv)
-catch e
-    # Stupid bug in the command module when loaded as a module.
-    program._name = 'xxx'
-
-program.port = parseInt(program.port)
-
-exports.program = program  # so can use the defaults above in other libraries, namely compute-client
-
-main = () ->
-    if program.debug
-        winston.remove(winston.transports.Console)
-        winston.add(winston.transports.Console, {level: program.debug, timestamp:true, colorize:true})
-
-    SQLITE_FILE = program.sqlite_file
-
-    winston.debug("running as a deamon")
-    # run as a server/daemon (otherwise, is being imported as a library)
-    process.addListener "uncaughtException", (err) ->
-        winston.debug("BUG ****************************************************************************")
-        winston.debug("Uncaught exception: " + err)
-        winston.debug(err.stack)
-        winston.debug("BUG ****************************************************************************")
-
-    fs.exists CONF, (exists) ->
-        if exists
-            fs.chmod CONF, 0o700, (err) ->
-                if err
-                    winston.debug("WARNING: something went wrong fixing configuration directory permissions", err)
-
-    if program.foreground
-        start_server (err) ->
-            if err
-                process.exit(1)
-    else
-        daemon  = require("start-stop-daemon")  # don't import unless in a script; otherwise breaks in node v6+
-        daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
-
-if program._name.split('.')[0] == 'cocalc-compute-server'
-    main()

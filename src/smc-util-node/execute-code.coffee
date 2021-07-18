@@ -5,10 +5,7 @@
 
 # Execute code in a subprocess, etc.
 
-winston       = require('winston')
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
-
+{getLogger}   = require('./logger')
 temp          = require('temp')
 async         = require('async')
 fs            = require('fs')
@@ -40,6 +37,7 @@ exports.execute_code = execute_code = aggregate (opts) ->
         verbose    : true
         cb         : undefined
 
+    winston = getLogger('execute-code')
     start_time = walltime()
     if opts.verbose
         winston.debug("execute_code: \"#{opts.command} #{opts.args.join(' ')}\"")

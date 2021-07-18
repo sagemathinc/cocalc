@@ -1,5 +1,3 @@
-import "script-loader!primus/primus-engine.min.js";
-
 // this must come before anything that touches event handling, etc.
 import "./webapp-error-reporter.coffee";
 

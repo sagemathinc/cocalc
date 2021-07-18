@@ -29,7 +29,6 @@ export async function handle_path_request(opts: {
   req: any;
   res: any;
   path_to_files: Function;
-  base_url: string;
   viewer?: "download" | "raw" | "share" | "embed";
 }): Promise<void> {
   const {
@@ -39,7 +38,6 @@ export async function handle_path_request(opts: {
     req,
     res,
     path_to_files,
-    base_url,
   } = opts;
   let viewer = opts.viewer;
 
@@ -164,7 +162,6 @@ export async function handle_path_request(opts: {
         dir,
         path,
         react: react_viewer(
-          base_url,
           `/${req.params.id}/${path}`,
           project_id,
           false,
@@ -178,7 +175,6 @@ export async function handle_path_request(opts: {
         hidden: req.query.hidden,
         sort: req.query.sort != null ? req.query.sort : "name",
         authors,
-        base_url,
         views,
       });
   }

@@ -9,8 +9,8 @@
 
 import { webapp_client } from "../webapp-client";
 import * as LS from "../misc/local-storage";
-import { APP_BASE_URL } from "../misc";
 import { SignedIn } from "smc-util/message-types";
+import { join } from "path";
 
 async function tracking_events(): Promise<void> {
   if (localStorage == null) return;
@@ -26,7 +26,7 @@ async function tracking_events(): Promise<void> {
 
 async function analytics_send(mesg: SignedIn): Promise<void> {
   window
-    .fetch(APP_BASE_URL + "/analytics.js", {
+    .fetch(join(window.app_base_path, "analytics.js"), {
       method: "POST",
       cache: "no-cache",
       credentials: "include",

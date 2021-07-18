@@ -56,6 +56,9 @@ blobs = require('./blobs')
 
 {defaults, required} = misc
 
+{getLogger} = require('./logger')
+winston = getLogger('Client')
+
 DEBUG = false
 # Easy way to enable debugging in any project anywhere.
 DEBUG_FILE = process.env.HOME + '/.smc-DEBUG'
@@ -66,13 +69,17 @@ else if kucalc.IN_KUCALC
     # logging infrastructure...
     DEBUG = true
 
+exports.init = () =>
+    exports.client = new exports.Client()
+
 ALREADY_CREATED = false
 class exports.Client extends EventEmitter
-    constructor: (project_id, logger) ->
+    constructor: () ->
         super()
         if ALREADY_CREATED
             throw Error("BUG: Client already created!")
         ALREADY_CREATED = true
+        project_id = require('./data').project_id
         @project_id = project_id
         @dbg('constructor')()
         @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
@@ -81,7 +88,7 @@ class exports.Client extends EventEmitter
         @_hub_client_sockets = {}
         @_changefeed_sockets = {}
         @_connected = false
-        @_logger = logger
+        @_winston = winston
 
         # Start listening for syncstrings that have been recently modified, so that we
         # can open them and provide filesystem and computational support.
@@ -93,7 +100,7 @@ class exports.Client extends EventEmitter
 
     # use to define a logging function that is cleanly used internally
     dbg: (f, trunc=1000) =>
-        if DEBUG and @_logger
+        if DEBUG and @_winston
             return (m...) =>
                 switch m.length
                     when 0
@@ -102,7 +109,7 @@ class exports.Client extends EventEmitter
                         s = m[0]
                     else
                         s = JSON.stringify(m)
-                @_logger("Client.#{f}: #{misc.trunc_middle(s,trunc)}")
+                @_winston.debug("Client.#{f}: #{misc.trunc_middle(s,trunc)}")
         else
             return (m) ->
 

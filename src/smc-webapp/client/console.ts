@@ -24,18 +24,26 @@ you have to change the context to *top*!   See
 http://stackoverflow.com/questions/3275816/debugging-iframes-with-chrome-developer-tools/8581276#8581276
 */
 
-declare var DEBUG; //  this comes from webpack.
+declare const DEBUG; //  this comes from webpack.
 console.log("DEBUG = ", DEBUG);
 
 import { IS_TOUCH } from "../feature";
 import { redux } from "../app-framework";
+
+declare global {
+  interface Window {
+    cocalc: any; // special support for debugging
+    cc: any; // alias for "cocalc"
+    eruda: any; // provides a debugger for mobile devices (iOS).
+  }
+}
 
 export function setup_global_cocalc(client): void {
   if (!DEBUG) {
     return;
   }
 
-  const cocalc: any = (window as any).cc ?? {};
+  const cocalc : any = window.cc ?? {};
   cocalc.client = client;
   cocalc.misc = require("smc-util/misc");
   cocalc.immutable = require("immutable");
@@ -48,7 +56,7 @@ export function setup_global_cocalc(client): void {
   console.log(
     "DEBUG: Enabling extra CoCalc library functionality.  Type cocalc or cc.[tab]."
   );
-  (window as any).cocalc = (window as any).cc = cocalc;
+  window.cocalc = window.cc = cocalc;
 
   if (IS_TOUCH) {
     // Debug mode and on a touch device: always load eruda so we
@@ -65,6 +73,6 @@ function load_eruda(): void {
   script.src = "//cdn.jsdelivr.net/npm/eruda";
   document.body.appendChild(script);
   script.onload = function () {
-    (window as any).eruda.init();
+    window.eruda.init();
   };
 }

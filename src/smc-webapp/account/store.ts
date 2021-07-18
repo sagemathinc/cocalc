@@ -9,6 +9,7 @@ import { AccountState } from "./types";
 import { get_total_upgrades } from "smc-util/upgrades";
 import * as misc from "smc-util/misc";
 import { Map, List } from "immutable";
+import { store as customizeStore } from "../customize";
 
 // Define account store
 export class AccountStore extends Store<AccountState> {
@@ -149,7 +150,7 @@ function is_anonymous(
   if (lti_id != null && lti_id.size > 0) {
     return false;
   }
-  if ((window as any).CUSTOMIZE?.is_personal) {
+  if (customizeStore.get("is_personal")) {
     return false;
   }
   return true;

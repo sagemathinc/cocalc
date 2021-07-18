@@ -53,6 +53,7 @@ syncdoc              = require('./syncdoc')
 {JUPYTER_CLASSIC_OPEN}  = require('./misc/commands')
 {cm_define_diffApply_extension} = require('./codemirror/extensions')
 { sanitize_nbconvert_path } = require("smc-util/sanitize-nbconvert")
+{join} = require('path')
 
 templates            = $(".smc-jupyter-templates")
 editor_templates     = $("#webapp-editor-templates")
@@ -806,7 +807,7 @@ exports.jupyter_notebook = (parent, filename, opts) ->
 
 exports.jupyter_server_url = (project_id) ->
     # Jupyter is proxied via the following canonical URL:
-    return "#{window.app_base_url}/#{project_id}/port/jupyter/notebooks/"
+    return join(window.app_base_path, project_id, 'port/jupyter/notebooks/')
 
 
 class JupyterNotebook extends EventEmitter
@@ -1430,7 +1431,7 @@ class JupyterNBViewer
     constructor: (@project_id, @filename, @content, opts) ->
         @element = templates.find(".smc-jupyter-nbviewer").clone()
         @ipynb_filename = @filename.slice(0,@filename.length-4) + 'ipynb'
-        @ipynb_html_src = "#{window.app_base_url}/#{@project_id}/raw/#{@filename}"
+        @ipynb_html_src = join(window.app_base_path, @project_id, 'raw', @filename)
         @init_buttons()
 
     show: () =>

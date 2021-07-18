@@ -35,7 +35,7 @@ export const ProjectState: React.FC<Props> = ({ state, show_desc }) => {
     );
   }
 
-  const s = COMPUTE_STATES[state?.get("state")];
+  const s = COMPUTE_STATES[state?.get("state") ?? ""];
   if (s == null) {
     return <Loading />;
   }

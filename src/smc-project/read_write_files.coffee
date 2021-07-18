@@ -8,7 +8,7 @@ temp      = require('temp')
 child_process = require('child_process')
 
 async     = require('async')
-winston   = require('winston')
+winston = require('./logger').getLogger('read-write-files')
 
 message   = require('smc-util/message')
 misc_node = require('smc-util-node/misc_node')

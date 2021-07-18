@@ -11,13 +11,10 @@ Define a jQuery plugin that processes links.
  - Handles anchor links
 */
 
+import { join } from "path";
 declare const $: any;
 
-import {
-  is_valid_uuid_string,
-  startswith,
-  normalized_path_join,
-} from "smc-util/misc";
+import { is_valid_uuid_string, startswith } from "smc-util/misc";
 import { redux } from "./app-framework";
 
 function load_target(target: string, switch_to: boolean, anchor: string): void {
@@ -38,7 +35,7 @@ function load_target(target: string, switch_to: boolean, anchor: string): void {
 // that would refer to a port or server, which we can't open internally.
 // See https://github.com/sagemathinc/cocalc/issues/4889
 export function starts_with_cloud_url(href: string): boolean {
-  const origin = document.location.origin + (window as any).app_base_url;
+  const origin = document.location.origin + window.app_base_path;
   const is_samedomain: boolean =
     startswith(href, origin) &&
     !is_valid_uuid_string(href.slice(origin.length + 1, origin.length + 37));
@@ -135,12 +132,7 @@ function process_anchor_tag(y: any, opts: Options): void {
         // realtive to current path
         let x: string = decodeURI(target);
         if (x == null) x = "";
-        target = normalized_path_join(
-          opts.project_id,
-          "files",
-          opts.file_path != null ? opts.file_path : "",
-          x
-        );
+        target = join(opts.project_id, "files", opts.file_path ?? "", x);
       }
       load_target(target, !(e.which === 2 || e.ctrlKey || e.metaKey), anchor);
       return false;
@@ -179,13 +171,7 @@ function process_media_tag(y: any, attr: string, opts: Options2): void {
       // j-i should be 36, unless we ever start to have different (vanity) project_ids
       const path = src.slice(j + "/files/".length);
       project_id = src.slice(i + "/projects/".length, j);
-      new_src = normalized_path_join(
-        "/",
-        (window as any).app_base_url,
-        project_id,
-        "raw",
-        path
-      );
+      new_src = join(window.app_base_path, project_id, "raw", path);
       y.attr(attr, new_src);
       return;
     }
@@ -195,9 +181,8 @@ function process_media_tag(y: any, attr: string, opts: Options2): void {
     }
     // we do not have an absolute url, hence we assume it is a
     // relative URL to a file in a project
-    new_src = normalized_path_join(
-      "/",
-      (window as any).app_base_url,
+    new_src = join(
+      window.app_base_path,
       opts.project_id,
       "raw",
       opts.file_path,

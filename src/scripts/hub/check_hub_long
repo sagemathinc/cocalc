@@ -1,8 +1,0 @@
-echo "loadavg          `cat /proc/loadavg | awk '{ print $1, $2, $3 }'`"
-
-export P=`pidof node`
-echo "etime            `ps -o etime --pid=$P | tail -1 | tr -d ' '`"
-echo "sign_in_timeouts `tail -n 200000 ~/salvus/salvus/data/logs/hub*.log |grep \"There was an error signing you in (Timeout after 30 seconds).\" |wc -l`"
-
-check_hub_logs  100000
-

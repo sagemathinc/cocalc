@@ -14,6 +14,7 @@ email                = require('./email')
 {defaults, required} = misc
 {is_valid_password}  = require('./client/create-account')
 auth                 = require('./auth')
+base_path   = require('smc-util-node/base-path').default
 
 exports.PW_RESET_ENDPOINT = PW_RESET_ENDPOINT = '/auth/password_reset'
 exports.PW_RESET_KEY = PW_RESET_KEY = 'token'
@@ -126,13 +127,12 @@ exports.forgot_password = (opts) ->
             theme = require('smc-util/theme')
 
             dns         = locals.settings.dns or theme.DNS
-            DOMAIN_NAME = "https://#{dns}"
+            DOMAIN_URL = "https://#{dns}"
             HELP_EMAIL  = locals.settings.help_email ? theme.HELP_EMAIL
             SITE_NAME   = locals.settings.site_name  ? theme.SITE_NAME
 
-            base_url      = require('./base-url').base_url()
-            path          = require('path').join('/', base_url, PW_RESET_ENDPOINT)
-            RESET_URL     = "#{DOMAIN_NAME}#{path}?#{PW_RESET_KEY}=#{id}"
+            path          = require('path').join(base_path, PW_RESET_ENDPOINT)
+            RESET_URL     = "#{DOMAIN_URL}#{path}?#{PW_RESET_KEY}=#{id}"
 
             body = """
                 <div>Hello,</div>

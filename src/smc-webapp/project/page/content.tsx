@@ -39,7 +39,7 @@ import { DeletedFile } from "../deleted-file";
 import { KioskModeBanner } from "../../app/kiosk-mode-banner";
 import { Explorer } from "../explorer";
 import { ProjectNew } from "../new";
-import { ProjectInfoFC } from "../info";
+import { ProjectInfo } from "../info";
 import { ProjectLog } from "../history";
 import { ProjectSearch } from "../search/search";
 import { ProjectSettings } from "../settings";
@@ -152,7 +152,7 @@ export const TabContent: React.FC<TabContentProps> = ({
         />
       );
     case "info":
-      return <ProjectInfoFC name={name} project_id={project_id} />;
+      return <ProjectInfo name={name} project_id={project_id} />;
     default:
       // check for "editor-[filename]"
       if (!tab_name.startsWith("editor-")) {

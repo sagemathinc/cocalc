@@ -4,6 +4,7 @@
  */
 
 import { QueryParams } from "../misc/query-params";
+import { target } from "smc-webapp/client/handle-hash-url";
 
 declare var $: any;
 
@@ -17,7 +18,6 @@ export function html_to_text(html: string): string {
 }
 
 // returns true, if a target page should be loaded
-export function should_load_target_url() : boolean {
-  const target = (window as any).cocalc_target;
-  return target && target !== "login" && !QueryParams.get("test");
+export function should_load_target_url(): boolean {
+  return target != null && target != "login" && !QueryParams.get("test");
 }

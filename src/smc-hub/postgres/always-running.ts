@@ -5,7 +5,6 @@
 
 import { delay } from "awaiting";
 import { PostgreSQL } from "./types";
-import { callback2 } from "smc-util/async-utils";
 
 // Return an array of project_id's of projects that have the always_running run_quota set,
 // but are not in the running or starting state.
@@ -39,8 +38,8 @@ export async function init_start_always_running_projects(
       )) {
         const compute_server = (database as any).compute_server;
         if (compute_server == null) continue; // not initialized (?)
-        const project = await callback2(compute_server.project, { project_id });
-        project.ensure_running(); // we fire this off, but do not wait on it
+        const project = await compute_server(project_id);
+        project.start(); // we fire this off, but do not wait on it
       }
     } catch (err) {
       console.warn("init_start_always_running_projects", err);

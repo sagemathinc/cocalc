@@ -13,16 +13,13 @@ The functions below in some cases return things, and in some cases set global va
 COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 */
-
-const async = require("async");
-
-require("ts-node").register(); // be able to load typescript
+process.env.NODE_PATH = __dirname;
 
 global.misc = require("smc-util/misc");
 global.done = misc.done;
 global.done1 = misc.done1;
 global.done2 = misc.done2;
-global.password_hash = require("./smc-hub/auth").password_hash;
+global.password_hash = require("smc-hub/auth").password_hash;
 
 let db = undefined;
 function get_db(cb) {
@@ -32,18 +29,18 @@ function get_db(cb) {
     } // HACK -- might not really be initialized yet!
     return db;
   } else {
-    db = require("./smc-hub/postgres").db({ debug: true });
+    db = require("smc-hub/postgres").db({ debug: true });
     db.connect({ cb });
     return db;
   }
-};
+}
 // get a connection to the db
 global.db = get_db();
 
 console.log("db -- database");
 
 global.gcloud = function () {
-  global.g = require("./smc-hub/smc_gcloud.coffee").gcloud({ db: get_db() });
+  global.g = require("smc-hub/smc_gcloud.coffee").gcloud({ db: get_db() });
   console.log("setting global variable g to a gcloud interface");
 };
 
@@ -51,7 +48,7 @@ console.log("gcloud() -- sets global variable g to gcloud instance");
 
 global.vms = () =>
   get_db(function (err) {
-    global.g = require("./smc-hub/smc_gcloud.coffee").gcloud({ db });
+    global.g = require("smc-hub/smc_gcloud.coffee").gcloud({ db });
     global.vms = global.g.vm_manager({ manage: false });
   });
 console.log(

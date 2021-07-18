@@ -14,15 +14,8 @@ import {
 import * as misc from "smc-util/misc";
 import { isIconName, Icon, Loading } from "../r_misc";
 import { Col, Row } from "../antd-bootstrap";
-import {
-  Descriptions,
-  Radio,
-  Typography,
-  Checkbox,
-  Button,
-  Row as AntRow,
-  Col as AntCol,
-} from "antd";
+import { Descriptions, Radio, Typography, Checkbox, Button } from "antd";
+import * as antd from "antd";
 import { Kernel } from "./util";
 import { COLORS } from "smc-util/theme";
 import { JupyterActions } from "./browser-actions";
@@ -374,12 +367,12 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
     function render_head(): Rendered {
       return (
-        <AntRow justify="space-between">
-          <AntCol flex={1}>
+        <antd.Row justify="space-between">
+          <antd.Col flex={1}>
             <h3>Select a Kernel</h3>
-          </AntCol>
-          <AntCol flex={"auto"}>{render_close_button()}</AntCol>
-        </AntRow>
+          </antd.Col>
+          <antd.Col flex={"auto"}>{render_close_button()}</antd.Col>
+        </antd.Row>
       );
     }
 

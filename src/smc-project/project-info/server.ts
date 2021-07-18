@@ -13,7 +13,7 @@ const L = debug("project:project-info:server");
 import { delay } from "awaiting";
 import { join } from "path";
 import { exec } from "./utils";
-import { running_in_kucalc } from "../init-program";
+import { options } from "../init-program";
 import { promises as fsPromises } from "fs";
 import { pid2path as terminal_pid2path } from "../terminal/server";
 import { get_path_for_pid as x11_pid2path } from "../x11/server";
@@ -208,7 +208,7 @@ export class ProjectInfoServer extends EventEmitter {
   // you what the whole system is doing, all your processes,…
   // NOTE: most of this replaces kucalc.coffee
   private async cgroup({ timestamp }): Promise<CGroup | undefined> {
-    if (!is_in_dev_project() && !running_in_kucalc() && !this.testing) return;
+    if (!is_in_dev_project() && !options.kucalc && !this.testing) return;
     const [
       mem_stat_raw,
       cpu_raw,

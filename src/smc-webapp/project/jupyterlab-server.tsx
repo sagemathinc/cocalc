@@ -8,7 +8,7 @@ A button that when clicked, shows a loading indicator until the backend
 Jupyter notebook server is running, then pops it up in a new tab.
 */
 
-import { exec } from "../frame-editors/generic/client";
+import { join } from "path";
 import { React, useIsMountedRef } from "smc-webapp/app-framework";
 import { Icon, SettingBox } from "../r_misc";
 import { LinkRetryUntilSuccess } from "../widgets-misc/link-retry";
@@ -20,9 +20,8 @@ interface Props {
 
 export const JupyterLabServerPanel: React.FC<Props> = ({ project_id }) => {
   const isMountedRef = useIsMountedRef();
-  const student_project_functionality = useStudentProjectFunctionality(
-    project_id
-  );
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
 
   async function get_href(): Promise<string> {
     const url = await jupyterlab_server_url(project_id);
@@ -54,8 +53,8 @@ export const JupyterLabServerPanel: React.FC<Props> = ({ project_id }) => {
           extensions.
           <br />
           <br />
-          Click the link below to start your Jupyter notebook server and open it
-          in a new browser tab.
+          Click the link below to start your JupyterLab notebook server and open
+          it in a new browser tab.
         </span>
         <div style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}>
           {render_jupyter_link()}
@@ -74,18 +73,5 @@ export const JupyterLabServerPanel: React.FC<Props> = ({ project_id }) => {
 export async function jupyterlab_server_url(
   project_id: string
 ): Promise<string> {
-  const out = JSON.parse(
-    (await exec({ project_id, command: "cc-jupyterlab", args: ["status"] }))
-      .stdout
-  );
-  let port;
-  if (out.status === "stopped") {
-    port = JSON.parse(
-      (await exec({ project_id, command: "cc-jupyterlab", args: ["start"] }))
-        .stdout
-    ).port;
-  } else {
-    port = out.port;
-  }
-  return `${window.app_base_url}/${project_id}/port/${port}`;
+  return join(window.app_base_path, project_id, "port", "jupyterlab");
 }

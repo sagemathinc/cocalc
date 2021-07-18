@@ -3,32 +3,39 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// this unifies the entire webapp configuration – endpoint /customize?type=full
-// the main goal is to optimize this, to use as little DB interactions as necessary, use caching, etc.
-
-// this manages the webapp's configuration based on the hostname (allows whitelabeling)
+// This unifies the entire webapp configuration – endpoint /customize
+// The main goal is to optimize this, to use as little DB interactions
+// as necessary, use caching, etc.
+// This manages the webapp's configuration based on the hostname
+// (allows whitelabeling).
 
 import { parseDomain, ParseResultType } from "parse-domain";
 import * as debug from "debug";
-import * as ms from "ms";
 const L = debug("hub:webapp-config");
 import { delay } from "awaiting";
 import { callback2 as cb2 } from "smc-util/async-utils";
 import { PostgreSQL } from "./postgres/types";
 import { PassportManager, get_passport_manager } from "./auth";
-const server_settings = require("./server-settings");
+import getServerSettings from "./servers/server-settings";
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "smc-util/db-schema/site-settings-extras";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "smc-util/schema";
 import { have_active_registration_tokens } from "./utils";
 
-import * as LRUCache from "expiring-lru-cache";
-const CACHE = LRUCache({ size: 10, expiry: ms("3 minutes") });
+import * as LRUCache from "lru-cache";
+const CACHE = new LRUCache({ max: 10, maxAge: 3 * 60 * 1000 }); // 3 minutes
 
 export function clear_cache(): void {
   CACHE.reset();
 }
 
 type Theme = { [key: string]: string | boolean };
+
+interface Config {
+  // todo
+  configuration: any;
+  registration: any;
+  strategies: object;
+}
 
 async function get_passport_manager_async(): Promise<PassportManager> {
   // the only issue here is, that the http server already starts up before the
@@ -54,17 +61,17 @@ const VANITY_HARDCODED = {
 
 export class WebappConfiguration {
   private readonly db: PostgreSQL;
-  private readonly data: any;
+  private data?: any;
   private passport_manager: PassportManager;
 
   constructor({ db }) {
     this.db = db;
-    // this.data.pub updates automatically – do not modify it!
-    this.data = server_settings(this.db);
     this.init();
   }
 
   private async init(): Promise<void> {
+    // this.data.pub updates automatically – do not modify it!
+    this.data = await getServerSettings();
     this.passport_manager = await get_passport_manager_async();
   }
 
@@ -76,6 +83,10 @@ export class WebappConfiguration {
       cache: true,
       where: { "id = $::TEXT": vid },
     });
+    if (this.data == null) {
+      // settings not yet initialized
+      return {};
+    }
     const data = res.rows[0];
     if (data != null) {
       return { ...this.data.all, ...data.settings };
@@ -136,6 +147,10 @@ export class WebappConfiguration {
 
   // returns the global configuration + eventually vanity specific site config settings
   private async get_configuration({ host, country }) {
+    if (this.data == null) {
+      // settings not yet initialized
+      return {};
+    }
     const vid = this.get_vanity_id(host);
     const config = this.data.pub;
     const vanity = this.get_vanity(vid);
@@ -149,10 +164,10 @@ export class WebappConfiguration {
       strategies = this.passport_manager.get_strategies_v2();
       CACHE.set(key, strategies);
     }
-    return strategies;
+    return strategies as object;
   }
 
-  private async get_config({ country, host }) {
+  private async get_config({ country, host }): Promise<Config> {
     const [configuration, registration] = await Promise.all([
       this.get_configuration({ host, country }),
       have_active_registration_tokens(this.db),
@@ -162,7 +177,7 @@ export class WebappConfiguration {
   }
 
   // it returns a shallow copy, hence you can modify/add keys in the returned map!
-  public async get({ country, host }) {
+  public async get({ country, host }): Promise<Config> {
     const key = `config::${country}::${host}`;
     let config = CACHE.get(key);
     if (config == null) {
@@ -171,6 +186,6 @@ export class WebappConfiguration {
     } else {
       L(`cache hit -- '${key}'`);
     }
-    return config;
+    return config as Config;
   }
 }

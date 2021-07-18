@@ -31,25 +31,16 @@ def app_version():
 
 
 def main():
-    try:
-        # Build with production BASE_URL.  Note that we also disable disk caching for production builds,
-        # since disk caching **does** randomly break (maybe 10% chance), and despite the speedups, it
-        # is just not worth it for production builds!!!  If webpack fixes their disk caching bugs,
-        # maybe change this; this may take time, since they don't even have a reported bug about this now.
-        #
-        # TODO -- this is dumb and we must get rid of hardcoding of the base url. But that is another problem for later...
-        # This is necessary for now, since webpack gets content -- such as the primus script that hardcodes the base url --
-        # from webapp-lib, so for our bundle files to be correct, we have to build webapp-lib.
-        cmd('BASE_URL="" npm run build', '../../webapp-lib')
-        if os.path.exists('dist'):
-            shutil.rmtree('dist')
-        NODE_ENV = os.environ.get('NODE_ENV', 'production')
-        cmd(f"NO_WEBPACK_DISK_CACHE=true NODE_ENV={NODE_ENV} NODE_OPTIONS=--max_old_space_size=8000 COCALC_BASE_URL='/' webpack --progress --color"
-            )
-        app_version()
-    finally:
-        # Build again with non-production base url.
-        cmd('npm run build', '../../webapp-lib')
+    # Build with production BASE_PATH='/'.  Note that we also disable disk caching for production builds,
+    # since disk caching **does** randomly break (maybe 10% chance), and despite the speedups, it
+    # is just not worth the risk for production builds!!!  If webpack fixes their disk caching bugs,
+    # maybe change this; this may take time, since I couldn't find a reported bug about this now.
+    #
+    # TODO -- this is dumb and we must get rid of hardcoding of the base url. But that is another problem for later...
+    NODE_ENV = os.environ.get('NODE_ENV', 'production')
+    cmd(f"NO_WEBPACK_DISK_CACHE=true NODE_ENV={NODE_ENV} NODE_OPTIONS=--max_old_space_size=8000 webpack --progress --color"
+        )
+    app_version()
 
 
 if __name__ == "__main__":

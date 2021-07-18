@@ -816,31 +816,26 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 set_action_request(cb)
             (cb) =>
                 dbg("get project")
-                @compute_server.project
-                    project_id : opts.project_id
-                    cb         : (err, x) =>
-                        project = x; cb(err)
+                try
+                    project = await @compute_server(opts.project_id)
+                    cb()
+                catch err
+                    cb(err)
             (cb) =>
                 dbg("doing action")
-                switch action_request.action
-                    when 'save'
-                        project.save
-                            min_interval : 1   # allow frequent explicit save (just an rsync)
-                            cb           : cb
-                    when 'restart'
-                        project.restart
-                            cb           : cb
-                    when 'stop'
-                        project.stop
-                            cb           : cb
-                    when 'start'
-                        project.start
-                            cb           : cb
-                    when 'close'
-                        project.close
-                            cb           : cb
-                    else
-                        cb("FATAL: action '#{opts.action_request.action}' not implemented")
+                try
+                    switch action_request.action
+                        when 'restart'
+                            await project.restart()
+                        when 'stop'
+                            await project.stop()
+                        when 'start'
+                            await project.start()
+                        else
+                            throw Error("FATAL: action '#{opts.action_request.action}' not implemented")
+                    cb()
+                catch err
+                    cb(err)
         ], (err) =>
             if err
                 action_request.err = err
@@ -915,16 +910,21 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         cb()
                     else
                         dbg("get project")
-                        @compute_server.project
-                            project_id : new_val.project_id
-                            cb         : (err, p) =>
-                                project = p; cb(err)
+                        try
+                            project = await @compute_server(new_val.project_id)
+                            cb()
+                        catch err
+                            cb(err)
                 (cb) =>
                     if not project?
                         cb()
                     else
                         dbg("determine total quotas and apply")
-                        project.set_all_quotas(cb:cb)
+                        try
+                            await project.setAllQuotas()
+                            cb()
+                        catch err
+                            cb(err)
             ], cb)
         else
             cb()
@@ -1246,7 +1246,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb("FATAL: changes.cb must be a function")
             return
         for primary_key in primary_keys
-            if not user_query[primary_key]? and user_query[primary_key] != null
+            if not user_query[primary_key]? and user_query[primary_key] != null  # TODO: this seems slightly off
                 cb("FATAL: changefeed MUST include primary key (='#{primary_key}') in query")
                 return
         watch  = []
@@ -1660,25 +1660,14 @@ awaken_project = (db, project_id, cb) ->
         dbg("skipping since no compute_server defined")
         return
     dbg("doing it...")
-    locals =
-        project : undefined
     async.series([
         (cb) ->
-            db.compute_server.project
-                project_id : project_id
-                cb         : (err, project) =>
-                    if err
-                        cb("error getting project = #{err}")
-                    else
-                        locals.project = project
-                        cb()
-        (cb) ->
-            locals.project.ensure_running
-                cb : (err) =>
-                    if err
-                        cb("failed to ensure project running -- #{err}")
-                    else
-                        cb()
+            try
+                project = await db.compute_server(project_id)
+                await project.start()
+                cb()
+            catch err
+                cb("error starting project = #{err}")
         (cb) ->
             if not db.ensure_connection_to_project?
                 cb()

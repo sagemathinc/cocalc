@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-
-cd `dirname $0`/../..
-. smc-env
-cd $SALVUS_ROOT/dev/minimal
-
-# Start the three services running in a new tmux session called "smc": hub, datatabase, and webpack
-
-tmux new-session -s smc -d './start_postgres.py' \; split-window -d './start_hub.py' \; split-window -d './start_webpack.py' \; split-window -d './info.py' \; attach

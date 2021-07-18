@@ -36,7 +36,7 @@ export const RunAnonymously: React.FC<Props> = (params) => {
     <Well style={WELL_STYLE}>
       <div>
         Alternatively, {show_terms && "accept the Terms of Service and "}
-        evaluate {site_name}.
+        evaluate {site_name} without making an account.
       </div>
 
       <form

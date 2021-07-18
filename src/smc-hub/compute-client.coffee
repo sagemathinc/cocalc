@@ -32,8 +32,8 @@ os          = require('os')
 {EventEmitter} = require('events')
 
 async       = require('async')
-winston     = require('winston')
-program     = require('commander')
+winston     = require('./logger').getLogger('compute-client')
+
 
 uuid        = require('node-uuid')
 
@@ -43,13 +43,6 @@ message     = require('smc-util/message')
 misc        = require('smc-util/misc')
 
 {site_license_hook} = require('./postgres/site-license/hook')
-
-# Set the log level
-try
-    winston.remove(winston.transports.Console)
-    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
-catch err
-    # ignore
 
 {defaults, required} = misc
 
@@ -81,9 +74,8 @@ compute_server_cache = undefined
 exports.compute_server = compute_server = (opts) ->
     opts = defaults opts,
         database : undefined
-        base_url : ''
         dev      : false          # dev -- for single-user *development*; compute server runs in same process as client on localhost
-        single   : false          # single -- for single-server use/development; everything runs on a single machine.
+        single   : false          # single -- for single-server use/development; everything runs on a single machine (and computer server also in same process)
         kubernetes : false        # kubernetes -- monolithic cocalc-kubernetes mode
         cb       : required
     if compute_server_cache?
@@ -98,11 +90,9 @@ class ComputeServerClient
             dev      : false
             single   : false
             kubernetes : false
-            base_url : ''     # base url of webserver -- passed on to local_hub so it can start servers with correct base_url
             cb       : required
         dbg = @dbg("constructor")
         dbg(misc.to_json(misc.copy_without(opts, ['cb', 'database'])))
-        @_base_url = opts.base_url
         @_project_cache = {}
         @_project_cache_cb = {}
         @_dev = opts.dev
@@ -205,10 +195,10 @@ class ComputeServerClient
             (cb) =>
                 async.parallel([
                     (cb) =>
-                        get_file program.port_file, (err, x) =>
+                        get_file program.portFile, (err, x) =>
                             port = parseInt(x); cb(err)
                     (cb) =>
-                        get_file program.secret_file, (err, x) =>
+                        get_file program.secretFile, (err, x) =>
                             secret = x; cb(err)
                 ], cb)
             (cb) =>
@@ -235,12 +225,12 @@ class ComputeServerClient
             (cb) =>
                 async.parallel([
                     (cb) =>
-                        fs.readFile program.port_file, (err, x) =>
+                        fs.readFile program.portFile, (err, x) =>
                             if x?
                                 port = parseInt(x.toString())
                             cb(err)
                     (cb) =>
-                        fs.readFile program.secret_file, (err, x) =>
+                        fs.readFile program.secretFile, (err, x) =>
                             if x?
                                 secret = x.toString().trim()
                             cb(err)
@@ -370,8 +360,8 @@ class ComputeServerClient
     # checking or caching.
     _get_socket: (host, cb) =>
         dbg = @dbg("socket(#{host})")
-        if @_dev
-            dbg("development mode 'socket'")
+        if @_dev or @_single
+            dbg("single process mode simulated 'socket'")
             require('./compute-server').fake_dev_socket (err, socket) =>
                 if err
                     cb(err)
@@ -553,7 +543,7 @@ class ComputeServerClient
             min_interval_s : 60   # don't connect to compute servers and update their status more frequently than this.
             cb             : required    # cb(err, {host1:status, host2:status2, ...})
         dbg = @dbg('status')
-        if @_dev
+        if @_dev or @_single
             opts.hosts = ['localhost']
         result = {}
         if opts.hosts?
@@ -1095,7 +1085,8 @@ class ProjectClient extends EventEmitter
 
         if not @host
             if @_dev or @_single or @_kubernetes
-                # in case of dev or single or kubernetes mode, open will properly setup the host (which is just localhost)
+                # in case of dev or single or kubernetes mode, open will properly
+                # set @host (which is just localhost), so we don't end up here again.
                 the_state = undefined
                 async.series([
                     (cb) =>
@@ -1356,7 +1347,7 @@ class ProjectClient extends EventEmitter
                 dbg("issuing the start command")
                 @_action
                     action : "start"
-                    args   : ['--base_url', @compute_server._base_url, '--extra_env', locals.env]
+                    args   : ['--extra_env', locals.env]
                     cb     : cb
             (cb) =>
                 dbg("waiting until running")
@@ -1578,7 +1569,7 @@ class ProjectClient extends EventEmitter
             cb      : required
         dbg = (m) => winston.debug("wait_for_a_state in #{misc.to_json(opts.states)}, state='#{@_synctable.getIn([@project_id, 'state', 'state'])}': #{m}")
         dbg("cause state update")
-        if @_dev
+        if @_dev or @_single
             @_wait_for_a_state_dev(opts)
             return
         @state
@@ -1597,7 +1588,7 @@ class ProjectClient extends EventEmitter
                                 dbg("wait longer...")
 
     _wait_for_a_state_dev: (opts) =>
-        # For smc-in-smc dev, we have to **manually** cause another check,
+        # We have to **manually** cause another check,
         # since there is no separate compute server running!
         dbg = (m) => winston.debug("_wait_for_a_state(dev) in #{misc.to_json(opts.states)}, state='#{@_synctable.getIn([@project_id, 'state', 'state'])}': #{m}")
         dbg("retry until succeess")
@@ -1850,12 +1841,12 @@ class ProjectClient extends EventEmitter
                                 cb("not running")  # DO NOT CHANGE -- exact callback error is used by client code in the UI
                             else
                                 dbg("status includes info about address...")
-                                if not @host or not status['local_hub.port'] or not status.secret_token
+                                if not @host or not status['hub-server.port'] or not status.secret_token
                                     cb("unknown host, port, or secret_token")
                                     return
                                 address =
                                     host         : @host
-                                    port         : status['local_hub.port']
+                                    port         : status['hub-server.port']
                                     secret_token : status.secret_token
                                     ip           : status.ip
                                 cb()

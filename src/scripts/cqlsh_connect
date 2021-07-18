@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-PW=`cat $HOME/salvus/salvus/data/secrets/cassandra/salvus`
-cqlsh -k salvus -u salvus -p $PW $1

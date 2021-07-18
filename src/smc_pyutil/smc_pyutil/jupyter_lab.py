@@ -25,7 +25,7 @@ import json, os, random, signal, sys, time
 
 
 def server_setup():
-    global SMC, DATA, DAEMON_FILE, mode, INFO_FILE, info, project_id, base_url, ip
+    global SMC, DATA, DAEMON_FILE, mode, INFO_FILE, info, project_id, base_path, ip
     # start from home directory, since we want daemon to serve all files in that directory tree.
     os.chdir(os.environ['HOME'])
 
@@ -56,14 +56,14 @@ def server_setup():
     if os.path.exists(INFO_FILE):
         info = json.loads(open(INFO_FILE).read())
         project_id = info['project_id']
-        base_url = info['base_url']
+        base_path = info['base_path']
         ip = info['location']['host']
         if ip == 'localhost':
             # Listening on localhost for devel purposes -- NOTE: this is a *VERY* significant security risk!
             ip = '127.0.0.1'
     else:
         project_id = ''
-        base_url = ''
+        base_path = '/'
         ip = '127.0.0.1'
 
 
@@ -85,8 +85,7 @@ def command():
         port = random_port()
         name = str(port)
     if project_id:
-        b = "{base_url}/{project_id}/port/{name}/".format(
-            base_url=base_url, project_id=project_id, name=name)
+        b = os.path.join(base_path, project_id, 'port', 'jupyterlab')
         base = " --NotebookApp.base_url=%s " % (b)
     else:
         base = ''

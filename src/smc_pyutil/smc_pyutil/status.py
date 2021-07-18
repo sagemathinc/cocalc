@@ -2,7 +2,6 @@
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
 # License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
 
-
 from __future__ import absolute_import, print_function
 import json, os, time
 
@@ -37,8 +36,8 @@ def read(prop, filename, strip=False, int_value=False, to_int=False):
 
 
 def local_status():
-    for daemon in ['local_hub', 'sage_server', 'console_server']:
-        pidfile = os.path.join(os.path.join(SMC, daemon), '%s.pid' % daemon)
+    for [daemon, pidfile] in [['project', 'project.pid'],
+                              ['sage_server', 'sage_server/sage_server.pid']]:
         if os.path.exists(pidfile):
             try:
                 pid = int(open(pidfile).read())
@@ -50,11 +49,8 @@ def local_status():
             set(daemon + '.pid', False)
 
     for name in [
-            'secret_token',
-            'local_hub/local_hub.port',
-            'local_hub/raw.port',
-            'console_server/console_server.port',
-            'sage_server/sage_server.port',
+            'api-server.port', 'browser-server.port', 'hub-server.port',
+            'secret_token'
     ]:
         to_int = 'port' in name
         read(name.split('/')[-1], os.path.join(SMC, name), to_int=to_int)
@@ -63,7 +59,7 @@ def local_status():
 def remote_status():
     """
     If there is a file ~/.smc/remote that is recent, then this project is assumed
-    to be uing "remote compute", so we stop the local hub and output the contents
+    to be running "remote compute", so we stop the local hub and output the contents
     of the file ~/.smc/remote.
     """
     remote = os.path.join(SMC, "remote")

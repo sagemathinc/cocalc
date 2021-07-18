@@ -1,1 +1,0 @@
-git status && echo "Press return or control-c..." && read && git commit -v $@ && git pull && git push -u origin

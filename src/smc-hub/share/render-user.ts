@@ -11,11 +11,11 @@ For now this is:
  - a list of links to public paths that they definitely are involved with
 */
 import { Map, List } from "immutable";
-
 import { React } from "smc-webapp/app-framework";
 import { UserPage } from "smc-webapp/share/user-page";
 import * as react_support from "smc-webapp/share/server-render";
-import { Settings } from "./settings"
+import { Settings } from "./settings";
+import base_path from "smc-util-node/base-path";
 
 export function render_user(opts: {
   res: any;
@@ -24,8 +24,7 @@ export function render_user(opts: {
   public_paths: Map<string, any>;
   paths_order: List<string>;
   settings: Settings;
-  base_url: string;
 }): void {
-  const component = React.createElement(UserPage, opts);
+  const component = React.createElement(UserPage, { ...opts, base_path });
   react_support.render(opts.res, component);
 }

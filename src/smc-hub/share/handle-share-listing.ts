@@ -14,12 +14,11 @@ import { SettingsDAO } from "./settings";
 
 export async function handle_share_listing(opts: {
   public_paths: PublicPaths;
-  base_url: string;
   req: any;
   res: any;
   settings_dao: SettingsDAO;
 }): Promise<void> {
-  const { public_paths, base_url, req, res, settings_dao } = opts;
+  const { public_paths, req, res, settings_dao } = opts;
 
   if (req.originalUrl.split("?")[0].slice(-1) !== "/") {
     // note: req.path already has the slash added.
@@ -41,7 +40,6 @@ export async function handle_share_listing(opts: {
     public_paths: public_paths.get_all() as any, // TODO
   });
   const r = react_viewer(
-    base_url,
     "/",
     undefined,
     true,

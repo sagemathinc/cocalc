@@ -8,11 +8,12 @@ Start the Sage server and also get a new socket connection to it.
 ###
 
 async     = require('async')
-winston   = require('winston')
+winston = require('./logger').getLogger('sage-session')
 
 misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')
 message   = require('smc-util/message')
+secret_token = require('./servers/secret-token')
 
 port_manager = require('./port_manager')
 
@@ -116,7 +117,7 @@ _get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
             winston.debug("get and unlock socket")
             misc_node.connect_to_locked_socket
                 port  : port
-                token : common.secret_token()
+                token : secret_token.secretToken
                 cb    : (err, _socket) =>
                     if err
                         port_manager.forget_port('sage')

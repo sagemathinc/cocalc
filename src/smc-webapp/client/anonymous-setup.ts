@@ -6,12 +6,11 @@
 import { once } from "smc-util/async-utils";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
-import { get_cookie } from "../misc-page";
-import { APP_BASE_URL } from "../misc";
 import { WelcomeFile } from "./welcome-file";
 import { WebappClient } from "./client";
 import { NAME as LAUNCH_NAME } from "../launch/actions";
 import { PROJECT_INVITE_QUERY_PARAM } from "../collaborators/handle-project-invite";
+import { hasRememberMe } from "smc-util/remember-me";
 
 export const ANON_PROJECT_TITLE = "Welcome to CoCalc!";
 
@@ -27,14 +26,10 @@ the user has an account.
 let project_invite_query_param = QueryParams.get(PROJECT_INVITE_QUERY_PARAM);
 export function should_do_anonymous_setup(): boolean {
   const anonymous_query_param = QueryParams.get("anonymous");
-  // console.log("anonymous_query_param = ", anonymous_query_param);
-  // console.log("project_invite_query_param = ", project_invite_query_param);
-  // console.log("cookie = ", get_cookie(`${APP_BASE_URL}has_remember_me`));
-  const resp =
+  return (
     (anonymous_query_param != null || project_invite_query_param != null) &&
-    get_cookie(`${APP_BASE_URL}has_remember_me`) != "true";
-  // console.log("should_do_anonymous_setup ", resp);
-  return resp;
+    !hasRememberMe(window.app_base_path)
+  );
 }
 
 async function setup_default_project(log) {

@@ -1,2 +1,0 @@
-cd $HOME/salvus/salvus
-echo "x={};s=require('bup_server').global_client(cb:(err,c)->x.c=c;x.p=x.c.get_project('$1'); x.p.get_state(id:false,cb:(e,r)->console.log(e,r);process.exit())) " | coffee

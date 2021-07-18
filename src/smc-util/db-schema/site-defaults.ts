@@ -178,7 +178,7 @@ export const site_settings_conf: SiteSettings = {
     desc:
       "The text displayed for the terms of service link (empty falls back a boilerplate using the URL).",
     default:
-      "By creating an account you agree to the <em>Terms of Service</em>.",
+      "You agree to the <em>Terms of Service</em>.",
     clearable: true,
     show: show_theming_vars,
   },

@@ -6,6 +6,7 @@
 // TODO: we should refactor our code to not have these window/document/$ references here.
 declare let window, document, $;
 
+import { join } from "path";
 import * as async from "async";
 import * as underscore from "underscore";
 import * as immutable from "immutable";
@@ -714,10 +715,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   public open_in_new_browser_window(path: string, fullscreen = "kiosk"): void {
-    let url = window.app_base_url ?? "";
-    url += this._url_in_project(`files/${path}`);
+    let url = join(window.app_base_path, this._url_in_project(`files/${path}`));
     url += "?session=";
-    if (fullscreen) url += `&fullscreen=${fullscreen}`;
+    if (fullscreen) {
+      url += `&fullscreen=${fullscreen}`;
+    }
     const width = Math.round(window.screen.width * 0.75);
     const height = Math.round(window.screen.height * 0.75);
     open_popup_window(url, { width, height });

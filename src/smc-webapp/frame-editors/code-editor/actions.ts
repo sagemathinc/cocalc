@@ -19,7 +19,6 @@ import { delay } from "awaiting";
 import {
   get_default_font_size,
   log_error,
-  public_get_text_file,
   formatter,
   syncstring,
   syncdb2,
@@ -201,28 +200,6 @@ export class Actions<
 
     if ((this as any)._init2) {
       (this as any)._init2();
-    }
-  }
-
-  // Init setting of value exactly once based on
-  // reading file from disk via public api.
-  // ONLY used for public files.
-  async _init_value(): Promise<void> {
-    if (!this.is_public) {
-      return;
-    }
-    // Get by loading from backend as a public file
-    this.setState({ is_loaded: false });
-    try {
-      const data: string = await public_get_text_file({
-        project_id: this.project_id,
-        path: this.path,
-      });
-      this.setState({ value: data });
-    } catch (err) {
-      this.set_error(`Error loading -- ${err}`);
-    } finally {
-      this.setState({ is_loaded: true });
     }
   }
 
@@ -419,8 +396,10 @@ export class Actions<
     this._syncdb.on("change", this.activity);
   }
 
-  // Reload the document.  This is used mainly for *public* viewing of
-  // a file.
+  // could be overloaded...
+  async _init_value(): Promise<void> {}
+
+  // Reload the document.
   reload(id: string): void {
     if (this._terminal_command(id, "reload")) {
       return;

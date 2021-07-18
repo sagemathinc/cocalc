@@ -7,3 +7,4 @@
 import "jquery/jquery-ui/css/humanity/jquery-ui.css";
 import "jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css";
 import "./dropzone.css";
+import "antd/dist/antd.css";

@@ -29,7 +29,7 @@ import {
   DEFAULT_COMPUTE_IMAGE,
   COMPUTE_IMAGES as STANDARD_COMPUTE_IMAGES,
 } from "smc-util/compute-images";
-
+import { join } from "path";
 import { ComputeImageSelector } from "../project/settings/compute-image-selector";
 
 const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
@@ -275,7 +275,7 @@ export const SoftwareEnvironment: React.FC<Props> = ({
         <b>Default</b>: large repository of software, well tested – maintained
         by <CompanyName />, running <SiteName />.{" "}
         <a
-          href={`${window.app_base_url}/doc/software.html`}
+          href={join(window.app_base_path, "doc/software.html")}
           target={"_blank"}
           rel={"noopener"}
         >

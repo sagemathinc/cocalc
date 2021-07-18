@@ -5,7 +5,7 @@
 
 // Hub Registration (recording number of clients)
 
-const winston = require("./winston-metrics").get_logger("hub");
+const winston = require("./logger").getLogger("hub");
 import * as misc from "smc-util/misc";
 const { defaults, required } = misc;
 import { PostgreSQL } from "./postgres/types";
@@ -30,7 +30,7 @@ function _number_of_clients() {
 
 export { _number_of_clients as number_of_clients };
 
-const register_hub = function (cb) {
+function register_hub(cb) {
   winston.debug("register_hub");
   if (the_database == null) {
     database_is_working = false;
@@ -66,7 +66,7 @@ const register_hub = function (cb) {
       "the_host, the_port, and the_interval must be set before registering this hub"
     );
   }
-  return the_database.register_hub({
+  the_database.register_hub({
     host: the_host,
     port: the_port,
     clients: number_of_clients(),
@@ -82,7 +82,7 @@ const register_hub = function (cb) {
       cb?.(err);
     },
   });
-};
+}
 
 function _database_is_working() {
   return database_is_working;

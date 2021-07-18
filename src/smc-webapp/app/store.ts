@@ -4,10 +4,11 @@
  */
 
 import { parse_target } from "../history";
+import { target } from "smc-webapp/client/handle-hash-url";
 import { redux, Store, TypedMap } from "../app-framework";
 
 type TopTab =
-  | "about" // the info page
+  | "about" // the "/help" page
   | "account"
   | "admin"
   | "help" // i.e., the support dialog that makes a ZenDesk ticket....
@@ -42,7 +43,7 @@ export class PageStore extends Store<PageState> {}
 
 export function init_store() {
   const DEFAULT_STATE: PageState = {
-    active_top_tab: parse_target((window as any).cocalc_target).page as TopTab,
+    active_top_tab: parse_target(target).page as TopTab,
     show_connection: false,
     connection_status: "connecting",
     connection_quality: "good",
