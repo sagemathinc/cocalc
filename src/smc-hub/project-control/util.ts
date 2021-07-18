@@ -1,6 +1,6 @@
 import { promisify } from "util";
 import { join, resolve } from "path";
-import { spawn } from "child_process";
+import { exec as exec0, spawn } from "child_process";
 import * as fs from "fs";
 
 import { projects, root } from "smc-util-node/data";
@@ -78,45 +78,62 @@ export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
 
 export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   winston.debug(`launching project daemon at "${env.HOME}"...`);
-  await spawn("npx", ["cocalc-project", "--daemon"], {
-    env,
-    cwd: join(root, "smc-project"),
-    uid,
-    gid: uid,
-  });
+  await promisify((cb: Function) => {
+    const child = spawn("npx", ["cocalc-project", "--daemon"], {
+      env,
+      cwd: join(root, "smc-project"),
+      uid,
+      gid: uid,
+    });
+    child.on("error", (err) => {
+      cb(err);
+    });
+    child.on("exit", (code) => {
+      cb(code);
+    });
+  })();
+}
+
+async function exec(
+  command: string,
+  verbose?: boolean
+): Promise<{ stdout: string; stderr: string }> {
+  winston.debug(`exec '${command}'`);
+  const output = await promisify(exec0)(command);
+  if (verbose) {
+    winston.debug(`output: ${JSON.stringify(output)}`);
+  }
+  return output;
 }
 
 export async function createUser(project_id: string): Promise<void> {
   const username = getUsername(project_id);
   try {
-    await spawn("/usr/sbin/userdel", [username]); // this also deletes the group
+    await exec(`/usr/sbin/userdel ${username}`); // this also deletes the group
   } catch (_) {
     // it's fine -- we delete just in case it is left over.
   }
   const uid = `${getUid(project_id)}`;
-  winston.debug(`createUser: adding group #{username} with uid ${uid}`);
-  await spawn("/usr/sbin/groupadd", ["-g", uid, "-o", username]);
-  const args = [
-    "-u",
-    uid,
-    "-g",
-    uid,
-    "-o",
-    username,
-    "-d",
-    homePath(project_id),
-    "-s",
-    "/bin/bash",
-  ];
-  winston.debug(`createUser: 'useradd ${args.join(" ")}'`);
-  await spawn("/usr/sbin/useradd", args);
+  winston.debug("createUser: adding group");
+  await exec(`/usr/sbin/groupadd -g ${uid} -o ${username}`, true);
+  winston.debug("createUser: adding user");
+  await exec(
+    `/usr/sbin/useradd -u ${uid} -g ${uid} -o ${username} -d ${homePath(
+      project_id
+    )} -s /bin/bash`,
+    true
+  );
 }
 
 export async function deleteUser(project_id: string): Promise<void> {
   const username = getUsername(project_id);
   const uid = `${getUid(project_id)}`;
-  await spawn("pkill", ["-9", "-u", uid]);
-  await spawn("/usr/sbin/userdel", [username]); // this also deletes the group
+  await exec(`pkill -9 -u ${uid}`);
+  try {
+    await exec(`/usr/sbin/userdel ${username}`); // this also deletes the group
+  } catch (_) {
+    // not error if not there...
+  }
 }
 
 export function sanitizedEnv(env: { [key: string]: string | undefined }): {
