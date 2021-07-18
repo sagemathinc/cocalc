@@ -50,16 +50,11 @@ class Project extends BaseProject {
     this.HOME = homePath(this.project_id);
   }
 
-  async state(
-    opts: {
-      force?: boolean;
-      update?: boolean;
-    } = {}
-  ): Promise<ProjectState> {
+  async state(): Promise<ProjectState> {
     if (this.stateChanging != null) {
       return this.stateChanging;
     }
-    const state = await getState(this.HOME, opts);
+    const state = await getState(this.HOME);
     winston.debug(`got state of ${this.project_id} = ${JSON.stringify(state)}`);
     this.saveStateToDatabase(state);
     return state;
@@ -76,7 +71,7 @@ class Project extends BaseProject {
   }
 
   async start(): Promise<void> {
-    winston.debug(`start ${this.project_id}`);
+    winston.info(`start ${this.project_id}`);
     if (this.stateChanging != null) return;
 
     // Home directory
@@ -91,6 +86,7 @@ class Project extends BaseProject {
     try {
       this.stateChanging = { state: "starting" };
       await this.saveStateToDatabase(this.stateChanging);
+      await this.siteLicenseHook();
 
       await mkdir(HOME, { recursive: true });
 
@@ -118,14 +114,14 @@ class Project extends BaseProject {
       });
     } finally {
       this.stateChanging = undefined;
-      // ensure state valid
+      // ensure state valid in database
       await this.state();
     }
   }
 
   async stop(): Promise<void> {
-    winston.debug("stop ", this.project_id);
     if (this.stateChanging != null) return;
+    winston.info("stop ", this.project_id);
     if (!(await isProjectRunning(this.HOME))) {
       await this.saveStateToDatabase({ state: "opened" });
       return;

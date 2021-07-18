@@ -190,7 +190,7 @@ export async function getEnvironment(
   };
 }
 
-export async function getState(HOME: string, _opts?): Promise<ProjectState> {
+export async function getState(HOME: string): Promise<ProjectState> {
   winston.debug(`getState("${HOME}")`);
   try {
     return {

@@ -30,11 +30,8 @@ import getLogger from "smc-hub/logger";
 const winston = getLogger("project-control-kubernetes");
 
 class Project extends BaseProject {
-  async state(opts: {
-    force?: boolean;
-    update?: boolean;
-  }): Promise<ProjectState> {
-    console.log("state", opts);
+  async state(): Promise<ProjectState> {
+    console.log("state");
     throw Error("implement me");
   }
 

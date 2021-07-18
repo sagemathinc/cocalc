@@ -193,12 +193,12 @@ Table({
     },
     action_request: {
       type: "map",
-      desc: "Request state change action for project: {action:['restart', 'stop', 'save', 'close'], started:timestamp, err:?, finished:timestamp}",
+      desc: "Request state change action for project: {action:['start', 'stop'], started:timestamp, err:?, finished:timestamp}",
       date: ["started", "finished"],
     },
     storage: {
       type: "map",
-      desc: "This is a map {host:'hostname_of_server', assigned:when first saved here, saved:when last saved here}.",
+      desc: "(DEPRECATED) This is a map {host:'hostname_of_server', assigned:when first saved here, saved:when last saved here}.",
       date: ["assigned", "saved"],
     },
     last_backup: {

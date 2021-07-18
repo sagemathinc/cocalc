@@ -24,6 +24,7 @@ import { ProjectState, ProjectStatus } from "smc-util/db-schema/projects";
 import { quota } from "smc-util/upgrades/quota";
 import { delay } from "awaiting";
 import getLogger from "smc-hub/logger";
+import { site_license_hook } from "smc-hub/postgres/site-license/hook";
 
 export { ProjectState, ProjectStatus };
 
@@ -55,6 +56,10 @@ export abstract class BaseProject extends EventEmitter {
   assertNotFreed() {}
   async waitUntilReady(): Promise<void> {}
 
+  protected async siteLicenseHook(): Promise<void> {
+    await site_license_hook(database, this.project_id);
+  }
+
   protected async saveStateToDatabase(state: ProjectState): Promise<void> {
     await callback2(database.set_project_state, {
       ...state,
@@ -75,10 +80,7 @@ export abstract class BaseProject extends EventEmitter {
 
   // Get the state of the project -- state is just whether or not
   // it is runnig, stopping, starting.  It's not much info.
-  abstract state(opts?: {
-    force?: boolean;
-    update?: boolean;
-  }): Promise<ProjectState>;
+  abstract state(): Promise<ProjectState>;
 
   // Get the status of the project -- status is MUCH more information
   // about the project, including ports of various services.
