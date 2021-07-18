@@ -18,17 +18,15 @@ import {
   chown,
   copyPath,
   createUser,
-  dataPath,
   deleteUser,
   ensureConfFilesExists,
+  getEnvironment,
   getState,
   getStatus,
-  getUsername,
   homePath,
   isProjectRunning,
   launchProjectDaemon,
   mkdir,
-  sanitizedEnv,
   setupDataPath,
 } from "./util";
 import {
@@ -40,7 +38,6 @@ import {
 } from "./base";
 import getLogger from "smc-hub/logger";
 import { getUid } from "smc-util-node/misc";
-import base_path from "smc-util-node/base-path";
 
 const winston = getLogger("project-control:single-user");
 
@@ -105,25 +102,9 @@ class Project extends BaseProject {
 
       await ensureConfFilesExists(HOME, this.uid);
 
-      // Get extra env vars for project (from synctable):
-      const extra_env: string = Buffer.from(
-        JSON.stringify(this.get("env") ?? {})
-      ).toString("base64");
+      // this.get('env') = extra env vars for project (from synctable):
+      const env = getEnvironment(this.project_id, this.get("env"));
 
-      // Setup environment (will get merged in after process.env):
-      const env = {
-        ...sanitizedEnv(process.env),
-        ...{
-          HOME,
-          BASE_PATH: base_path,
-          DATA: dataPath(HOME),
-          // important to reset the COCALC_ vars since server env has own in a project
-          COCALC_PROJECT_ID: this.project_id,
-          COCALC_USERNAME: getUsername(this.project_id),
-          COCALC_EXTRA_ENV: extra_env,
-          PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
-        },
-      };
       winston.debug(`start ${this.project_id}: env = ${JSON.stringify(env)}`);
 
       // Setup files

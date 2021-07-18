@@ -7,6 +7,7 @@ import { is_valid_uuid_string } from "smc-util/misc";
 import getLogger from "smc-hub/logger";
 import { CopyOptions, ProjectState, ProjectStatus } from "./base";
 import { getUid } from "smc-util-node/misc";
+import base_path from "smc-util-node/base-path";
 
 const winston = getLogger("project-control:util");
 
@@ -128,6 +129,33 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
     }
   }
   return env2 as { [key: string]: string };
+}
+
+export function getEnvironment(
+  project_id: string,
+  extra?: { [key: string]: any }
+): { [key: string]: any } {
+  const extra_env: string = Buffer.from(JSON.stringify(extra ?? {})).toString(
+    "base64"
+  );
+
+  const USER = getUsername(project_id);
+  const HOME = homePath(project_id);
+
+  return {
+    ...sanitizedEnv(process.env),
+    ...{
+      HOME,
+      BASE_PATH: base_path,
+      DATA: dataPath(HOME),
+      // important to reset the COCALC_ vars since server env has own in a project
+      COCALC_PROJECT_ID: project_id,
+      COCALC_USERNAME: USER,
+      USER,
+      COCALC_EXTRA_ENV: extra_env,
+      PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
+    },
+  };
 }
 
 export async function getState(HOME: string, _opts?): Promise<ProjectState> {

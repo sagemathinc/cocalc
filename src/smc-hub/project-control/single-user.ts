@@ -14,19 +14,17 @@ This is useful for:
 import { kill } from "process";
 
 import {
-  dataPath,
+  copyPath,
   ensureConfFilesExists,
-  launchProjectDaemon,
-  mkdir,
+  getEnvironment,
   getProjectPID,
   getState,
   getStatus,
-  sanitizedEnv,
-  setupDataPath,
-  isProjectRunning,
-  copyPath,
   homePath,
-  getUsername,
+  isProjectRunning,
+  launchProjectDaemon,
+  mkdir,
+  setupDataPath,
 } from "./util";
 import {
   BaseProject,
@@ -36,8 +34,6 @@ import {
   getProject,
 } from "./base";
 import getLogger from "smc-hub/logger";
-
-import base_path from "smc-util-node/base-path";
 
 const winston = getLogger("project-control:single-user");
 
@@ -100,25 +96,8 @@ class Project extends BaseProject {
 
       await ensureConfFilesExists(HOME);
 
-      // Get extra env vars for project (from synctable):
-      const extra_env: string = Buffer.from(
-        JSON.stringify(this.get("env") ?? {})
-      ).toString("base64");
-
-      // Setup environment (will get merged in after process.env):
-      const env = {
-        ...sanitizedEnv(process.env),
-        ...{
-          HOME,
-          BASE_PATH: base_path,
-          DATA: dataPath(HOME),
-          // important to reset the COCALC_ vars since server env has own in a project
-          COCALC_PROJECT_ID: this.project_id,
-          COCALC_USERNAME: getUsername(this.project_id),
-          COCALC_EXTRA_ENV: extra_env,
-          PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
-        },
-      };
+      // this.get('env') = extra env vars for project (from synctable):
+      const env = getEnvironment(this.project_id, this.get("env"));
       winston.debug(`start ${this.project_id}: env = ${JSON.stringify(env)}`);
 
       // Setup files
