@@ -893,4 +893,22 @@ class Project extends EventEmitter {
   }
 }
 
+
+  // Get current data about the project from the database.
+  get(field?: string): any {
+    this.assertNotFreed();
+    const t = this.synctable?.get(this.project_id);
+    if (field != null) {
+      return t?.get(field);
+    } else {
+      return t;
+    }
+  }
+
+  getIn(v): any {
+    this.assertNotFreed();
+    return this.get()?.getIn(v);
+  }
+
 */
+

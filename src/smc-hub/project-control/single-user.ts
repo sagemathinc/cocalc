@@ -97,7 +97,7 @@ class Project extends BaseProject {
       await ensureConfFilesExists(HOME);
 
       // this.get('env') = extra env vars for project (from synctable):
-      const env = getEnvironment(this.project_id, this.get("env"));
+      const env = await getEnvironment(this.project_id);
       winston.debug(`start ${this.project_id}: env = ${JSON.stringify(env)}`);
 
       // Setup files

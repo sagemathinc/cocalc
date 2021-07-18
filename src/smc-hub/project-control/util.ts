@@ -2,12 +2,15 @@ import { promisify } from "util";
 import { join, resolve } from "path";
 import { spawn } from "child_process";
 import * as fs from "fs";
+
 import { projects, root } from "smc-util-node/data";
 import { is_valid_uuid_string } from "smc-util/misc";
+import { callback2 } from "smc-util/async-utils";
 import getLogger from "smc-hub/logger";
 import { CopyOptions, ProjectState, ProjectStatus } from "./base";
 import { getUid } from "smc-util-node/misc";
 import base_path from "smc-util-node/base-path";
+import { database } from "smc-hub/servers/database";
 
 const winston = getLogger("project-control:util");
 
@@ -134,10 +137,13 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
   return env2 as { [key: string]: string };
 }
 
-export function getEnvironment(
-  project_id: string,
-  extra?: { [key: string]: any }
-): { [key: string]: any } {
+export async function getEnvironment(
+  project_id: string
+): Promise<{ [key: string]: any }> {
+  const extra: { [key: string]: any } = await callback2(
+    database.get_project_extra_env,
+    { project_id }
+  );
   const extra_env: string = Buffer.from(JSON.stringify(extra ?? {})).toString(
     "base64"
   );

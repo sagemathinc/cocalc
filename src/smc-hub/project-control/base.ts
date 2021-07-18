@@ -5,14 +5,15 @@ The hub uses this to get information about a project and do some basic tasks.
 There are different implementations for different ways in which cocalc
 gets deployed.
 
-What this modules should acomplish:
+This module does 3 things:
 
-- Start/stop/restart a project.
-- Provide the project secret token to the hub.
-- A few other things:
-   - directory_listing fallback
-   - copying files around
-   - reading/writing files
+1. CONTROL: Start/stop/restart a project.
+2. CONNECT: Get ports, ip address, and the project secret token
+3. COPY:    Copying a directory of files from one project to another.
+
+For simplicity, it doesn't do anything else. It's good to keep this as small as
+possible, so it is manageable, especially as we adapt CoCalc to new
+environments.
 */
 
 import { callback2 } from "smc-util/async-utils";
@@ -41,7 +42,6 @@ export abstract class BaseProject extends EventEmitter {
   public is_freed: boolean = false;
   public host?: string; // ip address of project, when known.
   protected stateChanging: ProjectState | undefined = undefined;
-  protected synctable?;
 
   constructor(project_id: string) {
     super();
@@ -67,22 +67,6 @@ export abstract class BaseProject extends EventEmitter {
       project_id: this.project_id,
       status,
     });
-  }
-
-  // Get current data about the project from the database.
-  get(field?: string): any {
-    this.assertNotFreed();
-    const t = this.synctable?.get(this.project_id);
-    if (field != null) {
-      return t?.get(field);
-    } else {
-      return t;
-    }
-  }
-
-  getIn(v): any {
-    this.assertNotFreed();
-    return this.get()?.getIn(v);
   }
 
   dbg(f: string): Function {
