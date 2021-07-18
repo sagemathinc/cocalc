@@ -86,7 +86,9 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
 export async function createUser(project_id: string): Promise<void> {
   const username = getUsername(project_id);
   const uid = `${getUid(project_id)}`;
+  winston.debug(`createUser: adding group #{username} with uid ${uid}`);
   await spawn("/usr/sbin/groupadd", ["-g", uid, "-o", username]);
+  winston.debug(`createUser: adding user #{username} with uid ${uid}`);
   await spawn("/usr/sbin/useradd", [
     "-u",
     uid,
@@ -96,6 +98,8 @@ export async function createUser(project_id: string): Promise<void> {
     username,
     "-d",
     homePath(username),
+    "-s",
+    "/bin/bash",
   ]);
 }
 
@@ -103,8 +107,7 @@ export async function deleteUser(project_id: string): Promise<void> {
   const username = getUsername(project_id);
   const uid = `${getUid(project_id)}`;
   await spawn("pkill", ["-9", "-u", uid]);
-  await spawn("/usr/sbin/userdel", [username]);
-  await spawn("/usr/sbin/groupdel", [username]);
+  await spawn("/usr/sbin/userdel", [username]); // this also deletes the group
 }
 
 export function sanitizedEnv(env: { [key: string]: string | undefined }): {
