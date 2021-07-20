@@ -58,12 +58,12 @@ This uses git and package.json to show you which files (in the package directory
 npm run diff
 ```
 
-## Publishing to NPMJS.com
+## Publishing to [NPMJS.com](http://NPMJS.com)
 
 To publish the production version of the static website to npmjs.com, do this:
 
 ```sh
-npm run publish --packages=static --newversion=minor
+npm run publish --packages=static --newversion=minor --tag=latest
 ```
 
 Where it says `--newversion=`, reasonable options are `"major"`, `"minor"`, and `"patch"`.
