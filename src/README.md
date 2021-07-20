@@ -2,6 +2,12 @@
 
 Updated: **July 2021**
 
+Requirement: You must be using Node version 14.x (at least).  **This will definitely not work with node.js version 12 or earlier!** In a [CoCalc.com](http://CoCalc.com) project, you can put this in ~/.bashrc do to get a new enough version.
+
+```sh
+.  /cocalc/nvm/nvm.sh
+```
+
 ## Initial Build
 
 ```sh

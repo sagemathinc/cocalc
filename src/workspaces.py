@@ -62,16 +62,16 @@ def thread_map(callable, inputs, nb_threads=10):
 
 
 def matches(package, packages):
-    if not packages: return True
+    if not packages and not exclude: return True
     name = package.split('/')[-1]
-    for term in packages.split(','):
-        if term in name:
+    for pkg in packages.split(','):
+        if pkg == name:
             return True
     return False
 
 
 def packages(args):
-    # Compute the packages.  Explicit order in some cases *does* matter as noted in comments.
+    # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments.
     v = [
         'packages/cdn',  # smc-hub assumes this is built
         'smc-util',
@@ -85,9 +85,19 @@ def packages(args):
         path = os.path.join("packages", x)
         if path not in v and os.path.isdir(path):
             v.append(path)
-    p = [x for x in v if matches(x, args.packages)]
-    print("Packages: ", ', '.join(p))
-    return p
+
+    # Filter to only the ones in packages (if given)
+    if args.packages:
+        packages = set(args.packages.split(','))
+        v = [x for x in v if x.split('/')[-1] in packages]
+
+    # Only take things not in exclude
+    if args.exclude:
+        exclude = set(args.exclude.split(','))
+        v = [x for x in v if x.split('/')[-1] not in exclude]
+
+    print("Packages: ", ', '.join(v))
+    return v
 
 
 def banner(s):
@@ -261,8 +271,13 @@ def main():
             '--packages',
             type=str,
             default='',
-            help=
-            '(default: everything) "foo,bar" matches only packages with "foo" or "bar" in  their name'
+            help='(default: ""=everything) "foo,bar" means only the packages named foo and bar'
+        )
+        parser.add_argument(
+            '--exclude',
+            type=str,
+            default='',
+            help='(default: ""=exclude nothing) "foo,bar" means exclude foo and bar'
         )
 
     parser = argparse.ArgumentParser(prog='workspaces')
