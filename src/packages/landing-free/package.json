@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/landing-free",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Landing pages for the free version of CoCalc.",
   "main": "lib/init.js",
   "files": [
