@@ -122,8 +122,8 @@
   },
   "scripts": {
     "build": "tsc && coffee -m -c -o dist/ .",
-    "hub-project-dev": "npm run build && NODE_ENV=development NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --mode=single-user --websocket-server --proxy-server --share-server --hostname=0.0.0.0",
-    "hub-project-prod": "npm run build && NODE_ENV=production NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --mode=single-user --websocket-server --proxy-server --share-server --hostname=0.0.0.0",
+    "hub-project-dev": "npm run build && unset SMC_ROOT && NODE_ENV=development NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --mode=single-user --websocket-server --proxy-server --share-server --hostname=0.0.0.0",
+    "hub-project-prod": "npm run build && unset SMC_ROOT && NODE_ENV=production NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --mode=single-user --websocket-server --proxy-server --share-server --hostname=0.0.0.0",
     "hub-docker-dev": "COCALC_DOCKER=true NODE_ENV=development PROJECTS=/projects PORT=443 NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --mode=multi-user --websocket-server --proxy-server --share-server --hostname=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",
     "hub-docker-prod": "COCALC_DOCKER=true NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production PROJECTS=/projects PORT=443 NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --mode=multi-user --websocket-server --proxy-server --share-server --hostname=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",
     "tsc": "tsc -w"

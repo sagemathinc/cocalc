@@ -5,7 +5,6 @@ There is used both by the hub(s) and project(s).
 */
 
 import { join } from "path";
-import { unlinkSync } from "fs";
 
 import * as winston from "winston";
 import "winston-daily-rotate-file"; // makes DailyRotateFile available
@@ -64,6 +63,7 @@ function getLoggerNoCache(name: string): winston.Logger {
         maxSize: "200m",
         maxFiles: "7d",
         format: f,
+        options: { flags: "w" },
         level: "debug", // or "silly" for everything
       }),
     ];
@@ -78,7 +78,6 @@ function getLoggerNoCache(name: string): winston.Logger {
     ];
   } else {
     const filename = join(logs, "log");
-    removeOnce(filename);
     const f = combine(timestamp(), colorize(), myFormatter);
     transports = [
       new winston.transports.Console({
@@ -91,6 +90,7 @@ function getLoggerNoCache(name: string): winston.Logger {
       new winston.transports.File({
         filename,
         format: f,
+        options: { flags: "w" },
         level: "debug", // or "silly" for everything
       }),
     ];
@@ -110,14 +110,3 @@ function showConfig(filename: string) {
 
 // Also make the function the default export.
 export default getLogger;
-
-// Remove the given file the first time this is called, but ignore after.
-let didRemove: boolean = false;
-function removeOnce(filename: string) {
-  if (didRemove) return;
-  didRemove = true;
-  try {
-    console.log(`rm ${filename}`);
-    unlinkSync(filename); // sync reasonable since only during startup.
-  } catch (_err) {}
-}
