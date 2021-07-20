@@ -359,7 +359,7 @@ interface PassportManagerOpts {
 
 // passport_login state
 interface PassportLoginLocals {
-  dbg: InstanceType<typeof LOG>;
+  dbg: any;   // InstanceType<typeof LOG> -- evidently, broken with current versions of things...
   account_id: string | undefined;
   email_address: string | undefined;
   new_account_created: boolean;

@@ -50,7 +50,7 @@
     "lru-cache": "^6.0.0",
     "mkdirp": "^1.0.4",
     "mocha": "^7.1.2",
-    "node-pty": "^0.9.0",
+    "node-pty": "^0.10.1",
     "pidusage": "^1.2.0",
     "portfinder": "^1.0.28",
     "posix": "^4.2.0",
