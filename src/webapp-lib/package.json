@@ -1,6 +1,6 @@
 {
   "name": "webapp-lib",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "This sub-directory contains assets (images, code, etc.) for the smc-webapp and static pages.",
   "main": "index.js",
   "workspaces": [

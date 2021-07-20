@@ -15,7 +15,8 @@ import argparse, os, shutil, subprocess, sys, time
 
 # Unfortunately some parts of the build assume these are defined.  So for
 # now we define them.
-os.environ['SALVUS_ROOT'] = os.environ['SMC_ROOT'] = os.path.abspath(os.path.dirname(__file__))
+os.environ['SALVUS_ROOT'] = os.environ['SMC_ROOT'] = os.path.abspath(
+    os.path.dirname(__file__))
 
 
 def handle_path(s, path=None, verbose=True):
@@ -112,7 +113,7 @@ def build(args):
             if os.path.exists(dist):
                 # clear dist/ dir
                 shutil.rmtree(dist)
-        cmd("time npm run build", path)
+        cmd("npm run build", path)
 
 
 def clean(args):
@@ -164,7 +165,7 @@ def npm(args):
     v = packages(args)
     inputs = []
     for path in v:
-        s = 'time npm ' + ' '.join(['%s' % x for x in args.args])
+        s = 'npm ' + ' '.join(['%s' % x for x in args.args])
         inputs.append([s, os.path.abspath(path)])
 
     def f(args):
@@ -225,8 +226,11 @@ def publish_package(args, path):
         cmd(f"npm --no-git-tag-version version {args.newversion}", path)
 
     try:
-        # And now publish it.
-        cmd("npm publish", path)
+        # And now publish it:
+        if args.tag:
+            cmd(f"npm publish --tag {args.tag}", path)
+        else:
+            cmd("npm publish", path)
     except:
         print(
             f"Publish failed; you might need to manually revert the version in '{path}/package.json'."
@@ -324,6 +328,13 @@ def main():
     subparser = subparsers.add_parser(
         'publish', help='update version, commit git repo, and publish to npm')
     packages_arg(subparser)
+    subparser.add_argument(
+        "--tag",
+        type=str,
+        default='',
+        help=
+        "Registers the published package with the given tag, such that npm install <name>@<tag> will install this version."
+    )
     subparser.add_argument(
         "newversion",
         type=str,
