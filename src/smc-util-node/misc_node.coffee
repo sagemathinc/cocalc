@@ -556,29 +556,4 @@ WA_sales_tax = {98001:0.099000, 98002:0.086000, 98003:0.100000, 98004:0.100000, 
 exports.sales_tax = (zip) -> return WA_sales_tax[zip] ? 0
 
 
-# Sanitizing HTML: loading the jquery file, caching it, and then exposing it in the API
-_jQuery_cached = null
-
-run_jQuery = (cb) ->
-    if _jQuery_cached != null
-        cb(_jQuery_cached)
-    else
-        # credits go to https://medium.com/@asimmittal/using-jquery-nodejs-to-scrape-the-web-9bb5d439413b
-        JSDOM = require("jsdom").JSDOM
-        JQuery = require('jquery')
-        dom = new JSDOM("",  { runScripts: "dangerously" })
-        _jQuery_cached = JQuery(dom.window);
-        cb(_jQuery_cached)
-
-# http://api.jquery.com/jQuery.parseHTML/ (expanded behavior in version 3+)
-exports.sanitize_html = (html, cb, keepScripts = true, keepUnsafeAttributes = true) ->
-    {sanitize_html_attributes} = require('smc-util/misc')
-    run_jQuery ($) ->
-        sani = $($.parseHTML('<div>' + html + '</div>', null, keepScripts))
-        if not keepUnsafeAttributes
-            sani.find('*').each ->
-                sanitize_html_attributes($, this)
-        cb(sani.html())
-
-exports.sanitize_html_safe = (html, cb) -> exports.sanitize_html(html, cb, false, false)
 
