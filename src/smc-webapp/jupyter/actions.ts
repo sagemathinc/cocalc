@@ -153,7 +153,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
 
     this.setState({
-      view_mode: "normal",
       error: undefined,
       cur_id: this.store.get_local_storage("cur_id"),
       toolbar: !this.store.get_local_storage("hide_toolbar"),
@@ -707,10 +706,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this._state = "ready";
       }
       this.check_select_kernel();
-
-      if (this.store.get("view_mode") === "raw") {
-        this.set_raw_ipynb();
-      }
 
       this.update_contents();
     }

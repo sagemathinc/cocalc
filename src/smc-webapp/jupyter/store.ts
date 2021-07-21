@@ -68,7 +68,6 @@ export interface JupyterStoreState {
   font_size: number;
   sel_ids: any;
   toolbar?: boolean;
-  view_mode: string;
   mode: string;
   nbconvert: any;
   about: boolean;

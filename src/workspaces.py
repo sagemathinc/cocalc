@@ -261,6 +261,11 @@ def diff(args):
 
 
 def publish(args):
+    if not args.tag:
+        raise RuntimeError("tag must be specified (e.g. 'latest')")
+    if not args.newversion:
+        raise RuntimeError(
+            "newversion must be specified (e.g. 'patch', 'minor', 'major')")
     for path in packages(args):
         publish_package(args, path)
 
@@ -271,13 +276,15 @@ def main():
             '--packages',
             type=str,
             default='',
-            help='(default: ""=everything) "foo,bar" means only the packages named foo and bar'
+            help=
+            '(default: ""=everything) "foo,bar" means only the packages named foo and bar'
         )
         parser.add_argument(
             '--exclude',
             type=str,
             default='',
-            help='(default: ""=exclude nothing) "foo,bar" means exclude foo and bar'
+            help=
+            '(default: ""=exclude nothing) "foo,bar" means exclude foo and bar'
         )
 
     parser = argparse.ArgumentParser(prog='workspaces')
@@ -346,12 +353,11 @@ def main():
     subparser.add_argument(
         "--tag",
         type=str,
-        default='',
         help=
         "Registers the published package with the given tag, such that npm install <name>@<tag> will install this version."
     )
     subparser.add_argument(
-        "newversion",
+        "--newversion",
         type=str,
         help=
         "major | minor | patch | premajor | preminor | prepatch | prerelease")

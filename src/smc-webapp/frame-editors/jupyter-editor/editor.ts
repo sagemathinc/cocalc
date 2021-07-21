@@ -14,6 +14,7 @@ import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { CellNotebook } from "./cell-notebook/cell-notebook";
 import { RawIPynb } from "./raw-ipynb";
+import JSONIPynb from "./json-ipynb";
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { TableOfContents } from "./table-of-contents";
 import { Introspect } from "./introspect/introspect";
@@ -85,8 +86,15 @@ export const EDITOR_SPEC = {
   } as EditorDescription,
   terminal,
   time_travel,
+  jupyter_json: {
+    short: "JSON view",
+    name: "Raw JSON viewer",
+    icon: "js-square",
+    component: JSONIPynb,
+    buttons: set(["decrease_font_size", "increase_font_size"]),
+  } as EditorDescription,
   jupyter_raw: {
-    short: "Raw",
+    short: "JSON edit",
     name: "Raw JSON editor",
     icon: "markdown",
     component: RawIPynb,

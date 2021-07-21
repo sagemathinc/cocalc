@@ -7,21 +7,23 @@
 Provide nice JSON view of the ipynb
 */
 
+// NOTE: this react-json-view **does** support editing, but the editing isn't great,
+// and using codemirror directly is better for *editing*.
+// react-json-view is very nice for viewing.
+import ReactJson from "react-json-view";
 import { React } from "../app-framework";
-import { Map } from "immutable";
-const Inspector = require("react-json-inspector");
 import { JupyterActions } from "./browser-actions";
 import { Loading } from "../r_misc";
 
 interface JSONViewProps {
   actions: JupyterActions;
   font_size?: number;
-  cells: Map<string, any>; // to cause update when these change.
 }
 
-export const JSONView: React.FC<JSONViewProps> = (props: JSONViewProps) => {
-  const { actions, font_size /*, cells */ } = props;
-
+export const JSONView: React.FC<JSONViewProps> = ({
+  actions,
+  font_size,
+}: JSONViewProps) => {
   const data = actions.store.get_ipynb();
 
   if (data == null) {
@@ -52,14 +54,16 @@ export const JSONView: React.FC<JSONViewProps> = (props: JSONViewProps) => {
           style={{
             color: "#666",
             fontSize: "12pt",
-            right: "15px",
-            position: "absolute",
+            padding: "5px",
+            float: "right",
             background: "white",
+            borderBottom: "1px solid lightgrey",
+            borderLeft: "1px solid lightgrey",
           }}
         >
           Read-only view of notebook's underlying object structure.
         </div>
-        <Inspector data={data} />
+        <ReactJson src={data} />
       </div>
     </div>
   );

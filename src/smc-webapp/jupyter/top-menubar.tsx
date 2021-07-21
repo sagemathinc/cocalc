@@ -40,7 +40,6 @@ interface TopMenubarProps {
   frame_actions: NotebookFrameActions;
   cur_id: string;
   cells: immutable.Map<any, any>; // map from id to cells
-  view_mode?: string;
   name: string;
 }
 
@@ -55,13 +54,12 @@ function should_memoize(prev, next) {
     "cells",
     "toolbar",
     "cell_toolbar",
-    "view_mode",
   ]);
 }
 
 export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
   (props: TopMenubarProps) => {
-    const { actions, frame_actions, cur_id, cells, view_mode, name } = props;
+    const { actions, frame_actions, cur_id, cells, name } = props;
 
     const kernels: immutable.List<any> | undefined = useRedux([
       name,
@@ -218,18 +216,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
     }
 
     function render_view(): Rendered {
-      if (view_mode == null) return;
-      const shownb = {
-        normal: ">view notebook normal",
-        raw: ">view notebook raw",
-        json: ">view notebook json",
-      };
-
-      shownb[view_mode] = {
-        name: shownb[view_mode],
-        style: SELECTED_STYLE,
-      };
-
       const toolbar = {
         name: "toggle toolbar",
         display: toolbar_state ? "Hide Toolbar" : "Show Toolbar",
@@ -263,16 +249,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
           "<Cell Toolbar...",
         ]
           .concat(cell_toolbars)
-          .concat([
-            "",
-            "zoom in",
-            "zoom out",
-            /* "",
-          "<Show Notebook as...",
-          shownb.normal,
-          shownb.raw
-          shownb.json */
-          ]),
+          .concat(["", "zoom in", "zoom out"]),
       });
     }
 

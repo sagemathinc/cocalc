@@ -34,8 +34,6 @@ import { FindAndReplace } from "./find-and-replace";
 import { ConfirmDialog } from "./confirm-dialog";
 import { KernelSelector } from "./select-kernel";
 import { KeyboardShortcuts } from "./keyboard-shortcuts";
-import { JSONView } from "./json-view";
-import { RawEditor } from "./raw-editor";
 // import { SnippetsDialog } from "smc-webapp/assistant/dialog";
 const { SnippetsDialog } = require("smc-webapp/assistant/dialog");
 import { Kernel as KernelType, Kernels as KernelsType } from "./util";
@@ -122,7 +120,6 @@ interface Props {
   scroll?: Scroll; // Causes a scroll when it *changes*
   scrollTop?: number;
   hook_offset?: number;
-  view_mode?: "normal" | "json" | "raw";
 }
 
 export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
@@ -141,7 +138,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     scroll,
     scrollTop,
     hook_offset,
-    view_mode,
   } = props;
 
   const site_name = useTypedRedux("customize", "site_name");
@@ -395,7 +391,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           frame_actions={frame_actions}
           cells={cells}
           cur_id={cur_id}
-          view_mode={view_mode}
         />
       );
     }
@@ -658,46 +653,13 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_json_viewer() {
-    if (cells == null) return <Loading />;
-    return <JSONView actions={actions} cells={cells} font_size={font_size} />;
-  }
-
-  function render_raw_editor() {
-    if (cm_options == null || font_size == null) {
-      return <Loading />;
-    }
-    return (
-      <RawEditor
-        name={name}
-        actions={actions}
-        font_size={font_size}
-        cm_options={cm_options.get("options")}
-        project_id={project_id}
-      />
-    );
-  }
-
-  function render_main_view() {
-    switch (view_mode) {
-      case "json":
-        return render_json_viewer();
-      case "raw":
-        return render_raw_editor();
-      case "normal":
-        return render_cells();
-      default:
-        return render_cells();
-    }
-  }
-
   function render_main() {
     if (!check_select_kernel_init) {
       return render_loading();
     } else if (show_kernel_selector) {
       return render_select_kernel();
     } else {
-      return render_main_view();
+      return render_cells();
     }
   }
 

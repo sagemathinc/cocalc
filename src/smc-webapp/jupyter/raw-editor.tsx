@@ -63,9 +63,8 @@ export const RawEditor: React.FC<Props> = ({
     }
   }, 5000);
 
-  const student_project_functionality = useStudentProjectFunctionality(
-    project_id
-  );
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
   if (student_project_functionality.disableJupyterToggleReadonly) {
     return (
       <b style={{ margin: "auto", fontSize: "14pt", padding: "15px" }}>
