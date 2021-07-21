@@ -20,7 +20,8 @@ prom_client = require('prom-client')
 
 # additionally, record GC statistics
 # https://www.npmjs.com/package/prometheus-gc-stats
-require('prometheus-gc-stats')()()
+# See my comment in smc-project/kucalc.coffee
+# require('prometheus-gc-stats')()()
 
 # some constants
 FREQ_s     = 5   # update stats every FREQ seconds

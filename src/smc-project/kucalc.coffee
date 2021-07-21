@@ -26,7 +26,13 @@ prom_client = require('prom-client')
 
 # additionally, record GC statistics
 # https://www.npmjs.com/package/prometheus-gc-stats
-require('prometheus-gc-stats')()()
+## I'm commenting this out because the package prometheus-gc-stats
+## on npm very explicitly says it does not support prom-client
+## version 13, which is what we have installed everywhere.  That
+## version is a significant breaking change from version 12, so
+## I'm also not comfortable reverting back.  Harald I think force
+## upgraded prom-client to version 13 in this commit: b31e087ea2c640f494db15b652d9d0f86e7bd8a5
+# require('prometheus-gc-stats')()()
 
 # collect some recommended default metrics every 10 seconds
 prom_client.collectDefaultMetrics(timeout: 10 * 1000)
