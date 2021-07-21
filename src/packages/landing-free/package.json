@@ -35,15 +35,15 @@
   "homepage": "https://github.com/sagemathinc/cocalc#readme",
   "private": false,
   "dependencies": {
-    "antd": "^4.16.6",
+    "antd": "^4.16.8",
     "next": "11.0.1",
-    "react": "17.0.2",
-    "react-dom": "17.0.2"
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   },
   "devDependencies": {
-    "@types/react": "17.0.13",
-    "eslint": "7.30.0",
+    "@types/react": "^17.0.14",
+    "eslint": "^7.31.0",
     "eslint-config-next": "11.0.1",
-    "typescript": "4.3.5"
+    "typescript": "^4.3.5"
   }
 }

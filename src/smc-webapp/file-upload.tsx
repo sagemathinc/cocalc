@@ -3,7 +3,7 @@ Drag'n'Drop file upload area
 */
 
 import "react-dropzone-component/styles/filepicker.css";
-import * as Dropzone from "dropzone";
+import Dropzone from "dropzone";
 Dropzone.autoDiscover = false;
 export { Dropzone };
 import {
@@ -84,7 +84,11 @@ const Header = () => {
 
 function postUrl(project_id: string, path: string): string {
   const dest_dir = encode_path(path);
-  return join(window.app_base_path, project_id, `raw/.smc/upload?dest_dir=${dest_dir}`)
+  return join(
+    window.app_base_path,
+    project_id,
+    `raw/.smc/upload?dest_dir=${dest_dir}`
+  );
 }
 
 interface FileUploadProps {

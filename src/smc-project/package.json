@@ -82,12 +82,12 @@
     "@types/node": "^14.17.5",
     "coffeelint": "^2.1.0",
     "coffeescript": "^2.5.1",
-    "typescript": "^4.3.4"
+    "typescript": "^4.3.5"
   },
   "scripts": {
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' npx cocalc-start-project-server",
-    "build": "tsc && coffee -m -c -o dist/ .",
-    "tsc": "tsc -w",
+    "build": "npx tsc && npx coffee -m -c -o dist/ .",
+    "tsc": "npx tsc --watch",
     "old-test": "npm run testproj && npm run testjup",
     "old-testproj": "echo 'TEST PROJECT'; node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
     "old-testjup": "echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee"
