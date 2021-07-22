@@ -364,7 +364,7 @@ async function main(): Promise<void> {
     .addOption(
       new Option(
         "--mode [string]",
-        `mode in which to run CoCalc (${COCALC_MODES.join(", ")})`
+        `REQUIRED mode in which to run CoCalc (${COCALC_MODES.join(", ")})`
       ).choices(COCALC_MODES)
     )
     .option("--websocket-server", "run the websocket server")
@@ -453,6 +453,7 @@ async function main(): Promise<void> {
   }
   if (!program.mode) {
     throw Error("the --mode option must be specified");
+    process.exit(1)
   }
 
   //console.log("got opts", opts);

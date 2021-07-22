@@ -31,6 +31,8 @@ export function getLogger(name: string): winston.Logger {
   return (cache[name] = getLoggerNoCache(name));
 }
 
+let hasShownError: boolean = false;
+
 function getLoggerNoCache(name: string): winston.Logger {
   if (process.env.SMC_TEST) {
     // default logger with no transports (so silent).
@@ -50,53 +52,67 @@ function getLoggerNoCache(name: string): winston.Logger {
     return `${timestamp} - ${level}: [name=${name}] ${message}`;
   });
 
-  let transports;
-  if (process.env.COCALC_DOCKER) {
-    const filename = join("/var/log/hub", "%DATE%.log");
-    const f = combine(timestamp(), colorize(), myFormatter);
-    transports = [
-      new winston.transports.DailyRotateFile({
-        // write debug and higher messages to these files
-        filename,
-        datePattern: "YYYY-MM-DD-HH",
-        zippedArchive: true,
-        maxSize: "200m",
-        maxFiles: "7d",
-        format: f,
-        options: { flags: "w" },
-        level: "debug", // or "silly" for everything
-      }),
-    ];
-  } else if (process.env.NODE_ENV == "production") {
-    // For now, just fall back to what we've done forever (console logging),
-    // since our infrastructure assumes that.
-    transports = [
+  try {
+    let transports;
+    if (process.env.COCALC_DOCKER) {
+      const filename = join("/var/log/hub", "%DATE%.log");
+      const f = combine(timestamp(), colorize(), myFormatter);
+      transports = [
+        new winston.transports.DailyRotateFile({
+          // write debug and higher messages to these files
+          filename,
+          datePattern: "YYYY-MM-DD-HH",
+          zippedArchive: true,
+          maxSize: "200m",
+          maxFiles: "7d",
+          format: f,
+          options: { flags: "w" },
+          level: "debug", // or "silly" for everything
+        }),
+      ];
+    } else if (process.env.NODE_ENV == "production") {
+      // For now, just fall back to what we've done forever (console logging),
+      // since our infrastructure (Kubernetes) assumes that.
+      transports = [
+        new winston.transports.Console({
+          format: combine(metrics(), timestamp(), colorize(), myFormatter),
+          level: "debug",
+        }),
+      ];
+    } else {
+      const filename = join(logs, "log");
+      const f = combine(timestamp(), colorize(), myFormatter);
+      transports = [
+        new winston.transports.Console({
+          // show info and higher messages to the console
+          // Format first adds in a timestamp, then uses the custom
+          // formatter defined above.
+          format: f,
+          level: "info", // for us, info is NOT very verbose -- important since writing to console log blocks
+        }),
+        new winston.transports.File({
+          filename,
+          format: f,
+          options: { flags: "w" },
+          level: "debug", // or "silly" for everything
+        }),
+      ];
+      showConfig(filename);
+    }
+    return winston.createLogger({ transports });
+  } catch (err) {
+    if (!hasShownError) {
+      hasShownError = true;
+      console.warn(`Issue creating logger -- ${err}; using console fallback`);
+    }
+    const transports = [
       new winston.transports.Console({
         format: combine(metrics(), timestamp(), colorize(), myFormatter),
         level: "debug",
       }),
     ];
-  } else {
-    const filename = join(logs, "log");
-    const f = combine(timestamp(), colorize(), myFormatter);
-    transports = [
-      new winston.transports.Console({
-        // show info and higher messages to the console
-        // Format first adds in a timestamp, then uses the custom
-        // formatter defined above.
-        format: f,
-        level: "info", // for us, info is NOT very verbose -- important since writing to console log blocks
-      }),
-      new winston.transports.File({
-        filename,
-        format: f,
-        options: { flags: "w" },
-        level: "debug", // or "silly" for everything
-      }),
-    ];
-    showConfig(filename);
+    return winston.createLogger({ transports });
   }
-  return winston.createLogger({ transports });
 }
 
 let done = false;
