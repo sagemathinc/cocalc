@@ -157,7 +157,7 @@ async function startServer(): Promise<void> {
   // Log heap memory usage info
   initMemory(winston.debug);
 
-  // Wait for database connection to work
+  // Wait for database connection to work.  Everything requires this.
   await retry_until_success({
     f: async () => await callback2(database.connect),
     start_delay: 1000,
@@ -165,17 +165,10 @@ async function startServer(): Promise<void> {
   });
   winston.info("connected to database.");
 
-  if (
-    program.websocketServer &&
-    !database.is_standby &&
-    (program.dev || program.update)
-  ) {
+  if (program.update) {
     winston.info("Update database schema");
     await callback2(database.update_schema);
   }
-
-  // Initial the version server -- must happen after updating schema (for first ever run).
-  await initVersionServer();
 
   if (program.agentPort) {
     winston.info("Configure agent port");
@@ -197,6 +190,10 @@ async function startServer(): Promise<void> {
   const projectControl = await initProjectControl(program);
 
   if (program.websocketServer) {
+    // Initialize the version server -- must happen after updating schema
+    // (for first ever run).
+    await initVersionServer();
+
     // Stripe
     winston.info("initializing stripe support...");
     await init_stripe(database, winston);
@@ -206,7 +203,7 @@ async function startServer(): Promise<void> {
     await callback(initZendesk);
 
     if (program.mode == "single-user" && process.env.USER == "user") {
-      // Definitely in dev mode, probably on cocalc.com, so we kill
+      // Definitely in dev mode, probably on cocalc.com in a project, so we kill
       // all the running projects when starting the hub:
       // Whenever we start the dev server, we just assume
       // all projects are stopped, since assuming they are
@@ -225,20 +222,14 @@ async function startServer(): Promise<void> {
       winston.info("inserting random nonsense compute images in database");
       await callback2(database.insert_random_compute_images);
     }
-  }
 
-  if (program.dev || program.single) {
-    await init_update_stats();
-  }
-
-  if (program.dev) {
-    await init_update_site_license_usage_log();
-  }
-
-  if (program.dev || program.single || program.kubernetes) {
-    // This is async but runs forever, so don't wait for it.  (TODO: seems dumb)
-    winston.info("init starting always running projects");
-    init_start_always_running_projects(database);
+    if (program.mode != "kucalc") {
+      await init_update_stats();
+      await init_update_site_license_usage_log();
+      // This is async but runs forever, so don't wait for it.
+      winston.info("init starting always running projects");
+      init_start_always_running_projects(database);
+    }
   }
 
   const { router, app } = await initExpressApp({
@@ -246,6 +237,14 @@ async function startServer(): Promise<void> {
     isPersonal: program.personal,
     projectControl,
   });
+
+  if (program.websocketServer) {
+    await callback2(init_passport, {
+      router,
+      database,
+      host: program.hostname,
+    });
+  }
 
   const httpServer = initHttpServer({
     cert: program.httpsCert,
@@ -267,15 +266,7 @@ async function startServer(): Promise<void> {
     winston.info("finished initializing the share server");
   }
 
-  if (program.websocketServer && !database.is_standby) {
-    await callback2(init_passport, {
-      router,
-      database,
-      host: program.hostname,
-    });
-  }
-
-  if (program.websocketServer && !database.isStandby) {
+  if (program.websocketServer) {
     winston.info("initializing primus websocket server");
     initPrimus({
       httpServer,
@@ -409,10 +400,7 @@ async function main(): Promise<void> {
       "smc"
     )
     .option("--passwd [email_address]", "Reset password of given user", "")
-    .option(
-      "--update",
-      "Update schema and primus on startup (always true for --dev; otherwise, false)"
-    )
+    .option("--update", "If specified, updates database schema on startup.")
     .option(
       "--stripe-sync",
       "Sync stripe subscriptions to database for all users with stripe id",
@@ -453,7 +441,7 @@ async function main(): Promise<void> {
   }
   if (!program.mode) {
     throw Error("the --mode option must be specified");
-    process.exit(1)
+    process.exit(1);
   }
 
   //console.log("got opts", opts);
@@ -467,14 +455,6 @@ async function main(): Promise<void> {
       database: program.keyspace,
       concurrent_warn: program.dbConcurrentWarn,
     });
-
-    if (program.dev) {
-      // dev implies numerous other options
-      program.websocketServer = true;
-      program.shareServer = true;
-      program.proxyServer = true;
-      program.mentions = true;
-    }
 
     if (program.passwd) {
       winston.debug("Resetting password");
@@ -495,7 +475,7 @@ async function main(): Promise<void> {
     } else if (program.updateStats) {
       await callback2(database.get_stats);
       process.exit();
-    } else if (program.landing) {
+    } else if (program.mode == "kucalc" && program.landingServer) {
       console.log("LANDING PAGE MODE");
       await startLandingService();
     } else {
