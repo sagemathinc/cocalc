@@ -33,6 +33,7 @@ interface Options {
   projectControl;
   dev: boolean;
   isPersonal: boolean;
+  landingServer: boolean;
 }
 
 export default async function init(opts: Options): Promise<{
@@ -90,9 +91,10 @@ export default async function init(opts: Options): Promise<{
   // setup all healthcheck endpoints
   await setupHealthChecks({ router, db: database });
 
-  // Landing page content: this is the "/" index page + assets, for docker, on-prem, dev.
-  await initLanding(app);
-  // initOpenCoCalc({ app, router, db: database, cacheLongTerm, winston });
+  if (opts.landingServer) {
+    // Landing page content: this is the "/" index page + assets, for docker, on-prem, dev.
+    await initLanding(app);
+  }
 
   // The /static content, used by docker, development, etc.
   // This is the stuff that's packaged up via webpack in packages/static.

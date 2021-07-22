@@ -165,7 +165,7 @@ async function startServer(): Promise<void> {
   });
   winston.info("connected to database.");
 
-  if (program.update) {
+  if (program.updateDatabaseSchema) {
     winston.info("Update database schema");
     await callback2(database.update_schema);
   }
@@ -236,6 +236,7 @@ async function startServer(): Promise<void> {
     dev: program.dev,
     isPersonal: program.personal,
     projectControl,
+    landingServer: !!program.landingServer,
   });
 
   if (program.websocketServer) {
@@ -358,6 +359,10 @@ async function main(): Promise<void> {
         `REQUIRED mode in which to run CoCalc (${COCALC_MODES.join(", ")})`
       ).choices(COCALC_MODES)
     )
+    .option(
+      "--all",
+      "runs all of the servers: websocket, proxy, share, and landing (so you don't have to pass all those opts separately), and also mentions updator and updates db schema on startup; use this in situations where there is a single hub that serves everything (instead of a microservice situation like kucalc)"
+    )
     .option("--websocket-server", "run the websocket server")
     .option("--proxy-server", "run the proxy server")
     .option("--share-server", "run the share server")
@@ -400,7 +405,10 @@ async function main(): Promise<void> {
       "smc"
     )
     .option("--passwd [email_address]", "Reset password of given user", "")
-    .option("--update", "If specified, updates database schema on startup.")
+    .option(
+      "--update-database-schema",
+      "If specified, updates database schema on startup (always happens when mode is not kucalc)."
+    )
     .option(
       "--stripe-sync",
       "Sync stripe subscriptions to database for all users with stripe id",
@@ -443,6 +451,15 @@ async function main(): Promise<void> {
     throw Error("the --mode option must be specified");
     process.exit(1);
   }
+  if (program.all) {
+    program.websocketServer =
+      program.proxyServer =
+      program.shareServer =
+      program.landingServer =
+      program.mentions =
+      program.updateDatabaseSchema =
+        true;
+  }
 
   //console.log("got opts", opts);
 
@@ -476,6 +493,9 @@ async function main(): Promise<void> {
       await callback2(database.get_stats);
       process.exit();
     } else if (program.mode == "kucalc" && program.landingServer) {
+      // Kucalc has its own *dedicated* landing server,
+      // whereas for the other modes startServer (below) just
+      // enables a landing server when the flag is set.
       console.log("LANDING PAGE MODE");
       await startLandingService();
     } else {
