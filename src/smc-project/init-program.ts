@@ -49,7 +49,7 @@ program
   .option("--kucalc", "Running in the kucalc environment")
   .option(
     "--test-firewall",
-    "Abort and exit w/ code 99 if internal GCE information is accessible"
+    "Abort and exit w/ code 99 if internal GCE information *is* accessible"
   )
   .option("--daemon", "Run as a daemon")
   .parse(process.argv);
