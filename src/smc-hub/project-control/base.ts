@@ -32,9 +32,16 @@ const winston = getLogger("project-control");
 
 export type Action = "open" | "start" | "stop" | "restart";
 
-const projectCache: { [project_id: string]: BaseProject } = {};
+// We use a cache to ensure that there is at most one copy of a given Project
+// for each project_id, since internally we assume this in some cases, e.g.,
+// when starting a project we rely on the internal stateChanging attribute
+// rather than the database to know that we're starting the project.  We use
+// WeakRef so that when nothing is referencing the project, it can be garbage
+// collected.  These objects don't use much memory, but blocking garbage collection
+// would be bad.
+const projectCache: { [project_id: string]: WeakRef<BaseProject> } = {};
 export function getProject(project_id: string): BaseProject | undefined {
-  return projectCache[project_id];
+  return projectCache[project_id]?.deref();
 }
 
 export abstract class BaseProject extends EventEmitter {
@@ -45,7 +52,7 @@ export abstract class BaseProject extends EventEmitter {
 
   constructor(project_id: string) {
     super();
-    projectCache[project_id] = this;
+    projectCache[project_id] = new WeakRef(this);
     this.project_id = project_id;
     const dbg = this.dbg("constructor");
     dbg("initializing");

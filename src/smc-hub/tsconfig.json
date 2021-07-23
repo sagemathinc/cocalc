@@ -2,7 +2,8 @@
   "extends": "../packages/tsconfig.json",
   "compilerOptions": {
     "rootDir": "./",
-    "outDir": "dist"
+    "outDir": "dist",
+    "lib": ["ESNext"]
   },
   "exclude": ["node_modules", "dist", "test"]
 }
