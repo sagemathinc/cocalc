@@ -50,7 +50,7 @@ export default async function init(): Promise<void> {
   if (kucalc.IN_KUCALC) {
     // Add a /health handler, which is used as a health check for Kubernetes.
     winston.info("initializing KuCalc only health metrics server");
-    kucalc.init_health_metrics(server, project_id);
+    kucalc.init_health_metrics(app, project_id);
   }
 
   // Setup the directory_listing/... server, which is used to provide directory listings
