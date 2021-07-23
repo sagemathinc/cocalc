@@ -41,13 +41,15 @@ async function get_passport_manager_async(): Promise<PassportManager> {
   // the only issue here is, that the http server already starts up before the
   // passport manager is configured – but, the passport manager depends on the http server
   // we just retry during that initial period of uncertainty…
+  let ms = 100;
   while (true) {
     const pp_manager = get_passport_manager();
     if (pp_manager != null) {
       return pp_manager;
     } else {
-      L(`Passport Manager not available yet -- trying again in 100ms`);
-      await delay(100);
+      L(`WARNING: Passport Manager not available yet -- trying again in ${ms}ms`);
+      await delay(ms);
+      ms = Math.min(10000, 1.3 * ms);
     }
   }
 }
