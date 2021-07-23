@@ -40,7 +40,7 @@ prom_client.collectDefaultMetrics(timeout: 10 * 1000)
 # --- end prometheus setup
 
 
-# This gets **changed** to true in local_hub.coffee, if a certain
+# This gets **changed** to true, if a certain
 # command line flag is passed in.
 exports.IN_KUCALC = false
 
@@ -227,8 +227,8 @@ exports.init_gce_firewall_test = (logger, interval_ms=60*1000) ->
     setInterval(test_firewall, interval_ms)
     return
 
+get_bugs_total = require('./bug-counter').default
 exports.prometheus_metrics = (project_id) ->
-    {get_bugs_total} = require('./local_hub')
     labels = "project_id=\"#{project_id}\",session_id=\"#{session_id}\""
     """
     # HELP cocalc_project_bugs_total The total number of caught bugs.

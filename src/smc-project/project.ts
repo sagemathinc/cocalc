@@ -6,6 +6,7 @@ import initInfoJson from "./info-json";
 import initServers from "./servers/init";
 import initPublicPaths from "./public-paths";
 import { getLogger } from "./logger";
+import { init as initBugCounter } from "./bug-counter";
 
 const winston = getLogger("project-main");
 
@@ -28,6 +29,7 @@ async function main() {
     winston.info("daemonize the process");
     daemonizeProcess();
   }
+  initBugCounter();
   initKucalc();
   winston.info("main init function");
   winston.info("initialize INFO.json file");
