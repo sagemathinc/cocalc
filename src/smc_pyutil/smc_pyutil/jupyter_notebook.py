@@ -77,7 +77,11 @@ def random_port():
 
 
 def command():
-    port = random_port()  # time consuming!
+    if 'COCALC_JUPYTER_NOTEBOOK_PORT' in os.environ:
+        port = int(os.environ['COCALC_JUPYTER_NOTEBOOK_PORT'])
+    else:
+        # time consuming!
+        port = random_port()
     if project_id:
         b = os.path.join(base_path, project_id, 'port', 'jupyter')
         base = " --NotebookApp.base_url=%s " % (b)

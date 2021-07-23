@@ -78,12 +78,10 @@ def random_port():
 
 def command():
     if 'COCALC_JUPYTER_LAB_PORT' in os.environ:
-        name = os.environ['COCALC_JUPYTER_LAB_PORT']
-        port = int(name)
+        port = int(os.environ['COCALC_JUPYTER_LAB_PORT'])
     else:
         # time consuming/less robust; needed for cocalc-docker.
         port = random_port()
-        name = str(port)
     if project_id:
         b = os.path.join(base_path, project_id, 'port', 'jupyterlab')
         base = " --NotebookApp.base_url=%s " % (b)
