@@ -242,13 +242,13 @@ async function startServer(): Promise<void> {
     landingServer: !!program.landingServer,
   });
 
-  if (program.websocketServer) {
-    await callback2(init_passport, {
-      router,
-      database,
-      host: program.hostname,
-    });
-  }
+  // The express app create via initExpressApp above **assumes** that init_passport is done
+  // or complains a lot. This is obviously not really necessary, but we leave it for now.
+  await callback2(init_passport, {
+    router,
+    database,
+    host: program.hostname,
+  });
 
   const httpServer = initHttpServer({
     cert: program.httpsCert,
