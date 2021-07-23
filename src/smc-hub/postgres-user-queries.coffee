@@ -1663,7 +1663,7 @@ awaken_project = (db, project_id, cb) ->
     async.series([
         (cb) ->
             try
-                project = await db.compute_server(project_id)
+                project = db.compute_server(project_id)
                 await project.start()
                 cb()
             catch err

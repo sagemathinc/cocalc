@@ -32,11 +32,17 @@ class Project extends BaseProject {
   }
 
   async state(): Promise<ProjectState> {
-    return (await this.get(["state"])).state;
+    return (await this.get(["state"]))?.state ?? {};
   }
 
   async status(): Promise<ProjectStatus> {
-    return (await this.get(["status"])).status;
+    const status = (await this.get(["status"]))?.status ?? {};
+    // In KuCalc the ports for various services are hardcoded constants,
+    // and not actually storted in the database, so we put them here.
+    // This is also hardcoded in kucalc's addons/project/image/init/init.sh (!)
+    status["hub-server.port"] = 6000;
+    status["browser-server.port"] = 6001;
+    return status;
   }
 
   async start(): Promise<void> {
@@ -53,7 +59,7 @@ class Project extends BaseProject {
       await this.actionRequest("start");
       await this.waitUntilProject(
         (project) =>
-          project.state == "running" || project.action_request?.finished,
+          project.state?.state == "running" || project.action_request?.finished,
         120
       );
     } finally {
@@ -213,9 +219,6 @@ class Project extends BaseProject {
   }
 }
 
-export default async function get(project_id: string): Promise<Project> {
-  const P: Project =
-    (getProject(project_id) as Project) ?? new Project(project_id);
-  await P.waitUntilReady();
-  return P;
+export default function get(project_id: string): Project {
+  return (getProject(project_id) as Project) ?? new Project(project_id);
 }

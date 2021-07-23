@@ -194,6 +194,7 @@ export async function getState(HOME: string): Promise<ProjectState> {
   winston.debug(`getState("${HOME}")`);
   try {
     return {
+      ip: "localhost",
       state: (await isProjectRunning(HOME)) ? "running" : "opened",
       time: new Date(),
     };

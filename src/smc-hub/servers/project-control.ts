@@ -15,9 +15,7 @@ export const COCALC_MODES = [
   "kubernetes",
 ];
 
-export type ProjectControlFunction = (
-  project_id: string
-) => Promise<BaseProject>;
+export type ProjectControlFunction = (project_id: string) => BaseProject;
 
 export default function init(program): ProjectControlFunction {
   const winston = getLogger("project-control");

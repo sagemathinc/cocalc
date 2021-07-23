@@ -50,16 +50,12 @@ class Project extends BaseProject {
     throw Error("implement me");
   }
 
-
-  async copyPath(opts: CopyOptions) : Promise<string> {
+  async copyPath(opts: CopyOptions): Promise<string> {
     winston.debug("doCopyPath ", this.project_id, opts);
     throw Error("implement me");
   }
-
 }
 
-export default async function get(project_id: string): Promise<Project> {
-  const P: Project = getProject(project_id) ?? new Project(project_id);
-  await P.waitUntilReady();
-  return P;
+export default function get(project_id: string): Project {
+  return (getProject(project_id) as Project) ?? new Project(project_id);
 }

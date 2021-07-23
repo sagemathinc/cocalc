@@ -70,15 +70,15 @@ export async function getTarget(opts: Options): Promise<{
     }
   }
 
-  const project = await projectControl(project_id);
-  const { host } = project;
+  const project = projectControl(project_id);
+  const state = await project.state();
+  const host = state.ip;
   dbg(`host=${host}`);
 
   if (host == null) {
     throw Error("host is undefined -- project not running");
   }
-
-  if ((await project.state()).state != "running") {
+  if (state.state != "running") {
     throw Error("project is not running");
   }
 
@@ -120,7 +120,7 @@ async function jupyterPort(
   projectControl,
   lab: boolean
 ): Promise<number> {
-  const project = hub_projects.new_project(
+  const project = hub_projects.new_project(   // NOT project-control like above...
     project_id,
     database,
     projectControl

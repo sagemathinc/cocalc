@@ -52,7 +52,6 @@ class Project extends BaseProject {
 
   constructor(project_id: string) {
     super(project_id);
-    this.host = "localhost";
     this.HOME = homePath(this.project_id);
     this.uid = getUid(this.project_id);
   }
@@ -162,9 +161,6 @@ class Project extends BaseProject {
   }
 }
 
-export default async function get(project_id: string): Promise<Project> {
-  const P: Project =
-    (getProject(project_id) as Project) ?? new Project(project_id);
-  await P.waitUntilReady();
-  return P;
+export default function get(project_id: string): Project {
+  return (getProject(project_id) as Project) ?? new Project(project_id);
 }

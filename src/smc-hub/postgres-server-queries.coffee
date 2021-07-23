@@ -2435,6 +2435,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             state      : required
             time       : new Date()
             error      : undefined
+            ip         : undefined   # optional ip address
             cb         : required
         if typeof(opts.state) != 'string'
             opts.cb("invalid state type")
@@ -2447,6 +2448,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             time  : opts.time
         if opts.error
             state.error = opts.error
+        if opts.ip
+            state.ip = opts.ip
         @_query
             query     : "UPDATE projects"
             set       : "state::JSONB" : state

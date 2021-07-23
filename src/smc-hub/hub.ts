@@ -83,10 +83,13 @@ async function startLandingService(): Promise<void> {
   // This @cocalc/landing is a private npm package that is
   // installed on https://cocalc.com only.  Hence we use require,
   // since it need not be here.
-  // TODO: can we do `await import(...)?`
   const { LandingServer } = require("@cocalc/landing");
   const { uncaught_exception_total } = await initMetrics();
-  const landing_server = new LandingServer({ db: database });
+  const landing_server = new LandingServer({
+    db: database,
+    port,
+    base_url: basePath,
+  });
   await landing_server.start();
 
   addErrorListeners(uncaught_exception_total);
@@ -187,7 +190,7 @@ async function startServer(): Promise<void> {
 
   // Project control (aka "compute server")
   winston.info("initializing compute server...");
-  const projectControl = await initProjectControl(program);
+  const projectControl = initProjectControl(program);
 
   if (program.websocketServer) {
     // Initialize the version server -- must happen after updating schema

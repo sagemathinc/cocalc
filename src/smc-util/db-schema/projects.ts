@@ -474,6 +474,7 @@ export interface ProjectStatus {
 }
 
 export interface ProjectState {
+  ip?: string; // where the project is running
   error?: string;
   state?: State; // running, stopped, etc.
   time?: Date;

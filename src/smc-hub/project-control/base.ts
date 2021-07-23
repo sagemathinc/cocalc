@@ -41,7 +41,6 @@ export abstract class BaseProject extends EventEmitter {
   public readonly project_id: string;
   public is_ready: boolean = false;
   public is_freed: boolean = false;
-  public host?: string; // ip address of project, when known.
   protected stateChanging: ProjectState | undefined = undefined;
 
   constructor(project_id: string) {
@@ -51,10 +50,6 @@ export abstract class BaseProject extends EventEmitter {
     const dbg = this.dbg("constructor");
     dbg("initializing");
   }
-
-  active() {}
-  assertNotFreed() {}
-  async waitUntilReady(): Promise<void> {}
 
   protected async siteLicenseHook(): Promise<void> {
     await site_license_hook(database, this.project_id);
@@ -124,23 +119,24 @@ export abstract class BaseProject extends EventEmitter {
     port: number;
     secret_token: string;
   }> {
-    this.assertNotFreed();
     const dbg = this.dbg("address");
     dbg("first ensure is running");
     await this.start();
     dbg("it is running");
     const status = await this.status();
-    if (this.host == null) {
-      throw Error("unable to determine host");
-    }
-    if (status["hub-server.port"] == null) {
+    if (!status["hub-server.port"]) {
       throw Error("unable to determine hub-server port");
     }
-    if (status["secret_token"] == null) {
+    if (!status["secret_token"]) {
       throw Error("unable to determine secret_token");
     }
+    const state = await this.state();
+    const host = state.ip;
+    if (!host) {
+      throw Error("unable to determine host");
+    }
     return {
-      host: this.host,
+      host,
       port: status["hub-server.port"],
       secret_token: status.secret_token,
     };
@@ -157,19 +153,16 @@ export abstract class BaseProject extends EventEmitter {
     (except idle_timeout) have changed, then the project is restarted.
     */
   async setAllQuotas(): Promise<void> {
-    this.assertNotFreed();
     const dbg = this.dbg("set_all_quotas");
     dbg();
     // 1. Get data about project from the database, namely:
     //     - is project currently running (if not, nothing to do)
     //     - if running, what quotas it was started with and what its quotas are now
     // 2. If quotas differ *AND* project is running, restarts project.
-    this.active();
     const x = await callback2(database.get_project, {
       project_id: this.project_id,
       columns: ["state", "users", "settings", "run_quota"],
     });
-    this.active();
     if (!["running", "starting", "pending"].includes(x.state?.state)) {
       dbg("project not active so nothing to do");
       return;

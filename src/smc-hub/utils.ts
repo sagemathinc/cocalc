@@ -4,19 +4,17 @@
  */
 
 import * as fs from "fs";
+import { join } from "path";
 const winston = require("./logger").getLogger("utils");
 import { PostgreSQL } from "./postgres/types";
 import { AllSiteSettings } from "smc-util/db-schema/types";
 import { expire_time } from "smc-util/misc";
 import { callback2 } from "smc-util/async-utils";
 import { PassportStrategyDB } from "./auth";
-
-export function get_smc_root(): string {
-  return process.env.SMC_ROOT ?? ".";
-}
+import { secrets } from "smc-util-node/data";
 
 export function read_db_password_from_disk(): string | null {
-  const filename = get_smc_root() + "/data/secrets/postgres";
+  const filename = join(secrets, "postgres");
   try {
     return fs.readFileSync(filename).toString().trim();
   } catch {
