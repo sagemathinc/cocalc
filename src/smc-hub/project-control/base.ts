@@ -69,8 +69,10 @@ export abstract class BaseProject extends EventEmitter {
     });
   }
 
-  dbg(f: string): Function {
-    return (...args) => winston.debug(`Project.${f}`, ...args);
+  dbg(f: string): (string?) => void {
+    return (msg?: string) => {
+      winston.debug(`(project_id=${this.project_id}).${f}: ${msg}`);
+    };
   }
 
   // Get the state of the project -- state is just whether or not

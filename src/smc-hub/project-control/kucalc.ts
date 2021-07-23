@@ -90,7 +90,8 @@ class Project extends BaseProject {
   }
 
   async copyPath(opts: CopyOptions): Promise<string> {
-    winston.debug("copyPath ", this.project_id, opts);
+    const dbg = this.dbg("copyPath");
+    dbg(JSON.stringify(opts));
     if (opts.path == null) {
       throw Error("path must be specified");
     }
@@ -105,7 +106,7 @@ class Project extends BaseProject {
     }
 
     const copyID = uuid();
-    const dbg = this.dbg(`copyPath('${opts.path}', id='${copyID}')`);
+    dbg(`copyID=${copyID}`);
 
     if (opts.scheduled && opts.scheduled instanceof Date) {
       // We have to remove the timezone info, b/c the PostgreSQL field is without timezone.
@@ -143,6 +144,7 @@ class Project extends BaseProject {
       dbg("finished");
       return "";
     } else {
+      dbg("NOT waiting for copy to complete");
       return copyID;
     }
   }
@@ -189,27 +191,27 @@ class Project extends BaseProject {
     }
   }
 
-  private getCopySynctable(): any {
+  private getCopySynctable(copyID: string): any {
     return database.synctable({
       table: "copy_paths",
-      columns: ["id", "started", "error", "finished"],
-      where: { "time > $::TIMESTAMP": new Date() },
-      where_function: () => true,
+      columns: ["started", "error", "finished"],
+      where: { "id = $::UUID": copyID },
+      where_function: (id) => id == copyID,
     });
   }
 
   private async waitUntilCopyFinished(
-    copy_id: string,
+    copyID: string,
     timeout: number // in seconds
   ): Promise<void> {
     let synctable: any = undefined;
     try {
-      synctable = this.getCopySynctable();
+      synctable = this.getCopySynctable(copyID);
       await callback2(synctable.wait, {
-        until: () => synctable.getIn([copy_id, "finished"]),
+        until: () => synctable.getIn([copyID, "finished"]),
         timeout,
       });
-      const err = synctable.getIn([copy_id, "error"]);
+      const err = synctable.getIn([copyID, "error"]);
       if (err) {
         throw Error(err);
       }
