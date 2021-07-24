@@ -24,23 +24,24 @@ messages = require('smc-util/message')
 {Client} = require('../client')
 
 log = (name, logger) ->
-    if logger?
-        return (m...) -> logger.debug("API.#{name}: ", m...)
-    else
-        return ->
+    return (m) -> logger.debug("API.#{name}: #{m}")
 
 exports.http_message_api_v1 = (opts) ->
-    opts = defaults opts,
-        event          : required
-        body           : required
-        api_key        : required
-        database       : required
-        compute_server : required
-        ip_address     : required
-        logger         : undefined
-        cb             : required
+    try
+        opts = defaults opts,
+            event          : required
+            body           : required
+            api_key        : required
+            database       : required
+            compute_server : required
+            ip_address     : required
+            logger         : required
+            cb             : required
+    catch err
+        opts.cb(err)
+        return
     dbg = log('http_message_api_v1', opts.logger)
-    dbg("event=", opts.event, 'body=', opts.body)
+    dbg("event=#{JSON.stringify(opts.event)}, body=#{JSON.stringify(opts.body)}")
 
     f = messages[opts.event]
     if not f?
@@ -89,7 +90,7 @@ exports.http_message_api_v1 = (opts) ->
 get_client = (opts) ->
     opts = defaults opts,
         api_key        : required
-        logger         : undefined
+        logger         : required
         database       : required
         compute_server : required
         ip_address     : required
@@ -158,7 +159,7 @@ handle_message = (opts) ->
         logger : undefined
         cb     : required
     dbg = log('handle_message', opts.logger)
-    dbg(opts.mesg, opts.client.id)
+    dbg("#{JSON.stringify(opts.mesg)}, #{opts.client.id}")
     name = "mesg_#{opts.mesg.event}"
     f = opts.client[name]
     if not f?
