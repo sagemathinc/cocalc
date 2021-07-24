@@ -93,4 +93,10 @@ export function cleanup(): void {
     "DEBUG",
   ];
   envrm.forEach((name) => delete process.env[name]);
+
+  // Also get rid of any npm_ vars that get set due to how the project server
+  // is started. This is mainly an issue with cocalc-docker.
+  for (const key in process.env) {
+    if (key.startsWith("npm_")) delete process.env[key];
+  }
 }
