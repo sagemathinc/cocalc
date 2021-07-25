@@ -6,7 +6,7 @@ import { getLogger } from "./logger";
 
 export default function init() {
   const winston = getLogger("init kucalc");
-  winston.info("initializating state related to KuCalc");
+  winston.info("initializing state related to KuCalc");
   if (options.kucalc) {
     winston.info("running in kucalc");
     kucalc.IN_KUCALC = true;

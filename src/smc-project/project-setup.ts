@@ -84,6 +84,7 @@ export function cleanup(): void {
     .filter((x) => !x.startsWith("/cocalc/nvm"))
     .join(":");
   const envrm = [
+    "BASE_PATH",
     "NODE_PATH",
     "NODE_ENV",
     "NODE_VERSION",
