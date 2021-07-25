@@ -54,7 +54,6 @@ import initProjectControl from "./servers/project-control";
 import initIdleTimeout from "./project-control/stop-idle-projects";
 import initVersionServer from "./servers/version";
 import initPrimus from "./servers/primus";
-import initShareServer from "./servers/share";
 import initProxy from "./proxy";
 
 // Logger tagged with 'hub' for this file.
@@ -249,6 +248,7 @@ async function startServer(): Promise<void> {
     isPersonal: program.personal,
     projectControl,
     landingServer: !!program.landingServer,
+    shareServer: !!program.shareServer,
   });
 
   // The express app create via initExpressApp above **assumes** that init_passport is done
@@ -271,12 +271,6 @@ async function startServer(): Promise<void> {
   if (port == 443 && program.httpsCert && program.httpsKey) {
     // also start a redirect from port 80 to port 443.
     await initHttpRedirect(program.hostname);
-  }
-
-  if (program.shareServer) {
-    winston.info("initialize the share server");
-    await initShareServer(app, program.sharePath);
-    winston.info("finished initializing the share server");
   }
 
   if (program.websocketServer) {

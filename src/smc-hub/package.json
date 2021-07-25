@@ -15,11 +15,13 @@
     "../packages/cdn",
     "../packages/landing",
     "../packages/static",
-    "../packages/landing-free"
+    "../packages/landing-free",
+    "../packages/share"
   ],
   "dependencies": {
     "@cocalc/cdn": "*",
     "@cocalc/landing-free": "*",
+    "@cocalc/share": "file:../packages/share",
     "@cocalc/static": "*",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.1",

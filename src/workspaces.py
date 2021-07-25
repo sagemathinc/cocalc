@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-PURPOSE: Automate building, installing, and publishing our modules.  This is like a
-little clone of "lerna" for our purposes.
+PURPOSE: Automate building, installing, and publishing our modules.
+This is like a little clone of "lerna" for our purposes.
 
 NOTES:
  - We cannot run "npm ci" in parallel across modules, since we're using workspaces,

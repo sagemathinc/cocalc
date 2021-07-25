@@ -25,6 +25,7 @@ import initCustomize from "./app/customize";
 import initStats from "./app/stats";
 import initAppRedirect from "./app/app-redirect";
 import initLanding from "./app/landing";
+import initShare from "./app/share";
 
 // Used for longterm caching of files
 const MAX_AGE = ms("100 days"); // NOTE: more than a year would be invalid
@@ -34,6 +35,7 @@ interface Options {
   dev: boolean;
   isPersonal: boolean;
   landingServer: boolean;
+  shareServer: boolean;
 }
 
 export default async function init(opts: Options): Promise<{
@@ -94,6 +96,11 @@ export default async function init(opts: Options): Promise<{
   if (opts.landingServer) {
     // Landing page content: this is the "/" index page + assets, for docker, on-prem, dev.
     await initLanding(app);
+  }
+
+  if (opts.shareServer) {
+    // Landing page content: this is the "/" index page + assets, for docker, on-prem, dev.
+    await initShare(app);
   }
 
   // The /static content, used by docker, development, etc.

@@ -1,4 +1,4 @@
-/* Serve the landing server on /
+/* Serve the landing server, which is a Next.js application, on /.
  */
 
 import { join } from "path";
