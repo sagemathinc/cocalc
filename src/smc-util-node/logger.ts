@@ -8,7 +8,7 @@ but using the vastly simpler super-popular debug module.
 */
 
 import debug, { Debugger } from "debug";
-import { appendFile, mkdirSync, writeFileSync } from "fs";
+import { mkdirSync, createWriteStream } from "fs";
 import { format } from "util";
 import { dirname, join } from "path";
 import { logs } from "./data";
@@ -59,11 +59,14 @@ function initTransports() {
   if (process.env.DEBUG_FILE != null) {
     transports.file = process.env.DEBUG_FILE;
   }
+  let fileStream;
   if (transports.file) {
     // ensure directory exists
     mkdirSync(dirname(transports.file), { recursive: true });
-    // clear the file
-    writeFileSync(transports.file, "");
+    // create the file stream; using a stream ensures
+    // that everything is written in the right order with
+    // no corruption/collision between different logging.
+    fileStream = createWriteStream(transports.file);
   }
   let firstLog: boolean = true;
   COCALC.log = (...args) => {
@@ -89,7 +92,7 @@ function initTransports() {
     }
     if (transports.file) {
       // the file transport
-      appendFile(transports.file, line, () => {});
+      fileStream.write(line);
     }
   };
 }
