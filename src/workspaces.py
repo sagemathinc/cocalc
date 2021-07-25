@@ -261,8 +261,6 @@ def diff(args):
 
 
 def publish(args):
-    if not args.tag:
-        raise RuntimeError("tag must be specified (e.g. 'latest')")
     if not args.newversion:
         raise RuntimeError(
             "newversion must be specified (e.g. 'patch', 'minor', 'major')")
