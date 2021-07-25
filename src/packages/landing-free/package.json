@@ -1,0 +1,52 @@
+{
+  "name": "@cocalc/landing-free",
+  "version": "0.2.2",
+  "description": "Landing pages for the free version of CoCalc.",
+  "main": "lib/init.js",
+  "files": [
+    ".next/*",
+    "styles/*",
+    "public/*",
+    "pages/*",
+    "lib/*",
+    "components/*",
+    "index.js",
+    "README.md",
+    "package.json",
+    "tsconfig.json",
+    "next-env.d.ts",
+    "next.config.js"
+  ],
+  "scripts": {
+    "cocalc-dev": "BASE_PATH=/$COCALC_PROJECT_ID/port/3000 next dev",
+    "cocalc-prod": "export BASE_PATH=/$COCALC_PROJECT_ID/port/3000 && next build && next start",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sagemathinc/cocalc.git"
+  },
+  "author": "SageMath, Inc.",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "bugs": {
+    "url": "https://github.com/sagemathinc/cocalc/issues"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc#readme",
+  "private": false,
+  "dependencies-comment": "IMPORTANT: we install typescript as a normal dev since it may be needed at runtime due to server settings!!",
+  "dependencies": {
+    "antd": "^4.16.8",
+    "next": "11.0.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "@types/react": "^17.0.14",
+    "typescript": "^4.3.5"
+  },
+  "devDependencies": {
+    "eslint": "^7.31.0",
+    "eslint-config-next": "11.0.1"
+  }
+}

@@ -135,7 +135,7 @@ export default function PreflightCheck() {
   }, [allowed]);
 
   if (allowed) {
-    console.log(`Browser is allowed to run ${APP_NAME}.`);
+    console.log("Browser is supported.");
     return null;
   }
 

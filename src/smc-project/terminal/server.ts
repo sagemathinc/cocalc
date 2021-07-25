@@ -11,12 +11,7 @@ const { spawn } = require("node-pty");
 import { readFile, writeFile } from "fs";
 import { promises as fsPromises } from "fs";
 const { readlink } = fsPromises;
-import {
-  console_init_filename,
-  len,
-  merge,
-  path_split,
-} from "smc-util/misc";
+import { console_init_filename, len, merge, path_split } from "smc-util/misc";
 import { exists } from "../jupyter/async-utils-node";
 import { isEqual, throttle } from "lodash";
 import { callback, delay } from "awaiting";
@@ -102,6 +97,14 @@ export async function terminal(
     const env = merge({ COCALC_TERMINAL_FILENAME: s.tail }, process.env);
     if (options.env != null) {
       merge(env, options.env);
+    }
+    if (env.TMUX) {
+      // If TMUX was set for some reason in the environment that setup
+      // a cocalc project (e.g., start hub in dev mode from tmux), then
+      // TMUX is set even though terminal hasn't started tmux yet, which
+      // confuses our open command.  So we explicitly unset it here.
+      // https://unix.stackexchange.com/questions/10689/how-can-i-tell-if-im-in-a-tmux-session-from-a-bash-script
+      delete env["TMUX"];
     }
 
     const command = options.command ? options.command : "/bin/bash";
@@ -189,6 +192,7 @@ export async function terminal(
         if (i === -1) {
           return; // nothing to worry about
         }
+        // stringify it so it is easy to see what is there:
         backend_messages_state = "READING";
         backend_messages_buffer = data.slice(i);
       } else {
@@ -212,11 +216,19 @@ export async function terminal(
         }
         const s = backend_messages_buffer.slice(5, i);
         reset_backend_messages_buffer();
+        logger.debug(
+          `handle_backend_message: parsing JSON payload ${JSON.stringify(s)}`
+        );
         try {
           const payload = JSON.parse(s);
           channel.write({ cmd: "message", payload });
         } catch (err) {
-          // no op -- ignore
+          logger.warn(
+            `handle_backend_message: error sending JSON payload ${JSON.stringify(
+              s
+            )}, ${err}`
+          );
+          // Otherwise, ignore...
         }
       }
     }

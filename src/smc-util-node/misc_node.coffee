@@ -8,7 +8,7 @@
 assert  = require('assert')
 fs      = require('fs')
 net     = require('net')
-winston = require('winston')
+{getLogger}   = require('./logger')
 async   = require('async')
 path    = require('path')
 
@@ -72,6 +72,7 @@ exports.WEBAPP_LIB = 'webapp-lib' # was 'static' in the old days, contains js li
 
 
 exports.enable_mesg = enable_mesg = (socket, desc) ->
+    winston = getLogger('misc_node.enable_mesg')
     socket.setMaxListeners(500)  # we use a lot of listeners for listening for messages
     socket._buf = null
     socket._buf_target_length = -1
@@ -193,7 +194,7 @@ exports.unlock_socket = (socket, token, cb) ->     # cb(err)
     user_token = ''
     listener = (data) ->
         user_token += data.toString()
-        if user_token == token
+        if user_token.slice(0,token.length) == token
             socket.removeListener('data', listener)
             # got it!
             socket.write('y')
@@ -223,6 +224,7 @@ exports.connect_to_locked_socket = (opts) ->
     if not (port > 0 and port <  65536)
         cb("connect_to_locked_socket -- RangeError: port should be > 0 and < 65536: #{port}")
         return
+    winston = getLogger('misc_node.connect_to_locked_socket')
 
     winston.debug("misc_node: connecting to a locked socket on port #{port}...")
     timer = undefined
@@ -361,31 +363,6 @@ exports.disk_usage = (path, cb) ->  # cb(err, usage in K (1024 bytes) of path)
                 cb(false, parseInt(output.stdout.split(' ')[0]))
 
 
-#
-# project_id --> username mapping
-
-# The username associated to a given project id is just the string of
-# the uuid, but with -'s replaced by _'s so we obtain a valid unix
-# account name, and shortened to fit Linux and sanity requirements.
-exports.username = (project_id) ->
-    if '..' in project_id or project_id.length != 36
-        # a sanity check -- this should never ever be allowed to happen, ever.
-        throw Error("invalid project id #{project_id}")
-    # Return a for-sure safe username
-    return project_id.slice(0,8).replace(/[^a-z0-9]/g,'')
-
-# project_id --> LINUX uid mapping
-exports.uid = (project_id) ->
-    # (comment copied from smc_compute.py)
-    # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
-    # user could somehow generate an account id of their choosing, this wouldn't help them get the
-    # same uid as another user.
-    # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
-    sha512sum = crypto.createHash('sha512')
-    n = parseInt(sha512sum.update(project_id).digest('hex').slice(0,8), 16)  # up to 2^32
-    n //= 2  # floor division
-    return if n>65537 then n else n+65537   # 65534 used by linux for user sync, etc.
-
 address_to_local_port = {}
 local_port_to_child_process = {}
 
@@ -398,6 +375,7 @@ exports.unforward_port = (opts) ->
     opts = defaults opts,
         port : required
         cb   : required
+    winston = getLogger('unforward_port')
     winston.debug("Unforwarding port #{opts.port}")
     r = local_port_to_child_process[local_port]
     if r?
@@ -406,19 +384,6 @@ exports.unforward_port = (opts) ->
 exports.unforward_all_ports = () ->
     for port, r of local_port_to_child_process
         r.kill("SIGKILL")
-
-free_port = exports.free_port = (cb) ->    # cb(err, available port as assigned by the operating system)
-    server = require("net").createServer()
-    port = 0
-    server.on "listening", () ->
-        port = server.address().port
-        server.close()
-    server.on "close", ->
-        f = () ->
-            cb(null, port)
-        # give the OS a chance to really make the port available again.
-        setTimeout(f, 500)
-    server.listen(0)
 
 exports.forward_remote_port_to_localhost = (opts) ->
     opts = defaults opts,
@@ -433,6 +398,7 @@ exports.forward_remote_port_to_localhost = (opts) ->
                              # seconds.; lower to more quickly detect
                              # a broken connection; raise to reduce resources
         cb          : required  # cb(err, local_port)
+    winston = getLogger('forward_remote_port_to_localhost')
 
     opts.ssh_port = parseInt(opts.ssh_port)
     if not (opts.ssh_port >= 1 and opts.ssh_port <= 66000)
@@ -514,6 +480,7 @@ exports.forward_remote_port_to_localhost = (opts) ->
 
 
 exports.process_kill = (pid, signal) ->
+    winston = getLogger('process_kill')
     switch signal
         when 2
             signal = 'SIGINT'
@@ -589,39 +556,4 @@ WA_sales_tax = {98001:0.099000, 98002:0.086000, 98003:0.100000, 98004:0.100000, 
 exports.sales_tax = (zip) -> return WA_sales_tax[zip] ? 0
 
 
-# Sanitizing HTML: loading the jquery file, caching it, and then exposing it in the API
-_jQuery_cached = null
 
-run_jQuery = (cb) ->
-    if _jQuery_cached != null
-        cb(_jQuery_cached)
-    else
-        # credits go to https://medium.com/@asimmittal/using-jquery-nodejs-to-scrape-the-web-9bb5d439413b
-        JSDOM = require("jsdom").JSDOM
-        JQuery = require('jquery')
-        dom = new JSDOM("",  { runScripts: "dangerously" })
-        _jQuery_cached = JQuery(dom.window);
-        cb(_jQuery_cached)
-
-# http://api.jquery.com/jQuery.parseHTML/ (expanded behavior in version 3+)
-exports.sanitize_html = (html, cb, keepScripts = true, keepUnsafeAttributes = true) ->
-    {sanitize_html_attributes} = require('smc-util/misc')
-    run_jQuery ($) ->
-        sani = $($.parseHTML('<div>' + html + '</div>', null, keepScripts))
-        if not keepUnsafeAttributes
-            sani.find('*').each ->
-                sanitize_html_attributes($, this)
-        cb(sani.html())
-
-exports.sanitize_html_safe = (html, cb) -> exports.sanitize_html(html, cb, false, false)
-
-# common configuration for webpack and hub
-# inside the project, there is no SALVUS_HOME set, and the code below can't work anyways?
-# TODO: eliminate this as much as possible; it is fragile!
-if exports.SALVUS_HOME?
-    base_url_fn = path.resolve(exports.SALVUS_HOME, 'data/base_url')
-    try
-        exports.BASE_URL = if fs.existsSync(base_url_fn) then fs.readFileSync(base_url_fn).toString().trim() + "/" else '/'
-    catch
-        exports.BASE_URL = '/'  # might fail when starting local_hub due to permissions, e.g., it does in cocalc-docker,
-                                # where the base url is /

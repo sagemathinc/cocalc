@@ -104,7 +104,10 @@ export class XpraServer {
     await this._kill_Xvfb();
 
     // Make sure directory for logs and sockets exists.
-    await this.exec({ command: "mkdir", args: ["-p", "/tmp/xpra"] });
+    await this.exec({
+      command: "mkdir",
+      args: ["-p", `/tmp/xpra-${this.project_id}`],
+    });
     // Actually start xpra.
     const XVFB = `/usr/bin/Xvfb +extension Composite -screen 0 ${MAX_WIDTH}x${MAX_HEIGHT}x24+32 -nolisten tcp -noreset`;
     const command = "xpra";
@@ -115,10 +118,10 @@ export class XpraServer {
       //"all",
       "--mdns=no", // disable dynamic dns via avahi
       "--compression_level=1",
-      "--socket-dir=/tmp/xpra",
+      `--socket-dir=/tmp/xpra-${this.project_id}`,
       "--tray=no",
       "--mousewheel=on",
-      "--log-dir=/tmp/xpra",
+      `--log-dir=/tmp/xpra-${this.project_id}`,
       "--clipboard=no" /* we use our own clipboard approach */,
       "--notifications=yes",
       "--no-keyboard-sync" /* see https://xpra.org/trac/wiki/Keyboard */,
@@ -203,15 +206,15 @@ export class XpraServer {
     if (!hostname) {
       // this will fail if hostname hasn't been set yet via an async call
       // and NOT in kucalc (where there hostname is canonical).
-      if ((window as any).app_base_url) {
+      if (window.app_base_path != "/") {
         // cocalc-in-cocalc dev
-        hostname = `project-${(window as any).app_base_url.slice(1, 37)}`;
+        hostname = `project-${window.app_base_path.slice(1, 37)}`;
       } else {
         // kucalc
         hostname = `project-${this.project_id}`;
       } // else -- it won't work.
     }
-    return `/tmp/xpra/${hostname}-${this.display}`;
+    return `/tmp/xpra-${this.project_id}/${hostname}-${this.display}`;
   }
 
   async exec(opts: ExecOpts0): Promise<ExecOutput> {

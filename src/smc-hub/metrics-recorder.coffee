@@ -20,7 +20,8 @@ prom_client = require('prom-client')
 
 # additionally, record GC statistics
 # https://www.npmjs.com/package/prometheus-gc-stats
-require('prometheus-gc-stats')()()
+# See my comment in smc-project/kucalc.coffee
+# require('prometheus-gc-stats')()()
 
 # some constants
 FREQ_s     = 5   # update stats every FREQ seconds
@@ -127,7 +128,7 @@ class MetricsRecorder
         ###
         get a serialized representation of the metrics status
         (was a dict that should be JSON, now it is for prometheus)
-        it's only called by hub_http_server for the /metrics endpoint
+        it's only called by the HTTP stuff in servers for the /metrics endpoint
         ###
         hub     = await prom_client.register.metrics()
         clients = await @client_metrics()
@@ -148,12 +149,6 @@ class MetricsRecorder
             catch
                 num_clients_gauge.set(0)
 
-        # this is covered by prom_client.collectDefaultMetrics (see top part of this file)
-        #mem_usage = new_gauge('process_memory_usage', 'The process.memoryUsage() results', ['type'])
-        #@register_collector ->
-        #    procmem = process.memoryUsage()
-        #    for k, v of procmem
-        #        mem_usage.labels(k).set(v)
 
         # our own CPU metrics monitor, separating user and sys!
         # it's actually a counter, since it is non-decreasing, but we'll use .set(...)
@@ -190,96 +185,6 @@ class MetricsRecorder
             # END: the timings for this run.
             endG()
             endH()
-
-
-# some of the commented code below might be used in the future when periodically collecting data (e.g. sliding max of "concurrent" value)
-###
-    # every FREQ_s the _data dict is being updated
-    # e.g current value, exp decay, later on also "intelligent" min/max, etc.
-    _update: ->
-        @_collect()
-
-        smooth = (new_value, arr) ->
-            arr ?= []
-            arr[0] = new_value
-            # compute smoothed value `sval` for each decay param
-            for d, idx in DECAY
-                sval = arr[idx + 1] ? new_value
-                sval = d * new_value + (1-d) * sval
-                arr[idx + 1] = sval
-            return arr
-
-        for key, values of @_stats
-            # if no new value is available, we have to create one for smoothing
-            if not values?.length > 0
-                # fallback to last, unless discrete
-                if @_types[key] != TYPE.DISC
-                    [..., value] = @_data[key]
-                    # in case _data[key] is empty, abort
-                    if not value?
-                        continue
-                    # sum is special case, because of sum/FREQ_s below
-                    if @_types[key] == TYPE.SUM
-                        value *= FREQ_s
-                    # one-element array
-                    values = [value]
-                else
-                    values = []
-
-            # computing the updated value for the @_data entries
-            switch @_types[key]
-                when TYPE.MAX
-                    @_data[key] = smooth(values[0], @_data[key])
-
-                when TYPE.CONT
-                    # compute the average value (TODO median?)
-                    sum = underscore.reduce(values, ((a, b) -> a+b), 0)
-                    avg = sum / values.length
-                    @_data[key] = smooth(avg, @_data[key])
-
-                when TYPE.SUM
-                    # compute the cumulative sum per second (e.g. database modifications)
-                    sum = underscore.reduce(values, ((a, b) -> a+b), 0)
-                    sum /= FREQ_s # to get a per 1s value!
-                    @_data[key] = smooth(sum, @_data[key])
-
-                when TYPE.DISC
-                    # this is a pair [timestamp, discrete value], appended to the data queue
-                    queue = @_data[key] ? []
-                    @_data[key] = [queue..., values...][-DISC_LEN..]
-
-                when TYPE.LAST
-                    if values?.length > 0
-                        # ... just store the most recent one
-                        @_data[key] = values[0]
-
-            # we've consumed the value(s), reset them
-            @_stats[key] = []
-
-    record: (key, value, type = TYPE.CONT) =>
-        # store in @_stats a key → bounded array
-        if (@_types[key] ? type) != type
-            @dbg("WARNING: you are switching types from #{@_types[key]} to #{type} -- IGNORED")
-            return
-        @_types[key] = type
-        switch type
-            when TYPE.LAST
-                @_stats[key] = [value]
-            when TYPE.CONT, TYPE.SUM
-                arr = @_stats[key] ? []
-                @_stats[key] = [arr..., value]
-            when TYPE.MAX
-                current = @_stats[key] ? Number.NEGATIVE_INFINITY
-                @_stats[key] = [Math.max(value, current)]
-            when TYPE.DISC
-                ts = (new Date()).toISOString()
-                arr = @_stats[key] ? []
-                @_stats[key] = [arr..., [ts, value]]
-            else
-                @dbg?('hub/record_stats: unknown or undefined type #{type}')
-        # avoid overflows
-        @_stats[key] = @_stats[key][-MAX_BUFFER..]
-###
 
 metricsRecorder = null
 exports.init = (winston, cb) ->

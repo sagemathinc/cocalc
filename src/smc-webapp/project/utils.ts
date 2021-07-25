@@ -260,9 +260,12 @@ export function url_fullpath(project_id: string, path: string): string {
 
 // returns the URL for the file at the given path
 export function url_href(project_id: string, path: string): string {
-  return `${(window as any).app_base_url}/${project_id}/raw/${encode_path(
-    path
-  )}`;
+  return os_path.join(
+    window.app_base_path,
+    project_id,
+    "raw",
+    encode_path(path)
+  );
 }
 
 // returns the download URL for a file at a given path

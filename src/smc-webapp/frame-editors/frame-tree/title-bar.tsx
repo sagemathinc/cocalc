@@ -23,11 +23,7 @@ import { Popconfirm } from "antd";
 import { SaveButton } from "./save-button";
 
 const { debounce } = require("underscore");
-import {
-  ButtonGroup,
-  Button as AntdButton,
-  ButtonStyle,
-} from "../../antd-bootstrap";
+import { ButtonGroup, Button, ButtonStyle } from "../../antd-bootstrap";
 
 import { get_default_font_size } from "../generic/client";
 
@@ -218,11 +214,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     };
   }
 
-  function Button(props) {
+  function StyledButton(props) {
     return (
-      <AntdButton {...props} style={button_style(props.style)}>
+      <Button {...props} style={button_style(props.style)}>
         {props.children}
-      </AntdButton>
+      </Button>
     );
   }
 
@@ -259,7 +255,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function render_x(): Rendered {
     const show_full = props.is_full || props.active_id === props.id;
     return (
-      <Button
+      <StyledButton
         title={"Close this frame"}
         style={!show_full ? close_style : undefined}
         key={"close"}
@@ -267,7 +263,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={click_close}
       >
         <Icon name={"times"} />
-      </Button>
+      </StyledButton>
     );
   }
 
@@ -363,7 +359,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function render_full(): Rendered {
     if (props.is_full) {
       return (
-        <Button
+        <StyledButton
           disabled={props.is_only}
           title={"Show all frames"}
           key={"compress"}
@@ -371,11 +367,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           onClick={() => props.actions.unset_frame_full()}
         >
           <Icon name={"compress"} />
-        </Button>
+        </StyledButton>
       );
     } else {
       return (
-        <Button
+        <StyledButton
           disabled={props.is_only}
           key={"expand"}
           title={"Show only this frame"}
@@ -383,14 +379,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           onClick={() => props.actions.set_frame_full(props.id)}
         >
           <Icon name={"expand"} />
-        </Button>
+        </StyledButton>
       );
     }
   }
 
   function render_split_row(): Rendered {
     return (
-      <Button
+      <StyledButton
         key={"split-row"}
         title={"Split frame horizontally into two rows"}
         bsSize={button_size()}
@@ -404,13 +400,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         }}
       >
         <Icon name="horizontal-split" />
-      </Button>
+      </StyledButton>
     );
   }
 
   function render_split_col(): Rendered {
     return (
-      <Button
+      <StyledButton
         key={"split-col"}
         title={"Split frame vertically into two columns"}
         bsSize={button_size()}
@@ -424,7 +420,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         }}
       >
         <Icon name="vertical-split" />
-      </Button>
+      </StyledButton>
     );
   }
 
@@ -433,14 +429,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <Button
+      <StyledButton
         key={"font-increase"}
         title={"Decrease font size"}
         bsSize={button_size()}
         onClick={() => props.actions.decrease_font_size(props.id)}
       >
         <Icon name={"search-minus"} />
-      </Button>
+      </StyledButton>
     );
   }
 
@@ -449,14 +445,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <Button
+      <StyledButton
         key={"font-decrease"}
         title={"Increase font size"}
         onClick={() => props.actions.increase_font_size(props.id)}
         bsSize={button_size()}
       >
         <Icon name={"search-plus"} />
-      </Button>
+      </StyledButton>
     );
   }
 
@@ -491,27 +487,27 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function render_zoom_page_width(): Rendered {
     return (
-      <Button
+      <StyledButton
         key={"text-width"}
         title={"Zoom to page width"}
         bsSize={button_size()}
         onClick={() => props.actions.zoom_page_width?.(props.id)}
       >
         <Icon name={"ColumnWidthOutlined"} />
-      </Button>
+      </StyledButton>
     );
   }
 
   function render_zoom_page_height(): Rendered {
     return (
-      <Button
+      <StyledButton
         key={"text-height"}
         title={"Zoom to page height"}
         bsSize={button_size()}
         onClick={() => props.actions.zoom_page_height?.(props.id)}
       >
         <Icon name={"ColumnHeightOutlined"} />
-      </Button>
+      </StyledButton>
     );
   }
 
@@ -521,7 +517,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
     const labels = show_labels();
     return (
-      <Button
+      <StyledButton
         key={"sync"}
         title={`Synchronize views (${IS_MACOS ? "⌘" : "Alt"} + Enter)`}
         bsSize={button_size()}
@@ -529,7 +525,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       >
         <Icon name="sync" />{" "}
         {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
-      </Button>
+      </StyledButton>
     );
   }
 
@@ -575,7 +571,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
     const labels = show_labels();
     return (
-      <Button
+      <StyledButton
         key={"download"}
         title={"Download this file"}
         bsSize={button_size()}
@@ -583,7 +579,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       >
         <Icon name={"cloud-download"} />{" "}
         {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
-      </Button>
+      </StyledButton>
     );
   }
 
@@ -592,7 +588,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <Button
+      <StyledButton
         key={"replace"}
         title={"Replace text"}
         onClick={() => props.editor_actions.replace(props.id)}
@@ -600,7 +596,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         bsSize={button_size()}
       >
         <Icon name="replace" />
-      </Button>
+      </StyledButton>
     );
   }
 
@@ -609,14 +605,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <Button
+      <StyledButton
         key={"find"}
         title={"Find text"}
         onClick={() => props.editor_actions.find(props.id)}
         bsSize={button_size()}
       >
         <Icon name="search" />
-      </Button>
+      </StyledButton>
     );
   }
 
@@ -625,14 +621,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <Button
+      <StyledButton
         key={"goto-line"}
         title={"Jump to line"}
         onClick={() => props.editor_actions.goto_line(props.id)}
         bsSize={button_size()}
       >
         <Icon name="bolt" />
-      </Button>
+      </StyledButton>
     );
   }
 
@@ -663,7 +659,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <Button
+      <StyledButton
         key={"cut"}
         title={"Cut selected"}
         onClick={() => props.editor_actions.cut(props.id)}
@@ -671,7 +667,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         bsSize={button_size()}
       >
         <Icon name={"scissors"} />
-      </Button>
+      </StyledButton>
     );
   }
 
@@ -680,7 +676,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <Button
+      <StyledButton
         key={"paste"}
         title={"Paste buffer"}
         onClick={debounce(
@@ -692,7 +688,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         bsSize={button_size()}
       >
         <Icon name={"paste"} />
-      </Button>
+      </StyledButton>
     );
   }
 
@@ -701,14 +697,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <Button
+      <StyledButton
         key={"copy"}
         title={"Copy selected"}
         onClick={() => props.editor_actions.copy(props.id)}
         bsSize={button_size()}
       >
         <Icon name={"copy"} />
-      </Button>
+      </StyledButton>
     );
   }
 
@@ -866,6 +862,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         key={"timetravel"}
         title={"Show complete edit history"}
         bsStyle={"info"}
+        style={button_style()}
         bsSize={button_size()}
         onClick={(event) => {
           if (props.actions.name != props.editor_actions.name) {

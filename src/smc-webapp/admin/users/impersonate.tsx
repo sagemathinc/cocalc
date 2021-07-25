@@ -4,11 +4,9 @@
  */
 
 import { React, Component, Rendered } from "smc-webapp/app-framework";
-
-import { Loading } from "../../r_misc";
-import { APP_BASE_URL } from "../../misc";
-
-import { webapp_client } from "../../webapp-client";
+import { Loading } from "smc-webapp/r_misc";
+import { webapp_client } from "smc-webapp/webapp-client";
+import { join } from "path";
 
 interface Props {
   account_id: string;
@@ -46,7 +44,7 @@ export class Impersonate extends Component<Props, State> {
     if (this.state.auth_token == null) {
       return <Loading />;
     }
-    const link = `${APP_BASE_URL}/settings/support/app?auth_token=${this.state.auth_token}`;
+    const link = join(window.app_base_path, `settings/support/app?auth_token=${this.state.auth_token}`);
     return (
       <div>
         <a href={link} target="_blank" rel="noopener noreferrer">

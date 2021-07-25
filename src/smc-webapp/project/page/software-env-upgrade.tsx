@@ -18,7 +18,7 @@ import { alert_message } from "../../alerts";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
 import { Alert, Button } from "../../antd-bootstrap";
 import { CloseX } from "smc-webapp/r_misc";
-import { Space as AntdSpace } from "antd";
+import { Space } from "antd";
 import {
   FALLBACK_COMPUTE_IMAGE,
   DEFAULT_COMPUTE_IMAGE,
@@ -90,7 +90,7 @@ const SoftwareEnvUpgradeAlert: React.FC<{ project_id: string }> = ({
       return <Loading text={"Updating ..."} />;
     } else {
       return (
-        <AntdSpace>
+        <Space>
           <Button onClick={() => set_image(DISMISS_IMG)}>Keep</Button>
           <Button
             onClick={() => set_image(DEFAULT_COMPUTE_IMAGE)}
@@ -99,7 +99,7 @@ const SoftwareEnvUpgradeAlert: React.FC<{ project_id: string }> = ({
             Upgrade
           </Button>
           <CloseX on_close={() => set_hide(true)} />
-        </AntdSpace>
+        </Space>
       );
     }
   }

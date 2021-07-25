@@ -12,18 +12,15 @@ Client = a client that is connected via a persistent connection to the hub
 uuid                 = require('node-uuid')
 async                = require('async')
 
-# we also have to support legacy behavior for older browsers,
-# but this setting is for newer ones.
-# https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
+# TODO: I'm very suspicious about this sameSite:"none" config option.
 exports.COOKIE_OPTIONS = COOKIE_OPTIONS = Object.freeze(secure:true, sameSite:'none')
 
 Cookies              = require('cookies')            # https://github.com/jed/cookies
 misc                 = require('smc-util/misc')
 {defaults, required, to_safe_str} = misc
 message              = require('smc-util/message')
-base_url_lib         = require('./base-url')
 access               = require('./access')
-clients              = require('./clients').get_clients()
+clients              = require('./clients').getClients()
 auth                 = require('./auth')
 auth_token           = require('./auth-token')
 password             = require('./password')
@@ -39,6 +36,9 @@ hub_projects         = require('./projects')
 db_schema            = require('smc-util/db-schema')
 { escapeHtml }       = require("escape-html")
 {CopyPath}           = require('./copy-path')
+{remember_me_cookie_name} = require('./auth')
+path_join = require('path').join
+base_path = require('smc-util-node/base-path').default
 
 underscore = require('underscore')
 
@@ -164,8 +164,7 @@ class exports.Client extends EventEmitter
         # Setup remember-me related cookie handling
         @cookies = {}
         c = new Cookies(@conn.request, COOKIE_OPTIONS)
-        ##@dbg('init_conn')("cookies = '#{@conn.request.headers['cookie']}', #{base_url_lib.base_url() + 'remember_me'}, #{@_remember_me_value}")
-        @_remember_me_value = c.get(base_url_lib.base_url() + 'remember_me')
+        @_remember_me_value = c.get(remember_me_cookie_name())
 
         @check_for_remember_me()
 
@@ -435,7 +434,7 @@ class exports.Client extends EventEmitter
             # no connection or connection died
             return
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
-        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:base_url_lib.base_url()+"/cookies"))
+        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:path_join(base_path, "cookies")))
 
     set_cookie: (opts) =>
         opts = defaults opts,
@@ -450,7 +449,7 @@ class exports.Client extends EventEmitter
         if opts.ttl?
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
         @cookies[opts.name] = {value:opts.value, options:options}
-        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:base_url_lib.base_url()+"/cookies", value:opts.value))
+        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:path_join(base_path, "cookies"), value:opts.value))
 
     remember_me: (opts) =>
         return if not @conn?
@@ -504,7 +503,7 @@ class exports.Client extends EventEmitter
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
         @set_cookie  # same name also hardcoded in the client!
-            name  : base_url_lib.base_url() + 'remember_me'
+            name  : remember_me_cookie_name()
             value : @_remember_me_value
             ttl   : ttl
 
@@ -699,33 +698,6 @@ class exports.Client extends EventEmitter
                 # TODO
                 @push_to_client(message.error(id:mesg.id, error:"Connecting to session of type '#{mesg.type}' not yet implemented"))
 
-    # TODO: I think this is deprecated:
-    connect_to_console_session: (mesg) =>
-        # TODO -- implement read-only console sessions too (easy and amazing).
-        @get_project mesg, 'write', (err, project) =>
-            if not err  # get_project sends error to client
-                project.console_session
-                    client       : @
-                    params       : mesg.params
-                    session_uuid : mesg.session_uuid
-                    cb           : (err, connect_mesg) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            connect_mesg.id = mesg.id
-                            @push_to_client(connect_mesg)
-
-    # TODO: I think this is deprecated:
-    mesg_terminate_session: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if not err  # get_project sends error to client
-                project.terminate_session
-                    session_uuid : mesg.session_uuid
-                    cb           : (err, resp) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            @push_to_client(mesg)  # same message back.
 
     # Messages: Account creation, deletion, sign in, sign out
     mesg_create_account: (mesg) =>
@@ -736,7 +708,6 @@ class exports.Client extends EventEmitter
             client   : @
             mesg     : mesg
             database : @database
-            logger   : @logger.debug
             host     : @_opts.host
             port     : @_opts.port
             sign_in  : @conn?  # browser clients have a websocket conn
@@ -746,7 +717,6 @@ class exports.Client extends EventEmitter
             client   : @
             mesg     : mesg
             database : @database
-            logger   : @logger.debug
 
     mesg_sign_in: (mesg) =>
         sign_in.sign_in
@@ -1000,32 +970,21 @@ class exports.Client extends EventEmitter
                     cb          : (err, _project_id) =>
                         project_id = _project_id; cb(err)
             (cb) =>
+                cb() # we don't need to wait for project to open before responding to user that project was created.
                 dbg("open project...")
                 # We do the open/start below so that when user tries to open it in a moment it opens more quickly;
                 # also, in single dev mode, this ensures that project path is created, so can copy
                 # files to the project, etc.
                 # Also, if mesg.start is set, the project gets started below.
-                @compute_server.project
-                    project_id : project_id
-                    cb         : (err, project) =>
-                        if err
-                            dbg("failed to get project -- #{err}")
-                        else
-                            async.series([
-                                (cb) =>
-                                    project.open(cb:cb)
-                                (cb) =>
-                                    project.state(cb:cb, force:true, update:true)
-                                (cb) =>
-                                    if mesg.start
-                                        project.start(cb:cb)
-                                    else
-                                        dbg("not auto-starting the new project")
-                                        cb()
-                            ], (err) =>
-                                dbg("open project and get state: #{err}")
-                            )
-                cb() # we don't need to wait for project to open before responding to user that project was created.
+                try
+                    project = await @compute_server(project_id)
+                    await project.state(force:true, update:true)
+                    if mesg.start
+                        await project.start()
+                    else
+                        dbg("not auto-starting the new project")
+                catch err
+                    dbg("failed to start project running -- #{err}")
         ], (err) =>
             if err
                 dbg("error; project #{project_id} -- #{err}")
@@ -1577,12 +1536,12 @@ class exports.Client extends EventEmitter
         # The version of the client...
         @smc_version = mesg.version
         @dbg('mesg_version')("client.smc_version=#{mesg.version}")
-        {version} = require('./server-settings')(@database)
+        {version} = await require('./servers/server-settings').default()
         if mesg.version < version.version_recommended_browser ? 0
             @push_version_update()
 
     push_version_update: =>
-        {version} = require('./server-settings')(@database)
+        {version} = await require('./servers/server-settings').default()
         @push_to_client(message.version(version:version.version_recommended_browser, min_version:version.version_min_browser))
         if version.version_min_browser and @smc_version < version.version_min_browser
             # Client is running an unsupported bad old version.
@@ -1621,13 +1580,18 @@ class exports.Client extends EventEmitter
                     cb         : cb
             (cb) =>
                 dbg("get project from compute server")
-                @compute_server.project
-                    project_id : mesg.project_id
-                    cb         : (err, p) =>
-                        project = p; cb(err)
+                try
+                    project = await @compute_server(mesg.project_id)
+                    cb()
+                catch err
+                    cb(err)
             (cb) =>
                 dbg("determine total quotas and apply")
-                project.set_all_quotas(cb:cb)
+                try
+                    project.setAllQuotas()
+                    cb()
+                catch err
+                    cb(err)
         ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:"problem setting project quota -- #{err}")
@@ -1670,97 +1634,13 @@ class exports.Client extends EventEmitter
                     opts.cb(err)
                     return
                 if is_public
-                    @compute_server.project
-                        project_id : opts.project_id
-                        cb         : opts.cb
+                    try
+                        opts.cb(undefined, await @compute_server(opts.project_id))
+                    catch err
+                        opts.cb(err)
                 else
                     # no
                     opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public")
-
-    mesg_public_get_directory_listing: (mesg) =>
-        dbg = @dbg('mesg_public_get_directory_listing')
-        for k in ['path', 'project_id']
-            if not mesg[k]?
-                dbg("missing stuff in message")
-                @error_to_client(id:mesg.id, error:"must specify #{k}")
-                return
-
-        # We only require that there is at least one public path.  If so,
-        # we then get this listing and if necessary filter out the not public
-        # entries in the listing.
-        project = undefined
-        listing  = undefined
-        async.series([
-            (cb) =>
-                dbg("checking for public path")
-                @database.has_public_path
-                    project_id : mesg.project_id
-                    cb         : (err, is_public) =>
-                        if err
-                            dbg("error checking -- #{err}")
-                            cb(err)
-                        else if not is_public
-                            dbg("no public paths at all -- deny all listings")
-                            cb("not_public") # be careful about changing this. This is a specific error we're giving now when a directory is not public.
-                            # Client figures out context and gives more detailed error message. Right now we use it in src/smc-webapp/project_files.cjsx
-                            # to provide user with helpful context based error about why they can't access a given directory
-                        else
-                            cb()
-            (cb) =>
-                dbg("get the project")
-                @compute_server.project
-                    project_id : mesg.project_id
-                    cb         : (err, x) =>
-                        project = x; cb(err)
-            (cb) =>
-                dbg("get the directory listing")
-                project.directory_listing
-                    path    : mesg.path
-                    hidden  : mesg.hidden
-                    time    : mesg.time
-                    start   : mesg.start
-                    limit   : mesg.limit
-                    cb      : (err, x) =>
-                        listing = x; cb(err)
-            (cb) =>
-                dbg("filtering out public paths from listing")
-                @database.filter_public_paths
-                    project_id : mesg.project_id
-                    path       : mesg.path
-                    listing    : listing
-                    cb         : (err, x) =>
-                        listing = x; cb(err)
-        ], (err) =>
-            if err
-                dbg("something went wrong -- #{err}")
-                @error_to_client(id:mesg.id, error:err)
-            else
-                dbg("it worked; telling client")
-                @push_to_client(message.public_directory_listing(id:mesg.id, result:listing))
-        )
-
-    mesg_public_get_text_file: (mesg) =>
-        if not mesg.path?
-            @error_to_client(id:mesg.id, error:'must specify path')
-            return
-        @get_public_project
-            project_id : mesg.project_id
-            path       : mesg.path
-            cb         : (err, project) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                    return
-                project.read_file
-                    path    : mesg.path
-                    maxsize : 20000000  # restrict to 20MB limit
-                    cb      : (err, data) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            # since this maybe be a Buffer... (depending on backend)
-                            if Buffer.isBuffer(data)
-                                data = data.toString('utf-8')
-                            @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
 
     mesg_copy_public_path_between_projects: (mesg) =>
         @touch()
@@ -1800,17 +1680,20 @@ class exports.Client extends EventEmitter
                         project = x
                         cb(err)
             (cb) =>
-                project.copy_path
-                    path            : mesg.src_path
-                    target_project_id : mesg.target_project_id
-                    target_path     : mesg.target_path
-                    overwrite_newer : mesg.overwrite_newer
-                    delete_missing  : mesg.delete_missing
-                    timeout         : mesg.timeout
-                    exclude_history : mesg.exclude_history
-                    backup          : mesg.backup
-                    public          : true
-                    cb              : cb
+                try
+                    await project.copyPath
+                        path            : mesg.src_path
+                        target_project_id : mesg.target_project_id
+                        target_path     : mesg.target_path
+                        overwrite_newer : mesg.overwrite_newer
+                        delete_missing  : mesg.delete_missing
+                        timeout         : mesg.timeout
+                        backup          : mesg.backup
+                        public          : true
+                        wait_until_done : true
+                    cb()
+                catch err
+                    cb(err)
         ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)

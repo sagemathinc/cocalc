@@ -30,6 +30,8 @@ escapeString = require('sql-string-escape')
 validator = require('validator')
 {callback2} = require('smc-util/async-utils')
 
+LRU = require('lru-cache')
+
 pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
 if not pg?
     throw Error("YOU MUST INSTALL the pg-native npm module")
@@ -39,7 +41,7 @@ if not pg?
 #               syncstring system was breaking... until I switched to native.  Not sure.
 #pg      = require('pg')
 
-winston      = require('./winston-metrics').get_logger('postgres')
+winston      = require('./logger').getLogger('postgres')
 {do_query_with_pg_params} = require('./postgres/set-pg-params')
 
 misc_node = require('smc-util-node/misc_node')
@@ -64,7 +66,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             debug           : exports.DEBUG
             connect         : true
             password        : undefined
-            pool            : undefined   # IGNORED for now.
             cache_expiry    : 5000  # expire cached queries after this many milliseconds
                                     # keep this very short; it's just meant to reduce impact of a bunch of
                                     # identical permission checks in a single user query.
@@ -98,7 +99,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_init_metrics()
 
         if opts.cache_expiry and opts.cache_size
-            @_query_cache = (new require('expiring-lru-cache'))(size:opts.cache_size, expiry: opts.cache_expiry)
+            @_query_cache = new LRU({max:opts.cache_size, maxAge: opts.cache_expiry})
         if opts.connect
             @connect()  # start trying to connect
 

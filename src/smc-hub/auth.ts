@@ -25,7 +25,7 @@
 //
 // Now, connect to the database, where the setup is in the passports_settings table:
 //
-// In older code, there was a "site_conf". We fix it to be $base_url/auth. There is no need to configure it, and existing configurations are ignored. Besides that, it wasn't properly used for all SSO strategies anyways …
+// In older code, there was a "site_conf". We fix it to be $base_path/auth. There is no need to configure it, and existing configurations are ignored. Besides that, it wasn't properly used for all SSO strategies anyways …
 //
 // What's important is to configure the individual passport settings:
 //
@@ -60,11 +60,12 @@ import {
   PRIMARY_SSO,
 } from "smc-webapp/account/passport-types";
 const safeJsonStringify = require("safe-json-stringify");
+import base_path from "smc-util-node/base-path";
 
 // primary strategies -- all other ones are "extra"
 const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO];
 
-// root for authentication related endpoints -- will be prefixed with the base_url
+// root for authentication related endpoints -- will be prefixed with the base_path
 const AUTH_BASE = "/auth";
 
 type login_info_keys =
@@ -88,12 +89,13 @@ export interface PassportStrategyDB extends PassportStrategy {
 
 const { defaults, required } = misc;
 
-const api_key_cookie_name = (base_url) => base_url + "get_api_key";
+const API_KEY_COOKIE_NAME = base_path + "get_api_key";
 
 // Nov'19: actually two cookies due to same-site changes.
 // See https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
-export const remember_me_cookie_name = (base_url, legacy?) =>
-  `${base_url}remember_me${!!legacy ? "-legacy" : ""}`;
+export function remember_me_cookie_name(): string {
+  return `${base_path.length <= 1 ? "" : encodeURIComponent(base_path)}remember_me`;
+}
 
 //#######################################
 // Password hashing
@@ -151,7 +153,6 @@ interface PassportLogin {
   emails?: string[];
   req: any;
   res: any;
-  base_url: string;
   host: any;
   cb: (err) => void;
 }
@@ -320,7 +321,6 @@ function parse_openid_profile(json: any) {
 interface InitPassport {
   router: Router;
   database: PostgreSQL;
-  base_url: string;
   host: string;
   cb: (err?) => void;
 }
@@ -336,7 +336,6 @@ export async function init_passport(opts: InitPassport) {
   opts = defaults(opts, {
     router: required,
     database: required,
-    base_url: required,
     host: required,
     cb: required,
   });
@@ -355,13 +354,12 @@ export async function init_passport(opts: InitPassport) {
 interface PassportManagerOpts {
   router: Router;
   database: PostgreSQL;
-  base_url: string;
   host: string;
 }
 
 // passport_login state
 interface PassportLoginLocals {
-  dbg: InstanceType<typeof LOG>;
+  dbg: any;   // InstanceType<typeof LOG> -- evidently, broken with current versions of things...
   account_id: string | undefined;
   email_address: string | undefined;
   new_account_created: boolean;
@@ -380,21 +378,18 @@ export class PassportManager {
   // the database, for various server queries
   readonly database: PostgreSQL;
   // set in the hub, passed in -- not used by "site_conf", though
-  readonly base_url: string;
   readonly host: string; // e.g. 127.0.0.1
   // configured strategies
-  private strategies:
-    | { [k: string]: PassportStrategyDB }
-    | undefined = undefined;
+  private strategies: { [k: string]: PassportStrategyDB } | undefined =
+    undefined;
   // prefix for those endpoints, where SSO services return back
   private auth_url: string | undefined = undefined;
 
   constructor(opts: PassportManagerOpts) {
-    const { router, database, base_url, host } = opts;
+    const { router, database, host } = opts;
     this.handle_get_api_key.bind(this);
     this.router = router;
     this.database = database;
-    this.base_url = base_url;
     this.host = host;
   }
 
@@ -435,7 +430,7 @@ export class PassportManager {
     if (req.query.get_api_key) {
       const cookies = new Cookies(req, res);
       // maxAge: User gets up to 60 minutes to go through the SSO process...
-      cookies.set(api_key_cookie_name(this.base_url), req.query.get_api_key, {
+      cookies.set(API_KEY_COOKIE_NAME, req.query.get_api_key, {
         maxAge: 30 * 60 * 1000,
       });
     }
@@ -492,7 +487,7 @@ export class PassportManager {
 
     // Define user serialization
     passport.serializeUser((user, done) => done(null, user));
-    passport.deserializeUser((user : Express.User, done) => done(null, user));
+    passport.deserializeUser((user: Express.User, done) => done(null, user));
 
     // Return the configured and supported authentication strategies.
     this.router.get(`${AUTH_BASE}/strategies`, (req, res) => {
@@ -505,9 +500,9 @@ export class PassportManager {
 
     // email verification
     this.router.get(`${AUTH_BASE}/verify`, async (req, res) => {
-      const { DOMAIN_NAME } = require("smc-util/theme");
-      const path = require("path").join("/", this.base_url, "/app");
-      const url = `${DOMAIN_NAME}${path}`;
+      const { DOMAIN_URL } = require("smc-util/theme");
+      const path = require("path").join(base_path, "app");
+      const url = `${DOMAIN_URL}${path}`;
       res.header("Content-Type", "text/html");
       res.header("Cache-Control", "private, no-cache, must-revalidate");
       if (
@@ -545,7 +540,7 @@ export class PassportManager {
         const token = req.query.token.toLowerCase();
         const cookies = new Cookies(req, res);
         // to match smc-webapp/client/password-reset
-        const name = encodeURIComponent(`${this.base_url}PWRESET`);
+        const name = encodeURIComponent(`${base_path}PWRESET`);
         cookies.set(name, token, {
           maxAge: ms("5 minutes"),
           secure: true,
@@ -561,7 +556,7 @@ export class PassportManager {
 
     const settings = await cb2(this.database.get_server_settings_cached);
     const dns = settings.dns || DNS;
-    this.auth_url = `https://${dns}${path_join("/", this.base_url, AUTH_BASE)}`;
+    this.auth_url = `https://${dns}${path_join(base_path, AUTH_BASE)}`;
     dbg(`auth_url='${this.auth_url}'`);
 
     await Promise.all([
@@ -773,14 +768,13 @@ export class PassportManager {
           throw Error("req.user == null -- that shouldn't happen");
         }
         dbg2(`${strategy}/return user = ${safeJsonStringify(req.user)}`);
-        const profile = (req.user["profile"] as any) as passport.Profile;
+        const profile = req.user["profile"] as any as passport.Profile;
         dbg2(`${strategy}/return profile = ${safeJsonStringify(profile)}`);
         const login_opts = {
           strategy,
           profile, // will just get saved in database
           req,
           res,
-          base_url: this.base_url,
           host: this.host,
         };
         for (const k in login_info) {
@@ -814,12 +808,10 @@ export class PassportManager {
       emails: undefined, // string or Array<string> if user not logged in (via remember_me) already, and existing account with same email, and passport not created, then get an error instead of login or account creation.
       req: required, // request object
       res: required, // response object
-      base_url: "",
       host: required,
     });
 
     const dbg = LOG.extend("passport_login");
-    const BASE_URL = opts.base_url;
     const cookies = new Cookies(opts.req, opts.res);
     const locals: PassportLoginLocals = {
       dbg,
@@ -828,9 +820,9 @@ export class PassportManager {
       has_valid_remember_me: false,
       account_id: undefined,
       email_address: undefined,
-      target: BASE_URL + "/app#login",
-      remember_me_cookie: cookies.get(remember_me_cookie_name(BASE_URL)),
-      get_api_key: cookies.get(api_key_cookie_name(BASE_URL)),
+      target: path_join(base_path + "app#login"),
+      remember_me_cookie: cookies.get(remember_me_cookie_name()),
+      get_api_key: cookies.get(API_KEY_COOKIE_NAME),
       action: undefined,
       api_key: undefined,
     };
@@ -849,7 +841,7 @@ export class PassportManager {
       dbg("user is just trying to get api_key");
       // Set with no value **deletes** the cookie when the response is set. It's very important
       // to delete this cookie ASAP, since otherwise the user can't sign in normally.
-      locals.cookies.set(api_key_cookie_name(BASE_URL));
+      locals.cookies.set(API_KEY_COOKIE_NAME);
     }
 
     if (
@@ -903,7 +895,7 @@ export class PassportManager {
       // check if user is banned?
       await this.is_user_banned(locals.account_id, locals.email_address);
       //  last step: set remember me cookie (for a  new sign in)
-      await this.handle_new_sign_in(opts, locals, BASE_URL);
+      await this.handle_new_sign_in(opts, locals);
       // no exceptions → we're all good
       dbg(`redirect the client to '${locals.target}'`);
       opts.res.redirect(locals.target);
@@ -1190,8 +1182,7 @@ export class PassportManager {
 
   private async handle_new_sign_in(
     opts: PassportLogin,
-    locals: PassportLoginLocals,
-    BASE_URL: string
+    locals: PassportLoginLocals
   ): Promise<void> {
     if (locals.has_valid_remember_me) return;
 
@@ -1228,7 +1219,7 @@ export class PassportManager {
     });
 
     dbg("and also set remember_me cookie in client");
-    locals.cookies.set(remember_me_cookie_name(BASE_URL), remember_me_value, {
+    locals.cookies.set(remember_me_cookie_name(), remember_me_value, {
       maxAge: ttl_s * 1000,
     });
   }

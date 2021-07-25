@@ -7,7 +7,8 @@
     "jsx": "react",
     "target": "es5",
     "sourceMap": true,
-    "lib": ["es5", "es6", "es2017", "dom"]
+    "lib": ["es5", "es6", "es2017", "dom"],
+    "declaration": false
   },
   "exclude": [
     "dist",

@@ -7,7 +7,7 @@
 Projects
 ###
 
-winston  = require('./winston-metrics').get_logger('projects')
+winston  = require('./logger').getLogger('projects')
 
 postgres = require('./postgres')
 local_hub_connection = require('./local_hub_connection')
@@ -88,16 +88,17 @@ class Project
 
     jupyter_port: (opts) =>
         opts = defaults opts,
+            lab : undefined
             cb : required
         @dbg("jupyter_port")
         @call
-            mesg    : message.jupyter_port()
+            mesg    : message.jupyter_port(lab:opts.lab)
             timeout : 30
             cb      : (err, resp) =>
                 if err
                     opts.cb(err)
                 else
-                    @dbg("jupyter_port -- #{resp.port}")
+                    @dbg("jupyter_port lab=#{opts.lab} -- #{resp.port}")
                     opts.cb(undefined, resp.port)
 
     move_project: (opts) =>

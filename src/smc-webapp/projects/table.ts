@@ -81,9 +81,9 @@ export const load_all_projects = reuseInFlight(async () => {
 });
 
 async function load_recent_projects(): Promise<void> {
-  redux.createTable("projects", ProjectsTable);
-  await once(redux.getTable("projects")._table, "connected");
-  if (redux.getTable("projects")._table.get().size === 0) {
+  const table = redux.createTable("projects", ProjectsTable);
+  await once(table._table, "connected");
+  if (table._table.get().size === 0) {
     // WARNING: that the following is done is assumed in
     // render_new_project_creator! See
     // https://github.com/sagemathinc/cocalc/issues/4306

@@ -1,1 +1,0 @@
-grep -A 20 -B 5 -n -a "BUG \*" ~/logs/hub* |more

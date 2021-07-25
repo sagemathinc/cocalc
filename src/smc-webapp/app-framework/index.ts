@@ -3,6 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// Not sure where this should go...
+declare global {
+  interface Window {
+    app_base_path: string;
+    Primus: any;
+  }
+}
+
 // Important: code below now assumes that a global variable called "DEBUG" is **defined**!
 declare var DEBUG: boolean;
 if (DEBUG == null) {

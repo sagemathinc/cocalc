@@ -17,7 +17,8 @@ import { COCALC_MINIMAL } from "./fullscreen";
 import { callback2 } from "smc-util/async-utils";
 import * as LS from "./misc/local-storage";
 import { bind_methods } from "smc-util/misc";
-import { APP_BASE_URL } from "./misc";
+import { target } from "smc-webapp/client/handle-hash-url";
+import { load_target } from "./history";
 
 export function session_manager(name, redux): SessionManager | undefined {
   const sm = new SessionManager(name, redux);
@@ -74,14 +75,14 @@ class SessionManager {
     // and project tabs are in correct order (or nothing is opened yet)
     // we open up the URL target and put it into foreground
     if (should_load_target_url()) {
-      require("./history").load_target((window as any).cocalc_target, true);
-      (window as any).cocalc_target = "";
+      load_target(target, true);
     }
   }
 
   private async init_local_storage(): Promise<void> {
     if (this.name) {
-      const prefix = APP_BASE_URL ? `.${APP_BASE_URL}` : "";
+      const prefix =
+        window.app_base_path.length > 1 ? `.${window.app_base_path}` : "";
       const postfix = `${webapp_client.account_id}.${this.name}`;
       this._local_storage_name = new LS.CustomKey(
         `session${prefix}.${postfix}`

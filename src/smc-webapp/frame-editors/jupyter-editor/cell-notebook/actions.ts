@@ -14,14 +14,14 @@ import {
 } from "smc-util/misc";
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
-import { create_key_handler } from "../../../jupyter/keyboard";
-import { JupyterActions } from "../../../jupyter/browser-actions";
-import { move_selected_cells } from "../../../jupyter/cell-utils";
-require("../../../jupyter/types");
-import { CellType, Scroll, ViewMode } from "../../../jupyter/types";
-import { commands, CommandDescription } from "../../../jupyter/commands";
+import { create_key_handler } from "smc-webapp/jupyter/keyboard";
+import { JupyterActions } from "smc-webapp/jupyter/browser-actions";
+import { move_selected_cells } from "smc-webapp/jupyter/cell-utils";
+require("smc-webapp/jupyter/types");
+import { CellType, Scroll } from "smc-webapp/jupyter/types";
+import { commands, CommandDescription } from "smc-webapp/jupyter/commands";
 
-import { EditorFunctions } from "../../../jupyter/codemirror-editor";
+import { EditorFunctions } from "smc-webapp/jupyter/codemirror-editor";
 
 import { isEqual } from "lodash";
 
@@ -881,13 +881,6 @@ export class NotebookFrameActions {
       this.store.get_selected_cell_ids_list(),
       property
     );
-  }
-
-  public set_view_mode(view_mode: ViewMode): void {
-    this.setState({ view_mode });
-    if (view_mode === "raw") {
-      this.jupyter_actions.set_raw_ipynb();
-    }
   }
 
   public zoom(delta: -1 | 1): void {

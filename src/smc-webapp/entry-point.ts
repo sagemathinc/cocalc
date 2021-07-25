@@ -7,7 +7,7 @@
  * Global app initialization
  */
 
-import * as fullscreen from "./fullscreen";
+import { COCALC_MINIMAL } from "./fullscreen";
 
 // Load/initialize Redux-based react functionality
 import { redux } from "./app-framework";
@@ -26,24 +26,17 @@ import "./jquery-plugins";
 import "./process-links";
 
 // Initialize app stores, actions, etc.
-import { init as account_init } from "./account";
-import { init as app_init } from "./app/init";
-import { init as projects_init } from "./projects";
-
-import { init as custom_software_init } from "./custom-software/init";
-
-import { init as file_use_init } from "./file-use/init";
-
-import { init as webapp_hooks_init } from "./webapp-hooks";
-
-import { init as notifications_init } from "./notifications/init";
-
-import { init as markdown_init } from "./widget-markdown-input/main";
-
+import { init as initAccount } from "./account";
+import { init as initApp } from "./app/init";
+import { init as initProjects } from "./projects";
+import { init as initCustomSoftware } from "./custom-software/init";
+import { init as initFileUse } from "./file-use/init";
+import { init as initWebHooks } from "./webapp-hooks";
+import { init as initNotifications } from "./notifications/init";
+import { init as initMarkdown } from "./widget-markdown-input/main";
 // only enable iframe comms in minimal kiosk mode
-import { init as iframe_comm_init } from "./iframe-communication";
-
-import { init as init_crash_banner } from "./crash-banner";
+import { init as initIframeComm } from "./iframe-communication";
+import { init as initCrashBanner } from "./crash-banner";
 
 // Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
 // This import of codemirror is force the initial full load of codemirror as part of the
@@ -51,31 +44,31 @@ import { init as init_crash_banner } from "./crash-banner";
 import "codemirror";
 
 // Should be loaded last
-import { init as init_last } from "./last";
+import { init as initLast } from "./last";
 
 import { render } from "./app/render";
 
 export async function init() {
-  account_init(redux);
-  app_init();
-  projects_init();
-  custom_software_init();
-  file_use_init();
-  webapp_hooks_init();
-  if (!fullscreen.COCALC_MINIMAL) {
-    notifications_init(redux);
+  initAccount(redux);
+  initApp();
+  initProjects();
+  initCustomSoftware();
+  initFileUse();
+  initWebHooks();
+  if (!COCALC_MINIMAL) {
+    initNotifications(redux);
   }
-  markdown_init();
-  if (fullscreen.COCALC_MINIMAL) {
-    iframe_comm_init();
+  initMarkdown();
+  if (COCALC_MINIMAL) {
+    initIframeComm();
   }
   $(window).on("beforeunload", redux.getActions("page").check_unload);
-  init_last();
+  initLast();
   try {
     await render();
   } finally {
     // don't insert the crash banner until the main app has rendered,
     // or user would see the banner for a moment.
-    init_crash_banner();
+    initCrashBanner();
   }
 }

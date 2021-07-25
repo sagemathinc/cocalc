@@ -136,8 +136,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             idle_timeout_s : undefined   # TODO: currently ignored
             cb       : undefined
         if @is_standby
-            opts.cb?("synctable against standby database not allowed")
-            return
+            err = "synctable against standby database not allowed"
+            if opts.cb?
+                opts.cb(err)
+                return
+            else
+                throw Error(err)
         return new SyncTable(@, opts.table, opts.columns, opts.where, opts.where_function, opts.limit, opts.order_by, opts.cb)
 
     changefeed: (opts) =>

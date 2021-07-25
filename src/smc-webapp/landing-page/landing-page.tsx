@@ -10,7 +10,7 @@ The Landing Page
 import * as immutable from "immutable";
 import { Component, rclass, React, rtypes, Rendered } from "../app-framework";
 import { Row, Col, Alert } from "../antd-bootstrap";
-import { UNIT } from "../r_misc";
+import { A, UNIT } from "../r_misc";
 import { SiteDescription, Footer } from "../customize";
 import { SignUp } from "./sign-up";
 import { SignIn } from "./sign-in";
@@ -31,9 +31,6 @@ import { PassportStrategy } from "../account/passport-types";
 import { capitalize } from "smc-util/misc";
 import { COLORS, DOC_URL } from "smc-util/theme";
 import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
-
-// Load whether or not a registration token is required.
-import "./registration";
 
 const DESC_FONT = "sans-serif";
 
@@ -157,7 +154,7 @@ class LandingPage extends Component<Props & reduxProps, State> {
 
     return (
       <div>
-        Questions? Create a <ShowSupportLink />.
+        Questions? Create <ShowSupportLink />
       </div>
     );
   }
@@ -400,15 +397,21 @@ class LandingPage extends Component<Props & reduxProps, State> {
             <div style={{ color: COLORS.GRAY, marginTop: "5px" }}>
               <RunAnonymously show_terms={this.state.show_terms} />
               <br />
-              {this.render_support()}
-              <br />
-              {!this.props.get_api_key ? (
-                <div>
-                  <a href={DOC_URL} target="_blank" rel="noopener">
-                    Learn more about CoCalc...
-                  </a>
-                </div>
-              ) : undefined}
+              <div style={{ textAlign: "center" }}>
+                {this.render_support()}
+                <br />
+                {!this.props.get_api_key ? (
+                  <div>
+                    <A href={DOC_URL}>CoCalc documentation</A>
+                  </div>
+                ) : undefined}
+                <br />
+                {!this.props.get_api_key ? (
+                  <div>
+                    <a href={window.app_base_path}>Landing page</a>
+                  </div>
+                ) : undefined}
+              </div>
             </div>
           </Col>
         </Row>

@@ -18,12 +18,12 @@ import {
   Form,
   DatePicker,
   InputNumber,
-  Button as AntdButton,
   Input,
   Popconfirm,
   Table,
   Switch,
 } from "antd";
+import * as antd from "antd";
 import { Alert } from "../antd-bootstrap";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { ErrorDisplay, Saving, Icon } from "../r_misc";
@@ -44,9 +44,8 @@ interface Token {
 
 function use_registration_tokens() {
   const [data, set_data] = React.useState<{ [key: string]: Token }>({});
-  const [no_or_all_inactive, set_no_or_all_inactive] = React.useState<boolean>(
-    false
-  );
+  const [no_or_all_inactive, set_no_or_all_inactive] =
+    React.useState<boolean>(false);
   const [editing, set_editing] = React.useState<Token | null>(null);
   const [saving, set_saving] = React.useState<boolean>(false);
   const [deleting, set_deleting] = React.useState<boolean>(false);
@@ -310,10 +309,10 @@ export const RegistrationToken: React.FC<{}> = () => {
           <Switch />
         </Form.Item>
         <Form.Item {...tailLayout}>
-          <AntdButton type="primary" htmlType="submit">
+          <antd.Button type="primary" htmlType="submit">
             Save
-          </AntdButton>
-          <AntdButton
+          </antd.Button>
+          <antd.Button
             htmlType="button"
             onClick={() => {
               form.resetFields();
@@ -321,13 +320,13 @@ export const RegistrationToken: React.FC<{}> = () => {
             }}
           >
             Reset
-          </AntdButton>
-          <AntdButton htmlType="button" onClick={() => set_editing(null)}>
+          </antd.Button>
+          <antd.Button htmlType="button" onClick={() => set_editing(null)}>
             Cancel
-          </AntdButton>
-          <AntdButton type="link" onClick={onRandom}>
+          </antd.Button>
+          <antd.Button type="link" onClick={onRandom}>
             Randomize
-          </AntdButton>
+          </antd.Button>
         </Form.Item>
       </Form>
     );
@@ -337,25 +336,25 @@ export const RegistrationToken: React.FC<{}> = () => {
     const any_selected = sel_rows.length > 0;
     return (
       <div style={{ margin: "10px 0" }}>
-        <AntdButton
+        <antd.Button
           type={!any_selected ? "primary" : "default"}
           disabled={any_selected}
           onClick={() => edit_new_token()}
         >
           Add
-        </AntdButton>
+        </antd.Button>
 
-        <AntdButton
+        <antd.Button
           type={any_selected ? "primary" : "default"}
           onClick={delete_tokens}
           disabled={!any_selected}
           loading={deleting}
         >
           {any_selected ? `Delete ${sel_rows.length} token(s)` : "Delete"}
-        </AntdButton>
+        </antd.Button>
 
-        <AntdButton onClick={() => load()}>Refresh</AntdButton>
-        <AntdButton onClick={() => set_show(false)}>Close</AntdButton>
+        <antd.Button onClick={() => load()}>Refresh</antd.Button>
+        <antd.Button onClick={() => set_show(false)}>Close</antd.Button>
       </div>
     );
   }
@@ -542,9 +541,8 @@ export const RegistrationToken: React.FC<{}> = () => {
     if (account_store == null) {
       return <div>Account store not defined -- try again...</div>;
     }
-    const strategies:
-      | List<TypedMap<PassportStrategy>>
-      | undefined = account_store.get("strategies");
+    const strategies: List<TypedMap<PassportStrategy>> | undefined =
+      account_store.get("strategies");
     if (strategies == null) {
       // I hit this in production once and it crashed my browser.
       return <div>strategies not loaded -- try again...</div>;

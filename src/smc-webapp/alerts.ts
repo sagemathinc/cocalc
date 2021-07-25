@@ -112,8 +112,3 @@ alert_message({ type: "warning", message: "This is a warning alert" });
 alert_message({ type: "success", message: "This is a success alert" });
 alert_message({ type: "info", message: "This is an info alert" });
 */
-
-// Make it so alert_message can be used by user code, e.g., in sage worksheets and Jupyter notebooks.
-if (window !== null) {
-  (window as any).alert_message = alert_message;
-}

@@ -1,4 +1,4 @@
-import useInterval from "use-interval";
+import { useInterval } from 'react-interval-hook';
 import { debounce } from "lodash";
 
 import {

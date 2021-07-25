@@ -19,16 +19,13 @@ import Cookies from "universal-cookie";
 const cookies = new Cookies();
 
 import { version } from "smc-util/smc-version";
-import { APP_BASE_URL } from "./misc/base-url";
-import { VERSION_COOKIE_NAME } from "smc-util/consts";
+import { versionCookieName } from "smc-util/consts";
 
 // We don't really want this cookie to expire.  All it does is record the version of
-// the code the client has loaded, and the version only goes up.
+// the code the client has loaded, and the version only goes up.  It does not provide
+// any form of authentication.
 const days = 300;
 const future = new Date(new Date().getTime() + days * 24 * 60 * 60 * 1000);
 const opts = { expires: future, path: "/", secure: true, sameSite: "none" };
-const NAME = `${encodeURIComponent(APP_BASE_URL)}${VERSION_COOKIE_NAME}`;
-cookies.set(`${NAME}`, version, opts);
-// fallback legacy cookie -- https://web.dev/samesite-cookie-recipes/
-const opts_leg = { expires: future, path: "/", secure: true };
-cookies.set(`${NAME}-legacy`, version, opts_leg);
+const NAME = versionCookieName(window.app_base_path);
+cookies.set(NAME, version, opts);

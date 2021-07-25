@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+
 import {
   React,
   useTypedRedux,
@@ -19,12 +20,11 @@ import {
   TimeAgo,
   LabeledRow,
   TimeElapsed,
-  Space,
   Icon,
   SettingBox,
 } from "../../r_misc";
 import { COLORS } from "smc-util/theme";
-import { Space as AntdSpace } from "antd";
+import { Space } from "antd";
 import {
   CUSTOM_SOFTWARE_HELP_URL,
   compute_image2name,
@@ -133,25 +133,25 @@ export const ProjectControl = rclass<ReactProps>(
 
     render_stop_button(commands): Rendered {
       return (
-        <AntdSpace>
+        <Space>
           {" "}
           <StopProject
             project_id={this.props.project.get("project_id")}
             disabled={!commands.includes("stop")}
           />
-        </AntdSpace>
+        </Space>
       );
     }
 
     render_restart_button(commands): Rendered {
       return (
-        <AntdSpace>
+        <Space>
           {" "}
           <RestartProject
             project_id={this.props.project.get("project_id")}
             disabled={!commands.includes("start") && !commands.includes("stop")}
           />{" "}
-        </AntdSpace>
+        </Space>
       );
     }
 
@@ -317,7 +317,7 @@ export const ProjectControl = rclass<ReactProps>(
             <SoftwareImageDisplay
               image={this.props.project.get("compute_image")}
             />
-            <Space />
+            &nbsp;
             <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
               <br /> You cannot change a custom software image. Instead, create
               a new project and select it there.{" "}
@@ -374,7 +374,7 @@ export const ProjectControl = rclass<ReactProps>(
               >
                 Save and Restart
               </Button>
-              <Space />
+              &nbsp;
               <Button onClick={() => this.cancel_compute_image(current_image)}>
                 Cancel
               </Button>

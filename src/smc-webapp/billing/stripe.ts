@@ -3,9 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { callback } from "awaiting";
 import { redux } from "../app-framework";
 import { BillingStore } from "./store";
+
+declare global {
+  interface Window {
+    Stripe: any;
+  }
+}
+
+declare var $: any;
 
 export interface Stripe {
   elements: Function;
@@ -17,18 +24,15 @@ export interface StripeCard {
 }
 
 let stripe: Stripe | undefined = undefined;
-export async function load_stripe(): Promise<Stripe> {
+export async function loadStripe(): Promise<Stripe> {
   if (stripe != null) return stripe;
-  function f(cb: Function) {
-    (window as any).$.getScript("https://js.stripe.com/v3/")
-      .done(cb)
-      .fail(() =>
-        cb(
-          "Unable to load Stripe payment support; make sure your browser is not blocking https://js.stripe.com/v3/"
-        )
-      );
+  try {
+    await $.getScript("https://js.stripe.com/v3/");
+  } catch (err) {
+    throw Error(
+      `Unable to load Stripe payment support; make sure your browser is not blocking https://js.stripe.com/v3/ -- ${err}`
+    );
   }
-  await callback(f);
   const store: BillingStore = redux.getStore("billing");
   if (store == null) {
     throw Error("billing store not initialized");
@@ -37,5 +41,5 @@ export async function load_stripe(): Promise<Stripe> {
   if (!key) {
     throw Error("stripe not configured -- publishable key not known");
   }
-  return (stripe = (window as any).Stripe(key));
+  return (stripe = window.Stripe(key));
 }

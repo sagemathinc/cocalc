@@ -822,31 +822,7 @@ export function commands(
       f: () => jupyter_actions.undo(),
     },
 
-    /*
-    "user interface tour": {
-      // TODO
-      m: "User interface tour"
-    },*/
-
-    /* "view notebook normal": {
-      m: "View notebook as cells (normal)",
-      menu: "Cells (normal)",
-      f: () => frame_actions.set_view_mode("normal")
-    },
-
-    "view notebook json": {
-      m: "View notebook object browser",
-      menu: "Object browser",
-      f: () => frame_actions.set_view_mode("json")
-    },
-
-    "view notebook raw": {
-      m: "View notebook as raw .ipynb (file)",
-      menu: "Raw .ipynb (file)",
-      f: () => frame_actions.set_view_mode("raw")
-    },*/
-
-    "zoom in": {
+    "zoom in" : {
       m: "Zoom in",
       k: [{ ctrl: true, shift: true, which: 190 }],
       f: () => frame_actions.zoom(1),

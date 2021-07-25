@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { join } from "path";
 import * as React from "react";
 import { List } from "immutable";
 import { capitalize } from "smc-util/misc";
@@ -136,7 +137,7 @@ export class Passports extends React.Component<Props> {
   private strategy_url(name: string): string {
     let url = "";
     if (!this.props.disabled) {
-      url = `${window.app_base_url}/auth/${name}`;
+      url = join(window.app_base_path, "auth", name);
       if (this.props.get_api_key) {
         url += `?get_api_key=${this.props.get_api_key}`;
       }

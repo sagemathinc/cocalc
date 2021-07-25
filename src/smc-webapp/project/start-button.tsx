@@ -98,8 +98,9 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
 
   function render_start_project_button() {
     const enabled =
-      allow_project_to_run(project_id) &&
-      ["opened", "closed", "archived"].includes(state?.get("state"));
+      state == null ||
+      (allow_project_to_run(project_id) &&
+        ["opened", "closed", "archived"].includes(state?.get("state")));
     return (
       <div>
         <Button
@@ -110,11 +111,7 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
             redux.getActions("projects").start_project(project_id);
           }}
         >
-          {starting ? (
-            <Icon name="cocalc-ring" spin />
-          ) : (
-            <Icon name="play" />
-          )}
+          {starting ? <Icon name="cocalc-ring" spin /> : <Icon name="play" />}
           <Space /> <Space /> Start{starting ? "ing" : ""} project
         </Button>
       </div>

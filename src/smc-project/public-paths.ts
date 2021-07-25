@@ -14,8 +14,10 @@ import { lstat } from "fs";
 import { execFile } from "child_process";
 import { callback, delay } from "awaiting";
 
-export function monitor(client) {
-  return new MonitorPublicPaths(client);
+let monitor: MonitorPublicPaths | undefined = undefined;
+export default function init() {
+  if (monitor !== undefined) return;
+  monitor = new MonitorPublicPaths();
 }
 
 interface Client {
@@ -29,8 +31,11 @@ class MonitorPublicPaths {
   private client: Client;
   private table: any;
 
-  constructor(client: Client) {
-    this.client = client;
+  constructor() {
+    this.client = require("./client").client;
+    if (this.client == null) {
+      throw Error("client must have been initialized first");
+    }
     if (process.env.COCALC_EPHEMERAL_STATE === "yes") {
       // nothing to do -- can't do anything with public paths if can't write to db.
       return;

@@ -322,9 +322,10 @@ export class CourseStore extends Store<CourseState> {
   // if one is known in a full version of the name.
   // This is purely meant to provide a bit of extra info
   // for the instructor, and not actually used to send emails.
-  public get_student_name_extra(
-    student_id: string
-  ): { simple: string; full: string } {
+  public get_student_name_extra(student_id: string): {
+    simple: string;
+    full: string;
+  } {
     const { student } = this.resolve({ student_id });
     if (student == null) {
       return { simple: "Unknown", full: "Unknown Student" };

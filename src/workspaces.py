@@ -15,7 +15,8 @@ import argparse, os, shutil, subprocess, sys, time
 
 # Unfortunately some parts of the build assume these are defined.  So for
 # now we define them.
-os.environ['SALVUS_ROOT'] = os.environ['SMC_ROOT'] = os.path.abspath(os.path.dirname(__file__))
+os.environ['SALVUS_ROOT'] = os.environ['SMC_ROOT'] = os.path.abspath(
+    os.path.dirname(__file__))
 
 
 def handle_path(s, path=None, verbose=True):
@@ -61,16 +62,16 @@ def thread_map(callable, inputs, nb_threads=10):
 
 
 def matches(package, packages):
-    if not packages: return True
+    if not packages and not exclude: return True
     name = package.split('/')[-1]
-    for term in packages.split(','):
-        if term in name:
+    for pkg in packages.split(','):
+        if pkg == name:
             return True
     return False
 
 
 def packages(args):
-    # Compute the packages.  Explicit order in some cases *does* matter as noted in comments.
+    # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments.
     v = [
         'packages/cdn',  # smc-hub assumes this is built
         'smc-util',
@@ -84,9 +85,19 @@ def packages(args):
         path = os.path.join("packages", x)
         if path not in v and os.path.isdir(path):
             v.append(path)
-    p = [x for x in v if matches(x, args.packages)]
-    print("Packages: ", ', '.join(p))
-    return p
+
+    # Filter to only the ones in packages (if given)
+    if args.packages:
+        packages = set(args.packages.split(','))
+        v = [x for x in v if x.split('/')[-1] in packages]
+
+    # Only take things not in exclude
+    if args.exclude:
+        exclude = set(args.exclude.split(','))
+        v = [x for x in v if x.split('/')[-1] not in exclude]
+
+    print("Packages: ", ', '.join(v))
+    return v
 
 
 def banner(s):
@@ -103,10 +114,6 @@ def ci(args):
 
 
 # Build all the packages.
-# Exception: unless --packages explicitly includes packages/static, we do
-# not build static.  It takes a long time to make the production build, which
-# is the default for "npm run build" there, and is only useful to do when
-# publishing to npm.
 def build(args):
     v = packages(args)
 
@@ -116,10 +123,7 @@ def build(args):
             if os.path.exists(dist):
                 # clear dist/ dir
                 shutil.rmtree(dist)
-        if path == 'packages/static' and 'packages/static' not in args.packages:
-            # special case as documented above.
-            continue
-        cmd("time npm run build", path)
+        cmd("npm run build", path)
 
 
 def clean(args):
@@ -171,7 +175,7 @@ def npm(args):
     v = packages(args)
     inputs = []
     for path in v:
-        s = 'time npm ' + ' '.join(['%s' % x for x in args.args])
+        s = 'npm ' + ' '.join(['%s' % x for x in args.args])
         inputs.append([s, os.path.abspath(path)])
 
     def f(args):
@@ -232,8 +236,11 @@ def publish_package(args, path):
         cmd(f"npm --no-git-tag-version version {args.newversion}", path)
 
     try:
-        # And now publish it.
-        cmd("npm publish", path)
+        # And now publish it:
+        if args.tag:
+            cmd(f"npm publish --tag {args.tag}", path)
+        else:
+            cmd("npm publish", path)
     except:
         print(
             f"Publish failed; you might need to manually revert the version in '{path}/package.json'."
@@ -254,18 +261,40 @@ def diff(args):
 
 
 def publish(args):
+    if not args.newversion:
+        raise RuntimeError(
+            "newversion must be specified (e.g. 'patch', 'minor', 'major')")
     for path in packages(args):
         publish_package(args, path)
 
 
+def node_version_check():
+    version = int(os.popen('node --version').read().split('.')[0][1:])
+    if version < 14:
+        err = f"CoCalc requires node.js v14, but you're using node v{version}."
+        if os.environ.get("COCALC_USERNAME",
+                          '') == 'user' and 'COCALC_PROJECT_ID' in os.environ:
+            err += '\nIf you are using https://cocalc.com, put ". /cocalc/nvm/nvm.sh" in ~/.bashrc\nto get an appropriate version of node.'
+        raise RuntimeError(err)
+
+
 def main():
+    node_version_check()
+
     def packages_arg(parser):
         parser.add_argument(
             '--packages',
             type=str,
             default='',
             help=
-            '(default: everything) "foo,bar" matches only packages with "foo" or "bar" in  their name'
+            '(default: ""=everything) "foo,bar" means only the packages named foo and bar'
+        )
+        parser.add_argument(
+            '--exclude',
+            type=str,
+            default='',
+            help=
+            '(default: ""=exclude nothing) "foo,bar" means exclude foo and bar'
         )
 
     parser = argparse.ArgumentParser(prog='workspaces')
@@ -332,7 +361,13 @@ def main():
         'publish', help='update version, commit git repo, and publish to npm')
     packages_arg(subparser)
     subparser.add_argument(
-        "newversion",
+        "--tag",
+        type=str,
+        help=
+        "Registers the published package with the given tag, such that npm install <name>@<tag> will install this version."
+    )
+    subparser.add_argument(
+        "--newversion",
         type=str,
         help=
         "major | minor | patch | premajor | preminor | prepatch | prerelease")

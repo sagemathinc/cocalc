@@ -17,68 +17,38 @@ const MAX_REQUESTS_PER_MINUTE = 50;
 import * as express from "express";
 import { writeFile } from "fs";
 import { callback } from "awaiting";
+import { once } from "smc-util/async-utils";
 import { endswith, split, meta_file } from "smc-util/misc";
 import { json, urlencoded } from "body-parser";
 
-const { free_port } = require("smc-util-node/misc_node");
 const { client_db } = require("smc-util/db-schema");
 const RateLimit = require("express-rate-limit");
+import { apiServerPortFile } from "smc-project/data";
+const theClient = require("smc-project/client");
 
-export interface Client {
-  project_id: string;
-  secret_token: string;
-  get_syncdoc_history: (string_id: string, patches: boolean) => Promise<any>;
-  dbg: (name: string) => Function;
-}
-
-interface ServerOpts {
-  client: Client;
-  port?: number;
-  port_path?: string;
-}
-
-export async function start_server(opts: ServerOpts): Promise<void> {
-  const dbg: Function = opts.client.dbg("api_server");
-  const server: express.Application = express();
+export default async function init(): Promise<void> {
+  const client = theClient.client;
+  if (client == null) throw Error("client must be defined");
+  const dbg: Function = client.dbg("api_server");
+  const app: express.Application = express();
 
   dbg("configuring server...");
-  configure(opts, server, dbg);
+  configure(client, app, dbg);
 
-  if (opts.port == null) {
-    dbg("getting free port...");
-    opts.port = await callback(free_port);
-    dbg(`got port=${opts.port}`);
+  const server = app.listen(0, "localhost");
+  await once(server, "listening");
+  const address = server.address();
+  if (address == null || typeof address == "string") {
+    throw Error("failed to assign a port");
   }
+  const { port } = address;
+  dbg(`writing port to file "${apiServerPortFile}"`);
+  await callback(writeFile, apiServerPortFile, `${port}`);
 
-  if (opts.port_path) {
-    dbg(`writing port to file "${opts.port_path}"`);
-    await callback(writeFile, opts.port_path, opts.port+"");
-  }
-
-  // TODO/RANT: I cannot figure out how to catch an error
-  // due to port being taken.  I couldn't find any useful
-  // docs on this.  The callback function doesn't get called
-  // with an error, and there is no "error" event, since
-  // the only event is "mount" --
-  // https://expressjs.com/en/4x/api.html#app.onmount
-  // I wasted way too much time on this.  Googling is also
-  // miserable, since the express api has changed dramatically
-  // so many times.  At least it doesn't hang, and instead
-  // exits the process.
-  function start(cb: Function): void {
-    server.listen(opts.port, () => {
-      cb();
-    });
-  }
-  await callback(start);
-  dbg(`express server successfully listening at http://localhost:${opts.port}`);
+  dbg(`express server successfully listening at http://localhost:${port}`);
 }
 
-function configure(
-  opts: ServerOpts,
-  server: express.Application,
-  dbg: Function
-): void {
+function configure(client, server: express.Application, dbg: Function): void {
   server.use(json({ limit: "3mb" }));
   server.use(urlencoded({ extended: true, limit: "3mb" }));
 
@@ -89,8 +59,8 @@ function configure(
   server.post("/api/v1/*", async (req, res) => {
     dbg(`POST to ${req.path}`);
     try {
-      handle_auth(req, opts.client.secret_token);
-      await handle_post(req, res, opts.client);
+      handle_auth(req, client.secret_token);
+      await handle_post(req, res, client);
     } catch (err) {
       dbg(`failed handling POST ${err}`);
       res.status(400).send({ error: `${err}` });
@@ -139,7 +109,7 @@ function handle_auth(req, secret_token: string): void {
   }
 }
 
-async function handle_post(req, res, client: Client): Promise<void> {
+async function handle_post(req, res, client): Promise<void> {
   const endpoint: string = req.path.slice(req.path.lastIndexOf("/") + 1);
   try {
     switch (endpoint) {
@@ -154,7 +124,7 @@ async function handle_post(req, res, client: Client): Promise<void> {
   }
 }
 
-async function get_syncdoc_history(body, client: Client): Promise<any> {
+async function get_syncdoc_history(body, client): Promise<any> {
   const dbg = client.dbg("get_syncdoc_history");
   let path = body.path;
   dbg(`path="${path}"`);

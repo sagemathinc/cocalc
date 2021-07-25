@@ -3,16 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { join } from "path";
 import * as React from "react";
-
-// smc-util/theme is set in ./render.coffee
-
-import { DOMAIN_NAME } from "smc-util/theme";
+import { DOMAIN_URL} from "smc-util/theme";
 import { BASE_URL as DEFAULT_BASE_URL } from "smc-webapp/misc/base-url";
 import { SiteName, PolicyPricingPageUrl } from "../customize";
 import { IconName } from "smc-webapp/r_misc/icon";
 
-const BASE_URL = global["BACKEND"] ? DOMAIN_NAME : DEFAULT_BASE_URL;
+const BASE_URL = global["BACKEND"] ? DOMAIN_URL : DEFAULT_BASE_URL;
 
 import {
   HELP_EMAIL,
@@ -130,7 +128,7 @@ export const CONNECT_LINKS : Links = {
   },
   share: {
     icon: "bullhorn",
-    href: `${BASE_URL}/share`,
+    href: join(BASE_URL, 'share'),
     link: "Shared public files",
   },
   support_mailing_list: {
@@ -282,7 +280,7 @@ export const ABOUT_LINKS : Links = {
   legal: {
     icon: "files",
     link: "Terms of Service, Pricing, Copyright and Privacy policies",
-    href: `${BASE_URL}/policies/index.html`,
+    href: join(BASE_URL, "policies/index.html"),
   },
   developers: {
     icon: "keyboard",

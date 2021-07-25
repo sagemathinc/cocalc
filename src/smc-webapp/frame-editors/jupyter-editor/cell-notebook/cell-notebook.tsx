@@ -61,7 +61,6 @@ export class CellNotebook extends Component<Props, {}> {
         scroll={this.data("scroll")}
         scrollTop={this.data("scrollTop")}
         hook_offset={this.data("hook_offset")}
-        view_mode={this.data("view_mode", "normal")}
       />
     );
   }

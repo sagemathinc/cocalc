@@ -47,7 +47,7 @@ export class PasswordReset extends Component<Props, State> {
       return;
     }
     if (!this.mounted) return;
-    link = `${document.location.origin}${window.app_base_url}${link}`;
+    link = `${document.location.origin}${window.app_base_path}${link}`;
     this.setState({ link, running: false });
   }
 

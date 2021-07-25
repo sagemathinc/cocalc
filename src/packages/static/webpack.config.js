@@ -65,16 +65,10 @@ const BUILD_DATE = date.toISOString();
 const BUILD_TS = date.getTime();
 const COCALC_NOCLEAN = !!process.env.COCALC_NOCLEAN;
 
-// The regexp removes the trailing slash, if there is one.
-const BASE_URL = (
-  process.env.COCALC_BASE_URL ? process.env.COCALC_BASE_URL : misc_node.BASE_URL
-).replace(/\/$/, "");
-
 // output build environment variables of webpack
 console.log(`SMC_VERSION         = ${SMC_VERSION}`);
 console.log(`COCALC_GIT_REVISION = ${COCALC_GIT_REVISION}`);
 console.log(`NODE_ENV            = ${NODE_ENV}`);
-console.log(`BASE_URL            = ${BASE_URL}`);
 console.log(`MEASURE             = ${MEASURE}`);
 console.log(`OUTPUT              = ${OUTPUT}`);
 console.log(`COCALC_NOCLEAN      = ${COCALC_NOCLEAN}`);
@@ -104,44 +98,36 @@ if (!COCALC_NOCLEAN) {
 
 require("./src/plugins/app-loader")(registerPlugin, PRODMODE, TITLE);
 
-const MATHJAX_URL = `${BASE_URL}/cdn/mathjax-${CDN_VERSIONS.mathjax}/MathJax.js`;
-
 require("./src/plugins/define-constants")(registerPlugin, {
-  MATHJAX_URL,
   SMC_VERSION,
   COCALC_GIT_REVISION,
   BUILD_DATE,
   BUILD_TS,
   DEBUG: !PRODMODE,
-  BASE_URL,
   CDN_VERSIONS,
   "process.env": {}, // the util polyfill assumes this is defined.
 });
-
-if (!PRODMODE) {
-  console.log(`\n*************************************************************************************\n
-    https://cocalc.com${BASE_URL}/app
-\n*************************************************************************************\n`);
-}
 
 if (MEASURE) {
   require("./src/plugins/measure")(registerPlugin);
 }
 
+// We always use disk cache now:
+const useDiskCache = true;
+
+// It's critical that the caching filesystem is VERY fast, but
+// it is fine if the data is wiped, so use /tmp.
 const cacheDirectory = "/tmp/webpack";
 
-if (process.env.NO_WEBPACK_DISK_CACHE) {
-  console.log(`\nNOT using filesystem cache.\n`);
+if (useDiskCache) {
+  console.log(`\nUsing '${cacheDirectory}' as filesystem cache.\n`);
 } else {
-  console.log(
-    `\nUsing '${cacheDirectory}' as filesystem cache.\n`
-  );
+  console.log(`\nNOT using filesystem cache.\n`);
 }
 
 module.exports = {
-  cache: process.env.NO_WEBPACK_DISK_CACHE
-    ? undefined
-    : {
+  cache: useDiskCache
+    ? {
         // This is supposed to cache the in-memory state to disk
         // so initial startup time is less.  Don't do this in
         // user home directory on cocalc, since it uses a LOT
@@ -151,13 +137,8 @@ module.exports = {
           config: [__filename],
         },
         cacheDirectory,
-      },
-  //stats: "verbose",
-  /* optimization: {
-    splitChunks: {
-      minSize: 30000,
-    },
-  },*/
+      }
+    : undefined,
   devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
   mode: PRODMODE ? "production" : "development",
   entry: {
@@ -170,8 +151,6 @@ module.exports = {
   */
   output: {
     path: OUTPUT,
-    // publicPath is encoded in the static files; they reference it when grabbing more content from server
-    publicPath: BASE_URL + "/static/",
     filename: PRODMODE ? "[name]-[chunkhash].cacheme.js" : "[id].nocache.js",
     chunkFilename: PRODMODE
       ? "[chunkhash].cacheme.js"

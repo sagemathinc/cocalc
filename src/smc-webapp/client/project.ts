@@ -33,6 +33,7 @@ import {
 import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
 import { ensure_project_running } from "../project/project-start-warning";
 import { Configuration, ConfigurationAspect } from "../project_configuration";
+import { join } from "path";
 
 export interface ExecOpts {
   project_id: string;
@@ -56,7 +57,6 @@ export interface ExecOutput {
   time: number; // time in ms, from user point of view.
 }
 export const ExecOutput = null; // webpack + TS es2020 modules need this
-
 
 export class ProjectClient {
   private client: WebappClient;
@@ -92,12 +92,12 @@ export class ProjectClient {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
   }): string {
-    const base = (window as any).app_base_url ?? "";
+    const base_path = window.app_base_path;
     if (opts.path[0] === "/") {
       // absolute path to the root
       opts.path = ".smc/root" + opts.path; // use root symlink, which is created by start_smc
     }
-    return encode_path(`${base}/${opts.project_id}/raw/${opts.path}`);
+    return encode_path(join(base_path, `${opts.project_id}/raw/${opts.path}`));
   }
 
   public async copy_path_between_projects(opts: {
@@ -121,6 +121,7 @@ export class ProjectClient {
     const mesg = is_public
       ? message.copy_public_path_between_projects(opts)
       : message.copy_path_between_projects(opts);
+    mesg.wait_until_done = true; // TODO: our UI only supports this fornow.
 
     await this.client.async_call({
       timeout: opts.timeout,
@@ -276,27 +277,6 @@ export class ProjectClient {
       opts.timeout * 1000
     );
     return { files: listing };
-  }
-
-  public async public_directory_listing(opts: {
-    project_id: string;
-    path: string;
-    time?: boolean;
-    start?: number;
-    limit?: number;
-    timeout?: number;
-    hidden: false;
-  }): Promise<any> {
-    if (opts.start == null) opts.start = 0;
-    if (opts.limit == null) opts.limit = -1;
-    const timeout = opts.timeout;
-    delete opts.timeout;
-    return (
-      await this.client.async_call({
-        message: message.public_get_directory_listing(opts),
-        timeout: timeout ?? 30,
-      })
-    ).result;
   }
 
   public async public_get_text_file(opts: {

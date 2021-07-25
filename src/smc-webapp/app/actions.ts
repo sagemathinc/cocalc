@@ -165,7 +165,7 @@ export class PageActions extends Actions<PageState> {
         }
         set_window_title("Help");
         return;
-      case "file-use":
+      case "file-use": // this doesn't actually get used currently
         if (change_history) {
           set_url("/file-use");
         }

@@ -6,7 +6,6 @@
 // Site Customize -- dynamically customize the look of CoCalc for the client.
 
 import { List } from "immutable";
-
 import { redux, Redux, rclass, rtypes, Store, Actions } from "./app-framework";
 import * as React from "react";
 import {
@@ -17,12 +16,11 @@ import {
   smc_git_rev,
   UNIT,
 } from "./r_misc";
-
-// import { SiteSettings as SiteSettingsConfig } from "smc-util/db-schema/site-defaults";
 import { callback2, retry_until_success } from "smc-util/async-utils";
 import { dict, YEAR } from "smc-util/misc";
 import * as theme from "smc-util/theme";
 import { site_settings_conf } from "smc-util/db-schema/site-defaults";
+import { join } from "path";
 
 export { TermsOfService } from "./customize/terms-of-service";
 
@@ -100,7 +98,7 @@ export interface CustomizeState {
   // we expect this to follow "ISO 3166-1 Alpha 2" + K1 (Tor network) + XX (unknown)
   // use a lib like https://github.com/michaelwittig/node-i18n-iso-countries
   country: string;
-  // flag to signal "global.CUSTOMIZE" was applied
+  // flag to signal data stored in the Store.
   _is_configured: boolean;
 }
 
@@ -119,7 +117,7 @@ export class CustomizeStore extends Store<CustomizeState> {
 
 export class CustomizeActions extends Actions<CustomizeState> {}
 
-const store = redux.createStore("customize", CustomizeStore, defaults);
+export const store = redux.createStore("customize", CustomizeStore, defaults);
 const actions = redux.createActions("customize", CustomizeActions);
 // really simple way to have a default value -- gets changed below once the $?.get returns.
 actions.setState({ is_commercial: true, ssh_gateway: true });
@@ -132,16 +130,14 @@ export let commercial: boolean = defaults.is_commercial;
 // in the future we might want to reload the configuration, though.
 // Note that this *is* clearly used as a fallback below though...!
 async function init_customize() {
-  console.log("load_configuration");
   if (typeof process != "undefined") {
-    console.log("running in node");
     // running in node.js
     return;
   }
   let customize;
   await retry_until_success({
     f: async () => {
-      const url = (window as any).app_base_url + "/customize";
+      const url = join(window.app_base_path, "customize");
       try {
         customize = await (await fetch(url)).json();
       } catch (err) {
@@ -154,9 +150,13 @@ async function init_customize() {
     max_delay: 30000,
   });
 
-  const { configuration, strategies } = customize;
+  const { configuration, registration, strategies } = customize;
   process_customize(configuration);
-  redux.getActions("account").setState({ strategies });
+  const actions = redux.getActions("account");
+  // Which account creation strategies we support.
+  actions.setState({ strategies });
+  // Set whether or not a registration token is required when creating account.
+  actions.setState({ token: !!registration });
 }
 
 init_customize();
@@ -401,9 +401,7 @@ interface AccountCreationEmailInstructionsProps {
 }
 
 const AccountCreationEmailInstructions0 = rclass<{}>(
-  class AccountCreationEmailInstructions extends React.Component<
-    AccountCreationEmailInstructionsProps
-  > {
+  class AccountCreationEmailInstructions extends React.Component<AccountCreationEmailInstructionsProps> {
     public static reduxProps = () => {
       return {
         customize: {
@@ -465,7 +463,9 @@ const FooterElement = rclass<{}>(
         <footer style={style}>
           <hr />
           <Space />
-          <SiteName /> by {orga} &middot;{" "}
+          <a href={window.app_base_path}>
+            <SiteName /> by {orga} &middot;{" "}
+          </a>
           <a target="_blank" rel="noopener" href={TOSurl}>
             Terms of Service
           </a>{" "}
@@ -488,17 +488,26 @@ export function Footer() {
 // first step of centralizing these URLs in one place → collecting all such pages into one
 // react-class with a 'type' prop is the next step (TODO)
 // then consolidate this with the existing site-settings database (e.g. TOS above is one fixed HTML string with an anchor)
-let app_base_url = "";
+let app_base_path = "/";
 try {
-  app_base_url = (window as any).app_base_url || ""; // fallback for react-static
+  app_base_path = (window as any).app_base_path || "/"; // fallback for react-static
 } catch (_err) {
   // would fail on backend where window not defined.
 }
-export const PolicyIndexPageUrl = app_base_url + "/policies/index.html";
-export const PolicyPricingPageUrl = app_base_url + "/policies/pricing.html";
-export const PolicyPrivacyPageUrl = app_base_url + "/policies/privacy.html";
-export const PolicyCopyrightPageUrl = app_base_url + "/policies/copyright.html";
-export const PolicyTOSPageUrl = app_base_url + "/policies/terms.html";
+export const PolicyIndexPageUrl = join(app_base_path, "policies/index.html");
+export const PolicyPricingPageUrl = join(
+  app_base_path,
+  "policies/pricing.html"
+);
+export const PolicyPrivacyPageUrl = join(
+  app_base_path,
+  "policies/privacy.html"
+);
+export const PolicyCopyrightPageUrl = join(
+  app_base_path,
+  "policies/copyright.html"
+);
+export const PolicyTOSPageUrl = join(app_base_path, "policies/terms.html");
 
 import { gtag_id } from "smc-util/theme";
 async function init_analytics() {
@@ -533,7 +542,7 @@ async function init_analytics() {
 
   // 2. CoCalc analytics
   const ctag = w.document.createElement("script");
-  ctag.src = `${w.app_base_url}/analytics.js?fqd=false`;
+  ctag.src = join(w.app_base_path, "analytics.js?fqd=false");
   ctag.async = true;
   ctag.defer = true;
   w.document.getElementsByTagName("head")[0].appendChild(ctag);

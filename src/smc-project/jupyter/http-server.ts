@@ -11,6 +11,7 @@ kernels, sending signals, doing tab completions, and so on.
 */
 
 import * as os_path from "path";
+import { Router } from "express";
 import { exists } from "./async-utils-node";
 import { blob_store } from "./jupyter-blobs-sqlite";
 import { get_kernel_data } from "./kernel-data";
@@ -63,9 +64,9 @@ function jupyter_kernel_info_handler(router): void {
   });
 }
 
-export function jupyter_router(express): any {
+export default function init(): Router {
   // Install handling for the blob store
-  const router = blob_store.express_router(BASE, express);
+  const router: Router = blob_store.express_router(BASE);
 
   // Handler for Jupyter kernel info
   jupyter_kernel_info_handler(router);

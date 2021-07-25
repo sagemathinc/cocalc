@@ -11,8 +11,7 @@ import cocalc_word from "./cocalc-word.svg";
 import cocalc_circle from "./cocalc-circle.svg";
 // @ts-ignore
 import "./startup-banner.css";
-
-declare const BASE_URL: string; // defined via webpack
+import { join } from "path";
 
 export default function StartupBanner() {
   // The hook business below loads the custom logo via the customize
@@ -26,7 +25,7 @@ export default function StartupBanner() {
       let logo: string | undefined = undefined;
       try {
         // check for a custom logo
-        logo = (await (await fetch(`${BASE_URL}/customize`)).json())
+        logo = (await (await fetch(join(window.app_base_path, "customize"))).json())
           ?.configuration?.logo_rectangular;
       } catch (err) {
         console.log("WARNING: problem loading customize data", err);

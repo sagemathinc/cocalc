@@ -29,16 +29,9 @@ export {
 import { React, Rendered } from "./app-framework";
 import { r_join, Space } from "./r_misc";
 
-import {
-  Button as AntdButton,
-  Card as AntdCard,
-  Checkbox as AntdCheckbox,
-  Row as AntdRow,
-  Col as AntdCol,
-  Tabs as AntdTabs,
-  Modal as AntdModal,
-  Alert as AntdAlert,
-} from "antd";
+// Workaround a webpack (or typescript) bug and also
+// avoid importing all of antd (just what we need).
+import * as antd from "antd";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
 // only four in antd, and it we can't automatically collapse them down in a meaningful
@@ -124,7 +117,7 @@ function parse_bsStyle(props: {
   return { type, style, danger, ghost, loading };
 }
 
-export function Button(props: {
+export const Button = (props: {
   bsStyle?: ButtonStyle;
   bsSize?: ButtonSize;
   style?: React.CSSProperties;
@@ -139,7 +132,7 @@ export function Button(props: {
   tabIndex?: number;
   active?: boolean;
   id?: string;
-}) {
+}) => {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
   const { type, style, danger, ghost, loading } = parse_bsStyle(props);
@@ -156,7 +149,7 @@ export function Button(props: {
     style.boxShadow = "inset 0 3px 5px rgb(0 0 0 / 13%)";
   }
   return (
-    <AntdButton
+    <antd.Button
       onClick={props.onClick}
       type={type}
       disabled={props.disabled}
@@ -173,16 +166,16 @@ export function Button(props: {
       id={props.id}
     >
       <>{props.children}</>
-    </AntdButton>
+    </antd.Button>
   );
-}
+};
 
 export function ButtonGroup(props: {
   style?: React.CSSProperties;
   children?: any;
 }) {
   return (
-    <AntdButton.Group style={props.style}>{props.children}</AntdButton.Group>
+    <antd.Button.Group style={props.style}>{props.children}</antd.Button.Group>
   );
 }
 
@@ -225,14 +218,14 @@ export function Well(props: {
     ...props.style,
   };
   return (
-    <AntdCard
+    <antd.Card
       style={style}
       className={props.className}
       onDoubleClick={props.onDoubleClick}
       onMouseDown={props.onMouseDown}
     >
       {props.children}
-    </AntdCard>
+    </antd.Card>
   );
 }
 
@@ -246,7 +239,7 @@ export function Checkbox(props: {
 }) {
   const style: React.CSSProperties = props.style != null ? props.style : {};
   if (style.fontWeight == null) {
-    // Antd checkbox uses the label DOM element, and bootstrap css
+    // antd. checkbox uses the label DOM element, and bootstrap css
     // changes the weight of that DOM element to 700, which is
     // really ugly and conflicts with the antd design style. So
     // we manualy change it back here.  This will go away if/when
@@ -257,7 +250,7 @@ export function Checkbox(props: {
   // has that margin.
   return (
     <div style={{ margin: "10px 0" }}>
-      <AntdCheckbox
+      <antd.Checkbox
         autoFocus={props.autoFocus}
         checked={props.checked}
         disabled={props.disabled}
@@ -265,14 +258,14 @@ export function Checkbox(props: {
         onChange={props.onChange}
       >
         {props.children}
-      </AntdCheckbox>
+      </antd.Checkbox>
     </div>
   );
 }
 
 export function Row(props: any) {
   props = { ...{ gutter: 16 }, ...props };
-  return <AntdRow {...props}>{props.children}</AntdRow>;
+  return <antd.Row {...props}>{props.children}</antd.Row>;
 }
 
 export function Col(props: {
@@ -307,7 +300,7 @@ export function Col(props: {
   for (const p of ["className", "onClick", "style"]) {
     props2[p] = props[p];
   }
-  return <AntdCol {...props2}>{props.children}</AntdCol>;
+  return <antd.Col {...props2}>{props.children}</antd.Col>;
 }
 
 export function Tabs(props: {
@@ -333,7 +326,7 @@ export function Tabs(props: {
     tabs = Tab(props.children);
   }
   return (
-    <AntdTabs
+    <antd.Tabs
       activeKey={props.activeKey}
       onChange={props.onSelect}
       animated={props.animation ?? false}
@@ -343,7 +336,7 @@ export function Tabs(props: {
       size={props.size}
     >
       {tabs}
-    </AntdTabs>
+    </antd.Tabs>
   );
 }
 
@@ -369,9 +362,9 @@ export function Tab(props: {
   const style = { ...{ transition: "0s" }, ...props.style };
 
   return (
-    <AntdTabs.TabPane key={props.eventKey} tab={title} style={style}>
+    <antd.Tabs.TabPane key={props.eventKey} tab={title} style={style}>
       {props.children}
-    </AntdTabs.TabPane>
+    </antd.Tabs.TabPane>
   );
 }
 
@@ -381,9 +374,9 @@ export function Modal(props: {
   children?: any;
 }) {
   return (
-    <AntdModal visible={props.show} footer={null} closable={false}>
+    <antd.Modal visible={props.show} footer={null} closable={false}>
       {props.children}
-    </AntdModal>
+    </antd.Modal>
   );
 }
 
@@ -414,7 +407,7 @@ export function Alert(props: {
     type = "success";
   }
   return (
-    <AntdAlert
+    <antd.Alert
       message={props.children}
       type={type}
       style={props.style}
@@ -431,12 +424,12 @@ export function Panel(props: {
 }) {
   const style = { ...{ marginBottom: "20px" }, ...props.style };
   return (
-    <AntdCard
+    <antd.Card
       style={style}
       title={props.header}
       headStyle={{ color: "#333", backgroundColor: "#f5f5f5" }}
     >
       {props.children}
-    </AntdCard>
+    </antd.Card>
   );
 }

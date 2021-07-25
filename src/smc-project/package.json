@@ -1,6 +1,6 @@
 {
   "name": "smc-project",
-  "version": "1.2.2",
+  "version": "1.3.1",
   "description": "CoCalc: project daemon",
   "exports": {
     "./*": "./dist/*.js"
@@ -23,13 +23,15 @@
     "."
   ],
   "dependencies": {
+    "@types/lru-cache": "^5.1.0",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^7.1.0",
     "body-parser": "^1.19.0",
-    "commander": "^2.20.3",
+    "commander": "^7.2.0",
     "compression": "^1.7.4",
+    "daemonize-process": "^3.0.0",
     "debug": "^4.3.1",
     "diskusage": "^1.1.3",
     "enchannel-zmq-backend": "^9.1.23",
@@ -45,19 +47,18 @@
     "jupyter-paths": "^2.0.3",
     "kernelspecs": "^2.0.1",
     "lean-client-js-node": "^1.2.12",
-    "lru-cache": "^5.1.1",
+    "lru-cache": "^6.0.0",
     "mkdirp": "^1.0.4",
     "mocha": "^7.1.2",
-    "node-pty": "^0.9.0",
+    "node-pty": "^0.10.1",
     "pidusage": "^1.2.0",
     "portfinder": "^1.0.28",
     "posix": "^4.2.0",
     "prettier": "^2.1.1",
-    "primus": "^7.3.5",
+    "primus": "^8.0.3",
     "primus-multiplex": "github:STRML/primus-multiplex",
     "primus-responder": "^1.0.4",
     "prom-client": "^13.0.0",
-    "prometheus-gc-stats": "^0.6.2",
     "request": "^2.88.0",
     "serve-index": "^1.9.1",
     "smc-util": "*",
@@ -65,10 +66,10 @@
     "smc-webapp": "*",
     "temp": "^0.9.1",
     "tmp": "0.0.33",
+    "uglify-js": "^3.13.9",
     "underscore": "^1.12.1",
     "uuid": "^8.0.0",
     "which": "^1.3.1",
-    "winston": "^2.4.4",
     "ws": "^6.0.0"
   },
   "devDependencies": {
@@ -77,17 +78,18 @@
     "@types/express": "^4.17.6",
     "@types/jquery": "^3.5.5",
     "@types/mocha": "^5.2.7",
-    "@types/node": "^12.20.14",
+    "@types/node": "^14.17.5",
     "coffeelint": "^2.1.0",
     "coffeescript": "^2.5.1",
-    "typescript": "^4.3.2"
+    "typescript": "^4.3.5"
   },
   "scripts": {
-    "local-hub": "node dist/local_hub.js",
-    "build": "tsc && coffee -m -c -o dist/ .",
-    "test": "npm run testproj && npm run testjup",
-    "testproj": "echo 'TEST PROJECT'; node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
-    "testjup": "echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee"
+    "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' npx cocalc-start-project-server",
+    "build": "npx tsc && npx coffee -m -c -o dist/ .",
+    "tsc": "npx tsc --watch",
+    "old-test": "npm run testproj && npm run testjup",
+    "old-testproj": "echo 'TEST PROJECT'; node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
+    "old-testjup": "echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee"
   },
   "author": "SageMath, Inc.",
   "contributors": [
@@ -103,7 +105,6 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "bin": {
-    "cocalc-start-project-server": "./bin/start-project-server.js",
-    "smc-local-hub": "./bin/smc-local-hub"
+    "cocalc-project": "./bin/cocalc-project.js"
   }
 }

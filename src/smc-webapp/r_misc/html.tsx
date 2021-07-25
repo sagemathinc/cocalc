@@ -45,7 +45,9 @@ export interface Props {
   */
   post_hook?: (any) => void;
 
+  // Highlight a list of words (e.g., search results):
   highlight?: Set<string>;
+
   content_editable?: boolean; // if true, makes rendered HTML contenteditable; otherwise, explicitly set false.
 
   // If true, after any update to component, force reloading of all images.
@@ -61,6 +63,7 @@ export interface Props {
   smc_image_scaling?: boolean;
 
   // if true, highlight some <code class='language-r'> </code> blocks.
+  // this uses a jquery plugin that I wrote that uses codemirror.
   highlight_code?: boolean;
 
   id?: string;
@@ -171,7 +174,7 @@ export const HTML: React.FC<Props> = (props) => {
          from a different subdomain and user can't sign into it,
          so XSS is not an issue.  Note that the sanitizing
          in the else below (on non-share server) is expensive and
-         can crash on "big" documents (e.g., 500K). 
+         can crash on "big" documents (e.g., 500K).
       */
       const elt = $("<div>") as any;
       elt.html(props.value);

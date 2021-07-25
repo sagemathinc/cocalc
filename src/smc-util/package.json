@@ -1,6 +1,6 @@
 {
   "name": "smc-util",
-  "version": "1.2.2",
+  "version": "1.2.7",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
     "./*": "./dist/*.js",
@@ -10,7 +10,8 @@
     "./sync/editor/db": "./dist/sync/editor/db/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npx tsc",
+    "tsc": "npx tsc --watch",
     "testsync": "cd sync && npx jest",
     "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee; cd test && npx jest"
   },
@@ -29,13 +30,10 @@
     "awaiting": "^3.0.0",
     "get-random-values": "^1.2.0",
     "immutable": "^3.8.2",
-    "jest": "^26.6.3",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
-    "nyc": "^15.0.1",
     "prop-types": "^15.7.2",
     "sha1": "^1.1.1",
-    "tsd": "^0.15.1",
     "underscore": "^1.12.1",
     "utility-types": "^3.10.0",
     "uuid": "^8.0.0"
@@ -48,17 +46,20 @@
     "@types/jest": "^26.0.23",
     "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash": "^4.14.165",
-    "@types/node": "^12.20.14",
+    "@types/node": "^14.17.5",
     "coffee-cache": "^1.0.2",
     "coffee-coverage": "^3.0.1",
     "coffeelint": "^2.1.0",
     "coffeescript": "^2.5.1",
     "expect": "^26.6.2",
+    "jest": "^26.6.3",
     "mocha": "^8.4.0",
+    "nyc": "^15.1.0",
     "should": "^7.1.1",
     "should-sinon": "0.0.3",
     "sinon": "^4.5.0",
     "ts-jest": "^26.5.6",
-    "typescript": "^4.3.2"
+    "tsd": "^0.15.1",
+    "typescript": "^4.3.5"
   }
 }

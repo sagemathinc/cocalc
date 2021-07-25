@@ -28,10 +28,10 @@ import { PublicPath } from "smc-webapp/share/public-path";
 import { has_viewer, needs_content } from "smc-webapp/share/file-contents";
 import { DirectoryListing } from "smc-webapp/share/directory-listing";
 import { Author } from "smc-webapp/share/types";
-
 import { get_listing } from "./listing";
 import { redirect_to_directory } from "./util";
 import { HostInfo } from "./public-paths";
+import base_path from "smc-util-node/base-path";
 
 export async function render_public_path(opts: {
   req: any;
@@ -44,7 +44,6 @@ export async function render_public_path(opts: {
   hidden?: boolean;
   sort: string; // e.g., '-mtime' = sort files in reverse by timestamp
   authors: Author[];
-  base_url: string;
   views?: number;
 }): Promise<void> {
   const path_to_file = os_path.join(opts.dir, opts.path);
@@ -98,6 +97,7 @@ export async function render_public_path(opts: {
       viewer: opts.viewer,
       path: opts.path,
       views: opts.views,
+      base_path,
     });
     // NOTE: last true is because we never index directory listings -- instead we want
     // users to find specific files by their content and name
@@ -154,7 +154,7 @@ export async function render_public_path(opts: {
     size: stats.size,
     highlight,
     authors: opts.authors,
-    base_url: opts.base_url,
+    base_path,
     views: opts.views,
   });
   const subtitle = path_to_title(opts.path);
