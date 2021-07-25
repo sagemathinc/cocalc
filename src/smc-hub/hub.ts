@@ -51,6 +51,7 @@ import initHttpServer from "./servers/http";
 import initHttpRedirect from "./servers/http-redirect";
 import initDatabase from "./servers/database";
 import initProjectControl from "./servers/project-control";
+import initIdleTimeout from "./project-control/stop-idle-projects";
 import initVersionServer from "./servers/version";
 import initPrimus from "./servers/primus";
 import initShareServer from "./servers/share";
@@ -188,9 +189,17 @@ async function startServer(): Promise<void> {
     handle_mentions_loop(database);
   }
 
-  // Project control (aka "compute server")
-  winston.info("initializing compute server...");
+  // Project control
+  winston.info("initializing project control...");
   const projectControl = initProjectControl(program);
+
+  if (program.mode != "kucalc" && program.websocketServer) {
+    // We handle idle timeout of projects.
+    // This can be disabled via COCALC_NO_IDLE_TIMEOUT.
+    // This only uses the admin-configurable settings field of projects
+    // in the database and isn't aware of licenses or upgrades.
+    initIdleTimeout(projectControl);
+  }
 
   if (program.websocketServer) {
     // Initialize the version server -- must happen after updating schema
