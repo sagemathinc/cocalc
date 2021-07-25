@@ -104,7 +104,10 @@ export class XpraServer {
     await this._kill_Xvfb();
 
     // Make sure directory for logs and sockets exists.
-    await this.exec({ command: "mkdir", args: ["-p", "/tmp/xpra"] });
+    await this.exec({
+      command: "mkdir",
+      args: ["-p", `/tmp/xpra-${this.project_id}`],
+    });
     // Actually start xpra.
     const XVFB = `/usr/bin/Xvfb +extension Composite -screen 0 ${MAX_WIDTH}x${MAX_HEIGHT}x24+32 -nolisten tcp -noreset`;
     const command = "xpra";
@@ -115,10 +118,10 @@ export class XpraServer {
       //"all",
       "--mdns=no", // disable dynamic dns via avahi
       "--compression_level=1",
-      "--socket-dir=/tmp/xpra",
+      `--socket-dir=/tmp/xpra-${this.project_id}`,
       "--tray=no",
       "--mousewheel=on",
-      "--log-dir=/tmp/xpra",
+      `--log-dir=/tmp/xpra-${this.project_id}`,
       "--clipboard=no" /* we use our own clipboard approach */,
       "--notifications=yes",
       "--no-keyboard-sync" /* see https://xpra.org/trac/wiki/Keyboard */,
@@ -211,7 +214,7 @@ export class XpraServer {
         hostname = `project-${this.project_id}`;
       } // else -- it won't work.
     }
-    return `/tmp/xpra/${hostname}-${this.display}`;
+    return `/tmp/xpra-${this.project_id}/${hostname}-${this.display}`;
   }
 
   async exec(opts: ExecOpts0): Promise<ExecOutput> {
