@@ -268,7 +268,19 @@ def publish(args):
         publish_package(args, path)
 
 
+def node_version_check():
+    version = int(os.popen('node --version').read().split('.')[0][1:])
+    if version < 14:
+        err = f"CoCalc requires node.js v14, but you're using node v{version}."
+        if os.environ.get("COCALC_USERNAME",
+                          '') == 'user' and 'COCALC_PROJECT_ID' in os.environ:
+            err += '\nIf you are using https://cocalc.com, put ". /cocalc/nvm/nvm.sh" in ~/.bashrc\nto get an appropriate version of node.'
+        raise RuntimeError(err)
+
+
 def main():
+    node_version_check()
+
     def packages_arg(parser):
         parser.add_argument(
             '--packages',
