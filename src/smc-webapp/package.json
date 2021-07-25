@@ -133,7 +133,7 @@
     "smc-project": "*",
     "smc-util": "*",
     "superb": "^3.0.0",
-    "three": "^0.78.0",
+    "three": "^0.125.0",
     "timeago": "^1.6.3",
     "underscore": "^1.12.1",
     "universal-cookie": "^4.0.2",
