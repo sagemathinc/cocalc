@@ -4,7 +4,6 @@ let bugCount: number = 0;
 
 export function init() {
   const winston = getLogger("BUG (uncaughtException)");
-  winston.info("initializing bug counting uncaughtException logger");
   process.addListener("uncaughtException", (err) => {
     bugCount += 1;
     const border = `BUG (count=${bugCount}) ****************************************************************************`;

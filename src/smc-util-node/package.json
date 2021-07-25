@@ -23,10 +23,13 @@
   ],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
+    "@types/debug": "^4.1.7",
     "async": "^1.5.2",
+    "debug": "^4.3.2",
     "shell-escape": "^0.2.0",
     "smc-util": "*",
     "sqlite3": "^5.0.2",
+    "supports-color": "^9.0.2",
     "temp": "^0.9.1",
     "underscore": "^1.12.1",
     "winston": "^3.3.3",
