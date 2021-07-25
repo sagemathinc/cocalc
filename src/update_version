@@ -11,7 +11,8 @@ Goto account -> admin site settings -> required browser version
 
 import argparse, os, time
 
-TARGET = os.path.join(os.environ['SALVUS_ROOT'], "smc-util/smc-version.js")
+ROOT = os.path.dirname(os.path.realpath(__file__))
+TARGET = os.path.join(ROOT, "smc-util/smc-version.js")
 
 def write_version_file():
     # Create version file, based on the current time
