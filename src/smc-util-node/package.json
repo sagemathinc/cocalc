@@ -1,6 +1,6 @@
 {
   "name": "smc-util-node",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "CoCalc misc utility functionality that is meant for running on node.js (not in browser)",
   "exports": {
     "./*": "./dist/*.js"
