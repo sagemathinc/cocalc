@@ -1,6 +1,6 @@
 {
   "name": "smc-webapp",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "CoCalc: Collaborative Calculation",
   "exports": {
     "./*": "./dist/*.js",
