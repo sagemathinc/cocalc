@@ -83,7 +83,6 @@ export interface RenderLeafProps {
 }
 export const RenderLeafProps = null; // webpack + TS es2020 modules need this
 
-
 /**
  * `EditableProps` are passed to the `<Editable>` component.
  */
@@ -294,7 +293,17 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
           const [targetRange] = event.getTargetRanges();
 
           if (targetRange) {
-            const range = ReactEditor.toSlateRange(editor, targetRange);
+            let range;
+            try {
+              range = ReactEditor.toSlateRange(editor, targetRange);
+            } catch (err) {
+              console.warn(
+                "WARNING: onDOMBeforeInput -- unable to find SlateRange",
+                targetRange,
+                err
+              );
+              return;
+            }
 
             if (!selection || !Range.equals(selection, range)) {
               Transforms.select(editor, range);
@@ -551,7 +560,17 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               isDOMNode(event.target)
             ) {
               const node = ReactEditor.toSlateNode(editor, event.target);
-              const path = ReactEditor.findPath(editor, node);
+              let path;
+              try {
+                path = ReactEditor.findPath(editor, node);
+              } catch (err) {
+                console.warn(
+                  "WARNING: onClick -- unable to find path to node",
+                  node,
+                  err
+                );
+                return;
+              }
               const start = Editor.start(editor, path);
               const end = Editor.end(editor, path);
 
@@ -674,7 +693,17 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
             ) {
               if (!hasTarget(editor, event.target)) return; // for typescript only
               const node = ReactEditor.toSlateNode(editor, event.target);
-              const path = ReactEditor.findPath(editor, node);
+              let path;
+              try {
+                path = ReactEditor.findPath(editor, node);
+              } catch (err) {
+                console.warn(
+                  "WARNING: onDragStart -- unable to find path to node",
+                  node,
+                  err
+                );
+                return;
+              }
               const voidMatch = Editor.void(editor, { at: path });
 
               // If starting a drag on a void node, make sure it is selected
@@ -708,7 +737,13 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
                 (!IS_SAFARI && event.dataTransfer.files.length > 0)
               ) {
                 event.preventDefault();
-                const range = ReactEditor.findEventRange(editor, event);
+                let range;
+                try {
+                  range = ReactEditor.findEventRange(editor, event);
+                } catch (err) {
+                  console.warn("WARNING: onDrop -- unable to find range", err);
+                  return;
+                }
                 const data = event.dataTransfer;
                 Transforms.select(editor, range);
                 ReactEditor.insertData(editor, data);

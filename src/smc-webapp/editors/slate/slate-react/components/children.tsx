@@ -54,7 +54,7 @@ const Children: React.FC<Props> = React.memo(
     try {
       path = ReactEditor.findPath(editor, node);
     } catch (err) {
-      console.log("WARNING: unable to find path to node", node, err);
+      console.warn("WARNING: unable to find path to node", node, err);
       return <></>;
     }
     const isLeafBlock =

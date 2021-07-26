@@ -15,7 +15,13 @@ const String = (props: {
 }) => {
   const { isLast, leaf, parent, text } = props;
   const editor = useSlateStatic();
-  const path = ReactEditor.findPath(editor, text);
+  let path;
+  try {
+    path = ReactEditor.findPath(editor, text);
+  } catch (err) {
+    console.warn("WARNING: String -- unable to find path to node", text, err);
+    return <ZeroWidthString />;
+  }
   const parentPath = Path.parent(path);
 
   // COMPAT: Render text inside void nodes with a zero-width space.
