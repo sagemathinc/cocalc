@@ -1,6 +1,7 @@
 import * as daemonizeProcess from "daemonize-process";
 import initProgram from "./init-program";
 import initKucalc from "./init-kucalc";
+import { cleanup as cleanupEnvironmentVariables } from "./project-setup";
 const { init: initClient } = require("./client"); // import { Client } from "./client";
 import initInfoJson from "./info-json";
 import initServers from "./servers/init";
@@ -30,7 +31,8 @@ async function main() {
     daemonizeProcess();
   }
   initBugCounter();
-  initKucalc();
+  cleanupEnvironmentVariables();
+  initKucalc();  // must be after cleanupEnvironmentVariables, since this *adds* custom environment variables.
   winston.info("main init function");
   winston.info("initialize INFO.json file");
   await initInfoJson();

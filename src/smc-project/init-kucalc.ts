@@ -10,7 +10,6 @@ export default function init() {
   if (options.kucalc) {
     winston.info("running in kucalc");
     kucalc.IN_KUCALC = true;
-    projectSetup.cleanup();
 
     if (options.testFirewall) {
       kucalc.init_gce_firewall_test(winston);
