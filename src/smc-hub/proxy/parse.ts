@@ -33,6 +33,6 @@ export function parseReq(
   } else {
     throw Error(`unknown type "${type}"`);
   }
-  let key: string = (remember_me ?? "") + project_id + type + port_desc;
+  let key: string = (remember_me ?? "") + project_id + type + port_desc + internal_url;
   return { key, type, project_id, port_desc, internal_url };
 }
