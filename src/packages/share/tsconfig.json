@@ -16,6 +16,7 @@
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    "downlevelIteration": true,
     "jsx": "preserve",
     "outDir": "dist",
     "baseUrl": "."

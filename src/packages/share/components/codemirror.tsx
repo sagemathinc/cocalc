@@ -5,7 +5,8 @@
 
 /* Static codemirror-based renderer. */
 
-import CodeMirrorStatic from "cocalc-codemirror-static";
+
+import CodeMirrorStatic from "@cocalc/codemirror-static";
 import { getExtension } from "lib/util";
 import { codemirrorMode } from "lib/file-extensions";
 

@@ -37,14 +37,29 @@
   "homepage": "https://github.com/sagemathinc/cocalc#readme",
   "private": false,
   "dependencies-comment": "IMPORTANT: we install typescript as a normal dev since it may be needed at runtime due to server settings!!",
+  "workspaces": [
+    "../codemirror-core",
+    "../codemirror-static",
+    "../../smc-util"
+  ],
   "dependencies": {
+    "@cocalc/codemirror-core": "file:../codemirror-core",
+    "@cocalc/codemirror-static": "file:../codemirror-static",
+    "@types/markdown-it": "^12.0.3",
+    "@types/markdown-it-emoji": "^2.0.2",
+    "@types/pg": "^8.6.1",
     "@types/react": "^17.0.14",
     "antd": "^4.16.8",
     "codemirror": "^5.62.2",
     "katex": "^0.13.13",
+    "markdown-it": "^12.1.0",
+    "markdown-it-emoji": "^2.0.0",
+    "markdown-it-front-matter": "^0.2.3",
     "next": "11.0.1",
+    "pg": "^8.6.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
+    "smc-util": "file:../../smc-util",
     "typescript": "^4.3.5"
   },
   "devDependencies": {
