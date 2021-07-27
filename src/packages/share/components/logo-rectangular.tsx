@@ -5,5 +5,7 @@ export default function RectangularLogo({
 }: {
   style: React.CSSProperties;
 }) {
-  return <img src={logoRectangularURL} style={style} />;
+  return (
+    <img src={logoRectangularURL} style={{ ...style, maxWidth: "100%" }} />
+  );
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import SquareLogo from "./logo-square";
 import {
   anonymousSignup,
@@ -9,6 +10,7 @@ import {
 import A from "components/misc/A";
 import { join } from "path";
 import { Layout } from "antd";
+import GoogleSearch from "components/google-search";
 
 const GAP = "32px";
 
@@ -30,6 +32,22 @@ export default function Header() {
       }}
     >
       <SquareLogo style={{ height: "40px", marginRight: GAP }} />
+      <Link href="/">
+        <a style={LinkStyle} title="View files that people have published.">
+          Published Files
+        </a>
+      </Link>
+      <div
+        style={{
+          display: "inline-block",
+          maxWidth: "40ex",
+          verticalAlign: "bottom",
+          marginRight: GAP,
+          marginTop: "10px",
+        }}
+      >
+        <GoogleSearch />
+      </div>{" "}
       {anonymousSignup && (
         <a
           style={LinkStyle}
@@ -57,23 +75,16 @@ export default function Header() {
           Help
         </A>
       )}
-      <A
-        style={LinkStyle}
-        href={join(basePath, "share")}
-        title="View files that people have published."
-      >
-        Published Files
-      </A>
-      <A
+      <a
         style={LinkStyle}
         href="https://doc.cocalc.com"
         title="View the CoCalc documenation."
       >
         Documentation
-      </A>
+      </a>
       <a
         style={LinkStyle}
-        href={join(basePath, "static/app.html")}
+        href={join(basePath, "../static/app.html")}
         title={`Sign in to ${siteName} or create an account.`}
       >
         Sign In

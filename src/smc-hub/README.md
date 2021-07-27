@@ -15,13 +15,7 @@ This is a node.js process that serves _all_ of the following (possibly simultane
 Run the dev server, suitable for use inside a CoCalc project:
 
 ```sh
-npm run dev
-```
-
-Run the hub server for use from cocalc-docker:
-
-```sh
-npm run docker
+npm run hub-project-dev
 ```
 
 ## Using a different BASE\_PATH and PORT

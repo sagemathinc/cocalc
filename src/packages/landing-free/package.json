@@ -36,7 +36,7 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc#readme",
   "private": false,
-  "dependencies-comment": "IMPORTANT: we install typescript as a normal dev since it may be needed at runtime due to server settings!!",
+  "dependencies-comment": "IMPORTANT: we install typescript as a normal dependency since it may be needed at runtime due to server settings changing!!",
   "dependencies": {
     "antd": "^4.16.8",
     "next": "11.0.1",

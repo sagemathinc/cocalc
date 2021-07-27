@@ -71,9 +71,26 @@ export async function getTarget(opts: Options): Promise<{
   }
 
   const project = projectControl(project_id);
-  const state = await project.state();
-  const host = state.ip;
+  let state = await project.state();
+  let host = state.ip;
   dbg(`host=${host}`);
+  if (port_desc == "jupyter" || port_desc == "jupyterlab") {
+    if (host == null || state.state != "running") {
+      // We just start the project.
+      // This is used specifically by Juno, but also makes it
+      // easier to continually use Jupyter/Lab without having
+      // to worry about the cocalc project.
+      dbg(
+        `project not running and jupyter requested, so starting to run ${port_desc}`
+      );
+      await project.start();
+      state = await project.state();
+      host = state.ip;
+    } else {
+      // Touch project so it doesn't idle timeout
+      database.touch_project({ project_id });
+    }
+  }
 
   if (host == null) {
     throw Error("host is undefined -- project not running");
@@ -120,7 +137,8 @@ async function jupyterPort(
   projectControl,
   lab: boolean
 ): Promise<number> {
-  const project = hub_projects.new_project(   // NOT project-control like above...
+  const project = hub_projects.new_project(
+    // NOT project-control like above...
     project_id,
     database,
     projectControl

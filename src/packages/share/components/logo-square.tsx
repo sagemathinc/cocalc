@@ -1,5 +1,5 @@
 import { logoSquareURL } from "lib/customize";
 
 export default function SquareLogo({ style }: { style: React.CSSProperties }) {
-  return <img src={logoSquareURL} style={style} />;
+  return <img src={logoSquareURL} style={{ ...style, maxWidth: "100%" }} />;
 }
