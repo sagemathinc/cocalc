@@ -11,8 +11,8 @@ import Head from "next/head";
 import SiteName from "components/site-name";
 import GoogleSearch from "components/google-search";
 import Analytics from "components/analytics";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
+import Footer from "components/footer";
+import Header from "components/header";
 
 /*
 // The favicon.ico should be this, but it doesn't work
