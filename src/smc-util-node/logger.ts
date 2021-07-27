@@ -1,5 +1,5 @@
 /*
-Deubg logger for any node.js server.
+Debug logger for any node.js server.
 
 There is used both by the hub(s) and project(s).
 
