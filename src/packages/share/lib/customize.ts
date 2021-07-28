@@ -72,3 +72,7 @@ export {
   indexInfo,
   basePath,
 };
+
+// TODO: make configurable, etc.
+const i = basePath.lastIndexOf("/");
+export const applicationURL = basePath.slice(0, i);
