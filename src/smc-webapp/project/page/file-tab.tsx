@@ -18,7 +18,6 @@ import {
   useMemo,
   useRedux,
   useRef,
-  useState,
   useTypedRedux,
 } from "../../app-framework";
 import { path_split, path_to_tab, trunc_left } from "smc-util/misc";
@@ -26,11 +25,12 @@ import { HiddenXS, Icon, Tip } from "../../r_misc";
 import { COLORS } from "smc-util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
 import { IS_SAFARI } from "../../feature";
+import CloseX from "./close-x";
 
 export const FIXED_PROJECT_TABS = {
   files: {
     label: "Files",
-    icon: "folder-open-o",
+    icon: "folder-open",
     tooltip: "Browse files",
     no_anonymous: false,
   },
@@ -71,6 +71,7 @@ export const DEFAULT_FILE_TAB_STYLES = {
   borderRadius: "5px 5px 0px 0px",
   flexShrink: 1,
   overflow: "hidden",
+  padding: 0,
 } as const;
 
 interface Props0 {
@@ -90,7 +91,6 @@ type Props = PropsPath | PropsName;
 export const FileTab: React.FC<Props> = React.memo((props: Props) => {
   const { project_id, path, name, label: label_prop } = props;
   let label = label_prop; // label might be modified in some situations
-  const [x_hovered, set_x_hovered] = useState<boolean>(false);
   const actions = useActions({ project_id });
   const active_project_tab = useTypedRedux(
     { project_id },
@@ -121,9 +121,7 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     ReactDOM.findDOMNode(tab_ref.current)?.children[0].removeAttribute("href");
   });
 
-  function close_file(e) {
-    e.stopPropagation();
-    e.preventDefault();
+  function closeFile() {
     if (path == null || actions == null) return;
     actions.close_tab(path);
   }
@@ -148,7 +146,9 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
   // middle mouse click closes
   function onMouseDown(e) {
     if (e.button === 1) {
-      close_file(e);
+      e.stopPropagation();
+      e.preventDefault();
+      closeFile();
     }
   }
 
@@ -206,26 +206,14 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  const icon_style: React.CSSProperties = { fontSize: "15pt" };
-  if (path != null) {
-    icon_style.fontSize = "10pt";
-  }
-  if (has_activity) {
-    icon_style.color = "orange";
-  }
-
-  const content_style: React.CSSProperties = {
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-  };
-  if (path != null) {
-    content_style.display = "flex";
-  }
+  const icon_style: React.CSSProperties = has_activity
+    ? { color: "orange" }
+    : {};
 
   const label_style: React.CSSProperties = {
-    flex: 1,
-    padding: "0 5px",
     overflow: "hidden",
+    flex: 1 /* expand pushing x to the right */,
+    whiteSpace: "nowrap",
   };
 
   if (label == null) {
@@ -257,14 +245,6 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  const x_button_style: React.CSSProperties = {
-    float: "right",
-    whiteSpace: "nowrap",
-  };
-  if (x_hovered) {
-    x_button_style.color = "lightblue";
-  }
-
   const icon =
     path != null
       ? file_options(path)?.icon ?? "code-o"
@@ -292,26 +272,19 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
           width: "100%",
           color,
           cursor: "pointer",
+          display: "flex",
         }}
       >
-        <div style={x_button_style}>
-          {path != null && (
-            <Icon
-              onMouseOver={() => {
-                set_x_hovered(true);
-              }}
-              onMouseOut={() => {
-                set_x_hovered(false);
-                actions?.clear_ghost_file_tabs();
-              }}
-              name="times"
-              onClick={close_file}
-            />
-          )}
+        <div style={{ paddingRight: "2px", fontSize: "10pt" }}>
+          <Icon style={icon_style} name={icon} />
         </div>
-        <div style={content_style}>
-          <Icon style={icon_style} name={icon} /> {displayed_label}
-        </div>
+        {displayed_label}
+        {path != null && (
+          <CloseX
+            closeFile={closeFile}
+            clearGhostFileTabs={() => actions?.clear_ghost_file_tabs()}
+          />
+        )}
       </div>
     </NavItem>
   );

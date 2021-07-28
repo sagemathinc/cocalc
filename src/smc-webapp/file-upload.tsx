@@ -2,7 +2,9 @@
 Drag'n'Drop file upload area
 */
 
-import * as Dropzone from "dropzone";
+import "react-dropzone-component/styles/filepicker.css";
+import Dropzone from "dropzone";
+Dropzone.autoDiscover = false;
 export { Dropzone };
 import {
   DropzoneComponent,
@@ -82,8 +84,10 @@ const Header = () => {
 
 function postUrl(project_id: string, path: string): string {
   const dest_dir = encode_path(path);
-  return (
-    window.app_base_url + `/${project_id}/raw/.smc/upload?dest_dir=${dest_dir}`
+  return join(
+    window.app_base_path,
+    project_id,
+    `raw/.smc/upload?dest_dir=${dest_dir}`
   );
 }
 
@@ -120,7 +124,7 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
           className="close-button-x"
           style={{ cursor: "pointer", fontSize: "18px", color: "gray" }}
         >
-          <i className="fa fa-times"></i>
+          <Icon name={"times"} />
         </span>
       </div>
     );
@@ -309,7 +313,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
               marginRight: "20px",
             }}
           >
-            <i className="fa fa-times"></i>
+            <Icon name={"times"} />
           </span>
         </div>
         {<Header />}

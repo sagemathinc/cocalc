@@ -7,7 +7,7 @@
 
 export const jQuery = $;
 declare var $: any;
-declare const CodeMirror: any;
+import * as CodeMirror from "codemirror";
 import { startswith } from "smc-util/misc";
 import { file_associations } from "../file-associations";
 

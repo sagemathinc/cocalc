@@ -122,6 +122,10 @@ export async function once(
   event: string,
   timeout_ms: number = 0
 ): Promise<any> {
+  if (!(obj instanceof EventEmitter)) {
+    // just in case typescript doesn't catch something:
+    throw Error("obj must be an EventEmitter");
+  }
   if (timeout_ms > 0) {
     // just to keep both versions more readable...
     return once_with_timeout(obj, event, timeout_ms);

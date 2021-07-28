@@ -42,7 +42,11 @@ const Heading: React.FC<HeadingProps> = React.memo(
         {dir != null && (
           <span>
             <Space />
-            <Icon name={`caret-${dir === "asc" ? "down" : "up"}`} />
+            {dir == "asc" ? (
+              <Icon name="caret-down" />
+            ) : (
+              <Icon name="caret-up" />
+            )}
           </span>
         )}
       </a>

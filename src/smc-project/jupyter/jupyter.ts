@@ -33,15 +33,7 @@ import { EventEmitter } from "events";
 import { exists, unlink } from "./async-utils-node";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { Channels, MessageType } from "@nteract/messaging";
-
-const { do_not_laod_transpilers } = require("../init-program");
-
-if (do_not_laod_transpilers) {
-  console.warn("[project/jupyter] coffeescript transpiler is not enabled!");
-} else {
-  // because of misc and misc_node below.  Delete this when those are typescript'd
-  require("coffee-register");
-}
+import { sanitize_nbconvert_path } from "smc-util/sanitize-nbconvert";
 
 const {
   merge,
@@ -54,20 +46,20 @@ const {
   is_array,
 } = require("smc-util/misc");
 
-import { SyncDB } from "../smc-util/sync/editor/db/sync";
+import { SyncDB } from "smc-util/sync/editor/db/sync";
 
 const { key_value_store } = require("smc-util/key-value-store");
 
 import { blob_store, BlobStore } from "./jupyter-blobs-sqlite";
-import { JUPYTER_MIMETYPES } from "../smc-webapp/jupyter/util";
+import { JUPYTER_MIMETYPES } from "smc-webapp/jupyter/util";
 import {
   is_likely_iframe,
   process as iframe_process,
-} from "../smc-webapp/jupyter/iframe";
+} from "smc-webapp/jupyter/iframe";
 
-import { remove_redundant_reps } from "../smc-webapp/jupyter/import-from-ipynb";
+import { remove_redundant_reps } from "smc-webapp/jupyter/import-from-ipynb";
 
-import { retry_until_success } from "../smc-util/async-utils";
+import { retry_until_success } from "smc-util/async-utils";
 import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 
@@ -77,14 +69,14 @@ import {
   ExecOpts,
   KernelInfo,
   CodeExecutionEmitterInterface,
-} from "../smc-webapp/jupyter/project-interface";
+} from "smc-webapp/jupyter/project-interface";
 
 import { CodeExecutionEmitter } from "./execute-code";
 
-import { JupyterActions } from "../smc-webapp/jupyter/project-actions";
-import { JupyterStore } from "../smc-webapp/jupyter/store";
+import { JupyterActions } from "smc-webapp/jupyter/project-actions";
+import { JupyterStore } from "smc-webapp/jupyter/store";
 
-import { JupyterKernelInterface } from "../smc-webapp/jupyter/project-interface";
+import { JupyterKernelInterface } from "smc-webapp/jupyter/project-interface";
 
 import {
   launch_jupyter_kernel,
@@ -170,11 +162,6 @@ class Client {
     return (...m) => console.log(new Date(), `Client.${f}: `, ...m);
   }
 }
-
-/*export function jupyter_backend_test() {
-  return jupyter_backend({_path:'x.ipynb'}, new Client());
-}
-*/
 
 interface KernelParams {
   name: string;
@@ -867,7 +854,7 @@ export class JupyterKernel
     }
     args = copy(args);
     args.push("--");
-    args.push(this._filename);
+    args.push(sanitize_nbconvert_path(this._filename));
     await nbconvert({
       args,
       timeout,

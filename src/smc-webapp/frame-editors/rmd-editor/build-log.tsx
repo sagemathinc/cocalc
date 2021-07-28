@@ -7,7 +7,7 @@ import * as React from "react";
 import Ansi from "ansi-to-react";
 import { Loading } from "smc-webapp/r_misc";
 import { Rendered, useRedux } from "../../app-framework";
-import { COLORS } from "../../../smc-util/theme";
+import { COLORS } from "smc-util/theme";
 import { Button } from "smc-webapp/antd-bootstrap";
 
 interface BuildLogProps {

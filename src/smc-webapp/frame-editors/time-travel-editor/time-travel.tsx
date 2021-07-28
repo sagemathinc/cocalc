@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// Time travel actions.
+// Time travel editor react component.
 
 import { List, Map } from "immutable";
 import { ButtonGroup } from "react-bootstrap";
@@ -38,7 +38,6 @@ import {
   HistoryViewer as JupyterHistoryViewer,
   to_ipynb,
 } from "../../jupyter/history-viewer";
-//import { SageWorksheetHistory } from "./sagews";
 import { SagewsCodemirror } from "./sagews-codemirror";
 import { SagewsDiff } from "./sagews-diff";
 
@@ -167,12 +166,6 @@ class TimeTravel extends Component<Props> {
       />
     );
   }
-
-  /*
-  private render_document_sagews(syncdoc: SyncDoc, version: Date): Rendered {
-    return <SageWorksheetHistory syncdoc={syncdoc} version={version} />;
-  }
-  */
 
   private render_document_sagews(): Rendered {
     if (this.props.docpath == null || this.props.project_id == null) return;

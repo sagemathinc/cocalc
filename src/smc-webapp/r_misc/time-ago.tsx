@@ -12,7 +12,6 @@ import { default as UpstreamTimeAgo } from "react-timeago";
 import { CSS, React, useTypedRedux } from "../app-framework";
 import { is_date, is_different as misc_is_different } from "smc-util/misc";
 import { Tip } from "./tip";
-import { TooltipPlacement } from "antd/es/tooltip";
 
 function timeago_formatter(value, unit, suffix, _date) {
   if (value === 0) {
@@ -51,7 +50,7 @@ export function is_different_date(
 
 interface TimeAgoElementProps {
   popover?: boolean;
-  placement?: TooltipPlacement;
+  placement?;
   tip?: string | JSX.Element; // optional body of the tip popover with title the original time.
   live?: boolean; // whether or not to auto-update
   date: string | Date | number;
@@ -138,7 +137,7 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
 
 interface TimeAgoProps {
   popover?: boolean;
-  placement?: TooltipPlacement;
+  placement?;
   tip?: string | JSX.Element; // optional body of the tip popover with title the original time.
   live?: boolean; // whether or not to auto-update
   style?: CSS;

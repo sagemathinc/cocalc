@@ -7,6 +7,8 @@
 Manage a collection of code editors of various files in frame trees...
 */
 
+import { reuseInFlight } from "async-await-utils/hof";
+
 import { close, filename_extension } from "smc-util/misc";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { get_file_editor } from "../frame-tree/register";
@@ -15,19 +17,27 @@ import { redux } from "../../app-framework";
 export class CodeEditor {
   public readonly project_id: string;
   public readonly path: string;
-  private actions: Actions;
+  private actions?: Actions;
 
   constructor(project_id: string, path: string) {
     this.project_id = project_id;
     this.path = path;
-    const ext = filename_extension(path);
+  }
+
+  async init(): Promise<void> {
+    const ext = filename_extension(this.path);
     let editor = get_file_editor(ext, false);
     if (editor == null) {
       // fallback to text
       editor = get_file_editor("txt", false);
     }
-    const name = editor.init(this.path, redux, this.project_id);
-    this.actions = (redux.getActions(name) as unknown) as Actions; // definitely right
+    let name: string;
+    if (editor.init != null) {
+      name = editor.init(this.path, redux, this.project_id);
+    } else {
+      name = await editor.initAsync(this.path, redux, this.project_id);
+    }
+    this.actions = redux.getActions(name) as unknown as Actions; // definitely right
   }
 
   close(): void {
@@ -36,7 +46,7 @@ export class CodeEditor {
     editor.remove(this.path, redux, this.project_id);
   }
 
-  get_actions(): Actions {
+  get_actions(): Actions | undefined {
     return this.actions;
   }
 }
@@ -47,6 +57,7 @@ export class CodeEditorManager<T extends CodeEditorState = CodeEditorState> {
 
   constructor(actions: Actions<T>) {
     this.actions = actions;
+    this.init_code_editor = reuseInFlight(this.init_code_editor.bind(this));
   }
 
   close(): void {
@@ -63,6 +74,18 @@ export class CodeEditorManager<T extends CodeEditorState = CodeEditorState> {
     }
     this.code_editors[id].close();
     delete this.code_editors[id];
+  }
+
+  async init_code_editor(
+    id: string,
+    path: string
+  ): Promise<CodeEditor | null> {
+    const e = this.get_code_editor(id, path);
+    if (e != null) return e;
+    const x = new CodeEditor(this.actions.project_id, path);
+    await x.init();
+    this.code_editors[id] = x;
+    return x;
   }
 
   get_code_editor(id: string, path?: string): CodeEditor | undefined {
@@ -85,10 +108,6 @@ export class CodeEditorManager<T extends CodeEditorState = CodeEditorState> {
       // It's initialized for this frame, but it's for a different path -- close that.
       this.close_code_editor(id);
     }
-    return (this.code_editors[id] = new CodeEditor(
-      this.actions.project_id,
-      path
-    ));
   }
 
   get(id: string): CodeEditor {

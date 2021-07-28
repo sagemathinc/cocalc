@@ -23,7 +23,7 @@ import { exec } from "../frame-editors/generic/client";
 import { open_popup_window } from "../misc-page";
 import { IPYNB2PDF } from "../misc/commands";
 import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
-import { ImmutableUsageInfo } from "../../smc-project/usage-info/types";
+import { ImmutableUsageInfo } from "smc-project/usage-info/types";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;

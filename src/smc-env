@@ -37,4 +37,6 @@ path_prepend PATH "$SMC_ROOT"
 
 path_prepend LD_LIBRARY_PATH "$SMC_ROOT/data/local/lib"
 
+export NODE_OPTIONS='--enable-source-maps'
+
 

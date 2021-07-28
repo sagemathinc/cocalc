@@ -21,7 +21,7 @@ export const Archive: React.FC<{ project_id: string; path: string }> = ({
 
   function render_button_icon() {
     if (loading) {
-      return <Icon name="cc-icon-cocalc-ring" spin={true} />;
+      return <Icon name="cocalc-ring" spin={true} />;
     } else {
       return <Icon name="folder" />;
     }
@@ -67,7 +67,7 @@ export const Archive: React.FC<{ project_id: string; path: string }> = ({
     <Panel
       header={
         <span>
-          <Icon name="file-zip-o" /> {path}
+          <Icon name="file-zip" /> {path}
         </span>
       }
       style={{ overflow: "auto" }}

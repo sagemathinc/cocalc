@@ -15,7 +15,7 @@ import { SetMap } from "./types";
 import { DropdownMenu, MenuItem } from "../../r_misc";
 import { ButtonGroup, Button } from "../../antd-bootstrap";
 import { FONT_FACES } from "../../editors/editor-button-bar";
-import { Icon, Space } from "smc-webapp/r_misc";
+import { Icon, isIconName, Space } from "smc-webapp/r_misc";
 
 const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
   " "
@@ -35,16 +35,17 @@ export class FormatBar extends Component<Props, {}> {
   render_button(
     name: string,
     title: string,
-    label?: string | Rendered // if a string, the named icon; if a rendered
+    label?: string | Rendered, // if a string, the named icon; if a rendered
     // component for the button, show that in the button; if not given, use
     // icon with given name.
+    fontSize?: string
   ): Rendered {
     if (this.props.exclude?.[name]) {
       return;
     }
-    if (typeof label === "undefined") {
+    if (label == null && isIconName(name)) {
       label = <Icon name={name} />;
-    } else if (typeof label === "string") {
+    } else if (typeof label === "string" && isIconName(label)) {
       label = <Icon name={label} />;
     }
 
@@ -53,7 +54,7 @@ export class FormatBar extends Component<Props, {}> {
         key={name}
         title={title}
         onClick={() => this.props.actions.format_action(name)}
-        style={{ maxHeight: "30px" }}
+        style={{ maxHeight: "30px", fontSize }}
       >
         {label}
       </Button>
@@ -89,7 +90,7 @@ export class FormatBar extends Component<Props, {}> {
         {this.render_button(
           "format_code",
           "Insert block of source code",
-          "stream"
+          "CodeOutlined"
         )}
         {this.render_button(
           "insertunorderedlist",
@@ -130,7 +131,7 @@ export class FormatBar extends Component<Props, {}> {
     return (
       <ButtonGroup key={"insert-dialog"}>
         {this.render_button("link", "Insert link", "link")}
-        {this.render_button("image", "Insert image", "image")}
+        {this.render_button("image", "Insert image", "image", "12pt")}
         {this.props.extension !== "tex"
           ? this.render_button(
               "SpecialChar",
@@ -321,7 +322,7 @@ export class FormatBar extends Component<Props, {}> {
     return (
       <DropdownMenu
         button={true}
-        title={<Icon name={"paint-brush"} />}
+        title={<Icon name={"colors"} />}
         key={"font-color"}
         id={"font-color"}
         onClick={(code) => this.props.actions.format_action("color", code)}

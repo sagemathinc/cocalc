@@ -7,10 +7,10 @@
 Confirmation dialog, for explicitly confirming dangerous actions.
 */
 
-import { React, Component, Rendered } from "../app-framework";
+import { React, Rendered } from "../app-framework";
 import { Map } from "immutable";
 
-import { Icon, Markdown } from "../r_misc";
+import { Icon, IconName, Markdown } from "../r_misc";
 const { Button, Modal } = require("react-bootstrap"); // TODO: import types
 
 import { JupyterActions } from "./browser-actions";
@@ -28,7 +28,7 @@ export interface ConfirmDialogOptions {
   title: string;
   body: string;
   choices: ConfirmDialogChoice[];
-  icon?: string;
+  icon?: IconName;
 }
 
 interface ConfirmDialogProps {
@@ -36,61 +36,58 @@ interface ConfirmDialogProps {
   confirm_dialog: Map<string, any>;
 }
 
-export class ConfirmDialog extends Component<ConfirmDialogProps> {
-  close(): void {
-    this.props.actions.close_confirm_dialog();
-    this.props.actions.focus(true);
+export const ConfirmDialog: React.FC<ConfirmDialogProps> = (
+  props: ConfirmDialogProps
+) => {
+  const { actions, confirm_dialog } = props;
+
+  function close(): void {
+    actions.close_confirm_dialog();
+    actions.focus(true);
   }
 
-  render_button(choice: ConfirmDialogChoice): Rendered {
+  function render_button(choice: ConfirmDialogChoice): Rendered {
     return (
       <Button
         key={choice.title}
         bsStyle={choice.style}
         autoFocus={choice.default}
-        onClick={() => this.props.actions.close_confirm_dialog(choice.title)}
+        onClick={() => actions.close_confirm_dialog(choice.title)}
       >
         {choice.title}
       </Button>
     );
   }
 
-  render_buttons(): Rendered[] {
-    const choices = this.props.confirm_dialog.get("choices");
-    const buttons: Rendered[] = [];
+  function render_buttons(): Rendered[] {
+    const choices = confirm_dialog.get("choices");
     if (choices != null) {
-      choices.forEach((choice) =>
-        buttons.push(this.render_button(choice.toJS()))
-      );
+      return choices.map((choice) => render_button(choice.toJS()));
+    } else {
+      return [];
     }
-    return buttons;
   }
 
-  render_title_icon(): Rendered {
-    const icon = this.props.confirm_dialog.get("icon");
+  function render_title_icon(): Rendered {
+    const icon = confirm_dialog.get("icon");
     if (icon == null) return;
     return <Icon name={icon} />;
   }
 
-  render(): Rendered {
-    // Show only if the choice field is not set (which happens when user
-    // makes a choice).
-    return (
-      <Modal
-        show={this.props.confirm_dialog.get("choice") == null}
-        onHide={() => this.close()}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>
-            {this.render_title_icon()} {this.props.confirm_dialog.get("title")}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Markdown value={this.props.confirm_dialog.get("body")} />
-        </Modal.Body>
+  // Show only if the choice field is not set (which happens when user
+  // makes a choice).
+  return (
+    <Modal show={confirm_dialog.get("choice") == null} onHide={close}>
+      <Modal.Header closeButton>
+        <Modal.Title>
+          {render_title_icon()} {confirm_dialog.get("title")}
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <Markdown value={confirm_dialog.get("body")} />
+      </Modal.Body>
 
-        <Modal.Footer>{this.render_buttons()}</Modal.Footer>
-      </Modal>
-    );
-  }
-}
+      <Modal.Footer>{render_buttons()}</Modal.Footer>
+    </Modal>
+  );
+};

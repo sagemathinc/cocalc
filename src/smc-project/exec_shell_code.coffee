@@ -10,7 +10,7 @@ Copyright 2015, SageMath, Inc., GPL v3.
 Execute a command line or block of BASH code
 ###
 
-winston = require('winston')
+#winston = require('./logger').getLogger('exec-shell-code')
 
 misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')
@@ -32,7 +32,6 @@ exports.exec_shell_code = (socket, mesg) ->
         bash        : mesg.bash
         cb          : (err, out) ->
             if err
-
                 error = "Error executing command '#{mesg.command}' with args '#{mesg.args}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
                 if error.indexOf("Connection refused") != -1
                     error += "-- Email help@cocalc.com if you need full internet access, which is disabled by default."

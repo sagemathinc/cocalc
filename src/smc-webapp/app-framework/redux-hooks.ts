@@ -33,7 +33,7 @@ Or with an editor in a project:
  useRedux(['path', 'in', 'project store'], 'project-id', 'path')
 */
 
-import { is_valid_uuid_string } from "../../smc-util/misc";
+import { is_valid_uuid_string } from "smc-util/misc";
 import { redux, ProjectActions, ProjectStore } from "../app-framework";
 import { ProjectStoreState } from "../project_store";
 import * as React from "react";

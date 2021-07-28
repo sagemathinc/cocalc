@@ -24,12 +24,6 @@
 =enable-user-select
   +user-select(text)
 
-// the common class for the cocalc-icons-font, adjusting fontawesome fa class a little bit
-.cc-icons:before
-  position: relative
-  // top: -2px
-
-@import help
 @import codemirror_plugins
 @import bootstrap
 @import idle
@@ -99,19 +93,6 @@ div#smc-react-container
   top        : 0px
 
 
-div#cocalc-react-crash
-  z-index: -10
-  position: absolute
-  width: 80vw
-  top: 5vh
-  left: 10vw
-  border: 5px solid  $COL_BS_RED
-  padding: 10px 20px 20px 20px
-  border-radius: 5px
-  font-size: 12pt
-
-div#cocalc-react-crash > div > pre
-  font-size: 11px
 
   /* mezzo-small, larger than xs, smaller than sm, like the old tasklist button size */
 
@@ -406,16 +387,19 @@ div.cocalc-xtermjs > div.terminal.xterm > div.xterm-viewport
     opacity  : .7
 
 .dropdown-splitbutton-left>div>ul.dropdown-menu
-  right: 0;
-  left: auto;
-  padding-left: 1px;
-  padding-right: 1px;
+  right: 0
+  left: auto
+  padding-left: 1px
+  padding-right: 1px
 
 @import antd_fix
 
 // Fix issue https://github.com/sagemathinc/cocalc/issues/4568
 blockquote
-  font-size: inherit;
+  font-size: inherit
 blockquote p
-  font-size: inherit;
+  font-size: inherit
 
+.cc-help-stats-table
+  th, td
+    text-align     : right

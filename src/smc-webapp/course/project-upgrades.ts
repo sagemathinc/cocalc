@@ -112,14 +112,14 @@ export function upgrade_plan(opts: {
     in the upgrade_goal map.
     */
   // upgrades, etc., that student projects already have (which account_id did not provide)
-  const cur = exports.current_student_project_upgrades({
+  const cur = current_student_project_upgrades({
     account_id: opts.account_id,
     project_map: opts.project_map,
     student_project_ids: opts.student_project_ids,
   });
 
   // upgrades we have that have not been allocated to our course
-  const available = exports.available_upgrades({
+  const available = available_upgrades({
     account_id: opts.account_id,
     purchased_upgrades: opts.purchased_upgrades,
     project_map: opts.project_map,

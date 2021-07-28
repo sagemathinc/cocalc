@@ -5,6 +5,8 @@
 
 # Viewer for history of changes to a document
 
+## In practice this is only used for Jupyter classic.
+
 $ = window.$
 
 underscore = require('underscore')
@@ -32,6 +34,7 @@ class exports.HistoryEditor extends FileEditor
         @_use_timeago = not redux.getStore('account').getIn(['other_settings', 'time_ago_absolute'])
         @init_paths()
         @element  = templates.find(".webapp-editor-history").clone()
+        @element.processIcons()
         async.series([
             (cb) =>
                 @init_syncstring(cb)

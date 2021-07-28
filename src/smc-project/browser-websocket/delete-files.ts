@@ -8,7 +8,7 @@ import { callback } from "awaiting";
 
 import { exec } from "./api";
 import { get_listings_table } from "../sync/listings";
-import { deleted_file_variations } from "../smc-util/delete-files";
+import { deleted_file_variations } from "smc-util/delete-files";
 import { pathExists } from "fs-extra";
 
 // Delete the files/directories in the given project with the given list of paths.

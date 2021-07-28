@@ -41,8 +41,7 @@ export class FileCheckbox extends React.PureComponent<Props> {
       <span onClick={this.handle_click} style={this.props.style}>
         <Icon
           name={this.props.checked ? "check-square-o" : "square-o"}
-          fixedWidth
-          style={{ fontSize: "14pt" }}
+          style={{ fontSize: "14pt", width: "1.125em" }}
         />
       </span>
     );

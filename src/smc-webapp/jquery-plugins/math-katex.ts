@@ -4,7 +4,7 @@
  */
 
 // get these from sage/misc/latex.py
-// This same info is **also** embedded in cocalc/src/smc-util/mathjax-config.js
+// This same info is **also** embedded in cocalc/ssmc-util/mathjax-config.js
 export const macros = {
   "\\Bold": "\\mathbb{#1}",
   "\\ZZ": "\\Bold{Z}",

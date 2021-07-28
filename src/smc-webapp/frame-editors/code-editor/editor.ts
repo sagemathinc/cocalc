@@ -10,6 +10,7 @@ Top-level react component for editing code.
 import { CodemirrorEditor } from "./codemirror-editor";
 import { filename_extension, set } from "smc-util/misc";
 import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { file_extensions as FORMAT } from "smc-util/code-formatter";
@@ -58,7 +59,7 @@ export const cm = {
     buttons.format = FORMAT.includes(ext);
     return buttons;
   },
-};
+} as EditorDescription;
 
 const EDITOR_SPEC = {
   cm,

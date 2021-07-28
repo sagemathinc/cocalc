@@ -1,6 +1,8 @@
 # Guidelines
 This collection of files provides general knowledge for working with the CoCalc.
-It is incomplete, mostly correct, and sometimes poorly formatted.
+
+**WARNING (June 2021): we haven't looked at this in years, and it is probably all wrong.**
+
 Ask clarifying questions and update this as you go.
 
 # Webapp Code Layout

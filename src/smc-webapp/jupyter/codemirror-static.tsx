@@ -17,8 +17,8 @@
 import { React, Component, Rendered } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 import { copy, merge } from "smc-util/misc";
-
-declare const CodeMirror: any; // TODO: find typings for this UMD
+import * as CodeMirror from "codemirror";
+import "codemirror/addon/runmode/runmode";
 
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
@@ -98,11 +98,12 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
     };
 
     try {
+      // @ts-ignore -- fails in smc-hub right now...
       CodeMirror.runMode(this.props.value, mode, append);
     } catch (err) {
       /* This does happen --
             https://github.com/sagemathinc/cocalc/issues/3626
-         However, basically silently ignoring it (with a console.log)
+         However, basically ignoring it (with a console.log)
          is probably the best option for now (rather than figuring
          out every possible bad input that could cause this), since
          it completely crashes cocalc. */

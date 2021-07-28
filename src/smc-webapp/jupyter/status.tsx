@@ -9,7 +9,7 @@ import { React, useRedux, CSS } from "../app-framework";
 import * as immutable from "immutable";
 import { Progress, Typography } from "antd";
 import { COLORS } from "smc-util/theme";
-import { A, Icon, Loading, Tip } from "../r_misc";
+import { A, Icon, IconName, Loading, Tip } from "../r_misc";
 import { closest_kernel_match, rpad_html } from "smc-util/misc";
 import { Logo } from "./logo";
 import { JupyterActions } from "./browser-actions";
@@ -54,6 +54,7 @@ const BACKEND_STATE_STYLE: CSS = {
   display: "flex",
   marginRight: "5px",
   color: KERNEL_NAME_STYLE.color,
+  paddingTop: "2.5px",
 } as const;
 
 interface KernelProps {
@@ -169,21 +170,21 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           'idle' or 'running'
       */
       let spin = false;
-      let name: string | undefined;
+      let name: IconName | undefined;
       let color: string | undefined;
       switch (backend_state) {
         case "init":
           name = "unlink";
           break;
         case "ready":
-          name = "circle-o-notch";
+          name = "cocalc-ring";
           break;
         case "spawning":
-          name = "circle-o-notch";
+          name = "cocalc-ring";
           spin = true;
           break;
         case "starting":
-          name = "circle-o-notch";
+          name = "cocalc-ring";
           spin = true;
           break;
         case "running":
@@ -193,10 +194,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
               color = "#5cb85c";
               break;
             case "idle":
-              name = "circle-o";
+              name = "cocalc-ring";
               break;
             default:
-              name = "circle-o";
+              name = "cocalc-ring";
           }
           break;
       }
@@ -347,8 +348,6 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       // RENDERING BUG, where the cpu burns at like 50% anytime a Jupyter
       // notebook is being displayed. See
       //      https://github.com/sagemathinc/cocalc/issues/5185
-      // This may be a weird conflict between antd and fontawesome icons.
-
       // we calibrate "100%" at the median – color changes at 2 x timings_q
       const cpu_val = Math.min(
         100,

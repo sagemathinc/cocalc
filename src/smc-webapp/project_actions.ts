@@ -6,6 +6,7 @@
 // TODO: we should refactor our code to not have these window/document/$ references here.
 declare let window, document, $;
 
+import { join } from "path";
 import * as async from "async";
 import * as underscore from "underscore";
 import * as immutable from "immutable";
@@ -42,7 +43,7 @@ import { get_directory_listing2 as get_directory_listing } from "./project/direc
 import { Actions, project_redux_name, redux } from "./app-framework";
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
-import { DEFAULT_COMPUTE_IMAGE } from "../smc-util/compute-images";
+import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
 import { download_href, url_href } from "./project/utils";
 import { ensure_project_running } from "./project/project-start-warning";
 import { download_file, open_new_tab, open_popup_window } from "./misc-page";
@@ -140,17 +141,17 @@ export const FILE_ACTIONS = {
   },
   move: {
     name: "Move",
-    icon: "arrows",
+    icon: "move",
     allows_multiple_files: true,
   },
   copy: {
     name: "Copy",
-    icon: "files-o",
+    icon: "files",
     allows_multiple_files: true,
   },
   share: {
     name: "Public",
-    icon: "share-square-o",
+    icon: "share-square",
     allows_multiple_files: false,
   },
   download: {
@@ -489,10 +490,27 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         // session restore (where all tabs are restored).
         if (info.redux_name == null || info.Editor == null) {
           if (this.open_files == null) return;
-          const { name, Editor } = this.init_file_react_redux(path, is_public);
-          info.redux_name = name;
-          info.Editor = Editor;
-          this.open_files.set(path, "component", info);
+          // We configure the Editor component and redux.  This is async,
+          // due to the Editor component being async loaded only when needed,
+          // e.g., we don't want to load all of Slate for users that aren't
+          // using Slate.  However, we wrap this in a function that we call,
+          // since there is no need to wait for this to be done before showing
+          // the tab (with a Loading spinner).  In fact, waiting would make
+          // the UI appear to weirdly block the first time you open a given type
+          // of file.
+          (async () => {
+            const { name, Editor } = await this.init_file_react_redux(
+              path,
+              is_public
+            );
+            if (this.open_files == null) return;
+            info.redux_name = name;
+            info.Editor = Editor;
+            // IMPORTANT: we make a *copy* of info below to trigger an update
+            // of the component that displays this editor.  Otherwise, the user
+            // would just see a spinner until they tab away and tab back.
+            this.open_files.set(path, "component", { ...info });
+          })();
         }
 
         this.show_file(path);
@@ -683,18 +701,25 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     store.get("open_files").forEach((val, path) => {
-      const is_public = val.get("component")
-        ? val.get("component").is_public
-        : false; // might still in theory someday be true.
+      const component = val.get("component");
+      if (component == null) {
+        // This happens, e.g., if you have a tab for a file,
+        // but it hasn't been focused, so there's no actual
+        // information to save (basically a background tab
+        // that has not yet been initialized).
+        return;
+      }
+      const { is_public } = component;
       project_file.save(path, this.redux, this.project_id, is_public);
     });
   }
 
   public open_in_new_browser_window(path: string, fullscreen = "kiosk"): void {
-    let url = window.app_base_url ?? "";
-    url += this._url_in_project(`files/${path}`);
+    let url = join(window.app_base_path, this._url_in_project(`files/${path}`));
     url += "?session=";
-    if (fullscreen) url += `&fullscreen=${fullscreen}`;
+    if (fullscreen) {
+      url += `&fullscreen=${fullscreen}`;
+    }
     const width = Math.round(window.screen.width * 0.75);
     const height = Math.round(window.screen.height * 0.75);
     open_popup_window(url, { width, height });
@@ -729,12 +754,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   /* Initialize the redux store and react component for editing
      a particular file.
   */
-  private init_file_react_redux(
+  private async init_file_react_redux(
     path: string,
     is_public: boolean
-  ): { name: string | undefined; Editor: any } {
+  ): Promise<{ name: string | undefined; Editor: any }> {
+    // LAZY IMPORT, so that editors are only available
+    // when you are going to use them.  Helps with code splitting.
+    await import("./editors/register-all");
+
     // Initialize the file's store and actions
-    const name = project_file.initialize(
+    const name = await project_file.initializeAsync(
       path,
       this.redux,
       this.project_id,
@@ -742,7 +771,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     );
 
     // Make the Editor react component
-    const Editor = project_file.generate(
+    const Editor = await project_file.generateAsync(
       path,
       this.redux,
       this.project_id,
@@ -751,7 +780,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     // Log that we opened the file.
     log_file_open(this.project_id, path);
-
     return { name, Editor };
   }
 
@@ -1108,7 +1136,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, status });
     let my_group: any;
     let the_listing: any;
-    return async.series(
+    async.series(
       [
         (cb) => {
           // make sure the user type is known;
@@ -1155,10 +1183,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               max_time_s: 15 * 60, // keep trying for up to 15 minutes
               group: my_group,
             });
-            cb();
           } catch (err) {
             cb(err.message);
+            return;
           }
+          cb();
         },
       ],
       (err) => {

@@ -1,26 +1,17 @@
-# logo CoCalc
+# CoCalc
 
-#### _Collaborative Calculation and Data Science_
+#### <u>_**Co**_</u>_llaborative_ <u>_**Calc**_</u>_ulation_
 
-**CoCalc** is a virtual online workspace for calculations, research, collaboration and authoring documents.
-This includes working with the full scientific Python stack, [SageMath](https://www.sagemath.org),
-[Julia](https://julialang.org), [R Statistics](https://cocalc.com/doc/r-statistical-software.html),
-[Octave](https://www.gnu.org/software/octave/), and many more.
-It also offers capabilities to author documents in [LaTeX](https://cocalc.com/doc/latex-editor.html), R/knitr or Markdown,
-storing and organizing files, a web-based [Linux Terminal](https://doc.cocalc.com/terminal.html),
-communication tools like a [chatrooms](https://doc.cocalc.com/chat.html),
-[course management](https://cocalc.com/doc/teaching.html) and more.
-It is the best choice for [teaching remote scientific courses](https://cocalc.com/doc/teaching.html).
+**CoCalc** is an online collaborative workspace for doing sophisticated calculations that arise in teaching, research, and authoring documents.This includes working with the full data science and scientific Python stack, [SageMath](https://www.sagemath.org),[Julia](https://julialang.org), [R Statistics](https://cocalc.com/doc/r-statistical-software.html),[Octave](https://www.gnu.org/software/octave/), and much more.It also offers capabilities to author documents in [LaTeX](https://cocalc.com/doc/latex-editor.html), R/knitr and Markdown,storing and organizing files, a web-based [Linux Terminal](https://doc.cocalc.com/terminal.html), an [X11 graphical desktop](https://doc.cocalc.com/x11.html), and communication tools like a [chatrooms](https://doc.cocalc.com/chat.html),[course management](https://cocalc.com/doc/teaching.html) and more.It is the best choice for [teaching remote scientific courses](https://cocalc.com/doc/teaching.html).
 
 ## Website
 
 - [CoCalc](https://cocalc.com/index.html) -- commercial CoCalc hosting and support
 - [CoCalc user manual](https://doc.cocalc.com/) -- learn how to use CoCalc
-- [Code repository](https://github.com/sagemathinc/cocalc) -- source code of CoCalc
+- [Code GitHub repository](https://github.com/sagemathinc/cocalc) -- source code of CoCalc
 - [CoCalc-Docker](https://github.com/sagemathinc/cocalc-docker) -- run CoCalc on your own computer (using Docker)
-- [CoCalc-Kubernetes](https://github.com/sagemathinc/cocalc-kubernetes) -- run CoCalc on a Kubernetes cluster
 - [CoCalc mailing list](https://groups.google.com/forum/#!forum/cocalc) -- discuss CoCalc via email
-- [CoCalc Discord server](https://discord.gg/nEHs2GK) -- realtime chat about CoCalc
+- [CoCalc Discord server](https://discord.gg/nEHs2GK) -- chat about CoCalc
 
 ## Install CoCalc on your server or computer
 
@@ -81,7 +72,7 @@ To clarify the above in relation to the "commons clause":
 
 ## Development
 
-The scripts [here](https://github.com/sagemathinc/cocalc/tree/master/src/dev) might be helpful.  We do all of our development of CoCalc on https://cocalc.com itself.
+The scripts [here](https://github.com/sagemathinc/cocalc/tree/master/src/dev) might be helpful. &nbsp;We do most of our development of CoCalc on https://cocalc.com itself.  CoCalc requires npm version at least 7.
 
 ## Acknowledgements
 
@@ -93,4 +84,3 @@ We are grateful to BrowserStack for providing infrastructure to test CoCalc.
 ### Google
 
 We thank Google for donating over \$150K in cloud credits since 2014 to support this project.
-

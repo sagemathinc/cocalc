@@ -281,7 +281,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     student_add_button() {
       if (this.state.add_search?.trim().length == 0) return;
       const icon = this.state.add_searching ? (
-        <Icon name="cc-icon-cocalc-ring" spin />
+        <Icon name="cocalc-ring" spin />
       ) : (
         <Icon name="search" />
       );
@@ -1152,7 +1152,7 @@ class Student extends Component<StudentProps, StudentState> {
         // less than 2 minutes -- still hope, so render that creating
         return (
           <div>
-            <Icon name="cc-icon-cocalc-ring" spin /> Creating project...
+            <Icon name="cocalc-ring" spin /> Creating project...
             (started <TimeAgo date={create} />)
           </div>
         );
@@ -1216,7 +1216,7 @@ class Student extends Component<StudentProps, StudentState> {
     } else {
       return (
         <Button onClick={this.show_edit_name_dialogue}>
-          <Icon name="address-card-o" /> Edit student...
+          <Icon name="address-card" /> Edit student...
         </Button>
       );
     }
@@ -1299,7 +1299,7 @@ class Student extends Component<StudentProps, StudentState> {
     if (this.props.student.get("deleted")) {
       return (
         <Button onClick={this.undelete_student}>
-          <Icon name="trash-o" /> Undelete
+          <Icon name="trash" /> Undelete
         </Button>
       );
     } else {

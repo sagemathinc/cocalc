@@ -16,7 +16,7 @@ this (?), it might be fine.
 */
 
 import { React, useEffect, useRedux } from "../app-framework";
-import useInterval from "use-interval";
+import { useInterval } from 'react-interval-hook';
 import { Map } from "immutable";
 import { JSONEditor } from "./json-editor";
 import { JupyterActions } from "./browser-actions";
@@ -63,9 +63,8 @@ export const RawEditor: React.FC<Props> = ({
     }
   }, 5000);
 
-  const student_project_functionality = useStudentProjectFunctionality(
-    project_id
-  );
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
   if (student_project_functionality.disableJupyterToggleReadonly) {
     return (
       <b style={{ margin: "auto", fontSize: "14pt", padding: "15px" }}>

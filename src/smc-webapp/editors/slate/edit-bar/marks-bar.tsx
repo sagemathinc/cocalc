@@ -5,13 +5,13 @@
 
 import * as React from "react";
 import { Button } from "antd";
-import { Icon } from "smc-webapp/r_misc";
+import { Icon, IconName } from "smc-webapp/r_misc";
 import { formatAction } from "../format";
 import { SlateEditor } from "../editable-markdown";
 import { Marks } from "./marks";
 
 interface MarkButtonProps {
-  mark: string;
+  mark: IconName;
   active: boolean;
   editor: SlateEditor;
 }
@@ -40,7 +40,7 @@ interface MarksBarProps {
   editor: SlateEditor;
 }
 
-const MARKS = [
+const MARKS : IconName[] = [
   "bold",
   "italic",
   "underline",

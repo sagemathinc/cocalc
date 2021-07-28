@@ -9,14 +9,15 @@ declare const $: any;
 
 import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 
+import * as LRU from "lru-cache";
 import { delay } from "awaiting";
-import { React, Component } from "../app-framework";
+import { React, useRef, usePrevious } from "../app-framework";
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
 import { three_way_merge } from "smc-util/sync/editor/generic/util";
 import { Complete } from "./complete";
 import { Cursors } from "./cursors";
-declare const CodeMirror: any; // TODO: type
+import * as CodeMirror from "codemirror";
 
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
@@ -24,13 +25,12 @@ import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-noteb
 // We cache a little info about each Codemirror editor we make here,
 // so we can restore it when we make the same one again.  Due to
 // windowing, destroying and creating the same codemirror can happen
-// a lot. TODO: This **should** be an LRU cache to avoid a memory leak.
 interface CachedInfo {
   sel?: any[]; // only cache the selections right now...
   last_introspect_pos?: { line: number; ch: number };
 }
 
-const cache: { [key: string]: CachedInfo } = {};
+const cache = new LRU<string, CachedInfo>({ max: 1000 });
 
 const FOCUSED_STYLE: React.CSSProperties = {
   width: "100%",
@@ -39,7 +39,7 @@ const FOCUSED_STYLE: React.CSSProperties = {
   borderRadius: "2px",
   background: "#f7f7f7",
   lineHeight: "1.21429em",
-};
+} as const;
 
 // Todo: the frame-editor/code-editor needs a similar treatment...?
 export interface EditorFunctions {
@@ -70,604 +70,638 @@ interface CodeMirrorEditorProps {
   complete?: ImmutableMap<any, any>;
 }
 
-export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
-  private cm: any;
-  private _cm_last_remote: any;
-  private _cm_change: any;
-  private _cm_is_focused: any;
-  private _vim_mode: any;
-  private cm_ref = React.createRef<HTMLPreElement>();
-  private key?: string;
+export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = React.memo(
+  (props: CodeMirrorEditorProps) => {
+    const {
+      actions,
+      frame_actions,
+      id,
+      options,
+      value,
+      font_size,
+      cursors,
+      set_click_coords,
+      click_coords,
+      set_last_cursor,
+      last_cursor,
+      is_focused,
+      is_scrolling,
+      complete,
+    } = props;
 
-  componentDidMount() {
-    if (this.has_frame_actions()) {
-      this.key = `${this.props.frame_actions.frame_id}${this.props.id}`;
+    const cm = useRef<any>(null);
+    const cm_last_remote = useRef<any>(null);
+    const cm_change = useRef<any>(null);
+    const cm_is_focused = useRef<boolean>(false);
+    const vim_mode = useRef<boolean>(false);
+    const cm_ref = React.createRef<HTMLPreElement>();
+
+    const key = useRef<string | null>(null);
+
+    const prev_options = usePrevious(options);
+
+    function has_frame_actions(): boolean {
+      return frame_actions != null && !frame_actions.is_closed();
     }
-    this.init_codemirror(this.props.options, this.props.value);
-  }
 
-  has_frame_actions = (): boolean => {
-    return (
-      this.props.frame_actions != null && !this.props.frame_actions.is_closed()
-    );
-  };
-
-  _cm_destroy = (): void => {
-    if (this.cm != null) {
-      // console.log("destroy_codemirror", this.props.id);
-      if (this.has_frame_actions()) {
-        this.props.frame_actions.unregister_input_editor(this.props.id);
+    React.useEffect(() => {
+      if (has_frame_actions()) {
+        key.current = `${frame_actions.frame_id}${id}`;
       }
-      delete this._cm_last_remote;
-      delete this.cm.save;
-      if (this._cm_change != null) {
-        this.cm.off("change", this._cm_change);
-        this.cm.off("focus", this._cm_focus);
-        this.cm.off("blur", this._cm_blur);
-        delete this._cm_change;
+      init_codemirror(options, value);
+
+      return () => {
+        if (cm.current != null) {
+          cm_save();
+          cm_destroy();
+        }
+      };
+    }, []);
+
+    React.useEffect(() => {
+      if (cm.current == null) {
+        init_codemirror(options, value);
+        return;
       }
-      $(this.cm.getWrapperElement()).remove(); // remove from DOM
-      if (this.cm.getOption("extraKeys") != null) {
-        this.cm.getOption("extraKeys").Tab = undefined; // no need to reference method of this react class
+      if (prev_options != null && !prev_options.equals(options)) {
+        update_codemirror_options(options, prev_options);
       }
-      delete this.cm;
-    }
-  };
+    }, [options, value]);
 
-  _cm_focus = (): void => {
-    this._cm_is_focused = true;
-    if (this.cm == null || this.props.actions == null) {
-      return;
-    }
-    if (this.has_frame_actions()) {
-      this.props.frame_actions.unselect_all_cells();
-      this.props.frame_actions.set_cur_id(this.props.id);
-      this.props.frame_actions.set_mode("edit");
-    }
-    if (this._vim_mode) {
-      $(this.cm.getWrapperElement()).css({ paddingBottom: "1.5em" });
-    }
-    this._cm_cursor();
-  };
+    React.useEffect(() => {
+      cm_refresh();
+    }, [font_size, is_scrolling]);
 
-  _cm_blur = (): void => {
-    this._cm_is_focused = false;
-    if (this.cm == null || this.props.actions == null) {
-      return;
-    }
-    this.props.set_last_cursor(this.cm.getCursor());
-    // NOTE: see https://github.com/sagemathinc/cocalc/issues/5289
-    // We had code here that did
-    //    this.props.frame_actions?.set_mode("escape");
-    // so that any time the jupyter notebook blurs the mode
-    // changes, which is consistent with the behavior of Jupyter
-    // classic.  However, it causes that bug #5289, and I don't
-    // really see that it is a good idea to switch this mode on
-    // blur anyways.
-  };
+    // In some cases (e.g., tab completion when selecting via keyboard)
+    // nextProps.value and value are the same, but they
+    // do not equal cm.current.getValue().  The complete prop changes
+    // so the component updates, but without checking cm.getValue(),
+    // we would fail to update the cm editor, which would is
+    // a disaster.  May be root cause of
+    //    https://github.com/sagemathinc/cocalc/issues/3978
+    React.useEffect(() => {
+      if (cm.current?.getValue() != value) {
+        cm_merge_remote(value);
+      }
+    }, [value, cm.current?.getValue()]);
 
-  _cm_cursor = (): void => {
-    if (this.cm == null || this.props.actions == null) {
-      return;
-    }
-    const sel = this.cm.listSelections();
-    if (this.key != null) {
-      if (cache[this.key] == null) cache[this.key] = {};
-      cache[this.key].sel = sel;
-    }
-    const locs = sel.map((c) => ({
-      x: c.anchor.ch,
-      y: c.anchor.line,
-      id: this.props.id,
-    }));
-    this.props.actions.set_cursor_locs(locs, this.cm._setValueNoJump);
+    React.useEffect(() => {
+      // can't do anything if there is no codemirror editor
+      if (cm.current == null) return;
 
-    // See https://github.com/jupyter/notebook/issues/2464 for discussion of this cell_list_top business.
-    if (this.has_frame_actions()) {
-      const cell_list_div = this.props.frame_actions.cell_list_div;
-      if (cell_list_div != null) {
-        const cell_list_top = cell_list_div.offset()?.top;
-        if (
-          cell_list_top != null &&
-          this.cm.cursorCoords(true, "window").top < cell_list_top
-        ) {
-          const scroll = cell_list_div.scrollTop();
-          cell_list_div.scrollTop(
-            scroll -
-              (cell_list_top - this.cm.cursorCoords(true, "window").top) -
-              20
-          );
+      // gain focus
+      if (is_focused && !cm_is_focused.current) {
+        focus_cm();
+      }
+
+      (async () => {
+        if (!is_focused && cm_is_focused.current) {
+          // controlled loss of focus from store; we have to force
+          // this somehow.  Note that codemirror has no .blur().
+          // See http://codemirror.977696.n3.nabble.com/Blur-CodeMirror-editor-td4026158.html
+          await delay(1);
+          cm.current.getInputField().blur();
+        }
+      })();
+
+      if (vim_mode.current && !is_focused) {
+        $(cm.current.getWrapperElement()).css({ paddingBottom: 0 });
+      }
+    }, [is_focused]);
+
+    function cm_destroy(): void {
+      if (cm.current != null) {
+        // console.log("destroy_codemirror", id);
+        if (has_frame_actions()) {
+          frame_actions.unregister_input_editor(id);
+        }
+        cm_last_remote.current = null;
+        cm.current.save = null;
+        if (cm_change.current != null) {
+          cm.current.off("change", cm_change.current);
+          cm.current.off("focus", cm_focus);
+          cm.current.off("blur", cm_blur);
+          cm_change.current = null;
+        }
+        $(cm.current.getWrapperElement()).remove(); // remove from DOM
+        if (cm.current.getOption("extraKeys") != null) {
+          cm.current.getOption("extraKeys").Tab = undefined; // no need to reference method of this react class
+        }
+        cm.current = null;
+      }
+    }
+
+    function cm_focus(): void {
+      cm_is_focused.current = true;
+      if (cm.current == null || actions == null) {
+        return;
+      }
+      if (has_frame_actions()) {
+        frame_actions.unselect_all_cells();
+        frame_actions.set_cur_id(id);
+        frame_actions.set_mode("edit");
+      }
+      if (vim_mode.current) {
+        $(cm.current.getWrapperElement()).css({ paddingBottom: "1.5em" });
+      }
+      cm_cursor();
+    }
+
+    function cm_blur(): void {
+      cm_is_focused.current = false;
+      if (cm.current == null || actions == null) {
+        return;
+      }
+      set_last_cursor(cm.current.getCursor());
+      // NOTE: see https://github.com/sagemathinc/cocalc/issues/5289
+      // We had code here that did
+      //    frame_actions?.set_mode("escape");
+      // so that any time the jupyter notebook blurs the mode
+      // changes, which is consistent with the behavior of Jupyter
+      // classic.  However, it causes that bug #5289, and I don't
+      // really see that it is a good idea to switch this mode on
+      // blur anyways.
+    }
+
+    function cm_cursor(): void {
+      if (cm.current == null || actions == null) {
+        return;
+      }
+      const sel = cm.current.listSelections();
+      if (key.current != null) {
+        const cached_val = cache.get(key.current) ?? {};
+        cached_val.sel = sel;
+        cache.set(key.current, cached_val);
+      }
+      const locs = sel.map((c) => ({
+        x: c.anchor.ch,
+        y: c.anchor.line,
+        id: id,
+      }));
+      actions.set_cursor_locs(locs, cm.current._setValueNoJump);
+
+      // See https://github.com/jupyter/notebook/issues/2464 for discussion of this cell_list_top business.
+      if (has_frame_actions()) {
+        const cell_list_div = frame_actions.cell_list_div;
+        if (cell_list_div != null) {
+          const cell_list_top = cell_list_div.offset()?.top;
+          if (
+            cell_list_top != null &&
+            cm.current.cursorCoords(true, "window").top < cell_list_top
+          ) {
+            const scroll = cell_list_div.scrollTop();
+            cell_list_div.scrollTop(
+              scroll -
+                (cell_list_top - cm.current.cursorCoords(true, "window").top) -
+                20
+            );
+          }
         }
       }
     }
-  };
 
-  _cm_set_cursor = (pos: { x?: number; y?: number }): void => {
-    let { x = 0, y = 0 } = pos; // codemirror tracebacks on undefined pos!
-    if (y < 0) {
-      // for getting last line...
-      y = this.cm.lastLine() + 1 + y;
+    function cm_set_cursor(pos: { x?: number; y?: number }): void {
+      let { x = 0, y = 0 } = pos; // codemirror tracebacks on undefined pos!
+      if (y < 0) {
+        // for getting last line...
+        y = cm.current.lastLine() + 1 + y;
+      }
+      cm.current.setCursor({ line: y, ch: x });
     }
-    this.cm.setCursor({ line: y, ch: x });
-  };
 
-  _cm_refresh = (): void => {
-    if (this.cm == null || this.props.frame_actions == null) {
-      return;
+    function cm_refresh(): void {
+      if (cm.current == null || frame_actions == null) {
+        return;
+      }
+      cm.current.refresh();
     }
-    this.cm.refresh();
-  };
 
-  _cm_save = (): string | undefined => {
-    if (this.cm == null || this.props.actions == null) {
-      return;
+    function cm_save(): string | undefined {
+      if (cm.current == null || actions == null) {
+        return;
+      }
+      const value = cm.current.getValue();
+      if (value !== cm_last_remote.current) {
+        // only save if we actually changed something
+        cm_last_remote.current = value;
+        // The true makes sure the Store has its state set immediately,
+        // with no debouncing/throttling, etc., which is important
+        // since some code, e.g., for introspection when doing evaluation,
+        // which runs immediately after this, assumes the Store state
+        // is set for the editor.
+        actions.set_cell_input(id, value);
+      }
+      return value;
     }
-    const value = this.cm.getValue();
-    if (value !== this._cm_last_remote) {
-      // only save if we actually changed something
-      this._cm_last_remote = value;
-      // The true makes sure the Store has its state set immediately,
-      // with no debouncing/throttling, etc., which is important
-      // since some code, e.g., for introspection when doing evaluation,
-      // which runs immediately after this, assumes the Store state
-      // is set for the editor.
-      this.props.actions.set_cell_input(this.props.id, value);
-    }
-    return value;
-  };
 
-  _cm_merge_remote = (remote: string): void => {
-    if (this.cm == null) {
-      return;
+    function cm_merge_remote(remote: string): void {
+      if (cm.current == null) {
+        return;
+      }
+      if (cm_last_remote.current == null) {
+        cm_last_remote.current = "";
+      }
+      if (cm_last_remote.current === remote) {
+        return; // nothing to do
+      }
+      const local = cm.current.getValue();
+      const new_val = three_way_merge({
+        base: cm_last_remote.current,
+        local,
+        remote,
+      });
+      cm_last_remote.current = remote;
+      cm.current.setValueNoJump(new_val);
     }
-    if (this._cm_last_remote == null) {
-      this._cm_last_remote = "";
-    }
-    if (this._cm_last_remote === remote) {
-      return; // nothing to do
-    }
-    const local = this.cm.getValue();
-    const new_val = three_way_merge({
-      base: this._cm_last_remote,
-      local,
-      remote,
-    });
-    this._cm_last_remote = remote;
-    this.cm.setValueNoJump(new_val);
-  };
 
-  _cm_undo = (): void => {
-    if (this.cm == null || this.props.actions == null) {
-      return;
+    function cm_undo(): void {
+      if (cm.current == null || actions == null) {
+        return;
+      }
+      if (
+        !actions.syncdb.in_undo_mode() ||
+        cm.current.getValue() !== cm_last_remote.current
+      ) {
+        cm_save();
+      }
+      actions.undo();
     }
-    if (
-      !this.props.actions.syncdb.in_undo_mode() ||
-      this.cm.getValue() !== this._cm_last_remote
-    ) {
-      this._cm_save();
-    }
-    this.props.actions.undo();
-  };
 
-  _cm_redo = (): void => {
-    if (this.cm == null || this.props.actions == null) {
-      return;
+    function cm_redo(): void {
+      if (cm.current == null || actions == null) {
+        return;
+      }
+      actions.redo();
     }
-    this.props.actions.redo();
-  };
 
-  shift_tab_key = (): void => {
-    if (this.cm == null) return;
-    if (this.cm.somethingSelected() || this.whitespace_before_cursor()) {
-      // Something is selected or there is whitespace before
-      // the cursor: unindent.
-      if (this.cm != null) this.cm.unindent_selection();
-      return;
+    function shift_tab_key(): void {
+      if (cm.current == null) return;
+      if (cm.current.somethingSelected() || whitespace_before_cursor()) {
+        // Something is selected or there is whitespace before
+        // the cursor: unindent.
+        if (cm.current != null) cm.current.unindent_selection();
+        return;
+      }
+      // Otherwise, Shift+tab in Jupyter is introspect.
+      const pos = cm.current.getCursor();
+      let last_introspect_pos: undefined | { line: number; ch: number } =
+        undefined;
+      if (key.current != null) {
+        const cached_val = cache.get(key.current);
+        if (cached_val != null) {
+          last_introspect_pos = cached_val.last_introspect_pos;
+        }
+      }
+      if (
+        actions.store.get("introspect") != null &&
+        last_introspect_pos != null &&
+        last_introspect_pos.line === pos.line &&
+        last_introspect_pos.ch === pos.ch
+      ) {
+        // make sure introspect pager closes (if visible)
+        actions.introspect_close();
+        last_introspect_pos = undefined;
+      } else {
+        actions.introspect_at_pos(cm.current.getValue(), 0, pos);
+        last_introspect_pos = pos;
+      }
+      if (key.current != null) {
+        const cached_val = cache.get(key.current) ?? {};
+        cached_val.last_introspect_pos = last_introspect_pos;
+        cache.set(key.current, cached_val);
+      }
     }
-    // Otherwise, Shift+tab in Jupyter is introspect.
-    const pos = this.cm.getCursor();
-    let last_introspect_pos:
-      | undefined
-      | { line: number; ch: number } = undefined;
-    if (this.key != null && cache[this.key]) {
-      last_introspect_pos = cache[this.key].last_introspect_pos;
-    }
-    if (
-      this.props.actions.store.get("introspect") != null &&
-      last_introspect_pos != null &&
-      last_introspect_pos.line === pos.line &&
-      last_introspect_pos.ch === pos.ch
-    ) {
-      // make sure introspect pager closes (if visible)
-      this.props.actions.introspect_close();
-      last_introspect_pos = undefined;
-    } else {
-      this.props.actions.introspect_at_pos(this.cm.getValue(), 0, pos);
-      last_introspect_pos = pos;
-    }
-    if (this.key != null) {
-      if (cache[this.key] == null) cache[this.key] = {};
-      cache[this.key].last_introspect_pos = last_introspect_pos;
-    }
-  };
 
-  tab_key = (): void => {
-    if (this.cm == null) {
-      return;
+    function tab_key(): void {
+      if (cm.current == null) {
+        return;
+      }
+      if (cm.current.somethingSelected()) {
+        // @ts-ignore
+        CodeMirror.commands.defaultTab(cm.current);
+      } else {
+        tab_nothing_selected();
+      }
     }
-    if (this.cm.somethingSelected()) {
-      CodeMirror.commands.defaultTab(this.cm);
-    } else {
-      this.tab_nothing_selected();
-    }
-  };
 
-  up_key = (): void => {
-    if (this.cm == null) {
-      return;
+    function up_key(): void {
+      if (cm.current == null) {
+        return;
+      }
+      const cur = cm.current.getCursor();
+      if (
+        (cur != null ? cur.line : undefined) === cm.current.firstLine() &&
+        (cur != null ? cur.ch : undefined) === 0
+      ) {
+        adjacent_cell(-1, -1);
+      } else {
+        CodeMirror.commands.goLineUp(cm.current);
+      }
     }
-    const cur = this.cm.getCursor();
-    if (
-      (cur != null ? cur.line : undefined) === this.cm.firstLine() &&
-      (cur != null ? cur.ch : undefined) === 0
-    ) {
-      this.adjacent_cell(-1, -1);
-    } else {
-      CodeMirror.commands.goLineUp(this.cm);
-    }
-  };
 
-  down_key = (): void => {
-    if (this.cm == null) {
-      return;
+    function down_key(): void {
+      if (cm.current == null) {
+        return;
+      }
+      const cur = cm.current.getCursor();
+      const n = cm.current.lastLine();
+      const cur_line = cur != null ? cur.line : undefined;
+      const cur_ch = cur != null ? cur.ch : undefined;
+      const line = cm.current.getLine(n);
+      const line_length = line != null ? line.length : undefined;
+      if (cur_line === n && cur_ch === line_length) {
+        adjacent_cell(0, 1);
+      } else {
+        CodeMirror.commands.goLineDown(cm.current);
+      }
     }
-    const cur = this.cm.getCursor();
-    const n = this.cm.lastLine();
-    const cur_line = cur != null ? cur.line : undefined;
-    const cur_ch = cur != null ? cur.ch : undefined;
-    const line = this.cm.getLine(n);
-    const line_length = line != null ? line.length : undefined;
-    if (cur_line === n && cur_ch === line_length) {
-      this.adjacent_cell(0, 1);
-    } else {
-      CodeMirror.commands.goLineDown(this.cm);
-    }
-  };
 
-  page_up_key = (): void => {
-    if (this.cm == null) {
-      return;
+    function page_up_key(): void {
+      if (cm.current == null) {
+        return;
+      }
+      const cur = cm.current.getCursor();
+      if (
+        (cur != null ? cur.line : undefined) === cm.current.firstLine() &&
+        (cur != null ? cur.ch : undefined) === 0
+      ) {
+        adjacent_cell(-1, -1);
+      } else {
+        CodeMirror.commands.goPageUp(cm.current);
+      }
     }
-    const cur = this.cm.getCursor();
-    if (
-      (cur != null ? cur.line : undefined) === this.cm.firstLine() &&
-      (cur != null ? cur.ch : undefined) === 0
-    ) {
-      this.adjacent_cell(-1, -1);
-    } else {
-      CodeMirror.commands.goPageUp(this.cm);
-    }
-  };
 
-  page_down_key = (): void => {
-    if (this.cm == null) {
-      return;
+    function page_down_key(): void {
+      if (cm.current == null) {
+        return;
+      }
+      const cur = cm.current.getCursor();
+      const n = cm.current.lastLine();
+      const cur_line = cur != null ? cur.line : undefined;
+      const cur_ch = cur != null ? cur.ch : undefined;
+      const line = cm.current.getLine(n);
+      const line_length = line != null ? line.length : undefined;
+      if (cur_line === n && cur_ch === line_length) {
+        adjacent_cell(0, 1);
+      } else {
+        CodeMirror.commands.goPageDown(cm.current);
+      }
     }
-    const cur = this.cm.getCursor();
-    const n = this.cm.lastLine();
-    const cur_line = cur != null ? cur.line : undefined;
-    const cur_ch = cur != null ? cur.ch : undefined;
-    const line = this.cm.getLine(n);
-    const line_length = line != null ? line.length : undefined;
-    if (cur_line === n && cur_ch === line_length) {
-      this.adjacent_cell(0, 1);
-    } else {
-      CodeMirror.commands.goPageDown(this.cm);
-    }
-  };
 
-  adjacent_cell = (y: number, delta: number): void => {
-    if (!this.has_frame_actions()) return;
-    this.props.frame_actions.move_cursor(delta);
-    this.props.frame_actions.set_input_editor_cursor(
-      this.props.frame_actions.store.get("cur_id"),
-      {
+    function adjacent_cell(y: number, delta: number): void {
+      if (!has_frame_actions()) return;
+      frame_actions.move_cursor(delta);
+      frame_actions.set_input_editor_cursor(frame_actions.store.get("cur_id"), {
         x: 0,
         y,
-      }
-    );
-    this.props.frame_actions.scroll("cell visible");
-  };
-
-  whitespace_before_cursor = (): boolean => {
-    if (this.cm == null) return false;
-    const cur = this.cm.getCursor();
-    return cur.ch === 0 || /\s/.test(this.cm.getLine(cur.line)[cur.ch - 1]);
-  };
-
-  tab_nothing_selected = async (): Promise<void> => {
-    if (this.cm == null || this.props.actions == null) {
-      return;
+      });
+      frame_actions.scroll("cell visible");
     }
-    if (this.whitespace_before_cursor()) {
-      if (this.cm.options.indentWithTabs) {
-        CodeMirror.commands.defaultTab(this.cm);
-      } else {
-        this.cm.tab_as_space();
-      }
-      return;
-    }
-    const cur = this.cm.getCursor();
-    const pos = this.cm.cursorCoords(cur, "local");
-    const top = pos.bottom;
-    const { left } = pos;
-    const gutter = $(this.cm.getGutterElement()).width();
-    // ensure that store has same version of cell as we're completing
-    this._cm_save();
-    // do the actual completion:
-    try {
-      const show_dialog: boolean = await this.props.actions.complete(
-        this.cm.getValue(),
-        cur,
-        this.props.id,
-        {
-          top,
-          left,
-          gutter,
-        }
+
+    function whitespace_before_cursor(): boolean {
+      if (cm.current == null) return false;
+      const cur = cm.current.getCursor();
+      return (
+        cur.ch === 0 || /\s/.test(cm.current.getLine(cur.line)[cur.ch - 1])
       );
-      if (!show_dialog && this.has_frame_actions()) {
-        this.props.frame_actions.set_mode("edit");
-      }
-    } catch (err) {
-      // ignore -- maybe another complete happened and this should be ignored.
     }
-  };
 
-  update_codemirror_options = (next: any, current: any): void => {
-    next.forEach((value: any, option: any) => {
-      if (value !== current.get(option)) {
-        if (typeof value.toJS === "function") {
-          value = value.toJS();
+    async function tab_nothing_selected(): Promise<void> {
+      if (cm.current == null || actions == null) {
+        return;
+      }
+      if (whitespace_before_cursor()) {
+        if (cm.current.options.indentWithTabs) {
+          // @ts-ignore
+          CodeMirror.commands.defaultTab(cm.current);
+        } else {
+          cm.current.tab_as_space();
         }
-        this.cm.setOption(option, value);
+        return;
       }
-    });
-  };
-
-  // NOTE: init_codemirror is VERY expensive, e.g., on the order of 10's of ms.
-  private init_codemirror(
-    options: ImmutableMap<string, any>,
-    value: string
-  ): void {
-    if (this.cm != null) return;
-    const node = this.cm_ref.current;
-    if (node == null) {
-      return;
+      const cur = cm.current.getCursor();
+      const pos = cm.current.cursorCoords(cur, "local");
+      const top = pos.bottom;
+      const { left } = pos;
+      const gutter = $(cm.current.getGutterElement()).width();
+      // ensure that store has same version of cell as we're completing
+      cm_save();
+      // do the actual completion:
+      try {
+        const show_dialog: boolean = await actions.complete(
+          cm.current.getValue(),
+          cur,
+          id,
+          {
+            top,
+            left,
+            gutter,
+          }
+        );
+        if (!show_dialog && has_frame_actions()) {
+          frame_actions.set_mode("edit");
+        }
+      } catch (err) {
+        // ignore -- maybe another complete happened and this should be ignored.
+      }
     }
-    // console.log("init_codemirror", this.props.id);
-    const options0: any = options.toJS();
-    if (this.props.actions != null) {
-      if (options0.extraKeys == null) {
-        options0.extraKeys = {};
+
+    function update_codemirror_options(next: any, current: any): void {
+      next.forEach((value: any, option: string) => {
+        if (value !== current.get(option)) {
+          if (option != "inputStyle") {
+            // note: inputStyle can not (yet) be changed in a running editor
+            // -- see https://github.com/sagemathinc/cocalc/issues/5383
+            if (typeof value?.toJS === "function") {
+              value = value.toJS();
+            }
+            cm.current.setOption(option, value);
+          }
+        }
+      });
+    }
+
+    // NOTE: init_codemirror is VERY expensive, e.g., on the order of 10's of ms.
+    function init_codemirror(
+      options: ImmutableMap<string, any>,
+      value: string
+    ): void {
+      if (cm.current != null) return;
+      const node = cm_ref.current;
+      if (node == null) {
+        return;
       }
-      options0.extraKeys["Shift-Tab"] = this.shift_tab_key;
-      options0.extraKeys["Tab"] = this.tab_key;
-      options0.extraKeys["Up"] = this.up_key;
-      options0.extraKeys["Down"] = this.down_key;
-      options0.extraKeys["PageUp"] = this.page_up_key;
-      options0.extraKeys["PageDown"] = this.page_down_key;
-      options0.extraKeys["Cmd-/"] = "toggleComment";
-      options0.extraKeys["Ctrl-/"] = "toggleComment";
-      options0.extraKeys["Ctrl-Enter"] = () => {}; // ignore control+enter, since there's a shortcut
-      /*
+      // console.log("init_codemirror", id);
+      const options0: any = options.toJS();
+      if (actions != null) {
+        if (options0.extraKeys == null) {
+          options0.extraKeys = {};
+        }
+        options0.extraKeys["Shift-Tab"] = shift_tab_key;
+        options0.extraKeys["Tab"] = tab_key;
+        options0.extraKeys["Up"] = up_key;
+        options0.extraKeys["Down"] = down_key;
+        options0.extraKeys["PageUp"] = page_up_key;
+        options0.extraKeys["PageDown"] = page_down_key;
+        options0.extraKeys["Cmd-/"] = "toggleComment";
+        options0.extraKeys["Ctrl-/"] = "toggleComment";
+        options0.extraKeys["Ctrl-Enter"] = () => {}; // ignore control+enter, since there's a shortcut
+        /*
       Disabled for now since fold state isn't preserved.
       if (options0.foldGutter) {
         options0.extraKeys["Ctrl-Q"] = cm => cm.foldCodeSelectionAware();
         options0.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
       }
       */
-    } else {
-      options0.readOnly = true;
-    }
+      } else {
+        options0.readOnly = true;
+      }
 
-    this.cm = CodeMirror(function (elt) {
-      if (node.parentNode == null) return;
-      node.parentNode.replaceChild(elt, node);
-    }, options0);
+      cm.current = CodeMirror(function (elt) {
+        if (node.parentNode == null) return;
+        node.parentNode.replaceChild(elt, node);
+      }, options0);
 
-    this.cm.save = () => this.props.actions.save();
-    if (this.props.actions != null && options0.keyMap === "vim") {
-      this._vim_mode = true;
-      this.cm.on("vim-mode-change", async (obj) => {
-        if (!this.has_frame_actions()) return;
-        if (obj.mode === "normal") {
-          // The delay is because this must not be set when the general
-          // keyboard handler for the whole editor gets called with escape.
-          // This is ugly, but I'm not going to spend forever on this before
-          // the #v1 release, as vim support is a bonus feature.
-          await delay(0);
-          this.props.frame_actions.setState({
-            cur_cell_vim_mode: "escape",
-          });
-        } else {
-          this.props.frame_actions.setState({ cur_cell_vim_mode: "edit" });
+      cm.current.save = () => actions.save();
+      if (actions != null && options0.keyMap === "vim") {
+        vim_mode.current = true;
+        cm.current.on("vim-mode-change", async (obj) => {
+          if (!has_frame_actions()) return;
+          if (obj.mode === "normal") {
+            // The delay is because this must not be set when the general
+            // keyboard handler for the whole editor gets called with escape.
+            // This is ugly, but I'm not going to spend forever on this before
+            // the #v1 release, as vim support is a bonus feature.
+            await delay(0);
+            frame_actions.setState({
+              cur_cell_vim_mode: "escape",
+            });
+          } else {
+            frame_actions.setState({ cur_cell_vim_mode: "edit" });
+          }
+        });
+      } else {
+        vim_mode.current = false;
+      }
+
+      const css: any = { height: "auto" };
+      if (options0.theme == null) {
+        css.backgroundColor = "#fff";
+      }
+      $(cm.current.getWrapperElement()).css(css);
+
+      cm_last_remote.current = value;
+      cm.current.setValue(value);
+      if (key.current != null) {
+        const info = cache.get(key.current);
+        if (info != null && info.sel != null) {
+          cm.current
+            .getDoc()
+            .setSelections(info.sel, undefined, { scroll: false });
+        }
+      }
+      cm_change.current = underscore.debounce(cm_save, SAVE_DEBOUNCE_MS);
+      cm.current.on("change", cm_change.current);
+      cm.current.on("beforeChange", (_, changeObj) => {
+        if (changeObj.origin == "paste") {
+          // See https://github.com/sagemathinc/cocalc/issues/5110
+          cm_save();
         }
       });
-    } else {
-      this._vim_mode = false;
-    }
+      cm.current.on("focus", cm_focus);
+      cm.current.on("blur", cm_blur);
+      cm.current.on("cursorActivity", cm_cursor);
 
-    const css: any = { height: "auto" };
-    if (options0.theme == null) {
-      css.backgroundColor = "#fff";
-    }
-    $(this.cm.getWrapperElement()).css(css);
+      // replace undo/redo by our sync aware versions
+      cm.current.undo = cm_undo;
+      cm.current.redo = cm_redo;
 
-    this._cm_last_remote = value;
-    this.cm.setValue(value);
-    if (this.key != null) {
-      const info = cache[this.key];
-      if (info != null && info.sel != null) {
-        this.cm.getDoc().setSelections(info.sel, undefined, { scroll: false });
+      if (has_frame_actions()) {
+        const editor: EditorFunctions = {
+          save: cm_save,
+          set_cursor: cm_set_cursor,
+          tab_key: tab_key,
+          shift_tab_key: shift_tab_key,
+          refresh: cm_refresh,
+          get_cursor: () => cm.current.getCursor(),
+          get_cursor_xy: () => {
+            const pos = cm.current.getCursor();
+            return { x: pos.ch, y: pos.line };
+          },
+        };
+        frame_actions.register_input_editor(id, editor);
+      }
+
+      if (click_coords != null) {
+        // editor clicked on, so restore cursor to that position
+        cm.current.setCursor(cm.current.coordsChar(click_coords, "window"));
+        set_click_coords(); // clear them
+      } else if (last_cursor != null) {
+        cm.current.setCursor(last_cursor);
+        set_last_cursor();
+      }
+
+      if (is_focused) {
+        focus_cm();
       }
     }
-    this._cm_change = underscore.debounce(this._cm_save, SAVE_DEBOUNCE_MS);
-    this.cm.on("change", this._cm_change);
-    this.cm.on("beforeChange", (_, changeObj) => {
-      if (changeObj.origin == "paste") {
-        // See https://github.com/sagemathinc/cocalc/issues/5110
-        this._cm_save();
-      }
-    });
-    this.cm.on("focus", this._cm_focus);
-    this.cm.on("blur", this._cm_blur);
-    this.cm.on("cursorActivity", this._cm_cursor);
 
-    // replace undo/redo by our sync aware versions
-    this.cm.undo = this._cm_undo;
-    this.cm.redo = this._cm_redo;
-
-    if (this.has_frame_actions()) {
-      const editor: EditorFunctions = {
-        save: this._cm_save,
-        set_cursor: this._cm_set_cursor,
-        tab_key: this.tab_key,
-        shift_tab_key: this.shift_tab_key,
-        refresh: this._cm_refresh,
-        get_cursor: () => this.cm.getCursor(),
-        get_cursor_xy: () => {
-          const pos = this.cm.getCursor();
-          return { x: pos.ch, y: pos.line };
-        },
-      };
-      this.props.frame_actions.register_input_editor(this.props.id, editor);
-    }
-
-    if (this.props.click_coords != null) {
-      // editor clicked on, so restore cursor to that position
-      this.cm.setCursor(this.cm.coordsChar(this.props.click_coords, "window"));
-      this.props.set_click_coords(); // clear them
-    } else if (this.props.last_cursor != null) {
-      this.cm.setCursor(this.props.last_cursor);
-      this.props.set_last_cursor();
-    }
-
-    if (this.props.is_focused) {
-      this.focus_cm();
-    }
-  }
-
-  async componentWillReceiveProps(nextProps: CodeMirrorEditorProps) {
-    if (this.cm == null) {
-      this.init_codemirror(nextProps.options, nextProps.value);
-      return;
-    }
-    if (!this.props.options.equals(nextProps.options)) {
-      this.update_codemirror_options(nextProps.options, this.props.options);
-    }
-    if (
-      this.props.font_size !== nextProps.font_size ||
-      (this.props.is_scrolling && !nextProps.is_scrolling)
-    ) {
-      this._cm_refresh();
-    }
-    // In some cases (e.g., tab completion when selecting via keyboard)
-    // nextProps.value and this.props.value are the same, but they
-    // do not equal this.cm.getValue().  The complete prop changes
-    // so the component updates, but without checking cm.getValue(),
-    // we would fail to update the cm editor, which would is
-    // a disaster.  May be root cause of
-    //    https://github.com/sagemathinc/cocalc/issues/3978
-    if (
-      nextProps.value !== this.props.value ||
-      (this.cm != null && nextProps.value != this.cm.getValue())
-    ) {
-      this._cm_merge_remote(nextProps.value);
-    }
-    if (nextProps.is_focused && !this.props.is_focused) {
-      // gain focus
-      if (this.cm != null) {
-        this.focus_cm();
+    function focus_cm(): void {
+      if (cm.current == null) return;
+      // Because we use react-window, it is critical to preventScroll
+      // when focusing!  Unfortunately, CodeMirror's api does not
+      // expose this option, so we have to bypass it in the dangerous
+      // way below, which could break were CodeMirror to be refactored!
+      // TODO: send them a PR to expose this.
+      if (cm.current.display == null || cm.current.display.input == null)
+        return;
+      if (cm.current.display.input.textarea != null) {
+        cm.current.display.input.textarea.focus({ preventScroll: true });
+      } else if (cm.current.display.input.div != null) {
+        cm.current.display.input.div.focus({ preventScroll: true });
       }
     }
-    if (!nextProps.is_focused && this._cm_is_focused) {
-      // controlled loss of focus from store; we have to force
-      // this somehow.  Note that codemirror has no .blur().
-      // See http://codemirror.977696.n3.nabble.com/Blur-CodeMirror-editor-td4026158.html
-      await delay(1);
-      if (this.cm != null) {
-        this.cm.getInputField().blur();
+
+    function render_complete() {
+      if (
+        complete != null &&
+        complete.get("matches") &&
+        complete.get("matches").size > 0
+      ) {
+        return (
+          <Complete
+            complete={complete}
+            actions={actions}
+            frame_actions={frame_actions}
+            id={id}
+          />
+        );
       }
     }
-    if (this._vim_mode && !nextProps.is_focused && this.props.is_focused) {
-      $(this.cm.getWrapperElement()).css({ paddingBottom: 0 });
-    }
-  }
 
-  componentWillUnmount() {
-    if (this.cm != null) {
-      this._cm_save();
-      this._cm_destroy();
+    function render_cursors() {
+      if (cursors != null) {
+        return <Cursors cursors={cursors} codemirror={cm.current} />;
+      }
     }
-  }
 
-  private focus_cm(): void {
-    if (this.cm == null) return;
-    // Because we use react-window, it is critical to preventScroll
-    // when focusing!  Unfortunately, CodeMirror's api does not
-    // expose this option, so we have to bypass it in the dangerous
-    // way below, which could break were CodeMirror to be refactored!
-    // TODO: send them a PR to expose this.
-    if (this.cm.display == null || this.cm.display.input == null) return;
-    if (this.cm.display.input.textarea != null) {
-      this.cm.display.input.textarea.focus({ preventScroll: true });
-    } else if (this.cm.display.input.div != null) {
-      this.cm.display.input.div.focus({ preventScroll: true });
-    }
-  }
-
-  render_complete() {
-    if (
-      this.props.complete != null &&
-      this.props.complete.get("matches") &&
-      this.props.complete.get("matches").size > 0
-    ) {
-      return (
-        <Complete
-          complete={this.props.complete}
-          actions={this.props.actions}
-          frame_actions={this.props.frame_actions}
-          id={this.props.id}
-        />
-      );
-    }
-  }
-
-  render_cursors() {
-    if (this.props.cursors != null) {
-      return <Cursors cursors={this.props.cursors} codemirror={this.cm} />;
-    }
-  }
-
-  render() {
     return (
       <div style={{ width: "100%", overflow: "auto" }}>
-        {this.render_cursors()}
+        {render_cursors()}
         <div style={FOCUSED_STYLE}>
           <pre
-            ref={this.cm_ref}
+            ref={cm_ref}
             style={{
               width: "100%",
               backgroundColor: "#fff",
               minHeight: "25px",
             }}
           >
-            {this.props.value}
+            {value}
           </pre>
         </div>
-        {this.render_complete()}
+        {render_complete()}
       </div>
     );
   }
-}
+);

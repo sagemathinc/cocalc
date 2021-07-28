@@ -9,7 +9,7 @@ import { Icon } from "./icon";
 export function Saving() {
   return (
     <span>
-      <Icon name="cc-icon-cocalc-ring" spin /> Saving...
+      <Icon name="cocalc-ring" spin /> Saving...
     </span>
   );
 }

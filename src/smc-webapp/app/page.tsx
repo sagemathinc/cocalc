@@ -15,7 +15,7 @@ const { CreateSupportTicket } = require("../support");
 
 import { COLORS } from "smc-util/theme";
 
-import { Button, Navbar, Nav, NavItem } from "../antd-bootstrap";
+import { Button, Navbar, Nav } from "../antd-bootstrap";
 import {
   React,
   useActions,
@@ -36,7 +36,6 @@ import { ConnectionInfo } from "./connection-info";
 import { ConnectionIndicator } from "./connection-indicator";
 import { FileUsePage } from "../file-use/page";
 import { NotificationBell } from "./notification-bell";
-import { IS_IPAD, IS_IOS } from "../feature";
 
 const HIDE_LABEL_THRESHOLD = 6;
 const NAV_HEIGHT = 36;
@@ -78,23 +77,7 @@ const PROJECTS_STYLE: React.CSSProperties = {
   padding: "10px 7px",
 } as const;
 
-// NOTE: On iOS/iPadOS there's a reserved 32px at the bottom
-// of the screen that plays a role in autocompletions.
-// Not taking this into account with the overall page
-// container leads to extreme usability frustration
-// given the design of cocalc.  See
-//  https://github.com/sagemathinc/cocalc/issues/5112
-// Note - even this fix is pretty annoying since on some
-// devices and some modes there is a noticeable blank
-// at the bottom of the page sometimes.  This is just
-// something that makes ipads/iphones *usable*, and I really
-// can't spend more time on this now.
-let page_height: string;
-if (IS_IPAD || IS_IOS) {
-  page_height = "calc(100vh - 116px)";
-} else {
-  page_height = "100vh";
-}
+let page_height: string = "100vh";
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
@@ -300,7 +283,6 @@ export const Page: React.FC = () => {
           active_top_tab={active_top_tab}
           hide_label={!show_label}
         />
-        <NavItem className="divider-vertical hidden-xs" />
         {render_support()}
         {logged_in && render_account_tab()}
         {render_bell()}
@@ -365,7 +347,7 @@ export const Page: React.FC = () => {
         <h1 style={{ color: COLORS.GRAY }}>
           <Loading />
         </h1>
-        <div style={{ color: COLORS.GRAY_L, width: "50vw" }}>
+        <div style={{ color: COLORS.GRAY, width: "50vw" }}>
           Please give <SiteName /> a couple of seconds to start your project and
           prepare a file...
         </div>

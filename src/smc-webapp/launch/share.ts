@@ -55,7 +55,7 @@ import { ANON_PROJECT_TITLE } from "../client/anonymous-setup";
 import {
   is_valid as is_valid_comp_img,
   FALLBACK_COMPUTE_IMAGE,
-} from "../../smc-util/compute-images";
+} from "smc-util/compute-images";
 import { CSILauncher } from "../launch/custom-image";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
 

@@ -7,58 +7,64 @@
 Provide nice JSON view of the ipynb
 */
 
-import { React, Component } from "../app-framework";
-import { Map } from "immutable";
-const Inspector = require("react-json-inspector");
+// NOTE: this react-json-view **does** support editing, but the editing isn't great,
+// and using codemirror directly is better for *editing*.
+// react-json-view is very nice for viewing.
+import ReactJson from "react-json-view";
+import { React } from "../app-framework";
 import { JupyterActions } from "./browser-actions";
 import { Loading } from "../r_misc";
 
 interface JSONViewProps {
   actions: JupyterActions;
   font_size?: number;
-  cells: Map<string, any>; // to cause update when these change.
 }
 
-export class JSONView extends Component<JSONViewProps> {
-  render() {
-    const data = this.props.actions.store.get_ipynb();
-    if (data == null) {
-      return <Loading />;
-    }
-    return (
+export const JSONView: React.FC<JSONViewProps> = ({
+  actions,
+  font_size,
+}: JSONViewProps) => {
+  const data = actions.store.get_ipynb();
+
+  if (data == null) {
+    return <Loading />;
+  }
+
+  return (
+    <div
+      style={{
+        fontSize: `${font_size}px`,
+        paddingLeft: "20px",
+        padding: "20px",
+        backgroundColor: "#eee",
+        height: "100%",
+        overflowY: "auto",
+        overflowX: "hidden",
+      }}
+    >
       <div
         style={{
-          fontSize: `${this.props.font_size}px`,
-          paddingLeft: "20px",
-          padding: "20px",
-          backgroundColor: "#eee",
-          height: "100%",
-          overflowY: "auto",
-          overflowX: "hidden",
+          backgroundColor: "#fff",
+          padding: "15px",
+          boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
+          position: "relative",
         }}
       >
         <div
           style={{
-            backgroundColor: "#fff",
-            padding: "15px",
-            boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
-            position: "relative",
+            color: "#666",
+            fontSize: "12pt",
+            padding: "5px",
+            float: "right",
+            background: "white",
+            borderBottom: "1px solid lightgrey",
+            borderLeft: "1px solid lightgrey",
           }}
         >
-          <div
-            style={{
-              color: "#666",
-              fontSize: "12pt",
-              right: "15px",
-              position: "absolute",
-              background: "white",
-            }}
-          >
-            Read-only view of notebook's underlying object structure.
-          </div>
-          <Inspector data={data} />
+          Read-only view of notebook's underlying object structure.
         </div>
+        <ReactJson src={data} />
       </div>
-    );
-  }
-}
+    </div>
+  );
+};

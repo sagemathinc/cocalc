@@ -148,13 +148,13 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
           <div style={{ marginBottom: "10px" }}>Save grades to... </div>
           <ButtonGroup>
             <Button onClick={save_grades_to_csv}>
-              <Icon name="file-text-o" /> CSV file...
+              <Icon name="csv" /> CSV file...
             </Button>
             <Button onClick={save_grades_to_json}>
-              <Icon name="file-code-o" /> JSON file...
+              <Icon name="file-code" /> JSON file...
             </Button>
             <Button onClick={save_grades_to_py}>
-              <Icon name="file-code-o" /> Python file...
+              <Icon name="file-code" /> Python file...
             </Button>
           </ButtonGroup>
           <hr />
@@ -261,7 +261,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             }}
           >
             {configuring_projects ? (
-              <Icon name="cc-icon-cocalc-ring" spin />
+              <Icon name="cocalc-ring" spin />
             ) : undefined}{" "}
             Reconfigure all projects
           </Button>

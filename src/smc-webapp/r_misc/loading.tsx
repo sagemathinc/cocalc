@@ -11,6 +11,8 @@ export type Estimate = TypedMap<{
   time: number; // Time in seconds
   type: "new" | "ready" | "archived";
 }>;
+export const Estimate = null; // webpack + TS es2020 modules need this
+
 
 interface Props {
   style?: React.CSSProperties;
@@ -56,10 +58,11 @@ export class Loading extends React.Component<Props> {
     return (
       <div style={style}>
         <span>
-          <Icon name="cc-icon-cocalc-ring" spin /> {this.props.text}
+          <Icon name="cocalc-ring" spin /> {this.props.text}
         </span>
         {this.render_estimate()}
       </div>
     );
   }
 }
+

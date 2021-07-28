@@ -4,7 +4,7 @@
  */
 
 import * as React from "react";
-const { Col, Row, Input } = require("antd");
+import { Col, Row, Input } from "antd";
 
 interface Props {
   number: number;

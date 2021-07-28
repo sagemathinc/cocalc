@@ -259,7 +259,7 @@ export const ActionBox = rclass<ReactProps>(
                   onClick={this.delete_click}
                   disabled={this.props.current_path === ".trash"}
                 >
-                  <Icon name="trash-o" /> Delete {size}{" "}
+                  <Icon name="trash" /> Delete {size}{" "}
                   {misc.plural(size, "Item")}
                 </Button>
                 <Button onClick={this.cancel_action}>Cancel</Button>
@@ -464,7 +464,7 @@ export const ActionBox = rclass<ReactProps>(
                   onClick={this.move_click}
                   disabled={!this.valid_move_input()}
                 >
-                  <Icon name="arrows" /> Move {size} {misc.plural(size, "Item")}
+                  <Icon name="move" /> Move {size} {misc.plural(size, "Item")}
                 </Button>
                 <Button onClick={this.cancel_action}>Cancel</Button>
               </ButtonToolbar>
@@ -623,7 +623,7 @@ export const ActionBox = rclass<ReactProps>(
               <Col sm={12}>
                 <ButtonToolbar>
                   <Button bsStyle="primary" disabled={true}>
-                    <Icon name="files-o" /> Copy {size}{" "}
+                    <Icon name="files" /> Copy {size}{" "}
                     {misc.plural(size, "item")}
                   </Button>
                   <Button onClick={this.cancel_action}>Cancel</Button>
@@ -678,7 +678,7 @@ export const ActionBox = rclass<ReactProps>(
                     onClick={this.copy_click}
                     disabled={!this.valid_copy_input()}
                   >
-                    <Icon name="files-o" /> Copy {size}{" "}
+                    <Icon name="files" /> Copy {size}{" "}
                     {misc.plural(size, "Item")}
                   </Button>
                   <Button onClick={this.cancel_action}>Cancel</Button>

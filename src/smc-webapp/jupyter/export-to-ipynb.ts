@@ -8,7 +8,7 @@ Exporting from our in-memory sync-friendly format to ipynb
 */
 
 import * as immutable from "immutable";
-import * as misc from "../../smc-util/misc";
+import * as misc from "smc-util/misc";
 
 // In coffeescript still, so we at least say what we use of it here.
 interface BlobStore {

@@ -1,0 +1,8 @@
+tsconfig.tsbuildinfo
+.coffee
+*.term
+*.term.init
+*.sage-chat
+a
+out
+dist-measure

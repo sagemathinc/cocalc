@@ -5,17 +5,13 @@
 
 // Adapted from https://github.com/bahamas10/node-ssh-fingerprint
 
-import { createHash } from "crypto";
+import * as md5 from "md5";
 
-// hash a string with the given alg
-const hash = (s: Buffer, alg: string): string => {
-  return createHash(alg).update(s).digest("hex");
-};
 // add colons, 'hello' => 'he:ll:o'
 const colons = (s: string) => s.replace(/(.{2})(?=.)/g, "$1:");
 
-export function compute_fingerprint(pub: string, alg: string = "md5"): string {
+export function compute_fingerprint(pub: string): string {
   const pubbuffer = new Buffer(pub, "base64");
-  const key = hash(pubbuffer, alg);
+  const key = md5(pubbuffer);
   return colons(key);
 }

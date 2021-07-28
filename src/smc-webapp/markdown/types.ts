@@ -16,3 +16,5 @@ export interface Token {
   info?: string;
   map?: number[]; // source map: pair of 0-based line numbers of source that produced this token.
 }
+
+export const Token : any = null;  // webpack + TS es2020 modules need this

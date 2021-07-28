@@ -25,7 +25,7 @@ register_file_editor({
 
   is_public: false,
 
-  icon: "chalkboard",
+  icon: "layout",
 
   component: WhiteboardEditor,
 

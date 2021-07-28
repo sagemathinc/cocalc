@@ -231,7 +231,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
         onClick={() => actions.export_to_markdown()}
         style={{ marginLeft: "5px" }}
       >
-        <Icon name="external-link-square" /> Export
+        <Icon name="external-link" /> Export
       </Button>
     );
   }

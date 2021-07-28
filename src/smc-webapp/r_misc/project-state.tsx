@@ -7,7 +7,6 @@ import { React } from "../app-framework";
 import { COMPUTE_STATES } from "smc-util/schema";
 import { ProjectStatus } from "../todo-types";
 import { Space } from "./space";
-import { Loading } from "./loading";
 import { Icon } from "./icon";
 
 interface Props {
@@ -19,7 +18,7 @@ export const ProjectState: React.FC<Props> = ({ state, show_desc }) => {
   function render_spinner() {
     return (
       <span style={{ marginRight: "15px" }}>
-        ... <Icon name="cc-icon-cocalc-ring" spin />
+        ... <Icon name="cocalc-ring" spin />
       </span>
     );
   }
@@ -35,9 +34,9 @@ export const ProjectState: React.FC<Props> = ({ state, show_desc }) => {
     );
   }
 
-  const s = COMPUTE_STATES[state?.get("state")];
+  const s = COMPUTE_STATES[state?.get("state") ?? ""];
   if (s == null) {
-    return <Loading />;
+    return <></>;
   }
   const { display, desc, icon, stable } = s;
   return (

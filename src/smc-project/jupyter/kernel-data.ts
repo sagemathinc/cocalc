@@ -12,13 +12,13 @@ Specs: https://jupyter-client.readthedocs.io/en/stable/kernels.html#kernel-specs
 */
 
 import { findAll } from "kernelspecs";
-import { field_cmp } from "../smc-util/misc";
+import { field_cmp } from "smc-util/misc";
 import * as LRU from "lru-cache";
 
 const cache = new LRU({ maxAge: 5000 });
 
 export async function get_kernel_data(): Promise<any> {
-  let kernel_data = cache.get("kernel_data");
+  let kernel_data = cache.get("kernel_data") as any;
   if (kernel_data != null) {
     return kernel_data;
   }

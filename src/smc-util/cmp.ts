@@ -4,7 +4,6 @@
  */
 
 import { isEqual } from "lodash";
-import { Moment } from "moment";
 
 export function cmp(a: any, b: any): number {
   if (a < b) {
@@ -45,7 +44,7 @@ export function cmp_Date(
   return 0; // note: a == b for Date objects doesn't work as expected, but that's OK here.
 }
 
-export function cmp_moment(a?: Moment, b?: Moment, null_last = false): number {
+export function cmp_moment(a?, b?, null_last = false): number {
   return cmp_Date(a?.toDate(), b?.toDate(), null_last);
 }
 
@@ -71,16 +70,25 @@ export function field_cmp(field): (a, b) => number {
   return (a, b) => cmp(a[field], b[field]);
 }
 
-export function is_different(
-  a: any,
-  b: any,
-  fields: string[],
-  verbose?: string
+export function all_fields_equal<T extends { [K: string]: any }>(
+  a: T,
+  b: T,
+  fields: (keyof T)[],
+  verbose?: any
+) {
+  return !is_different(a, b, fields, verbose);
+}
+
+export function is_different<T extends { [K: string]: any }>(
+  a: T,
+  b: T,
+  fields: (keyof T)[],
+  verbose?: any
 ): boolean {
   if (verbose != null) {
     return is_different_verbose(a, b, fields, verbose);
   }
-  let field: string;
+  let field: keyof T;
   if (a == null) {
     if (b == null) {
       return false; // they are the same
@@ -113,12 +121,7 @@ export function is_different(
 
 // Use for debugging purposes only -- copy code from above to avoid making that
 // code more complicated and possibly slower.
-function is_different_verbose(
-  a: any,
-  b: any,
-  fields: string[],
-  verbose: string
-): boolean {
+function is_different_verbose(a, b, fields, verbose): boolean {
   function log(...x) {
     console.log("is_different_verbose", verbose, ...x);
   }

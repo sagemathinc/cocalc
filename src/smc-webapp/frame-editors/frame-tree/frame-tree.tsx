@@ -116,12 +116,13 @@ interface FrameTreeProps {
 
 interface FrameTreeState {
   drag_hover: boolean;
+  forceReload: number; // todo -- much better way to do with react hooks
 }
 
 export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
   constructor(props) {
     super(props);
-    this.state = { drag_hover: false };
+    this.state = { drag_hover: false, forceReload: 0 };
   }
 
   componentWillUnmount(): void {
@@ -134,6 +135,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
   shouldComponentUpdate(next, state): boolean {
     return (
       this.state.drag_hover !== state.drag_hover ||
+      this.state.forceReload != state.forceReload ||
       is_different(this.props, next, [
         "frame_tree",
         "active_id",
@@ -202,6 +204,13 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     );
   }
 
+  private async init_code_editor(id: string, path: string): Promise<void> {
+    // This async function starts the manager initializing
+    await this.props.actions.init_code_editor(id, path);
+    // OK, now it's initialized, so we need to cause a refresh...
+    this.setState({ forceReload: this.state.forceReload + 1 });
+  }
+
   private get_editor_actions(desc: NodeDesc): Actions | undefined {
     if (desc.get("type") == "cm" && this.props.editor_spec["cm"] == null) {
       // make it so the spec includes info about cm editor.
@@ -213,6 +222,15 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       desc.get("path", this.props.path) != this.props.path
     ) {
       const manager = this.props.actions.get_code_editor(desc.get("id"));
+      if (manager == null) {
+        // This async function starts the manager initializing
+        this.init_code_editor(
+          desc.get("id"),
+          desc.get("path", this.props.path)
+        );
+
+        return undefined;
+      }
       return manager?.get_actions();
     } else {
       return this.props.actions;
@@ -348,12 +366,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     try {
       editor_actions = this.get_editor_actions(desc);
       if (editor_actions == null) {
-        return (
-          <div>
-            BUG: editor actions not defined; please close and open this tab or
-            refresh your browser.
-          </div>
-        );
+        return <Loading />;
       }
       spec = this.props.editor_spec[type];
       component = spec != null ? spec.component : undefined;

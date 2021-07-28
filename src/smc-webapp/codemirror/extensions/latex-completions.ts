@@ -13,8 +13,8 @@ and I can't remember where that came from or how to update it.
 import * as CodeMirror from "codemirror";
 import { startswith } from "smc-util/misc";
 
-const data = require("raw-loader!codemirror-extra/data/latex-completions.txt");
-let completions = data.split("\n");
+const data = require("codemirror-extra/data/latex-completions.txt").default;
+const completions : string[] = data.split("\n");
 
 function tex_hint(editor) {
   const cur = editor.getCursor();

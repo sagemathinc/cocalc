@@ -15,10 +15,12 @@ import * as os_path from "path";
 import { isEqual } from "lodash";
 const fs_readFile_prom = promisify(fs.readFile);
 const async = require("async");
-const winston = require("./winston-metrics").get_logger("email");
+const winston = require("./logger").getLogger("email");
 import { template } from "lodash";
 import { AllSiteSettingsCached } from "smc-util/db-schema/types";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import base_path from "smc-util-node/base-path";
+import { secrets } from "smc-util-node/data";
 
 // sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 import * as sendgrid from "@sendgrid/client";
@@ -29,7 +31,7 @@ const misc = require("smc-util/misc");
 const { defaults, required } = misc;
 import { site_settings_conf } from "smc-util/db-schema/site-defaults";
 import * as sanitizeHtml from "sanitize-html";
-import { contains_url } from "smc-util-node/misc2_node";
+import { contains_url } from "smc-util-node/misc";
 
 const {
   SENDGRID_TEMPLATE_ID,
@@ -112,7 +114,7 @@ async function init_sendgrid(opts: Opts, dbg): Promise<void> {
       dbg("... using site settings/sendgrid_key");
       api_key = ssgk.trim();
     } else {
-      const filename = `${process.env.SALVUS_ROOT}/data/secrets/sendgrid`;
+      const filename = os_path.join(secrets, "sendgrid");
       try {
         api_key = await fs_readFile_prom(filename, "utf8");
         api_key = api_key.toString().trim();
@@ -301,11 +303,11 @@ function create_email_body(
   let direct_link: string;
   let base_url: string;
   if (link2proj != null) {
-    const base_url_tokens = link2proj.split("/");
-    base_url = `${base_url_tokens[0]}//${base_url_tokens[2]}`;
+    const base_url_segments = link2proj.split("/");
+    base_url = `${base_url_segments[0]}//${base_url_segments[2]}`;
     direct_link = `Open <a href='${link2proj}'>the project '${project_title}'</a>.`;
   } else {
-    // no link2proj provided -- at show something useful:
+    // no link2proj provided -- show something useful:
     direct_link = "";
     base_url = "https://cocalc.com";
   }
@@ -817,11 +819,10 @@ export function welcome_email(opts): void {
   const site_name = fallback(settings.site_name, SITE_NAME);
   const dns = fallback(settings.dns, DNS);
   const url = `https://${dns}`;
-  const base_url = require("./base-url").base_url();
   const token_query = encodeURI(
     `email=${encodeURIComponent(opts.to)}&token=${opts.token}`
   );
-  const endpoint = os_path.join("/", base_url, "auth", "verify");
+  const endpoint = os_path.join(base_path, "auth", "verify");
   const token_url = `${url}${endpoint}?${token_query}`;
   const verify_emails = opts.settings.verify_emails ?? true;
 

@@ -1,8 +1,0 @@
-#!/usr/bin/python
-
-import os, sys
-
-for x in sys.argv[1:]:
-   name = os.popen('grep %s /etc/passwd'%x).read().split(':')[0].strip()
-   if name:
-    os.system("killall -9 -u %s"%name)

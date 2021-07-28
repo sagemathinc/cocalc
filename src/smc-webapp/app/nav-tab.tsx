@@ -6,7 +6,7 @@
 import { React, useActions } from "../app-framework";
 import { NavItem } from "react-bootstrap";
 import { user_tracking } from "../user-tracking";
-import { Icon } from "../r_misc";
+import { Icon, IconName } from "../r_misc";
 import { COLORS } from "smc-util/theme";
 
 const ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE;
@@ -15,7 +15,7 @@ interface Props {
   name?: string;
   label?: string | JSX.Element;
   label_class?: string;
-  icon?: string | JSX.Element;
+  icon?: IconName | JSX.Element;
   close?: boolean;
   on_click?: () => void;
   active_top_tab?: string;
@@ -33,7 +33,7 @@ export const NavTab: React.FC<Props> = React.memo((props) => {
     if (!props.hide_label && props.label != null) {
       return (
         <span
-          style={{ marginLeft: 5 }}
+          style={{ marginLeft: "5px", marginTop: "-3px" }}
           className={props.label_class}
           cocalc-test={props.name}
         >

@@ -19,10 +19,11 @@ interface Props {
 export const RunAnonymously: React.FC<Props> = (params) => {
   const { show_terms } = params;
   const allow_anon = useTypedRedux("customize", "allow_anonymous_sign_in") ?? true;
-  if (!allow_anon) return null;
 
   const [anon_checkbox, set_anon_checkbox] = useState(!show_terms);
   const site_name = useTypedRedux("customize", "site_name");
+
+  if (!allow_anon) return null;   // important -- this must be after any use hooks above!
 
   const run_anonymously = (e) => {
     e.preventDefault();
@@ -35,7 +36,7 @@ export const RunAnonymously: React.FC<Props> = (params) => {
     <Well style={WELL_STYLE}>
       <div>
         Alternatively, {show_terms && "accept the Terms of Service and "}
-        evaluate {site_name}.
+        evaluate {site_name} without making an account.
       </div>
 
       <form

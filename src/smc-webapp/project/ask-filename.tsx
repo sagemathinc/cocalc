@@ -110,7 +110,7 @@ export const AskNewFilename: React.FC<Props> = React.memo((props: Props) => {
             on_change={change}
           />
           <Row>
-            <Col md={5}>
+            <Col md={5} style={{ paddingTop: "15px" }}>
               <SelectorInput
                 selected={selected}
                 options={NewFilenameFamilies}
@@ -119,7 +119,13 @@ export const AskNewFilename: React.FC<Props> = React.memo((props: Props) => {
             </Col>
 
             <Col md={7}>
-              <ButtonToolbar style={{ whiteSpace: "nowrap", padding: "0" }}>
+              <ButtonToolbar
+                style={{
+                  whiteSpace: "nowrap",
+                  padding: "0",
+                  marginTop: "15px",
+                }}
+              >
                 <Button onClick={shuffle}>
                   <Icon name={"sync-alt"} />
                 </Button>

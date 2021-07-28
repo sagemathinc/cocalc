@@ -15,6 +15,7 @@ import { React } from "./app-framework";
 
 import { delay } from "awaiting";
 import { getStudentProjectFunctionality } from "./course";
+import { IconName } from "./r_misc/icon";
 
 declare let DEBUG: boolean;
 
@@ -32,13 +33,20 @@ remove    : function (path, redux, project_id) -> string (redux name)
 */
 
 interface FileEditorSpec {
-  icon?: string;
+  icon?: IconName;
   component?: Elt | Function;
+  componentAsync?: () => Promise<Elt | Function>;
   generator?: (
     path: string,
     redux: any,
     project_id: string | undefined
   ) => Elt | Function;
+  initAsync?: (
+    path: string,
+    redux: any,
+    project_id: string | undefined,
+    content?: string
+  ) => Promise<string>; // returned string = redux name
   init?: (
     path: string,
     redux: any,
@@ -87,8 +95,10 @@ export function register_file_editor(opts: FileEditorInfo): void {
     ext: required,
     is_public: false,
     component: undefined, // react class
+    componentAsync: undefined, // async function that returns a react component
     generator: undefined, // function
     init: undefined, // function
+    initAsync: undefined, // async function
     remove: undefined,
     icon: "file-o",
     save: undefined,
@@ -109,8 +119,10 @@ export function register_file_editor(opts: FileEditorInfo): void {
     file_editors[pub][ext] = {
       icon: opts.icon,
       component: opts.component,
+      componentAsync: opts.componentAsync,
       generator: opts.generator,
       init: opts.init,
+      initAsync: opts.initAsync,
       remove: opts.remove,
       save: opts.save,
     };
@@ -149,7 +161,10 @@ function get_ed(
       ? file_editors[is_pub][ext]
       : file_editors[is_pub][""];
   if (spec == null) {
-    throw Error("bug -- spec must include fallback extension ''");
+    // This happens if the editors haven't been loaded yet.  A valid use
+    // case is you open a project and session restore creates one *background*
+    // file tab, which you then close (without ever looking at the file).
+    return {};
   }
   return spec;
 }
@@ -159,6 +174,22 @@ function get_ed(
 // Examples of things that go here:
 // - Initializing store state
 // - Initializing Actions
+export async function initializeAsync(
+  path: string,
+  redux,
+  project_id: string | undefined,
+  is_public: boolean,
+  content?: string
+): Promise<string | undefined> {
+  const editor = get_ed(project_id, path, is_public);
+  if (editor.init != null) {
+    return editor.init(path, redux, project_id, content);
+  }
+  if (editor.initAsync != null) {
+    return await editor.initAsync(path, redux, project_id, content);
+  }
+}
+
 export function initialize(
   path: string,
   redux,
@@ -167,9 +198,10 @@ export function initialize(
   content?: string
 ): string | undefined {
   const editor = get_ed(project_id, path, is_public);
-  if (editor.init != null) {
-    return editor.init(path, redux, project_id, content);
+  if (editor.init == null) {
+    throw Error(`sync initialize not supported for ${path}`);
   }
+  return editor.init(path, redux, project_id, content);
 }
 
 // Returns an editor instance for the path
@@ -186,6 +218,32 @@ export function generate(
   }
   const { component } = e;
   if (component == null) {
+    return () =>
+      React.createElement(
+        "div",
+        `No editor for ${path} or fallback editor yet`
+      );
+  }
+  return component;
+}
+
+// Returns an editor instance for the path
+export async function generateAsync(
+  path: string,
+  redux,
+  project_id: string | undefined,
+  is_public: boolean
+) {
+  const e = get_ed(project_id, path, is_public);
+  const { generator } = e;
+  if (generator != null) {
+    return generator(path, redux, project_id);
+  }
+  const { component, componentAsync } = e;
+  if (component == null) {
+    if (componentAsync != null) {
+      return await componentAsync();
+    }
     return () =>
       React.createElement(
         "div",

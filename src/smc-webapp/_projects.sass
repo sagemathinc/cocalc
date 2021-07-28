@@ -12,21 +12,12 @@
   border-radius : 5px 5px 0px 0px
 
 .smc-file-tabs-fixed-desktop > li > a
-  padding       : 5px
+  padding       : 10px 5px
   +file-tabs-base
 
-.smc-file-tabs-files-desktop > li > a
-  padding       : 11px 5px
-  +file-tabs-base
-  +disable-user-select
-
-// MobileProjectPage
-
-.smc-file-tabs-fixed-mobile > li > a
-  padding : 8px 10px
-
-.smc-file-tabs-files-mobile > li > a
-  padding : 13px 15px 7px
+// make nav tabs a little tighter horizontally.
+.smc-file-tabs-sortable-desktop > li > a
+  padding: 10px 5px
 
 // ProjectPage
 
@@ -86,11 +77,15 @@
     background-color: $COL_GRAY_LLL
     border-radius: 3px
 
+// The !important below are because we are directly overriding
+// what is defined for breadcrumbs in antd, in particular, in the
+// antd-breadcrumb class. We do this, so things look right in
+// the particular place we are using this.
 .cc-path-navigator
   flex: 5 1 auto
-  margin-bottom: 15px
+  margin-bottom: 15px !important
   max-width: 50vw
-  padding: 5px 10px
+  padding: 5px 10px !important
 
 .cc-path-navigator > span
   cursor: pointer
@@ -101,7 +96,6 @@
 .cc-path-navigator-active
   font-weight: bold
   color: black
-.cc-path-navigator-basic
 
 .cc-custom-image-desc
   h1

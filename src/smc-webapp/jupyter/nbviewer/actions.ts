@@ -19,22 +19,16 @@ import { NBViewerState, NBViewerStore } from "./store";
 import { close } from "smc-util/misc";
 
 export class NBViewerActions extends Actions<NBViewerState> {
-  private store: NBViewerStore;
-  private client?: WebappClient;
-  private _state: "ready" | "closed";
-
   public _init = (
     project_id: string,
     path: string,
-    store: NBViewerStore,
-    client?: WebappClient,
+    _store: NBViewerStore,
+    _client?: WebappClient,
     content?: string
   ): void => {
-    this.store = store;
-    if (client == null && content == null) {
-      throw Error("this.client or content must be defined");
+    if (content == null) {
+      throw Error("content must be defined");
     }
-    this.client = client;
     this.setState({
       project_id,
       path,
@@ -42,9 +36,8 @@ export class NBViewerActions extends Actions<NBViewerState> {
         this.redux.getStore("account") &&
         this.redux.getStore("account").get("font_size", 14),
     });
-    this._state = "ready";
     if (content == null) {
-      this.load_ipynb();
+      throw Error("NBViewer without content is deprecated");
       return;
     }
     // optionally specify the pre-loaded content of the path directly.
@@ -52,34 +45,6 @@ export class NBViewerActions extends Actions<NBViewerState> {
       this.set_from_ipynb(JSON.parse(content));
     } catch (err) {
       this.setState({ error: `Error parsing -- ${err}` });
-    }
-  };
-
-  private load_ipynb = async (): Promise<void> => {
-    if (this.client == null) {
-      throw Error("load_ipynb requires that client is set");
-    }
-    if (this.store.get("loading")) {
-      return;
-    }
-    this.setState({ loading: new Date() });
-    let data: string;
-    try {
-      data = await this.client.project_client.public_get_text_file({
-        project_id: this.store.get("project_id"),
-        path: this.store.get("path"),
-      });
-    } catch (err) {
-      if (this._state === "closed") return;
-      this.setState({ error: `Error loading -- ${err}` });
-      return;
-    }
-    if (this._state === "closed") return;
-    this.setState({ loading: undefined });
-    try {
-      this.set_from_ipynb(JSON.parse(data));
-    } catch (error) {
-      this.setState({ error: `Error parsing -- ${error}` });
     }
   };
 
@@ -148,6 +113,5 @@ export class NBViewerActions extends Actions<NBViewerState> {
   };
   close = () => {
     close(this);
-    this._state = "closed";
   };
 }

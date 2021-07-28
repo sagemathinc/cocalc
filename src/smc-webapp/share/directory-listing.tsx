@@ -23,6 +23,7 @@ interface DirectoryListingProps {
   path: string;
   hidden?: boolean; // // if true, show hidden dot files (will be controlled by a query param)
   views?: number;
+  base_path: string;
 }
 
 export class DirectoryListing extends Component<DirectoryListingProps> {
@@ -67,6 +68,7 @@ export class DirectoryListing extends Component<DirectoryListingProps> {
           info={this.props.info}
           isdir={true}
           views={this.props.views}
+          base_path={this.props.base_path}
         />
         <div
           style={{ margin: "15px 30px", background: "white", overflow: "auto" }}

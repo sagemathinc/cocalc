@@ -4,7 +4,7 @@
  */
 
 import { React } from "../app-framework";
-import { LicenseExamples } from "./license-examples";
+import { Example, LicenseExamples } from "./license-examples";
 import {
   compute_cost,
   discount_pct,
@@ -77,7 +77,7 @@ const Price3y = compute_cost({
   ...{ subscription: "yearly" as Subscription },
 });
 
-const EXAMPLES = [
+const EXAMPLES: Example[] = [
   {
     title: "Hobbyist",
     icon: "battery-quarter",

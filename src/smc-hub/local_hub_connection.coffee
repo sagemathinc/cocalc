@@ -11,7 +11,7 @@ async   = require('async')
 {callback2} = require('smc-util/async-utils')
 
 uuid    = require('node-uuid')
-winston = require('winston')
+winston = require('./logger').getLogger('local-hub-connection')
 underscore = require('underscore')
 
 message = require('smc-util/message')
@@ -88,17 +88,19 @@ exports.all_local_hubs = () ->
     return v
 
 server_settings = undefined
-init_server_settings = (database) ->
-    server_settings = require('./server-settings')(database)
-    server_settings.table.on 'change', () ->
+init_server_settings = () ->
+    server_settings = await require('./servers/server-settings').default()
+    update = () ->
         winston.debug("local_hub_connection (version might have changed) -- checking on clients")
         for x in exports.all_local_hubs()
             x.restart_if_version_too_old()
+    update()
+    server_settings.table.on('change', update)
 
 class LocalHub # use the function "new_local_hub" above; do not construct this directly!
     constructor: (@project_id, @database, @compute_server) ->
         if not server_settings?  # module being used -- make sure server_settings is initialized
-            init_server_settings(@database)
+            init_server_settings()
         @_local_hub_socket_connecting = false
         @_sockets = {}  # key = session_uuid:client_id
         @_sockets_by_client_id = {}   #key = client_id, value = list of sockets for that client
@@ -123,66 +125,38 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             delete @_heartbeat_interval
 
     project: (cb) =>
-        @compute_server.project
-            project_id : @project_id
-            cb         : cb
+        try
+            cb(undefined, await @compute_server(@project_id))
+        catch err
+            cb(err)
 
     dbg: (m) =>
         ## only enable when debugging
         if DEBUG
             winston.debug("local_hub('#{@project_id}'): #{misc.to_json(m)}")
 
-    move: (opts) =>
-        opts = defaults opts,
-            target : undefined
-            cb     : undefined          # cb(err, {host:hostname})
-        @dbg("move")
-        @project (err, project) =>
-            if err
-                cb?(err)
-            else
-                project.move(opts)
-
     restart: (cb) =>
         @dbg("restart")
         @free_resources()
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.restart(cb:cb)
-
-    close: (cb) =>
-        @dbg("close: stop the project and delete from disk (but leave in cloud storage)")
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.ensure_closed(cb:cb)
-
-    save: (cb) =>
-        @dbg("save: save a snapshot of the project")
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.save(cb:cb)
+        try
+            await (await @compute_server(@project_id)).restart()
+            cb()
+        catch err
+            cb(err)
 
     status: (cb) =>
         @dbg("status: get status of a project")
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.status(cb:cb)
+        try
+            cb(undefined, await (await @compute_server(@project_id)).status())
+        catch err
+            cb(err)
 
     state: (cb) =>
         @dbg("state: get state of a project")
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.state(cb:cb)
+        try
+            cb(undefined, await (await @compute_server(@project_id)).state())
+        catch err
+            cb(err)
 
     free_resources: () =>
         @dbg("free_resources")
@@ -405,7 +379,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             # know the client's id, which is a random uuid, assigned each time the user connects.
             # It obviously is known to the local hub -- but if the user has connected to the local
             # hub then they should be allowed to receive messages.
-            clients.push_to_client(mesg)
+            clients.pushToClient(mesg)
             return
         if mesg.event == 'version'
             @local_hub_version(mesg.version)
@@ -569,14 +543,11 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             (cb) =>
                 if not @address?
                     @dbg("get address of a working local hub")
-                    @project (err, project) =>
-                        if err
-                            cb(err)
-                        else
-                            @dbg("get address")
-                            project.address
-                                cb : (err, address) =>
-                                    @address = address; cb(err)
+                    try
+                        @address = await (await @compute_server(@project_id)).address()
+                        cb()
+                    catch err
+                        cb(err)
                 else
                     cb()
             (cb) =>
@@ -586,15 +557,12 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         socket = _socket
                         cb()
                     else
-                        @dbg("failed to get address of a working local hub")
-                        @project (err, project) =>
-                            if err
-                                cb(err)
-                            else
-                                @dbg("get address")
-                                project.address
-                                    cb : (err, address) =>
-                                        @address = address; cb(err)
+                        @dbg("failed to get address of a working local hub -- #{err}")
+                        try
+                            @address = await (await @compute_server(@project_id)).address()
+                            cb()
+                        catch err
+                            cb(err)
             (cb) =>
                 if not socket?
                     @dbg("still don't have our connection -- try again")
@@ -830,10 +798,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             timeout : 30
             cb      : opts.cb
 
-    # Read a file from a project into memory on the hub.  This is
-    # used, e.g., for client-side editing, worksheets, etc.  This does
-    # not pull the file from the database; instead, it loads it live
-    # from the project_server virtual machine.
+    # Read a file from a project into memory on the hub.
+    # I think this is used only by the API, but not by browser clients anymore.
     read_file: (opts) => # cb(err, content_of_file)
         {path, project_id, archive, cb} = defaults opts,
             path       : required
@@ -894,7 +860,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 cb(undefined, data)
         )
 
-    # Write a file
+    # Write a file to a project
+    # I think this is used only by the API, but not by browser clients anymore.
     write_file: (opts) => # cb(err)
         {path, project_id, cb, data} = defaults opts,
             path       : required

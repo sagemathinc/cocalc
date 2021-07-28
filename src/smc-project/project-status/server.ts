@@ -15,16 +15,11 @@ status updates.
 Hence in particular, information like cpu, memory and disk are smoothed out and throttled.
 */
 
-// only for testing, see bottom
-if (require.main === module) {
-  require("coffee-register");
-}
-
 //import { reuseInFlight } from "async-await-utils/hof";
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
-import { how_long_ago_m } from "../../smc-util/misc";
+import { how_long_ago_m } from "smc-util/misc";
 import {
   ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,
   ALERT_DISK_FREE,
@@ -33,7 +28,7 @@ import {
 import { ProjectStatus, Alert, AlertType } from "./types";
 import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
 import { ProjectInfo } from "../project-info/types";
-import { version } from "../../smc-util/smc-version";
+import { version } from "smc-util/smc-version";
 import { cgroup_stats } from "./utils";
 
 // only return the "next" value, if it is significantly different from "prev"

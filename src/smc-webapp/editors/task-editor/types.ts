@@ -4,8 +4,8 @@
  */
 
 import { List, Map, Set } from "immutable";
-import { TypedMap } from "../../app-framework";
-import { Estimate } from "../../r_misc";
+import { TypedMap } from "smc-webapp/app-framework";
+import { LoadingEstimate } from "smc-webapp/r_misc";
 
 export interface Task {
   task_id: string;
@@ -22,7 +22,6 @@ export type HeadingsDir = "asc" | "desc";
 
 export type TaskMap = TypedMap<Task>;
 export type Sort = TypedMap<{ column: Headings; dir: HeadingsDir }>;
-
 
 // 1=selected, -1=negated  (-1 is NOT implemented in the UI; it seems annoying; use -#foo in the search box though)
 export type HashtagState = -1 | 1;
@@ -61,7 +60,7 @@ export interface TaskState {
   search_desc: string;
   search_terms?: Set<string>;
   visible: List<string>; // ordered immutable js list of task_id's
-  load_time_estimate?: Estimate;
+  load_time_estimate?: LoadingEstimate;
   has_unsaved_changes?: boolean;
   has_uncommitted_changes?: boolean;
   scroll_into_view?: boolean;

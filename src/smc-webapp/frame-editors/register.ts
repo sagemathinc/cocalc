@@ -19,8 +19,7 @@ import "./pdf-editor/register";
 import "./terminal-editor/register";
 import "./x11-editor/register";
 import "./lean-editor/register";
-import "./jupyter-editor/register";
-import "./generic/test/init";
+//import "./jupyter-editor/register"; // currently done in register-all (due to some non-react stuff still)
 import "./time-travel-editor/register";
 import "./course-editor/register";
 import "./csv-editor/register";

@@ -3,9 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { AppRedux } from "../app-framework";
-import { init as init_mentions } from "./mentions";
+import { init as init_mentions } from "./mentions/init";
 
-export function init(redux: AppRedux) {
+export function init(redux) {
   init_mentions(redux);
 }

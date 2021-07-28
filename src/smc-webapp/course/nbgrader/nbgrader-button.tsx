@@ -145,7 +145,7 @@ export const NbgraderButton: React.FC<Props> = React.memo(
     const label = running ? (
       <span>
         {" "}
-        <Icon name="cc-icon-cocalc-ring" spin />
+        <Icon name="cocalc-ring" spin />
         <Space /> Nbgrader is running
       </span>
     ) : (

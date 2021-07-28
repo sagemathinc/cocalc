@@ -13,7 +13,7 @@ const STATS_URL =
 export const HistoricalStats: React.FC = () => {
   return (
     <span>
-      <Icon name="line-chart" fixedWidth />{" "}
+      <Icon name="line-chart" style={{ width: "1.125em" }} />{" "}
       <A href={STATS_URL}>Historical Usage Statistics...</A>
     </span>
   );

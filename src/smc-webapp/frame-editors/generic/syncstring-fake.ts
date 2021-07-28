@@ -39,6 +39,8 @@ export class FakeSyncstring extends EventEmitter {
 
   redo() {}
 
+  commit() {}
+
   is_read_only(): boolean {
     return false;
   }
@@ -81,4 +83,6 @@ export class FakeSyncstring extends EventEmitter {
   }
 
   set_settings(_: object): void {}
+
+  set_cursor_locs(_): void {}
 }

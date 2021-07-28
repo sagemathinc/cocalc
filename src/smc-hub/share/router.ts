@@ -21,39 +21,31 @@ import { handle_share_listing } from "./handle-share-listing";
 import { handle_user_request } from "./handle-user-request";
 import { handle_path_request } from "./handle-path-request";
 
+import { path as WEBAPP_PATH } from "webapp-lib";
+
 import * as util from "./util";
 
-import { Database, Logger } from "./types";
+import { Database } from "./types";
 import { PostgreSQL } from "../postgres/types";
+import base_path from "smc-util-node/base-path";
+import getLogger from "../logger";
 
-export function share_router(opts: {
-  database: Database;
-  path: string;
-  logger?: Logger;
-  base_url?: string;
-}) {
+export function share_router(opts: { database: Database; path: string }) {
   let dbg;
 
   const author_info: AuthorInfo = new AuthorInfo(opts.database);
   const settings_dao: SettingsDAO = new SettingsDAO(
-    (opts.database as any) as PostgreSQL
+    opts.database as any as PostgreSQL
   );
 
-  const base_url: string = opts.base_url != null ? opts.base_url : "";
-
   if ((global as any).window != null) {
-    (global as any).window["app_base_url"] = base_url;
+    (global as any).window["app_base_path"] = base_path;
   }
 
-  if (opts.logger != null) {
-    const logger = opts.logger;
-    dbg = (...args) => logger.debug("share_router: ", ...args);
-  } else {
-    dbg = (..._args) => {};
-  }
-
-  dbg("base_url = ", base_url);
-  dbg("path = ", opts.path);
+  const logger = getLogger("share-router");
+  dbg = logger.debug.bind(logger);
+  logger.info("base_path = ", base_path);
+  logger.info("path = ", opts.path);
 
   function log_ip(req): void {
     const ip_addresses =
@@ -96,14 +88,11 @@ export function share_router(opts: {
     await callback((cb) => ready_queue.push(cb));
   }
 
-  if (process.env.SMC_ROOT == null) {
-    throw Error("process.env.SMC_ROOT must be defined");
-  }
   const router = express.Router();
   for (const name of ["favicon-32x32.png", "cocalc-icon.svg"]) {
     router.use(
       `/${name}`,
-      express.static(os_path.join(process.env.SMC_ROOT, `webapp-lib/${name}`), {
+      express.static(os_path.join(WEBAPP_PATH, name), {
         immutable: true,
         maxAge: 86000000,
       })
@@ -118,7 +107,7 @@ export function share_router(opts: {
   router.get("/", async (req, res) => {
     log_ip(req);
     await ready();
-    handle_share_listing({ public_paths, base_url, settings_dao, req, res });
+    handle_share_listing({ public_paths, settings_dao, req, res });
   });
 
   router.get("/users/:account_id", async (req, res) => {
@@ -130,7 +119,6 @@ export function share_router(opts: {
       settings_dao,
       req,
       res,
-      base_url,
     });
   });
 
@@ -146,7 +134,6 @@ export function share_router(opts: {
       res,
       viewer: "raw",
       path_to_files,
-      base_url,
     });
   });
 
@@ -160,7 +147,6 @@ export function share_router(opts: {
       req,
       res,
       path_to_files,
-      base_url,
     });
   });
 

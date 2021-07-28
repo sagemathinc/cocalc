@@ -12,18 +12,24 @@ TimeTravel for them.
 */
 
 import { createEditor } from "../frame-tree/editor";
-import { TimeTravel } from "./time-travel";
+import { EditorDescription } from "../frame-tree/types";
+import { AsyncComponent } from "smc-webapp/misc/async-component";
+
+const TimeTravel = AsyncComponent(
+  async () => (await import("./time-travel")).TimeTravel
+);
+
 import { set } from "smc-util/misc";
 
 export const time_travel = {
   short: "TimeTravel",
   name: "TimeTravel",
-  icon: "user-clock",
+  icon: "history",
   component: TimeTravel,
   buttons: set(["decrease_font_size", "increase_font_size", "help", "-file"]),
   hide_file_menu: true,
   hide_public: true,
-};
+} as EditorDescription;
 
 const EDITOR_SPEC = {
   time_travel,

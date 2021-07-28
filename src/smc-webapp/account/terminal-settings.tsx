@@ -8,13 +8,19 @@ import { set_account_table } from "./util";
 import { Icon, LabeledRow, SelectorInput, Loading } from "../r_misc";
 import { Panel } from "../antd-bootstrap";
 
+declare global {
+  interface Window {
+    Terminal: any;
+  }
+}
+
 const TERMINAL_COLOR_SCHEMES: { [name: string]: string } = {};
 
 // This global Terminal object is from old xterm.js, and the color_schemes
 // stuff is defined in webapp-lib/term/color_themes.js
 // Of course we should do this in a better way!
-for (const theme in (window as any).Terminal.color_schemes) {
-  const val = (window as any).Terminal.color_schemes[theme];
+for (const theme in window.Terminal.color_schemes) {
+  const val = window.Terminal.color_schemes[theme];
   TERMINAL_COLOR_SCHEMES[theme] = val.comment;
 }
 

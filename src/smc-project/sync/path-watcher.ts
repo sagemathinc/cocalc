@@ -25,7 +25,7 @@ import { join } from "path";
 import { EventEmitter } from "events";
 import { debounce } from "lodash";
 import { exists } from "../jupyter/async-utils-node";
-import { close, path_split } from "../smc-util/misc";
+import { close, path_split } from "smc-util/misc";
 
 export class Watcher extends EventEmitter {
   private path: string;

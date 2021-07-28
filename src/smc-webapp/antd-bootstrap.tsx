@@ -6,7 +6,7 @@
 /*
 We use so little of react-bootstrap in CoCalc that for a first quick round
 of switching to antd, I'm going to see if it isn't easy to re-implement
-much of the same functionality on top of antd.
+much of the same functionality on top of antd
 
 Obviously, this is meant to be temporary, since it is far better if our
 code consistently uses the antd api explicitly.  However, there are
@@ -29,6 +29,8 @@ export {
 import { React, Rendered } from "./app-framework";
 import { r_join, Space } from "./r_misc";
 
+// Workaround a webpack (or typescript) bug and also
+// avoid importing all of antd (just what we need).
 import * as antd from "antd";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
@@ -115,7 +117,7 @@ function parse_bsStyle(props: {
   return { type, style, danger, ghost, loading };
 }
 
-export function Button(props: {
+export const Button = (props: {
   bsStyle?: ButtonStyle;
   bsSize?: ButtonSize;
   style?: React.CSSProperties;
@@ -130,7 +132,7 @@ export function Button(props: {
   tabIndex?: number;
   active?: boolean;
   id?: string;
-}) {
+}) => {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
   const { type, style, danger, ghost, loading } = parse_bsStyle(props);
@@ -166,7 +168,7 @@ export function Button(props: {
       <>{props.children}</>
     </antd.Button>
   );
-}
+};
 
 export function ButtonGroup(props: {
   style?: React.CSSProperties;
@@ -237,7 +239,7 @@ export function Checkbox(props: {
 }) {
   const style: React.CSSProperties = props.style != null ? props.style : {};
   if (style.fontWeight == null) {
-    // Antd checkbox uses the label DOM element, and bootstrap css
+    // antd. checkbox uses the label DOM element, and bootstrap css
     // changes the weight of that DOM element to 700, which is
     // really ugly and conflicts with the antd design style. So
     // we manualy change it back here.  This will go away if/when

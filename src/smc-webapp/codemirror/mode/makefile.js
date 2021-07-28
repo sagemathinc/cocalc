@@ -7,6 +7,8 @@
 // Distributed under an MIT license: http://codemirror.net/LICENSE
 // derived from https://github.com/notepadqq/CodeMirror/blob/d790fc39c1a5f06aa66415110b8ebe3026df665a/mode/makefile/makefile.js
 
+import * as CodeMirror from "codemirror";
+
 CodeMirror.defineMode('makefile', function() {
 
   var words = {};

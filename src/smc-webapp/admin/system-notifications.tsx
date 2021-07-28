@@ -93,7 +93,7 @@ class SystemNotifications extends Component<Props, State> {
         </FormGroup>
         <ButtonToolbar>
           <Button onClick={() => this.send()} bsStyle="danger">
-            <Icon name="paper-plane-o" /> Send
+            <Icon name="paper-plane" /> Send
           </Button>
           <Button onClick={() => this.setState({ state: "view" })}>
             Cancel

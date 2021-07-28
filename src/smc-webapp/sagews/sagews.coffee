@@ -6,6 +6,7 @@
 $         = window.$
 async     = require('async')
 stringify = require('json-stable-stringify')
+CodeMirror = require('codemirror')
 
 {MARKERS, FLAGS, ACTION_FLAGS, ACTION_SESSION_FLAGS} = require('smc-util/sagews')
 
@@ -19,6 +20,7 @@ markdown          = require('../markdown')
 {webapp_client}   = require('../webapp-client')
 {redux}           = require('../app-framework')
 {alert_message}   = require('../alerts')
+{join} = require('path')
 
 {sagews_eval}     = require('./sagews-eval')
 
@@ -1139,7 +1141,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             src         = y.attr('src')
             # checking, if we need to fix the src path
             is_fullurl  = src.indexOf('://') != -1
-            is_blob     = misc.startswith(src, "#{window.app_base_url}/blobs/")
+            is_blob     = misc.startswith(src, join(window.app_base_path, 'blobs/'))
             # see https://github.com/sagemathinc/cocalc/issues/651
             is_data     = misc.startswith(src, 'data:')
             if is_fullurl or is_data or is_blob
@@ -1148,8 +1150,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             file_path = @file_path()
             if misc.startswith(src, '/')
                 file_path = ".smc/root/#{file_path}"
-            {join} = require('path')
-            new_src = join('/', window.app_base_url, @project_id, 'raw', file_path, src)
+            new_src = join(window.app_base_path, @project_id, 'raw', file_path, src)
             y.attr('src', new_src)
 
     _post_save_success: () =>
@@ -1295,9 +1296,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if mesg.d3?
             e = $("<div>")
             output.append(e)
-            # TODO this is a hotfix. Make this loading lazy again -- #2860
-            #require.ensure [], () =>
-            if true
+            require.ensure [], () =>
                 require('./d3')  # install the d3 plugin
                 e.d3
                     viewer : mesg.d3.viewer
@@ -1347,7 +1346,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if val.url?
                     target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that changes
                 else
-                    target = "#{window.app_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
+                    target = join(window.app_base_path, "blobs", "#{misc.encode_path(val.filename)}?uuid=#{val.uuid}")
                 switch misc.filename_extension(val.filename).toLowerCase()
                     # TODO: harden DOM creation below?
 
@@ -1363,9 +1362,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         elt = $("<div class='webapp-3d-container'></div>")
                         elt.data('uuid',val.uuid)
                         output.append(elt)
-                        # TODO this is a temporary fix -- uncomment it again and remove the if true line once "require.ensure" works again
-                        #require.ensure [], () =>   # only load 3d library if needed
-                        if true
+                        require.ensure [], () =>
+                            # only load 3d library when needed
                             {render_3d_scene} = require('./3d')
                             render_3d_scene
                                 url     : target

@@ -14,13 +14,16 @@ import {
   useSlate,
   RenderElementProps,
 } from "./register";
-import { Checkbox as AntdCheckbox } from "antd";
+
+import { Checkbox } from "antd"; // as imports from antd don't work due to tree shaking plugin.
 import { useSetElement } from "./set-element";
 
-export interface Checkbox extends SlateElement {
+interface SlateCheckbox extends SlateElement {
   type: "checkbox";
   value?: boolean; // important: using the field value results in more efficient diffs
 }
+
+export { SlateCheckbox as Checkbox };
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -40,7 +43,7 @@ const Element: React.FC<RenderElementProps> = ({
 
   return (
     <span {...attributes}>
-      <AntdCheckbox
+      <Checkbox
         style={{
           border,
           padding: "0 0.2em 0.2em 0.2em",

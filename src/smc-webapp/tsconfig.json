@@ -1,0 +1,32 @@
+{
+  "extends": "../packages/tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "rootDir": "./",
+    "outDir": "dist",
+    "jsx": "react",
+    "target": "es5",
+    "sourceMap": true,
+    "lib": ["es5", "es6", "es2017", "dom"],
+    "declaration": false
+  },
+  "exclude": [
+    "dist",
+    "node_modules",
+    "account/test",
+    "jupyter/test",
+    "app-framework/__tests__/",
+    "frame-editors/sagews-editor",
+    "frame-editors/generic/mocha-tests",
+    "frame-editors/settings/__tests__",
+    "jupyter/output-messages/__test__",
+    "misc/__test__",
+    "r_misc/__tests__",
+    "test-mocha",
+    "test",
+    "*__tests__*",
+    "*__test__*",
+    "admin",
+    "app"
+  ]
+}

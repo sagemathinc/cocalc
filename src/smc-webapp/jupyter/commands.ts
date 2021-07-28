@@ -13,6 +13,7 @@ import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { NotebookMode } from "./types";
+import { IconName } from "smc-webapp/r_misc";
 
 export interface KeyboardCommand {
   mode?: NotebookMode;
@@ -29,7 +30,7 @@ export interface KeyboardCommand {
 }
 
 export interface CommandDescription {
-  i?: string; // icon name
+  i?: IconName;
   k?: KeyboardCommand[]; // keyboard commands
   m?: string; // fuller description for use in menus and commands
   menu?: string; // alternative to m just for dropdown menu
@@ -146,7 +147,7 @@ export function commands(
     },
 
     "close and halt": {
-      i: "hand-stop-o",
+      i: "PoweroffOutlined",
       m: "Close and halt",
       f: () => jupyter_actions.confirm_close_and_halt(),
     },
@@ -211,7 +212,7 @@ export function commands(
     },
 
     "copy cell": {
-      i: "files-o",
+      i: "files",
       m: "Copy cells",
       k: [{ mode: "escape", which: 67 }],
       f: () => frame_actions.copy_selected_cells(),
@@ -710,7 +711,7 @@ export function commands(
     },
 
     "show keyboard shortcuts": {
-      i: "keyboard-o",
+      i: "keyboard",
       m: "Show keyboard shortcuts...",
       k: [{ mode: "escape", which: 72 }],
       f: () => jupyter_actions.show_keyboard_shortcuts(),
@@ -746,6 +747,7 @@ export function commands(
     "tab key": {
       k: [{ mode: "escape", which: 9 }],
       m: "Tab key (completion)",
+      i: "tab",
       f: () => frame_actions.tab_key(),
     },
 
@@ -820,31 +822,7 @@ export function commands(
       f: () => jupyter_actions.undo(),
     },
 
-    /*
-    "user interface tour": {
-      // TODO
-      m: "User interface tour"
-    },*/
-
-    /* "view notebook normal": {
-      m: "View notebook as cells (normal)",
-      menu: "Cells (normal)",
-      f: () => frame_actions.set_view_mode("normal")
-    },
-
-    "view notebook json": {
-      m: "View notebook object browser",
-      menu: "Object browser",
-      f: () => frame_actions.set_view_mode("json")
-    },
-
-    "view notebook raw": {
-      m: "View notebook as raw .ipynb (file)",
-      menu: "Raw .ipynb (file)",
-      f: () => frame_actions.set_view_mode("raw")
-    },*/
-
-    "zoom in": {
+    "zoom in" : {
       m: "Zoom in",
       k: [{ ctrl: true, shift: true, which: 190 }],
       f: () => frame_actions.zoom(1),

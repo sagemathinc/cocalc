@@ -125,3 +125,15 @@ src/smc-webapp/_colors.sass
 # pytest cache
 src/smc_sagews/.pytest_cache/
 .mypy_cache/
+
+src/go-landing
+
+**/dist/
+**/dist-measure/
+**/dist-prod/
+**/dist-prod-measure/
+
+src/packages/landing
+tsconfig.tsbuildinfo
+**/landing-free/cache/
+**/.next

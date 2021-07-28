@@ -564,7 +564,8 @@ export class DBDocument implements Document {
           return;
         }
         const k = to_key(val);
-        const matches = index.get(k).delete(n);
+        const matches = index?.get(k)?.delete(n);
+        if (matches == null || index == null) return; // shouldn't happen
         if (matches.size === 0) {
           index = index.delete(k);
         } else {
@@ -622,7 +623,9 @@ export class DBDocument implements Document {
     if (matches == null) {
       return;
     }
-    return this.records.get(matches.min());
+    const min = matches.min();
+    if (min == null) return;
+    return this.records.get(min);
   }
 
   // x = javascript object

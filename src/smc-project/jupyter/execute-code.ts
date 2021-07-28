@@ -21,13 +21,13 @@ import {
   deep_copy,
   uuid,
   trunc,
-} from "../smc-util/misc";
+} from "smc-util/misc";
 
 import {
   CodeExecutionEmitterInterface,
   ExecOpts,
   StdinFunction,
-} from "../smc-webapp/jupyter/project-interface";
+} from "smc-webapp/jupyter/project-interface";
 
 type State = "init" | "closed" | "running";
 

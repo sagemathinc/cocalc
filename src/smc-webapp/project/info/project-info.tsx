@@ -5,6 +5,7 @@
 
 declare let DEBUG;
 
+import { delay } from "awaiting";
 import {
   React,
   CSS,
@@ -25,8 +26,8 @@ import { A, Tip, Loading } from "../../r_misc";
 import { RestartProject } from "../settings/restart-project";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
-import { ProjectInfo, Process } from "../../../smc-project/project-info/types";
-import { cgroup_stats } from "../../../smc-project/project-status/utils";
+import { ProjectInfo as ProjectInfoType, Process } from "smc-project/project-info/types";
+import { cgroup_stats } from "smc-project/project-status/utils";
 import {
   CGroupFC,
   CoCalcFile,
@@ -34,7 +35,7 @@ import {
   ProcState,
   AboutContent,
   SignalButtons,
-} from "./fcs";
+} from "./components";
 import { ProcessRow, PTStats, CGroupInfo, DUState } from "./types";
 import { connect_ws, process_tree, sum_children, grid_warning } from "./utils";
 import { COLORS } from "smc-util/theme";
@@ -71,7 +72,7 @@ const pt_stats_init = {
   sum_memory: 0,
 } as const;
 
-export const ProjectInfoFC: React.FC<Props> = React.memo(
+export const ProjectInfo: React.FC<Props> = React.memo(
   ({ project_id }: Props) => {
     const isMountedRef = useIsMountedRef();
     const project_actions = useActions({ project_id });
@@ -84,7 +85,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
     const [project, set_project] = useState(project_map?.get(project_id));
     const [project_state, set_project_state] = useState<string | undefined>();
     const [start_ts, set_start_ts] = useState<number | undefined>(undefined);
-    const [info, set_info] = useState<ProjectInfo | undefined>(undefined);
+    const [info, set_info] = useState<ProjectInfoType | undefined>(undefined);
     const [ptree, set_ptree] = useState<ProcessRow[] | undefined>(undefined);
     const [pt_stats, set_pt_stats] = useState<PTStats>(pt_stats_init);
     // chan: websocket channel to send commands to the project (for now)
@@ -156,7 +157,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
           if (!isMountedRef.current) return;
           const data = info_sync.get();
           if (data != null) {
-            set_info(data.toJS() as ProjectInfo);
+            set_info(data.toJS() as ProjectInfoType);
           } else {
             console.warn("got no data from info_sync.get()");
           }
@@ -232,9 +233,9 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
       }
     }, [project_state]);
 
-    function update_top(info: ProjectInfo) {
+    function update_top(info: ProjectInfoType) {
       // this shouldn't be the case, but somehow I saw this happening once
-      // the ProjectInfo type is updated to refrect this edge case and here we bail out
+      // the ProjectInfoType type is updated to refrect this edge case and here we bail out
       // and wait for the next update of "info" to get all processes…
       if (info.processes == null) return;
       const pchildren: string[] = [];
@@ -514,7 +515,7 @@ export const ProjectInfoFC: React.FC<Props> = React.memo(
         case "jupyter":
           return (
             <CoCalcFile
-              icon={"cc-icon-ipynb"}
+              icon={"ipynb"}
               path={cocalc.path}
               project_actions={project_actions}
             />

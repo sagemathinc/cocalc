@@ -8,6 +8,7 @@ Top-level react component for editing markdown documents
 */
 
 import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { RenderedMarkdown } from "./rendered-markdown";
 import { EditableMarkdown } from "./slate";
 import { TableOfContents } from "./table-of-contents";
@@ -41,7 +42,7 @@ const EDITOR_SPEC = {
       "readonly_view", // change frame to readonly view (for now, at least).
       "sync",
     ]),
-  },
+  } as EditorDescription,
   cm: {
     short: "Source",
     name: "Source Code",
@@ -65,7 +66,7 @@ const EDITOR_SPEC = {
       "format",
       "sync",
     ]),
-  },
+  } as EditorDescription,
   markdown: {
     short: "Locked",
     name: "Locked View",
@@ -82,14 +83,14 @@ const EDITOR_SPEC = {
       "redo",
       "edit", // change frame to editable slate
     ]),
-  },
+  } as EditorDescription,
   markdown_table_of_contents: {
     short: "Contents",
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
     buttons: set(["decrease_font_size", "increase_font_size"]),
-  },
+  } as EditorDescription,
   terminal,
   settings: SETTINGS_SPEC,
   time_travel,

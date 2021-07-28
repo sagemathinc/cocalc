@@ -27,10 +27,13 @@ root: Final[str] = os.environ.get('SMC_ROOT', abspath(os.curdir))
 whitelist: Final[List[str]] = ['async', 'immutable']
 
 
+# NOTE: test/puppeteer is long dead...
 def pkg_dirs() -> List[str]:
     search = run(['git', 'ls-files', '--', '../**/package.json'], stdout=PIPE)
     data = search.stdout.decode('utf8')
-    packages = [abspath(_) for _ in data.splitlines()]
+    packages = [
+        abspath(x) for x in data.splitlines() if 'test/puppeteer/' not in x
+    ]
     return packages
 
 
@@ -94,6 +97,9 @@ def main() -> None:
             )
             raise RuntimeError(
                 f"fix new package version inconsistencies of {incon}\n\n\n")
+        else:
+            if cnt > 0:
+                print(f"All are whitelisted and no action is warranted.")
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ PDF Editor Actions
 */
 
 import { FrameTree } from "../frame-tree/types";
-import { Actions, CodeEditorState } from "../code-editor/actions";
+import { Actions as BaseActions, CodeEditorState } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { raw_url } from "../frame-tree/util";
 
@@ -25,7 +25,7 @@ interface PDFEditorState extends CodeEditorState {
   zoom_page_height: string;
 }
 
-export class PDFActions extends Actions<PDFEditorState> {
+export class Actions extends BaseActions<PDFEditorState> {
   // No need to open any syncstring for pdfs -- they don't use database sync
   // at all right now; might somebody for annotation though.
   protected doctype: string = "none";

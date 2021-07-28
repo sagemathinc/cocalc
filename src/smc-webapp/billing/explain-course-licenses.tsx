@@ -5,7 +5,7 @@
 
 import { React } from "../app-framework";
 const { HelpEmailLink, SiteName } = require("../customize");
-import { A, Space } from "../r_misc";
+import { A, IconName, Space } from "../r_misc";
 import {
   STUDENT_COURSE_PRICE,
   TEACHER_PAYS,
@@ -79,7 +79,7 @@ const Price3 = compute_cost(p3data);
 const EXAMPLES = [
   {
     title: "Professional Training",
-    icon: "battery-quarter",
+    icon: "battery-quarter" as IconName,
     user: p2data.user,
     lines: [
       { value: 1, unit: "Trainer", resource: "Project" },
@@ -104,7 +104,7 @@ const EXAMPLES = [
   },
   {
     title: `${p1data.quantity - 2} Students`,
-    icon: "battery-three-quarters",
+    icon: "battery-three-quarters" as IconName,
     user: p1data.user,
     lines: [
       { value: 1, unit: "Instructor", resource: "Project" },
@@ -125,7 +125,7 @@ const EXAMPLES = [
   },
   {
     title: `${p3data.quantity - 2} Students`,
-    icon: "battery-full",
+    icon: "battery-full" as IconName,
     user: p3data.user,
     lines: [
       { value: 1, unit: "Instructor", resource: "Project" },

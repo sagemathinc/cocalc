@@ -12,6 +12,7 @@ wat once, and hence we make many Primus websocket connections
 simultaneously to the same domain.  It does work, but not without an ugly hack.
 */
 
+import { join } from "path";
 import { reuseInFlight } from "async-await-utils/hof";
 import { API } from "./api";
 const {
@@ -70,7 +71,11 @@ async function connection_to_project0(project_id: string): Promise<any> {
   }
   log("connecting...");
   const window0: any = (global as any).window as any; // global part is so this also compiles on node.js.
-  const url: string = `${window0.app_base_url}/${project_id}/raw/.smc/primus.js`;
+  const url: string = join(
+    window0.app_base_path,
+    project_id,
+    "raw/.smc/primus.js"
+  );
 
   const Primus0 = window0.Primus; // the global primus
   let Primus;
@@ -95,9 +100,9 @@ async function connection_to_project0(project_id: string): Promise<any> {
           await once(webapp_client, "signed_in");
         }
 
-        log("start_project...");
+        log("wait_for_project_to_start...");
         await wait_for_project_to_start(project_id);
-        log("start_project: done");
+        log("wait_for_project_to_start: done");
 
         // Now project is thought to be running, so maybe this will work:
         try {

@@ -1,0 +1,88 @@
+//- main landing page
+
+//- important detail: those anchor links aren't generated automatically. they need to adhere to a given pattern:
+//- h1 or h2 -> signal **where** and then a div#name element in the parent signals the **name**.
+//- the corresponding anchor link is then a.anchor#a-name
+
+extends _base.pug
+
+block vars
+  - var subtitle = DESCRIPTION;
+  - var navbar_active = 'index';
+
+block header
+  script(type="text/javascript")
+    include:coffee-script index.coffee
+  meta(name="description" content=DESCRIPTION)
+
+block content
+
+  //- CSS: overwrites styles defined in the header
+  style
+    :sass
+      @import "../smc-webapp/_colors.sass"
+      @import "../webapp-lib/landing/_vars.sass"
+      body > div.space
+        margin-top       : 5rem
+      p
+        font-size        : 13pt
+      blockquote.blockquote
+        font-size        : 16px
+        img
+          height         : 10rem
+          width          : auto
+          float          : left
+          margin         : 0 1rem 1rem 0
+      ul,
+      ol
+        padding-left     : 2rem
+      div
+        img
+          width             : 100%
+          height            : auto
+        &.row
+          margin-top        : 2rem
+          margin-bottom     : 4rem
+          > div
+            > h1
+              margin-bottom : 4rem
+            > h2, h3
+              margin-bottom : 2rem
+      .left,
+      #included > div
+        padding          : 0
+      .ff-only
+        display: none
+      @supports (-moz-appearance:none)
+        .ff-only
+          display: block
+
+  div.space#top
+    div.container
+      div.row.intro
+        div.col-sm-6.center
+          div.row
+            div.col-sm-4.col-sm-offset-4
+              img(src=LOGO_SQUARE_URL).fit
+            div.col-sm-12
+              p.headline
+                | #{NAME}
+              p.headline.headline2
+                | #{DESCRIPTION}
+              div.subheadline
+                | An instance of #[a(href="https://cocalc.com") CoCalc]
+                if !!ORGANIZATION_NAME
+                  | , hosted by
+                  |
+                  +organization
+                |.
+        div.col-sm-6.center
+          img(src=SPLASH_IMG).shadow.shrink-small-75.rounded
+        div.col-md-12.center
+          +sign_in_buttons
+
+  if INDEX_INFO != ''
+    div.space
+      div.container
+        div.row
+          div.col-md-6.col-md-offset-3 !{INDEX_INFO}

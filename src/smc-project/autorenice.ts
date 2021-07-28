@@ -17,11 +17,6 @@ import { ProjectInfoServer, get_ProjectInfoServer } from "./project-info";
 import { ProjectInfo, Processes, Process } from "./project-info/types";
 import { is_free_project, DEFAULT_FREE_PROCS_NICENESS } from "./project-setup";
 
-// only for testing, see bottom
-if (require.main === module) {
-  require("coffee-register");
-}
-
 const INTERVAL_S = 10;
 
 // renice configuration -- the first time values must be decreasing
@@ -38,7 +33,7 @@ const RENICE = reverse(
 
 interface Opts {
   verbose?: boolean;
-  config?: string; // set via env var COCALC_PROJECT_AUTORENICE -- TODO: there are only harcoded values
+  config?: string; // TODO: make it possible to set via env var COCALC_PROJECT_AUTORENICE (also there are only harcoded values).
 }
 
 class ProcessRenicer {
@@ -137,7 +132,7 @@ class ProcessRenicer {
 
 let singleton: ProcessRenicer | undefined = undefined;
 
-export function activate(opts: Opts) {
+export function activate(opts?: Opts) {
   if (singleton != null) {
     L("blocking attempt to run ProcessRenicer twice");
     return;

@@ -84,14 +84,14 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
               title={"Start the classical Jupyter server"}
               placement={"bottom"}
             >
-              <Icon name={"cc-icon-ipynb"} /> <HiddenXSSM>Jupyter</HiddenXSSM>
+              <Icon name={"ipynb"} /> <HiddenXSSM>Jupyter</HiddenXSSM>
             </Tip>
           </ButtonRetryUntilSuccess>
         ) : undefined}
         {have_jl ? (
           <ButtonRetryUntilSuccess get_href={href_jl}>
             <Tip title={"Start Jupyter Lab server"} placement={"bottom"}>
-              <Icon name={"cc-icon-ipynb"} />{" "}
+              <Icon name={"ipynb"} />{" "}
               <VisibleMDLG>JupyterLab</VisibleMDLG>
               <VisibleXSSM>Lab</VisibleXSSM>
             </Tip>

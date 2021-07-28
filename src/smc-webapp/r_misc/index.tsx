@@ -4,7 +4,7 @@
  */
 
 export { A } from "./A";
-export { Icon } from "./icon";
+export { Icon, IconName, isIconName } from "./icon";
 export { Tip } from "./tip";
 export { Loading, Estimate as LoadingEstimate } from "./loading";
 export { r_join } from "./r_join";
@@ -13,7 +13,6 @@ export { CloseX } from "./close-x";
 export { CloseX2 } from "./close-x2";
 export { SimpleX } from "./simple-x";
 export { Saving } from "./saving";
-export { Spinner } from "./spinner";
 export { ErrorDisplay } from "./error-display";
 export { SkinnyError } from "./skinny-error";
 export { SelectorInput } from "./selector-input";

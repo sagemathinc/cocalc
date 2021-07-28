@@ -19,7 +19,7 @@ export class LoadFullHistory extends Component<Props> {
         onClick={() => this.props.actions.load_full_history()}
         title={"Load the complete edit history for this file."}
       >
-        <Icon name="floppy-o" /> Load All
+        <Icon name="file-archive" /> Load All
       </Button>
     );
   }

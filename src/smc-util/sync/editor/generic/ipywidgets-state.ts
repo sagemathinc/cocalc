@@ -114,7 +114,7 @@ export class IpywidgetsState extends EventEmitter {
       return undefined;
     }
     const state_js = state.toJS();
-    let value = this.get(model_id, "value");
+    let value : any = this.get(model_id, "value");
     if (value != null) {
       value = value.toJS();
       if (value == null) {
@@ -129,7 +129,7 @@ export class IpywidgetsState extends EventEmitter {
 
   public get_model_value(model_id: string): Value {
     this.assert_state("ready");
-    let value = this.get(model_id, "value");
+    let value : any = this.get(model_id, "value");
     if (value == null) {
       return {};
     }

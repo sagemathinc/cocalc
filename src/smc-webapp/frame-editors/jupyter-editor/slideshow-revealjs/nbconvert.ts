@@ -5,6 +5,7 @@
 
 import { path_split, separate_file_extension } from "smc-util/misc";
 import { exec, raw_url_of_file } from "../../generic/client";
+import { sanitize_nbconvert_path } from "smc-util/sanitize-nbconvert";
 
 export async function revealjs_slideshow_html(
   project_id: string,
@@ -15,7 +16,14 @@ export async function revealjs_slideshow_html(
   // things don't work if path is a number.
   const base = "._" + separate_file_extension(split.tail).name;
   const command = "/usr/local/bin/jupyter";
-  const args = ["nbconvert", "--to", "slides", path, "--output", base];
+  const args = [
+    "nbconvert",
+    "--to",
+    "slides",
+    sanitize_nbconvert_path(path),
+    "--output",
+    base,
+  ];
   const opts = {
     command,
     args,

@@ -14,11 +14,11 @@ import { render_static_path } from "./render-static-path";
 import * as util from "./util";
 import { is_authenticated } from "./authenticate";
 import { Database, Logger } from "./types";
+import base_path from "smc-util-node/base-path";
 
 export async function virtual_hosts(opts: {
   database: Database;
   share_path: string;
-  base_url: string;
   logger: Logger;
 }): Promise<Function> {
   const dbg =
@@ -60,8 +60,8 @@ export async function virtual_hosts(opts: {
     //   - should we bother with is_public check?
     //   - what about HTTP auth?
     let path = req.url;
-    if (opts.base_url) {
-      path = path.slice(opts.base_url.length);
+    if (base_path != "/") {
+      path = path.slice(base_path.length);
     }
 
     const is_auth: boolean = is_authenticated({

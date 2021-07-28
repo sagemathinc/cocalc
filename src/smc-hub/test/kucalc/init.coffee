@@ -31,6 +31,3 @@ exports.teardown = pgtest.teardown
 exports.create_accounts = pgtest.create_accounts
 exports.create_projects = pgtest.create_projects
 
-exports.compute_client = ->
-    return require('../../kucalc/compute-client').compute_client(pgtest.db,
-                                  if DEBUG then {debug:log, info:log, warning:log})

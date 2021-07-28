@@ -7,21 +7,7 @@
  * Global app initialization
  */
 
-import * as fullscreen from "./fullscreen";
-
-// FUTURE: This is needed only for the old non-react editors; will go away.
-const html =
-  require("./console.html") +
-  require("./editor.html") +
-  require("./jupyter.html") +
-  require("./sagews/interact.html") +
-  require("./sagews/3d.html") +
-  require("./sagews/d3.html");
-$("body").append(html);
-
-// deferred initialization of buttonbars until after global imports -- otherwise, the sagews sage mode bar might be blank
-const { init_buttonbars } = require("./editors/editor-button-bar");
-init_buttonbars();
+import { COCALC_MINIMAL } from "./fullscreen";
 
 // Load/initialize Redux-based react functionality
 import { redux } from "./app-framework";
@@ -39,43 +25,50 @@ import "./jquery-plugins";
 // Another jquery plugin:
 import "./process-links";
 
-/*
- * Initialize app stores, actions, etc.
- */
-import "./app/init";
-
-import { init as custom_software_init } from "./custom-software/init";
-custom_software_init();
-
-import { init as account_init } from "./account";
-account_init(redux);
-
-import "./file-use/init";
-import "./webapp-hooks";
-
-import { init as notifications_init } from "./notifications";
-if (!fullscreen.COCALC_MINIMAL) {
-  notifications_init(redux);
-}
-
-import { init as markdown_init } from "./widget-markdown-input/main";
-markdown_init();
-
+// Initialize app stores, actions, etc.
+import { init as initAccount } from "./account";
+import { init as initApp } from "./app/init";
+import { init as initProjects } from "./projects";
+import { init as initCustomSoftware } from "./custom-software/init";
+import { init as initFileUse } from "./file-use/init";
+import { init as initWebHooks } from "./webapp-hooks";
+import { init as initNotifications } from "./notifications/init";
+import { init as initMarkdown } from "./widget-markdown-input/main";
 // only enable iframe comms in minimal kiosk mode
-import { init as iframe_comm_init } from "./iframe-communication";
-if (fullscreen.COCALC_MINIMAL) {
-  iframe_comm_init();
-}
+import { init as initIframeComm } from "./iframe-communication";
+import { init as initCrashBanner } from "./crash-banner";
 
-import { render } from "./app/render";
-render();
-
-$(window).on("beforeunload", redux.getActions("page").check_unload);
+// Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
+// This import of codemirror is force the initial full load of codemirror as part of the
+// main webpack entry point.
+import "codemirror";
 
 // Should be loaded last
-import "./last";
+import { init as initLast } from "./last";
 
-// adding a banner in case react crashes (it will be revealed)
-const crash = require("./crash.html");
-import { HELP_EMAIL } from "smc-util/theme";
-$("body").append(crash.replace(/HELP_EMAIL/g, HELP_EMAIL));
+import { render } from "./app/render";
+
+export async function init() {
+  initAccount(redux);
+  initApp();
+  initProjects();
+  initCustomSoftware();
+  initFileUse();
+  initWebHooks();
+  if (!COCALC_MINIMAL) {
+    initNotifications(redux);
+  }
+  initMarkdown();
+  if (COCALC_MINIMAL) {
+    initIframeComm();
+  }
+  $(window).on("beforeunload", redux.getActions("page").check_unload);
+  initLast();
+  try {
+    await render();
+  } finally {
+    // don't insert the crash banner until the main app has rendered,
+    // or user would see the banner for a moment.
+    initCrashBanner();
+  }
+}

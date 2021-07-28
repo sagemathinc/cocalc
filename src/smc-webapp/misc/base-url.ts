@@ -3,11 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { DOMAIN_NAME } from "../../smc-util/theme";
-import { join } from "path";
+import { DOMAIN_URL } from "smc-util/theme";
 
-export const APP_BASE_URL = (window as any)?.app_base_url ?? "";
+// this BASE_URL really is the base *url* -- it starts with http,
+// and does NOT end with /
+export let BASE_URL: string;
 
-const BASE_PATH = join(window.location.hostname, APP_BASE_URL);
-export const BASE_URL =
-  window != null ? `${window.location.protocol}//${BASE_PATH}` : DOMAIN_NAME;
+try {
+  // note that window.location.origin includes the port, so critical to use that!
+  BASE_URL = window.location.origin;
+  if (window.app_base_path.length > 1) {
+    BASE_URL += window.app_base_path;
+  }
+} catch (_err) {
+  // backend server
+  BASE_URL = DOMAIN_URL;
+}

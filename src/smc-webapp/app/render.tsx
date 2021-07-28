@@ -4,13 +4,23 @@
  */
 
 import { React, ReactDOM, Redux } from "../app-framework";
-import { Page } from "./page";
 
-export function render(): void {
+export async function render(): Promise<void> {
+  finishedLoading();  // comment this out to leave the loading/sartup banner visible
+  const { Page } = await import("./page");
   ReactDOM.render(
     <Redux>
       <Page />
     </Redux>,
-    document.getElementById("smc-react-container")
+    document.getElementById("cocalc-webapp-container")
   );
+}
+
+// When loading is done, remove any visible artifacts.
+// This doesn't remove anything added to the head.
+function finishedLoading() {
+  const load = document.getElementById("cocalc-load-container");
+  if (load != null) {
+    load.innerHTML = "";
+  }
 }

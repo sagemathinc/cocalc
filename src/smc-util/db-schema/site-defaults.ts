@@ -163,7 +163,7 @@ export const site_settings_conf: SiteSettings = {
   site_description: {
     name: "Site description",
     desc: "A tagline describing your site.",
-    default: "Collaborative Calculation Online",
+    default: "Collaborative Calculation",
     clearable: true,
     show: show_theming_vars,
   },
@@ -188,7 +188,7 @@ export const site_settings_conf: SiteSettings = {
     desc:
       "The text displayed for the terms of service link (empty falls back a boilerplate using the URL).",
     default:
-      "By creating an account you agree to the <em>Terms of Service</em>.",
+      "You agree to the <em>Terms of Service</em>.",
     clearable: true,
     show: show_theming_vars,
   },
@@ -298,7 +298,7 @@ export const site_settings_conf: SiteSettings = {
   commercial: {
     name: "Commercial",
     desc:
-      "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements.",
+      "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements. IMPORTANT: You must restart your server after changing this setting for it to take effect.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

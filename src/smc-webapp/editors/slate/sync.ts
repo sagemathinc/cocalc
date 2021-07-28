@@ -4,6 +4,7 @@
  */
 
 import * as CodeMirror from "codemirror";
+import { delay } from "awaiting";
 import { Descendant, Editor, Point } from "slate";
 import { ReactEditor } from "./slate-react";
 import { slate_to_markdown } from "./slate-to-markdown";

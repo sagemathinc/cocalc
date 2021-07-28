@@ -6,7 +6,7 @@
 import { React } from "../app-framework";
 import { SiteName } from "../customize";
 
-const cocalc_logo_white = require("!url-loader?mimetype=image/svg+xml!cocalc-icon-white-transparent.svg");
+const cocalc_logo_white = require("cocalc-icon-white-transparent.svg").default;
 
 export const KioskModeBanner: React.FC = () => {
   return (

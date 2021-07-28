@@ -6,7 +6,7 @@
 import { React } from "../app-framework";
 const { Panel } = require("react-bootstrap");
 import { Col, Row, Table } from "react-bootstrap";
-import { Space, Icon } from "../r_misc";
+import { Space, Icon, IconName } from "../r_misc";
 import { COLORS } from "smc-util/theme";
 import {
   Cost,
@@ -20,7 +20,7 @@ import {
 
 export interface Example {
   title: string;
-  icon: string;
+  icon: IconName;
   user: User;
   lines: { value: number; unit: string; resource: string }[];
   price?: Cost;
@@ -45,7 +45,7 @@ export const LicenseExamples: React.FC<Props> = ({
     const value_str =
       value == Number.POSITIVE_INFINITY ? <span>&#8734;</span> : value;
     return (
-      <div style={{ marginBottom: "5px", marginLeft: "10px" }}>
+      <div key={value_str} style={{ marginBottom: "5px", marginLeft: "10px" }}>
         <span style={{ fontWeight: "bold", color: "#444" }}>
           {value_str} {unit}
         </span>
@@ -184,7 +184,7 @@ export const LicenseExamples: React.FC<Props> = ({
       </div>
     );
     return (
-      <Col sm={4}>
+      <Col sm={4} key={title}>
         <Panel header={header} bsStyle={"info"}>
           <Space />
           {lines.map((line) => render_example_line(line))}
@@ -205,9 +205,9 @@ export const LicenseExamples: React.FC<Props> = ({
     <>
       <h4>Examples</h4>
       <p>
-        Here are three typical configurations. All parameters can be adjusted
-        to fit your needs. Listed upgrades are for each project. Exact prices
-        may vary. Below ${MIN_QUOTE} only online purchases are available.
+        Here are three typical configurations. All parameters can be adjusted to
+        fit your needs. Listed upgrades are for each project. Exact prices may
+        vary. Below ${MIN_QUOTE} only online purchases are available.
         {show_discount_pct && (
           <>
             {" "}

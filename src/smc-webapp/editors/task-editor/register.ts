@@ -14,10 +14,6 @@ import { alert_message } from "../../alerts";
 import { redux_name } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
 
-import { TaskEditor } from "./editor";
-import { TaskActions } from "./actions";
-import { TaskStore } from "./store";
-
 import { syncdb2 as new_syncdb } from "../../frame-editors/generic/client";
 
 register_file_editor({
@@ -27,9 +23,15 @@ register_file_editor({
 
   icon: "tasks",
 
-  component: TaskEditor,
+  async componentAsync() {
+    const { TaskEditor } = await import("./editor");
+    return TaskEditor;
+  },
 
-  init(path: string, redux, project_id: string) {
+  async initAsync(path: string, redux, project_id: string) {
+    const { TaskActions } = await import("./actions");
+    const { TaskStore } = await import("./store");
+
     const name = redux_name(project_id, path);
     if (redux.getActions(name) != null) {
       return name; // already initialized

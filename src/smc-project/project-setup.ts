@@ -84,6 +84,8 @@ export function cleanup(): void {
     .filter((x) => !x.startsWith("/cocalc/nvm"))
     .join(":");
   const envrm = [
+    "DATA",
+    "BASE_PATH",
     "NODE_PATH",
     "NODE_ENV",
     "NODE_VERSION",
@@ -93,7 +95,10 @@ export function cleanup(): void {
     "DEBUG",
   ];
   envrm.forEach((name) => delete process.env[name]);
-}
 
-// this is called after local services are already setup -- the project startup sequence does not wait for this!
-export async function finalize_kucalc_setup(): Promise<void> {}
+  // Also get rid of any npm_ vars that get set due to how the project server
+  // is started. This is mainly an issue with cocalc-docker.
+  for (const key in process.env) {
+    if (key.startsWith("npm_")) delete process.env[key];
+  }
+}

@@ -399,8 +399,7 @@ API(
       },
       get_api_key: {
         init: undefined,
-        desc:
-          "if set to anything truth-ish, will create (if needed) and return api key with signed_in message",
+        desc: "if set to anything truth-ish, will create (if needed) and return api key with signed_in message",
       },
       usage_intent: {
         init: undefined,
@@ -822,7 +821,7 @@ message({
 //      hub --> client
 // In response, the client grabs "/cookies?id=...,set=...,get=..." via an AJAX call.
 // During that call the server can get/set HTTP-only cookies.
-// (Note that the /cookies url gets customized by base_url.)
+// (Note that the /cookies url gets customized by base_path.)
 //#####################################################################################
 message({
   event: "cookies",
@@ -926,8 +925,7 @@ API(
       },
       aggregate: {
         init: undefined,
-        desc:
-          "If there are multiple attempts to run the given command with the same time, they are all aggregated and run only one time by the project; if requests comes in with a greater value (time, sequence number, etc.), they all run in  another group after the first one finishes.  Meant for compiling code on save.",
+        desc: "If there are multiple attempts to run the given command with the same time, they are all aggregated and run only one time by the project; if requests comes in with a greater value (time, sequence number, etc.), they all run in  another group after the first one finishes.  Meant for compiling code on save.",
       },
       max_output: {
         init: undefined,
@@ -939,8 +937,7 @@ API(
       },
       err_on_exit: {
         init: true,
-        desc:
-          "if exit code is nonzero send error return message instead of the usual output",
+        desc: "if exit code is nonzero send error return message instead of the usual output",
       },
     },
     desc: `\
@@ -1037,6 +1034,7 @@ message({
 // hub <--> project
 message({
   event: "jupyter_port",
+  lab: undefined, // if true, jupyterlab; if false (or not given), then jupyter classic.
   port: undefined, // gets set in response
   id: undefined,
 });
@@ -1090,8 +1088,7 @@ API(
       },
       project_id: {
         init: required,
-        desc:
-          "id of project containing file to be read (or array of project_id's)",
+        desc: "id of project containing file to be read (or array of project_id's)",
       },
       path: {
         init: required,
@@ -1234,13 +1231,11 @@ API(
       },
       license: {
         init: undefined,
-        desc:
-          "(optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license",
+        desc: "(optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license",
       },
       start: {
         init: false,
-        desc:
-          "start running the moment the project is created -- uses more resources, but possibly better user experience",
+        desc: "start running the moment the project is created -- uses more resources, but possibly better user experience",
       },
     },
     desc: `\
@@ -1278,13 +1273,11 @@ API(
       },
       query: {
         init: required,
-        desc:
-          "comma separated list of email addresses or strings such as 'foo bar'",
+        desc: "comma separated list of email addresses or strings such as 'foo bar'",
       },
       admin: {
         init: false,
-        desc:
-          "if true and user is an admin, includes email addresses in result, and does more permissive search",
+        desc: "if true and user is an admin, includes email addresses in result, and does more permissive search",
       },
       active: {
         init: "",
@@ -1505,18 +1498,15 @@ API(
       },
       project_id: {
         init: undefined,
-        desc:
-          "project_id of project to add user to (can be an array to add multiple users to multiple projects); isn't needed if token_id is specified",
+        desc: "project_id of project to add user to (can be an array to add multiple users to multiple projects); isn't needed if token_id is specified",
       },
       account_id: {
         init: required,
-        desc:
-          "account_id of user (can be an array to add multiple users to multiple projects)",
+        desc: "account_id of user (can be an array to add multiple users to multiple projects)",
       },
       token_id: {
         init: undefined,
-        desc:
-          "project_invite_token that is needed in case the user **making the request** is not already a project collab",
+        desc: "project_invite_token that is needed in case the user **making the request** is not already a project collab",
       },
     },
     desc: `\
@@ -1787,22 +1777,15 @@ API(
       },
       timeout: {
         init: undefined,
-        desc:
-          'seconds to wait before reporting "error" (though copy could still succeed)',
-      },
-      exclude_history: {
-        init: false,
-        desc: "if true, exclude all files of the form `*.sage-history`",
+        desc: 'seconds to wait before reporting "error" (though copy could still succeed)',
       },
       wait_until_done: {
-        init: true,
-        desc:
-          "if false, the operation returns immediately with the copy_path_id for querying copy_path_status",
+        init: false,
+        desc: "if false, the operation returns immediately with the copy_path_id for querying copy_path_status.  (Only implemented for https://cocalc.com.)",
       },
       scheduled: {
         init: undefined,
-        desc:
-          "if set, the copy operation runs earliest after the given time and wait_until_done is false. Must be a `new Date(...)` parseable string.",
+        desc: "if set, the copy operation runs earliest after the given time and wait_until_done is automatically set to false. Must be a `new Date(...)` parseable string.  (Only implemented for https://cocalc.com.)",
       },
     },
     desc: `\
@@ -1853,8 +1836,7 @@ message({
   event: "copy_path_between_projects_response",
   id: required,
   copy_path_id: undefined,
-  note:
-    "Query copy_path_status with the copy_path_id to learn if the copy operation was successful.",
+  note: "Query copy_path_status with the copy_path_id to learn if the copy operation was successful.",
 });
 
 API(
@@ -1887,13 +1869,11 @@ API(
       },
       pending: {
         init: true,
-        desc:
-          "(src/targ only) true returns copy ops, which did not finish yet (default: true)",
+        desc: "(src/targ only) true returns copy ops, which did not finish yet (default: true)",
       },
       failed: {
         init: false,
-        desc:
-          "(src/targ only) if true, only show finished and failed copy ops (default: false)",
+        desc: "(src/targ only) if true, only show finished and failed copy ops (default: false)",
       },
     },
     desc: `\
@@ -2034,141 +2014,6 @@ message({
   now: undefined,
 }); // timestamp
 
-/*
-Reading listings and files from projects
-without invoking the project server and
-write auth requirement.  Instead the given
-path in the project must be public.  These
-functions don't even assume the client has
-logged in.
-*/
-
-// public request of listing of files in a project.
-API(
-  message2({
-    event: "public_get_directory_listing",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      project_id: {
-        init: required,
-        desc: "id of project containing public file to be read",
-      },
-      path: {
-        init: required,
-        desc: "path of directory in target project",
-      },
-      hidden: {
-        init: false,
-        desc: "show hidden files",
-      },
-      time: {
-        init: false,
-        desc: "sort by timestamp, with newest first",
-      },
-      start: {
-        init: 0,
-        desc: "",
-      },
-      limit: {
-        init: -1,
-        desc: "",
-      },
-    },
-    desc: `\
-Given a project id and relative path (i.e. not beginning with a slash),
-list all public files and subdirectories under that path.
-Path is required, but may be the empty string, in which case
-a public listing of the home directory in the target project is
-returned.
-
-Examples:
-
-Get public directory listing. Directory "Public" is shared and
-contains one file "hello.txt" and one subdirectory "p2".
-
-Security key may be blank.
-
-\`\`\`
-  curl -u : \\
-    -d path=Public \\
-    -d project_id=9a19cca3-c53d-4c7c-8c0f-e166aada7bb6 \\
-    https://cocalc.com/api/v1/public_get_directory_listing
-  ==> {"event":"public_directory_listing",
-       "id":"3e576b3b-b673-4d5c-9bce-780883f92958",
-       "result":{"files":[{"size":41,"name":"hello.txt","mtime":1496430932},
-                          {"isdir":true,"name":"p2","mtime":1496461616}]}
-\`\`\`\
-`,
-  })
-);
-
-message({
-  event: "public_directory_listing",
-  id: undefined,
-  result: required,
-});
-
-// public request of contents of a text file in project
-API(
-  message2({
-    event: "public_get_text_file",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      project_id: {
-        init: required,
-        desc: "id of project containing public file to be read",
-      },
-      path: {
-        init: required,
-        desc: "path to file to be read in target project",
-      },
-    },
-    desc: `\
-Read a public (shared) text file in the project whose id is supplied.
-User does not need to be owner or collaborator in the target project
-and does not need to be logged into CoCalc.
-Argument \`path\` is relative to home directory in target project.
-
-Security key may be blank.
-
-Examples
-
-Read a public file.
-\`\`\`
-  curl -u : \\
-    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
-    -d path=Public/hello.txt
-    https://cocalc.com/api/v1/public_get_text_file
-  ==> {"event":"public_text_file_contents",
-       "id":"2d0e2faa-893a-44c1-9f64-59203bbbb017",
-       "data":"hello world\\nToday is Friday\\n"}
-\`\`\`
-
-Attempt to read a file which is not public.
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
-    -d path=Private/hello.txt
-    https://cocalc.com/api/v1/public_get_text_file
-  ==> {"event":"error","id":"0288b7d0-dda9-4895-87ba-aa71929b2bfb",
-       "error":"path 'Private/hello.txt' of project with id 'e49e86aa-192f-410b-8269-4b89fd934fba' is not public"}
-\`\`\`\
-`,
-  })
-);
-
-message({
-  event: "public_text_file_contents",
-  id: undefined,
-  data: required,
-});
-
 API(
   message2({
     event: "copy_public_path_between_projects",
@@ -2207,12 +2052,7 @@ API(
       },
       timeout: {
         init: undefined,
-        desc:
-          "how long to wait for the copy to complete before reporting error (though it could still succeed)",
-      },
-      exclude_history: {
-        init: false,
-        desc: "if true, exclude all files of the form `*.sage-history`",
+        desc: "how long to wait for the copy to complete before reporting error (though it could still succeed)",
       },
     },
     desc: `\
@@ -2500,8 +2340,7 @@ API(
       },
       email_address: {
         init: required,
-        desc:
-          "if there is no email_address in the account, there cannot be a ticket!",
+        desc: "if there is no email_address in the account, there cannot be a ticket!",
       },
       subject: {
         init: required,
@@ -3021,8 +2860,7 @@ message2({
   fields: {
     interval_s: {
       init: required,
-      desc:
-        "tells client that it should submit metrics to the hub every interval_s seconds",
+      desc: "tells client that it should submit metrics to the hub every interval_s seconds",
     },
   },
 });
@@ -3088,8 +2926,7 @@ API(
         desc: "id of project to touch",
       },
     },
-    desc:
-      "Mark this project as being actively used by the user sending this message.  This keeps the project from idle timing out, among other things.",
+    desc: "Mark this project as being actively used by the user sending this message.  This keeps the project from idle timing out, among other things.",
   })
 );
 
@@ -3107,8 +2944,7 @@ API(
         desc: "id of project to disconnect from",
       },
     },
-    desc:
-      "Disconnect the hub that gets this message from the project.   This is used entirely for internal debugging and development.",
+    desc: "Disconnect the hub that gets this message from the project.   This is used entirely for internal debugging and development.",
   })
 );
 

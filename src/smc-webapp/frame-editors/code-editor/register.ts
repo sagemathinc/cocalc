@@ -7,12 +7,9 @@
 Register the code editor
 */
 
-const { file_associations } = require("smc-webapp/file-associations");
-
+import { file_associations } from "smc-webapp/file-associations";
 import { Editor } from "./editor";
-
 import { Actions } from "./actions";
-
 import { register_file_editor } from "../frame-tree/register";
 
 const extensions: string[] = [];

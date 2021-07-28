@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import useInterval from "use-interval";
+import { useInterval } from 'react-interval-hook';
 import { merge, cmp, copy } from "smc-util/misc";
 import { React, redux, useMemo, useTypedRedux, useState } from "../../app-framework";
 import { Loading } from "../../r_misc";

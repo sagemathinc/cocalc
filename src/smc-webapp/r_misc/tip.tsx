@@ -5,11 +5,10 @@
 
 import * as React from "react";
 import { Rendered, CSS } from "smc-webapp/app-framework";
-import { Icon } from "./icon";
+import { Icon, IconName } from "./icon";
 import * as misc from "smc-util/misc";
 import * as feature from "../feature";
 import { Tooltip, Popover } from "antd";
-import { TooltipPlacement } from "antd/es/tooltip";
 
 const TIP_STYLE: CSS = {
   wordWrap: "break-word",
@@ -28,7 +27,7 @@ interface Props {
   delayShow?: number;
   delayHide?: number;
   rootClose?: boolean;
-  icon?: string;
+  icon?: IconName;
   id?: string; // can be used for screen readers
   style?: CSS; // changing not checked when updating if stable is true
   popover_style?: CSS; // changing not checked ever (default={zIndex:1000})

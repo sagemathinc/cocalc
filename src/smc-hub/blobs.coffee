@@ -5,7 +5,7 @@
 
 # Blobs
 
-winston = require('winston')
+winston = require('./logger').getLogger('blobs')
 
 misc_node = require('smc-util-node/misc_node')
 misc    = require('smc-util/misc')

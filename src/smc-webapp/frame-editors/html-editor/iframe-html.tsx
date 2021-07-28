@@ -27,6 +27,7 @@ import { debounce } from "lodash";
 import { React, ReactDOM, Rendered, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { EditorState } from "../frame-tree/types";
+import { join } from "path";
 
 interface Props {
   id: string;
@@ -169,12 +170,17 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     }
 
     // param below is just to avoid caching.
-    const src_url = `${window.app_base_url}/${project_id}/raw/${actual_path}?param=${reload}`;
+    const src = join(
+      window.app_base_path,
+      project_id,
+      "raw",
+      `${actual_path}?param=${reload}`
+    );
 
     return (
       <iframe
         ref={iframe}
-        src={src_url}
+        src={src}
         width={"100%"}
         height={"100%"}
         style={{ border: 0, opacity: 0, ...style }}

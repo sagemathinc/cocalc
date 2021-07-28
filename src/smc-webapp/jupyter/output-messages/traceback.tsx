@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component, Rendered } from "smc-webapp/app-framework";
+import { React, Rendered } from "smc-webapp/app-framework";
 import { Map } from "immutable";
 import { endswith } from "smc-util/misc";
 import { Ansi } from "./ansi";
@@ -13,15 +13,17 @@ interface TracebackProps {
   message: Map<string, any>;
 }
 
-export class Traceback extends Component<TracebackProps> {
-  shouldComponentUpdate(nextProps: TracebackProps): boolean {
-    return !this.props.message.equals(nextProps.message);
-  }
+function should_memoize(prev, next) {
+  return prev.message.equals(next.message);
+}
 
-  render(): Rendered {
+export const Traceback: React.FC<TracebackProps> = React.memo(
+  (props: TracebackProps) => {
+    const { message } = props;
+
     const v: Rendered[] = [];
 
-    const tb = this.props.message.get("traceback");
+    const tb = message.get("traceback");
 
     if (typeof tb == "string") {
       v.push(<Ansi>{tb}</Ansi>);
@@ -39,5 +41,6 @@ export class Traceback extends Component<TracebackProps> {
     }
 
     return <div style={TRACEBACK_STYLE}>{v}</div>;
-  }
-}
+  },
+  should_memoize
+);

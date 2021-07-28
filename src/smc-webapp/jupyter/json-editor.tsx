@@ -8,17 +8,17 @@ A JSON Editor
 
 This is just built using codemirror for now.
 
-****NOTE:** This code is not used right now!  It can safely be deleted so long as you delete the places it is imported.  It's not user visible.**
-
+There is a ticket regarding removing this component, but it is currently used for the "raw" view.
 SEE https://github.com/sagemathinc/cocalc/issues/4295
 */
 
-import { React, Component } from "../app-framework";
+import { React, useRef, useState, usePrevious } from "../app-framework";
 const json_stable = require("json-stable-stringify");
 import { make_patch, apply_patch } from "smc-util/sync/editor/generic/util";
 import * as immutable from "immutable";
 import * as underscore from "underscore";
-declare const CodeMirror: any; // TODO: import this
+import * as CodeMirror from "codemirror";
+import { all_fields_equal } from "smc-util/misc";
 
 const ERROR_STYLE: React.CSSProperties = {
   color: "white",
@@ -30,7 +30,7 @@ const ERROR_STYLE: React.CSSProperties = {
   right: "0",
   borderRadius: "3px",
   boxShadow: "0px 0px 3px 2px rgba(87, 87, 87, 0.2)",
-};
+} as const;
 
 interface JSONEditorProps {
   value: immutable.Map<any, any>; // must be immutable all the way and JSON-able...
@@ -42,191 +42,187 @@ interface JSONEditorProps {
   redo?(): void;
 }
 
-interface JSONEditorState {
-  error?: any;
+function should_memoize(prev, next) {
+  return (
+    all_fields_equal(prev, next, ["font_size", "cm_options"]) &&
+    prev.value.equals(next.value)
+  );
 }
 
-export class JSONEditor extends Component<JSONEditorProps, JSONEditorState> {
-  private cm: any;
-  private _cm_last_save: any;
-  private refNode: HTMLElement;
-  constructor(props: JSONEditorProps, context: any) {
-    super(props, context);
-    this.state = {};
-  }
+export const JSONEditor: React.FC<JSONEditorProps> = React.memo(
+  (props: JSONEditorProps) => {
+    const { value, font_size, on_change, cm_options, undo, redo } = props;
 
-  shouldComponentUpdate(nextProps, nextState) {
-    return (
-      this.props.font_size !== nextProps.font_size ||
-      !this.props.value.equals(nextProps.value) ||
-      this.props.cm_options !== nextProps.cm_options ||
-      this.state.error !== nextState.error
-    );
-  }
+    const prev_cm_options = usePrevious(cm_options);
+    const prev_value = usePrevious(value);
 
-  componentDidMount() {
-    this.init_codemirror();
-  }
+    const [error, set_error] = useState<string>();
 
-  _cm_destroy = () => {
-    if (this.cm == null) {
-      return;
+    const cm = useRef<any>(null);
+    const cm_last_save = useRef<any>(null);
+    const refNode = useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+      init_codemirror();
+      return () => {
+        if (cm.current == null) {
+          return;
+        }
+        cm_save();
+        cm_destroy();
+      };
+    }, []);
+
+    React.useEffect(() => {
+      if (!cm_options.equals(prev_cm_options)) {
+        update_codemirror_options(cm_options, prev_cm_options);
+      }
+    }, [cm_options]);
+
+    React.useEffect(() => {
+      cm.current?.refresh();
+    }, [font_size]);
+
+    React.useEffect(() => {
+      if (!value.equals(prev_value)) {
+        cm_merge_remote(value);
+      }
+    }, [value]);
+
+    function cm_destroy(): void {
+      if (cm.current == null) {
+        return;
+      }
+      $(cm.current.getWrapperElement()).remove(); // remove from DOM
+      cm.current = null;
     }
-    $(this.cm.getWrapperElement()).remove(); // remove from DOM
-    return delete this.cm;
-  };
 
-  _cm_save = () => {
-    let obj: any;
-    if (this.cm == null) {
-      return;
-    }
-    const value = this.cm.getValue();
-    if (value === this._cm_last_save) {
+    function cm_save() {
+      let obj: any;
+      if (cm.current == null) {
+        return;
+      }
+      const value = cm.current.getValue();
+      if (value === cm_last_save.current) {
+        return value;
+      }
+      try {
+        obj = JSON.parse(value);
+      } catch (error) {
+        set_error(`${error}`);
+        return;
+      }
+      cm_last_save.current = value;
+      on_change(obj);
+      clear_error();
       return value;
     }
-    try {
-      obj = JSON.parse(value);
-    } catch (error) {
-      this.setState({ error: `${error}` });
-      return;
-    }
-    this._cm_last_save = value;
-    this.props.on_change(obj);
-    this.clear_error();
-    return value;
-  };
 
-  clear_error = () => {
-    if (this.state.error) {
-      return this.setState({ error: undefined });
-    }
-  };
-
-  _cm_merge_remote = (remote) => {
-    let new_val: any;
-    if (this.cm == null) {
-      return;
-    }
-    const local = this.cm.getValue();
-    remote = this.to_json(remote);
-    if (local !== this._cm_last_save) {
-      // merge in our local changes
-      const local_changes = make_patch(this._cm_last_save, local);
-      new_val = apply_patch(local_changes, remote)[0];
-    } else {
-      // just set to remote value
-      this._cm_last_save = new_val = remote;
-      this.clear_error();
-    }
-    this.cm.setValueNoJump(new_val);
-  };
-
-  _cm_undo = () => {
-    if (this.cm == null) {
-      return;
-    }
-    if (this._cm_save()) {
-      this.props.undo && this.props.undo();
-    }
-  };
-
-  _cm_redo = () => {
-    if (this.cm == null) {
-      return;
-    }
-    this.props.redo && this.props.redo();
-  };
-
-  update_codemirror_options(next, current) {
-    if (this.cm == null) {
-      return;
-    }
-    const next_options = this.options(next);
-    next.forEach((value: any, option: any) => {
-      if (value !== current.get(option)) {
-        value = (value != null && value.toJS && value.toJS()) || value;
-        this.cm.setOption(option, next_options[option]);
-      }
-    });
-  }
-
-  options(cm_options: any) {
-    const options = cm_options.toJS();
-    options.mode = { name: "application/json" };
-    options.indentUnit = options.tabSize = 1;
-    options.indentWithTabs = false;
-    options.foldGutter = true;
-    options.extraKeys["Ctrl-Q"] = (cm: any) => cm.foldCodeSelectionAware();
-    options.extraKeys["Tab"] = (cm: any) => cm.tab_as_space();
-    options.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
-    return options;
-  }
-
-  to_json(obj: any) {
-    if (immutable.Map.isMap(obj)) {
-      obj = obj.toJS();
-    }
-    return json_stable(obj, { space: 1 });
-  }
-
-  init_codemirror = () => {
-    const node = $(this.refNode).find("textarea")[0];
-    // TODO: why is "as any" required here
-    this.cm = CodeMirror.fromTextArea(
-      node as any,
-      this.options(this.props.cm_options)
-    );
-    $(this.cm.getWrapperElement()).css({ height: "100%" });
-    this._cm_last_save = this.to_json(this.props.value);
-    this.cm.setValue(this._cm_last_save);
-    const save = underscore.debounce(this._cm_save, 3000);
-    this.cm.on("change", (_: any, changeObj: any) => {
-      if (changeObj.origin !== "setValue") {
-        save();
-      }
-    });
-    // replace undo/redo by our multi-user sync aware versions
-    this.cm.undo = this._cm_undo;
-    this.cm.redo = this._cm_redo;
-  };
-
-  componentWillReceiveProps(nextProps) {
-    if (!this.props.cm_options.equals(nextProps.cm_options)) {
-      this.update_codemirror_options(
-        nextProps.cm_options,
-        this.props.cm_options
-      );
-    }
-    if (this.props.font_size !== nextProps.font_size) {
-      if (this.cm != null) {
-        this.cm.refresh();
+    function clear_error(): void {
+      if (error) {
+        set_error(undefined);
       }
     }
-    if (!nextProps.value.equals(this.props.value)) {
-      this._cm_merge_remote(nextProps.value);
-    }
-  }
 
-  componentWillUnmount() {
-    if (this.cm == null) {
-      return;
+    function cm_merge_remote(remote) {
+      let new_val: any;
+      if (cm.current == null) {
+        return;
+      }
+      const local = cm.current.getValue();
+      remote = to_json(remote);
+      if (local !== cm_last_save.current) {
+        // merge in our local changes
+        const local_changes = make_patch(cm_last_save.current, local);
+        new_val = apply_patch(local_changes, remote)[0];
+      } else {
+        // just set to remote value
+        cm_last_save.current = new_val = remote;
+        clear_error();
+      }
+      cm.current.setValueNoJump(new_val);
     }
-    this._cm_save();
-    this._cm_destroy();
-  }
 
-  render_error() {
-    if (!this.state.error) {
-      return;
+    function cm_undo() {
+      if (cm.current == null) {
+        return;
+      }
+      if (cm_save()) {
+        undo && undo();
+      }
     }
-    return <div style={ERROR_STYLE}>ERROR: {this.state.error}</div>;
-  }
 
-  render() {
+    function cm_redo() {
+      if (cm.current == null) {
+        return;
+      }
+      redo && redo();
+    }
+
+    function update_codemirror_options(next, current) {
+      if (cm.current == null) {
+        return;
+      }
+      const next_options = options(next);
+      next.forEach((value: any, option: string) => {
+        if (value !== current?.get(option)) {
+          if (option != "inputStyle") {
+            // note: inputStyle can not (yet) be changed in a running editor
+            // -- see https://github.com/sagemathinc/cocalc/issues/5383
+            cm.current.setOption(option, next_options[option]);
+          }
+        }
+      });
+    }
+
+    function options(cm_options: any) {
+      const options = cm_options.toJS();
+      options.mode = { name: "application/json" };
+      options.indentUnit = options.tabSize = 1;
+      options.indentWithTabs = false;
+      options.foldGutter = true;
+      options.extraKeys["Ctrl-Q"] = (cm: any) => cm.foldCodeSelectionAware();
+      options.extraKeys["Tab"] = (cm: any) => cm.tab_as_space();
+      options.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
+      return options;
+    }
+
+    function to_json(obj: any) {
+      if (immutable.Map.isMap(obj)) {
+        obj = obj.toJS();
+      }
+      return json_stable(obj, { space: 1 });
+    }
+
+    function init_codemirror() {
+      if (refNode.current == null) return;
+      const node = $(refNode.current).find("textarea")[0];
+      // TODO: why is "as any" required here
+      cm.current = CodeMirror.fromTextArea(node as any, options(cm_options));
+      $(cm.current.getWrapperElement()).css({ height: "100%" });
+      cm_last_save.current = to_json(value);
+      cm.current.setValue(cm_last_save.current);
+      const save = underscore.debounce(cm_save, 3000);
+      cm.current.on("change", (_: any, changeObj: any) => {
+        if (changeObj.origin !== "setValue") {
+          save();
+        }
+      });
+      // replace undo/redo by our multi-user sync aware versions
+      cm.current.undo = cm_undo;
+      cm.current.redo = cm_redo;
+    }
+
+    function render_error() {
+      if (!error) {
+        return;
+      }
+      return <div style={ERROR_STYLE}>ERROR: {error}</div>;
+    }
+
     return (
       <div
-        ref={(node: any) => (this.refNode = node)}
+        ref={refNode}
         style={{
           width: "100%",
           overflow: "auto",
@@ -234,9 +230,10 @@ export class JSONEditor extends Component<JSONEditorProps, JSONEditorState> {
           position: "relative",
         }}
       >
-        {this.render_error()}
+        {render_error()}
         <textarea />
       </div>
     );
-  }
-}
+  },
+  should_memoize
+);

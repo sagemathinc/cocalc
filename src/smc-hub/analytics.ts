@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { join } from "path";
 import * as ms from "ms";
 import { isEqual } from "lodash";
 import { Router } from "express";
@@ -14,7 +15,6 @@ import {
 import { PostgreSQL } from "./postgres/types";
 import { get_server_settings, pii_retention_to_future } from "./utils";
 import * as fs from "fs";
-import * as TS from "typescript";
 const UglifyJS = require("uglify-js");
 // express-js cors plugin
 import * as cors from "cors";
@@ -24,20 +24,18 @@ import {
   ParseResultType,
   ParseResult,
 } from "parse-domain";
+import { getLogger } from "./logger";
 
-// compiling analytics-script.ts and minifying it.
+// Minifying analytics-script.js.  Note
+// that this file analytics.ts gets compiled to
+// dist/analytics.js and also analytics-script.ts
+// gets compiled to dist/analytics-script.js.
 export const analytics_js = UglifyJS.minify(
-  TS.transpileModule(fs.readFileSync("./analytics-script.ts").toString(), {
-    compilerOptions: { module: TS.ModuleKind.CommonJS },
-  }).outputText
+  fs.readFileSync(join(__dirname, "analytics-script.js")).toString()
 ).code;
 
-function create_log(name, logger) {
-  if (logger != null) {
-    return (...m) => logger.debug(`analytics.${name}: `, ...m);
-  } else {
-    return () => {};
-  }
+function create_log(name) {
+  return getLogger(`analytics.${name}`).debug;
 }
 
 // base64 encoded PNG (white), 1x1 pixels
@@ -69,16 +67,15 @@ function sanitize(obj: object): any {
 // record analytics data
 // case 1: store "token" with associated "data", referrer, utm, etc.
 // case 2: update entry with a known "token" with the account_id + 2nd timestamp
-function analytics_rec(
+function recordAnalyticsData(
   db: any,
-  logger: any,
   token: string,
   payload: object | undefined,
   pii_retention: number | false
 ): void {
   if (payload == null) return;
   if (!is_valid_uuid_string(token)) return;
-  const dbg = create_log("rec", logger);
+  const dbg = create_log("rec");
   dbg(token, payload);
   // sanitize data (limits size and number of characters)
   const rec_data = sanitize(payload);
@@ -160,7 +157,7 @@ function check_cors(
 /*
 cocalc analytics setup -- this is used in http_hub_server to setup the /analytics.js endpoint
 
-this extracts tracking information about lading pages, measure campaign performance, etc.
+this extracts tracking information about landing pages, measure campaign performance, etc.
 
 1. it sends a static js file (which is included in a script tag) to a page
 2. a unique ID is generated and stored in a cookie
@@ -171,13 +168,13 @@ The query param "fqd" (fully qualified domain) can be set to true or false (defa
 It controls if the bounce back URL mentions the domain.
 */
 
-export async function setup_analytics_js(
+import base_path from "smc-util-node/base-path";
+
+export async function initAnalytics(
   router: Router,
-  database: PostgreSQL,
-  logger: any,
-  base_url: string
+  database: PostgreSQL
 ): Promise<void> {
-  const dbg = create_log("analytics_js/cors", logger);
+  const dbg = create_log("analytics_js/cors");
 
   // we only get the DNS once at startup – i.e. hub restart required upon changing DNS!
   const settings = await get_server_settings(database);
@@ -247,11 +244,11 @@ export async function setup_analytics_js(
     res.write(`var NAME = '${analytics_cookie_name}';\n`);
     res.write(`var ID = '${uuid()}';\n`);
     res.write(`var DOMAIN = '${DOMAIN}';\n`);
-    //  BASE_URL
+    //  BASE_PATH
     if (req.query.fqd === "false") {
-      res.write(`var PREFIX = '${base_url}';\n`);
+      res.write(`var PREFIX = '${base_path}';\n`);
     } else {
-      const prefix = `//${DOMAIN}${base_url}`;
+      const prefix = `//${DOMAIN}${base_path}`;
       res.write(`var PREFIX = '${prefix}';\n\n`);
     }
     res.write(analytics_js);
@@ -259,18 +256,19 @@ export async function setup_analytics_js(
   });
 
   // tracking image: this is a 100% experimental idea and not used
-  router.get("/analytics.js/track.png", cors(analytics_cors), function (
-    req,
-    res
-  ) {
-    // in case user was already here, do not set a cookie
-    if (!req.cookies[analytics_cookie_name]) {
-      analytics_cookie(DNS, res);
+  router.get(
+    "/analytics.js/track.png",
+    cors(analytics_cors),
+    function (req, res) {
+      // in case user was already here, do not set a cookie
+      if (!req.cookies[analytics_cookie_name]) {
+        analytics_cookie(DNS, res);
+      }
+      res.header("Content-Type", "image/png");
+      res.header("Content-Length", `${PNG_1x1.length}`);
+      return res.end(PNG_1x1);
     }
-    res.header("Content-Type", "image/png");
-    res.header("Content-Length", `${PNG_1x1.length}`);
-    return res.end(PNG_1x1);
-  });
+  );
 
   router.post("/analytics.js", cors(analytics_cors), function (req, res): void {
     // check if token is in the cookie (see above)
@@ -285,7 +283,7 @@ export async function setup_analytics_js(
         `/analytics.js -- TOKEN=${token} -- DATA=${JSON.stringify(req.body)}`
       );
       // record it, there is no need for a callback
-      analytics_rec(database, logger, token, req.body, pii_retention);
+      recordAnalyticsData(database, token, req.body, pii_retention);
     }
     res.end();
   });

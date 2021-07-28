@@ -16,7 +16,7 @@ interface StdoutProps {
   message: Map<string, any>;
 }
 
-export const Stdout: React.FC<StdoutProps> = ({ message }) => {
+export const Stdout: React.FC<StdoutProps> = ({ message }: StdoutProps) => {
   let value = message.get("text");
   if (typeof value != "string") {
     value = `${value}`;

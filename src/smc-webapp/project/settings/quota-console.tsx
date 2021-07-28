@@ -268,7 +268,7 @@ export class QuotaConsole extends React.Component<Props, State> {
         return (
           <Row>
             <Col sm={6} smOffset={6}>
-              <ButtonToolbar style={{ float: "right" }}>
+              <ButtonToolbar style={{ float: "right", marginTop: "15px" }}>
                 <Button
                   onClick={this.save_admin_editing.bind(this)}
                   bsStyle="warning"
@@ -290,7 +290,7 @@ export class QuotaConsole extends React.Component<Props, State> {
               <Button
                 onClick={this.start_admin_editing.bind(this)}
                 bsStyle="warning"
-                style={{ float: "right" }}
+                style={{ float: "right", marginTop: "15px" }}
               >
                 <Icon name="pencil" /> Admin Edit...
               </Button>

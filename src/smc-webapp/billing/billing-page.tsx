@@ -247,7 +247,7 @@ export const BillingPage = rclass<ReactProps>(
     private render_panel_header(icon, header): Rendered {
       return (
         <div style={{ cursor: "pointer" }}>
-          <Icon name={icon} fixedWidth /> {header}
+          <Icon name={icon} style={{ width: "1.125em" }} /> {header}
         </div>
       );
     }

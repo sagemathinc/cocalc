@@ -43,7 +43,7 @@ export const ActivityDisplay: React.FC<Props> = React.memo(
         <div key={i} style={ACTIVITY_ITEM_STYLE}>
           <Icon
             style={{ padding: "2px 1px 1px 2px" }}
-            name="cc-icon-cocalc-ring"
+            name="cocalc-ring"
             spin
           />{" "}
           {do_trunc(desc)}

@@ -6,6 +6,7 @@
 /*
 Terminal Editor Actions
 */
+import { delay } from "awaiting";
 import { Actions } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { open_new_tab } from "../../misc-page";
@@ -107,3 +108,6 @@ export class TerminalActions extends Actions {
     this.set_active_id(id, true);
   }
 }
+
+// Also useful to import as just "Actions" for our editor reg system
+export { TerminalActions as Actions };

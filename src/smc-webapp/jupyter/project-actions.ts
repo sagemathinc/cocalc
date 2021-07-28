@@ -15,12 +15,12 @@ fully unit test it via mocking of components.
 import * as immutable from "immutable";
 import { JupyterActions as JupyterActions0 } from "./actions";
 
-import { callback2, once } from "../../smc-util/async-utils";
+import { callback2, once } from "smc-util/async-utils";
 //import { reuseInFlight } from "async-await-utils/hof";
 
 import * as async from "async";
 import * as underscore from "underscore";
-import * as misc from "../../smc-util/misc";
+import * as misc from "smc-util/misc";
 import * as json_stable from "json-stable-stringify";
 import { OutputHandler } from "./output-handler";
 import { RunAllLoop } from "./run-all-loop";

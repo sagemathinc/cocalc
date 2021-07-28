@@ -5,7 +5,7 @@
 
 import { AppRedux } from "../app-framework";
 import { WebappClient } from "../client/client";
-import { bind_methods } from "../../smc-util/misc";
+import { bind_methods } from "smc-util/misc";
 
 declare let Primus;
 
@@ -33,10 +33,6 @@ export abstract class Table {
     bind_methods(this);
     this.name = name;
     this.redux = redux;
-    if (typeof Primus === "undefined" || Primus === null) {
-      // hack for now -- not running in browser (instead in testing server)
-      return;
-    }
     // TODO: Unfortunately, we currently have to do this later import,
     // due to circular imports:
     const {

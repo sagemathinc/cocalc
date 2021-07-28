@@ -245,7 +245,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   public is_collaborator(project_id: string): boolean {
     return (
       webapp_client.account_id != null &&
-      this.getIn(["project_map", project_id, webapp_client.account_id]) != null
+      this.getIn(["project_map", project_id, 'users', webapp_client.account_id]) != null
     );
   }
 
@@ -652,9 +652,13 @@ const init_store = {
   project_websockets: Map<string, WebsocketState>(),
 } as ProjectsState;
 
-export const store = redux.createStore("projects", ProjectsStore, init_store);
+export let store: ProjectsStore;
 
-// Every time a project actions gets created or useRedux(['projects', ...]),
-// there is a new listener on the projects store, and there can be
-// many projectActions, e.g., when working with a course with 200 students.
-store.setMaxListeners(1000);
+export function init() {
+  store = redux.createStore("projects", ProjectsStore, init_store);
+
+  // Every time a project actions gets created or useRedux(['projects', ...]),
+  // there is a new listener on the projects store, and there can be
+  // many projectActions, e.g., when working with a course with 200 students.
+  store.setMaxListeners(1000);
+}

@@ -1,0 +1,30 @@
+/* From https://stackoverflow.com/questions/17029384/rotating-a-svg-with-css-animation/17031363 */
+
+.cocalc-spin {
+  animation-name: ckw;
+  animation-duration: 20s;
+  animation-iteration-count: infinite;
+  transform-origin: 50% 50%;
+  display: inline-block;
+}
+@keyframes ckw {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.cocalc-fade-in {
+  animation: cocalc-fadein 2s;
+}
+
+@keyframes cocalc-fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

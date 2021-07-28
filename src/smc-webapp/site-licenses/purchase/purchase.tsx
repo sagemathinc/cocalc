@@ -354,7 +354,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           disabled={disabled}
           options={[
             {
-              icon: "calendar-alt",
+              icon: "calendar",
               label: "Monthly subscription",
               value: "monthly",
               desc: `pay once every month (${discount_monthly_pct}% discount)`,
@@ -366,7 +366,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               desc: `pay once every year (${discount_yearly_pct}% discount)`,
             },
             {
-              icon: "calendar-times-o",
+              icon: "calendar-times",
               label: "Start and end dates",
               desc:
                 "pay for a specific period of time (as short as one day and as long as 2 years).  Licenses start at 0:00 in your local timezone on the start date and end at 23:59 your local time zone on the ending date.",
@@ -661,7 +661,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           onClick={submit}
           type="primary"
         >
-          <Icon name="envelope-o" />
+          <Icon name="envelope" />
           <Space />
           <Space /> Please contact me...
         </Button>

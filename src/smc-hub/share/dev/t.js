@@ -11,11 +11,6 @@ without having to start a web server at all.
 
 log = (...args) => console.log(...args);
 
-log("loading ts-node");
-require("ts-node").register({ cacheDirectory: "/tmp" });
-log("loading node-cjsx");
-require("node-cjsx").transform();
-
 log("setting up jsDOM");
 require("../jsdom-support");
 

@@ -45,7 +45,7 @@ export function mentionableUsers(project_id: string, search?: string): Item[] {
   const users_store = redux.getStore("users");
   const v: Item[] = [];
   for (const { account_id } of project_users) {
-    const fullname = users_store.get_name(account_id);
+    const fullname = users_store.get_name(account_id) ?? "";
     const s = fullname.toLowerCase();
     if (search != null && s.indexOf(search) == -1) continue;
     const name = trunc_middle(fullname, 64);

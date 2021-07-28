@@ -4,7 +4,7 @@
  */
 
 import { List } from "immutable";
-import { Icon, Loading } from "./index";
+import { Icon, IconName, Loading } from "./index";
 import { CSS, React, TypedMap } from "../app-framework";
 import { Markdown } from "./markdown";
 
@@ -12,7 +12,7 @@ export interface TableOfContentsEntry {
   id: string; // id that is unique across the table of contents
   value: string; // contents of the heading -- a 1-line string formatted using markdown (will be rendered using markdown)
   level?: 1 | 2 | 3 | 4 | 5 | 6; // optional heading size/level
-  icon?: string; // font awesome icon name -- default "minus" (a dash)
+  icon?: IconName; // default "minus" (a dash)
   number?: number[]; // section numbering, so for "- 1.2.4  A Subsction" this would be [1,2,4].
   extra?: any; // this is just passed back to the scrollTo function to provide extra info about how to scroll to this heading.
 }
@@ -31,7 +31,7 @@ export const TableOfContents: React.FC<Props> = React.memo(
     function renderHeader(
       level: 1 | 2 | 3 | 4 | 5 | 6,
       value: string,
-      icon: string | undefined
+      icon: IconName | undefined
     ): JSX.Element {
       if (level < 1) level = 1;
       if (level > 6) level = 6;
