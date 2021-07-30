@@ -175,10 +175,11 @@
   },
   "scripts": {
     "build": "NODE_OPTIONS=--max-old-space-size=8192 tsc && coffee  -m -c -o dist/ .",
-    "test": "cd .. && npx jest smc-webapp",
-    "testjcli": "echo 'TEST JUPYTER CLIENT'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee test/*.ts",
-    "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee *.cjsx",
-    "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html"
+    "tsc": "npx tsc -w",
+    "old-test": "cd .. && npx jest smc-webapp",
+    "old-testjcli": "echo 'TEST JUPYTER CLIENT'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee test/*.ts",
+    "old-lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee *.cjsx",
+    "old-coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html"
   },
   "repository": {
     "type": "git",

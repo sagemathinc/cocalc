@@ -8,6 +8,8 @@
 // const w = window as any;
 // (window as any).test_init = init;
 
+export {}
+
 const w = window as any;
 
 w.test_load = {};
