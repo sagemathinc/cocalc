@@ -116,14 +116,22 @@ def ci(args):
 # Build all the packages.
 def build(args):
     v = packages(args)
+    CUR = os.path.abspath('.')
 
-    for path in v:
-        if path != 'packages/static':
-            dist = os.path.join(path, 'dist')
+    def f(path):
+        if not args.parallel and path != 'packages/static':
+            # NOTE: in parallel mode we don't delete or there is no
+            # hope of this working.
+            dist = os.path.join(CUR, path, 'dist')
             if os.path.exists(dist):
                 # clear dist/ dir
                 shutil.rmtree(dist)
-        cmd("npm run build", path)
+        cmd("npm run build", os.path.join(CUR, path))
+
+    if args.parallel:
+        thread_map(f, v)
+    else:
+        thread_map(f, v, 1)
 
 
 def clean(args):
@@ -296,6 +304,13 @@ def main():
             help=
             '(default: ""=exclude nothing) "foo,bar" means exclude foo and bar'
         )
+        parser.add_argument(
+            '--parallel',
+            action="store_const",
+            const=True,
+            help=
+            'if given, do all in parallel; this will not work in some cases and may be ignored in others'
+        )
 
     parser = argparse.ArgumentParser(prog='workspaces')
     subparsers = parser.add_subparsers(help='sub-command help')
@@ -337,10 +352,6 @@ def main():
                            nargs='*',
                            default='',
                            help='arguments to npm')
-    subparser.add_argument('--parallel',
-                           action="store_const",
-                           const=True,
-                           help="run in parallel")
     subparser.set_defaults(func=npm)
 
     subparser = subparsers.add_parser(
