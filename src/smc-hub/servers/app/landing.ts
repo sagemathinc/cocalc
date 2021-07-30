@@ -11,7 +11,9 @@ import getCustomize from "./landing-customize";
 export default async function init(app: Application) {
   const winston = getLogger("landing");
   const customize = await getCustomize();
-  winston.info(`Initializing the landing server: ${JSON.stringify(customize)}...`);
+  winston.info(
+    `Initializing the landing server: ${JSON.stringify(customize)}...`
+  );
   const handler = await initLandingServer({
     basePath,
     winston,
@@ -19,5 +21,6 @@ export default async function init(app: Application) {
   });
   winston.info("Now using next.js handler to handle select endpoints");
   app.all(basePath, handler);
-  app.all(join(basePath, "_next/*"), handler);
+  app.all(join(basePath, "*"), handler);
+  app.all(join(basePath, "_next", "*"), handler);
 }
