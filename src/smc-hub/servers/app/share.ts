@@ -20,10 +20,17 @@ export default async function init(app: Application) {
     winston,
     customize,
   });
+
+  const endpoints = [
+    basePath,
+    join(basePath, "*"),
+    join(basePath, "_next", "*"),
+  ];
   winston.info(
-    "Now using next.js share handler to handle select endpoints under /share"
+    "Now using next.js packages/share handler to handle select endpoints under /share",
+    endpoints
   );
-  app.all(basePath, handler);
-  app.all(join(basePath, "*"), handler);
-  app.all(join(basePath, "_next", "*"), handler);
+  for (const endpoint of endpoints) {
+    app.all(endpoint, handler);
+  }
 }

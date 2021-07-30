@@ -2,6 +2,7 @@ import Link from "next/link";
 import SquareLogo from "./logo-square";
 import {
   anonymousSignup,
+  applicationURL,
   basePath,
   helpEmail,
   siteName,
@@ -31,7 +32,9 @@ export default function Header() {
         textAlign: "center",
       }}
     >
-      <SquareLogo style={{ height: "40px", marginRight: GAP }} />
+      <a href={applicationURL}>
+        <SquareLogo style={{ height: "40px", marginRight: GAP }} />
+      </a>
       <Link href="/">
         <a style={LinkStyle} title="View files that people have published.">
           Published Files

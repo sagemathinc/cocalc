@@ -57,13 +57,13 @@ export default function Header() {
           Help
         </A>
       )}
-      <A
+      <a
         style={LinkStyle}
         href={join(basePath, "share")}
         title="View files that people have published."
       >
         Published Files
-      </A>
+      </a>
       <A
         style={LinkStyle}
         href="https://doc.cocalc.com"
