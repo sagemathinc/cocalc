@@ -17,7 +17,7 @@ interface Props {
 export default function CodeMirror({ content, filename }: Props) {
   const ext = getExtension(filename);
   const mode = codemirrorMode(ext);
-  //const options = { lineNumbers: true, mode };
-  return <pre>{content}</pre>;
+  const options = { lineNumbers: true, mode };
+  return <pre>{JSON.stringify(options)}{"\n"}{content}</pre>;
   //return <CodeMirrorStatic value={content} options={options} />;
 }

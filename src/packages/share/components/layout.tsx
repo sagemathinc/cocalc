@@ -5,7 +5,6 @@
 
 import { Layout as AntdLayout } from "antd";
 
-import Link from "next/link";
 import Head from "next/head";
 
 import SiteName from "components/site-name";
@@ -29,7 +28,7 @@ export function Layout({ children }) {
       </Head>
       <AntdLayout>
         <Header />
-        <AntdLayout.Content>
+        <AntdLayout.Content style={{ background: "white" }}>
           <div
             style={{
               color: "#555",

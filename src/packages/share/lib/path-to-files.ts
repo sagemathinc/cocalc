@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { join, resolve } from "path";
-import { getPool } from "./database";
+import { join } from "path";
+import getPool from "./database";
 import { projects } from "smc-util-node/data";
 
 
