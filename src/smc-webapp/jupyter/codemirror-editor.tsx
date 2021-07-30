@@ -9,7 +9,7 @@ declare const $: any;
 
 import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 
-import * as LRU from "lru-cache";
+import LRU from "lru-cache";
 import { delay } from "awaiting";
 import { React, useRef, usePrevious } from "../app-framework";
 import * as underscore from "underscore";
@@ -17,7 +17,7 @@ import { Map as ImmutableMap } from "immutable";
 import { three_way_merge } from "smc-util/sync/editor/generic/util";
 import { Complete } from "./complete";
 import { Cursors } from "./cursors";
-import * as CodeMirror from "codemirror";
+import CodeMirror from "codemirror";
 
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";

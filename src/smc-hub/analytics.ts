@@ -4,7 +4,7 @@
  */
 
 import { join } from "path";
-import * as ms from "ms";
+import ms from "ms";
 import { isEqual } from "lodash";
 import { Router } from "express";
 import {

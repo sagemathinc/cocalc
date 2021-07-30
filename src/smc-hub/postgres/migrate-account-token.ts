@@ -8,7 +8,7 @@
 
 import { PostgreSQL } from "./types";
 import { callback2 as cb2 } from "smc-util/async-utils";
-import * as debug from "debug";
+import debug from "debug";
 const LOG = debug("hub:migrate:account_token");
 
 export async function migrate_account_token(db: PostgreSQL) {

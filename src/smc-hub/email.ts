@@ -30,7 +30,7 @@ import * as nodemailer from "nodemailer";
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
 import { site_settings_conf } from "smc-util/db-schema/site-defaults";
-import * as sanitizeHtml from "sanitize-html";
+import sanitizeHtml from "sanitize-html";
 import { contains_url } from "smc-util-node/misc";
 
 const {

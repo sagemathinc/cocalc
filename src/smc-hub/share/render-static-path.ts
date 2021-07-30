@@ -11,7 +11,7 @@ import * as fs from "fs";
 import * as os_path from "path";
 
 import * as url from "url";
-import * as serve_static from "serve-static";
+import serve_static from "serve-static";
 import * as serve_index from "serve-index";
 import * as finalhandler from "finalhandler";
 

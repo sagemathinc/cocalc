@@ -3,4 +3,5 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export { SyncDB, SyncDBOpts, SyncDBOpts0 } from "./sync";
+export { SyncDB } from "./sync";
+export type { SyncDBOpts, SyncDBOpts0 } from "./sync";

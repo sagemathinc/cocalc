@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as $ from "jquery"; // picks jQuery from @types
+import $ from "jquery"; // picks jQuery from @types
 declare const $ = $;
 // declare const $: any; // old more general approach
 declare const window: any;

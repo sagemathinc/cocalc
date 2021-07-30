@@ -11,7 +11,7 @@ import "./jsdom-support";
 
 import * as os_path from "path";
 import { callback } from "awaiting";
-import * as express from "express";
+import express from "express";
 import { get_public_paths, PublicPaths } from "./public-paths";
 import { AuthorInfo } from "./authors";
 import { SettingsDAO } from "./settings";

@@ -7,7 +7,7 @@ import { omit } from "lodash";
 import { PostgreSQL } from "./types";
 import { callback2 } from "smc-util/async-utils";
 import { query } from "./query";
-import * as debug from "debug";
+import debug from "debug";
 const L = debug("hub:project-queries");
 import { DUMMY_SECRET } from "smc-webapp/project/settings/const";
 import { DatastoreConfig } from "smc-webapp/project/settings/types";

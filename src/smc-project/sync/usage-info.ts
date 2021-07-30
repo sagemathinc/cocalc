@@ -6,7 +6,7 @@
 // usage info for a specific file path, derived from the more general project info,
 // which includes all processes and other stats
 
-import * as debug from "debug";
+import debug from "debug";
 const L = debug("project:sync:usage-info");
 import { once } from "smc-util/async-utils";
 import { SyncTable, SyncTableState } from "smc-util/sync/table";

@@ -26,7 +26,7 @@ import { delay } from "awaiting";
 import getLogger from "smc-hub/logger";
 import { site_license_hook } from "smc-hub/postgres/site-license/hook";
 
-export { ProjectState, ProjectStatus };
+export type { ProjectState, ProjectStatus };
 
 const winston = getLogger("project-control");
 

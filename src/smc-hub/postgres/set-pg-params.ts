@@ -7,7 +7,7 @@
 // https://www.postgresql.org/docs/10/sql-set.html
 
 import { Client } from "pg";
-import * as debug from "debug";
+import debug from "debug";
 const L = debug("hub:pg:query_params");
 
 interface Opts {

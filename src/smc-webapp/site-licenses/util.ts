@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as LRU from "lru-cache";
+import LRU from "lru-cache";
 import { reuseInFlight } from "async-await-utils/hof";
 import { SiteLicensePublicInfo } from "./types";
 import { query } from "../frame-editors/generic/client";

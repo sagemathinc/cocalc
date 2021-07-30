@@ -1,7 +1,7 @@
 /* Handle a proxy request */
 
 import { createProxyServer } from "http-proxy";
-import * as LRU from "lru-cache";
+import LRU from "lru-cache";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
 import { versionCheckFails } from "./version";
 import { getTarget, invalidateTargetCache } from "./target";

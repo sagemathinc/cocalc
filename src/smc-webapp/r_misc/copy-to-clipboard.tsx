@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as copy_to_clipboard from "copy-to-clipboard";
+import copy_to_clipboard from "copy-to-clipboard";
 import { CSS, React, ReactDOM, useRef, useState } from "../app-framework";
 import {
   Button,

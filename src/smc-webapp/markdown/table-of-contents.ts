@@ -19,7 +19,7 @@ import { TableOfContentsEntry as Entry } from "../r_misc";
 import { parseHeader } from "./header";
 
 import { Token } from "./types";
-import * as MarkdownIt from "markdown-it";
+import MarkdownIt from "markdown-it";
 import { OPTIONS } from "./index";
 
 const markdown_it = new MarkdownIt(OPTIONS);

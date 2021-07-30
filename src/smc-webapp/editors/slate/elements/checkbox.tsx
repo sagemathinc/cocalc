@@ -23,7 +23,7 @@ interface SlateCheckbox extends SlateElement {
   value?: boolean; // important: using the field value results in more efficient diffs
 }
 
-export { SlateCheckbox as Checkbox };
+export type { SlateCheckbox as Checkbox };
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,

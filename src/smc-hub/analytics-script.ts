@@ -79,3 +79,6 @@ window
   })
   //.then(response => console.log("Success:", response))
   .catch((error) => console.error("Error:", error));
+
+// so it is a module.
+export {}

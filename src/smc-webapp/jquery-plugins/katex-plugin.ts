@@ -19,7 +19,7 @@ import { is_share_server } from "../r_misc/share-server";
 export const jQuery = $;
 declare var $: any;
 import { tex2jax } from "./tex2jax";
-import * as LRU from "lru-cache";
+import LRU from "lru-cache";
 
 import { macros } from "./math-katex";
 import { redux } from "../app-framework";

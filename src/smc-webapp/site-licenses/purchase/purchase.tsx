@@ -19,7 +19,7 @@ import {
 import { DownOutlined } from "@ant-design/icons";
 import { describe_quota } from "smc-util/db-schema/site-licenses";
 
-import * as moment from "moment";
+import moment from "moment";
 import { webapp_client } from "../../webapp-client";
 import { CSS, React, redux, useMemo, useState } from "../../app-framework";
 const { RangePicker } = DatePicker;

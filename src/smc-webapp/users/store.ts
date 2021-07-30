@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as LRU from "lru-cache";
+import LRU from "lru-cache";
 import { fromJS } from "immutable";
 import { webapp_client } from "../webapp-client";
 import { Store, redux } from "../app-framework";

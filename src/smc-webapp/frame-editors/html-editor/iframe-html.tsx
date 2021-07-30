@@ -14,7 +14,7 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 // tag in a functional component (it would be fine with chrome).
 // Some day in the future this might no longer be necessary ... (react 16.13.1)
 
-import * as $ from "jquery";
+import $ from "jquery";
 import { Set } from "immutable";
 import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";

@@ -19,52 +19,53 @@ which is VERY BAD.
 
 // account
 export { AccountStore, AccountActions } from "../account";
-export { AccountState } from "../account/types";
+export type { AccountState } from "../account/types";
 // admin-site-licenses
 export { SiteLicensesActions } from "../site-licenses/admin/actions";
 export { SiteLicensesStore } from "../site-licenses/admin/store";
-export { SiteLicensesState } from "../site-licenses/admin/types";
+export type { SiteLicensesState } from "../site-licenses/admin/types";
 // admin-users
 export { AdminUsersActions } from "../admin/users/actions";
 export { AdminUsersStore } from "../admin/users/store";
-export { StoreState as AdminUsersState } from "../admin/users/store";
+export type { StoreState as AdminUsersState } from "../admin/users/store";
 // billing
 export { BillingActions } from "../billing/actions";
 export { BillingStore } from "../billing/store";
-export { BillingStoreState as BillingState } from "../billing/store";
+export type { BillingStoreState as BillingState } from "../billing/store";
 
-export { ComputeEnvironmentState } from "../compute-environment/types";
+export type { ComputeEnvironmentState } from "../compute-environment/types";
 export { ComputeEnvironmentActions } from "../compute-environment/actions";
-export { ComputeEnvironmentStore } from "../compute-environment/store";
+export type { ComputeEnvironmentStore } from "../compute-environment/store";
 
 // compute_images
 export {
   ComputeImagesActions,
   ComputeImagesStore,
 } from "../custom-software/init";
-export { ComputeImagesState } from "../custom-software/init";
+export type { ComputeImagesState } from "../custom-software/init";
 // customize
 export { CustomizeActions, CustomizeStore } from "../customize";
-export { CustomizeState } from "../customize";
+export type { CustomizeState } from "../customize";
 // file_use
 export { FileUseStore } from "../file-use/store";
 export { FileUseActions } from "../file-use/actions";
-export { FileUseState } from "../file-use/store";
+export type { FileUseState } from "../file-use/store";
 // mentions
 export { MentionsActions, MentionsStore } from "../notifications";
-export { MentionsState } from "../notifications";
+export type { MentionsState } from "../notifications";
 // page
 export { PageActions } from "../app/actions";
-export { PageState, PageStore } from "../app/store";
+export { PageStore } from "../app/store";
+export type { PageState } from "../app/store";
 // projects
 export { ProjectsActions } from "../projects/actions";
 export { ProjectsStore } from "../projects/store";
-export { ProjectsState } from "../projects/store";
+export type { ProjectsState } from "../projects/store";
 // support
 export { SupportStore } from "../support/store";
 export { SupportActions } from "../support/actions";
-export { SupportState } from "../support/types";
+export type { SupportState } from "../support/types";
 // users
 export { UsersStore } from "../users/store";
 export { UsersActions } from "../users/actions";
-export { UsersState } from "../users/types";
+export type { UsersState } from "../users/types";

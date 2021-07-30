@@ -7,7 +7,7 @@
 HTML Editor Actions
 */
 
-import * as $ from "jquery";
+import $ from "jquery";
 import { Actions as CodeEditorActions } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";

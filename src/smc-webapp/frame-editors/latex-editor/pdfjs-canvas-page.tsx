@@ -7,7 +7,7 @@
 Render a single PDF page using canvas.
 */
 
-import * as $ from "jquery";
+import $ from "jquery";
 import { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 import { React, ReactDOM } from "../../app-framework";
 import { AnnotationLayer, SyncHighlight } from "./pdfjs-annotation";

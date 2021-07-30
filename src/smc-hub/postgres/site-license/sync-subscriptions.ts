@@ -14,7 +14,7 @@ for each un-expired license check if there is a subscription funding it.
 This additional sync is only run if there is no specific account_id set!
 */
 
-import * as debug from "debug";
+import debug from "debug";
 const L = debug("hub:sync-subscriptions");
 
 import { PostgreSQL } from "../types";

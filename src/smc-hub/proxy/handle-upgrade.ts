@@ -1,6 +1,6 @@
 // Websocket support
 
-import * as LRU from "lru-cache";
+import LRU from "lru-cache";
 import { createProxyServer } from "http-proxy";
 import { versionCheckFails } from "./version";
 import { getTarget } from "./target";

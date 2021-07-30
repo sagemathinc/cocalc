@@ -21,7 +21,7 @@ if (!process.env.SMC_ROOT) {
 import { spawn } from "child_process";
 
 import { COCALC_MODES } from "./servers/project-control";
-import * as blocked from "blocked";
+import blocked from "blocked";
 import { program as commander, Option } from "commander";
 import { callback2 } from "smc-util/async-utils";
 import { callback } from "awaiting";

@@ -5,7 +5,7 @@
 
 // Adapted from https://github.com/bahamas10/node-ssh-fingerprint
 
-import * as md5 from "md5";
+import md5 from "md5";
 
 // add colons, 'hello' => 'he:ll:o'
 const colons = (s: string) => s.replace(/(.{2})(?=.)/g, "$1:");

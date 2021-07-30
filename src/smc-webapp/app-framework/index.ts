@@ -42,7 +42,7 @@ import { NAME_TYPE as ComputeImageStoreType } from "../custom-software/util";
 import * as types from "./actions-and-stores";
 declare type ProjectStore = import("../project_store").ProjectStore;
 declare type ProjectActions = import("../project_actions").ProjectActions;
-export { ProjectStore, ProjectActions };
+export type { ProjectStore, ProjectActions };
 
 const action_set_state = function (change) {
   return {

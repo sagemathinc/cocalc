@@ -7,7 +7,7 @@
 This configures the project hub based on an environment variable or other data.
 */
 
-import * as debug from "debug";
+import debug from "debug";
 const L = debug("project:project-setup");
 import { setPriority } from "os";
 // const { callback2: cb2 } = require("smc-util/async-utils");

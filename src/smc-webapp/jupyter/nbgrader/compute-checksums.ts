@@ -11,7 +11,7 @@ We try to follow that code closely in order to best maintain compatibility.
 */
 
 import { Map } from "immutable";
-import * as md5 from "md5";
+import md5 from "md5";
 
 // Port of code from nbgrader/nbgrader/utils.py, for compatibility.
 // Our goal is that we compute the same checksum as the official

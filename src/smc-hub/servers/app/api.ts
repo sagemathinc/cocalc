@@ -2,7 +2,7 @@
 The HTTP API, which works via POST requests.
 */
 import { Router } from "express";
-import * as bodyParser from "body-parser";
+import bodyParser from "body-parser";
 const { http_message_api_v1 } = require("smc-hub/api/handler");
 import { split } from "smc-util/misc";
 import { callback2 } from "smc-util/async-utils";

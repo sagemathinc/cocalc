@@ -4,7 +4,7 @@
  */
 
 // https://github.com/airbnb/node-memwatch#readme
-import * as memwatch from "@airbnb/node-memwatch";
+const memwatch = require("@airbnb/node-memwatch");
 
 export function init(log) {
   memwatch.on("leak", (info) => log(`MEMWATCH_LEAK='${JSON.stringify(info)}'`));

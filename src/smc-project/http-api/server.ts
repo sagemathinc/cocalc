@@ -14,7 +14,7 @@ Requests must be authenticated using the secret token.
 
 const MAX_REQUESTS_PER_MINUTE = 50;
 
-import * as express from "express";
+import express from "express";
 import { writeFile } from "fs";
 import { callback } from "awaiting";
 import { once } from "smc-util/async-utils";

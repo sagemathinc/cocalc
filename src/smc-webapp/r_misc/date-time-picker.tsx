@@ -14,7 +14,7 @@
 import { React } from "../app-framework";
 
 import { DatePicker } from "antd";
-import * as moment from "moment";
+import moment from "moment";
 
 export function DateTimePicker(props: {
   placeholder?: string;

@@ -8,7 +8,7 @@
  * It's inspired by and – http://and.sourceforge.net/
  */
 
-import * as debug from "debug";
+import debug from "debug";
 const L = debug("project:autorenice");
 import { reverse, sortBy } from "lodash";
 import { setPriority } from "os";

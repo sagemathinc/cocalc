@@ -6,7 +6,7 @@ Throws an error if anything goes wrong, e.g., user doesn't have access
 to this target or the target project isn't running.
 */
 
-import * as LRU from "lru-cache";
+import LRU from "lru-cache";
 import { callback2 } from "smc-util/async-utils";
 import { parseReq } from "./parse";
 import getLogger from "../logger";

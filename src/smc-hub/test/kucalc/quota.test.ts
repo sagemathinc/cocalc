@@ -17,8 +17,7 @@
 //  });
 //const { teardown } = init;
 
-import * as expect from "expect";
-// import * as misc from "smc-util/misc";
+import expect from "expect";
 const { quota } = require("smc-util/upgrades/quota");
 
 describe("default quota", () => {

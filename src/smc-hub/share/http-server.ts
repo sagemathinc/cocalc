@@ -14,7 +14,7 @@ import * as fs from "fs";
 import { promisify } from "util";
 const fs_access = promisify(fs.access);
 
-import * as express from "express";
+import express from "express";
 import * as http from "http";
 import base_path from "smc-util-node/base-path";
 

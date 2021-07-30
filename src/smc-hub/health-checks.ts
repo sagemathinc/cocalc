@@ -5,7 +5,7 @@
 
 // endpoints for various health checks
 
-import * as debug from "debug";
+import debug from "debug";
 const L = debug("hub:healthcheck");
 import { Router, Response } from "express";
 import { createServer } from "net";

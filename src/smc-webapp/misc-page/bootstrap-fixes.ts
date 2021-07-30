@@ -26,3 +26,5 @@ $("body").on("show.bs.tooltip", (e) =>
     3000
   )
 );
+
+export {}

@@ -109,7 +109,7 @@ export const ChatIndicator: React.FC<Props> = ({
           stable={false}
         >
           <span onClick={toggle_chat}>
-            <Icon name={`caret-${is_chat_open ? "down" : "left"}`} />
+            <Icon name={is_chat_open ? "caret-down" : "caret-left"} />
             <Space />
             <Icon name="comment" />
             {!shrink_fixed_tabs && (

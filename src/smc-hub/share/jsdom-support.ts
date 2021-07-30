@@ -7,6 +7,8 @@
 We use JSDom for some rendering...
 */
 
+export {}
+
 const t0 = new Date().valueOf();
 function log(...args): void {
   console.log(...args);

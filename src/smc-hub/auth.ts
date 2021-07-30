@@ -34,9 +34,9 @@
 // Then restart the hubs.
 
 import { Router } from "express";
-import * as ms from "ms";
+import ms from "ms";
 import { callback2 as cb2 } from "smc-util/async-utils";
-import * as debug from "debug";
+import debug from "debug";
 const LOG = debug("hub:auth");
 import { join as path_join } from "path";
 import * as uuid from "node-uuid";

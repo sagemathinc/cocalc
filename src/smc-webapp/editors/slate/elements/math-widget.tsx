@@ -18,7 +18,7 @@ import {
 import { macros } from "smc-webapp/jquery-plugins/math-katex";
 import { startswith } from "smc-util/misc";
 import { SlateCodeMirror } from "./codemirror";
-import * as LRU from "lru-cache";
+import LRU from "lru-cache";
 import { useFocused, useSelected } from "../slate-react";
 import { useCollapsed } from "../elements/register";
 import { FOCUSED_COLOR } from "../util";

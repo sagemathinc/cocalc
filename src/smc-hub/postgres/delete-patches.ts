@@ -6,7 +6,7 @@
 // This manages deleting patches. The underlying problem is that there could be a large number of patches, which stalls the DB.
 // It's better to keep the number of row deletions small, to speed up the operation, only lock less rows for a shorter amount of time, etc.
 
-import * as debug from "debug";
+import debug from "debug";
 const L = debug("hub:db:delete-patches");
 import { PostgreSQL } from "./types";
 import { delay } from "awaiting";

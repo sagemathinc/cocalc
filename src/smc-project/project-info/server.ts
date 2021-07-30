@@ -8,7 +8,7 @@ Project information server, doing the heavy lifting of telling the client
 about what's going on in a project.
 */
 
-import * as debug from "debug";
+import debug from "debug";
 const L = debug("project:project-info:server");
 import { delay } from "awaiting";
 import { join } from "path";

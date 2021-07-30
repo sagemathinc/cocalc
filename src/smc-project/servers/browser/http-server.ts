@@ -5,7 +5,7 @@ this projects.  It serves both HTTP and websocket connections, which
 should be proxied through some hub.
 */
 
-import * as express from "express";
+import express from "express";
 import { createServer } from "http";
 import { callback } from "awaiting";
 import * as compression from "compression";

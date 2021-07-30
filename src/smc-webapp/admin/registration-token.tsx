@@ -8,7 +8,7 @@ Input box for setting the account creation token.
 */
 
 import { List } from "immutable";
-import * as moment from "moment";
+import moment from "moment";
 import { sortBy, pick } from "lodash";
 import { cmp_moment, secure_random_token, round1 } from "smc-util/misc";
 import { RegistrationTokenSetFields } from "smc-util/db-schema/types";

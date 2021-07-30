@@ -11,7 +11,7 @@ for a specific "path" (e.g. the corresponding jupyter process for a notebook)
 from the ProjectInfoServer (which collects data about everything)
 */
 
-import * as debug from "debug";
+import debug from "debug";
 const L = debug("project:usage-info:server");
 import { EventEmitter } from "events";
 import { delay } from "awaiting";

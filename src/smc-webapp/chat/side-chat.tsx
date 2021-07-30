@@ -106,7 +106,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
         <div
           style={{ width: "16px", display: "inline-block", cursor: "pointer" }}
         >
-          <Icon name={`caret-${add_collab ? "down" : "right"}`} />
+          <Icon name={add_collab ? "caret-down" : "caret-right"} />
         </div>
         <span style={{ color: "#777", fontSize: "10pt" }}>
           <ProjectUsers

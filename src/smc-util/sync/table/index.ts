@@ -7,13 +7,13 @@
 export { synctable } from "./global-cache";
 
 // Type of it.
-export {
-  SyncTable,
+export { SyncTable, set_debug } from "./synctable";
+
+export type {
   Query,
   QueryOptions,
   VersionedChange,
   State as SyncTableState,
-  set_debug,
 } from "./synctable";
 
 export { synctable_no_changefeed } from "./synctable-no-changefeed";

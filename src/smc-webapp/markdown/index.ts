@@ -14,8 +14,8 @@ in other code directly, e.g, in supporting use of the slate editor.
 export * from "./types";
 export * from "./table-of-contents";
 
-import * as MarkdownIt from "markdown-it";
-import * as emojiPlugin from "markdown-it-emoji";
+import MarkdownIt from "markdown-it";
+import emojiPlugin from "markdown-it-emoji";
 import { checkboxPlugin } from "./checkbox-plugin";
 import { hashtagPlugin } from "./hashtag-plugin";
 import { mentionPlugin } from "./mentions-plugin";

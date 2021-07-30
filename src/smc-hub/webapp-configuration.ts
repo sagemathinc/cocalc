@@ -10,7 +10,7 @@
 // (allows whitelabeling).
 
 import { parseDomain, ParseResultType } from "parse-domain";
-import * as debug from "debug";
+import debug from "debug";
 const L = debug("hub:webapp-config");
 import { delay } from "awaiting";
 import { callback2 as cb2 } from "smc-util/async-utils";
@@ -21,7 +21,7 @@ import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "smc-util/db-schema/site-settin
 import { site_settings_conf as SITE_SETTINGS_CONF } from "smc-util/schema";
 import { have_active_registration_tokens } from "./utils";
 
-import * as LRUCache from "lru-cache";
+import LRUCache from "lru-cache";
 const CACHE = new LRUCache({ max: 10, maxAge: 3 * 60 * 1000 }); // 3 minutes
 
 export function clear_cache(): void {

@@ -1,18 +1,22 @@
 {
   "compilerOptions": {
     "incremental": true,
-    "jsx": "react",
     "target": "es5",
     "lib": ["es5", "es6", "es2017", "dom"],
-    "strictNullChecks": true,
+    "allowJs": true,
+    "declaration": true,
+    "downlevelIteration": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "jsx": "react",
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "downlevelIteration": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true,
-    "allowJs": true,
     "sourceMap": true,
-    "declaration": true
+    "strictNullChecks": true
   },
   "watchOptions": {
     "watchFile": "useFsEvents",

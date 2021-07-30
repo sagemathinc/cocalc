@@ -28,7 +28,7 @@ import * as jupyter_paths from "jupyter-paths";
 import { getPorts as getPortsOrig } from "portfinder";
 const get_ports = promisify(getPortsOrig);
 import * as jsonfile from "jsonfile";
-import * as execa from "execa";
+import execa from "execa";
 import * as mkdirp from "mkdirp";
 
 // this is passed to "execa", there are more options

@@ -1,4 +1,4 @@
-import * as LRU from "lru-cache";
+import LRU from "lru-cache";
 import { callback2 } from "smc-util/async-utils";
 import getLogger from "../logger";
 import { database } from "../servers/database";

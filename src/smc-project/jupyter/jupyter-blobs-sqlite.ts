@@ -13,7 +13,7 @@ import { readFile } from "./async-utils-node";
 import Logger from "smc-util-node/logger";
 import { months_ago, to_json } from "smc-util/misc";
 const misc_node = require("smc-util-node/misc_node");
-import * as Database from "better-sqlite3";
+import Database from "better-sqlite3";
 import { Router } from "express";
 
 const winston = Logger("jupyter-blobs-sqlite");

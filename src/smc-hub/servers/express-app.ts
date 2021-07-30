@@ -2,10 +2,10 @@
 The main hub express app.
 */
 
-import * as express from "express";
+import express from "express";
 import * as cookieParser from "cookie-parser";
 import * as compression from "compression";
-import * as ms from "ms";
+import ms from "ms";
 import { parse as parseURL } from "url";
 import { join } from "path";
 
