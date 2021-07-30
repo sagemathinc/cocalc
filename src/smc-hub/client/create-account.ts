@@ -405,7 +405,17 @@ export async function create_account(
     opts.client.push_to_client(mesg1);
   }
 
-  const reason = await createAccount();
+  let reason: any = undefined;
+  try {
+    reason = await createAccount();
+  } catch (err) {
+    // This can happen, e.g., the call to opts.database.create_account above
+    // is not wrapped in try/catch and if the first name is wstein.org,
+    // then there is an exception saying the first name is a URL. (ASIDE: This is
+    // really minimal security, since as of writing this you can just change your
+    // name to anything after you make an account.)
+    reason = { other: `${err}` };
+  }
   if (reason) {
     // IMPORTANT: There are various settings where the user simply never sees
     // this, since they aren't setup to listen for it...
