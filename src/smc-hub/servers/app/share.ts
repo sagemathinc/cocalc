@@ -24,5 +24,6 @@ export default async function init(app: Application) {
     "Now using next.js share handler to handle select endpoints under /share"
   );
   app.all(basePath, handler);
-  app.all(join(basePath, "_next/*"), handler);
+  app.all(join(basePath, "*"), handler);
+  app.all(join(basePath, "_next", "*"), handler);
 }
