@@ -3,7 +3,7 @@
 
 import { join } from "path";
 import { Application } from "express";
-import * as initLandingServer from "@cocalc/landing-free";
+import initLandingServer from "@cocalc/landing-free";
 import { getLogger } from "smc-hub/logger";
 import basePath from "smc-util-node/base-path";
 import getCustomize from "./landing-customize";

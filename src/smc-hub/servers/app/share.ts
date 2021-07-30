@@ -3,7 +3,7 @@
 
 import { join } from "path";
 import { Application } from "express";
-import * as initShareServer from "@cocalc/share";
+import initShareServer from "@cocalc/share";
 import { getLogger } from "smc-hub/logger";
 import getCustomize from "./landing-customize";
 

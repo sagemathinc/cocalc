@@ -16,8 +16,8 @@ import { PostgreSQL } from "./postgres/types";
 import { get_server_settings, pii_retention_to_future } from "./utils";
 import * as fs from "fs";
 const UglifyJS = require("uglify-js");
-// express-js cors plugin
-import * as cors from "cors";
+// express-js cors plugin:
+import cors from "cors";
 import {
   parseDomain,
   fromUrl,
