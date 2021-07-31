@@ -40,6 +40,7 @@ export const ProjectsSearch: React.FC<Props> = ({
     )
       return;
     set_search("");
+    actions.setState({ search: "" });
   }, [clear_and_focus_search]);
 
   const debounce_set_search = debounce((search) => {

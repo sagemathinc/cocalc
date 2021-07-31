@@ -38,10 +38,8 @@ interface Props {
 }
 
 export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
-  const [
-    selection_at_last_mouse_down,
-    set_selection_at_last_mouse_down,
-  ] = useState<string>("");
+  const [selection_at_last_mouse_down, set_selection_at_last_mouse_down] =
+    useState<string>("");
   const project = useRedux(["projects", "project_map", project_id]);
 
   const [add_collab, set_add_collab] = useState<boolean>(false);
@@ -161,6 +159,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     marginBottom: 0,
     cursor: "pointer",
     wordWrap: "break-word",
+    minHeight: "130px", // avoids issues with react-window.
   };
 
   if (project == null) {
