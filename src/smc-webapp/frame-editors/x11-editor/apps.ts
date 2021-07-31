@@ -105,13 +105,14 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     desc: "An integrated development environment (IDE) for R.  RStudio, Inc. is in no way affiliated with CoCalc",
     label: "RStudio",
   },
+  /* See https://github.com/sagemathinc/cocalc/issues/5427
   octave: {
     icon: "octave",
     desc: "Scientific programming largely compatible with Matlab",
     label: "Octave",
     command: "octave",
     args: ["--force-gui"],
-  },
+  },*/
   texmacs: {
     icon: "tex-file",
     desc: "A wysiwyw (what you see is what you want) editing platform with special features for scientists",
