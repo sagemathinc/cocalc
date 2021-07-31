@@ -43,9 +43,11 @@ import { BASE_URL } from "./misc";
 
 function get_stats_once() {
   $.getJSON(`${BASE_URL}/stats`, function (data) {
-    data.time = new Date(data.time);
-    data.loading = false;
-    actions.setState(data);
+    if (data != null) { // null check needed -- see https://github.com/sagemathinc/cocalc/issues/5418
+      data.time = new Date(data.time);
+      data.loading = false;
+      actions.setState(data);
+    }
   });
 }
 
