@@ -10,7 +10,7 @@
 //  - TODO: If we want to preserve the scroll position let's just not unmount this component (like we do with editors).
 
 import { WATCH_THROTTLE_MS } from "../../websocket/listings";
-import * as React from "react";
+import React from "react";
 import * as immutable from "immutable";
 import { WindowedList } from "../../../r_misc/windowed-list";
 

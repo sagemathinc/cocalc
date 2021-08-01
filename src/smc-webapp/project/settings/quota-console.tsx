@@ -5,7 +5,7 @@
 
 // TODO: Remove `as any`s in this file.
 // Refer to https://github.com/microsoft/TypeScript/issues/13948
-import * as React from "react";
+import React from "react";
 import * as immutable from "immutable";
 import { Rendered } from "../../app-framework";
 import { Assign } from "utility-types";

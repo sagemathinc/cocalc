@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { useRef } from "react";
 import { Range, Element, Text as SlateText } from "slate";
 

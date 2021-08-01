@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { Editor, Text, Path, Element, Node } from "slate";
 
 import { ReactEditor, useSlateStatic } from "..";

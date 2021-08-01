@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { useMemo, useState, useCallback, useEffect } from "react";
 import { Descendant } from "slate";
 

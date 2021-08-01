@@ -4,7 +4,7 @@
  */
 
 import { join } from "path";
-import * as React from "react";
+import React from "react";
 import { DOMAIN_URL} from "smc-util/theme";
 import { BASE_URL as DEFAULT_BASE_URL } from "smc-webapp/misc/base-url";
 import { SiteName, PolicyPricingPageUrl } from "../customize";

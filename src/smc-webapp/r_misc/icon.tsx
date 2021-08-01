@@ -5,7 +5,7 @@
 
 declare var DEBUG: boolean; // comes from webpack.
 
-import * as React from "react";
+import React from "react";
 import { CSS } from "../app-framework";
 
 import {
@@ -589,7 +589,7 @@ export const Icon: React.FC<Props> = (props: Props) => {
    code until Jupyter classic and Sage worksheets are rewritten using React.
 */
 
-import * as ReactDOM from "react-dom";
+import ReactDOM from "react-dom";
 declare var $: any;
 try {
   $.fn.processIcons = function () {

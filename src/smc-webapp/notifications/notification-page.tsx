@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { NotificationNav } from "./notification-nav";
 import { NotificationList } from "./notification-list";
 import { MentionFilter } from "./mentions/types";

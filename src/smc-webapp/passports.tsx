@@ -4,7 +4,7 @@
  */
 
 import { join } from "path";
-import * as React from "react";
+import React from "react";
 import { List } from "immutable";
 import { capitalize } from "smc-util/misc";
 import { isIconName, Icon, Tip } from "./r_misc";

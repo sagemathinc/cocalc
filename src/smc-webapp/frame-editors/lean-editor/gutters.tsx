@@ -11,7 +11,7 @@ import { Rendered } from "smc-webapp/app-framework";
 
 import { List } from "immutable";
 
-import * as React from "react";
+import React from "react";
 
 import { Icon, Tip } from "smc-webapp/r_misc";
 

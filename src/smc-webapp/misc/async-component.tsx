@@ -24,7 +24,7 @@ You can then use TimeTravel wherever, and the actual code only gets
 loaded when you first instantiate the component.
 */
 
-import * as React from "react";
+import React from "react";
 const { useEffect, useRef, useState } = React;
 import { useIsMountedRef } from "smc-webapp/app-framework/hooks";
 

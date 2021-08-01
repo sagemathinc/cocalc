@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { props2img, RESET_ICON } from "./util";
 import { ComputeImages } from "./init";
 import { A, Icon } from "../r_misc";

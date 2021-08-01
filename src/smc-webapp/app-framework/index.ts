@@ -22,11 +22,11 @@ let rclass: <P extends object>(
 ) => React.ComponentType<P>;
 
 import * as immutable from "immutable";
-import * as React from "react";
+import React from "react";
 import { createStore as createReduxStore } from "redux";
-import * as createReactClass from "create-react-class";
+import createReactClass from "create-react-class";
 import { Provider, connect, useSelector } from "react-redux";
-import * as json_stable from "json-stable-stringify";
+import json_stable from "json-stable-stringify";
 
 import { Store, StoreConstructorType } from "./Store";
 import { Actions } from "./Actions";
@@ -702,7 +702,7 @@ export { UNSAFE_NONNULLABLE };
 // I'm explicitly disabling using typing with ReactDOM on purpose,
 // because it's basically impossibly to use, and I'll probably get
 // rid of all uses of ReactDOM.findDOMNode anyways.
-//import * as ReactDOM from "react-dom";
+//import ReactDOM from "react-dom";
 //export { ReactDOM };
 export const ReactDOM = require("react-dom");
 

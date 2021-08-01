@@ -4,7 +4,7 @@
  */
 
 import * as misc from "smc-util/misc";
-import * as React from "react";
+import React from "react";
 
 import * as lodash from "lodash";
 const TRUNC = 90;

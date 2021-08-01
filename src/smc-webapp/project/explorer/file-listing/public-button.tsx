@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { Space, Icon } from "../../../r_misc";
 const { Button } = require("react-bootstrap");
 

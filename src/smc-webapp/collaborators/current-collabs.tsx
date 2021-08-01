@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { redux, useRedux, CSS } from "../app-framework";
 import { Well, Row, Col } from "react-bootstrap";
 import { Space, Icon, SettingBox } from "../r_misc";

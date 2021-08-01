@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import useHover from "@react-hook/hover";
 import { Icon } from "smc-webapp/r_misc";
 

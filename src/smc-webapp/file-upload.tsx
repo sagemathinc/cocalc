@@ -11,7 +11,7 @@ import {
   DropzoneComponentHandlers,
 } from "react-dropzone-component";
 
-import * as ReactDOMServer from "react-dom/server"; // for dropzone below
+import ReactDOMServer from "react-dom/server"; // for dropzone below
 import { encode_path, defaults, merge, is_array } from "smc-util/misc";
 import {
   React,

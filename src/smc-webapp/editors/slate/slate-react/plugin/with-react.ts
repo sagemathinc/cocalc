@@ -1,4 +1,4 @@
-import * as ReactDOM from "react-dom";
+import ReactDOM from "react-dom";
 import { Editor, Node, Path, Operation, Transforms, Range } from "slate";
 
 import { ReactEditor } from "./react-editor";

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { TERM_MODE_CHAR } from "./file-listing";
 import { Icon, SearchInput } from "../../r_misc";
 import { ProjectActions } from "smc-webapp/project_store";

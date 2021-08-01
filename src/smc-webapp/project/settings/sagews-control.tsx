@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { Icon, SettingBox } from "smc-webapp/r_misc";
 import { Row, Col, Button } from "react-bootstrap";
 import { Project } from "./types";

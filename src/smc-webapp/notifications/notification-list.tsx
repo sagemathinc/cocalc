@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 
 import { MentionsMap, MentionFilter } from "./mentions/types";
 import { MentionRow } from "./mentions/mention-row";

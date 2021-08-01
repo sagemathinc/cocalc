@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { Editor, Range, Element, Ancestor, Descendant } from "slate";
 
 import ElementComponent from "./element";

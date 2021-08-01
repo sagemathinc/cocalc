@@ -4,7 +4,7 @@ If you want to develop this, edit smc-webapp/app/render.tsx as indicated there s
 startup banner doesn't vanish.
 */
 
-import * as React from "react";
+import React from "react";
 // @ts-ignore -- this is a webpack thing, which confuses typescript.
 import cocalc_word from "./cocalc-word.svg";
 // @ts-ignore

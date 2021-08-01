@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { ProjectsActions } from "smc-webapp/todo-types";
 import { QuotaConsole } from "./quota-console";
 import { Icon, Loading, UpgradeAdjustor, SettingBox } from "smc-webapp/r_misc";

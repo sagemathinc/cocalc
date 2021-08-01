@@ -4,7 +4,7 @@
  */
 
 import { Icon } from "../icon";
-import * as React from "react";
+import React from "react";
 import * as renderer from "react-test-renderer";
 
 describe("Icon", () => {

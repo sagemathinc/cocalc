@@ -9,7 +9,7 @@ import { React, Component, Rendered, redux } from "../app-framework";
 import { ErrorDisplay, Loading, ProfileIcon } from "../r_misc";
 import md5 from "md5";
 
-import * as ReactCrop from "react-image-crop";
+import ReactCrop from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 
 const ReactCropComponent = (ReactCrop as any).Component;

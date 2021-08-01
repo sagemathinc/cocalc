@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { Rendered } from "../../../app-framework";
 import { Icon } from "../../../r_misc/icon";
 import { ProjectActions } from "../../../project_actions";

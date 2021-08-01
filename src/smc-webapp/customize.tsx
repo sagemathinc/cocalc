@@ -7,7 +7,7 @@
 
 import { List } from "immutable";
 import { redux, Redux, rclass, rtypes, Store, Actions } from "./app-framework";
-import * as React from "react";
+import React from "react";
 import {
   Loading,
   Space,

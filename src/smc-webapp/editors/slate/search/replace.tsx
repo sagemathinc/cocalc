@@ -4,7 +4,7 @@
  */
 
 import { Button, Input, Popconfirm } from "antd";
-import * as React from "react";
+import React from "react";
 const { useRef, useState } = React;
 import { replaceAll, replaceOne } from "./replace-matches";
 import { ReactEditor } from "../slate-react";

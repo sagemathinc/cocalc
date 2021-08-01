@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { useRef } from "react";
 const getDirection = require("direction");
 import { Editor, Node, Range, Element as SlateElement } from "slate";

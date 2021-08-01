@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { delay } from "awaiting";
 import { Button } from "antd";
 import { Icon } from "smc-webapp/r_misc";

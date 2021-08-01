@@ -7,7 +7,7 @@
 Support for global full text search of our slate.js document.
 */
 
-import * as React from "react";
+import React from "react";
 import { delay } from "awaiting";
 import { Input } from "antd";
 const { useCallback, useMemo, useRef, useState } = React;

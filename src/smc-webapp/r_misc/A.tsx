@@ -9,7 +9,7 @@
    with the main cocalc page.
 */
 
-import * as React from "react";
+import React from "react";
 
 interface AProps {
   href: string;

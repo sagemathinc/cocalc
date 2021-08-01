@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 
 import { ProjectActions } from "smc-webapp/project_actions";
 import { AppRedux } from "smc-webapp/app-framework";

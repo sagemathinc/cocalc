@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import * as immutable from "immutable";
 import * as underscore from "underscore";
 import { rtypes, rclass, redux, TypedMap } from "../../app-framework";

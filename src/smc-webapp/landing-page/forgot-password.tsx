@@ -7,7 +7,7 @@
    and requests a reset.
 */
 
-import * as React from "react";
+import React from "react";
 import { Row, FormGroup, FormControl, Modal, Button } from "react-bootstrap";
 import { is_valid_email_address } from "smc-util/misc";
 import { Rendered } from "../app-framework";

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { shallow, render } from "enzyme";
 import { Stderr } from "../stderr";
 import { Ansi } from "../ansi";

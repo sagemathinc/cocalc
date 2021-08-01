@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { Rendered, CSS } from "smc-webapp/app-framework";
 import { Icon, IconName} from "./icon";
 import * as misc from "smc-util/misc";

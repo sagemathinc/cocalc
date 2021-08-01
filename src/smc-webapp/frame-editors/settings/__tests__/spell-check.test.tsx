@@ -4,7 +4,7 @@
  */
 
 import { SpellCheck } from "../spell-check";
-import * as React from "react";
+import React from "react";
 import * as renderer from "react-test-renderer";
 import { shallow } from "enzyme";
 import { MenuItem } from "react-bootstrap";

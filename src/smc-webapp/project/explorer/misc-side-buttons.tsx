@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { HiddenSM, Icon, Tip } from "../../r_misc";
 import { ProjectActions } from "smc-webapp/project_store";
 import { Button, ButtonGroup, ButtonToolbar } from "smc-webapp/antd-bootstrap";

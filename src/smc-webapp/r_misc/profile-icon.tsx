@@ -5,7 +5,7 @@
 
 // Presentational component for a user's face
 
-import * as React from "react";
+import React from "react";
 
 interface Props {
   size?: number; // Default 16

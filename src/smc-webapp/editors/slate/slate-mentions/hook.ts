@@ -12,7 +12,7 @@
 
 import { Editor, Range, Text, Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
-import * as React from "react";
+import React from "react";
 import { useIsMountedRef } from "smc-webapp/app-framework";
 import { useCallback, useMemo, useState } from "react";
 import { Complete, Item } from "smc-webapp/editors/markdown-input/complete";

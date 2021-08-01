@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { act } from "react-dom/test-utils";
 import { render, mount } from "enzyme";
 import { UncommittedChanges } from "../uncommited-changes";

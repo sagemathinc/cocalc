@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as React from "react";
+import React from "react";
 import { Project } from "./types";
 import { Icon, SettingBox } from "smc-webapp/r_misc";
 import { DeletedProjectWarning } from "../warnings/deleted";

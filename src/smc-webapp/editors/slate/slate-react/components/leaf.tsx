@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { Element, Text } from "slate";
 import String from "./string";
 import { PLACEHOLDER_SYMBOL } from "../utils/weak-maps";
