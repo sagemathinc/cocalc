@@ -28,7 +28,7 @@ g.BACKEND = true;
 g.DOM = DOM;
 g.window = DOM.window;
 g.document = DOM.window.document;
-g.navigator = DOM.window.navigator = { userAgent: "" };
+g.navigator = DOM.window.navigator;
 
 g.DEBUG = false;
 g.$ = g.jQuery = DOM.window.$ = jquery;

@@ -1,4 +1,5 @@
-/* Serve the share server, which is a Next.js application, on /share
+/* 
+ Serve the share server, which is a Next.js application, on /share
  */
 
 import { join } from "path";

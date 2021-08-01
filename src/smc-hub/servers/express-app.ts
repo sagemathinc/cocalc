@@ -25,7 +25,8 @@ import initCustomize from "./app/customize";
 import initStats from "./app/stats";
 import initAppRedirect from "./app/app-redirect";
 import initLanding from "./app/landing";
-import initShare from "./app/share";
+import initShareNext from "./app/share";
+import initShareOld from "./share";
 
 // Used for longterm caching of files
 const MAX_AGE = ms("100 days"); // NOTE: more than a year would be invalid
@@ -100,7 +101,11 @@ export default async function init(opts: Options): Promise<{
 
   if (opts.shareServer) {
     // Landing page content: this is the "/" index page + assets, for docker, on-prem, dev.
-    await initShare(app);
+    if (process.env.COCALC_NEXTJS_SHARE) {
+      await initShareNext(app);
+    } else {
+      initShareOld(app);
+    }
   }
 
   // The /static content, used by docker, development, etc.

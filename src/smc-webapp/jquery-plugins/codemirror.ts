@@ -32,7 +32,14 @@ $.fn.highlight_code = function () {
           const ext = cls.slice("language-".length);
           const spec = file_associations[ext];
           const mode = spec?.opts.mode ?? ext;
-          CodeMirror.runMode(code.text(), mode, elt);
+          // TODO: TEMPORARY HACK until we switch to next.js share server.
+          // We do this because for the backend server-side rendering, there
+          // is a global CodeMirror object with runMode support.
+          ((window as any).CodeMirror ?? CodeMirror).runMode(
+            code.text(),
+            mode,
+            elt
+          );
           code.addClass("cm-s-default");
           code.removeClass(cls);
         }
