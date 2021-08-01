@@ -8,6 +8,7 @@ import {
   React,
   useEffect,
   useActions,
+  usePrevious,
   useState,
   useStore,
 } from "../app-framework";
@@ -25,9 +26,21 @@ export const ProjectsSearch: React.FC<Props> = ({
   const store = useStore("projects");
   const [search, set_search] = useState<string>(store.get("search") ?? "");
   const actions = useActions("projects");
+  const prev_clear_and_focus_search = usePrevious(clear_and_focus_search);
 
+  // The usePrevious is necessary because useEffect is called if
+  // clear_and_focus_search **might have changed** (e.g., new reference),
+  // and it often happens even if it didn't actually change.
+  // https://github.com/sagemathinc/cocalc/issues/5402
   useEffect(() => {
+    if (
+      clear_and_focus_search == null ||
+      prev_clear_and_focus_search == null ||
+      clear_and_focus_search == prev_clear_and_focus_search
+    )
+      return;
     set_search("");
+    actions.setState({ search: "" });
   }, [clear_and_focus_search]);
 
   const debounce_set_search = debounce((search) => {

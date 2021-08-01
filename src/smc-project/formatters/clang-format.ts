@@ -20,7 +20,8 @@ function run_clang_format(
   indent: number /*, logger: any*/
 ) {
   const style = `-style={BasedOnStyle: google, IndentWidth: ${indent}}`;
-  const args = ["-i", style, input_path];
+  // See https://github.com/sagemathinc/cocalc/issues/5419 for why we disable sort-includes!
+  const args = ["--sort-includes=0", "-i", style, input_path];
   // logger.debug(`run_clang_format args: [${args}]`);
   return spawn("clang-format", args);
 }
