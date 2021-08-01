@@ -46,7 +46,7 @@ import * as _ from "lodash";
 import * as misc from "smc-util/misc";
 import * as message from "smc-util/message"; // message protocol between front-end and back-end
 const sign_in = require("./sign-in");
-import * as Cookies from "cookies";
+import Cookies from "cookies";
 import express_session from "express-session";
 import { HELP_EMAIL, DNS } from "smc-util/theme";
 import {

@@ -1,4 +1,4 @@
-import * as Cookies from "cookies";
+import Cookies from "cookies";
 import { Router } from "express";
 import { getLogger } from "smc-hub/logger";
 const { COOKIE_OPTIONS } = require("smc-hub/client"); // import { COOKIE_OPTIONS } from "smc-hub/client";

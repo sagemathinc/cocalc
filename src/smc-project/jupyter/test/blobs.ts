@@ -4,8 +4,7 @@
  */
 
 import {} from "mocha";
-import * as expect from "expect";
-import * as common from "./common";
+import expect from "expect";
 
 const misc_node = require("smc-util-node/misc_node");
 

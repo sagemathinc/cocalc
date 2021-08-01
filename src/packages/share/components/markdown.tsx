@@ -5,8 +5,7 @@
 
 /* Static markdown renderer. */
 
-/*
-import { markdown_to_html } from "smc-webapp/markdown/markdown";
+import { markdown_to_html } from "smc-webapp/markdown";
 import mathToHtml from "smc-webapp/editors/slate/elements/math-to-html";
 
 function processMath(s: string): string {
@@ -20,14 +19,12 @@ function processMath(s: string): string {
   }
 }
 
+interface Props {
+  content: string;
+}
+
 export default function Markdown({ content }: Props) {
   const __html = markdown_to_html(content, { processMath });
   return <div dangerouslySetInnerHTML={{ __html }}></div>;
 }
-*/
-interface Props {
-  content: string;
-}
-export default function Markdown({ content }: Props) {
-  return <pre>{content}</pre>;
-}
+

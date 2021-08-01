@@ -1,4 +1,4 @@
-import * as Cookies from "cookies";
+import Cookies from "cookies";
 
 import { versionCookieName } from "smc-util/consts";
 import base_path from "smc-util-node/base-path";

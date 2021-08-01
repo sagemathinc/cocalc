@@ -22,14 +22,14 @@ import * as fs from "fs";
 import { promisify } from "util";
 import * as uuid from "uuid";
 
-import * as kernelspecs from "kernelspecs";
+import { findAll } from "kernelspecs";
 import * as jupyter_paths from "jupyter-paths";
 
 import { getPorts as getPortsOrig } from "portfinder";
 const get_ports = promisify(getPortsOrig);
-import * as jsonfile from "jsonfile";
+import { writeFile } from "jsonfile";
 import execa from "execa";
-import * as mkdirp from "mkdirp";
+import mkdirp from "mkdirp";
 
 // this is passed to "execa", there are more options
 // https://github.com/sindresorhus/execa#options
@@ -84,7 +84,7 @@ async function write_connection_file(port_options?: {
   const config = connection_info(ports);
   const connection_file = path.join(runtimeDir, `kernel-${config.key}.json`);
 
-  await jsonfile.writeFile(connection_file, config);
+  await writeFile(connection_file, config);
   return { config, connection_file };
 }
 
@@ -138,13 +138,13 @@ async function launch_kernel_spec(
 }
 
 // for a given kernel name and launch options: prepare the kernel file and launch the process
-// optionally, provide cached kernel specs to bypass `kernelspecs.findAll()
+// optionally, provide cached kernel specs to bypass `findAll()
 export async function launch_jupyter_kernel(
   name: string,
   spawn_options: LaunchJupyterOpts,
   cached_specs?: any
 ) {
-  const specs = cached_specs ?? (await kernelspecs.findAll());
+  const specs = cached_specs ?? (await findAll());
   const kernel_spec = specs[name];
   if (kernel_spec == null) {
     throw new Error(`No spec available for kernel "${name}"`);

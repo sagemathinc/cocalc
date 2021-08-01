@@ -4,8 +4,8 @@
  */
 
 // Katex support -- NOTE: this import of katex is pretty LARGE.
-import { renderToString } from "katex";
 import "katex/dist/katex.min.css";
+import mathToHtml from "./math-to-html";
 
 // Everything else.
 import {
@@ -15,15 +15,11 @@ import {
   useMemo,
   useState,
 } from "smc-webapp/app-framework";
-import { macros } from "smc-webapp/jquery-plugins/math-katex";
 import { startswith } from "smc-util/misc";
 import { SlateCodeMirror } from "./codemirror";
-import LRU from "lru-cache";
 import { useFocused, useSelected } from "../slate-react";
 import { useCollapsed } from "../elements/register";
 import { FOCUSED_COLOR } from "../util";
-
-const cache = new LRU({ max: 300 });
 
 interface Props {
   value: string;
@@ -125,28 +121,3 @@ export const SlateMath: React.FC<Props> = React.memo(
     );
   }
 );
-
-function mathToHtml(
-  math: string, // latex expression
-  isInline: boolean
-): { __html: string; err?: string } {
-  const key = `${isInline}` + math;
-  let { html, err } = (cache.get(key) ?? {}) as any;
-  if (html != null) {
-    return { __html: html ?? "", err };
-  }
-  if (!math.trim()) {
-    // don't let it be empty since then it is not possible to see/select.
-    math = "\\LaTeX";
-  }
-  try {
-    html = renderToString(math, {
-      displayMode: !isInline,
-      macros,
-    });
-  } catch (error) {
-    err = error.toString();
-  }
-  cache.set(key, { html, err });
-  return { __html: html ?? "", err };
-}

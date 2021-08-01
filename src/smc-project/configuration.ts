@@ -9,8 +9,7 @@
  * The corresponding file in the webapp is smc-webapp/project_configuration.ts
  */
 
-import * as which from "which";
-import * as process from "process";
+import which from "which";
 import { access as fs_access, constants as fs_constaints } from "fs";
 import { exec as child_process_exec } from "child_process";
 import { promisify } from "util";

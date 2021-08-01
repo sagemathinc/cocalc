@@ -1,5 +1,5 @@
 import { Application, static as staticServer } from "express";
-import * as index from "serve-index";
+import index from "serve-index";
 import { getLogger } from "smc-project/logger";
 
 export default function init(app: Application, base: string) {

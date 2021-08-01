@@ -1,4 +1,4 @@
-import * as daemonizeProcess from "daemonize-process";
+import daemonizeProcess from "daemonize-process";
 import initProgram from "./init-program";
 import initKucalc from "./init-kucalc";
 import { cleanup as cleanupEnvironmentVariables } from "./project-setup";

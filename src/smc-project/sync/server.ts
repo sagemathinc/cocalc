@@ -95,7 +95,7 @@ interface Logger {
   debug: Function;
 }
 
-import * as stringify from "fast-json-stable-stringify";
+import stringify from "fast-json-stable-stringify";
 const { sha1 } = require("smc-util-node/misc_node");
 
 const COCALC_EPHEMERAL_STATE: boolean =
