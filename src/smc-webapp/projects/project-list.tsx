@@ -33,7 +33,7 @@ export const ProjectList: React.FC<Props> = ({ visible_projects }) => {
   return (
     <WindowedList
       overscan_row_count={3}
-      estimated_row_size={90}
+      estimated_row_size={130}
       row_count={visible_projects.length + 1}
       row_renderer={render_project}
       row_key={(index) => visible_projects[index] ?? "button"}
