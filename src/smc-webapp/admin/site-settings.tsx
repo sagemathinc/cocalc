@@ -52,7 +52,7 @@ import {
   Space /*, Tip*/,
 } from "../r_misc";
 
-import * as smc_version from "smc-util/smc-version";
+import { version } from "smc-util/smc-version";
 
 type State = "view" | "load" | "edit" | "save" | "error";
 
@@ -218,7 +218,7 @@ class SiteSettingsComponent extends Component<
             width: "50ex",
             margin: 0,
           }}
-          value={`${smc_version.version}`}
+          value={`${version}`}
         />{" "}
         {error}
       </div>

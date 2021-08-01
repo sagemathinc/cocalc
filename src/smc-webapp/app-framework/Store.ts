@@ -4,11 +4,9 @@
  */
 
 import { EventEmitter } from "events";
-
 import { throttle } from "lodash";
-import * as async from "async";
+import { nextTick } from "async";
 import { fromJS } from "immutable";
-
 import { createSelector } from "reselect";
 import { AppRedux } from "../app-framework";
 import { TypedMap } from "./TypedMap";
@@ -196,7 +194,7 @@ export class Store<State> extends EventEmitter {
           clearTimeout(timeout_ref);
         }
         this.removeListener("change", listener);
-        async.nextTick(() => cb(undefined, x));
+        nextTick(() => cb(undefined, x));
       }
     };
     // If we want a timeout (the default), setup a timeout

@@ -9,7 +9,7 @@ in here, but not *exactly*.
 https://www.gnu.org/software/emacs/manual/html_node/emacs/Fill-Commands.html
 */
 
-import * as CodeMirror from "codemirror";
+import { defineExtension, Editor } from "codemirror";
 import { Pos } from "./types";
 import { split } from "smc-util/misc";
 
@@ -17,11 +17,9 @@ function is_white_space(s: string): boolean {
   return s?.trim() == "";
 }
 
-CodeMirror.defineExtension("fill_paragraph", function (opts: {
-  cols?: number;
-}): void {
+defineExtension("fill_paragraph", function (opts: { cols?: number }): void {
   // @ts-ignore
-  const cm: CodeMirror.Editor = this;
+  const cm: Editor = this;
   const pos: Pos = cm.getCursor();
 
   const cols = opts?.cols ?? 80;

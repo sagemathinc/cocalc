@@ -8,9 +8,8 @@ declare let window, document, $;
 
 import { join } from "path";
 import * as async from "async";
-import * as underscore from "underscore";
-import * as immutable from "immutable";
-import * as os_path from "path";
+import { isEqual } from "lodash";
+import { Set, List, fromJS, Map } from "immutable";
 import { client_db } from "smc-util/schema";
 import {
   ConfigurationAspect,
@@ -1204,7 +1203,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (the_listing != null) {
           const map = store
             .get("directory_listings")
-            .set(path, err ? err : immutable.fromJS(the_listing.files));
+            .set(path, err ? err : fromJS(the_listing.files));
           this.setState({ directory_listings: map });
         }
         // done! releasing lock, then executing callback(s)
@@ -1232,7 +1231,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const files = await listings.get_listing_directly(path);
       const directory_listings = store
         .get("directory_listings")
-        .set(path, immutable.fromJS(files));
+        .set(path, fromJS(files));
       this.setState({ directory_listings });
     } catch (err) {
       console.warn(`Unable to fetch all files -- "${err}"`);
@@ -1331,7 +1330,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const changes: {
-      checked_files?: immutable.Set<string>;
+      checked_files?: Set<string>;
       file_action?: string | undefined;
     } = {};
     if (checked) {
@@ -1355,13 +1354,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // check all files in the given file_list
-  set_file_list_checked(file_list: immutable.List<string> | string[]): void {
+  set_file_list_checked(file_list: List<string> | string[]): void {
     const store = this.get_store();
     if (store == undefined) {
       return;
     }
     const changes: {
-      checked_files: immutable.Set<string>;
+      checked_files: Set<string>;
       file_action?: string | undefined;
     } = { checked_files: store.get("checked_files").union(file_list) };
     const file_action = store.get("file_action");
@@ -1377,13 +1376,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // uncheck all files in the given file_list
-  set_file_list_unchecked(file_list: immutable.List<string>): void {
+  set_file_list_unchecked(file_list: List<string>): void {
     const store = this.get_store();
     if (store == undefined) {
       return;
     }
     const changes: {
-      checked_files: immutable.Set<string>;
+      checked_files: Set<string>;
       file_action?: string | undefined;
     } = { checked_files: store.get("checked_files").subtract(file_list) };
 
@@ -1700,7 +1699,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     this.setState(
-      immutable.fromJS({
+      fromJS({
         configuration: next,
         available_features: feature_is_available(next),
         configuration_loading: false,
@@ -1795,7 +1794,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         timeout: 5000,
         success: (data) => {
           //if DEBUG then console.log("init_library/datadata
-          data = immutable.fromJS(data);
+          data = fromJS(data);
 
           const store = this.get_store();
           if (store == undefined) {
@@ -1849,11 +1848,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     // the rsync command purposely does not preserve the timestamps,
     // such that they look like "new files" and listed on top under default sorting
-    const source = os_path.join(opts.src != null ? opts.src : lib.src, "/");
-    const target = os_path.join(
-      opts.target != null ? opts.target : opts.entry,
-      "/"
-    );
+    const source = join(opts.src != null ? opts.src : lib.src, "/");
+    const target = join(opts.target != null ? opts.target : opts.entry, "/");
     const start =
       opts.start != null ? opts.start : lib != null ? lib.start : undefined;
 
@@ -1867,7 +1863,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       cb: (err, output) => {
         this._finish_exec(id)(err, output);
         if (!err && start != null) {
-          const open_path = os_path.join(target, start);
+          const open_path = join(target, start);
           if (open_path[open_path.length - 1] === "/") {
             this.open_directory(open_path);
           } else {
@@ -2108,7 +2104,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     const id = misc.uuid();
-    if (underscore.isEqual(opts.paths, [".trash"])) {
+    if (isEqual(opts.paths, [".trash"])) {
       mesg = "the trash";
     } else if (opts.paths.length === 1) {
       mesg = `${opts.paths[0]}`;
@@ -2397,13 +2393,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       DEFAULT_COMPUTE_IMAGE;
 
     const table = this.redux.getProjectTable(project_id, "public_paths");
-    let obj: undefined | immutable.Map<string, any> = table._table.get(id);
+    let obj: undefined | Map<string, any> = table._table.get(id);
 
     let log: boolean = false;
     const now = misc.server_time();
     if (obj == null) {
       log = true;
-      obj = immutable.fromJS({
+      obj = fromJS({
         project_id,
         path,
         created: now,
@@ -2690,7 +2686,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             const x = store.get_item_in_path(last, parent_path);
             if (x.err) throw Error(x.err);
             if (x.item == null) {
-              item = immutable.Map(); // creating file
+              item = Map(); // creating file
             } else {
               item = x.item;
             }
@@ -2842,7 +2838,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       await this.wait_until_no_modals();
     }
     let response: "ok" | "cancel" = "cancel";
-    const modal = immutable.fromJS({
+    const modal = fromJS({
       title,
       content,
       onOk: () => (response = "ok"),

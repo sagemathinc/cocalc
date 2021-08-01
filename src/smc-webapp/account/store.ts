@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as lodash from "lodash";
+import { reduce } from "lodash";
 import { Store } from "../app-framework/Store";
 import { AccountState } from "./types";
 import { get_total_upgrades } from "smc-util/upgrades";
-import * as misc from "smc-util/misc";
+import { make_valid_name } from "smc-util/misc";
 import { Map, List } from "immutable";
 import { store as customizeStore } from "../customize";
 
@@ -92,7 +92,7 @@ export class AccountStore extends Store<AccountState> {
   }
 
   get_username(): string {
-    return misc.make_valid_name(this.get_fullname());
+    return make_valid_name(this.get_fullname());
   }
 
   get_email_address(): string | undefined {
@@ -118,9 +118,7 @@ export class AccountStore extends Store<AccountState> {
   // being a license manager...
   is_paying_member(): boolean {
     const ups = this.get_total_upgrades();
-    return (
-      ups != null && lodash.reduce(ups, (a: number, b: number) => a + b, 0) > 0
-    );
+    return ups != null && reduce(ups, (a: number, b: number) => a + b, 0) > 0;
   }
 
   get_page_size(): number {

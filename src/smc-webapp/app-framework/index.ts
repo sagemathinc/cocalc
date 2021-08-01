@@ -21,7 +21,7 @@ let rclass: <P extends object>(
   Component: React.ComponentType<P>
 ) => React.ComponentType<P>;
 
-import * as immutable from "immutable";
+import { fromJS, Map } from "immutable";
 import React from "react";
 import { createStore as createReduxStore } from "redux";
 import createReactClass from "create-react-class";
@@ -47,7 +47,7 @@ export type { ProjectStore, ProjectActions };
 const action_set_state = function (change) {
   return {
     type: "SET_STATE",
-    change: immutable.fromJS(change), // guaranteed immutable.js all the way down
+    change: fromJS(change), // guaranteed immutablejs all the way down
   };
 };
 // Deeply nested objects need to be converted with fromJS before being put in the store
@@ -59,11 +59,11 @@ const action_remove_store = function (name) {
   };
 };
 
-type redux_state = immutable.Map<string, immutable.Map<string, any>>;
+type redux_state = Map<string, Map<string, any>>;
 
 const redux_app = function (state: redux_state, action): redux_state {
   if (state == null) {
-    return immutable.Map();
+    return Map();
   }
   switch (action.type) {
     case "SET_STATE":
@@ -119,7 +119,7 @@ export class AppRedux {
   _redux_store_change(): void {
     const state = this._redux_store.getState();
     if (this._last_state == null) {
-      this._last_state = immutable.Map();
+      this._last_state = Map();
     }
     for (const name of this.changed_stores) {
       const store = this._stores[name];
@@ -217,7 +217,7 @@ export class AppRedux {
         S = this._stores[name] = new store_class(name, this);
       }
       // Put into store. WARNING: New set_states CAN OVERWRITE THESE FUNCTIONS
-      let C = immutable.Map(S as {});
+      let C = Map(S as {});
       C = C.delete("redux"); // No circular pointing
       this._set_state({ [name]: C }, name);
     }

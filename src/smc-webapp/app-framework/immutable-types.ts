@@ -3,7 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as Immutable from "immutable";
+import {
+  Collection as ImmutableCollection,
+  List as ImmutableList,
+} from "immutable";
 import { TypedMap } from "./TypedMap";
 
 type Maybe<T> = T | undefined;
@@ -35,7 +38,7 @@ type CoveredJSBuiltInTypes =
 // all objects could be U<T>
 // As it is, right now that U<T> = TypeMap<T>
 export type DeepImmutable<T> = T extends  // TODO: Make any non-plain-object retain it's type
-  | Immutable.Collection<any, any>
+  | ImmutableCollection<any, any>
   | TypedMap<any>
   | CoveredJSBuiltInTypes
   ? T // Any of the types above should not be TypedMap-ified
@@ -47,7 +50,7 @@ export type DeepImmutable<T> = T extends  // TODO: Make any non-plain-object ret
 
 // https://github.com/microsoft/TypeScript/issues/26980
 type ListToRecurse<U> = {
-  1: Immutable.List<DeepImmutable<U>>;
+  1: ImmutableList<DeepImmutable<U>>;
   0: never;
 }[U extends never ? 0 : 1];
 

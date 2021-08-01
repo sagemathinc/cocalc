@@ -4,13 +4,18 @@
  */
 
 // CoCalc libraries
-import * as misc from "smc-util/misc";
+import {
+  cmp_array,
+  is_equal,
+  is_different,
+  capitalize,
+  trunc_middle,
+  search_split,
+  search_match,
+} from "smc-util/misc";
 import { webapp_client } from "../../webapp-client";
-
 import { STUDENT_SUBDIR } from "./actions";
 import { AssignmentCopyStep, AssignmentStatus } from "../types";
-
-// React libraries
 import {
   Component,
   React,
@@ -20,19 +25,14 @@ import {
   AppRedux,
   Rendered,
 } from "../../app-framework";
-
 import {
   Button,
   ButtonGroup,
   FormControl,
   FormGroup,
 } from "../../antd-bootstrap";
-
 import { Alert, Card, Row, Col, Input } from "antd";
-
 import { Set, Map } from "immutable";
-
-// CoCalc and course components
 import * as util from "../util";
 import * as styles from "../styles";
 import {
@@ -170,7 +170,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
 
       ({ list, deleted, num_deleted } = util.order_list({
         list,
-        compare_function: (a, b) => misc.cmp_array(f(a), f(b)),
+        compare_function: (a, b) => cmp_array(f(a), f(b)),
         reverse: this.props.active_assignment_sort.get("is_descending"),
         include_deleted: this.state.show_deleted,
       }));
@@ -464,8 +464,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   shouldComponentUpdate(nextProps, nextState) {
     // state is an object with tons of keys and values true/false
     return (
-      !misc.is_equal(this.state, nextState) ||
-      misc.is_different(this.props, nextProps, [
+      !is_equal(this.state, nextState) ||
+      is_different(this.props, nextProps, [
         "assignment",
         "students",
         "user_map",
@@ -1074,8 +1074,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       <div>
         {" "}
         <div style={{ marginBottom: "15px" }}>
-          {misc.capitalize(step_verb(step))} this homework{" "}
-          {step_direction(step)} the {n} student{n > 1 ? "s" : ""}
+          {capitalize(step_verb(step))} this homework {step_direction(step)} the{" "}
+          {n} student{n > 1 ? "s" : ""}
           {step_ready(step, n)}?
         </div>
         {this.render_has_student_subdir(step)}
@@ -1181,8 +1181,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     const message = (
       <div>
         <div style={{ marginBottom: "15px" }}>
-          {misc.capitalize(step_verb(step))} this homework{" "}
-          {step_direction(step)}...
+          {capitalize(step_verb(step))} this homework {step_direction(step)}...
         </div>
         {this.render_has_student_subdir(step)}
         {this.render_skip(step)}
@@ -1336,9 +1335,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         <Tip
           title={
             <span>
-              Peer Assign: <Icon name="users" /> You{" "}
-              <Icon name="arrow-right" /> <Icon name="user-secret" />{" "}
-              Students
+              Peer Assign: <Icon name="users" /> You <Icon name="arrow-right" />{" "}
+              <Icon name="user-secret" /> Students
             </span>
           }
           tip={this.render_peer_assign_tip()}
@@ -1642,7 +1640,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     const num_items = this.props.assignment.get("listing")?.size ?? 0;
     return (
       <span>
-        {misc.trunc_middle(this.props.assignment.get("path"), 80)}
+        {trunc_middle(this.props.assignment.get("path"), 80)}
         {this.props.assignment.get("deleted") ? <b> (deleted)</b> : undefined}
         {num_items == 0 ? "  - add content to this assignment..." : undefined}
       </span>
@@ -1717,7 +1715,7 @@ class StudentListForAssignment extends Component<StudentListForAssignmentProps> 
   private student_list: string[] | undefined = undefined;
 
   public shouldComponentUpdate(props): boolean {
-    const x: boolean = misc.is_different(this.props, props, [
+    const x: boolean = is_different(this.props, props, [
       "assignment",
       "students",
       "user_map",
@@ -1754,7 +1752,7 @@ class StudentListForAssignment extends Component<StudentListForAssignmentProps> 
     return (
       <StudentAssignmentInfo
         key={student_id}
-        title={misc.trunc_middle(store.get_student_name(student_id), 40)}
+        title={trunc_middle(store.get_student_name(student_id), 40)}
         name={this.props.name}
         student={student}
         assignment={this.props.assignment}
@@ -1796,16 +1794,13 @@ class StudentListForAssignment extends Component<StudentListForAssignmentProps> 
     const store = this.get_store();
 
     // Remove deleted students or students not matching the search
-    const terms = misc.search_split(this.props.search);
+    const terms = search_split(this.props.search);
     const v1: any[] = [];
     for (const x of v0) {
       if (x.deleted) continue;
       if (
         terms.length > 0 &&
-        !misc.search_match(
-          store.get_student_name(x.student_id).toLowerCase(),
-          terms
-        )
+        !search_match(store.get_student_name(x.student_id).toLowerCase(), terms)
       ) {
         continue;
       }
