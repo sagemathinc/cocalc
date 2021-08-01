@@ -5,7 +5,7 @@
 
 import { List } from "immutable";
 import $ from "jquery";
-import { React, useState } from "smc-webapp/app-framework";
+import { React, useRef, useState } from "smc-webapp/app-framework";
 import { is_array } from "smc-util/misc";
 import { javascript_eval } from "./javascript-eval";
 import { STDERR_STYLE } from "./style";
@@ -20,21 +20,15 @@ export const Javascript: React.FC<JavascriptProps> = (
 ) => {
   const { value } = props;
 
-  // ATTN don't make this an actual ref to the div. It's easy to break everything!
-  // instead (before this was turned into an FC) keep the node undefined...
-  // TODO here is certainly room for improvement.
-  //const node = useRef<HTMLDivElement>(null);
-  const node: HTMLElement | undefined = undefined;
+  const node = useRef<HTMLDivElement>(null);
 
   const [errors, set_errors] = useState<string | undefined>(undefined);
 
   React.useEffect(() => {
-    if (value == null) {
+    if (value == null || node.current == null) {
       return;
     }
-    //const element = $(node.current);
-    const element = $(node);
-    element.empty();
+    const element = $(node.current);
     let blocks: string[];
     if (typeof value == "string") {
       blocks = [value];
@@ -69,6 +63,6 @@ export const Javascript: React.FC<JavascriptProps> = (
       </div>
     );
   } else {
-    return <div /* ref={node} */ />;
+    return <div ref={node} />;
   }
 };
