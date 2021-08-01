@@ -254,14 +254,12 @@ export class WindowedList extends Component<Props, State> {
   private row_resized(entry): void {
     const elt = entry.target;
     const key = elt.getAttribute("data-key");
-    console.log("row_resized", key);
     if (key == null) return;
     // NOTE: We use this jQuery instead of entry.contentRect.height,
     // since in some cases (e.g., codemirror editors), using
     // entry.contentRect.height would be wrong just as they
     // were being mounted/refreshed, but height() seems always right.
     const height = $(entry.target).height();
-    console.log("height = ", height);
     // We never resize to exactly 0.  If you need to hide something,
     // resize it to a small positive number...
     if (height == null || isNaN(height) || height == 0) {
@@ -291,7 +289,6 @@ export class WindowedList extends Component<Props, State> {
     for (const entry of entries) {
       this.row_resized(entry);
     }
-    console.log("min_changed_index", this.min_changed_index);
     if (this.min_changed_index != BIG) {
       this.refresh();
     }
