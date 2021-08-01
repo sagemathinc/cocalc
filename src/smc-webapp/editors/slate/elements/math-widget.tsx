@@ -5,7 +5,7 @@
 
 // Katex support -- NOTE: this import of katex is pretty LARGE.
 import "katex/dist/katex.min.css";
-import mathToHtml from "./math-to-html";
+import mathToHtml from "smc-webapp/misc/math-to-html";
 
 // Everything else.
 import {
