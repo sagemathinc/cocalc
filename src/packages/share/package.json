@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/share",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Landing pages for the free version of CoCalc.",
   "main": "lib/init.js",
   "files": [
@@ -37,7 +37,10 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc#readme",
   "private": false,
-  "workspaces": ["../../smc-webapp", "../../smc-util-node"],
+  "workspaces": [
+    "../../smc-webapp",
+    "../../smc-util-node"
+  ],
   "dependencies-comment": "IMPORTANT: we install everything (including typescript) as normal deps since it may be needed at runtime due to server settings!!",
   "dependencies": {
     "@types/react": "^17.0.14",
