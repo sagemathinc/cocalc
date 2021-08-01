@@ -58,6 +58,7 @@ interface Props {
   render_info?: boolean; // if true, record RenderInfo; also makes isVisible available for row_renderer.
   scroll_margin?: number;
   row_style?: CSS;
+  no_shrink_hack?: boolean; // ignore resizes that shrink or barely change size; useful in some cases, but very bad in others.
 }
 
 interface State {
@@ -81,6 +82,7 @@ const scroll_cache: {
 } = {};
 
 export class WindowedList extends Component<Props, State> {
+  private no_shrink_hack: boolean = false;
   private cell_refs: { [key: string]: any } = {};
   private list_ref;
   private row_heights_cache: { [key: string]: number } = {};
@@ -109,6 +111,7 @@ export class WindowedList extends Component<Props, State> {
 
   constructor(props) {
     super(props);
+    this.no_shrink_hack = props.no_shrink_hack;
     this.list_ref = React.createRef();
     this.resize_observer = new ResizeObserver((entries) =>
       // We wrap it in requestAnimationFrame to avoid this error - ResizeObserver loop limit exceeded
@@ -251,12 +254,14 @@ export class WindowedList extends Component<Props, State> {
   private row_resized(entry): void {
     const elt = entry.target;
     const key = elt.getAttribute("data-key");
+    console.log("row_resized", key);
     if (key == null) return;
     // NOTE: We use this jQuery instead of entry.contentRect.height,
     // since in some cases (e.g., codemirror editors), using
     // entry.contentRect.height would be wrong just as they
     // were being mounted/refreshed, but height() seems always right.
     const height = $(entry.target).height();
+    console.log("height = ", height);
     // We never resize to exactly 0.  If you need to hide something,
     // resize it to a small positive number...
     if (height == null || isNaN(height) || height == 0) {
@@ -265,7 +270,10 @@ export class WindowedList extends Component<Props, State> {
 
     const index = elt.getAttribute("data-index");
     const s = height - this.row_heights_cache[key];
-    if ((s < 0 && -s <= SHRINK_THRESH) || Math.abs(s) < 0.1) {
+    if (
+      this.no_shrink_hack &&
+      ((s < 0 && -s <= SHRINK_THRESH) || Math.abs(s) < 0.1)
+    ) {
       // just shrunk or barely changed,
       // ... so continue using what we have cached (or the default).
       return;
@@ -283,6 +291,7 @@ export class WindowedList extends Component<Props, State> {
     for (const entry of entries) {
       this.row_resized(entry);
     }
+    console.log("min_changed_index", this.min_changed_index);
     if (this.min_changed_index != BIG) {
       this.refresh();
     }

@@ -159,7 +159,6 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     marginBottom: 0,
     cursor: "pointer",
     wordWrap: "break-word",
-    minHeight: "130px", // avoids issues with react-window.
   };
 
   if (project == null) {
