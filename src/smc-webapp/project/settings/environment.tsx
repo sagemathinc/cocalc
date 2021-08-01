@@ -23,7 +23,7 @@ import {
 } from "../../app-framework";
 import { Button } from "antd";
 import { ErrorDisplay, SettingBox, Space } from "../../r_misc";
-import * as jsonic from "jsonic";
+import jsonic from "jsonic";
 
 interface Props {
   project_id: string;

@@ -10,7 +10,6 @@ import {
   Transforms,
   Path,
 } from "slate";
-
 import Children from "./children";
 import { WindowingParams } from "./children";
 import Hotkeys from "../utils/hotkeys";
@@ -35,13 +34,9 @@ import {
   IS_FOCUSED,
   PLACEHOLDER_SYMBOL,
 } from "../utils/weak-maps";
-
 import { debounce } from "lodash";
-
-import * as getDirection from "direction";
-
+import getDirection from "direction";
 import { useDOMSelectionChange, useUpdateDOMSelection } from "./selection-sync";
-
 import { hasEditableTarget, hasTarget } from "./dom-utils";
 
 // COMPAT: Edge Legacy don't support the `beforeinput` event

@@ -3,11 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/*
-
-
-*/
-
 import * as base from "@jupyter-widgets/base";
 import * as phosphor_controls from "@jupyter-widgets/controls";
 import {

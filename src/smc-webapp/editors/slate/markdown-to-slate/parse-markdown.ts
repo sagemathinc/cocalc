@@ -15,7 +15,7 @@ import { markdown_it, parseHeader } from "smc-webapp/markdown";
 
 // Use this instead of the above to test with no plugins, which
 // can be useful for isolating performance issues.
-//import * as MarkdownIt from "markdown-it";
+//import MarkdownIt from "markdown-it";
 //const markdown_it = new MarkdownIt();
 
 import { math_escape, math_unescape } from "smc-util/markdown-utils";

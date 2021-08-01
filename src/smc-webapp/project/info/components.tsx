@@ -33,7 +33,7 @@ import {
 import { AlertType } from "smc-project/project-status/types";
 import { Channel } from "../websocket/types";
 import { COLORS } from "smc-util/theme";
-import * as humanizeList from "humanize-list";
+import humanizeList from "humanize-list";
 
 export const CodeWhite: React.FC = ({ children }) => (
   <code style={{ color: "white" }}>{children}</code>

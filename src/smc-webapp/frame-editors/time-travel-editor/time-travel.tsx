@@ -31,7 +31,7 @@ import { RevertFile } from "./revert-file";
 import { ChangesMode } from "./changes-mode";
 import { OpenSnapshots } from "./open-snapshots";
 import { Export } from "./export";
-import * as json_stable from "json-stable-stringify";
+import json_stable from "json-stable-stringify";
 import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
 import { TasksHistoryViewer } from "../../editors/task-editor/history-viewer";
 import {

@@ -19,7 +19,7 @@ import {
 } from "../../frame-editors/generic/client";
 import { is_valid_uuid_string, uuid } from "smc-util/misc";
 import { normalize_upgrades_for_save } from "./upgrades";
-import * as jsonic from "jsonic";
+import jsonic from "jsonic";
 
 export class SiteLicensesActions extends Actions<SiteLicensesState> {
   public set_error(error: any): void {

@@ -21,7 +21,7 @@
  * CoCalc Xpra HTML Client
  */
 
-import * as forge from "node-forge";
+import { md } from "node-forge";
 import { CHARCODE_TO_NAME } from "./constants";
 import { supportsWebp, calculateColorGamut, calculateScreens } from "./util";
 
@@ -76,7 +76,7 @@ function getEncodingCapabilities(config, soundCodecs) {
     "hmac",
     "hmac+md5",
     "xor",
-    ...Object.keys(forge.md.algorithms).map((hash) => `hmac+${hash}`),
+    ...Object.keys(md.algorithms).map((hash) => `hmac+${hash}`),
   ];
 
   const detectedEncodings = ["jpeg", "png", "rgb", "rgb32"]; // "h264", "vp8+webm", "h264+mp4", "mpeg4+mp4"

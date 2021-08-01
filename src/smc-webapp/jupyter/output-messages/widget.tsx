@@ -7,12 +7,9 @@
 Widget rendering.
 */
 
-const $ = require("jquery");
-
+import $ from "jquery";
 import { Map, Set, List, fromJS } from "immutable";
-
 import { Tabs, Tab } from "../../antd-bootstrap";
-
 import {
   React,
   ReactDOM,
@@ -23,15 +20,10 @@ import {
   usePrevious,
   useIsMountedRef,
 } from "smc-webapp/app-framework";
-
 import { JupyterActions } from "../browser-actions";
-
 import * as pWidget from "@phosphor/widgets";
-
 require("@jupyter-widgets/controls/css/widgets.css");
-
 import { CellOutputMessages } from "./message";
-
 import { NotebookFrameActions } from "../../frame-editors/jupyter-editor/cell-notebook/actions";
 
 interface WidgetProps {
@@ -444,8 +436,8 @@ export const Widget: React.FC<WidgetProps> = React.memo(
         for (const child of children) {
           const a = $(child);
           const p = a.parent();
-          p.attr("class", a.attr("class"));
-          p.attr("style", a.attr("style"));
+          p.attr("class", a.attr("class") ?? null);
+          p.attr("style", a.attr("style") ?? null);
         }
       }, 1);
 

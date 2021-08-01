@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as humanizeList from "humanize-list";
+import humanizeList from "humanize-list";
 import { server_time } from "../frame-editors/generic/client";
 import {
   CSS,

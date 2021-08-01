@@ -39,7 +39,7 @@ import { callback2 as cb2 } from "smc-util/async-utils";
 import debug from "debug";
 const LOG = debug("hub:auth");
 import { join as path_join } from "path";
-import * as uuid from "node-uuid";
+import { v4 } from "node-uuid";
 import passport from "passport";
 import * as dot from "dot-object";
 import * as _ from "lodash";
@@ -94,7 +94,9 @@ const API_KEY_COOKIE_NAME = base_path + "get_api_key";
 // Nov'19: actually two cookies due to same-site changes.
 // See https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
 export function remember_me_cookie_name(): string {
-  return `${base_path.length <= 1 ? "" : encodeURIComponent(base_path)}remember_me`;
+  return `${
+    base_path.length <= 1 ? "" : encodeURIComponent(base_path)
+  }remember_me`;
 }
 
 //#######################################
@@ -359,7 +361,7 @@ interface PassportManagerOpts {
 
 // passport_login state
 interface PassportLoginLocals {
-  dbg: any;   // InstanceType<typeof LOG> -- evidently, broken with current versions of things...
+  dbg: any; // InstanceType<typeof LOG> -- evidently, broken with current versions of things...
   account_id: string | undefined;
   email_address: string | undefined;
   new_account_created: boolean;
@@ -481,7 +483,7 @@ export class PassportManager {
     dbg("");
 
     // initialize use of middleware
-    this.router.use(express_session({ secret: uuid.v4() })); // secret is totally random and per-hub session
+    this.router.use(express_session({ secret: v4() })); // secret is totally random and per-hub session
     this.router.use(passport.initialize());
     this.router.use(passport.session());
 
@@ -1204,7 +1206,7 @@ export class PassportManager {
     });
 
     dbg("create remember_me cookie");
-    const session_id = uuid.v4();
+    const session_id = v4();
     const hash_session_id = password_hash(session_id);
     const ttl_s = 24 * 3600 * 30; // 30 days
     const x: string[] = hash_session_id.split("$");

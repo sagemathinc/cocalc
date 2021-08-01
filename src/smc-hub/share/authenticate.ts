@@ -8,12 +8,9 @@ Authentication.
 */
 
 import { List, Map } from "immutable";
-import * as basic_auth from "basic-auth";
-
-import * as password_hash_library from "password-hash";
-
+import basic_auth from "basic-auth";
+import { verify } from "password-hash";
 import { startswith } from "smc-util/misc";
-
 import { Logger } from "./types";
 
 export function is_authenticated(opts: {
@@ -59,7 +56,7 @@ export function is_authenticated(opts: {
     for (let i = 0; i < auth_info.size; i++) {
       const x = auth_info.get(i);
       if (x.get("name") === credentials.name) {
-        if (password_hash_library.verify(credentials.pass, x.get("pass"))) {
+        if (verify(credentials.pass, x.get("pass"))) {
           fail = false;
         }
         break;

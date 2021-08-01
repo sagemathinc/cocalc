@@ -21,7 +21,7 @@ import { callback2, once } from "smc-util/async-utils";
 import * as async from "async";
 import * as underscore from "underscore";
 import * as misc from "smc-util/misc";
-import * as json_stable from "json-stable-stringify";
+import json_stable from "json-stable-stringify";
 import { OutputHandler } from "./output-handler";
 import { RunAllLoop } from "./run-all-loop";
 

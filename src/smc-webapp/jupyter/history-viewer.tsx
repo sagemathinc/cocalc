@@ -8,7 +8,6 @@ History viewer for Jupyter notebooks
 */
 
 import { fromJS, List, Map } from "immutable";
-
 import { SyncDB } from "smc-util/sync/editor/db/sync";
 import { React, ReactDOM, Redux, useTypedRedux } from "../app-framework";
 import { path_split } from "smc-util/misc";
@@ -91,7 +90,7 @@ export const HistoryViewer: React.FC<HistoryViewerProps> = ({
 
 // The following is just for integrating the history viewer.
 import { export_to_ipynb } from "./export-to-ipynb";
-import * as json_stable from "json-stable-stringify";
+import json_stable from "json-stable-stringify";
 
 export function to_ipynb(syncdb: SyncDB, version: Date): object {
   return export_to_ipynb(get_cells(syncdb, version));

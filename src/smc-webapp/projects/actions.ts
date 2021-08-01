@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as json_stable from "json-stable-stringify";
+import json_stable from "json-stable-stringify";
 import { redux, Actions } from "../app-framework";
 import {
   assert_uuid,

@@ -15,8 +15,5 @@ The share router:
 
 */
 
-import * as share from "./share";
-export const { share_router } = share;
-
-import * as http_server from "./http-server";
-export const { init } = http_server;
+export { share_router } from "./share";
+export { init } from "./http-server";

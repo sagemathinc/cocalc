@@ -69,11 +69,11 @@ export {
   local_storage_length,
 } from "./local-storage";
 
-import * as sha1 from "sha1";
+import sha1 from "sha1";
 export { sha1 };
 
+import getRandomValues from "get-random-values";
 import * as lodash from "lodash";
-import * as getRandomValues from "get-random-values";
 import * as immutable from "immutable";
 
 export const keys: (any) => string[] = lodash.keys;
@@ -704,7 +704,7 @@ export function secure_random_token(
   if (alphabet.length == 0) {
     throw Error("impossible, since alphabet is empty");
   }
-  const v = new Uint32Array(length);
+  const v = new Uint8Array(length);
   getRandomValues(v); // secure random numbers
   for (const i of v) {
     s += alphabet[i % alphabet.length];

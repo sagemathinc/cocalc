@@ -44,7 +44,7 @@ The URI schema is as follows:
 
 import { redux } from "./app-framework";
 import { QueryParams } from "./misc/query-params";
-import * as query_string from "query-string";
+import { stringify } from "query-string";
 import { join } from "path";
 
 // Determine query params part of URL based on state of the project store.
@@ -64,7 +64,7 @@ function params(): string {
     }
   }
 
-  const s = query_string.stringify(current);
+  const s = stringify(current);
   if (s) {
     return "?" + s;
   } else {

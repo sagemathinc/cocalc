@@ -23,7 +23,7 @@
 
 const DEBUG = false;
 
-import * as zlib from "zlibjs";
+import { inflateSync } from "zlibjs";
 import { ord } from "./util";
 import { bencode, bdecode } from "./bencode";
 import { HEADER_SIZE } from "./constants";
@@ -68,7 +68,7 @@ function inflate(
       }
       return inflated;
     } else {
-      return zlib.inflateSync(data);
+      return inflateSync(data);
     }
   }
 

@@ -19,10 +19,10 @@ console.log("initializing prometheus client. enabled =", enabled);
 import { webapp_client } from "./webapp-client";
 
 import { globalRegistry } from "prom-client/lib/registry";
-import * as Counter from "prom-client/lib/counter";
-import * as Gauge from "prom-client/lib/gauge";
-import * as Histogram from "prom-client/lib/histogram";
-import * as Summary from "prom-client/lib/summary";
+import Counter from "prom-client/lib/counter";
+import Gauge from "prom-client/lib/gauge";
+import Histogram from "prom-client/lib/histogram";
+import Summary from "prom-client/lib/summary";
 
 // ATTN: default metrics do not work, because they are only added upon "proper" export -- not our .get json trick
 // register.setDefaultLabels(defaultLabels)

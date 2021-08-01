@@ -4,7 +4,7 @@
  */
 
 import { Map } from "immutable";
-import * as humanizeList from "humanize-list";
+import humanizeList from "humanize-list";
 import { PROJECT_UPGRADES } from "smc-util/schema";
 import { Upgrades } from "smc-util/upgrades/types";
 import {

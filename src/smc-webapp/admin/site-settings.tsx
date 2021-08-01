@@ -6,7 +6,7 @@
 import { FormGroup, FormControl, Well } from "react-bootstrap";
 import { Button } from "../antd-bootstrap";
 import { alert_message } from "../alerts";
-import * as humanizeList from "humanize-list";
+import humanizeList from "humanize-list";
 import {
   React,
   Component,

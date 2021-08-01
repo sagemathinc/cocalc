@@ -15,7 +15,7 @@ import { handleChangeOneNode } from "./handle-change-one-node";
 import { handleChangeTextNodes, isAllText } from "./handle-change-text-nodes";
 
 // We could instead use
-//    import * as stringify from "json-stable-stringify";
+//    import stringify from "json-stable-stringify";
 // which might sometimes avoid a safe "false positive" (i.e., slightly
 // less efficient patch), but is significantly slower.
 const stringify = JSON.stringify;

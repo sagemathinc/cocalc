@@ -3,9 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as outputBase from "@jupyter-widgets/output";
+import {
+  OutputModel as UpstreamOutputModel,
+  OutputView as UpstreamOutputView,
+} from "@jupyter-widgets/output";
 
-export class OutputModel extends outputBase.OutputModel {
+export class OutputModel extends UpstreamOutputModel {
   private _outputs: any;
   widget_manager: any;
 
@@ -26,7 +29,7 @@ export class OutputModel extends outputBase.OutputModel {
   }
 }
 
-export class OutputView extends outputBase.OutputView {
+export class OutputView extends UpstreamOutputView {
   model: OutputModel;
 
   render() {

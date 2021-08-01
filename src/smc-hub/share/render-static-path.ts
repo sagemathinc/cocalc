@@ -10,10 +10,10 @@ Render a public path using the express static server.
 import * as fs from "fs";
 import * as os_path from "path";
 
-import * as url from "url";
-import serve_static from "serve-static";
-import * as serve_index from "serve-index";
-import * as finalhandler from "finalhandler";
+import { parse as parse_url } from "url";
+import serveStatic from "serve-static";
+import serveIndex from "serve-index";
+import finalHandler from "finalhandler";
 
 const STATIC_OPTIONS = { index: ["index.html", "index.htm"] };
 
@@ -27,14 +27,14 @@ const serve_static_cache: { [dir: string]: Function } = {};
 function get_serve_static(dir: string): Function {
   return serve_static_cache[dir] != null
     ? serve_static_cache[dir]
-    : (serve_static_cache[dir] = serve_static(dir, STATIC_OPTIONS));
+    : (serve_static_cache[dir] = serveStatic(dir, STATIC_OPTIONS));
 }
 
 const serve_index_cache: { [dir: string]: Function } = {};
 function get_serve_index(dir: string): Function {
   return serve_index_cache[dir] != null
     ? serve_index_cache[dir]
-    : (serve_index_cache[dir] = serve_index(dir, INDEX_OPTIONS));
+    : (serve_index_cache[dir] = serveIndex(dir, INDEX_OPTIONS));
 }
 
 // res = html response object
@@ -50,7 +50,7 @@ export function render_static_path(opts: {
   // to a very bad experience for users!
   const { req, res, dir, path } = opts;
   // see https://stackoverflow.com/questions/14166898/node-js-with-express-how-to-remove-the-query-string-from-the-url
-  const pathname = url.parse(path).pathname;
+  const pathname = parse_url(path).pathname;
   if (pathname == null) {
     // I think this shouldn't be possible, but typescript thinks it is.
     res.sendStatus(404);
@@ -67,9 +67,9 @@ export function render_static_path(opts: {
     req.url = path === "" ? "/" : path;
     s_static(req, res, function (err) {
       if (err) {
-        finalhandler(err);
+        finalHandler(err);
       } else {
-        s_index(req, res, finalhandler);
+        s_index(req, res, finalHandler);
       }
     });
   });

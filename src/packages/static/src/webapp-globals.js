@@ -12,3 +12,4 @@ window.Buffer = Buffer;
 // And jQuery.
 import * as jQuery from "jquery";
 window.$ = window.jQuery = jQuery;
+

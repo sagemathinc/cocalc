@@ -23,7 +23,7 @@ import {
   Table,
   Switch,
 } from "antd";
-import * as antd from "antd";
+import { Button as AntdButton } from "antd";
 import { Alert } from "../antd-bootstrap";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { ErrorDisplay, Saving, Icon } from "../r_misc";
@@ -309,10 +309,10 @@ export const RegistrationToken: React.FC<{}> = () => {
           <Switch />
         </Form.Item>
         <Form.Item {...tailLayout}>
-          <antd.Button type="primary" htmlType="submit">
+          <AntdButton type="primary" htmlType="submit">
             Save
-          </antd.Button>
-          <antd.Button
+          </AntdButton>
+          <AntdButton
             htmlType="button"
             onClick={() => {
               form.resetFields();
@@ -320,13 +320,13 @@ export const RegistrationToken: React.FC<{}> = () => {
             }}
           >
             Reset
-          </antd.Button>
-          <antd.Button htmlType="button" onClick={() => set_editing(null)}>
+          </AntdButton>
+          <AntdButton htmlType="button" onClick={() => set_editing(null)}>
             Cancel
-          </antd.Button>
-          <antd.Button type="link" onClick={onRandom}>
+          </AntdButton>
+          <AntdButton type="link" onClick={onRandom}>
             Randomize
-          </antd.Button>
+          </AntdButton>
         </Form.Item>
       </Form>
     );
@@ -336,25 +336,25 @@ export const RegistrationToken: React.FC<{}> = () => {
     const any_selected = sel_rows.length > 0;
     return (
       <div style={{ margin: "10px 0" }}>
-        <antd.Button
+        <AntdButton
           type={!any_selected ? "primary" : "default"}
           disabled={any_selected}
           onClick={() => edit_new_token()}
         >
           Add
-        </antd.Button>
+        </AntdButton>
 
-        <antd.Button
+        <AntdButton
           type={any_selected ? "primary" : "default"}
           onClick={delete_tokens}
           disabled={!any_selected}
           loading={deleting}
         >
           {any_selected ? `Delete ${sel_rows.length} token(s)` : "Delete"}
-        </antd.Button>
+        </AntdButton>
 
-        <antd.Button onClick={() => load()}>Refresh</antd.Button>
-        <antd.Button onClick={() => set_show(false)}>Close</antd.Button>
+        <AntdButton onClick={() => load()}>Refresh</AntdButton>
+        <AntdButton onClick={() => set_show(false)}>Close</AntdButton>
       </div>
     );
   }
