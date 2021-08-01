@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/cdn",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "Files that CoCalc uses that would be natural in various contexts to get from a CDN",
   "main": "dist/index.js",
   "keywords": [
