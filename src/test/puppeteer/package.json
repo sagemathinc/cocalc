@@ -7,7 +7,7 @@
     "lev0": "./lev0.js",
     "lev1": "lev1",
     "clean": "rm build/*",
-    "build": "tsc",
+    "build": "npx tsc",
     "test": "node build/test_driver.js",
     "tdbg": "NODE_DEBUG='CC-*' node build/test_driver.js",
     "install_files": "node build/install_files.js",
