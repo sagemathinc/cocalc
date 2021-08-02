@@ -542,7 +542,6 @@ async function init_analytics() {
 
   // 2. CoCalc analytics
   const ctag = w.document.createElement("script");
-  ctag.type = "module"; // because analytics.js is an ES6 module now.
   ctag.src = join(w.app_base_path, "analytics.js?fqd=false");
   ctag.async = true;
   ctag.defer = true;
