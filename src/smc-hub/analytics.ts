@@ -31,7 +31,9 @@ import { getLogger } from "./logger";
 // dist/analytics.js and also analytics-script.ts
 // gets compiled to dist/analytics-script.js.
 export const analytics_js = UglifyJS.minify(
-  fs.readFileSync(join(__dirname, "analytics-script.js")).toString()
+  fs
+    .readFileSync(join(__dirname, "analytics", "analytics-script.js"))
+    .toString()
 ).code;
 
 function create_log(name) {

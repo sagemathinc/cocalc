@@ -1,0 +1,9 @@
+{
+  "extends": "../../packages/tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "../dist/analytics/",
+    "isolatedModules": false,
+    "target": "es5"
+  }
+}
