@@ -30,9 +30,13 @@ import { getLogger } from "./logger";
 // that this file analytics.ts gets compiled to
 // dist/analytics.js and also analytics-script.ts
 // gets compiled to dist/analytics-script.js.
-export const analytics_js = UglifyJS.minify(
+const result = UglifyJS.minify(
   fs.readFileSync(join(__dirname, "analytics-script.js")).toString()
-).code;
+);
+if (result.error) {
+  throw Error(`Error minifying analytics-script.js -- ${result.error}`);
+}
+export const analytics_js = "if (window.exports === undefined) { var exports={}; } \n" + result.code;
 
 function create_log(name) {
   return getLogger(`analytics.${name}`).debug;
