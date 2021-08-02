@@ -7,7 +7,7 @@ database queries.
 import { getLogger } from "smc-project/logger";
 import { Message } from "./types";
 import * as message from "smc-util/message";
-import jupyter_port from "smc-project/jupyter/upstream-jupyter";
+import handleNamedServer from "smc-project/named-servers";
 const { exec_shell_code } = require("smc-project/exec_shell_code");
 // Reading and writing files to/from project and sending over socket
 const {
@@ -36,14 +36,8 @@ export default function handleMessage(socket, mesg: Message) {
       socket.heartbeat = new Date();
       return;
 
-    case "jupyter_port":
-      // start jupyter server if necessary and send back a message with the port it is serving on
-      jupyter_port(socket, mesg, false);
-      return;
-
-    case "jupyterlab_port":
-      // start jupyterlab server if necessary and send back a message with the port it is serving on
-      jupyter_port(socket, mesg, true);
+    case "named_server_port":
+      handleNamedServer(socket, mesg);
       return;
 
     case "project_exec":

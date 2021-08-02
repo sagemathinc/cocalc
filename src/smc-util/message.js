@@ -1027,15 +1027,16 @@ message({
 });
 
 //#####################################################################
-// Jupyter server
+// Named Server
 //#####################################################################
 
-// starts jupyter hub server and reports the port it is running on
+// starts a named server in a project, e.g, 'jupyterlab', and reports the
+// port it is running at
 // hub <--> project
 message({
-  event: "jupyter_port",
-  lab: undefined, // if true, jupyterlab; if false (or not given), then jupyter classic.
-  port: undefined, // gets set in response
+  event: "named_server_port",
+  name: required, // 'jupyter', 'jupyterlab', 'code', 'pluto' or whatever project supports...
+  port: undefined, // gets set in the response
   id: undefined,
 });
 

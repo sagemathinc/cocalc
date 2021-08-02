@@ -671,34 +671,6 @@ class exports.Client extends EventEmitter
     mesg_ping: (mesg) =>
         @push_to_client(message.pong(id:mesg.id, now:new Date()))
 
-    # Messages: Sessions
-    mesg_start_session: (mesg) =>
-        if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
-            return
-
-        switch mesg.type
-            when 'console'
-                @connect_to_console_session(mesg)
-            else
-                @error_to_client(id:mesg.id, error:"Unknown message type '#{mesg.type}'")
-
-    # TODO: I think this is deprecated:
-    mesg_connect_to_session: (mesg) =>
-        if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
-            return
-        switch mesg.type
-            when 'console'
-                if not mesg.params?.path? or not mesg.params?.filename?
-                    @push_to_client(message.error(id:mesg.id, error:"console session path and filename must be defined"))
-                    return
-                @connect_to_console_session(mesg)
-            else
-                # TODO
-                @push_to_client(message.error(id:mesg.id, error:"Connecting to session of type '#{mesg.type}' not yet implemented"))
-
-
     # Messages: Account creation, deletion, sign in, sign out
     mesg_create_account: (mesg) =>
         if @_opts.personal

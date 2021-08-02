@@ -4,4 +4,5 @@ export interface Message {
   pid?: number;
   signal?: string | number;
   error?: string;
+  name?: string;
 }

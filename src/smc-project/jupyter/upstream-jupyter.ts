@@ -11,35 +11,26 @@ This is used by the proxy server to route a certain URL to jupyter(lab).
 import { promisify } from "util";
 import { exec as fs_exec } from "child_process";
 import { getLogger } from "smc-project/logger";
-import { reuseInFlight } from "async-await-utils/hof";
-import * as message from "smc-util/message";
 
 const exec = promisify(fs_exec);
 const winston = getLogger("upstream-jupyter");
 
-const jupyter_port = reuseInFlight(
-  async (socket, mesg) => {
-    const lab = !!mesg.lab;
-    let s: { port?: number; status?: string } = await status(lab);
-    try {
-      winston.debug(`jupyter_port, lab=${lab}, status = ${JSON.stringify(s)}`);
-      if (!s.port || s.status != "running") {
-        winston.debug("jupyter_port: not running so start");
-        s = await start(lab);
-      }
-    } catch (err) {
-      const error = `error starting jupyter -- ${err}`;
-      socket.write_mesg("json", message.error({ id: mesg.id, error }));
-      return;
-    }
-    socket.write_mesg(
-      "json",
-      message.jupyter_port({ id: mesg.id, port: s.port, lab })
-    );
-  },
-  { createKey: (args) => `${args[2]}` }
-);
-export default jupyter_port;
+export default async function getPort(lab: boolean = false): Promise<number> {
+  let s: { port?: number; status?: string } = await status(lab);
+  winston.debug(`jupyter_port, lab=${lab}, status = ${JSON.stringify(s)}`);
+  if (!s.port || s.status != "running") {
+    winston.debug("getPort: not running so start");
+    s = await start(lab);
+  }
+  if (!s.port || s.status != "running") {
+    throw Error(`unable to start jupyter ${lab ? "lab" : "classic"}`);
+  }
+
+  winston.debug(
+    `getPort: started jupyter ${lab ? "lab" : "classic"} at port ${s.port}`
+  );
+  return s.port;
+}
 
 async function cmd(arg: string, lab: boolean) {
   const command = `cc-jupyter${lab ? "lab" : ""} ${arg}`;

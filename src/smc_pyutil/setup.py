@@ -70,7 +70,6 @@ for prefix in ['smc', 'cc', 'cocalc']:
     add('%s-open       = smc_pyutil.smc_open:main' % prefix)
     add('%s-new-file   = smc_pyutil.new_file:main' % prefix)
     add('%s-status     = smc_pyutil.status:main' % prefix)
-    add('%s-jupyter    = smc_pyutil.jupyter_notebook:main' % prefix)
     add('%s-jupyter-no-output= smc_pyutil.jupyter_delete_output:main' % prefix)
     add('%s-ipynb2sagews = smc_pyutil.ipynb2sagews:main' % prefix)
     add('%s-start        = smc_pyutil.start_smc:main' % prefix)
@@ -82,7 +81,6 @@ for prefix in ['smc', 'cc', 'cocalc']:
     if prefix != 'smc':
         add('%s-ipynb-to-pdf = smc_pyutil.ipynb_to_pdf:main' % prefix)
         add('%s-close        = smc_pyutil.smc_close:main' % prefix)
-        add('%s-jupyterlab   = smc_pyutil.jupyter_lab:main' % prefix)
         add('%s-jupyter-classic-open = smc_pyutil.jupyter_notebook:prepare_file_for_open'
             % prefix)
 

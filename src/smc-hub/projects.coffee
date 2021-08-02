@@ -12,7 +12,7 @@ winston  = require('./logger').getLogger('projects')
 postgres = require('./postgres')
 local_hub_connection = require('./local_hub_connection')
 message = require('smc-util/message')
-
+{callback2} = require('smc-util/async-utils')
 misc    = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')
 {defaults, required} = misc
@@ -86,20 +86,12 @@ class Project
         opts.mesg.project_id = @project_id
         @local_hub.call(opts)
 
-    jupyter_port: (opts) =>
-        opts = defaults opts,
-            lab : undefined
-            cb : required
-        @dbg("jupyter_port")
-        @call
-            mesg    : message.jupyter_port(lab:opts.lab)
-            timeout : 30
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else
-                    @dbg("jupyter_port lab=#{opts.lab} -- #{resp.port}")
-                    opts.cb(undefined, resp.port)
+    # async function
+    named_server_port: (name) =>
+        @dbg("named_server_port(name=${name})")
+        resp = await callback2(@call, {mesg : message.named_server_port(name:name), timeout : 30})
+        @dbg("named_server_port #{resp.port}")
+        return resp.port
 
     move_project: (opts) =>
         opts = defaults opts,
@@ -119,12 +111,6 @@ class Project
         @_fixpath(opts)
         opts.project_id = @project_id
         @local_hub.write_file(opts)
-
-    console_session: (opts) =>
-        @dbg("console_session")
-        @_fixpath(opts.params)
-        opts.project_id = @project_id
-        @local_hub.console_session(opts)
 
     terminate_session: (opts) =>
         opts = defaults opts,

@@ -7,13 +7,13 @@ to this target or the target project isn't running.
 */
 
 import LRU from "lru-cache";
-import { callback2 } from "smc-util/async-utils";
 import { parseReq } from "./parse";
 import getLogger from "../logger";
 import hasAccess from "./check-for-access-to-project";
 const hub_projects = require("../projects");
 import { database } from "../servers/database";
 import { ProjectControlFunction } from "smc-hub/servers/project-control";
+import { reuseInFlight } from "async-await-utils/hof";
 
 const winston = getLogger("proxy: target");
 
@@ -74,7 +74,11 @@ export async function getTarget(opts: Options): Promise<{
   let state = await project.state();
   let host = state.ip;
   dbg(`host=${host}`);
-  if (port_desc == "jupyter" || port_desc == "jupyterlab") {
+  if (
+    port_desc == "jupyter" || // Jupyter Classic
+    port_desc == "jupyterlab" || // JupyterLab
+    port_desc == "code" // VSCode = "code-server"
+  ) {
     if (host == null || state.state != "running") {
       // We just start the project.
       // This is used specifically by Juno, but also makes it
@@ -101,16 +105,11 @@ export async function getTarget(opts: Options): Promise<{
 
   let port: number;
   if (type === "port" || type === "server") {
-    if (port_desc === "jupyter") {
-      dbg("determining jupyter server port...");
-      port = await jupyterPort(project_id, projectControl, false);
-      dbg(`got jupyter port=${port}`);
-    } else if (port_desc === "jupyterlab") {
-      dbg("determining jupyter server port...");
-      port = await jupyterPort(project_id, projectControl, true);
-      dbg(`got jupyterlab port=${port}`);
-    } else {
-      port = parseInt(port_desc);
+    port = parseInt(port_desc);
+    if (!Number.isInteger(port)) {
+      dbg(`determining name=${port_desc} server port...`);
+      port = await namedServerPort(project_id, port_desc, projectControl);
+      dbg(`got named server name=${port_desc} port=${port}`);
     }
   } else if (type === "raw") {
     const status = await project.status();
@@ -132,16 +131,34 @@ export async function getTarget(opts: Options): Promise<{
   return target;
 }
 
-async function jupyterPort(
+// cache the chosen port for up to 30 seconds, since getting it
+// from the project can be expensive.
+const namedServerPortCache = new LRU<string, number>({
+  max: 10000,
+  maxAge: 1000 * 20,
+});
+
+async function _namedServerPort(
   project_id: string,
-  projectControl,
-  lab: boolean
+  name: string,
+  projectControl
 ): Promise<number> {
+  const key = project_id + name;
+  const p = namedServerPortCache.get(key);
+  if (p) {
+    return p;
+  }
   const project = hub_projects.new_project(
     // NOT project-control like above...
     project_id,
     database,
     projectControl
   );
-  return await callback2(project.jupyter_port, { lab });
+  const port = await project.named_server_port(name);
+  namedServerPortCache.set(key, port);
+  return port;
 }
+
+const namedServerPort = reuseInFlight(_namedServerPort, {
+  createKey: (args) => args[0] + args[1],
+});
