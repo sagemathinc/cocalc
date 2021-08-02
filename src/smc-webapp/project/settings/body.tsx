@@ -9,10 +9,8 @@ import { Icon } from "../../r_misc";
 import { NonMemberProjectWarning } from "../warnings/non-member";
 import { NoNetworkProjectWarning } from "../warnings/no-network";
 import { redux, rtypes, rclass } from "../../app-framework";
-import { JupyterServerPanel } from "../plain-jupyter-server";
-import { JupyterLabServerPanel } from "../jupyterlab-server";
 import { CurrentCollaboratorsPanel } from "../../collaborators";
-
+import { NamedServerPanel } from "../named-server-panel";
 import { AboutBox } from "./about-box";
 import { UpgradeUsage } from "./upgrade-usage";
 import { HideDeleteBox } from "./hide-delete-box";
@@ -123,18 +121,16 @@ export const Body = rclass<ReactProps>(
       const upgrades_you_can_use = this.props.get_total_upgrades();
 
       const course_info = this.props.get_course_info(this.props.project_id);
-      const upgrades_you_applied_to_all_projects = this.props.get_total_upgrades_you_have_applied();
-      const upgrades_you_applied_to_this_project = this.props.get_upgrades_you_applied_to_project(
-        id
-      );
+      const upgrades_you_applied_to_all_projects =
+        this.props.get_total_upgrades_you_have_applied();
+      const upgrades_you_applied_to_this_project =
+        this.props.get_upgrades_you_applied_to_project(id);
       const total_project_quotas = this.props.get_total_project_quotas(id); // only available for non-admin for now.
-      const all_upgrades_to_this_project = this.props.get_upgrades_to_project(
-        id
-      );
+      const all_upgrades_to_this_project =
+        this.props.get_upgrades_to_project(id);
       const store = redux.getStore("projects");
-      const site_license_upgrades = store.get_total_site_license_upgrades_to_project(
-        this.props.project_id
-      );
+      const site_license_upgrades =
+        store.get_total_site_license_upgrades_to_project(this.props.project_id);
       const site_license_ids: string[] = store.get_site_license_ids(
         this.props.project_id
       );
@@ -239,7 +235,10 @@ export const Body = rclass<ReactProps>(
                 user_map={this.props.user_map}
               />
               {!student.disableCollaborators && (
-                <SettingBox title="Add new collaborators" icon="UserAddOutlined">
+                <SettingBox
+                  title="Add new collaborators"
+                  icon="UserAddOutlined"
+                >
                   <AddCollaborators
                     project_id={this.props.project.get("project_id")}
                   />
@@ -247,18 +246,14 @@ export const Body = rclass<ReactProps>(
               )}
               <ProjectControl key="control" project={this.props.project} />
               <SagewsControl key="worksheet" project={this.props.project} />
-              {have_jupyter_notebook ? (
-                <JupyterServerPanel
-                  key="jupyter"
-                  project_id={this.props.project_id}
-                />
-              ) : undefined}
-              {have_jupyter_lab ? (
-                <JupyterLabServerPanel
-                  key="jupyterlab"
-                  project_id={this.props.project_id}
-                />
-              ) : undefined}
+              {have_jupyter_notebook && (
+                <NamedServerPanel project_id={id} name={"jupyter"} />
+              )}
+              {have_jupyter_lab && (
+                <NamedServerPanel project_id={id} name={"jupyterlab"} />
+              )}
+              {<NamedServerPanel project_id={id} name={"code"} />}
+              {<NamedServerPanel project_id={id} name={"pluto"} />}
             </Col>
           </Row>
         </div>

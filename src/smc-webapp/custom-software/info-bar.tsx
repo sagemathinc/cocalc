@@ -19,9 +19,8 @@ import { open_new_tab } from "../misc-page";
 import { Icon, Tip, HiddenXSSM, VisibleMDLG, VisibleXSSM } from "../r_misc";
 import { ButtonGroup, Button } from "react-bootstrap";
 import { Available as AvailableFeatures } from "../project_configuration";
-const { jupyterlab_server_url } = require("../project/jupyterlab-server");
-const { jupyter_server_url } = require("../editor_jupyter");
-const { ButtonRetryUntilSuccess } = require("../widgets-misc/link-retry");
+import { serverURL } from "../project/named-server-panel";
+import LinkRetry from "../widgets-misc/link-retry";
 
 interface Props {
   project_id: string;
@@ -69,33 +68,32 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
   render_jupyter = () => {
     if (this.props.available_features == null) return null;
 
-    const href_jl = async () =>
-      await jupyterlab_server_url(this.props.project_id);
-    const href_jc = async () => await jupyter_server_url(this.props.project_id);
+    const href_jupyterlab = serverURL(this.props.project_id, "jupyterlab");
+    const href_jupyterclassic = serverURL(this.props.project_id, "jupyter");
 
-    const have_jl = this.props.available_features.jupyter_lab || false;
-    const have_jc = this.props.available_features.jupyter_notebook || false;
+    const have_jupyterlab = this.props.available_features.jupyter_lab || false;
+    const have_jupyterclassic =
+      this.props.available_features.jupyter_notebook || false;
 
     return (
       <>
-        {have_jc ? (
-          <ButtonRetryUntilSuccess get_href={href_jc}>
+        {have_jupyterclassic ? (
+          <LinkRetry mode="button" href={href_jupyterclassic}>
             <Tip
               title={"Start the classical Jupyter server"}
               placement={"bottom"}
             >
               <Icon name={"ipynb"} /> <HiddenXSSM>Jupyter</HiddenXSSM>
             </Tip>
-          </ButtonRetryUntilSuccess>
+          </LinkRetry>
         ) : undefined}
-        {have_jl ? (
-          <ButtonRetryUntilSuccess get_href={href_jl}>
+        {have_jupyterlab ? (
+          <LinkRetry mode="button" href={href_jupyterlab}>
             <Tip title={"Start Jupyter Lab server"} placement={"bottom"}>
-              <Icon name={"ipynb"} />{" "}
-              <VisibleMDLG>JupyterLab</VisibleMDLG>
+              <Icon name={"ipynb"} /> <VisibleMDLG>JupyterLab</VisibleMDLG>
               <VisibleXSSM>Lab</VisibleXSSM>
             </Tip>
-          </ButtonRetryUntilSuccess>
+          </LinkRetry>
         ) : undefined}
 
         <Button onClick={this.reset}>

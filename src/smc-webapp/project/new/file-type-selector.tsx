@@ -8,8 +8,7 @@ import { Col, Row } from "react-bootstrap";
 
 import { Tip } from "../../r_misc";
 
-import { JupyterServerPanel } from "../plain-jupyter-server";
-import { JupyterLabServerPanel } from "../jupyterlab-server";
+import { NamedServerPanel } from "../named-server-panel";
 
 import { NewFileButton } from "./new-file-button";
 import { ALL_AVAIL } from "../../project_configuration";
@@ -30,8 +29,10 @@ export const FileTypeSelector: React.FC<Props> = ({
   project_id,
   children,
 }: Props): JSX.Element | null => {
-  const [show_jupyter_server, set_show_jupyter_server] = useState(false);
-  const [show_jupyterlab_server, set_show_jupyterlab_server] = useState(false);
+  const [showNamedServer, setShowNamedServer] = useState<
+    "" | "jupyter" | "jupyterlab" | "code" | "pluto"
+  >("");
+
   const available_features = useTypedRedux(
     { project_id },
     "available_features"
@@ -227,54 +228,53 @@ export const FileTypeSelector: React.FC<Props> = ({
       </Row>
       <Row style={row_style}>
         <Col sm={12}>
-          {available.jupyter_notebook ? (
-            <Tip
-              title={"Jupyter server"}
+          {available.jupyter_notebook && (
+            <NewFileButton
+              name={"Jupyter classic server..."}
               icon={"ipynb"}
-              tip={
-                "Start a Jupyter classic notebook server running from your project, which only project collaborators can access."
-              }
-            >
-              <NewFileButton
-                name={"Jupyter classic server..."}
-                icon={"ipynb"}
-                on_click={(): void => {
-                  set_show_jupyter_server(true);
-                }}
-                disabled={show_jupyter_server}
-              />
-            </Tip>
-          ) : undefined}
-          {available.jupyter_lab ? (
-            <Tip
-              title={"JupyterLab server"}
+              on_click={(): void => {
+                showNamedServer == "jupyter"
+                  ? setShowNamedServer("")
+                  : setShowNamedServer("jupyter");
+              }}
+            />
+          )}
+          {available.jupyter_lab && (
+            <NewFileButton
+              name={"JupyterLab server..."}
               icon={"ipynb"}
-              tip={
-                "Start a JupyterLab server running from your project, which only project collaborators can access."
-              }
-            >
-              <NewFileButton
-                name={"JupyterLab server..."}
-                icon={"ipynb"}
-                on_click={(): void => {
-                  set_show_jupyterlab_server(true);
-                }}
-                disabled={show_jupyterlab_server}
-              />
-            </Tip>
-          ) : undefined}
+              on_click={(): void => {
+                showNamedServer == "jupyterlab"
+                  ? setShowNamedServer("")
+                  : setShowNamedServer("jupyterlab");
+              }}
+            />
+          )}
+          <NewFileButton
+            name={"VS Code server..."}
+            icon={"vscode"}
+            on_click={(): void => {
+              showNamedServer == "code"
+                ? setShowNamedServer("")
+                : setShowNamedServer("code");
+            }}
+          />
+          <NewFileButton
+            name={"Pluto server..."}
+            icon={"julia"}
+            on_click={(): void => {
+              showNamedServer == "pluto"
+                ? setShowNamedServer("")
+                : setShowNamedServer("pluto");
+            }}
+          />
         </Col>
       </Row>
       <Row style={row_style}>
-        <Col sm={6}>
-          {show_jupyter_server ? (
-            <JupyterServerPanel project_id={project_id} />
-          ) : undefined}
-        </Col>
-        <Col sm={6}>
-          {show_jupyterlab_server ? (
-            <JupyterLabServerPanel project_id={project_id} />
-          ) : undefined}
+        <Col sm={12}>
+          {showNamedServer && (
+            <NamedServerPanel project_id={project_id} name={showNamedServer} />
+          )}
         </Col>
       </Row>
     </>
