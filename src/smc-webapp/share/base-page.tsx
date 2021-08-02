@@ -95,6 +95,7 @@ gtag('config', '${this.props.settings.google_analytics}');\
       <script
         async={true}
         defer={true}
+        type="module"
         src={`https://${this.props.settings.dns}/analytics.js`}
       />
     );
