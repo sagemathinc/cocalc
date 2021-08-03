@@ -107,7 +107,7 @@ async function paths(name: string): Promise<{
 }
 
 function preferredPort(name: string): number | undefined {
-  const p = process.env[`COCALC_{name.toUpperCase()}_PORT`];
+  const p = process.env[`COCALC_${name.toUpperCase()}_PORT`];
   if (p == null) return p;
   return parseInt(p);
 }
