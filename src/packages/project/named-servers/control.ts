@@ -107,14 +107,6 @@ async function paths(name: string): Promise<{
 }
 
 function preferredPort(name: string): number | undefined {
-  // TODO: can probably delete these fallbacks soon.
-  if (name == "jupyter" && process.env.COCALC_JUPYTER_NOTEBOOK_PORT) {
-    // backward compat
-    return parseInt(process.env.COCALC_JUPYTER_NOTEBOOK_PORT);
-  }
-  if (name == "jupyterlab" && process.env.COCALC_JUPYTER_LAB_PORT) {
-    return parseInt(process.env.COCALC_JUPYTER_LAB_PORT);
-  }
   const p = process.env[`COCALC_{name.toUpperCase()}_PORT`];
   if (p == null) return p;
   return parseInt(p);
