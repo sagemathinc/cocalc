@@ -17,8 +17,8 @@ dmp.Diff_Timeout = 0.2; // computing a diff won't block longer than about 0.2s
 // TODO: we must explicitly type these as "Function" or typescript gives errors.
 // We should of course explicitly type the inputs and outputs of each, which
 // will make other code more robust. See above and look at the source...
-export const diff_main: Function = dmp.diff_main;
-export const patch_make: Function = dmp.patch_make;
+export const diff_main: Function = dmp.diff_main.bind(dmp);
+export const patch_make: Function = dmp.patch_make.bind(dmp);
 
 // The diff-match-patch library changed the format, but we must keep it the same
 // for backward compat and two stay JSON friendly.
