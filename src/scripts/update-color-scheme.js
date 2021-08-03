@@ -10,7 +10,7 @@ const path = require("path");
 const { COLORS } = require("@cocalc/util/theme");
 
 // write sass file
-process.chdir(path.join(process.env["SMC_ROOT"], "packages", "frontend"));
+process.chdir(path.join(__dirname, "..", "packages", "frontend"));
 
 const isObject = (a) => !!a && a.constructor === Object;
 

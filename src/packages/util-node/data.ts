@@ -2,8 +2,8 @@
 
 RULES:
 
-- data -- if the environment variable DATA is set, use that.  Otherwise,
-  use a heuristic to deduce basically cocalc/src/data from the path to this file.
+- root -- if COCALC_ROOT is set then it; otherwise use [cocalc-source]/src/.
+- data -- if the environment variable DATA is set, use that.  Otherwise, use {root}/data
 - pgdata -- if env var PGDATA is set, use that; otherwise, it is [data]/postgres: where data data is stored (if running locally)
 - pghost - if env var PGHOST is set, use that; otherwise, it is [data]/postgres/socket: what database connects to
 - projects -- if env var PROJECTS is set, use that (or PROJECTS_PATH); otherwise, it is [data]/projects: where project home directories are
@@ -19,10 +19,12 @@ function determineFromPath(): string {
   const cur = __dirname;
   const search = "/src/";
   const i = cur.lastIndexOf(search);
-  return resolve(cur.slice(0, i + search.length - 1));
+  const root = resolve(cur.slice(0, i + search.length - 1));
+  process.env.COCALC_ROOT = root;
+  return root;
 }
 
-export const root: string = process.env.SMC_ROOT ?? determineFromPath();
+export const root: string = process.env.COCALC_ROOT ?? determineFromPath();
 export const data: string = process.env.DATA ?? join(root, "data");
 export const pgdata: string = process.env.PGDATA ?? join(data, "postgres");
 export const pghost: string = process.env.PGHOST ?? join(pgdata, "socket");

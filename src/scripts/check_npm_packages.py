@@ -4,7 +4,7 @@ Consistency check for npm packages across node modules
 
 Hint: to get a "real time" info while working on resolving this, run
       $ /usr/bin/watch -n1 check_npm_packages.py
-      in the SMC_ROOT dir in a separate terminal.
+      in the COCALC_ROOT dir in a separate terminal.
 """
 
 import os
@@ -18,7 +18,7 @@ from typing_extensions import Final
 
 T_installs = Dict[str, Dict[str, str]]
 
-root: Final[str] = os.environ.get('SMC_ROOT', abspath(os.curdir))
+root: Final[str] = os.environ.get('COCALC_ROOT', abspath(os.curdir))
 
 # these packages are known to be inconsistent on purpose
 # async and immutable are a little bit more modern in packages/frontend,

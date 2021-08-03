@@ -29,10 +29,10 @@ _       = require('underscore')
 {defaults, required} = misc
 
 winston      = require('./logger').getLogger('support')
-
+data = require('@cocalc/util-node/data')
 
 zendesk_password_filename = ->
-    return (process.env.SMC_ROOT ? '.') + '/data/secrets/zendesk'
+    return path.join(data.data, 'secrets/zendesk')
 
 fixSessions = (body) ->
     # takes the body of the ticket, searches for http[s]://<theme.DNS>/ URLs and either replaces ?session=* by ?session= or adds it

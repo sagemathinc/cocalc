@@ -13,7 +13,8 @@
     "hub": "cd packages/hub && npm run hub-project-dev-nobuild",
     "static": "cd packages/static && npm run webpack",
     "psql": "PGUSER='smc' PGHOST=$INIT_CWD/data/postgres/socket psql",
-    "database": "cd dev/project && ./start_postgres.py"
+    "database": "cd dev/project && ./start_postgres.py",
+    "version-check": "./workspaces.py version-check"
   },
   "repository": {
     "type": "git",

@@ -86,7 +86,7 @@ let agent_check_server: any;
 // for development, set the env var in your startup script or terminal init file
 // export COCALC_HUB_SELF_TERMINATE=.1,.2,1
 // and then query it like that
-// $ telnet 0.0.0.0 $(cat $SMC_ROOT/dev/project/ports/agent-port)
+// $ telnet 0.0.0.0 $(cat $COCALC_ROOT/dev/project/ports/agent-port)
 function setup_agent_check() {
   if (agent_port == 0 || drain == null) {
     L("setup_agent_check: agent_port not set, no agent checks");

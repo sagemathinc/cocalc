@@ -16,8 +16,6 @@ misc = require('@cocalc/util/misc')
 {walltime, defaults, required, to_json} = misc
 message = require('@cocalc/util/message')
 
-exports.SMC_ROOT = SMC_ROOT = process.env.SMC_ROOT
-
 # Asynchronous JSON functionality: these are slower but block the main thread *less*.
 #
 # - to_json_async - convert object to JSON string without blocking.

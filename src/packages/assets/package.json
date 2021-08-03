@@ -22,7 +22,7 @@
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
-    "@cocalc/util-node": "file:../util-node",
+    "@cocalc/util-node": "*",
     "uglify-js": "^3.13.10"
   }
 }

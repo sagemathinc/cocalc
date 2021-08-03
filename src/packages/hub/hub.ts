@@ -7,19 +7,8 @@
 // middle of the action, connected to potentially thousands of clients,
 // many Sage sessions, and PostgreSQL database.
 
-/*
-TEMPORARY: There is still some code that assumes that process.env.SMC_ROOT is
-defined, we for now we define it here on startup using the directory of the
-dist/hub.js file typescript creates.  This will NOT work if we use cocalc via
-the @cocalc/hub npm package, so you better set SMC_ROOT properly in that case.
-*/
-import { join, resolve } from "path";
-if (!process.env.SMC_ROOT) {
-  process.env.SMC_ROOT = resolve(join(__dirname, "..", ".."));
-}
-
+import { projects } from "@cocalc/util-node/data";
 import { spawn } from "child_process";
-
 import { COCALC_MODES } from "./servers/project-control";
 import blocked from "blocked";
 import { program as commander, Option } from "commander";
@@ -42,9 +31,7 @@ const initZendesk = require("./support").init_support; // import { init_support 
 import { getClients } from "./clients";
 import { stripe_sync } from "./stripe/sync";
 import { init_stripe } from "./stripe";
-import { projects } from "@cocalc/util-node/data";
 import port from "@cocalc/util-node/port";
-
 import { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
 import initHttpServer from "./servers/http";
