@@ -103,9 +103,9 @@ function useData(
   const [loading, set_loading] = useState<boolean>(false);
   if (data == null) {
     require.ensure([], () => {
-      // this file is supposed to be in webapp-lib/examples/examples.json
+      // this file is supposed to be in @cocalc/assets/examples/examples.json
       //     follow "./install.py examples" to see how the makefile is called during build
-      hardcoded = require("webapp-lib/examples/examples.json");
+      hardcoded = require("@cocalc/assets/examples/examples.json");
       set_data(hardcoded); // call immediately to show default snippets quickly
       load_data(project_actions, set_data, set_error);
     });

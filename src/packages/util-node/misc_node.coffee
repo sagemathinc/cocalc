@@ -16,9 +16,7 @@ misc = require('@cocalc/util/misc')
 {walltime, defaults, required, to_json} = misc
 message = require('@cocalc/util/message')
 
-exports.SALVUS_HOME = exports.SMC_ROOT = SMC_ROOT = process.env.SMC_ROOT
-
-exports.WEBAPP_LIB = 'webapp-lib' # was 'static' in the old days, contains js libraries
+exports.SMC_ROOT = SMC_ROOT = process.env.SMC_ROOT
 
 # Asynchronous JSON functionality: these are slower but block the main thread *less*.
 #

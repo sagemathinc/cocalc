@@ -79,7 +79,7 @@ def packages(args):
         'smc-hub',
         'smc-webapp',
         'packages/project',
-        'webapp-lib'
+        'packages/assets'
     ]
     for x in os.listdir('packages'):
         path = os.path.join("packages", x)

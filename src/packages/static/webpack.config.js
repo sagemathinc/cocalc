@@ -188,8 +188,8 @@ module.exports = {
     modules: [
       __dirname,
       path.resolve(__dirname, "node_modules"),
-      path.resolve(__dirname, "node_modules", "webapp-lib"),
-      path.resolve(__dirname, "node_modules", "webapp-lib/node_modules"),
+      path.resolve(__dirname, "node_modules", "@cocalc/assets"),
+      path.resolve(__dirname, "node_modules", "@cocalc/assets/node_modules"),
       path.resolve(__dirname, "node_modules", "@cocalc/util"),
       path.resolve(__dirname, "node_modules", "@cocalc/util/node_modules"),
       path.resolve(__dirname, "node_modules", "smc-webapp"),

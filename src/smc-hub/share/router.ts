@@ -21,7 +21,7 @@ import { handle_share_listing } from "./handle-share-listing";
 import { handle_user_request } from "./handle-user-request";
 import { handle_path_request } from "./handle-path-request";
 
-import { path as WEBAPP_PATH } from "webapp-lib";
+import { path as WEBAPP_PATH } from "@cocalc/assets";
 
 import * as util from "./util";
 

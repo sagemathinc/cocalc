@@ -1,7 +1,7 @@
 {
   "name": "@cocalc/static",
   "workspaces": [
-    "../../webapp-lib",
+    "../assets",
     "../../smc-webapp",
     "../cdn",
     "../util-node",
@@ -11,8 +11,12 @@
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
-    "presets": ["@babel/preset-env"],
-    "plugins": ["@babel/plugin-transform-react-jsx"]
+    "presets": [
+      "@babel/preset-env"
+    ],
+    "plugins": [
+      "@babel/plugin-transform-react-jsx"
+    ]
   },
   "scripts": {
     "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development webpack --progress --color --watch",
@@ -45,10 +49,10 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "devDependencies": {
+    "@cocalc/assets": "file:../assets",
     "@cocalc/cdn": "*",
     "@cocalc/util": "*",
     "@cocalc/util-node": "*",
-    "webapp-lib": "*",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^26.0.23",
     "@types/jquery": "^3.5.5",

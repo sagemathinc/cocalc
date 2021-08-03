@@ -89,9 +89,9 @@ class exports.ExamplesActions extends Actions
         if not DATA?
             require.ensure [], =>
                 # DATA is a global variable!
-                # this file is supposed to be in webapp-lib/examples/examples.json
+                # this file is supposed to be in @cocalc/assets/examples/examples.json
                 # follow "./install.py examples" to see how the makefile is called during build
-                DATA = require('webapp-lib/examples/examples.json')
+                DATA = require('@cocalc/assets/examples/examples.json')
                 @init_data(DATA)
         else
             @init_data(DATA)

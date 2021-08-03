@@ -9,7 +9,7 @@
   "workspaces": [
     "./",
     "../smc-webapp",
-    "../webapp-lib",
+    "../packages/assets",
     "../packages/cdn",
     "../packages/landing",
     "../packages/landing-free",
@@ -19,6 +19,7 @@
     "../packages/util-node"
   ],
   "dependencies": {
+    "@cocalc/assets": "file:../packages/assets",
     "@cocalc/cdn": "*",
     "@cocalc/landing-free": "*",
     "@cocalc/share": "*",
@@ -96,8 +97,7 @@
     "temp": "^0.9.1",
     "uglify-js": "^3.14.1",
     "underscore": "^1.12.1",
-    "validator": "^13.0.0",
-    "webapp-lib": "*"
+    "validator": "^13.0.0"
   },
   "devDependencies": {
     "@types/http-proxy": "^1.17.6",

@@ -13,7 +13,7 @@ import { initAnalytics } from "../analytics";
 import { getLogger } from "../logger";
 import { setup_health_checks as setupHealthChecks } from "../health-checks";
 import { path as STATIC_PATH } from "@cocalc/static";
-import { path as WEBAPP_PATH } from "webapp-lib";
+import { path as WEBAPP_PATH } from "@cocalc/assets";
 import { path as CDN_PATH } from "@cocalc/cdn";
 import { database } from "./database";
 import basePath from "@cocalc/util-node/base-path";

@@ -6,7 +6,7 @@
 /*
 Support  tab/control+space completions when editing tex documents.
 
-This just uses the file webapp-lib/codemirror-extra/data/latex-completions.txt,
+This just uses the file @cocalc/assets/codemirror-extra/data/latex-completions.txt,
 and I can't remember where that came from or how to update it.
 */
 

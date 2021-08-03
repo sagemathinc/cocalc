@@ -33,12 +33,12 @@ export class ComputeEnvironmentActions extends Actions<
     }
     this.setState({ loading: true });
     // these files only contain "{}" by default, but get set to something interesting
-    // in some cases -- see webapp-lib/README.md.
+    // in some cases -- see @cocalc/assets/README.md.
 
     // @ts-ignore -- for some reason typescript doesn't know about require.ensure, though it does work fine.
     require.ensure([], () => {
-      const inventory = require("webapp-lib/compute-inventory.json");
-      const components = require("webapp-lib/compute-components.json");
+      const inventory = require("@cocalc/assets/compute-inventory.json");
+      const components = require("@cocalc/assets/compute-components.json");
       this.init_data(inventory, components);
     });
   }

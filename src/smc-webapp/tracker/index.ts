@@ -10,7 +10,7 @@
 function analytics(type: "event" | "pageview", ...args): void {
   // GoogleGTag contains the possibly customized function name of GA.
   // It's a good idea to call it differently from the default 'gtag' to avoid name clashes...
-  // see webapp-lib/_inc_analytics.pug
+  // see @cocalc/assets/_inc_analytics.pug
   const gtag: any = (window as any).GoogleGTag;
   const pv: any = (window as any).GoogleGTagPageview;
   if (gtag == null || pv == null) return;

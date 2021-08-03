@@ -17,7 +17,7 @@ declare global {
 const TERMINAL_COLOR_SCHEMES: { [name: string]: string } = {};
 
 // This global Terminal object is from old xterm.js, and the color_schemes
-// stuff is defined in webapp-lib/term/color_themes.js
+// stuff is defined in @cocalc/assets/term/color_themes.js
 // Of course we should do this in a better way!
 for (const theme in window.Terminal.color_schemes) {
   const val = window.Terminal.color_schemes[theme];

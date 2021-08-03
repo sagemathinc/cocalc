@@ -8,7 +8,7 @@ const { writeFileSync } = require("fs");
 const { join } = require("path");
 
 // The overall procedure is the following:
-// 1. render the component (rendering step is defined in billing) into the webapp-lib folder
+// 1. render the component (rendering step is defined in billing) into the @cocalc/assets folder
 // 2. during the "webpack" step, this component is included into a full html page via includes
 // look into policies/pricing.html, there is <%= require('html?conservativeCollapse!./_static_pricing_page.html') %>
 
@@ -30,7 +30,7 @@ const static_react_pages = [];
 // (see https://facebook.github.io/react/docs/top-level-api.html#reactdomserver.rendertostaticmarkup)
 exports.render_static_react_pages = function () {
   for (let [input, outfile] of static_react_pages) {
-    const filename = join("..", "webapp-lib", outfile);
+    const filename = join("..", "@cocalc/assets", outfile);
     console.log(`render react static pages: rendering ${filename}...`);
     const html = ReactDOMServer.renderToStaticMarkup(input);
     writeFileSync(filename, html);

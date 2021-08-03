@@ -30,7 +30,7 @@
   "directories": {},
   "workspaces": [
     "../smc-hub",
-    "../webapp-lib",
+    "../packages/assets",
     "../packages/cdn",
     "../packages/project",
     "../packages/util",
@@ -38,6 +38,7 @@
   ],
   "dependencies": {
     "@ant-design/icons": "^4.3.0",
+    "@cocalc/assets": "file:../packages/assets",
     "@cocalc/cdn": "*",
     "@cocalc/project": "*",
     "@cocalc/util": "file:../packages/util",
@@ -142,7 +143,6 @@
     "use-async-effect": "^2.2.2",
     "use-debounce": "^3.4.2",
     "utility-types": "^3.10.0",
-    "webapp-lib": "*",
     "xterm": "^4.9.0",
     "xterm-addon-fit": "^0.4.0",
     "xterm-addon-web-links": "^0.4.0",

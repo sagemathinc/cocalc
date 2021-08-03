@@ -3,7 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// IMPORTANT: If you change this file, also update this date, which appears in webapp-lib/policies/pricing.pug
+// IMPORTANT: If you change this file, also update this date, which
+// appears in packages/landing/policies/pricing.pug
 
 exports.CURRENT_DATE = "September 2020";
 
