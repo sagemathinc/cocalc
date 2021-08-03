@@ -1218,7 +1218,7 @@ class exports.Client extends EventEmitter
                     #    return
 
                     # we always send invite emails. for non-upgraded projects, we sanitize the content of the body
-                    # ATTN: this must harmonize with smc-webapp/projects → allow_urls_in_emails
+                    # ATTN: this must harmonize with @cocalc/frontend/projects → allow_urls_in_emails
                     # also see mesg_invite_noncloud_collaborators
 
                     dbg("send_email invite to #{locals.email_address}")
@@ -1311,7 +1311,7 @@ class exports.Client extends EventEmitter
         # The body is sanitized and not allowed to contain any URLs (anti-spam), unless
         # (a) the sender is a paying customer or (b) the project has network access.
         #
-        # ATTN: this must harmonize with smc-webapp/projects → allow_urls_in_emails
+        # ATTN: this must harmonize with @cocalc/frontend/projects → allow_urls_in_emails
         # also see mesg_invite_collaborator
 
         @touch()

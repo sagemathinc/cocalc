@@ -1040,59 +1040,6 @@ describe 'test converting to and from JSON for sending over a socket -- ', ->
         obj = {first:{now:new Date()}, second:{a:new Date(0), b:'2016-12-12T02:12:03.239'}}
         expect(misc.from_json_socket(misc.to_json_socket(obj))).toEqual(obj)
 
-###
-# TOOD: transform_get_url is no longer in misc, and testing here doesn't work.
-describe 'misc.transform_get_url mangles some URLs or "understands" what action to take', ->
-    turl = require('smc-webapp/project/transform-get-url').transform_get_url
-    it 'preserves "normal" URLs', ->
-        turl('http://example.com/file.tar.gz').should.eql  {command:'wget', args:["http://example.com/file.tar.gz"]}
-        turl('https://example.com/file.tar.gz').should.eql {command:'wget', args:["https://example.com/file.tar.gz"]}
-        turl('https://raw.githubusercontent.com/lightning-viz/lightning-example-notebooks/master/index.ipynb').should.eql
-            command:'wget'
-            args:['https://raw.githubusercontent.com/lightning-viz/lightning-example-notebooks/master/index.ipynb']
-    it 'handles git@github urls', ->
-        u = turl('git@github.com:sagemath/sage.git')
-        u.should.eql {command: 'git', args: ["clone", "git@github.com:sagemath/sage.git"]}
-    it 'understands github "blob" urls', ->
-        # branch
-        turl('https://github.com/sagemath/sage/blob/master/README.md').should.eql
-            command: 'wget'
-            args: ['https://raw.githubusercontent.com/sagemath/sage/master/README.md']
-        # specific commit
-        turl('https://github.com/sagemath/sage/blob/c884e41ac51bb660074bf48cc6cb6577e8003eb1/README.md').should.eql
-            command: 'wget'
-            args: ['https://raw.githubusercontent.com/sagemath/sage/c884e41ac51bb660074bf48cc6cb6577e8003eb1/README.md']
-    it 'git-clones everything that ends with ".git"', ->
-        turl('git://trac.sagemath.org/sage.git').should.eql
-            command: 'git'
-            args: ['clone', 'git://trac.sagemath.org/sage.git']
-    it 'and also git-clonse https:// addresses', ->
-        turl('https://github.com/plotly/python-user-guide').should.eql
-            command: 'git'
-            args: ['clone', 'https://github.com/plotly/python-user-guide.git']
-    it 'also knows about some special URLs', ->
-        # github
-        turl('http://nbviewer.jupyter.org/github/lightning-viz/lightning-example-notebooks/blob/master/index.ipynb').should.eql
-            command: 'wget'
-            args: ['https://raw.githubusercontent.com/lightning-viz/lightning-example-notebooks/master/index.ipynb']
-        # url → http
-        turl('http://nbviewer.jupyter.org/url/jakevdp.github.com/downloads/notebooks/XKCD_plots.ipynb').should.eql
-            command: 'wget'
-            args: ['http://jakevdp.github.com/downloads/notebooks/XKCD_plots.ipynb']
-        # note, this is urls → https
-        turl('http://nbviewer.jupyter.org/urls/jakevdp.github.com/downloads/notebooks/XKCD_plots.ipynb').should.eql
-            command: 'wget'
-            args: ['https://jakevdp.github.com/downloads/notebooks/XKCD_plots.ipynb']
-        # github gist -- no idea how to do that
-        #turl('http://nbviewer.jupyter.org/gist/darribas/4121857').should.eql
-        #    command: 'wget'
-        #    args: ['https://gist.githubusercontent.com/darribas/4121857/raw/505e030811332c78e8e50a54aca5e8034605cb4c/guardian_gaza.ipynb']
-    it 'transforms the cocalc share server url', ->
-        turl('https://share.cocalc.com/share/df736005116ebb1998f6dda48c42719bcec2f46b/ASM_demo.sagews?viewer=share').should.eql
-            command: 'wget'
-            args: ['https://share.cocalc.com/share/raw/df736005116ebb1998f6dda48c42719bcec2f46b/ASM_demo.sagews']
-###
-
 describe 'test closest kernel matching method', ->
     octave   = immutable.fromJS {name:"octave", display_name:"Octave", language:"octave"}
     python2  = immutable.fromJS {name:"python2", display_name:"Python 2", language:"python"}

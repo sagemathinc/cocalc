@@ -162,9 +162,9 @@ module.exports = {
   },
   resolve: {
     alias: {
-      // smc-webapp alias so we can write `require("smc-webapp/...")`
+      // @cocalc/frontend  alias so we can write `require("@cocalc/frontend/...")`
       // anywhere in that library:
-      "smc-webapp": path.resolve(__dirname, "node_modules", "smc-webapp"),
+      "@cocalc/frontend": path.resolve(__dirname, "node_modules", "@cocalc/frontend"),
       // This entities/maps alias is needed due to a weird markdown-it import
       // that webpack 5 won't resolve:
       "entities/maps": path.resolve(
@@ -192,8 +192,8 @@ module.exports = {
       path.resolve(__dirname, "node_modules", "@cocalc/assets/node_modules"),
       path.resolve(__dirname, "node_modules", "@cocalc/util"),
       path.resolve(__dirname, "node_modules", "@cocalc/util/node_modules"),
-      path.resolve(__dirname, "node_modules", "smc-webapp"),
-      path.resolve(__dirname, "node_modules", "smc-webapp/node_modules"),
+      path.resolve(__dirname, "node_modules", "@cocalc/frontend"),
+      path.resolve(__dirname, "node_modules", "@cocalc/frontend/node_modules"),
     ],
     preferRelative: false /* do not use true: it may workaround some weird cases, but breaks many things (e.g., slate) */,
     fallback: {

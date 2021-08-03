@@ -32,7 +32,7 @@ import "jquery-highlight";
 import "bootstrap";
 
 // Bootbox: usable dialogs for bootstrap
-import "script-loader!bootbox/bootbox.min"; // loads from smc-webapp/node_modules
+import "script-loader!bootbox/bootbox.min"; // loads from @cocalc/frontend/node_modules
 
 // Bootstrap Colorpicker Plugin
 import "bootstrap-colorpicker";
@@ -41,7 +41,7 @@ import "bootstrap-colorpicker";
 import "script-loader!@cocalc/assets/term/term.js";
 import "script-loader!@cocalc/assets/term/color_themes.js";
 
-import "smc-webapp/set-version-cookie.js";
+import "@cocalc/frontend/set-version-cookie.js";
 
 import "./webapp-css";
 
@@ -49,4 +49,4 @@ import "./webapp-css";
 // the very end, and by using a dynamic import, it
 // is imported in another chunk, hence after antd.
 // That's important so this overrides antd.
-import("smc-webapp/index.sass"); // this is a dynamic import on purpose!
+import("@cocalc/frontend/index.sass"); // this is a dynamic import on purpose!

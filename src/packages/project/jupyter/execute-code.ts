@@ -27,7 +27,7 @@ import {
   CodeExecutionEmitterInterface,
   ExecOpts,
   StdinFunction,
-} from "smc-webapp/jupyter/project-interface";
+} from "@cocalc/frontend/jupyter/project-interface";
 
 type State = "init" | "closed" | "running";
 

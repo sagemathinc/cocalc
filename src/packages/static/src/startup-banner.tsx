@@ -1,6 +1,6 @@
 /* The startup banner
 
-If you want to develop this, edit smc-webapp/app/render.tsx as indicated there so the
+If you want to develop this, edit packages/frontend/app/render.tsx as indicated there so the
 startup banner doesn't vanish.
 */
 

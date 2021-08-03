@@ -25,7 +25,7 @@ export async function init(): Promise<void> {
 export function versionCheckFails(req, res?): boolean {
   const cookies = new Cookies(req);
   /* NOTE: The name of the cookie $VERSION_COOKIE_NAME is
-     also used in the frontend code file smc-webapp/set-version-cookie.js
+     also used in the frontend code file @cocalc/frontend/set-version-cookie.js
      but everybody imports it from @cocalc/util/consts.
   */
   const rawVal = cookies.get(versionCookieName(base_path));

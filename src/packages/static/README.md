@@ -10,11 +10,11 @@ When doing development, use `npm run webpack` and `npm run tsc-webapp` and `npm 
 
 ```sh
 npm run weppack
-npm run tsc-webapp
+npm run tsc-frontend
 npm run tsc-static
 ```
 
-The first runs webpack to package everything up, the second independently checks for errors in the typescript files in the `smc-webapp` package (the two should not interfere in any way with each other), and the third does the same for code in `packages/static/src`. If you're using an editor like vscode that tells you Typescript errors, you don't need to bother with `npm run tsc-*`.
+The first runs webpack to package everything up, the second independently checks for errors in the typescript files in the `frontend` package (the two should not interfere in any way with each other), and the third does the same for code in `packages/static/src`. If you're using an editor like vscode that tells you Typescript errors, you don't need to bother with `npm run tsc-*`.
 
 Use `npm run webpack-prod` to build and test the production version locally:
 
@@ -77,7 +77,7 @@ all your code up.
 In a second terminal (also in this package/static directory!), start watching for errors via typescript:
 
 ```sh
-npm run tsc-webapp
+npm run tsc-frontend
 ```
 
 The files that are produced by webpack, and that your hub serves up are in the subdirectory `dist/`.  The hub server serves these static files to your browser.
@@ -94,7 +94,7 @@ which will check those files for typescript errors.
 
 ### The module search path:
 
-If there is a package installed in `packages/static/node_modules` it will get included by webpack before the same (but different version) package in `smc-webapp/node_modules`, because of what we listed in `resolve.modules` in `webpack.config.js`. This can cause confusion. E.g., maybe an old version of the `async` library gets indirectly installed in `packages/static/node_modules`, which is wrong. That's why a specific version of async is installed here. The one good thing about this is it makes it easier to override modules installed in `smc-webapp/` if necessary, like we do with `pdfjs-dist` since otherwise it ends up with its own copy of webpack.
+If there is a package installed in `packages/static/node_modules` it will get included by webpack before the same (but different version) package in `frontend/node_modules`, because of what we listed in `resolve.modules` in `webpack.config.js`. This can cause confusion. E.g., maybe an old version of the `async` library gets indirectly installed in `packages/static/node_modules`, which is wrong. That's why a specific version of async is installed here. The one good thing about this is it makes it easier to override modules installed in `frontend/` if necessary, like we do with `pdfjs-dist` since otherwise it ends up with its own copy of webpack.
 
 ### tsconfig.json and code splitting
 

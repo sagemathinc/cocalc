@@ -77,7 +77,7 @@ def packages(args):
         'packages/util',
         'packages/util-node',
         'packages/hub',
-        'smc-webapp',
+        'packages/frontend',
         'packages/project',
         'packages/assets'
     ]

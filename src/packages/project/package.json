@@ -17,12 +17,7 @@
     "math",
     "mathematics"
   ],
-  "workspaces": [
-    "../util",
-    "../../smc-webapp",
-    "../util-node",
-    "."
-  ],
+  "workspaces": ["../util", "../frontend", "../util-node", "."],
   "dependencies": {
     "@cocalc/project": "*",
     "@cocalc/util": "*",
@@ -66,7 +61,7 @@
     "prom-client": "^13.0.0",
     "request": "^2.88.0",
     "serve-index": "^1.9.1",
-    "smc-webapp": "*",
+    "@cocalc/frontend": "*",
     "temp": "^0.9.1",
     "tmp": "0.0.33",
     "uglify-js": "^3.13.9",
@@ -92,9 +87,7 @@
     "tsc": "npx tsc --watch"
   },
   "author": "SageMath, Inc.",
-  "contributors": [
-    "William Stein <wstein@sagemath.com>"
-  ],
+  "contributors": ["William Stein <wstein@sagemath.com>"],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"

@@ -9,8 +9,8 @@ import { callback2 } from "@cocalc/util/async-utils";
 import { query } from "./query";
 import debug from "debug";
 const L = debug("hub:project-queries");
-import { DUMMY_SECRET } from "smc-webapp/project/settings/const";
-import { DatastoreConfig } from "smc-webapp/project/settings/types";
+import { DUMMY_SECRET } from "@cocalc/frontend/project/settings/const";
+import { DatastoreConfig } from "@cocalc/frontend/project/settings/types";
 
 export async function project_has_network_access(
   db: PostgreSQL,

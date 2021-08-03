@@ -21,7 +21,7 @@ T_installs = Dict[str, Dict[str, str]]
 root: Final[str] = os.environ.get('SMC_ROOT', abspath(os.curdir))
 
 # these packages are known to be inconsistent on purpose
-# async and immutable are a little bit more modern in smc-webapp,
+# async and immutable are a little bit more modern in packages/frontend,
 # while they are behind elsewhere (but at the same vesion)
 # we don't want to introduce any other inconsistencies...
 whitelist: Final[List[str]] = ['async', 'immutable']

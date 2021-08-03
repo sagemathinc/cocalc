@@ -7,7 +7,7 @@
 Jupyter's in-memory blob store (based on sqlite), which hooks into the raw http server.
 */
 
-import { BlobStoreInterface } from "smc-webapp/jupyter/project-interface";
+import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
 import * as fs from "fs";
 import { readFile } from "./async-utils-node";
 import Logger from "@cocalc/util-node/logger";

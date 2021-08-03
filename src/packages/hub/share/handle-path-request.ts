@@ -12,7 +12,7 @@ import {
 import {
   default_to_raw,
   has_special_viewer,
-} from "smc-webapp/share/file-contents";
+} from "@cocalc/frontend/share/file-contents";
 
 import { render_public_path } from "./render-public-path";
 import { render_static_path } from "./render-static-path";

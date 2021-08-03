@@ -58,7 +58,7 @@ import { PostgreSQL } from "./postgres/types";
 import {
   PassportStrategy,
   PRIMARY_SSO,
-} from "smc-webapp/account/passport-types";
+} from "@cocalc/frontend/account/passport-types";
 const safeJsonStringify = require("safe-json-stringify");
 import base_path from "@cocalc/util-node/base-path";
 
@@ -541,7 +541,7 @@ export class PassportManager {
       } else {
         const token = req.query.token.toLowerCase();
         const cookies = new Cookies(req, res);
-        // to match smc-webapp/client/password-reset
+        // to match @cocalc/frontend/client/password-reset
         const name = encodeURIComponent(`${base_path}PWRESET`);
         cookies.set(name, token, {
           maxAge: ms("5 minutes"),
@@ -1178,7 +1178,7 @@ export class PassportManager {
       });
     }
     // we got a key ...
-    // NOTE: See also code to generate similar URL in smc-webapp/account/init.ts
+    // NOTE: See also code to generate similar URL in @cocalc/frontend/account/init.ts
     locals.target = `https://authenticated?api_key=${locals.api_key}`;
   }
 

@@ -5,7 +5,7 @@
 
 /*
 Handle purchasing a licenses by customers. This is the server side of
-   smc-webapp/site-licenses/purchase/
+   @cocalc/frontend/site-licenses/purchase/
 
 What this does:
 
@@ -18,7 +18,7 @@ import { PostgreSQL } from "../../postgres/types";
 import {
   PurchaseInfo,
   sanity_checks,
-} from "smc-webapp/site-licenses/purchase/util";
+} from "@cocalc/frontend/site-licenses/purchase/util";
 import { charge_user_for_license, set_purchase_metadata } from "./charge";
 import { create_license } from "./create-license";
 import { StripeClient } from "../../stripe/client";

@@ -4,7 +4,7 @@
  */
 
 import { PostgreSQL } from "../../postgres/types";
-import { PurchaseInfo } from "smc-webapp/site-licenses/purchase/util";
+import { PurchaseInfo } from "@cocalc/frontend/site-licenses/purchase/util";
 import { v4 as uuid } from "node-uuid";
 
 export async function create_license(

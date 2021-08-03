@@ -1,7 +1,7 @@
 /* Save other paths in # part of URL then redirect to the single page app.
    That this happened is assumed, e.g., in packages/static/src/init-app-base-path.ts
 
-   This redirect is *undone* in smc-webapp/client/handle-hash-url.ts
+   This redirect is *undone* in @cocalc/frontend/client/handle-hash-url.ts
 */
 
 import { parse } from "url";
@@ -10,8 +10,8 @@ import { Router } from "express";
 import basePath from "@cocalc/util-node/base-path";
 
 // All top level page "entry points" in the webapp must be listed here.
-// Should be consistent with what is handled in smc-webapp/history.ts
-// and smc-webapp/app/actions.ts
+// Should be consistent with what is handled in @cocalc/frontend/history.ts
+// and @cocalc/frontend/app/actions.ts
 const ROUTES = ["admin", "help", "projects", "settings", "notifications"];
 
 export default function init(router: Router) {

@@ -3,10 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "smc-webapp/app-framework";
-import { ContentPage } from "smc-webapp/share/content-page";
-import { IsPublicFunction } from "smc-webapp/share/types";
-import * as react_support from "smc-webapp/share/server-render";
+import { React } from "@cocalc/frontend/app-framework";
+import { ContentPage } from "@cocalc/frontend/share/content-page";
+import { IsPublicFunction } from "@cocalc/frontend/share/types";
+import * as react_support from "@cocalc/frontend/share/server-render";
 import { Settings } from "./settings";
 import base_path from "@cocalc/util-node/base-path";
 

@@ -6,7 +6,7 @@
 import { delay } from "awaiting";
 import { once } from "@cocalc/util/async-utils";
 import { SyncTable, SyncTableState } from "@cocalc/util/sync/table";
-import { TypedMap } from "smc-webapp/app-framework";
+import { TypedMap } from "@cocalc/frontend/app-framework";
 import {
   close,
   endswith,

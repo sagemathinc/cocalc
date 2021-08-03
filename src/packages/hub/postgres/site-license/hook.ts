@@ -7,7 +7,7 @@ import { Map } from "immutable";
 import { isEqual } from "lodash";
 import { PostgreSQL } from "../types";
 import { query } from "../query";
-import { TypedMap } from "smc-webapp/app-framework";
+import { TypedMap } from "@cocalc/frontend/app-framework";
 import { is_valid_uuid_string, len } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import { number_of_running_projects_using_license } from "./analytics";

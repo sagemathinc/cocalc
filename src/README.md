@@ -55,7 +55,7 @@ npm run status
 or to just see status for a specific package or packages
 
 ```sh
-npm run status --packages=static,smc-webapp
+npm run status --packages=static,frontend
 ```
 
 This uses git and package.json to show you which files (in the package directory!) have changed since this package was last published to npmjs.  To see the diff:

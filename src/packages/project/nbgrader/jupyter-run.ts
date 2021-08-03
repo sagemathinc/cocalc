@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { RunNotebookOptions } from "smc-webapp/jupyter/nbgrader/api";
-import { JupyterNotebook } from "smc-webapp/jupyter/nbgrader/autograde";
+import { RunNotebookOptions } from "@cocalc/frontend/jupyter/nbgrader/api";
+import { JupyterNotebook } from "@cocalc/frontend/jupyter/nbgrader/autograde";
 import { is_object, len, uuid, trunc_middle } from "@cocalc/util/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
 

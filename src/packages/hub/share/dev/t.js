@@ -14,9 +14,9 @@ log = (...args) => console.log(...args);
 log("setting up jsDOM");
 require("../jsdom-support");
 
-log("loading smc-webapp");
-const { HTML } = require("smc-webapp/r_misc");
-const { React } = require("smc-webapp/app-framework");
+log("loading @cocalc/frontend");
+const { HTML } = require("@cocalc/frontend/r_misc");
+const { React } = require("@cocalc/frontend/app-framework");
 
 exports.HTML = HTML;
 exports.c = function () {

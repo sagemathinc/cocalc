@@ -50,13 +50,13 @@ import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
 const { key_value_store } = require("@cocalc/util/key-value-store");
 
 import { blob_store, BlobStore } from "./jupyter-blobs-sqlite";
-import { JUPYTER_MIMETYPES } from "smc-webapp/jupyter/util";
+import { JUPYTER_MIMETYPES } from "@cocalc/frontend/jupyter/util";
 import {
   is_likely_iframe,
   process as iframe_process,
-} from "smc-webapp/jupyter/iframe";
+} from "@cocalc/frontend/jupyter/iframe";
 
-import { remove_redundant_reps } from "smc-webapp/jupyter/import-from-ipynb";
+import { remove_redundant_reps } from "@cocalc/frontend/jupyter/import-from-ipynb";
 
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { callback } from "awaiting";
@@ -68,14 +68,14 @@ import {
   ExecOpts,
   KernelInfo,
   CodeExecutionEmitterInterface,
-} from "smc-webapp/jupyter/project-interface";
+} from "@cocalc/frontend/jupyter/project-interface";
 
 import { CodeExecutionEmitter } from "./execute-code";
 
-import { JupyterActions } from "smc-webapp/jupyter/project-actions";
-import { JupyterStore } from "smc-webapp/jupyter/store";
+import { JupyterActions } from "@cocalc/frontend/jupyter/project-actions";
+import { JupyterStore } from "@cocalc/frontend/jupyter/store";
 
-import { JupyterKernelInterface } from "smc-webapp/jupyter/project-interface";
+import { JupyterKernelInterface } from "@cocalc/frontend/jupyter/project-interface";
 
 import {
   launch_jupyter_kernel,
@@ -95,7 +95,7 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
 export function jupyter_backend(syncdb: SyncDB, client: any): void {
   const dbg = client.dbg("jupyter_backend");
   dbg();
-  const app_framework = require("smc-webapp/app-framework");
+  const app_framework = require("@cocalc/frontend/app-framework");
 
   const project_id = client.client_id();
 
@@ -134,7 +134,7 @@ export async function remove_jupyter_backend(
   } catch (_err) {
     // ignore
   }
-  const app_framework = require("smc-webapp/app-framework");
+  const app_framework = require("@cocalc/frontend/app-framework");
   const redux_name = app_framework.redux_name(project_id, path);
   const actions = app_framework.redux.getActions(redux_name);
   if (actions != null) {

@@ -23,11 +23,11 @@ import { callback } from "awaiting";
 
 import { field_cmp, filename_extension, path_to_title } from "@cocalc/util/misc";
 
-import { React } from "smc-webapp/app-framework";
-import { PublicPath } from "smc-webapp/share/public-path";
-import { has_viewer, needs_content } from "smc-webapp/share/file-contents";
-import { DirectoryListing } from "smc-webapp/share/directory-listing";
-import { Author } from "smc-webapp/share/types";
+import { React } from "@cocalc/frontend/app-framework";
+import { PublicPath } from "@cocalc/frontend/share/public-path";
+import { has_viewer, needs_content } from "@cocalc/frontend/share/file-contents";
+import { DirectoryListing } from "@cocalc/frontend/share/directory-listing";
+import { Author } from "@cocalc/frontend/share/types";
 import { get_listing } from "./listing";
 import { redirect_to_directory } from "./util";
 import { HostInfo } from "./public-paths";

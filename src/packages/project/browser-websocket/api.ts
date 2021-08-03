@@ -34,7 +34,7 @@ import { delete_files } from "./delete-files";
 import { rename_file, move_files } from "./move-files";
 import { realpath } from "./realpath";
 import { project_info_ws } from "../project-info";
-import { Mesg } from "smc-webapp/project/websocket/types";
+import { Mesg } from "@cocalc/frontend/project/websocket/types";
 
 import { getLogger } from "@cocalc/project/logger";
 const winston = getLogger("websocket-api");

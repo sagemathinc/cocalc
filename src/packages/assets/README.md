@@ -6,7 +6,7 @@ This code is part of https://github.com/sagemathinc/cocalc and isn't currently d
 
 ---
 
-This sub-directory contains assets (images, code, etc.) for the smc-webapp and static pages.
+This sub-directory contains assets (images, code, etc.) for the frontend and static pages.
 
 - [Licensing](./LICENSE.md)
 

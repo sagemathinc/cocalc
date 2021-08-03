@@ -11,9 +11,9 @@ For now this is:
  - a list of links to public paths that they definitely are involved with
 */
 import { Map, List } from "immutable";
-import { React } from "smc-webapp/app-framework";
-import { UserPage } from "smc-webapp/share/user-page";
-import * as react_support from "smc-webapp/share/server-render";
+import { React } from "@cocalc/frontend/app-framework";
+import { UserPage } from "@cocalc/frontend/share/user-page";
+import * as react_support from "@cocalc/frontend/share/server-render";
 import { Settings } from "./settings";
 import base_path from "@cocalc/util-node/base-path";
 

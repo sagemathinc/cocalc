@@ -6,7 +6,7 @@
 /*
  * This derives the configuration and capabilities of the current project.
  * It is used in the UI to only show/run those elements, which should work.
- * The corresponding file in the webapp is smc-webapp/project_configuration.ts
+ * The corresponding file in the webapp is @cocalc/frontend/project_configuration.ts
  */
 
 import which from "which";
@@ -14,14 +14,14 @@ import { access as fs_access, constants as fs_constaints } from "fs";
 import { exec as child_process_exec } from "child_process";
 import { promisify } from "util";
 const exec = promisify(child_process_exec);
-import { APPS } from "smc-webapp/frame-editors/x11-editor/apps";
-import { ConfigurationAspect } from "smc-webapp/project_configuration";
+import { APPS } from "@cocalc/frontend/frame-editors/x11-editor/apps";
+import { ConfigurationAspect } from "@cocalc/frontend/project_configuration";
 import {
   Configuration,
   Capabilities,
   MainCapabilities,
   LIBRARY_INDEX_FILE,
-} from "smc-webapp/project_configuration";
+} from "@cocalc/frontend/project_configuration";
 import { syntax2tool, Tool as FormatTool } from "@cocalc/util/code-formatter";
 import { copy } from "@cocalc/util/misc";
 

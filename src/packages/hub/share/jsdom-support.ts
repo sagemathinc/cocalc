@@ -38,9 +38,9 @@ g.CodeMirror = DOM.window.CodeMirror = require("codemirror");
 
 log("Load extra codemirror support libraries");
 require("codemirror/addon/runmode/runmode");
-require("smc-webapp/codemirror/modes");
-require("smc-webapp/codemirror/custom-modes");
+require("@cocalc/frontend/codemirror/modes");
+require("@cocalc/frontend/codemirror/custom-modes");
 
-// TODO: add a lot more, but by refactoring the relevant code in smc-webapp and requiring it here...
+// TODO: add a lot more, but by refactoring the relevant code in @cocalc/frontend and requiring it here...
 
 log(`jsDOM support configured (${(new Date().valueOf() - t0) / 1000} seconds)`);

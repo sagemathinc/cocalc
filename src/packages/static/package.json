@@ -2,7 +2,7 @@
   "name": "@cocalc/static",
   "workspaces": [
     "../assets",
-    "../../smc-webapp",
+    "../frontend",
     "../cdn",
     "../util-node",
     "../util"
@@ -11,16 +11,12 @@
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
-    "presets": [
-      "@babel/preset-env"
-    ],
-    "plugins": [
-      "@babel/plugin-transform-react-jsx"
-    ]
+    "presets": ["@babel/preset-env"],
+    "plugins": ["@babel/plugin-transform-react-jsx"]
   },
   "scripts": {
     "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development webpack --progress --color --watch",
-    "tsc-webapp": "cd node_modules/smc-webapp && npx tsc --watch",
+    "tsc-webapp": "cd node_modules/@cocalc/frontend && npx tsc --watch",
     "tsc-static": "cd src && npx tsc --watch",
     "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production webpack --progress --color --watch",
     "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development npm run webpack ",
@@ -49,10 +45,11 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "devDependencies": {
-    "@cocalc/assets": "file:../assets",
+    "@cocalc/assets": "*",
     "@cocalc/cdn": "*",
     "@cocalc/util": "*",
     "@cocalc/util-node": "*",
+    "@cocalc/frontend": "*",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^26.0.23",
     "@types/jquery": "^3.5.5",

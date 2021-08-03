@@ -5,8 +5,8 @@
 
 const PAGE_SIZE: number = 100;
 
-import { React } from "smc-webapp/app-framework";
-import { PublicPathsBrowser } from "smc-webapp/share/public-paths-browser";
+import { React } from "@cocalc/frontend/app-framework";
+import { PublicPathsBrowser } from "@cocalc/frontend/share/public-paths-browser";
 
 import { react_viewer } from "./react-viewer";
 import { PublicPaths } from "./public-paths";

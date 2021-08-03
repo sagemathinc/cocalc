@@ -5,7 +5,7 @@
 
 import "./webapp-globals";
 import "./webapp-libraries";
-import { init } from "smc-webapp/entry-point";
+import { init } from "@cocalc/frontend/entry-point";
 import { startedUp } from "./webapp-error";
 
 init();

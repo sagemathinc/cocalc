@@ -8,7 +8,7 @@
 import {
   NBGraderAPIOptions,
   NBGraderAPIResponse,
-} from "smc-webapp/jupyter/nbgrader/api";
+} from "@cocalc/frontend/jupyter/nbgrader/api";
 
 export async function nbgrader(
   client,

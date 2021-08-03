@@ -34,7 +34,7 @@ exports.MathJaxConfig = {
     MAXBUFFER: 100000, // see https://github.com/mathjax/MathJax/issues/910
     extensions: ["autoload-all.js", "noUndefined.js", "noErrors.js"],
     Macros: {
-      // get these from sage/misc/latex.py; also in cocalc/src/smc-webapp/math_katex.coffee
+      // get these from sage/misc/latex.py
       Bold: ["\\mathbb{#1}", 1],
       ZZ: ["\\Bold{Z}", 0],
       NN: ["\\Bold{N}", 0],

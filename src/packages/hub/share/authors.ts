@@ -10,7 +10,7 @@ and what shares were authored by a given account.
 
 import { callback2 } from "@cocalc/util/async-utils";
 import { cmp, endswith, is_valid_uuid_string, meta_file } from "@cocalc/util/misc";
-import { Author } from "smc-webapp/share/types";
+import { Author } from "@cocalc/frontend/share/types";
 import { Database } from "./types";
 
 export class AuthorInfo {
