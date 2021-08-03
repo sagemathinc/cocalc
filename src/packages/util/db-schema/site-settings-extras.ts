@@ -80,7 +80,7 @@ export const EXTRAS: SettingsExtras = {
     name: "PII Retention",
     desc: "How long to keep personally identifiable information (deletes certain database entries)",
     default: "never",
-    // values must be understood by smc-hub/utils.ts pii_expire
+    // values must be understood by packages/hub/utils.ts pii_expire
     valid: [
       "never",
       "30 days",
@@ -172,7 +172,7 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_bool,
     show: only_for_smtp,
   },
-  // bad name, historic baggage, used in smc-hub/email.ts
+  // bad name, historic baggage, used in packages/hub/email.ts
   password_reset_override: {
     name: "Override email backend",
     desc: "For 'smtp', password reset and email verification emails are sent via the 'Secondary SMTP' configuration",

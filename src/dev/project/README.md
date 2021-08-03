@@ -1,3 +1,8 @@
+# **This is DEPRECATED!**
+
+---
+
+
 # Development inside a CoCalc project
 
 Notes for doing development inside a cocalc project.

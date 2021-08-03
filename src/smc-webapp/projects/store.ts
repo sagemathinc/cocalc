@@ -503,7 +503,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   // we allow URLs in projects, which have member hosting or internet access
-  // this must harmonize with smc-hub/client → mesg_invite_noncloud_collaborators
+  // this must harmonize with packages/hub/client → mesg_invite_noncloud_collaborators
   public allow_urls_in_emails(project_id: string): boolean {
     const quotas = this.get_total_project_quotas(project_id);
     if (quotas == null) {

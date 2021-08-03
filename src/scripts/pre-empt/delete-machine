@@ -1,1 +1,0 @@
-gcloud compute instances delete --keep-disks=all --zone us-central1-c compute5-us

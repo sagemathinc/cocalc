@@ -238,7 +238,7 @@ export const HTML: React.FC<Props> = (props) => {
   }
 };
 
-// this displayName is assumed and USED in the smc-hub/share/mathjax-support
+// this displayName is assumed and USED in the packages/hub/share/mathjax-support
 // to identify this component; do NOT change or remove!!
 HTML.displayName = "Misc-HTML";
 

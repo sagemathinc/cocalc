@@ -16,7 +16,7 @@ function handleHashUrl(): string {
   }
 
   // If there is a big path after the base url the hub moves all
-  // that part of the url to after a # (see line 288 of src/smc-hub/hub_http_server.coffee).
+  // that part of the url to after a # (see line 288 of src/packages/hub/...).
   // This is a hack so that we can put our whole webapp at static/app.html, instead of having
   // to serve it from tons of other entry points (though that may change later).    E.g.,
   //   https://cocalc.com/45f4aab5-7698-4ac8-9f63-9fd307401ad7/port/8000/projects/f2b471ee-a300-4531-829d-472fa46c7eb7/files/2019-12-16-114812.ipynb?session=default

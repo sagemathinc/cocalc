@@ -98,7 +98,7 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
     };
 
     try {
-      // @ts-ignore -- fails in smc-hub right now...
+      // @ts-ignore -- fails in packages/hub right now...
       CodeMirror.runMode(this.props.value, mode, append);
     } catch (err) {
       /* This does happen --

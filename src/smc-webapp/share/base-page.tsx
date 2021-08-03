@@ -10,7 +10,7 @@ share-server look is a child of this.
 
 import { join } from "path";
 import { React, Component, Rendered } from "../app-framework";
-import { Settings } from "smc-hub/share/settings";
+import { Settings } from "@cocalc/hub/share/settings";
 import { resource_links } from "smc-webapp/misc/resource-links";
 
 export type IsPublicFunction = (project_id: string, path: string) => boolean;

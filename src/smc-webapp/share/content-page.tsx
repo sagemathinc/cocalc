@@ -11,7 +11,7 @@ import { React, Component, Rendered } from "../app-framework";
 import { BasePage } from "./base-page";
 import { TopBar } from "./top-bar";
 import { IsPublicFunction } from "./types";
-import { Settings } from "smc-hub/share/settings";
+import { Settings } from "@cocalc/hub/share/settings";
 
 interface ContentPageProps {
   site_name?: string;

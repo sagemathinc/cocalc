@@ -8,7 +8,7 @@ import { CoCalcLogo } from "./cocalc-logo";
 import { IsPublicFunction } from "./types";
 import { r_join } from "../r_misc/r_join";
 import { SiteSearch } from "./search";
-import { Settings } from "smc-hub/share/settings";
+import { Settings } from "@cocalc/hub/share/settings";
 
 interface TopBarProps {
   viewer?: string;

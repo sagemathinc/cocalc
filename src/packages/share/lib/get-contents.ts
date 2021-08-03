@@ -43,7 +43,7 @@ export default async function getContents(
   } else {
     // get actual file content
     // TODO: deal with large files and binary files, obviously.
-    // See smc-hub/share/render-public-path.ts where this is solved.
+    // See packages/hub/share/render-public-path.ts where this is solved.
     if (hasSpecialViewer(getExtension(fsPath))) {
       obj.content = (await fs.readFile(fsPath)).toString();
     }

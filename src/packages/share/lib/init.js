@@ -1,6 +1,6 @@
 /*
-IMPORTANT: to use this from smc-hub (say), it's critical that
-smc-hub *also* have its own copy of next installed.
+IMPORTANT: to use this from packages/hub (say), it's critical that
+packages/hub *also* have its own copy of next installed.
 Otherwise, you'll see an error about
 
    "Parsing error: Cannot find module 'next/babel'"

@@ -17,7 +17,7 @@ AGPLv3
 require('ts-node').register()
 require('node-cjsx').transform()
 
-require('smc-hub/share/jsdom-support')
+require('@cocalc/hub/share/jsdom-support')
 misc = require('@cocalc/util/misc')
 smc_react = require('../../app-framework')
 require('../../project_store')  # needed so that project store is available.

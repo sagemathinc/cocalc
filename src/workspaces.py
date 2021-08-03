@@ -73,10 +73,10 @@ def matches(package, packages):
 def packages(args):
     # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments.
     v = [
-        'packages/cdn',  # smc-hub assumes this is built
+        'packages/cdn',  # packages/hub assumes this is built
         'packages/util',
         'packages/util-node',
-        'smc-hub',
+        'packages/hub',
         'smc-webapp',
         'packages/project',
         'packages/assets'

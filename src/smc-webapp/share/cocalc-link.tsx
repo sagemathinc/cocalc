@@ -4,7 +4,7 @@
  */
 
 import { React, Component, Rendered } from "../app-framework";
-import { Settings } from "smc-hub/share/settings";
+import { Settings } from "@cocalc/hub/share/settings";
 import { A } from "../r_misc";
 
 interface Props {

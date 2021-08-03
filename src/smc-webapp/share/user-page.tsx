@@ -13,7 +13,7 @@ import { CoCalcLogo } from "./cocalc-logo";
 import { CoCalcLink } from "./cocalc-link";
 import { BasePage } from "./base-page";
 import { PublicPathsBrowser } from "./public-paths-browser";
-import { Settings } from "smc-hub/share/settings";
+import { Settings } from "@cocalc/hub/share/settings";
 
 interface Props {
   account_id: string;

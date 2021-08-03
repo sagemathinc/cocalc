@@ -17,7 +17,7 @@ global.misc = require("./packages/util/dist/misc");
 global.done = misc.done;
 global.done1 = misc.done1;
 global.done2 = misc.done2;
-global.password_hash = require("./smc-hub/dist/auth").password_hash;
+global.password_hash = require("./packages/hub/dist/auth").password_hash;
 
 let db = undefined;
 function get_db(cb) {
@@ -27,7 +27,7 @@ function get_db(cb) {
     } // HACK -- might not really be initialized yet!
     return db;
   } else {
-    db = require("./smc-hub/dist/postgres").db({ debug: true });
+    db = require("./packages/hub/dist/postgres").db({ debug: true });
     db.connect({ cb });
     return db;
   }
@@ -39,7 +39,7 @@ console.log("db -- database");
 
 // make the global variable p be the project with given id and the global variable s be the compute server
 global.proj = global.project = (id) => {
-  return require("./smc-hub/dist/servers/project-control")(id);
+  return require("./packages/hub/dist/servers/project-control")(id);
 };
 console.log("project('project_id') -- gives back objec to control the porject");
 
