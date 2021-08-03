@@ -5,7 +5,7 @@
 
 // Compute a line-level diff between two strings, which
 // is useful when showing a diff between two states.
-import { dmp } from "@cocalc/util/sync/editor/generic/util";
+import { patch_make } from "@cocalc/util/sync/editor/generic/util";
 import { StringCharMapping } from "@cocalc/util/misc";
 import * as CodeMirror from "codemirror";
 require("./style.sass");
@@ -19,7 +19,7 @@ interface LineDiff {
 
 function line_diff(v0: string, v1: string): LineDiff {
   const string_mapping = new StringCharMapping();
-  const patches = dmp.patch_make(
+  const patches = patch_make(
     string_mapping.to_string(v0.split("\n")),
     string_mapping.to_string(v1.split("\n"))
   );

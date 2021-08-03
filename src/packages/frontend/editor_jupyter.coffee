@@ -46,7 +46,7 @@ stringify            = require('json-stable-stringify')
 
 misc                 = require('@cocalc/util/misc')
 {defaults, required} = misc
-{dmp}                = require('@cocalc/util/sync/editor/generic/util')
+{diff_main}          = require('@cocalc/util/sync/editor/generic/util')
 {webapp_client}      = require('./webapp-client')
 {redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')
@@ -470,7 +470,7 @@ class JupyterWrapper extends EventEmitter
 
         # Compute how to transform current cell list into new one via sequence of
         # operations involving inserts and deletes (a diff).
-        diff           = dmp.diff_main(v0_string, v1_string)
+        diff           = diff_main(v0_string, v1_string)
 
         #dbg(["diff", diff])
         index = 0
@@ -543,7 +543,7 @@ class JupyterWrapper extends EventEmitter
         # factor blobs out.  Write a string with blobs, get something back without.
         #if doc != res
         #    console.log("tried to set to '#{doc}' but got '#{res}'")
-        #    console.log("diff: #{misc.to_json(dmp.diff_main(doc, res))}")
+        #    console.log("diff: #{misc.to_json(diff_main(doc, res))}")
         return {live: res, parse_errors:parse_errors}
 
     set_cell: (index, obj) =>
@@ -1412,7 +1412,7 @@ cm_setValueNoJump = (cm, value) ->
     if not r
         cm.setOption('readOnly', true)
     cm._setValueNoJump = true  # so the cursor events that happen as a direct result of this setValue know.
-    cm.diffApply(dmp.diff_main(cm.getValue(), value))
+    cm.diffApply(diff_main(cm.getValue(), value))
     if not r
         cm.setOption('readOnly', false)
     delete cm._setValueNoJump

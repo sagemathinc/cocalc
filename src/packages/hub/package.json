@@ -21,6 +21,7 @@
   "dependencies": {
     "@cocalc/assets": "*",
     "@cocalc/cdn": "*",
+    "@cocalc/frontend": "*",
     "@cocalc/landing-free": "*",
     "@cocalc/share": "*",
     "@cocalc/static": "*",
@@ -90,7 +91,6 @@
     "safe-json-stringify": "^1.2.0",
     "sanitize-html": "^2.3.2",
     "serve-index": "^1.9.1",
-    "@cocalc/frontend": "*",
     "snappy": "^6.3.5",
     "sql-string-escape": "^1.1.6",
     "stripe": "8.78.0",
@@ -116,7 +116,7 @@
     "node-cjsx": "^2.0.0",
     "should": "^7.1.1",
     "sinon": "^4.5.0",
-    "ts-mocha": "^7.0.0",
+    "ts-mocha": "^8.0.0",
     "typescript": "^4.3.5"
   },
   "scripts": {

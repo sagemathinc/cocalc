@@ -9,7 +9,7 @@ some code in editor_jupyter.coffee.
 */
 
 import { Node, Operation } from "slate";
-import { dmp } from "@cocalc/util/sync/editor/generic/util";
+import { diff_main } from "@cocalc/util/sync/editor/generic/util";
 import { StringCharMapping } from "@cocalc/util/misc";
 import { handleChangeOneNode } from "./handle-change-one-node";
 import { handleChangeTextNodes, isAllText } from "./handle-change-text-nodes";
@@ -39,7 +39,7 @@ export function slateDiff(
   const s1 = docToStrings(doc1);
   const m0 = string_mapping.to_string(s0);
   const m1 = string_mapping.to_string(s1);
-  const diff = dmp.diff_main(m0, m1);
+  const diff = diff_main(m0, m1);
   const operations: Operation[] = [];
   //console.log({ diff, to_string: string_mapping._to_string });
 

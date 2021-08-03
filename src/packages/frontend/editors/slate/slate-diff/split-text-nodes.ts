@@ -4,7 +4,7 @@
  */
 
 import { Operation, Text } from "slate";
-import { dmp } from "@cocalc/util/sync/editor/generic/util";
+import { diff_main } from "@cocalc/util/sync/editor/generic/util";
 import { len } from "@cocalc/util/misc";
 
 export function nextPath(path: number[]): number[] {
@@ -18,7 +18,7 @@ interface Op {
 }
 
 export function slateTextDiff(a: string, b: string): Op[] {
-  const diff = dmp.diff_main(a, b);
+  const diff = diff_main(a, b);
 
   const operations: Op[] = [];
 

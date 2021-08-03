@@ -6,13 +6,13 @@ Using webpack we build the static assets that run in the client's browser.
 
 ### 1. Development
 
-When doing development, use `npm run webpack` and `npm run tsc-webapp` and `npm run tsc-static` in three terminals.
+When doing development, use `npm run webpack` and `npm run tsc` in two terminals.
 
 ```sh
 npm run weppack
-npm run tsc-frontend
-npm run tsc-static
+npm run tsc
 ```
+ALSO, run `npm run tsc` in the `packages/frontend` directory, if you are editing that code.
 
 The first runs webpack to package everything up, the second independently checks for errors in the typescript files in the `frontend` package (the two should not interfere in any way with each other), and the third does the same for code in `packages/static/src`. If you're using an editor like vscode that tells you Typescript errors, you don't need to bother with `npm run tsc-*`.
 

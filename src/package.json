@@ -10,9 +10,10 @@
     "status": "./workspaces.py status --packages=$npm_config_packages  --exclude=$npm_config_exclude 2>&1 |more",
     "diff": "./workspaces.py diff --packages=$npm_config_packages --exclude=$npm_config_exclude 2>&1 |more",
     "publish": "./workspaces.py publish --packages=$npm_config_packages  --exclude=$npm_config_exclude --tag=$npm_config_tag --newversion=$npm_config_newversion ",
-    "hub": "cd packages/hub && npm run hub-project-dev",
-    "database": "cd dev/project && ./start_postgres.py",
-    "webpack": "cd packages/static && npm run webpack"
+    "hub": "cd packages/hub && npm run hub-project-dev-nobuild",
+    "static": "cd packages/static && npm run webpack",
+    "psql": "PGUSER='smc' PGHOST=$INIT_CWD/data/postgres/socket psql",
+    "database": "cd dev/project && ./start_postgres.py"
   },
   "repository": {
     "type": "git",

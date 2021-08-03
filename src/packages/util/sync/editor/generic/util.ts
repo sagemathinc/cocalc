@@ -4,17 +4,21 @@
  */
 
 import { CompressedPatch, Patch } from "./types";
-
 import { diff_match_patch } from "@cocalc/util/dmp";
 
-// @ts-ignore
-export const dmp = new diff_match_patch();
+const dmp = new diff_match_patch();
 dmp.Diff_Timeout = 0.2; // computing a diff won't block longer than about 0.2s
 
 // Here's what a diff-match-patch patch looks like
 //
 // [{"diffs":[[1,"{\"x\":5,\"y\":3}"]],"start1":0,"start2":0,"length1":0,"length2":13},...]
 //
+
+// TODO: we must explicitly type these as "Function" or typescript gives errors.
+// We should of course explicitly type the inputs and outputs of each, which
+// will make other code more robust. See above and look at the source...
+export const diff_main: Function = dmp.diff_main;
+export const patch_make: Function = dmp.patch_make;
 
 // The diff-match-patch library changed the format, but we must keep it the same
 // for backward compat and two stay JSON friendly.
