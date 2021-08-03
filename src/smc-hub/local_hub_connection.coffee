@@ -15,7 +15,7 @@ winston = require('./logger').getLogger('local-hub-connection')
 underscore = require('underscore')
 
 message = require('smc-util/message')
-misc_node = require('smc-util-node/misc_node')
+misc_node = require('@cocalc/util-node/misc_node')
 misc    = require('smc-util/misc')
 {defaults, required} = misc
 

@@ -1,7 +1,7 @@
 import Cookies from "cookies";
 
 import { versionCookieName } from "smc-util/consts";
-import base_path from "smc-util-node/base-path";
+import base_path from "@cocalc/util-node/base-path";
 
 import getServerSettings from "../servers/server-settings";
 import getLogger from "../logger";

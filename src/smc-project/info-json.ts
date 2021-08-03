@@ -11,7 +11,7 @@ import { callback } from "awaiting";
 import { getLogger } from "./logger";
 import { infoJson, project_id, username } from "./data";
 import { options } from "./init-program";
-import basePath from "smc-util-node/base-path";
+import basePath from "@cocalc/util-node/base-path";
 
 let INFO: {
   project_id: string;

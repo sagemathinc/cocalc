@@ -7,7 +7,7 @@
 Node.js interface to nbconvert.
 */
 
-const { execute_code } = require("smc-util-node/misc_node");
+const { execute_code } = require("@cocalc/util-node/misc_node");
 import { callback_opts } from "smc-util/async-utils";
 
 interface nbconvertParams {

@@ -78,7 +78,7 @@ Where it says `--newversion=`, reasonable options are `"major"`, `"minor"`, and 
 
 ## Environment Variables
 
-See `smc-util-node/data.ts` .  In particular, you can set BASE\_PATH, DATA, PGHOST, PGDATA, PROJECTS, SECRETS to override the defaults.  Data is stored in `cocalc/src/data/`  by default.
+See `packages/util-node/data.ts` .  In particular, you can set BASE\_PATH, DATA, PGHOST, PGDATA, PROJECTS, SECRETS to override the defaults.  Data is stored in `cocalc/src/data/`  by default.
 
 ## Filesystem Build Caching
 

@@ -1,14 +1,11 @@
 {
-  "name": "smc-util-node",
+  "name": "@cocalc/util-node",
   "version": "1.4.0",
   "description": "CoCalc misc utility functionality that is meant for running on node.js (not in browser)",
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "build": "npx tsc && npx coffee  -m -c -o dist/ .",
     "tsc": "npx tsc --watch",
@@ -18,9 +15,7 @@
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
-  "workspaces": [
-    "../smc-util"
-  ],
+  "workspaces": ["../../smc-util"],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
     "@types/debug": "^4.1.7",

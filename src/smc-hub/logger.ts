@@ -4,13 +4,13 @@ Winston logger for a hub server.
 There is a similar logger, but with different parameters, in smc-project.
 */
 
-import { getLogger } from "smc-util-node/logger";
+import { getLogger } from "@cocalc/util-node/logger";
 
 // either way:
 export { getLogger };
 export default getLogger;
 
-import { setCounter } from "smc-util-node/logger";
+import { setCounter } from "@cocalc/util-node/logger";
 
 const metrics_recorder = require("./metrics-recorder");
 

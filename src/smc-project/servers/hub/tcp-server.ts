@@ -6,7 +6,7 @@ import { callback } from "awaiting";
 import { once } from "smc-util/async-utils";
 import { getLogger } from "smc-project/logger";
 import { hubPortFile } from "smc-project/data";
-const { enable_mesg, unlock_socket } = require("smc-util-node/misc_node");
+const { enable_mesg, unlock_socket } = require("@cocalc/util-node/misc_node");
 import { options } from "smc-project/init-program";
 import { secretToken } from "smc-project/servers/secret-token";
 const client = require("smc-project/client");

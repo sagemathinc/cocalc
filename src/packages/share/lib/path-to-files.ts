@@ -5,7 +5,7 @@
 
 import { join } from "path";
 import getPool from "./database";
-import { projects } from "smc-util-node/data";
+import { projects } from "@cocalc/util-node/data";
 
 
 // Given a project_id/path, return the directory on the file system where

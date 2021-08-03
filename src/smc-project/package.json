@@ -17,13 +17,9 @@
     "math",
     "mathematics"
   ],
-  "workspaces": [
-    "../smc-util",
-    "../smc-webapp",
-    "../smc-util-node",
-    "."
-  ],
+  "workspaces": ["../smc-util", "../smc-webapp", "../packages/util-node", "."],
   "dependencies": {
+    "@cocalc/util-node": "*",
     "@types/lru-cache": "^5.1.0",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
@@ -64,7 +60,6 @@
     "request": "^2.88.0",
     "serve-index": "^1.9.1",
     "smc-util": "*",
-    "smc-util-node": "*",
     "smc-webapp": "*",
     "temp": "^0.9.1",
     "tmp": "0.0.33",
@@ -88,15 +83,10 @@
   "scripts": {
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' npx cocalc-project",
     "build": "npx tsc && npx coffee -m -c -o dist/ .",
-    "tsc": "npx tsc --watch",
-    "old-test": "npm run testproj && npm run testjup",
-    "old-testproj": "echo 'TEST PROJECT'; node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
-    "old-testjup": "echo 'TEST JUPYTER SERVER'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee"
+    "tsc": "npx tsc --watch"
   },
   "author": "SageMath, Inc.",
-  "contributors": [
-    "William Stein <wstein@sagemath.com>"
-  ],
+  "contributors": ["William Stein <wstein@sagemath.com>"],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"

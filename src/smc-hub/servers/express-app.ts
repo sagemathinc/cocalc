@@ -16,7 +16,7 @@ import { path as STATIC_PATH } from "@cocalc/static";
 import { path as WEBAPP_PATH } from "webapp-lib";
 import { path as CDN_PATH } from "@cocalc/cdn";
 import { database } from "./database";
-import basePath from "smc-util-node/base-path";
+import basePath from "@cocalc/util-node/base-path";
 import initMetrics from "./app/metrics";
 import initAPI from "./app/api";
 import initBlobs from "./app/blobs";

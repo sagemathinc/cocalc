@@ -39,7 +39,7 @@ import {
   ProjectState,
 } from "./base";
 import getLogger from "smc-hub/logger";
-import { getUid } from "smc-util-node/misc";
+import { getUid } from "@cocalc/util-node/misc";
 
 const winston = getLogger("project-control:single-user");
 

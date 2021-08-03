@@ -3,7 +3,7 @@ Paths to temporary files used by the project.
 */
 
 import { join } from "path";
-import { data } from "smc-util-node/data";
+import { data } from "@cocalc/util-node/data";
 import { is_valid_uuid_string } from "smc-util/misc";
 
 export const infoJson = join(data, "info.json");

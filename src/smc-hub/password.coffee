@@ -14,7 +14,7 @@ email                = require('./email')
 {defaults, required} = misc
 {is_valid_password}  = require('./client/create-account')
 auth                 = require('./auth')
-base_path   = require('smc-util-node/base-path').default
+base_path   = require('@cocalc/util-node/base-path').default
 
 exports.PW_RESET_ENDPOINT = PW_RESET_ENDPOINT = '/auth/password_reset'
 exports.PW_RESET_KEY = PW_RESET_KEY = 'token'

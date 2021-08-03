@@ -4,7 +4,7 @@
   "description": "This sub-directory contains assets (images, code, etc.) for the smc-webapp and static pages.",
   "main": "index.js",
   "workspaces": [
-    "../smc-util-node"
+    "../packages/util-node"
   ],
   "directories": {
     "example": "examples"
@@ -22,7 +22,7 @@
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
-    "smc-util-node": "*",
+    "@cocalc/util-node": "*",
     "uglify-js": "^3.13.10"
   }
 }

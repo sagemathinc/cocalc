@@ -60,7 +60,7 @@ import {
   PRIMARY_SSO,
 } from "smc-webapp/account/passport-types";
 const safeJsonStringify = require("safe-json-stringify");
-import base_path from "smc-util-node/base-path";
+import base_path from "@cocalc/util-node/base-path";
 
 // primary strategies -- all other ones are "extra"
 const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO];

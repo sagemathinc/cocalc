@@ -33,7 +33,7 @@ async   = require('async')
 
 message    = require('smc-util/message')
 misc       = require('smc-util/misc')
-misc_node  = require('smc-util-node/misc_node')
+misc_node  = require('@cocalc/util-node/misc_node')
 synctable2 = require('smc-util/sync/table')
 syncdb2    = require('smc-util/sync/editor/db')
 schema     = require('smc-util/schema')

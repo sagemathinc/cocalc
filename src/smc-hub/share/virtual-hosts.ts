@@ -14,7 +14,7 @@ import { render_static_path } from "./render-static-path";
 import * as util from "./util";
 import { is_authenticated } from "./authenticate";
 import { Database, Logger } from "./types";
-import base_path from "smc-util-node/base-path";
+import base_path from "@cocalc/util-node/base-path";
 
 export async function virtual_hosts(opts: {
   database: Database;

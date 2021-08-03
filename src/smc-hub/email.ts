@@ -19,8 +19,8 @@ const winston = require("./logger").getLogger("email");
 import { template } from "lodash";
 import { AllSiteSettingsCached } from "smc-util/db-schema/types";
 import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
-import base_path from "smc-util-node/base-path";
-import { secrets } from "smc-util-node/data";
+import base_path from "@cocalc/util-node/base-path";
+import { secrets } from "@cocalc/util-node/data";
 
 // sendgrid API v3: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 import * as sendgrid from "@sendgrid/client";
@@ -31,7 +31,7 @@ const misc = require("smc-util/misc");
 const { defaults, required } = misc;
 import { site_settings_conf } from "smc-util/db-schema/site-defaults";
 import sanitizeHtml from "sanitize-html";
-import { contains_url } from "smc-util-node/misc";
+import { contains_url } from "@cocalc/util-node/misc";
 
 const {
   SENDGRID_TEMPLATE_ID,

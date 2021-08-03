@@ -20,8 +20,8 @@ async   = require('async')
 
 random_key = require("random-key")
 
-misc_node = require('smc-util-node/misc_node')
-misc2_node = require('smc-util-node/misc')
+misc_node = require('@cocalc/util-node/misc_node')
+misc2_node = require('@cocalc/util-node/misc')
 
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required

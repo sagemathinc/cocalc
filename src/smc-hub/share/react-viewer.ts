@@ -8,7 +8,7 @@ import { ContentPage } from "smc-webapp/share/content-page";
 import { IsPublicFunction } from "smc-webapp/share/types";
 import * as react_support from "smc-webapp/share/server-render";
 import { Settings } from "./settings";
-import base_path from "smc-util-node/base-path";
+import base_path from "@cocalc/util-node/base-path";
 
 export function react_viewer(
   path: string,

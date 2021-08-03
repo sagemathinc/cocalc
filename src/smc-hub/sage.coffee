@@ -46,7 +46,7 @@ message = require("smc-util/message")
 misc    = require('smc-util/misc')
 {defaults, required} = misc
 
-{connect_to_locked_socket, enable_mesg} = require('smc-util-node/misc_node')
+{connect_to_locked_socket, enable_mesg} = require('@cocalc/util-node/misc_node')
 
 exports.send_control_message = (opts) ->
     opts = defaults opts,

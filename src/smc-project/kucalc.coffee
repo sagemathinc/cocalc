@@ -11,7 +11,7 @@ fs = require('fs')
 async = require('async')
 
 misc      = require('smc-util/misc')
-misc_node = require('smc-util-node/misc_node')
+misc_node = require('@cocalc/util-node/misc_node')
 
 path       = require('path')
 {execSync} = require('child_process')

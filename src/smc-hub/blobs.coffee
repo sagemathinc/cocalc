@@ -7,7 +7,7 @@
 
 winston = require('./logger').getLogger('blobs')
 
-misc_node = require('smc-util-node/misc_node')
+misc_node = require('@cocalc/util-node/misc_node')
 misc    = require('smc-util/misc')
 {defaults, required} = misc
 

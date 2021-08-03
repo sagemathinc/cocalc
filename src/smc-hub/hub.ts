@@ -26,12 +26,12 @@ import { program as commander, Option } from "commander";
 import { callback2 } from "smc-util/async-utils";
 import { callback } from "awaiting";
 import { getLogger } from "./logger";
-import { init as initMemory } from "smc-util-node/memory";
-import basePath from "smc-util-node/base-path";
+import { init as initMemory } from "@cocalc/util-node/memory";
+import basePath from "@cocalc/util-node/base-path";
 import { retry_until_success } from "smc-util/async-utils";
 const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
 import { init_passport } from "./auth";
-import base_path from "smc-util-node/base-path";
+import base_path from "@cocalc/util-node/base-path";
 import { migrate_account_token } from "./postgres/migrate-account-token";
 import { init_start_always_running_projects } from "./postgres/always-running";
 import { set_agent_endpoint } from "./health-checks";
@@ -42,8 +42,8 @@ const initZendesk = require("./support").init_support; // import { init_support 
 import { getClients } from "./clients";
 import { stripe_sync } from "./stripe/sync";
 import { init_stripe } from "./stripe";
-import { projects } from "smc-util-node/data";
-import port from "smc-util-node/port";
+import { projects } from "@cocalc/util-node/data";
+import port from "@cocalc/util-node/port";
 
 import { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";

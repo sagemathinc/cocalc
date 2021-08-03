@@ -12,7 +12,7 @@ fs        = require('fs')
 temp      = require('temp')
 
 misc      = require('smc-util/misc')
-misc_node = require('smc-util-node/misc_node')
+misc_node = require('@cocalc/util-node/misc_node')
 message   = require('smc-util/message')
 
 {defaults, required} = misc

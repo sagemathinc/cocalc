@@ -11,7 +11,7 @@ import { AllSiteSettings } from "smc-util/db-schema/types";
 import { expire_time } from "smc-util/misc";
 import { callback2 } from "smc-util/async-utils";
 import { PassportStrategyDB } from "./auth";
-import { secrets } from "smc-util-node/data";
+import { secrets } from "@cocalc/util-node/data";
 
 export function read_db_password_from_disk(): string | null {
   const filename = join(secrets, "postgres");

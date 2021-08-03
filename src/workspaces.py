@@ -75,7 +75,7 @@ def packages(args):
     v = [
         'packages/cdn',  # smc-hub assumes this is built
         'smc-util',
-        'smc-util-node',
+        'packages/util-node',
         'smc-hub',
         'smc-webapp',
         'smc-project',

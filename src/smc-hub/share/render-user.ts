@@ -15,7 +15,7 @@ import { React } from "smc-webapp/app-framework";
 import { UserPage } from "smc-webapp/share/user-page";
 import * as react_support from "smc-webapp/share/server-render";
 import { Settings } from "./settings";
-import base_path from "smc-util-node/base-path";
+import base_path from "@cocalc/util-node/base-path";
 
 export function render_user(opts: {
   res: any;

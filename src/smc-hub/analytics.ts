@@ -172,7 +172,7 @@ The query param "fqd" (fully qualified domain) can be set to true or false (defa
 It controls if the bounce back URL mentions the domain.
 */
 
-import base_path from "smc-util-node/base-path";
+import base_path from "@cocalc/util-node/base-path";
 
 export async function initAnalytics(
   router: Router,

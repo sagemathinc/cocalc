@@ -18,7 +18,7 @@ import { IncomingForm } from "formidable";
 import { callback } from "awaiting";
 const {
   ensure_containing_directory_exists,
-} = require("smc-util-node/misc_node");
+} = require("@cocalc/util-node/misc_node");
 import { getLogger } from "./logger";
 
 export default function init(): Router {

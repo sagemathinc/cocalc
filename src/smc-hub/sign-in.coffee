@@ -22,7 +22,7 @@ message              = require('smc-util/message')
 misc                 = require('smc-util/misc')
 {required, defaults} = misc
 auth                 = require('./auth')
-{process_env_int}    = require("smc-util-node/misc")
+{process_env_int}    = require("@cocalc/util-node/misc")
 Bottleneck           = require("bottleneck")
 
 # these parameters are per group and per hub!

@@ -24,7 +24,7 @@ snappy  = require('snappy')
 zlib    = require('zlib')
 fs      = require('fs')
 
-misc_node = require('smc-util-node/misc_node')
+misc_node = require('@cocalc/util-node/misc_node')
 
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required

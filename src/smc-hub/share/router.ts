@@ -27,7 +27,7 @@ import * as util from "./util";
 
 import { Database } from "./types";
 import { PostgreSQL } from "../postgres/types";
-import base_path from "smc-util-node/base-path";
+import base_path from "@cocalc/util-node/base-path";
 import getLogger from "../logger";
 
 export function share_router(opts: { database: Database; path: string }) {

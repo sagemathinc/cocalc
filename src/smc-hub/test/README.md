@@ -1,13 +1,10 @@
 # Running mocha tests in smc-hub:
 
+DEPRECATED
+
 ## 1. Development install
 
-Running mocha tests in any of the following directories requires development install, e.g. `cd smc-hub;npm install --only=dev`:
-- cocalc/ssmc-util
-- cocalc/ssmc-util-node
-- cocalc/src/smc-hub
-- cocalc/src/smc-project
-- cocalc/src/smc-webapp
+Running mocha tests requires development install.
 
 ## 2. Start test db instance
 

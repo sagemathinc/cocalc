@@ -2,7 +2,7 @@ import { Application } from "express";
 import getLogger from "../logger";
 import initProxy from "./handle-request";
 import initUpgrade from "./handle-upgrade";
-import base_path from "smc-util-node/base-path";
+import base_path from "@cocalc/util-node/base-path";
 import { ProjectControlFunction } from "smc-hub/servers/project-control";
 
 const winston = getLogger("proxy");

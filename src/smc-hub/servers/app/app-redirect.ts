@@ -7,7 +7,7 @@
 import { parse } from "url";
 import { join } from "path";
 import { Router } from "express";
-import basePath from "smc-util-node/base-path";
+import basePath from "@cocalc/util-node/base-path";
 
 // All top level page "entry points" in the webapp must be listed here.
 // Should be consistent with what is handled in smc-webapp/history.ts

@@ -4,7 +4,7 @@ This is used on the next.js server landing pages to customize
 their look and behavior.
 */
 
-import basePath from "smc-util-node/base-path";
+import basePath from "@cocalc/util-node/base-path";
 import { callback2 } from "smc-util/async-utils";
 import { database } from "../database";
 import { Customize } from "@cocalc/landing-free/lib/customize";

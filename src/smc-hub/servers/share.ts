@@ -4,8 +4,8 @@
  */
 
 import { join } from "path";
-import base_path from "smc-util-node/base-path";
-import { projects } from "smc-util-node/data";
+import base_path from "@cocalc/util-node/base-path";
+import { projects } from "@cocalc/util-node/data";
 import { database } from "./database";
 import { getLogger } from "../logger";
 

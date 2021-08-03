@@ -5,7 +5,7 @@ import { join } from "path";
 import { Application } from "express";
 import initLandingServer from "@cocalc/landing-free";
 import { getLogger } from "smc-hub/logger";
-import basePath from "smc-util-node/base-path";
+import basePath from "@cocalc/util-node/base-path";
 import getCustomize from "./landing-customize";
 
 export default async function init(app: Application) {

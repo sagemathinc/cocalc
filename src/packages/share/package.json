@@ -39,17 +39,17 @@
   "private": false,
   "workspaces": [
     "../../smc-webapp",
-    "../../smc-util-node"
+    "../util-node"
   ],
   "dependencies-comment": "IMPORTANT: we install everything (including typescript) as normal deps since it may be needed at runtime due to server settings!!",
   "dependencies": {
+    "@cocalc/util-node": "*",
     "@types/react": "^17.0.14",
     "antd": "^4.16.8",
     "next": "11.0.1",
     "pg": "^8.7.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "smc-util-node": "file:../../smc-util-node",
     "smc-webapp": "*",
     "typescript": "^4.3.5"
   },

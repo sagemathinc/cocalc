@@ -31,7 +31,7 @@ import { Author } from "smc-webapp/share/types";
 import { get_listing } from "./listing";
 import { redirect_to_directory } from "./util";
 import { HostInfo } from "./public-paths";
-import base_path from "smc-util-node/base-path";
+import base_path from "@cocalc/util-node/base-path";
 
 export async function render_public_path(opts: {
   req: any;

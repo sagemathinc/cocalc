@@ -15,7 +15,7 @@ const {
   write_file_to_project,
 } = require("smc-project/read_write_files");
 const { print_to_pdf } = require("smc-project/print_to_pdf");
-const { process_kill } = require("smc-util-node/misc_node");
+const { process_kill } = require("@cocalc/util-node/misc_node");
 const { handle_save_blob_message } = require("smc-project/blobs");
 const client = require("smc-project/client");
 import { version } from "smc-util/smc-version";

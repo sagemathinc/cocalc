@@ -16,7 +16,7 @@ const fs_access = promisify(fs.access);
 
 import express from "express";
 import * as http from "http";
-import base_path from "smc-util-node/base-path";
+import base_path from "@cocalc/util-node/base-path";
 
 import { setup_health_checks, Check } from "../health-checks";
 

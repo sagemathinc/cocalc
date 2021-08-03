@@ -13,7 +13,7 @@ Execute a command line or block of BASH code
 #winston = require('./logger').getLogger('exec-shell-code')
 
 misc      = require('smc-util/misc')
-misc_node = require('smc-util-node/misc_node')
+misc_node = require('@cocalc/util-node/misc_node')
 message   = require('smc-util/message')
 
 exports.exec_shell_code = (socket, mesg) ->

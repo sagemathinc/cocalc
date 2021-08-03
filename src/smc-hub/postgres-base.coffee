@@ -44,7 +44,7 @@ if not pg?
 winston      = require('./logger').getLogger('postgres')
 {do_query_with_pg_params} = require('./postgres/set-pg-params')
 
-misc_node = require('smc-util-node/misc_node')
+misc_node = require('@cocalc/util-node/misc_node')
 
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required

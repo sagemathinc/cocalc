@@ -12,12 +12,7 @@
     "publish": "./workspaces.py publish --packages=$npm_config_packages  --exclude=$npm_config_exclude --tag=$npm_config_tag --newversion=$npm_config_newversion ",
     "hub": "cd smc-hub && npm run hub-project-dev",
     "database": "cd dev/project && ./start_postgres.py",
-    "webpack": "cd packages/static && npm run webpack",
-    "old-lint": "npx eslint --ignore-pattern '**/node_modules/**' '**/*.ts?(x)'",
-    "old-test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test && cd ../smc-project && npm test",
-    "old-restore-package-lock": "git ls-files '../*/package-lock.json' | xargs git checkout --",
-    "old-audit-fix": "scripts/npm-audit.sh fix",
-    "old-prettier-all": "git ls-files '*.ts' '*.tsx' '**/*.ts' '**/*.tsx' | parallel -j5 --eta prettier --write :::"
+    "webpack": "cd packages/static && npm run webpack"
   },
   "repository": {
     "type": "git",

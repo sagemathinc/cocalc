@@ -14,7 +14,7 @@ import { join } from "path";
 import { writeFile } from "fs";
 import { once } from "smc-util/async-utils";
 import { options } from "smc-project/init-program";
-import basePath from "smc-util-node/base-path";
+import basePath from "@cocalc/util-node/base-path";
 import { getLogger } from "smc-project/logger";
 import { browserPortFile, project_id } from "smc-project/data";
 import initDirectoryListing from "smc-project/directory-listing";
