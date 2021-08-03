@@ -1,6 +1,6 @@
 {
   "name": "smc-hub",
-  "version": "1.9.0",
+  "version": "1.10.1",
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",
@@ -94,7 +94,7 @@
     "sql-string-escape": "^1.1.6",
     "stripe": "8.78.0",
     "temp": "^0.9.1",
-    "uglify-js": "^3.13.9",
+    "uglify-js": "^3.14.1",
     "underscore": "^1.12.1",
     "validator": "^13.0.0",
     "webapp-lib": "*"
@@ -120,7 +120,7 @@
     "typescript": "^4.3.5"
   },
   "scripts": {
-    "build": "tsc && coffee -m -c -o dist/ .",
+    "build": "npx tsc && coffee -m -c -o dist/ .",
     "hub-project-dev": "npm run build && unset DATA SMC_ROOT BASE_PATH && PGUSER='smc' PGHOST=$INIT_CWD/../data/postgres/socket DEBUG='cocalc:*,-cocalc:silly:*' NODE_ENV=development NODE_OPTIONS='--trace-warnings --enable-source-maps' npx cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",
     "hub-project-dev-nobuild": "unset DATA SMC_ROOT BASE_PATH && PGUSER='smc' PGHOST=$INIT_CWD/../data/postgres/socket DEBUG='cocalc:*,-cocalc:silly:*' NODE_ENV=development NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",
     "hub-project-prod": "npm run build && unset DATA SMC_ROOT  BASE_PATH && PGUSER='smc' PGHOST=$INIT_CWD/../data/postgres/socket DEBUG='cocalc:*,-cocalc:silly:*' NODE_ENV=production NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",
