@@ -5,7 +5,7 @@
 
 /*
  * this manages project configuration specific aspects.
- * It is the corresponding counterpart of smc-project/configuration.ts
+ * It is the corresponding counterpart of @cocalc/project/configuration.ts
  * The various "capabilities" data-structures are used to show/hide UI elements or suppress
  * calling certain operations which are not possible (e.g. spellcheck requires aspell)
  */

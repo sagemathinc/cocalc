@@ -1,7 +1,7 @@
 /*
 Winston logger for a hub server.
 
-There is a similar logger, but with different parameters, in smc-project.
+There is a similar logger, but with different parameters, in packages/project.
 */
 
 import { getLogger } from "@cocalc/util-node/logger";

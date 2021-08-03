@@ -21,7 +21,7 @@ export default function init(
 
   // We need to parse POST requests.
   // Note that this can conflict with what is in
-  // smc-project/servers/browser/http-server.ts
+  // packages/project/servers/browser/http-server.ts
   // thus breaking file uploads to projects, so be careful!
   // That's why we make a new Router and it only applies
   // to the /api/v1 routes.  We raise the limit since the

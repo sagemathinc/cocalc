@@ -525,7 +525,7 @@ export class SyncTable extends EventEmitter {
       is called that there be no possible way any further connect
       events (etc) can make this SyncTable
       do anything!!  That finality assumption is made
-      elsewhere (e.g in smc-project/client.coffee)
+      elsewhere (e.g in @cocalc/project).
       */
     }
     this.close_no_async();

@@ -29,8 +29,8 @@ import {
   Process,
   Processes,
   Signal,
-} from "smc-project/project-info/types";
-import { AlertType } from "smc-project/project-status/types";
+} from "@cocalc/project/project-info/types";
+import { AlertType } from "@cocalc/project/project-status/types";
 import { Channel } from "../websocket/types";
 import { COLORS } from "smc-util/theme";
 import humanizeList from "humanize-list";
@@ -284,7 +284,7 @@ export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
 
     const row1: CSS = { fontWeight: "bold", fontSize: "110%" };
 
-    // we're essentially checking the type of smc-project/project-status/types.ts
+    // we're essentially checking the type of @cocalc/project/project-status/types.ts
     // (but it is immutable js)
     const alert = {
       cpu: status_alerts.includes("cpu-cgroup" as AlertType),

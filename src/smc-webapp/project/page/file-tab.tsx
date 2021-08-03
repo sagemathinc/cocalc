@@ -96,7 +96,7 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     { project_id },
     "active_project_tab"
   );
-  // this is smc-project/project-status/types::ProjectStatus
+  // this is @cocalc/project/project-status/types::ProjectStatus
   const project_status = useTypedRedux({ project_id }, "status");
   const status_alert =
     name === "info" && project_status?.get("alerts")?.size > 0;

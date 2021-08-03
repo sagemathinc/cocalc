@@ -17,7 +17,7 @@ import { FakeSyncstring } from "./syncstring-fake";
 import { Map } from "immutable";
 import { CompressedPatch } from "smc-util/sync/editor/generic/types";
 import { ExecOpts, ExecOutput } from "../../client/project";
-import { Config as FormatterConfig } from "smc-project/formatters";
+import { Config as FormatterConfig } from "@cocalc/project/formatters";
 export { ExecOpts, ExecOutput };
 
 export function server_time(): Date {

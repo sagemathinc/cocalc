@@ -64,7 +64,7 @@ import {
   Exts as FormatterExts,
   Tool as FormatterTool,
 } from "smc-util/code-formatter";
-import { Config as FormatterConfig } from "smc-project/formatters";
+import { Config as FormatterConfig } from "@cocalc/project/formatters";
 import { SHELLS } from "./editor";
 
 interface gutterMarkerParams {

@@ -9,7 +9,7 @@ import {
   ALERT_HIGH_PCT,
   ALERT_MEDIUM_PCT,
   ALERT_LOW_PCT,
-} from "smc-project/project-status/const";
+} from "@cocalc/project/project-status/const";
 
 import { Usage, AlertLevel } from "./types";
 

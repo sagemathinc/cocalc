@@ -7,7 +7,7 @@ import { CSS } from "../../app-framework";
 import { basename } from "path";
 import { separate_file_extension, trunc } from "smc-util/misc";
 import { project_websocket } from "../../frame-editors/generic/client";
-import { Processes, Process, State } from "smc-project/project-info/types";
+import { Processes, Process, State } from "@cocalc/project/project-info/types";
 import { ProcessRow, PTStats, DUState } from "./types";
 import { COLORS } from "smc-util/theme";
 const { ANTD_RED, ANTD_ORANGE, ANTD_GREEN } = COLORS;
@@ -15,7 +15,7 @@ import {
   ALERT_HIGH_PCT,
   ALERT_MEDIUM_PCT,
   ALERT_DISK_FREE,
-} from "smc-project/project-status/const";
+} from "@cocalc/project/project-status/const";
 
 // this converts a path a maybe shortened basename of the file
 export function filename(path) {

@@ -21,7 +21,7 @@ import { syntax2tool } from "smc-util/code-formatter";
 import {
   Options as FormatterOptions,
   Config as FormatterConfig,
-} from "smc-project/formatters";
+} from "@cocalc/project/formatters";
 import {
   NBGraderAPIOptions,
   RunNotebookOptions,

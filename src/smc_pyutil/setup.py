@@ -13,6 +13,7 @@
 from __future__ import absolute_import
 import os
 from os.path import join
+
 path = os.path.dirname(os.path.realpath(__file__))
 os.system("chmod a+r -R %s" % join(path, "smc_pyutil", "templates"))
 
@@ -31,6 +32,7 @@ from setuptools import setup, find_packages
 # Therefore we want to load the local library via the site.py mechanism.
 # (this mimics http://svn.python.org/projects/python/trunk/Lib/distutils/dist.py, called in setup behind the scenes)
 from distutils.core import Distribution
+
 d = Distribution()
 d.parse_command_line()
 

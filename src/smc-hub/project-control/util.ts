@@ -81,7 +81,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   await promisify((cb: Function) => {
     const child = spawn("npx", ["cocalc-project", "--daemon"], {
       env,
-      cwd: join(root, "smc-project"),
+      cwd: join(root, "packages/project"),
       uid,
       gid: uid,
     });

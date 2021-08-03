@@ -78,7 +78,7 @@ def packages(args):
         'packages/util-node',
         'smc-hub',
         'smc-webapp',
-        'smc-project',
+        'packages/project',
         'webapp-lib'
     ]
     for x in os.listdir('packages'):

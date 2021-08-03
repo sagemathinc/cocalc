@@ -20,7 +20,7 @@ prom_client = require('prom-client')
 
 # additionally, record GC statistics
 # https://www.npmjs.com/package/prometheus-gc-stats
-# See my comment in smc-project/kucalc.coffee
+# See my comment in packages/project/kucalc.coffee
 # require('prometheus-gc-stats')()()
 
 # some constants

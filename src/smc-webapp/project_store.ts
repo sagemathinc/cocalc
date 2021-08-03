@@ -137,7 +137,7 @@ export interface ProjectStoreState {
   show_project_info_explanation?: boolean;
 
   // Project Status
-  status?: immutable.Map<string, any>; // this is smc-project/project-status/types::ProjectStatus;
+  status?: immutable.Map<string, any>; // this is @cocalc/project/project-status/types::ProjectStatus;
 
   other_settings: any;
 

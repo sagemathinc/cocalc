@@ -9,7 +9,7 @@ import { SyncTable } from "smc-util/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { once } from "smc-util/async-utils";
 import { merge } from "smc-util/misc";
-import { ImmutableUsageInfo } from "smc-project/usage-info/types";
+import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
 
 type State = "init" | "ready" | "closed";
 

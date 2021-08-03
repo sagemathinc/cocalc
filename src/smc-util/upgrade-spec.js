@@ -12,9 +12,8 @@ exports.CURRENT_DATE = "September 2020";
 // NOTE: Technically upgrades.subscription should be called upgrades.plans, to better
 // corresponding to what stripe does...
 
-// NOTE: This script ./upgrade-spec.coffee is copied into the Docker container
-// in k8s/smc-project/manager/, so if you move or rename this script, you must
-// also update that.
+// NOTE: This upgrade-spec is assumed as part of kucalc to be here; if you move
+// or rename it you will break kucalc.
 
 const upgrades = (exports.upgrades = {});
 

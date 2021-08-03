@@ -26,8 +26,8 @@ import { A, Tip, Loading } from "../../r_misc";
 import { RestartProject } from "../settings/restart-project";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
-import { ProjectInfo as ProjectInfoType, Process } from "smc-project/project-info/types";
-import { cgroup_stats } from "smc-project/project-status/utils";
+import { ProjectInfo as ProjectInfoType, Process } from "@cocalc/project/project-info/types";
+import { cgroup_stats } from "@cocalc/project/project-status/utils";
 import {
   CGroupFC,
   CoCalcFile,
@@ -79,7 +79,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     const [idle_timeout, set_idle_timeout] = useState<number>(30 * 60);
     const show_explanation =
       useTypedRedux({ project_id }, "show_project_info_explanation") ?? false;
-    // this is smc-project/project-status/types::ProjectStatus
+    // this is @cocalc/project/project-status/types::ProjectStatus
     const project_status = useTypedRedux({ project_id }, "status");
     const project_map = useTypedRedux("projects", "project_map");
     const [project, set_project] = useState(project_map?.get(project_id));

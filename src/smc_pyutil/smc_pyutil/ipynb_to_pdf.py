@@ -10,7 +10,7 @@ faster and more reliable, but potentially doesn't "look" as good,
 depending on your tastes.  It also has a dependency on chromium.
 """
 
-# ATTN: make sure to keep dependencies of this in sync with smc-project/configuration.ts
+# ATTN: make sure to keep dependencies of this in sync with projects/project/configuration.ts
 
 from __future__ import absolute_import, print_function
 from shutil import which

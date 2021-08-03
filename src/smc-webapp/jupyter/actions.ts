@@ -62,7 +62,7 @@ import {
   char_idx_to_js_idx,
 } from "./util";
 
-import { Config as FormatterConfig } from "smc-project/formatters";
+import { Config as FormatterConfig } from "@cocalc/project/formatters";
 
 import { SyncDB } from "smc-util/sync/editor/db/sync";
 

@@ -11,7 +11,6 @@ export CWD=`pwd`
 # and running make.
 cd "$CWD"/..
 git submodule update --init
-. smc-env
 cd examples
 OUTDIR=../webapp-lib/examples make
 
