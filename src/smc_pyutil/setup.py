@@ -59,8 +59,6 @@ if 'user' not in list(d.command_options.get("install", {}).keys()):
 cs = [
     'open                 = smc_pyutil.smc_open:main',
     'close                = smc_pyutil.smc_close:main',
-    # only the newest prefix
-    'cocalc-top          = smc_pyutil.cocalc_top:main',
 ]
 
 for prefix in ['smc', 'cc', 'cocalc']:
