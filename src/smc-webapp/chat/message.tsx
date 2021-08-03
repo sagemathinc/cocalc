@@ -7,7 +7,7 @@ import { Map } from "immutable";
 const { IS_TOUCH } = require("../feature");
 
 import { Avatar } from "../account/avatar/avatar";
-import { is_different, path_split } from "smc-util/misc";
+import { is_different, path_split } from "@cocalc/util/misc";
 import {
   is_editing,
   message_colors,

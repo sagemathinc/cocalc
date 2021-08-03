@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { server_time } from "smc-util/misc";
-import { once, retry_until_success } from "smc-util/async-utils";
+import { server_time } from "@cocalc/util/misc";
+import { once, retry_until_success } from "@cocalc/util/async-utils";
 import { webapp_client } from "../webapp-client";
 import { redux } from "../app-framework";
 import * as prom_client from "../prom-client";

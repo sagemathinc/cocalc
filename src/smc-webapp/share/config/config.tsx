@@ -43,7 +43,7 @@ import { open_new_tab } from "../../misc-page";
 import { CopyToClipBoard, Icon, VisibleMDLG, Space } from "../../r_misc";
 import { public_share_url, share_server_url } from "./util";
 import { License } from "./license";
-import { trunc_middle } from "smc-util/misc";
+import { trunc_middle } from "@cocalc/util/misc";
 
 interface PublicInfo {
   created: Date;

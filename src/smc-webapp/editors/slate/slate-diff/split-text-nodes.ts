@@ -4,8 +4,8 @@
  */
 
 import { Operation, Text } from "slate";
-import { dmp } from "smc-util/sync/editor/generic/util";
-import { len } from "smc-util/misc";
+import { dmp } from "@cocalc/util/sync/editor/generic/util";
+import { len } from "@cocalc/util/misc";
 
 export function nextPath(path: number[]): number[] {
   return [...path.slice(0, path.length - 1), path[path.length - 1] + 1];

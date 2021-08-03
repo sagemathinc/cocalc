@@ -10,11 +10,11 @@ Actions specific to manipulating the students in a course
 import { CourseActions } from "../actions";
 import { CourseStore, StudentRecord } from "../store";
 import { SyncDBRecordStudent } from "../types";
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import { map } from "awaiting";
 import { redux } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
-import { defaults, required, uuid } from "smc-util/misc";
+import { defaults, required, uuid } from "@cocalc/util/misc";
 import { reuseInFlight } from "async-await-utils/hof";
 
 export class StudentsActions {

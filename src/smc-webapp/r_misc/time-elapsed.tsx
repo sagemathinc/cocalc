@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 
 interface Props {
   start_ts?: number;

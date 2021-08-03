@@ -5,7 +5,7 @@
 
 import { React } from "../app-framework";
 import { Icon } from "../r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 
 export function Connecting(_props) {
   return (

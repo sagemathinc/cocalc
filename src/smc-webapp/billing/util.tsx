@@ -5,11 +5,11 @@
 
 import { React, Rendered } from "../app-framework";
 import { Icon } from "../r_misc/icon";
-import { PROJECT_UPGRADES } from "smc-util/schema";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Tip } from "../r_misc/tip";
 import { Space } from "../r_misc/space";
-import { round1, plural } from "smc-util/misc";
-import { stripe_amount } from "smc-util/misc";
+import { round1, plural } from "@cocalc/util/misc";
+import { stripe_amount } from "@cocalc/util/misc";
 import { Plan } from "./types";
 
 export function powered_by_stripe(): Rendered {

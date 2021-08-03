@@ -21,7 +21,7 @@ import { Col, Row } from "../../antd-bootstrap";
 import { Alert, Table, Button, Form, Popconfirm, Modal, Switch } from "antd";
 import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
-import { seconds2hms, unreachable } from "smc-util/misc";
+import { seconds2hms, unreachable } from "@cocalc/util/misc";
 import { A, Tip, Loading } from "../../r_misc";
 import { RestartProject } from "../settings/restart-project";
 import { Channel } from "../../project/websocket/types";
@@ -38,7 +38,7 @@ import {
 } from "./components";
 import { ProcessRow, PTStats, CGroupInfo, DUState } from "./types";
 import { connect_ws, process_tree, sum_children, grid_warning } from "./utils";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { SiteName } from "../../customize";
 
 const SSH_KEYS_DOC = "https://doc.cocalc.com/project-settings.html#ssh-keys";

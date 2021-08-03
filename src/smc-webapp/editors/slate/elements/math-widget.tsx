@@ -15,7 +15,7 @@ import {
   useMemo,
   useState,
 } from "smc-webapp/app-framework";
-import { startswith } from "smc-util/misc";
+import { startswith } from "@cocalc/util/misc";
 import { SlateCodeMirror } from "./codemirror";
 import { useFocused, useSelected } from "../slate-react";
 import { useCollapsed } from "../elements/register";

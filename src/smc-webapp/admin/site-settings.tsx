@@ -18,11 +18,11 @@ import {
 } from "../app-framework";
 
 import { query } from "../frame-editors/generic/client";
-import { copy, deep_copy, keys, unreachable } from "smc-util/misc";
+import { copy, deep_copy, keys, unreachable } from "@cocalc/util/misc";
 
-import { site_settings_conf } from "smc-util/schema";
-import { ON_PREM_DEFAULT_QUOTAS } from "smc-util/upgrade-spec";
-import { upgrades } from "smc-util/upgrade-spec";
+import { site_settings_conf } from "@cocalc/util/schema";
+import { ON_PREM_DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
+import { upgrades } from "@cocalc/util/upgrade-spec";
 const MAX_UPGRADES = upgrades.max_per_project;
 
 const FIELD_DEFAULTS = {
@@ -30,12 +30,12 @@ const FIELD_DEFAULTS = {
   max_upgrades: MAX_UPGRADES,
 } as const;
 
-import { EXTRAS } from "smc-util/db-schema/site-settings-extras";
-import { ConfigValid, Config, RowType } from "smc-util/db-schema/site-defaults";
+import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
+import { ConfigValid, Config, RowType } from "@cocalc/util/db-schema/site-defaults";
 
 import { isEqual } from "lodash";
 
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 
 // Commented out since Select via antd is broken now,
 // at least when used here...
@@ -52,7 +52,7 @@ import {
   Space /*, Tip*/,
 } from "../r_misc";
 
-import { version } from "smc-util/smc-version";
+import { version } from "@cocalc/util/smc-version";
 
 type State = "view" | "load" | "edit" | "save" | "error";
 

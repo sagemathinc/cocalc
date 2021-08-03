@@ -17,7 +17,7 @@ import { redux, React, useMemo, useTypedRedux } from "../app-framework";
 import { A, Icon, ProjectState, Space, VisibleMDLG } from "../r_misc";
 import { DOC_TRIAL } from "./trial-banner";
 import { allow_project_to_run } from "./client-side-throttle";
-import { server_seconds_ago } from "smc-util/misc";
+import { server_seconds_ago } from "@cocalc/util/misc";
 
 interface Props {
   project_id: string;

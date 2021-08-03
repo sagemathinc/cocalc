@@ -12,12 +12,12 @@ import { AccountState } from "./types";
 import { AccountClient } from "../client/account";
 import {
   encode_path,
-} from "smc-util/misc";
-import { define, required } from "smc-util/fill";
+} from "@cocalc/util/misc";
+import { define, required } from "@cocalc/util/fill";
 import { set_url } from "../history";
 import { track_conversion } from "../misc-page";
 import { join } from "path";
-import { deleteRememberMe } from "smc-util/remember-me";
+import { deleteRememberMe } from "@cocalc/util/remember-me";
 
 // Define account actions
 export class AccountActions extends Actions<AccountState> {

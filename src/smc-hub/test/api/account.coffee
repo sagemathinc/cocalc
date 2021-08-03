@@ -13,7 +13,7 @@ LICENSE   : AGPLv3
 api   = require('./apitest')
 {setup, teardown, reset, winston} = api
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 
 email = require('../../email')
 

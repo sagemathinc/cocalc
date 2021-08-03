@@ -13,7 +13,7 @@ import {
   useSlate,
 } from "./register";
 import { useSetElement } from "./set-element";
-import { dict } from "smc-util/misc";
+import { dict } from "@cocalc/util/misc";
 import { FOCUSED_COLOR } from "../util";
 import { Resizable } from "re-resizable";
 

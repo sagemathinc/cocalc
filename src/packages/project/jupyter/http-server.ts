@@ -15,7 +15,7 @@ import { Router } from "express";
 import { exists } from "./async-utils-node";
 import { blob_store } from "./jupyter-blobs-sqlite";
 import { get_kernel_data } from "./kernel-data";
-import { startswith } from "smc-util/misc";
+import { startswith } from "@cocalc/util/misc";
 
 const BASE = "/.smc/jupyter/";
 

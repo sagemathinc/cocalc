@@ -7,11 +7,11 @@ import React from "react";
 import { props2img, RESET_ICON } from "./util";
 import { ComputeImages } from "./init";
 import { A, Icon } from "../r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 const { Button, Well, Row, Col, ButtonToolbar } = require("react-bootstrap");
 import { Available as AvailableFeatures } from "../project_configuration";
 import { ProjectMap } from "smc-webapp/todo-types";
-const { SITE_NAME } = require("smc-util/theme");
+const { SITE_NAME } = require("@cocalc/util/theme");
 
 const doc_snap = "https://doc.cocalc.com/project-files.html#snapshots";
 const doc_tt = "https://doc.cocalc.com/time-travel.html";

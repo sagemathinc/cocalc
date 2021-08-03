@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { capitalize, is_whitespace, replace_all } from "smc-util/misc";
+import { capitalize, is_whitespace, replace_all } from "@cocalc/util/misc";
 
 // Note: this markdown_escape is based on https://github.com/edwmurph/escape-markdown/blob/master/index.js
 

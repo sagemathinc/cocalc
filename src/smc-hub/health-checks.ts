@@ -10,7 +10,7 @@ const L = debug("hub:healthcheck");
 import { Router, Response } from "express";
 import { createServer } from "net";
 import { isFloat } from "validator";
-import { seconds2hms } from "smc-util/misc";
+import { seconds2hms } from "@cocalc/util/misc";
 import { database_is_working } from "./hub_register";
 import { PostgreSQL } from "./postgres/types";
 

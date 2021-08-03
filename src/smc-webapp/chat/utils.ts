@@ -5,7 +5,7 @@
 
 import { delay } from "awaiting";
 import { throttle } from "lodash";
-import { original_path } from "smc-util/misc";
+import { original_path } from "@cocalc/util/misc";
 
 import { redux } from "../app-framework";
 

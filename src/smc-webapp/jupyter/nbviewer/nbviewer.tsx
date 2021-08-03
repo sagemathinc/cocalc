@@ -19,7 +19,7 @@ import {
 import { ErrorDisplay } from "../../r_misc/error-display";
 import { Loading } from "../../r_misc/loading";
 import { CellList } from "../cell-list";
-import { path_split } from "smc-util/misc";
+import { path_split } from "@cocalc/util/misc";
 import { JupyterActions } from "../browser-actions";
 
 interface NBViewerProps {

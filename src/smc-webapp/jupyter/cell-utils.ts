@@ -8,7 +8,7 @@ Misc utility functions for manipulating and working wth cells.
 */
 
 import { List, Map } from "immutable";
-import { field_cmp, len } from "smc-util/misc";
+import { field_cmp, len } from "@cocalc/util/misc";
 
 export function positions_between(
   before_pos: number | undefined,

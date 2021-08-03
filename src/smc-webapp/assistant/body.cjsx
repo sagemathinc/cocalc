@@ -12,7 +12,7 @@ immutable = require('immutable')
 {Loading, Icon, Markdown, Space} = require('../r_misc')
 {CodeMirrorStatic} = require('../jupyter/codemirror-static');
 # cocalc libs
-{defaults, required, optional} = misc = require('smc-util/misc')
+{defaults, required, optional} = misc = require('@cocalc/util/misc')
 # Snippets
 {REPO_URL} = require('./common')
 

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { months_before } from "smc-util/misc";
+import { months_before } from "@cocalc/util/misc";
 import { webapp_client } from "../../webapp-client";
 
 export function course_warning(pay?: Date): boolean {

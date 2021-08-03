@@ -39,10 +39,10 @@ webpack website.  Differences include:
 const webpack = require("webpack");
 const path = require("path");
 const child_process = require("child_process");
-const misc = require("smc-util/misc");
+const misc = require("@cocalc/util/misc");
 const misc_node = require("@cocalc/util-node/misc_node");
-const SMC_VERSION = require("smc-util/smc-version").version;
-const theme = require("smc-util/theme");
+const SMC_VERSION = require("@cocalc/util/smc-version").version;
+const theme = require("@cocalc/util/theme");
 const CDN_VERSIONS = require("@cocalc/cdn").versions;
 
 // Determine the git revision hash:
@@ -190,8 +190,8 @@ module.exports = {
       path.resolve(__dirname, "node_modules"),
       path.resolve(__dirname, "node_modules", "webapp-lib"),
       path.resolve(__dirname, "node_modules", "webapp-lib/node_modules"),
-      path.resolve(__dirname, "node_modules", "smc-util"),
-      path.resolve(__dirname, "node_modules", "smc-util/node_modules"),
+      path.resolve(__dirname, "node_modules", "@cocalc/util"),
+      path.resolve(__dirname, "node_modules", "@cocalc/util/node_modules"),
       path.resolve(__dirname, "node_modules", "smc-webapp"),
       path.resolve(__dirname, "node_modules", "smc-webapp/node_modules"),
     ],

@@ -8,9 +8,9 @@ History viewer for Jupyter notebooks
 */
 
 import { fromJS, List, Map } from "immutable";
-import { SyncDB } from "smc-util/sync/editor/db/sync";
+import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
 import { React, ReactDOM, Redux, useTypedRedux } from "../app-framework";
-import { path_split } from "smc-util/misc";
+import { path_split } from "@cocalc/util/misc";
 import * as cell_utils from "./cell-utils";
 import { CellList } from "./cell-list";
 import { cm_options } from "./cm_options";

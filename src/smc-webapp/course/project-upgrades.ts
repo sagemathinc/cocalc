@@ -9,7 +9,7 @@ Functions for determining various things about applying upgrades to a project.
 WARNING: This should stay as simple typescript with no crazy dependencies for easy node.js unit testing.
 */
 
-import { copy, keys, map_diff, map_sum } from "smc-util/misc";
+import { copy, keys, map_diff, map_sum } from "@cocalc/util/misc";
 import { ProjectMap } from "../projects/store";
 
 interface ExistenceMap {

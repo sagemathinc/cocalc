@@ -11,7 +11,7 @@ library is used under the hood to implement this.
 */
 
 import { fromJS } from "immutable";
-import { filename_extension, path_split } from "smc-util/misc";
+import { filename_extension, path_split } from "@cocalc/util/misc";
 import { Component, Rendered, React, Redux, redux } from "../app-framework";
 import { HTML, Markdown } from "../r_misc";
 import * as file_editors from "../file-editors";

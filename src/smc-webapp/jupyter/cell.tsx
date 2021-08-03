@@ -10,7 +10,7 @@ React component that describes a single cella
 import { Map } from "immutable";
 import { React, Rendered, useDelayedRender } from "../app-framework";
 import { clear_selection } from "../misc/clear-selection";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { INPUT_PROMPT_COLOR } from "./prompt";
 import { Icon, Tip } from "../r_misc";
 import { CellInput } from "./cell-input";

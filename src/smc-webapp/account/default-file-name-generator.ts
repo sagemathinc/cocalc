@@ -6,7 +6,7 @@
 // Return a default filename with the given ext (or not extension if ext not given)
 // this is just a wrapper for backwards compatibility
 import { NewFilenames, NewFilenameTypes } from "../project/utils";
-import { NEW_FILENAMES } from "smc-util/db-schema";
+import { NEW_FILENAMES } from "@cocalc/util/db-schema";
 
 import { redux } from "../app-framework";
 

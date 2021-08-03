@@ -9,12 +9,12 @@ import { SettingBox, A, Icon, Loading } from "smc-webapp/r_misc";
 import { rclass, rtypes, redux, Rendered } from "../../app-framework";
 import { Project } from "./types";
 import { Map } from "immutable";
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 import { Button } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
 
 const { CUSTOM_SOFTWARE_HELP_URL } = require("../../custom-software/util");
-const { COLORS } = require("smc-util/theme");
+const { COLORS } = require("@cocalc/util/theme");
 
 declare let DEBUG;
 
@@ -110,7 +110,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
         return [<div>All code formatters are available</div>, false];
       }
 
-      const { tool2display } = require("smc-util/code-formatter");
+      const { tool2display } = require("@cocalc/util/code-formatter");
 
       const r_formatters: JSX.Element[] = [];
       let any_nonavail = false;

@@ -7,7 +7,7 @@
 Spec for editing PDF documents.
 */
 
-import { set } from "smc-util/misc";
+import { set } from "@cocalc/util/misc";
 import { EditorDescription } from "../frame-tree/types";
 import { createEditor } from "../frame-tree/editor";
 import { PDFJS } from "../latex-editor/pdfjs";

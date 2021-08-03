@@ -8,10 +8,6 @@ Jupyter actions -- these are the actions for the underlying document structure.
 This can be used both on the frontend and the backend.
 */
 
-// Uncomment to temporarily force build, since otherwise webpack doesn't find:
-// require('./test/export-to-ipynb-ts');
-// require("./project-actions");
-
 // This was 10000 for a while and that caused regular noticeable problems:
 //    https://github.com/sagemathinc/cocalc/issues/4590
 // It seems like 50000 provides a better tradeoff.  With 10000 we got about
@@ -24,17 +20,13 @@ import * as immutable from "immutable";
 import { reuseInFlight } from "async-await-utils/hof";
 import { debounce } from "lodash";
 
-// NOTE! The smc-util relative path is so we can import this same
-// code in the project as well as here, due to me not
-// being able to properly figure out some typescript path issue.
-// **It's just a hack.**
-import { callback2, retry_until_success } from "smc-util/async-utils";
-import * as misc from "smc-util/misc";
+import { callback2, retry_until_success } from "@cocalc/util/async-utils";
+import * as misc from "@cocalc/util/misc";
 const { close, required, defaults } = misc;
 import * as awaiting from "awaiting";
-import { three_way_merge } from "smc-util/sync/editor/generic/util";
+import { three_way_merge } from "@cocalc/util/sync/editor/generic/util";
 import { Cell, KernelInfo } from "./types";
-import { Syntax } from "smc-util/code-formatter";
+import { Syntax } from "@cocalc/util/code-formatter";
 
 import { Actions } from "../app-framework";
 import {
@@ -64,7 +56,7 @@ import {
 
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
 
-import { SyncDB } from "smc-util/sync/editor/db/sync";
+import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
 
 /*
 The actions -- what you can do with a jupyter notebook, and also the

@@ -12,11 +12,11 @@ fs            = require('fs')
 child_process = require('child_process')
 shell_escape = require('shell-escape')
 
-misc          = require('smc-util/misc')
+misc          = require('@cocalc/util/misc')
 
 {walltime, defaults, required} = misc
 
-{aggregate}   = require('smc-util/aggregate')
+{aggregate}   = require('@cocalc/util/aggregate')
 
 exports.execute_code = execute_code = aggregate (opts) ->
     opts = defaults opts,
@@ -33,7 +33,7 @@ exports.execute_code = execute_code = aggregate (opts) ->
         uid        : undefined
         gid        : undefined
         env        : undefined   # if given, added to exec environment
-        aggregate  : undefined   # if given, aggregates multiple calls with same sequence number into one -- see smc-util/aggregate; typically make this a timestamp for compiling code.
+        aggregate  : undefined   # if given, aggregates multiple calls with same sequence number into one -- see @cocalc/util/aggregate; typically make this a timestamp for compiling code.
         verbose    : true
         cb         : undefined
 

@@ -21,7 +21,7 @@ import {
 import { JupyterStore } from "../store";
 import { JupyterActions } from "../actions";
 
-const misc = require("smc-util/misc");
+const misc = require("@cocalc/util/misc");
 
 describe("basic completion test -- ", () => {
   let editor: TestEditor;

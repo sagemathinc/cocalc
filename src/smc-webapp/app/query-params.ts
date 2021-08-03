@@ -4,7 +4,7 @@
  */
 
 // Initialize various things related to the overall page and query params (e.g., fullscreen).
-import { is_valid_uuid_string } from "smc-util/misc";
+import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { QueryParams } from "../misc/query-params";
 import { COCALC_FULLSCREEN } from "../fullscreen";
 import { redux } from "../app-framework";

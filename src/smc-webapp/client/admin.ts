@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as message from "smc-util/message";
+import * as message from "@cocalc/util/message";
 import { AsyncCall } from "./client";
 
 export class AdminClient {

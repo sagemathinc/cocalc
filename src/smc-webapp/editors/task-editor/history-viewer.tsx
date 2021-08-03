@@ -11,8 +11,8 @@ import { fromJS, Map } from "immutable";
 import { TaskList } from "./list";
 import { CSS, React, useState } from "../../app-framework";
 import { Icon } from "../../r_misc";
-import { cmp } from "smc-util/misc";
-import { SyncDB } from "smc-util/sync/editor/db";
+import { cmp } from "@cocalc/util/misc";
+import { SyncDB } from "@cocalc/util/sync/editor/db";
 import { Tasks } from "./types";
 
 const SHOW_DONE_STYLE: CSS = {

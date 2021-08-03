@@ -7,8 +7,8 @@
 stripe payments api via backend hub
 */
 
-import { callback2 } from "smc-util/async-utils";
-import * as message from "smc-util/message";
+import { callback2 } from "@cocalc/util/async-utils";
+import * as message from "@cocalc/util/message";
 import { PurchaseInfo } from "../site-licenses/purchase/util";
 
 export class StripeClient {

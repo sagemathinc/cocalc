@@ -10,7 +10,7 @@ import { PassportStrategy } from "../account/passport-types";
 import { List } from "immutable";
 
 import { UNIT, Icon, Loading } from "../r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 
 const {
   HelpEmailLink,

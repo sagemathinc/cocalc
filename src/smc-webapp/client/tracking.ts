@@ -4,7 +4,7 @@
  */
 
 import { WebappClient } from "./client";
-import * as message from "smc-util/message";
+import * as message from "@cocalc/util/message";
 
 export class TrackingClient {
   private client: WebappClient;

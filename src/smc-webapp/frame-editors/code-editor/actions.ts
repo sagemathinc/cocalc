@@ -24,11 +24,11 @@ import {
   syncdb2,
   syncstring2,
 } from "../generic/client";
-import { SyncDB } from "smc-util/sync/editor/db";
-import { SyncString } from "smc-util/sync/editor/string";
+import { SyncDB } from "@cocalc/util/sync/editor/db";
+import { SyncString } from "@cocalc/util/sync/editor/string";
 import { aux_file } from "../frame-tree/util";
-import { once } from "smc-util/async-utils";
-import { filename_extension, history_path, len, uuid } from "smc-util/misc";
+import { once } from "@cocalc/util/async-utils";
+import { filename_extension, history_path, len, uuid } from "@cocalc/util/misc";
 import { print_code } from "../frame-tree/print-code";
 import {
   ConnectionStatus,
@@ -52,7 +52,7 @@ import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 import { CodeEditorManager, CodeEditor } from "./code-editor-manager";
 import { AvailableFeatures } from "../../project_configuration";
-import { apply_patch } from "smc-util/sync/editor/generic/util";
+import { apply_patch } from "@cocalc/util/sync/editor/generic/util";
 import { default_opts } from "../codemirror/cm-options";
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
 import { open_new_tab } from "../../misc-page";
@@ -63,7 +63,7 @@ import {
   Syntax as FormatterSyntax,
   Exts as FormatterExts,
   Tool as FormatterTool,
-} from "smc-util/code-formatter";
+} from "@cocalc/util/code-formatter";
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
 import { SHELLS } from "./editor";
 

@@ -22,21 +22,21 @@ That said, this architecture could change, and very little code would change
 as a result.
 ###
 
-{PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
+{PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('@cocalc/util/heartbeat')
 
 fs     = require('fs')
 {join} = require('path')
 {EventEmitter} = require('events')
 
-{callback2, once} = require("smc-util/async-utils");
+{callback2, once} = require("@cocalc/util/async-utils");
 async   = require('async')
 
-message    = require('smc-util/message')
-misc       = require('smc-util/misc')
+message    = require('@cocalc/util/message')
+misc       = require('@cocalc/util/misc')
 misc_node  = require('@cocalc/util-node/misc_node')
-synctable2 = require('smc-util/sync/table')
-syncdb2    = require('smc-util/sync/editor/db')
-schema     = require('smc-util/schema')
+synctable2 = require('@cocalc/util/sync/table')
+syncdb2    = require('@cocalc/util/sync/editor/db')
+schema     = require('@cocalc/util/schema')
 
 sage_session = require('./sage_session')
 

@@ -21,7 +21,7 @@ because that may be important for defining variables and functions
 that get used in testing.
 */
 
-import { copy, is_array, startswith } from "smc-util/misc";
+import { copy, is_array, startswith } from "@cocalc/util/misc";
 import { state_to_value } from "./cell-types";
 
 // Enough description of what a Jupyter notebook is for our purposes here.

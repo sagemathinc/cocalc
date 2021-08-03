@@ -11,7 +11,7 @@ import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { TerminalFrame } from "./terminal";
 import { CommandsGuide } from "./commands-guide";
-import { set } from "smc-util/misc";
+import { set } from "@cocalc/util/misc";
 
 export const terminal = {
   short: "Terminal",

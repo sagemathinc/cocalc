@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { callback2 } from "smc-util/async-utils";
-import { trunc } from "smc-util/misc";
+import { callback2 } from "@cocalc/util/async-utils";
+import { trunc } from "@cocalc/util/misc";
 import { PostgreSQL } from "./types";
 
 export interface Patch {

@@ -23,7 +23,7 @@ import {
   Icon,
   SettingBox,
 } from "../../r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { Space } from "antd";
 import {
   CUSTOM_SOFTWARE_HELP_URL,
@@ -37,12 +37,12 @@ import { Project } from "./types";
 import { fromJS } from "immutable";
 import { RestartProject } from "./restart-project";
 import { StopProject } from "./stop-project";
-import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { ComputeImageSelector } from "./compute-image-selector";
-import { COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG } from "smc-util/compute-images";
+import { COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG } from "@cocalc/util/compute-images";
 const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
 
-const misc = require("smc-util/misc");
+const misc = require("@cocalc/util/misc");
 
 interface ReactProps {
   project: Project;
@@ -156,7 +156,7 @@ export const ProjectControl = rclass<ReactProps>(
     }
 
     render_action_buttons(): Rendered {
-      const { COMPUTE_STATES } = require("smc-util/schema");
+      const { COMPUTE_STATES } = require("@cocalc/util/schema");
       const state = this.props.project.getIn(["state", "state"]);
       const commands = (state &&
         COMPUTE_STATES[state] &&

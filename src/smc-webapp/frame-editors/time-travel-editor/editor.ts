@@ -19,7 +19,7 @@ const TimeTravel = AsyncComponent(
   async () => (await import("./time-travel")).TimeTravel
 );
 
-import { set } from "smc-util/misc";
+import { set } from "@cocalc/util/misc";
 
 export const time_travel = {
   short: "TimeTravel",

@@ -3,7 +3,7 @@ import { Button, ButtonGroup } from "../../antd-bootstrap";
 import { Icon } from "../../r_misc";
 import { React, useState, useActions, useRedux } from "../../app-framework";
 import { CourseActions } from "../actions";
-import { capitalize } from "smc-util/misc";
+import { capitalize } from "@cocalc/util/misc";
 
 interface Props {
   name: string;

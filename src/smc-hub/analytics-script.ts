@@ -25,7 +25,7 @@ document.cookie = `${NAME}=${ID}; path=/; domain=${DOMAIN}; max-age=${maxage}`;
 
 const { href, protocol, host, pathname } = window.location;
 
-// TODO: use the array defined in smc-util/misc.js
+// TODO: use the array defined in packages/util/misc.js
 const UTM_KEYS: ReadonlyArray<string> = Object.freeze([
   "source",
   "medium",

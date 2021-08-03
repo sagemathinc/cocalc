@@ -7,10 +7,10 @@
 // Used in the "Client"
 
 const access = require("./access");
-import { callback2 } from "smc-util/async-utils";
-import * as message from "smc-util/message";
+import { callback2 } from "@cocalc/util/async-utils";
+import * as message from "@cocalc/util/message";
 const { one_result } = require("./postgres");
-import { is_valid_uuid_string, to_json } from "smc-util/misc";
+import { is_valid_uuid_string, to_json } from "@cocalc/util/misc";
 import { ProjectControlFunction } from "smc-hub/servers/project-control";
 
 type WhereQueries = ({ [query: string]: string } | string)[];

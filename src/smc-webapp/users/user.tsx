@@ -7,7 +7,7 @@
 
 import { React, Component } from "../app-framework";
 import { Space, TimeAgo, Tip } from "../r_misc";
-import { is_valid_uuid_string, trunc_middle } from "smc-util/misc";
+import { is_valid_uuid_string, trunc_middle } from "@cocalc/util/misc";
 import { UserMap } from "./types";
 import { actions } from "./actions";
 import { Avatar } from "../account/avatar/avatar";

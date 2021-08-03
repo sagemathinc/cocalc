@@ -12,7 +12,7 @@ defined in smc-gcloud.
 
 fs = require('fs')
 
-{defaults} = misc = require('smc-util/misc')
+{defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
 
 exports.filesystem_bucket = (opts) ->

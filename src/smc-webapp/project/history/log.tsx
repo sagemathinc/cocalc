@@ -4,7 +4,7 @@
  */
 
 import { List } from "immutable";
-import { search_split, search_match } from "smc-util/misc";
+import { search_split, search_match } from "@cocalc/util/misc";
 import {
   React,
   redux,

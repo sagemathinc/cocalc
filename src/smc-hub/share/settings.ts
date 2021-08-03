@@ -1,6 +1,6 @@
 // database settings – derives configuration info for redering the html pages
-import { callback2 as cb2 } from "smc-util/async-utils";
-import { DNS, SITE_NAME } from "smc-util/theme";
+import { callback2 as cb2 } from "@cocalc/util/async-utils";
+import { DNS, SITE_NAME } from "@cocalc/util/theme";
 import { PostgreSQL } from "../postgres/types";
 
 // this is what's being passed down to the various elements and components

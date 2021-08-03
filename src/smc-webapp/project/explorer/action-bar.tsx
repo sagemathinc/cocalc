@@ -6,14 +6,14 @@
 import React from "react";
 import * as immutable from "immutable";
 import { HiddenSM, Icon, Space } from "../../r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { ComputeImages } from "smc-webapp/custom-software/init";
 import { ProjectActions } from "smc-webapp/project_store";
 
 import { Button, ButtonGroup, ButtonToolbar } from "smc-webapp/antd-bootstrap";
 
 import { CustomSoftwareInfo } from "smc-webapp/custom-software/info-bar";
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 import { file_actions } from "smc-webapp/project_store";
 
 const ROW_INFO_STYLE = {

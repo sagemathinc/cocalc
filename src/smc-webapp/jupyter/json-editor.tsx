@@ -14,11 +14,11 @@ SEE https://github.com/sagemathinc/cocalc/issues/4295
 
 import { React, useRef, useState, usePrevious } from "../app-framework";
 const json_stable = require("json-stable-stringify");
-import { make_patch, apply_patch } from "smc-util/sync/editor/generic/util";
+import { make_patch, apply_patch } from "@cocalc/util/sync/editor/generic/util";
 import * as immutable from "immutable";
 import * as underscore from "underscore";
 import * as CodeMirror from "codemirror";
-import { all_fields_equal } from "smc-util/misc";
+import { all_fields_equal } from "@cocalc/util/misc";
 
 const ERROR_STYLE: React.CSSProperties = {
   color: "white",

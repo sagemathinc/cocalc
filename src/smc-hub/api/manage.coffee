@@ -11,8 +11,8 @@ User management of their API key.
 
 async = require('async')
 
-misc    = require('smc-util/misc')
-message = require('smc-util/message')     # salvus message protocol
+misc    = require('@cocalc/util/misc')
+message = require('@cocalc/util/message')
 {defaults, required} = misc
 
 {is_password_correct} = require('../auth')

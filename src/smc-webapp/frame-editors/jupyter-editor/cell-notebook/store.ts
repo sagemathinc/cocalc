@@ -4,7 +4,7 @@
  */
 
 import { Set } from "immutable";
-import { close, merge } from "smc-util/misc";
+import { close, merge } from "@cocalc/util/misc";
 import { JupyterEditorActions } from "../actions";
 
 // The actual data is stored in the desc of the leaf node.

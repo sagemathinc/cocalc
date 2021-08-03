@@ -10,12 +10,12 @@ Some code specific to running a project in the KuCalc environment.
 fs = require('fs')
 async = require('async')
 
-misc      = require('smc-util/misc')
+misc      = require('@cocalc/util/misc')
 misc_node = require('@cocalc/util-node/misc_node')
 
 path       = require('path')
 {execSync} = require('child_process')
-{defaults} = misc = require('smc-util/misc')
+{defaults} = misc = require('@cocalc/util/misc')
 
 # global variable
 PROJECT_ID = undefined

@@ -15,13 +15,13 @@ import {
   defaults,
   required,
   uuid,
-} from "smc-util/misc";
-import * as message from "smc-util/message";
+} from "@cocalc/util/misc";
+import * as message from "@cocalc/util/message";
 import {
   do_anonymous_setup,
   should_do_anonymous_setup,
 } from "./anonymous-setup";
-import { deleteRememberMe, setRememberMe } from "smc-util/remember-me";
+import { deleteRememberMe, setRememberMe } from "@cocalc/util/remember-me";
 
 // Maximum number of outstanding concurrent messages (that have responses)
 // to send at once to hub-websocket.

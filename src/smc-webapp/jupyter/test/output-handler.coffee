@@ -9,7 +9,7 @@ Test the OutputHandler object.
 
 expect  = require('expect')
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 
 immutable = require('immutable')
 

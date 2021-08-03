@@ -23,7 +23,7 @@ import {
   CUSTOM_IMG_PREFIX,
   compute_image2basename,
 } from "../custom-software/util";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { user_tracking } from "../user-tracking";
 
 const image_name_style: React.CSSProperties = {

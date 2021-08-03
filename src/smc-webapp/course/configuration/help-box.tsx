@@ -6,7 +6,7 @@
 import { Card } from "antd";
 import { React } from "../../app-framework";
 import { Icon } from "../../r_misc";
-import { SITE_NAME, LIVE_DEMO_REQUEST } from "smc-util/theme";
+import { SITE_NAME, LIVE_DEMO_REQUEST } from "@cocalc/util/theme";
 
 export function HelpBox() {
   return (

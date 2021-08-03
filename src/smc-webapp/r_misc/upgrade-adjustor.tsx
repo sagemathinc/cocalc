@@ -20,8 +20,8 @@ import {
   plural,
   parse_number_input,
   round2,
-} from "smc-util/misc";
-import { PROJECT_UPGRADES } from "smc-util/schema";
+} from "@cocalc/util/misc";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import {
   Alert,
   Button,

@@ -10,7 +10,7 @@ Access permissions related to projects for a given user (or project)
 async   = require('async')
 winston = require('./logger').getLogger('access')
 
-misc    = require('smc-util/misc')
+misc    = require('@cocalc/util/misc')
 {defaults, required} = misc
 
 user_is_in_project_group = (opts) ->

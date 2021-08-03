@@ -9,7 +9,7 @@
 // testing: app?launch=csi/course-calculate-20
 
 import { redux } from "../app-framework";
-import { retry_until_success } from "smc-util/async-utils";
+import { retry_until_success } from "@cocalc/util/async-utils";
 import {
   custom_image_name,
   NAME as CUSTOM_SOFTWARE_NAME,

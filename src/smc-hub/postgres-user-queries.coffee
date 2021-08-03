@@ -23,10 +23,10 @@ underscore   = require('underscore')
 
 {UserQueryQueue} = require('./postgres-user-query-queue')
 
-{defaults} = misc = require('smc-util/misc')
+{defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
 
-{PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
+{PROJECT_UPGRADES, SCHEMA} = require('@cocalc/util/schema')
 
 {file_use_times} = require('./postgres/file-use-times')
 

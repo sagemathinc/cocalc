@@ -12,8 +12,8 @@ const MAX_ACCOUNTS_PER_30MIN_GOLD = 1500;
 
 const auth = require("../auth");
 import { parseDomain, ParseResultType } from "parse-domain";
-import * as message from "smc-util/message";
-import { CreateAccount } from "smc-util/message-types";
+import * as message from "@cocalc/util/message";
+import { CreateAccount } from "@cocalc/util/message-types";
 import {
   walltime,
   lower_email_address,
@@ -21,9 +21,9 @@ import {
   defaults,
   is_valid_email_address,
   len,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { delay } from "awaiting";
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import { PostgreSQL } from "../postgres/types";
 const { api_key_action } = require("../api/manage");
 import {

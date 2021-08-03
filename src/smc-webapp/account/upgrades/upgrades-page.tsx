@@ -5,7 +5,7 @@
 
 import "./project-upgrades-table";
 import { Map } from "immutable";
-import { round1, plural } from "smc-util/misc";
+import { round1, plural } from "@cocalc/util/misc";
 import { redux, rclass, rtypes, Component, React } from "../../app-framework";
 import { Icon, Loading, Space } from "../../r_misc";
 
@@ -20,7 +20,7 @@ import {
   PolicyPricingPageUrl,
   Footer,
 } from "../../customize";
-import { PROJECT_UPGRADES } from "smc-util/schema";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 
 import { Row, Col, Panel } from "../../antd-bootstrap";
 import { ProgressBar } from "react-bootstrap";

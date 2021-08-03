@@ -8,7 +8,7 @@ import { NavItem, Nav } from "react-bootstrap";
 import { Loading } from "../../r_misc";
 import { DeletedProjectWarning } from "../warnings/deleted";
 import { Content } from "./content";
-import { tab_to_path } from "smc-util/misc";
+import { tab_to_path } from "@cocalc/util/misc";
 import {
   React,
   useActions,

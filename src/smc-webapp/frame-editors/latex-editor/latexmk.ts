@@ -8,7 +8,7 @@ Convert LaTeX file to PDF using latexmk.
 */
 
 import { exec, ExecOutput } from "../generic/client";
-import { path_split, change_filename_extension } from "smc-util/misc";
+import { path_split, change_filename_extension } from "@cocalc/util/misc";
 import { pdf_path } from "./util";
 
 export async function latexmk(

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { replace_all, split } from "smc-util/misc";
+import { replace_all, split } from "@cocalc/util/misc";
 import { redux } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
 

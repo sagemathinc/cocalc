@@ -8,7 +8,7 @@ import React from "react";
 import { ProjectActions } from "../../../project_actions";
 import { Icon } from "../../../r_misc";
 
-const misc = require("smc-util/misc");
+const misc = require("@cocalc/util/misc");
 
 interface Props {
   name?: string;

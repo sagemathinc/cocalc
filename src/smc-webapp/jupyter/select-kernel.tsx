@@ -11,13 +11,13 @@ import {
   List,
   OrderedMap /*, List as ImmutableList*/,
 } from "immutable";
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 import { isIconName, Icon, Loading } from "../r_misc";
 import { Col, Row } from "../antd-bootstrap";
 import { Descriptions, Radio, Typography, Checkbox, Button } from "antd";
 import * as antd from "antd";
 import { Kernel } from "./util";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 
 const main_style: CSS = {

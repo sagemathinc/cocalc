@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { database } from "../database";
-import { is_valid_uuid_string } from "smc-util/misc";
+import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { database_is_working } from "smc-hub/hub_register";
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import { getLogger } from "smc-hub/logger";
 
 export default function init(router: Router) {

@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { aggregate } from "smc-util/aggregate";
-import * as message from "smc-util/message";
-import { callback2 } from "smc-util/async-utils";
+import { aggregate } from "@cocalc/util/aggregate";
+import * as message from "@cocalc/util/message";
+import { callback2 } from "@cocalc/util/async-utils";
 import { AsyncCall } from "./client";
 
 import { User } from "../frame-editors/generic/client";

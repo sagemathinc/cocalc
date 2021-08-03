@@ -12,7 +12,7 @@ import {
   Upgrade,
   Subscription,
 } from "../site-licenses/purchase/util";
-import { plural } from "smc-util/misc";
+import { plural } from "@cocalc/util/misc";
 
 const p1data = {
   user: "academic" as User,

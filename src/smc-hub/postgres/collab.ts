@@ -4,8 +4,8 @@
  */
 
 import { PostgreSQL } from "./types";
-import { is_array, is_valid_uuid_string } from "smc-util/misc";
-import { callback2 } from "smc-util/async-utils";
+import { is_array, is_valid_uuid_string } from "@cocalc/util/misc";
+import { callback2 } from "@cocalc/util/async-utils";
 
 const GROUPS = ["owner", "collaborator"] as const;
 

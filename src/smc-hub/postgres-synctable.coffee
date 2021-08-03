@@ -12,13 +12,13 @@ immutable    = require('immutable')
 async        = require('async')
 underscore   = require('underscore')
 
-{defaults, is_array} = misc = require('smc-util/misc')
+{defaults, is_array} = misc = require('@cocalc/util/misc')
 required = defaults.required
 misc_node = require('@cocalc/util-node/misc_node')
 
 {pg_type, one_result, all_results, quote_field} = require('./postgres-base')
 
-{SCHEMA} = require('smc-util/schema')
+{SCHEMA} = require('@cocalc/util/schema')
 
 {Changes} = require('./postgres/changefeed')
 
@@ -400,7 +400,7 @@ class SyncTable extends EventEmitter
         if not key? or not @_value?
             return @_value
         if is_array(key)
-            # for consistency with smc-util/sync/synctable
+            # for consistency with @cocalc/util/sync/synctable
             r = immutable.Map()
             for k in key
                 v = @_value.get(k)

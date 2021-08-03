@@ -21,7 +21,7 @@
 # w.show([lang]) -- show dialog again (same state!) and in csae a language given, a selection of it is triggered
 
 # cocalc libs
-{defaults, required, optional} = misc = require('smc-util/misc')
+{defaults, required, optional} = misc = require('@cocalc/util/misc')
 {redux, Redux} = require('../app-framework')
 # snippets related libs
 {ExamplesStore} = require('./store')

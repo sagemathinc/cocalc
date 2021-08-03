@@ -13,7 +13,7 @@ Why?
 
 */
 
-import { MARKERS } from "smc-util/sagews";
+import { MARKERS } from "@cocalc/util/sagews";
 
 // Input: a string that is the contents of a .sagews file
 // Output: a list of objects

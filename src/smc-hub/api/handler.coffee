@@ -4,7 +4,7 @@
 #########################################################################
 
 ###
-API for handling the messages described smc-util/message.coffee
+API for handling the messages described packages/util/message.js
 
 AGPLv3, (c) 2017, SageMath, Inc.
 ###
@@ -14,12 +14,12 @@ async = require('async')
 Cache = require('lru-cache')
 auth_cache = new Cache(max:100, maxAge:60000)
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 {defaults, required} = misc
 
-messages = require('smc-util/message')
+messages = require('@cocalc/util/message')
 
-{ HELP_EMAIL } = require("smc-util/theme")
+{ HELP_EMAIL } = require("@cocalc/util/theme")
 
 {Client} = require('../client')
 

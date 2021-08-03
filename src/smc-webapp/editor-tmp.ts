@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { filename_extension_notilde, path_split } from "smc-util/misc";
+import { filename_extension_notilde, path_split } from "@cocalc/util/misc";
 import { file_associations } from "./file-associations";
 import { icon as file_icon } from "./file-editors";
 

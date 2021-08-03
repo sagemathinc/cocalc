@@ -5,8 +5,8 @@
 
 import { RunNotebookOptions } from "smc-webapp/jupyter/nbgrader/api";
 import { JupyterNotebook } from "smc-webapp/jupyter/nbgrader/autograde";
-import { is_object, len, uuid, trunc_middle } from "smc-util/misc";
-import { retry_until_success } from "smc-util/async-utils";
+import { is_object, len, uuid, trunc_middle } from "@cocalc/util/misc";
+import { retry_until_success } from "@cocalc/util/async-utils";
 
 import { kernel, JupyterKernel } from "../jupyter/jupyter";
 

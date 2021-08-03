@@ -3,12 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { encode_path } from "smc-util/misc";
+import { encode_path } from "@cocalc/util/misc";
 
-import { client_db } from "smc-util/schema";
+import { client_db } from "@cocalc/util/schema";
 
 export function share_id(project_id: string, path: string): string {
-  return client_db.sha1(project_id, path); // Consistent with smc-util/db-schema...
+  return client_db.sha1(project_id, path); // Consistent with @cocalc/util/db-schema...
 }
 
 export function public_share_url(

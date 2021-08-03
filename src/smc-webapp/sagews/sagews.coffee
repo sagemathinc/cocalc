@@ -8,14 +8,14 @@ async     = require('async')
 stringify = require('json-stable-stringify')
 CodeMirror = require('codemirror')
 
-{MARKERS, FLAGS, ACTION_FLAGS, ACTION_SESSION_FLAGS} = require('smc-util/sagews')
+{MARKERS, FLAGS, ACTION_FLAGS, ACTION_SESSION_FLAGS} = require('@cocalc/util/sagews')
 
 {SynchronizedDocument2} = require('../syncdoc')
 
-misc                 = require('smc-util/misc')
+misc                 = require('@cocalc/util/misc')
 {defaults, required} = misc
 
-message           = require('smc-util/message')
+message           = require('@cocalc/util/message')
 markdown          = require('../markdown')
 {webapp_client}   = require('../webapp-client')
 {redux}           = require('../app-framework')

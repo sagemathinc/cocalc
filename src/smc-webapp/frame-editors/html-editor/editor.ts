@@ -9,7 +9,7 @@ Top-level react component for editing HTML documents
 
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
-import { set } from "smc-util/misc";
+import { set } from "@cocalc/util/misc";
 import { QuickHTMLPreview } from "./rendered-html";
 import { IFrameHTML } from "./iframe-html";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";

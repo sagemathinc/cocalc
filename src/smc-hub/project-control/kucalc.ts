@@ -13,8 +13,8 @@ import {
   getProject,
 } from "./base";
 import { database } from "smc-hub/servers/database";
-import { callback2 } from "smc-util/async-utils";
-import { is_valid_uuid_string, uuid } from "smc-util/misc";
+import { callback2 } from "@cocalc/util/async-utils";
+import { is_valid_uuid_string, uuid } from "@cocalc/util/misc";
 
 import getLogger from "smc-hub/logger";
 const winston = getLogger("project-control-kucalc");

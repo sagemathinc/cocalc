@@ -10,7 +10,7 @@ Control backend Xpra server daemon
 import { exec, ExecOutput, ExecOpts } from "../generic/client";
 import { reuseInFlight } from "async-await-utils/hof";
 import { MAX_WIDTH, MAX_HEIGHT } from "./xpra/surface";
-import { splitlines, split } from "smc-util/misc";
+import { splitlines, split } from "@cocalc/util/misc";
 
 export interface ExecOpts0 {
   command: string;

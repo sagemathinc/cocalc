@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 import { React, redux } from "../../app-framework";
-import { DEFAULT_FONT_SIZE } from "smc-util/db-schema/defaults";
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/db-schema/defaults";
 
 // this doesn't react to font size changes. maybe at some point we want to...
 function base_font_size() {

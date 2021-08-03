@@ -5,7 +5,7 @@
 
 import { Text } from "slate";
 import { getMarkdownToSlate } from "../elements";
-import { replace_all } from "smc-util/misc";
+import { replace_all } from "@cocalc/util/misc";
 import { Marks } from "./types";
 import { register } from "./register";
 import { DEFAULT_CHILDREN } from "../util";

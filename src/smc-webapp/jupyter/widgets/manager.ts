@@ -8,10 +8,10 @@ import * as phosphor_controls from "@jupyter-widgets/controls";
 import {
   IpywidgetsState,
   ModelState,
-} from "smc-util/sync/editor/generic/ipywidgets-state";
-import { once } from "smc-util/async-utils";
+} from "@cocalc/util/sync/editor/generic/ipywidgets-state";
+import { once } from "@cocalc/util/async-utils";
 import { Comm } from "./comm";
-import { copy, is_array, len, uuid } from "smc-util/misc";
+import { copy, is_array, len, uuid } from "@cocalc/util/misc";
 import * as react_output from "./output";
 import * as react_controls from "./controls";
 

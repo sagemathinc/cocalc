@@ -9,8 +9,8 @@
 import { delay } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 import { redux } from "../app-framework";
-import { SITE_NAME } from "smc-util/theme";
-import { minutes_ago } from "smc-util/misc";
+import { SITE_NAME } from "@cocalc/util/theme";
+import { minutes_ago } from "@cocalc/util/misc";
 import { ConnectionStatus } from "./store";
 import { alert_message } from "../alerts";
 import { webapp_client } from "../webapp-client";

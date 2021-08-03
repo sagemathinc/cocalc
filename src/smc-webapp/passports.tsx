@@ -6,11 +6,11 @@
 import { join } from "path";
 import React from "react";
 import { List } from "immutable";
-import { capitalize } from "smc-util/misc";
+import { capitalize } from "@cocalc/util/misc";
 import { isIconName, Icon, Tip } from "./r_misc";
 import { SiteName } from "./customize";
 import { PassportStrategy, PRIMARY_SSO } from "./account/passport-types";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   strategies?: List<PassportStrategy>;

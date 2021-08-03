@@ -13,9 +13,9 @@ import {
   Well,
 } from "react-bootstrap";
 import { Icon } from "../r_misc/icon";
-import { PROJECT_UPGRADES } from "smc-util/schema";
-import { COLORS } from "smc-util/theme";
-import { capitalize, endswith } from "smc-util/misc";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { COLORS } from "@cocalc/util/theme";
+import { capitalize, endswith } from "@cocalc/util/misc";
 import { Component, React, Rendered, redux } from "../app-framework";
 import { AppliedCoupons, Customer, PeriodName } from "./types";
 import { ConfirmPaymentMethod } from "./confirm-payment-method";

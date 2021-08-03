@@ -13,7 +13,7 @@ code evaluation in Sage worksheets.
 Cell and Worksheet below are used when eval'ing %javascript blocks.
 ###
 
-{defaults} = require('smc-util/misc')
+{defaults} = require('@cocalc/util/misc')
 
 log = (s) -> console.log(s)
 

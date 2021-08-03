@@ -5,7 +5,7 @@
 
 import { Map } from "immutable";
 import { React } from "smc-webapp/app-framework";
-import { all_fields_equal } from "smc-util/misc";
+import { all_fields_equal } from "@cocalc/util/misc";
 import { Markdown, HTML } from "../../r_misc";
 import { JupyterActions } from "../browser-actions";
 import { Ansi, is_ansi } from "./ansi";

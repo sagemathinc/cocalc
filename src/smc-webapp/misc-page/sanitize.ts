@@ -23,7 +23,7 @@ It seems like there is some bug in the library, because the definitions to allow
 http://api.jquery.com/jQuery.parseHTML/ (expanded behavior in version 3+)
 */
 
-import { sanitize_html_attributes } from "smc-util/misc";
+import { sanitize_html_attributes } from "@cocalc/util/misc";
 declare var jQuery: any;
 
 export function sanitize_html(

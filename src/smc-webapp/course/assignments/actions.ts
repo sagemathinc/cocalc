@@ -46,7 +46,7 @@ import {
   defaults,
   split,
   trunc,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { map } from "awaiting";
 
 import { nbgrader, jupyter_strip_notebook } from "../../jupyter/nbgrader/api";

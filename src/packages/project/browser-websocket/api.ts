@@ -16,7 +16,7 @@
 
 // This require is just because typescript is confused by
 // the path for now.  Growing pains.
-const { callback_opts } = require("smc-util/async-utils");
+const { callback_opts } = require("@cocalc/util/async-utils");
 
 import { browser_symmetric_channel } from "./symmetric_channel";
 import { canonical_paths } from "./canonical-path";
@@ -158,7 +158,7 @@ async function handle_api_call(data: Mesg, primus: any): Promise<any> {
 /* implementation of the api calls */
 
 import { get_listing } from "../directory-listing";
-import { DirectoryListingEntry } from "smc-util/types";
+import { DirectoryListingEntry } from "@cocalc/util/types";
 async function listing(
   path: string,
   hidden?: boolean

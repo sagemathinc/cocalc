@@ -6,7 +6,7 @@
 import { join } from "path";
 import { callback } from "awaiting";
 declare const $: any; // jQuery
-import * as message from "smc-util/message";
+import * as message from "@cocalc/util/message";
 import { AsyncCall, WebappClient } from "./client";
 
 export class AccountClient {

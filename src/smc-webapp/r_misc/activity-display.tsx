@@ -4,7 +4,7 @@
  */
 
 import { CSS, React } from "../app-framework";
-import { is_different_array, len, trunc as trunc_string } from "smc-util/misc";
+import { is_different_array, len, trunc as trunc_string } from "@cocalc/util/misc";
 import { Icon } from "./icon";
 import { CloseX } from "./close-x";
 

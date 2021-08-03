@@ -16,12 +16,12 @@ possible, so it is manageable, especially as we adapt CoCalc to new
 environments.
 */
 
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import { database } from "smc-hub/servers/database";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
-import { ProjectState, ProjectStatus } from "smc-util/db-schema/projects";
-import { quota } from "smc-util/upgrades/quota";
+import { ProjectState, ProjectStatus } from "@cocalc/util/db-schema/projects";
+import { quota } from "@cocalc/util/upgrades/quota";
 import { delay } from "awaiting";
 import getLogger from "smc-hub/logger";
 import { site_license_hook } from "smc-hub/postgres/site-license/hook";

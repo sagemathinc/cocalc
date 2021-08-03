@@ -5,7 +5,7 @@
 
 // CoCalc libraries
 import { webapp_client } from "../../webapp-client";
-import { contains_url, days_ago } from "smc-util/misc";
+import { contains_url, days_ago } from "@cocalc/util/misc";
 import { debounce } from "lodash";
 // React libraries and Components
 import {
@@ -46,7 +46,7 @@ import { TerminalCommandPanel } from "./terminal-command";
 import { Nbgrader } from "./nbgrader";
 import { Parallel } from "./parallel";
 
-import { upgrades } from "smc-util/upgrade-spec";
+import { upgrades } from "@cocalc/util/upgrade-spec";
 import { StudentProjectsStartStopPanel } from "./start-stop-panel";
 import { DisableStudentCollaboratorsPanel } from "./disable-collaborators";
 import { CustomizeStudentProjectFunctionality } from "./customize-student-project-functionality";

@@ -22,7 +22,7 @@ import {
 import { charge_user_for_license, set_purchase_metadata } from "./charge";
 import { create_license } from "./create-license";
 import { StripeClient } from "../../stripe/client";
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 
 // Does what should be done, and returns the license_id of the license that was created

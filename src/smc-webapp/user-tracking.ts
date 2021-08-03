@@ -8,9 +8,9 @@
 // completely change this if we want.
 
 import { query, server_time } from "./frame-editors/generic/client";
-import { analytics_cookie_name as analytics, uuid } from "smc-util/misc";
+import { analytics_cookie_name as analytics, uuid } from "@cocalc/util/misc";
 import { redux } from "./app-framework";
-import { version } from "smc-util/smc-version";
+import { version } from "@cocalc/util/smc-version";
 import { get_cookie } from "./misc-page";
 import { webapp_client } from "./webapp-client";
 

@@ -9,8 +9,8 @@ some code in editor_jupyter.coffee.
 */
 
 import { Node, Operation } from "slate";
-import { dmp } from "smc-util/sync/editor/generic/util";
-import { StringCharMapping } from "smc-util/misc";
+import { dmp } from "@cocalc/util/sync/editor/generic/util";
+import { StringCharMapping } from "@cocalc/util/misc";
 import { handleChangeOneNode } from "./handle-change-one-node";
 import { handleChangeTextNodes, isAllText } from "./handle-change-text-nodes";
 

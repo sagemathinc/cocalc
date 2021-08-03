@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { path_split, separate_file_extension } from "smc-util/misc";
+import { path_split, separate_file_extension } from "@cocalc/util/misc";
 import { exec, raw_url_of_file } from "../../generic/client";
-import { sanitize_nbconvert_path } from "smc-util/sanitize-nbconvert";
+import { sanitize_nbconvert_path } from "@cocalc/util/sanitize-nbconvert";
 
 export async function revealjs_slideshow_html(
   project_id: string,

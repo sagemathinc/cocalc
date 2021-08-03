@@ -13,7 +13,7 @@ import { React } from "smc-webapp/app-framework";
 import { Icon, IconName, SettingBox } from "../r_misc";
 import LinkRetry from "../widgets-misc/link-retry";
 import { useStudentProjectFunctionality } from "smc-webapp/course";
-import { capitalize } from "smc-util/misc";
+import { capitalize } from "@cocalc/util/misc";
 
 const SPEC: {
   [name: string]: {

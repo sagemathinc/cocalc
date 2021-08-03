@@ -9,7 +9,7 @@ Share server top-level landing page.
 
 import { List, Map } from "immutable";
 import { Component, React, Rendered } from "../app-framework";
-import { encode_path } from "smc-util/misc";
+import { encode_path } from "@cocalc/util/misc";
 import { TimeAgoElement, Space } from "../r_misc";
 
 const INDEX_STYLE = {

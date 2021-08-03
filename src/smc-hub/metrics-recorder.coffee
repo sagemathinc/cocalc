@@ -12,7 +12,7 @@ fs         = require('fs')
 path       = require('path')
 underscore = require('underscore')
 {execSync} = require('child_process')
-{defaults} = misc = require('smc-util/misc')
+{defaults} = misc = require('@cocalc/util/misc')
 
 # Prometheus client setup -- https://github.com/siimon/prom-client
 prom_client = require('prom-client')

@@ -18,7 +18,7 @@ db       = undefined
 setup    = (cb) -> (pgtest.setup (err) -> db=pgtest.db; cb(err))
 teardown = pgtest.teardown
 {create_accounts, create_projects, changefeed_series} = pgtest
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 
 describe 'test changefeed of all collaborators of a user -- ', ->
     @timeout(10000)

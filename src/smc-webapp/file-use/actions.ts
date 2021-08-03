@@ -11,16 +11,16 @@ it's sort of complicated to just switch to throttle.  Do so.
 
 import { webapp_client } from "../webapp-client";
 
-const misc = require("smc-util/misc");
+const misc = require("@cocalc/util/misc");
 
-const { callback2, once } = require("smc-util/async-utils");
+const { callback2, once } = require("@cocalc/util/async-utils");
 
 import { Actions } from "../app-framework";
 
 const immutable = require("immutable");
 
 import { FileUseState, FileUseStore } from "./store";
-const { sha1 } = require("smc-util/schema").client_db;
+const { sha1 } = require("@cocalc/util/schema").client_db;
 
 const DEFAULT_CHAT_TTL_S = 5;
 const DEFAULT_FILE_TTL_S = 45;

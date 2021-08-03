@@ -8,8 +8,8 @@ Functions for parsing input, etc.
 This can *ONLY* be used from the browser!
 */
 
-const { endswith } = require("smc-util/misc");
-import { Syntax } from "smc-util/code-formatter";
+const { endswith } = require("@cocalc/util/misc");
+import { Syntax } from "@cocalc/util/code-formatter";
 
 // We use a special version of runMode that can be run on the backend
 // or frontend, to better support next.js.

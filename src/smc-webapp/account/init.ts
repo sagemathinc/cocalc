@@ -3,15 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { deep_copy } from "smc-util/misc";
-import { SCHEMA } from "smc-util/schema";
+import { deep_copy } from "@cocalc/util/misc";
+import { SCHEMA } from "@cocalc/util/schema";
 import { webapp_client } from "../webapp-client";
 import { AccountActions } from "./actions";
 import { AccountStore } from "./store";
 import { AccountTable } from "./table";
 import { init_dark_mode } from "./dark-mode";
 import { reset_password_key } from "../client/password-reset";
-import { hasRememberMe } from "smc-util/remember-me";
+import { hasRememberMe } from "@cocalc/util/remember-me";
 
 export function init(redux) {
   // Register account store

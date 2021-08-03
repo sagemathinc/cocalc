@@ -5,7 +5,7 @@
 
 import { React, useRedux, useActions } from "../app-framework";
 import { Icon, Tip } from "../r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { user_tracking } from "../user-tracking";
 
 const TIP_STYLE: React.CSSProperties = {

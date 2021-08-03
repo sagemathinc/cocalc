@@ -18,7 +18,7 @@
 //const { teardown } = init;
 
 import expect from "expect";
-const { quota } = require("smc-util/upgrades/quota");
+const { quota } = require("@cocalc/util/upgrades/quota");
 
 describe("default quota", () => {
   it("basics are fine", () => {

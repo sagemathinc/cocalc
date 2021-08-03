@@ -15,7 +15,7 @@ TODO/DEPRECATED: once the new react rewrite is done, delete this.  There is a mo
 of it in code-editor/mobile.coffee.
 ###
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 copypaste = require('../copy-paste-buffer')
 
 exports.extra_alt_keys = (extraKeys, editor, opts) ->

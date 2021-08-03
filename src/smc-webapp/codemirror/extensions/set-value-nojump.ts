@@ -4,7 +4,7 @@
  */
 
 import * as CodeMirror from "codemirror";
-import { dmp } from "smc-util/sync/editor/generic/util";
+import { dmp } from "@cocalc/util/sync/editor/generic/util";
 
 /*
 Try to set the value of the buffer to something new by replacing just the ranges

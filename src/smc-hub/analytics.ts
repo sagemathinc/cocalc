@@ -11,7 +11,7 @@ import {
   analytics_cookie_name,
   is_valid_uuid_string,
   uuid,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { PostgreSQL } from "./postgres/types";
 import { get_server_settings, pii_retention_to_future } from "./utils";
 import * as fs from "fs";

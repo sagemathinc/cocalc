@@ -7,11 +7,11 @@ import { Map } from "immutable";
 import { webapp_client } from "../../webapp-client";
 import { rclass, redux, rtypes, Component, React } from "../../app-framework";
 import { ErrorDisplay, UpgradeAdjustor, r_join } from "../../r_misc";
-import { PROJECT_UPGRADES } from "smc-util/schema";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { ProjectTitle } from "../../projects/project-title";
 import { Button, Row, Col, Panel } from "../../antd-bootstrap";
 import { ResetProjectsConfirmation } from "./reset-projects";
-import { plural, is_string, len, round1 } from "smc-util/misc";
+import { plural, is_string, len, round1 } from "@cocalc/util/misc";
 
 interface reduxProps {
   get_total_upgrades: Function;

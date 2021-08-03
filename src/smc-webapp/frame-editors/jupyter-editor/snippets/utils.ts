@@ -5,7 +5,7 @@
 
 import { pick, merge } from "lodash";
 import { basename } from "path";
-import { unreachable, separate_file_extension } from "smc-util/misc";
+import { unreachable, separate_file_extension } from "@cocalc/util/misc";
 import { reuseInFlight } from "async-await-utils/hof";
 import { exec } from "../../generic/client";
 import { canonical_language } from "../../../jupyter/store";

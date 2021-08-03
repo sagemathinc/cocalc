@@ -7,7 +7,7 @@
 
 import { Response } from "express";
 import { join } from "path";
-import { SiteSettingsKeys } from "smc-util/db-schema/site-defaults";
+import { SiteSettingsKeys } from "@cocalc/util/db-schema/site-defaults";
 import base_path from "@cocalc/util-node/base-path";
 
 interface Custom {

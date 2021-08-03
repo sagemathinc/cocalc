@@ -9,7 +9,7 @@ React component to render a Sage worksheet statically (for use by share server o
 
 import { React, Component, Rendered } from "../app-framework";
 
-import { field_cmp } from "smc-util/misc";
+import { field_cmp } from "@cocalc/util/misc";
 
 import { Cell } from "./cell";
 

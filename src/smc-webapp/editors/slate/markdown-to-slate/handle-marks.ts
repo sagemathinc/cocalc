@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { startswith } from "smc-util/misc";
+import { startswith } from "@cocalc/util/misc";
 import { register } from "./register";
 
 export interface Marks {

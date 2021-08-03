@@ -11,7 +11,7 @@ import {
   hash_string,
   server_seconds_ago,
   server_time,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 
 import { webapp_client } from "./webapp-client";
 

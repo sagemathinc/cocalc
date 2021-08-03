@@ -19,7 +19,7 @@ import {
   QuestionCircleOutlined,
   PauseCircleOutlined,
 } from "@ant-design/icons";
-import { plural, seconds2hms, unreachable } from "smc-util/misc";
+import { plural, seconds2hms, unreachable } from "@cocalc/util/misc";
 import { Tip, TimeElapsed, Icon, IconName } from "../../r_misc";
 import { CGroupInfo, DUState } from "./types";
 import { warning_color_pct, warning_color_disk, filename } from "./utils";
@@ -32,7 +32,7 @@ import {
 } from "@cocalc/project/project-info/types";
 import { AlertType } from "@cocalc/project/project-status/types";
 import { Channel } from "../websocket/types";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import humanizeList from "humanize-list";
 
 export const CodeWhite: React.FC = ({ children }) => (

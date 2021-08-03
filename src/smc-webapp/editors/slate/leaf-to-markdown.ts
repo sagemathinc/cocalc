@@ -5,7 +5,7 @@
 
 import { Text } from "slate";
 import { markInlineText, markdownEscape } from "./util";
-import { startswith } from "smc-util/misc";
+import { startswith } from "@cocalc/util/misc";
 import { Info } from "./slate-to-markdown";
 
 export function serializeLeaf(node: Text, info: Info): string {

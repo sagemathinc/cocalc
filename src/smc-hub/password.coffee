@@ -8,8 +8,8 @@ Password reset and change functionality.
 ###
 
 async                = require('async')
-misc                 = require('smc-util/misc')
-message              = require('smc-util/message')     # message protocol between front-end and back-end
+misc                 = require('@cocalc/util/misc')
+message              = require('@cocalc/util/message')     # message protocol between front-end and back-end
 email                = require('./email')
 {defaults, required} = misc
 {is_valid_password}  = require('./client/create-account')
@@ -124,7 +124,7 @@ exports.forgot_password = (opts) ->
 
         (cb) ->
             # send an email to opts.mesg.email_address that has a password reset link
-            theme = require('smc-util/theme')
+            theme = require('@cocalc/util/theme')
 
             dns         = locals.settings.dns or theme.DNS
             DOMAIN_URL = "https://#{dns}"

@@ -30,7 +30,7 @@ import { callback } from "awaiting";
 import { EventEmitter } from "events";
 
 // using require because this file is used in smc-project and import is messed up...
-const misc = require("smc-util/misc");
+const misc = require("@cocalc/util/misc");
 const { close, defaults, required } = misc;
 
 const now = () => misc.server_time() - 0;

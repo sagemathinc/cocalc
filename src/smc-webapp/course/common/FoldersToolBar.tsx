@@ -17,7 +17,7 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 
 // CoCalc libraries
-import { is_different } from "smc-util/misc";
+import { is_different } from "@cocalc/util/misc";
 import { webapp_client } from "../../webapp-client";
 
 // React libraries

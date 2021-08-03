@@ -5,7 +5,7 @@
 
 import React from "react";
 
-import { defaults } from "smc-util/misc";
+import { defaults } from "@cocalc/util/misc";
 
 import { alert_message } from "../alerts";
 

@@ -23,16 +23,16 @@ random_key = require("random-key")
 misc_node = require('@cocalc/util-node/misc_node')
 misc2_node = require('@cocalc/util-node/misc')
 
-{defaults} = misc = require('smc-util/misc')
+{defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
 
 # IDK why, but if that import line is down below, where the other "./postgres/*" imports are, building manage
 # fails with: remember-me.ts(15,31): error TS2307: Cannot find module 'async-await-utils/hof' or its corresponding type declarations.
 {get_remember_me} = require('./postgres/remember-me')
 
-{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('smc-util/schema')
+{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('@cocalc/util/schema')
 
-{ DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images")
+{ DEFAULT_COMPUTE_IMAGE } = require("@cocalc/util/compute-images")
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
@@ -57,8 +57,8 @@ collab = require('./postgres/collab')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
 
-SERVER_SETTINGS_EXTRAS = require("smc-util/db-schema/site-settings-extras").EXTRAS
-SITE_SETTINGS_CONF = require("smc-util/schema").site_settings_conf
+SERVER_SETTINGS_EXTRAS = require("@cocalc/util/db-schema/site-settings-extras").EXTRAS
+SITE_SETTINGS_CONF = require("@cocalc/util/schema").site_settings_conf
 LRU = require('lru-cache');
 SERVER_SETTINGS_CACHE = new LRU({ max: 50, maxAge: 60 * 1000 })
 {pii_expire} = require("./utils")
@@ -2543,7 +2543,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                                 cb(err)
                 ], cb)
             (cb) =>
-                excess = require('smc-util/upgrades').available_upgrades(stripe_data, project_upgrades).excess
+                excess = require('@cocalc/util/upgrades').available_upgrades(stripe_data, project_upgrades).excess
                 if opts.fix
                     fix = (project_id, cb) =>
                         dbg("fixing project_id='#{project_id}' with excess #{JSON.stringify(excess[project_id])}")
@@ -2867,7 +2867,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         dbg = @_dbg("database::insert_random_compute_images")
         dbg()
 
-        capitalize = require('smc-util/misc').capitalize
+        capitalize = require('@cocalc/util/misc').capitalize
 
         words = [
                     'wizard', 'jupyter', 'carrot', 'python', 'science', 'gold', 'eagle',

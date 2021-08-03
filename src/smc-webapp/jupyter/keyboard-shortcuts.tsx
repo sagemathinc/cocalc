@@ -11,7 +11,7 @@
 import { React, Rendered, useState } from "../app-framework";
 import { Map } from "immutable";
 import * as json from "json-stable-stringify";
-import { capitalize, copy_without, field_cmp, split } from "smc-util/misc";
+import { capitalize, copy_without, field_cmp, split } from "@cocalc/util/misc";
 import { Button, Modal, Grid, Row, Col } from "react-bootstrap";
 import { A, Icon, IconName, SearchInput, r_join } from "../r_misc";
 import {

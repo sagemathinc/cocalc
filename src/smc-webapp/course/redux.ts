@@ -11,7 +11,7 @@ import { CourseActions } from "./actions";
 import { create_sync_db } from "./sync";
 import { AssignmentRecord, CourseStore } from "./store";
 
-import { SyncDB } from "smc-util/sync/editor/db/sync";
+import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
 
 const syncdbs: { [name: string]: SyncDB } = {};
 

@@ -21,10 +21,10 @@ import { PROJECT_INVITE_QUERY_PARAM } from "./handle-project-invite";
 import { Button, Popconfirm, Table } from "antd";
 import { React, useState, useIsMountedRef } from "../app-framework";
 import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../r_misc";
-import { ProjectInviteToken } from "smc-util/db-schema/project-invite-tokens";
+import { ProjectInviteToken } from "@cocalc/util/db-schema/project-invite-tokens";
 import { webapp_client } from "../webapp-client";
 import { alert_message } from "../alerts";
-import { secure_random_token, server_weeks_ago } from "smc-util/misc";
+import { secure_random_token, server_weeks_ago } from "@cocalc/util/misc";
 import { join } from "path";
 
 const TOKEN_LENGTH = 16;

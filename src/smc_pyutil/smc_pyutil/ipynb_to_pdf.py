@@ -20,7 +20,7 @@ from itertools import repeat, chain
 
 
 def sanitize_nbconvert_path(path):
-    # same functionality as in smc-util/sanitize-nbconvert.ts
+    # same functionality as in packages/util/sanitize-nbconvert.ts
     # https://github.com/jupyter/nbconvert/issues/911
     return glob.escape(path)
 

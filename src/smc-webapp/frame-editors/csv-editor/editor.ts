@@ -9,7 +9,7 @@ Top-level react component for editing CSV files
 
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
-import { set } from "smc-util/misc";
+import { set } from "@cocalc/util/misc";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";

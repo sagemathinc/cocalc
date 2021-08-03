@@ -17,7 +17,7 @@ import {
   Input,
 } from "antd";
 import { DownOutlined } from "@ant-design/icons";
-import { describe_quota } from "smc-util/db-schema/site-licenses";
+import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 
 import moment from "moment";
 import { webapp_client } from "../../webapp-client";
@@ -33,12 +33,12 @@ import {
 } from "../../r_misc";
 import { PurchaseMethod } from "./purchase-method";
 import { RadioGroup } from "./radio-group";
-import { plural } from "smc-util/misc";
+import { plural } from "@cocalc/util/misc";
 import { DebounceInput } from "react-debounce-input";
 import { create_quote_support_ticket } from "./get-a-quote";
 import { QuotaEditor } from "./quota-editor";
 import { DOC_LICENSE_URL } from "../../billing/data";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 
 const LENGTH_PRESETS = [
   { label: "2 Days", desc: { n: 2, key: "days" } },

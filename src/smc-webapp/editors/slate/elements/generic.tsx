@@ -6,7 +6,7 @@
 import { CSS, React } from "smc-webapp/app-framework";
 import { string_to_style } from "../util";
 import { register, SlateElement } from "./register";
-import { dict } from "smc-util/misc";
+import { dict } from "@cocalc/util/misc";
 
 export interface Generic extends SlateElement {
   type: "generic";

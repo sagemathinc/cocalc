@@ -4,7 +4,7 @@
  */
 import { fromJS } from "immutable";
 import { React, TypedMap } from "../../app-framework";
-import { Quota } from "smc-util/db-schema/site-licenses";
+import { Quota } from "@cocalc/util/db-schema/site-licenses";
 import { license_field_names } from "./types";
 import { actions } from "./actions";
 import { QuotaEditor } from "../purchase/quota-editor";

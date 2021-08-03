@@ -10,7 +10,7 @@ import { join } from "path";
 import * as async from "async";
 import { isEqual } from "lodash";
 import { Set, List, fromJS, Map } from "immutable";
-import { client_db } from "smc-util/schema";
+import { client_db } from "@cocalc/util/schema";
 import {
   ConfigurationAspect,
   Configuration,
@@ -21,18 +21,18 @@ import {
 } from "./project_configuration";
 import { query as client_query } from "./frame-editors/generic/client";
 import { callback } from "awaiting";
-import { callback2, retry_until_success } from "smc-util/async-utils";
+import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { exec } from "./frame-editors/generic/client";
 import { API } from "./project/websocket/api";
 import { in_snapshot_path, NewFilenames, normalize } from "./project/utils";
-import { NEW_FILENAMES } from "smc-util/db-schema";
+import { NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { transform_get_url } from "./project/transform-get-url";
 import { OpenFiles } from "./project/open-files";
 import { log_opened_time, open_file, log_file_open } from "./project/open-file";
 import * as project_file from "./project-file";
 import { get_editor } from "./editors/react-wrapper";
-import * as misc from "smc-util/misc";
-const { MARKERS } = require("smc-util/sagews");
+import * as misc from "@cocalc/util/misc";
+const { MARKERS } = require("@cocalc/util/sagews");
 import { alert_message } from "./alerts";
 import { webapp_client } from "./webapp-client";
 const { defaults, required } = misc;
@@ -42,7 +42,7 @@ import { get_directory_listing2 as get_directory_listing } from "./project/direc
 import { Actions, project_redux_name, redux } from "./app-framework";
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
-import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
+import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { download_href, url_href } from "./project/utils";
 import { ensure_project_running } from "./project/project-start-warning";
 import { download_file, open_new_tab, open_popup_window } from "./misc-page";

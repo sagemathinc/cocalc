@@ -19,7 +19,7 @@ const {
   callback2,
   once,
   retry_until_success,
-} = require("smc-util/async-utils"); // so also works on backend.
+} = require("@cocalc/util/async-utils"); // so also works on backend.
 
 import { callback } from "awaiting";
 import { /* getScript*/ ajax, globalEval } from "jquery";

@@ -13,13 +13,13 @@ import {
   capitalize,
   uuid,
   separate_file_extension,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { generate as heroku } from "project-name-generator";
 import * as superb from "superb";
 import * as catNames from "cat-names";
 import * as dogNames from "dog-names";
 import { file_options } from "../editor-tmp";
-import { DEFAULT_NEW_FILENAMES } from "smc-util/db-schema";
+import { DEFAULT_NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { webapp_client } from "../webapp-client";
 import { BASE_URL } from "../misc";
 

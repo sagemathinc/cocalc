@@ -8,7 +8,7 @@ utils = require('../../utils')
 
 
 describe 'parse retention strings', ->
-    {EXTRAS} = require('smc-util/db-schema/site-settings-extras')
+    {EXTRAS} = require('@cocalc/util/db-schema/site-settings-extras')
     retentions = EXTRAS.pii_retention.valid
     parser = EXTRAS.pii_retention.to_val
     displayer = EXTRAS.pii_retention.to_display

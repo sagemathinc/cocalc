@@ -40,7 +40,7 @@ import { AccessErrors } from "./access-errors";
 import { ListingItem } from "./types";
 
 import { Col, Row, ButtonGroup, Button, Alert } from "react-bootstrap";
-const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
+const STUDENT_COURSE_PRICE = require("@cocalc/util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
 import { FileUploadWrapper } from "../../file-upload";
 import { Library } from "../../library";

@@ -5,7 +5,7 @@
 
 expect  = require('expect')
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 server_urls = require('../server-urls')
 
 describe 'test getting the Jupyter server url -- ', ->

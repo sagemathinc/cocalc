@@ -6,7 +6,7 @@
 export const jQuery = $;
 declare var $: any;
 
-import { startswith } from "smc-util/misc";
+import { startswith } from "@cocalc/util/misc";
 
 // Force reload all images by appending random query param to their src URL.
 // But not for base64 data images -- https://github.com/sagemathinc/cocalc/issues/3141

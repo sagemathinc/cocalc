@@ -10,7 +10,7 @@
 because then they will be compatible with all mentions already used with chat and tasks.
 */
 
-import { trunc_middle } from "smc-util/misc";
+import { trunc_middle } from "@cocalc/util/misc";
 import { React, redux } from "smc-webapp/app-framework";
 import { FOCUSED_COLOR } from "../util";
 import {

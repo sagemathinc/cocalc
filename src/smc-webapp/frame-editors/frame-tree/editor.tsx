@@ -18,7 +18,7 @@ import { StatusBar } from "./status-bar";
 //TODO: import { FrameTree } from "./frame-tree";
 const { FrameTree } = require("./frame-tree");
 import { EditorSpec, ErrorStyles } from "./types";
-import { is_different, filename_extension } from "smc-util/misc";
+import { is_different, filename_extension } from "@cocalc/util/misc";
 import { SetMap } from "./types";
 import { AvailableFeatures } from "../../project_configuration";
 

@@ -6,8 +6,8 @@
 import { fromJS, List as iList, Map as iMap } from "immutable";
 import { Store } from "../app-framework";
 import { webapp_client } from "../webapp-client";
-import { cmp, max } from "smc-util/misc";
-import { client_db } from "smc-util/schema";
+import { cmp, max } from "@cocalc/util/misc";
+import { client_db } from "@cocalc/util/schema";
 const { sha1 } = client_db;
 
 export interface FileUseState {

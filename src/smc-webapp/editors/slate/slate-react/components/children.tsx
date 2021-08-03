@@ -9,7 +9,7 @@ import { useDecorate } from "../hooks/use-decorate";
 import { NODE_TO_INDEX, NODE_TO_PARENT } from "../utils/weak-maps";
 import { RenderElementProps, RenderLeafProps } from "./editable";
 import { WindowedList } from "smc-webapp/r_misc";
-import { shallowCompare } from "smc-util/misc";
+import { shallowCompare } from "@cocalc/util/misc";
 import { SlateEditor } from "../../editable-markdown";
 
 export interface WindowingParams {

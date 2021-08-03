@@ -12,7 +12,7 @@ import { output_style_searchbox } from "./mini-terminal";
 import { webapp_client } from "../../webapp-client";
 import { IS_TOUCH } from "../../feature";
 import { Alert } from "react-bootstrap";
-import { path_to_file } from "smc-util/misc";
+import { path_to_file } from "@cocalc/util/misc";
 
 interface Props {
   project_id: string; // Added by miniterm functionality

@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { callback2 as cb2 } from "smc-util/async-utils";
-import { RECENT_TIMES, RECENT_TIMES_KEY } from "smc-util/schema";
-import * as misc from "smc-util/misc";
+import { callback2 as cb2 } from "@cocalc/util/async-utils";
+import { RECENT_TIMES, RECENT_TIMES_KEY } from "@cocalc/util/schema";
+import * as misc from "@cocalc/util/misc";
 const { defaults } = misc;
 const required = defaults.required;
 const _ = require("underscore");

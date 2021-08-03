@@ -65,7 +65,7 @@ sendError = (opts) ->
         if isWhitelisted(opts)
             # Ignore this antd message in browser.
             return
-        misc = require('smc-util/misc')
+        misc = require('@cocalc/util/misc')
         opts = misc.defaults opts,
             name            : misc.required
             message         : misc.required
@@ -282,7 +282,7 @@ if ENABLED and window.setImmediate
 
 sendLogLine = (severity, args) ->
     require.ensure [], =>
-        misc = require('smc-util/misc')
+        misc = require('@cocalc/util/misc')
         if typeof(args) == 'object'
             message = misc.trunc_middle(misc.to_json(args), 1000)
         else
@@ -315,7 +315,7 @@ if ENABLED
             # just to make sure there is a message
             reason = e.reason ? '<no reason>'
             if typeof(reason) == 'object'
-                misc = require('smc-util/misc')
+                misc = require('@cocalc/util/misc')
                 reason = "#{reason.stack ? reason.message ? misc.trunc_middle(misc.to_json(reason), 1000)}"
             e.message = "unhandledrejection: #{reason}"
             reportException(e, "unhandledrejection")

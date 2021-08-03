@@ -4,7 +4,7 @@
  */
 
 import { Icon, Space } from "../r_misc";
-import { plural } from "smc-util/misc";
+import { plural } from "@cocalc/util/misc";
 import { Alert, Button, ButtonGroup, ButtonToolbar } from "../antd-bootstrap";
 import { webapp_client } from "../webapp-client";
 import { alert_message } from "../alerts";

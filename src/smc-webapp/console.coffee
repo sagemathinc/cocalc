@@ -14,8 +14,8 @@ $                = window.$
 {debounce}       = require('underscore')
 
 {EventEmitter}   = require('events')
-misc             = require('smc-util/misc')
-{copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('smc-util/misc')
+misc             = require('@cocalc/util/misc')
+{copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('@cocalc/util/misc')
 {redux}          = require('./app-framework')
 {alert_message}  = require('./alerts')
 

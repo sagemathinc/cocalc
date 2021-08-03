@@ -30,7 +30,7 @@ import {
 import { Map } from "immutable";
 import { ProjectMap, UserMap } from "../../todo-types";
 import { CourseActions, course_redux_name } from "./course-actions";
-import { merge, values } from "smc-util/misc";
+import { merge, values } from "@cocalc/util/misc";
 import { CourseTabBar } from "./course-tab-bar";
 import { CourseEditorActions } from "./actions";
 import { CourseStore } from "../../course/store";

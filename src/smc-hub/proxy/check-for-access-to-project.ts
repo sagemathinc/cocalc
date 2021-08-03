@@ -1,5 +1,5 @@
 import LRU from "lru-cache";
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "../logger";
 import { database } from "../servers/database";
 const {

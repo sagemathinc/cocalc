@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { replace_all } from "smc-util/misc";
-import * as message from "smc-util/message";
+import { replace_all } from "@cocalc/util/misc";
+import * as message from "@cocalc/util/message";
 import { AsyncCall } from "./client";
 
 export class SupportTickets {

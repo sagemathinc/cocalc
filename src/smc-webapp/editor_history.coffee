@@ -12,7 +12,7 @@ $ = window.$
 underscore = require('underscore')
 async = require('async')
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 
 {webapp_client} = require('./webapp-client')
 {redux} = require('./app-framework')
@@ -582,7 +582,7 @@ class exports.HistoryEditor extends FileEditor
 
 # Compute a line-level diff between two strings, which
 # is useful when showing a diff between two states.
-{dmp} = require('smc-util/sync/editor/generic/util')
+{dmp} = require('@cocalc/util/sync/editor/generic/util')
 line_diff = (v0, v1) ->
     string_mapping = new misc.StringCharMapping()
     result =

@@ -12,7 +12,7 @@ import { redux } from "../../app-framework";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 
-import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
+import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { Datastore } from "../../projects/actions";
 
 export class SharedProjectActions {

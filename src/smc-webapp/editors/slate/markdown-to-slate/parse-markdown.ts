@@ -18,9 +18,9 @@ import { markdown_it, parseHeader } from "smc-webapp/markdown";
 //import MarkdownIt from "markdown-it";
 //const markdown_it = new MarkdownIt();
 
-import { math_escape, math_unescape } from "smc-util/markdown-utils";
-import { remove_math, MATH_ESCAPE } from "smc-util/mathjax-utils";
-import { endswith, startswith } from "smc-util/misc";
+import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";
+import { remove_math, MATH_ESCAPE } from "@cocalc/util/mathjax-utils";
+import { endswith, startswith } from "@cocalc/util/misc";
 import { replace_math } from "../util";
 import { Token } from "./types";
 

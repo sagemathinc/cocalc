@@ -8,7 +8,7 @@ Node.js interface to nbconvert.
 */
 
 const { execute_code } = require("@cocalc/util-node/misc_node");
-import { callback_opts } from "smc-util/async-utils";
+import { callback_opts } from "@cocalc/util/async-utils";
 
 interface nbconvertParams {
   args: string[];

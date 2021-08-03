@@ -10,7 +10,7 @@ Authentication.
 import { List, Map } from "immutable";
 import basic_auth from "basic-auth";
 import { verify } from "password-hash";
-import { startswith } from "smc-util/misc";
+import { startswith } from "@cocalc/util/misc";
 import { Logger } from "./types";
 
 export function is_authenticated(opts: {

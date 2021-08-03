@@ -21,7 +21,7 @@ import {
   useEffect,
   useRef,
 } from "../app-framework";
-import { copy } from "smc-util/misc";
+import { copy } from "@cocalc/util/misc";
 
 // Once we get rid of all editor.coffee:
 //import { register_file_editor } from "../project-file";

@@ -21,7 +21,7 @@ import {
 import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
 import { Icon, Loading, ErrorDisplay, Space } from "../r_misc";
 import { webapp_client } from "../webapp-client";
-import { SITE_NAME } from "smc-util/theme";
+import { SITE_NAME } from "@cocalc/util/theme";
 import {
   contains_url,
   plural,
@@ -31,7 +31,7 @@ import {
   is_valid_uuid_string,
   search_match,
   search_split,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { Project } from "../projects/store";
 import { Avatar } from "../account/avatar/avatar";
 import { ProjectInviteTokens } from "./project-invite-tokens";

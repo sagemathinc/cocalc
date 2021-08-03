@@ -4,8 +4,8 @@
  */
 
 import { delay } from "awaiting";
-import { once } from "smc-util/async-utils";
-import { SyncTable, SyncTableState } from "smc-util/sync/table";
+import { once } from "@cocalc/util/async-utils";
+import { SyncTable, SyncTableState } from "@cocalc/util/sync/table";
 import { TypedMap } from "smc-webapp/app-framework";
 import {
   close,
@@ -15,13 +15,13 @@ import {
   startswith,
   field_cmp,
   seconds_ago,
-} from "smc-util/misc";
-import { DirectoryListingEntry } from "smc-util/types";
+} from "@cocalc/util/misc";
+import { DirectoryListingEntry } from "@cocalc/util/types";
 import { get_listing } from "../directory-listing";
 import {
   WATCH_TIMEOUT_MS,
   MAX_FILES_PER_PATH,
-} from "smc-util/db-schema/listings";
+} from "@cocalc/util/db-schema/listings";
 import { Watcher } from "./path-watcher";
 import { close_all_syncdocs_in_tree } from "./sync-doc";
 import { remove_jupyter_backend } from "../jupyter/jupyter";
@@ -46,7 +46,7 @@ const INTEREST_THRESH_SECONDS = WATCH_TIMEOUT_MS / 1000;
 // Periodically, info about older paths beyond this number will be purged
 // from the database.   NOTE that synctable.delete is "barely" implemented,
 // so there may be some issues with this working.
-import { MAX_PATHS } from "smc-util/db-schema/listings";
+import { MAX_PATHS } from "@cocalc/util/db-schema/listings";
 
 interface Listing {
   path: string;
@@ -170,7 +170,7 @@ class ListingsTable {
     if (x == null) return x;
     return (x as unknown) as ImmutableListing;
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
-    // of the get method in smc-util/sync/table/synctable.ts
+    // of the get method in @cocalc/util/sync/table/synctable.ts
     // that could probably be relatively easily fixed.
   }
 

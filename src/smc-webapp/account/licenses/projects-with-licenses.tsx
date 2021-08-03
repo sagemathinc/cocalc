@@ -13,7 +13,7 @@ import {
 } from "../../app-framework";
 import { Loading, TimeAgo, WindowedList } from "../../r_misc";
 import { projects_with_licenses } from "./util";
-import { plural, trunc_middle } from "smc-util/misc";
+import { plural, trunc_middle } from "@cocalc/util/misc";
 import { LICENSES_STYLE } from "./managed-licenses";
 
 function open_project(project_id: string): void {

@@ -11,7 +11,7 @@ const { spawn } = require("node-pty");
 import { readFile, writeFile } from "fs";
 import { promises as fsPromises } from "fs";
 const { readlink } = fsPromises;
-import { console_init_filename, len, merge, path_split } from "smc-util/misc";
+import { console_init_filename, len, merge, path_split } from "@cocalc/util/misc";
 import { exists } from "../jupyter/async-utils-node";
 import { isEqual, throttle } from "lodash";
 import { callback, delay } from "awaiting";

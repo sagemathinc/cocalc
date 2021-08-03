@@ -10,7 +10,7 @@ import {
   separate_file_extension,
   should_open_in_foreground,
   trunc_middle,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { Tip } from "./tip";
 
 interface Props {

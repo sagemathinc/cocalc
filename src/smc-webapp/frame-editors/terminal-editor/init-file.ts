@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { console_init_filename } from "smc-util/misc";
+import { console_init_filename } from "@cocalc/util/misc";
 import { exec } from "../generic/client";
 
 function init_file_content(path: string): string {

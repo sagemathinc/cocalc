@@ -8,7 +8,7 @@ import { Component, React, Rendered, redux } from "../app-framework";
 import { keys, intersection } from "lodash";
 import { PeriodName } from "./types";
 import { PlanInfo } from "./plan-info";
-import { PROJECT_UPGRADES } from "smc-util/schema";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 
 interface Props {
   periods: PeriodName[];

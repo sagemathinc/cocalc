@@ -10,8 +10,8 @@ Whiteboard Actions
 import { Actions } from "../../app-framework";
 import { LocalViewStateMap, Object, ObjectMap, WhiteboardState } from "./types";
 import { WhiteboardStore } from "./store";
-import { SyncDB } from "smc-util/sync/editor/db";
-import { uuid } from "smc-util/misc";
+import { SyncDB } from "@cocalc/util/sync/editor/db";
+import { uuid } from "@cocalc/util/misc";
 import { fromJS, Map } from "immutable";
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;

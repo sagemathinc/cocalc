@@ -48,14 +48,14 @@
 import { redux } from "../app-framework";
 import { query } from "../frame-editors/generic/client";
 import { webapp_client } from "../webapp-client";
-import { callback2, once, retry_until_success } from "smc-util/async-utils";
-import { len, uuid } from "smc-util/misc";
+import { callback2, once, retry_until_success } from "@cocalc/util/async-utils";
+import { len, uuid } from "@cocalc/util/misc";
 import { alert_message } from "../alerts";
 import { ANON_PROJECT_TITLE } from "../client/anonymous-setup";
 import {
   is_valid as is_valid_comp_img,
   FALLBACK_COMPUTE_IMAGE,
-} from "smc-util/compute-images";
+} from "@cocalc/util/compute-images";
 import { CSILauncher } from "../launch/custom-image";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
 

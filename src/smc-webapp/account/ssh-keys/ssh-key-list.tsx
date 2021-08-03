@@ -3,7 +3,7 @@ import { Popconfirm } from "antd";
 
 import { React, redux } from "../../app-framework";
 import { HelpIcon, Icon, Space, TimeAgo } from "../../r_misc";
-import { cmp } from "smc-util/misc";
+import { cmp } from "@cocalc/util/misc";
 import { Panel, Row, Col, Button } from "../../antd-bootstrap";
 
 // Children are rendered above the list of SSH Keys

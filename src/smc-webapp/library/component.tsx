@@ -5,8 +5,8 @@
 
 import { join } from "path";
 
-import { path_split, search_match, search_split } from "smc-util/misc";
-import { COLORS } from "smc-util/theme";
+import { path_split, search_match, search_split } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 
 declare var $: any;
 

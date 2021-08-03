@@ -9,7 +9,7 @@
 
 import { webapp_client } from "../webapp-client";
 import * as LS from "../misc/local-storage";
-import { SignedIn } from "smc-util/message-types";
+import { SignedIn } from "@cocalc/util/message-types";
 import { join } from "path";
 
 async function tracking_events(): Promise<void> {

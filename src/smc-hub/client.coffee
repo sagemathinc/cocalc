@@ -16,9 +16,9 @@ async                = require('async')
 exports.COOKIE_OPTIONS = COOKIE_OPTIONS = Object.freeze(secure:true, sameSite:'none')
 
 Cookies              = require('cookies')            # https://github.com/jed/cookies
-misc                 = require('smc-util/misc')
+misc                 = require('@cocalc/util/misc')
 {defaults, required, to_safe_str} = misc
-message              = require('smc-util/message')
+message              = require('@cocalc/util/message')
 access               = require('./access')
 clients              = require('./clients').getClients()
 auth                 = require('./auth')
@@ -33,7 +33,7 @@ hub_projects         = require('./projects')
 {api_key_action}     = require('./api/manage')
 {create_account, delete_account} = require('./client/create-account')
 {purchase_license}   = require('./client/license')
-db_schema            = require('smc-util/db-schema')
+db_schema            = require('@cocalc/util/db-schema')
 { escapeHtml }       = require("escape-html")
 {CopyPath}           = require('./copy-path')
 {remember_me_cookie_name} = require('./auth')
@@ -43,7 +43,7 @@ base_path = require('@cocalc/util-node/base-path').default
 underscore = require('underscore')
 
 {callback} = require('awaiting')
-{callback2} = require('smc-util/async-utils')
+{callback2} = require('@cocalc/util/async-utils')
 
 {record_user_tracking} = require('./postgres/user-tracking')
 {project_has_network_access} = require('./postgres/project-queries')

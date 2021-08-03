@@ -12,7 +12,7 @@ const shell_escape = require("shell-escape");
 import { Icon, Loading, A } from "../r_misc";
 const TimeAgo = require("react-timeago").default;
 const { Button, ButtonGroup, Modal } = require("react-bootstrap");
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 import { IPYNB2PDF } from "../misc/commands";
 

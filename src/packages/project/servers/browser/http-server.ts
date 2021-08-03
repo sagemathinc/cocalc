@@ -12,7 +12,7 @@ import compression from "compression";
 import bodyParser from "body-parser";
 import { join } from "path";
 import { writeFile } from "fs";
-import { once } from "smc-util/async-utils";
+import { once } from "@cocalc/util/async-utils";
 import { options } from "@cocalc/project/init-program";
 import basePath from "@cocalc/util-node/base-path";
 import { getLogger } from "@cocalc/project/logger";

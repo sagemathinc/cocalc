@@ -5,8 +5,8 @@
 
 import { React, Component, Rendered } from "../app-framework";
 import { Col } from "../antd-bootstrap";
-import { copy } from "smc-util/misc";
-import { COLORS } from "smc-util/theme";
+import { copy } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { Links } from "./links";
 import { li_style } from "./style";
 import { Icon, IconName } from "../r_misc/icon";

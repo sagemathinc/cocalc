@@ -5,7 +5,7 @@
 
 import { Component, React, Rendered } from "../app-framework";
 const { HelpEmailLink } = require("../customize");
-import { PROJECT_UPGRADES } from "smc-util/schema";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 const { Panel } = require("react-bootstrap"); // since the typescript declarations are our of sync with our crappy old version.
 
 import { render_project_quota } from "./util";

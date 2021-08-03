@@ -7,8 +7,8 @@
 Utility functions useful for frame-tree editors.
 */
 
-import { path_split, separate_file_extension } from "smc-util/misc";
-import { aux_file } from "smc-util/misc";
+import { path_split, separate_file_extension } from "@cocalc/util/misc";
+import { aux_file } from "@cocalc/util/misc";
 export { aux_file };
 import { join } from "path";
 

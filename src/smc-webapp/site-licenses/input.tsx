@@ -17,8 +17,8 @@ import {
   useEffect,
   useRef,
 } from "../app-framework";
-import { is_valid_uuid_string } from "smc-util/misc";
-import { describe_quota } from "smc-util/db-schema/site-licenses";
+import { is_valid_uuid_string } from "@cocalc/util/misc";
+import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 
 interface Props {
   onSave: (license_id: string) => void;

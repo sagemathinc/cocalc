@@ -14,7 +14,7 @@ const access = promisify(accessCB);
 import { homedir } from "os";
 import { join } from "path";
 const { execute_code } = require("@cocalc/util-node/misc_node");
-const { callback2: cb2 } = require("smc-util/async-utils");
+const { callback2: cb2 } = require("@cocalc/util/async-utils");
 
 const EXCLUDES_FN = join(homedir(), ".gitexcludes");
 

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { DOMAIN_URL } from "smc-util/theme";
+import { DOMAIN_URL } from "@cocalc/util/theme";
 
 // this BASE_URL really is the base *url* -- it starts with http,
 // and does NOT end with /

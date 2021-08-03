@@ -7,9 +7,9 @@ import { SortableContainer, SortableElement } from "react-sortable-hoc";
 import { Nav, NavItem } from "react-bootstrap";
 import CloseX from "smc-webapp/project/page/close-x";
 
-import { trunc } from "smc-util/misc";
-import { COLORS } from "smc-util/theme";
-import { COMPUTE_STATES } from "smc-util/schema";
+import { trunc } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { COMPUTE_STATES } from "@cocalc/util/schema";
 
 import { IS_TOUCH } from "../feature";
 import { set_window_title } from "../browser";

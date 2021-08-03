@@ -30,16 +30,17 @@
   "directories": {},
   "workspaces": [
     "../smc-hub",
-    "../smc-util",
     "../webapp-lib",
     "../packages/cdn",
     "../packages/project",
+    "../packages/util",
     "./"
   ],
   "dependencies": {
     "@ant-design/icons": "^4.3.0",
     "@cocalc/cdn": "*",
     "@cocalc/project": "*",
+    "@cocalc/util": "file:../packages/util",
     "@jupyter-widgets/base": "^1.2.3",
     "@jupyter-widgets/controls": "^1.4.3",
     "@jupyter-widgets/output": "^1.1.2",
@@ -133,7 +134,6 @@
     "shell-escape": "^0.2.0",
     "slate": "^0.63.0",
     "smc-hub": "*",
-    "smc-util": "*",
     "superb": "^3.0.0",
     "three": "^0.78.0",
     "timeago": "^1.6.3",
@@ -168,7 +168,6 @@
     "@types/react-redux": "^7.1.9",
     "@types/react-window": "^1.8.2",
     "cjsx-register": "^1.1.0",
-    "coffeelint": "^2.1.0",
     "coffeescript": "^2.5.1",
     "jsdom": "^7.0.2",
     "mocha": "^8.4.0",
@@ -177,11 +176,7 @@
   },
   "scripts": {
     "build": "NODE_OPTIONS=--max-old-space-size=8192 tsc && coffee  -m -c -o dist/ .",
-    "tsc": "npx tsc -w",
-    "old-test": "cd .. && npx jest smc-webapp",
-    "old-testjcli": "echo 'TEST JUPYTER CLIENT'; cd jupyter && ../node_modules/.bin/mocha ${BAIL} --reporter ${REPORTER:-progress} test/*.coffee test/*.ts",
-    "old-lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee *.cjsx",
-    "old-coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html"
+    "tsc": "npx tsc -w"
   },
   "repository": {
     "type": "git",

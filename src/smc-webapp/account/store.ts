@@ -6,8 +6,8 @@
 import { reduce } from "lodash";
 import { Store } from "../app-framework/Store";
 import { AccountState } from "./types";
-import { get_total_upgrades } from "smc-util/upgrades";
-import { make_valid_name } from "smc-util/misc";
+import { get_total_upgrades } from "@cocalc/util/upgrades";
+import { make_valid_name } from "@cocalc/util/misc";
 import { Map, List } from "immutable";
 import { store as customizeStore } from "../customize";
 

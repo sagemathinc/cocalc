@@ -15,8 +15,8 @@ import {
   process_checkboxes,
   header_part,
 } from "./desc-rendering";
-import { path_split } from "smc-util/misc";
-import { apply_without_math } from "smc-util/mathjax-utils-2";
+import { path_split } from "@cocalc/util/misc";
+import { apply_without_math } from "@cocalc/util/mathjax-utils-2";
 import { TaskActions } from "./actions";
 import { SelectedHashtags } from "./types";
 

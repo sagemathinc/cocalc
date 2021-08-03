@@ -40,7 +40,7 @@ import {
 } from "smc-webapp/r_misc";
 
 import { IS_TOUCH } from "../../feature";
-import { capitalize, copy, path_split, trunc_middle } from "smc-util/misc";
+import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { ConnectionStatus, EditorSpec, EditorDescription } from "./types";
 import { Actions } from "../code-editor/actions";

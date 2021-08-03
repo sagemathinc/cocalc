@@ -5,7 +5,7 @@
 
 import { Tag } from "antd";
 import { Set } from "immutable";
-import { trunc } from "smc-util/misc";
+import { trunc } from "@cocalc/util/misc";
 
 import { React } from "../app-framework";
 const { CheckableTag } = Tag;

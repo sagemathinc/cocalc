@@ -3,14 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { once } from "smc-util/async-utils";
+import { once } from "@cocalc/util/async-utils";
 import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
 import { WelcomeFile } from "./welcome-file";
 import { WebappClient } from "./client";
 import { NAME as LAUNCH_NAME } from "../launch/actions";
 import { PROJECT_INVITE_QUERY_PARAM } from "../collaborators/handle-project-invite";
-import { hasRememberMe } from "smc-util/remember-me";
+import { hasRememberMe } from "@cocalc/util/remember-me";
 
 export const ANON_PROJECT_TITLE = "Welcome to CoCalc!";
 

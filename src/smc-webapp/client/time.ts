@@ -5,8 +5,8 @@
 
 import { delay } from "awaiting";
 
-import { get_local_storage, set_local_storage } from "smc-util/misc";
-import * as message from "smc-util/message";
+import { get_local_storage, set_local_storage } from "@cocalc/util/misc";
+import * as message from "@cocalc/util/message";
 
 export class TimeClient {
   private client: any;

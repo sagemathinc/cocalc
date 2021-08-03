@@ -4,7 +4,7 @@
  */
 
 import { commercial } from "../customize";
-import { conversion_id, gtag_id, sign_up_id  } from "smc-util/theme";
+import { conversion_id, gtag_id, sign_up_id  } from "@cocalc/util/theme";
 
 // conversion tracking (commercial only)
 export function track_conversion(type: string, amount?): void {

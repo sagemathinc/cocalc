@@ -15,10 +15,10 @@ import {
   path_to_tab,
   required,
   uuid,
-} from "smc-util/misc";
-import { retry_until_success } from "smc-util/async-utils";
+} from "@cocalc/util/misc";
+import { retry_until_success } from "@cocalc/util/async-utils";
 import { ProjectActions } from "../project_actions";
-import { SITE_NAME } from "smc-util/theme";
+import { SITE_NAME } from "@cocalc/util/theme";
 import { editor_id } from "./utils";
 import { redux } from "../app-framework";
 import { alert_message } from "../alerts";

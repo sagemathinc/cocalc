@@ -7,8 +7,8 @@
 Indicator about whether or not file or path is publicly shared.
 */
 
-import { containing_public_path } from "smc-util/misc";
-import { COLORS } from "smc-util/theme";
+import { containing_public_path } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { React, redux, useMemo, useTypedRedux } from "../app-framework";
 import { Icon, Loading } from "../r_misc";
 import { useStudentProjectFunctionality } from "smc-webapp/course";

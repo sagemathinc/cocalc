@@ -22,7 +22,7 @@ import { Button, Table, Typography, Form, Input, Checkbox } from "antd";
 import { Space, Alert, Switch, Popconfirm, Tooltip } from "antd";
 import { ErrorDisplay, SettingBox, Icon, Tip, A } from "../../r_misc";
 import { RestartProject } from "./restart-project";
-import { unreachable } from "smc-util/misc";
+import { unreachable } from "@cocalc/util/misc";
 import { DUMMY_SECRET } from "./const";
 import { DatastoreConfig as Config } from "./types";
 

@@ -6,13 +6,13 @@
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
 // STOPGAP FIX: relative dirs necessary for manage service
-import { callback2 } from "smc-util/async-utils";
-import { trunc_middle } from "smc-util/misc";
-import * as message from "smc-util/message";
+import { callback2 } from "@cocalc/util/async-utils";
+import { trunc_middle } from "@cocalc/util/misc";
+import * as message from "@cocalc/util/message";
 import {
   available_upgrades,
   get_total_upgrades,
-} from "smc-util/upgrades";
+} from "@cocalc/util/upgrades";
 import { PostgreSQL } from "../postgres/types";
 
 import Stripe from "stripe";
@@ -281,7 +281,7 @@ export class StripeClient {
 
     const plan: string = get_string_field(mesg, "plan");
 
-    const schema = require("smc-util/schema").PROJECT_UPGRADES.subscription[
+    const schema = require("@cocalc/util/schema").PROJECT_UPGRADES.subscription[
       plan.split("-")[0]
     ];
     if (schema == null) throw Error(`unknown plan -- '${plan}'`);

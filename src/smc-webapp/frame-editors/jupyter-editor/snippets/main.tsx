@@ -31,7 +31,7 @@ import { JupyterStore } from "../../../jupyter/store";
 import { NotebookFrameStore } from "../cell-notebook/store";
 import { A, Loading } from "../../../r_misc";
 import { isMainConfiguration } from "../../../project_configuration";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { QuestionCircleOutlined } from "@ant-design/icons";
 import {
   Button,

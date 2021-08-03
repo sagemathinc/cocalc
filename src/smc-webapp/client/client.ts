@@ -2,7 +2,7 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { bind_methods } from "smc-util/misc";
+import { bind_methods } from "@cocalc/util/misc";
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import { alert_message } from "../alerts";
@@ -20,7 +20,7 @@ import { FileClient } from "./file";
 import { TrackingClient } from "./tracking";
 import { HubClient } from "./hub";
 import { IdleClient } from "./idle";
-import { version } from "smc-util/smc-version";
+import { version } from "@cocalc/util/smc-version";
 import { start_metrics } from "../prom-client";
 
 export type AsyncCall = (opts: object) => Promise<any>;

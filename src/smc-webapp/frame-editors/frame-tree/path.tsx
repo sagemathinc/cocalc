@@ -4,7 +4,7 @@
  */
 
 import { CSS, React, redux } from "../../app-framework";
-import { filename_extension } from "smc-util/misc";
+import { filename_extension } from "@cocalc/util/misc";
 import { file_associations } from "../../file-associations";
 import { Icon } from "../../r_misc";
 

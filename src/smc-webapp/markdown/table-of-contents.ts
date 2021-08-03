@@ -14,7 +14,7 @@ that might randomly begin a line with a "# ", since that's the
 one extra thing we better do.
 */
 
-import { remove_math, replace_math } from "smc-util/mathjax-utils";
+import { remove_math, replace_math } from "@cocalc/util/mathjax-utils";
 import { TableOfContentsEntry as Entry } from "../r_misc";
 import { parseHeader } from "./header";
 

@@ -20,8 +20,8 @@ teardown = pgtest.teardown
 async  = require('async')
 expect = require('expect')
 
-misc = require('smc-util/misc')
-{SCHEMA} = require('smc-util/schema')
+misc = require('@cocalc/util/misc')
+{SCHEMA} = require('@cocalc/util/schema')
 
 describe 'some basic testing of user_queries', ->
     @timeout(10000)

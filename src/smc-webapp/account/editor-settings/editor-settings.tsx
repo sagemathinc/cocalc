@@ -4,7 +4,7 @@
  */
 
 import { Map } from "immutable";
-import { deep_copy } from "smc-util/misc";
+import { deep_copy } from "@cocalc/util/misc";
 import { redux, Component, React } from "../../app-framework";
 import { Panel } from "../../antd-bootstrap";
 import { Icon, Loading } from "../../r_misc";

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { cmp } from "smc-util/misc";
+import { cmp } from "@cocalc/util/misc";
 import { Store } from "../../app-framework";
 import { TaskMap, TaskState } from "./types";
 

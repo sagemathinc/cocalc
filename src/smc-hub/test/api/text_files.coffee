@@ -9,7 +9,7 @@ Testing API functions relating to text files
 
 api   = require('./apitest')
 {setup, teardown} = api
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 expect = require('expect')
 
 describe 'testing text file operations -- ', ->

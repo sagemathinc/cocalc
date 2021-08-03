@@ -7,8 +7,8 @@
 Utility/parsing functions used in rendering task description.
 */
 
-import { replace_all_function, parse_hashtags } from "smc-util/misc";
-import { apply_without_math } from "smc-util/mathjax-utils-2";
+import { replace_all_function, parse_hashtags } from "@cocalc/util/misc";
+import { apply_without_math } from "@cocalc/util/mathjax-utils-2";
 import { SelectedHashtags } from "./types";
 
 // Make clever use of replace_all_function to toggle the state of a checkbox.

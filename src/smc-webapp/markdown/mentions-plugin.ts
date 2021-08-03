@@ -38,7 +38,7 @@ with this parser, but it's much harder without.
 
 */
 
-import { startswith } from "smc-util/misc";
+import { startswith } from "@cocalc/util/misc";
 
 function renderMention(tokens, idx): string {
   // TODO: we could dynamically update the username using the account-id

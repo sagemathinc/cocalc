@@ -12,22 +12,22 @@ import {
   len,
   defaults,
   server_minutes_ago,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { Set } from "immutable";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
 import { alert_message } from "../alerts";
 import { markdown_to_html } from "../markdown";
-import { Upgrades } from "smc-util/upgrades/types";
-import { DEFAULT_QUOTAS } from "smc-util/schema";
+import { Upgrades } from "@cocalc/util/upgrades/types";
+import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { webapp_client } from "../webapp-client";
 import { set_window_title } from "../browser";
-import { once } from "smc-util/async-utils";
+import { once } from "@cocalc/util/async-utils";
 import { COCALC_MINIMAL } from "../fullscreen";
-import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
+import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { allow_project_to_run } from "../project/client-side-throttle";
 import { site_license_public_info } from "../site-licenses/util";
-import { Quota } from "smc-util/db-schema/site-licenses";
+import { Quota } from "@cocalc/util/db-schema/site-licenses";
 
 export type Datastore = boolean | string[] | undefined;
 
@@ -464,7 +464,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
 
   // The next few actions below involve changing the users field
   // of a project.   See the users field of
-  //      smc-util/db-schema/project.ts
+  //      @cocalc/util/db-schema/project.ts
   // for documentation of the structure of this.
 
   /*

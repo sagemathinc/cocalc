@@ -8,7 +8,7 @@ import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
 
 // CoCalc libraries
-import { history_path, path_split } from "smc-util/misc";
+import { history_path, path_split } from "@cocalc/util/misc";
 import { sanitize_html_safe } from "../misc-page";
 import { SaveButton } from "../frame-editors/frame-tree/save-button";
 

@@ -9,7 +9,7 @@ import {
   path_split,
   defaults,
   required,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 
 import { React } from "./app-framework";
 

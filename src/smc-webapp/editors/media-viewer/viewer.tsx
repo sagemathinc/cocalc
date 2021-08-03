@@ -7,7 +7,7 @@
 Image viewer component -- for viewing standard image types.
 */
 
-import { filename_extension } from "smc-util/misc";
+import { filename_extension } from "@cocalc/util/misc";
 
 import { React, useState } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";

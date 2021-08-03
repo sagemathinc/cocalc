@@ -32,7 +32,7 @@ import { EventEmitter } from "events";
 import { exists, unlink } from "./async-utils-node";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { Channels, MessageType } from "@nteract/messaging";
-import { sanitize_nbconvert_path } from "smc-util/sanitize-nbconvert";
+import { sanitize_nbconvert_path } from "@cocalc/util/sanitize-nbconvert";
 
 const {
   merge,
@@ -43,11 +43,11 @@ const {
   uuid,
   len,
   is_array,
-} = require("smc-util/misc");
+} = require("@cocalc/util/misc");
 
-import { SyncDB } from "smc-util/sync/editor/db/sync";
+import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
 
-const { key_value_store } = require("smc-util/key-value-store");
+const { key_value_store } = require("@cocalc/util/key-value-store");
 
 import { blob_store, BlobStore } from "./jupyter-blobs-sqlite";
 import { JUPYTER_MIMETYPES } from "smc-webapp/jupyter/util";
@@ -58,7 +58,7 @@ import {
 
 import { remove_redundant_reps } from "smc-webapp/jupyter/import-from-ipynb";
 
-import { retry_until_success } from "smc-util/async-utils";
+import { retry_until_success } from "@cocalc/util/async-utils";
 import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 

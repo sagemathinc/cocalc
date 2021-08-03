@@ -11,7 +11,7 @@ Configure via the admin panel in account settings of an admin user.
 
 import Stripe from "stripe";
 // STOPGAP FIX: relative dirs necessary for manage service
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 
 // See https://stripe.com/docs/api/versioning
 const apiVersion = "2020-03-02";

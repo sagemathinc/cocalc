@@ -11,7 +11,7 @@ import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { X11 } from "./x11";
 import { Launcher } from "./launcher";
-import { set } from "smc-util/misc";
+import { set } from "@cocalc/util/misc";
 import { terminal } from "../terminal-editor/editor";
 
 export const x11 = {

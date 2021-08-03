@@ -5,7 +5,7 @@
 
 import { omit } from "lodash";
 import { PostgreSQL } from "./types";
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import { query } from "./query";
 import debug from "debug";
 const L = debug("hub:project-queries");

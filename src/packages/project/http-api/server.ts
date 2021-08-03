@@ -17,11 +17,11 @@ const MAX_REQUESTS_PER_MINUTE = 50;
 import express from "express";
 import { writeFile } from "fs";
 import { callback } from "awaiting";
-import { once } from "smc-util/async-utils";
-import { endswith, split, meta_file } from "smc-util/misc";
+import { once } from "@cocalc/util/async-utils";
+import { endswith, split, meta_file } from "@cocalc/util/misc";
 import { json, urlencoded } from "body-parser";
 
-const { client_db } = require("smc-util/db-schema");
+const { client_db } = require("@cocalc/util/db-schema");
 const RateLimit = require("express-rate-limit");
 import { apiServerPortFile } from "@cocalc/project/data";
 const theClient = require("@cocalc/project/client");

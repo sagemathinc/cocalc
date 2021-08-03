@@ -14,7 +14,7 @@ The point of this is to make it so:
      automatically considered to have failed (so the client retries).
 ###
 
-{defaults} = misc = require('smc-util/misc')
+{defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
 
 # We do at most this many user queries **at once** to the database on behalf

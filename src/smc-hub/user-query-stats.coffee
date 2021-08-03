@@ -7,7 +7,7 @@
 Class to track (and report in a log) stats about user_queries by the Rethink interface.
 ###
 
-{defaults} = misc = require('smc-util/misc')
+{defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
 
 class exports.UserQueryStats

@@ -7,9 +7,9 @@ import * as fs from "fs";
 import { join } from "path";
 const winston = require("./logger").getLogger("utils");
 import { PostgreSQL } from "./postgres/types";
-import { AllSiteSettings } from "smc-util/db-schema/types";
-import { expire_time } from "smc-util/misc";
-import { callback2 } from "smc-util/async-utils";
+import { AllSiteSettings } from "@cocalc/util/db-schema/types";
+import { expire_time } from "@cocalc/util/misc";
+import { callback2 } from "@cocalc/util/async-utils";
 import { PassportStrategyDB } from "./auth";
 import { secrets } from "@cocalc/util-node/data";
 

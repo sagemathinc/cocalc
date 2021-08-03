@@ -5,7 +5,7 @@
 
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
-import { Quota } from "smc-util/db-schema/site-licenses";
+import { Quota } from "@cocalc/util/db-schema/site-licenses";
 
 export type EventRecord = {
   id: string;

@@ -14,7 +14,7 @@ TODO:
 
 import { React, useIsMountedRef, useRef, useState } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
-import { all_fields_equal } from "smc-util/misc";
+import { all_fields_equal } from "@cocalc/util/misc";
 
 import { CodeMirrorEditor } from "./codemirror-editor";
 import { CodeMirrorStatic } from "./codemirror-static";

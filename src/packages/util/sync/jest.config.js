@@ -7,9 +7,10 @@ module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
   moduleNameMapper: {
-    "smc-util/misc": "<rootDir>/../misc",
+    "@cocalc/util/dmp": "<rootDir>/../dmp",
+    "@cocalc/util/misc": "<rootDir>/../misc",
   },
-  testMatch: ["**/?(*.)+(spec|test).[tj]s?(x)"],
+  testMatch: ["**/__tests__/**/*.[tj]s?(x)", "**/?(*.)+(spec|test).[tj]s?(x)"],
   testPathIgnorePatterns: ["/node_modules/"],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
 };

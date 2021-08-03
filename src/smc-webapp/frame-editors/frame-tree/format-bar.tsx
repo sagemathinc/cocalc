@@ -10,7 +10,7 @@ The format bar
 const css_colors = require("css-color-names");
 
 import { React, Component, Rendered } from "../../app-framework";
-import { cmp } from "smc-util/misc";
+import { cmp } from "@cocalc/util/misc";
 import { SetMap } from "./types";
 import { DropdownMenu, MenuItem } from "../../r_misc";
 import { ButtonGroup, Button } from "../../antd-bootstrap";

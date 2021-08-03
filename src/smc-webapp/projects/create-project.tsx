@@ -17,7 +17,7 @@ import {
   useState,
   useTypedRedux,
 } from "../app-framework";
-import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { delay } from "awaiting";
 import {
   SoftwareEnvironment,
@@ -34,7 +34,7 @@ import {
 } from "../antd-bootstrap";
 import { Row, Col } from "antd";
 import { A, ErrorDisplay, Icon, Space } from "../r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   start_in_edit_mode?: boolean;

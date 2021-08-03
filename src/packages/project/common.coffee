@@ -4,7 +4,7 @@
 #########################################################################
 
 fs      = require('fs')
-misc    = require('smc-util/misc')
+misc    = require('@cocalc/util/misc')
 kucalc  = require('./kucalc')
 winston = require('./logger').getLogger('common')
 

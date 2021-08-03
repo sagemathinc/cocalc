@@ -22,8 +22,8 @@ teardown = pgtest.teardown
 async  = require('async')
 expect = require('expect')
 
-misc = require('smc-util/misc')
-{DOMAIN_URL, SITE_NAME} = require('smc-util/theme')
+misc = require('@cocalc/util/misc')
+{DOMAIN_URL, SITE_NAME} = require('@cocalc/util/theme')
 
 describe 'email verification: ', ->
     @timeout(5000)

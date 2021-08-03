@@ -20,7 +20,7 @@ import {
 } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { project_api } from "../generic/client";
-import { capitalize, close } from "smc-util/misc";
+import { capitalize, close } from "@cocalc/util/misc";
 import { Channel } from "smc-webapp/project/websocket/types";
 import { Task, Message, Completion } from "./types";
 import { update_gutters } from "./gutters";

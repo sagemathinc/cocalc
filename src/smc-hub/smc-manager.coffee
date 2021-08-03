@@ -6,7 +6,7 @@
 async   = require('async')
 winston = require('./logger').getLogger('smc-manager')
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 {defaults, required} = misc
 
 smc_gcloud = require('./smc_gcloud')

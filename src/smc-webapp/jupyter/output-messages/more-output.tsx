@@ -8,7 +8,7 @@ import { Icon } from "../../r_misc/icon";
 import { React } from "smc-webapp/app-framework";
 import { Map } from "immutable";
 import { JupyterActions } from "../actions";
-import { all_fields_equal } from "smc-util/misc";
+import { all_fields_equal } from "@cocalc/util/misc";
 
 interface MoreOutputProps {
   message: Map<string, any>;

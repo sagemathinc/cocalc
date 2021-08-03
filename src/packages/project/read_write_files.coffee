@@ -10,9 +10,9 @@ child_process = require('child_process')
 async     = require('async')
 winston = require('./logger').getLogger('read-write-files')
 
-message   = require('smc-util/message')
+message   = require('@cocalc/util/message')
 misc_node = require('@cocalc/util-node/misc_node')
-misc      = require('smc-util/misc')
+misc      = require('@cocalc/util/misc')
 
 common    = require('./common')
 

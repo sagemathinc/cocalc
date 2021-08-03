@@ -14,8 +14,8 @@ import {
   useMemo,
   useTypedRedux,
 } from "../../app-framework";
-import { PublicPath as PublicPath0 } from "smc-util/db-schema/public-paths";
-import { trunc, trunc_middle } from "smc-util/misc";
+import { PublicPath as PublicPath0 } from "@cocalc/util/db-schema/public-paths";
+import { trunc, trunc_middle } from "@cocalc/util/misc";
 import { webapp_client } from "../../webapp-client";
 import { ErrorDisplay, Icon, Loading, Space, TimeAgo } from "../../r_misc";
 import { UnpublishEverything } from "./unpublish-everything";

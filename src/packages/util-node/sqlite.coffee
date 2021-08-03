@@ -7,7 +7,7 @@ async    = require('async')
 sqlite3  = require('sqlite3')  # from https://github.com/mapbox/node-sqlite3
 {getLogger}   = require('./logger')
 
-misc     = require('smc-util/misc')
+misc     = require('@cocalc/util/misc')
 {defaults, required} = misc
 
 #

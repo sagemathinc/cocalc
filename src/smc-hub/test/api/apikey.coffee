@@ -14,7 +14,7 @@ api   = require('./apitest')
 {setup, teardown, reset, winston} = api
 {http_message_api_v1} = require('../../api/handler')
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 
 async  = require('async')
 expect = require('expect')

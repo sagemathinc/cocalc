@@ -16,9 +16,9 @@ Editing a quota
 import { Button, Checkbox, InputNumber, Row, Col } from "antd";
 import { A, Space } from "../../r_misc";
 import { CSS, React, useMemo, useState } from "../../app-framework";
-import { Quota } from "smc-util/db-schema/site-licenses";
+import { Quota } from "@cocalc/util/db-schema/site-licenses";
 import { COSTS, GCE_COSTS, money } from "./util";
-import { plural, round1 } from "smc-util/misc";
+import { plural, round1 } from "@cocalc/util/misc";
 
 const ROW_STYLE: CSS = {
   border: "1px solid #eee",

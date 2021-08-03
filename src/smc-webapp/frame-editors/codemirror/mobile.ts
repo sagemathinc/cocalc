@@ -13,7 +13,7 @@ much, so we add it for many keyboard shortcuts here.
 */
 
 import * as CodeMirror from "codemirror";
-import { merge } from "smc-util/misc";
+import { merge } from "@cocalc/util/misc";
 
 export function extra_alt_keys(
   extraKeys: any,

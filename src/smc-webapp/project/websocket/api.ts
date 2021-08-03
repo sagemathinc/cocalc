@@ -17,7 +17,7 @@ import {
   isMainConfiguration,
 } from "../../project_configuration";
 import { redux } from "../../app-framework";
-import { syntax2tool } from "smc-util/code-formatter";
+import { syntax2tool } from "@cocalc/util/code-formatter";
 import {
   Options as FormatterOptions,
   Config as FormatterConfig,
@@ -26,7 +26,7 @@ import {
   NBGraderAPIOptions,
   RunNotebookOptions,
 } from "../../jupyter/nbgrader/api";
-import { DirectoryListingEntry } from "smc-util/types";
+import { DirectoryListingEntry } from "@cocalc/util/types";
 
 import { reuseInFlight } from "async-await-utils/hof";
 

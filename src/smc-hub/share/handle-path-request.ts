@@ -7,7 +7,7 @@ import {
   filename_extension,
   is_valid_uuid_string,
   path_split,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 
 import {
   default_to_raw,

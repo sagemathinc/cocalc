@@ -5,9 +5,9 @@ import {
   search_split,
   cmp,
   cmp_Date,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { webapp_client } from "../webapp-client";
-import { COMPUTE_STATES } from "smc-util/compute-states";
+import { COMPUTE_STATES } from "@cocalc/util/compute-states";
 
 function parse_tags(info): string[] {
   const indices = parse_hashtags(info);

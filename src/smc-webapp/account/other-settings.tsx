@@ -17,7 +17,7 @@ import {
   Loading,
   SelectorInput,
 } from "../r_misc";
-import { NEW_FILENAMES } from "smc-util/db-schema";
+import { NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { NewFilenameFamilies, NewFilenames } from "../project/utils";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 

@@ -8,7 +8,7 @@ Summary line about what is being shown.
 */
 
 import { CSS, React } from "../../app-framework";
-import { plural } from "smc-util/misc";
+import { plural } from "@cocalc/util/misc";
 import { LocalViewStateMap } from "./types";
 
 const STYLE: CSS = {

@@ -28,7 +28,7 @@ fs      = require('fs')
 async   = require('async')
 escapeString = require('sql-string-escape')
 validator = require('validator')
-{callback2} = require('smc-util/async-utils')
+{callback2} = require('@cocalc/util/async-utils')
 
 LRU = require('lru-cache')
 
@@ -46,10 +46,10 @@ winston      = require('./logger').getLogger('postgres')
 
 misc_node = require('@cocalc/util-node/misc_node')
 
-{defaults} = misc = require('smc-util/misc')
+{defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
 
-{SCHEMA, client_db} = require('smc-util/schema')
+{SCHEMA, client_db} = require('@cocalc/util/schema')
 
 exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created', 'env']
 exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)

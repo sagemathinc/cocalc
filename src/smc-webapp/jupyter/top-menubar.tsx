@@ -14,7 +14,7 @@ import { ButtonGroup, SelectCallback } from "react-bootstrap";
 import { Icon, r_join, DropdownMenu, MenuItem, MenuDivider } from "../r_misc";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
 import { open_new_tab } from "../misc-page";
-import { capitalize, copy, endswith, all_fields_equal } from "smc-util/misc";
+import { capitalize, copy, endswith, all_fields_equal } from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { get_help_links } from "./help-links";

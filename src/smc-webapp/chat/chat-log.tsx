@@ -18,7 +18,7 @@ import {
 import { Alert } from "../antd-bootstrap";
 import { ScrollInfo, WindowedList } from "../r_misc/windowed-list";
 import { Message } from "./message";
-import { search_match, search_split } from "smc-util/misc";
+import { search_match, search_split } from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
 
 type MessageMap = Map<string, any>;

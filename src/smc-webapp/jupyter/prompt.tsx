@@ -13,7 +13,7 @@ import { Button } from "antd";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
-const misc = require("smc-util/misc");
+const misc = require("@cocalc/util/misc");
 
 export const PROMPT_MIN_WIDTH = "7em";
 

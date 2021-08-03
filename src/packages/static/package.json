@@ -1,19 +1,14 @@
 {
   "name": "@cocalc/static",
   "workspaces": [
-    "../../smc-util",
     "../../webapp-lib",
     "../../smc-webapp",
     "../cdn",
-    "../util-node"
+    "../util-node",
+    "../util"
   ],
-  "dependencies": {
-    "@cocalc/cdn": "*",
-    "@cocalc/util-node": "*",
-    "webapp-lib": "*"
-  },
   "version": "1.16.1",
-  "description": "CoCalc's Static Frontend Webapp Assets",
+  "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
     "presets": ["@babel/preset-env"],
@@ -50,6 +45,10 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "devDependencies": {
+    "@cocalc/cdn": "*",
+    "@cocalc/util": "*",
+    "@cocalc/util-node": "*",
+    "webapp-lib": "*",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^26.0.23",
     "@types/jquery": "^3.5.5",

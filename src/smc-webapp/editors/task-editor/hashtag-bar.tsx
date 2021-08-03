@@ -7,7 +7,7 @@
 Hashtag bar for selecting which tasks are shown by tags
 */
 
-import { cmp, trunc } from "smc-util/misc";
+import { cmp, trunc } from "@cocalc/util/misc";
 import { Tag } from "antd";
 const { CheckableTag } = Tag;
 import { CSS, React } from "../../app-framework";

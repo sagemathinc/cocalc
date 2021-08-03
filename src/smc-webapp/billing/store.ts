@@ -7,7 +7,7 @@ import { List, Map, Set } from "immutable";
 
 import { redux, Store, TypedMap } from "../app-framework";
 import { AppliedCoupons, CoursePay, Customer, Invoices } from "./types";
-import { SiteLicense } from "smc-util/db-schema/site-licenses";
+import { SiteLicense } from "@cocalc/util/db-schema/site-licenses";
 
 export interface BillingStoreState {
   stripe_publishable_key?: string;

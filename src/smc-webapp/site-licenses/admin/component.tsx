@@ -29,12 +29,12 @@ import {
   useTypedRedux,
   useIsMountedRef,
 } from "../../app-framework";
-import { plural } from "smc-util/misc";
+import { plural } from "@cocalc/util/misc";
 import { ErrorDisplay, Icon, Loading, Space, r_join } from "../../r_misc";
 import { actions } from "./actions";
 import { Alert, Button, Popconfirm } from "antd";
 import { License } from "./license";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { webapp_client } from "../../webapp-client";
 
 const LICENSE_QUERY = {

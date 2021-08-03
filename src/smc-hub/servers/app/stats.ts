@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import { database_is_working } from "smc-hub/hub_register";
 import { database } from "../database";
 

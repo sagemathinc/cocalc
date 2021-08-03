@@ -6,7 +6,7 @@
 // Hub Registration (recording number of clients)
 
 const winston = require("./logger").getLogger("hub");
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 const { defaults, required } = misc;
 import { PostgreSQL } from "./postgres/types";
 

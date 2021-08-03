@@ -31,7 +31,7 @@ const { Panel } = Collapse;
 // import { delay } from "awaiting";
 import { Map, List } from "immutable";
 import { Icon } from "../../r_misc";
-import { plural, round1 } from "smc-util/misc";
+import { plural, round1 } from "@cocalc/util/misc";
 import { TerminalActions } from "./actions";
 import { DirectoryListingEntry } from "../../project/explorer/types";
 import { Command, SelectFile } from "./commands-guide-components";

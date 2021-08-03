@@ -14,7 +14,7 @@
 
 import { delay } from "awaiting";
 import { Markdown } from "smc-webapp/r_misc";
-import { is_different, path_split } from "smc-util/misc";
+import { is_different, path_split } from "@cocalc/util/misc";
 import { debounce } from "lodash";
 import { React, ReactDOM, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";

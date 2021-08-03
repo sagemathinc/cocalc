@@ -7,7 +7,7 @@
 
 immutable = require('immutable')
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 
 expect  = require('expect')
 

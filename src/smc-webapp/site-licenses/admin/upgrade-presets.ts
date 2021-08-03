@@ -12,9 +12,9 @@ NOTES:
   disk space upgrades as part off this.
 */
 
-import { upgrades } from "smc-util/upgrade-spec";
+import { upgrades } from "@cocalc/util/upgrade-spec";
 import { Upgrades } from "./types";
-import { capitalize } from "smc-util/misc";
+import { capitalize } from "@cocalc/util/misc";
 
 interface Product {
   upgrades: Partial<Upgrades>;

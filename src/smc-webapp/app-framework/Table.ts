@@ -5,7 +5,7 @@
 
 import { AppRedux } from "../app-framework";
 import { WebappClient } from "../client/client";
-import { bind_methods } from "smc-util/misc";
+import { bind_methods } from "@cocalc/util/misc";
 
 declare let Primus;
 
@@ -61,7 +61,7 @@ export abstract class Table {
 
   async set(
     changes: object,
-    merge?: "deep" | "shallow" | "none", // The actual default is "deep" (see smc-util/sync/table/synctable.ts)
+    merge?: "deep" | "shallow" | "none", // The actual default is "deep" (see @cocalc/util/sync/table/synctable.ts)
     cb?: (error?: string) => void
   ): Promise<void> {
     if (cb == null) {

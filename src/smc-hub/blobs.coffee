@@ -8,7 +8,7 @@
 winston = require('./logger').getLogger('blobs')
 
 misc_node = require('@cocalc/util-node/misc_node')
-misc    = require('smc-util/misc')
+misc    = require('@cocalc/util/misc')
 {defaults, required} = misc
 
 MAX_BLOB_SIZE       = 15000000

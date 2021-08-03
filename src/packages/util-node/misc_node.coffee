@@ -12,9 +12,9 @@ net     = require('net')
 async   = require('async')
 path    = require('path')
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 {walltime, defaults, required, to_json} = misc
-message = require('smc-util/message')
+message = require('@cocalc/util/message')
 
 exports.SALVUS_HOME = exports.SMC_ROOT = SMC_ROOT = process.env.SMC_ROOT
 

@@ -6,7 +6,7 @@
 import { React, redux } from "../../app-framework";
 import { Item } from "./complete";
 
-import { trunc_middle, timestamp_cmp, cmp } from "smc-util/misc";
+import { trunc_middle, timestamp_cmp, cmp } from "@cocalc/util/misc";
 import { Avatar } from "../../account/avatar/avatar";
 
 export function mentionableUsers(project_id: string, search?: string): Item[] {

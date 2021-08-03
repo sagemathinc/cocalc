@@ -9,7 +9,7 @@ import { JupyterStore, initial_jupyter_store_state } from "../../jupyter/store";
 import { syncdb2 as new_syncdb } from "../generic/client";
 
 import { webapp_client } from "../../webapp-client";
-import { meta_file } from "smc-util/misc";
+import { meta_file } from "@cocalc/util/misc";
 import { alert_message } from "../../alerts";
 
 export function redux_name(name: string): string {

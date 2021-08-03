@@ -8,9 +8,9 @@
 import { React, useRedux, CSS } from "../app-framework";
 import * as immutable from "immutable";
 import { Progress, Typography } from "antd";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { A, Icon, IconName, Loading, Tip } from "../r_misc";
-import { closest_kernel_match, rpad_html } from "smc-util/misc";
+import { closest_kernel_match, rpad_html } from "@cocalc/util/misc";
 import { Logo } from "./logo";
 import { JupyterActions } from "./browser-actions";
 import { Usage, AlertLevel, BackendState } from "./types";

@@ -20,7 +20,7 @@ import {
   uuid,
   history_path,
   search_split,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { HEADINGS, HEADINGS_DIR } from "./headings-info";
 import { update_visible } from "./update-visible";
 import { create_key_handler } from "./keyboard";
@@ -38,7 +38,7 @@ import {
   TaskState,
 } from "./types";
 import { TaskStore } from "./store";
-import { SyncDB } from "smc-util/sync/editor/db";
+import { SyncDB } from "@cocalc/util/sync/editor/db";
 import { webapp_client } from "../../webapp-client";
 
 export class TaskActions extends Actions<TaskState> {

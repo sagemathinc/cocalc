@@ -9,13 +9,13 @@ web browser frontend.
 */
 import { Map, Set } from "immutable";
 import { debounce, isEqual } from "underscore";
-import { merge_copy, uuid, server_time } from "smc-util/misc";
+import { merge_copy, uuid, server_time } from "@cocalc/util/misc";
 import { JupyterActions as JupyterActions0 } from "./actions";
 import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
 import { ConfirmDialogOptions } from "./confirm-dialog";
-import { callback2, once } from "smc-util/async-utils";
-import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
+import { callback2, once } from "@cocalc/util/async-utils";
+import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 const { instantiate_snippets } = require("../assistant/main");
 import { NBGraderActions } from "./nbgrader/actions";
 import { CellToolbarName } from "./types";

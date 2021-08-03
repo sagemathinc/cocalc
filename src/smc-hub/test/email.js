@@ -10,11 +10,11 @@
 require("ts-node").register();
 require("coffeescript/register");
 
-const { callback2 } = require("smc-util/async-utils");
+const { callback2 } = require("@cocalc/util/async-utils");
 const { send_email, welcome_email } = require("../email");
 // const {send_email_notification} = require("../mentions/handle")
 const { forgot_password } = require("../password");
-const message = require("smc-util/message");
+const message = require("@cocalc/util/message");
 
 const ts = new Date().toISOString();
 

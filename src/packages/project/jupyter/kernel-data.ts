@@ -12,7 +12,7 @@ Specs: https://jupyter-client.readthedocs.io/en/stable/kernels.html#kernel-specs
 */
 
 import { findAll } from "kernelspecs";
-import { field_cmp } from "smc-util/misc";
+import { field_cmp } from "@cocalc/util/misc";
 import LRU from "lru-cache";
 
 const cache = new LRU({ maxAge: 5000 });

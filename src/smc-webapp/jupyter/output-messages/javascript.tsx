@@ -6,7 +6,7 @@
 import { List } from "immutable";
 import $ from "jquery";
 import { React, useRef, useState } from "smc-webapp/app-framework";
-import { is_array } from "smc-util/misc";
+import { is_array } from "@cocalc/util/misc";
 import { javascript_eval } from "./javascript-eval";
 import { STDERR_STYLE } from "./style";
 

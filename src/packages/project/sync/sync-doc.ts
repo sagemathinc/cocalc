@@ -13,13 +13,13 @@ This is mainly responsible for:
 
 */
 
-import { SyncTable } from "smc-util/sync/table";
-import { SyncDB } from "smc-util/sync/editor/db/sync";
-import { SyncString } from "smc-util/sync/editor/string/sync";
-import { SyncDoc } from "smc-util/sync/editor/generic/sync-doc";
-import { Client } from "smc-util/sync/editor/generic/types";
-import { once } from "smc-util/async-utils";
-import { filename_extension } from "smc-util/misc";
+import { SyncTable } from "@cocalc/util/sync/table";
+import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
+import { SyncString } from "@cocalc/util/sync/editor/string/sync";
+import { SyncDoc } from "@cocalc/util/sync/editor/generic/sync-doc";
+import { Client } from "@cocalc/util/sync/editor/generic/types";
+import { once } from "@cocalc/util/async-utils";
+import { filename_extension } from "@cocalc/util/misc";
 import { jupyter_backend } from "../jupyter/jupyter";
 
 const COCALC_EPHEMERAL_STATE: boolean =

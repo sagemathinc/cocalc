@@ -20,9 +20,9 @@ import {
   useRef,
   useTypedRedux,
 } from "../../app-framework";
-import { path_split, path_to_tab, trunc_left } from "smc-util/misc";
+import { path_split, path_to_tab, trunc_left } from "@cocalc/util/misc";
 import { HiddenXS, Icon, Tip } from "../../r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
 import { IS_SAFARI } from "../../feature";
 import CloseX from "./close-x";

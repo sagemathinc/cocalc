@@ -8,7 +8,7 @@ import { SlateEditor } from "./editable-markdown";
 import { React, useActions, useRef } from "smc-webapp/app-framework";
 import { Dropzone, FileUploadWrapper } from "smc-webapp/file-upload";
 import { join } from "path";
-import { aux_file, path_split } from "smc-util/misc";
+import { aux_file, path_split } from "@cocalc/util/misc";
 const AUX_FILE_EXT = "upload";
 import { getFocus } from "./format/commands";
 

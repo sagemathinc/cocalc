@@ -10,8 +10,8 @@ CoCalc: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
 Copyright 2015, SageMath, Inc., GPL v3.
 ###
 
-misc    = require('smc-util/misc')
-message = require('smc-util/message')
+misc    = require('@cocalc/util/misc')
+message = require('@cocalc/util/message')
 winston = require('./logger').getLogger('blobs')
 
 {defaults, required} = misc

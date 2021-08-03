@@ -35,7 +35,7 @@
 
 import { Router } from "express";
 import ms from "ms";
-import { callback2 as cb2 } from "smc-util/async-utils";
+import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import debug from "debug";
 const LOG = debug("hub:auth");
 import { join as path_join } from "path";
@@ -43,12 +43,12 @@ import { v4 } from "node-uuid";
 import passport from "passport";
 import * as dot from "dot-object";
 import * as _ from "lodash";
-import * as misc from "smc-util/misc";
-import * as message from "smc-util/message"; // message protocol between front-end and back-end
+import * as misc from "@cocalc/util/misc";
+import * as message from "@cocalc/util/message"; // message protocol between front-end and back-end
 const sign_in = require("./sign-in");
 import Cookies from "cookies";
 import express_session from "express-session";
-import { HELP_EMAIL, DNS } from "smc-util/theme";
+import { HELP_EMAIL, DNS } from "@cocalc/util/theme";
 import {
   email_verified_successfully,
   email_verification_problem,
@@ -502,7 +502,7 @@ export class PassportManager {
 
     // email verification
     this.router.get(`${AUTH_BASE}/verify`, async (req, res) => {
-      const { DOMAIN_URL } = require("smc-util/theme");
+      const { DOMAIN_URL } = require("@cocalc/util/theme");
       const path = require("path").join(base_path, "app");
       const url = `${DOMAIN_URL}${path}`;
       res.header("Content-Type", "text/html");

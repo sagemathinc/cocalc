@@ -13,7 +13,7 @@ import {
   useActions as useReduxActions,
 } from "smc-webapp/app-framework";
 import { Range } from "slate";
-import { path_split } from "smc-util/misc";
+import { path_split } from "@cocalc/util/misc";
 import { Actions } from "smc-webapp/frame-editors/markdown-editor/actions";
 import {
   useSlate as useSlate0,

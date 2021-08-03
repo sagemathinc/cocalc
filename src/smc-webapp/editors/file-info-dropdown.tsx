@@ -5,7 +5,7 @@
 
 // info button inside the editor when editing a file. links you back to the file listing with the action prompted
 import { CSS, React, ReactDOM, useActions } from "../app-framework";
-import { capitalize, filename_extension } from "smc-util/misc";
+import { capitalize, filename_extension } from "@cocalc/util/misc";
 import { file_actions } from "../project_store";
 import { DropdownMenu, HiddenXS, MenuItem, Icon, IconName, Space } from "../r_misc";
 import { useStudentProjectFunctionality } from "smc-webapp/course";

@@ -20,7 +20,7 @@ import {
   Well,
 } from "react-bootstrap";
 import { Map } from "immutable";
-import { plural } from "smc-util/misc";
+import { plural } from "@cocalc/util/misc";
 import { Icon, Loading } from "../r_misc";
 
 interface Props {

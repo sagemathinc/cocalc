@@ -5,7 +5,7 @@
 
 import { React } from "../app-framework";
 import { List, Map } from "immutable";
-import { trunc_middle } from "smc-util/misc";
+import { trunc_middle } from "@cocalc/util/misc";
 import { sanitize_html_safe } from "../misc-page";
 import { Markdown, TimeAgo } from "../r_misc";
 import { ListGroupItem, Well } from "react-bootstrap";

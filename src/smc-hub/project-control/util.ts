@@ -4,8 +4,8 @@ import { exec as exec0, spawn } from "child_process";
 import * as fs from "fs";
 
 import { projects, root } from "@cocalc/util-node/data";
-import { is_valid_uuid_string } from "smc-util/misc";
-import { callback2 } from "smc-util/async-utils";
+import { is_valid_uuid_string } from "@cocalc/util/misc";
+import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "smc-hub/logger";
 import { CopyOptions, ProjectState, ProjectStatus } from "./base";
 import { getUid } from "@cocalc/util-node/misc";

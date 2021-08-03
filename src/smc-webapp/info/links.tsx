@@ -5,7 +5,7 @@
 
 import { join } from "path";
 import React from "react";
-import { DOMAIN_URL} from "smc-util/theme";
+import { DOMAIN_URL} from "@cocalc/util/theme";
 import { BASE_URL as DEFAULT_BASE_URL } from "smc-webapp/misc/base-url";
 import { SiteName, PolicyPricingPageUrl } from "../customize";
 import { IconName } from "smc-webapp/r_misc/icon";
@@ -18,7 +18,7 @@ import {
   TWITTER_HANDLE,
   LIVE_DEMO_REQUEST,
   DISCORD_INVITE,
-} from "smc-util/theme";
+} from "@cocalc/util/theme";
 
 interface LinkInfo {
   commercial?: boolean;

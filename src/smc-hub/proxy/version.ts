@@ -1,6 +1,6 @@
 import Cookies from "cookies";
 
-import { versionCookieName } from "smc-util/consts";
+import { versionCookieName } from "@cocalc/util/consts";
 import base_path from "@cocalc/util-node/base-path";
 
 import getServerSettings from "../servers/server-settings";
@@ -26,7 +26,7 @@ export function versionCheckFails(req, res?): boolean {
   const cookies = new Cookies(req);
   /* NOTE: The name of the cookie $VERSION_COOKIE_NAME is
      also used in the frontend code file smc-webapp/set-version-cookie.js
-     but everybody imports it from smc-util/consts.
+     but everybody imports it from @cocalc/util/consts.
   */
   const rawVal = cookies.get(versionCookieName(base_path));
   const version = parseInt(rawVal);

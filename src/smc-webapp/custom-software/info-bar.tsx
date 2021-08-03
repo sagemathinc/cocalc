@@ -14,7 +14,7 @@ import {
   RESET_ICON,
 } from "./util";
 import { ComputeImages } from "./init";
-import { path_split, trunc, trunc_middle } from "smc-util/misc";
+import { path_split, trunc, trunc_middle } from "@cocalc/util/misc";
 import { open_new_tab } from "../misc-page";
 import { Icon, Tip, HiddenXSSM, VisibleMDLG, VisibleXSSM } from "../r_misc";
 import { ButtonGroup, Button } from "react-bootstrap";

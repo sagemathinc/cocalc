@@ -88,7 +88,7 @@ export function brand_to_icon_name(brand: undefined | string): IconName {
   }
 }
 
-import { upgrades } from "smc-util/upgrade-spec";
+import { upgrades } from "@cocalc/util/upgrade-spec";
 
 export const STUDENT_COURSE_PRICE: number =
   upgrades.subscription.student_course.price.month4;

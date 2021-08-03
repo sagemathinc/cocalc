@@ -21,7 +21,7 @@ import {
   deep_copy,
   uuid,
   trunc,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 
 import {
   CodeExecutionEmitterInterface,

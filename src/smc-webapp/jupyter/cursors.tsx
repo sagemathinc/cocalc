@@ -17,7 +17,7 @@ import { React, ReactDOM, Rendered, useTypedRedux } from "../app-framework";
 
 import { times_n } from "./util";
 
-import { server_time, trunc_middle, is_different } from "smc-util/misc";
+import { server_time, trunc_middle, is_different } from "@cocalc/util/misc";
 
 const UNKNOWN_USER_PROFILE = {
   color: "rgb(170,170,170)",

@@ -9,7 +9,7 @@ Panel for configuring peer grading.
 
 import { Component, React, Rendered } from "../../app-framework";
 
-import { server_days_ago } from "smc-util/misc";
+import { server_days_ago } from "@cocalc/util/misc";
 import { AssignmentRecord } from "../store";
 import { CourseActions } from "../actions";
 

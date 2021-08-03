@@ -8,12 +8,12 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 */
 
 import Ansi from "ansi-to-react";
-import { path_split } from "smc-util/misc";
+import { path_split } from "@cocalc/util/misc";
 import { React, Rendered, useRedux } from "../../app-framework";
 import { BuildCommand } from "./build-command";
 import { IconName, Loading } from "smc-webapp/r_misc";
 import { Tab, Tabs } from "../../antd-bootstrap";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { BuildLogs } from "./actions";
 import { use_build_logs } from "./hooks";
 

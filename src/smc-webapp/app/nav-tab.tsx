@@ -7,7 +7,7 @@ import { React, useActions } from "../app-framework";
 import { NavItem } from "react-bootstrap";
 import { user_tracking } from "../user-tracking";
 import { Icon, IconName } from "../r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 
 const ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE;
 

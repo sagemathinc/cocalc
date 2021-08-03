@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Quota } from "smc-util/db-schema/site-licenses";
+import { Quota } from "@cocalc/util/db-schema/site-licenses";
 
 export interface SiteLicensePublicInfo {
   id: string;

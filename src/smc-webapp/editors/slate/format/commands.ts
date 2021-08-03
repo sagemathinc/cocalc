@@ -4,7 +4,7 @@
  */
 
 import { isEqual } from "lodash";
-import { is_array, startswith } from "smc-util/misc";
+import { is_array, startswith } from "@cocalc/util/misc";
 import {
   Editor,
   Element,

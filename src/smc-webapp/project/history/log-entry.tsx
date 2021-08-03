@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 import React from "react";
 
 import * as lodash from "lodash";
@@ -30,7 +30,7 @@ import { ProjectTitle } from "../../projects/project-title";
 import { file_associations } from "../../file-associations";
 import { SystemProcess } from "./system-process";
 import { UserMap } from "smc-webapp/todo-types";
-import { describe_quota } from "smc-util/db-schema/site-licenses";
+import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 
 import {
   ProjectEvent,
@@ -389,7 +389,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
   }
 
   function render_upgrade(event: UpgradeEvent): Rendered {
-    const { params } = require("smc-util/schema").PROJECT_UPGRADES;
+    const { params } = require("@cocalc/util/schema").PROJECT_UPGRADES;
     const v: JSX.Element[] = [];
     for (const param in event.upgrades) {
       const val = event.upgrades[param];

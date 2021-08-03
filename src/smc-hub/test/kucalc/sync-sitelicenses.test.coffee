@@ -14,7 +14,7 @@ teardown = init.teardown
 async  = require('async')
 expect = require('expect')
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 
 ss = require("smc-hub/postgres/site-license/sync-subscriptions")
 

@@ -3,7 +3,7 @@
 import { createServer } from "net";
 import { writeFile } from "fs";
 import { callback } from "awaiting";
-import { once } from "smc-util/async-utils";
+import { once } from "@cocalc/util/async-utils";
 import { getLogger } from "@cocalc/project/logger";
 import { hubPortFile } from "@cocalc/project/data";
 const { enable_mesg, unlock_socket } = require("@cocalc/util-node/misc_node");

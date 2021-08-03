@@ -11,9 +11,9 @@ winston  = require('./logger').getLogger('projects')
 
 postgres = require('./postgres')
 local_hub_connection = require('./local_hub_connection')
-message = require('smc-util/message')
-{callback2} = require('smc-util/async-utils')
-misc    = require('smc-util/misc')
+message = require('@cocalc/util/message')
+{callback2} = require('@cocalc/util/async-utils')
+misc    = require('@cocalc/util/misc')
 misc_node = require('@cocalc/util-node/misc_node')
 {defaults, required} = misc
 

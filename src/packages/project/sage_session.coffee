@@ -10,9 +10,9 @@ Start the Sage server and also get a new socket connection to it.
 async     = require('async')
 winston = require('./logger').getLogger('sage-session')
 
-misc      = require('smc-util/misc')
+misc      = require('@cocalc/util/misc')
 misc_node = require('@cocalc/util-node/misc_node')
-message   = require('smc-util/message')
+message   = require('@cocalc/util/message')
 secret_token = require('./servers/secret-token')
 
 port_manager = require('./port_manager')

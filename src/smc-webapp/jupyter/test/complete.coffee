@@ -13,7 +13,7 @@ setup = (cb) -> (require('./setup').setup (err, x) -> actions=x; store=x?.store;
 
 expect  = require('expect')
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 
 describe 'basic completion test -- ', ->
     before(setup)

@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 import { Icon } from "../../r_misc";
 import { redux } from "../../app-framework";
 

@@ -18,8 +18,8 @@ import { delay } from "awaiting";
 import { Map, Set } from "immutable";
 import { throttle } from "underscore";
 import $ from "jquery";
-import { seconds_ago, list_alternatives } from "smc-util/misc";
-import { COLORS } from "smc-util/theme";
+import { seconds_ago, list_alternatives } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { dblclick } from "./mouse-click";
 import {
   React,

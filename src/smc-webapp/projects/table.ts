@@ -1,7 +1,7 @@
 import { reuseInFlight } from "async-await-utils/hof";
 import { COCALC_MINIMAL } from "../fullscreen";
-import { parse_query } from "smc-util/sync/table/util";
-import { once } from "smc-util/async-utils";
+import { parse_query } from "@cocalc/util/sync/table/util";
+import { once } from "@cocalc/util/async-utils";
 import { redux, Table } from "../app-framework";
 
 declare var DEBUG: boolean;

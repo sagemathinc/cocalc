@@ -18,8 +18,8 @@ if (process.env.COCALC_MENTIONS_POLL_INTERVAL_S != undefined) {
   POLL_INTERVAL_S = 15;
 }
 
-import { callback2 } from "smc-util/async-utils";
-import { trunc } from "smc-util/misc";
+import { callback2 } from "@cocalc/util/async-utils";
+import { trunc } from "@cocalc/util/misc";
 import { callback, delay } from "awaiting";
 
 import { project_has_network_access } from "../postgres/project-queries";
@@ -27,7 +27,7 @@ import { is_paying_customer } from "../postgres/account-queries";
 
 import { send_email } from "../email";
 
-const { HELP_EMAIL } = require("smc-util/theme");
+const { HELP_EMAIL } = require("@cocalc/util/theme");
 
 // TODO: should be something like notifications@cocalc.com...
 const NOTIFICATIONS_EMAIL = HELP_EMAIL;

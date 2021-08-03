@@ -11,7 +11,7 @@ import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
-import { uuid, mswalltime } from "smc-util/misc";
+import { uuid, mswalltime } from "@cocalc/util/misc";
 import { map } from "awaiting";
 import { SyncDBRecordHandout } from "../types";
 import { exec } from "../../frame-editors/generic/client";

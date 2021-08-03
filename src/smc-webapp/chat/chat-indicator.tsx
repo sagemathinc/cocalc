@@ -4,9 +4,9 @@
  */
 
 import { debounce } from "lodash";
-import { filename_extension } from "smc-util/misc";
+import { filename_extension } from "@cocalc/util/misc";
 import { React, redux, useTypedRedux, useMemo } from "../app-framework";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { Icon, Tip, Space } from "../r_misc";
 import { UsersViewing } from "../account/avatar/users-viewing";
 import { VideoChatButton } from "./video/launch-button";

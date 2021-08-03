@@ -9,7 +9,7 @@ import {
   query,
   write_text_file_to_project,
 } from "../../frame-editors/generic/client";
-import { splitlines } from "smc-util/misc";
+import { splitlines } from "@cocalc/util/misc";
 
 interface PathUseTimes {
   edit_times: number[];

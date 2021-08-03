@@ -11,7 +11,7 @@ async             = require('async')
 
 random_key        = require("random-key")
 
-misc              = require('smc-util/misc')
+misc              = require('@cocalc/util/misc')
 {defaults, types, required} = misc
 
 auth              = require('./auth')

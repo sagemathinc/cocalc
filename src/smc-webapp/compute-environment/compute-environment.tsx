@@ -15,7 +15,7 @@ import {
 import { A, Loading, Markdown } from "../r_misc";
 import { Button, Row, Col } from "../antd-bootstrap";
 import { li_style } from "../info/style";
-import { keys } from "smc-util/misc";
+import { keys } from "@cocalc/util/misc";
 import { SiteName } from "../customize";
 
 import { by_lowercase, full_lang_name } from "./utils";

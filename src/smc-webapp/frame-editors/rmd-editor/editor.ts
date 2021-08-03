@@ -8,7 +8,7 @@ Top-level react component for editing R markdown documents
 */
 
 import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
-import { set } from "smc-util/misc";
+import { set } from "@cocalc/util/misc";
 import { derive_rmd_output_filename } from "./utils";
 import { EditorDescription } from "../frame-tree/types";
 import { createEditor } from "../frame-tree/editor";

@@ -6,7 +6,7 @@
 // Use Xpra to provide X11 server.
 
 import { join } from "path";
-import { retry_until_success } from "smc-util/async-utils";
+import { retry_until_success } from "@cocalc/util/async-utils";
 import { reuseInFlight } from "async-await-utils/hof";
 import { ConnectionStatus } from "../frame-tree/types";
 import { Client } from "./xpra/client";
@@ -19,7 +19,7 @@ import { open_new_tab } from "../../misc-page";
 import { is_copy } from "./xpra/util";
 import { alert_message } from "smc-webapp/alerts";
 const sha1 = require("sha1");
-import { close, hash_string } from "smc-util/misc";
+import { close, hash_string } from "@cocalc/util/misc";
 
 const BASE_DPI: number = 96;
 

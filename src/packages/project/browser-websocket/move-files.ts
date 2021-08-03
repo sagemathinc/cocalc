@@ -5,10 +5,10 @@
 
 import { move, pathExists } from "fs-extra";
 import { stat } from "fs";
-import { path_split } from "smc-util/misc";
+import { path_split } from "@cocalc/util/misc";
 import { get_listings_table } from "../sync/listings";
 import { callback } from "awaiting";
-import { move_file_variations } from "smc-util/delete-files";
+import { move_file_variations } from "@cocalc/util/delete-files";
 
 function home(): string {
   const { HOME } = process.env;

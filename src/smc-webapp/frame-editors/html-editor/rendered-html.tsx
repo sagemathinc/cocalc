@@ -8,7 +8,7 @@ Component that shows rendered HTML.
 */
 
 import { delay } from "awaiting";
-import { is_different, path_split } from "smc-util/misc";
+import { is_different, path_split } from "@cocalc/util/misc";
 import { throttle } from "lodash";
 import { React, ReactDOM } from "../../app-framework";
 import { MAX_WIDTH } from "../options";

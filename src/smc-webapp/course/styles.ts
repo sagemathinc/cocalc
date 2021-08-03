@@ -5,7 +5,7 @@
 
 import { CSSProperties } from "react";
 
-import { merge, types } from "smc-util/misc";
+import { merge, types } from "@cocalc/util/misc";
 
 export const entry_style: CSSProperties = {};
 

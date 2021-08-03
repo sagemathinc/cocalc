@@ -20,7 +20,7 @@ Browser client code only uses this through the websocket anyways.
 import { Router } from "express";
 import { lstat, stat, readdir, readlink, Dirent, Stats } from "fs";
 import { callback } from "awaiting";
-import { DirectoryListingEntry } from "smc-util/types";
+import { DirectoryListingEntry } from "@cocalc/util/types";
 
 // SMC_LOCAL_HUB_HOME is used for developing cocalc inside cocalc...
 const HOME = process.env.SMC_LOCAL_HUB_HOME ?? process.env.HOME;

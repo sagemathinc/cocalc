@@ -10,9 +10,9 @@ Progress indicator for assigning/collecting/etc. a particular assignment or hand
 import { React, Component } from "../../app-framework";
 import { Icon, Space } from "../../r_misc";
 
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 
 const progress_info = {
   color: COLORS.GRAY_D,

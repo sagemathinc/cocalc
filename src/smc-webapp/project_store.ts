@@ -15,7 +15,7 @@ if (typeof window !== "undefined" && window !== null) {
   wrapped_editors = require("./editors/react-wrapper");
 }
 import * as immutable from "immutable";
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
 import {
   Available as AvailableFeatures,
@@ -35,7 +35,7 @@ import { ProjectConfiguration } from "./project_configuration";
 import { ProjectLogMap } from "./project/history/types";
 import { alert_message } from "./alerts";
 import { Listings, listings } from "./project/websocket/listings";
-import { deleted_file_variations } from "smc-util/delete-files";
+import { deleted_file_variations } from "@cocalc/util/delete-files";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -288,7 +288,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         const project_id = this.project_id;
         return function (path) {
           // (this exists because rethinkdb doesn't have compound primary keys)
-          const { SCHEMA, client_db } = require("smc-util/schema");
+          const { SCHEMA, client_db } = require("@cocalc/util/schema");
           return SCHEMA.public_paths.user_query.set.fields.id(
             { project_id, path },
             client_db

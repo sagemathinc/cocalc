@@ -4,7 +4,7 @@
  */
 
 import { React, useTypedRedux, useActions } from "../../app-framework";
-import { trunc_middle } from "smc-util/misc";
+import { trunc_middle } from "@cocalc/util/misc";
 import { HomeOutlined } from "@ant-design/icons";
 import { Breadcrumb } from "antd";
 import { PathSegmentLink } from "./path-segment-link";

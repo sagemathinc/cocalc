@@ -10,7 +10,7 @@ on the bottom half the of the screen for Jupyter classic.
 */
 
 import { Map } from "immutable";
-import { merge } from "smc-util/misc";
+import { merge } from "@cocalc/util/misc";
 import {
   Component,
   React,

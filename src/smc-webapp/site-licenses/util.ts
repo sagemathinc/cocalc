@@ -7,8 +7,8 @@ import LRU from "lru-cache";
 import { reuseInFlight } from "async-await-utils/hof";
 import { SiteLicensePublicInfo } from "./types";
 import { query } from "../frame-editors/generic/client";
-import { SCHEMA } from "smc-util/db-schema";
-import { copy } from "smc-util/misc";
+import { SCHEMA } from "@cocalc/util/db-schema";
+import { copy } from "@cocalc/util/misc";
 
 // To avoid overfetching, we cache results for *a few seconds*.
 const site_license_public_info_cache = new LRU({ maxAge: 1000 * 15 });

@@ -4,7 +4,7 @@
  */
 
 import { React } from "../app-framework";
-import { COMPUTE_STATES } from "smc-util/schema";
+import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { ProjectStatus } from "../todo-types";
 import { Space } from "./space";
 import { Icon } from "./icon";

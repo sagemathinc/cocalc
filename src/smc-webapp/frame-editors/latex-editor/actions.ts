@@ -22,7 +22,7 @@ import { normalize as path_normalize } from "path";
 import { union } from "lodash";
 import { reuseInFlight } from "async-await-utils/hof";
 import { fromJS, List, Map } from "immutable";
-import { once } from "smc-util/async-utils";
+import { once } from "@cocalc/util/async-utils";
 import { project_api } from "../generic/client";
 import {
   Actions as BaseActions,
@@ -59,7 +59,7 @@ import {
   startswith,
   change_filename_extension,
   sha1,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { IBuildSpecs } from "./build";
 import { open_new_tab } from "../../misc-page";
 

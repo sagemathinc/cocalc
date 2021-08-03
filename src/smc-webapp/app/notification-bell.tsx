@@ -4,7 +4,7 @@
  */
 
 import { React, useActions, useTypedRedux } from "../app-framework";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { user_tracking } from "../user-tracking";
 import { Icon } from "../r_misc";
 import { NavItem } from "react-bootstrap";

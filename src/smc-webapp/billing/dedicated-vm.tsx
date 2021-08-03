@@ -5,7 +5,7 @@
 
 import { Component, React, Rendered } from "../app-framework";
 const { HelpEmailLink } = require("../customize");
-import { PROJECT_UPGRADES } from "smc-util/schema";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { PlanInfo } from "./plan-info";
 import { Row, Col } from "react-bootstrap";
 import { Space } from "../r_misc/space";

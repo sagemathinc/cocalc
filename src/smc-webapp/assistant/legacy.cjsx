@@ -4,7 +4,7 @@
 #########################################################################
 
 # CoCalc libs
-{defaults, required, optional} = misc = require('smc-util/misc')
+{defaults, required, optional} = misc = require('@cocalc/util/misc')
 # react aspects
 {React, ReactDOM, redux, Redux} = require('../app-framework')
 

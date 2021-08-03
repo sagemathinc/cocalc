@@ -7,9 +7,9 @@
 Synchronized table that tracks server settings.
 */
 
-import { site_settings_conf } from "smc-util/db-schema";
-import { startswith } from "smc-util/misc";
-import { once } from "smc-util/async-utils";
+import { site_settings_conf } from "@cocalc/util/db-schema";
+import { startswith } from "@cocalc/util/misc";
+import { once } from "@cocalc/util/async-utils";
 import { have_active_registration_tokens } from "../utils";
 import { database } from "./database";
 

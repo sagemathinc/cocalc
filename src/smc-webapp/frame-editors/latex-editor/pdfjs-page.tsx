@@ -8,7 +8,7 @@ Manages rendering a single page using either SVG or Canvas
 */
 
 import { React } from "../../app-framework";
-import { is_different } from "smc-util/misc";
+import { is_different } from "@cocalc/util/misc";
 import { NonloadedPage } from "./pdfjs-nonloaded-page";
 import { CanvasPage } from "./pdfjs-canvas-page";
 import {

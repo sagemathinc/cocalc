@@ -16,7 +16,7 @@ import { IPynbImporter } from "../import-from-ipynb";
 import { WebappClient } from "../../webapp-client";
 
 import { NBViewerState, NBViewerStore } from "./store";
-import { close } from "smc-util/misc";
+import { close } from "@cocalc/util/misc";
 
 export class NBViewerActions extends Actions<NBViewerState> {
   public _init = (

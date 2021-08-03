@@ -17,8 +17,8 @@ const fs_readFile_prom = promisify(fs.readFile);
 const async = require("async");
 const winston = require("./logger").getLogger("email");
 import { template } from "lodash";
-import { AllSiteSettingsCached } from "smc-util/db-schema/types";
-import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import { AllSiteSettingsCached } from "@cocalc/util/db-schema/types";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import base_path from "@cocalc/util-node/base-path";
 import { secrets } from "@cocalc/util-node/data";
 
@@ -27,9 +27,9 @@ import * as sendgrid from "@sendgrid/client";
 
 import * as nodemailer from "nodemailer";
 
-const misc = require("smc-util/misc");
+const misc = require("@cocalc/util/misc");
 const { defaults, required } = misc;
-import { site_settings_conf } from "smc-util/db-schema/site-defaults";
+import { site_settings_conf } from "@cocalc/util/db-schema/site-defaults";
 import sanitizeHtml from "sanitize-html";
 import { contains_url } from "@cocalc/util-node/misc";
 
@@ -43,7 +43,7 @@ const {
   DNS,
   HELP_EMAIL,
   LIVE_DEMO_REQUEST,
-} = require("smc-util/theme");
+} = require("@cocalc/util/theme");
 
 export function escape_email_body(body: string, allow_urls: boolean): string {
   // in particular, no img and no anchor a

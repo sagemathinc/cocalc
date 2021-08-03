@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { PROJECT_UPGRADES } from "smc-util/schema";
-import { plural, capitalize } from "smc-util/misc";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { plural, capitalize } from "@cocalc/util/misc";
 
 import { Component, React, Rendered } from "../app-framework";
 import { Tip } from "../r_misc/tip";

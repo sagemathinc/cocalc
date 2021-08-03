@@ -18,8 +18,8 @@ for making the data structure trivial.
 ###
 
 async                = require('async')
-message              = require('smc-util/message')
-misc                 = require('smc-util/misc')
+message              = require('@cocalc/util/message')
+misc                 = require('@cocalc/util/misc')
 {required, defaults} = misc
 auth                 = require('./auth')
 {process_env_int}    = require("@cocalc/util-node/misc")

@@ -6,9 +6,9 @@
 import { React, useRedux, useTypedRedux } from "../app-framework";
 import { Icon, Loading, TimeAgo } from "../r_misc";
 import { ProgressBar, Table } from "react-bootstrap";
-import { RECENT_TIMES_KEY } from "smc-util/schema";
+import { RECENT_TIMES_KEY } from "@cocalc/util/schema";
 import { Col } from "../antd-bootstrap";
-import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 // improve understanding of large numbers
 function fmt_large(num) {

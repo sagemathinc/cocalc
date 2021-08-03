@@ -14,7 +14,7 @@ import { file_actions, ProjectActions } from "../../project_store";
 import { SelectProject } from "../../projects/select-project";
 import { in_snapshot_path } from "../utils";
 
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 
 import {
   Button,

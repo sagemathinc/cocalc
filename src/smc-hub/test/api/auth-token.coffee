@@ -5,7 +5,7 @@
 
 api   = require('./apitest')
 {setup, teardown} = api
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 expect = require('expect')
 
 describe 'tests creating an auth token via the api -- ', ->

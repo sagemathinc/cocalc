@@ -14,9 +14,9 @@ Use this via
 
 import { EventEmitter } from "events";
 import { fromJS, Map } from "immutable";
-import { SyncTable } from "smc-util/sync/table";
+import { SyncTable } from "@cocalc/util/sync/table";
 import { delay } from "awaiting";
-import { close } from "smc-util/misc";
+import { close } from "@cocalc/util/misc";
 import { WebappClient } from "../../webapp-client";
 
 type State = "init" | "ready" | "closed";

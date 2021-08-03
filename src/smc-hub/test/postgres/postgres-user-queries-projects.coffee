@@ -20,7 +20,7 @@ teardown = pgtest.teardown
 async  = require('async')
 expect = require('expect')
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 
 describe 'extensive tests of editing properties of a project', ->
 

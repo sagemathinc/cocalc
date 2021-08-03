@@ -4,7 +4,7 @@
 #########################################################################
 
 $ = window.$
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 {defaults, required} = misc
 
 d3 = require('d3')

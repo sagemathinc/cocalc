@@ -8,12 +8,12 @@ Show errors and warnings.
 */
 
 import { sortBy } from "lodash";
-import { capitalize, is_different, path_split } from "smc-util/misc";
+import { capitalize, is_different, path_split } from "@cocalc/util/misc";
 import { React, Rendered, useRedux } from "../../app-framework";
 import { TypedMap } from "../../app-framework";
 import { BuildLogs } from "./actions";
 import { Icon, IconName, Loading } from "smc-webapp/r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { use_build_logs } from "./hooks";
 import { EditorState } from "../frame-tree/types"
 

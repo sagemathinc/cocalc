@@ -15,10 +15,10 @@ async      = require('async')
 
 misc_node  = require('@cocalc/util-node/misc_node')
 
-{defaults} = misc = require('smc-util/misc')
+{defaults} = misc = require('@cocalc/util/misc')
 required   = defaults.required
 
-{SCHEMA}   = require('smc-util/schema')
+{SCHEMA}   = require('@cocalc/util/schema')
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Backups up the indicated tables.

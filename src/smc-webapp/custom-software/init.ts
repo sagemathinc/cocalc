@@ -9,7 +9,7 @@
 const { redux, Store, Actions, Table } = require("../app-framework");
 import { Map as iMap } from "immutable";
 import { NAME } from "./util";
-const { capitalize } = require("smc-util/misc");
+const { capitalize } = require("@cocalc/util/misc");
 
 // this must match db-schema.compute_images → field type → allowed values
 // "standard" image names are "default", "exp", "ubuntu2020", or a timestamp-string

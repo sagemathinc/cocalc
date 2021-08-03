@@ -9,7 +9,7 @@ Efficient backend processing of iframe srcdoc's.
 MOTIVATION: Sage jmol.
 */
 
-const misc = require("smc-util/misc"); // TODO: import type
+const misc = require("@cocalc/util/misc"); // TODO: import type
 
 export function is_likely_iframe(content: string): boolean {
   if (!content) {

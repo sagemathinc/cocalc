@@ -21,7 +21,7 @@ import {
   days_ago,
   weeks_ago,
   months_ago,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import {
   A,
   CopyToClipBoard,

@@ -29,9 +29,9 @@ import { ComputeImage, ComputeImages } from "../../custom-software/init";
 import {
   COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG,
   DEFAULT_COMPUTE_IMAGE,
-} from "smc-util/compute-images";
+} from "@cocalc/util/compute-images";
 const COMPUTE_IMAGES = fromJS(COMPUTE_IMAGES_ORIG); // only because that's how all the ui code was written.
-import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 const CSI_HELP =
   "https://doc.cocalc.com/software.html#custom-software-environment";

@@ -5,7 +5,7 @@
 
 import { COSTS, PurchaseInfo } from "smc-webapp/site-licenses/purchase/util";
 import { StripeClient } from "../../stripe/client";
-import { describe_quota } from "smc-util/db-schema/site-licenses";
+import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import Stripe from "stripe";
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };

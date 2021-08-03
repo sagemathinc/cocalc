@@ -12,7 +12,7 @@ import { React } from "../app-framework";
 import { Button, Modal } from "react-bootstrap";
 import { Icon, A } from "../r_misc";
 const { ShowSupportLink } = require("../support");
-import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
+import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 import { KernelInfo } from "./types";
 import { JupyterActions } from "./browser-actions";
 

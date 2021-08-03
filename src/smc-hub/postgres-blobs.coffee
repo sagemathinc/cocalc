@@ -26,7 +26,7 @@ fs      = require('fs')
 
 misc_node = require('@cocalc/util-node/misc_node')
 
-{defaults} = misc = require('smc-util/misc')
+{defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
 
 {expire_time, one_result, all_results} = require('./postgres-base')

@@ -20,7 +20,7 @@ import {
   only_commercial,
 } from "./site-defaults";
 
-const { is_valid_email_address, expire_time } = require("smc-util/misc");
+import { is_valid_email_address, expire_time } from "@cocalc/util/misc";
 
 export const pii_retention_parse = (retention: string): number | false => {
   if (retention == "never" || retention == null) return false;
@@ -78,8 +78,7 @@ export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 export const EXTRAS: SettingsExtras = {
   pii_retention: {
     name: "PII Retention",
-    desc:
-      "How long to keep personally identifiable information (deletes certain database entries)",
+    desc: "How long to keep personally identifiable information (deletes certain database entries)",
     default: "never",
     // values must be understood by smc-hub/utils.ts pii_expire
     valid: [
@@ -119,8 +118,7 @@ export const EXTRAS: SettingsExtras = {
   },
   email_backend: {
     name: "Email backend type",
-    desc:
-      "The type of backend for sending emails ('none' means there is none).",
+    desc: "The type of backend for sending emails ('none' means there is none).",
     default: "",
     valid: ["none", "sendgrid", "smtp"],
     show: is_email_enabled,
@@ -177,8 +175,7 @@ export const EXTRAS: SettingsExtras = {
   // bad name, historic baggage, used in smc-hub/email.ts
   password_reset_override: {
     name: "Override email backend",
-    desc:
-      "For 'smtp', password reset and email verification emails are sent via the 'Secondary SMTP' configuration",
+    desc: "For 'smtp', password reset and email verification emails are sent via the 'Secondary SMTP' configuration",
     default: "default",
     valid: ["default", "smtp"],
     show: is_email_enabled,

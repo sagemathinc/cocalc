@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 import { Icon } from "../../r_misc";
 import { NonMemberProjectWarning } from "../warnings/non-member";
 import { NoNetworkProjectWarning } from "../warnings/no-network";
@@ -22,7 +22,7 @@ import { Project } from "./types";
 import { SSHPanel } from "./ssh";
 import { Environment } from "./environment";
 import { Datastore } from "./datastore";
-import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { SettingBox } from "../../r_misc";
 import { AddCollaborators } from "../../collaborators";
 

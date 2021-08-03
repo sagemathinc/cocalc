@@ -11,9 +11,9 @@ async     = require('async')
 fs        = require('fs')
 temp      = require('temp')
 
-misc      = require('smc-util/misc')
+misc      = require('@cocalc/util/misc')
 misc_node = require('@cocalc/util-node/misc_node')
-message   = require('smc-util/message')
+message   = require('@cocalc/util/message')
 
 {defaults, required} = misc
 

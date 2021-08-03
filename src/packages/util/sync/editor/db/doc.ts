@@ -331,6 +331,7 @@ export class DBDocument implements Document {
       // TODO: maybe do not allow?
       where = where.toJS();
     }
+    console.log("select", where);
     // Return immutable set with defined indexes the elts of @_records that
     // satisfy the where condition.
     const n: number = len(where);

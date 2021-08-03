@@ -32,7 +32,7 @@ or
 
 import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
-import { merge, copy, hidden_meta_file, is_different } from "smc-util/misc";
+import { merge, copy, hidden_meta_file, is_different } from "@cocalc/util/misc";
 import {
   React,
   ReactDOM,

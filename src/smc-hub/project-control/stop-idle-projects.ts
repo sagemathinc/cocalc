@@ -8,9 +8,9 @@ setting for this, but an env variable is very fast to implement.
 */
 
 import getLogger from "smc-hub/logger";
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import { database } from "smc-hub/servers/database";
-import { DEFAULT_QUOTAS } from "smc-util/upgrade-spec";
+import { DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
 import { BaseProject as Project } from "./base";
 
 const logger = getLogger("stop-idle-projects");

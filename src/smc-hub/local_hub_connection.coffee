@@ -3,20 +3,20 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
-{PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
+{PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('@cocalc/util/heartbeat')
 
 # Connection to a Project (="local hub", for historical reasons only.)
 
 async   = require('async')
-{callback2} = require('smc-util/async-utils')
+{callback2} = require('@cocalc/util/async-utils')
 
 uuid    = require('node-uuid')
 winston = require('./logger').getLogger('local-hub-connection')
 underscore = require('underscore')
 
-message = require('smc-util/message')
+message = require('@cocalc/util/message')
 misc_node = require('@cocalc/util-node/misc_node')
-misc    = require('smc-util/misc')
+misc    = require('@cocalc/util/misc')
 {defaults, required} = misc
 
 blobs = require('./blobs')

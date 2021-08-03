@@ -13,11 +13,11 @@ declare var CDN_VERSIONS: any; // set by webpack
 declare var COCALC_GIT_REVISION: string;
 
 import { webapp_client } from "./webapp-client";
-import { wrap_log } from "smc-util/misc";
+import { wrap_log } from "@cocalc/util/misc";
 import { get_browser, IS_MOBILE, IS_TOUCH } from "./feature";
 import { mathjax_finish_startup } from "./misc";
 import * as prom_client from "./prom-client";
-import { MathJaxConfig } from "smc-util/mathjax-config";
+import { MathJaxConfig } from "@cocalc/util/mathjax-config";
 import { join } from "path";
 
 export function init() {

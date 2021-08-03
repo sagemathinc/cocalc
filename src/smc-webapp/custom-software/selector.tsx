@@ -17,18 +17,18 @@ import {
 import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
 import { SiteName, CompanyName, HelpEmailLink } from "../customize";
 import { Markdown, SearchInput, Icon, Space } from "../r_misc";
-import { unreachable } from "smc-util/misc";
+import { unreachable } from "@cocalc/util/misc";
 import {
   CUSTOM_SOFTWARE_HELP_URL,
   custom_image_name,
   is_custom_image,
   compute_image2basename,
 } from "./util";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import {
   DEFAULT_COMPUTE_IMAGE,
   COMPUTE_IMAGES as STANDARD_COMPUTE_IMAGES,
-} from "smc-util/compute-images";
+} from "@cocalc/util/compute-images";
 import { join } from "path";
 import { ComputeImageSelector } from "../project/settings/compute-image-selector";
 

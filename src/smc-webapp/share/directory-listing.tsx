@@ -7,7 +7,7 @@
 Show a directory listing
 */
 
-import { encode_path } from "smc-util/misc";
+import { encode_path } from "@cocalc/util/misc";
 
 import { Component, React, Rendered } from "../app-framework";
 

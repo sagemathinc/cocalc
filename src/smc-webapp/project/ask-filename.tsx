@@ -17,7 +17,7 @@ import { SearchInput, SelectorInput, Icon } from "../r_misc";
 const { IS_TOUCH } = require("../feature");
 import { NewFilenameFamilies, NewFilenames } from "smc-webapp/project/utils";
 import { FileSpec } from "../file-associations";
-import { NEW_FILENAMES } from "smc-util/db-schema";
+import { NEW_FILENAMES } from "@cocalc/util/db-schema";
 
 interface Props {
   actions: any;

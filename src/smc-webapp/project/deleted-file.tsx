@@ -6,7 +6,7 @@
 import { Card, Button } from "antd";
 import { redux, Component, React, Rendered } from "../app-framework";
 import { Space } from "../r_misc";
-import { path_split } from "smc-util/misc";
+import { path_split } from "@cocalc/util/misc";
 
 interface Props {
   project_id: string;

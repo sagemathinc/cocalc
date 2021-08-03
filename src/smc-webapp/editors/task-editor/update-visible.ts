@@ -9,7 +9,7 @@ Update which tasks and hashtags are visible, and their order.
 
 import { List, Map, Set, fromJS } from "immutable";
 
-import { cmp, parse_hashtags, search_split } from "smc-util/misc";
+import { cmp, parse_hashtags, search_split } from "@cocalc/util/misc";
 import { search_matches, get_search } from "./search";
 import { SORT_INFO, HEADINGS, HEADINGS_DIR } from "./headings-info";
 import { Counts, LocalTaskStateMap, LocalViewStateMap, TaskMap } from "./types";

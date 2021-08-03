@@ -10,7 +10,7 @@ import { Col, Row } from "../antd-bootstrap";
 import { Icon, Space } from "../r_misc";
 import { SiteDescription, Footer } from "../customize";
 import { ComputeEnvironment } from "../compute-environment";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { SUPPORT_LINKS, CONNECT_LINKS, ABOUT_LINKS } from "./links";
 import { LinkList } from "./link-list";
 import { Usage } from "./usage";

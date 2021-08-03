@@ -12,11 +12,11 @@ import { URLBox } from "./url-box";
 import { Project } from "./types";
 import { HelpEmailLink } from "../../customize";
 import { SiteLicense } from "./site-license";
-import { is_zero_map } from "smc-util/misc";
+import { is_zero_map } from "@cocalc/util/misc";
 
 const { ShowSupportLink } = require("../../support");
 const { Row, Col, Button } = require("react-bootstrap");
-const { PROJECT_UPGRADES } = require("smc-util/schema");
+const { PROJECT_UPGRADES } = require("@cocalc/util/schema");
 
 interface Props {
   project_id: string;

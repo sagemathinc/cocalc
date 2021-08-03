@@ -7,7 +7,7 @@ import { React } from "../app-framework";
 const { Panel } = require("react-bootstrap");
 import { Col, Row, Table } from "react-bootstrap";
 import { Space, Icon, IconName } from "../r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import {
   Cost,
   User,

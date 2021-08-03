@@ -4,7 +4,7 @@
  */
 
 import { isEqual } from "lodash";
-import { copy_without } from "smc-util/misc";
+import { copy_without } from "@cocalc/util/misc";
 import { Node, Operation } from "slate";
 import { slateDiff } from "./diff";
 

@@ -13,7 +13,7 @@ declare var DEBUG: boolean;
 import { ProjectsNav } from "../projects/projects-nav";
 const { CreateSupportTicket } = require("../support");
 
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 
 import { Button, Navbar, Nav } from "../antd-bootstrap";
 import {

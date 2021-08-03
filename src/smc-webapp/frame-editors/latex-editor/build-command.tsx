@@ -14,10 +14,10 @@ import { Input, Form, Dropdown, Menu } from "antd";
 import { Button } from "../../antd-bootstrap";
 import { SaveOutlined, DownOutlined } from "@ant-design/icons";
 import { React } from "../../app-framework";
-import { split } from "smc-util/misc";
+import { split } from "@cocalc/util/misc";
 import { Engine, build_command as latexmk_build_command } from "./latexmk";
 import { Actions } from "./actions";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 
 const ENGINES: Engine[] = [
   "PDFLaTeX",

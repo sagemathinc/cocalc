@@ -14,9 +14,9 @@ import {
   required,
   defaults,
   coerce_codomain_to_numbers,
-} from "smc-util/misc";
-import * as message from "smc-util/message";
-import { DirectoryListingEntry } from "smc-util/types";
+} from "@cocalc/util/misc";
+import * as message from "@cocalc/util/message";
+import { DirectoryListingEntry } from "@cocalc/util/types";
 import { connection_to_project } from "../project/websocket/connect";
 import { API } from "../project/websocket/api";
 import { redux } from "../app-framework";

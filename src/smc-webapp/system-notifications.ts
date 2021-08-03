@@ -12,7 +12,7 @@ import {
   minutes_ago,
   set_local_storage,
   uuid,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 
 import { Map } from "immutable";
 import { COCALC_MINIMAL } from "./fullscreen";

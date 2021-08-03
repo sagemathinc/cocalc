@@ -74,7 +74,7 @@ def packages(args):
     # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments.
     v = [
         'packages/cdn',  # smc-hub assumes this is built
-        'smc-util',
+        'packages/util',
         'packages/util-node',
         'smc-hub',
         'smc-webapp',

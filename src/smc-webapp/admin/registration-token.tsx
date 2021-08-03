@@ -10,8 +10,8 @@ Input box for setting the account creation token.
 import { List } from "immutable";
 import moment from "moment";
 import { sortBy, pick } from "lodash";
-import { cmp_moment, secure_random_token, round1 } from "smc-util/misc";
-import { RegistrationTokenSetFields } from "smc-util/db-schema/types";
+import { cmp_moment, secure_random_token, round1 } from "@cocalc/util/misc";
+import { RegistrationTokenSetFields } from "@cocalc/util/db-schema/types";
 import { React, Rendered, redux, TypedMap } from "../app-framework";
 import {
   Checkbox,
@@ -27,7 +27,7 @@ import { Button as AntdButton } from "antd";
 import { Alert } from "../antd-bootstrap";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { ErrorDisplay, Saving, Icon } from "../r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { PassportStrategy } from "../account/passport-types";
 import { query } from "../frame-editors/generic/client";
 

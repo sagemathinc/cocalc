@@ -4,7 +4,7 @@
  */
 
 import { React, Rendered } from "../app-framework";
-import { len } from "smc-util/misc";
+import { len } from "@cocalc/util/misc";
 
 export function r_join(
   components: Rendered[],

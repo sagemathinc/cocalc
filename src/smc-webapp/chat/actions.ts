@@ -5,7 +5,7 @@
 
 import { fromJS } from "immutable";
 
-import { SyncDB } from "smc-util/sync/editor/db";
+import { SyncDB } from "@cocalc/util/sync/editor/db";
 import { user_tracking } from "../user-tracking";
 
 import { Actions } from "../app-framework";

@@ -6,7 +6,7 @@
 import { Component, React, Rendered, useState } from "../../app-framework";
 import { fromJS, Map } from "immutable";
 import { DebounceInput } from "react-debounce-input";
-import { upgrades } from "smc-util/upgrade-spec";
+import { upgrades } from "@cocalc/util/upgrade-spec";
 import { Row, Col, Dropdown, Menu } from "antd";
 import { actions } from "./actions";
 import {
@@ -14,7 +14,7 @@ import {
   upgrade_fields_type,
   upgrade_fields,
 } from "./types";
-import { plural } from "smc-util/misc";
+import { plural } from "@cocalc/util/misc";
 import { Icon } from "../../r_misc";
 import { INPUT_STYLE } from "./license";
 import { presets } from "./upgrade-presets";

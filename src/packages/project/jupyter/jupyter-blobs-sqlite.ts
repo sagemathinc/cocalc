@@ -11,7 +11,7 @@ import { BlobStoreInterface } from "smc-webapp/jupyter/project-interface";
 import * as fs from "fs";
 import { readFile } from "./async-utils-node";
 import Logger from "@cocalc/util-node/logger";
-import { months_ago, to_json } from "smc-util/misc";
+import { months_ago, to_json } from "@cocalc/util/misc";
 const misc_node = require("@cocalc/util-node/misc_node");
 import Database from "better-sqlite3";
 import { Router } from "express";

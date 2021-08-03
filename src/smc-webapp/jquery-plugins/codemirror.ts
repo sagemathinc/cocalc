@@ -8,7 +8,7 @@
 export const jQuery = $;
 declare var $: any;
 import * as CodeMirror from "codemirror";
-import { startswith } from "smc-util/misc";
+import { startswith } from "@cocalc/util/misc";
 import { file_associations } from "../file-associations";
 
 // Attempt to syntax highlight all code blocks that have CSS class language-*.

@@ -5,7 +5,7 @@
 
 import { CSS, React } from "smc-webapp/app-framework";
 import { RenderLeafProps } from "./slate-react";
-import { startswith } from "smc-util/misc";
+import { startswith } from "@cocalc/util/misc";
 import { Cursor } from "smc-webapp/jupyter/cursors";
 
 // CODE_STYLE -- copied from GitHub

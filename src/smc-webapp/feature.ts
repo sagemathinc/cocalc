@@ -195,7 +195,7 @@ if (
     }
 
     // Check for local storage
-    if (!require("smc-util/misc").has_local_storage()) {
+    if (!require("@cocalc/util/misc").has_local_storage()) {
       page.show_local_storage_warning();
     }
   };

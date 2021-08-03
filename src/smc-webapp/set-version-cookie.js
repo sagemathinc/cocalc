@@ -18,8 +18,8 @@ way at all.
 import Cookies from "universal-cookie";
 const cookies = new Cookies();
 
-import { version } from "smc-util/smc-version";
-import { versionCookieName } from "smc-util/consts";
+import { version } from "@cocalc/util/smc-version";
+import { versionCookieName } from "@cocalc/util/consts";
 
 // We don't really want this cookie to expire.  All it does is record the version of
 // the code the client has loaded, and the version only goes up.  It does not provide

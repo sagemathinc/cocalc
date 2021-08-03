@@ -10,11 +10,11 @@ Display information about a public path.
 import { Map } from "immutable";
 import { Rendered, React, Component } from "../app-framework";
 import { r_join } from "../r_misc/r_join";
-import { path_split, plural } from "smc-util/misc";
+import { path_split, plural } from "@cocalc/util/misc";
 import {
   COMPUTE_IMAGES,
   FALLBACK_COMPUTE_IMAGE,
-} from "smc-util/compute-images";
+} from "@cocalc/util/compute-images";
 import { compute_image2name, CUSTOM_IMG_PREFIX } from "../custom-software/util";
 import { LICENSES } from "./config/licenses";
 import { Author } from "./types";

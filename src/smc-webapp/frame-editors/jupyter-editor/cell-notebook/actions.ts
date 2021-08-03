@@ -11,7 +11,7 @@ import {
   enumerate,
   is_whitespace,
   lstrip,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
 import { create_key_handler } from "smc-webapp/jupyter/keyboard";

@@ -8,7 +8,6 @@
   },
   "workspaces": [
     "./",
-    "../smc-util",
     "../smc-webapp",
     "../webapp-lib",
     "../packages/cdn",
@@ -16,6 +15,7 @@
     "../packages/landing-free",
     "../packages/share",
     "../packages/static",
+    "../packages/util",
     "../packages/util-node"
   ],
   "dependencies": {
@@ -23,6 +23,7 @@
     "@cocalc/landing-free": "*",
     "@cocalc/share": "*",
     "@cocalc/static": "*",
+    "@cocalc/util": "*",
     "@cocalc/util-node": "*",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.1",
@@ -88,7 +89,6 @@
     "safe-json-stringify": "^1.2.0",
     "sanitize-html": "^2.3.2",
     "serve-index": "^1.9.1",
-    "smc-util": "*",
     "smc-webapp": "*",
     "snappy": "^6.3.5",
     "sql-string-escape": "^1.1.6",

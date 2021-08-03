@@ -6,7 +6,7 @@
 // I think the extensions are all used to support Sage worksheets...
 
 import * as CodeMirror from "codemirror";
-import { defaults, required } from "smc-util/misc";
+import { defaults, required } from "@cocalc/util/misc";
 import { IS_MOBILE } from "../../feature";
 declare var $;
 

@@ -6,10 +6,10 @@
 SAVE_DEBOUNCE_MS = 1500
 
 $        = window.$
-misc     = require('smc-util/misc')
+misc     = require('@cocalc/util/misc')
 {defaults, required} = misc
 
-message  = require('smc-util/message')
+message  = require('@cocalc/util/message')
 markdown = require('./markdown')
 
 {webapp_client} = require('./webapp-client')
@@ -208,7 +208,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             # uses symlink to '/', which is created by start_smc
             @filename = '.smc/root' + @filename
 
-        id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
+        id = require('@cocalc/util/schema').client_db.sha1(@project_id, @filename)
         @_syncstring = webapp_client.sync_client.sync_string
             id         : id
             project_id : @project_id

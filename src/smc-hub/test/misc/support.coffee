@@ -7,7 +7,7 @@ expect  = require('expect')
 
 support = require('../../support')
 
-{DNS} = require('smc-util/theme')
+{DNS} = require('@cocalc/util/theme')
 
 body1 = """
 foo foo foo

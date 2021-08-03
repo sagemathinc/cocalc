@@ -7,7 +7,7 @@
 // to the newer model, where there are several configurable tokens in the registration_tokens table.
 
 import { PostgreSQL } from "./types";
-import { callback2 as cb2 } from "smc-util/async-utils";
+import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import debug from "debug";
 const LOG = debug("hub:migrate:account_token");
 

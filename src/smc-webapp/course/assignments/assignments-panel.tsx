@@ -12,7 +12,7 @@ import {
   trunc_middle,
   search_split,
   search_match,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { webapp_client } from "../../webapp-client";
 import { STUDENT_SUBDIR } from "./actions";
 import { AssignmentCopyStep, AssignmentStatus } from "../types";

@@ -22,7 +22,7 @@ is unavailable in the project as soon as the project is created."
 See https://github.com/sagemathinc/cocalc/issues/4393.
 */
 
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 const { execute_code } = require("@cocalc/util-node/misc_node");
 
 export async function init_global_packages(): Promise<void> {

@@ -16,10 +16,10 @@ import {
   smc_git_rev,
   UNIT,
 } from "./r_misc";
-import { callback2, retry_until_success } from "smc-util/async-utils";
-import { dict, YEAR } from "smc-util/misc";
-import * as theme from "smc-util/theme";
-import { site_settings_conf } from "smc-util/db-schema/site-defaults";
+import { callback2, retry_until_success } from "@cocalc/util/async-utils";
+import { dict, YEAR } from "@cocalc/util/misc";
+import * as theme from "@cocalc/util/theme";
+import { site_settings_conf } from "@cocalc/util/db-schema/site-defaults";
 import { join } from "path";
 
 export { TermsOfService } from "./customize/terms-of-service";
@@ -28,7 +28,7 @@ import {
   KUCALC_DISABLED,
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
-} from "smc-util/db-schema/site-defaults";
+} from "@cocalc/util/db-schema/site-defaults";
 
 // this sets UI modes for using a kubernetes based back-end
 // 'yes' (historic value) equals 'cocalc.com'
@@ -509,7 +509,7 @@ export const PolicyCopyrightPageUrl = join(
 );
 export const PolicyTOSPageUrl = join(app_base_path, "policies/terms.html");
 
-import { gtag_id } from "smc-util/theme";
+import { gtag_id } from "@cocalc/util/theme";
 async function init_analytics() {
   await store.until_configured();
   if (!store.get("is_commercial")) return;

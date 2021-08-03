@@ -30,7 +30,7 @@ heuristics.
 */
 
 import { Editor, Operation, Transforms, Range, Path, Point, Text } from "slate";
-import { len } from "smc-util/misc";
+import { len } from "@cocalc/util/misc";
 import { markdown_to_slate } from "../markdown-to-slate";
 import { applyOperations } from "../operations";
 import { slateDiff } from "../slate-diff";

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { DirectoryListingEntry } from "smc-util/types";
+import { DirectoryListingEntry } from "@cocalc/util/types";
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
 import { Datastore } from "../projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";

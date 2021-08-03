@@ -4,8 +4,8 @@ The HTTP API, which works via POST requests.
 import { Router } from "express";
 import bodyParser from "body-parser";
 const { http_message_api_v1 } = require("smc-hub/api/handler");
-import { split } from "smc-util/misc";
-import { callback2 } from "smc-util/async-utils";
+import { split } from "@cocalc/util/misc";
+import { callback2 } from "@cocalc/util/async-utils";
 import { getLogger } from "smc-hub/logger";
 import { database } from "../database";
 import { ProjectControlFunction } from "smc-hub/servers/project-control";

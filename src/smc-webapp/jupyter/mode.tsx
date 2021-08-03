@@ -6,7 +6,7 @@
 // A little mode indicator, next to the Kernel's usage information
 
 import { React, useRedux } from "../app-framework";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { Icon } from "../r_misc";
 
 interface ModeProps {

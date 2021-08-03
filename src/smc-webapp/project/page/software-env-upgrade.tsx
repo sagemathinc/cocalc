@@ -12,10 +12,10 @@ import {
   useStore,
 } from "../../app-framework";
 import { A, Icon, Loading, VisibleMDLG, VisibleXSSM } from "../../r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { ALERT_STYLE } from "../warnings/common";
 import { alert_message } from "../../alerts";
-import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { Alert, Button } from "../../antd-bootstrap";
 import { CloseX } from "smc-webapp/r_misc";
 import { Space } from "antd";
@@ -23,7 +23,7 @@ import {
   FALLBACK_COMPUTE_IMAGE,
   DEFAULT_COMPUTE_IMAGE,
   COMPUTE_IMAGES,
-} from "smc-util/compute-images";
+} from "@cocalc/util/compute-images";
 
 const UPGRADE_STYLE: React.CSSProperties = {
   ...ALERT_STYLE,

@@ -12,12 +12,12 @@ import { CourseActions, EMAIL_REINVITE_DAYS } from "../actions";
 import { CourseStore } from "../store";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
-import { len, copy, days_ago } from "smc-util/misc";
-import { SITE_NAME } from "smc-util/theme";
+import { len, copy, days_ago } from "@cocalc/util/misc";
+import { SITE_NAME } from "@cocalc/util/theme";
 import { markdown_to_html } from "../../markdown";
 import { UpgradeGoal } from "../types";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
-import { DEFAULT_COMPUTE_IMAGE } from "smc-util/compute-images";
+import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { site_license_public_info } from "../../site-licenses/util";
 import { Datastore } from "../../projects/actions";
 

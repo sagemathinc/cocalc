@@ -7,16 +7,16 @@ import { EventEmitter } from "events";
 import { List, fromJS } from "immutable";
 import { throttle } from "lodash";
 import { delay } from "awaiting";
-import { SyncTable } from "smc-util/sync/table";
+import { SyncTable } from "@cocalc/util/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { redux, TypedMap } from "../../app-framework";
-import { close, merge, path_split } from "smc-util/misc";
-import { once } from "smc-util/async-utils";
-import { deleted_file_variations } from "smc-util/delete-files";
+import { close, merge, path_split } from "@cocalc/util/misc";
+import { once } from "@cocalc/util/async-utils";
+import { deleted_file_variations } from "@cocalc/util/delete-files";
 import { exec, query } from "../../frame-editors/generic/client";
 import { get_directory_listing } from "../directory-listing";
-import { DirectoryListingEntry } from "smc-util/types";
-import { WATCH_TIMEOUT_MS } from "smc-util/db-schema/listings";
+import { DirectoryListingEntry } from "@cocalc/util/types";
+import { WATCH_TIMEOUT_MS } from "@cocalc/util/db-schema/listings";
 export const WATCH_THROTTLE_MS = WATCH_TIMEOUT_MS / 2;
 
 type ImmutablePathEntry = TypedMap<DirectoryListingEntry>;
@@ -408,7 +408,7 @@ export class Listings extends EventEmitter {
     if (x == null) return x;
     return (x as unknown) as ImmutableListing; // coercing to fight typescript.
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
-    // of the get method in smc-util/sync/table/synctable.ts
+    // of the get method in @cocalc/util/sync/table/synctable.ts
     // that could probably be relatively easily fixed.
   }
 

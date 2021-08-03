@@ -43,7 +43,7 @@ import {
 
 import { raw_url } from "../frame-tree/util";
 import { pdf_path } from "./util";
-import { encode_path } from "smc-util/misc";
+import { encode_path } from "@cocalc/util/misc";
 
 const options = {
   max: MAX_PAGES,

@@ -9,7 +9,7 @@ import { ProjectActions } from "smc-webapp/project_actions";
 import { AppRedux } from "smc-webapp/app-framework";
 
 import { Space } from "smc-webapp/r_misc";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 const { Row, Col } = require("react-bootstrap");
 import { SiteName } from "smc-webapp/customize";
 

@@ -4,7 +4,7 @@
  */
 
 import { React } from "smc-webapp/app-framework";
-import { merge } from "smc-util/misc";
+import { merge } from "@cocalc/util/misc";
 
 export const OUT_STYLE: React.CSSProperties = {
   whiteSpace: "pre-wrap",

@@ -18,13 +18,14 @@
     "mathematics"
   ],
   "workspaces": [
-    "../../smc-util",
+    "../util",
     "../../smc-webapp",
     "../util-node",
     "."
   ],
   "dependencies": {
     "@cocalc/project": "*",
+    "@cocalc/util": "*",
     "@cocalc/util-node": "*",
     "@types/lru-cache": "^5.1.0",
     "async": "^1.5.2",
@@ -65,7 +66,6 @@
     "prom-client": "^13.0.0",
     "request": "^2.88.0",
     "serve-index": "^1.9.1",
-    "smc-util": "*",
     "smc-webapp": "*",
     "temp": "^0.9.1",
     "tmp": "0.0.33",

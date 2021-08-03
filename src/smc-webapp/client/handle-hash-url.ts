@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { hasRememberMe } from "smc-util/remember-me";
+import { hasRememberMe } from "@cocalc/util/remember-me";
 import { join } from "path";
 
 function handleHashUrl(): string {

@@ -19,7 +19,7 @@ Maybe
 
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
-import { set } from "smc-util/misc";
+import { set } from "@cocalc/util/misc";
 import { CellWorksheet } from "./cell-worksheet";
 import { DocumentWorksheet } from "./document-worksheet";
 //import { Print } from "./print";

@@ -34,7 +34,7 @@ TOOLTIP_DELAY = delay: {show: 500, hide: 100}
 
 async = require('async')
 
-message = require('smc-util/message')
+message = require('@cocalc/util/message')
 
 {redux} = require('./app-framework')
 
@@ -47,7 +47,7 @@ _ = underscore = require('underscore')
 feature = require('./feature')
 IS_MOBILE = feature.IS_MOBILE
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 {drag_start_iframe_disable, drag_stop_iframe_enable, sagews_canonical_mode} = require('./misc-page')
 
 # Ensure CodeMirror is available and configured
@@ -58,7 +58,7 @@ require('./console')
 
 # SMELL: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
- len, path_split, uuid} = require('smc-util/misc')
+ len, path_split, uuid} = require('@cocalc/util/misc')
 
 syncdoc  = require('./syncdoc')
 sagews   = require('./sagews/sagews')

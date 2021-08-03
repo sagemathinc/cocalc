@@ -12,12 +12,12 @@ all async (no callbacks!).
 
 import { fromJS, Map } from "immutable";
 import { redux, Actions, Store } from "../app-framework";
-import { reuse_in_flight_methods } from "smc-util/async-utils";
+import { reuse_in_flight_methods } from "@cocalc/util/async-utils";
 import {
   server_minutes_ago,
   server_time,
   server_days_ago,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { webapp_client } from "../webapp-client";
 import { StripeClient } from "../client/stripe";
 import { getManagedLicenses } from "../account/licenses/util";

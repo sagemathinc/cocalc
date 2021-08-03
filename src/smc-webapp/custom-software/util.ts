@@ -4,7 +4,7 @@
  */
 
 import { join as path_join } from "path";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 import { IconName } from "smc-webapp/r_misc/icon";
 
 export const RESET_ICON: IconName = "redo";

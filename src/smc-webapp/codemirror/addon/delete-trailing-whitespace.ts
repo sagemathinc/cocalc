@@ -4,7 +4,7 @@
  */
 
 import { defineExtension, Editor } from "codemirror";
-import { delete_trailing_whitespace } from "smc-util/misc";
+import { delete_trailing_whitespace } from "@cocalc/util/misc";
 import { ChangeObject } from "./types";
 
 type OmittedLines = { [line: number]: boolean };

@@ -5,8 +5,8 @@
 
 // Compute a line-level diff between two strings, which
 // is useful when showing a diff between two states.
-import { dmp } from "smc-util/sync/editor/generic/util";
-import { StringCharMapping } from "smc-util/misc";
+import { dmp } from "@cocalc/util/sync/editor/generic/util";
+import { StringCharMapping } from "@cocalc/util/misc";
 import * as CodeMirror from "codemirror";
 require("./style.sass");
 

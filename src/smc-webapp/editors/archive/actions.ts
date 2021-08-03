@@ -5,7 +5,7 @@ import {
   keys,
   path_split,
   split,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { Actions, redux_name } from "../../app-framework";
 import { register_file_editor } from "../../project-file";
 

@@ -6,7 +6,7 @@
 // LaTeX code folding (isn't included in CodeMirror)
 
 import * as CodeMirror from "codemirror";
-import { startswith } from "smc-util/misc";
+import { startswith } from "@cocalc/util/misc";
 import { trimStart } from "lodash";
 
 function get_latex_environ(s: string): string | undefined {

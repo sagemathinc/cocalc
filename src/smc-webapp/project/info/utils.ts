@@ -5,11 +5,11 @@
 
 import { CSS } from "../../app-framework";
 import { basename } from "path";
-import { separate_file_extension, trunc } from "smc-util/misc";
+import { separate_file_extension, trunc } from "@cocalc/util/misc";
 import { project_websocket } from "../../frame-editors/generic/client";
 import { Processes, Process, State } from "@cocalc/project/project-info/types";
 import { ProcessRow, PTStats, DUState } from "./types";
-import { COLORS } from "smc-util/theme";
+import { COLORS } from "@cocalc/util/theme";
 const { ANTD_RED, ANTD_ORANGE, ANTD_GREEN } = COLORS;
 import {
   ALERT_HIGH_PCT,

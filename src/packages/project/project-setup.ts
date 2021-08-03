@@ -10,7 +10,7 @@ This configures the project hub based on an environment variable or other data.
 import debug from "debug";
 const L = debug("project:project-setup");
 import { setPriority } from "os";
-// const { callback2: cb2 } = require("smc-util/async-utils");
+// const { callback2: cb2 } = require("@cocalc/util/async-utils");
 // const { execute_code } = require("@cocalc/util-node/misc_node");
 
 // 19 is the minimum, we keep it 1 above that.

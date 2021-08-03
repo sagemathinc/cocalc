@@ -6,7 +6,7 @@
 import React from "react";
 import { Rendered, CSS } from "smc-webapp/app-framework";
 import { Icon, IconName} from "./icon";
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 import * as feature from "../feature";
 import { Tooltip, Popover } from "antd";
 

@@ -6,7 +6,7 @@
 # little helper for developing get_stats against the current dev database
 
 postgres = require('../postgres')
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 
 db_name = process.env['SMC_DB'] ? 'smc'
 db = postgres.db(database:db_name, debug:true, connect:false)

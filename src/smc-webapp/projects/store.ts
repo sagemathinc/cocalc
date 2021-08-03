@@ -16,16 +16,16 @@ import {
   months_before,
   parse_number_input,
   is_valid_uuid_string,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
-import { max_quota, site_license_quota } from "smc-util/upgrades/quota";
-import { PROJECT_UPGRADES } from "smc-util/schema";
+import { max_quota, site_license_quota } from "@cocalc/util/upgrades/quota";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { fromPairs } from "lodash";
 const ZERO_QUOTAS = fromPairs(
   Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0])
 );
 
-import { Upgrades } from "smc-util/upgrades/types";
+import { Upgrades } from "@cocalc/util/upgrades/types";
 import { has_internet_access } from "../upgrades/upgrade-utils";
 
 import { WebsocketState } from "../project/websocket/websocket-state";

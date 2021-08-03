@@ -4,7 +4,7 @@
  */
 
 // CoCalc libraries
-import { defaults, required, ISO_to_Date, to_json } from "smc-util/misc";
+import { defaults, required, ISO_to_Date, to_json } from "@cocalc/util/misc";
 
 // React libraries
 import { React, Component, Rendered } from "../app-framework";

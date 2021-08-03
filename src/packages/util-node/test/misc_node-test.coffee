@@ -7,7 +7,7 @@ require('ts-node').register()
 
 expect = require('expect')
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 
 misc_node = require('../misc_node')
 misc2_node = require('../misc')

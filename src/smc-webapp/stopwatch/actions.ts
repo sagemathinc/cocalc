@@ -8,7 +8,7 @@ The actions -- what you can do with a timer, and also the
 underlying synchronized state.
 */
 
-import { history_path } from "smc-util/misc";
+import { history_path } from "@cocalc/util/misc";
 import { webapp_client } from "../webapp-client";
 import { Actions, Store, TypedMap } from "../app-framework";
 import { List } from "immutable";

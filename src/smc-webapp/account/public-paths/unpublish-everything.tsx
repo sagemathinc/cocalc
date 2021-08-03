@@ -5,8 +5,8 @@
 
 import { Alert, Button, Input } from "antd";
 import { React, useIsMountedRef, useMemo, useState } from "../../app-framework";
-import { PublicPath } from "smc-util/db-schema/public-paths";
-import { plural } from "smc-util/misc";
+import { PublicPath } from "@cocalc/util/db-schema/public-paths";
+import { plural } from "@cocalc/util/misc";
 import { webapp_client } from "../../webapp-client";
 
 interface Props {

@@ -6,7 +6,7 @@
 $     = window.$
 async = require('async')
 
-misc                 = require('smc-util/misc')
+misc                 = require('@cocalc/util/misc')
 {defaults, required} = misc
 
 component_to_hex = (c) ->

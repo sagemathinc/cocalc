@@ -18,7 +18,7 @@ import {
   deleteRememberMe,
   hasRememberMe,
   setRememberMe,
-} from "smc-util/remember-me";
+} from "@cocalc/util/remember-me";
 
 let first_login = true;
 

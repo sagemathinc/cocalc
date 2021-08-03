@@ -11,7 +11,7 @@ import {
   is_equal,
   to_json,
   trunc_middle,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 
 // React Libraries
 import {

@@ -11,7 +11,7 @@ and I can't remember where that came from or how to update it.
 */
 
 import * as CodeMirror from "codemirror";
-import { startswith } from "smc-util/misc";
+import { startswith } from "@cocalc/util/misc";
 
 const data = require("codemirror-extra/data/latex-completions.txt").default;
 const completions : string[] = data.split("\n");

@@ -10,7 +10,7 @@ for different account related information
 and configuration.
 */
 
-import { local_storage_length } from "smc-util/misc";
+import { local_storage_length } from "@cocalc/util/misc";
 import { React, redux, useTypedRedux } from "../app-framework";
 import { Col, Row, Tab, Tabs } from "../antd-bootstrap";
 import { LandingPage } from "../landing-page/landing-page";
@@ -23,7 +23,7 @@ import { SupportTickets } from "../support";
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { Icon, Loading } from "../r_misc";
 import { SignOut } from "../account/sign-out";
-import { KUCALC_COCALC_COM } from "smc-util/db-schema/site-defaults";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { PublicPaths } from "./public-paths/public-paths";
 
 export const AccountPage: React.FC = () => {

@@ -1,5 +1,5 @@
 import { reuseInFlight } from "async-await-utils/hof";
-import * as message from "smc-util/message";
+import * as message from "@cocalc/util/message";
 import { getLogger } from "@cocalc/project/logger";
 import { start } from "./control";
 

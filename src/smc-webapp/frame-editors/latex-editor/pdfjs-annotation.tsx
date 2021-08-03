@@ -20,7 +20,7 @@ import { PDFAnnotationData, PDFPageProxy } from "pdfjs-dist/webpack";
 
 // Evidently the typescript code is wrong for this PDFJS.Util thing, so we use require.
 const PDFJS = require("pdfjs-dist/webpack");
-import { is_different } from "smc-util/misc";
+import { is_different } from "@cocalc/util/misc";
 
 export interface SyncHighlight {
   y: number;

@@ -12,9 +12,9 @@ Execute a command line or block of BASH code
 
 #winston = require('./logger').getLogger('exec-shell-code')
 
-misc      = require('smc-util/misc')
+misc      = require('@cocalc/util/misc')
 misc_node = require('@cocalc/util-node/misc_node')
-message   = require('smc-util/message')
+message   = require('@cocalc/util/message')
 
 exports.exec_shell_code = (socket, mesg) ->
     #winston.debug("project_exec: #{misc.to_json(mesg)} in #{process.cwd()}")

@@ -22,7 +22,7 @@ import {
   change_filename_extension,
   is_different,
   list_alternatives,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { debounce } from "lodash";
 import { React, ReactDOM, Rendered, CSS } from "../../app-framework";
 import { use_font_size_scaling } from "../frame-tree/hooks";

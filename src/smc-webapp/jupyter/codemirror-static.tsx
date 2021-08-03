@@ -16,7 +16,7 @@
 
 import { React, Component, Rendered } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
-import { copy, merge } from "smc-util/misc";
+import { copy, merge } from "@cocalc/util/misc";
 import * as CodeMirror from "codemirror";
 import "codemirror/addon/runmode/runmode";
 

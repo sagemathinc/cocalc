@@ -19,7 +19,7 @@ Show a table with links to recently used projects (with most recent first) that
 */
 
 import { React, Component, Rendered, redux } from "smc-webapp/app-framework";
-import { cmp, keys, trunc_middle } from "smc-util/misc";
+import { cmp, keys, trunc_middle } from "@cocalc/util/misc";
 import { Loading, TimeAgo } from "smc-webapp/r_misc";
 import { query } from "smc-webapp/frame-editors/generic/client";
 import { Row, Col } from "react-bootstrap";

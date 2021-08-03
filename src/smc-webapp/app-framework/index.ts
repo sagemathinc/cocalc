@@ -33,7 +33,7 @@ import { Actions } from "./Actions";
 import { Table, TableConstructor } from "./Table";
 
 // Relative import is temporary, until I figure this out -- needed for *project*
-import { bind_methods, keys, is_valid_uuid_string } from "smc-util/misc";
+import { bind_methods, keys, is_valid_uuid_string } from "@cocalc/util/misc";
 
 export { TypedMap, createTypedMap } from "./TypedMap";
 
@@ -440,7 +440,7 @@ const computed = (rtype) => {
   return clone;
 };
 
-const rtypes = require("smc-util/opts").types;
+const rtypes = require("@cocalc/util/opts").types;
 
 /*
 Used by Provider to map app state to component props

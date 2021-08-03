@@ -3,10 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as message from "smc-util/message";
+import * as message from "@cocalc/util/message";
 import { AsyncCall } from "./client";
 import { redux } from "../app-framework";
-import { required, defaults } from "smc-util/misc";
+import { required, defaults } from "@cocalc/util/misc";
 
 export class FileClient {
   private async_call: AsyncCall;

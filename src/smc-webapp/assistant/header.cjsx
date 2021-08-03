@@ -11,7 +11,7 @@ immutable = require('immutable')
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('../app-framework')
 {Loading, Icon, Markdown, Space, SearchInput} = require('../r_misc')
 # cocalc libs
-{defaults, required, optional} = misc = require('smc-util/misc')
+{defaults, required, optional} = misc = require('@cocalc/util/misc')
 {ICON_NAME} = require('./common')
 
 # The top part of the dialog. Shows the Title (maybe with the Language), a selector for the language, and search

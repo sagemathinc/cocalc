@@ -8,7 +8,7 @@
 
 _               = require('underscore')
 async           = require('async')
-misc            = require('smc-util/misc')
+misc            = require('@cocalc/util/misc')
 {webapp_client} = require('./webapp-client')
 {redux}         = require('./app-framework')
 {file_nonzero_size, url_fullpath} = require('./project/utils')
@@ -124,7 +124,7 @@ class SagewsPrinter extends Printer
     generate_html: (data) ->
         if not @_html_tmpl?
             # recycle our mathjax config from last.coffee
-            {MathJaxConfig} = require('smc-util/mathjax-config')
+            {MathJaxConfig} = require('@cocalc/util/mathjax-config')
             MathJaxConfig = _.clone(MathJaxConfig)
             MathJaxConfig.skipStartupTypeset = false
             MathJaxConfig.showProcessingMessages = true
@@ -133,7 +133,7 @@ class SagewsPrinter extends Printer
             MathJaxConfig["HTML-CSS"] ?= {}
             MathJaxConfig["HTML-CSS"].scale = 80
 
-            {SITE_NAME} = require('smc-util/theme')
+            {SITE_NAME} = require('@cocalc/util/theme')
             SiteName = redux.getStore('customize').site_name ? SITE_NAME
             {BASE_URL} = require('./misc')
 
@@ -414,7 +414,7 @@ class SagewsPrinter extends Printer
     html: (cb, progress) ->
         # the following fits mentally into sagews.SynchronizedWorksheet
         # progress takes two arguments: a float between 0 and 1 [%] and optionally a message
-        {MARKERS}    = require('smc-util/sagews')
+        {MARKERS}    = require('@cocalc/util/sagews')
         _html        = [] # list of elements
         full_html    = '' # end result of html content
         @_title      = null # for saving the detected title

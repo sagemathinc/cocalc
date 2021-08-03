@@ -6,13 +6,13 @@
 // React libraries
 import { Store, redux } from "../app-framework";
 // CoCalc libraries
-import { cmp, cmp_array, set } from "smc-util/misc";
-import { DirectoryListingEntry } from "smc-util/types";
+import { cmp, cmp_array, set } from "@cocalc/util/misc";
+import { DirectoryListingEntry } from "@cocalc/util/types";
 // Course Library
 import { STEPS } from "./util";
 import { Map, Set, List } from "immutable";
 import { TypedMap, createTypedMap } from "../app-framework";
-import { SITE_NAME } from "smc-util/theme";
+import { SITE_NAME } from "@cocalc/util/theme";
 // Upgrades
 import * as project_upgrades from "./project-upgrades";
 import { Datastore } from "../projects/actions";

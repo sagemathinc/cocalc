@@ -20,7 +20,7 @@ import { project_api } from "../generic/client";
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback, delay } from "awaiting";
-import { assertDefined } from "smc-util/misc";
+import { assertDefined } from "@cocalc/util/misc";
 import {
   X11Configuration,
   Capabilities,

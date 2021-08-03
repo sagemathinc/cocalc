@@ -33,7 +33,7 @@ import {
   filename_extension,
   replace_all,
   bind_methods,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { open_init_file } from "./init-file";
 import { ConnectionStatus } from "../frame-tree/types";
 import { file_associations } from "../../file-associations";

@@ -4,7 +4,7 @@
  */
 
 import { register } from "./register";
-import { endswith } from "smc-util/misc";
+import { endswith } from "@cocalc/util/misc";
 
 function handleOpen({ token, state }) {
   if (!endswith(token.type, "_open")) return;

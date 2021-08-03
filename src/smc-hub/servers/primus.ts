@@ -5,7 +5,7 @@ import base_path from "@cocalc/util-node/base-path";
 import Logger from "@cocalc/util-node/logger";
 import setup_primus_client from "smc-hub/primus-client";
 const { Client } = require("smc-hub/client");
-import { len } from "smc-util/misc";
+import { len } from "@cocalc/util/misc";
 import { database } from "./database";
 
 interface Options {

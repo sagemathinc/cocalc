@@ -23,8 +23,8 @@ SMC_TEST = process.env.SMC_TEST
 async   = require('async')
 fs      = require('fs')
 path    = require('path')
-misc    = require('smc-util/misc')
-theme   = require('smc-util/theme')
+misc    = require('@cocalc/util/misc')
+theme   = require('@cocalc/util/theme')
 _       = require('underscore')
 {defaults, required} = misc
 

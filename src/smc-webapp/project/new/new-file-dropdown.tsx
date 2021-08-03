@@ -7,8 +7,8 @@ import { React } from "../../app-framework";
 import { Button } from "antd";
 import { Icon, MenuItem, DropdownMenu } from "../../r_misc";
 import { file_associations } from "../../file-associations";
-import { COLORS } from "smc-util/theme";
-import * as misc from "smc-util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import * as misc from "@cocalc/util/misc";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { file_options } = require("../../editor");

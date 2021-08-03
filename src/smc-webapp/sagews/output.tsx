@@ -9,8 +9,8 @@ Rendering output part of a Sage worksheet cell
 
 import { join } from "path";
 import { Component, React, Rendered } from "../app-framework";
-import { encode_path, filename_extension, keys, cmp, len } from "smc-util/misc";
-import { FLAGS } from "smc-util/sagews";
+import { encode_path, filename_extension, keys, cmp, len } from "@cocalc/util/misc";
+import { FLAGS } from "@cocalc/util/sagews";
 import { Stdout } from "../jupyter/output-messages/stdout";
 import { Stderr } from "../jupyter/output-messages/stderr";
 import { HTML, Markdown } from "../r_misc";

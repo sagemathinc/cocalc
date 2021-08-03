@@ -10,7 +10,7 @@
 
 $ = window.$
 
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 
 {defaults, required} = misc
 

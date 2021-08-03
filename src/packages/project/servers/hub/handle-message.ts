@@ -6,7 +6,7 @@ database queries.
 
 import { getLogger } from "@cocalc/project/logger";
 import { Message } from "./types";
-import * as message from "smc-util/message";
+import * as message from "@cocalc/util/message";
 import handleNamedServer from "@cocalc/project/named-servers";
 const { exec_shell_code } = require("@cocalc/project/exec_shell_code");
 // Reading and writing files to/from project and sending over socket
@@ -18,7 +18,7 @@ const { print_to_pdf } = require("@cocalc/project/print_to_pdf");
 const { process_kill } = require("@cocalc/util-node/misc_node");
 const { handle_save_blob_message } = require("@cocalc/project/blobs");
 const client = require("@cocalc/project/client");
-import { version } from "smc-util/smc-version";
+import { version } from "@cocalc/util/smc-version";
 
 const winston = getLogger("handle-message-from-hub");
 

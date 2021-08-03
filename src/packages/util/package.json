@@ -1,5 +1,5 @@
 {
-  "name": "smc-util",
+  "name": "@cocalc/util",
   "version": "1.4.0",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
@@ -24,7 +24,11 @@
     "realtime synchronization"
   ],
   "license": "SEE LICENSE.md",
+  "workspaces": [
+    "."
+  ],
   "dependencies": {
+    "@cocalc/util": "file:",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",

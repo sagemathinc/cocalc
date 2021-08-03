@@ -15,7 +15,7 @@ import {
   separate_file_extension,
   merge,
   cmp,
-} from "smc-util/misc";
+} from "@cocalc/util/misc";
 import { IconName } from "smc-webapp/r_misc/icon";
 
 // Pure functions used in the course manager

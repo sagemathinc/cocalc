@@ -108,7 +108,7 @@ Code splitting [can't work](https://davidea.st/articles/webpack-typescript-code-
 }
 ```
 
-### Changing code in other packages such as `smc-util`
+### Changing code in other packages such as `packages/util`
 
-1. Change something in `smc-util`.
-2. You **must** do `npm run build` in `smc-util` to make the changes visible to webpack!  This is because anything outside of `smc-util` actually only sees `smc-util/dist` which is the compiled versions of everything.   This is a significant change from before.
+1. Change something in `packages/util`.
+2. You **must** do `npm run build` in `packages/util` to make the changes visible to webpack!  This is because anything outside of `packages/util` actually only sees `packages/util/dist` which is the compiled versions of everything.   This is a significant change from before.

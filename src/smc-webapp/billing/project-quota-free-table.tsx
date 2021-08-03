@@ -9,7 +9,7 @@ in the backend static pages, so the tooltips are not visible there (no javascrip
 */
 
 import { Component, React, Rendered } from "../app-framework";
-import { DEFAULT_QUOTAS, PROJECT_UPGRADES } from "smc-util/schema";
+import { DEFAULT_QUOTAS, PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Tip } from "../r_misc/tip";
 import { Icon } from "../r_misc/icon";
 import { Space } from "../r_misc/space";

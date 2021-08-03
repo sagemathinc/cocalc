@@ -9,7 +9,7 @@ Testing API functions that copy from one project to another
 
 api   = require('./apitest')
 {setup, teardown} = api
-misc = require('smc-util/misc')
+misc = require('@cocalc/util/misc')
 expect = require('expect')
 
 describe 'testing copy between projects -- ', ->

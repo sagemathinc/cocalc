@@ -28,8 +28,8 @@ import { NAME as ComputeImageStoreName } from "../custom-software/util";
 import { ComputeImages, launchcode2display } from "../custom-software/init";
 import { ShowSupportLink } from "../support";
 import { PassportStrategy } from "../account/passport-types";
-import { capitalize } from "smc-util/misc";
-import { COLORS, DOC_URL } from "smc-util/theme";
+import { capitalize } from "@cocalc/util/misc";
+import { COLORS, DOC_URL } from "@cocalc/util/theme";
 import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
 
 const DESC_FONT = "sans-serif";

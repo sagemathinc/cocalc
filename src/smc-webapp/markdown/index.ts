@@ -22,8 +22,8 @@ import { mentionPlugin } from "./mentions-plugin";
 export { parseHeader } from "./header";
 
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
-import { math_escape, math_unescape } from "smc-util/markdown-utils";
-import { remove_math, replace_math } from "smc-util/mathjax-utils"; // from project Jupyter
+import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";
+import { remove_math, replace_math } from "@cocalc/util/mathjax-utils"; // from project Jupyter
 
 export const OPTIONS: MarkdownIt.Options = {
   html: true,

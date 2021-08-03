@@ -9,7 +9,7 @@ import { Icon, TimeAgo, r_join } from "../r_misc";
 import { FileUseIcon } from "./icon";
 import { Map as iMap } from "immutable";
 const { Col, Grid, Row } = require("react-bootstrap");
-const misc = require("smc-util/misc");
+const misc = require("@cocalc/util/misc");
 import { open_file_use_entry } from "./util";
 
 // Arbitrary constants:

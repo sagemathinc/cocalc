@@ -5,7 +5,7 @@ their look and behavior.
 */
 
 import basePath from "@cocalc/util-node/base-path";
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import { database } from "../database";
 import { Customize } from "@cocalc/landing-free/lib/customize";
 import { have_active_registration_tokens } from "smc-hub/utils";

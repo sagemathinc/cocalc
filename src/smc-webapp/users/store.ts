@@ -9,7 +9,7 @@ import { webapp_client } from "../webapp-client";
 import { Store, redux } from "../app-framework";
 import { UsersState } from "./types";
 import { actions } from "./actions";
-import { cmp } from "smc-util/misc";
+import { cmp } from "@cocalc/util/misc";
 
 export const DEFAULT_COLOR = "rgb(170,170,170)";
 

@@ -13,7 +13,7 @@ files in subdirectories are ignored, and filenames are prefixed with
 the student name.
 */
 
-import { endswith, len, startswith } from "smc-util/misc";
+import { endswith, len, startswith } from "@cocalc/util/misc";
 import { IPYNB2PDF } from "../../misc/commands";
 import { exec, project_api } from "../../frame-editors/generic/client";
 import { StudentsMap } from "../store";

@@ -1,5 +1,5 @@
 import { debounce } from "lodash";
-import { DISCORD_INVITE } from "smc-util/theme";
+import { DISCORD_INVITE } from "@cocalc/util/theme";
 
 import {
   redux,

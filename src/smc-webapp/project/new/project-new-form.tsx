@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 
 import { React, rtypes, rclass } from "../../app-framework";
 import { default_filename } from "../../account";

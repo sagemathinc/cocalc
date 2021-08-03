@@ -7,7 +7,7 @@
 
 import { delay } from "awaiting";
 import { React, redux, useTypedRedux } from "../app-framework";
-import { ticket_id_to_ticket_url } from "smc-util/misc";
+import { ticket_id_to_ticket_url } from "@cocalc/util/misc";
 import { Footer, HelpEmailLink } from "../customize";
 import { Icon, Loading, Markdown } from "../r_misc";
 import { isString } from "lodash";

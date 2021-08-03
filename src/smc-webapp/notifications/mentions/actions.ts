@@ -7,7 +7,7 @@ import { Actions } from "../../app-framework";
 import { MentionsState } from "./store";
 import { MentionInfo, MentionFilter } from "./types";
 
-import { once } from "smc-util/async-utils";
+import { once } from "@cocalc/util/async-utils";
 
 import { webapp_client } from "../../webapp-client";
 

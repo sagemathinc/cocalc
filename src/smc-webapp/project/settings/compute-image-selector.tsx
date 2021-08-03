@@ -8,8 +8,8 @@
 import { React } from "../../app-framework";
 import { fromJS } from "immutable";
 import { Icon, Space } from "../../r_misc";
-import { COLORS } from "smc-util/theme";
-import { unreachable } from "smc-util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { unreachable } from "@cocalc/util/misc";
 import { Button, Menu, Dropdown } from "antd";
 import { Row, Col } from "../../antd-bootstrap";
 import { DownOutlined } from "@ant-design/icons";
@@ -17,7 +17,7 @@ import {
   GROUPS,
   COMPUTE_IMAGES as COMPUTE_IMAGES_ORIG,
   DEFAULT_COMPUTE_IMAGE,
-} from "smc-util/compute-images";
+} from "@cocalc/util/compute-images";
 
 // we want "Default", "Previous", ... to come first, hence "order" trumps "short" title
 const img_sorter = (a, b): number => {

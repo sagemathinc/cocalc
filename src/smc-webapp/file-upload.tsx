@@ -12,7 +12,7 @@ import {
 } from "react-dropzone-component";
 
 import ReactDOMServer from "react-dom/server"; // for dropzone below
-import { encode_path, defaults, merge, is_array } from "smc-util/misc";
+import { encode_path, defaults, merge, is_array } from "@cocalc/util/misc";
 import {
   React,
   ReactDOM,

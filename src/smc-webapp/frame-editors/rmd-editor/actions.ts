@@ -10,14 +10,14 @@ R Markdown Editor Actions
 import { reuseInFlight } from "async-await-utils/hof";
 import { debounce } from "lodash";
 import { Set } from "immutable";
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import { Actions as MarkdownActions } from "../markdown-editor/actions";
 import { convert } from "./rmd-converter";
 import { markdown_to_html_frontmatter } from "../../markdown";
 import { FrameTree } from "../frame-tree/types";
 import { redux } from "../../app-framework";
 import { ExecOutput } from "../generic/client";
-import { path_split } from "smc-util/misc";
+import { path_split } from "@cocalc/util/misc";
 import { derive_rmd_output_filename } from "./utils";
 import {
   Actions as BaseActions,

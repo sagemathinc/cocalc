@@ -7,7 +7,7 @@
 Importing from an ipynb object (in-memory version of .ipynb file)
 */
 
-import * as misc from "smc-util/misc";
+import * as misc from "@cocalc/util/misc";
 import { JUPYTER_MIMETYPES } from "./util";
 
 const DEFAULT_IPYNB = {

@@ -5,12 +5,8 @@
 
 // Default settings to customize a given site, typically a private install of CoCalc.
 
-// The following two requires *should* be imports for better
-// typing info.  Unfortunately, this currently breaks starting projects.
-//import { is_valid_email_address } from "smc-util/misc";
-//import { DNS } from "../theme";
-const { is_valid_email_address } = require("smc-util/misc");
-const { DNS } = require("../theme");
+import { is_valid_email_address } from "@cocalc/util/misc";
+import { DNS } from "@cocalc/util/theme";
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
@@ -167,33 +163,28 @@ export const site_settings_conf: SiteSettings = {
   },
   terms_of_service_url: {
     name: "Terms of Service URL",
-    desc:
-      "URL to the page describing ToS, Policies, etc. (leave empty to not require)",
+    desc: "URL to the page describing ToS, Policies, etc. (leave empty to not require)",
     default: "",
     clearable: true,
     show: show_theming_vars,
   },
   terms_of_service: {
     name: "ToS information",
-    desc:
-      "The text displayed for the terms of service link (empty falls back a boilerplate using the URL).",
-    default:
-      "You agree to the <em>Terms of Service</em>.",
+    desc: "The text displayed for the terms of service link (empty falls back a boilerplate using the URL).",
+    default: "You agree to the <em>Terms of Service</em>.",
     clearable: true,
     show: show_theming_vars,
   },
   account_creation_email_instructions: {
     name: "Account creation",
-    desc:
-      "Instructions displayed next to the box where a user creates their account using their name and email address.",
+    desc: "Instructions displayed next to the box where a user creates their account using their name and email address.",
     default: "Create an Account",
     clearable: true,
     show: show_theming_vars,
   },
   organization_name: {
     name: "Organization name",
-    desc:
-      "The name of your organization, e.g. 'Hogwarts School of Witchcraft and Wizardry'.",
+    desc: "The name of your organization, e.g. 'Hogwarts School of Witchcraft and Wizardry'.",
     default: "",
     clearable: true,
     show: show_theming_vars,
@@ -252,16 +243,14 @@ export const site_settings_conf: SiteSettings = {
   },
   version_min_project: {
     name: "Required project version",
-    desc:
-      "Minimal version required by projects (if project older, will be force restarted).",
+    desc: "Minimal version required by projects (if project older, will be force restarted).",
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
   },
   version_min_browser: {
     name: "Required browser version",
-    desc:
-      "Minimal version required for browser clients (if older, forced disconnect).",
+    desc: "Minimal version required for browser clients (if older, forced disconnect).",
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
@@ -287,8 +276,7 @@ export const site_settings_conf: SiteSettings = {
   },
   commercial: {
     name: "Commercial",
-    desc:
-      "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements. IMPORTANT: You must restart your server after changing this setting for it to take effect.",
+    desc: "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements. IMPORTANT: You must restart your server after changing this setting for it to take effect.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
@@ -296,8 +284,7 @@ export const site_settings_conf: SiteSettings = {
   },
   max_trial_projects: {
     name: "Maximum Trial Projects",
-    desc:
-      "Limit where we start blocking trial projects from running in nonfree countries. (0 means disabled)",
+    desc: "Limit where we start blocking trial projects from running in nonfree countries. (0 means disabled)",
     default: "0",
     to_val: to_int,
     valid: only_nonneg_int,
@@ -319,15 +306,13 @@ export const site_settings_conf: SiteSettings = {
   },
   default_quotas: {
     name: "Default Quotas",
-    desc:
-      "A JSON-formatted default quota for projects. This is only for on-prem setups. The fields actual meaning is defined in hub's quota.ts code",
+    desc: "A JSON-formatted default quota for projects. This is only for on-prem setups. The fields actual meaning is defined in hub's quota.ts code",
     default: "{}",
     show: only_onprem,
   },
   max_upgrades: {
     name: "Maximum Quota Upgrades",
-    desc:
-      "A JSON-formatted upper limit of all quotas. This is only for on-prem setups. The fields are defined in the upgrade spec.",
+    desc: "A JSON-formatted upper limit of all quotas. This is only for on-prem setups. The fields are defined in the upgrade spec.",
     default: "{}",
     show: only_onprem,
   },
@@ -340,24 +325,21 @@ export const site_settings_conf: SiteSettings = {
   },
   iframe_comm_hosts: {
     name: "IFrame communication hosts",
-    desc:
-      "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching '[a-zA-Z0-9.-]+'",
+    desc: "List of allowed DNS names, which are allowed to communicate back and forth with an embedded CoCalc instance. If starting with a dot, also all subdomains. It picks all matching '[a-zA-Z0-9.-]+'",
     default: "",
     to_val: split_iframe_comm_hosts,
     to_display: num_dns_hosts,
   },
   email_enabled: {
     name: "Email sending enabled",
-    desc:
-      "Controls visibility of UI elements and if any emails are sent. This is independent of any particular email configuration!",
+    desc: "Controls visibility of UI elements and if any emails are sent. This is independent of any particular email configuration!",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
   },
   verify_emails: {
     name: "Verify email addresses",
-    desc:
-      "If 'true', email verification tokens are sent out + account settings UI shows it – email sending must be enabled",
+    desc: "If 'true', email verification tokens are sent out + account settings UI shows it – email sending must be enabled",
     default: "no",
     show: is_email_enabled,
     valid: only_booleans,
@@ -365,8 +347,7 @@ export const site_settings_conf: SiteSettings = {
   },
   email_signup: {
     name: "Allow email signup",
-    desc:
-      "Users can sign up via email & password. Could be subject to an 'account creation token'.",
+    desc: "Users can sign up via email & password. Could be subject to an 'account creation token'.",
     default: "yes",
     valid: only_booleans,
     to_val: to_bool,
