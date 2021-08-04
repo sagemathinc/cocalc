@@ -5,7 +5,6 @@
 
 import * as fs from "fs";
 import { join } from "path";
-const winston = require("./logger").getLogger("utils");
 import { PostgreSQL } from "./postgres/types";
 import { AllSiteSettings } from "@cocalc/util/db-schema/types";
 import { expire_time } from "@cocalc/util/misc";
@@ -13,12 +12,13 @@ import { callback2 } from "@cocalc/util/async-utils";
 import { PassportStrategyDB } from "./auth";
 import { secrets } from "@cocalc/util-node/data";
 
+const winston = require("./logger").getLogger("utils");
 export function read_db_password_from_disk(): string | null {
   const filename = join(secrets, "postgres");
   try {
     return fs.readFileSync(filename).toString().trim();
   } catch {
-    winston.debug("NO PASSWORD FILE!");
+    winston.error(`UNABLE TO READ PASSWORD FILE - ${filename}!`);
     return null;
   }
 }
