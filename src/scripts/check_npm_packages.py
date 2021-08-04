@@ -37,16 +37,19 @@ def pkg_dirs() -> List[str]:
     return packages
 
 
-def get_versions(packages, dep_type) -> Tuple[T_installs, Set[str]]:
+def get_versions(packages) -> Tuple[T_installs, Set[str]]:
     installs: T_installs = defaultdict(dict)
     modules: Set[str] = set()
 
     for pkg in packages:
-        pkgs = json.load(open(pkg))
-        module = basename(dirname(pkg))
-        modules.add(module)
-        for name, vers in pkgs.get(dep_type, {}).items():
-            installs[name][module] = vers
+        for dep_type in ['dependencies', 'devDependencies']:
+            pkgs = json.load(open(pkg))
+            module = basename(dirname(pkg))
+            modules.add(module)
+            for name, vers in pkgs.get(dep_type, {}).items():
+                assert installs[name].get(module) is None, \
+                    f"{name}/{module} already exists as a depdency – don't add it as a devDepedency as well"
+                installs[name][module] = vers
     return installs, modules
 
 
@@ -76,15 +79,9 @@ def print_table(installs: T_installs, modules) -> Tuple[str, int, List[str]]:
 def main() -> None:
     packages: Final = pkg_dirs()
 
-    main_pkgs, main_mods = get_versions(packages, 'dependencies')
-    dev_pkgs, dev_mods = get_versions(packages, 'devDependencies')
-
-    dev_table, dev_cnt, dev_incon = print_table(dev_pkgs, dev_mods)
-    if dev_cnt > 0:
-        print("Development Modules")
-        print(dev_table)
-        print(f"you have to fix these new inconsistencies: {dev_incon}")
-        print("\nRegular Code Modules")
+    # We mix up dependencies and devDepdencies into one. Otherwise cross-inconsistencies do not show up.
+    # Also, get_versions fails if there is the same module as a dependencies AND devDependencies in the same package.
+    main_pkgs, main_mods = get_versions(packages)
 
     table, cnt, incon = print_table(main_pkgs, main_mods)
 
