@@ -9,7 +9,13 @@ Rendering output part of a Sage worksheet cell
 
 import { join } from "path";
 import { Component, React, Rendered } from "../app-framework";
-import { encode_path, filename_extension, keys, cmp, len } from "@cocalc/util/misc";
+import {
+  encode_path,
+  filename_extension,
+  keys,
+  cmp,
+  len,
+} from "@cocalc/util/misc";
 import { FLAGS } from "@cocalc/util/sagews";
 import { Stdout } from "../jupyter/output-messages/stdout";
 import { Stderr } from "../jupyter/output-messages/stderr";
@@ -107,7 +113,7 @@ export class CellOutput extends Component<Props> {
   }
 
   render_code(value: { mode: string; source?: string }, key: string): Rendered {
-    const options = fromJS({ mode: { name: value.mode } });
+    const options = { mode: { name: value.mode } };
     return (
       <CodeMirrorStatic
         key={key}

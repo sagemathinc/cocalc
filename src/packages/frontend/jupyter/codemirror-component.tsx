@@ -118,10 +118,9 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
       return (
         <CodeMirrorStatic
           id={id}
-          options={options}
+          options={options?.toJS()}
           value={value}
           font_size={font_size}
-          complete={complete}
           set_click_coords={set_click_coords}
         />
       );

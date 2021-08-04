@@ -41,7 +41,7 @@ export function cm_options(
   editor_actions: any = undefined,
   frame_tree_actions: any = undefined,
   frame_id: string = ""
-): object {
+) {
   let theme = editor_settings.get("theme");
   // if we do not know the theme, fallback to default
   if (EDITOR_COLOR_SCHEMES[theme] == null) {

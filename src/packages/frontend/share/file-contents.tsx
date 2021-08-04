@@ -10,7 +10,6 @@ A lot of sophisticated code in CoCalc's main @cocalc/frontend
 library is used under the hood to implement this.
 */
 
-import { fromJS } from "immutable";
 import { filename_extension, path_split } from "@cocalc/util/misc";
 import { Component, Rendered, React, Redux, redux } from "../app-framework";
 import { HTML, Markdown } from "../r_misc";
@@ -138,8 +137,8 @@ export class FileContents extends Component<Props> {
         />
       );
     } else if (extensions.codemirror[ext] && this.props.highlight) {
-      let options = fromJS(extensions.codemirror[ext]);
-      options = options.set("lineNumbers", true);
+      let options = extensions.codemirror[ext];
+      options.lineNumbers = true;
       elt = (
         <CodeMirrorStatic
           value={this.props.content}

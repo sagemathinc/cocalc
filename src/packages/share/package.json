@@ -47,6 +47,7 @@
     "@cocalc/util-node": "*",
     "@types/react": "^17.0.14",
     "antd": "^4.16.8",
+    "codemirror": "^5.62.2",
     "next": "11.0.1",
     "pg": "^8.7.1",
     "react": "^17.0.2",

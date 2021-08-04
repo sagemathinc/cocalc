@@ -8,6 +8,7 @@
     "./r_misc": "./dist/r_misc/index.js",
     "./markdown": "./dist/markdown/index.js",
     "./misc": "./dist/misc/index.js",
+    "./tracker": "./dist/tracker/index.js",
     "./misc/*": "./dist/misc/*.js",
     "./course": "./dist/course/index.js",
     "./billing": "./dist/billing/index.js",
@@ -60,7 +61,7 @@
     "bootstrap-colorpicker": "^2.5.3",
     "cat-names": "^2.0.0",
     "chai": "^4.2.0",
-    "codemirror": "^5.62.0",
+    "codemirror": "^5.62.2",
     "copy-to-clipboard": "^3.0.8",
     "create-react-class": "^15.7.0",
     "css-color-names": "0.0.4",
@@ -132,6 +133,7 @@
     "requirejs": "^2.3.6",
     "reselect": "^4.0.0",
     "resize-observer-polyfill": "^1.5.1",
+    "sha1": "^1.1.1",
     "shallowequal": "^1.1.0",
     "shell-escape": "^0.2.0",
     "slate": "^0.63.0",
@@ -176,7 +178,7 @@
   },
   "scripts": {
     "build": "NODE_OPTIONS=--max-old-space-size=8192 tsc && coffee  -m -c -o dist/ .",
-    "tsc": "npx tsc -w"
+    "tsc": "npx tsc -w  --pretty "
   },
   "repository": {
     "type": "git",

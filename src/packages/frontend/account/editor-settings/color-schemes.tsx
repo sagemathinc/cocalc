@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map, fromJS } from "immutable";
+import { Map } from "immutable";
 import { React } from "../../app-framework";
 import { LabeledRow, SelectorInput } from "../../r_misc";
 import { CodeMirrorStatic } from "../../jupyter/codemirror-static";
@@ -126,10 +126,8 @@ const CodeMirrorPreview = AsyncComponent(async () => {
     // Ensure that we load all the codemirror plugins, modes, etc., so that
     // we can show the codemirror preview of the current theme, fonts, etc.
     import("@cocalc/frontend/codemirror/init");
-    const options = fromJS(cm_options("a.py", props.editor_settings)).set(
-      "lineNumbers",
-      false
-    );
+    const options = cm_options("a.py", props.editor_settings);
+    options.lineNumbers = false;
     return (
       <CodeMirrorStatic
         options={options}

@@ -201,7 +201,7 @@ exports.ExamplesBody = rclass
             <CodeMirrorStatic
                 value={code_text}
                 style={cm_style}
-                options={immutable.fromJS(options)}
+                options={options}
             />
         </Col>
 

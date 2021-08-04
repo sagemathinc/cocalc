@@ -1,5 +1,6 @@
 import "../styles/globals.css";
 import "antd/dist/antd.css";
+import "codemirror/lib/codemirror.css";
 import type { AppProps } from "next/app";
 import { Layout, Embed } from "components/layout";
 

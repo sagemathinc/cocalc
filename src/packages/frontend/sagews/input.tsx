@@ -7,12 +7,11 @@
 Rendering input part of a Sage worksheet cell
 */
 
-import { fromJS } from "immutable";
 import { React, Component, Rendered } from "../app-framework";
 import { CodeMirrorStatic } from "../jupyter/codemirror-static";
 import { FLAGS } from "@cocalc/util/sagews";
 
-const OPTIONS = fromJS({ mode: { name: "sagews" } });
+const OPTIONS = { mode: { name: "sagews" } };
 
 interface Props {
   input?: string;

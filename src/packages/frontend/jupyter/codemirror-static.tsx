@@ -14,11 +14,27 @@
 //
 // In benchmarks, this seems to easily be 10x faster than creating an actual CodeMirror editor.
 
-import { React, Component, Rendered } from "../app-framework";
-import { Map as ImmutableMap } from "immutable";
-import { copy, merge } from "@cocalc/util/misc";
-import * as CodeMirror from "codemirror";
-import "codemirror/addon/runmode/runmode";
+import React from "react";
+
+// This tricky code works in both Node.js *and* the web browser, in a way that
+// works with Next.js SSR rendering.  It just tooks hours of careful thought
+// and trial and error to figure out.
+let CodeMirror;
+try {
+  // Try to require the full codemirror package.  In the browser via webpack
+  // this will work and runMode is defined.  In nextjs in the browser, this
+  // CodeMirror.runMode is null.
+  CodeMirror = require("codemirror");
+  if (CodeMirror?.runMode == null) {
+    throw Error();
+  }
+} catch (_) {
+  // In next.js browser or node.js, so we use the node runmode approach,
+  // which fully works in both situations.
+  CodeMirror =
+    global.CodeMirror = require("codemirror/addon/runmode/runmode.node");
+  require("@cocalc/frontend/codemirror/modes");
+}
 
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
@@ -34,20 +50,23 @@ const BLURRED_STYLE: React.CSSProperties = {
   border: 0,
 };
 
-interface CodeMirrorStaticProps {
+interface Props {
   value: string;
   id?: string;
-  options?: ImmutableMap<string, any>;
+  options?: {
+    mode?: string | { name?: string };
+    theme?: string;
+    lineNumbers?: boolean;
+  };
   font_size?: number;
-  complete?: ImmutableMap<string, any>;
   set_click_coords?: (pos: { left: number; top: number }) => void;
   style?: any; // optional style that is merged into BLURRED_STYLE
   no_border?: boolean; // if given, do not draw border around whole thing
 }
 
 // This is used heavily by the share server.
-export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
-  line_number = (key: string | number, line: number, width: number) => {
+export function CodeMirrorStatic(props: Props) {
+  const line_number = (key: string | number, line: number, width: number) => {
     return (
       <div key={key} className="CodeMirror-gutter-wrapper">
         <div
@@ -60,24 +79,14 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
     );
   };
 
-  render_lines = (width: number) => {
-    let mode: any = null;
-    if (this.props.options != null) {
-      mode = this.props.options.get("mode");
-      if (mode != null && typeof mode.toJS === "function") {
-        mode = mode.toJS();
-      }
-    } else {
-      mode = "python3"; // a likely fallback, given it's CoCalc.
-    }
-    const v: Rendered[] = [];
-    // TODO: write this line better
-    let line_numbers: boolean = !!(this.props.options != null
-      ? this.props.options.get("lineNumbers")
-      : undefined);
+  const render_lines = (width: number) => {
+    // python3 is a reasonable fallback, given it's CoCalc.
+    const mode = props.options?.mode ?? "python3";
+    const v: JSX.Element[] = [];
+    const lineNumbers = !!props.options?.lineNumbers;
     let line = 1;
-    if (line_numbers) {
-      v.push(this.line_number(v.length, line, width));
+    if (lineNumbers) {
+      v.push(line_number(v.length, line, width));
       line++;
     }
 
@@ -91,15 +100,15 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
       } else {
         v.push(<span key={v.length}>{text}</span>);
       }
-      if (line_numbers && text === "\n") {
-        v.push(this.line_number(v.length, line, width));
+      if (lineNumbers && text === "\n") {
+        v.push(line_number(v.length, line, width));
         line++;
       }
     };
 
     try {
       // @ts-ignore -- fails in packages/hub right now...
-      CodeMirror.runMode(this.props.value, mode, append);
+      CodeMirror.runMode(props.value, mode, append);
     } catch (err) {
       /* This does happen --
             https://github.com/sagemathinc/cocalc/issues/3626
@@ -107,24 +116,23 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
          is probably the best option for now (rather than figuring
          out every possible bad input that could cause this), since
          it completely crashes cocalc. */
-      console.log(`WARNING: CodeMirror.runMode failed -- ${err}`);
+      console.warn(`WARNING: CodeMirror.runMode failed -- ${err}`);
     }
-    line_numbers = false;
     append("\n"); // TODO: should this have 2 parameters?
 
     return v;
   };
 
-  render_code() {
+  function render_code() {
     // NOTE: for #v1 this line numbers code is NOT used for now.  It works perfectly regarding
     // look and layout, but there is trouble with copying, which copies the line numbers too.
     // This can be fixed via a standard trick of having an invisible text area or div
     // in front with the same content... but that's a speed optimization for later.
     let style: React.CSSProperties;
     let width: number;
-    let theme = this.props.options?.get("theme") ?? "default";
-    if (this.props.options?.get("lineNumbers")) {
-      const num_lines = this.props.value.split("\n").length;
+    const theme = props.options?.theme ?? "default";
+    if (props.options?.lineNumbers) {
+      const num_lines = props.value.split("\n").length;
       if (num_lines < 100) {
         width = 30;
       } else if (num_lines < 1000) {
@@ -135,15 +143,15 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
         // nobody better do this...?
         width = 69;
       }
-      style = merge({ paddingLeft: `${width + 4}px` }, BLURRED_STYLE);
-      if (this.props.style != null) {
-        style = merge(style, this.props.style);
+      style = { paddingLeft: `${width + 4}px`, ...BLURRED_STYLE };
+      if (props.style != null) {
+        style = { ...style, ...props.style };
       }
     } else {
       width = 0;
       style = BLURRED_STYLE;
-      if (this.props.style != null) {
-        style = merge(copy(style), this.props.style);
+      if (props.style != null) {
+        style = { ...style, ...props.style };
       }
     }
     if (theme == "default") {
@@ -160,15 +168,15 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
         style={style}
       >
         <div style={{ marginLeft: width }}>
-          {this.render_lines(width)}
-          {this.render_gutter(width)}
+          {render_lines(width)}
+          {render_gutter(width)}
         </div>
       </pre>
     );
   }
 
-  render_gutter(width: number) {
-    if (this.props.options && this.props.options.get("lineNumbers")) {
+  function render_gutter(width: number) {
+    if (props.options?.lineNumbers) {
       return (
         <div className="CodeMirror-gutters">
           <div
@@ -180,17 +188,15 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
     }
   }
 
-  render() {
-    const style: React.CSSProperties = {
-      width: "100%",
-      borderRadius: "2px",
-      position: "relative",
-      overflowX: "auto",
-      fontSize: this.props.font_size ? `${this.props.font_size}px` : undefined,
-    };
-    if (!this.props.no_border) {
-      style.border = "1px solid rgb(207, 207, 207)";
-    }
-    return <div style={style}>{this.render_code()}</div>;
+  const style: React.CSSProperties = {
+    width: "100%",
+    borderRadius: "2px",
+    position: "relative",
+    overflowX: "auto",
+    fontSize: props.font_size ? `${props.font_size}px` : undefined,
+  };
+  if (!props.no_border) {
+    style.border = "1px solid rgb(207, 207, 207)";
   }
+  return <div style={style}>{render_code()}</div>;
 }
