@@ -455,6 +455,10 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     // will pop up.  Also, we could have a non-default
     // option for huge notebooks that people might want to use.
 
+    // That said, you can comment this "return false" out uncomment code below,
+    // and all the windowing code is still here, and seems to "work".
+    // My longterm plan for this is instead to make a slate version of Jupyter,
+    // which will automatically support long docs.
     return false;
 
     /*

@@ -417,6 +417,7 @@ export const CellList: React.FC<CellListProps> = React.memo(
           hide_resize={true}
           render_info={true}
           scroll_margin={60}
+          no_shrink_hack={true}
         />
       );
     }
