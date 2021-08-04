@@ -4,16 +4,17 @@
  */
 
 import { Map } from "immutable";
-import { React, Rendered } from "../../app-framework";
+import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { plural } from "@cocalc/util/misc";
 import { CELLTYPE_INFO_MAP, state_to_value } from "./cell-types";
-import { Tip } from "../../r_misc/tip";
+import { Icon, Tip } from "@cocalc/frontend/r_misc";
 
 interface Props {
   nbgrader: Map<string, any>;
   start?: number;
   state?: string;
   output?: Map<string, any>;
+  toolbarIsVisible?: boolean;
 }
 
 export const NBGraderMetadata: React.FC<Props> = React.memo((props: Props) => {
@@ -47,6 +48,7 @@ export const NBGraderMetadata: React.FC<Props> = React.memo((props: Props) => {
   const value: string | undefined = state_to_value(nbgrader.toJS());
   if (value == null) return null;
   const info = CELLTYPE_INFO_MAP[value];
+  if (info.show_only_with_toolbar && !props.toolbarIsVisible) return null;
   return (
     <Tip
       title={info.student_title}
@@ -54,6 +56,7 @@ export const NBGraderMetadata: React.FC<Props> = React.memo((props: Props) => {
       placement={"right"}
       size={"small"}
     >
+      <Icon name="graduation-cap" style={{ marginRight: "5px" }} />
       <span>{info.student_title}</span>
       {render_points()}
       {render_id()}

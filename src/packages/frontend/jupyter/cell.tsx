@@ -194,15 +194,13 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     const nbgrader = nbgrader_state();
     if (nbgrader == null) return;
     return (
-      <span>
-        <Icon name="graduation-cap" style={{ marginRight: "5px" }} />
-        <NBGraderMetadata
-          nbgrader={nbgrader}
-          start={props.cell.get("start")}
-          state={props.cell.get("state")}
-          output={props.cell.get("output")}
-        />
-      </span>
+      <NBGraderMetadata
+        nbgrader={nbgrader}
+        start={props.cell.get("start")}
+        state={props.cell.get("state")}
+        output={props.cell.get("output")}
+        toolbarIsVisible={props.cell_toolbar}
+      />
     );
   }
 
@@ -252,7 +250,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       <div style={style}>
         {render_not_deletable()}
         {render_not_editable()}
-        {no_nbgrader ? undefined : render_nbgrader()}
+        {!no_nbgrader && render_nbgrader()}
       </div>
     );
   }

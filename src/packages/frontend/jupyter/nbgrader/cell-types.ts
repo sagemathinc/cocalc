@@ -32,6 +32,7 @@ interface CelltypeInfo {
   markdown_only?: boolean; // only markdown cells can be set to this type
   template?: { [language in Language]?: string } | string;
   cell_type?: "code" | "markdown"; // if set, it switches the cell type
+  show_only_with_toolbar?: boolean; // if true, only show info about this cell (e.g., heading) when nbgrader toolbar is active.
 }
 
 const PY_TEST = `
@@ -268,8 +269,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     solution: false,
     task: false,
     remove: false,
-    link:
-      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#developing-assignments-with-the-assignment-toolbar",
+    link: "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#developing-assignments-with-the-assignment-toolbar",
     hover:
       "This is a normal Jupyter cell, which won't be graded and doesn't contain any special autograding meaning.",
   },
@@ -278,8 +278,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     student_title: "Manually graded answer",
     student_tip:
       "Type your answer in this cell.  It will be manually graded by a person later.",
-    link:
-      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#manually-graded-answer-cells",
+    link: "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#manually-graded-answer-cells",
     hover:
       "This cell will contain an answer that must be manually graded by a human grader.",
     value: "manual",
@@ -307,8 +306,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     student_title: "Manually graded task",
     student_tip:
       "This is a task that you must perform.  Instead of editing this cell, you'll be creating or editing some other cells, which will be manually graded by a person.",
-    link:
-      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#manually-graded-task-cells",
+    link: "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#manually-graded-task-cells",
     hover: "",
     value: "task",
     icon: "tasks",
@@ -326,8 +324,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     student_title: "Answer that will be automatically graded below",
     student_tip:
       "Type your answer in this cell and evaluate it.  Use tests in cells below to check that your code probably works.",
-    link:
-      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograded-answer-cells",
+    link: "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograded-answer-cells",
     hover:
       "This cell contains code that is part of a student's answer to a question.  This code typically gets run before some other 'Autograder tests' cell.",
     value: "auto",
@@ -350,8 +347,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     student_title: "Test your code from above here",
     student_tip:
       "You should have typed some code above and evaluated it.  Use the tests here to check that your code probably works.  Note that your teacher may also run additional tests not included here.",
-    link:
-      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograder-tests-cells",
+    link: "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#autograder-tests-cells",
     hover:
       "This cell contains test code that will be run to automatically grade the answer to a question. This answer is typically contained in an 'Autograded answer' cell.",
     value: "test",
@@ -375,8 +371,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
     student_title: "Readonly",
     student_tip:
       "This is setup or explanatory code for your assignment.  It is readonly, so you should not need to change it.",
-    link:
-      "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#read-only-cells",
+    link: "https://nbgrader.readthedocs.io/en/stable/user_guide/creating_and_grading_assignments.html#read-only-cells",
     hover:
       "This cell is marked as read only.  This makes it difficult for the student to change, and during instructor autograding, the original version of this cell will be placed here in case it was somehow changed by the student.",
     value: "readonly",
@@ -389,6 +384,7 @@ export const CELLTYPE_INFO_LIST: CelltypeInfo[] = [
   },
   {
     title: "Instructor only",
+    show_only_with_toolbar: true,
     student_title: "Instructor only (will be removed from student version)",
     student_tip: "WARNING: This is a CoCalc-only extension to nbgrader",
     hover:
