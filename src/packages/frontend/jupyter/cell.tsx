@@ -199,7 +199,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         start={props.cell.get("start")}
         state={props.cell.get("state")}
         output={props.cell.get("output")}
-        toolbarIsVisible={props.cell_toolbar}
+        toolbarIsVisible={!!props.cell_toolbar}
       />
     );
   }
