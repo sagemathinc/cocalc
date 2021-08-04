@@ -13,6 +13,23 @@ NOTES:
 
 import argparse, os, shutil, subprocess, sys, time
 
+
+def newest_file(path):
+    # See https://gist.github.com/brwyatt/c21a888d79927cb476a4.
+    return os.popen(
+        f'cd "{path}"&& find . -type f -printf "%C@ %p\n" | sort -rn | head -n 1 | cut -d" " -f2'
+    ).read().strip()
+
+
+def needs_build(package):
+    # We only need to do a build if the newest file in the tree is not
+    # in the dist directory.
+    path = os.path.join(os.path.dirname(__file__), package)
+    newest = newest_file(path)
+    return not newest.startswith('./dist/') and not newest.startswith(
+        './.next/')
+
+
 def handle_path(s, path=None, verbose=True):
     desc = s
     if path is not None:
@@ -107,9 +124,9 @@ def ci(args):
         cmd("npm ci", path)
 
 
-# Build all the packages.
+# Build all the packages that need to be built.
 def build(args):
-    v = packages(args)
+    v = [package for package in packages(args) if needs_build(package)]
     CUR = os.path.abspath('.')
 
     def f(path):

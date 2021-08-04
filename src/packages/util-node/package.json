@@ -5,7 +5,10 @@
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "build": "npx tsc && npx coffee  -m -c -o dist/ .",
     "tsc": "npx tsc --watch",
@@ -13,7 +16,9 @@
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
-  "workspaces": ["../util"],
+  "workspaces": [
+    "../util"
+  ],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
     "@cocalc/util": "*",
@@ -23,7 +28,7 @@
     "shell-escape": "^0.2.0",
     "sqlite3": "^5.0.2",
     "supports-color": "^9.0.2",
-    "temp": "^0.9.1",
+    "temp": "^0.9.4",
     "underscore": "^1.12.1"
   },
   "repository": {

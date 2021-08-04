@@ -65,7 +65,7 @@
     "node-uuid": "^1.4.2",
     "node-zendesk": "^1.3.0",
     "nodemailer": "^6.5.0",
-    "nyc": "^15.0.1",
+    "nyc": "^15.1.0",
     "parse-domain": "^3.0.2",
     "passport": "^0.4.1",
     "passport-dropbox-oauth2": "^1.1.0",
@@ -94,7 +94,7 @@
     "snappy": "^6.3.5",
     "sql-string-escape": "^1.1.6",
     "stripe": "8.78.0",
-    "temp": "^0.9.1",
+    "temp": "^0.9.4",
     "uglify-js": "^3.14.1",
     "underscore": "^1.12.1",
     "validator": "^13.0.0"
