@@ -7,7 +7,7 @@
     "../util-node",
     "../util"
   ],
-  "version": "1.16.5",
+  "version": "1.16.7",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
@@ -103,7 +103,7 @@
     "npm-check-updates": "^11.5.13",
     "parse-asn1": "^5.1.6",
     "path-browserify": "^1.0.1",
-    "pdfjs-dist": "^2.7.570",
+    "pdfjs-dist": "^2.9.359",
     "prettier": "^2.3.0",
     "raw-loader": "^4.0.2",
     "react-helmet": "^6.1.0",
