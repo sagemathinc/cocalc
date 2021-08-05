@@ -22,6 +22,8 @@ def newest_file(path):
 
 
 def needs_build(package):
+    return True
+    # Code below was hopelessly naive, e.g, a failed build would not get retried.
     # We only need to do a build if the newest file in the tree is not
     # in the dist directory.
     path = os.path.join(os.path.dirname(__file__), package)
