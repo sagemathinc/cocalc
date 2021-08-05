@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/util-node",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CoCalc misc utility functionality that is meant for running on node.js (not in browser)",
   "exports": {
     "./*": "./dist/*.js"
@@ -21,7 +21,7 @@
   ],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
-    "@cocalc/util": "^1.0.2",
+    "@cocalc/util": "^1.0.3",
     "@types/debug": "^4.1.7",
     "async": "^1.5.2",
     "debug": "^4.3.2",
@@ -29,8 +29,7 @@
     "sqlite3": "^5.0.2",
     "supports-color": "^9.0.2",
     "temp": "^0.9.4",
-    "underscore": "^1.12.1",
-    "packages/util": "1.0.2"
+    "underscore": "^1.12.1"
   },
   "repository": {
     "type": "git",
