@@ -24,10 +24,10 @@
     "."
   ],
   "dependencies": {
-    "@cocalc/frontend": "*",
+    "@cocalc/frontend": "^1.0.0",
     "@cocalc/project": "*",
-    "@cocalc/util": "*",
-    "@cocalc/util-node": "*",
+    "@cocalc/util": "^1.0.2",
+    "@cocalc/util-node": "^1.0.0",
     "@types/lru-cache": "^5.1.0",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",

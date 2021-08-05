@@ -11,7 +11,7 @@ NOTES:
 
 """
 
-import argparse, os, shutil, subprocess, sys, time
+import argparse, json, os, shutil, subprocess, sys, time
 
 
 def newest_file(path):
@@ -81,7 +81,7 @@ def matches(package, packages):
     return False
 
 
-def packages(args):
+def all_packages():
     # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments.
     v = [
         'packages/cdn',  # packages/hub assumes this is built
@@ -96,7 +96,11 @@ def packages(args):
         path = os.path.join("packages", x)
         if path not in v and os.path.isdir(path):
             v.append(path)
+    return v
 
+
+def packages(args):
+    v = all_packages()
     # Filter to only the ones in packages (if given)
     if args.packages:
         packages = set(args.packages.split(','))
@@ -109,6 +113,86 @@ def packages(args):
 
     print("Packages: ", ', '.join(v))
     return v
+
+
+def package_json(package):
+    return json.loads(open(f'{package}/package.json').read())
+
+
+def write_package_json(package, x):
+    open(f'{package}/package.json', 'w').write(json.dumps(x, indent=2))
+
+
+def dependent_packages(package):
+    # Get a list of the packages
+    # it depends on by reading package.json
+    x = package_json(package)
+    if "workspaces" not in x:
+        # no workspaces
+        return []
+    v = []
+    for path in x["workspaces"]:
+        # path is a relative path
+        npath = os.path.normpath(os.path.join(package, path))
+        if npath != package:
+            v.append(npath)
+    return v
+
+
+def get_package_version(package):
+    return package_json(package)["version"]
+
+
+def get_package_npm_name(package):
+    return package_json(package)["name"]
+
+def update_dependent_versions(package):
+    """
+    Update the versions of all of the workspaces that this
+    package depends on.  The versions are set to whatever the
+    current version is in the dependent packages package.json.
+
+    There is a problem here, if you are publishing two
+    packages A and B with versions vA and vB.  If you first publish
+    A, then you set it as depending on B@vB.  However, when you then
+    publish B you set its new version as vB+1, so A got published
+    with the wrong version.  It's thus important to first
+    update all the versions of the packages that will be published
+    in a single phase, then update the dependent version numbers, and
+    finally actually publish the packages to npm.  There will unavoidably
+    be an interval of time when some of the packages are impossible to
+    install (e.g., because A got published and depends on B@vB+1, but B
+    isn't yet published).
+    """
+    x = package_json(package)
+    changed = False
+    for dependent in dependent_packages(package):
+        try:
+            package_version = '^' + get_package_version(dependent)
+        except:
+            print(f"Skipping '{dependent}' since package not available")
+            continue
+        npm_name = get_package_npm_name(dependent)
+        dev = npm_name in x.get("devDependencies", {})
+        if dev:
+            current_version = x.get("devDependencies", {}).get(npm_name, '')
+        else:
+            current_version = x.get("dependencies", {}).get(npm_name, '')
+        # print(dependent, npm_name, current_version, package_version)
+        if current_version != package_version:
+            print(
+                f"{package}: {dependent} changed from '{current_version}' to '{package_version}'"
+            )
+            x['devDependencies' if dev else 'dependencies'][
+                npm_name] = package_version
+            changed = True
+    if changed:
+        write_package_json(package, x)
+
+
+def update_all_dependent_versions():
+    for package in all_packages():
+        update_dependent_versions(package)
 
 
 def banner(s):
@@ -213,78 +297,111 @@ def version_check(args):
 NEVER = '0000000000'
 
 
-def last_commit_when_version_changed(path):
-    return run('git blame package.json |grep \'  "version":\'', path,
+def last_commit_when_version_changed(package):
+    return run('git blame package.json |grep \'  "version":\'', package,
                False).split()[0]
 
 
-def package_status(args, path):
-    commit = last_commit_when_version_changed(path)
-    print("\nPackage:", path)
+def package_status(args, package):
+    commit = last_commit_when_version_changed(package)
+    print("\nPackage:", package)
     sys.stdout.flush()
     if commit == NEVER:
         print("never committed")
         return
-    cmd("git diff  --name-status %s ." % commit, path, False)
+    cmd("git diff  --name-status %s ." % commit, package, False)
 
 
-def package_diff(args, path):
-    commit = last_commit_when_version_changed(path)
-    print("\nPackage:", path)
+def package_diff(args, package):
+    commit = last_commit_when_version_changed(package)
+    print("\nPackage:", package)
     sys.stdout.flush()
     if commit == NEVER:
         print("never committed")
         return
-    cmd("git diff  %s ." % commit, path, False)
+    cmd("git diff  %s ." % commit, package, False)
 
 
-def publish_package(args, path):
-    print("\nPackage:", path)
+# Increase the package version, unless it has already
+# changed from what it was when the package.json file
+# was last commited to git.  NOTE: we're comparing to
+# the last git commit, NOT what is published on npmjs since:
+#   - it is slow to get that info from npmjs
+#   - it's difficult to deal with tags there
+def bump_package_version_if_necessary(package, newversion):
+    print(f"Check if we need to bump version of {package}")
+    # If the version: line in package.json has changed since the
+    # last commit (or never commited), then git says the commit
+    # where it changed is '0000000000'.   We thus bump the version
+    # precisely when the commit where that line last changed is
+    # something other than '0000000000'.
+    if run("git blame package.json|grep '\"version\":'", package).startswith(NEVER):
+        print(f"No need to further bump version of {package}")
+        return
+    print(f"Yes, bumping version of {package} via {newversion}")
+    cmd(f"npm --no-git-tag-version version {args.newversion}", package)
+
+
+def publish_package(args, package):
+    print("\nPackage:", package)
     sys.stdout.flush()
-    commit = last_commit_when_version_changed(path)
-    if path.endswith('static'):
-        # We bump the version *before* for the static build, since
-        # the version is part of what is included in the build.
-        print("BUMP VERSION")
-        cmd(f"npm --no-git-tag-version version {args.newversion}", path)
+
+    # We bump the package version if necessary.  Usually this will have
+    # already happened before calling publish_package.
+    # (It is extra important to bump the version *before* for the static build,
+    #  since the version is part of what is included in the build.)
+    bump_package_version_if_necessary(package, args.newversion)
     # Do the build
-    cmd("npm run build", path)
-
-    if not path.endswith('static'):
-        # Success -- bump the version before publishing
-        cmd(f"npm --no-git-tag-version version {args.newversion}", path)
-
+    cmd("npm run build", package)
     try:
         # And now publish it:
         if args.tag:
-            cmd(f"npm publish --tag {args.tag}", path)
+            cmd(f"npm publish --tag {args.tag}", package)
         else:
-            cmd("npm publish", path)
+            cmd("npm publish", package)
     except:
         print(
-            f"Publish failed; you might need to manually revert the version in '{path}/package.json'."
+            f"Publish failed; you might need to manually revert the version in '{package}/package.json'."
         )
     cmd(
-        f"git commit -v . -m 'Publish new version of package {path} to npm package repo.'",
-        path)
+        f"git commit -v . -m 'Publish new version of package {package} to npm package repo.'",
+        package)
 
 
 def status(args):
-    for path in packages(args):
-        package_status(args, path)
+    for package in packages(args):
+        package_status(args, package)
 
 
 def diff(args):
-    for path in packages(args):
-        package_diff(args, path)
+    for package in packages(args):
+        package_diff(args, package)
 
 
 def publish(args):
     if not args.newversion:
         raise RuntimeError(
             "newversion must be specified (e.g. 'patch', 'minor', 'major')")
-    for path in packages(args):
-        publish_package(args, path)
+
+    # First we bump all of the package versions, if necessary
+    print("Updating versions if necessary...")
+    for package in packages(args):
+        bump_package_version_if_necessary(package, args.newversion)
+
+    # Next we update all the explicit workspace version dependencies.
+    # I.e., we make it so all the @cocalc/packagename:"^x.y.z" lines
+    # in package.json are correct and reflect the versions of our packages here.
+    print("Updating dependent versions...")
+    for package in packages(args):
+        update_dependent_versions(package)
+
+    if args.dryrun:
+        print("Not actually commiting or pushing to npmjs.")
+        return
+
+    # Finally, we build and publish all of our packages to npm.
+    for package in packages(args):
+        publish_package(args, package)
 
 
 def node_version_check():
@@ -393,6 +510,10 @@ def main():
         type=str,
         help=
         "major | minor | patch | premajor | preminor | prepatch | prerelease")
+    subparser.add_argument('--dryrun',
+                           action="store_const",
+                           const=True,
+                           help="only update versions in package.json; don't actually push to npmjs")
     subparser.set_defaults(func=publish)
 
     args = parser.parse_args()

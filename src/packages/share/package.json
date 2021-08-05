@@ -44,9 +44,9 @@
   ],
   "dependencies-comment": "IMPORTANT: we install everything (including typescript) as normal deps since it may be needed at runtime due to server settings!!",
   "dependencies": {
-    "@cocalc/cdn": "*",
-    "@cocalc/frontend": "*",
-    "@cocalc/util-node": "*",
+    "@cocalc/cdn": "^1.2.1",
+    "@cocalc/frontend": "^1.0.0",
+    "@cocalc/util-node": "^1.0.0",
     "@types/react": "^17.0.14",
     "antd": "^4.16.8",
     "next": "11.0.1",

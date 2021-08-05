@@ -21,7 +21,7 @@
   ],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
-    "@cocalc/util": "*",
+    "@cocalc/util": "^1.0.2",
     "@types/debug": "^4.1.7",
     "async": "^1.5.2",
     "debug": "^4.3.2",
@@ -29,7 +29,8 @@
     "sqlite3": "^5.0.2",
     "supports-color": "^9.0.2",
     "temp": "^0.9.4",
-    "underscore": "^1.12.1"
+    "underscore": "^1.12.1",
+    "packages/util": "1.0.2"
   },
   "repository": {
     "type": "git",
