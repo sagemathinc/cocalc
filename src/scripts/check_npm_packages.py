@@ -66,7 +66,7 @@ def print_table(installs: T_installs, modules) -> Tuple[str, int, List[str]]:
     for pkg, inst in sorted(installs.items()):
         if len(set(inst.values())) == 1: continue
         cnt += 1
-        if pkg not in whitelist:
+        if pkg not in whitelist and not pkg.startswith('@cocalc'):
             incon.append(pkg)
         table += f"{pkg:<30s}"
         for mod in sorted(modules):
