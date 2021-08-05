@@ -133,14 +133,19 @@ This uses git and package.json to show you which files (in the package directory
 
 ### Publishing to [NPMJS.com](http://NPMJS.com)
 
-To publish the production version of the static website to npmjs.com, do this:
+To publish a package `foo` (that is in \`src/packages/foo\`) to [npmjs.com](http://npmjs.com), do this:
 
 ```sh
-~/cocalc/src$ npm run publish --packages=static --newversion=minor --tag=latest
+~/cocalc/src$ npm run update-version --packages=foo --newversion=patch  # patch, minor, major, etc.
+~/cocalc/src$ npm run publish --packages=foo                            # optional --tag=mytag
 ```
 
-Where it says `--newversion=`, reasonable options are `"major"`, `"minor"`, and `"patch"`.  The tag option is optinal.
+Where it says `--newversion=`, reasonable options are `"major"`, `"minor"`, and `"patch"`. 
 
-**VERY IMPORTANT:** _Do NOT do just "_**npm publish**_" -- the word "run" above is important!!_
+When publishing the versions of all workspace dependencies are updated to whatever is in your current cocalc branch.   Thus if you publish a major version update to one package, then when you publish the packages that depend on it, they will explicitly be set to depend on that new major version.
 
-NOTE: When publishing the `static` packages, be sure to stop the static webpack server first.
+#### Tips:
+
+- **VERY IMPORTANT:** _Do NOT do just do "_**npm publish**_" -- the word "run" above is important!!_
+- **Webpack:** When publishing the `static` packages, be sure to stop the `npm run static`  webpack server first, since it's not good having two different processes writing to packages/static/dist at the same time.  Similar remarks probably apply to the hub serving next.js apps (share and landing-free).
+- **Semver:** If you publish a new (presumably incompatible) **major**  version of a CoCalc package `foo`  and there is another package `bar`   that depends on it, then you have to also publish a new version of `bar`.  Otherwise, `bar` explicitly says in package.json that it doesn't want the new major version of foo yet.  For example, support use update `util` with some major non-bugfix change, and the static frontend server depends on this change.  You need to publish a new version of `static` or when `static` gets installed, it'll just install the old version of `util`.  This makes sense in general, since major changes are breaking changes.

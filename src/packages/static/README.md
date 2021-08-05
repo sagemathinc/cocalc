@@ -48,7 +48,8 @@ Make sure to kill any running webpack first.  Everything to make a release is au
 $ cd ../..
 $ pwd
 /home/user/cocalc/src
-$ time npm run publish --packages=static --newversion=minor
+$ time npm run update-version --packages=static --newversion=minor
+$ time npm run publish --packages=static
 ```
 
 Here `newversion` could be major, minor, or patch.  This does a full production build, updates 
@@ -58,7 +59,7 @@ to package.json to git.
 If you want to make a _development release,_ e.g., to make it easier to debug something on [test.cocalc.com](http://test.cocalc.com), do
 
 ```sh
-time NODE_ENV=development npm run publish --packages=static --newversion=minor
+time NODE_ENV=development npm run publish --packages=static
 ```
 
 ## More about development
