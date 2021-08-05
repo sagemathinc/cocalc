@@ -37,7 +37,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import {
   getDocument as pdfjs_getDocument,
   PDFDocumentProxy,
-} from "pdfjs-dist/webpack";
+} from "pdfjs-dist";
 
 
 

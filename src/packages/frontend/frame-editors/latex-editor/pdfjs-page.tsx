@@ -15,7 +15,7 @@ import {
   PDFAnnotationData,
   PDFPageProxy,
   PDFDocumentProxy,
-} from "pdfjs-dist/webpack";
+} from "pdfjs-dist";
 import { SyncHighlight } from "./pdfjs-annotation";
 
 export const PAGE_GAP: number = 20;
