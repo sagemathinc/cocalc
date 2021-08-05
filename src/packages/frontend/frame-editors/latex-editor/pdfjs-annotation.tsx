@@ -16,7 +16,7 @@ like is here:  https://tex.stackexchange.com/questions/6306/how-to-annotate-pdf-
 const HIGHLIGHT_HEIGHT: number = 30;
 
 import { useIsMountedRef, React } from "../../app-framework";
-import { PDFAnnotationData, PDFPageProxy } from "pdfjs-dist";
+import type { PDFAnnotationData, PDFPageProxy } from "pdfjs-dist/webpack";
 
 // Evidently the typescript code is wrong for this PDFJS.Util thing, so we use require.
 const PDFJS = require("pdfjs-dist");

@@ -4,7 +4,6 @@
  */
 
 // This is a renderer using pdf.js.
-
 // We render pages within a window of this many pixels around
 // the top of the visible page.  Making this bigger makes it
 // less likely the user will see a blank page for a moment, but
@@ -12,7 +11,7 @@
 const WINDOW_SIZE: number = 3000;
 const HIGHLIGHT_TIME_S: number = 6;
 
-import './pdfjs-worker';
+import "./pdfjs-worker";
 
 import { Icon, Loading, Markdown } from "@cocalc/frontend/r_misc";
 import { Alert } from "antd";
@@ -32,7 +31,7 @@ import {
 import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { Page, PAGE_GAP } from "./pdfjs-page";
 import { SyncHighlight } from "./pdfjs-annotation";
-import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
+import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
 import { EditorState } from "../frame-tree/types";
 
 // Ensure this jQuery plugin is defined:

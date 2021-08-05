@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { PDFPageProxy } from "pdfjs-dist";
+import type { PDFPageProxy } from "pdfjs-dist/webpack";
 import { React } from "../../app-framework";
 
 interface Props {
