@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/assets",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "The static assets (images, code, etc.) for the CoCalc frontend.",
   "main": "index.js",
   "workspaces": [
@@ -22,7 +22,7 @@
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
-    "@cocalc/util-node": "^1.0.0",
+    "@cocalc/util-node": "^1.0.1",
     "uglify-js": "^3.14.1"
   }
 }
