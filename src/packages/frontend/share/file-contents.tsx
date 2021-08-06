@@ -22,7 +22,7 @@ import * as extensions from "./extensions";
 import { CodeMirrorStatic } from "../jupyter/codemirror-static";
 
 //import { Worksheet as Worksheet } from "../sagews/worksheet";
-const { Worksheet } = require("../sagews/worksheet");
+const Worksheet = require("../sagews/worksheet").default;
 import { parse_sagews } from "../sagews/parse-sagews";
 
 export function has_viewer(ext: string): boolean {

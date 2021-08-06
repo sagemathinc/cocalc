@@ -4,50 +4,41 @@
  */
 
 /*
-React component to render a Sage worksheet statically (for use by share server or public mode)
+React component to render a Sage worksheet statically.  This is
+mainly for use by server-side share server, so needs to run fine
+under node.js and in the frotend.
 */
 
-import { React, Component, Rendered } from "../app-framework";
-
+import React from "react";
 import { field_cmp } from "@cocalc/util/misc";
-
 import { Cell } from "./cell";
-
-import { Cell as CellType } from "./parse-sagews";
+import type { Cell as CellType } from "./parse-sagews";
 
 interface Props {
   sagews: CellType[];
-  style?: object;
+  style?: React.CSSProperties;
 }
 
-export class Worksheet extends Component<Props> {
-  private render_cell(cell: CellType): Rendered {
-    return (
+export default function Worksheet({ sagews, style }: Props) {
+  const cells: CellType[] = [];
+  for (const cell of sagews) {
+    if (cell.type === "cell") {
+      cells.push(cell);
+    }
+  }
+  cells.sort(field_cmp("pos"));
+  const v: JSX.Element[] = [];
+  for (const cell of cells) {
+    const { id, input, output, flags } = cell;
+    v.push(
       <Cell
-        key={cell.id}
-        input={cell.input ? cell.input : ""}
-        output={cell.output ? cell.output : {}}
-        flags={cell.flags ? cell.flags : ""}
+        key={id}
+        input={input ?? ""}
+        output={output ?? {}}
+        flags={flags ?? ""}
       />
     );
   }
 
-  private render_cells(): Rendered[] {
-    const cells: CellType[] = [];
-    for (const cell of this.props.sagews) {
-      if (cell.type === "cell") {
-        cells.push(cell);
-      }
-    }
-    cells.sort(field_cmp("pos"));
-    const v: Rendered[] = [];
-    for (const cell of cells) {
-      v.push(this.render_cell(cell));
-    }
-    return v;
-  }
-
-  render() {
-    return <div style={this.props.style}>{this.render_cells()}</div>;
-  }
+  return <div style={style}>{v}</div>;
 }
