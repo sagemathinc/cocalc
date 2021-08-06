@@ -14,6 +14,7 @@
 //
 // In benchmarks, this seems to easily be 10x faster than creating an actual CodeMirror editor.
 
+
 import React from "react";
 
 // This tricky code works in both Node.js *and* the web browser, in a way that

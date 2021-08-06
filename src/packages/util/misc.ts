@@ -273,14 +273,8 @@ export function endswith(s: any, t: any): boolean {
   return s.slice(s.length - t.length) === t;
 }
 
-// We use this uuid implementation only for the browser client.  For node code, use node-uuid.
-export function uuid(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+import { v4 as v4uuid } from "uuid";
+export const uuid: () => string = v4uuid;
 
 const uuid_regexp = new RegExp(
   /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i

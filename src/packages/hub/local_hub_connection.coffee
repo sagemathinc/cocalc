@@ -10,7 +10,7 @@
 async   = require('async')
 {callback2} = require('@cocalc/util/async-utils')
 
-uuid    = require('node-uuid')
+uuid    = require('uuid')
 winston = require('./logger').getLogger('local-hub-connection')
 underscore = require('underscore')
 

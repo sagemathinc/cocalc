@@ -5,7 +5,6 @@
 
 /*
 Functions for parsing input, etc.
-This can *ONLY* be used from the browser!
 */
 
 const { endswith } = require("@cocalc/util/misc");
