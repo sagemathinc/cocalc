@@ -11,7 +11,7 @@ This can *ONLY* be used from the browser!
 const { endswith } = require("@cocalc/util/misc");
 import { Syntax } from "@cocalc/util/code-formatter";
 
-import * as CodeMirror from "codemirror";
+import { runMode } from "./codemirror-static";
 
 export function run_mode(code: string, mode: string, language: string) {
   if (!code) {
@@ -33,8 +33,7 @@ export function run_mode(code: string, mode: string, language: string) {
 
 function last_style(code: string, mode = "python"): string | null | undefined {
   let style: string | null | undefined = undefined;
-  // @ts-ignore -- hub imports this right now and for some reason it fails
-  CodeMirror.runMode(code, mode, (_, s) => {
+  runMode(code, mode, (_, s) => {
     style = s;
   });
   return style;

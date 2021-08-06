@@ -36,6 +36,8 @@ try {
   require("@cocalc/frontend/codemirror/modes");
 }
 
+export const runMode = CodeMirror.runMode;
+
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
   overflowX: "hidden",
@@ -108,7 +110,7 @@ export function CodeMirrorStatic(props: Props) {
 
     try {
       // @ts-ignore -- fails in packages/hub right now...
-      CodeMirror.runMode(props.value, mode, append);
+      runMode(props.value, mode, append);
     } catch (err) {
       /* This does happen --
             https://github.com/sagemathinc/cocalc/issues/3626
