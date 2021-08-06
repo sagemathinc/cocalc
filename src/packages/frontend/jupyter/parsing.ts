@@ -33,6 +33,7 @@ export function run_mode(code: string, mode: string, language: string) {
 
 function last_style(code: string, mode = "python"): string | null | undefined {
   let style: string | null | undefined = undefined;
+  // @ts-ignore -- hub imports this right now and for some reason it fails
   CodeMirror.runMode(code, mode, (_, s) => {
     style = s;
   });
