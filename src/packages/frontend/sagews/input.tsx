@@ -7,8 +7,8 @@
 Rendering input part of a Sage worksheet cell
 */
 
-import { React, Component, Rendered } from "../app-framework";
-import { CodeMirrorStatic } from "../jupyter/codemirror-static";
+import React from "react";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { FLAGS } from "@cocalc/util/sagews";
 
 const OPTIONS = { mode: { name: "sagews" } };
@@ -18,25 +18,15 @@ interface Props {
   flags?: string;
 }
 
-export class CellInput extends Component<Props> {
-  private render_input(): Rendered {
-    return (
-      <CodeMirrorStatic
-        value={this.props.input != null ? this.props.input : ""}
-        options={OPTIONS}
-        style={{ background: "white", padding: "10px" }}
-      />
-    );
+export default function CellInput({ input, flags }: Props) {
+  if (flags?.includes(FLAGS.hide_input)) {
+    return <span />;
   }
-
-  public render(): Rendered {
-    if (
-      this.props.flags != null &&
-      this.props.flags.indexOf(FLAGS.hide_input) != -1
-    ) {
-      return <span />;
-    } else {
-      return this.render_input();
-    }
-  }
+  return (
+    <CodeMirrorStatic
+      value={input ?? ""}
+      options={OPTIONS}
+      style={{ background: "white", padding: "10px" }}
+    />
+  );
 }

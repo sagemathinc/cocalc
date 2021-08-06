@@ -11,7 +11,7 @@ under node.js and in the frotend.
 
 import React from "react";
 import { field_cmp } from "@cocalc/util/misc";
-import { Cell } from "./cell";
+import Cell from "./cell";
 import type { Cell as CellType } from "./parse-sagews";
 
 interface Props {

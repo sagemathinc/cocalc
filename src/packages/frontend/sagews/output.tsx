@@ -7,8 +7,8 @@
 Rendering output part of a Sage worksheet cell
 */
 
+import React from "react";
 import { join } from "path";
-import { Component, React, Rendered } from "../app-framework";
 import {
   encode_path,
   filename_extension,
@@ -17,51 +17,40 @@ import {
   len,
 } from "@cocalc/util/misc";
 import { FLAGS } from "@cocalc/util/sagews";
-import { Stdout } from "../jupyter/output-messages/stdout";
-import { Stderr } from "../jupyter/output-messages/stderr";
-import { HTML, Markdown } from "../r_misc";
+import { Stdout } from "@cocalc/frontend/jupyter/output-messages/stdout";
+import { Stderr } from "@cocalc/frontend/jupyter/output-messages/stderr";
+import { HTML, Markdown } from "@cocalc/frontend/r_misc";
 import { fromJS } from "immutable";
-import { CodeMirrorStatic } from "../jupyter/codemirror-static";
-import * as extensions from "../share/extensions";
-import { OutputMessage, OutputMessages } from "./parse-sagews";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+import * as extensions from "@cocalc/frontend/share/extensions";
+import type { OutputMessage, OutputMessages } from "./parse-sagews";
 
-interface Props {
-  output: OutputMessages;
-  flags?: string;
-}
+const RENDERERS = {
+  auto: () => <span />,
 
-export class CellOutput extends Component<Props> {
-  render_auto(): Rendered {
-    // This is deprecated, but can be in some older worksheets.
-    // It should do nothing for static rendering.
-    return <span />;
-  }
+  stdout: (value: string, key: string) => (
+    <Stdout key={key} message={fromJS({ text: value })} />
+  ),
 
-  render_stdout(value: string, key: string): Rendered {
-    return <Stdout key={key} message={fromJS({ text: value })} />;
-  }
+  stderr: (value: string, key: string) => (
+    <Stderr key={key} message={fromJS({ text: value })} />
+  ),
 
-  render_stderr(value: string, key: string): Rendered {
-    return <Stderr key={key} message={fromJS({ text: value })} />;
-  }
+  md: (value: string, key: string) => <Markdown key={key} value={value} />,
 
-  render_md(value: string, key: string): Rendered {
-    return <Markdown key={key} value={value} />;
-  }
+  html: (value: string, key: string) => (
+    <HTML key={key} value={value} auto_render_math={true} />
+  ),
 
-  render_html(value: string, key: string): Rendered {
-    return <HTML key={key} value={value} auto_render_math={true} />;
-  }
+  interact: (_value: object, key: string) => (
+    <div key={key}>Interact: please open in CoCalc</div>
+  ),
 
-  render_interact(_value: object, key: string): Rendered {
-    return <div key={key}>Interact: please open in CoCalc</div>;
-  }
+  d3: (_value: object, key) => (
+    <div key={key}>d3-based renderer not yet implemented</div>
+  ),
 
-  render_d3(_value: object, key): Rendered {
-    return <div key={key}>d3-based renderer not yet implemented</div>;
-  }
-
-  render_file(
+  file: (
     value: {
       show?: boolean;
       url?: string;
@@ -70,7 +59,7 @@ export class CellOutput extends Component<Props> {
       uuid?: string;
     },
     key: string
-  ): Rendered {
+  ) => {
     if (value.show != null && !value.show) {
       return;
     }
@@ -92,7 +81,7 @@ export class CellOutput extends Component<Props> {
     } else if (extensions.audio.has(ext)) {
       return <audio src={src} autoPlay={true} controls loop />;
     } else if (ext === "sage3d") {
-      return this.render_3d(value.filename, key);
+      return RENDERERS["3d"](value.filename, key);
     } else {
       let text: string;
       if (value.text) {
@@ -106,25 +95,22 @@ export class CellOutput extends Component<Props> {
         </a>
       );
     }
-  }
+  },
 
-  render_3d(_filename: string, key: string): Rendered {
-    return <div key={key}>3D rendering not yet implemented</div>;
-  }
+  "3d": (_filename: string, key: string) => (
+    <div key={key}>3D rendering not yet implemented</div>
+  ),
 
-  render_code(value: { mode: string; source?: string }, key: string): Rendered {
-    const options = { mode: { name: value.mode } };
-    return (
-      <CodeMirrorStatic
-        key={key}
-        value={value.source != null ? value.source : ""}
-        options={options}
-        style={{ background: "white", padding: "10px" }}
-      />
-    );
-  }
+  code: (value: { mode: string; source?: string }, key: string) => (
+    <CodeMirrorStatic
+      key={key}
+      value={value.source != null ? value.source : ""}
+      options={{ mode: { name: value.mode } }}
+      style={{ background: "white", padding: "10px" }}
+    />
+  ),
 
-  render_tex(value: { tex: string; display?: boolean }, key: string): Rendered {
+  tex: (value: { tex: string; display?: boolean }, key: string) => {
     let html = `$${value.tex}$`;
     if (value.display) {
       html = `$${html}$`;
@@ -134,12 +120,9 @@ export class CellOutput extends Component<Props> {
         <HTML value={html} auto_render_math={true} />
       </div>
     );
-  }
+  },
 
-  render_raw_input(
-    val: { prompt: string; value: string | undefined },
-    key
-  ): Rendered {
+  raw_input: (val: { prompt: string; value: string | undefined }, key) => {
     const { prompt, value } = val;
     // sanitizing value, b/c we know the share server throws right here:
     // TypeError: Cannot read property 'length' of undefined
@@ -156,37 +139,40 @@ export class CellOutput extends Component<Props> {
         />
       </div>
     );
+  },
+};
+
+interface Props {
+  output: OutputMessages;
+  flags?: string;
+}
+
+export default function CellOutput({ output, flags }: Props) {
+  if (flags != null && flags.indexOf(FLAGS.hide_output) != -1) {
+    return <span />;
   }
 
-  render_output_mesg(elts: Rendered[], mesg: object): void {
+  function render_output_mesg(elts: JSX.Element[], mesg: object): void {
     for (const type in mesg) {
       let value: any = mesg[type];
-      let f = this[`render_${type}`];
+      let f = RENDERERS[type];
       if (f == null) {
-        f = this.render_stderr;
+        f = RENDERERS.stderr;
         value = `unknown message type '${type}'`;
       }
-      elts.push(f.bind(this)(value, elts.length));
+      elts.push(f(value, elts.length));
     }
   }
 
-  render_output(): Rendered[] {
-    const elts: Rendered[] = [];
-    for (const mesg of process_messages(this.props.output)) {
-      this.render_output_mesg(elts, mesg);
+  function render_output(): JSX.Element[] {
+    const elts: JSX.Element[] = [];
+    for (const mesg of process_messages(output)) {
+      render_output_mesg(elts, mesg);
     }
     return elts;
   }
 
-  render() {
-    if (
-      this.props.flags != null &&
-      this.props.flags.indexOf(FLAGS.hide_output) != -1
-    ) {
-      return <span />;
-    }
-    return <div style={{ margin: "15px" }}>{this.render_output()}</div>;
-  }
+  return <div style={{ margin: "15px" }}>{render_output()}</div>;
 }
 
 // sort in order to a list and combine adjacent stdout/stderr messages.
