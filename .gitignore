@@ -135,3 +135,5 @@ src/packages/landing
 tsconfig.tsbuildinfo
 **/landing-free/cache/
 **/.next
+
+src/packages/*/.successful-build

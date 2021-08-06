@@ -96,6 +96,16 @@ The Hub is CoCalc's backend node.js server.
 
 That will ensure the latest version of the hub Typescript and Coffeescript gets compiled, and start a new hub running in the foreground logging what is happening to the console _**and also logging to files in**_ `data/logs/hub` .  Hit Control+C to terminate this server.  If you change any code in `packages/hub`, you have to stop the hub, then start it  again as above in order for the changes to take effect.
 
+### 4. Building only what has changed
+
+The command `npm run build`, when run from the src directory, caches the fact that there was a successful build by touching a file `src/packages/package-name/.successful_build` .  This _only_ does anything if you explicitly use the `npm run build` command from the src/ directory, and is ignored when directly building in a subdirectory. You can do `npm run build --exclude=static` periodically to rebuild precisely what needs to be built, except what is built using webpack (e.g., via `npm run static` as explained above):
+
+```sh
+~/cocalc/src/$ npm run build --exclude=static
+```
+
+This is very useful if you pull in a git branch or switch to a different git branch, and have no idea which packages have changed.
+
 ### Other
 
 #### Environment Variables
@@ -140,7 +150,7 @@ To publish a package `foo` (that is in \`src/packages/foo\`) to [npmjs.com](http
 ~/cocalc/src$ npm run publish --packages=foo                            # optional --tag=mytag
 ```
 
-Where it says `--newversion=`, reasonable options are `"major"`, `"minor"`, and `"patch"`. 
+Where it says `--newversion=`, reasonable options are `"major"`, `"minor"`, and `"patch"`.
 
 When publishing the versions of all workspace dependencies are updated to whatever is in your current cocalc branch.   Thus if you publish a major version update to one package, then when you publish the packages that depend on it, they will explicitly be set to depend on that new major version.
 
