@@ -16,7 +16,6 @@ export default function PublicPath({
   relativePath,
   contents,
   error,
-  basePath,
 }) {
   useCounter(id);
   if (id == null) return <Loading />;
@@ -53,7 +52,6 @@ export default function PublicPath({
         <PathContents
           id={id}
           relativePath={relativePath}
-          basePath={basePath}
           path={path}
           {...contents}
         />

@@ -22,7 +22,6 @@ interface Props {
   content?: string;
   relativePath: string;
   path: string;
-  basePath?: string;
 }
 
 export default function FileContents({
@@ -30,11 +29,10 @@ export default function FileContents({
   content,
   path,
   relativePath,
-  basePath,
 }: Props): JSX.Element {
   const filename = relativePath ? relativePath : path;
   const ext = getExtension(filename);
-  const raw = rawURL(id, filename, basePath);
+  const raw = rawURL(id, filename);
   if (isImage(ext)) {
     return <img src={raw} style={{ maxWidth: "100%" }} />;
   } else if (isVideo(ext)) {

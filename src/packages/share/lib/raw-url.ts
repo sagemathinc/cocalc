@@ -3,11 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export default function rawURL(
-  id: string,
-  relativePath: string,
-  basePath?: string
-): string {
+import { basePath } from "./customize";
+
+export default function rawURL(id: string, relativePath: string): string {
   return `${basePath ?? ""}/public_paths/raw/${id}/${encodePath(relativePath)}`;
 }
 
@@ -19,4 +17,3 @@ export function encodePath(path: string) {
   }
   return encoded.join("/");
 }
-

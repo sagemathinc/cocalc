@@ -4,11 +4,10 @@
  */
 
 import { encodePath } from "./raw-url";
+import { basePath } from "./customize";
 
-export default function downloadURL(
-  id: string,
-  relativePath: string,
-  basePath?: string
-): string {
-  return `${basePath ?? ""}/public_paths/download/${id}/${encodePath(relativePath)}`;
+export default function downloadURL(id: string, relativePath: string): string {
+  return `${basePath ?? ""}/public_paths/download/${id}/${encodePath(
+    relativePath
+  )}`;
 }
