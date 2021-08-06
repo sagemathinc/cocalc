@@ -32,14 +32,7 @@ validator = require('validator')
 
 LRU = require('lru-cache')
 
-pg      = require('pg').native    # You might have to do: "apt-get install libpq5 libpq-dev"
-if not pg?
-    throw Error("YOU MUST INSTALL the pg-native npm module")
-# You can uncommment this to use the pure javascript driver.
-#  However: (1) it can be 5x slower or more!
-#           (2) I think it corrupts something somehow in a subtle way, since our whole
-#               syncstring system was breaking... until I switched to native.  Not sure.
-#pg      = require('pg')
+pg      = require('pg')
 
 winston      = require('./logger').getLogger('postgres')
 {do_query_with_pg_params} = require('./postgres/set-pg-params')
@@ -75,7 +68,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             ensure_exists   : true  # ensure database exists on startup (runs psql in a shell)
             timeout_ms      : DEFAULT_TIMEOUS_MS # **IMPORTANT: if *any* query takes this long, entire connection is terminated and recreated!**
             timeout_delay_ms : DEFAULT_TIMEOUT_DELAY_MS # Only reconnect on timeout this many ms after connect.  Motivation: on initial startup queries may take much longer due to competition with other clients.
-        @setMaxListeners(10000)  # because of a potentially large number of changefeeds
+        @setMaxListeners(0)  # because of a potentially large number of changefeeds
         @_state = 'init'
         @_debug = opts.debug
         @_timeout_ms = opts.timeout_ms
@@ -194,7 +187,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         return @_clients? and @_clients.length > 0
 
     _connect: (cb) =>
-        dbg = @_dbg("_do_connect")
+        dbg = @_dbg("_connect")
         dbg("connect to #{@_host}")
         @_clear_listening_state()   # definitely not listening
         if @_clients?
@@ -261,7 +254,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         database : @_database
                     if @_notification?
                         client.on('notification', @_notification)
-                    client.on 'error', (err) =>
+                    onError = (err) =>
+                        # only listen once for error; after that we've
+                        # killed connection and don't care.
+                        client.removeListener('error', onError)
                         if @_state == 'init'
                             # already started connecting
                             return
@@ -269,7 +265,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         dbg("error -- #{err}")
                         @disconnect()
                         @connect()  # start trying to reconnect
-                    client.setMaxListeners(1000)  # there is one emitter for each concurrent query... (see query_cb)
+                    client.on('error', onError)
+                    client.setMaxListeners(0)  # there is one emitter for each concurrent query... (see query_cb)
                     locals.clients.push(client)
 
                 for host in locals.hosts
@@ -291,6 +288,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 await Promise.all((f(c) for c in locals.clients))
 
                 if locals.clients_that_worked.length == 0
+                    console.warn("ALL clients failed", locals.errors)
                     dbg("ALL clients failed", locals.errors)
                     cb("ALL clients failed to connect")
                 else

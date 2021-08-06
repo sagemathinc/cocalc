@@ -80,7 +80,6 @@
     "passport-twitter": "^1.0.4",
     "password-hash": "^1.2.2",
     "pg": "^8.7.1",
-    "pg-native": "^3.0.0",
     "primus": "^8.0.3",
     "prom-client": "^13.0.0",
     "pug": "^3.0.2",
