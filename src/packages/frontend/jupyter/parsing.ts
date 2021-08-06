@@ -11,18 +11,15 @@ This can *ONLY* be used from the browser!
 const { endswith } = require("@cocalc/util/misc");
 import { Syntax } from "@cocalc/util/code-formatter";
 
-// We use a special version of runMode that can be run on the backend
-// or frontend, to better support next.js.
-// @ts-ignore -- issue with runMode having any type
-import { runMode } from "codemirror/addon/runmode/runmode.node";
+import * as CodeMirror from "codemirror";
 
 export function run_mode(code: string, mode: string, language: string) {
   if (!code) {
     // code assumed trimmed
     return "empty";
   } else if (language !== "prolog") {
-    const needle = last_style(code, mode);
-    if (needle === "comment" || needle === "string") {
+    const style = last_style(code, mode);
+    if (style === "comment" || style === "string") {
       return "execute";
     } else if (endswith(code, "??")) {
       // TODO: can we not just use "string.endsWith"?
@@ -36,7 +33,7 @@ export function run_mode(code: string, mode: string, language: string) {
 
 function last_style(code: string, mode = "python"): string | null | undefined {
   let style: string | null | undefined = undefined;
-  runMode(code, mode, (_, s) => {
+  CodeMirror.runMode(code, mode, (_, s) => {
     style = s;
   });
   return style;

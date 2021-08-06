@@ -35,9 +35,8 @@ interface Props {
 export class Diff extends Component<Props> {
   private update: Function;
   private cm?: CodeMirror.Editor;
-  private textarea_ref: React.RefObject<HTMLTextAreaElement> = React.createRef<
-    HTMLTextAreaElement
-  >();
+  private textarea_ref: React.RefObject<HTMLTextAreaElement> =
+    React.createRef<HTMLTextAreaElement>();
 
   private init_codemirror() {
     const textarea = this.textarea_ref.current;
