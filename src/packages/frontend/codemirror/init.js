@@ -4,7 +4,6 @@
  */
 
 require("./codemirror");
-console.log("codemirror init", window.CodeMirror);
 require("./modes");
 require("./addons");
 require("./keymaps");

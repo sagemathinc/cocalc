@@ -13,9 +13,9 @@ import {
 } from "lib/file-extensions";
 import rawURL from "lib/raw-url";
 import CodeMirror from "components/codemirror";
-import Markdown from "components/markdown";
 import SageWorksheet from "components/sage-worksheet";
 import JupyterNotebook from "components/jupyter-notebook";
+import { Markdown } from "@cocalc/frontend/markdown";
 
 interface Props {
   id: string;
@@ -53,7 +53,7 @@ export default function FileContents({
   } else if (isCodemirror(ext)) {
     return <CodeMirror content={content} filename={filename} />;
   } else if (isMarkdown(ext)) {
-    return <Markdown content={content} />;
+    return <Markdown value={content} />;
   } else if (ext == "sagews") {
     return <SageWorksheet content={content} />;
   } else if (ext == "ipynb") {

@@ -6,7 +6,7 @@
 import { Set } from "immutable";
 import React, { CSSProperties as CSS, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
-import { useIsMountedRef } from "../app-framework/hooks";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { is_share_server } from "./share-server";
 import { sanitize_html, sanitize_html_safe } from "../misc-page/sanitize";
 

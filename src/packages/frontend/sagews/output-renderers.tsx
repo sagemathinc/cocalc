@@ -7,10 +7,11 @@ import { Stdout } from "@cocalc/frontend/jupyter/output-messages/stdout";
 import { Stderr } from "@cocalc/frontend/jupyter/output-messages/stderr";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { Markdown } from "@cocalc/frontend/markdown";
-//import { HTML } from "@cocalc/frontend/r_misc/html";
+import HTML from "@cocalc/frontend/r_misc/html-ssr";
 
 const RENDERERS = {
   md: (value: string, key: string) => <Markdown key={key} value={value} />,
+  html: (value: string, key: string) => <HTML key={key} value={value} />,
   stdout: (value: string, key: string) => (
     <Stdout key={key} message={fromJS({ text: value })} />
   ),
