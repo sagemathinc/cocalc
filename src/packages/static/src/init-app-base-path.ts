@@ -2,6 +2,7 @@
    string attribute that is defined. */
 
 import { join } from "path";
+import { setAppBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 declare global {
   interface Window {
@@ -10,17 +11,20 @@ declare global {
 }
 
 const { pathname } = window.location;
-console.log("pathname = ", pathname);
 let i = pathname.lastIndexOf("/static");
+
+let appBasePath : string;
 if (i != -1) {
-  window.app_base_path = i == 0 ? "/" : pathname.slice(0, i);
+  appBasePath = i == 0 ? "/" : pathname.slice(0, i);
 } else {
   // This is a fallback that *should* never happen, since the hub
   // should redirect everything to /static/app.html.
-  window.app_base_path = "/";
+  appBasePath = "/";
 }
 
 // See https://webpack.js.org/guides/public-path/
 // and it's pretty cool this is supported!!
 declare var __webpack_public_path__: any;
-__webpack_public_path__ = join(window.app_base_path, "static/");
+__webpack_public_path__ = join(appBasePath, "static/");
+
+setAppBasePath(appBasePath);

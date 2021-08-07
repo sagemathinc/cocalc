@@ -18,6 +18,7 @@ export interface Customize {
   splashImage?: string;
   indexInfo?: string;
   basePath: string;
+  appBasePath: string;
 }
 
 // I tried many ways, and using next.js's process.env support
@@ -31,6 +32,8 @@ const CUSTOMIZE: Customize = process.env.CUSTOMIZE
 
 if (CUSTOMIZE.basePath == null) {
   CUSTOMIZE.basePath = "/"; // ensure guarantee of type
+  const i = basePath.lastIndexOf("/"); // stripping off "/share" from end
+  CUSTOMIZE.appBasePath = basePath.slice(0, i);
 }
 
 // The following is redundant, but Typescript checks it and
@@ -53,6 +56,7 @@ const {
   splashImage,
   indexInfo,
   basePath,
+  appBasePath,
 } = CUSTOMIZE;
 
 export {
@@ -71,8 +75,5 @@ export {
   splashImage,
   indexInfo,
   basePath,
+  appBasePath,
 };
-
-// TODO: make configurable, etc.
-const i = basePath.lastIndexOf("/");
-export const applicationURL = basePath.slice(0, i);

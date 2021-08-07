@@ -2,7 +2,7 @@ import Link from "next/link";
 import SquareLogo from "./logo-square";
 import {
   anonymousSignup,
-  applicationURL,
+  appBasePath,
   basePath,
   helpEmail,
   siteName,
@@ -32,7 +32,7 @@ export default function Header() {
         textAlign: "center",
       }}
     >
-      <a href={applicationURL}>
+      <a href={appBasePath}>
         <SquareLogo style={{ height: "40px", marginRight: GAP }} />
       </a>
       <Link href="/">

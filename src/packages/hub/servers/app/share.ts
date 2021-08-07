@@ -1,4 +1,4 @@
-/* 
+/*
  Serve the share server, which is a Next.js application, on /share
  */
 
@@ -14,6 +14,10 @@ export default async function init(app: Application) {
   // getCustomize uses the server base path, but share server append /share to it.
   const basePath = join(customize.basePath, "share");
   customize.basePath = basePath;
+
+  // TODO: need way to configure share.cocalc.com to set
+  // customize.appBasePath = 'https://cocalc.com/'.
+  // This could be a command line flag, env variable, or the database.
 
   winston.info(`Initializing the share server... with customize=%j`, customize);
   const handler = await initShareServer({

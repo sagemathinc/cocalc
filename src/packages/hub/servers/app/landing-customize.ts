@@ -50,5 +50,6 @@ export default async function getCustomize(): Promise<Customize> {
     indexInfo: settings.index_info_html,
 
     basePath,
+    appBasePath: basePath,
   };
 }
