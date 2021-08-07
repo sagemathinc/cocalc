@@ -101,6 +101,14 @@ export class Changes extends EventEmitter {
     // connection to the database.  No point in worrying them while trying
     // to reconnect, which only makes matters worse (as they panic and
     // requests pile up!).
+
+    // This setMaxListeners is here because I keep getting warning about
+    // this despite setting it in the db constructor.  Putting this here
+    // definitely does work, whereas having it only in the constructor
+    // definitely does NOT.  Don't break this without thought, as it has very bad
+    // consequences when the database connection drops.
+    this.db.setMaxListeners(0);
+
     this.db.once("connect", this.close);
     cb(undefined, this);
   }

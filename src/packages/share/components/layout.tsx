@@ -11,6 +11,9 @@ import SiteName from "components/site-name";
 import Analytics from "components/analytics";
 import Footer from "components/footer";
 import Header from "components/header";
+import { basePath } from "lib/customize";
+
+const favicon = `${basePath}/../webapp/favicon.ico`;
 
 export function Layout({ children }) {
   return (
@@ -20,10 +23,7 @@ export function Layout({ children }) {
           <SiteName />
         </title>
         <meta name="description" content="CoCalc Share Server" />
-        <link
-          rel="icon"
-          href={`${process.env.BASE_PATH ?? ""}/../webapp/favicon.ico`}
-        />
+        <link rel="icon" href={favicon} />
         <Analytics />
       </Head>
       <AntdLayout>
@@ -54,7 +54,7 @@ export function Embed({ children }) {
         <title>
           <SiteName />
         </title>
-        <link rel="icon" href={`${process.env.basePath ?? ""}/favicon.ico`} />
+        <link rel="icon" href={favicon} />
         <Analytics />
       </Head>
       <main>{children}</main>

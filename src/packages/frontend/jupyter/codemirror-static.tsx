@@ -14,6 +14,7 @@
 //
 // In benchmarks, this seems to easily be 10x faster than creating an actual CodeMirror editor.
 
+
 import React from "react";
 
 // This tricky code works in both Node.js *and* the web browser, in a way that
@@ -35,6 +36,8 @@ try {
     global.CodeMirror = require("codemirror/addon/runmode/runmode.node");
   require("@cocalc/frontend/codemirror/modes");
 }
+
+export const runMode = CodeMirror.runMode;
 
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
@@ -108,7 +111,7 @@ export function CodeMirrorStatic(props: Props) {
 
     try {
       // @ts-ignore -- fails in packages/hub right now...
-      CodeMirror.runMode(props.value, mode, append);
+      runMode(props.value, mode, append);
     } catch (err) {
       /* This does happen --
             https://github.com/sagemathinc/cocalc/issues/3626

@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
 /*
 We cache recently loaded PDF.js docs, so that:
 
@@ -23,7 +22,6 @@ const MAX_PAGES = 1000;
 import LRU from "lru-cache";
 import { reuseInFlight } from "async-await-utils/hof";
 
-
 /* IMPORTANT:
  - We do NOT install pdfjs-dist into the @cocalc/frontend module at all though we import it here!!
  - The reason is because it includes its own copy of webpack as a side effect of having its
@@ -34,12 +32,8 @@ import { reuseInFlight } from "async-await-utils/hof";
    them, which causes trouble, so we explicitly use a babel plugin just to deal
    with this package.  That's all in packages/static.
 */
-import {
-  getDocument as pdfjs_getDocument,
-  PDFDocumentProxy,
-} from "pdfjs-dist";
-
-
+import { getDocument as pdfjs_getDocument } from "pdfjs-dist";
+import type { PDFDocumentProxy } from "pdfjs-dist/webpack";
 
 import { raw_url } from "../frame-tree/util";
 import { pdf_path } from "./util";
@@ -66,11 +60,11 @@ const doc_cache = new LRU(options);
 export const getDocument = reuseInFlight(async function (url: string) {
   let doc: PDFDocumentProxy | undefined = doc_cache.get(url);
   if (doc === undefined) {
-    doc = await pdfjs_getDocument({
+    doc = (await pdfjs_getDocument({
       url,
       disableStream: true,
       disableAutoFetch: true,
-    }).promise;
+    }).promise) as unknown as PDFDocumentProxy;
     doc_cache.set(url, doc);
   }
   return doc;

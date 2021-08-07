@@ -39,7 +39,7 @@ import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import debug from "debug";
 const LOG = debug("hub:auth");
 import { join as path_join } from "path";
-import { v4 } from "node-uuid";
+import { v4 } from "uuid";
 import passport from "passport";
 import * as dot from "dot-object";
 import * as _ from "lodash";

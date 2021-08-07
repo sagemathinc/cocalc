@@ -9,7 +9,7 @@ Client = a client that is connected via a persistent connection to the hub
 
 {EventEmitter}       = require('events')
 
-uuid                 = require('node-uuid')
+uuid                 = require('uuid')
 async                = require('async')
 
 # TODO: I'm very suspicious about this sameSite:"none" config option.

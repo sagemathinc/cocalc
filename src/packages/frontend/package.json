@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/frontend",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CoCalc: Collaborative Calculation",
   "exports": {
     "./*": "./dist/*.js",
@@ -41,7 +41,7 @@
     "@ant-design/icons": "^4.3.0",
     "@cocalc/assets": "^1.0.1",
     "@cocalc/cdn": "^1.2.2",
-    "@cocalc/hub": "^1.0.1",
+    "@cocalc/hub": "^1.0.2",
     "@cocalc/project": "^1.0.2",
     "@cocalc/util": "^1.0.3",
     "@jupyter-widgets/base": "^1.2.3",
@@ -50,6 +50,7 @@
     "@jupyterlab/services": "^3.2.1",
     "@phosphor/widgets": "^1.9.3",
     "@react-hook/hover": "^4.0.0",
+    "@types/pdfjs-dist": "^2.7.4",
     "@zippytech/react-notify-resize": "^4.0.4",
     "ansi-to-react": "^6.0.10",
     "antd": "^4.16.8",
@@ -162,7 +163,6 @@
     "@types/mathjax": "0.0.36",
     "@types/md5": "^2.2.0",
     "@types/mocha": "^5.2.7",
-    "@types/pdfjs-dist": "^2.7.3",
     "@types/react": "^17.0.14",
     "@types/react-bootstrap": "^0.32.21",
     "@types/react-dom": "^17.0.0",

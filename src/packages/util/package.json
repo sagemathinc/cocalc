@@ -29,6 +29,7 @@
   ],
   "dependencies": {
     "@cocalc/util": "*",
+    "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
@@ -40,7 +41,7 @@
     "sha1": "^1.1.1",
     "underscore": "^1.12.1",
     "utility-types": "^3.10.0",
-    "uuid": "^8.0.0"
+    "uuid": "^8.3.2"
   },
   "repository": {
     "type": "git",

@@ -11,11 +11,11 @@ import { React } from "../../app-framework";
 import { is_different } from "@cocalc/util/misc";
 import { NonloadedPage } from "./pdfjs-nonloaded-page";
 import { CanvasPage } from "./pdfjs-canvas-page";
-import {
+import type {
   PDFAnnotationData,
   PDFPageProxy,
   PDFDocumentProxy,
-} from "pdfjs-dist";
+} from "pdfjs-dist/webpack";
 import { SyncHighlight } from "./pdfjs-annotation";
 
 export const PAGE_GAP: number = 20;

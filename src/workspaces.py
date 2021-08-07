@@ -21,13 +21,14 @@ def newest_file(path):
     ).read().strip()
 
 
+SUCCESSFUL_BUILD = ".successful-build"
 def needs_build(package):
+    # Code below was hopelessly naive, e.g, a failed build would not get retried.
     # We only need to do a build if the newest file in the tree is not
     # in the dist directory.
     path = os.path.join(os.path.dirname(__file__), package)
     newest = newest_file(path)
-    return not newest.startswith('./dist/') and not newest.startswith(
-        './.next/')
+    return not newest.startswith('./' + SUCCESSFUL_BUILD)
 
 
 def handle_path(s, path=None, verbose=True):
@@ -223,7 +224,12 @@ def build(args):
             if os.path.exists(dist):
                 # clear dist/ dir
                 shutil.rmtree(dist)
-        cmd("npm run build", os.path.join(CUR, path))
+        package_path = os.path.join(CUR, path)
+        cmd("npm run build", package_path)
+        # The build succeeded, so touch a file
+        # to indicate this, so we won't build again
+        # until something is newer than this file
+        cmd("touch " + SUCCESSFUL_BUILD, package_path)
 
     if args.parallel:
         thread_map(f, v)
@@ -357,9 +363,7 @@ def publish_package(args, package):
     sys.stdout.flush()
 
     if not package_version_is_modified_from_last_git_commit(package):
-        raise RuntimeError(
-            f"You *must* first run update-version for '{package}', or somehow update the version in {package}/package.json."
-        )
+        print("WARNING: You *might* need to first run update-version for '{package}', or somehow update the version in {package}/package.json.")
     # Do the build
     cmd("npm run build", package)
     try:

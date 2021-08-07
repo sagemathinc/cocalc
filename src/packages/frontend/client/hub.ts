@@ -27,6 +27,14 @@ import { deleteRememberMe, setRememberMe } from "@cocalc/util/remember-me";
 // to send at once to hub-websocket.
 const MAX_CONCURRENT: number = 17;
 
+// just define what we need for code sanity
+interface PrimusConnection {
+  write: (arg0: string) => void;
+  open: () => void;
+  end: () => void;
+  latency?: number;
+}
+
 export interface MessageInfo {
   count: number;
   sent: number;
@@ -39,7 +47,7 @@ export interface MessageInfo {
 
 export class HubClient {
   private client: WebappClient;
-  private conn: any; // primus connection
+  private conn?: PrimusConnection;
 
   private connected: boolean = false;
   private connection_is_totally_dead: boolean = false;
@@ -109,9 +117,15 @@ export class HubClient {
     this.write_data(data);
   }
 
-  private write_data(data) {
+  private write_data(data: string): void {
+    if (this.conn == null) {
+      console.warn(
+        "HubClient.write_data: can't write data since not connected"
+      );
+      return;
+    }
     try {
-      return this.conn.write(data);
+      this.conn.write(data);
     } catch (err) {
       console.warn("HubClient.write_data", err);
     }
@@ -148,15 +162,13 @@ export class HubClient {
   public reconnect(): void {
     if (this.connection_is_totally_dead) {
       // CRITICAL: See https://github.com/primus/primus#primusopen !
-      if (this.conn != null) {
-        this.conn.open();
-      }
+      this.conn?.open();
     }
   }
 
   public disconnect(): void {
-    if (this.connected && this.conn != null) {
-      this.conn.end();
+    if (this.connected) {
+      this.conn?.end();
     }
   }
 
@@ -495,13 +507,13 @@ export class HubClient {
 
   public fix_connection(): void {
     this.delete_websocket_cookie();
-    this.conn.end();
-    this.conn.open();
+    this.conn?.end();
+    this.conn?.open();
   }
 
   public latency(): number | void {
     if (this.connected) {
-      return this.conn.latency;
+      return this.conn?.latency;
     }
   }
 }
