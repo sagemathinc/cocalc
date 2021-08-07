@@ -9,7 +9,7 @@ Jupyter notebook server is running, then pops it up in a new tab.
 */
 
 import { join } from "path";
-import { React } from "@cocalc/frontend/app-framework";
+import React from "react";
 import { Icon, IconName, SettingBox } from "../r_misc";
 import LinkRetry from "../widgets-misc/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";

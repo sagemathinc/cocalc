@@ -6,7 +6,7 @@
 export { RenderElementProps } from "../slate-react";
 export * from "./hooks";
 
-import { React } from "@cocalc/frontend/app-framework";
+import React from "react";
 import { RenderElementProps } from "../slate-react";
 import { Descendant, Element } from "slate";
 import { State as MarkdownParserState, Token } from "../markdown-to-slate";

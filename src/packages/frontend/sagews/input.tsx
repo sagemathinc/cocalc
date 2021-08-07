@@ -11,7 +11,7 @@ import React from "react";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { FLAGS } from "@cocalc/util/sagews";
 
-const OPTIONS = { mode: { name: "sagews" } };
+const OPTIONS = { mode: "sagews" };
 
 interface Props {
   input?: string;

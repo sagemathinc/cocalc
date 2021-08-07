@@ -32,7 +32,6 @@ export default function PublicPath({
   license,
   contents,
   error,
-  appServer,
 }) {
   useCounter(id);
   if (id == null) return <Loading />;
@@ -130,13 +129,7 @@ export async function getStaticProps(context) {
   const relativePath = context.params.id.slice(1).join("/");
   try {
     const props = await getPublicPathInfo(id, relativePath);
-    if (process.env.COCALC_APP_SERVER != null) {
-      props.appServer = process.env.COCALC_APP_SERVER; // used for edit link
-    }
-    return {
-      props,
-      revalidate: 5,
-    };
+    return { props, revalidate: 5 };
   } catch (_err) {
     //console.log(_err);
     return { notFound: true };

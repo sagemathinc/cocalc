@@ -14,30 +14,8 @@
 //
 // In benchmarks, this seems to easily be 10x faster than creating an actual CodeMirror editor.
 
-
 import React from "react";
-
-// This tricky code works in both Node.js *and* the web browser, in a way that
-// works with Next.js SSR rendering.  It just tooks hours of careful thought
-// and trial and error to figure out.
-let CodeMirror;
-try {
-  // Try to require the full codemirror package.  In the browser via webpack
-  // this will work and runMode is defined.  In nextjs in the browser, this
-  // CodeMirror.runMode is null.
-  CodeMirror = require("codemirror");
-  if (CodeMirror?.runMode == null) {
-    throw Error();
-  }
-} catch (_) {
-  // In next.js browser or node.js, so we use the node runmode approach,
-  // which fully works in both situations.
-  CodeMirror =
-    global.CodeMirror = require("codemirror/addon/runmode/runmode.node");
-  require("@cocalc/frontend/codemirror/modes");
-}
-
-export const runMode = CodeMirror.runMode;
+import CodeMirror from "@cocalc/frontend/codemirror/static";
 
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
@@ -111,7 +89,7 @@ export function CodeMirrorStatic(props: Props) {
 
     try {
       // @ts-ignore -- fails in packages/hub right now...
-      runMode(props.value, mode, append);
+      CodeMirror.runMode(props.value, mode, append);
     } catch (err) {
       /* This does happen --
             https://github.com/sagemathinc/cocalc/issues/3626

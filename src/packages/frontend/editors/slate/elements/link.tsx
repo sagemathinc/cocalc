@@ -4,7 +4,7 @@
  */
 
 import { Text } from "slate";
-import { React } from "@cocalc/frontend/app-framework";
+import React from "react";
 import { register, SlateElement, useProcessLinks } from "./register";
 import { dict } from "@cocalc/util/misc";
 import { open_new_tab } from "@cocalc/frontend/misc-page";

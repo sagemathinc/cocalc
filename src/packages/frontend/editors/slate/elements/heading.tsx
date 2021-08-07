@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "@cocalc/frontend/app-framework";
+import React from "react";
 import { ReactEditor } from "../slate-react";
 import { register, SlateElement, useSlateStatic } from "./register";
 import { mark_block } from "../util";

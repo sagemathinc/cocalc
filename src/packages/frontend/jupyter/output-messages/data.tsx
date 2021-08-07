@@ -4,7 +4,7 @@
  */
 
 import { Map } from "immutable";
-import { React } from "@cocalc/frontend/app-framework";
+import React from "react";
 import { all_fields_equal } from "@cocalc/util/misc";
 import { Markdown, HTML } from "../../r_misc";
 import { JupyterActions } from "../browser-actions";
