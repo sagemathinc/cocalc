@@ -93,9 +93,6 @@ export async function init(opts: {
     if (opts.share_path) {
       app.use(path.join(base_path, "share"), share_router);
     }
-    if ((global as any).window != null) {
-      (global as any).window["app_base_path"] = base_path;
-    }
   } else {
     app.use(router);
     if (opts.share_path) {

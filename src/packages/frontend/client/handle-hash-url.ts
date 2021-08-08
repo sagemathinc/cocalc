@@ -5,6 +5,7 @@
 
 import { hasRememberMe } from "@cocalc/util/remember-me";
 import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 function handleHashUrl(): string {
   // This code may get compiled by the backend project, so make it work without DOM declarations.
@@ -31,7 +32,7 @@ function handleHashUrl(): string {
   }
   if (!target) {
     // if no target is encoded in the url:
-    if (hasRememberMe(window.app_base_path)) {
+    if (hasRememberMe(appBasePath)) {
       // probably signed in -- show user their list of projects
       target = "projects";
     } else {
@@ -54,7 +55,7 @@ function handleHashUrl(): string {
   }
 
   // Finally remove the hash from the url (without refreshing the page, of course).
-  let full_url = document.location.origin + join(window.app_base_path, target);
+  let full_url = document.location.origin + join(appBasePath, target);
   if (query_params) {
     full_url += "?" + query_params;
   }

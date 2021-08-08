@@ -9,6 +9,8 @@
 
 // tests at startup if localStorage exists and works. if not or disabled, uses memory as a fallback.
 
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+
 const LS: { [k: string]: string | undefined } = (function () {
   let it_works = false;
   try {
@@ -40,7 +42,7 @@ function make_key(keys: Keys): string {
     return keys.getKey();
   } else {
     const key = typeof keys == "string" ? keys : keys.join(".");
-    return [window.app_base_path, key].join("::");
+    return [appBasePath, key].join("::");
   }
 }
 

@@ -7,6 +7,7 @@ $         = window.$
 async     = require('async')
 stringify = require('json-stable-stringify')
 CodeMirror = require('codemirror')
+{ appBasePath } = require("@cocalc/frontend/customize/app-base-path");
 
 {MARKERS, FLAGS, ACTION_FLAGS, ACTION_SESSION_FLAGS} = require('@cocalc/util/sagews')
 
@@ -1141,7 +1142,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             src         = y.attr('src')
             # checking, if we need to fix the src path
             is_fullurl  = src.indexOf('://') != -1
-            is_blob     = misc.startswith(src, join(window.app_base_path, 'blobs/'))
+            is_blob     = misc.startswith(src, join(appBasePath, 'blobs/'))
             # see https://github.com/sagemathinc/cocalc/issues/651
             is_data     = misc.startswith(src, 'data:')
             if is_fullurl or is_data or is_blob
@@ -1150,7 +1151,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             file_path = @file_path()
             if misc.startswith(src, '/')
                 file_path = ".smc/root/#{file_path}"
-            new_src = join(window.app_base_path, @project_id, 'raw', file_path, src)
+            new_src = join(appBasePath, @project_id, 'raw', file_path, src)
             y.attr('src', new_src)
 
     _post_save_success: () =>
@@ -1346,7 +1347,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 if val.url?
                     target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that changes
                 else
-                    target = join(window.app_base_path, "blobs", "#{misc.encode_path(val.filename)}?uuid=#{val.uuid}")
+                    target = join(appBasePath, "blobs", "#{misc.encode_path(val.filename)}?uuid=#{val.uuid}")
                 switch misc.filename_extension(val.filename).toLowerCase()
                     # TODO: harden DOM creation below?
 

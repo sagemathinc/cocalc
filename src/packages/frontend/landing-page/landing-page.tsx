@@ -31,6 +31,7 @@ import { PassportStrategy } from "../account/passport-types";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS, DOC_URL } from "@cocalc/util/theme";
 import { APP_ICON_WHITE, APP_LOGO_NAME_WHITE } from "../art";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const DESC_FONT = "sans-serif";
 
@@ -408,7 +409,7 @@ class LandingPage extends Component<Props & reduxProps, State> {
                 <br />
                 {!this.props.get_api_key ? (
                   <div>
-                    <a href={window.app_base_path}>Landing page</a>
+                    <a href={appBasePath}>Landing page</a>
                   </div>
                 ) : undefined}
               </div>

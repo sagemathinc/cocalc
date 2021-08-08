@@ -6,7 +6,6 @@
 // Not sure where this should go...
 declare global {
   interface Window {
-    app_base_path: string;
     Primus: any;
   }
 }

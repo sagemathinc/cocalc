@@ -12,6 +12,7 @@ import { AccountTable } from "./table";
 import { init_dark_mode } from "./dark-mode";
 import { reset_password_key } from "../client/password-reset";
 import { hasRememberMe } from "@cocalc/util/remember-me";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export function init(redux) {
   // Register account store
@@ -23,9 +24,7 @@ export function init(redux) {
   init.strategies = global["STRATEGIES"];
   init.other_settings.show_global_info2 = "loading"; // indicates there is no data yet
   init.editor_settings.physical_keyboard = "NO_DATA"; // indicator that there is no data
-  init.user_type = hasRememberMe(window.app_base_path)
-    ? "signing_in"
-    : "public"; // default
+  init.user_type = hasRememberMe(appBasePath) ? "signing_in" : "public"; // default
   const store = redux.createStore("account", AccountStore, init);
   const actions = redux.createActions("account", AccountActions);
 

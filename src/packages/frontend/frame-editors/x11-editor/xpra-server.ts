@@ -11,6 +11,7 @@ import { exec, ExecOutput, ExecOpts } from "../generic/client";
 import { reuseInFlight } from "async-await-utils/hof";
 import { MAX_WIDTH, MAX_HEIGHT } from "./xpra/surface";
 import { splitlines, split } from "@cocalc/util/misc";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export interface ExecOpts0 {
   command: string;
@@ -206,9 +207,9 @@ export class XpraServer {
     if (!hostname) {
       // this will fail if hostname hasn't been set yet via an async call
       // and NOT in kucalc (where there hostname is canonical).
-      if (window.app_base_path != "/") {
+      if (appBasePath != "/") {
         // cocalc-in-cocalc dev
-        hostname = `project-${window.app_base_path.slice(1, 37)}`;
+        hostname = `project-${appBasePath.slice(1, 37)}`;
       } else {
         // kucalc
         hostname = `project-${this.project_id}`;

@@ -31,6 +31,7 @@ import {
 } from "@cocalc/util/compute-images";
 import { join } from "path";
 import { ComputeImageSelector } from "../project/settings/compute-image-selector";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
 
@@ -275,7 +276,7 @@ export const SoftwareEnvironment: React.FC<Props> = ({
         <b>Default</b>: large repository of software, well tested – maintained
         by <CompanyName />, running <SiteName />.{" "}
         <a
-          href={join(window.app_base_path, "doc/software.html")}
+          href={join(appBasePath, "doc/software.html")}
           target={"_blank"}
           rel={"noopener"}
         >

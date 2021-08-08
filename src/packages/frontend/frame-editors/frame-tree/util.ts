@@ -11,6 +11,7 @@ import { path_split, separate_file_extension } from "@cocalc/util/misc";
 import { aux_file } from "@cocalc/util/misc";
 export { aux_file };
 import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export function parse_path(path: string): {
   directory: string;
@@ -23,5 +24,5 @@ export function parse_path(path: string): {
 }
 
 export function raw_url(project_id: string, path: string): string {
-  return join(window.app_base_path, project_id, "raw", path);
+  return join(appBasePath, project_id, "raw", path);
 }

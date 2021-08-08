@@ -46,6 +46,7 @@ import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { download_href, url_href } from "./project/utils";
 import { ensure_project_running } from "./project/project-start-warning";
 import { download_file, open_new_tab, open_popup_window } from "./misc-page";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
@@ -714,7 +715,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   public open_in_new_browser_window(path: string, fullscreen = "kiosk"): void {
-    let url = join(window.app_base_path, this._url_in_project(`files/${path}`));
+    let url = join(appBasePath, this._url_in_project(`files/${path}`));
     url += "?session=";
     if (fullscreen) {
       url += `&fullscreen=${fullscreen}`;

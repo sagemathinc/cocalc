@@ -7,18 +7,15 @@
 Functions for getting or formatting url's for various backend endpoints
 */
 import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 // TODO: seperate front specific code that uses this stuff;
 // interestingly, removing "window" here triggers a problem
-// with the non-standard window.app_base_path attribute
+// with the non-standard appBasePath attribute
 declare const window: any;
 
 export function get_server_url(project_id: string): string {
-  return join(
-    window ? window.app_base_path ?? "/" : "/",
-    project_id,
-    "raw/.smc/jupyter"
-  );
+  return join(appBasePath, project_id, "raw/.smc/jupyter");
 }
 
 export function get_blob_url(

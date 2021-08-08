@@ -11,6 +11,7 @@ import { WebappClient } from "./client";
 import { NAME as LAUNCH_NAME } from "../launch/actions";
 import { PROJECT_INVITE_QUERY_PARAM } from "../collaborators/handle-project-invite";
 import { hasRememberMe } from "@cocalc/util/remember-me";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export const ANON_PROJECT_TITLE = "Welcome to CoCalc!";
 
@@ -28,7 +29,7 @@ export function should_do_anonymous_setup(): boolean {
   const anonymous_query_param = QueryParams.get("anonymous");
   return (
     (anonymous_query_param != null || project_invite_query_param != null) &&
-    !hasRememberMe(window.app_base_path)
+    !hasRememberMe(appBasePath)
   );
 }
 

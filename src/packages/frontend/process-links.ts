@@ -16,6 +16,7 @@ declare const $: any;
 
 import { is_valid_uuid_string, startswith } from "@cocalc/util/misc";
 import { redux } from "./app-framework";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 function load_target(target: string, switch_to: boolean, anchor: string): void {
   const actions = redux.getActions("projects");
@@ -38,8 +39,7 @@ export function starts_with_cloud_url(href: string): boolean {
   // This is one situation where our choice of definition of "/" for the
   // trivial base path is annoying.
   const origin =
-    document.location.origin +
-    (window.app_base_path.length > 1 ? window.app_base_path : "");
+    document.location.origin + (appBasePath.length > 1 ? appBasePath : "");
   const is_samedomain: boolean =
     startswith(href, origin) &&
     !is_valid_uuid_string(href.slice(origin.length + 1, origin.length + 37));
@@ -175,7 +175,7 @@ function process_media_tag(y: any, attr: string, opts: Options2): void {
       // j-i should be 36, unless we ever start to have different (vanity) project_ids
       const path = src.slice(j + "/files/".length);
       project_id = src.slice(i + "/projects/".length, j);
-      new_src = join(window.app_base_path, project_id, "raw", path);
+      new_src = join(appBasePath, project_id, "raw", path);
       y.attr(attr, new_src);
       return;
     }
@@ -185,13 +185,7 @@ function process_media_tag(y: any, attr: string, opts: Options2): void {
     }
     // we do not have an absolute url, hence we assume it is a
     // relative URL to a file in a project
-    new_src = join(
-      window.app_base_path,
-      opts.project_id,
-      "raw",
-      opts.file_path,
-      src
-    );
+    new_src = join(appBasePath, opts.project_id, "raw", opts.file_path, src);
   }
   if (new_src != null) {
     y.attr(attr, new_src);

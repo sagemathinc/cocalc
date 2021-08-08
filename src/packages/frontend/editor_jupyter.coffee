@@ -57,6 +57,7 @@ syncdoc              = require('./syncdoc')
 
 templates            = $(".smc-jupyter-templates")
 editor_templates     = $("#webapp-editor-templates")
+{ appBasePath } = require("@cocalc/frontend/customize/app-base-path");
 
 exports.IPYTHON_SYNCFILE_EXTENSION = IPYTHON_SYNCFILE_EXTENSION = ".sage-jupyter"
 
@@ -807,7 +808,7 @@ exports.jupyter_notebook = (parent, filename, opts) ->
 
 exports.jupyter_server_url = (project_id) ->
     # Jupyter is proxied via the following canonical URL:
-    return join(window.app_base_path, project_id, 'port/jupyter/notebooks/')
+    return join(appBasePath, project_id, 'port/jupyter/notebooks/')
 
 
 class JupyterNotebook extends EventEmitter
@@ -1431,7 +1432,7 @@ class JupyterNBViewer
     constructor: (@project_id, @filename, @content, opts) ->
         @element = templates.find(".smc-jupyter-nbviewer").clone()
         @ipynb_filename = @filename.slice(0,@filename.length-4) + 'ipynb'
-        @ipynb_html_src = join(window.app_base_path, @project_id, 'raw', @filename)
+        @ipynb_html_src = join(appBasePath, @project_id, 'raw', @filename)
         @init_buttons()
 
     show: () =>

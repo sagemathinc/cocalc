@@ -8,6 +8,7 @@ import { callback } from "awaiting";
 declare const $: any; // jQuery
 import * as message from "@cocalc/util/message";
 import { AsyncCall, WebappClient } from "./client";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export class AccountClient {
   private async_call: AsyncCall;
@@ -94,7 +95,7 @@ export class AccountClient {
   private async delete_remember_me_cookie(): Promise<void> {
     // This actually sets the content of the cookie to empty.
     // (I just didn't implement a delete action on the backend yet.)
-    const base_path = window.app_base_path;
+    const base_path = appBasePath;
     const mesg = {
       url: join(base_path, "cookies"),
       set: base_path + "remember_me", // correct that there is no slash -- it's name of a cookie.

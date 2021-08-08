@@ -4,12 +4,10 @@
  */
 
 import { React, Component, Rendered } from "@cocalc/frontend/app-framework";
-
 import { Button } from "react-bootstrap";
-
 import { CopyToClipBoard, Icon, ErrorDisplay } from "@cocalc/frontend/r_misc";
-
 import { webapp_client } from "../../webapp-client";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 interface Props {
   email_address?: string;
@@ -48,7 +46,7 @@ export class PasswordReset extends Component<Props, State> {
     }
     if (!this.mounted) return;
     link = `${document.location.origin}${
-      window.app_base_path.length <= 1 ? "" : window.app_base_path
+      appBasePath.length <= 1 ? "" : appBasePath
     }${link}`;
     this.setState({ link, running: false });
   }

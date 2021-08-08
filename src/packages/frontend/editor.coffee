@@ -43,6 +43,7 @@ _ = underscore = require('underscore')
 {webapp_client} = require('./webapp-client')
 {EventEmitter}  = require('events')
 {alert_message} = require('./alerts')
+{ appBasePath } = require("@cocalc/frontend/customize/app-base-path");
 
 feature = require('./feature')
 IS_MOBILE = feature.IS_MOBILE
@@ -1844,7 +1845,7 @@ class JupyterNBViewerEmbedded extends FileEditor
             @iframe = @element.find(".smc-jupyter-nbviewer-content").find('iframe')
             {join} = require('path')
             ipynb_src = join(window.location.hostname,
-                             window.app_base_path,
+                             appBasePath,
                              @project_id,
                              'raw',
                              @filename)

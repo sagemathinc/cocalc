@@ -18,6 +18,7 @@ import { set_url } from "../history";
 import { track_conversion } from "../misc-page";
 import { join } from "path";
 import { deleteRememberMe } from "@cocalc/util/remember-me";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 // Define account actions
 export class AccountActions extends Actions<AccountState> {
@@ -229,7 +230,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     sign_in: boolean = false
   ): Promise<void> {
     // disable redirection from sign in/up...
-    deleteRememberMe(window.app_base_path);
+    deleteRememberMe(appBasePath);
 
     // Send a message to the server that the user explicitly
     // requested to sign out.  The server must clean up resources
@@ -254,7 +255,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     $(window).off("beforeunload", this.redux.getActions("page").check_unload);
     window.location.hash = "";
     // redirect to sign in page
-    window.location.href = join(window.app_base_path, sign_in ? "app" : "/");
+    window.location.href = join(appBasePath, sign_in ? "app" : "/");
   }
 
   push_state(url?: string): void {

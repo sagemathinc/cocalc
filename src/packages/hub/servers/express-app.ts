@@ -134,12 +134,6 @@ export default async function init(opts: Options): Promise<{
     res.redirect(join(basePath, "static/app.html") + query);
   });
 
-  // The base_path.js endpoint is javascript that sets the
-  // app_base_path global variable for the client when loaded.
-  router.get("/base_path.js", (_req, res) => {
-    res.send(`window.app_base_path='${basePath}';`);
-  });
-
   initAPI(router, opts.projectControl);
   initBlobs(router);
   initSetCookies(router);

@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+
 export function location(): string {
-  return window.location.pathname.slice(window.app_base_path.length);
+  return window.location.pathname.slice(appBasePath.length);
 }

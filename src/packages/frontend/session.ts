@@ -19,6 +19,7 @@ import * as LS from "./misc/local-storage";
 import { bind_methods } from "@cocalc/util/misc";
 import { target } from "@cocalc/frontend/client/handle-hash-url";
 import { load_target } from "./history";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export function session_manager(name, redux): SessionManager | undefined {
   const sm = new SessionManager(name, redux);
@@ -81,8 +82,7 @@ class SessionManager {
 
   private async init_local_storage(): Promise<void> {
     if (this.name) {
-      const prefix =
-        window.app_base_path.length > 1 ? `.${window.app_base_path}` : "";
+      const prefix = appBasePath.length > 1 ? `.${appBasePath}` : "";
       const postfix = `${webapp_client.account_id}.${this.name}`;
       this._local_storage_name = new LS.CustomKey(
         `session${prefix}.${postfix}`

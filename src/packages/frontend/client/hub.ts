@@ -22,6 +22,7 @@ import {
   should_do_anonymous_setup,
 } from "./anonymous-setup";
 import { deleteRememberMe, setRememberMe } from "@cocalc/util/remember-me";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 // Maximum number of outstanding concurrent messages (that have responses)
 // to send at once to hub-websocket.
@@ -197,13 +198,13 @@ export class HubClient {
         this.client.account_id = mesg.account_id;
         this.set_signed_in();
         this.signed_in_time = new Date().valueOf();
-        setRememberMe(window.app_base_path);
+        setRememberMe(appBasePath);
         this.signed_in_mesg = mesg;
         this.client.emit("signed_in", mesg);
         break;
 
       case "remember_me_failed":
-        deleteRememberMe(window.app_base_path);
+        deleteRememberMe(appBasePath);
         this.client.emit(mesg.event, mesg);
         break;
 
@@ -428,7 +429,7 @@ export class HubClient {
       await delay(d);
       d = Math.max(3000, d * 1.3);
     }
-    const conn = (this.conn = new (window as any).Primus());
+    const conn = (this.conn = new window.Primus());
 
     conn.on("open", () => {
       this.connected = true;

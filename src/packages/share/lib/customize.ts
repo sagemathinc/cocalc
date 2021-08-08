@@ -32,8 +32,11 @@ const CUSTOMIZE: Customize = process.env.CUSTOMIZE
 
 if (CUSTOMIZE.basePath == null) {
   CUSTOMIZE.basePath = "/"; // ensure guarantee of type
-  const i = basePath.lastIndexOf("/"); // stripping off "/share" from end
-  CUSTOMIZE.appBasePath = basePath.slice(0, i);
+}
+
+if (CUSTOMIZE.appBasePath == null) {
+  const i = CUSTOMIZE.basePath.lastIndexOf("/"); // stripping off "/share" from end
+  CUSTOMIZE.appBasePath = CUSTOMIZE.basePath.slice(0, i);
 }
 
 // The following is redundant, but Typescript checks it and

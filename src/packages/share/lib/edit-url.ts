@@ -3,10 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { applicationURL } from "./customize";
+import { appBasePath } from "./customize";
 
 export default function editURL(id: string, path: string): string {
   return encodeURI(
-    `${applicationURL}/app?anonymous=true&launch=share/${id}/${path}`
+    `${appBasePath}/app?anonymous=true&launch=share/${id}/${path}`
   );
 }

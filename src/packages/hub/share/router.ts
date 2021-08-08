@@ -38,10 +38,6 @@ export function share_router(opts: { database: Database; path: string }) {
     opts.database as any as PostgreSQL
   );
 
-  if ((global as any).window != null) {
-    (global as any).window["app_base_path"] = base_path;
-  }
-
   const logger = getLogger("share-router");
   dbg = logger.debug.bind(logger);
   logger.info("base_path = ", base_path);

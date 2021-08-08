@@ -22,6 +22,7 @@ import { file_options } from "../editor-tmp";
 import { DEFAULT_NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { webapp_client } from "../webapp-client";
 import { BASE_URL } from "../misc";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export type NewFilenameTypes =
   | "iso"
@@ -260,12 +261,7 @@ export function url_fullpath(project_id: string, path: string): string {
 
 // returns the URL for the file at the given path
 export function url_href(project_id: string, path: string): string {
-  return os_path.join(
-    window.app_base_path,
-    project_id,
-    "raw",
-    encode_path(path)
-  );
+  return os_path.join(appBasePath, project_id, "raw", encode_path(path));
 }
 
 // returns the download URL for a file at a given path
