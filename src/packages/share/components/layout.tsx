@@ -33,7 +33,7 @@ export function Layout({ children }) {
             style={{
               color: "#555",
               margin: "0 auto",
-              maxWidth: "1200px",
+              maxWidth: "900px",
               fontSize: "11pt",
               padding: "15px",
             }}

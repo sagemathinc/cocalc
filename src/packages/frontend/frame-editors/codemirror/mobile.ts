@@ -19,7 +19,7 @@ export function extra_alt_keys(
   extraKeys: any,
   actions: any,
   frame_id: string,
-  opts: any
+  opts?: any
 ): void {
   merge(extraKeys, {
     "Shift-Alt-L": (cm) => cm.align_assignments(),
@@ -48,7 +48,7 @@ export function extra_alt_keys(
     "Alt-S": () => actions.save(true),
   });
 
-  if (opts.bindings === "vim") {
+  if (opts?.bindings === "vim") {
     // An additional key to get to visual mode in vim (added for ipad Smart Keyboard)
     extraKeys["Alt-C"] = (cm) => {
       /* cast to any since it is a plugin */

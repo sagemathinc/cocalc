@@ -7,16 +7,14 @@
 React component that describes the output of a cell
 */
 
-import { React, Rendered } from "../app-framework";
-import { Map as ImmutableMap } from "immutable";
+import React from "react";
+import type { Map as ImmutableMap } from "immutable";
 import { CellOutputMessages } from "./output-messages/message";
-
 import { OutputPrompt } from "./prompt";
 import { OutputToggle, CollapsedOutput } from "./cell-output-toggle";
 import { CellHiddenPart } from "./cell-hidden-part";
-
-import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import type { JupyterActions } from "./browser-actions";
+import type { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 interface CellOutputProps {
   actions?: JupyterActions;
@@ -76,7 +74,7 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
       complete,
     } = props;
 
-    function render_output_prompt(): Rendered {
+    function render_output_prompt(): JSX.Element {
       const collapsed = cell.get("collapsed");
       let exec_count = undefined;
       const output = cell.get("output");
@@ -112,11 +110,11 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
       }
     }
 
-    function render_collapsed(): Rendered {
+    function render_collapsed(): JSX.Element {
       return <CollapsedOutput actions={actions} id={id} />;
     }
 
-    function render_output_value(): Rendered {
+    function render_output_value(): JSX.Element | undefined {
       if (cell.get("collapsed")) {
         return render_collapsed();
       } else {
@@ -159,7 +157,7 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
       }
     }
 
-    function render_hidden(): Rendered {
+    function render_hidden(): JSX.Element {
       return (
         <CellHiddenPart
           title={

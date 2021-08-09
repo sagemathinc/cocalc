@@ -11,7 +11,8 @@ import React from "react";
 import { Alert } from "antd";
 import CellList from "./cell-list";
 import { path_split } from "@cocalc/util/misc";
-//import parse from "./parse";
+import parse from "./parse";
+import { CodeMirrorStatic } from "../codemirror-static";
 
 interface Props {
   content: string;
@@ -26,25 +27,24 @@ export default function NBViewer({
   path,
   fontSize,
 }: Props) {
-  /*
   const x = React.useMemo(() => {
     try {
-      //return parse(JSON.parse(content));
-      throw Error(content.slice(0, 10));
+      return parse(content);
     } catch (error) {
       return error;
     }
   }, [content]);
-  */
-  const x = Error(content.slice(0, 10));
 
   if (x instanceof Error) {
     return (
-      <Alert
-        message="Error Parsing Jupyter Notebook"
-        description={`${x}`}
-        type="error"
-      />
+      <div>
+        <Alert
+          message="Error Parsing Jupyter Notebook"
+          description={`${x}`}
+          type="error"
+        />
+        <CodeMirrorStatic value={content} options={{ mode: "javascript" }} />
+      </div>
     );
   }
   const { cellList, cells, cmOptions } = x;

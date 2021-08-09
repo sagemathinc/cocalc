@@ -1,6 +1,5 @@
 import { IPynbImporter } from "../import-from-ipynb";
 import { JUPYTER_MIMETYPES } from "../util";
-import { cm_options as getCMOptions } from "../cm_options";
 import { field_cmp } from "@cocalc/util/misc";
 
 interface Parsed {
@@ -28,9 +27,7 @@ export default function parse(content: string): Parsed {
 
   const cells = importer.cells();
   const cellList = sortedCellList(cells);
-  const cmOptions = {
-    options: getCMOptions(getMode(ipynb)),
-  };
+  const cmOptions = getCMOptions(getMode(ipynb));
   return { cells, cellList, cmOptions };
 }
 
@@ -41,6 +38,32 @@ function getMode(ipynb): string {
     ipynb.metadata.kernelspec.language.toLowerCase() ??
     "python"
   );
+}
+
+function getCMOptions(mode: string | { name: string } | undefined | null) {
+  if (mode == null) {
+    mode = { name: "python" };
+  }
+  if (typeof mode === "string") {
+    mode = { name: mode };
+  }
+  if (mode.name === "ipython") {
+    mode.name = "python";
+  } else if (mode.name === "gp") {
+    mode.name = "pari";
+  } else if (mode.name === "singular") {
+    mode.name = "clike"; // better than nothing
+  } else if (mode.name === "ihaskell") {
+    mode.name = "haskell";
+  }
+
+  return {
+    mode,
+    showTrailingSpace: true,
+    tabSize: 4,
+    lineWrapping: true,
+    readOnly: true,
+  };
 }
 
 function process(content): void {

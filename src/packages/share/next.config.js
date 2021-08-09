@@ -7,6 +7,8 @@ const basePath =
     ? process.env.BASE_PATH
     : "";
 
+const { resolve } = require("path");
+
 module.exports = {
   basePath,
   env: {
@@ -20,5 +22,22 @@ module.exports = {
     // Warning: Dangerously allow production builds to successfully complete even if
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
+  },
+  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    console.log(config);
+    // We have to be VERY explicit about the order of module imports.
+    // Otherwise, e.g,. importing antd in @cocalc/frontend results in importing
+    // react from @cocalc/frontend, and we end up with two distinct copies
+    // of react in our application.  This doesn't work at all.  By being
+    // explicit as below, we completely eliminate that problem.  However,
+    // we do may to add things here if we create new modules.
+    config.resolve.modules = [
+      __dirname,
+      resolve(__dirname, "node_modules"),
+      resolve(__dirname, "../frontend/node_modules"),
+      resolve(__dirname, "../util/node_modules"),
+    ];
+    // Important: return the modified config
+    return config;
   },
 };

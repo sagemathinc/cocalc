@@ -7,7 +7,7 @@
 Components for rendering input and output prompts.
 */
 
-import { React } from "../app-framework";
+import React from "react";
 import { Icon, TimeAgo, Tip } from "../r_misc";
 import { Button } from "antd";
 import { JupyterActions } from "./browser-actions";

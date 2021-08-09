@@ -7,10 +7,11 @@
 This module will handle setting the codemirror options for various kernels.
 */
 
-import { IS_TOUCH } from "../feature";
+import { IS_TOUCH } from "@cocalc/frontend/feature";
 
 // TODO: should merge functionality with this
-import { valid_indent } from "../frame-editors/codemirror/util";
+import { valid_indent } from "@cocalc/frontend/frame-editors/codemirror/util";
+import { extra_alt_keys } from "@cocalc/frontend/frame-editors/codemirror/mobile";
 
 // mode = codemirror mode object
 // editor_settings - from account store.
@@ -73,10 +74,8 @@ export function cm_options(
   }
 
   if (IS_TOUCH) {
-    const { extra_alt_keys } = require("mobile/codemirror");
     extra_alt_keys(options.extraKeys, undefined, editor_settings);
   }
-
   if (line_numbers != null) {
     options.lineNumbers = line_numbers;
   }
@@ -98,9 +97,9 @@ export function cm_options(
 
   if (options.mode.name === "ipython") {
     // See https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/codemirror-ipython.js
-    // This ipython mode is because the jupyter devs don't directly
+    // This ipython mode is because upstream jupyter doesn't directly
     // run the CodeMirror parser; also, it will only work for
-    // python -- what about other languages. See parsing.coffee
+    // python -- what about other languages. See parsing.ts
     // for our approach.
     options.mode.name = "python";
   }
