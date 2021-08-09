@@ -29,7 +29,19 @@ export function applyOperations(
         // Should skip due to just removing whitespace right
         // before the user's cursor:
         if (skipCursor(cursor, op)) continue;
-        editor.apply(op);
+        try {
+          // This can rarely throw an error in production
+          // if somehow the op isn't valid.  Instead of
+          // crashing, we print a warning, and document
+          // "applyOperations" above as "best effort".
+          // In practice, the document *should* converge
+          // when the next diff/patch round occurs.
+          editor.apply(op);
+        } catch (err) {
+          console.warn(
+            `WARNING: Slate issue -- unable to apply an operation to the document -- err=${err}, op=${op}`
+          );
+        }
       }
     });
 

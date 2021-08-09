@@ -15,8 +15,8 @@ import { Component, Rendered, React, Redux, redux } from "../app-framework";
 import { HTML, Markdown } from "../r_misc";
 import * as file_editors from "../file-editors";
 // Register the Jupyter editor, so we can use it to render public ipynb
-import { register } from "../jupyter/nbviewer/register";
-register();
+//import { register } from "../jupyter/nbviewer/register";
+//register();
 import { PDF } from "./pdf";
 import * as extensions from "./extensions";
 import { CodeMirrorStatic } from "../jupyter/codemirror-static";
