@@ -1,5 +1,5 @@
 import React from "react";
-import { DataProps, hasHandler, getHandler } from "./register";
+import { DataProps, hasHandler, getHandler, getPriority } from "./register";
 import { all_fields_equal as allFieldsEqual } from "@cocalc/util/misc";
 
 function shouldMemoize(prev, next) {
@@ -21,23 +21,16 @@ export const Data: React.FC<DataProps> = React.memo((props) => {
 }, shouldMemoize);
 
 function getTypeToRender(types: string[]): string {
-  if (types.includes("text/plain")) {
-    // Note about multiple representations; we should only render the "best one".
-    // For us the algorithm should be: if the options are (a) anything
-    // we know how to render, and (b) text/plain, then render the first
-    // thing we know how to render that is not text/plain.
-    // Probably much more can be done -- what exactly does JupyterLab do?
-    for (const type of types) {
-      if (type != "text/plain" && hasHandler(type)) {
-        return type;
-      }
-    }
-  }
-  // "Best" is just the first one otherwise...
+  // "Best" is just the first one otherwise?  Another heuristic seems to be
+  // that text/html is better than image/*.
+  console.log("types = ", types);
+  const x: { priority: number; type: string }[] = [];
   for (const type of types) {
     if (hasHandler(type)) {
-      return type;
+      x.push({ priority: getPriority(type), type });
     }
   }
-  return "uknown";
+  if (x.length == 0) return "unknown";
+  x.sort((a, b) => b.priority - a.priority);
+  return x[0].type;
 }

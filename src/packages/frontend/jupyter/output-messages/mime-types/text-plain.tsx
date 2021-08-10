@@ -4,7 +4,7 @@ import { Ansi, is_ansi as isAnsi } from "../ansi";
 import { STDOUT_STYLE } from "../style";
 import { TextPlain } from "../text-plain";
 
-register("text/plain", ({ data, value, actions }) => {
+register("text/plain", 1, ({ data, value, actions }) => {
   if (data.has("application/vnd.jupyter.widget-view+json") && actions != null) {
     // TODO: this is pretty dumb for now, but it'll do *temporarily*...
     // used for history, and maybe share server.  Obviously, we want

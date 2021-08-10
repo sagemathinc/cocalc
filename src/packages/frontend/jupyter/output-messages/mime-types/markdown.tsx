@@ -2,7 +2,7 @@ import React from "react";
 import register from "./register";
 import { Markdown } from "@cocalc/frontend/r_misc";
 
-register("text/markdown", ({ project_id, value, directory, trust }) => {
+register("text/markdown", 4, ({ project_id, value, directory, trust }) => {
   return (
     <div style={{ margin: "5px 0" }}>
       <Markdown

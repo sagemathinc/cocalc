@@ -4,6 +4,7 @@ import { Widget } from "../widget";
 
 register(
   "application/vnd.jupyter.widget-view+json",
+  2,
   ({ value, actions, name }) => {
     if (name == null) {
       // No redux store, so no way to know anything about the state
