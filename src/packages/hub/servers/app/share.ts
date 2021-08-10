@@ -4,6 +4,7 @@
 
 import { join } from "path";
 import { Application } from "express";
+// @ts-ignore
 import initShareServer from "@cocalc/share/init";
 import handleRaw from "@cocalc/share/lib/handle-raw";
 import { getLogger } from "@cocalc/hub/logger";
@@ -28,7 +29,7 @@ export default async function init(app: Application) {
   });
 
   const raw = join(basePath, "raw");
-  app.all(join(raw, "*"), (req, res) => {
+  app.all(join(raw, "*"), (req, res, next) => {
     const url = req.url.slice(raw.length + 1);
     const i = url.indexOf("/");
     if (i == -1) {
@@ -37,7 +38,7 @@ export default async function init(app: Application) {
     }
     const id = url.slice(0, i);
     const path = url.slice(i + 1);
-    handleRaw({ id, path, req, res });
+    handleRaw({ id, path, req, res, next });
   });
 
   const endpoints = [

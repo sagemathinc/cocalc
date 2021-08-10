@@ -12,10 +12,12 @@ import {
   isVideo,
 } from "lib/file-extensions";
 import rawURL from "lib/raw-url";
+import { isIOS, isSafari } from "lib/feature";
 import CodeMirror from "components/codemirror";
 import SageWorksheet from "components/sage-worksheet";
 import JupyterNotebook from "components/jupyter-notebook";
 import { Markdown } from "@cocalc/frontend/markdown";
+import A from "components/misc/A";
 
 interface Props {
   id: string;
@@ -48,8 +50,20 @@ export default function FileContents({
   } else if (isAudio(ext)) {
     return <audio src={raw} autoPlay={true} controls={true} loop={false} />;
   } else if (ext == "pdf") {
-    return (
-      <embed width="100%" height="100%" src={raw} type="application/pdf" />
+    // iOS and iPADOS does not have any way to embed PDF's in pages.
+    // I think pretty much every other web browser does, though
+    // strangely even desktop Safari seems often broken, so we also block that.
+    // Amazingly, nextjs handles this sort of thing fine!
+    return (isIOS() || isSafari()) ? (
+      <h1 style={{ textAlign: "center", margin: "30px" }}>
+        <A href={raw}>View this PDF...</A>
+      </h1>
+    ) : (
+      <embed
+        style={{ width: "100%", height: "100vh" }}
+        src={raw}
+        type="application/pdf"
+      />
     );
   } else if (content == null) {
     // everything below this gets to assume content is not null

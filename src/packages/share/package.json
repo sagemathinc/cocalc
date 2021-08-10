@@ -41,7 +41,11 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc#readme",
   "private": false,
-  "workspaces": ["../frontend", "../util-node", "../cdn"],
+  "workspaces": [
+    "../frontend",
+    "../util-node",
+    "../cdn"
+  ],
   "dependencies-comment": "IMPORTANT: we install everything (including typescript) as normal deps since it may be needed at runtime due to server settings!!",
   "dependencies": {
     "@cocalc/cdn": "^1.2.2",
@@ -50,6 +54,7 @@
     "@types/express": "^4.17.13",
     "@types/react": "^17.0.14",
     "antd": "^4.16.8",
+    "express": "^4.17.1",
     "next": "11.0.1",
     "pg": "^8.7.1",
     "react": "^17.0.2",

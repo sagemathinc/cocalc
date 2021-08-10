@@ -5,7 +5,9 @@
 
 // Client device features and capabilities.
 
-declare const DEBUG: boolean;
+declare var window;
+
+import { has_local_storage } from "@cocalc/util/misc";
 
 let IS_MOBILE,
   IS_TOUCH,
@@ -21,12 +23,8 @@ let IS_MOBILE,
   get_mobile,
   is_responsive_mode;
 
-if (
-  (global as any).window != undefined &&
-  (global as any).navigator != undefined
-) {
+if (typeof window != "undefined" && typeof navigator != "undefined") {
   // In a web browser.
-  const window: any = (global as any).window;
   const navigator = window.navigator;
   let { $ } = window;
 
@@ -163,16 +161,7 @@ if (
   // is mostly *only* touch, so not something like a Chromebook with a touch screen.
   IS_TOUCH = isMobile.tablet() || IS_MOBILE || isMobile.any() || IS_IPAD;
 
-  // DEBUG
-  // export IS_MOBILE = true
-
-  // DEBUG is injected by webpack and its value is true if the '--debug' cmd line parameter is set.
-  // You can use DEBUG anywhere in the webapp code!
-  if (DEBUG) {
-    console.log("DEBUG MODE:", DEBUG);
-  }
-
-  var cookies_and_local_storage = function () {
+  const cookies_and_local_storage = function () {
     if (navigator == undefined) {
       return;
     }
@@ -195,7 +184,7 @@ if (
     }
 
     // Check for local storage
-    if (!require("@cocalc/util/misc").has_local_storage()) {
+    if (!has_local_storage()) {
       page.show_local_storage_warning();
     }
   };
