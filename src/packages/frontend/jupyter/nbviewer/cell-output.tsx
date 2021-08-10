@@ -10,7 +10,6 @@ interface Props {
 
 export default function CellOutput({ cell, project_id, directory }: Props) {
   const output = cell["output"];
-  console.log({ output });
   if (output == null) return null;
 
   return (

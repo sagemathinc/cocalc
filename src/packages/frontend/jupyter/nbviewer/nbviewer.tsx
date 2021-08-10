@@ -13,6 +13,7 @@ import CellList from "./cell-list";
 import { path_split } from "@cocalc/util/misc";
 import parse from "./parse";
 import { CodeMirrorStatic } from "../codemirror-static";
+import "../output-messages/mime-types/init-nbviewer";
 
 interface Props {
   content: string;

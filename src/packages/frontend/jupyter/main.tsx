@@ -19,6 +19,9 @@ import * as immutable from "immutable";
 import { A, ErrorDisplay } from "../r_misc";
 import { Loading } from "../r_misc/loading";
 
+// Support for all the MIME types
+import "./output-messages/mime-types/init-frontend";
+
 // React components that implement parts of the Jupyter notebook.
 import { TopMenubar } from "./top-menubar";
 import { TopButtonbar } from "./top-buttonbar";

@@ -17,7 +17,7 @@ import { Stderr } from "./stderr";
 import { MoreOutput } from "./more-output";
 import { Input } from "./input";
 import { InputDone } from "./input-done";
-import { Data } from "./data";
+import { Data } from "./mime-types/data";
 import { Traceback } from "./traceback";
 import { NotImplemented } from "./not-implemented";
 
