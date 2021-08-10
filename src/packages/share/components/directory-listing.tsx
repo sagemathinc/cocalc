@@ -18,14 +18,28 @@ export default function DirectoryListing({
   id,
   listing,
   relativePath,
+  showHidden,
 }: Props): JSX.Element {
   return (
     <Table
       rowKey={"name"}
-      dataSource={listing}
+      dataSource={filter(listing, showHidden)}
       columns={columns(id, relativePath)}
     />
   );
+}
+
+function filter(listing, showHidden) {
+  if (showHidden) {
+    return listing;
+  }
+  const v = [];
+  for (const x of listing) {
+    if (!x.name?.startsWith(".")) {
+      v.push(x);
+    }
+  }
+  return v;
 }
 
 function columns(id, relativePath) {
