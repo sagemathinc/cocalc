@@ -17,7 +17,8 @@ export function trunc(s: string, n: number): string {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
 
+// lower case extension of the path
 export function getExtension(path: string): string {
   const v = path.split(".");
-  return v.length <= 1 ? "" : v.pop() ?? "";
+  return (v.length <= 1 ? "" : v.pop() ?? "").toLowerCase();
 }

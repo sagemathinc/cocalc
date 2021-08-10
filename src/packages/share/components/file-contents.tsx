@@ -47,6 +47,10 @@ export default function FileContents({
     );
   } else if (isAudio(ext)) {
     return <audio src={raw} autoPlay={true} controls={true} loop={false} />;
+  } else if (ext == "pdf") {
+    return (
+      <embed width="100%" height="100%" src={raw} type="application/pdf" />
+    );
   } else if (content == null) {
     // everything below this gets to assume content is not null
     return <div>TODO</div>;

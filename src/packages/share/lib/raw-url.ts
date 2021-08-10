@@ -6,7 +6,7 @@
 import { basePath } from "./customize";
 
 export default function rawURL(id: string, relativePath: string): string {
-  return `${basePath ?? ""}/public_paths/raw/${id}/${encodePath(relativePath)}`;
+  return `${basePath ?? ""}/raw/${id}/${encodePath(relativePath)}`;
 }
 
 export function encodePath(path: string) {

@@ -24,7 +24,6 @@ module.exports = {
     ignoreDuringBuilds: true,
   },
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    console.log(config);
     // We have to be VERY explicit about the order of module imports.
     // Otherwise, e.g,. importing antd in @cocalc/frontend results in importing
     // react from @cocalc/frontend, and we end up with two distinct copies

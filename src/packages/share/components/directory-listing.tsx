@@ -12,6 +12,7 @@ interface Props {
   id: string;
   relativePath: string;
   listing: FileInfo[];
+  showHidden?: boolean;
 }
 
 export default function DirectoryListing({
@@ -29,11 +30,11 @@ export default function DirectoryListing({
   );
 }
 
-function filter(listing, showHidden) {
+function filter(listing, showHidden): FileInfo[] {
   if (showHidden) {
     return listing;
   }
-  const v = [];
+  const v: FileInfo[] = [];
   for (const x of listing) {
     if (!x.name?.startsWith(".")) {
       v.push(x);

@@ -4,7 +4,8 @@
 
 import { join } from "path";
 import { Application } from "express";
-import initShareServer from "@cocalc/share";
+import initShareServer from "@cocalc/share/init";
+import handleRaw from "@cocalc/share/lib/handle-raw";
 import { getLogger } from "@cocalc/hub/logger";
 import getCustomize from "./landing-customize";
 
@@ -24,6 +25,19 @@ export default async function init(app: Application) {
     basePath,
     winston,
     customize,
+  });
+
+  const raw = join(basePath, "raw");
+  app.all(join(raw, "*"), (req, res) => {
+    const url = req.url.slice(raw.length + 1);
+    const i = url.indexOf("/");
+    if (i == -1) {
+      res.status(404).end();
+      return;
+    }
+    const id = url.slice(0, i);
+    const path = url.slice(i + 1);
+    handleRaw({ id, path, req, res });
   });
 
   const endpoints = [

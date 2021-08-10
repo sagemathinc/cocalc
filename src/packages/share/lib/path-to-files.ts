@@ -7,7 +7,6 @@ import { join } from "path";
 import getPool from "./database";
 import { projects } from "@cocalc/util-node/data";
 
-
 // Given a project_id/path, return the directory on the file system where
 // that path should be located.
 export default function pathToFiles(project_id: string, path: string): string {
@@ -15,10 +14,9 @@ export default function pathToFiles(project_id: string, path: string): string {
 }
 
 export async function pathFromID(id: string): Promise<string> {
-  // TODO: [ ] check that id is of a public_path that is enabled
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT project_id, path FROM public_paths WHERE id=$1",
+    "SELECT project_id, path FROM public_paths WHERE id=$1 AND disabled IS NOT TRUE",
     [id]
   );
   if (rows.length == 0) {

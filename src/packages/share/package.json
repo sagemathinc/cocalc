@@ -2,7 +2,10 @@
   "name": "@cocalc/share",
   "version": "0.4.1",
   "description": "Landing pages for the free version of CoCalc.",
-  "main": "lib/init.js",
+  "exports": {
+    "./init": "./lib/init.js",
+    "./lib/*": "./dist/lib/*.js"
+  },
   "files": [
     ".next/*",
     "styles/*",
@@ -20,9 +23,10 @@
   "scripts": {
     "cocalc-dev": "BASE_PATH=/$COCALC_PROJECT_ID/port/3000 next dev",
     "cocalc-prod": "export BASE_PATH=/$COCALC_PROJECT_ID/port/3000 && next build && next start",
-    "tsc": "npx tsc -w",
+    "tsc": "npx tsc --build tsconfig-dist.json -w --pretty ",
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && npm run build-dist",
+    "build-dist": "npx tsc --build tsconfig-dist.json",
     "start": "next start",
     "lint": "next lint"
   },
@@ -37,16 +41,13 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc#readme",
   "private": false,
-  "workspaces": [
-    "../frontend",
-    "../util-node",
-    "../cdn"
-  ],
+  "workspaces": ["../frontend", "../util-node", "../cdn"],
   "dependencies-comment": "IMPORTANT: we install everything (including typescript) as normal deps since it may be needed at runtime due to server settings!!",
   "dependencies": {
     "@cocalc/cdn": "^1.2.2",
     "@cocalc/frontend": "^1.0.1",
     "@cocalc/util-node": "^1.0.1",
+    "@types/express": "^4.17.13",
     "@types/react": "^17.0.14",
     "antd": "^4.16.8",
     "next": "11.0.1",
