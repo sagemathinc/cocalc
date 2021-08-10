@@ -27,10 +27,10 @@ export interface HandlerProps {
 
 type Handler = React.FC<HandlerProps>;
 
-const HANDLERS: { [type: string]: Handler } = {};
+const HANDLERS: { [typeRegexp: string]: Handler } = {};
 
-export default function register(type: string, handler: Handler): void {
-  HANDLERS[type] = handler;
+export default function register(typeRegexp: string, handler: Handler): void {
+  HANDLERS[typeRegexp] = handler;
 }
 
 const FallbackHandler: React.FC<HandlerProps> = ({ type }) => {
@@ -38,9 +38,20 @@ const FallbackHandler: React.FC<HandlerProps> = ({ type }) => {
 };
 
 export function getHandler(type: string): Handler {
-  return HANDLERS[type] ?? FallbackHandler;
+  const h = HANDLERS[type];
+  if (h != null) return h;
+  for (const typeRegexp in HANDLERS) {
+    if (type.match("^" + typeRegexp + "$")) {
+      return HANDLERS[typeRegexp];
+    }
+  }
+  return FallbackHandler;
 }
 
 export function hasHandler(type: string): boolean {
-  return HANDLERS[type] != null;
+  if (HANDLERS[type] != null) return true;
+  for (const typeRegexp in HANDLERS) {
+    if (type.match("^" + typeRegexp + "$")) return true;
+  }
+  return false;
 }
