@@ -14,6 +14,7 @@ const SCROLLED_STYLE: React.CSSProperties = {
   padding: 0,
   display: "flex", // flex used to move output prompt to bottom.
   flexDirection: "column",
+  height: "auto",
 } as const;
 
 const NORMAL_STYLE: React.CSSProperties = {
@@ -40,11 +41,11 @@ export const OutputToggle: React.FC<OutputToggleProps> = React.memo(
       actions?.toggle_output(id, "collapsed");
     }
 
-    // We use a bootstrap button for the output toggle area, but disable the padding
+    // We use an antd button for the output toggle area, but disable the padding
     // and border. This looks pretty good and consistent and clean.
     return (
       <div
-        className="btn btn-default"
+        className="ant-btn ant-btn-default"
         style={scrolled ? SCROLLED_STYLE : NORMAL_STYLE}
         onClick={toggle_scrolled}
         onDoubleClick={collapse_output}
@@ -69,17 +70,18 @@ export const CollapsedOutput: React.FC<CollapsedOutputProps> = React.memo(
       actions?.toggle_output(id, "collapsed");
     }
 
-    // We use a bootstrap button for the output toggle area, but disable the padding
+    // We use an antd button for the output toggle area, but disable the padding
     // and border. This looks pretty good and consistent and clean.
     return (
       <div
-        className="btn btn-default"
+        className="ant-btn ant-btn-default"
         onClick={show_output}
         style={{
           textAlign: "center",
           width: "100%",
           color: "#777",
           padding: 0,
+          height: "auto", // ant-btn makes height short.
         }}
       >
         <Icon name="ellipsis" />

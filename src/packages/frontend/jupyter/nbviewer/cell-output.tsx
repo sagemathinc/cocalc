@@ -1,5 +1,5 @@
-import React from "react";
-import { fromJS } from "immutable";
+import React, { useState } from "react";
+import { fromJS, Map } from "immutable";
 import { CellOutput } from "../cell-output";
 
 interface Props {
@@ -13,17 +13,18 @@ export default function NBViewerCellOutput({
   project_id,
   directory,
 }: Props) {
-  const output = cell["output"];
-  if (output == null) return null;
+  const [iCell, setICell] = useState<Map<string, any>>(fromJS(cell));
+
   const actions: any = {
-    toggle_output: (id: string, state: "collapsed" | "scrolled") => {
-      console.log(id, state);
+    toggle_output: (_id: string, state: "collapsed" | "scrolled") => {
+      setICell(iCell.set(state, !iCell.get(state)));
     },
   };
+
   return (
     <CellOutput
       id={cell["id"]}
-      cell={fromJS(cell)}
+      cell={iCell}
       actions={actions}
       project_id={project_id}
       directory={directory}
