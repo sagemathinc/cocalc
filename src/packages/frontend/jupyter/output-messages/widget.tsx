@@ -10,16 +10,11 @@ Widget rendering.
 import $ from "jquery";
 import { Map, Set, List, fromJS } from "immutable";
 import { Tabs, Tab } from "../../antd-bootstrap";
-import {
-  React,
-  ReactDOM,
-  useRef,
-  Rendered,
-  useRedux,
-  useState,
-  usePrevious,
-  useIsMountedRef,
-} from "@cocalc/frontend/app-framework";
+import React, { useRef, useState } from "react";
+import ReactDOM from "react-dom";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+import { usePrevious, useRedux } from "@cocalc/frontend/app-framework";
+
 import { JupyterActions } from "../browser-actions";
 import * as pWidget from "@phosphor/widgets";
 require("@jupyter-widgets/controls/css/widgets.css");
@@ -215,11 +210,6 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       }
     }
 
-    function render_phosphor(): Rendered {
-      // This div is managed by phosphor, so don't put any react in it!
-      return <div key="phosphor" ref={phosphorRef} />;
-    }
-
     function handle_phosphor_focus(): void {
       if (actions == null) return;
       const elt = ReactDOM.findDOMNode(phosphorRef.current);
@@ -260,28 +250,12 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       view.current = view_next as any;
       const elt = ReactDOM.findDOMNode(phosphorRef.current);
       if (elt == null) return;
-      pWidget.Widget.attach(view.current.pWidget, elt);
+      pWidget.Widget.attach(view.current.pWidget, elt as any);
       handle_phosphor_focus();
       handle_phosphor_custom_events(model_id);
     }
 
-    function render_output(): Rendered {
-      if (outputs == null) return;
-      return (
-        <div key="output" style={style}>
-          <CellOutputMessages
-            output={outputs}
-            actions={actions}
-            name={name}
-            project_id={project_id}
-            directory={directory}
-            trust={trust}
-          />
-        </div>
-      );
-    }
-
-    function render_react_view(): Rendered {
+    function renderReactView(): JSX.Element | undefined {
       if (react_view == null) return;
       if (typeof react_view == "string") {
         return (
@@ -304,27 +278,27 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       if (model.current == null) return;
       switch (model.current.name) {
         case "TabModel":
-          return render_react_tab_view();
+          return renderReactTabView();
         case "AccordionModel":
-          return render_react_accordion_view();
+          return renderReactAccordionView();
         case "HBoxModel":
         case "VBoxModel":
         case "GridBoxView":
         case "GridBoxModel":
         case "BoxModel":
-          return render_react_box_view();
+          return renderReactBoxView();
         default:
           // better than nothing.
-          return render_react_box_view();
+          return renderReactBoxView();
       }
     }
 
-    function render_react_tab_view(): Rendered {
+    function renderReactTabView(): JSX.Element | undefined {
       if (react_view == null) return;
       if (typeof react_view == "string") return;
       if (model.current == null) return;
 
-      const v: Rendered[] = [];
+      const v: JSX.Element[] = [];
       let i = 0;
       for (const model_id of react_view.toJS()) {
         const key = `${i}`;
@@ -357,7 +331,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       );
     }
 
-    function render_react_accordion_view(): undefined | Rendered {
+    function renderReactAccordionView(): undefined | JSX.Element {
       if (react_view == null) return;
       if (typeof react_view == "string") return;
       if (model.current == null) return;
@@ -366,7 +340,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
           <div style={{ color: "#888" }}>
             Accordion not implemented, so falling back to tabs
           </div>
-          {render_react_tab_view()}
+          {renderReactTabView()}
         </div>
       );
       // TODO: we have to upgrade to modern react-bootstrap
@@ -376,12 +350,15 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       // https://5c507d49471426000887a6a7--react-bootstrap.netlify.com/components/navs/
       // doesn't have Accordion.  (There's code
       // but it isn't documented...).
+      // Actually we are entirely switching away from
+      // bootstrap, so use the accordion here:
+      //    https://ant.design/components/collapse/
     }
 
-    function render_react_box_view(): undefined | Rendered {
+    function renderReactBoxView(): undefined | JSX.Element {
       if (react_view == null) return;
       if (typeof react_view == "string") return;
-      const v: Rendered[] = [];
+      const v: JSX.Element[] = [];
       let i = 0;
       for (const model_id of react_view.toJS()) {
         v.push(
@@ -431,7 +408,7 @@ export const Widget: React.FC<WidgetProps> = React.memo(
         // and https://github.com/sagemathinc/cocalc/pull/5273
 
         const elt = ReactDOM.findDOMNode(reactBoxRef.current);
-        const container = $(elt);
+        const container = $(elt as any);
         const children = container.children().children();
         for (const child of children) {
           const a = $(child);
@@ -454,9 +431,21 @@ export const Widget: React.FC<WidgetProps> = React.memo(
 
     return (
       <>
-        {render_phosphor()}
-        {render_output()}
-        {render_react_view()}
+        {/* This div is managed by phosphor, so don't put any react in it! */}
+        <div key="phosphor" ref={phosphorRef} />
+        {outputs && (
+          <div key="output" style={style}>
+            <CellOutputMessages
+              output={outputs}
+              actions={actions}
+              name={name}
+              project_id={project_id}
+              directory={directory}
+              trust={trust}
+            />
+          </div>
+        )}
+        {renderReactView()}
       </>
     );
   }

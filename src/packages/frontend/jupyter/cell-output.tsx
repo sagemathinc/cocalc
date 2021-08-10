@@ -74,7 +74,7 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
       complete,
     } = props;
 
-    function render_output_prompt(): JSX.Element {
+    function render_output_prompt() {
       const collapsed = cell.get("collapsed");
       let exec_count = undefined;
       const output = cell.get("output");

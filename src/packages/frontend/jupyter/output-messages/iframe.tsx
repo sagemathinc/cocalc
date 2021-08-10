@@ -8,15 +8,10 @@ Handle iframe output messages involving a src doc.
 */
 
 import { delay } from "awaiting";
-import {
-  React,
-  ReactDOM,
-  useEffect,
-  useIsMountedRef,
-  useRef,
-  useState,
-  useCounter,
-} from "@cocalc/frontend/app-framework";
+import React, { useEffect, useRef, useState } from "react";
+import ReactDOM from "react-dom";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { get_blob_url } from "../server-urls";
 
 interface Props {
@@ -38,7 +33,7 @@ export const IFrame: React.FC<Props> = (props: Props) => {
   const iframe_ref = useRef(null);
 
   useEffect(() => {
-    const elt = ReactDOM.findDOMNode(iframe_ref.current);
+    const elt: any = ReactDOM.findDOMNode(iframe_ref.current);
     if (elt == null) return;
     elt.onload = function () {
       elt.style.height = elt.contentWindow.document.body.scrollHeight + "px";

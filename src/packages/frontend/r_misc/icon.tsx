@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-declare var DEBUG: boolean; // comes from webpack.
+declare var DEBUG: boolean; // comes from static webpack; not defined in other contexts.
 
 import React from "react";
 import { CSS } from "../app-framework";
@@ -472,7 +472,7 @@ try {
   // in IconSpec, but forget to actually include "arrowcircleoleft" in
   // iconfont.cn, or -- just as bad -- make a typo or put the wrong name in.
   // So we double check that all iconfonts are actually defined here:
-  if (DEBUG) {
+  if (typeof DEBUG != "undefined" && DEBUG) {
     setTimeout(() => {
       // only do this during dev to save time.
       for (const name in IconSpec) {
@@ -560,7 +560,7 @@ export const Icon: React.FC<Props> = (props: Props) => {
   }
 
   // this is when the icon is broken.
-  if (DEBUG) {
+  if (typeof DEBUG != "undefined" && DEBUG) {
     if (missing[props.name ?? ""] == null) {
       missing[props.name ?? ""] = true;
       console.warn(
@@ -589,11 +589,12 @@ export const Icon: React.FC<Props> = (props: Props) => {
 /* Here we define a jQuery plugin that turns the old font-awesome css elements
    into react-rendered Icon's.  This is, of course, meant to be some temporary
    code until Jupyter classic and Sage worksheets are rewritten using React.
+   Also, this is only defined when jQuery itself is defined.
 */
 
 import ReactDOM from "react-dom";
 declare var $: any;
-try {
+if (typeof $ != "undefined") {
   $.fn.processIcons = function () {
     return this.each(function () {
       // @ts-ignore
@@ -611,7 +612,4 @@ try {
       }
     });
   };
-} catch (err) {
-  // relatively gracefull fallback when used from node.js without jQuery available
-  console.log(`jQuery processIcon plugin not available -- ${err}`);
 }

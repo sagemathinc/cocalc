@@ -4,12 +4,11 @@
  */
 
 import { delay } from "awaiting";
-import {
-  React,
-  useIsMountedRef,
-  useToggle,
-  useCounter,
-} from "@cocalc/frontend/app-framework";
+import React from "react";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+import useCounter from "@cocalc/frontend/app-framework/counter-hook";
+import useToggle from "@cocalc/frontend/app-framework/toggle-hook";
+
 import { get_blob_url } from "../server-urls";
 
 interface ImageProps {

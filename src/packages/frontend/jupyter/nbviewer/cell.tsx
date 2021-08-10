@@ -18,12 +18,7 @@ export default function Cell({
   return (
     <div style={{ marginBottom: "10px" }}>
       <CellInput cell={cell} cmOptions={cmOptions} />
-      <CellOutput
-        cell={cell}
-        project_id={project_id}
-        directory={directory}
-        cmOptions={cmOptions}
-      />
+      <CellOutput cell={cell} project_id={project_id} directory={directory} />
     </div>
   );
 }

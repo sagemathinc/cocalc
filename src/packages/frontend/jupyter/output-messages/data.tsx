@@ -7,7 +7,7 @@ import { Map } from "immutable";
 import React from "react";
 import { all_fields_equal } from "@cocalc/util/misc";
 import { Markdown, HTML } from "../../r_misc";
-import { JupyterActions } from "../browser-actions";
+import type { JupyterActions } from "../browser-actions";
 import { Ansi, is_ansi } from "./ansi";
 import { Image } from "./image";
 import { IFrame } from "./iframe";
@@ -16,15 +16,7 @@ import { UntrustedJavascript } from "./untrusted-javascript";
 import { PDF } from "./pdf";
 import { STDERR_STYLE, STDOUT_STYLE } from "./style";
 import { TextPlain } from "./text-plain";
-
-// share server can't handle this (yet!), so we have to use require.
-// import { Widget } from "./widget";
-let Widget: any = undefined;
-try {
-  Widget = require("./widget").Widget;
-} catch (err) {
-  console.log("Widget rendering not available");
-}
+import { Widget } from "./widget";
 
 const SHA1_REGEXP = /^[a-f0-9]{40}$/;
 function is_sha1(s: string): boolean {
@@ -41,7 +33,7 @@ interface DataProps {
   trust?: boolean;
 }
 
-function should_memoize(prev, next) {
+function shouldMemoize(prev, next) {
   return (
     prev.message.equals(next.message) &&
     all_fields_equal(prev, next, ["id", "trust"])
@@ -82,7 +74,7 @@ export const Data: React.FC<DataProps> = React.memo((props: DataProps) => {
     type: string,
     value: any,
     data: Map<string, any>
-  ): JSX.Element | null {
+  ): JSX.Element | undefined {
     if (type != "") {
       const [a, b] = type.split("/");
       switch (a) {
@@ -96,7 +88,7 @@ export const Data: React.FC<DataProps> = React.memo((props: DataProps) => {
                 // TODO: this is pretty dumb for now, but it'll do *temporarily*...
                 // used for history, and maybe share server.  Obviously, we want
                 // as much to be "alive" as possible at some point!
-                return null;
+                return;
               }
               if (is_ansi(value)) {
                 return (
@@ -185,11 +177,13 @@ export const Data: React.FC<DataProps> = React.memo((props: DataProps) => {
               return <PDF value={value} project_id={project_id} />;
 
             case "vnd.jupyter.widget-view+json":
-              if (Widget == null || name == null || actions == null) {
-                // TODO...
-                return null;
+              if (name != null) {
+                // name provides the redux state of the widget, which is
+                // needed in our code to display or use the widget.
+                return <Widget value={value} actions={actions} name={name} />;
+              } else {
+                return;
               }
-              return <Widget value={value} actions={actions} name={name} />;
           }
           break;
       }
@@ -235,4 +229,4 @@ export const Data: React.FC<DataProps> = React.memo((props: DataProps) => {
   }
 
   return v[0][1];
-}, should_memoize);
+}, shouldMemoize);
