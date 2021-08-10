@@ -15,7 +15,7 @@ import { Button, ButtonGroup } from "react-bootstrap";
 import { startswith, filename_extension } from "@cocalc/util/misc";
 import { Icon, Markdown } from "../r_misc";
 import { CodeMirror } from "./codemirror-component";
-import { InputPrompt } from "./prompt";
+import { InputPrompt } from "./prompt/input";
 import { Complete } from "./complete";
 import { CellToolbar } from "./cell-toolbar";
 import { CellTiming } from "./cell-output-time";

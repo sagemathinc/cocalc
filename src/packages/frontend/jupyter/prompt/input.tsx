@@ -8,46 +8,19 @@ Components for rendering input and output prompts.
 */
 
 import React from "react";
-import { Icon } from "../r_misc/icon";
-import { TimeAgo } from "../r_misc/time-ago";
-import { Tip } from "../r_misc/tip";
+import { Icon } from "@cocalc/frontend/r_misc/icon";
+import { TimeAgo } from "@cocalc/frontend/r_misc/time-ago";
+import { Tip } from "@cocalc/frontend/r_misc/tip";
 import { Button } from "antd";
-import type { JupyterActions } from "./browser-actions";
-import type { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
-
-const misc = require("@cocalc/util/misc");
-
-export const PROMPT_MIN_WIDTH = "7em";
-
-export const INPUT_PROMPT_COLOR: string = "#303F9F";
-
-const INPUT_STYLE: React.CSSProperties = {
-  color: INPUT_PROMPT_COLOR,
-  minWidth: PROMPT_MIN_WIDTH,
-  fontFamily: "monospace",
-  textAlign: "right",
-  paddingRight: "5px",
-  cursor: "pointer",
-};
-
-interface InputPromptProps {
-  type?: string;
-  state?: string;
-  exec_count?: number;
-  kernel?: string;
-  start?: number;
-  end?: number;
-  actions?: JupyterActions;
-  frame_actions?: NotebookFrameActions;
-  id: string;
-}
+import { capitalize } from "@cocalc/util/misc";
+import { INPUT_STYLE, InputPromptProps } from "./base";
 
 export const InputPrompt: React.FC<InputPromptProps> = (props) => {
   let n;
   if (props.type !== "code") {
     return <div style={INPUT_STYLE} />;
   }
-  const kernel = misc.capitalize(props.kernel != null ? props.kernel : "");
+  const kernel = capitalize(props.kernel != null ? props.kernel : "");
   let tip: string | JSX.Element = "Enter code to be evaluated.";
   switch (props.state) {
     case "start":
@@ -90,21 +63,32 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
   }
 
   function move_cell(delta): void {
-    if (props.frame_actions == null || props.frame_actions.is_closed()) return;
+    if (
+      props.id == null ||
+      props.frame_actions == null ||
+      props.frame_actions.is_closed()
+    )
+      return;
     props.frame_actions.unselect_all_cells();
     props.frame_actions.select_cell(props.id);
     props.frame_actions.move_selected_cells(delta);
   }
 
   function cut_cell(): void {
-    if (props.frame_actions == null || props.frame_actions.is_closed()) return;
+    if (
+      props.id == null ||
+      props.frame_actions == null ||
+      props.frame_actions.is_closed()
+    )
+      return;
     props.frame_actions.unselect_all_cells();
     props.frame_actions.select_cell(props.id);
     props.frame_actions.cut_selected_cells();
   }
 
   function run_cell(): void {
-    if (props.actions == null || props.actions.is_closed()) return;
+    if (props.id == null || props.actions == null || props.actions.is_closed())
+      return;
     props.actions?.run_cell(props.id);
   }
 
@@ -140,38 +124,10 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
   );
 
   return (
-    <div style={INPUT_STYLE}>
+    <div style={{ ...INPUT_STYLE, cursor: "pointer" }}>
       <Tip title={title} tip={tip} placement="top">
         In [{n}]:
       </Tip>
     </div>
   );
-};
-
-const OUTPUT_STYLE: React.CSSProperties = {
-  color: "#D84315",
-  minWidth: PROMPT_MIN_WIDTH,
-  fontFamily: "monospace",
-  textAlign: "right",
-  paddingRight: "5px",
-  paddingBottom: "2px",
-};
-
-interface OutputPromptProps {
-  state?: string;
-  exec_count?: number;
-  collapsed?: boolean;
-}
-
-export const OutputPrompt: React.FC<OutputPromptProps> = (props) => {
-  let n;
-  if (props.collapsed || !props.exec_count) {
-    n = undefined;
-  } else {
-    n = props.exec_count != null ? props.exec_count : " ";
-  }
-  if (n == null) {
-    return <div style={OUTPUT_STYLE} />;
-  }
-  return <div style={OUTPUT_STYLE}>Out[{n}]:</div>;
 };

@@ -9,7 +9,8 @@
  */
 
 import { default as UpstreamTimeAgo } from "react-timeago";
-import { CSS, React, useTypedRedux } from "../app-framework";
+import React, { CSSProperties as CSS } from "react";
+import { useTypedRedux } from "../app-framework";
 import { is_date, is_different as misc_is_different } from "@cocalc/util/misc";
 import { Tip } from "./tip";
 

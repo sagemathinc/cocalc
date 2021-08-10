@@ -1,6 +1,7 @@
 import React from "react";
 import { CodeMirrorStatic } from "../codemirror-static";
 import Markdown from "@cocalc/frontend/markdown/component";
+import { InputPrompt } from "../prompt/input-nbviewer";
 
 interface Props {
   cell: object;
@@ -11,8 +12,20 @@ interface Props {
 
 export default function CellInput({ cell, cmOptions }: Props) {
   const value = cell["input"] ?? "";
-  if (cell["cell_type"] == "markdown") {
-    return <Markdown value={value} />;
-  }
-  return <CodeMirrorStatic value={value} options={cmOptions} />;
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "stretch",
+      }}
+    >
+      <InputPrompt exec_count={cell["exec_count"]} type={cell["cell_type"]} />
+      {cell["cell_type"] == "markdown" ? (
+        <Markdown value={value} />
+      ) : (
+        <CodeMirrorStatic value={value} options={cmOptions} />
+      )}
+    </div>
+  );
 }

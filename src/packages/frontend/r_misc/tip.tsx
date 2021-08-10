@@ -3,9 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-import { Rendered, CSS } from "@cocalc/frontend/app-framework";
-import { Icon, IconName} from "./icon";
+import React, { CSSProperties as CSS } from "react";
+import { Icon, IconName } from "./icon";
 import * as misc from "@cocalc/util/misc";
 import * as feature from "../feature";
 import { Tooltip, Popover } from "antd";
@@ -83,7 +82,7 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
   }
 
   // a tip is rendered in a description box below the title
-  function render_tip(): Rendered {
+  function render_tip(): JSX.Element {
     const style = { ...TIP_STYLE, ...tip_style };
     return <div style={style}>{tip}</div>;
   }
