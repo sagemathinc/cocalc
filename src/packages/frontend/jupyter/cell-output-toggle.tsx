@@ -5,9 +5,9 @@
 
 // Components related to toggling the way output is displayed.
 
-import { React } from "../app-framework";
-import { Icon } from "../r_misc";
-import { JupyterActions } from "./browser-actions";
+import React from "react";
+import { Icon } from "../r_misc/icon";
+import type { JupyterActions } from "./browser-actions";
 
 const SCROLLED_STYLE: React.CSSProperties = {
   fontSize: "inherit",

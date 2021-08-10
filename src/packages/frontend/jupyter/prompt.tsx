@@ -8,10 +8,12 @@ Components for rendering input and output prompts.
 */
 
 import React from "react";
-import { Icon, TimeAgo, Tip } from "../r_misc";
+import { Icon } from "../r_misc/icon";
+import { TimeAgo } from "../r_misc/time-ago";
+import { Tip } from "../r_misc/tip";
 import { Button } from "antd";
-import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import type { JupyterActions } from "./browser-actions";
+import type { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 const misc = require("@cocalc/util/misc");
 
