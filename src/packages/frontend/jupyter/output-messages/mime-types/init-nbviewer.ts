@@ -8,3 +8,4 @@ import "./simple-markdown";
 import "./simple-html";
 import "./image";
 import "./iframe";
+import "./pdf";

@@ -23,7 +23,6 @@ export const Data: React.FC<DataProps> = React.memo((props) => {
 function getTypeToRender(types: string[]): string {
   // "Best" is just the first one otherwise?  Another heuristic seems to be
   // that text/html is better than image/*.
-  console.log("types = ", types);
   const x: { priority: number; type: string }[] = [];
   for (const type of types) {
     if (hasHandler(type)) {

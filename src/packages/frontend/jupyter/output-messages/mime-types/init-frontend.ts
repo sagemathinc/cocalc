@@ -10,3 +10,5 @@ import "./html";
 import "./widget";
 import "./image";
 import "./iframe";
+import "./javascript";
+import "./pdf";
