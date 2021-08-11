@@ -39,6 +39,13 @@ export default function Header() {
           Try {siteName}
         </a>
       )}
+      <a
+        style={LinkStyle}
+        href={join(basePath, "share")}
+        title="View files that people have published."
+      >
+        Published Files
+      </a>
       {termsOfServiceURL && (
         <A
           style={LinkStyle}
@@ -57,13 +64,6 @@ export default function Header() {
           Help
         </A>
       )}
-      <a
-        style={LinkStyle}
-        href={join(basePath, "share")}
-        title="View files that people have published."
-      >
-        Published Files
-      </a>
       <A
         style={LinkStyle}
         href="https://doc.cocalc.com"

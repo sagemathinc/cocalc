@@ -35,6 +35,15 @@ export default function Header() {
       <a href={appBasePath}>
         <SquareLogo style={{ height: "40px", marginRight: GAP }} />
       </a>
+      {anonymousSignup && (
+        <a
+          style={LinkStyle}
+          href={join(basePath, "../static/app.html?anonymous=jupyter")}
+          title={`Try ${siteName} immediately without creating an account.`}
+        >
+          Try {siteName}
+        </a>
+      )}{" "}
       <Link href="/">
         <a style={LinkStyle} title="View files that people have published.">
           Published Files
@@ -51,15 +60,6 @@ export default function Header() {
       >
         <GoogleSearch />
       </div>{" "}
-      {anonymousSignup && (
-        <a
-          style={LinkStyle}
-          href={join(basePath, "static/app.html?anonymous=jupyter")}
-          title={`Try ${siteName} immediately without creating an account.`}
-        >
-          Try {siteName}
-        </a>
-      )}
       {termsOfServiceURL && (
         <A
           style={LinkStyle}
