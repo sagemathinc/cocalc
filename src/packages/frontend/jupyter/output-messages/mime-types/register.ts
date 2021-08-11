@@ -1,7 +1,7 @@
 import React from "react";
-import { STDERR_STYLE } from "../style";
 import { Map } from "immutable";
 import type { JupyterActions } from "../../browser-actions";
+import FallbackHandler from "./fallback";
 
 export interface DataProps {
   message: Map<string, any>;
@@ -41,10 +41,6 @@ export default function register(
   }
   HANDLERS[typeRegexp] = { handler, priority };
 }
-
-const FallbackHandler: React.FC<HandlerProps> = ({ type }) => {
-  return <div style={STDERR_STYLE}>MIME type {type} not supported</div>;
-};
 
 export function getPriority(type: string): number {
   const h = HANDLERS[type];
