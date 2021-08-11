@@ -453,41 +453,43 @@ const IconSpec = {
 import { createFromIconfontCN } from "@ant-design/icons";
 let IconFont: any = undefined;
 try {
-  // This loads a bunch of svg elements of the form <svg id="icon-<name>"... into the DOM.
-  // The antd Icon code then duplicates these via the <use> html tag
-  // (https://developer.mozilla.org/en-US/docs/Web/SVG/Element/use)
-  require("./iconfont.cn");
-  // note -- we do NOT pass scriptUrl in, as in the docs!  Why?  Because
-  // we want everything bundled up into webpack, rather than having to pull
-  // from some random place, which just causes confusion with releases
-  // and caching.  Fortunately, just evaluating the js from iconfont, then
-  // running createFromIconfontCN with no arguments does work, as I deduced
-  // by reading the code, then trying this.
-  // https://github.com/ant-design/ant-design-icons/blob/5be2afd296636ab4cfec5d3a2793d6cd41b1789b/packages/icons-vue/src/components/IconFont.tsx
+  if (typeof window != "undefined") { // obviously won't work if window is undefined based on looking at the code...
+    // This loads a bunch of svg elements of the form <svg id="icon-<name>"... into the DOM.
+    // The antd Icon code then duplicates these via the <use> html tag
+    // (https://developer.mozilla.org/en-US/docs/Web/SVG/Element/use)
+    require("./iconfont.cn");
+    // note -- we do NOT pass scriptUrl in, as in the docs!  Why?  Because
+    // we want everything bundled up into webpack, rather than having to pull
+    // from some random place, which just causes confusion with releases
+    // and caching.  Fortunately, just evaluating the js from iconfont, then
+    // running createFromIconfontCN with no arguments does work, as I deduced
+    // by reading the code, then trying this.
+    // https://github.com/ant-design/ant-design-icons/blob/5be2afd296636ab4cfec5d3a2793d6cd41b1789b/packages/icons-vue/src/components/IconFont.tsx
 
-  IconFont = createFromIconfontCN();
+    IconFont = createFromIconfontCN();
 
-  // It would be easy to screw up and put an entry like
-  //        "arrow-circle-o-left": { IconFont: "arrowcircleoleft" }
-  // in IconSpec, but forget to actually include "arrowcircleoleft" in
-  // iconfont.cn, or -- just as bad -- make a typo or put the wrong name in.
-  // So we double check that all iconfonts are actually defined here:
-  if (typeof DEBUG != "undefined" && DEBUG) {
-    setTimeout(() => {
-      // only do this during dev to save time.
-      for (const name in IconSpec) {
-        const spec = IconSpec[name];
-        const x = spec?.IconFont;
-        if (x != null) {
-          const id = `icon-${x}`;
-          if (document.getElementById(id) == null) {
-            console.error(
-              `ERROR -- the IconFont ${x} is not in r_misc/iconfont.cn!  Fix this or the icon ${name} will be broken.`
-            );
+    // It would be easy to screw up and put an entry like
+    //        "arrow-circle-o-left": { IconFont: "arrowcircleoleft" }
+    // in IconSpec, but forget to actually include "arrowcircleoleft" in
+    // iconfont.cn, or -- just as bad -- make a typo or put the wrong name in.
+    // So we double check that all iconfonts are actually defined here:
+    if (typeof DEBUG != "undefined" && DEBUG) {
+      setTimeout(() => {
+        // only do this during dev to save time.
+        for (const name in IconSpec) {
+          const spec = IconSpec[name];
+          const x = spec?.IconFont;
+          if (x != null) {
+            const id = `icon-${x}`;
+            if (document.getElementById(id) == null) {
+              console.error(
+                `ERROR -- the IconFont ${x} is not in r_misc/iconfont.cn!  Fix this or the icon ${name} will be broken.`
+              );
+            }
           }
         }
-      }
-    }, 5000);
+      }, 5000);
+    }
   }
 } catch (err) {
   // Might as well have option for a graceful fallback, e.g., when

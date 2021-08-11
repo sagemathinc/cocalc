@@ -28,19 +28,27 @@ export default async function init(app: Application) {
     customize,
   });
 
+  // The raw static server:
   const raw = join(basePath, "raw");
   app.all(join(raw, "*"), (req, res, next) => {
-    const url = req.url.slice(raw.length + 1);
-    const i = url.indexOf("/");
-    if (i == -1) {
+    try {
+      handleRaw({ ...parseURL(req, raw), req, res, next });
+    } catch (_err) {
       res.status(404).end();
-      return;
     }
-    const id = url.slice(0, i);
-    const path = url.slice(i + 1);
-    handleRaw({ id, path, req, res, next });
   });
 
+  // The download server -- just like raw, but files get sent via download.
+  const download = join(basePath, "download");
+  app.all(join(download, "*"), (req, res, next) => {
+    try {
+      handleRaw({ ...parseURL(req, download), req, res, next, download: true });
+    } catch (_err) {
+      res.status(404).end();
+    }
+  });
+
+  // The next.js server that servers everything else.
   const endpoints = [
     basePath,
     join(basePath, "*"),
@@ -53,4 +61,13 @@ export default async function init(app: Application) {
   for (const endpoint of endpoints) {
     app.all(endpoint, handler);
   }
+}
+
+function parseURL(req, base): { id: string; path: string } {
+  const url = req.url.slice(base.length + 1);
+  const i = url.indexOf("/");
+  if (i == -1) {
+    throw Error("invalid url");
+  }
+  return { id: url.slice(0, i), path: decodeURI(url.slice(i + 1)) };
 }
