@@ -36,7 +36,7 @@ export default function FileContents({
 }: Props): JSX.Element {
   const filename = relativePath ? relativePath : path;
   const ext = getExtension(filename);
-  const raw = rawURL(id, filename);
+  const raw = rawURL(id, path, relativePath);
   if (isImage(ext)) {
     return <img src={raw} style={{ maxWidth: "100%" }} />;
   } else if (isVideo(ext)) {

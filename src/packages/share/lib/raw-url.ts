@@ -1,12 +1,18 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
- */
+The raw URL is the following, of course encoded as a URL:
 
+.../raw/{share id}/{the full path in the project to file}
+*/
+
+import { join } from "path";
 import { basePath } from "./customize";
 
-export default function rawURL(id: string, relativePath: string): string {
-  return `${basePath ?? ""}/raw/${id}/${encodePath(relativePath)}`;
+export default function rawURL(
+  id: string,
+  path: string,
+  relativePath: string
+): string {
+  return `${basePath ?? ""}/raw/${id}/${encodePath(join(path, relativePath))}`;
 }
 
 export function encodePath(path: string) {

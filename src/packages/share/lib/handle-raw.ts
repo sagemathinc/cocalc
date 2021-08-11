@@ -31,8 +31,8 @@ export default async function handle(options: Options): Promise<void> {
 }
 
 async function handleRequest({
-  id,
-  path,
+  id, // id of a public_path
+  path, // full path in the project to requested file or directory
   req,
   res,
   download,
@@ -41,16 +41,42 @@ async function handleRequest({
   if (!isSha1Hash(id)) {
     throw Error(`id=${id} is not a sha1 hash`);
   }
-  const filePath = await pathFromID(id);
-  if (download) {
-    res.download(join(filePath, path), next);
-  } else {
-    const handler = ExpressStatic(filePath);
-    req.url = path ? path : "/";
-    handler(req, res, () => {
-      // Static handler didn't work, so try the directory listing handler.
-      const handler = DirectoryListing(filePath, { hidden: true, icons: true });
-      handler(req, res, next);
-    });
+  if (path.includes("..")) {
+    throw Error(`path (="${path}") must not include ".."`);
   }
+  let { fsPath, projectPath } = await pathFromID(id);
+  if (!path.startsWith(projectPath)) {
+    // The projectPath absolutely must be an initial
+    // segment of the requested path.  We do NOT just
+    // use a relative path *inside* the share, because
+    // the share might be a file itself and then the
+    // MIME type wouldn't be a function of the URL.
+    throw Error(`path (="${path}") must start with "${projectPath}" ".."`);
+  }
+  let url = path.slice(projectPath.length);
+
+  if (download) {
+    res.download(join(fsPath, url), next);
+    return;
+  }
+
+  if (!url) {
+    const i = fsPath.lastIndexOf("/");
+    if (i == -1) {
+      // This can't actually happen, since fsPath is an absolute filesystem path, hence starts with /
+      throw Error(`invalid fsPath=${fsPath}`);
+    }
+    url = fsPath.slice(i);
+    fsPath = fsPath.slice(0, i);
+  }
+  const handler = ExpressStatic(fsPath);
+  req.url = url;
+  handler(req, res, () => {
+    // Static handler didn't work, so try the directory listing handler.
+    const handler = DirectoryListing(fsPath, {
+      hidden: true,
+      icons: true,
+    });
+    handler(req, res, next);
+  });
 }

@@ -13,7 +13,9 @@ export default function pathToFiles(project_id: string, path: string): string {
   return join(projects, project_id, path);
 }
 
-export async function pathFromID(id: string): Promise<string> {
+export async function pathFromID(
+  id: string
+): Promise<{ projectPath: string; fsPath: string }> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT project_id, path FROM public_paths WHERE id=$1 AND disabled IS NOT TRUE",
@@ -23,5 +25,9 @@ export async function pathFromID(id: string): Promise<string> {
     throw Error(`no such public path: ${id}`);
   }
 
-  return pathToFiles(rows[0].project_id, rows[0].path);
+  const { project_id, path } = rows[0];
+  if (project_id == null || path == null) {
+    throw Error(`invalid public path: ${id}`);
+  }
+  return { projectPath: path, fsPath: pathToFiles(project_id, path) };
 }

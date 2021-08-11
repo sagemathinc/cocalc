@@ -81,16 +81,8 @@ export default function PublicPath({
       <b>Project:</b>{" "}
       <ProjectLink project_id={project_id} title={projectTitle} />
       <br />
-      <ExternalLink
-        href={editURL(id, relativePath ? path + "/" + relativePath : path)}
-      >
-        Edit
-      </ExternalLink>
-      ,{" "}
-      <ExternalLink href={rawURL(id, relativePath ? relativePath : path)}>
-        Raw
-      </ExternalLink>
-      ,{" "}
+      <ExternalLink href={editURL(id, relativePath)}>Edit</ExternalLink>,{" "}
+      <ExternalLink href={rawURL(id, path, relativePath)}>Raw</ExternalLink>,{" "}
       <Link
         href={`/public_paths/embed/${id}${
           relativePath ? "/" + relativePath : ""
@@ -100,10 +92,7 @@ export default function PublicPath({
       </Link>
       {!contents?.isdir && (
         <>
-          ,{" "}
-          <a href={downloadURL(id, relativePath ? relativePath : path)}>
-            Download
-          </a>
+          , <a href={downloadURL(id, path, relativePath)}>Download</a>
         </>
       )}
       <hr />
