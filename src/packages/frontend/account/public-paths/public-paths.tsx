@@ -13,13 +13,13 @@ import {
   useIsMountedRef,
   useMemo,
   useTypedRedux,
-} from "../../app-framework";
+} from "@cocalc/frontend/app-framework";
 import { PublicPath as PublicPath0 } from "@cocalc/util/db-schema/public-paths";
 import { trunc, trunc_middle } from "@cocalc/util/misc";
-import { webapp_client } from "../../webapp-client";
-import { ErrorDisplay, Icon, Loading, Space, TimeAgo } from "../../r_misc";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { ErrorDisplay, Icon, Loading, Space, TimeAgo } from "@cocalc/frontend/r_misc";
 import { UnpublishEverything } from "./unpublish-everything";
-import { LICENSES } from "../../share/config/licenses";
+import { LICENSES } from "@cocalc/frontend/share/licenses";
 
 interface PublicPath extends PublicPath0 {
   status?: string;

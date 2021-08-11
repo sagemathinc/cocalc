@@ -7,7 +7,7 @@ import pathToFiles from "lib/path-to-files";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { sortBy } from "lodash";
-import { hasSpecialViewer } from "lib/file-extensions";
+import { hasSpecialViewer } from "@cocalc/frontend/file-extensions";
 import { getExtension } from "lib/util";
 
 export interface FileInfo {

@@ -13,7 +13,7 @@ import {
   file_associations,
   VIDEO_EXTS,
   AUDIO_EXTS,
-} from "@cocalc/frontend/file-associations";
+} from "./file-associations";
 
 // see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
 const image = new Set([

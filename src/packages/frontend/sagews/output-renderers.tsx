@@ -1,7 +1,7 @@
 import React from "react";
 import { join } from "path";
 import { encode_path, filename_extension } from "@cocalc/util/misc";
-import { image, video, audio } from "@cocalc/frontend/share/extensions";
+import { isImage, isVideo, isAudio } from "@cocalc/frontend/file-extensions";
 import { fromJS } from "immutable";
 import { Stdout } from "@cocalc/frontend/jupyter/output-messages/stdout";
 import { Stderr } from "@cocalc/frontend/jupyter/output-messages/stderr";
@@ -57,11 +57,11 @@ const RENDERERS = {
       );
     }
     const ext = filename_extension(value.filename).toLowerCase();
-    if (image.has(ext)) {
+    if (isImage(ext)) {
       return <img key={key} src={src} />;
-    } else if (video.has(ext)) {
+    } else if (isVideo(ext)) {
       return <video key={key} src={src} controls loop />;
-    } else if (audio.has(ext)) {
+    } else if (isAudio(ext)) {
       return <audio src={src} autoPlay={true} controls loop />;
     } else if (ext === "sage3d") {
       return RENDERERS["3d"](value.filename, key);

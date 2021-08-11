@@ -38,9 +38,14 @@ import {
   Rendered,
   rclass,
   rtypes,
-} from "../../app-framework";
-import { open_new_tab } from "../../misc-page";
-import { CopyToClipBoard, Icon, VisibleMDLG, Space } from "../../r_misc";
+} from "@cocalc/frontend/app-framework";
+import { open_new_tab } from "@cocalc/frontend/misc-page";
+import {
+  CopyToClipBoard,
+  Icon,
+  VisibleMDLG,
+  Space,
+} from "@cocalc/frontend/r_misc";
 import { public_share_url, share_server_url } from "./util";
 import { License } from "./license";
 import { trunc_middle } from "@cocalc/util/misc";

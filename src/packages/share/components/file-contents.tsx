@@ -11,7 +11,7 @@ import {
   isHTML,
   isMarkdown,
   isVideo,
-} from "lib/file-extensions";
+} from "@cocalc/frontend/file-extensions";
 import rawURL from "lib/raw-url";
 import { isIOS, isSafari } from "lib/feature";
 import CodeMirror from "components/codemirror";

@@ -12,8 +12,8 @@ between them.  I think this is acceptable, since it is unlikely
 for people to do that.
 */
 
-import { React } from "../../app-framework";
-import { MenuItem, DropdownMenu } from "../../r_misc";
+import { React } from "@cocalc/frontend/app-framework";
+import { MenuItem, DropdownMenu } from "@cocalc/frontend/r_misc";
 
 import { LICENSES } from "./licenses";
 
