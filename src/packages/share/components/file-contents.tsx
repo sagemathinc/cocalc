@@ -25,6 +25,7 @@ interface Props {
   content?: string;
   relativePath: string;
   path: string;
+  truncated?: boolean;
 }
 
 export default function FileContents({
@@ -67,8 +68,11 @@ export default function FileContents({
       />
     );
   } else if (content == null) {
-    // everything below this gets to assume content is not null
-    return <div>TODO</div>;
+    return (
+      <h1 style={{ textAlign: "center", margin: "30px" }}>
+        <A href={raw}>Open or Download...</A>{" "}
+      </h1>
+    );
   } else if (isCodemirror(ext)) {
     return <CodeMirror content={content} filename={filename} />;
   } else if (isMarkdown(ext)) {
