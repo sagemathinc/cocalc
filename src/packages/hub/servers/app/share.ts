@@ -64,10 +64,11 @@ export default async function init(app: Application) {
 }
 
 function parseURL(req, base): { id: string; path: string } {
-  const url = req.url.slice(base.length + 1);
-  const i = url.indexOf("/");
+  let url = req.url.slice(base.length + 1);
+  let i = url.indexOf("/");
   if (i == -1) {
-    throw Error("invalid url");
+    url = url + "/";
+    i = url.length - 1;
   }
   return { id: url.slice(0, i), path: decodeURI(url.slice(i + 1)) };
 }

@@ -8,6 +8,7 @@ actually currently publicly shared) then sends the result.
 import { join } from "path";
 import type { Request, Response } from "express";
 import { static as ExpressStatic } from "express";
+import DirectoryListing from "serve-index";
 import { isSha1Hash } from "./util";
 import { pathFromID } from "./path-to-files";
 
@@ -17,7 +18,7 @@ interface Options {
   res: Response;
   req: Request;
   download?: boolean; // if true, cause download
-  next: () => void;
+  next: (value?) => void;
 }
 
 export default async function handle(options: Options): Promise<void> {
@@ -45,7 +46,11 @@ async function handleRequest({
     res.download(join(filePath, path), next);
   } else {
     const handler = ExpressStatic(filePath);
-    req.url = path;
-    handler(req, res, next);
+    req.url = path ? path : "/";
+    handler(req, res, () => {
+      // Static handler didn't work, so try the directory listing handler.
+      const handler = DirectoryListing(filePath, { hidden: true, icons: true });
+      handler(req, res, next);
+    });
   }
 }
