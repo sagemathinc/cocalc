@@ -26,6 +26,11 @@ export default function DirectoryListing({
       rowKey={"name"}
       dataSource={filter(listing, showHidden)}
       columns={columns(id, relativePath)}
+      pagination={{
+        defaultPageSize: 50,
+        showSizeChanger: true,
+        pageSizeOptions: ["50", "100", "200", "500"],
+      }}
     />
   );
 }

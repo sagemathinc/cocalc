@@ -8,6 +8,7 @@ import {
   isAudio,
   isCodemirror,
   isImage,
+  isHTML,
   isMarkdown,
   isVideo,
 } from "lib/file-extensions";
@@ -54,7 +55,7 @@ export default function FileContents({
     // I think pretty much every other web browser does, though
     // strangely even desktop Safari seems often broken, so we also block that.
     // Amazingly, nextjs handles this sort of thing fine!
-    return (isIOS() || isSafari()) ? (
+    return isIOS() || isSafari() ? (
       <h1 style={{ textAlign: "center", margin: "30px" }}>
         <A href={raw}>View this PDF...</A>
       </h1>
@@ -72,6 +73,14 @@ export default function FileContents({
     return <CodeMirror content={content} filename={filename} />;
   } else if (isMarkdown(ext)) {
     return <Markdown value={content} />;
+  } else if (isHTML(ext)) {
+    return (
+      <iframe
+        srcDoc={content}
+        style={{ width: "100%", height: "100vh" }}
+        sandbox=""
+      />
+    );
   } else if (ext == "sagews") {
     return <SageWorksheet content={content} />;
   } else if (ext == "ipynb") {
