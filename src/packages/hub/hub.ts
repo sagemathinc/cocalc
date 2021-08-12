@@ -121,7 +121,6 @@ async function initMetrics() {
 
 async function startServer(): Promise<void> {
   winston.info("start_server");
-  winston.info(`dev = ${program.dev}`);
 
   // Be very sure cookies do NOT work unless over https.  IMPORTANT.
   if (!COOKIE_OPTIONS.secure) {
@@ -231,7 +230,6 @@ async function startServer(): Promise<void> {
   }
 
   const { router, app } = await initExpressApp({
-    dev: program.dev,
     isPersonal: program.personal,
     projectControl,
     landingServer: !!program.landingServer,

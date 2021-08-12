@@ -29,11 +29,11 @@ import initShareNext from "./app/share";
 import initShareOld from "./share";
 
 // Used for longterm caching of files
-const MAX_AGE = ms("100 days"); // NOTE: more than a year would be invalid
+const MAX_AGE = ms("10 days");
+const SHORT_AGE = ms("10 seconds");
 
 interface Options {
   projectControl;
-  dev: boolean;
   isPersonal: boolean;
   landingServer: boolean;
   shareServer: boolean;
@@ -68,11 +68,18 @@ export default async function init(opts: Options): Promise<{
   // Various files such as the webpack static content should be cached long-term,
   // and we use this function to set appropriate headers at various points below.
   const cacheLongTerm = (res) => {
-    if (opts.dev) return; // ... unless in dev mode
     res.setHeader("Cache-Control", `public, max-age='${MAX_AGE}'`);
     res.setHeader(
       "Expires",
       new Date(Date.now().valueOf() + MAX_AGE).toUTCString()
+    );
+  };
+
+  const cacheShortTerm = (res) => {
+    res.setHeader("Cache-Control", `public, max-age='${SHORT_AGE}'`);
+    res.setHeader(
+      "Expires",
+      new Date(Date.now().valueOf() + SHORT_AGE).toUTCString()
     );
   };
 
@@ -110,6 +117,12 @@ export default async function init(opts: Options): Promise<{
 
   // The /static content, used by docker, development, etc.
   // This is the stuff that's packaged up via webpack in packages/static.
+  router.use(
+    join("/static", STATIC_PATH, "app.html"),
+    express.static(join(STATIC_PATH, "app.html"), {
+      setHeaders: cacheShortTerm,
+    })
+  );
   router.use(
     "/static",
     express.static(STATIC_PATH, { setHeaders: cacheLongTerm })
