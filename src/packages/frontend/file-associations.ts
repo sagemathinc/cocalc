@@ -17,6 +17,7 @@ import { IconName } from "./r_misc/icon";
 const codemirror_associations: { [ext: string]: string } = {
   adb: "ada",
   c: "text/x-c",
+  zig: "text/x-c",  // wrong, but much better than nothing
   "c++": "text/x-c++src",
   cob: "text/x-cobol",
   cql: "text/x-sql",
