@@ -151,10 +151,8 @@ module.exports = {
   */
   output: {
     path: OUTPUT,
-    filename: PRODMODE ? "[name]-[chunkhash].cacheme.js" : "[id].nocache.js",
-    chunkFilename: PRODMODE
-      ? "[chunkhash].cacheme.js"
-      : "[id]-[chunkhash].nocache.js",
+    filename: PRODMODE ? "[name]-[chunkhash].js" : "[id]-[chunkhash].js",
+    chunkFilename: PRODMODE ? "[chunkhash].js" : "[id]-[chunkhash].js",
     hashFunction: "sha256",
   },
   module: {
@@ -164,7 +162,11 @@ module.exports = {
     alias: {
       // @cocalc/frontend  alias so we can write `require("@cocalc/frontend/...")`
       // anywhere in that library:
-      "@cocalc/frontend": path.resolve(__dirname, "node_modules", "@cocalc/frontend"),
+      "@cocalc/frontend": path.resolve(
+        __dirname,
+        "node_modules",
+        "@cocalc/frontend"
+      ),
       // This entities/maps alias is needed due to a weird markdown-it import
       // that webpack 5 won't resolve:
       "entities/maps": path.resolve(
