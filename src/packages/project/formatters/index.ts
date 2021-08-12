@@ -22,6 +22,7 @@ import { html_format } from "./html-format";
 import { xml_format } from "./xml-format";
 import { bib_format } from "./bib-format";
 import { r_format } from "./r-format";
+import genericFormat from "./generic-format";
 import { clang_format } from "./clang-format";
 import { gofmt } from "./gofmt";
 import { rust_format } from "./rust-format";
@@ -85,7 +86,7 @@ export async function run_formatter(
 
 export async function run_formatter_string(
   path: string | undefined,
-  str: string,
+  input: string,
   options: Options,
   logger: any
 ): Promise<string> {
@@ -94,40 +95,48 @@ export async function run_formatter_string(
   switch (options.parser) {
     case "latex":
     case "latexindent":
-      formatted = await latex_format(str, options);
+      formatted = await latex_format(input, options);
       break;
     case "python":
     case "yapf":
-      formatted = await python_format(str, options, logger);
+      formatted = await python_format(input, options, logger);
+      break;
+    case "zig":
+      formatted = await genericFormat({
+        command: "zig",
+        args: (tmp) => ["fmt", tmp],
+        input,
+        timeout_s: 30,
+      });
       break;
     case "r":
     case "formatR":
-      formatted = await r_format(str, options, logger);
+      formatted = await r_format(input, options, logger);
       break;
     case "html-tidy":
-      formatted = await html_format(str, options, logger);
+      formatted = await html_format(input, options, logger);
       break;
     case "xml-tidy":
-      formatted = await xml_format(str, options, logger);
+      formatted = await xml_format(input, options, logger);
       break;
     case "bib-biber":
-      formatted = await bib_format(str, options, logger);
+      formatted = await bib_format(input, options, logger);
       break;
     case "clang-format":
       const ext = misc.filename_extension(path != null ? path : "");
-      formatted = await clang_format(str, ext, options, logger);
+      formatted = await clang_format(input, ext, options, logger);
       break;
     case "gofmt":
-      formatted = await gofmt(str, options, logger);
+      formatted = await gofmt(input, options, logger);
       break;
     case "rust":
     case "rustfmt":
-      formatted = await rust_format(str, options, logger);
+      formatted = await rust_format(input, options, logger);
       break;
     default:
       const prettier = get_prettier();
       if (prettier != null) {
-        formatted = prettier.format(str, options);
+        formatted = prettier.format(input, options);
       } else {
         throw Error("Could not load 'prettier'");
       }

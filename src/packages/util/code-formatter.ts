@@ -32,6 +32,7 @@ export type Syntax =
   | "yaml"
   | "python"
   | "python3"
+  | "zig"
   | "py"
   | "R"
   | "RMarkdown"
@@ -80,6 +81,7 @@ export type Tool =
   | "json" // via prettier
   | "yaml" // via prettier
   | "markdown" // via prettier
+  | "zig"
   | "DOES_NOT_EXIST"; // use this for testing;
 
 // the set of file extensions where we want to have formatting support
@@ -108,6 +110,7 @@ export const file_extensions = tuple([
   "cpp",
   "h",
   "bib",
+  "zig",
 ]);
 
 // convert to type
@@ -142,6 +145,7 @@ export const ext2syntax: Readonly<Ext2Syntax> = Object.freeze({
   kml: "xml",
   xsl: "xml",
   ptx: "xml",
+  zig: "zig",
   bib: "bibtex", // via biber --tool
 } as Ext2Syntax);
 
@@ -157,6 +161,7 @@ export const syntax2tool: Readonly<Config> = Object.freeze({
   python3: "python", // should be yapf or whatever …
   R: "r", // should be "formatR",
   r: "r", // should be "formatR",
+  zig: "zig",
   JavaScript: "babel", // in prettier
   jsx: "babel", // in prettier
   tsx: "typescript", // in prettier
@@ -209,6 +214,7 @@ export const syntax2display: Readonly<Langs> = Object.freeze({
   xml: "XML",
   css: "CSS",
   javascript: "JavaScript",
+  zig: "Zig",
 } as Langs);
 
 export const parser2display = syntax2display;
