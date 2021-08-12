@@ -11,6 +11,7 @@ import { static as ExpressStatic } from "express";
 import DirectoryListing from "serve-index";
 import { isSha1Hash } from "./util";
 import { pathFromID } from "./path-to-files";
+import LRU from "lru-cache";
 
 interface Options {
   id: string;
@@ -69,14 +70,31 @@ async function handleRequest({
     url = fsPath.slice(i);
     fsPath = fsPath.slice(0, i);
   }
-  const handler = ExpressStatic(fsPath);
+  const handler = getStaticHandler(fsPath);
   req.url = url;
   handler(req, res, () => {
     // Static handler didn't work, so try the directory listing handler.
-    const handler = DirectoryListing(fsPath, {
-      hidden: true,
-      icons: true,
-    });
+    const handler = getDirectoryHandler(fsPath);
     handler(req, res, next);
   });
+}
+
+const staticCache = new LRU({ max: 200 });
+function getStaticHandler(path: string) {
+  if (staticCache.has(path)) {
+    return staticCache.get(path);
+  }
+  const handler = ExpressStatic(path);
+  staticCache.set(path, handler);
+  return handler;
+}
+
+const directoryCache = new LRU({ max: 200 });
+function getDirectoryHandler(path: string) {
+  if (directoryCache.has(path)) {
+    return directoryCache.get(path);
+  }
+  const handler = DirectoryListing(path);
+  directoryCache.set(path, handler);
+  return handler;
 }
