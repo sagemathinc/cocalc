@@ -46,7 +46,7 @@ import {
   VisibleMDLG,
   Space,
 } from "@cocalc/frontend/r_misc";
-import { public_share_url, share_server_url } from "./util";
+import { publicShareUrl, shareServerUrl } from "./util";
 import { License } from "./license";
 import { trunc_middle } from "@cocalc/util/misc";
 
@@ -163,7 +163,7 @@ class Configure extends Component<Props, State> {
           <Icon name="eye" />
           <Space />
           <i>Public (listed)</i> - on the{" "}
-          <a href={share_server_url()} target="_blank">
+          <a href={shareServerUrl()} target="_blank">
             public Google-indexed server
           </a>
           .
@@ -182,7 +182,7 @@ class Configure extends Component<Props, State> {
           <Space />
           <del>
             <i>Public (listed)</i> - This will appear on the{" "}
-            <a href={share_server_url()} target="_blank">
+            <a href={shareServerUrl()} target="_blank">
               share server
             </a>
             .
@@ -319,15 +319,13 @@ class Configure extends Component<Props, State> {
   }
 
   private render_link(parent_is_public: boolean): Rendered {
-    const url = public_share_url(
+    const url = publicShareUrl(
       this.props.project_id,
       parent_is_public && this.props.public != null
         ? this.props.public.path
         : this.props.path,
-      this.props.isdir,
       this.props.path
     );
-
     const button_before = (
       <Button bsStyle="default" onClick={() => open_new_tab(url)}>
         <Icon name="external-link" />
@@ -364,7 +362,7 @@ class Configure extends Component<Props, State> {
   }
 
   private render_share_defn(): Rendered {
-    const server = share_server_url();
+    const server = shareServerUrl();
     return (
       <div style={{ color: "#555", fontSize: "12pt" }}>
         <a href={SHARE_HELP_URL} target="_blank" rel="noopener">

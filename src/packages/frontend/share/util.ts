@@ -3,30 +3,32 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { join } from "path";
 import { encode_path } from "@cocalc/util/misc";
-
 import { client_db } from "@cocalc/util/schema";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export function share_id(project_id: string, path: string): string {
   return client_db.sha1(project_id, path); // Consistent with @cocalc/util/db-schema...
 }
 
-export function public_share_url(
+export function publicShareUrl(
   project_id: string,
-  path: string,
-  isdir: boolean = false,
-  file_path?: string
+  public_path: string,
+  file_path: string
 ): string {
-  const base = share_server_url();
-  const encoded_path = encode_path(file_path != null ? file_path : path);
-  let display_url = `${base}${share_id(project_id, path)}/${encoded_path}${
-    isdir ? "/" : ""
-  }?viewer=share`;
-  return display_url;
+  if (!file_path.startsWith(public_path)) {
+    throw Error(`${file_path} must start with ${public_path}`);
+  }
+  const relativePath = encode_path(file_path.slice(public_path.length));
+  return `${shareServerUrl()}/public_paths/${join(
+    share_id(project_id, public_path),
+    relativePath
+  )}`;
 }
 
-export function share_server_url(): string {
-  let url: string = document.URL;
-  url = url.slice(0, url.indexOf("/projects/"));
-  return `${url}/share/`;
+export function shareServerUrl(): string {
+  // Even if content is served from a separate domain, we assume that
+  // {base}/share will redirect to it.
+  return `${document.location.origin}${join(appBasePath, "share")}`;
 }
