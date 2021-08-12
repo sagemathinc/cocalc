@@ -94,7 +94,7 @@ function getDirectoryHandler(path: string) {
   if (directoryCache.has(path)) {
     return directoryCache.get(path);
   }
-  const handler = DirectoryListing(path);
+  const handler = DirectoryListing(path, { icons: true, view: "details" });
   directoryCache.set(path, handler);
   return handler;
 }
