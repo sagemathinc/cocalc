@@ -18,6 +18,7 @@ import "./math";
 import "./mention";
 import "./meta";
 import "./paragraph";
+import "./table";
 
 import { Element } from "slate";
 

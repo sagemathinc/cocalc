@@ -52,7 +52,7 @@ import "./meta/editable";
 import type { Paragraph } from "./paragraph";
 import "./paragraph/editable";
 import type { Table, THead, TBody, TR, TD, TH } from "./table";
-import "./table";
+import "./table/editable";
 
 import type { Marks } from "../markdown-to-slate/handle-marks";
 

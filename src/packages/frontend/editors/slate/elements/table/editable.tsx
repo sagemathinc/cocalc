@@ -4,56 +4,10 @@
  */
 
 import React, { CSSProperties as CSS } from "react";
-import { register, SlateElement } from "./register";
-import { useFocused, useSelected } from "./hooks";
-import { FOCUSED_COLOR, padLeft, padRight, padCenter } from "../util";
-import { serialize } from "../slate-to-markdown";
-
-export interface Table extends SlateElement {
-  type: "table";
-}
-
-export interface THead extends SlateElement {
-  type: "thead";
-}
-
-export interface TBody extends SlateElement {
-  type: "tbody";
-}
-
-export interface TR extends SlateElement {
-  type: "tr";
-}
-
-export interface TH extends SlateElement {
-  type: "th";
-  align: "left" | "center" | "right";
-}
-
-export interface TD extends SlateElement {
-  type: "td";
-  align: "left" | "center" | "right";
-}
-
-function toSlate({ type, children, isEmpty, state }) {
-  if (type == "tbody" && isEmpty) {
-    // Special case -- if there are no children, do NOT include
-    // the tbody either in the slatejs document.
-    // In markdown a table can have 0 rows, but
-    // this is not possible to *render* in slatejs, due to
-    // DOM structure (there's always leaf nodes for the cursor).
-    return;
-  }
-  if (type == "th" || type == "td") {
-    let align = state.attrs?.[0]?.[1]?.split(":")?.[1] ?? "left";
-    if (align != "left" && align != "right" && align != "center") {
-      align = "left"; // should be impossible; makes typescript happy
-    }
-    return { type, children, align };
-  } else {
-    return { type, children };
-  }
-}
+import { register } from "../register";
+import { useFocused, useSelected } from "../hooks";
+import { FOCUSED_COLOR, padLeft, padRight, padCenter } from "../../util";
+import { serialize } from "../../slate-to-markdown";
 
 function fromSlate({ node, children, info, childInfo }) {
   switch (node.type) {
@@ -125,7 +79,7 @@ export const Element = ({ attributes, children, element }) => {
   let backgroundColor: string | undefined = undefined;
 
   switch (element.type) {
-    /* We render tables using straight HTML and the antd
+    /* We render *editable* tables using straight HTML and the antd
        CSS classes.  We do NOT use the actual antd Table
        class, since it doesn't play well with slatejs.
        I just looked at the DOM in a debugger to figure out
@@ -190,14 +144,11 @@ export const Element = ({ attributes, children, element }) => {
   }
 };
 
-for (const slateType of ["thead", "tbody", "tr", "th", "td"]) {
-  register({
-    slateType,
-    toSlate,
-    Element,
-    fromSlate,
-  });
-}
+register({
+  slateType: ["thead", "tbody", "tr", "th", "td"],
+  Element,
+  fromSlate,
+});
 
 // NOTE/OPTIMIZATION: We end up serializing the cells twice; first to
 // get their length, then later to do a final render and pad everything
@@ -207,7 +158,6 @@ type TableInfo = { width: number; align: "left" | "center" | "right" }[];
 
 register({
   slateType: "table",
-  toSlate,
   Element,
   childInfoHook: ({ childInfo, node }) => {
     const thead_tr = (node as any).children[0].children[0];
