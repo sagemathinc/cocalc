@@ -3,28 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React } from "@cocalc/frontend/app-framework";
-import { FOCUSED_COLOR } from "../util";
-import { SlateElement, register } from "./register";
-import { useFocused, useSelected, useSlateStatic } from "./hooks";
-
-export interface Hashtag extends SlateElement {
-  type: "hashtag";
-  content: string;
-}
-
-// Looks like antd tag but scales (and a lot simpler).
-const STYLE = {
-  padding: "0 7px",
-  color: "#1b95e0",
-  borderRadius: "5px",
-  cursor: "pointer",
-} as CSS;
+import React from "react";
+import { FOCUSED_COLOR } from "../../util";
+import { register } from "../register";
+import { useFocused, useSelected, useSlateStatic } from "../hooks";
+import { STYLE } from "./index";
 
 register({
   slateType: "hashtag",
-
-  fromSlate: ({ node }) => `#${node.content}`,
 
   Element: ({ attributes, children, element }) => {
     if (element.type != "hashtag") throw Error("bug");
@@ -50,14 +36,5 @@ register({
     );
   },
 
-  toSlate: ({ token }) => {
-    return {
-      type: "hashtag",
-      isVoid: true,
-      isInline: true,
-      content: token.content,
-      children: [{ text: " " }],
-      markup: token.markup,
-    };
-  },
+  fromSlate: ({ node }) => `#${node.content}`,
 });

@@ -23,7 +23,7 @@ import type { Emoji } from "./emoji";
 import "./emoji/editable";
 
 import type { Hashtag } from "./hashtag";
-import "./hashtag";
+import "./hashtag/editable";
 
 import type { HR } from "./hr";
 import "./hr/editable";

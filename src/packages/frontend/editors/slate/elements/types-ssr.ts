@@ -13,6 +13,7 @@ import "./list";
 import "./list/list-item";
 import "./emoji";
 import "./hr";
+import "./hashtag";
 
 import { Element } from "slate";
 
