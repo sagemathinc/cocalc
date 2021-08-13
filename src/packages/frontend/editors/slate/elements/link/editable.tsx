@@ -5,41 +5,14 @@
 
 import { Text } from "slate";
 import React from "react";
-import { register, SlateElement } from "./register";
-import { useProcessLinks } from "./hooks";
-import { dict } from "@cocalc/util/misc";
+import { register } from "../register";
+import { useProcessLinks } from "../hooks";
 import { open_new_tab } from "@cocalc/frontend/misc-page";
 const linkify = require("linkify-it")();
-
-export interface Link extends SlateElement {
-  type: "link";
-  isInline: true;
-  url?: string;
-  title?: string;
-}
+import { Link } from "./index";
 
 register({
   slateType: "link",
-
-  fromSlate: ({ node, children }) => {
-    // [my website](wstein.org "here")
-    let url = node.url ?? "";
-    let title = node.title ?? "";
-    if (title.length > 0) {
-      title = ` \"${title}\"`;
-    }
-    if (title == "" && children == url && linkify.test(url)) {
-      // special case where the url is easily parsed by the linkify plugin,
-      // and there is no title.
-      return url;
-    } else {
-      if (/\s/.test(url)) {
-        // See https://superuser.com/questions/1170654/how-do-i-add-a-hyperlink-with-spaces-in-it-using-markdown
-        url = `<${url}>`;
-      }
-      return `[${children}](${url}${title})`;
-    }
-  },
 
   Element: ({ attributes, children, element }) => {
     const node = element as Link;
@@ -69,15 +42,24 @@ register({
     );
   },
 
-  toSlate: ({ type, children, state }) => {
-    const attrs = dict(state.attrs as any);
-    return {
-      type,
-      children,
-      isInline: true,
-      url: attrs.href,
-      title: attrs.title,
-    };
+  fromSlate: ({ node, children }) => {
+    // [my website](wstein.org "here")
+    let url = node.url ?? "";
+    let title = node.title ?? "";
+    if (title.length > 0) {
+      title = ` \"${title}\"`;
+    }
+    if (title == "" && children == url && linkify.test(url)) {
+      // special case where the url is easily parsed by the linkify plugin,
+      // and there is no title.
+      return url;
+    } else {
+      if (/\s/.test(url)) {
+        // See https://superuser.com/questions/1170654/how-do-i-add-a-hyperlink-with-spaces-in-it-using-markdown
+        url = `<${url}>`;
+      }
+      return `[${children}](${url}${title})`;
+    }
   },
 });
 

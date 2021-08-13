@@ -33,7 +33,7 @@ import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { withAutoFormat } from "./format";
 import { withNormalize } from "./normalize";
-import { withInsertBreakHack } from "./elements/link";
+import { withInsertBreakHack } from "./elements/link/editable";
 import { estimateSize } from "./elements";
 import { getHandler as getKeyboardHandler } from "./keyboard";
 

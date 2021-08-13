@@ -14,6 +14,7 @@ import "./list/list-item";
 import "./emoji";
 import "./hr";
 import "./hashtag";
+import "./link";
 
 import { Element } from "slate";
 

@@ -56,7 +56,7 @@ import type { BlockQuote } from "./blockquote";
 import "./blockquote";
 
 import type { Link } from "./link";
-import "./link";
+import "./link/editable";
 
 import type { Image } from "./image";
 import "./image";
