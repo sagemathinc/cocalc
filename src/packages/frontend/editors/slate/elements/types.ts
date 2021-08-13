@@ -20,13 +20,13 @@ import type { Checkbox } from "./checkbox";
 import "./checkbox/editable";
 
 import type { Emoji } from "./emoji";
-import "./emoji";
+import "./emoji/editable";
 
 import type { Hashtag } from "./hashtag";
 import "./hashtag";
 
 import type { HR } from "./hr";
-import "./hr";
+import "./hr/editable";
 
 import type { Paragraph } from "./paragraph";
 import "./paragraph/editable";

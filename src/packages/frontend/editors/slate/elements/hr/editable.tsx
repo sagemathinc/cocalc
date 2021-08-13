@@ -4,20 +4,12 @@
  */
 
 import React from "react";
-import { FOCUSED_COLOR } from "../util";
-import { register, SlateElement } from "./register";
-import { useFocused, useSelected } from "./hooks";
-
-export interface HR extends SlateElement {
-  type: "hr";
-}
+import { FOCUSED_COLOR } from "../../util";
+import { register } from "../register";
+import { useFocused, useSelected } from "../hooks";
 
 register({
   slateType: "hr",
-
-  toSlate: ({ children }) => {
-    return { type: "hr", isVoid: true, children };
-  },
 
   Element: ({ attributes, children }) => {
     const focused = useFocused();

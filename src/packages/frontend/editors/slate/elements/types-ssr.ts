@@ -11,6 +11,8 @@ import "./checkbox";
 import "./meta";
 import "./list";
 import "./list/list-item";
+import "./emoji";
+import "./hr";
 
 import { Element } from "slate";
 

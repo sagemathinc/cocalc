@@ -4,19 +4,12 @@
  */
 
 import React from "react";
-import { FOCUSED_COLOR } from "../util";
-import { SlateElement, register } from "./register";
-import { useFocused, useSelected } from "./hooks";
-
-export interface Emoji extends SlateElement {
-  type: "emoji";
-  content: string;
-}
+import { FOCUSED_COLOR } from "../../util";
+import { register } from "../register";
+import { useFocused, useSelected } from "../hooks";
 
 register({
   slateType: "emoji",
-
-  fromSlate: ({ node }) => `:${node.markup}:`,
 
   Element: ({ attributes, children, element }) => {
     if (element.type != "emoji") throw Error("bug");
@@ -33,15 +26,5 @@ register({
       </span>
     );
   },
-
-  toSlate: ({ token }) => {
-    return {
-      type: "emoji",
-      isVoid: true,
-      isInline: true,
-      content: token.content,
-      children: [{ text: " " }],
-      markup: token.markup,
-    };
-  },
+  fromSlate: ({ node }) => `:${node.markup}:`,
 });
