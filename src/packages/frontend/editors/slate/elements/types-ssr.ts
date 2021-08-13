@@ -5,6 +5,7 @@ import "./heading";
 import "./blockquote";
 import "./generic";
 import "./math";
+import "./code-block";
 
 import { Element } from "slate";
 

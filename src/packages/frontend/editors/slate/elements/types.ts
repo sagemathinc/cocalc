@@ -29,8 +29,8 @@ import "./hr";
 import { Paragraph } from "./paragraph";
 import "./paragraph/editable";
 
-import { CodeBlock } from "./code_block";
-import "./code_block";
+import { CodeBlock } from "./code-block";
+import "./code-block/editable";
 
 import { Hardbreak, Softbreak } from "./linebreak";
 import "./linebreak";

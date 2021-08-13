@@ -14,7 +14,6 @@ TODO: a lot!
 import { delay } from "awaiting";
 import { Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
-import { file_associations } from "@cocalc/frontend/file-associations";
 import {
   CSS,
   React,
@@ -40,6 +39,7 @@ import {
   moveCursorUp,
 } from "../control";
 import { selectAll } from "../keyboard/select-all";
+import infoToMode from "./code-block/info-to-mode";
 
 const STYLE = {
   width: "100%",
@@ -337,20 +337,4 @@ function isLessThan(p1: number[], p2: number[]): boolean {
     }
   }
   return false;
-}
-
-function infoToMode(info) {
-  info = info?.trim().toLowerCase();
-  if (info) {
-    if (info[0] == "{") {
-      // Rmarkdown format -- looks like {r stuff,engine=python,stuff}.
-      // https://github.com/yihui/knitr-examples/blob/master/023-engine-python.Rmd
-      // TODO: For now just do this, but find a spec and parse in the future...
-      info = "r";
-    }
-    const spec = file_associations[info];
-    return spec?.opts.mode ?? info; // if nothing in file associations, maybe info is the mode, e.g. "python".
-  } else {
-    return "txt";
-  }
 }

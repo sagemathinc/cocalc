@@ -9,21 +9,12 @@ import {
   useState,
   useIsMountedRef,
 } from "@cocalc/frontend/app-framework";
-import { Element as Element0 } from "slate";
-import { register, SlateElement, RenderElementProps } from "./register";
-import { useCollapsed, useSelected, useSlate } from "./hooks";
-import { SlateCodeMirror } from "./codemirror";
-import { ensure_ends_in_newline, indent } from "../util";
+import { register, RenderElementProps } from "../register";
+import { useCollapsed, useSelected, useSlate } from "../hooks";
+import { SlateCodeMirror } from "../codemirror";
+import { ensure_ends_in_newline, indent } from "../../util";
 import { delay } from "awaiting";
-import { useSetElement } from "./set-element";
-
-export interface CodeBlock extends SlateElement {
-  type: "code_block";
-  isVoid: true;
-  fence: boolean;
-  value: string;
-  info: string;
-}
+import { useSetElement } from "../set-element";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -86,28 +77,6 @@ const Element: React.FC<RenderElementProps> = ({
   );
 };
 
-function toSlate({ token }) {
-  // fence =block of code with ``` around it, but not indented.
-  let value = token.content;
-  // We remove the last carriage return (right before ```), since it
-  // is much easier to do that here...
-  if (value[value.length - 1] == "\n") {
-    value = value.slice(0, value.length - 1);
-  }
-  const info = token.info ?? "";
-  if (typeof info != "string") {
-    throw Error("info must be a string");
-  }
-  return {
-    type: "code_block",
-    isVoid: true,
-    fence: token.type == "fence",
-    value,
-    info,
-    children: [{ text: " " }],
-  } as Element0;
-}
-
 function fromSlate({ node }) {
   const value = node.value as string;
   if (node.fence) {
@@ -129,18 +98,10 @@ function fromSlate({ node }) {
   }
 }
 
-function sizeEstimator({ node, fontSize }): number {
-  return node.value.split("\n").length * (fontSize + 2) + 10 + fontSize;
-}
-
 register({
   slateType: "code_block",
-  markdownType: ["fence", "code_block"],
   fromSlate,
   Element,
-  toSlate,
-  /*rules: { autoFocus: true },  -- disabled since it doesn't work right now and enabling makes cursor disappear which is very confusing. */
-  sizeEstimator,
 });
 
 // The info editor.
