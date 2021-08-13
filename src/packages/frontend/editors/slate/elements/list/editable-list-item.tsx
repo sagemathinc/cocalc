@@ -3,24 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-import { ensure_ends_in_newline, li_indent } from "../util";
-import { register, SlateElement } from "./register";
-
-export interface ListItem extends SlateElement {
-  type: "list_item";
-}
+import { ensure_ends_in_newline, li_indent } from "../../util";
+import { register } from "../register";
 
 register({
   slateType: "list_item",
-
-  toSlate: ({ children }) => {
-    return { type: "list_item", children };
-  },
-
-  Element: ({ attributes, children }) => {
-    return <li {...attributes}>{children}</li>;
-  },
 
   fromSlate: ({ children, info }) => {
     let indent = 2;

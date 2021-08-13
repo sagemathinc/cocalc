@@ -5,4 +5,3 @@
 
 export * from "./register";
 export * from "./types";
-import "./elements.css";

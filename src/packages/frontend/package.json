@@ -13,7 +13,8 @@
     "./course": "./dist/course/index.js",
     "./billing": "./dist/billing/index.js",
     "./landing-page": "./dist/landing-page/index.js",
-    "./admin/users/projects": "./dist/admin/users/projects.js"
+    "./admin/users/projects": "./dist/admin/users/projects.js",
+    "./editors/slate/elements/elements.css": "./editors/slate/elements/elements.css"
   },
   "keywords": [
     "cocalc",

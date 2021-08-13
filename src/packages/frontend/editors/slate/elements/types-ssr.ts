@@ -9,6 +9,8 @@ import "./code-block";
 import "./break";
 import "./checkbox";
 import "./meta";
+import "./list";
+import "./list/list-item";
 
 import { Element } from "slate";
 

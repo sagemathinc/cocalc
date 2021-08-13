@@ -11,64 +11,66 @@
 // IMPORTANT: You must import the entire module **and** separately import
 // the type; otherwise the code in the module to register it is not run.
 
-import { Meta } from "./meta";
+import "./elements.css";
+
+import type { Meta } from "./meta";
 import "./meta/editable";
 
-import { Checkbox } from "./checkbox";
+import type { Checkbox } from "./checkbox";
 import "./checkbox/editable";
 
-import { Emoji } from "./emoji";
+import type { Emoji } from "./emoji";
 import "./emoji";
 
-import { Hashtag } from "./hashtag";
+import type { Hashtag } from "./hashtag";
 import "./hashtag";
 
-import { HR } from "./hr";
+import type { HR } from "./hr";
 import "./hr";
 
-import { Paragraph } from "./paragraph";
+import type { Paragraph } from "./paragraph";
 import "./paragraph/editable";
 
-import { CodeBlock } from "./code-block";
+import type { CodeBlock } from "./code-block";
 import "./code-block/editable";
 
-import { Hardbreak, Softbreak } from "./break";
+import type { Hardbreak, Softbreak } from "./break";
 import "./break/editable";
 
-import { DisplayMath, InlineMath } from "./math";
+import type { DisplayMath, InlineMath } from "./math";
 import "./math/editable";
 
-import { Heading } from "./heading";
+import type { Heading } from "./heading";
 import "./heading/editable";
 
-import { HtmlBlock, HtmlInline } from "./html";
+import type { HtmlBlock, HtmlInline } from "./html";
 import "./html";
 
-import { Mention } from "./mention";
+import type { Mention } from "./mention";
 import "./mention";
 
-import { Table, THead, TBody, TR, TD, TH } from "./table";
+import type { Table, THead, TBody, TR, TD, TH } from "./table";
 import "./table";
 
-import { BlockQuote } from "./blockquote";
+import type { BlockQuote } from "./blockquote";
 import "./blockquote";
 
-import { Link } from "./link";
+import type { Link } from "./link";
 import "./link";
 
-import { Image } from "./image";
+import type { Image } from "./image";
 import "./image";
 
-import { ListItem } from "./list-item";
-import "./list-item";
+import type { ListItem } from "./list/list-item";
+import "./list/editable-list-item";
 
-import { BulletList, OrderedList } from "./list";
-import "./list";
+import type { BulletList, OrderedList } from "./list";
+import "./list/editable-list";
 
-import { Generic } from "./generic";
+import type { Generic } from "./generic";
 import "./generic";
 
-import { Marks } from "../markdown-to-slate/handle-marks";
+import type { Marks } from "../markdown-to-slate/handle-marks";
 
 declare module "slate" {
   export interface CustomTypes {
