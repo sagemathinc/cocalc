@@ -41,7 +41,7 @@ interface Props {
   };
   font_size?: number;
   set_click_coords?: (pos: { left: number; top: number }) => void;
-  style?: any; // optional style that is merged into BLURRED_STYLE
+  style?: React.CSSProperties; // optional style that is merged into BLURRED_STYLE
   no_border?: boolean; // if given, do not draw border around whole thing
 }
 
@@ -88,7 +88,6 @@ export function CodeMirrorStatic(props: Props) {
     };
 
     try {
-      // @ts-ignore -- fails in packages/hub right now...
       CodeMirror.runMode(props.value, mode, append);
     } catch (err) {
       /* This does happen --
@@ -125,18 +124,12 @@ export function CodeMirrorStatic(props: Props) {
         width = 69;
       }
       style = { paddingLeft: `${width + 4}px`, ...BLURRED_STYLE };
-      if (props.style != null) {
-        style = { ...style, ...props.style };
-      }
     } else {
       width = 0;
       style = BLURRED_STYLE;
-      if (props.style != null) {
-        style = { ...style, ...props.style };
-      }
     }
     if (theme == "default") {
-      style = { ...{ background: "white" }, ...style };
+      style.background = "white";
     }
 
     const v = theme.split(" ");
@@ -146,7 +139,7 @@ export function CodeMirrorStatic(props: Props) {
     return (
       <pre
         className={`CodeMirror ${theme_base} ${theme_extra} CodeMirror-wrap`}
-        style={style}
+        style={{ ...style, ...props.style }}
       >
         <div style={{ marginLeft: width }}>
           {render_lines(width)}
@@ -169,7 +162,7 @@ export function CodeMirrorStatic(props: Props) {
     }
   }
 
-  const style: React.CSSProperties = {
+  const divStyle: React.CSSProperties = {
     width: "100%",
     borderRadius: "2px",
     position: "relative",
@@ -177,7 +170,7 @@ export function CodeMirrorStatic(props: Props) {
     fontSize: props.font_size ? `${props.font_size}px` : undefined,
   };
   if (!props.no_border) {
-    style.border = "1px solid rgb(207, 207, 207)";
+    divStyle.border = "1px solid rgb(207, 207, 207)";
   }
-  return <div style={style}>{render_code()}</div>;
+  return <div style={divStyle}>{render_code()}</div>;
 }

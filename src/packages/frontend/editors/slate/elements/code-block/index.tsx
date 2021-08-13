@@ -17,8 +17,6 @@ export interface CodeBlock extends SlateElement {
   info: string;
 }
 
-
-
 const StaticElement: React.FC<RenderElementProps> = ({
   attributes,
   element,
@@ -28,6 +26,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
     <div {...attributes}>
       <CodeMirrorStatic
         value={element.value}
+        style={{ background: "#f7f7f7" }}
         options={{ mode: infoToMode(element.info) }}
       />
     </div>
