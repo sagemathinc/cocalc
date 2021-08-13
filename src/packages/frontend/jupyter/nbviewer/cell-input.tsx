@@ -1,6 +1,6 @@
 import React from "react";
 import { CodeMirrorStatic } from "../codemirror-static";
-import Markdown from "@cocalc/frontend/markdown/component";
+import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { InputPrompt } from "../prompt/input-nbviewer";
 
 interface Props {

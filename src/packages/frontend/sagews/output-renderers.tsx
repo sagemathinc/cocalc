@@ -6,7 +6,7 @@ import { fromJS } from "immutable";
 import { Stdout } from "@cocalc/frontend/jupyter/output-messages/stdout";
 import { Stderr } from "@cocalc/frontend/jupyter/output-messages/stderr";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
-import { Markdown } from "@cocalc/frontend/markdown";
+import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import HTML from "@cocalc/frontend/r_misc/html-ssr";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 

@@ -1,20 +1,20 @@
 // Register types for use in server side rendering.
 
-import "./paragraph";
-import "./heading";
 import "./blockquote";
-import "./generic";
-import "./math";
-import "./code-block";
 import "./break";
 import "./checkbox";
-import "./meta";
+import "./code-block";
+import "./emoji";
+import "./generic";
+import "./hashtag";
+import "./heading";
+import "./hr";
+import "./link";
 import "./list";
 import "./list/list-item";
-import "./emoji";
-import "./hr";
-import "./hashtag";
-import "./link";
+import "./math";
+import "./meta";
+import "./paragraph";
 
 import { Element } from "slate";
 

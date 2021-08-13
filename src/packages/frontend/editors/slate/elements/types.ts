@@ -13,62 +13,44 @@
 
 import "./elements.css";
 
-import type { Meta } from "./meta";
-import "./meta/editable";
-
-import type { Checkbox } from "./checkbox";
-import "./checkbox/editable";
-
-import type { Emoji } from "./emoji";
-import "./emoji/editable";
-
-import type { Hashtag } from "./hashtag";
-import "./hashtag/editable";
-
-import type { HR } from "./hr";
-import "./hr/editable";
-
-import type { Paragraph } from "./paragraph";
-import "./paragraph/editable";
-
-import type { CodeBlock } from "./code-block";
-import "./code-block/editable";
-
-import type { Hardbreak, Softbreak } from "./break";
-import "./break/editable";
-
-import type { DisplayMath, InlineMath } from "./math";
-import "./math/editable";
-
-import type { Heading } from "./heading";
-import "./heading/editable";
-
-import type { HtmlBlock, HtmlInline } from "./html";
-import "./html";
-
-import type { Mention } from "./mention";
-import "./mention";
-
-import type { Table, THead, TBody, TR, TD, TH } from "./table";
-import "./table";
-
 import type { BlockQuote } from "./blockquote";
 import "./blockquote";
-
-import type { Link } from "./link";
-import "./link/editable";
-
-import type { Image } from "./image";
-import "./image";
-
-import type { ListItem } from "./list/list-item";
-import "./list/editable-list-item";
-
-import type { BulletList, OrderedList } from "./list";
-import "./list/editable-list";
-
+import type { Hardbreak, Softbreak } from "./break";
+import "./break/editable";
+import type { Checkbox } from "./checkbox";
+import "./checkbox/editable";
+import type { CodeBlock } from "./code-block";
+import "./code-block/editable";
+import type { Emoji } from "./emoji";
+import "./emoji/editable";
 import type { Generic } from "./generic";
 import "./generic";
+import type { Hashtag } from "./hashtag";
+import "./hashtag/editable";
+import type { Heading } from "./heading";
+import "./heading/editable";
+import type { HR } from "./hr";
+import "./hr/editable";
+import type { HtmlBlock, HtmlInline } from "./html";
+import "./html";
+import type { Image } from "./image";
+import "./image";
+import type { Link } from "./link";
+import "./link/editable";
+import type { ListItem } from "./list/list-item";
+import "./list/editable-list-item";
+import type { BulletList, OrderedList } from "./list";
+import "./list/editable-list";
+import type { DisplayMath, InlineMath } from "./math";
+import "./math/editable";
+import type { Mention } from "./mention";
+import "./mention";
+import type { Meta } from "./meta";
+import "./meta/editable";
+import type { Paragraph } from "./paragraph";
+import "./paragraph/editable";
+import type { Table, THead, TBody, TR, TD, TH } from "./table";
+import "./table";
 
 import type { Marks } from "../markdown-to-slate/handle-marks";
 

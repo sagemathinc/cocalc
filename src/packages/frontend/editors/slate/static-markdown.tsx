@@ -34,11 +34,12 @@ import { markdown_to_slate as markdownToSlate } from "./markdown-to-slate";
 
 interface Props {
   value: string;
+  style?: React.CSSProperties;
 }
 
-export default function StaticMarkdown({ value }: Props) {
+export default function StaticMarkdown({ value, style }: Props) {
   // Convert markdown to our slate JSON object representation.
-  const slate = markdownToSlate(value);
+  const slate = markdownToSlate(value.trim());
   const v: JSX.Element[] = [];
   console.log(JSON.stringify(slate, undefined, 2));
   let n = 0;
@@ -46,7 +47,7 @@ export default function StaticMarkdown({ value }: Props) {
     v.push(<RenderElement key={n} element={element} />);
     n += 1;
   }
-  return <div>{v}</div>;
+  return <div style={{ width: "100%", ...style }}>{v}</div>;
 }
 
 function RenderElement({ element }) {
