@@ -45,7 +45,7 @@ import { slatePointToMarkdownPosition } from "./sync";
 
 import { useMentions } from "./slate-mentions";
 import { mentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
-import { createMention } from "./elements/mention";
+import { createMention } from "./elements/mention/editable";
 import { submit_mentions } from "@cocalc/frontend/editors/markdown-input/mentions";
 
 import { useSearch, SearchHook } from "./search";

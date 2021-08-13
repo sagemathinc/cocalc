@@ -10,19 +10,12 @@
 because then they will be compatible with all mentions already used with chat and tasks.
 */
 
-import { trunc_middle } from "@cocalc/util/misc";
+import { trunc_middle as truncMiddle } from "@cocalc/util/misc";
 import { React, redux } from "@cocalc/frontend/app-framework";
-import { FOCUSED_COLOR } from "../util";
-import { SlateElement, register, RenderElementProps } from "./register";
-import { useFocused, useSelected } from "./hooks";
-
-export interface Mention extends SlateElement {
-  type: "mention";
-  account_id: string;
-  name: string;
-  isInline: true;
-  isVoid: true;
-}
+import { FOCUSED_COLOR } from "../../util";
+import { register, RenderElementProps } from "../register";
+import { useFocused, useSelected } from "../hooks";
+import { createMentionStatic } from "./index";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -50,16 +43,9 @@ const Element: React.FC<RenderElementProps> = ({
 
 export function createMention(account_id: string, name?: string) {
   if (name == null) {
-    name = trunc_middle(redux.getStore("users").get_name(account_id), 64);
+    name = truncMiddle(redux.getStore("users").get_name(account_id), 64);
   }
-  return {
-    type: "mention" as "mention",
-    isVoid: true as true,
-    isInline: true as true,
-    account_id,
-    name: name as string,
-    children: [{ text: "" }],
-  };
+  return createMentionStatic(account_id, name);
 }
 
 register({

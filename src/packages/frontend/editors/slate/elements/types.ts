@@ -46,7 +46,7 @@ import "./list/editable-list";
 import type { DisplayMath, InlineMath } from "./math";
 import "./math/editable";
 import type { Mention } from "./mention";
-import "./mention";
+import "./mention/editable";
 import type { Meta } from "./meta";
 import "./meta/editable";
 import type { Paragraph } from "./paragraph";
