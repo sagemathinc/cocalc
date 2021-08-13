@@ -5,26 +5,17 @@
 
 import React from "react";
 import { ReactEditor } from "../slate-react";
-import { register, SlateElement } from "./register";
+import { register } from "./register";
 import { useSlateStatic } from "./hooks";
 import { mark_block } from "../util";
 import { HeadingToggle } from "./heading-toggle";
 
-export interface Heading extends SlateElement {
-  type: "heading";
-  level: number;
-}
+import { Heading } from "./heading-static";
+import "./heading-static";
+export type { Heading };
 
 register({
   slateType: "heading",
-
-  toSlate: ({ token, children }) => {
-    return {
-      type: "heading",
-      level: parseInt(token.tag?.slice(1) ?? "1"),
-      children,
-    };
-  },
 
   Element: ({ attributes, children, element }) => {
     const editor = useSlateStatic();

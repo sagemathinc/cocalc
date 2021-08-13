@@ -25,8 +25,6 @@ way with good code use!
 
 Worries:
 
-- [ ] init-ssr when used on the frontend might mess up normal init, depending on order of calls?!
-      Maybe need precedence or two different plugin namespaces or...?
 */
 
 import React from "react";
@@ -46,7 +44,7 @@ export default function StaticMarkdown({ value }: Props) {
   let n = 0;
   for (const element of slate) {
     v.push(<RenderElement key={n} element={element} />);
-    n += 1
+    n += 1;
   }
   return <div>{v}</div>;
 }
@@ -54,10 +52,16 @@ export default function StaticMarkdown({ value }: Props) {
 function RenderElement({ element }) {
   let children: JSX.Element[] = [];
   if (element["children"]) {
+    let n = 0;
     for (const child of element["children"]) {
-      children.push(<RenderElement element={child} />);
+      children.push(<RenderElement key={n} element={child} />);
+      n += 1;
     }
   }
-  const C = getRender(element.type);
-  return <C children={children} element={element} attributes={{} as any} />;
+  if (element["type"]) {
+    const C = getRender(element.type);
+    return <C children={children} element={element} attributes={{} as any} />;
+  }
+  // It's text
+  return <span>{element["text"]}</span>;
 }
