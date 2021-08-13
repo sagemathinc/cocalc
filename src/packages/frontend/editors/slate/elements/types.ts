@@ -32,8 +32,8 @@ import "./paragraph/editable";
 import { CodeBlock } from "./code-block";
 import "./code-block/editable";
 
-import { Hardbreak, Softbreak } from "./linebreak";
-import "./linebreak";
+import { Hardbreak, Softbreak } from "./break";
+import "./break/editable";
 
 import { DisplayMath, InlineMath } from "./math";
 import "./math/editable";

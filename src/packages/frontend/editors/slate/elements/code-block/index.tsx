@@ -23,7 +23,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
 }) => {
   if (element.type != "code_block") throw Error("bug");
   return (
-    <div {...attributes}>
+    <div {...attributes} style={{ marginBottom: "1em" }}>
       <CodeMirrorStatic
         value={element.value}
         style={{ background: "#f7f7f7" }}

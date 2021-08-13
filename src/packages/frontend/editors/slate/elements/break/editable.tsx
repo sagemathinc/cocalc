@@ -4,27 +4,11 @@
  */
 
 import React from "react";
-import { register, SlateElement } from "./register";
-import { useCollapsed, useFocused, useSelected } from "./hooks";
-import { Element } from "slate";
-
-export interface Softbreak extends SlateElement {
-  type: "softbreak";
-  isInline: true;
-  isVoid: true;
-}
+import { register } from "../register";
+import { useCollapsed, useFocused, useSelected } from "../hooks";
 
 register({
   slateType: "softbreak",
-
-  toSlate: () => {
-    return {
-      type: "softbreak",
-      isInline: true,
-      isVoid: true,
-      children: [{ text: "" }],
-    };
-  },
 
   // A softbreak creates a new line without creating
   // a new paragraph.
@@ -58,21 +42,6 @@ register({
   },
 });
 
-export interface Hardbreak extends SlateElement {
-  type: "hardbreak";
-  isInline: true;
-  isVoid: true;
-}
-
-export function hardbreak() {
-  return {
-    type: "hardbreak",
-    isInline: true,
-    isVoid: true,
-    children: [{ text: "" }],
-  } as Element;
-}
-
 register({
   slateType: "hardbreak",
 
@@ -101,6 +70,4 @@ register({
       </span>
     );
   },
-
-  toSlate: hardbreak,
 });

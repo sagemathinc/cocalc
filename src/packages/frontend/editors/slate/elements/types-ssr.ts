@@ -6,6 +6,7 @@ import "./blockquote";
 import "./generic";
 import "./math";
 import "./code-block";
+import "./break";
 
 import { Element } from "slate";
 

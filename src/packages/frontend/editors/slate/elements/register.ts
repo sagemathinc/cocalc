@@ -146,7 +146,7 @@ export function getRender(slateType: string): React.FC<RenderElementProps> {
 export function getStaticRender(
   slateType: string
 ): React.FC<RenderElementProps> {
-  console.log("getStaticRender", slateType);
+  //console.log("getStaticRender", slateType);
   if (staticRenderer[slateType] == null) {
     console.log(
       `WARNING -- getStaticRender: using generic plugin for type '${slateType}'; this is NOT likely to work.`

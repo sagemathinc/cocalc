@@ -8,7 +8,7 @@
 import { Editor, Node, Transforms } from "slate";
 import { isElementOfType } from "../elements";
 import { register } from "./register";
-import { hardbreak } from "../elements/linebreak";
+import { hardbreak } from "../elements/break";
 import { isWhitespaceParagraph, isWhitespaceText } from "../padding";
 
 register({ key: "Enter", shift: true }, ({ editor }) => {
