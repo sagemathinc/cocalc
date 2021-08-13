@@ -1,7 +1,10 @@
 // Register types for use in server side rendering.
 
-import "./paragraph-static";
-import "./heading-static";
+import "./paragraph";
+import "./heading";
+import "./blockquote";
+import "./generic";
+import "./math";
 
 import { Element } from "slate";
 

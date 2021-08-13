@@ -11,14 +11,17 @@ export interface BlockQuote extends SlateElement {
   type: "blockquote";
 }
 
+const Element = ({ attributes, children }) => {
+  return <blockquote {...attributes}>{children}</blockquote>;
+};
+
 register({
   slateType: "blockquote",
 
   fromSlate: ({ children }) => mark_block(children, ">"),
 
-  Element: ({ attributes, children }) => {
-    return <blockquote {...attributes}>{children}</blockquote>;
-  },
+  Element,
+  StaticElement: Element,
 
   toSlate: ({ type, children }) => {
     return { type, children };

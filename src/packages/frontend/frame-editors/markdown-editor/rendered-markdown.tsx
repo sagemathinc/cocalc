@@ -13,6 +13,7 @@
 //    - [x] math is properly typeset
 
 import { delay } from "awaiting";
+import SlateMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Markdown } from "@cocalc/frontend/r_misc";
 import { is_different, path_split } from "@cocalc/util/misc";
 import { debounce } from "lodash";
@@ -144,6 +145,8 @@ export const RenderedMarkdown: React.FC<Props> = React.memo((props: Props) => {
         className={"cocalc-editor-div smc-vfill"}
       >
         <div style={style_inner} className="smc-vfill">
+          <SlateMarkdown value={value} />
+          <div style={{ border: "1px solid red", margin: "20px" }} />
           <Markdown
             line_numbers={true}
             onDoubleClick={goto_source_line}

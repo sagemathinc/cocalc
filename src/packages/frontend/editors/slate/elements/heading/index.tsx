@@ -4,8 +4,7 @@
  */
 
 import React from "react";
-import { register, SlateElement } from "./register";
-
+import { register, SlateElement } from "../register";
 
 export interface Heading extends SlateElement {
   type: "heading";
@@ -23,7 +22,7 @@ register({
     };
   },
 
-  Element: ({ attributes, children, element }) => {
+  StaticElement: ({ attributes, children, element }) => {
     if (element.type != "heading") throw Error("bug");
     const { level } = element;
     return React.createElement(`h${level}`, attributes, children);

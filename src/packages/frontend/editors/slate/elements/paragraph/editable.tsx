@@ -4,12 +4,8 @@
  */
 
 import React from "react";
-import { register } from "./register";
-import { useFocused, useSelected, useCollapsed } from "./hooks";
-
-import { Paragraph } from "./paragraph-static";
-import "./paragraph-static";
-export type { Paragraph };
+import { register } from "../register";
+import { useFocused, useSelected, useCollapsed } from "../hooks";
 
 register({
   slateType: "paragraph",

@@ -29,7 +29,7 @@ Worries:
 
 import React from "react";
 import "./elements/init-ssr";
-import { getRender } from "./elements/register";
+import { getStaticRender } from "./elements/register";
 import { markdown_to_slate as markdownToSlate } from "./markdown-to-slate";
 
 interface Props {
@@ -59,7 +59,7 @@ function RenderElement({ element }) {
     }
   }
   if (element["type"]) {
-    const C = getRender(element.type);
+    const C = getStaticRender(element.type);
     return <C children={children} element={element} attributes={{} as any} />;
   }
   // It's text

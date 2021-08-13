@@ -16,10 +16,10 @@ import {
   useState,
 } from "@cocalc/frontend/app-framework";
 import { startswith } from "@cocalc/util/misc";
-import { SlateCodeMirror } from "./codemirror";
-import { useFocused, useSelected } from "../slate-react";
-import { useCollapsed } from "./hooks";
-import { FOCUSED_COLOR } from "../util";
+import { SlateCodeMirror } from "../codemirror";
+import { useFocused, useSelected } from "../../slate-react";
+import { useCollapsed } from "../hooks";
+import { FOCUSED_COLOR } from "../../util";
 
 interface Props {
   value: string;

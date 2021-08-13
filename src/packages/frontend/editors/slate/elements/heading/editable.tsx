@@ -4,15 +4,11 @@
  */
 
 import React from "react";
-import { ReactEditor } from "../slate-react";
-import { register } from "./register";
-import { useSlateStatic } from "./hooks";
-import { mark_block } from "../util";
-import { HeadingToggle } from "./heading-toggle";
-
-import { Heading } from "./heading-static";
-import "./heading-static";
-export type { Heading };
+import { ReactEditor } from "../../slate-react";
+import { register } from "../register";
+import { useSlateStatic } from "../hooks";
+import { HeadingToggle } from "./toggle";
+import { mark_block } from "../../util";
 
 register({
   slateType: "heading",

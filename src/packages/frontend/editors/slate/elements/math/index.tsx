@@ -4,11 +4,9 @@
  */
 
 import React from "react";
-import { Element as Element0 } from "slate";
-import { register, SlateElement, RenderElementProps } from "./register";
-import { useSlate } from "./hooks";
-import { SlateMath } from "./math-widget";
-import { useSetElement } from "./set-element";
+import { Element } from "slate";
+import { register, RenderElementProps, SlateElement } from "../register";
+import mathToHtml from "@cocalc/frontend/misc/math-to-html";
 
 export interface DisplayMath extends SlateElement {
   type: "display_math";
@@ -23,35 +21,39 @@ export interface InlineMath extends SlateElement {
   isInline: true;
 }
 
-const Element: React.FC<RenderElementProps> = ({
+const StaticElement: React.FC<RenderElementProps> = ({
   attributes,
-  children,
   element,
 }) => {
   if (element.type != "display_math" && element.type != "inline_math") {
     // type guard.
     throw Error("bug");
   }
-  const editor = useSlate();
-  const setElement = useSetElement(editor, element);
+  const { value } = element;
+  const { err, __html } = React.useMemo(
+    () => mathToHtml(value, element.type == "inline_math"),
+    [value]
+  );
 
-  return (
-    <span {...attributes}>
-      <SlateMath
-        value={element.value}
-        isInline={!!element["isInline"]}
-        onChange={(value) => {
-          setElement({ value });
-        }}
-      />
-      {children}
+  return err ? (
+    <span
+      {...attributes}
+      style={{
+        backgroundColor: "#fff2f0",
+        border: "1px solid #ffccc7",
+        padding: "5px 10px",
+      }}
+    >
+      {err}
     </span>
+  ) : (
+    <span {...attributes} dangerouslySetInnerHTML={{ __html }}></span>
   );
 };
 
 register({
   slateType: "inline_math",
-  Element,
+  StaticElement,
   toSlate: ({ token }) => {
     return {
       type: "inline_math",
@@ -59,7 +61,7 @@ register({
       isVoid: true,
       isInline: true,
       children: [{ text: "" }],
-    } as Element0;
+    } as Element;
   },
   fromSlate: ({ node }) => {
     return "$" + node.value + "$";
@@ -68,14 +70,14 @@ register({
 
 register({
   slateType: "display_math",
-  Element,
+  StaticElement,
   toSlate: ({ token }) => {
     return {
       type: "display_math",
       value: token.content.trim(),
       isVoid: true,
       children: [{ text: " " }],
-    } as Element0;
+    } as Element;
   },
   fromSlate: ({ node }) => {
     return "$$\n" + node.value + "\n$$\n\n";

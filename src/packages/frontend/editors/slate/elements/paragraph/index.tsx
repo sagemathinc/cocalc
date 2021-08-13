@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { register, SlateElement } from "./register";
+import { register, SlateElement } from "../register";
 
 export interface Paragraph extends SlateElement {
   type: "paragraph";
@@ -33,7 +33,7 @@ register({
     return x;
   },
 
-  Element: ({ attributes, children, element }) => {
+  StaticElement: ({ attributes, children, element }) => {
     if (element.type != "paragraph") throw Error("bug");
     return <p {...attributes}>{children}</p>;
   },
@@ -43,4 +43,3 @@ register({
     return numLines * 1.4 * fontSize + fontSize;
   },
 });
-

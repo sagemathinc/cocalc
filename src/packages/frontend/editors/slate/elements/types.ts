@@ -27,7 +27,7 @@ import { HR } from "./hr";
 import "./hr";
 
 import { Paragraph } from "./paragraph";
-import "./paragraph";
+import "./paragraph/editable";
 
 import { CodeBlock } from "./code_block";
 import "./code_block";
@@ -36,10 +36,10 @@ import { Hardbreak, Softbreak } from "./linebreak";
 import "./linebreak";
 
 import { DisplayMath, InlineMath } from "./math";
-import "./math";
+import "./math/editable";
 
 import { Heading } from "./heading";
-import "./heading";
+import "./heading/editable";
 
 import { HtmlBlock, HtmlInline } from "./html";
 import "./html";

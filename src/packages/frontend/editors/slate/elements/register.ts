@@ -69,6 +69,8 @@ interface Handler {
   markdownType?: string | string[];
   toSlate?: markdownToSlateFunction;
 
+  StaticElement?: React.FC<RenderElementProps>;
+
   Element?: React.FC<RenderElementProps>;
 
   sizeEstimator?: sizeEstimatorFunction;
@@ -80,6 +82,8 @@ interface Handler {
 }
 
 const renderer: { [slateType: string]: React.FC<RenderElementProps> } = {};
+const staticRenderer: { [slateType: string]: React.FC<RenderElementProps> } =
+  {};
 const markdownToSlate: {
   [tokenType: string]: markdownToSlateFunction;
 } = {};
@@ -97,6 +101,10 @@ export function register(h: Handler): void {
   for (const slateType of t) {
     if (h.Element != null) {
       renderer[slateType] = h.Element;
+    }
+
+    if (h.StaticElement != null) {
+      staticRenderer[slateType] = h.StaticElement;
     }
 
     if (h.rules != null) {
@@ -133,6 +141,19 @@ export function getRender(slateType: string): React.FC<RenderElementProps> {
     return renderer["generic"];
   }
   return renderer[slateType];
+}
+
+export function getStaticRender(
+  slateType: string
+): React.FC<RenderElementProps> {
+  console.log("getStaticRender", slateType);
+  if (staticRenderer[slateType] == null) {
+    console.log(
+      `WARNING -- getStaticRender: using generic plugin for type '${slateType}'; this is NOT likely to work.`
+    );
+    return renderer["generic"];
+  }
+  return staticRenderer[slateType];
 }
 
 export function getMarkdownToSlate(
