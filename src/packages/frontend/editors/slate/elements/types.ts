@@ -3,13 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// Register all the types.
+/*
+Register all the types.
 
-// The order of registering these does NOT matter and has no
-// impact on semantics or speed.
+The order of registering these does NOT matter and has no
+impact on semantics or speed.
 
-// IMPORTANT: You must import the entire module **and** separately import
-// the type; otherwise the code in the module to register it is not run.
+IMPORTANT: You must import the entire module **and** separately import
+the type; otherwise the code in the module to register it is not run.
+*/
 
 import "./elements.css";
 
@@ -32,9 +34,9 @@ import "./heading/editable";
 import type { HR } from "./hr";
 import "./hr/editable";
 import type { HtmlBlock, HtmlInline } from "./html";
-import "./html";
+import "./html/editable";
 import type { Image } from "./image";
-import "./image";
+import "./image/editable";
 import type { Link } from "./link";
 import "./link/editable";
 import type { ListItem } from "./list/list-item";

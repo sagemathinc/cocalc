@@ -15,3 +15,7 @@ npm run build-dist
 ```
 
 NOTE: we export this code so it is usable via importing from `@cocalc/share/lib/*`, i.e., we keep the `lib` explicit, just in case we add another module similar to `lib`.
+
+## Notes about package.json
+
+- (As of Aug 2021): There is a runtime for typescript called "tslib" that [cheerio](https://www.npmjs.com/package/cheerio) uses.  Cheerio is installed on the frontend but we prefer packages here when building, so I installed the latest tslib on the backend too, since otherwise an ancient version gets picked up.

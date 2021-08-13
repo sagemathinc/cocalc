@@ -3,76 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import {
-  React,
-  useEffect,
-  useRef,
-  useState,
-} from "@cocalc/frontend/app-framework";
-import { register, SlateElement } from "./register";
-import { useFocused, useProcessLinks, useSelected, useSlate } from "./hooks";
-import { useSetElement } from "./set-element";
-import { dict } from "@cocalc/util/misc";
-import { FOCUSED_COLOR } from "../util";
+import React, { useEffect, useRef, useState } from "react";
+import { register } from "../register";
+import { useFocused, useProcessLinks, useSelected, useSlate } from "../hooks";
+import { useSetElement } from "../set-element";
+import { FOCUSED_COLOR } from "../../util";
 import { Resizable } from "re-resizable";
+
+import { Image } from "./index";
 
 // NOTE: We do NOT use maxWidth:100% since that ends up
 // making the resizing screw up the aspect ratio.
-
-export interface Image extends SlateElement {
-  type: "image";
-  isInline: true;
-  isVoid: true;
-  src: string;
-  alt?: string;
-  title?: string;
-  width?: string | number;
-  height?: string | number;
-}
-
-export function toSlate({ type, children, token }) {
-  switch (type) {
-    // IMPORTANT: this only gets called with type != 'image'
-    // because of explicit code in ./html.tsx.
-    case "html_inline":
-    case "html_block":
-      // token.content will be a string like this:
-      //    <img src='https://wstein.org/bella-and-william.jpg' width=200px title='my pup' />
-      // easiest way to parse this is with jquery (not by hand).
-      const elt = $(token.content);
-      const node = {
-        type: "image",
-        children,
-        isInline: true,
-        isVoid: true,
-        src: elt.attr("src") ?? "",
-        alt: elt.attr("alt") ?? "",
-        title: elt.attr("title") ?? "",
-        width: elt.attr("width"),
-        height: elt.attr("height"),
-      } as any;
-      if (type == "html_inline") {
-        return node;
-      }
-      return {
-        type: "paragraph",
-        children: [{ text: "" }, node, { text: "" }],
-      };
-    case "image":
-      const attrs = dict(token.attrs as any);
-      return {
-        type: "image",
-        children,
-        isInline: true,
-        isVoid: true,
-        src: attrs.src,
-        alt: attrs.alt,
-        title: attrs.title,
-      };
-    default:
-      throw Error("bug");
-  }
-}
 
 function toFloat(s: number | string | undefined): number | undefined {
   if (s == null) return s;
@@ -204,6 +145,4 @@ register({
       </span>
     );
   },
-
-  toSlate,
 });

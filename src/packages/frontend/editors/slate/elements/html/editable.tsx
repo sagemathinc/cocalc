@@ -3,48 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useState } from "@cocalc/frontend/app-framework";
-import { register, SlateElement } from "./register";
-import { useFocused, useProcessLinks, useSelected, useSlate } from "./hooks";
-import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../util";
-import { startswith } from "@cocalc/util/misc";
-import { toSlate as toSlateImage } from "./image";
-import { SlateCodeMirror } from "./codemirror";
-import { useSetElement } from "./set-element";
+import React, { useState } from "react";
+import { register } from "../register";
+import { useFocused, useProcessLinks, useSelected, useSlate } from "../hooks";
+import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../../util";
+import { SlateCodeMirror } from "../codemirror";
+import { useSetElement } from "../set-element";
 
-export interface HtmlInline extends SlateElement {
-  type: "html_inline";
-  isInline: true;
-  isVoid: true;
-  html: string;
-}
-
-export interface HtmlBlock extends SlateElement {
-  type: "html_block";
-  isInline: false;
-  isVoid: true;
-  html: string;
-}
-
-function toSlate({ type, token, children }) {
-  // Special case of images (one line, img tag);
-  // we use a completely different function.
-  if (
-    startswith(token.content, "<img ") &&
-    token.content.trim().split("\n").length <= 1
-  ) {
-    return toSlateImage({ type, token, children });
-  }
-  return {
-    type: token.type,
-    isVoid: true,
-    isInline: token.type == "html_inline",
-    html: token.content,
-    children,
-  };
-}
-
-function is_br(s: string): boolean {
+function isBR(s: string): boolean {
   const x = s.toLowerCase().replace(/\s/g, "");
   return x == "<br>" || x == "<br/>";
 }
@@ -58,7 +24,7 @@ const Element = ({ attributes, children, element }) => {
   const ref = useProcessLinks([html]);
   // this feels ugly in practice, and we have the source so not doing it.
   const is_comment = false;
-  // const is_comment = startswith(html, "<!--") && endswith(html, "-->");
+  // const is_comment = html.startsWith("<!--") && html.endsWith("-->");
 
   // mode for editing the raw html
   const [editMode, setEditMode] = useState<boolean>(false);
@@ -101,7 +67,7 @@ const Element = ({ attributes, children, element }) => {
         >
           {html}
         </code>
-        {is_br(html) && <br />}
+        {isBR(html) && <br />}
         {children}
       </span>
     );
@@ -134,14 +100,12 @@ const Element = ({ attributes, children, element }) => {
 
 register({
   slateType: "html_inline",
-  toSlate,
   Element,
   fromSlate: ({ node }) => node.html as string,
 });
 
 register({
   slateType: "html_block",
-  toSlate,
   Element,
   fromSlate: ({ node }) => ensure_ends_in_two_newline(node.html as string),
 });

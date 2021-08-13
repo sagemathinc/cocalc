@@ -41,7 +41,7 @@ export default function StaticMarkdown({ value, style }: Props) {
   // Convert markdown to our slate JSON object representation.
   const slate = markdownToSlate(value.trim());
   const v: JSX.Element[] = [];
-  console.log(JSON.stringify(slate, undefined, 2));
+  // console.log(JSON.stringify(slate, undefined, 2));
   let n = 0;
   for (const element of slate) {
     v.push(<RenderElement key={n} element={element} />);
