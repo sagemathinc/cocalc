@@ -4,19 +4,12 @@
  */
 
 import React from "react";
-import { FOCUSED_COLOR } from "../util";
+import { FOCUSED_COLOR } from "../../util";
 import { Editor, Transforms } from "slate";
-import { SlateElement, register, RenderElementProps } from "./register";
-import { useFocused, useSelected, useSlate } from "./hooks";
-import { Checkbox } from "antd"; // as imports from antd don't work due to tree shaking plugin.
-import { useSetElement } from "./set-element";
-
-interface SlateCheckbox extends SlateElement {
-  type: "checkbox";
-  value?: boolean; // important: using the field value results in more efficient diffs
-}
-
-export type { SlateCheckbox as Checkbox };
+import { register, RenderElementProps } from "../register";
+import { useFocused, useSelected, useSlate } from "../hooks";
+import { Checkbox } from "antd";
+import { useSetElement } from "../set-element";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -54,22 +47,7 @@ const Element: React.FC<RenderElementProps> = ({
 
 register({
   slateType: "checkbox",
-  markdownType: "checkbox_input",
-
-  toSlate: ({ token }) => {
-    // NOTE: the checkbox markdown-it plugin that finds the checkboxes in the input
-    // markdown is something I also wrote.  It is in @cocalc/frontend/markdown/checkbox-plugin.ts.
-    return {
-      type: "checkbox",
-      isVoid: true,
-      isInline: true,
-      value: token.checked,
-      children: [{ text: "" }],
-    };
-  },
-
   Element,
-
   fromSlate: ({ node }) => `[${node.value ? "x" : " "}]`,
 });
 

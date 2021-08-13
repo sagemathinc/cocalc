@@ -7,6 +7,7 @@ import "./generic";
 import "./math";
 import "./code-block";
 import "./break";
+import "./checkbox";
 
 import { Element } from "slate";
 

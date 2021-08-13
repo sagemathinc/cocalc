@@ -15,7 +15,7 @@ import { Meta } from "./meta";
 import "./meta";
 
 import { Checkbox } from "./checkbox";
-import "./checkbox";
+import "./checkbox/editable";
 
 import { Emoji } from "./emoji";
 import "./emoji";
