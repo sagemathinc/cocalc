@@ -21,19 +21,14 @@ output:
 */
 
 import React from "react";
-import { register } from "./register";
-import { useSlate } from "./hooks";
-import { SlateCodeMirror } from "./codemirror";
+import { register } from "../register";
+import { useSlate } from "../hooks";
 import { A } from "@cocalc/frontend/r_misc";
-import { useSetElement } from "./set-element";
-import { Meta, createMetaNode } from "./meta-type";
-export type { Meta };
-export { createMetaNode };
+import { useSetElement } from "../set-element";
+import { SlateCodeMirror } from "../codemirror";
 
 register({
   slateType: "meta",
-
-  fromSlate: ({ node }) => `---\n${node.value}\n---\n`,
 
   Element: ({ attributes, children, element }) => {
     if (element.type != "meta") throw Error("bug");
@@ -66,7 +61,5 @@ register({
     );
   },
 
-  toSlate: ({ token }) => {
-    return createMetaNode(token.content);
-  },
+  fromSlate: ({ node }) => `---\n${node.value}\n---\n`,
 });

@@ -38,6 +38,7 @@ interface Props {
     mode?: string | { name?: string };
     theme?: string;
     lineNumbers?: boolean;
+    lineWrapping?: boolean; // not supported yet!
   };
   font_size?: number;
   set_click_coords?: (pos: { left: number; top: number }) => void;

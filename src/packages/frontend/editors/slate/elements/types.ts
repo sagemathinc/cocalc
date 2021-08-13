@@ -12,7 +12,7 @@
 // the type; otherwise the code in the module to register it is not run.
 
 import { Meta } from "./meta";
-import "./meta";
+import "./meta/editable";
 
 import { Checkbox } from "./checkbox";
 import "./checkbox/editable";

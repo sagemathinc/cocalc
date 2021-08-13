@@ -1,4 +1,4 @@
-import { SlateElement } from "./register";
+import { SlateElement } from "../register";
 
 export interface Meta extends SlateElement {
   type: "meta";

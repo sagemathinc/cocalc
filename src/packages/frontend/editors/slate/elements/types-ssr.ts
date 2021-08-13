@@ -8,6 +8,7 @@ import "./math";
 import "./code-block";
 import "./break";
 import "./checkbox";
+import "./meta";
 
 import { Element } from "slate";
 
