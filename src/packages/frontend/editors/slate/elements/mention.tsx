@@ -13,13 +13,8 @@ because then they will be compatible with all mentions already used with chat an
 import { trunc_middle } from "@cocalc/util/misc";
 import { React, redux } from "@cocalc/frontend/app-framework";
 import { FOCUSED_COLOR } from "../util";
-import {
-  SlateElement,
-  register,
-  useFocused,
-  useSelected,
-  RenderElementProps,
-} from "./register";
+import { SlateElement, register, RenderElementProps } from "./register";
+import { useFocused, useSelected } from "./hooks";
 
 export interface Mention extends SlateElement {
   type: "mention";

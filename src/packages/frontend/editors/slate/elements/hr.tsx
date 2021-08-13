@@ -5,7 +5,8 @@
 
 import React from "react";
 import { FOCUSED_COLOR } from "../util";
-import { register, SlateElement, useFocused, useSelected } from "./register";
+import { register, SlateElement } from "./register";
+import { useFocused, useSelected } from "./hooks";
 
 export interface HR extends SlateElement {
   type: "hr";

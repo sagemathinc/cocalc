@@ -3,8 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React } from "@cocalc/frontend/app-framework";
-import { register, SlateElement, useFocused, useSelected } from "./register";
+import React, { CSSProperties as CSS } from "react";
+import { register, SlateElement } from "./register";
+import { useFocused, useSelected } from "./hooks";
 import { FOCUSED_COLOR, padLeft, padRight, padCenter } from "../util";
 import { serialize } from "../slate-to-markdown";
 

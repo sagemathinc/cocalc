@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React, useEffect, useState } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/r_misc";
-import { useSlate } from "./register";
+import React, { CSSProperties as CSS, useEffect, useState } from "react";
+import { Icon } from "@cocalc/frontend/r_misc/icon";
+import { useSlate } from "./hooks";
 import { Heading } from "./heading";
 
 const TOGGLE_STYLE = {

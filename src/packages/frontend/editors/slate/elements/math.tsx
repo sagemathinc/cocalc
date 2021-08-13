@@ -5,12 +5,8 @@
 
 import React from "react";
 import { Element as Element0 } from "slate";
-import {
-  register,
-  SlateElement,
-  RenderElementProps,
-  useSlate,
-} from "./register";
+import { register, SlateElement, RenderElementProps } from "./register";
+import { useSlate } from "./hooks";
 import { SlateMath } from "./math-widget";
 import { useSetElement } from "./set-element";
 

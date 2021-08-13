@@ -18,7 +18,7 @@ import {
 import { startswith } from "@cocalc/util/misc";
 import { SlateCodeMirror } from "./codemirror";
 import { useFocused, useSelected } from "../slate-react";
-import { useCollapsed } from "../elements/register";
+import { useCollapsed } from "./hooks";
 import { FOCUSED_COLOR } from "../util";
 
 interface Props {

@@ -6,15 +6,8 @@
 import React from "react";
 import { FOCUSED_COLOR } from "../util";
 import { Editor, Transforms } from "slate";
-import {
-  SlateElement,
-  register,
-  useFocused,
-  useSelected,
-  useSlate,
-  RenderElementProps,
-} from "./register";
-
+import { SlateElement, register, RenderElementProps } from "./register";
+import { useFocused, useSelected, useSlate } from "./hooks";
 import { Checkbox } from "antd"; // as imports from antd don't work due to tree shaking plugin.
 import { useSetElement } from "./set-element";
 

@@ -4,7 +4,7 @@
  */
 
 import { Text } from "slate";
-import { getMarkdownToSlate } from "../elements";
+import { getMarkdownToSlate } from "../elements/register";
 import { replace_all } from "@cocalc/util/misc";
 import { Marks } from "./types";
 import { register } from "./register";

@@ -5,13 +5,8 @@
 
 import { CSS, React } from "@cocalc/frontend/app-framework";
 import { FOCUSED_COLOR } from "../util";
-import {
-  SlateElement,
-  register,
-  useFocused,
-  useSelected,
-  useSlateStatic,
-} from "./register";
+import { SlateElement, register } from "./register";
+import { useFocused, useSelected, useSlateStatic } from "./hooks";
 
 export interface Hashtag extends SlateElement {
   type: "hashtag";

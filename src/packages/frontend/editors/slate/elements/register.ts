@@ -4,8 +4,6 @@
  */
 
 export { RenderElementProps } from "../slate-react";
-export * from "./hooks";
-
 import React from "react";
 import { RenderElementProps } from "../slate-react";
 import { Descendant, Element } from "slate";

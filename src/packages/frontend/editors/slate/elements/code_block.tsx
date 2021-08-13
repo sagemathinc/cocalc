@@ -10,14 +10,8 @@ import {
   useIsMountedRef,
 } from "@cocalc/frontend/app-framework";
 import { Element as Element0 } from "slate";
-import {
-  register,
-  SlateElement,
-  RenderElementProps,
-  useCollapsed,
-  useSelected,
-  useSlate,
-} from "./register";
+import { register, SlateElement, RenderElementProps } from "./register";
+import { useCollapsed, useSelected, useSlate } from "./hooks";
 import { SlateCodeMirror } from "./codemirror";
 import { ensure_ends_in_newline, indent } from "../util";
 import { delay } from "awaiting";

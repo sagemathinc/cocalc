@@ -5,7 +5,8 @@
 
 import { Text } from "slate";
 import React from "react";
-import { register, SlateElement, useProcessLinks } from "./register";
+import { register, SlateElement } from "./register";
+import { useProcessLinks } from "./hooks";
 import { dict } from "@cocalc/util/misc";
 import { open_new_tab } from "@cocalc/frontend/misc-page";
 const linkify = require("linkify-it")();

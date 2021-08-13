@@ -3,15 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useEffect, useRef, useState } from "@cocalc/frontend/app-framework";
 import {
-  register,
-  SlateElement,
-  useFocused,
-  useProcessLinks,
-  useSelected,
-  useSlate,
-} from "./register";
+  React,
+  useEffect,
+  useRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import { register, SlateElement } from "./register";
+import { useFocused, useProcessLinks, useSelected, useSlate } from "./hooks";
 import { useSetElement } from "./set-element";
 import { dict } from "@cocalc/util/misc";
 import { FOCUSED_COLOR } from "../util";

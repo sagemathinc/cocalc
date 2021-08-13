@@ -4,14 +4,8 @@
  */
 
 import { React, useState } from "@cocalc/frontend/app-framework";
-import {
-  register,
-  SlateElement,
-  useFocused,
-  useProcessLinks,
-  useSelected,
-  useSlate,
-} from "./register";
+import { register, SlateElement } from "./register";
+import { useFocused, useProcessLinks, useSelected, useSlate } from "./hooks";
 import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../util";
 import { startswith } from "@cocalc/util/misc";
 import { toSlate as toSlateImage } from "./image";

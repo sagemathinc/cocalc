@@ -17,7 +17,8 @@ import { isIOS, isSafari } from "lib/feature";
 import CodeMirror from "components/codemirror";
 import SageWorksheet from "components/sage-worksheet";
 import JupyterNotebook from "components/jupyter-notebook";
-import { Markdown } from "@cocalc/frontend/markdown";
+//import { Markdown } from "@cocalc/frontend/markdown";
+import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import A from "components/misc/A";
 
 interface Props {

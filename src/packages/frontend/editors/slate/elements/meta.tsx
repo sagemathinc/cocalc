@@ -20,26 +20,15 @@ output:
 
 */
 
-import { React } from "@cocalc/frontend//app-framework";
-import { register, SlateElement, useSlate } from "./register";
+import React from "react";
+import { register } from "./register";
+import { useSlate } from "./hooks";
 import { SlateCodeMirror } from "./codemirror";
 import { A } from "@cocalc/frontend/r_misc";
 import { useSetElement } from "./set-element";
-
-export interface Meta extends SlateElement {
-  type: "meta";
-  value: string;
-  isVoid: true;
-}
-
-export function createMetaNode(value: string) {
-  return {
-    type: "meta" as "meta",
-    value,
-    isVoid: true as true,
-    children: [{ text: "" }],
-  };
-}
+import { Meta, createMetaNode } from "./meta-type";
+export type { Meta };
+export { createMetaNode };
 
 register({
   slateType: "meta",

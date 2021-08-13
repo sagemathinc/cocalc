@@ -4,13 +4,8 @@
  */
 
 import React from "react";
-import {
-  register,
-  SlateElement,
-  useCollapsed,
-  useFocused,
-  useSelected,
-} from "./register";
+import { register, SlateElement } from "./register";
+import { useCollapsed, useFocused, useSelected } from "./hooks";
 import { Element } from "slate";
 
 export interface Softbreak extends SlateElement {

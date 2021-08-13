@@ -5,7 +5,7 @@
 
 import { Descendant } from "slate";
 import { State } from "./types";
-import { getMarkdownToSlate } from "../elements";
+import { getMarkdownToSlate } from "../elements/register";
 import { register } from "./register";
 import { parse } from "./parse";
 

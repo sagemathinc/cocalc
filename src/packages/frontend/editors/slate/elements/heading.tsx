@@ -5,7 +5,8 @@
 
 import React from "react";
 import { ReactEditor } from "../slate-react";
-import { register, SlateElement, useSlateStatic } from "./register";
+import { register, SlateElement } from "./register";
+import { useSlateStatic } from "./hooks";
 import { mark_block } from "../util";
 import { HeadingToggle } from "./heading-toggle";
 

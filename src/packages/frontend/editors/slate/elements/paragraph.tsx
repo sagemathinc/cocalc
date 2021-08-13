@@ -4,14 +4,8 @@
  */
 
 import React from "react";
-import {
-  register,
-  SlateElement,
-  useFocused,
-  useSelected,
-  useCollapsed,
-} from "./register";
-
+import { register, SlateElement } from "./register";
+import { useFocused, useSelected, useCollapsed } from "./hooks";
 export interface Paragraph extends SlateElement {
   type: "paragraph";
 }
