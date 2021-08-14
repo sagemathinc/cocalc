@@ -33,7 +33,7 @@ import { init as initCustomSoftware } from "./custom-software/init";
 import { init as initFileUse } from "./file-use/init";
 import { init as initWebHooks } from "./webapp-hooks";
 import { init as initNotifications } from "./notifications/init";
-import { init as initMarkdown } from "./widget-markdown-input/main";
+import { init as initMarkdown } from "./markdown/markdown-input/main";
 // only enable iframe comms in minimal kiosk mode
 import { init as initIframeComm } from "./iframe-communication";
 import { init as initCrashBanner } from "./crash-banner";

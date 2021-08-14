@@ -4,7 +4,7 @@
  */
 
 // Internal Libraries
-import { Actions, redux } from "../app-framework";
+import { Actions, redux } from "@cocalc/frontend/app-framework";
 
 // Sibling Libraries
 import * as info from "./info";

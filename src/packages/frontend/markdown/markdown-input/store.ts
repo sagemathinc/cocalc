@@ -7,7 +7,7 @@
 import * as immutable from "immutable";
 
 // Internal Libraries
-import { Store } from "../app-framework/Store";
+import { Store } from "@cocalc/frontend/app-framework/Store";
 
 export interface MarkdownWidgetStoreState {
   open_inputs: immutable.Map<any, any>;

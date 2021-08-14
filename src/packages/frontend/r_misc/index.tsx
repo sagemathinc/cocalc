@@ -40,7 +40,7 @@ export {
 export { LoginLink } from "./login-link";
 export { ProjectState } from "./project-state";
 export { UNIT, build_date, smc_git_rev, smc_version } from "./constants";
-export { MarkdownInput } from "../widget-markdown-input/main";
+export { MarkdownInput } from "../markdown/markdown-input/main";
 export { SearchInput } from "./search-input";
 export { ActivityDisplay } from "./activity-display";
 export { CopyToClipBoard } from "./copy-to-clipboard";

@@ -4,8 +4,10 @@
  */
 
 // 3rd Party Libraries
-import * as markdown from "../markdown";
+import { markdown_to_html } from "../index";
 import { Button, ButtonToolbar, FormControl, FormGroup } from "react-bootstrap";
+import { Tip } from "@cocalc/frontend/r_misc/tip";
+import { Icon } from "@cocalc/frontend/r_misc/icon";
 
 // Internal Libraries
 import {
@@ -15,7 +17,7 @@ import {
   rclass,
   redux,
   rtypes,
-} from "../app-framework";
+} from "@cocalc/frontend/app-framework";
 
 // Sibling Libraries
 import * as info from "./info";
@@ -194,7 +196,7 @@ class MarkdownInput0 extends Component<
 
   to_html = () => {
     if (this.props.default_value) {
-      const html = markdown.markdown_to_html(this.props.default_value);
+      const html = markdown_to_html(this.props.default_value);
       return { __html: html };
     } else {
       return { __html: "" };
@@ -202,9 +204,6 @@ class MarkdownInput0 extends Component<
   };
 
   render() {
-    // Maybe there's a better way to fix this.
-    // Required here because of circular requiring otherwise.
-    const { Tip, Icon } = require("../r_misc");
     if (this.state.editing || this.props.editing) {
       const tip = <span>{TIP_TEXT}</span>;
       return (
