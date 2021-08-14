@@ -18,8 +18,8 @@ import {
   useTypedRedux,
 } from "../../app-framework";
 import { Button } from "../../antd-bootstrap";
-import { Icon, Loading } from "../../r_misc";
-import { WindowedList } from "../../r_misc/windowed-list";
+import { Icon, Loading } from "../../components";
+import { WindowedList } from "../../components/windowed-list";
 import { LogSearch } from "./search";
 import { LogEntry } from "./log-entry";
 import { EventRecord, to_search_string } from "./types";

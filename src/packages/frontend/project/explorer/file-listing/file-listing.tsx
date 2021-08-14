@@ -12,9 +12,9 @@
 import { WATCH_THROTTLE_MS } from "../../websocket/listings";
 import React from "react";
 import * as immutable from "immutable";
-import { WindowedList } from "../../../r_misc/windowed-list";
+import { WindowedList } from "../../../components/windowed-list";
 
-import { VisibleMDLG } from "../../../r_misc";
+import { VisibleMDLG } from "../../../components";
 
 import { ProjectActions } from "../../../project_actions";
 import { AppRedux, Rendered } from "../../../app-framework";

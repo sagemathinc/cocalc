@@ -11,7 +11,7 @@ import { DebounceInput } from "react-debounce-input";
 import { Button, FormControl, Form } from "../../antd-bootstrap";
 import { Map } from "immutable";
 import { React, Rendered, useRef } from "../../app-framework";
-import { Icon } from "../../r_misc/icon";
+import { Icon } from "../../components/icon";
 import { JupyterActions } from "../browser-actions";
 import { Metadata } from "./types";
 import { popup } from "../../frame-editors/frame-tree/print";

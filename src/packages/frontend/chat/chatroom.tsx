@@ -31,10 +31,10 @@ import {
   useRef,
   useRedux,
 } from "../app-framework";
-import { Icon, Loading, Tip, SearchInput, VisibleMDLG } from "../r_misc";
+import { Icon, Loading, Tip, SearchInput, VisibleMDLG } from "../components";
 import { Col, Row, Well } from "../antd-bootstrap";
 import { ChatLog } from "./chat-log";
-import { WindowedList } from "../r_misc/windowed-list";
+import { WindowedList } from "../components/windowed-list";
 
 import { VideoChatButton } from "./video/launch-button";
 import { Markdown } from "./markdown";

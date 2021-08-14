@@ -6,7 +6,7 @@
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
 import { alert_message } from "../../alerts";
 import { log } from "../../user-tracking";
-import { ErrorDisplay, LabeledRow, Saving } from "../../r_misc";
+import { ErrorDisplay, LabeledRow, Saving } from "../../components";
 import {
   Button,
   ButtonToolbar,

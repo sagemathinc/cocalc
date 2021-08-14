@@ -6,7 +6,7 @@
 import { React } from "../../app-framework";
 import { Alert } from "../../antd-bootstrap";
 import { plural } from "@cocalc/util/misc";
-import { A, Icon, Space } from "../../r_misc";
+import { A, Icon, Space } from "../../components";
 import { Options, project_warning_opts } from "./util";
 import { PolicyPricingPageUrl } from "../../customize";
 

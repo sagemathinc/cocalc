@@ -4,7 +4,7 @@
  */
 
 import { React, CSS, useState } from "../../../app-framework";
-import { Markdown } from "../../../r_misc";
+import { Markdown } from "../../../components";
 import { Button } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
 

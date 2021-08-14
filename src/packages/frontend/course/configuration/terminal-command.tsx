@@ -15,7 +15,7 @@ import {
 
 import { Button, Card, Form, Input } from "antd";
 
-import { Icon, Space } from "../../r_misc";
+import { Icon, Space } from "../../components";
 
 import { Result } from "../student-projects/run-in-all-projects";
 

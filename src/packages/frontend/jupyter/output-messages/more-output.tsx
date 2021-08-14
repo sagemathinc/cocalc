@@ -4,7 +4,7 @@
  */
 
 import { Button } from "react-bootstrap";
-import { Icon } from "../../r_misc/icon";
+import { Icon } from "../../components/icon";
 import React from "react";
 import { Map } from "immutable";
 import { JupyterActions } from "../actions";

@@ -5,7 +5,7 @@
 
 import { React, useTypedRedux } from "../app-framework";
 import { set_account_table } from "./util";
-import { Icon, LabeledRow, SelectorInput, Loading } from "../r_misc";
+import { Icon, LabeledRow, SelectorInput, Loading } from "../components";
 import { Panel } from "../antd-bootstrap";
 
 declare global {

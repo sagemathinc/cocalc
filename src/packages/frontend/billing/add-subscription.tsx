@@ -12,7 +12,7 @@ import {
   Row,
   Well,
 } from "react-bootstrap";
-import { Icon } from "../r_misc/icon";
+import { Icon } from "../components/icon";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
 import { capitalize, endswith } from "@cocalc/util/misc";

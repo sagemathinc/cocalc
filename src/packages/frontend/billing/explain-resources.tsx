@@ -5,8 +5,8 @@
 
 import { Col, Row } from "react-bootstrap";
 import { React } from "../app-framework";
-import { Space } from "../r_misc/space";
-import { A } from "../r_misc/A";
+import { Space } from "../components/space";
+import { A } from "../components/A";
 const {
   HelpEmailLink,
   PolicyPricingPageUrl,

@@ -35,9 +35,9 @@ import {
   Well,
 } from "react-bootstrap";
 import { Component, React, Rendered, redux } from "../app-framework";
-import { Icon } from "../r_misc/icon";
-import { SkinnyError } from "../r_misc/skinny-error";
-import { CloseX } from "../r_misc/close-x";
+import { Icon } from "../components/icon";
+import { SkinnyError } from "../components/skinny-error";
+import { CloseX } from "../components/close-x";
 import { AppliedCoupons } from "./types";
 
 interface Props {

@@ -30,7 +30,7 @@ import {
   Loading,
   Icon,
   Space,
-} from "../../r_misc";
+} from "../../components";
 import { PurchaseMethod } from "./purchase-method";
 import { RadioGroup } from "./radio-group";
 import { plural } from "@cocalc/util/misc";

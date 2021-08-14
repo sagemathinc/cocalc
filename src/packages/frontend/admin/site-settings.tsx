@@ -50,7 +50,7 @@ import {
   ErrorDisplay,
   LabeledRow,
   Space /*, Tip*/,
-} from "../r_misc";
+} from "../components";
 
 import { version } from "@cocalc/util/smc-version";
 

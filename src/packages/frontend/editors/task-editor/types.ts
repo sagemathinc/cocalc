@@ -5,7 +5,7 @@
 
 import { List, Map, Set } from "immutable";
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { LoadingEstimate } from "@cocalc/frontend/r_misc";
+import { LoadingEstimate } from "@cocalc/frontend/components";
 
 export interface Task {
   task_id: string;

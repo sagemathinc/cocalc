@@ -9,7 +9,7 @@
 
 import { React, Rendered, useActions } from "@cocalc/frontend/app-framework";
 import { register_file_editor } from "@cocalc/frontend/project-file";
-import { Markdown } from "@cocalc/frontend/r_misc";
+import { Markdown } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { keys, filename_extension } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";

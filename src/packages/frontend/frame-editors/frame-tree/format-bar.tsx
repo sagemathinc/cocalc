@@ -12,10 +12,10 @@ const css_colors = require("css-color-names");
 import { React, Component, Rendered } from "../../app-framework";
 import { cmp } from "@cocalc/util/misc";
 import { SetMap } from "./types";
-import { DropdownMenu, MenuItem } from "../../r_misc";
+import { DropdownMenu, MenuItem } from "../../components";
 import { ButtonGroup, Button } from "../../antd-bootstrap";
 import { FONT_FACES } from "../../editors/editor-button-bar";
-import { Icon, isIconName, Space } from "@cocalc/frontend/r_misc";
+import { Icon, isIconName, Space } from "@cocalc/frontend/components";
 
 const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
   " "

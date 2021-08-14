@@ -11,7 +11,7 @@ a = "$x^3$"
 
 CoCalc has two other ways to convert Markdown to React:
 
-- r_misc/markdown: this converts to html without touching the math, then
+- components/markdown: this converts to html without touching the math, then
   mathjax+katex directly process the math in the html via jQuery plugins.
   This basically works *on the frontend*, but has safety issues and uses
   dangerouslySetInnerHTML as well.

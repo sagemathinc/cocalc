@@ -11,7 +11,7 @@ import { React, Rendered, Component } from "../../app-framework";
 
 import { WebsocketState } from "./websocket-state";
 
-import { Icon } from "@cocalc/frontend/r_misc";
+import { Icon } from "@cocalc/frontend/components";
 
 interface Props {
   state?: WebsocketState;

@@ -19,7 +19,7 @@ import {
   useTypedRedux,
   useState,
 } from "../../app-framework";
-import { Icon, Loading, Space } from "../../r_misc";
+import { Icon, Loading, Space } from "../../components";
 import { alert_message } from "../../alerts";
 import { PaymentMethods } from "../../billing/payment-methods";
 

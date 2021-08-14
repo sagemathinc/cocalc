@@ -33,7 +33,7 @@ import {
   Alert,
 } from "../antd-bootstrap";
 import { Row, Col } from "antd";
-import { A, ErrorDisplay, Icon, Space } from "../r_misc";
+import { A, ErrorDisplay, Icon, Space } from "../components";
 import { COLORS } from "@cocalc/util/theme";
 
 interface Props {

@@ -17,7 +17,7 @@ import { delay } from "awaiting";
 import * as immutable from "immutable";
 
 import { React, useIsMountedRef } from "../app-framework";
-import { Loading, WindowedList } from "../r_misc";
+import { Loading, WindowedList } from "../components";
 import { Cell } from "./cell";
 import { InsertCell } from "./insert-cell";
 

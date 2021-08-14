@@ -8,7 +8,7 @@
 import { React, useTypedRedux, redux } from "../../app-framework";
 import { PurchaseOneLicense } from "./purchase";
 import { Button } from "antd";
-import { Icon, Space } from "../../r_misc";
+import { Icon, Space } from "../../components";
 
 export const PurchaseOneLicenseLink: React.FC = () => {
   const expand = useTypedRedux("account", "show_purchase_form") ?? false;

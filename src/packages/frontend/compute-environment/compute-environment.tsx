@@ -12,7 +12,7 @@ import {
   useState,
   useTypedRedux,
 } from "../app-framework";
-import { A, Loading, Markdown } from "../r_misc";
+import { A, Loading, Markdown } from "../components";
 import { Button, Row, Col } from "../antd-bootstrap";
 import { li_style } from "../info/style";
 import { keys } from "@cocalc/util/misc";

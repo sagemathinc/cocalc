@@ -12,7 +12,7 @@ import { Row, FormGroup, FormControl, Modal, Button } from "react-bootstrap";
 import { is_valid_email_address } from "@cocalc/util/misc";
 import { Rendered } from "../app-framework";
 const { HelpEmailLink } = require("../customize");
-import { Icon, Loading } from "../r_misc";
+import { Icon, Loading } from "../components";
 import { actions } from "./util";
 
 interface Props {

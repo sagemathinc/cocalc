@@ -23,7 +23,7 @@ import {
   MarkdownInput,
   Tip,
   NumberInput,
-} from "../../r_misc";
+} from "../../components";
 
 interface Props {
   assignment: AssignmentRecord;

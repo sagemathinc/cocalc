@@ -8,7 +8,7 @@ const { HelpEmailLink } = require("../customize");
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { PlanInfo } from "./plan-info";
 import { Row, Col } from "react-bootstrap";
-import { Space } from "../r_misc/space";
+import { Space } from "../components/space";
 
 export const DEDICATED_VM_TEXT = (
   <React.Fragment>

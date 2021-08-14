@@ -54,7 +54,7 @@ import {
   Space,
   Tip,
   WindowedList,
-} from "../../r_misc";
+} from "../../components";
 
 import { STEPS, step_direction, step_verb, step_ready } from "../util";
 

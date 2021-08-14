@@ -4,7 +4,7 @@
  */
 
 import React, { CSSProperties as CSS, useEffect, useState } from "react";
-import { Icon } from "@cocalc/frontend/r_misc/icon";
+import { Icon } from "@cocalc/frontend/components/icon";
 import { useSlate } from "../hooks";
 import { Heading } from "./index";
 

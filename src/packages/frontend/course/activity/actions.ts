@@ -6,7 +6,7 @@
 /* Showing what is currently happening to the user
 
 The actual react component that displays activity is
-ActivityDisplay in r_misc.
+ActivityDisplay in components.
 */
 
 import { CourseActions } from "../actions";

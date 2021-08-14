@@ -29,7 +29,7 @@ import { sortBy, debounce, isEmpty, merge } from "lodash";
 import { JupyterEditorActions } from "../actions";
 import { JupyterStore } from "../../../jupyter/store";
 import { NotebookFrameStore } from "../cell-notebook/store";
-import { A, Loading } from "../../../r_misc";
+import { A, Loading } from "../../../components";
 import { isMainConfiguration } from "../../../project_configuration";
 import { COLORS } from "@cocalc/util/theme";
 import { QuestionCircleOutlined } from "@ant-design/icons";

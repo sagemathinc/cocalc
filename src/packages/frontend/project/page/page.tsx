@@ -5,7 +5,7 @@
 
 import { Modal } from "antd";
 import { NavItem, Nav } from "react-bootstrap";
-import { Loading } from "../../r_misc";
+import { Loading } from "../../components";
 import { DeletedProjectWarning } from "../warnings/deleted";
 import { Content } from "./content";
 import { tab_to_path } from "@cocalc/util/misc";

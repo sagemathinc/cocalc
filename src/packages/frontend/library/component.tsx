@@ -24,7 +24,7 @@ import {
 
 import { Col, Row, Button, ListGroup, ListGroupItem } from "react-bootstrap";
 
-import { Markdown, Icon, Loading, SearchInput } from "../r_misc";
+import { Markdown, Icon, Loading, SearchInput } from "../components";
 import { webapp_client } from "../webapp-client";
 
 // used for some styles

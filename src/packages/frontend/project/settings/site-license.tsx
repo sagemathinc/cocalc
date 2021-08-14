@@ -9,7 +9,7 @@
 import { Map } from "immutable";
 import { redux, Component, Rendered, React } from "../../app-framework";
 import { Button } from "../../antd-bootstrap";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { alert_message } from "../../alerts";
 import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-info";
 import { SiteLicenseInput } from "../../site-licenses/input";

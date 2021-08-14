@@ -8,7 +8,7 @@ Component that shows all the scores for all problems and notebooks in a given as
 */
 
 import { Alert, Card } from "antd";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { React, Rendered, Component, redux } from "../../app-framework";
 import { NotebookScores, Score } from "../../jupyter/nbgrader/autograde";
 import { get_nbgrader_score } from "../store";

@@ -21,7 +21,7 @@ import {
   r_join,
   Space,
   Tip,
-} from "../../r_misc";
+} from "../../components";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { User } = require("../../users");
 import { file_actions } from "../../project_store";

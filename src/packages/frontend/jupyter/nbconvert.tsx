@@ -9,7 +9,7 @@ NBConvert dialog -- for running nbconvert
 import { React, useRef } from "../app-framework";
 import * as immutable from "immutable";
 const shell_escape = require("shell-escape");
-import { Icon, Loading, A } from "../r_misc";
+import { Icon, Loading, A } from "../components";
 const TimeAgo = require("react-timeago").default;
 const { Button, ButtonGroup, Modal } = require("react-bootstrap");
 import * as misc from "@cocalc/util/misc";

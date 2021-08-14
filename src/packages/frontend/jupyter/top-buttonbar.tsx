@@ -14,7 +14,7 @@ import {
   VisibleLG,
   DropdownMenu,
   MenuItem,
-} from "../r_misc";
+} from "../components";
 import { endswith, capitalize } from "@cocalc/util/misc";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { Cells, CellType, Usage } from "./types";

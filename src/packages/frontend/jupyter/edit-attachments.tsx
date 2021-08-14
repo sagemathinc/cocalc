@@ -8,7 +8,7 @@ Modal for editing attachments that are attached to a markdown cell
 */
 
 import { React } from "../app-framework";
-import { Icon } from "../r_misc";
+import { Icon } from "../components";
 import { Button, Modal } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";
 import { JupyterActions } from "./browser-actions";

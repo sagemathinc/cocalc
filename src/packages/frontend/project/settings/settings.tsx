@@ -5,7 +5,7 @@
 
 import React from "react";
 import * as misc from "@cocalc/util/misc";
-import { ErrorDisplay, Loading } from "../../r_misc";
+import { ErrorDisplay, Loading } from "../../components";
 import { rtypes, rclass } from "../../app-framework";
 
 import { Body } from "./body";

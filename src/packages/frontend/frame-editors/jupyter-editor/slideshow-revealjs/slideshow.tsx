@@ -28,7 +28,7 @@ import {
   rtypes,
 } from "../../../app-framework";
 
-import { Loading } from "../../../r_misc";
+import { Loading } from "../../../components";
 
 import { Map } from "immutable";
 

@@ -5,7 +5,7 @@
 
 import { React, useActions, useTypedRedux } from "../app-framework";
 import { Button, Col, Row, Panel } from "../antd-bootstrap";
-import { Icon, Space } from "../r_misc";
+import { Icon, Space } from "../components";
 import { Subscription } from "./subscription";
 import { AppliedCoupons, Customer } from "./types";
 import { AddSubscription } from "./add-subscription";

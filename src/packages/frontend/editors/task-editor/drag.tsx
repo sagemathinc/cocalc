@@ -7,7 +7,7 @@
 Drag tasks handle (and other support)
 */
 import { React } from "../../app-framework";
-import { Icon, Tip } from "../../r_misc";
+import { Icon, Tip } from "../../components";
 import { SortableHandle } from "react-sortable-hoc";
 
 const HandleIcon: React.FC = () => {

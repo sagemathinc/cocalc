@@ -8,7 +8,7 @@
 
 import { React, CSS } from "../../app-framework";
 import { Radio } from "antd";
-import { Icon, IconName } from "../../r_misc";
+import { Icon, IconName } from "../../components";
 
 interface Props {
   disabled?: boolean;

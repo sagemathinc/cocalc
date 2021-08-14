@@ -6,7 +6,7 @@
 // Components related to toggling the way output is displayed.
 
 import React from "react";
-import { Icon } from "../r_misc/icon";
+import { Icon } from "../components/icon";
 import type { JupyterActions } from "./browser-actions";
 
 const SCROLLED_STYLE: React.CSSProperties = {

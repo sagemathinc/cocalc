@@ -9,7 +9,7 @@ immutable = require('immutable')
 # react elements
 {Col, Row, Panel, Button, FormGroup, Checkbox, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('../app-framework')
-{Loading, Icon, Markdown, Space, SearchInput} = require('../r_misc')
+{Loading, Icon, Markdown, Space, SearchInput} = require('../components')
 # cocalc libs
 {defaults, required, optional} = misc = require('@cocalc/util/misc')
 {ICON_NAME} = require('./common')

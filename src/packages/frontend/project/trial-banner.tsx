@@ -14,7 +14,7 @@ import {
   useStore,
 } from "../app-framework";
 const { Alert } = require("react-bootstrap");
-import { Icon, A } from "../r_misc";
+import { Icon, A } from "../components";
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
 import { allow_project_to_run } from "./client-side-throttle";
 

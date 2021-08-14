@@ -20,7 +20,7 @@ import { PROJECT_INVITE_QUERY_PARAM } from "./handle-project-invite";
 
 import { Button, Popconfirm, Table } from "antd";
 import { React, useState, useIsMountedRef } from "../app-framework";
-import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../r_misc";
+import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../components";
 import { ProjectInviteToken } from "@cocalc/util/db-schema/project-invite-tokens";
 import { webapp_client } from "../webapp-client";
 import { alert_message } from "../alerts";

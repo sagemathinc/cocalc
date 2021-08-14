@@ -50,7 +50,7 @@ import * as feature from "@cocalc/frontend/feature";
 import { FrameTitleBar } from "./title-bar";
 import { FrameTreeLeaf } from "./leaf";
 import * as tree_ops from "./tree-ops";
-import { Loading } from "../../r_misc";
+import { Loading } from "../../components";
 import { AvailableFeatures } from "../../project_configuration";
 import { get_file_editor } from "./register";
 import { TimeTravelActions } from "../time-travel-editor/actions";

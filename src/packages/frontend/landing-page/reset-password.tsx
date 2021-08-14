@@ -10,7 +10,7 @@ Password reset modal dialog
 import { React, ReactDOM, redux, Rendered } from "../app-framework";
 import { HelpEmailLink } from "../customize";
 import { Modal, FormGroup, FormControl, Row, Button } from "../antd-bootstrap";
-import { Space, Loading } from "../r_misc";
+import { Space, Loading } from "../components";
 import { unreachable } from "@cocalc/util/misc";
 
 interface Props {

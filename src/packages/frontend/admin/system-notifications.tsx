@@ -21,7 +21,7 @@ import {
 } from "react-bootstrap";
 import { Map } from "immutable";
 import { plural } from "@cocalc/util/misc";
-import { Icon, Loading } from "../r_misc";
+import { Icon, Loading } from "../components";
 
 interface Props {
   notifications?: Map<string, any>;

@@ -4,7 +4,7 @@
  */
 
 import { React, useRedux, useTypedRedux } from "../app-framework";
-import { Icon, Loading, TimeAgo } from "../r_misc";
+import { Icon, Loading, TimeAgo } from "../components";
 import { ProgressBar, Table } from "react-bootstrap";
 import { RECENT_TIMES_KEY } from "@cocalc/util/schema";
 import { Col } from "../antd-bootstrap";

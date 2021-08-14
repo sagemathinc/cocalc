@@ -21,7 +21,7 @@ Internally which of the above is stored in a single string, with the following p
 */
 
 import { React, Rendered } from "../../app-framework";
-import { MenuItem, MenuDivider, DropdownMenu } from "@cocalc/frontend/r_misc";
+import { MenuItem, MenuDivider, DropdownMenu } from "@cocalc/frontend/components";
 import { is_different } from "@cocalc/util/misc";
 import { DICTS, dict_desc } from "./aspell-dicts";
 

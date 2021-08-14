@@ -5,7 +5,7 @@
 
 import React from "react";
 import Ansi from "ansi-to-react";
-import { Loading } from "@cocalc/frontend/r_misc";
+import { Loading } from "@cocalc/frontend/components";
 import { Rendered, useRedux } from "../../app-framework";
 import { COLORS } from "@cocalc/util/theme";
 import { Button } from "@cocalc/frontend/antd-bootstrap";

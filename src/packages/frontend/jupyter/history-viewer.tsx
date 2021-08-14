@@ -14,7 +14,7 @@ import { path_split } from "@cocalc/util/misc";
 import * as cell_utils from "./cell-utils";
 import { CellList } from "./cell-list";
 import { cm_options } from "./cm_options";
-import { ErrorDisplay } from "../r_misc";
+import { ErrorDisplay } from "../components";
 import { ERROR_STYLE } from "./main";
 
 function get_cells(

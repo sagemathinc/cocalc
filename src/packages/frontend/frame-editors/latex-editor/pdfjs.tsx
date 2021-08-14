@@ -13,7 +13,7 @@ const HIGHLIGHT_TIME_S: number = 6;
 
 import "./pdfjs-worker";
 
-import { Icon, Loading, Markdown } from "@cocalc/frontend/r_misc";
+import { Icon, Loading, Markdown } from "@cocalc/frontend/components";
 import { Alert } from "antd";
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";

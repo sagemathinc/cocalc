@@ -6,7 +6,7 @@
 import { React, useTypedRedux, useActions } from "../app-framework";
 import { user_activity } from "../tracker";
 import { Button, ButtonGroup } from "../antd-bootstrap";
-import { Icon } from "../r_misc";
+import { Icon } from "../components";
 
 export const ProjectsFilterButtons: React.FC = () => {
   const deleted = useTypedRedux("projects", "deleted");

@@ -8,7 +8,7 @@ import {
   useRef,
 } from "@cocalc/frontend/app-framework";
 
-import { Icon, Tip } from "@cocalc/frontend/r_misc";
+import { Icon, Tip } from "@cocalc/frontend/components";
 import { user_activity } from "@cocalc/frontend/tracker";
 import { VideoChat } from "./video-chat";
 

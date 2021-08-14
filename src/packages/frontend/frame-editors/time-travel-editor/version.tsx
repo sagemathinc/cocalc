@@ -4,7 +4,7 @@
  */
 
 import { Rendered, Component, React } from "../../app-framework";
-import { TimeAgo } from "../../r_misc";
+import { TimeAgo } from "../../components";
 
 interface Props {
   date: Date;

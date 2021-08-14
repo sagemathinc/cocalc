@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Icon, Space } from "../r_misc";
+import { Icon, Space } from "../components";
 import { plural } from "@cocalc/util/misc";
 import { Alert, Button, ButtonGroup, ButtonToolbar } from "../antd-bootstrap";
 import { webapp_client } from "../webapp-client";

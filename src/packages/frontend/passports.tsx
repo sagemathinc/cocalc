@@ -7,7 +7,7 @@ import { join } from "path";
 import React from "react";
 import { List } from "immutable";
 import { capitalize } from "@cocalc/util/misc";
-import { isIconName, Icon, Tip } from "./r_misc";
+import { isIconName, Icon, Tip } from "./components";
 import { SiteName } from "./customize";
 import { PassportStrategy, PRIMARY_SSO } from "./account/passport-types";
 import { COLORS } from "@cocalc/util/theme";

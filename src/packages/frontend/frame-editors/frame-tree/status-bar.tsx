@@ -10,7 +10,7 @@ Very simple for now.  We should obviously add more later, e.g., number of lines 
 */
 
 import { React, Component, Rendered } from "../../app-framework";
-import { Space } from "@cocalc/frontend/r_misc";
+import { Space } from "@cocalc/frontend/components";
 
 interface Props {
   status: string;

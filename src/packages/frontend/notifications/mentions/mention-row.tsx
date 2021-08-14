@@ -8,7 +8,7 @@ import React from "react";
 import { redux } from "../../app-framework";
 import { MentionInfo } from "./types";
 import { Avatar } from "../../account/avatar/avatar";
-import { Icon, IconName, TimeAgo } from "../../r_misc";
+import { Icon, IconName, TimeAgo } from "../../components";
 import { User } from "../../users";
 
 export function MentionRow({

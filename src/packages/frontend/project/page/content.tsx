@@ -28,7 +28,7 @@ import {
   useTypedRedux,
   useRef,
 } from "../../app-framework";
-import { Loading } from "../../r_misc";
+import { Loading } from "../../components";
 import { editor_id } from "../utils";
 import {
   drag_start_iframe_disable,

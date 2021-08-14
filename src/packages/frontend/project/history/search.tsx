@@ -5,7 +5,7 @@
 
 import React from "react";
 import { useDebounce } from "../../hooks";
-import { SearchInput } from "../../r_misc";
+import { SearchInput } from "../../components";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { EventRecordMap } from "./types";
 

@@ -20,7 +20,7 @@ import { user_activity } from "../../tracker";
 import { ProjectActions } from "../../project_actions";
 import { Input } from "antd";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
-import { Icon } from "@cocalc/frontend/r_misc";
+import { Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 
 // used to run the command -- could change to use an action and the store.

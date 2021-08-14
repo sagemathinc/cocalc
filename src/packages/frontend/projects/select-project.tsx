@@ -15,7 +15,7 @@ import {
   useTypedRedux,
 } from "../app-framework";
 import { webapp_client } from "../webapp-client";
-import { Loading } from "../r_misc";
+import { Loading } from "../components";
 
 type ProjectSelectionList = { id: string; title: string }[];
 

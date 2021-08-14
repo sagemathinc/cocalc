@@ -10,7 +10,7 @@ import {
   useTypedRedux,
   useActions,
 } from "../../app-framework";
-import { A, Icon } from "../../r_misc";
+import { A, Icon } from "../../components";
 import { ALERT_STYLE } from "./common";
 const OOM_INFO_PAGE = "https://doc.cocalc.com/howto/low-memory.html";
 

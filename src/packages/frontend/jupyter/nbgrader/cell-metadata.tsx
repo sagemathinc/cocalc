@@ -7,7 +7,7 @@ import { Map } from "immutable";
 import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { plural } from "@cocalc/util/misc";
 import { CELLTYPE_INFO_MAP, state_to_value } from "./cell-types";
-import { Icon, Tip } from "@cocalc/frontend/r_misc";
+import { Icon, Tip } from "@cocalc/frontend/components";
 
 interface Props {
   nbgrader: Map<string, any>;

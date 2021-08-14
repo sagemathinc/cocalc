@@ -15,7 +15,7 @@ import {
   rclass,
   rtypes,
 } from "../../app-framework";
-import { Loading } from "../../r_misc";
+import { Loading } from "../../components";
 
 import { TimeTravelActions } from "./actions";
 import { Document } from "./document";

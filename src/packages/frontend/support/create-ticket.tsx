@@ -5,7 +5,7 @@
 
 import { React, useActions, useTypedRedux } from "../app-framework";
 import { Modal } from "react-bootstrap";
-import { Icon } from "../r_misc";
+import { Icon } from "../components";
 import { SupportInfo } from "./info";
 import { SupportForm } from "./form";
 import { SupportFooter } from "./footer";

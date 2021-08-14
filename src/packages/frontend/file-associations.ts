@@ -12,7 +12,7 @@ The **complete** list of extensions --> what edits them is done
 via the newer registration system.
 */
 
-import { IconName } from "./r_misc/icon";
+import { IconName } from "./components/icon";
 
 const codemirror_associations: { [ext: string]: string } = {
   adb: "ada",

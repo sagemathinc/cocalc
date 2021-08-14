@@ -8,7 +8,7 @@ Parse the Table of Contents information from the notebook structure.
 */
 
 import { List, Map } from "immutable";
-import { IconName } from "@cocalc/frontend/r_misc/icon";
+import { IconName } from "@cocalc/frontend/components/icon";
 
 export interface TableOfContentsInfo {
   id: string;

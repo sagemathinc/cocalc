@@ -15,7 +15,7 @@ import {
   useRedux,
   useTypedRedux,
 } from "../app-framework";
-import { Icon, Space } from "../r_misc";
+import { Icon, Space } from "../components";
 const { SiteName } = require("../customize");
 
 interface Props {

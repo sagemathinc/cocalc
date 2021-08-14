@@ -8,7 +8,7 @@ import React from "react";
 import { DOMAIN_URL} from "@cocalc/util/theme";
 import { BASE_URL as DEFAULT_BASE_URL } from "@cocalc/frontend/misc/base-url";
 import { SiteName, PolicyPricingPageUrl } from "../customize";
-import { IconName } from "@cocalc/frontend/r_misc/icon";
+import { IconName } from "@cocalc/frontend/components/icon";
 
 const BASE_URL = global["BACKEND"] ? DOMAIN_URL : DEFAULT_BASE_URL;
 

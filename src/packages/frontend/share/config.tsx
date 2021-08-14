@@ -45,7 +45,7 @@ import {
   Icon,
   VisibleMDLG,
   Space,
-} from "@cocalc/frontend/r_misc";
+} from "@cocalc/frontend/components";
 import { publicShareUrl, shareServerUrl } from "./util";
 import { License } from "./license";
 import { trunc_middle } from "@cocalc/util/misc";

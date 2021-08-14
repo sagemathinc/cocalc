@@ -11,7 +11,7 @@ import {
   ErrorDisplay,
   LabeledRow,
   Loading,
-} from "../../r_misc";
+} from "../../components";
 import { webapp_client } from "../../webapp-client";
 import { Button, FormControl, Well } from "../../antd-bootstrap";
 import { startswith } from "@cocalc/util/misc";

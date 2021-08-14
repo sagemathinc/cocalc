@@ -15,7 +15,7 @@ import {
   build_date,
   smc_git_rev,
   UNIT,
-} from "./r_misc";
+} from "./components";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { dict, YEAR } from "@cocalc/util/misc";
 import * as theme from "@cocalc/util/theme";

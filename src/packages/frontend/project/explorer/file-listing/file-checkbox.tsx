@@ -6,7 +6,7 @@
 import React from "react";
 
 import { ProjectActions } from "../../../project_actions";
-import { Icon } from "../../../r_misc";
+import { Icon } from "../../../components";
 
 const misc = require("@cocalc/util/misc");
 

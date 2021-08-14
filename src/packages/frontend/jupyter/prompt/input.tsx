@@ -8,9 +8,9 @@ Components for rendering input and output prompts.
 */
 
 import React from "react";
-import { Icon } from "@cocalc/frontend/r_misc/icon";
-import { TimeAgo } from "@cocalc/frontend/r_misc/time-ago";
-import { Tip } from "@cocalc/frontend/r_misc/tip";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { TimeAgo } from "@cocalc/frontend/components/time-ago";
+import { Tip } from "@cocalc/frontend/components/tip";
 import { Button } from "antd";
 import { capitalize } from "@cocalc/util/misc";
 import { INPUT_STYLE, InputPromptProps } from "./base";

@@ -21,7 +21,7 @@ import { LicensesPage } from "./licenses/licenses-page";
 
 import { SupportTickets } from "../support";
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
-import { Icon, Loading } from "../r_misc";
+import { Icon, Loading } from "../components";
 import { SignOut } from "../account/sign-out";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { PublicPaths } from "./public-paths/public-paths";

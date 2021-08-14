@@ -4,7 +4,7 @@
  */
 
 import { React, useActions, useTypedRedux } from "../app-framework";
-import { Icon } from "../r_misc";
+import { Icon } from "../components";
 import { Modal } from "react-bootstrap";
 import { Button, Row, Col } from "../antd-bootstrap";
 import { webapp_client } from "../webapp-client";

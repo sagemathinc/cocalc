@@ -16,7 +16,7 @@ import {
   useRedux,
   useState,
 } from "../../app-framework";
-import { Icon, Space, Tip } from "../../r_misc";
+import { Icon, Space, Tip } from "../../components";
 import { CourseStore, NBgraderRunInfo, PARALLEL_DEFAULT } from "../store";
 import { CourseActions } from "../actions";
 import { nbgrader_status } from "./util";

@@ -13,7 +13,7 @@ Headings of the task list:
 
 import { Row, Col } from "../../antd-bootstrap";
 import { React } from "../../app-framework";
-import { Icon, Space } from "../../r_misc";
+import { Icon, Space } from "../../components";
 
 import { HEADINGS, HEADINGS_DIR } from "./headings-info";
 import { TaskActions } from "./actions";

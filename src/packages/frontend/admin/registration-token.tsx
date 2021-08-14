@@ -26,7 +26,7 @@ import {
 import { Button as AntdButton } from "antd";
 import { Alert } from "../antd-bootstrap";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
-import { ErrorDisplay, Saving, Icon } from "../r_misc";
+import { ErrorDisplay, Saving, Icon } from "../components";
 import { COLORS } from "@cocalc/util/theme";
 import { PassportStrategy } from "../account/passport-types";
 import { query } from "../frame-editors/generic/client";

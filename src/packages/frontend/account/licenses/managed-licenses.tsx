@@ -4,7 +4,7 @@
  */
 
 import { Button, Checkbox } from "antd";
-import { ErrorDisplay, Icon, Loading, Space } from "../../r_misc";
+import { ErrorDisplay, Icon, Loading, Space } from "../../components";
 import {
   CSS,
   React,

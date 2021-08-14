@@ -7,7 +7,7 @@ import { debounce } from "lodash";
 import { filename_extension } from "@cocalc/util/misc";
 import { React, redux, useTypedRedux, useMemo } from "../app-framework";
 import { COLORS } from "@cocalc/util/theme";
-import { Icon, Tip, Space } from "../r_misc";
+import { Icon, Tip, Space } from "../components";
 import { UsersViewing } from "../account/avatar/users-viewing";
 import { VideoChatButton } from "./video/launch-button";
 

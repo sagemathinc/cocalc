@@ -14,7 +14,7 @@ import {
   Rendered,
 } from "../app-framework";
 
-import { Loading } from "../r_misc";
+import { Loading } from "../components";
 
 import { FileUseViewer } from "./viewer";
 

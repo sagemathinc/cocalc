@@ -5,7 +5,7 @@
 
 import { join as path_join } from "path";
 import { COLORS } from "@cocalc/util/theme";
-import { IconName } from "@cocalc/frontend/r_misc/icon";
+import { IconName } from "@cocalc/frontend/components/icon";
 
 export const RESET_ICON: IconName = "redo";
 

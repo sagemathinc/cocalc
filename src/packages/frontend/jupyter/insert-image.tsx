@@ -8,7 +8,7 @@ Modal for inserting an image
 */
 
 import { React } from "../app-framework";
-import { Icon } from "../r_misc";
+import { Icon } from "../components";
 const { Button, Modal } = require("react-bootstrap"); // TODO: import types
 import { FileUpload } from "../file-upload";
 import { JupyterActions } from "./browser-actions";

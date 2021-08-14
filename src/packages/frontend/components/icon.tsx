@@ -483,7 +483,7 @@ try {
             const id = `icon-${x}`;
             if (document.getElementById(id) == null) {
               console.error(
-                `ERROR -- the IconFont ${x} is not in r_misc/iconfont.cn!  Fix this or the icon ${name} will be broken.`
+                `ERROR -- the IconFont ${x} is not in components/iconfont.cn!  Fix this or the icon ${name} will be broken.`
               );
             }
           }
@@ -566,7 +566,7 @@ export const Icon: React.FC<Props> = (props: Props) => {
     if (missing[props.name ?? ""] == null) {
       missing[props.name ?? ""] = true;
       console.warn(
-        `Icon "${props.name}" is not defined -- fix this in r_misc/icon.tsx.`
+        `Icon "${props.name}" is not defined -- fix this in components/icon.tsx.`
       );
     }
     // make it hopefully clear to devs that this icon is broken
@@ -574,7 +574,7 @@ export const Icon: React.FC<Props> = (props: Props) => {
       <span
         style={{ background: "red", color: "white" }}
         className="blink"
-        title={`Icon "${props.name}" is not defined -- fix this in r_misc/icon.tsx.`}
+        title={`Icon "${props.name}" is not defined -- fix this in components/icon.tsx.`}
       >
         {/* @ts-ignore */}
         <BugOutlined {...props} alt={name} />

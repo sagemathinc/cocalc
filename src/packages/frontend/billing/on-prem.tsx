@@ -5,7 +5,7 @@
 
 import { React } from "../app-framework";
 const { HelpEmailLink } = require("../customize");
-import { A } from "../r_misc";
+import { A } from "../components";
 
 export const ON_PREM_TEXT = (
   <React.Fragment>

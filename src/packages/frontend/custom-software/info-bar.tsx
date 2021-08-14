@@ -16,11 +16,11 @@ import {
 import { ComputeImages } from "./init";
 import { path_split, trunc, trunc_middle } from "@cocalc/util/misc";
 import { open_new_tab } from "../misc";
-import { Icon, Tip, HiddenXSSM, VisibleMDLG, VisibleXSSM } from "../r_misc";
+import { Icon, Tip, HiddenXSSM, VisibleMDLG, VisibleXSSM } from "../components";
 import { ButtonGroup, Button } from "react-bootstrap";
 import { Available as AvailableFeatures } from "../project_configuration";
 import { serverURL } from "../project/named-server-panel";
-import LinkRetry from "../r_misc/link-retry";
+import LinkRetry from "../components/link-retry";
 
 interface Props {
   project_id: string;

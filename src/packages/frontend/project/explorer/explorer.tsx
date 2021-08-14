@@ -15,7 +15,7 @@ import {
   ErrorDisplay,
   Loading,
   SettingBox,
-} from "../../r_misc";
+} from "../../components";
 import { CourseProjectExtraHelp } from "../warnings/course-project";
 import { default_ext } from "./file-listing/utils";
 import { BillingPage } from "../../billing/billing-page";

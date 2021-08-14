@@ -4,7 +4,7 @@
  */
 
 import { React, Component, Rendered } from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/r_misc";
+import { Loading } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";

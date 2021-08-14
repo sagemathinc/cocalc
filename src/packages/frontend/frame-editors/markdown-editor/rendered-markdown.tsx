@@ -14,7 +14,7 @@
 
 import { delay } from "awaiting";
 import SlateMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { Markdown } from "@cocalc/frontend/r_misc";
+import { Markdown } from "@cocalc/frontend/components";
 import { is_different, path_split } from "@cocalc/util/misc";
 import { debounce } from "lodash";
 import { React, ReactDOM, CSS } from "../../app-framework";

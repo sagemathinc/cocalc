@@ -11,7 +11,7 @@ be in a single namespace somehow...!
 */
 
 import { Alert, Row, Col, Button, Checkbox, Well } from "../../antd-bootstrap";
-import { Icon, Loading, SearchInput, Space } from "../../r_misc";
+import { Icon, Loading, SearchInput, Space } from "../../components";
 import { path_to_file, should_open_in_foreground } from "@cocalc/util/misc";
 import { React, useTypedRedux, useActions } from "../../app-framework";
 import { delay } from "awaiting";

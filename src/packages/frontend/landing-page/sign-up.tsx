@@ -9,7 +9,7 @@ import { Passports } from "../passports";
 import { PassportStrategy } from "../account/passport-types";
 import { List } from "immutable";
 
-import { UNIT, Icon, Loading } from "../r_misc";
+import { UNIT, Icon, Loading } from "../components";
 import { COLORS } from "@cocalc/util/theme";
 
 const {

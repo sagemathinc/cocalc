@@ -4,7 +4,7 @@
  */
 import { React, useActions, useTypedRedux } from "../app-framework";
 import { Alert, Button } from "../antd-bootstrap";
-import { A, Icon, Loading } from "../r_misc";
+import { A, Icon, Loading } from "../components";
 import { HelpEmailLink } from "../customize";
 import { location } from "./util";
 import { DISCORD_INVITE } from "@cocalc/util/theme";

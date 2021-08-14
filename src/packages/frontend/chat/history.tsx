@@ -7,7 +7,7 @@ import { React } from "../app-framework";
 import { List, Map } from "immutable";
 import { trunc_middle } from "@cocalc/util/misc";
 import { sanitize_html_safe } from "../misc";
-import { Markdown, TimeAgo } from "../r_misc";
+import { Markdown, TimeAgo } from "../components";
 import { ListGroupItem, Well } from "react-bootstrap";
 
 export const HistoryTitle: React.FC<{}> = () => {

@@ -6,8 +6,8 @@
 // 3rd Party Libraries
 import { markdown_to_html } from "../index";
 import { Button, ButtonToolbar, FormControl, FormGroup } from "react-bootstrap";
-import { Tip } from "@cocalc/frontend/r_misc/tip";
-import { Icon } from "@cocalc/frontend/r_misc/icon";
+import { Tip } from "@cocalc/frontend/components/tip";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 // Internal Libraries
 import {

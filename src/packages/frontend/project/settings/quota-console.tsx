@@ -9,7 +9,7 @@ import React from "react";
 import * as immutable from "immutable";
 import { Rendered } from "../../app-framework";
 import { Assign } from "utility-types";
-import { LabeledRow, Tip, Icon, Space, Loading } from "../../r_misc";
+import { LabeledRow, Tip, Icon, Space, Loading } from "../../components";
 import { alert_message } from "../../alerts";
 import { ProjectSettings, ProjectStatus } from "./types";
 import * as misc from "@cocalc/util/misc";

@@ -16,7 +16,7 @@ import {
 } from "react-bootstrap";
 import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
 import { SiteName, CompanyName, HelpEmailLink } from "../customize";
-import { Markdown, SearchInput, Icon, Space } from "../r_misc";
+import { Markdown, SearchInput, Icon, Space } from "../components";
 import { unreachable } from "@cocalc/util/misc";
 import {
   CUSTOM_SOFTWARE_HELP_URL,

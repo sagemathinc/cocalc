@@ -26,7 +26,7 @@ import { SiteName, TermsOfService } from "../../customize";
 import { keys, startswith } from "@cocalc/util/misc";
 import { set_account_table, ugly_error } from "../util";
 import { webapp_client } from "../../webapp-client";
-import { A, ErrorDisplay, Icon, Space, TimeAgo } from "../../r_misc";
+import { A, ErrorDisplay, Icon, Space, TimeAgo } from "../../components";
 import { SignOut } from "../sign-out";
 import { DeleteAccount } from "../delete-account";
 import { TextSetting } from "./text-setting";

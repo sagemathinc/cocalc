@@ -13,7 +13,7 @@ for people to do that.
 */
 
 import { React } from "@cocalc/frontend/app-framework";
-import { MenuItem, DropdownMenu } from "@cocalc/frontend/r_misc";
+import { MenuItem, DropdownMenu } from "@cocalc/frontend/components";
 
 import { LICENSES } from "./licenses";
 

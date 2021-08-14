@@ -7,7 +7,7 @@ import { React } from "../../app-framework";
 import { Configuration } from "./explorer";
 import { EXTs as ALL_FILE_BUTTON_TYPES } from "./file-listing/utils";
 import { Button } from "antd";
-import { Icon, MenuItem, MenuDivider, DropdownMenu } from "../../r_misc";
+import { Icon, MenuItem, MenuDivider, DropdownMenu } from "../../components";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 
 interface Props {

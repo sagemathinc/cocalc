@@ -8,7 +8,7 @@ import ReactDOM from "react-dom";
 import * as immutable from "immutable";
 
 import { rtypes, rclass } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, LoginLink } from "@cocalc/frontend/r_misc";
+import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
 import { DirectorySelector } from "../directory-selector";
 import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";

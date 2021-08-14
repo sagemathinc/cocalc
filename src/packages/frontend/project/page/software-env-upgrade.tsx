@@ -11,13 +11,13 @@ import {
   useState,
   useStore,
 } from "../../app-framework";
-import { A, Icon, Loading, VisibleMDLG, VisibleXSSM } from "../../r_misc";
+import { A, Icon, Loading, VisibleMDLG, VisibleXSSM } from "../../components";
 import { COLORS } from "@cocalc/util/theme";
 import { ALERT_STYLE } from "../warnings/common";
 import { alert_message } from "../../alerts";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { Alert, Button } from "../../antd-bootstrap";
-import { CloseX } from "@cocalc/frontend/r_misc";
+import { CloseX } from "@cocalc/frontend/components";
 import { Space } from "antd";
 import {
   FALLBACK_COMPUTE_IMAGE,

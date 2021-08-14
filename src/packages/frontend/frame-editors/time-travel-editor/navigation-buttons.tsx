@@ -14,7 +14,7 @@ Navigation Buttons to:
 
 import { Button, ButtonGroup } from "react-bootstrap";
 import { Component, React, Rendered } from "../../app-framework";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 
 import { TimeTravelActions } from "./actions";
 

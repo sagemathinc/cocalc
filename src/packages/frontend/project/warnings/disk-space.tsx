@@ -12,7 +12,7 @@ import {
   redux,
   useActions,
 } from "../../app-framework";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { ALERT_STYLE } from "./common";
 
 export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({

@@ -5,7 +5,7 @@
 
 import { Table } from "react-bootstrap";
 import { CSS, React, useMemo, useTypedRedux } from "../app-framework";
-import { A } from "../r_misc";
+import { A } from "../components";
 import { by_lowercase } from "./utils";
 
 interface Props {

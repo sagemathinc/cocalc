@@ -6,7 +6,7 @@
 //TODO: Make useable without passing in user_map
 
 import { React, Component } from "../app-framework";
-import { Space, TimeAgo, Tip } from "../r_misc";
+import { Space, TimeAgo, Tip } from "../components";
 import { is_valid_uuid_string, trunc_middle } from "@cocalc/util/misc";
 import { UserMap } from "./types";
 import { actions } from "./actions";

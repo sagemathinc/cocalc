@@ -22,7 +22,7 @@ import {
   TimeElapsed,
   Icon,
   SettingBox,
-} from "../../r_misc";
+} from "../../components";
 import { COLORS } from "@cocalc/util/theme";
 import { Space } from "antd";
 import {

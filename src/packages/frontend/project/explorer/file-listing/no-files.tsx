@@ -5,7 +5,7 @@
 
 import React from "react";
 import { Rendered } from "../../../app-framework";
-import { Icon } from "../../../r_misc/icon";
+import { Icon } from "../../../components/icon";
 import { ProjectActions } from "../../../project_actions";
 
 import { HelpAlert } from "./help-alert";

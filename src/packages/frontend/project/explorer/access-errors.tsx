@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { ErrorDisplay } from "@cocalc/frontend/r_misc";
+import { ErrorDisplay } from "@cocalc/frontend/components";
 import { AccountPage } from "../../account/account-page";
 
 interface Props {

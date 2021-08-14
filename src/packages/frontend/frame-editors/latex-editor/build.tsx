@@ -11,7 +11,7 @@ import Ansi from "ansi-to-react";
 import { path_split } from "@cocalc/util/misc";
 import { React, Rendered, useRedux } from "../../app-framework";
 import { BuildCommand } from "./build-command";
-import { IconName, Loading } from "@cocalc/frontend/r_misc";
+import { IconName, Loading } from "@cocalc/frontend/components";
 import { Tab, Tabs } from "../../antd-bootstrap";
 import { COLORS } from "@cocalc/util/theme";
 import { BuildLogs } from "./actions";

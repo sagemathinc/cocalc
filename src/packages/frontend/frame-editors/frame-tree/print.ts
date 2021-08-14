@@ -10,7 +10,7 @@ TODO: refactor with markdown print (?).
 */
 
 import { path_split } from "@cocalc/util/misc";
-import { HTML } from "@cocalc/frontend/r_misc";
+import { HTML } from "@cocalc/frontend/components";
 const ReactDOMServer = require("react-dom/server");
 import { React, Redux, redux } from "@cocalc/frontend/app-framework";
 import { BASE_URL } from "@cocalc/frontend/misc";

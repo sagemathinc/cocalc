@@ -5,7 +5,7 @@
 
 import { Map } from "immutable";
 const { User } = require("../../users");
-import { Loading, r_join } from "../../r_misc";
+import { Loading, r_join } from "../../components";
 import {
   Component,
   React,

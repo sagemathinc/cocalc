@@ -16,7 +16,7 @@ import {
   useState,
   useMemo,
 } from "../app-framework";
-import { Icon, Loading, LoginLink, VisibleMDLG } from "../r_misc";
+import { Icon, Loading, LoginLink, VisibleMDLG } from "../components";
 import { Row, Col } from "../antd-bootstrap";
 
 import { UsersViewing } from "../account/avatar/users-viewing";

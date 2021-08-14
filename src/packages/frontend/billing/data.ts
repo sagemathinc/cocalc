@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { IconName } from "@cocalc/frontend/r_misc";
+import { IconName } from "@cocalc/frontend/components";
 
 export const TEACHER_PAYS =
   "https://doc.cocalc.com/teaching-upgrade-course.html#teacher-or-institution-pays-for-upgrades";

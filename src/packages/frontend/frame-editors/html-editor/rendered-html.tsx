@@ -12,7 +12,7 @@ import { is_different, path_split } from "@cocalc/util/misc";
 import { throttle } from "lodash";
 import { React, ReactDOM } from "../../app-framework";
 import { MAX_WIDTH } from "../options";
-import { HTML } from "@cocalc/frontend/r_misc";
+import { HTML } from "@cocalc/frontend/components";
 import { EditorState } from "../frame-tree/types";
 
 interface Props {

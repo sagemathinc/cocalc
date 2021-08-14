@@ -5,7 +5,7 @@
 
 import { React, Component, Rendered } from "@cocalc/frontend/app-framework";
 import { Button } from "react-bootstrap";
-import { CopyToClipBoard, Icon, ErrorDisplay } from "@cocalc/frontend/r_misc";
+import { CopyToClipBoard, Icon, ErrorDisplay } from "@cocalc/frontend/components";
 import { webapp_client } from "../../webapp-client";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ErrorDisplay, LabeledRow, Saving } from "../../r_misc";
+import { ErrorDisplay, LabeledRow, Saving } from "../../components";
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
 import {

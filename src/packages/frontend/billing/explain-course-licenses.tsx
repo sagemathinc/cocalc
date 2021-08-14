@@ -5,7 +5,7 @@
 
 import { React } from "../app-framework";
 const { HelpEmailLink, SiteName } = require("../customize");
-import { A, IconName, Space } from "../r_misc";
+import { A, IconName, Space } from "../components";
 import {
   STUDENT_COURSE_PRICE,
   TEACHER_PAYS,

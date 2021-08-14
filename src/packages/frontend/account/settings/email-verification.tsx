@@ -9,7 +9,7 @@ import { Component, React, Rendered } from "../../app-framework";
 import { alert_message } from "../../alerts";
 import { Button } from "../../antd-bootstrap";
 import { webapp_client } from "../../webapp-client";
-import { LabeledRow } from "../../r_misc";
+import { LabeledRow } from "../../components";
 
 interface Props {
   email_address?: string;

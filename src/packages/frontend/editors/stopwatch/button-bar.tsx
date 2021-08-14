@@ -13,7 +13,7 @@ type TimeActions = InstanceType<typeof TimeActions>;
 
 import { HistoryOutlined, RedoOutlined, UndoOutlined } from "@ant-design/icons";
 import { Button } from "antd";
-import { Space } from "@cocalc/frontend/r_misc/space";
+import { Space } from "@cocalc/frontend/components/space";
 
 export function ButtonBar({ actions }: { actions: TimeActions }): JSX.Element {
   return (

@@ -23,7 +23,7 @@ output:
 import React from "react";
 import { register } from "../register";
 import { useSlate } from "../hooks";
-import { A } from "@cocalc/frontend/r_misc";
+import { A } from "@cocalc/frontend/components";
 import { useSetElement } from "../set-element";
 import { SlateCodeMirror } from "../codemirror";
 

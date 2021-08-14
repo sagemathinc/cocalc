@@ -5,7 +5,7 @@
 
 import React from "react";
 import * as misc from "@cocalc/util/misc";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { NonMemberProjectWarning } from "../warnings/non-member";
 import { NoNetworkProjectWarning } from "../warnings/no-network";
 import { redux, rtypes, rclass } from "../../app-framework";
@@ -23,7 +23,7 @@ import { SSHPanel } from "./ssh";
 import { Environment } from "./environment";
 import { Datastore } from "./datastore";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { SettingBox } from "../../r_misc";
+import { SettingBox } from "../../components";
 import { AddCollaborators } from "../../collaborators";
 
 import { webapp_client } from "../../webapp-client";

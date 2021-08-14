@@ -4,7 +4,7 @@
  */
 
 import { React, useTypedRedux } from "../app-framework";
-import { A } from "../r_misc";
+import { A } from "../components";
 
 export const TermsOfService: React.FC<{ style?: React.CSSProperties }> = ({
   style,

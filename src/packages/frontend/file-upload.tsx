@@ -22,7 +22,7 @@ import {
   useRef,
   useEffect,
 } from "./app-framework";
-import { Icon, Tip } from "./r_misc";
+import { Icon, Tip } from "./components";
 import { join } from "path";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";

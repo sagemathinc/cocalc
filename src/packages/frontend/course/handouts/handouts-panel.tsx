@@ -52,7 +52,7 @@ import {
   Tip,
   MarkdownInput,
   WindowedList,
-} from "../../r_misc";
+} from "../../components";
 
 // Could be merged with steps system of assignments.
 // Probably not a good idea mixing the two.

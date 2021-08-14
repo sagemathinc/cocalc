@@ -1,6 +1,6 @@
 import { redux, React, TypedMap } from "../app-framework";
 import { webapp_client } from "../webapp-client";
-import { Icon, Space } from "../r_misc";
+import { Icon, Space } from "../components";
 import { SiteName } from "../customize";
 import { get_browser } from "../feature";
 

@@ -17,7 +17,7 @@ import {
 import { PublicPath as PublicPath0 } from "@cocalc/util/db-schema/public-paths";
 import { trunc, trunc_middle } from "@cocalc/util/misc";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { ErrorDisplay, Icon, Loading, Space, TimeAgo } from "@cocalc/frontend/r_misc";
+import { ErrorDisplay, Icon, Loading, Space, TimeAgo } from "@cocalc/frontend/components";
 import { UnpublishEverything } from "./unpublish-everything";
 import { LICENSES } from "@cocalc/frontend/share/licenses";
 

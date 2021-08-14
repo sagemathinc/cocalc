@@ -5,7 +5,7 @@
 
 import { Map } from "immutable";
 import { is_different } from "@cocalc/util/misc";
-import { Markdown } from "@cocalc/frontend/r_misc";
+import { Markdown } from "@cocalc/frontend/components";
 
 import {
   React,

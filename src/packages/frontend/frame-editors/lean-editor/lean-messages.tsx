@@ -4,7 +4,7 @@
  */
 
 import { List, Map } from "immutable";
-import { Icon, IconName, Space, TimeAgo } from "@cocalc/frontend/r_misc";
+import { Icon, IconName, Space, TimeAgo } from "@cocalc/frontend/components";
 import { server_time } from "../generic/client";
 import { Message } from "./types";
 import { capitalize, is_different } from "@cocalc/util/misc";

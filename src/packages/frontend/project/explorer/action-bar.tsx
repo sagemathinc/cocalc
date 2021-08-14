@@ -5,7 +5,7 @@
 
 import React from "react";
 import * as immutable from "immutable";
-import { HiddenSM, Icon, Space } from "../../r_misc";
+import { HiddenSM, Icon, Space } from "../../components";
 import { COLORS } from "@cocalc/util/theme";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { ProjectActions } from "@cocalc/frontend/project_store";

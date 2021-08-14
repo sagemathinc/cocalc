@@ -1,6 +1,6 @@
 import React from "react";
 import register from "./register";
-import { HTML } from "@cocalc/frontend/r_misc";
+import { HTML } from "@cocalc/frontend/components";
 
 const Html = ({
   project_id,

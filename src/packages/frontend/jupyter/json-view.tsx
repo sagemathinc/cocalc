@@ -13,7 +13,7 @@ Provide nice JSON view of the ipynb
 import ReactJson from "react-json-view";
 import { React } from "../app-framework";
 import { JupyterActions } from "./browser-actions";
-import { Loading } from "../r_misc";
+import { Loading } from "../components";
 
 interface JSONViewProps {
   actions: JupyterActions;

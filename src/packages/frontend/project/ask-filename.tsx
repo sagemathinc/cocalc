@@ -13,7 +13,7 @@ const {
   Button,
   Form,
 } = require("react-bootstrap");
-import { SearchInput, SelectorInput, Icon } from "../r_misc";
+import { SearchInput, SelectorInput, Icon } from "../components";
 const { IS_TOUCH } = require("../feature");
 import { NewFilenameFamilies, NewFilenames } from "@cocalc/frontend/project/utils";
 import { FileSpec } from "../file-associations";

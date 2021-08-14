@@ -7,7 +7,7 @@
 import { CSS, React, ReactDOM, useActions } from "../app-framework";
 import { capitalize, filename_extension } from "@cocalc/util/misc";
 import { file_actions } from "../project_store";
-import { DropdownMenu, HiddenXS, MenuItem, Icon, IconName, Space } from "../r_misc";
+import { DropdownMenu, HiddenXS, MenuItem, Icon, IconName, Space } from "../components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 
 interface Props {

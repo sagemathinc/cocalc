@@ -1,6 +1,6 @@
 import React from "react";
 import register from "./register";
-import HTML from "@cocalc/frontend/r_misc/html-ssr";
+import HTML from "@cocalc/frontend/components/html-ssr";
 
 const Html = ({ value }) => {
   return (

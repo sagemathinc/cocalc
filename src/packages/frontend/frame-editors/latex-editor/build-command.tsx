@@ -8,7 +8,7 @@ Customization and selection of the build command.
 */
 
 import { List, fromJS } from "immutable";
-import { Loading } from "@cocalc/frontend/r_misc";
+import { Loading } from "@cocalc/frontend/components";
 import { Alert } from "react-bootstrap";
 import { Input, Form, Dropdown, Menu } from "antd";
 import { Button } from "../../antd-bootstrap";

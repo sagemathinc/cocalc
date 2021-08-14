@@ -1,7 +1,7 @@
 import { React } from "../app-framework";
 import { Message } from "./types";
 import { IS_TOUCH } from "../feature";
-import { TimeAgo } from "../r_misc";
+import { TimeAgo } from "../components";
 
 export const Time: React.FC<{ message: Message; edit: (event) => void }> = ({
   message,

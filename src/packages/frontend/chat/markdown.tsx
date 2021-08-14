@@ -4,7 +4,7 @@
  */
 
 import { React } from "../app-framework";
-import { Markdown as Markdown0 } from "../r_misc";
+import { Markdown as Markdown0 } from "../components";
 
 interface Props {
   value: string;

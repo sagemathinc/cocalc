@@ -7,7 +7,7 @@ import { Map as iMap, List as iList } from "immutable";
 import { FileUseInfo } from "./info";
 import { Alert, Button, Col, Row } from "react-bootstrap";
 import { Component, React, Rendered } from "../app-framework";
-import { SearchInput, WindowedList, Icon } from "../r_misc";
+import { SearchInput, WindowedList, Icon } from "../components";
 import { FileUseActions } from "./actions";
 import { open_file_use_entry } from "./util";
 import { search_match, search_split } from "@cocalc/util/misc";

@@ -5,7 +5,7 @@
 
 import { Alert, Button } from "../../antd-bootstrap";
 import { React, useEffect, useRedux, useState, useTypedRedux } from "../../app-framework";
-import { A, Icon } from "../../r_misc";
+import { A, Icon } from "../../components";
 import { ALERT_STYLE } from "./common";
 import * as LS from "../../misc/local-storage";
 

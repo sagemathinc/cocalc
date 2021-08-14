@@ -7,7 +7,7 @@ import { React, Component, Rendered } from "@cocalc/frontend/app-framework";
 
 import { Button } from "react-bootstrap";
 
-import { Icon, ErrorDisplay, TimeAgo } from "@cocalc/frontend/r_misc";
+import { Icon, ErrorDisplay, TimeAgo } from "@cocalc/frontend/components";
 
 import { webapp_client} from "../../webapp-client";
 

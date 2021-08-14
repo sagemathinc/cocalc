@@ -37,7 +37,7 @@ import {
   Space,
   DropdownMenu,
   MenuItem,
-} from "@cocalc/frontend/r_misc";
+} from "@cocalc/frontend/components";
 
 import { IS_TOUCH } from "../../feature";
 import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";

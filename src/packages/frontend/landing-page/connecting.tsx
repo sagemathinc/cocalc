@@ -4,7 +4,7 @@
  */
 
 import { React } from "../app-framework";
-import { Icon } from "../r_misc";
+import { Icon } from "../components";
 import { COLORS } from "@cocalc/util/theme";
 
 export function Connecting(_props) {

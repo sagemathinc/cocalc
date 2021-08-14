@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Icon } from "@cocalc/frontend/r_misc";
+import { Icon } from "@cocalc/frontend/components";
 import { ReactEditor } from "../slate-react";
 import { ListProperties, setListProperties } from "./list";
 import { Button, Checkbox, InputNumber } from "antd";

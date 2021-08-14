@@ -6,7 +6,7 @@
 import React from "react";
 import { Col, Row } from "react-bootstrap";
 
-import { Tip } from "../../r_misc";
+import { Tip } from "../../components";
 
 import { NamedServerPanel } from "../named-server-panel";
 

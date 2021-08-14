@@ -16,7 +16,7 @@ import {
   Modal,
 } from "react-bootstrap";
 import * as immutable from "immutable";
-import { ErrorDisplay, Icon } from "../r_misc";
+import { ErrorDisplay, Icon } from "../components";
 import { find_matches } from "./find";
 import { JupyterActions } from "./browser-actions";
 

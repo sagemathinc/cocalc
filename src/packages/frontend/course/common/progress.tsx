@@ -8,7 +8,7 @@ Progress indicator for assigning/collecting/etc. a particular assignment or hand
 */
 
 import { React, Component } from "../../app-framework";
-import { Icon, Space } from "../../r_misc";
+import { Icon, Space } from "../../components";
 
 import { COLORS } from "@cocalc/util/theme";
 

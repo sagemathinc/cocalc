@@ -8,7 +8,7 @@ Task last changed: displays when this task was last changed
 */
 
 import { React } from "../../app-framework";
-import { TimeAgo } from "../../r_misc";
+import { TimeAgo } from "../../components";
 
 interface Props {
   last_edited?: number;

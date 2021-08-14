@@ -13,7 +13,7 @@ import { List } from "immutable";
 
 import React from "react";
 
-import { Icon, Tip } from "@cocalc/frontend/r_misc";
+import { Icon, Tip } from "@cocalc/frontend/components";
 
 import { RenderedMessage, message_color, message_icon } from "./lean-messages";
 

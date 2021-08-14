@@ -10,7 +10,7 @@ The tag editing toolbar functionality for cells.
 import { Button, FormControl } from "react-bootstrap";
 import { React, useState } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
-import { Icon } from "../r_misc";
+import { Icon } from "../components";
 const misc = require("@cocalc/util/misc");
 import { JupyterActions } from "./browser-actions";
 

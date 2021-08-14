@@ -20,7 +20,7 @@ import { useInterval } from 'react-interval-hook';
 import { Map } from "immutable";
 import { JSONEditor } from "./json-editor";
 import { JupyterActions } from "./browser-actions";
-import { Loading } from "../r_misc";
+import { Loading } from "../components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 
 interface Props {

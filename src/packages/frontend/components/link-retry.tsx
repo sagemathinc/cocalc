@@ -4,7 +4,7 @@
  */
 
 import { React, useEffect, useIsMountedRef, useState } from "../app-framework";
-import { Loading, Space, Icon } from "../r_misc";
+import { Loading, Space, Icon } from "../components";
 import { Button } from "../antd-bootstrap";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { open_new_tab } from "../misc";

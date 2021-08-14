@@ -4,7 +4,7 @@
  */
 
 import { React } from "../../app-framework";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { PathNavigator } from "../explorer/path-navigator";
 
 const SIZE = "20px";

@@ -12,7 +12,7 @@ import { React, Rendered, useDelayedRender } from "../app-framework";
 import { clear_selection } from "../misc/clear-selection";
 import { COLORS } from "@cocalc/util/theme";
 import { INPUT_PROMPT_COLOR } from "./prompt/base";
-import { Icon, Tip } from "../r_misc";
+import { Icon, Tip } from "../components";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
 

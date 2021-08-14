@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Icon, SettingBox } from "@cocalc/frontend/r_misc";
+import { Icon, SettingBox } from "@cocalc/frontend/components";
 import { Row, Col, Button } from "react-bootstrap";
 import { Project } from "./types";
 import { alert_message } from "../../alerts";

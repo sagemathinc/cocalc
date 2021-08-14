@@ -14,7 +14,7 @@ import { CSS, React, useTypedRedux } from "../app-framework";
 
 import { Alert } from "antd";
 import { CourseSettingsRecord } from "./store";
-import { Icon, Space } from "../r_misc";
+import { Icon, Space } from "../components";
 
 interface PayBannerProps {
   settings: CourseSettingsRecord;

@@ -9,7 +9,7 @@ Searching for tasks by full text search and done/deleted status.
 
 import { React, ReactDOM, useEffect, useRef } from "../../app-framework";
 
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import {
   Button,
   FormControl,

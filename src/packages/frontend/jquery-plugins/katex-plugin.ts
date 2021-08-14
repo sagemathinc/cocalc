@@ -14,7 +14,7 @@ is explicitly known and set to false.
 
 const CACHE_SIZE = 300;
 
-import { is_share_server } from "../r_misc/share-server";
+import { is_share_server } from "../components/share-server";
 
 export const jQuery = $;
 declare var $: any;

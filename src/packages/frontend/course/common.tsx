@@ -33,7 +33,7 @@ import {
   TimeAgo,
   Tip,
   is_different_date,
-} from "../r_misc";
+} from "../components";
 
 import { MarkdownInput } from "../editors/markdown-input";
 

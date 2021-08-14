@@ -12,7 +12,7 @@ import {
   useState,
   useStore,
 } from "../app-framework";
-import { SearchInput } from "../r_misc";
+import { SearchInput } from "../components";
 
 interface Props {
   clear_and_focus_search?: number; // when this changes, we clear and focus the search box.

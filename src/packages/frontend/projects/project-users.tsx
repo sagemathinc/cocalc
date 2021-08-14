@@ -11,8 +11,8 @@ import { UserMap } from "../todo-types";
 
 const { User } = require("../users");
 
-import { r_join } from "../r_misc/r_join";
-import { Loading } from "../r_misc/loading";
+import { r_join } from "../components/r_join";
+import { Loading } from "../components/loading";
 
 interface ReactProps {
   project: any;

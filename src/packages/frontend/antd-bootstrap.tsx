@@ -27,7 +27,7 @@ export {
 } from "react-bootstrap";
 
 import { React, Rendered } from "./app-framework";
-import { r_join, Space } from "./r_misc";
+import { r_join, Space } from "./components";
 
 import {
   Alert as AntdAlert,

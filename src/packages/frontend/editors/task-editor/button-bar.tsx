@@ -13,7 +13,7 @@ Button bar:
 
 import { React } from "../../app-framework";
 import { ButtonGroup, Button } from "../../antd-bootstrap";
-import { Icon, Space, UncommittedChanges } from "../../r_misc";
+import { Icon, Space, UncommittedChanges } from "../../components";
 import { TaskActions } from "./actions";
 
 interface Props {

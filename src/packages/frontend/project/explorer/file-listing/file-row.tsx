@@ -10,7 +10,7 @@ import { CopyButton } from "./copy-button";
 import { PublicButton } from "./public-button";
 import { FileCheckbox } from "./file-checkbox";
 import { generate_click_for } from "./utils";
-import { TimeAgo, Tip, Icon, IconName } from "@cocalc/frontend/r_misc";
+import { TimeAgo, Tip, Icon, IconName } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { Button, Row, Col } from "react-bootstrap";
 import * as misc from "@cocalc/util/misc";

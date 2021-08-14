@@ -5,7 +5,7 @@
 
 import React from "react";
 import { Project } from "./types";
-import { Icon, SettingBox } from "@cocalc/frontend/r_misc";
+import { Icon, SettingBox } from "@cocalc/frontend/components";
 import { DeletedProjectWarning } from "../warnings/deleted";
 import { Button, Well, Alert, ButtonToolbar, Row, Col } from "react-bootstrap";
 import { ProjectsActions } from "@cocalc/frontend/todo-types";

@@ -6,13 +6,13 @@
 import { React, Rendered, useActions, useState } from "../app-framework";
 import { Button, Row, Col } from "../antd-bootstrap";
 const { Panel } = require("react-bootstrap"); // since the typescript declarations are our of sync with our crappy old version.
-import { Icon } from "../r_misc/icon";
+import { Icon } from "../components/icon";
 
 import { Source } from "./types";
 
 import { AddPaymentMethod } from "./add-payment-method";
 import { PaymentMethod } from "./payment-method";
-import { ErrorDisplay } from "../r_misc/error-display";
+import { ErrorDisplay } from "../components/error-display";
 
 import { cmp } from "@cocalc/util/misc";
 

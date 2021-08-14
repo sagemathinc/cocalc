@@ -7,7 +7,7 @@ import { List } from "immutable";
 import { React, redux, useState, useTypedRedux } from "../../app-framework";
 import { ManagerInfo } from "./types";
 import { User } from "../../users";
-import { r_join, Space } from "../../r_misc";
+import { r_join, Space } from "../../components";
 import { Button } from "../../antd-bootstrap";
 import { Popconfirm } from "antd";
 import { alert_message } from "../../alerts";

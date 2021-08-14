@@ -1,6 +1,6 @@
 import React from "react";
 import useHover from "@react-hook/hover";
-import { Icon } from "@cocalc/frontend/r_misc";
+import { Icon } from "@cocalc/frontend/components";
 
 interface CloseProps {
   clearGhostFileTabs?: () => void;
