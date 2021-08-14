@@ -7,13 +7,13 @@
 //
 // See https://github.com/sagemathinc/cocalc/issues/2462
 
-import { React, Rendered, useActions } from "../app-framework";
-import { register_file_editor } from "../project-file";
-import { Markdown } from "../r_misc";
-import { webapp_client } from "../webapp-client";
+import { React, Rendered, useActions } from "@cocalc/frontend/app-framework";
+import { register_file_editor } from "@cocalc/frontend/project-file";
+import { Markdown } from "@cocalc/frontend/r_misc";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { keys, filename_extension } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Button, Well } from "../antd-bootstrap";
+import { Button, Well } from "@cocalc/frontend/antd-bootstrap";
 
 const hdf_file =
   "Hierarchical Data Format (HDF file) -- you can open this file using a Python or R library.";

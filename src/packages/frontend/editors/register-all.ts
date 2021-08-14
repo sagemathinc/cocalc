@@ -19,7 +19,7 @@ import "../stopwatch/register";
 import "./media-viewer/register";
 
 // Raw data editors
-import "../editor-data/generic";
+import "./data-editor/generic";
 
 import "./task-editor/register";
 
