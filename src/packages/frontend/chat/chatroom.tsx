@@ -9,7 +9,7 @@ import { useDebounce } from "use-debounce";
 
 // CoCalc libraries
 import { history_path, path_split } from "@cocalc/util/misc";
-import { sanitize_html_safe } from "../misc-page";
+import { sanitize_html_safe } from "../misc";
 import { SaveButton } from "../frame-editors/frame-tree/save-button";
 
 // have to rewrite buttons like SaveButton in antd before we can

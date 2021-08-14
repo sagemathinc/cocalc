@@ -45,7 +45,7 @@ import { ProjectEvent } from "./project/history/types";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { download_href, url_href } from "./project/utils";
 import { ensure_project_running } from "./project/project-start-warning";
-import { download_file, open_new_tab, open_popup_window } from "./misc-page";
+import { download_file, open_new_tab, open_popup_window } from "./misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const BAD_FILENAME_CHARACTERS = "\\";

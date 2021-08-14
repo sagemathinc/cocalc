@@ -39,7 +39,7 @@ import {
   rclass,
   rtypes,
 } from "@cocalc/frontend/app-framework";
-import { open_new_tab } from "@cocalc/frontend/misc-page";
+import { open_new_tab } from "@cocalc/frontend/misc";
 import {
   CopyToClipBoard,
   Icon,

@@ -6,7 +6,7 @@
 import { React, useState } from "../app-framework";
 import { Row, Col } from "../antd-bootstrap";
 import { Icon } from "../r_misc";
-import { open_popup_window } from "../misc-page/open-browser-tab";
+import { open_popup_window } from "../misc/open-browser-tab";
 import { capitalize, stripe_date } from "@cocalc/util/misc";
 import { render_amount } from "./util";
 import { InvoiceMap, InvoiceLineMap } from "./types";

@@ -7,7 +7,7 @@ import { React, useEffect, useIsMountedRef, useState } from "../app-framework";
 import { Loading, Space, Icon } from "../r_misc";
 import { Button } from "../antd-bootstrap";
 import { retry_until_success } from "@cocalc/util/async-utils";
-import { open_new_tab } from "../misc-page";
+import { open_new_tab } from "../misc";
 
 interface Props {
   href: string;

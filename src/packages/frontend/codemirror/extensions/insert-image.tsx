@@ -6,7 +6,7 @@
 import * as CodeMirror from "codemirror";
 import { Button, Form, Input, Modal } from "antd";
 import { React } from "../../app-framework";
-import { show_react_modal } from "../../misc-page";
+import { show_react_modal } from "../../misc";
 import { Icon } from "../../r_misc";
 import { alert_message } from "../../alerts";
 

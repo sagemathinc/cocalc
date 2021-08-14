@@ -20,7 +20,7 @@ const { instantiate_snippets } = require("../assistant/main");
 import { NBGraderActions } from "./nbgrader/actions";
 import { CellToolbarName } from "./types";
 import { exec } from "../frame-editors/generic/client";
-import { open_popup_window } from "../misc-page";
+import { open_popup_window } from "../misc";
 import { IPYNB2PDF } from "../misc/commands";
 import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
 import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";

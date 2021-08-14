@@ -45,7 +45,7 @@ const Draggable = require("react-draggable");
 import {
   drag_start_iframe_disable,
   drag_stop_iframe_enable,
-} from "../../misc-page";
+} from "../../misc";
 import * as feature from "@cocalc/frontend/feature";
 import { FrameTitleBar } from "./title-bar";
 import { FrameTreeLeaf } from "./leaf";

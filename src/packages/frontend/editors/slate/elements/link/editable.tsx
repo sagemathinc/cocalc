@@ -7,7 +7,7 @@ import { Text } from "slate";
 import React from "react";
 import { register } from "../register";
 import { useProcessLinks } from "../hooks";
-import { open_new_tab } from "@cocalc/frontend/misc-page";
+import { open_new_tab } from "@cocalc/frontend/misc";
 const linkify = require("linkify-it")();
 import { Link } from "./index";
 

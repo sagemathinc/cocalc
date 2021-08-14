@@ -33,7 +33,7 @@ import { editor_id } from "../utils";
 import {
   drag_start_iframe_disable,
   drag_stop_iframe_enable,
-} from "../../misc-page";
+} from "../../misc";
 import { webapp_client } from "../../webapp-client";
 import { DeletedFile } from "../deleted-file";
 import { KioskModeBanner } from "../../app/kiosk-mode-banner";

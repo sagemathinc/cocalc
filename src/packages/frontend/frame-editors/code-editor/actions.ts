@@ -55,7 +55,7 @@ import { AvailableFeatures } from "../../project_configuration";
 import { apply_patch } from "@cocalc/util/sync/editor/generic/util";
 import { default_opts } from "../codemirror/cm-options";
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
-import { open_new_tab } from "../../misc-page";
+import { open_new_tab } from "../../misc";
 
 import {
   ext2syntax,

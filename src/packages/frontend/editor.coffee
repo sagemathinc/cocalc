@@ -49,7 +49,7 @@ feature = require('./feature')
 IS_MOBILE = feature.IS_MOBILE
 
 misc = require('@cocalc/util/misc')
-{drag_start_iframe_disable, drag_stop_iframe_enable, sagews_canonical_mode} = require('./misc-page')
+{drag_start_iframe_disable, drag_stop_iframe_enable, sagews_canonical_mode} = require('./misc')
 
 # Ensure CodeMirror is available and configured
 CodeMirror = require("codemirror")
