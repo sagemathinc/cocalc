@@ -12,73 +12,83 @@ Define a jQuery plugin that processes links.
 */
 
 import { join } from "path";
-declare const $: any;
-
-import { is_valid_uuid_string, startswith } from "@cocalc/util/misc";
-import { redux } from "./app-framework";
+import { is_valid_uuid_string as isUUID } from "@cocalc/util/misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
-function load_target(target: string, switch_to: boolean, anchor: string): void {
-  const actions = redux.getActions("projects");
-  if (actions == null) {
-    throw Error("unable to load target because projects Actions not defined");
-  }
+type jQueryAPI = Function;
+
+interface Options {
+  $: jQueryAPI; // something with jquery api -- might be cheerio or jQuery itself.
+  hrefTransform?: (href: string, tag?: string) => string;
+  projectId?: string;
+  filePath?: string;
+  projectActions?: {
+    load_target: (
+      target: string,
+      switchTo: boolean,
+      a: boolean,
+      b: boolean,
+      anchor: string
+    ) => void;
+  };
+}
+
+function loadTarget(
+  target: string,
+  switchTo: boolean,
+  anchor: string,
+  projectActions: { load_target: Function }
+): void {
   // get rid of "?something" in "path/file.ext?something"
   const i = target.lastIndexOf("/");
   if (i > 0) {
     const j = target.slice(i).indexOf("?");
     if (j >= 0) target = target.slice(0, i + j);
   }
-  actions.load_target(target, switch_to, false, true, anchor);
+  projectActions.load_target(target, switchTo, false, true, anchor);
 }
 
-// True if starts with host's URL, but is not of the form (say) cocalc.com/[project_id], since
+// True if starts with host's URL, but is not of the form (say) cocalc.com/[projectId], since
 // that would refer to a port or server, which we can't open internally.
 // See https://github.com/sagemathinc/cocalc/issues/4889 and 5423.
-export function starts_with_cloud_url(href: string): boolean {
+export function startsWithCloudURL(href: string): boolean {
   // This is one situation where our choice of definition of "/" for the
   // trivial base path is annoying.
   const origin =
     document.location.origin + (appBasePath.length > 1 ? appBasePath : "");
-  const is_samedomain: boolean =
-    startswith(href, origin) &&
-    !is_valid_uuid_string(href.slice(origin.length + 1, origin.length + 37));
-  const is_former_smc: boolean =
+  const isSamedomain: boolean =
+    href.startsWith(origin) &&
+    !isUUID(href.slice(origin.length + 1, origin.length + 37));
+  const isFormerSMC: boolean =
     document.location.origin === "https://cocalc.com" &&
-    startswith(href, "https://cloud.sagemath.com"); // don't break ANCIENT deprecated old links.
-  return is_samedomain || is_former_smc;
+    href.startsWith("https://cloud.sagemath.com"); // don't break ANCIENT deprecated old links.
+  return isSamedomain || isFormerSMC;
 }
 
-interface Options {
-  href_transform?: (string) => string;
-  project_id?: string;
-  file_path?: string;
-}
-
-interface Options2 {
-  href_transform?: (string) => string;
-  project_id?: string;
-  file_path?: string;
-}
-
-function process_anchor_tag(y: any, opts: Options): void {
-  let href = y.attr("href");
-  if (href == null) {
+function processAnchorTag(y: any, opts: Options): void {
+  let href = y?.attr("href");
+  if (typeof href != "string") {
     return;
   }
-  if (opts.href_transform != null) {
+  if (opts.hrefTransform != null) {
     // special option; used, e.g., for Jupyter's attachment: url's
-    href = opts.href_transform(href);
+    href = opts.hrefTransform(href, "a");
+    y.attr("href", href);
   }
   if (href[0] === "#") {
     // CASE: internal link on same document. We have to do some ugly stuff here, since
     // background tabs may result in multiple copies of the same id (with most not visible).
     href = y[0].baseURI + href; // will get handled below.
   }
-  if (startswith(href, "mailto:")) {
+  if (href.startsWith("mailto:")) {
     return; // do nothing
   }
-  if (starts_with_cloud_url(href) && href.indexOf("/projects/") !== -1) {
+  const { projectActions } = opts;
+  if (
+    projectActions &&
+    startsWithCloudURL(href) &&
+    href.includes("/projects/")
+  ) {
     // CASE: Link inside a specific browser tab.
     // target starts with cloud URL or is absolute, and has /projects/ in it,
     // so we open the link directly inside this browser tab.
@@ -95,14 +105,19 @@ function process_anchor_tag(y: any, opts: Options): void {
       } else {
         anchor = undefined;
       }
-      load_target(
+      loadTarget(
         decodeURI(target),
         !(e.which === 2 || e.ctrlKey || e.metaKey),
-        anchor
+        anchor,
+        projectActions
       );
       return false;
     });
-  } else if (href.indexOf("http://") !== 0 && href.indexOf("https://") !== 0) {
+  } else if (
+    projectActions &&
+    href.indexOf("http://") !== 0 &&
+    href.indexOf("https://") !== 0
+  ) {
     // does not start with http
     // internal link
     y.click(function (e): boolean {
@@ -121,24 +136,29 @@ function process_anchor_tag(y: any, opts: Options): void {
       } else if (
         target[0] === "/" &&
         target[37] === "/" &&
-        is_valid_uuid_string(target.slice(1, 37))
+        isUUID(target.slice(1, 37))
       ) {
-        // absolute path with /projects/ omitted -- /..project_id../files/....
+        // absolute path with /projects/ omitted -- /..projectId../files/....
         target = decodeURI(target.slice(1)); // just get rid of leading slash
-      } else if (target[0] === "/" && opts.project_id) {
+      } else if (target[0] === "/" && opts.projectId) {
         // absolute inside of project -- we CANNOT use join here
         // since it is critical to **keep** the slash to get
         //   .../files//path/to/somewhere
         // Otherwise, there is now way to represent an absolute path.
         // A URL isn't just a unix path in general.
-        target = opts.project_id + "/files/" + decodeURI(target);
-      } else if (opts.project_id && opts.file_path != null) {
+        target = opts.projectId + "/files/" + decodeURI(target);
+      } else if (opts.projectId && opts.filePath != null) {
         // realtive to current path
         let x: string = decodeURI(target);
         if (x == null) x = "";
-        target = join(opts.project_id, "files", opts.file_path ?? "", x);
+        target = join(opts.projectId, "files", opts.filePath ?? "", x);
       }
-      load_target(target, !(e.which === 2 || e.ctrlKey || e.metaKey), anchor);
+      loadTarget(
+        target,
+        !(e.which === 2 || e.ctrlKey || e.metaKey),
+        anchor,
+        projectActions
+      );
       return false;
     });
   } else {
@@ -148,35 +168,41 @@ function process_anchor_tag(y: any, opts: Options): void {
   }
 }
 
-function process_anchor_tags(e: any, opts: Options): void {
-  for (const x of e.find("a")) {
-    process_anchor_tag($(x), opts);
+function processAnchorTags(e: any, opts: Options): void {
+  for (const x of e?.find?.("a") ?? []) {
+    processAnchorTag(opts.$(x), opts);
   }
 }
 
-function process_media_tag(y: any, attr: string, opts: Options2): void {
-  let new_src: string | undefined = undefined;
+function processMediaTag(
+  y: any,
+  tag: string,
+  attr: string,
+  opts: Options
+): void {
+  let newSrc: string | undefined = undefined;
   let src: string | undefined = y.attr(attr);
   if (src == null) {
     return;
   }
-  if (opts.href_transform != null) {
-    src = opts.href_transform(src);
+  if (opts.hrefTransform != null) {
+    src = opts.hrefTransform(src, tag);
+    y.attr(attr, src);
   }
   if (src[0] === "/" || src.slice(0, 5) === "data:") {
     // absolute path or data: url
-    new_src = src;
-  } else if (opts.project_id != null && opts.file_path != null) {
-    let project_id: string;
+    newSrc = src;
+  } else if (opts.projectId != null && opts.filePath != null) {
+    let projectId: string;
     const i = src.indexOf("/projects/");
     const j = src.indexOf("/files/");
-    if (starts_with_cloud_url(src) && i !== -1 && j !== -1 && j > i) {
+    if (startsWithCloudURL(src) && i !== -1 && j !== -1 && j > i) {
       // the href is inside the app, points to the current project or another one
       // j-i should be 36, unless we ever start to have different (vanity) project_ids
       const path = src.slice(j + "/files/".length);
-      project_id = src.slice(i + "/projects/".length, j);
-      new_src = join(appBasePath, project_id, "raw", path);
-      y.attr(attr, new_src);
+      projectId = src.slice(i + "/projects/".length, j);
+      newSrc = join(appBasePath, projectId, "raw", path);
+      y.attr(attr, newSrc);
       return;
     }
     if (src.indexOf("://") !== -1) {
@@ -185,14 +211,14 @@ function process_media_tag(y: any, attr: string, opts: Options2): void {
     }
     // we do not have an absolute url, hence we assume it is a
     // relative URL to a file in a project
-    new_src = join(appBasePath, opts.project_id, "raw", opts.file_path, src);
+    newSrc = join(appBasePath, opts.projectId, "raw", opts.filePath, src);
   }
-  if (new_src != null) {
-    y.attr(attr, new_src);
+  if (newSrc != null) {
+    y.attr(attr, newSrc);
   }
 }
 
-function process_media_tags(e, opts: Options2) {
+function processMediaTags(e, opts: Options) {
   for (const [tag, attr] of [
     ["img", "src"],
     ["object", "data"],
@@ -201,21 +227,18 @@ function process_media_tags(e, opts: Options2) {
     ["audio", "src"],
   ]) {
     for (const x of e.find(tag)) {
-      process_media_tag($(x), attr, opts);
+      processMediaTag(opts.$(x), tag, attr, opts);
     }
   }
 }
 
-$.fn.process_smc_links = function (opts: Options = {}) {
-  this.each(() => {
-    const e = $(this);
+export default function processLinks(elt, opts: Options) {
+  elt.each((_, x) => {
+    const e = opts.$(x);
     // part #1: process <a> anchor tags
-    process_anchor_tags(e, opts);
-
+    processAnchorTags(e, opts);
     // part #2: process <img>, <object> and <video>/<source> tags
     // make relative links to images use the raw server
-    process_media_tags(e, opts as Options2);
-
-    return e;
+    processMediaTags(e, opts);
   });
-};
+}
