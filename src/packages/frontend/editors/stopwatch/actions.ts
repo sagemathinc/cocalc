@@ -9,8 +9,8 @@ underlying synchronized state.
 */
 
 import { history_path } from "@cocalc/util/misc";
-import { webapp_client } from "../webapp-client";
-import { Actions, Store, TypedMap } from "../app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { Actions, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import { List } from "immutable";
 
 export interface StopwatchEditorState {

@@ -14,10 +14,10 @@ import {
   PlayCircleTwoTone,
   StopTwoTone,
 } from "@ant-design/icons";
-import { Component, React, Rendered } from "../app-framework";
+import { Component, React, Rendered } from "@cocalc/frontend/app-framework";
 import { TimerState } from "./actions";
-import { TextInput } from "../r_misc/text-input";
-import { webapp_client } from "../webapp-client";
+import { TextInput } from "@cocalc/frontend/r_misc/text-input";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 function assertNever(x: never): never {
   throw new Error("Unexpected object: " + x);

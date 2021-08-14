@@ -25,8 +25,8 @@ Later, maybe:
 
 import { Button } from "antd";
 import { PlusCircleTwoTone } from "@ant-design/icons";
-import { Loading } from "../r_misc/loading";
-import { Component, React, Rendered, rclass, rtypes } from "../app-framework";
+import { Loading } from "@cocalc/frontend/r_misc/loading";
+import { Component, React, Rendered, rclass, rtypes } from "@cocalc/frontend/app-framework";
 
 import { Stopwatch } from "./stopwatch";
 import { ButtonBar } from "./button-bar";

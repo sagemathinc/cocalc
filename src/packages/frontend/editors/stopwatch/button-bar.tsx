@@ -7,13 +7,13 @@
 Some buttons
 */
 
-import { React, Rendered } from "../app-framework";
+import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { TimeActions } from "./actions";
 type TimeActions = InstanceType<typeof TimeActions>;
 
 import { HistoryOutlined, RedoOutlined, UndoOutlined } from "@ant-design/icons";
 import { Button } from "antd";
-import { Space } from "../r_misc/space";
+import { Space } from "@cocalc/frontend/r_misc/space";
 
 export function ButtonBar({ actions }: { actions: TimeActions }): JSX.Element {
   return (

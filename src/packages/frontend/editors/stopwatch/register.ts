@@ -9,14 +9,14 @@ Register the time editor -- stopwatch
     and how to init and remove the actions/store
 */
 
-import { register_file_editor } from "../project-file";
-import { redux_name, Store, AppRedux } from "../app-framework";
-import { alert_message } from "../alerts";
+import { register_file_editor } from "@cocalc/frontend/project-file";
+import { redux_name, Store, AppRedux } from "@cocalc/frontend/app-framework";
+import { alert_message } from "@cocalc/frontend/alerts";
 
 const { EditorTime } = require("./editor");
 import { TimeActions, StopwatchEditorState } from "./actions";
 
-import { syncdb2 as new_syncdb } from "../frame-editors/generic/client";
+import { syncdb2 as new_syncdb } from "@cocalc/frontend/frame-editors/generic/client";
 
 register_file_editor({
   ext: ["time"],
