@@ -20,7 +20,7 @@ import { Icon, Tip, HiddenXSSM, VisibleMDLG, VisibleXSSM } from "../r_misc";
 import { ButtonGroup, Button } from "react-bootstrap";
 import { Available as AvailableFeatures } from "../project_configuration";
 import { serverURL } from "../project/named-server-panel";
-import LinkRetry from "../widgets-misc/link-retry";
+import LinkRetry from "../r_misc/link-retry";
 
 interface Props {
   project_id: string;
