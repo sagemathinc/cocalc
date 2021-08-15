@@ -81,8 +81,11 @@ export default function PublicPath({
       <b>Project:</b>{" "}
       <ProjectLink project_id={project_id} title={projectTitle} />
       <br />
-      <ExternalLink href={editURL(id, relativePath)}>Edit</ExternalLink>,{" "}
-      <ExternalLink href={rawURL(id, path, relativePath)}>Raw</ExternalLink>,{" "}
+      <ExternalLink href={editURL({ id, relativePath })}>
+        Edit
+      </ExternalLink>,{" "}
+      <ExternalLink href={rawURL({ id, path, relativePath })}>Raw</ExternalLink>
+      ,{" "}
       <Link
         href={`/public_paths/embed/${id}${
           relativePath ? "/" + relativePath : ""

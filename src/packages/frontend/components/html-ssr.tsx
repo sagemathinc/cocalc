@@ -24,7 +24,13 @@ import { replace_all } from "@cocalc/util/misc";
 
 interface Props {
   value: string;
-  noSanitize?: boolean;
+  style?: React.CSSProperties;
+  // function that link/src hrefs are fed through; if returns undefined default is used.
+  hrefTransform?: (
+    href: string,
+    tag: string,
+    name: string
+  ) => string | undefined;
 }
 
 export function HTML2({ value }: Props) {
@@ -41,9 +47,27 @@ export function HTML2({ value }: Props) {
   return <div dangerouslySetInnerHTML={{ __html }}></div>;
 }
 
-export default function HTML({ noSanitize, value }: Props) {
-  if (!noSanitize) {
-    value = stripXSS(value);
+function replace(domNode) {
+  domNode = domNode;
+}
+
+export default function HTML({ hrefTransform, style, value }: Props) {
+  let onTagAttr;
+  if (hrefTransform != null) {
+    onTagAttr = (tag, name, value) => {
+      if (name == "src" || name == "href") {
+        const s = `${name}="${hrefTransform(value, tag, name) ?? value}"`;
+        return s;
+      }
+    };
+  } else {
+    onTagAttr = (_tag, name, value) => {
+      if (name == "src" || name == "href") {
+        return `${name}="${value}"`;
+      }
+    };
   }
-  return <>{htmlReactParser(value)}</>;
+
+  value = stripXSS(value, { onTagAttr });
+  return <div style={style}>{htmlReactParser(value, { replace })}</div>;
 }

@@ -22,3 +22,12 @@ export function getExtension(path: string): string {
   const v = path.split(".");
   return (v.length <= 1 ? "" : v.pop() ?? "").toLowerCase();
 }
+
+export function containingPath(path: string): string {
+  const i = path.lastIndexOf("/");
+  if (i != -1) {
+    return path.slice(0, i);
+  } else {
+    return "";
+  }
+}

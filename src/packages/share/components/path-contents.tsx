@@ -41,7 +41,13 @@ export default function PathContents({
     );
   } else {
     return (
-      <>
+      <div
+        style={{
+          margin: "15px 0",
+          border: "1px solid #ccc",
+          padding: "20px 15px",
+        }}
+      >
         <Truncated truncated={truncated} />
         <FileContents
           id={id}
@@ -49,7 +55,7 @@ export default function PathContents({
           path={path}
           relativePath={relativePath}
         />
-      </>
+      </div>
     );
   }
 }

@@ -9,7 +9,7 @@ import { join } from "path";
 import type { Request, Response } from "express";
 import { static as ExpressStatic } from "express";
 import DirectoryListing from "serve-index";
-import { isSha1Hash } from "./util";
+import { getExtension, isSha1Hash } from "./util";
 import { pathFromID } from "./path-to-files";
 import LRU from "lru-cache";
 
@@ -55,9 +55,14 @@ async function handleRequest({
     throw Error(`path (="${path}") must start with "${projectPath}" ".."`);
   }
   let url = path.slice(projectPath.length);
+  const target = join(fsPath, url);
 
-  if (download) {
-    res.download(join(fsPath, url), next);
+  console.log({ target, ext: getExtension(target) });
+
+  if (download || getExtension(target) == "html") {
+    // NOTE: We *always* download .html, since it is far too dangerous to render
+    // an arbitrary html file from our domain.
+    res.download(target, next);
     return;
   }
 

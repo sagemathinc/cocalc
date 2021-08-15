@@ -16,10 +16,12 @@ import rawURL from "lib/raw-url";
 import { isIOS, isSafari } from "lib/feature";
 import CodeMirror from "components/codemirror";
 import SageWorksheet from "components/sage-worksheet";
-import JupyterNotebook from "components/jupyter-notebook";
+import JupyterNotebook from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
 //import { Markdown } from "@cocalc/frontend/markdown";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
+import HTML from "@cocalc/frontend/components/html-ssr";
 import A from "components/misc/A";
+import getHrefTransform from "lib/href-transform";
 
 interface Props {
   id: string;
@@ -37,7 +39,7 @@ export default function FileContents({
 }: Props): JSX.Element {
   const filename = relativePath ? relativePath : path;
   const ext = getExtension(filename);
-  const raw = rawURL(id, path, relativePath);
+  const raw = rawURL({ id, path, relativePath });
   if (isImage(ext)) {
     return <img src={raw} style={{ maxWidth: "100%" }} />;
   } else if (isVideo(ext)) {
@@ -80,16 +82,21 @@ export default function FileContents({
     return <Markdown value={content} />;
   } else if (isHTML(ext)) {
     return (
-      <iframe
-        srcDoc={content}
+      <HTML
+        hrefTransform={getHrefTransform({ id, path, relativePath })}
+        value={content}
         style={{ width: "100%", height: "100vh" }}
-        sandbox=""
       />
     );
   } else if (ext == "sagews") {
     return <SageWorksheet content={content} />;
   } else if (ext == "ipynb") {
-    return <JupyterNotebook content={content} />;
+    return (
+      <JupyterNotebook
+        content={content}
+        hrefTransform={getHrefTransform({ id, path, relativePath })}
+      />
+    );
   }
   return <pre>{content}</pre>;
 }
