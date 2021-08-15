@@ -7,15 +7,9 @@ import "./project-upgrades-table";
 import { Map } from "immutable";
 import { round1, plural } from "@cocalc/util/misc";
 import { redux, rclass, rtypes, Component, React } from "../../app-framework";
-import { Icon, Loading, Space } from "../../r_misc";
+import { A, Icon, Loading, Space } from "../../r_misc";
 
-import { ExplainResources } from "../../billing/explain-resources";
-import { ExplainPlan } from "../../billing/explain-plan";
-import { DedicatedVM } from "../../billing/dedicated-vm";
-import { FAQ } from "../../billing/faq";
-import { SubscriptionGrid } from "../../billing/subscription-grid";
 import {
-  // HelpEmailLink,
   SiteName,
   PolicyPricingPageUrl,
   Footer,
@@ -48,23 +42,11 @@ class UpgradesPage extends Component<reduxProps> {
   private render_no_upgrades(): JSX.Element {
     return (
       <div>
-        <h3>Sign up</h3>
-        To sign up for a subscription, visit the "Subscriptions and Course
-        Packages tab".
-        <ExplainResources type="shared" />
-        <Space />
-        <ExplainPlan type="personal" />
-        <SubscriptionGrid periods={["month", "year"]} is_static={true} />
-        <Space />
-        <ExplainPlan type="course" />
-        <SubscriptionGrid
-          periods={["week", "month4", "year1"]}
-          is_static={true}
-        />
-        <Space />
-        <DedicatedVM />
-        <hr />
-        <FAQ />
+        <h3>Upgrades are no longer available</h3>
+        Please see the{" "}
+        <A href="https://cocalc.com/policies/pricing.html">
+          Subscriptions and Pricing page.
+        </A>
         <Footer />
       </div>
     );
