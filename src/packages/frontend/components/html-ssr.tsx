@@ -16,11 +16,13 @@ TODO: This should eventually completely replace ./html.tsx:
 import React from "react";
 import htmlReactParser from "html-react-parser";
 import stripXSS from "xss";
+import type { IFilterXSSOptions } from "xss";
 
 import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";
 import { remove_math, replace_math } from "@cocalc/util/mathjax-utils";
 import { latexMathToHtml } from "@cocalc/frontend/misc/math-to-html";
 import { replace_all } from "@cocalc/util/misc";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 interface Props {
   value: string;
@@ -51,23 +53,25 @@ function replace(domNode) {
   domNode = domNode;
 }
 
-export default function HTML({ hrefTransform, style, value }: Props) {
-  let onTagAttr;
+function getXSSOptions(hrefTransform): IFilterXSSOptions | undefined {
   if (hrefTransform != null) {
-    onTagAttr = (tag, name, value) => {
-      if (name == "src" || name == "href") {
-        const s = `${name}="${hrefTransform(value, tag, name) ?? value}"`;
-        return s;
-      }
-    };
-  } else {
-    onTagAttr = (_tag, name, value) => {
-      if (name == "src" || name == "href") {
-        return `${name}="${value}"`;
-      }
+    return {
+      onTagAttr: (tag, name, value) => {
+        if (name == "src" || name == "href") {
+          const s = `${name}="${hrefTransform(value, tag, name) ?? value}"`;
+          return s;
+        }
+      },
     };
   }
+  return undefined;
+}
 
-  value = stripXSS(value, { onTagAttr });
+export default function HTML({ hrefTransform, style, value }: Props) {
+  const fileContext = useFileContext();
+  value = stripXSS(
+    value,
+    getXSSOptions(hrefTransform ?? fileContext.hrefTransform)
+  );
   return <div style={style}>{htmlReactParser(value, { replace })}</div>;
 }

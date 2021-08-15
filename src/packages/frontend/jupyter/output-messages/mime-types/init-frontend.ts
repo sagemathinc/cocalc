@@ -6,7 +6,8 @@
 
 import "./text-plain";
 import "./markdown";
-import "./html";
+//import "./html";
+import "./simple-html";
 import "./widget";
 import "./image";
 import "./iframe";

@@ -7,6 +7,7 @@ import React from "react";
 import { register, SlateElement } from "../register";
 import { dict } from "@cocalc/util/misc";
 import $ from "cheerio";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 export interface Image extends SlateElement {
   type: "image";
@@ -67,12 +68,13 @@ register({
   slateType: "image",
   toSlate,
   StaticElement: ({ attributes, element }) => {
+    const { hrefTransform } = useFileContext();
     const node = element as Image;
     const { src, alt, title } = node;
     return (
       <img
         {...attributes}
-        src={src}
+        src={hrefTransform != null ? hrefTransform(src) : src}
         alt={alt}
         title={title}
         style={{

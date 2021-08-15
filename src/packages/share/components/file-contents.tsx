@@ -22,6 +22,7 @@ import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import HTML from "@cocalc/frontend/components/html-ssr";
 import A from "components/misc/A";
 import getHrefTransform from "lib/href-transform";
+import { FileContext } from "@cocalc/frontend/lib/file-context";
 
 interface Props {
   id: string;
@@ -40,6 +41,15 @@ export default function FileContents({
   const filename = relativePath ? relativePath : path;
   const ext = getExtension(filename);
   const raw = rawURL({ id, path, relativePath });
+
+  const withContext = (x) => (
+    <FileContext.Provider
+      value={{ hrefTransform: getHrefTransform({ id, path, relativePath }) }}
+    >
+      {x}
+    </FileContext.Provider>
+  );
+
   if (isImage(ext)) {
     return <img src={raw} style={{ maxWidth: "100%" }} />;
   } else if (isVideo(ext)) {
@@ -79,9 +89,9 @@ export default function FileContents({
   } else if (isCodemirror(ext)) {
     return <CodeMirror content={content} filename={filename} />;
   } else if (isMarkdown(ext)) {
-    return <Markdown value={content} />;
+    return withContext(<Markdown value={content} />);
   } else if (isHTML(ext)) {
-    return (
+    return withContext(
       <HTML
         hrefTransform={getHrefTransform({ id, path, relativePath })}
         value={content}
@@ -89,14 +99,9 @@ export default function FileContents({
       />
     );
   } else if (ext == "sagews") {
-    return <SageWorksheet content={content} />;
+    return withContext(<SageWorksheet content={content} />);
   } else if (ext == "ipynb") {
-    return (
-      <JupyterNotebook
-        content={content}
-        hrefTransform={getHrefTransform({ id, path, relativePath })}
-      />
-    );
+    return withContext(<JupyterNotebook content={content} />);
   }
   return <pre>{content}</pre>;
 }

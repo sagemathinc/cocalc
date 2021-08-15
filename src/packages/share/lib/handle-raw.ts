@@ -57,8 +57,6 @@ async function handleRequest({
   let url = path.slice(projectPath.length);
   const target = join(fsPath, url);
 
-  console.log({ target, ext: getExtension(target) });
-
   if (download || getExtension(target) == "html") {
     // NOTE: We *always* download .html, since it is far too dangerous to render
     // an arbitrary html file from our domain.
