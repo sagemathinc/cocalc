@@ -84,6 +84,9 @@ async function getDirectoryListing(
       const stats = await fs.lstat(join(path, name));
       if (stats.isDirectory()) {
         obj.isdir = true;
+        // For a directory, we define "size" to be the number of items
+        // in the directory.
+        obj.size = (await fs.readdir(join(path, name))).length;
       } else {
         obj.size = stats.size;
       }

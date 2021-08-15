@@ -7,7 +7,10 @@ import Link from "next/link";
 import { Table } from "antd";
 import { FileInfo } from "lib/get-contents";
 import { join } from "path";
-import { human_readable_size as humanReadableSize } from "@cocalc/util/misc";
+import {
+  human_readable_size as humanReadableSize,
+  plural,
+} from "@cocalc/util/misc";
 
 interface Props {
   id: string;
@@ -77,8 +80,14 @@ function columns(id, relativePath) {
       title: "Size",
       dataIndex: "size",
       key: "size",
-      render: (size) => humanReadableSize(size),
+      render: (size, record) => renderSize(size, record.isdir),
       align: "right",
     },
   ];
+}
+
+function renderSize(size?: number, isdir?: boolean) {
+  if (size == null) return "-";
+  if (isdir) return `${size} ${plural(size, "item")}`;
+  return humanReadableSize(size);
 }
