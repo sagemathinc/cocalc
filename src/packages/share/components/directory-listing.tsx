@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Table } from "antd";
 import { FileInfo } from "lib/get-contents";
 import { join } from "path";
+import { human_readable_size as humanReadableSize } from "@cocalc/util/misc";
 
 interface Props {
   id: string;
@@ -66,12 +67,18 @@ function columns(id, relativePath) {
         );
       },
     },
-    { title: "Size", dataIndex: "size", key: "size" },
     {
       title: "Last modified",
       dataIndex: "mtime",
       key: "mtime",
       render: (mtime) => `${new Date(mtime).toLocaleString()}`,
+    },
+    {
+      title: "Size",
+      dataIndex: "size",
+      key: "size",
+      render: (size) => humanReadableSize(size),
+      align: "right",
     },
   ];
 }
