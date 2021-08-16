@@ -61,6 +61,14 @@ export function create_key_handler(
   frame_actions: NotebookFrameActions,
   editor_actions: JupyterEditorActions
 ): Function {
+  if (
+    jupyter_actions == null ||
+    frame_actions == null ||
+    editor_actions == null
+  ) {
+    // just in case typescript misses something...
+    throw Error("bug in create_key_handler");
+  }
   let val: any;
   const shortcut_to_command: any = {};
 

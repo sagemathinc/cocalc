@@ -240,6 +240,11 @@ export class NotebookFrameActions {
   }
 
   public enable_key_handler(): void {
+    if (this.is_closed()) {
+      throw Error(
+        "can't call enable_key_handler after CellNotebookActions are closed"
+      );
+    }
     if (this.key_handler == null) {
       this.key_handler = create_key_handler(
         this.jupyter_actions,
