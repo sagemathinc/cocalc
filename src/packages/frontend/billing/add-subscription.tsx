@@ -204,14 +204,7 @@ export class AddSubscription extends Component<Props, State> {
   }
 
   private what_is_selected(): string {
-    // very simple code for now since there are only two options.
-    if (!this.props.selected_plan) {
-      return "Subscription or Course Package";
-    } else if (this.props.selected_plan.indexOf("course") != -1) {
-      return "Course Package";
-    } else {
-      return "Subscription";
-    }
+    return "Subscription";
   }
 
   private render_create_subscription_confirm(plan_data): Rendered {
