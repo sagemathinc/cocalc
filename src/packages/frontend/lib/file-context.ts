@@ -7,10 +7,14 @@
 // and you get the project_id, path, and id of that particular
 // frame, and probably more as we need it.
 
-import { createContext, useContext } from "react";
+import React, { createContext, useContext, ReactNode } from "react";
 
 interface IFileContext {
-  AnchorTagComponent?: React.FC<{ href?; children? }>;
+  AnchorTagComponent?: React.FC<{
+    href?: string;
+    children?: ReactNode;
+    title?: string;
+  }>;
 
   // If given, then when an anchor (A) tag is clicked
   // on, the given function is called.

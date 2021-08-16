@@ -22,29 +22,25 @@ register({
   StaticElement: ({ attributes, children, element }) => {
     const node = element as Link;
     let { url, title } = node;
-    const { anchorTagAction, urlTransform } = useFileContext();
+    const { AnchorTagComponent, urlTransform } = useFileContext();
+    if (AnchorTagComponent != null) {
+      return (
+        <AnchorTagComponent {...attributes} href={url} title={title}>
+          {children}
+        </AnchorTagComponent>
+      );
+    }
     let props;
     if (url != null) {
-      if (anchorTagAction != null) {
-        props = {
-          onClick: () => {
-            if (url != null) {
-              anchorTagAction(url);
-            }
-            return false;
-          },
-        };
-      } else {
-        if (urlTransform != null) {
-          url = urlTransform(url);
-        }
-        const isExternal = url?.includes("://");
-        props = {
-          href: url,
-          target: isExternal ? "_blank" : undefined,
-          rel: isExternal ? "noopener" : undefined,
-        };
+      if (urlTransform != null) {
+        url = urlTransform(url);
       }
+      const isExternal = url?.includes("://");
+      props = {
+        href: url,
+        target: isExternal ? "_blank" : undefined,
+        rel: isExternal ? "noopener" : undefined,
+      };
     }
 
     return (

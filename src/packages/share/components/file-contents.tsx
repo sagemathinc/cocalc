@@ -21,7 +21,9 @@ import JupyterNotebook from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import HTML from "@cocalc/frontend/components/html-ssr";
 import A from "components/misc/A";
+import { containingPath } from "lib/util";
 import getUrlTransform from "lib/url-transform";
+import getAnchorTagComponent from "./anchor-tag-component";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 
 interface Props {
@@ -43,16 +45,10 @@ export default function FileContents({
   const raw = rawURL({ id, path, relativePath });
 
   const withFileContext = (x) => {
+    const relPath = containingPath(relativePath);
     const value = {
-      urlTransform: getUrlTransform({ id, path, relativePath }),
-      AnchorTagComponent: ({ href, children }) => (
-        <a href={href} style={{ border: "2px solid red" }}>
-          {children}
-          {id}
-          {path}
-          {relativePath}
-        </a>
-      ),
+      urlTransform: getUrlTransform({ id, path, relativePath: relPath }),
+      AnchorTagComponent: getAnchorTagComponent({ id, relativePath: relPath }),
     };
     return <FileContext.Provider value={value}>{x}</FileContext.Provider>;
   };

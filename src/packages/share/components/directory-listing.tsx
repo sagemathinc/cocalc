@@ -81,7 +81,7 @@ function columns(id, relativePath) {
       dataIndex: "size",
       key: "size",
       render: (size, record) => renderSize(size, record.isdir),
-      align: "right",
+      align: "right" as any,
     },
   ];
 }
