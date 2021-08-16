@@ -14,7 +14,8 @@ TODO: This should eventually completely replace ./html.tsx:
 */
 
 import React from "react";
-import htmlReactParser from "html-react-parser";
+import htmlReactParser, { domToReact } from "html-react-parser";
+import { Element } from "domhandler/lib/node";
 import stripXSS from "xss";
 import type { IFilterXSSOptions } from "xss";
 
@@ -27,12 +28,6 @@ import { useFileContext } from "@cocalc/frontend/lib/file-context";
 interface Props {
   value: string;
   style?: React.CSSProperties;
-  // function that link/src hrefs are fed through; if returns undefined default is used.
-  urlTransform?: (
-    href: string,
-    tag: string,
-    name: string
-  ) => string | undefined;
 }
 
 export function HTML2({ value }: Props) {
@@ -49,10 +44,6 @@ export function HTML2({ value }: Props) {
   return <div dangerouslySetInnerHTML={{ __html }}></div>;
 }
 
-function replace(domNode) {
-  domNode = domNode;
-}
-
 function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
   if (urlTransform != null) {
     return {
@@ -67,11 +58,22 @@ function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
   return undefined;
 }
 
-export default function HTML({ urlTransform, style, value }: Props) {
-  const fileContext = useFileContext();
-  value = stripXSS(
-    value,
-    getXSSOptions(urlTransform ?? fileContext.urlTransform)
-  );
-  return <div style={style}>{htmlReactParser(value, { replace })}</div>;
+export default function HTML({ style, value }: Props) {
+  const { urlTransform, AnchorTagComponent } = useFileContext();
+  value = stripXSS(value, getXSSOptions(urlTransform));
+  let options: any = {};
+  if (AnchorTagComponent != null) {
+    options.replace = (domNode) => {
+      if (!(domNode instanceof Element)) return;
+      const { name, children, attribs } = domNode;
+      if (name == "a") {
+        return (
+          <AnchorTagComponent {...attribs}>
+            {domToReact(children, options)}
+          </AnchorTagComponent>
+        );
+      }
+    };
+  }
+  return <div style={style}>{htmlReactParser(value, options)}</div>;
 }

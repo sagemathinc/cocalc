@@ -42,13 +42,20 @@ export default function FileContents({
   const ext = getExtension(filename);
   const raw = rawURL({ id, path, relativePath });
 
-  const withFileContext = (x) => (
-    <FileContext.Provider
-      value={{ urlTransform: getUrlTransform({ id, path, relativePath }) }}
-    >
-      {x}
-    </FileContext.Provider>
-  );
+  const withFileContext = (x) => {
+    const value = {
+      urlTransform: getUrlTransform({ id, path, relativePath }),
+      AnchorTagComponent: ({ href, children }) => (
+        <a href={href} style={{ border: "2px solid red" }}>
+          {children}
+          {id}
+          {path}
+          {relativePath}
+        </a>
+      ),
+    };
+    return <FileContext.Provider value={value}>{x}</FileContext.Provider>;
+  };
 
   if (isImage(ext)) {
     return <img src={raw} style={{ maxWidth: "100%" }} />;

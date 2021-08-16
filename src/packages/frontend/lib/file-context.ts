@@ -10,6 +10,8 @@
 import { createContext, useContext } from "react";
 
 interface IFileContext {
+  AnchorTagComponent?: React.FC<{ href?; children? }>;
+
   // If given, then when an anchor (A) tag is clicked
   // on, the given function is called.
   anchorTagAction?: (url: string) => void;
