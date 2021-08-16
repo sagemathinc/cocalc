@@ -14,7 +14,12 @@ import { ButtonGroup, SelectCallback } from "react-bootstrap";
 import { Icon, r_join, DropdownMenu, MenuItem, MenuDivider } from "../r_misc";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
 import { open_new_tab } from "../misc-page";
-import { capitalize, copy, endswith, all_fields_equal } from "@cocalc/util/misc";
+import {
+  capitalize,
+  copy,
+  endswith,
+  all_fields_equal,
+} from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { get_help_links } from "./help-links";
@@ -363,7 +368,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
     function handle_command(name: string): void {
       frame_actions.command(name);
       $(":focus").blur(); // battling with react-bootstrap stupidity... ?
-      const c = frame_actions.commands[name];
+      const c = frame_actions.commands?.[name];
       if (c && c.m && endswith(c.m, "...")) {
         frame_actions.blur();
       } else {
@@ -375,7 +380,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       return () => {
         frame_actions.command(name);
         $(":focus").blur(); // battling with react-bootstrap stupidity... ?
-        const c = frame_actions.commands[name];
+        const c = frame_actions.commands?.[name];
         if (c && c.m && endswith(c.m, "...")) {
           frame_actions.blur();
         } else {
@@ -437,7 +442,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         style.marginLeft = "4ex";
         name = name.slice(1);
       }
-      const obj = frame_actions.commands[name];
+      const obj = frame_actions.commands?.[name];
       if (obj == null) {
         const item = (
           <MenuItem disabled={disabled} key={key}>

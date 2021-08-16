@@ -39,9 +39,12 @@ export class NotebookFrameActions {
   private scroll_before_change?: number;
   private cur_id_before_change: string | undefined = undefined;
 
-  public commands: { [name: string]: CommandDescription } = {};
-  public frame_id: string;
-  public store: NotebookFrameStore;
+  // These have to be optional properties, since when we close the
+  // actions, we delete them:
+  public commands?: { [name: string]: CommandDescription } = {};
+  public frame_id?: string;
+  public store?: NotebookFrameStore;
+
   public cell_list_div?: any; // the div for the cell list is stored here and accessed from here.
   private windowed_list_ref?: any;
 
@@ -125,6 +128,7 @@ export class NotebookFrameActions {
   // maintain scroll hook on change; critical for multiuser editing
   private syncdb_before_change(): void {
     this.get_windowed_list()?.disable_refresh();
+    if (this.store == null) return;
     const cur_id = this.store.get("cur_id");
     const pos = this.compute_cell_position(cur_id);
     this.scroll_before_change = pos;
@@ -190,7 +194,7 @@ export class NotebookFrameActions {
       "syncdb-after-change",
       this.syncdb_after_change
     );
-    this.store.close();
+    this.store?.close();
     close(this);
     this._is_closed = true;
   }
@@ -229,6 +233,7 @@ export class NotebookFrameActions {
    ***/
 
   public setState(obj: object): void {
+    if (this.store == null) return;
     this.store.setState(obj);
   }
 
@@ -266,6 +271,7 @@ export class NotebookFrameActions {
   public shift_enter_run_selected_cells(): void {
     this.save_input_editor();
 
+    if (this.store == null) return;
     const v: string[] = this.store.get_selected_cell_ids_list();
     if (v.length === 0) {
       return;
@@ -286,6 +292,7 @@ export class NotebookFrameActions {
   }
 
   public run_selected_cells(v?: string[]): void {
+    if (this.store == null) return;
     this.save_input_editor();
 
     if (v === undefined) {
@@ -304,6 +311,7 @@ export class NotebookFrameActions {
   // This is here since it depends on knowing the edit state
   // of markdown cells.
   public run_cell(id: string, save: boolean = true): void {
+    if (this.store == null) return;
     const type = this.jupyter_actions.store.get_cell_type(id);
     if (type === "markdown") {
       if (this.store.get("md_edit_ids", Set()).contains(id)) {
@@ -322,6 +330,7 @@ export class NotebookFrameActions {
    ***/
 
   set_mode(mode: "escape" | "edit"): void {
+    if (this.store == null) return;
     if (this.store.get("mode") === mode) return; // no-op
     if (mode == "edit") {
       // If we're changing to edit mode and current cell is a markdown
@@ -369,6 +378,7 @@ export class NotebookFrameActions {
   }
 
   public set_md_cell_editing(id: string): void {
+    if (this.store == null) return;
     this.jupyter_actions.set_jupyter_metadata(
       id,
       "input_hidden",
@@ -387,6 +397,7 @@ export class NotebookFrameActions {
   }
 
   public set_md_cell_not_editing(id: string): void {
+    if (this.store == null) return;
     this.jupyter_actions.set_jupyter_metadata(
       id,
       "input_hidden",
@@ -403,6 +414,7 @@ export class NotebookFrameActions {
 
   // Set which cell is currently the cursor.
   public set_cur_id(cur_id: string): void {
+    if (this.store == null) return;
     this.validate({ id: cur_id });
     const store = this.jupyter_actions.store;
     if (
@@ -420,6 +432,7 @@ export class NotebookFrameActions {
   // E.g., another user deleted the cell that is currently selected.
   // This does nothing if cur_id is set to an actual cell.
   private update_cur_id(): void {
+    if (this.store == null) return;
     const cells = this.jupyter_actions.store.get("cells");
     if (cells == null) return; // can't do anything yet.
     const cur_id = this.store.get("cur_id");
@@ -448,6 +461,7 @@ export class NotebookFrameActions {
   // is -- cur_id) to the cell with the given id, then set the cursor
   // to be at id.
   select_cell_range(id: string): void {
+    if (this.store == null) return;
     this.validate({ id });
 
     const cur_id = this.store.get("cur_id");
@@ -489,12 +503,14 @@ export class NotebookFrameActions {
   }
 
   public unselect_cell(id: string): void {
+    if (this.store == null) return;
     const sel_ids = this.store.get("sel_ids");
     if (!sel_ids.contains(id)) return;
     this.setState({ sel_ids: sel_ids.remove(id) });
   }
 
   public select_cell(id: string): void {
+    if (this.store == null) return;
     const sel_ids = this.store.get("sel_ids");
     if (sel_ids.contains(id)) return;
     this.setState({ sel_ids: sel_ids.add(id) });
@@ -512,6 +528,7 @@ export class NotebookFrameActions {
    ***/
 
   move_cursor(delta: number): void {
+    if (this.store == null) return;
     try {
       this.set_cur_id_from_index(this.store.get_cur_cell_index() + delta);
     } catch (err) {
@@ -585,6 +602,7 @@ export class NotebookFrameActions {
   // Codemirror editor before it is used for evaluation or
   // other purposes.
   public save_input_editor(id?: string): void {
+    if (this.store == null) return;
     if (id == null) {
       id = this.store.get("cur_id");
       if (id == null) return;
@@ -615,11 +633,13 @@ export class NotebookFrameActions {
 
   // Press tab key in editor of currently selected cell.
   public tab_key(): void {
+    if (this.store == null) return;
     this.call_input_editor_method(this.store.get("cur_id"), "tab_key");
   }
 
   // Press shift + tab key in editor of currently selected cell.
   public shift_tab_key(): void {
+    if (this.store == null) return;
     this.call_input_editor_method(this.store.get("cur_id"), "shift_tab_key");
   }
 
@@ -648,6 +668,7 @@ export class NotebookFrameActions {
 
   // delta = -1 (above) or +1 (below)
   public insert_cell(delta: 1 | -1): string {
+    if (this.store == null) throw Error("closed");
     const id = this.jupyter_actions.insert_cell_adjacent(
       this.store.get("cur_id"),
       delta
@@ -657,6 +678,7 @@ export class NotebookFrameActions {
   }
 
   public delete_selected_cells(sync: boolean = true): void {
+    if (this.store == null) return;
     const selected: string[] = this.store.get_selected_cell_ids_list();
     if (selected.length === 0) {
       return;
@@ -670,6 +692,7 @@ export class NotebookFrameActions {
   }
 
   public set_selected_cell_type(cell_type: CellType): void {
+    if (this.store == null) return;
     const sel_ids = this.store.get("sel_ids");
     const cur_id = this.store.get("cur_id");
     if (sel_ids.size === 0) {
@@ -689,6 +712,7 @@ export class NotebookFrameActions {
 
   public async command(name: string): Promise<void> {
     this.dbg("command", name);
+    if (this.commands == null) return;
     const cmd = this.commands[name];
     if (cmd != null && cmd.f != null) {
       try {
@@ -708,6 +732,7 @@ export class NotebookFrameActions {
     if (delta === 0) {
       return;
     }
+    if (this.store == null) return;
     const v = this.jupyter_actions.store.get_cell_list().toJS();
     const w = move_selected_cells(v, this.store.get_selected_cell_ids(), delta);
     if (w == null) {
@@ -731,12 +756,14 @@ export class NotebookFrameActions {
   }
 
   public toggle_source_hidden(): void {
+    if (this.store == null) return;
     for (const id in this.store.get_selected_cell_ids()) {
       this.jupyter_actions.toggle_jupyter_metadata_boolean(id, "source_hidden");
     }
   }
 
   public toggle_outputs_hidden(): void {
+    if (this.store == null) return;
     for (const id in this.store.get_selected_cell_ids()) {
       this.jupyter_actions.toggle_jupyter_metadata_boolean(
         id,
@@ -746,6 +773,7 @@ export class NotebookFrameActions {
   }
 
   public unhide_current_input(): void {
+    if (this.store == null) return;
     const cur_id = this.store.get("cur_id");
     this.jupyter_actions.set_jupyter_metadata(
       cur_id,
@@ -756,10 +784,12 @@ export class NotebookFrameActions {
   }
 
   public clear_selected_outputs(): void {
+    if (this.store == null) return;
     this.jupyter_actions.clear_outputs(this.store.get_selected_cell_ids_list());
   }
 
   public split_current_cell(): void {
+    if (this.store == null) return;
     const cur_id = this.store.get("cur_id");
     const editor = this.input_editors[cur_id];
     if (editor == null) return; // no cursor, no split.
@@ -768,11 +798,13 @@ export class NotebookFrameActions {
   }
 
   public toggle_write_protection_on_selected_cells(): void {
+    if (this.store == null) return;
     const cell_ids = this.store.get_selected_cell_ids_list();
     this.jupyter_actions.toggle_write_protection_on_cells(cell_ids);
   }
 
   public toggle_delete_protection_on_selected_cells(): void {
+    if (this.store == null) return;
     const cell_ids = this.store.get_selected_cell_ids_list();
     this.jupyter_actions.toggle_delete_protection_on_cells(cell_ids);
   }
@@ -785,6 +817,7 @@ export class NotebookFrameActions {
 
   // Copy all currently selected cells into our internal clipboard
   public copy_selected_cells(): void {
+    if (this.store == null) return;
     this.jupyter_actions.copy_cells(this.store.get_selected_cell_ids_list());
   }
 
@@ -792,6 +825,7 @@ export class NotebookFrameActions {
   // to current selection.
   //  0 = replace; 1 = after; -1 = before.
   public paste_cells(delta: 0 | 1 | -1 = 1): void {
+    if (this.store == null) return;
     this.jupyter_actions.paste_cells_at(
       this.store.get_selected_cell_ids_list(),
       delta
@@ -800,6 +834,7 @@ export class NotebookFrameActions {
 
   // if cell is being edited, use this to move the cursor *in that cell*
   public move_edit_cursor(delta: 1 | -1): void {
+    if (this.store == null) return;
     const editor = this.input_editors[this.store.get("cur_id")];
     if (editor == null) return;
     const xy = editor.get_cursor_xy();
@@ -809,15 +844,18 @@ export class NotebookFrameActions {
 
   // Run all cells strictly above the current cursor position.
   public run_all_above(): void {
+    if (this.store == null) return;
     this.jupyter_actions.run_all_above_cell(this.store.get("cur_id"));
   }
 
   // Run all cells below (and *including*) the current cursor position.
   public run_all_below(): void {
+    if (this.store == null) return;
     this.jupyter_actions.run_all_below_cell(this.store.get("cur_id"));
   }
 
   public async run_selected_cells_and_insert_new_cell_below(): Promise<void> {
+    if (this.store == null) return;
     const v = this.store.get_selected_cell_ids_list();
     this.run_selected_cells(v);
     const new_id = this.jupyter_actions.insert_cell_adjacent(
@@ -837,17 +875,20 @@ export class NotebookFrameActions {
   }
 
   public merge_cell_below(save: boolean = true): void {
+    if (this.store == null) return;
     this.jupyter_actions.merge_cell_below_cell(this.store.get("cur_id"), save);
   }
 
   // Merge all selected cells into one cell.
   public merge_selected_cells(): void {
+    if (this.store == null) return;
     const cell_ids = this.store.get_selected_cell_ids_list();
     this.jupyter_actions.merge_cells(cell_ids);
     this.set_cur_id(cell_ids[0]);
   }
 
   public extend_selection(delta: -1 | 1): void {
+    if (this.store == null) return;
     const cur_id = this.store.get("cur_id");
     this.move_cursor(delta);
     const target_id = this.store.get("cur_id");
@@ -872,6 +913,7 @@ export class NotebookFrameActions {
   }
 
   public insert_image(): void {
+    if (this.store == null) return;
     const cur_id = this.store.get("cur_id");
     if (this.jupyter_actions.store.get_cell_type(cur_id) === "markdown") {
       this.jupyter_actions.insert_image(cur_id); // causes a modal dialog to appear.
@@ -881,6 +923,7 @@ export class NotebookFrameActions {
   }
 
   public toggle_selected_outputs(property: "collapsed" | "scrolled"): void {
+    if (this.store == null) return;
     this.jupyter_actions.toggle_outputs(
       this.store.get_selected_cell_ids_list(),
       property
@@ -892,6 +935,7 @@ export class NotebookFrameActions {
   }
 
   public async format_selected_cells(sync: boolean = true): Promise<void> {
+    if (this.store == null) return;
     this.save_input_editor();
     await this.jupyter_actions.format_cells(
       this.store.get_selected_cell_ids_list(),
