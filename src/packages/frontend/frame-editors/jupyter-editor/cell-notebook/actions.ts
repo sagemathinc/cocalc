@@ -19,7 +19,10 @@ import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { move_selected_cells } from "@cocalc/frontend/jupyter/cell-utils";
 require("@cocalc/frontend/jupyter/types");
 import { CellType, Scroll } from "@cocalc/frontend/jupyter/types";
-import { commands, CommandDescription } from "@cocalc/frontend/jupyter/commands";
+import {
+  commands,
+  CommandDescription,
+} from "@cocalc/frontend/jupyter/commands";
 
 import { EditorFunctions } from "@cocalc/frontend/jupyter/codemirror-editor";
 
@@ -250,6 +253,7 @@ export class NotebookFrameActions {
   public disable_key_handler(): void {
     if (this.key_handler == null) return;
     this.frame_tree_actions.erase_active_key_handler(this.key_handler);
+    delete this.key_handler;
   }
 
   /* Run the selected cells; triggered by either clicking the play button or

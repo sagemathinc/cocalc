@@ -109,7 +109,9 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public disable_key_handler(): void {
+    if (this.key_handler == null) return;
     this.redux.getActions("page").erase_active_key_handler(this.key_handler);
+    delete this.key_handler;
   }
 
   private __save_local_view_state(): void {
