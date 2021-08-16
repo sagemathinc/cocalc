@@ -93,30 +93,6 @@ export class AddSubscription extends Component<Props, State> {
           >
             Yearly Subscriptions
           </Button>
-          <Button
-            bsStyle={
-              this.state.selected_button === "week" ? "primary" : undefined
-            }
-            onClick={() => this.set_button_and_deselect_plans("week")}
-          >
-            1-Week Workshops
-          </Button>
-          <Button
-            bsStyle={
-              this.state.selected_button === "month4" ? "primary" : undefined
-            }
-            onClick={() => this.set_button_and_deselect_plans("month4")}
-          >
-            4-Month Courses
-          </Button>
-          <Button
-            bsStyle={
-              this.state.selected_button === "year1" ? "primary" : undefined
-            }
-            onClick={() => this.set_button_and_deselect_plans("year1")}
-          >
-            Yearly Courses
-          </Button>
         </ButtonGroup>
       </div>
     );
