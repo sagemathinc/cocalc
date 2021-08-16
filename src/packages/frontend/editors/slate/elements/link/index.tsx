@@ -7,6 +7,7 @@ import { Text } from "slate";
 import React from "react";
 import { register, SlateElement } from "../register";
 import { dict } from "@cocalc/util/misc";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 export interface Link extends SlateElement {
   type: "link";
@@ -15,28 +16,41 @@ export interface Link extends SlateElement {
   title?: string;
 }
 
-// TODO: need to port over useProcessLinks in a meaningful way...
-
 register({
   slateType: "link",
 
   StaticElement: ({ attributes, children, element }) => {
     const node = element as Link;
-    const { url, title } = node;
+    let { url, title } = node;
+    const { anchorTagAction, urlTransform } = useFileContext();
+    let props;
+    if (url != null) {
+      if (anchorTagAction != null) {
+        props = {
+          onClick: () => {
+            if (url != null) {
+              anchorTagAction(url);
+            }
+            return false;
+          },
+        };
+      } else {
+        if (urlTransform != null) {
+          url = urlTransform(url);
+        }
+        const isExternal = url?.includes("://");
+        props = {
+          href: url,
+          target: isExternal ? "_blank" : undefined,
+          rel: isExternal ? "noopener" : undefined,
+        };
+      }
+    }
+
     return (
-      <a
-        {...attributes}
-        href={url}
-        target={"_blank"}
-        rel={"noopener"}
-        title={title}
-      >
+      <a {...attributes} {...props} title={title}>
         {children}
-        {element.children.length == 1 &&
-          Text.isText(element.children[0]) &&
-          !element.children[0].text.trim() && (
-            <span contentEditable={false}>(blank link)</span>
-          )}
+        {isBlank(element) && <span contentEditable={false}>(blank link)</span>}
       </a>
     );
   },
@@ -52,3 +66,11 @@ register({
     };
   },
 });
+
+function isBlank(element): boolean {
+  return (
+    element.children.length == 1 &&
+    Text.isText(element.children[0]) &&
+    !element.children[0].text.trim()
+  );
+}

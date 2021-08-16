@@ -25,7 +25,7 @@ interface Options {
 $.fn.process_smc_links = function (opts: Options) {
   // @ts-ignore
   processLinks(this, {
-    hrefTransform: opts.href_transform,
+    urlTransform: opts.href_transform,
     projectId: opts.project_id,
     filePath: opts.file_path,
     $,

@@ -61,7 +61,6 @@ export interface RenderElementProps {
     dir?: "rtl";
     ref: any;
   };
-  hrefTransform?: (url?: string) => string | undefined; // only used by static renderer.
 }
 export const RenderElementProps = null; // webpack + TS es2020 modules need this
 

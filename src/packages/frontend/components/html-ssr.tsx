@@ -28,7 +28,7 @@ interface Props {
   value: string;
   style?: React.CSSProperties;
   // function that link/src hrefs are fed through; if returns undefined default is used.
-  hrefTransform?: (
+  urlTransform?: (
     href: string,
     tag: string,
     name: string
@@ -53,12 +53,12 @@ function replace(domNode) {
   domNode = domNode;
 }
 
-function getXSSOptions(hrefTransform): IFilterXSSOptions | undefined {
-  if (hrefTransform != null) {
+function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
+  if (urlTransform != null) {
     return {
       onTagAttr: (tag, name, value) => {
         if (name == "src" || name == "href") {
-          const s = `${name}="${hrefTransform(value, tag, name) ?? value}"`;
+          const s = `${name}="${urlTransform(value, tag, name) ?? value}"`;
           return s;
         }
       },
@@ -67,11 +67,11 @@ function getXSSOptions(hrefTransform): IFilterXSSOptions | undefined {
   return undefined;
 }
 
-export default function HTML({ hrefTransform, style, value }: Props) {
+export default function HTML({ urlTransform, style, value }: Props) {
   const fileContext = useFileContext();
   value = stripXSS(
     value,
-    getXSSOptions(hrefTransform ?? fileContext.hrefTransform)
+    getXSSOptions(urlTransform ?? fileContext.urlTransform)
   );
   return <div style={style}>{htmlReactParser(value, { replace })}</div>;
 }

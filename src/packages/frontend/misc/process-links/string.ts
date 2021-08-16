@@ -16,7 +16,7 @@ import $ from "cheerio";
 import processLinks from "./generic";
 
 interface Options {
-  hrefTransform?: (target: string, tag: string) => string;
+  urlTransform?: (target: string, tag: string) => string;
   projectId?: string;
   filePath?: string;
 }

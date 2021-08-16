@@ -21,7 +21,7 @@ import JupyterNotebook from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import HTML from "@cocalc/frontend/components/html-ssr";
 import A from "components/misc/A";
-import getHrefTransform from "lib/href-transform";
+import getUrlTransform from "lib/url-transform";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 
 interface Props {
@@ -42,9 +42,9 @@ export default function FileContents({
   const ext = getExtension(filename);
   const raw = rawURL({ id, path, relativePath });
 
-  const withContext = (x) => (
+  const withFileContext = (x) => (
     <FileContext.Provider
-      value={{ hrefTransform: getHrefTransform({ id, path, relativePath }) }}
+      value={{ urlTransform: getUrlTransform({ id, path, relativePath }) }}
     >
       {x}
     </FileContext.Provider>
@@ -89,19 +89,15 @@ export default function FileContents({
   } else if (isCodemirror(ext)) {
     return <CodeMirror content={content} filename={filename} />;
   } else if (isMarkdown(ext)) {
-    return withContext(<Markdown value={content} />);
+    return withFileContext(<Markdown value={content} />);
   } else if (isHTML(ext)) {
-    return withContext(
-      <HTML
-        hrefTransform={getHrefTransform({ id, path, relativePath })}
-        value={content}
-        style={{ width: "100%", height: "100vh" }}
-      />
+    return withFileContext(
+      <HTML value={content} style={{ width: "100%", height: "100vh" }} />
     );
   } else if (ext == "sagews") {
-    return withContext(<SageWorksheet content={content} />);
+    return withFileContext(<SageWorksheet content={content} />);
   } else if (ext == "ipynb") {
-    return withContext(<JupyterNotebook content={content} />);
+    return withFileContext(<JupyterNotebook content={content} />);
   }
   return <pre>{content}</pre>;
 }

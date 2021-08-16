@@ -10,7 +10,16 @@
 import { createContext, useContext } from "react";
 
 interface IFileContext {
-  hrefTransform?: (url: string) => string | undefined;
+  // If given, then when an anchor (A) tag is clicked
+  // on, the given function is called.
+  anchorTagAction?: (url: string) => void;
+
+  // If given, then all href and src attributes in all
+  // tags are transformed by urlTransform, except anchor
+  // tags if anchorTagAction is defined.  If it returns
+  // undefined, they are unchanged; if it returns a string,
+  // they are replaced by that.
+  urlTransform?: (url: string, tag?: string) => string | undefined;
 }
 
 export const FileContext = createContext<IFileContext>({});

@@ -19,7 +19,7 @@ type jQueryAPI = Function;
 
 interface Options {
   $: jQueryAPI; // something with jquery api -- might be cheerio or jQuery itself.
-  hrefTransform?: (href: string, tag?: string) => string;
+  urlTransform?: (url: string, tag?: string) => string;
   projectId?: string;
   filePath?: string;
   projectActions?: {
@@ -70,9 +70,9 @@ function processAnchorTag(y: any, opts: Options): void {
   if (typeof href != "string") {
     return;
   }
-  if (opts.hrefTransform != null) {
+  if (opts.urlTransform != null) {
     // special option; used, e.g., for Jupyter's attachment: url's
-    href = opts.hrefTransform(href, "a");
+    href = opts.urlTransform(href, "a");
     y.attr("href", href);
   }
   if (href[0] === "#") {
@@ -185,8 +185,8 @@ function processMediaTag(
   if (src == null) {
     return;
   }
-  if (opts.hrefTransform != null) {
-    src = opts.hrefTransform(src, tag);
+  if (opts.urlTransform != null) {
+    src = opts.urlTransform(src, tag);
     y.attr(attr, src);
   }
   if (src[0] === "/" || src.slice(0, 5) === "data:") {

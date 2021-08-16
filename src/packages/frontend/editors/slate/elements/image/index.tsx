@@ -68,13 +68,13 @@ register({
   slateType: "image",
   toSlate,
   StaticElement: ({ attributes, element }) => {
-    const { hrefTransform } = useFileContext();
+    const { urlTransform } = useFileContext();
     const node = element as Image;
     const { src, alt, title } = node;
     return (
       <img
         {...attributes}
-        src={hrefTransform != null ? hrefTransform(src) : src}
+        src={urlTransform != null ? urlTransform(src) : src}
         alt={alt}
         title={title}
         style={{
