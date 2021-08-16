@@ -449,7 +449,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = React.memo(
     }
 
     function adjacent_cell(y: number, delta: number): void {
-      if (!has_frame_actions() || frame_actions.store == null) return;
+      if (!has_frame_actions()) return;
       frame_actions.move_cursor(delta);
       frame_actions.set_input_editor_cursor(frame_actions.store.get("cur_id"), {
         x: 0,

@@ -54,8 +54,9 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
     project_id,
   } = props;
   const read_only = useRedux([name, "read_only"]);
-  const student_project_functionality =
-    useStudentProjectFunctionality(project_id);
+  const student_project_functionality = useStudentProjectFunctionality(
+    project_id
+  );
 
   function focus() {
     frame_actions.focus(true);
@@ -97,7 +98,6 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
       // all buttons disabled in read-only mode
       disabled = true;
     }
-    if (frame_actions.commands == null) return <></>;  // closed
     const obj = frame_actions.commands[name];
     if (obj == null) {
       throw Error(`command ${name} is not defined`);

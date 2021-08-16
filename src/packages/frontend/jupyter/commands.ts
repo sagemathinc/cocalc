@@ -47,7 +47,6 @@ export function commands(
     throw Error("both actions must be defined");
   }
   function id(): string {
-    if (frame_actions.store == null) throw Error("store closed");
     return frame_actions.store.get("cur_id");
   }
 
@@ -199,7 +198,8 @@ export function commands(
       async f(): Promise<void> {
         const choice = await jupyter_actions.confirm_dialog({
           title: "Shutdown kernel?",
-          body: "Do you want to shutdown the current kernel?  All variables will be lost.",
+          body:
+            "Do you want to shutdown the current kernel?  All variables will be lost.",
           choices: [
             { title: "Continue running" },
             { title: "Shutdown", style: "danger", default: true },
@@ -253,10 +253,8 @@ export function commands(
         { alt: true, mode: "edit", which: 77 },
       ],
       f() {
-        const { store } = frame_actions;
-        if (store == null) return;
         if (
-          store.get("mode") === "escape" &&
+          frame_actions.store.get("mode") === "escape" &&
           jupyter_actions.store.get("introspect") != null
         ) {
           jupyter_actions.clear_introspect();
@@ -267,7 +265,9 @@ export function commands(
           "vim"
         ) {
           // Vim mode is trickier...
-          if (store.get("cur_cell_vim_mode", "escape") !== "escape") {
+          if (
+            frame_actions.store.get("cur_cell_vim_mode", "escape") !== "escape"
+          ) {
             return;
           }
         }
@@ -311,7 +311,8 @@ export function commands(
     "global undo": {
       m: "Undo",
       i: "undo",
-      d: "Global user-aware undo.  Undo the last change *you* made to the notebook.",
+      d:
+        "Global user-aware undo.  Undo the last change *you* made to the notebook.",
       k: [
         { alt: true, mode: "escape", which: 90 },
         { ctrl: true, mode: "escape", which: 90 },
@@ -322,7 +323,8 @@ export function commands(
     "global redo": {
       m: "Redo",
       i: "repeat",
-      d: "Global user-aware redo.  Redo the last change *you* made to the notebook.",
+      d:
+        "Global user-aware redo.  Redo the last change *you* made to the notebook.",
       k: [
         { alt: true, mode: "escape", which: 90, shift: true },
         { ctrl: true, mode: "escape", which: 90, shift: true },
@@ -543,7 +545,6 @@ export function commands(
         { mode: "escape", ctrl: true, which: 86 },
       ],
       f() {
-        if (frame_actions.store == null) return;
         if (frame_actions.store.get("sel_ids", { size: 0 }).size > 0) {
           frame_actions.paste_cells(0);
         } else {
@@ -821,7 +822,7 @@ export function commands(
       f: () => jupyter_actions.undo(),
     },
 
-    "zoom in": {
+    "zoom in" : {
       m: "Zoom in",
       k: [{ ctrl: true, shift: true, which: 190 }],
       f: () => frame_actions.zoom(1),
