@@ -19,10 +19,11 @@ import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { move_selected_cells } from "@cocalc/frontend/jupyter/cell-utils";
 require("@cocalc/frontend/jupyter/types");
 import { CellType, Scroll } from "@cocalc/frontend/jupyter/types";
-import { commands, CommandDescription } from "@cocalc/frontend/jupyter/commands";
-
+import {
+  commands,
+  CommandDescription,
+} from "@cocalc/frontend/jupyter/commands";
 import { EditorFunctions } from "@cocalc/frontend/jupyter/codemirror-editor";
-
 import { isEqual } from "lodash";
 
 declare let DEBUG: boolean;
@@ -61,7 +62,7 @@ export class NotebookFrameActions {
 
     this.commands = commands(
       this.jupyter_actions,
-      this,
+      { current: this },
       this.frame_tree_actions
     );
   }
@@ -237,6 +238,11 @@ export class NotebookFrameActions {
   }
 
   public enable_key_handler(): void {
+    if (this.is_closed()) {
+      throw Error(
+        "can't call enable_key_handler after CellNotebookActions are closed"
+      );
+    }
     if (this.key_handler == null) {
       this.key_handler = create_key_handler(
         this.jupyter_actions,
@@ -248,8 +254,9 @@ export class NotebookFrameActions {
   }
 
   public disable_key_handler(): void {
-    if (this.key_handler == null) return;
+    if (this.key_handler == null || this.frame_tree_actions == null) return;
     this.frame_tree_actions.erase_active_key_handler(this.key_handler);
+    delete this.key_handler;
   }
 
   /* Run the selected cells; triggered by either clicking the play button or

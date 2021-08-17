@@ -12,10 +12,42 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { Button } from "antd";
+<<<<<<< HEAD:src/packages/frontend/jupyter/prompt/input.tsx
 import { capitalize } from "@cocalc/util/misc";
 import { INPUT_STYLE, InputPromptProps } from "./base";
+=======
+import { JupyterActions } from "./browser-actions";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+
+const misc = require("@cocalc/util/misc");
+
+export const PROMPT_MIN_WIDTH = "7em";
+
+export const INPUT_PROMPT_COLOR: string = "#303F9F";
+
+const INPUT_STYLE: React.CSSProperties = {
+  color: INPUT_PROMPT_COLOR,
+  minWidth: PROMPT_MIN_WIDTH,
+  fontFamily: "monospace",
+  textAlign: "right",
+  paddingRight: "5px",
+  cursor: "pointer",
+};
+
+interface InputPromptProps {
+  type?: string;
+  state?: string;
+  exec_count?: number;
+  kernel?: string;
+  start?: number;
+  end?: number;
+  actions?: JupyterActions;
+  id: string;
+}
+>>>>>>> master:src/packages/frontend/jupyter/prompt.tsx
 
 export const InputPrompt: React.FC<InputPromptProps> = (props) => {
+  const frameActions = useNotebookFrameActions();
   let n;
   if (props.type !== "code") {
     return <div style={INPUT_STYLE} />;
@@ -63,6 +95,7 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
   }
 
   function move_cell(delta): void {
+<<<<<<< HEAD:src/packages/frontend/jupyter/prompt/input.tsx
     if (
       props.id == null ||
       props.frame_actions == null ||
@@ -84,6 +117,17 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
     props.frame_actions.unselect_all_cells();
     props.frame_actions.select_cell(props.id);
     props.frame_actions.cut_selected_cells();
+=======
+    frameActions.current?.unselect_all_cells();
+    frameActions.current?.select_cell(props.id);
+    frameActions.current?.move_selected_cells(delta);
+  }
+
+  function cut_cell(): void {
+    frameActions.current?.unselect_all_cells();
+    frameActions.current?.select_cell(props.id);
+    frameActions.current?.cut_selected_cells();
+>>>>>>> master:src/packages/frontend/jupyter/prompt.tsx
   }
 
   function run_cell(): void {
@@ -99,7 +143,7 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
 
   const title = (
     <div>
-      {props.actions != null && props.frame_actions != null ? (
+      {props.actions != null ? (
         <div style={{ float: "right", color: "#666" }}>
           <Button size="small" onClick={() => move_cell(-1)}>
             <Icon name="arrow-up" />

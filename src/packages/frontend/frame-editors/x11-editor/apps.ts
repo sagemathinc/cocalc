@@ -106,13 +106,19 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     label: "RStudio",
   },
   /* See https://github.com/sagemathinc/cocalc/issues/5427
+  Sometimes, Octave GUI works, sometimes not.
+  If it works, write an executable mini script launching it.
+  That avoids registering the launch icon even though it is broken.
+  $ cat octave-gui
+  #!/usr/bin/env bash
+  exec octave --gui "$@"
+  */
   octave: {
     icon: "octave",
     desc: "Scientific programming largely compatible with Matlab",
     label: "Octave",
-    command: "octave",
-    args: ["--force-gui"],
-  },*/
+    command: "octave-gui",
+  },
   texmacs: {
     icon: "tex-file",
     desc: "A wysiwyw (what you see is what you want) editing platform with special features for scientists",
@@ -148,7 +154,7 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     label: "Scribus",
   },
   spyder: {
-    command: "spyder3",
+    command: "spyder",
     desc: "Spyder is a powerful scientific environment written in Python, for Python, and designed by and for scientists, engineers and data analysts.",
     icon: "calculator",
     label: "Spyder",

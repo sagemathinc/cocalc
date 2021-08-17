@@ -40,12 +40,19 @@ export interface CommandDescription {
 
 export function commands(
   jupyter_actions: JupyterActions,
-  frame_actions: NotebookFrameActions,
+  frameActions: { current?: NotebookFrameActions },
   editor_actions: JupyterEditorActions
 ): { [name: string]: CommandDescription } {
-  if (jupyter_actions == null || frame_actions == null) {
-    throw Error("both actions must be defined");
+  if (jupyter_actions == null || editor_actions == null) {
+    // Typescript should check this, but just in case
+    throw Error("actions must be defined");
   }
+  if (frameActions.current == null) {
+    return {};
+  }
+
+  const frame_actions: NotebookFrameActions = frameActions.current;
+
   function id(): string {
     return frame_actions.store.get("cur_id");
   }
@@ -198,8 +205,7 @@ export function commands(
       async f(): Promise<void> {
         const choice = await jupyter_actions.confirm_dialog({
           title: "Shutdown kernel?",
-          body:
-            "Do you want to shutdown the current kernel?  All variables will be lost.",
+          body: "Do you want to shutdown the current kernel?  All variables will be lost.",
           choices: [
             { title: "Continue running" },
             { title: "Shutdown", style: "danger", default: true },
@@ -266,7 +272,8 @@ export function commands(
         ) {
           // Vim mode is trickier...
           if (
-            frame_actions.store.get("cur_cell_vim_mode", "escape") !== "escape"
+            frame_actions.store.get("cur_cell_vim_mode", "escape") !==
+            "escape"
           ) {
             return;
           }
@@ -311,8 +318,7 @@ export function commands(
     "global undo": {
       m: "Undo",
       i: "undo",
-      d:
-        "Global user-aware undo.  Undo the last change *you* made to the notebook.",
+      d: "Global user-aware undo.  Undo the last change *you* made to the notebook.",
       k: [
         { alt: true, mode: "escape", which: 90 },
         { ctrl: true, mode: "escape", which: 90 },
@@ -323,8 +329,7 @@ export function commands(
     "global redo": {
       m: "Redo",
       i: "repeat",
-      d:
-        "Global user-aware redo.  Redo the last change *you* made to the notebook.",
+      d: "Global user-aware redo.  Redo the last change *you* made to the notebook.",
       k: [
         { alt: true, mode: "escape", which: 90, shift: true },
         { ctrl: true, mode: "escape", which: 90, shift: true },
@@ -622,7 +627,8 @@ export function commands(
     "run cell and insert below": {
       m: "Run cells and insert cell below",
       k: [{ which: 13, alt: true }],
-      f: () => frame_actions.run_selected_cells_and_insert_new_cell_below(),
+      f: () =>
+        frame_actions.run_selected_cells_and_insert_new_cell_below(),
     },
 
     "run cell and select next": {
@@ -822,7 +828,7 @@ export function commands(
       f: () => jupyter_actions.undo(),
     },
 
-    "zoom in" : {
+    "zoom in": {
       m: "Zoom in",
       k: [{ ctrl: true, shift: true, which: 190 }],
       f: () => frame_actions.zoom(1),
@@ -841,7 +847,8 @@ export function commands(
 
     "delete protect": {
       m: "Delete protection -- toggle whether cells are deletable",
-      f: () => frame_actions.toggle_delete_protection_on_selected_cells(),
+      f: () =>
+        frame_actions.toggle_delete_protection_on_selected_cells(),
     },
 
     protect: {

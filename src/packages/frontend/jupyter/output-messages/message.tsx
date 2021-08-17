@@ -9,7 +9,6 @@ Handling of output messages.
 
 import React from "react";
 import type { Map } from "immutable";
-import type { NotebookFrameActions } from "../../frame-editors/jupyter-editor/cell-notebook/actions";
 import type { JupyterActions } from "../actions";
 import { OUTPUT_STYLE, OUTPUT_STYLE_SCROLLED } from "./style";
 import { Stdout } from "./stdout";
@@ -52,7 +51,6 @@ interface CellOutputMessageProps {
   project_id?: string;
   directory?: string;
   actions?: JupyterActions; // optional  - not needed by most messages
-  frame_actions?: NotebookFrameActions;
   name?: string;
   id?: string; // optional, and not usually needed either
   trust?: boolean; // is notebook trusted by the user (if not won't eval javascript)
@@ -67,7 +65,6 @@ export const CellOutputMessage: React.FC<CellOutputMessageProps> = React.memo(
         project_id={props.project_id}
         directory={props.directory}
         actions={props.actions}
-        frame_actions={props.frame_actions}
         name={props.name}
         trust={props.trust}
         id={props.id}
@@ -79,7 +76,6 @@ export const CellOutputMessage: React.FC<CellOutputMessageProps> = React.memo(
 interface CellOutputMessagesProps {
   output: Map<string, any>; // the actual messages
   actions?: any; // optional actions
-  frame_actions?: NotebookFrameActions;
   name?: string;
   project_id?: string;
   directory?: string;
@@ -101,7 +97,6 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
     const {
       output,
       actions,
-      frame_actions,
       name,
       project_id,
       directory,
@@ -126,7 +121,6 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
             project_id={project_id}
             directory={directory}
             actions={actions}
-            frame_actions={frame_actions}
             name={name}
             trust={trust}
             id={id}

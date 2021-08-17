@@ -17,13 +17,12 @@ import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
 
 import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
 
 interface Props {
   actions?: JupyterActions;
-  frame_actions?: NotebookFrameActions;
   name?: string;
   id: string;
   index: number;
@@ -70,6 +69,7 @@ function areEqual(props: Props, nextProps: Props): boolean {
 }
 
 export const Cell: React.FC<Props> = React.memo((props) => {
+  const frameActions = useNotebookFrameActions();
   // only delay rendering if actions are set (otherwise we break share server)
   const render = useDelayedRender(props.actions == null ? 0 : props.index);
   if (!render) {
@@ -94,7 +94,6 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         key="in"
         cell={cell}
         actions={props.actions}
-        frame_actions={props.frame_actions}
         cm_options={props.cm_options}
         is_markdown_edit={!!props.is_markdown_edit}
         is_focused={!!(props.is_current && props.mode === "edit")}
@@ -119,7 +118,6 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         key="out"
         cell={cell}
         actions={props.actions}
-        frame_actions={props.frame_actions}
         name={props.name}
         id={props.id}
         project_id={props.project_id}
@@ -132,33 +130,27 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   }
 
   function click_on_cell(event: any): void {
-    if (props.frame_actions == null || props.frame_actions.is_closed()) {
-      return;
-    }
     if (event.shiftKey && !props.is_current) {
       clear_selection();
-      props.frame_actions.select_cell_range(props.id);
+      frameActions.current?.select_cell_range(props.id);
       return;
     }
-    props.frame_actions.set_cur_id(props.id);
-    props.frame_actions.unselect_all_cells();
+    frameActions.current?.set_cur_id(props.id);
+    frameActions.current?.unselect_all_cells();
   }
 
   function double_click(event: any): void {
-    if (props.frame_actions == null) {
-      return;
-    }
     if (props.cell.getIn(["metadata", "editable"]) === false) {
       return;
     }
     if (props.cell.get("cell_type") !== "markdown") {
       return;
     }
-    props.frame_actions.unselect_all_cells();
+    frameActions.current?.unselect_all_cells();
     const id = props.cell.get("id");
-    props.frame_actions.set_md_cell_editing(id);
-    props.frame_actions.set_cur_id(id);
-    props.frame_actions.set_mode("edit");
+    frameActions.current?.set_md_cell_editing(id);
+    frameActions.current?.set_cur_id(id);
+    frameActions.current?.set_mode("edit");
     event.stopPropagation();
   }
 
