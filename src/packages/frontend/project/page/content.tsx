@@ -30,10 +30,7 @@ import {
 } from "../../app-framework";
 import { Loading } from "../../components";
 import { editor_id } from "../utils";
-import {
-  drag_start_iframe_disable,
-  drag_stop_iframe_enable,
-} from "../../misc";
+import { drag_start_iframe_disable, drag_stop_iframe_enable } from "../../misc";
 import { webapp_client } from "../../webapp-client";
 import { DeletedFile } from "../deleted-file";
 import { KioskModeBanner } from "../../app/kiosk-mode-banner";
@@ -45,6 +42,9 @@ import { ProjectSearch } from "../search/search";
 import { ProjectSettings } from "../settings";
 import { SideChat } from "../../chat/side-chat";
 import { log_file_open } from "../open-file";
+import { FileContext } from "@cocalc/frontend/lib/file-context";
+import getUrlTransform from "./url-transform";
+import getAnchorTagComponent from "./anchor-tag-component";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -158,17 +158,23 @@ export const TabContent: React.FC<TabContentProps> = ({
       if (!tab_name.startsWith("editor-")) {
         return <Loading theme="medium" />;
       } else {
+        const value = {
+          urlTransform: getUrlTransform({ project_id, path }),
+          AnchorTagComponent: getAnchorTagComponent({ project_id, path }),
+        };
         return (
-          <EditorContent
-            project_id={project_id}
-            path={path}
-            is_visible={is_visible}
-            is_chat_open={open_files.getIn([path, "is_chat_open"])}
-            chat_width={
-              open_files.getIn([path, "chat_width"]) ?? DEFAULT_CHAT_WIDTH
-            }
-            component={open_files.getIn([path, "component"]) ?? {}}
-          />
+          <FileContext.Provider value={value}>
+            <EditorContent
+              project_id={project_id}
+              path={path}
+              is_visible={is_visible}
+              is_chat_open={open_files.getIn([path, "is_chat_open"])}
+              chat_width={
+                open_files.getIn([path, "chat_width"]) ?? DEFAULT_CHAT_WIDTH
+              }
+              component={open_files.getIn([path, "component"]) ?? {}}
+            />
+          </FileContext.Provider>
         );
       }
   }

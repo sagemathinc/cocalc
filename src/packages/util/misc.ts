@@ -5,6 +5,8 @@
 
 export { get_start_time_ts, get_uptime, log, wrap_log } from "./log";
 
+export * from "./misc-path";
+
 import {
   is_array,
   is_integer,

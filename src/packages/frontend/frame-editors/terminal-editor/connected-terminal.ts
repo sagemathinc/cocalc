@@ -39,7 +39,7 @@ import { ConnectionStatus } from "../frame-tree/types";
 import { file_associations } from "../../file-associations";
 
 declare const $: any;
-import { startsWithCloudURL } from "@cocalc/frontend/misc/process-links/generic";
+import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 
 // NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
 const SCROLLBACK = 5000;
@@ -807,7 +807,7 @@ async function touch_path(project_id: string, path: string): Promise<void> {
 }
 
 function handleLink(_: MouseEvent, uri: string): void {
-  if (!startsWithCloudURL(uri)) {
+  if (!isCoCalcURL(uri)) {
     window.open(uri, "_blank");
     return;
   }

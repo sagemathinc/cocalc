@@ -14,12 +14,19 @@ import React from "react";
 interface AProps {
   href: string;
   children: React.ReactNode;
+  title?: string;
   style?: React.CSSProperties;
 }
 
-export function A({ href, children, style }: AProps) {
+export function A({ href, children, style, title }: AProps) {
   return (
-    <a href={href} target={"_blank"} rel={"noopener"} style={style}>
+    <a
+      href={href}
+      target={"_blank"}
+      rel={"noopener"}
+      style={style}
+      title={title}
+    >
       {children}
     </a>
   );

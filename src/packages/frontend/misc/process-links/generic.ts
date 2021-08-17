@@ -14,6 +14,7 @@ Define a jQuery plugin that processes links.
 import { join } from "path";
 import { is_valid_uuid_string as isUUID } from "@cocalc/util/misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 
 type jQueryAPI = Function;
 
@@ -48,22 +49,6 @@ function loadTarget(
   projectActions.load_target(target, switchTo, false, true, anchor);
 }
 
-// True if starts with host's URL, but is not of the form (say) cocalc.com/[projectId], since
-// that would refer to a port or server, which we can't open internally.
-// See https://github.com/sagemathinc/cocalc/issues/4889 and 5423.
-export function startsWithCloudURL(href: string): boolean {
-  // This is one situation where our choice of definition of "/" for the
-  // trivial base path is annoying.
-  const origin =
-    document.location.origin + (appBasePath.length > 1 ? appBasePath : "");
-  const isSamedomain: boolean =
-    href.startsWith(origin) &&
-    !isUUID(href.slice(origin.length + 1, origin.length + 37));
-  const isFormerSMC: boolean =
-    document.location.origin === "https://cocalc.com" &&
-    href.startsWith("https://cloud.sagemath.com"); // don't break ANCIENT deprecated old links.
-  return isSamedomain || isFormerSMC;
-}
 
 function processAnchorTag(y: any, opts: Options): void {
   let href = y?.attr("href");
@@ -86,7 +71,7 @@ function processAnchorTag(y: any, opts: Options): void {
   const { projectActions } = opts;
   if (
     projectActions &&
-    startsWithCloudURL(href) &&
+    isCoCalcURL(href) &&
     href.includes("/projects/")
   ) {
     // CASE: Link inside a specific browser tab.
@@ -196,7 +181,7 @@ function processMediaTag(
     let projectId: string;
     const i = src.indexOf("/projects/");
     const j = src.indexOf("/files/");
-    if (startsWithCloudURL(src) && i !== -1 && j !== -1 && j > i) {
+    if (isCoCalcURL(src) && i !== -1 && j !== -1 && j > i) {
       // the href is inside the app, points to the current project or another one
       // j-i should be 36, unless we ever start to have different (vanity) project_ids
       const path = src.slice(j + "/files/".length);

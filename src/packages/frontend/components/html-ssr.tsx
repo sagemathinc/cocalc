@@ -14,7 +14,10 @@ TODO: This should eventually completely replace ./html.tsx:
 */
 
 import React from "react";
-import htmlReactParser, { domToReact } from "html-react-parser";
+import htmlReactParser, {
+  attributesToProps,
+  domToReact,
+} from "html-react-parser";
 import { Element } from "domhandler/lib/node";
 import stripXSS from "xss";
 import type { IFilterXSSOptions } from "xss";
@@ -28,6 +31,7 @@ import { useFileContext } from "@cocalc/frontend/lib/file-context";
 interface Props {
   value: string;
   style?: React.CSSProperties;
+  noSanitize?: boolean;
 }
 
 export function HTML2({ value }: Props) {
@@ -44,11 +48,13 @@ export function HTML2({ value }: Props) {
   return <div dangerouslySetInnerHTML={{ __html }}></div>;
 }
 
+const URL_TAGS = ["src", "href", "data"];
+
 function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
   if (urlTransform != null) {
     return {
       onTagAttr: (tag, name, value) => {
-        if (name == "src" || name == "href") {
+        if (URL_TAGS.includes(name)) {
           const s = `${name}="${urlTransform(value, tag, name) ?? value}"`;
           return s;
         }
@@ -58,9 +64,12 @@ function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
   return undefined;
 }
 
-export default function HTML({ style, value }: Props) {
+export default function HTML({ style, value, noSanitize }: Props) {
+  noSanitize = true;
   const { urlTransform, AnchorTagComponent } = useFileContext();
-  value = stripXSS(value, getXSSOptions(urlTransform));
+  if (!noSanitize) {
+    value = stripXSS(value, getXSSOptions(urlTransform));
+  }
   let options: any = {};
   if (AnchorTagComponent != null) {
     options.replace = (domNode) => {
@@ -72,6 +81,27 @@ export default function HTML({ style, value }: Props) {
             {domToReact(children, options)}
           </AnchorTagComponent>
         );
+      }
+      if (noSanitize && urlTransform != null && attribs != null) {
+        // since we did not sanitize the HTML (which also does urlTransform),
+        // we have to do the urlTransform here instead.
+        for (const tag of URL_TAGS) {
+          if (attribs[tag] != null) {
+            const x = urlTransform(attribs[tag]);
+            if (x != null) {
+              const props = attributesToProps(attribs);
+              props[tag] = x;
+              console.log({ tag, x, children, name, props });
+              return React.createElement(
+                name,
+                props,
+                children && children?.length > 0
+                  ? domToReact(children, options)
+                  : undefined
+              );
+            }
+          }
+        }
       }
     };
   }

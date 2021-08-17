@@ -6,6 +6,7 @@
 import React from "react";
 import { register, SlateElement } from "../register";
 import { toSlate as toSlateImage } from "../image";
+import HTML from "@cocalc/frontend/components/html-ssr";
 
 export interface HtmlInline extends SlateElement {
   type: "html_inline";
@@ -27,11 +28,15 @@ const StaticElement = ({ attributes, element }) => {
   // And to what extent do we need to sanitize this html?
   if (element.type == "html_inline") {
     return (
-      <span {...attributes} dangerouslySetInnerHTML={{ __html: html }}></span>
+      <div {...attributes} style={{ display: "inline" }}>
+        <HTML value={html} />
+      </div>
     );
   } else {
     return (
-      <div {...attributes} dangerouslySetInnerHTML={{ __html: html }}></div>
+      <div {...attributes}>
+        <HTML value={html} />
+      </div>
     );
   }
 };
