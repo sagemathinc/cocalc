@@ -5,7 +5,7 @@
   "exports": {
     "./*": "./dist/*.js",
     "./app-framework": "./dist/app-framework/index.js",
-    "./components": "./dist/r_misc/index.js",
+    "./components": "./dist/components/index.js",
     "./markdown": "./dist/markdown/index.js",
     "./misc": "./dist/misc/index.js",
     "./tracker": "./dist/tracker/index.js",

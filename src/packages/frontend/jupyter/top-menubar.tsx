@@ -6,7 +6,6 @@
 // The Menu bar across the top
 //
 // File, Edit, etc....
-
 import { React, useTypedRedux, useRedux, Rendered } from "../app-framework";
 import { user_activity } from "../tracker";
 import * as immutable from "immutable";

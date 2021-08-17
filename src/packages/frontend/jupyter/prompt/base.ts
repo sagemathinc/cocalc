@@ -1,5 +1,4 @@
 import type { JupyterActions } from "../browser-actions";
-import type { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 
 export const PROMPT_MIN_WIDTH = "7em";
 
@@ -21,7 +20,6 @@ export interface InputPromptProps {
   start?: number;
   end?: number;
   actions?: JupyterActions;
-  frame_actions?: NotebookFrameActions;
   id?: string;
 }
 

@@ -11,7 +11,7 @@ import { debounce } from "lodash";
 import { delay } from "awaiting";
 import * as immutable from "immutable";
 import { React, useIsMountedRef, useRef } from "../app-framework";
-import { Loading, WindowedList } from "../r_misc";
+import { Loading, WindowedList } from "../components";
 import { Cell } from "./cell";
 import { InsertCell } from "./insert-cell";
 import { JupyterActions } from "./browser-actions";
