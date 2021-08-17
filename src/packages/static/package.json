@@ -19,7 +19,7 @@
     ]
   },
   "scripts": {
-    "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development COCALC_NOCLEAN=true npx webpack --progress --color --watch",
+    "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development npx webpack --progress --color --watch",
     "tsc": "cd src && npx tsc --watch",
     "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production npx webpack --progress --color --watch",
     "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development npm run webpack ",
