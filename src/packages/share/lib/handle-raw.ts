@@ -57,7 +57,8 @@ async function handleRequest({
   let url = path.slice(projectPath.length);
   const target = join(fsPath, url);
 
-  if (download || getExtension(target) == "html") {
+  const ext = getExtension(target);
+  if (download || ext == "html" || ext == "svg") {
     // NOTE: We *always* download .html, since it is far too dangerous to render
     // an arbitrary html file from our domain.
     res.download(target, next);

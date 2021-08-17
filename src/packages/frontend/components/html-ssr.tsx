@@ -31,7 +31,6 @@ import { useFileContext } from "@cocalc/frontend/lib/file-context";
 interface Props {
   value: string;
   style?: React.CSSProperties;
-  noSanitize?: boolean;
 }
 
 export function HTML2({ value }: Props) {
@@ -64,9 +63,8 @@ function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
   return undefined;
 }
 
-export default function HTML({ style, value, noSanitize }: Props) {
-  noSanitize = true;
-  const { urlTransform, AnchorTagComponent } = useFileContext();
+export default function HTML({ value, style }: Props) {
+  const { urlTransform, AnchorTagComponent, noSanitize } = useFileContext();
   if (!noSanitize) {
     value = stripXSS(value, getXSSOptions(urlTransform));
   }
@@ -91,7 +89,6 @@ export default function HTML({ style, value, noSanitize }: Props) {
             if (x != null) {
               const props = attributesToProps(attribs);
               props[tag] = x;
-              console.log({ tag, x, children, name, props });
               return React.createElement(
                 name,
                 props,

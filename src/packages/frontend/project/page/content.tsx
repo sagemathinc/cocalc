@@ -161,6 +161,7 @@ export const TabContent: React.FC<TabContentProps> = ({
         const value = {
           urlTransform: getUrlTransform({ project_id, path }),
           AnchorTagComponent: getAnchorTagComponent({ project_id, path }),
+          noSanitize: true, // TODO: temporary for backward compat for now; will make it user-configurable on a per file basis later.
         };
         return (
           <FileContext.Provider value={value}>

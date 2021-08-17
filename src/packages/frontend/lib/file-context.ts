@@ -26,6 +26,8 @@ interface IFileContext {
   // undefined, they are unchanged; if it returns a string,
   // they are replaced by that.
   urlTransform?: (url: string, tag?: string) => string | undefined;
+
+  noSanitize?: boolean;
 }
 
 export const FileContext = createContext<IFileContext>({});
