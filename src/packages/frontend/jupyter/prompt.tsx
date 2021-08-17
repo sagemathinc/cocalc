@@ -11,7 +11,7 @@ import { React } from "../app-framework";
 import { Icon, TimeAgo, Tip } from "../r_misc";
 import { Button } from "antd";
 import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
 const misc = require("@cocalc/util/misc");
 
@@ -36,11 +36,11 @@ interface InputPromptProps {
   start?: number;
   end?: number;
   actions?: JupyterActions;
-  frame_actions?: NotebookFrameActions;
   id: string;
 }
 
 export const InputPrompt: React.FC<InputPromptProps> = (props) => {
+  const frameActions = useNotebookFrameActions();
   let n;
   if (props.type !== "code") {
     return <div style={INPUT_STYLE} />;
@@ -88,17 +88,15 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
   }
 
   function move_cell(delta): void {
-    if (props.frame_actions == null || props.frame_actions.is_closed()) return;
-    props.frame_actions.unselect_all_cells();
-    props.frame_actions.select_cell(props.id);
-    props.frame_actions.move_selected_cells(delta);
+    frameActions.current?.unselect_all_cells();
+    frameActions.current?.select_cell(props.id);
+    frameActions.current?.move_selected_cells(delta);
   }
 
   function cut_cell(): void {
-    if (props.frame_actions == null || props.frame_actions.is_closed()) return;
-    props.frame_actions.unselect_all_cells();
-    props.frame_actions.select_cell(props.id);
-    props.frame_actions.cut_selected_cells();
+    frameActions.current?.unselect_all_cells();
+    frameActions.current?.select_cell(props.id);
+    frameActions.current?.cut_selected_cells();
   }
 
   function run_cell(): void {
@@ -113,7 +111,7 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
 
   const title = (
     <div>
-      {props.actions != null && props.frame_actions != null ? (
+      {props.actions != null ? (
         <div style={{ float: "right", color: "#666" }}>
           <Button size="small" onClick={() => move_cell(-1)}>
             <Icon name="arrow-up" />

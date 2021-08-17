@@ -42,7 +42,6 @@ import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
 import { compute_usage } from "./usage";
 
 import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 
 const KERNEL_STYLE: CSS = {
@@ -100,7 +99,6 @@ function calc_quantile(data: number[], min_val = 3, q = 0.75): number {
 interface Props {
   error?: string;
   actions: JupyterActions;
-  frame_actions: NotebookFrameActions;
   editor_actions: JupyterEditorActions;
   name: string; // name of the redux store
 
@@ -126,7 +124,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   const {
     actions,
     editor_actions,
-    frame_actions,
     name,
     is_focused,
     is_fullscreen,
@@ -377,7 +374,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   function render_menubar() {
     if (
       actions == null ||
-      frame_actions == null ||
       cells == null ||
       sel_ids == null ||
       cur_id == null
@@ -388,7 +384,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         <TopMenubar
           actions={actions}
           name={name}
-          frame_actions={frame_actions}
           cells={cells}
           cur_id={cur_id}
         />
@@ -399,7 +394,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   function render_buttonbar() {
     if (
       actions == null ||
-      frame_actions == null ||
       cells == null ||
       sel_ids == null ||
       cur_id == null ||
@@ -409,7 +403,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     } else {
       return (
         <TopButtonbar
-          frame_actions={frame_actions}
           project_id={project_id}
           name={name}
           cells={cells}
@@ -463,7 +456,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
 
     /*
     if (
-      frame_actions == null ||
       editor_settings == null ||
       cell_list == null ||
       editor_settings.get("disable_jupyter_windowing")
@@ -505,7 +497,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return (
       <CellList
         actions={actions}
-        frame_actions={frame_actions}
         name={name}
         cell_list={cell_list}
         cells={cells}
@@ -637,11 +628,10 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_keyboard_shortcuts() {
-    if (actions == null || frame_actions == null) return;
+    if (actions == null) return;
     return (
       <KeyboardShortcuts
         actions={actions}
-        frame_actions={frame_actions}
         editor_actions={editor_actions}
         keyboard_shortcuts={keyboard_shortcuts}
       />

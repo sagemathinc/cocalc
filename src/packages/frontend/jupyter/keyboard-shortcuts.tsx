@@ -10,7 +10,7 @@
 
 import { React, Rendered, useState } from "../app-framework";
 import { Map } from "immutable";
-import * as json from "json-stable-stringify";
+import json from "json-stable-stringify";
 import { capitalize, copy_without, field_cmp, split } from "@cocalc/util/misc";
 import { Button, Modal, Grid, Row, Col } from "react-bootstrap";
 import { A, Icon, IconName, SearchInput, r_join } from "../r_misc";
@@ -21,9 +21,9 @@ import {
 } from "./commands";
 import { evt_to_obj, keyCode_to_chr } from "./keyboard";
 import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 const { ShowSupportLink } = require("../support");
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
 // See http://xahlee.info/comp/unicode_computing_symbols.html
 const SYMBOLS = {
@@ -292,7 +292,6 @@ const COMMAND_STYLE = {
 
 interface CommandProps {
   actions: JupyterActions;
-  frame_actions: NotebookFrameActions;
   name: string;
   desc: string;
   icon?: IconName;
@@ -301,8 +300,8 @@ interface CommandProps {
 }
 
 const Command: React.FC<CommandProps> = React.memo((props: CommandProps) => {
-  const { actions, frame_actions, name, desc, icon, shortcuts, taken } = props;
-
+  const { actions, name, desc, icon, shortcuts, taken } = props;
+  const frameActions = useNotebookFrameActions();
   const [highlight, set_highlight] = useState<boolean>(false);
 
   function render_icon(): Rendered {
@@ -310,7 +309,7 @@ const Command: React.FC<CommandProps> = React.memo((props: CommandProps) => {
   }
 
   function run_command() {
-    frame_actions.command(name);
+    frameActions.current?.command(name);
     actions.close_keyboard_shortcuts();
   }
 
@@ -370,7 +369,6 @@ const COMMAND_LIST_STYLE: React.CSSProperties = {
 
 interface CommandListProps {
   actions: JupyterActions;
-  frame_actions: NotebookFrameActions;
   editor_actions: JupyterEditorActions;
   taken: { [name: string]: string };
   search?: string;
@@ -382,11 +380,12 @@ function should_memoize(prev, next) {
 
 const CommandList: React.FC<CommandListProps> = React.memo(
   (props: CommandListProps) => {
-    const { actions, frame_actions, editor_actions, taken, search } = props;
+    const { actions, editor_actions, taken, search } = props;
+    const frameActions = useNotebookFrameActions();
 
     function render_commands(): Rendered[] {
       const v: any[] = [];
-      const obj = create_commands(actions, frame_actions, editor_actions);
+      const obj = create_commands(actions, frameActions, editor_actions);
       for (const name in obj) {
         const val = obj[name];
         if (val != null) {
@@ -415,7 +414,6 @@ const CommandList: React.FC<CommandListProps> = React.memo(
             key={x.name}
             name={x.name}
             actions={actions}
-            frame_actions={frame_actions}
             desc={desc}
             icon={icon}
             shortcuts={shortcuts}
@@ -433,20 +431,20 @@ const CommandList: React.FC<CommandListProps> = React.memo(
 
 interface KeyboardShortcutsProps {
   actions: JupyterActions;
-  frame_actions: NotebookFrameActions;
   editor_actions: JupyterEditorActions;
   keyboard_shortcuts?: Map<string, any>;
 }
 
 export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
   (props: KeyboardShortcutsProps) => {
-    const { actions, frame_actions, editor_actions, keyboard_shortcuts } =
-      props;
-
+    const { actions, editor_actions, keyboard_shortcuts } = props;
+    const frameActions = useNotebookFrameActions();
     const [search, set_search] = useState<string>("");
-    const commands: {
-      [name: string]: CommandDescription;
-    } = create_commands(actions, frame_actions, editor_actions);
+    const commands: { [name: string]: CommandDescription } = create_commands(
+      actions,
+      frameActions,
+      editor_actions
+    );
 
     const taken: { [name: string]: string } = {};
     for (const name in commands) {
@@ -464,7 +462,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
 
     function close(): void {
       actions.close_keyboard_shortcuts();
-      frame_actions.focus();
+      frameActions.current?.focus();
     }
 
     function search_change(s: string): void {
@@ -526,7 +524,6 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
                 {render_heading()}
                 <CommandList
                   actions={actions}
-                  frame_actions={frame_actions}
                   editor_actions={editor_actions}
                   taken={taken}
                   search={search}

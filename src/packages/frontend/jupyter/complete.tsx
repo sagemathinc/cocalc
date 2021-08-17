@@ -8,11 +8,10 @@ declare const $: any;
 import { React, Rendered } from "../app-framework";
 import { Map } from "immutable";
 import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
 interface CompleteProps {
   actions: JupyterActions;
-  frame_actions: NotebookFrameActions;
   id: string;
   complete: Map<string, any>;
 }
@@ -22,7 +21,8 @@ interface CompleteProps {
 // but seems to work well for now.  Could move.
 export const Complete: React.FC<CompleteProps> = React.memo(
   (props: CompleteProps) => {
-    const { actions, frame_actions, id, complete } = props;
+    const { actions, id, complete } = props;
+    const frameActions = useNotebookFrameActions();
 
     const nodeRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -37,13 +37,13 @@ export const Complete: React.FC<CompleteProps> = React.memo(
     function select(item: string): void {
       // Save contents of editor to the store so that completion properly *places* the
       // completion in the correct place: see https://github.com/sagemathinc/cocalc/issues/3978
-      frame_actions.save_input_editor(id);
+      frameActions.current?.save_input_editor(id);
 
       // Actually insert the completion:
       actions.select_complete(id, item);
 
       // Start working on the cell:
-      frame_actions.set_mode("edit");
+      frameActions.current?.set_mode("edit");
     }
 
     function render_item(item: string): Rendered {
@@ -63,7 +63,7 @@ export const Complete: React.FC<CompleteProps> = React.memo(
     function key(e: any): void {
       if (e.keyCode === 27) {
         actions.clear_complete();
-        frame_actions.set_mode("edit");
+        frameActions.current?.set_mode("edit");
       }
       if (e.keyCode !== 13) {
         return;

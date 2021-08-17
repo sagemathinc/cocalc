@@ -16,10 +16,10 @@ import {
   MenuItem,
 } from "../r_misc";
 import { endswith, capitalize } from "@cocalc/util/misc";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { Cells, CellType, Usage } from "./types";
 import { ALERT_COLS } from "./usage";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
 type ButtonDescription =
   | string
@@ -32,7 +32,6 @@ type ButtonDescription =
     };
 
 interface Props {
-  frame_actions: NotebookFrameActions;
   cur_id: string; // id of currently selected cell
   sel_ids: immutable.Set<string>; // set of selected cells
   cells: Cells; // map from id to cells
@@ -43,33 +42,25 @@ interface Props {
 }
 
 export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
-  const {
-    frame_actions,
-    cur_id,
-    sel_ids,
-    cells,
-    cell_toolbar,
-    name,
-    usage,
-    project_id,
-  } = props;
+  const { cur_id, sel_ids, cells, cell_toolbar, name, usage, project_id } =
+    props;
+  const frameActions = useNotebookFrameActions();
   const read_only = useRedux([name, "read_only"]);
-  const student_project_functionality = useStudentProjectFunctionality(
-    project_id
-  );
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
 
   function focus() {
-    frame_actions.focus(true);
+    frameActions.current?.focus(true);
   }
 
   function command(name: string, do_focus: boolean): (event?) => void {
     return (_event?): void => {
       $(":focus").blur(); // battling with react-bootstrap stupidity... ?
-      frame_actions.command(name);
+      frameActions.current?.command(name);
       if (do_focus) {
         focus();
       } else {
-        frame_actions.blur();
+        frameActions.current?.blur();
       }
     };
   }
@@ -98,7 +89,7 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
       // all buttons disabled in read-only mode
       disabled = true;
     }
-    const obj = frame_actions.commands[name];
+    const obj = frameActions.current?.commands[name];
     if (obj == null) {
       throw Error(`command ${name} is not defined`);
     }
@@ -167,7 +158,7 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function cell_select_type(type: CellType): void {
-    frame_actions.set_selected_cell_type(type);
+    frameActions.current?.set_selected_cell_type(type);
     focus();
   }
 

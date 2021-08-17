@@ -40,12 +40,19 @@ export interface CommandDescription {
 
 export function commands(
   jupyter_actions: JupyterActions,
-  frame_actions: NotebookFrameActions,
+  frameActions: { current?: NotebookFrameActions },
   editor_actions: JupyterEditorActions
 ): { [name: string]: CommandDescription } {
-  if (jupyter_actions == null || frame_actions == null) {
-    throw Error("both actions must be defined");
+  if (jupyter_actions == null || editor_actions == null) {
+    // Typescript should check this, but just in case
+    throw Error("actions must be defined");
   }
+  if (frameActions.current == null) {
+    return {};
+  }
+
+  const frame_actions: NotebookFrameActions = frameActions.current;
+
   function id(): string {
     return frame_actions.store.get("cur_id");
   }
@@ -265,7 +272,8 @@ export function commands(
         ) {
           // Vim mode is trickier...
           if (
-            frame_actions.store.get("cur_cell_vim_mode", "escape") !== "escape"
+            frame_actions.store.get("cur_cell_vim_mode", "escape") !==
+            "escape"
           ) {
             return;
           }
@@ -619,7 +627,8 @@ export function commands(
     "run cell and insert below": {
       m: "Run cells and insert cell below",
       k: [{ which: 13, alt: true }],
-      f: () => frame_actions.run_selected_cells_and_insert_new_cell_below(),
+      f: () =>
+        frame_actions.run_selected_cells_and_insert_new_cell_below(),
     },
 
     "run cell and select next": {
@@ -838,7 +847,8 @@ export function commands(
 
     "delete protect": {
       m: "Delete protection -- toggle whether cells are deletable",
-      f: () => frame_actions.toggle_delete_protection_on_selected_cells(),
+      f: () =>
+        frame_actions.toggle_delete_protection_on_selected_cells(),
     },
 
     protect: {

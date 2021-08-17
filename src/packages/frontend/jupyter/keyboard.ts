@@ -91,7 +91,11 @@ export function create_key_handler(
     }
   }
 
-  const object = commands(jupyter_actions, frame_actions, editor_actions);
+  const object = commands(
+    jupyter_actions,
+    { current: frame_actions },
+    editor_actions
+  );
   for (const name in object) {
     val = object[name];
     if ((val != null ? val.k : undefined) == null) {
@@ -116,7 +120,7 @@ export function create_key_handler(
       const focused = $(":focus");
       if (
         focused.length > 0 &&
-        focused[0].className.indexOf("ReactVirtualized") == -1
+        !focused[0].className.includes("ReactVirtualized")
       ) {
         // Never use keyboard shortcuts when something is focused, e.g.,
         // getting a password or using text input widget.  However, ReactVirtualized
@@ -126,6 +130,7 @@ export function create_key_handler(
     }
     const shortcut = evt_to_shortcut(evt, mode);
     const cmd = shortcut_to_command[shortcut];
+
     if (cmd != null) {
       last_evt = undefined;
       cmd.val.f();

@@ -15,16 +15,12 @@ TODO:
 import { React, useIsMountedRef, useRef, useState } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 import { all_fields_equal } from "@cocalc/util/misc";
-
 import { CodeMirrorEditor } from "./codemirror-editor";
 import { CodeMirrorStatic } from "./codemirror-static";
-
 import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 interface CodeMirrorProps {
   actions?: JupyterActions;
-  frame_actions?: NotebookFrameActions;
   id: string;
   options: ImmutableMap<string, any>;
   value: string;
@@ -52,7 +48,6 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
   (props: CodeMirrorProps) => {
     const {
       actions,
-      frame_actions,
       id,
       options,
       value,
@@ -91,14 +86,12 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
     // we can remove this use of the slower non-static fallback...
     if (
       (has_rendered_nonstatic.current || !is_scrolling) &&
-      actions != null &&
-      frame_actions != null
+      actions != null
     ) {
       has_rendered_nonstatic.current = true;
       return (
         <CodeMirrorEditor
           actions={actions}
-          frame_actions={frame_actions}
           id={id}
           options={options}
           value={value}

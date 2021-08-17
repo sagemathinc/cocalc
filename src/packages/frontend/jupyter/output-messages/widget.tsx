@@ -24,12 +24,11 @@ import { JupyterActions } from "../browser-actions";
 import * as pWidget from "@phosphor/widgets";
 require("@jupyter-widgets/controls/css/widgets.css");
 import { CellOutputMessages } from "./message";
-import { NotebookFrameActions } from "../../frame-editors/jupyter-editor/cell-notebook/actions";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
 interface WidgetProps {
   value: Map<string, any>;
   actions?: JupyterActions;
-  frame_actions?: NotebookFrameActions;
   name: string;
   project_id?: string;
   directory?: string;
@@ -38,16 +37,8 @@ interface WidgetProps {
 
 export const Widget: React.FC<WidgetProps> = React.memo(
   (props: WidgetProps) => {
-    const {
-      value,
-      actions,
-      frame_actions,
-      name,
-      project_id,
-      directory,
-      trust,
-    } = props;
-
+    const { value, actions, name, project_id, directory, trust } = props;
+    const frameActions = useNotebookFrameActions();
     const prev_value = usePrevious(value);
 
     const phosphorRef = useRef<HTMLDivElement>(null);
@@ -230,10 +221,10 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       );
       if (focuseable.length > 0) {
         focuseable.on("focus", () => {
-          frame_actions?.disable_key_handler();
+          frameActions.current?.disable_key_handler();
         });
         focuseable.on("blur", () => {
-          frame_actions?.enable_key_handler();
+          frameActions.current?.enable_key_handler();
         });
       }
     }

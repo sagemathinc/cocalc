@@ -23,9 +23,7 @@ import {
   commands,
   CommandDescription,
 } from "@cocalc/frontend/jupyter/commands";
-
 import { EditorFunctions } from "@cocalc/frontend/jupyter/codemirror-editor";
-
 import { isEqual } from "lodash";
 
 declare let DEBUG: boolean;
@@ -64,7 +62,7 @@ export class NotebookFrameActions {
 
     this.commands = commands(
       this.jupyter_actions,
-      this,
+      { current: this },
       this.frame_tree_actions
     );
   }
@@ -256,7 +254,7 @@ export class NotebookFrameActions {
   }
 
   public disable_key_handler(): void {
-    if (this.key_handler == null) return;
+    if (this.key_handler == null || this.frame_tree_actions == null) return;
     this.frame_tree_actions.erase_active_key_handler(this.key_handler);
     delete this.key_handler;
   }

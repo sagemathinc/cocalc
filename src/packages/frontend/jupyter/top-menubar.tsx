@@ -14,10 +14,15 @@ import { ButtonGroup, SelectCallback } from "react-bootstrap";
 import { Icon, r_join, DropdownMenu, MenuItem, MenuDivider } from "../r_misc";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
 import { open_new_tab } from "../misc-page";
-import { capitalize, copy, endswith, all_fields_equal } from "@cocalc/util/misc";
+import {
+  capitalize,
+  copy,
+  endswith,
+  all_fields_equal,
+} from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { get_help_links } from "./help-links";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
 type MenuItemName =
   | string
@@ -37,7 +42,6 @@ const SELECTED_STYLE: React.CSSProperties = {
 interface TopMenubarProps {
   // OWN PROPS
   actions: JupyterActions;
-  frame_actions: NotebookFrameActions;
   cur_id: string;
   cells: immutable.Map<any, any>; // map from id to cells
   name: string;
@@ -59,7 +63,8 @@ function should_memoize(prev, next) {
 
 export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
   (props: TopMenubarProps) => {
-    const { actions, frame_actions, cur_id, cells, name } = props;
+    const { actions, cur_id, cells, name } = props;
+    const frameActions = useNotebookFrameActions();
 
     const kernels: immutable.List<any> | undefined = useRedux([
       name,
@@ -357,15 +362,15 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
 
     function focus(): void {
       $(":focus").blur(); // battling with react-bootstrap stupidity... ?
-      frame_actions.focus(true);
+      frameActions.current?.focus(true);
     }
 
     function handle_command(name: string): void {
-      frame_actions.command(name);
+      frameActions.current?.command(name);
       $(":focus").blur(); // battling with react-bootstrap stupidity... ?
-      const c = frame_actions.commands[name];
+      const c = frameActions.current?.commands[name];
       if (c && c.m && endswith(c.m, "...")) {
-        frame_actions.blur();
+        frameActions.current?.blur();
       } else {
         focus();
       }
@@ -373,11 +378,11 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
 
     function command(name: string): SelectCallback {
       return () => {
-        frame_actions.command(name);
+        frameActions.current?.command(name);
         $(":focus").blur(); // battling with react-bootstrap stupidity... ?
-        const c = frame_actions.commands[name];
+        const c = frameActions.current?.commands[name];
         if (c && c.m && endswith(c.m, "...")) {
-          frame_actions.blur();
+          frameActions.current?.blur();
         } else {
           focus();
         }
@@ -437,7 +442,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         style.marginLeft = "4ex";
         name = name.slice(1);
       }
-      const obj = frame_actions.commands[name];
+      const obj = frameActions.current?.commands[name];
       if (obj == null) {
         const item = (
           <MenuItem disabled={disabled} key={key}>

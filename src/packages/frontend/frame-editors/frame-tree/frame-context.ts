@@ -25,9 +25,9 @@ export const FrameContext = createContext<IFrameContext>({
   id: "",
   project_id: "",
   path: "",
-  actions: ({} as unknown) as Actions, // why is there a default context... we always set it?
+  actions: {} as unknown as Actions, // why is there a default context... we always set it?
 });
 
-export const useFrameContext = () => {
+export const useFrameContext: () => IFrameContext = () => {
   return useContext(FrameContext);
 };

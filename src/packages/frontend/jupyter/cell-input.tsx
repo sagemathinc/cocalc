@@ -21,9 +21,8 @@ import { CellToolbar } from "./cell-toolbar";
 import { CellTiming } from "./cell-output-time";
 import { get_blob_url } from "./server-urls";
 import { CellHiddenPart } from "./cell-hidden-part";
-
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 function href_transform(
   project_id: string | undefined,
@@ -70,7 +69,6 @@ function markdown_post_hook(elt) {
 
 export interface CellInputProps {
   actions?: JupyterActions; // if not defined, then everything read only
-  frame_actions?: NotebookFrameActions;
   cm_options: Map<string, any>;
   cell: Map<string, any>;
   is_markdown_edit: boolean;
@@ -90,6 +88,7 @@ export interface CellInputProps {
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
   (props) => {
+    const frameActions = useNotebookFrameActions();
     function render_input_prompt(type: string): Rendered {
       return (
         <InputPrompt
@@ -100,7 +99,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           start={props.cell.get("start")}
           end={props.cell.get("end")}
           actions={props.actions}
-          frame_actions={props.frame_actions}
           id={props.id}
         />
       );
@@ -114,17 +112,14 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     }
 
     function handle_md_double_click(): void {
-      if (props.frame_actions == null || props.frame_actions.is_closed()) {
-        return;
-      }
       if (props.cell.getIn(["metadata", "editable"]) === false) {
         // TODO: NEVER ever silently fail!
         return;
       }
       const id = props.cell.get("id");
-      props.frame_actions.set_md_cell_editing(id);
-      props.frame_actions.set_cur_id(id);
-      props.frame_actions.set_mode("edit");
+      frameActions.current?.set_md_cell_editing(id);
+      frameActions.current?.set_cur_id(id);
+      frameActions.current?.set_mode("edit");
     }
 
     function options(type: "code" | "markdown" | "raw"): Map<string, any> {
@@ -165,7 +160,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           value={value}
           options={options(type)}
           actions={props.actions}
-          frame_actions={props.frame_actions}
           id={props.cell.get("id")}
           is_focused={props.is_focused}
           font_size={props.font_size}
@@ -246,7 +240,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     function render_complete(): Rendered {
       if (
         props.actions != null &&
-        props.frame_actions != null &&
         props.complete &&
         props.complete.get("matches", fromJS([])).size > 0
       ) {
@@ -254,7 +247,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           <Complete
             complete={props.complete}
             actions={props.actions}
-            frame_actions={props.frame_actions}
             id={props.id}
           />
         );

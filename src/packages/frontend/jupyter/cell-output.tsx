@@ -10,17 +10,13 @@ React component that describes the output of a cell
 import { React, Rendered } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 import { CellOutputMessages } from "./output-messages/message";
-
 import { OutputPrompt } from "./prompt";
 import { OutputToggle, CollapsedOutput } from "./cell-output-toggle";
 import { CellHiddenPart } from "./cell-hidden-part";
-
 import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 interface CellOutputProps {
   actions?: JupyterActions;
-  frame_actions?: NotebookFrameActions;
   name?: string;
   id: string;
   cell: ImmutableMap<string, any>;
@@ -65,7 +61,6 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
   (props: CellOutputProps) => {
     const {
       actions,
-      frame_actions,
       name,
       id,
       cell,
@@ -150,7 +145,6 @@ export const CellOutput: React.FC<CellOutputProps> = React.memo(
             project_id={project_id}
             directory={directory}
             actions={actions}
-            frame_actions={frame_actions}
             name={name}
             trust={trust}
             id={id}
