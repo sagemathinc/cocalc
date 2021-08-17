@@ -58,6 +58,7 @@ function columns(id, relativePath) {
       title: "Name",
       dataIndex: "name",
       key: "name",
+      // for style below, see comment in public-paths.tsx.
       render: (name, record) => {
         return (
           <Link
@@ -65,7 +66,9 @@ function columns(id, relativePath) {
               join(relativePath, name)
             )}`}
           >
-            <a>{record.isdir ? <b>{name}</b> : name}</a>
+            <a style={{ width: "100%", display: "inline-block" }}>
+              {record.isdir ? <b>{name}</b> : name}
+            </a>
           </Link>
         );
       },
