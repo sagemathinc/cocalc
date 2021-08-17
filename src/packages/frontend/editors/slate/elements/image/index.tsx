@@ -74,7 +74,7 @@ register({
     return (
       <img
         {...attributes}
-        src={urlTransform != null ? urlTransform(src) : src}
+        src={urlTransform?.(src) ?? src}
         alt={alt}
         title={title}
         style={{

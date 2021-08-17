@@ -10,13 +10,15 @@ a click handler (since it's just manipulating html), so it can't do things
 like open a link to a project from within cocalc internally without opening
 another page.  This is, of course, meant to be used in contexts like the
 share server.
+
+TODO: this is NOT used anywhere yet.
 */
 
 import $ from "cheerio";
 import processLinks from "./generic";
 
 interface Options {
-  urlTransform?: (target: string, tag: string) => string;
+  urlTransform?: (target: string, tag: string) => string | undefined; // unchanged if returns undefined
   projectId?: string;
   filePath?: string;
 }

@@ -32,9 +32,7 @@ register({
     }
     let props;
     if (url != null) {
-      if (urlTransform != null) {
-        url = urlTransform(url);
-      }
+      url = urlTransform?.(url) ?? url;
       const isExternal = url?.includes("://");
       props = {
         href: url,
