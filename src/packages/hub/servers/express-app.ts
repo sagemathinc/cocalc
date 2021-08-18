@@ -26,6 +26,7 @@ import initStats from "./app/stats";
 import initAppRedirect from "./app/app-redirect";
 import initLanding from "./app/landing";
 import initShareNext from "./app/share";
+import vhostShare from "@cocalc/share/lib/virtual-hosts";
 
 // Used for longterm caching of files
 const MAX_AGE = ms("10 days");
@@ -56,6 +57,10 @@ export default async function init(opts: Options): Promise<{
   // NOTE "Express runs everything in order" --
   // https://github.com/expressjs/compression/issues/35#issuecomment-77076170
   app.use(compression());
+
+  if (opts.shareServer) {
+    app.use(vhostShare());
+  }
 
   // Install custom middleware to track response time metrics via prometheus, and
   // also serve them up at /metrics.
