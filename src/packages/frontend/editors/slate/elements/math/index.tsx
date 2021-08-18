@@ -63,9 +63,6 @@ register({
       children: [{ text: "" }],
     } as Element;
   },
-  fromSlate: ({ node }) => {
-    return "$" + node.value + "$";
-  },
 });
 
 register({
@@ -78,8 +75,5 @@ register({
       isVoid: true,
       children: [{ text: " " }],
     } as Element;
-  },
-  fromSlate: ({ node }) => {
-    return "$$\n" + node.value + "\n$$\n\n";
   },
 });

@@ -29,4 +29,4 @@ const Html = ({
 register("text/html", 3, Html);
 
 // put latex as HTML, since jupyter requires $'s anyways:
-register("text/latex", 3, Html);
+register("text/latex", 5, Html);
