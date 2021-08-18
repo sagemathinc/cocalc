@@ -16,8 +16,9 @@ import { IconName } from "./r_misc/icon";
 
 const codemirror_associations: { [ext: string]: string } = {
   adb: "ada",
+  asm: "text/x-gas",
   c: "text/x-c",
-  zig: "text/x-c",  // wrong, but much better than nothing
+  zig: "text/x-c", // wrong, but much better than nothing
   "c++": "text/x-c++src",
   cob: "text/x-cobol",
   cql: "text/x-sql",
@@ -130,6 +131,7 @@ const MODE_TO_ICON: { [mode: string]: IconName } = {
   "text/x-rustsrc": "cog",
   r: "r",
   rmd: "r",
+  "text/x-gas": "microchip",
 };
 
 for (const ext in codemirror_associations) {
