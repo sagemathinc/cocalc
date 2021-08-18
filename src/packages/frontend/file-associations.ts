@@ -114,6 +114,7 @@ export interface FileSpec {
     tab_size?: number;
     spaces_instead_of_tabs?: boolean;
     spellcheck?: boolean; // Use browser spellcheck by default
+    architecture?: string; // used by assembly mode.
   };
   name: string;
   exclude_from_menu?: boolean;
