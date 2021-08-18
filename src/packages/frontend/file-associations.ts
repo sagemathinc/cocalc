@@ -16,8 +16,9 @@ import { IconName } from "./components/icon";
 
 const codemirror_associations: { [ext: string]: string } = {
   adb: "ada",
+  asm: "text/x-gas",
   c: "text/x-c",
-  zig: "text/x-c",  // wrong, but much better than nothing
+  zig: "text/x-c", // wrong, but much better than nothing
   "c++": "text/x-c++src",
   cob: "text/x-cobol",
   cql: "text/x-sql",
@@ -130,6 +131,7 @@ const MODE_TO_ICON: { [mode: string]: IconName } = {
   "text/x-rustsrc": "cog",
   r: "r",
   rmd: "r",
+  "text/x-gas": "microchip",
 };
 
 for (const ext in codemirror_associations) {
@@ -164,6 +166,15 @@ file_associations["tex"] = {
   icon: "tex-file",
   opts: { mode: "stex2", indent_unit: 2, tab_size: 2 },
   name: "LaTeX",
+};
+
+// At https://cs.lmu.edu/~ray/notes/gasexamples/ they use .s, so I'm also including that.
+// In fact, GCC only works on files if they end in .s.
+file_associations["asm"] = file_associations["s"] = {
+  editor: "codemirror",
+  icon: "microchip",
+  opts: { mode: "gas", architecture: "x86" },
+  name: "GNU Assembler",
 };
 
 file_associations["rnw"] = {
