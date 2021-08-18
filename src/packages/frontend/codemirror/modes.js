@@ -73,6 +73,7 @@ require("codemirror/mode/xquery/xquery.js");
 require("codemirror/mode/yaml/yaml.js");
 require("codemirror/mode/yaml-frontmatter/yaml-frontmatter.js");
 require("codemirror/mode/z80/z80.js");
+require("codemirror/mode/gas/gas.js");
 
 /*
 * In mode/python/python.js I add our unicode output character to be a comment starter:
