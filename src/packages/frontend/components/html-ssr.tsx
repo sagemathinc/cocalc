@@ -57,11 +57,8 @@ export default function HTML({
   let options: any = {};
   if (AnchorTagComponent != null) {
     options.replace = (domNode) => {
-      console.log("domNode = ", domNode);
-
       if (domNode instanceof Text) {
         const { data } = domNode;
-        console.log("text type...", data);
         const [text, math] = remove_math(math_escape(data));
         if (math.length == 0) return;
         for (let i = 0; i < math.length; i++) {
