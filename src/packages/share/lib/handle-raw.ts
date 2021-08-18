@@ -74,8 +74,18 @@ async function handleRequest({
     url = fsPath.slice(i);
     fsPath = fsPath.slice(0, i);
   }
-  const handler = getStaticHandler(fsPath);
+
   req.url = url;
+  staticHandler(fsPath, req, res, next);
+}
+
+export function staticHandler(
+  fsPath: string,
+  req: Request,
+  res: Response,
+  next: Function
+) {
+  const handler = getStaticFileHandler(fsPath);
   handler(req, res, () => {
     // Static handler didn't work, so try the directory listing handler.
     const handler = getDirectoryHandler(fsPath);
@@ -83,13 +93,13 @@ async function handleRequest({
   });
 }
 
-const staticCache = new LRU({ max: 200 });
-function getStaticHandler(path: string) {
-  if (staticCache.has(path)) {
-    return staticCache.get(path);
+const staticFileCache = new LRU({ max: 200 });
+function getStaticFileHandler(path: string) {
+  if (staticFileCache.has(path)) {
+    return staticFileCache.get(path);
   }
   const handler = ExpressStatic(path);
-  staticCache.set(path, handler);
+  staticFileCache.set(path, handler);
   return handler;
 }
 
