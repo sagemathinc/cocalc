@@ -168,6 +168,13 @@ file_associations["tex"] = {
   name: "LaTeX",
 };
 
+file_associations["asm"] = {
+  editor: "codemirror",
+  icon: "microchip",
+  opts: { mode: "gas", architecture: "x86" },
+  name: "GNU Assembler",
+};
+
 file_associations["rnw"] = {
   editor: "latex",
   icon: "tex-file",
