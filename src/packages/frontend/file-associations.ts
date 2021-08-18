@@ -168,7 +168,9 @@ file_associations["tex"] = {
   name: "LaTeX",
 };
 
-file_associations["asm"] = {
+// At https://cs.lmu.edu/~ray/notes/gasexamples/ they use .s, so I'm also including that.
+// In fact, GCC only works on files if they end in .s.
+file_associations["asm"] = file_associations["s"] = {
   editor: "codemirror",
   icon: "microchip",
   opts: { mode: "gas", architecture: "x86" },
