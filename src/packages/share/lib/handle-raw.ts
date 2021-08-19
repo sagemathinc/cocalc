@@ -85,9 +85,11 @@ export function staticHandler(
   res: Response,
   next: Function
 ) {
+  //console.log("staticHandler", { fsPath, url: req.url });
   const handler = getStaticFileHandler(fsPath);
   handler(req, res, () => {
     // Static handler didn't work, so try the directory listing handler.
+    //console.log("directoryHandler", { fsPath, url: req.url });
     const handler = getDirectoryHandler(fsPath);
     handler(req, res, next);
   });

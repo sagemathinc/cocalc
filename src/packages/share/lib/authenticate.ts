@@ -28,7 +28,6 @@ export default function isAuthenticated({
   path,
   auth,
 }: Options): boolean {
-  dbg.debug(`checking for path="${path}"...`);
   if (auth == null) {
     return true; // no authentication needed
   }

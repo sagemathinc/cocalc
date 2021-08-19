@@ -30,7 +30,7 @@ export default function virtualHostsMiddleware() {
     // impossible because otherwise the haproxy server sends queries
     // all straight to the production share server!
     const vhost: string | undefined = req.headers.host?.toLowerCase();
-    // const vhost = "vertramp.org";
+    //const vhost = "vertramp.org";
     if (vhost == null) {
       // logger.debug("no host header set");
       next();
@@ -51,6 +51,9 @@ export default function virtualHostsMiddleware() {
       // cc-in-cc development.
       path = req.url.slice(basePath.length);
     }
+    if (path == "") {
+      path = "/";
+    }
 
     // logger.debug({ vhost, url: req.url, info, path });
 
@@ -67,7 +70,7 @@ export default function virtualHostsMiddleware() {
         vhost,
         path
       );
-      res.status(403).send({ auth: false, message: "not authenticated" });
+      res.status(403).end();
       return;
     }
 
