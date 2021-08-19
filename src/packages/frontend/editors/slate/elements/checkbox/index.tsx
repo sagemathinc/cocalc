@@ -28,6 +28,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
           verticalAlign: "middle",
         }}
         checked={!!element.value}
+        disabled={true}
       />
       {children}
     </span>
