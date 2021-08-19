@@ -14,14 +14,26 @@ Page for a given user.
 
 import { trunc } from "lib/util";
 import getAccountInfo, { AccountInfo } from "lib/get-account-info";
+import Loading from "components/loading";
+import PublicPaths from "components/public-paths";
 
-export default function Account({ firstName, lastName }: AccountInfo) {
+export default function Account({
+  firstName,
+  lastName,
+  publicPaths,
+}: AccountInfo) {
+  if (firstName == null || lastName == null || publicPaths == null) {
+    return <Loading />;
+  }
   const name = trunc(`${firstName} ${lastName}`, 150);
   return (
     <div>
       <h1>{name}</h1>
       {name} is a collaborator on projects that contain the following public
-      CoCalc documents:
+      documents:
+      <br />
+      <br />
+      <PublicPaths publicPaths={publicPaths} />
     </div>
   );
 }
