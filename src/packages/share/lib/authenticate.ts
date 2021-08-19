@@ -11,9 +11,9 @@ import type { Request, Response } from "express";
 import basicAuth from "basic-auth";
 import { verify } from "password-hash";
 import { isArray } from "lodash";
-import { getLogger } from "@cocalc/util-node/logger";
+//import { getLogger } from "@cocalc/util-node/logger";
 import { VirtualHostInfo, Auth } from "./get-vhost-info";
-const dbg = getLogger("virtual-hosts:authenticate");
+//const dbg = getLogger("virtual-hosts:authenticate");
 
 interface Options {
   req: Request;
