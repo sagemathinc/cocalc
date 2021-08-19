@@ -3,12 +3,13 @@
  */
 
 import { join } from "path";
-import { Application } from "express";
-// @ts-ignore
+import { Application, Request, Response, NextFunction } from "express";
+// @ts-ignore -- for some reason typescript can't find this.  It is a js file.
 import initShareServer from "@cocalc/share/init";
 import handleRaw from "@cocalc/share/lib/handle-raw";
 import { getLogger } from "@cocalc/hub/logger";
 import getCustomize from "./landing-customize";
+import redirect from "./share-redirect";
 
 export default async function init(app: Application) {
   const winston = getLogger("share");
@@ -30,7 +31,7 @@ export default async function init(app: Application) {
 
   // The raw static server:
   const raw = join(basePath, "raw");
-  app.all(join(raw, "*"), (req, res, next) => {
+  app.all(join(raw, "*"), (req: Request, res: Response, next: NextFunction) => {
     try {
       handleRaw({ ...parseURL(req, raw), req, res, next });
     } catch (_err) {
@@ -40,13 +41,26 @@ export default async function init(app: Application) {
 
   // The download server -- just like raw, but files get sent via download.
   const download = join(basePath, "download");
-  app.all(join(download, "*"), (req, res, next) => {
-    try {
-      handleRaw({ ...parseURL(req, download), req, res, next, download: true });
-    } catch (_err) {
-      res.status(404).end();
+  app.all(
+    join(download, "*"),
+    (req: Request, res: Response, next: NextFunction) => {
+      try {
+        handleRaw({
+          ...parseURL(req, download),
+          req,
+          res,
+          next,
+          download: true,
+        });
+      } catch (_err) {
+        res.status(404).end();
+      }
     }
-  });
+  );
+
+  // Redirects for backward compat; unfortunately there's slight
+  // overhead for doing this on every request.
+  app.all(join(basePath, "*"), redirect(basePath));
 
   // The next.js server that servers everything else.
   const endpoints = [
@@ -63,7 +77,7 @@ export default async function init(app: Application) {
   }
 }
 
-function parseURL(req, base): { id: string; path: string } {
+function parseURL(req: Request, base): { id: string; path: string } {
   let url = req.url.slice(base.length + 1);
   let i = url.indexOf("/");
   if (i == -1) {
