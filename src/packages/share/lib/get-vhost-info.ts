@@ -29,31 +29,32 @@ const cache = new LRU<string, HostInfo | null>({
 });
 
 export default async function getVirtualHostInfo(
-  host: string
+  vhost: string
 ): Promise<HostInfo | null> {
-  if (cache.has(host)) {
-    return cache.get(host);
+  if (cache.has(vhost)) {
+    //logger.debug("using cache");
+    return cache.get(vhost);
   }
-  logger.debug("host='%s'", host);
+
   const pool = getPool();
 
   // Get the database entry that describes the public path with given vhost.
   // NOTE: we are assuming there is at most one with a given vhost.  If there
   // are more, behavior is not defined, but that will get logged.
-  const { rows } = await pool.query(
-    "SELECT project_id, path, auth FROM public_paths WHERE disabled IS NOT TRUE AND vhost=$1",
-    [host]
-  );
+  const query =
+    "SELECT project_id, path, auth FROM public_paths WHERE disabled IS NOT TRUE AND $1::TEXT=ANY(string_to_array(vhost,','))";
+  // logger.debug('query = ', query);
+  const { rows } = await pool.query(query, [vhost]);
   if (rows.length == 0 || rows[0].project_id == null || rows[0].path == null) {
-    logger.debug("no valid virtual host=%s", host);
-    cache.set(host, null);
+    // logger.debug("no valid virtual vhost=%s", vhost);
+    cache.set(vhost, null);
     return null;
   }
   if (rows.length > 1) {
-    logger.warn("WARNING: multiple virtual host entries for host=%s", host);
+    logger.warn("WARNING: multiple virtual host entries for vhost=%s", vhost);
   }
   const { project_id, path, auth } = rows[0]; // is a weird data type, which is why we don't just return it.
   const r = { project_id, path, auth };
-  cache.set(host, r);
+  cache.set(vhost, r);
   return r;
 }

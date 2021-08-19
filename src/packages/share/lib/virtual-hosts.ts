@@ -10,10 +10,10 @@ Support for virtual hosts.
 import type { Request, Response } from "express";
 import { getLogger } from "@cocalc/util-node/logger";
 import pathToFiles from "./path-to-files";
-import { basePath } from "./customize";
 import isAuthenticated from "./authenticate";
 import getVirtualHostInfo from "./get-vhost-info";
 import { staticHandler } from "./handle-raw";
+import basePath from "@cocalc/util-node/base-path";
 
 const logger = getLogger("virtual-hosts");
 
@@ -30,24 +30,29 @@ export default function virtualHostsMiddleware() {
     // impossible because otherwise the haproxy server sends queries
     // all straight to the production share server!
     const vhost: string | undefined = req.headers.host?.toLowerCase();
+    // const vhost = "vertramp.org";
     if (vhost == null) {
+      // logger.debug("no host header set");
       next();
       return;
     }
+    logger.debug("checking for vhost", vhost);
 
     const info = await getVirtualHostInfo(vhost);
     if (info == null) {
+      // logger.debug("no vhost info for ", vhost);
       next();
       return;
     }
 
-    logger.debug("vhost = %s, req.url=%s", vhost, req.url);
     let path = req.url;
-    if (basePath != "/") {
-      // This is pretty much only going to happen in case of doing
-      // cc-in-cc dev.
-      path = path.slice(basePath.length);
+    if (basePath && basePath != "/") {
+      // This is only going to happen in case of doing
+      // cc-in-cc development.
+      path = req.url.slice(basePath.length);
     }
+
+    // logger.debug({ vhost, url: req.url, info, path });
 
     const isAuth: boolean = isAuthenticated({
       req,
@@ -67,13 +72,14 @@ export default function virtualHostsMiddleware() {
     }
 
     const dir = pathToFiles(info.project_id, info.path);
-    logger.debug(
-      "virtual host path -- vhost='%s', path='%s', dir='%s'",
+    /* logger.debug(
+      "serving virtual host path -- vhost='%s',dir='%s'",
       vhost,
-      path,
       dir
-    );
-
-    staticHandler(dir, req, res, next);
+    ); */
+    req.url = path;
+    staticHandler(dir, req, res, () => {
+      res.status(404).end();
+    });
   };
 }

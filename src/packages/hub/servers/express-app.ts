@@ -50,7 +50,11 @@ export default async function init(opts: Options): Promise<{
   const app = express();
   const router = express.Router();
 
-  app.use(cookieParser());
+  // This must go very early - we handle virtual hosts, like wstein.org
+  // before any other routes or middleware interfere.
+  if (opts.shareServer) {
+    app.use(vhostShare());
+  }
 
   // Enable compression, as suggested by
   //   http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
@@ -58,9 +62,7 @@ export default async function init(opts: Options): Promise<{
   // https://github.com/expressjs/compression/issues/35#issuecomment-77076170
   app.use(compression());
 
-  if (opts.shareServer) {
-    app.use(vhostShare());
-  }
+  app.use(cookieParser());
 
   // Install custom middleware to track response time metrics via prometheus, and
   // also serve them up at /metrics.
