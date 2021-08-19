@@ -29,11 +29,11 @@ src/tsconfig.tsbuildinfo
 
 src/static/
 src/static.git/
-src/webapp-lib/policies/_static_pricing_page.html
-src/webapp-lib/_static_*.html
-src/webapp-lib/examples/
-src/webapp-lib/compute-components.json
-src/webapp-lib/compute-inventory.json
+src/packages/assets/policies/_static_pricing_page.html
+src/packages/assets/_static_*.html
+src/packages/assets/examples/
+src/packages/assets/compute-components.json
+src/packages/assets/compute-inventory.json
 src/smc-webapp/_colors.sass
 
 src/page/temp
@@ -81,8 +81,8 @@ src/dev/public/rethinkdb_data/
 src/dev/smc/rethinkdb_data/
 src/dev/laptop/rethinkdb_data/
 
-src/webapp-lib/primus/primus-engine.js
-src/webapp-lib/primus/primus-engine.min.js
+src/packages/assets/primus/primus-engine.js
+src/packages/assets/primus/primus-engine.min.js
 
 src/static/term/term.min.js
 
@@ -91,8 +91,6 @@ src/restart_compute
 .coffee
 
 src/smc-hub/run/hub[0-9].js
-src/smc-hub/smc-util/
-src/smc-hub/smc-util-node/
 src/smc-hub/lti
 src/smc-hub/landing
 
@@ -137,3 +135,5 @@ src/packages/landing
 tsconfig.tsbuildinfo
 **/landing-free/cache/
 **/.next
+
+src/packages/*/.successful-build

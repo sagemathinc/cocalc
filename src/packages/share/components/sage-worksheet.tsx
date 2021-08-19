@@ -4,8 +4,8 @@
  */
 
 /*
-import { parse_sagews } from "smc-webapp/sagews/parse-sagews";
-import { Worksheet } from "smc-webapp/sagews/worksheet";
+import { parse_sagews } from "@cocalc/frontend/sagews/parse-sagews";
+import { Worksheet } from "@cocalc/frontend/sagews/worksheet";
 
 interface Props {
   content: string;

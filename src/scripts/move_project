@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-set -e
-set -v
-cd ~
-. .smc-conf
-cd $SALVUS_ROOT
-echo "id='$1';  require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);s.project(project_id:id,cb:(e,p)->console.log(e);p.move(target:'$2',cb:(e)->console.log('DONE',e);process.exit())))" | coffee

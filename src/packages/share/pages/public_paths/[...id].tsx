@@ -32,8 +32,6 @@ export default function PublicPath({
   license,
   contents,
   error,
-  basePath,
-  appServer,
 }) {
   useCounter(id);
   if (id == null) return <Loading />;
@@ -52,38 +50,44 @@ export default function PublicPath({
   }
   return (
     <div>
-      <b>Public path: </b>
+      <b>Path: </b>
       <LinkedPath
         path={path}
         relativePath={relativePath}
         id={id}
         isdir={contents?.isdir}
       />
-      <br />
-      <b>Description:</b> {description}
-      <br />
-      <b>Views:</b> {counter}
+      {description && (
+        <>
+          <br />
+          <b>Description:</b> {description}
+        </>
+      )}
+      {counter && (
+        <>
+          <br />
+          <b>Views:</b> {counter}
+        </>
+      )}
       <br />
       <b>License:</b> <License license={license} />
       <br />
-      <b>Compute image:</b> {compute_image}
-      <br />
+      {compute_image && (
+        <>
+          <b>Image:</b> {compute_image}
+          <br />
+        </>
+      )}
       <b>Project:</b>{" "}
       <ProjectLink project_id={project_id} title={projectTitle} />
       <br />
       <ExternalLink
-        href={editURL(
-          id,
-          relativePath ? path + "/" + relativePath : path,
-          appServer ?? basePath
-        )}
+        href={editURL(id, relativePath ? path + "/" + relativePath : path)}
       >
         Edit
       </ExternalLink>
       ,{" "}
-      <ExternalLink
-        href={rawURL(id, relativePath ? relativePath : path, basePath)}
-      >
+      <ExternalLink href={rawURL(id, relativePath ? relativePath : path)}>
         Raw
       </ExternalLink>
       ,{" "}
@@ -97,9 +101,7 @@ export default function PublicPath({
       {!contents?.isdir && (
         <>
           ,{" "}
-          <a
-            href={downloadURL(id, relativePath ? relativePath : path, basePath)}
-          >
+          <a href={downloadURL(id, relativePath ? relativePath : path)}>
             Download
           </a>
         </>
@@ -109,7 +111,6 @@ export default function PublicPath({
         <PathContents
           id={id}
           relativePath={relativePath}
-          basePath={basePath}
           path={path}
           {...contents}
         />

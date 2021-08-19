@@ -5,8 +5,8 @@
 
 /* Static markdown renderer. */
 
-import { markdown_to_html } from "smc-webapp/markdown";
-import mathToHtml from "smc-webapp/misc/math-to-html";
+import { markdown_to_html } from "@cocalc/frontend/markdown";
+import mathToHtml from "@cocalc/frontend/misc/math-to-html";
 
 function processMath(s: string): string {
   const { __html, err } = s.startsWith("$$")

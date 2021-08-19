@@ -3,7 +3,7 @@
   "compilerOptions": {
     "module": "es2020",
     "incremental": false,
-    "rootDir": "./node_modules/smc-webapp/",
+    "rootDir": "./node_modules/@cocalc/frontend/",
     "outDir": "dist",
     "jsx": "react",
     "target": "es5",

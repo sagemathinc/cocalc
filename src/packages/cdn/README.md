@@ -15,6 +15,6 @@ Run `npm ci` to install the modules in the node\_modules directory, as usual.  T
 
 ## Notes
 
-Other files in `webapp-lib` might not be used any more. At some point we can clean them up.
+Other files in `packages/assets` might not be used any more. At some point we can clean them up.
 
 We have to run a postinstall script to create the versioned symlinks, since -- to be cross platform -- npm itself [doesn't support symlinks](https://npm.community/t/how-can-i-publish-symlink/5599).

@@ -14,7 +14,6 @@ interface Props {
   listing?: FileInfo[];
   content?: string;
   relativePath: string;
-  basePath: string;
   path: string;
 }
 
@@ -24,7 +23,6 @@ export default function PathContents({
   listing,
   content,
   relativePath,
-  basePath,
   path,
 }: Props) {
   if (isdir) {
@@ -39,7 +37,6 @@ export default function PathContents({
         content={content}
         path={path}
         relativePath={relativePath}
-        basePath={basePath}
       />
     );
   }

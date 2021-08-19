@@ -6,15 +6,15 @@ Using webpack we build the static assets that run in the client's browser.
 
 ### 1. Development
 
-When doing development, use `npm run webpack` and `npm run tsc-webapp` and `npm run tsc-static` in three terminals.
+When doing development, use `npm run webpack` and `npm run tsc` in two terminals.
 
 ```sh
 npm run weppack
-npm run tsc-webapp
-npm run tsc-static
+npm run tsc
 ```
+ALSO, run `npm run tsc` in the `packages/frontend` directory, if you are editing that code.
 
-The first runs webpack to package everything up, the second independently checks for errors in the typescript files in the `smc-webapp` package (the two should not interfere in any way with each other), and the third does the same for code in `packages/static/src`. If you're using an editor like vscode that tells you Typescript errors, you don't need to bother with `npm run tsc-*`.
+The first runs webpack to package everything up, the second independently checks for errors in the typescript files in the `frontend` package (the two should not interfere in any way with each other), and the third does the same for code in `packages/static/src`. If you're using an editor like vscode that tells you Typescript errors, you don't need to bother with `npm run tsc-*`.
 
 Use `npm run webpack-prod` to build and test the production version locally:
 
@@ -48,7 +48,8 @@ Make sure to kill any running webpack first.  Everything to make a release is au
 $ cd ../..
 $ pwd
 /home/user/cocalc/src
-$ time npm run publish --packages=static --newversion=minor
+$ time npm run update-version --packages=static --newversion=minor
+$ time npm run publish --packages=static
 ```
 
 Here `newversion` could be major, minor, or patch.  This does a full production build, updates 
@@ -58,7 +59,7 @@ to package.json to git.
 If you want to make a _development release,_ e.g., to make it easier to debug something on [test.cocalc.com](http://test.cocalc.com), do
 
 ```sh
-time NODE_ENV=development npm run publish --packages=static --newversion=minor
+time NODE_ENV=development npm run publish --packages=static
 ```
 
 ## More about development
@@ -77,7 +78,7 @@ all your code up.
 In a second terminal (also in this package/static directory!), start watching for errors via typescript:
 
 ```sh
-npm run tsc-webapp
+npm run tsc-frontend
 ```
 
 The files that are produced by webpack, and that your hub serves up are in the subdirectory `dist/`.  The hub server serves these static files to your browser.
@@ -94,7 +95,7 @@ which will check those files for typescript errors.
 
 ### The module search path:
 
-If there is a package installed in `packages/static/node_modules` it will get included by webpack before the same (but different version) package in `smc-webapp/node_modules`, because of what we listed in `resolve.modules` in `webpack.config.js`. This can cause confusion. E.g., maybe an old version of the `async` library gets indirectly installed in `packages/static/node_modules`, which is wrong. That's why a specific version of async is installed here. The one good thing about this is it makes it easier to override modules installed in `smc-webapp/` if necessary, like we do with `pdfjs-dist` since otherwise it ends up with its own copy of webpack.
+If there is a package installed in `packages/static/node_modules` it will get included by webpack before the same (but different version) package in `frontend/node_modules`, because of what we listed in `resolve.modules` in `webpack.config.js`. This can cause confusion. E.g., maybe an old version of the `async` library gets indirectly installed in `packages/static/node_modules`, which is wrong. That's why a specific version of async is installed here. The one good thing about this is it makes it easier to override modules installed in `frontend/` if necessary, like we do with `pdfjs-dist` since otherwise it ends up with its own copy of webpack.
 
 ### tsconfig.json and code splitting
 
@@ -108,7 +109,7 @@ Code splitting [can't work](https://davidea.st/articles/webpack-typescript-code-
 }
 ```
 
-### Changing code in other packages such as `smc-util`
+### Changing code in other packages such as `packages/util`
 
-1. Change something in `smc-util`.
-2. You **must** do `npm run build` in `smc-util` to make the changes visible to webpack!  This is because anything outside of `smc-util` actually only sees `smc-util/dist` which is the compiled versions of everything.   This is a significant change from before.
+1. Change something in `packages/util`.
+2. You **must** do `npm run build` in `packages/util` to make the changes visible to webpack!  This is because anything outside of `packages/util` actually only sees `packages/util/dist` which is the compiled versions of everything.   This is a significant change from before.

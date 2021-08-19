@@ -13,7 +13,7 @@ import { writeFileSync } from "fs";
 import { execSync } from "child_process";
 
 const api_root = "/api/v1/";
-const api_doc = require("../smc-util/message").documentation;
+const api_doc = require("../packages/util/dist/message").documentation;
 api_doc.root = api_root;
 api_doc.timestamp = new Date().toISOString();
 const gitrev = execSync("git rev-parse HEAD");

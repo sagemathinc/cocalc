@@ -4,7 +4,7 @@ Consistency check for npm packages across node modules
 
 Hint: to get a "real time" info while working on resolving this, run
       $ /usr/bin/watch -n1 check_npm_packages.py
-      in the SMC_ROOT dir in a separate terminal.
+      in the COCALC_ROOT dir in a separate terminal.
 """
 
 import os
@@ -18,10 +18,10 @@ from typing_extensions import Final
 
 T_installs = Dict[str, Dict[str, str]]
 
-root: Final[str] = os.environ.get('SMC_ROOT', abspath(os.curdir))
+root: Final[str] = os.environ.get('COCALC_ROOT', abspath(os.curdir))
 
 # these packages are known to be inconsistent on purpose
-# async and immutable are a little bit more modern in smc-webapp,
+# async and immutable are a little bit more modern in packages/frontend,
 # while they are behind elsewhere (but at the same vesion)
 # we don't want to introduce any other inconsistencies...
 whitelist: Final[List[str]] = ['async', 'immutable']
@@ -37,16 +37,19 @@ def pkg_dirs() -> List[str]:
     return packages
 
 
-def get_versions(packages, dep_type) -> Tuple[T_installs, Set[str]]:
+def get_versions(packages) -> Tuple[T_installs, Set[str]]:
     installs: T_installs = defaultdict(dict)
     modules: Set[str] = set()
 
     for pkg in packages:
-        pkgs = json.load(open(pkg))
-        module = basename(dirname(pkg))
-        modules.add(module)
-        for name, vers in pkgs.get(dep_type, {}).items():
-            installs[name][module] = vers
+        for dep_type in ['dependencies', 'devDependencies']:
+            pkgs = json.load(open(pkg))
+            module = basename(dirname(pkg))
+            modules.add(module)
+            for name, vers in pkgs.get(dep_type, {}).items():
+                assert installs[name].get(module) is None, \
+                    f"{name}/{module} already exists as a depdency – don't add it as a devDepedency as well"
+                installs[name][module] = vers
     return installs, modules
 
 
@@ -63,7 +66,7 @@ def print_table(installs: T_installs, modules) -> Tuple[str, int, List[str]]:
     for pkg, inst in sorted(installs.items()):
         if len(set(inst.values())) == 1: continue
         cnt += 1
-        if pkg not in whitelist:
+        if pkg not in whitelist and not pkg.startswith('@cocalc'):
             incon.append(pkg)
         table += f"{pkg:<30s}"
         for mod in sorted(modules):
@@ -76,15 +79,9 @@ def print_table(installs: T_installs, modules) -> Tuple[str, int, List[str]]:
 def main() -> None:
     packages: Final = pkg_dirs()
 
-    main_pkgs, main_mods = get_versions(packages, 'dependencies')
-    dev_pkgs, dev_mods = get_versions(packages, 'devDependencies')
-
-    dev_table, dev_cnt, dev_incon = print_table(dev_pkgs, dev_mods)
-    if dev_cnt > 0:
-        print("Development Modules")
-        print(dev_table)
-        print(f"you have to fix these new inconsistencies: {dev_incon}")
-        print("\nRegular Code Modules")
+    # We mix up dependencies and devDepdencies into one. Otherwise cross-inconsistencies do not show up.
+    # Also, get_versions fails if there is the same module as a dependencies AND devDependencies in the same package.
+    main_pkgs, main_mods = get_versions(packages)
 
     table, cnt, incon = print_table(main_pkgs, main_mods)
 

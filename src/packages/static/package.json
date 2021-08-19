@@ -1,18 +1,14 @@
 {
   "name": "@cocalc/static",
   "workspaces": [
-    "../../smc-util",
-    "../../smc-util-node",
-    "../../webapp-lib",
-    "../../smc-webapp",
-    "../cdn"
+    "../assets",
+    "../frontend",
+    "../cdn",
+    "../util-node",
+    "../util"
   ],
-  "dependencies": {
-    "@cocalc/cdn": "*",
-    "webapp-lib": "*"
-  },
-  "version": "1.16.1",
-  "description": "CoCalc's Static Frontend Webapp Assets",
+  "version": "1.23.0",
+  "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
     "presets": [
@@ -23,10 +19,9 @@
     ]
   },
   "scripts": {
-    "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development webpack --progress --color --watch",
-    "tsc-webapp": "cd node_modules/smc-webapp && npx tsc --watch",
-    "tsc-static": "cd src && npx tsc --watch",
-    "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production webpack --progress --color --watch",
+    "webpack": "NODE_OPTIONS=--max_old_space_size=8000  NODE_ENV=development npx webpack --progress --color --watch",
+    "tsc": "cd src && npx tsc --watch",
+    "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production npx webpack --progress --color --watch",
     "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development npm run webpack ",
     "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true npm run webpack-prod",
     "build": "./production-build.py"
@@ -53,6 +48,11 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "devDependencies": {
+    "@cocalc/assets": "^1.0.1",
+    "@cocalc/cdn": "^1.2.2",
+    "@cocalc/frontend": "^1.0.2",
+    "@cocalc/util": "^1.1.0",
+    "@cocalc/util-node": "^1.0.1",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^26.0.23",
     "@types/jquery": "^3.5.5",
@@ -61,7 +61,7 @@
     "@typescript-eslint/eslint-plugin": "^4.24.0",
     "@typescript-eslint/parser": "^4.24.0",
     "assert": "^2.0.0",
-    "async": "^3.2.0",
+    "async": "^2.6.3",
     "autoprefixer": "^10.2.5",
     "buffer": "^6.0.3",
     "cjsx-loader": "^3.0.0",
@@ -75,7 +75,6 @@
     "cssnano": "^5.0.3",
     "entities": "^2.2.0",
     "enzyme": "^3.11.0",
-    "enzyme-adapter-react-16": "^1.15.6",
     "enzyme-to-json": "^3.6.2",
     "eslint": "^7.31.0",
     "eslint-config-prettier": "^8.3.0",
@@ -104,10 +103,8 @@
     "npm-check-updates": "^11.5.13",
     "parse-asn1": "^5.1.6",
     "path-browserify": "^1.0.1",
-    "pdfjs-dist": "^2.7.570",
-    "prettier": "^2.3.0",
-    "pug": "^3.0.2",
-    "pug-loader": "^2.4.0",
+    "pdfjs-dist": "^2.9.359",
+    "prettier": "^2.3.2",
     "raw-loader": "^4.0.2",
     "react-helmet": "^6.1.0",
     "react-test-renderer": "^17.0.2",
@@ -123,7 +120,7 @@
     "ts-loader": "^9.2.1",
     "tsd": "^0.15.1",
     "typescript": "^4.3.5",
-    "uglify-js": "^3.13.10",
+    "uglify-js": "^3.14.1",
     "url-loader": "^4.1.1",
     "util": "^0.12.3",
     "webpack": "^5.44.0",

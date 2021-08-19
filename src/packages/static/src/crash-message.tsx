@@ -1,5 +1,5 @@
 import React from "react";
-import { HELP_EMAIL } from "smc-util/theme";
+import { HELP_EMAIL } from "@cocalc/util/theme";
 
 export default function CrashMessage({
   msg,

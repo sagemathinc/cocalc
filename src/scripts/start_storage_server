@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-cd $HOME/salvus/salvus; . smc-env; storage_server start

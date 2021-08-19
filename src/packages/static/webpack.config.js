@@ -39,10 +39,10 @@ webpack website.  Differences include:
 const webpack = require("webpack");
 const path = require("path");
 const child_process = require("child_process");
-const misc = require("smc-util/misc");
-const misc_node = require("smc-util-node/misc_node");
-const SMC_VERSION = require("smc-util/smc-version").version;
-const theme = require("smc-util/theme");
+const misc = require("@cocalc/util/misc");
+const misc_node = require("@cocalc/util-node/misc_node");
+const SMC_VERSION = require("@cocalc/util/smc-version").version;
+const theme = require("@cocalc/util/theme");
 const CDN_VERSIONS = require("@cocalc/cdn").versions;
 
 // Determine the git revision hash:
@@ -151,10 +151,8 @@ module.exports = {
   */
   output: {
     path: OUTPUT,
-    filename: PRODMODE ? "[name]-[chunkhash].cacheme.js" : "[id].nocache.js",
-    chunkFilename: PRODMODE
-      ? "[chunkhash].cacheme.js"
-      : "[id]-[chunkhash].nocache.js",
+    filename: PRODMODE ? "[name]-[chunkhash].js" : "[id]-[chunkhash].js",
+    chunkFilename: PRODMODE ? "[chunkhash].js" : "[id]-[chunkhash].js",
     hashFunction: "sha256",
   },
   module: {
@@ -162,9 +160,13 @@ module.exports = {
   },
   resolve: {
     alias: {
-      // smc-webapp alias so we can write `require("smc-webapp/...")`
+      // @cocalc/frontend  alias so we can write `require("@cocalc/frontend/...")`
       // anywhere in that library:
-      "smc-webapp": path.resolve(__dirname, "node_modules", "smc-webapp"),
+      "@cocalc/frontend": path.resolve(
+        __dirname,
+        "node_modules",
+        "@cocalc/frontend"
+      ),
       // This entities/maps alias is needed due to a weird markdown-it import
       // that webpack 5 won't resolve:
       "entities/maps": path.resolve(
@@ -188,12 +190,14 @@ module.exports = {
     modules: [
       __dirname,
       path.resolve(__dirname, "node_modules"),
-      path.resolve(__dirname, "node_modules", "webapp-lib"),
-      path.resolve(__dirname, "node_modules", "webapp-lib/node_modules"),
-      path.resolve(__dirname, "node_modules", "smc-util"),
-      path.resolve(__dirname, "node_modules", "smc-util/node_modules"),
-      path.resolve(__dirname, "node_modules", "smc-webapp"),
-      path.resolve(__dirname, "node_modules", "smc-webapp/node_modules"),
+      path.resolve(__dirname, "node_modules", "@cocalc/assets"),
+      path.resolve(__dirname, "node_modules", "@cocalc/assets/node_modules"),
+      path.resolve(__dirname, "node_modules", "@cocalc/util"),
+      path.resolve(__dirname, "node_modules", "@cocalc/util/node_modules"),
+      path.resolve(__dirname, "node_modules", "@cocalc/frontend"),
+      path.resolve(__dirname, "node_modules", "@cocalc/frontend/node_modules"),
+      path.resolve(__dirname, "node_modules", "@cocalc/cdn"),
+      path.resolve(__dirname, "node_modules", "@cocalc/cdn/node_modules"),
     ],
     preferRelative: false /* do not use true: it may workaround some weird cases, but breaks many things (e.g., slate) */,
     fallback: {

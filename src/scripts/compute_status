@@ -1,2 +1,0 @@
-cd $SALVUS_ROOT
-echo "require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);s.status(cb:(e,f)->console.log(f);process.exit(0))) " | coffee
