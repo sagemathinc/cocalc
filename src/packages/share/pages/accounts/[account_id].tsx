@@ -12,14 +12,16 @@ Page for a given user.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import getPool from "lib/database";
-import { isUUID, trunc } from "lib/util";
+import { trunc } from "lib/util";
+import getAccountInfo, { AccountInfo } from "lib/get-account-info";
 
-export default function Account({ first_name, last_name }) {
+export default function Account({ firstName, lastName }: AccountInfo) {
+  const name = trunc(`${firstName} ${lastName}`, 150);
   return (
     <div>
-      <h1>Account</h1>
-      Name: {trunc(`${first_name} ${last_name}`, 150)}
+      <h1>{name}</h1>
+      {name} is a collaborator on projects that contain the following public
+      CoCalc documents:
     </div>
   );
 }
@@ -29,26 +31,14 @@ export async function getStaticPaths() {
 }
 
 export async function getStaticProps(context) {
-  const pool = getPool();
-
-  // Get the sha1 id.
   const { account_id } = context.params;
-  if (!isUUID(account_id)) {
+  try {
+    const accountInfo = await getAccountInfo(account_id);
+    return {
+      props: accountInfo,
+      revalidate: 30,
+    };
+  } catch (err) {
     return { notFound: true };
   }
-
-  // Get the database entry
-  const {
-    rows,
-  } = await pool.query(
-    "SELECT first_name, last_name FROM accounts WHERE unlisted IS NOT TRUE AND account_id=$1",
-    [account_id]
-  );
-  if (rows.length == 0) {
-    return { notFound: true };
-  }
-  return {
-    props: { account_id, ...rows[0] },
-    revalidate: 30,
-  };
 }
