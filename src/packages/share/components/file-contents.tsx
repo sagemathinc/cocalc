@@ -49,6 +49,7 @@ export default function FileContents({
     const value = {
       urlTransform: getUrlTransform({ id, path, relativePath: relPath }),
       AnchorTagComponent: getAnchorTagComponent({ id, relativePath: relPath }),
+      noSanitize: true,  // this is temporarily disabled for initial release, since it is not yet needed.
     };
     return <FileContext.Provider value={value}>{x}</FileContext.Provider>;
   };
