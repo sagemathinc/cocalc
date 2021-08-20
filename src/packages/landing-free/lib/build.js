@@ -45,7 +45,9 @@ async function build(customize) {
     BASE_PATH: customize.basePath,
   };
   const cwd = join(__dirname, "..");
-  console.log(`\n*******\n\nBuilding nextjs production app in "${cwd}"\n\n*******\n\n`);
+  console.log(
+    `\n*******\n\nBuilding nextjs production app in "${cwd}"\n\n*******\n\n`
+  );
   await promisify((cb) => {
     spawn("npx", ["next", "build"], { env, cwd, stdio: "inherit" }).on(
       "close",

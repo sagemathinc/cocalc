@@ -5,7 +5,7 @@
 
 import { join } from "path";
 import basePath from "../base-path";
-import getServerSettings, { DatabaseQuery } from "./server-settings";
+import getServerSettings from "./server-settings";
 
 export interface Customize {
   siteName?: string;
@@ -34,10 +34,8 @@ This is used on the next.js server landing pages and the share server
 to customize their look and behavior.
 */
 
-export default async function getCustomize(
-  dbQuery: DatabaseQuery
-): Promise<Customize> {
-  const settings = await getServerSettings(dbQuery);
+export default async function getCustomize(): Promise<Customize> {
+  const settings = await getServerSettings();
 
   return {
     siteName: fallback(settings.site_name, "On Premises CoCalc"),

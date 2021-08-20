@@ -2,9 +2,7 @@ import LRU from "lru-cache";
 import { AllSiteSettingsCached as ServerSettings } from "@cocalc/util/db-schema/types";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { site_settings_conf as CONF } from "@cocalc/util/schema";
-
-// async function that does a PostgreSQL query.
-export type DatabaseQuery = (...args) => Promise<any>;
+import getPool from "../database";
 
 // We're just using this to cache one result for a while.  This could
 // be done with a simpler cache, but it's nice to use one cache everywhere.
@@ -15,13 +13,12 @@ const cache = new LRU<"key", ServerSettings>({
 });
 const KEY: "key" = "key"; // just one key :-)
 
-export default async function getServerSettings(
-  dbQuery: DatabaseQuery
-): Promise<ServerSettings> {
+export default async function getServerSettings(): Promise<ServerSettings> {
   if (cache.has(KEY)) {
     return cache.get(KEY)!; // can't be null
   }
-  const { rows } = await dbQuery("SELECT name, value FROM server_settings");
+  const pool = getPool();
+  const { rows } = await pool.query("SELECT name, value FROM server_settings");
 
   const settings: ServerSettings = { _timestamp: Date.now() };
 

@@ -12,3 +12,9 @@ const pool = new Pool({ password: dbPassword() });
 export default function getPool() {
   return pool;
 }
+
+export function getQuery() {
+  return async (...args) => {
+    return await getPool().query(...args);
+  };
+}
