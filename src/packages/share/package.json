@@ -1,12 +1,13 @@
 {
   "name": "@cocalc/share",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Landing pages for the free version of CoCalc.",
   "exports": {
     "./init": "./lib/init.js",
     "./lib/*": "./dist/lib/*.js"
   },
   "files": [
+    "dist/*",
     ".next/*",
     "styles/*",
     "public/*",
@@ -25,8 +26,8 @@
     "cocalc-prod": "export BASE_PATH=/$COCALC_PROJECT_ID/port/3000 && next build && next start",
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty ",
     "dev": "next dev",
-    "build": "next build && npm run build-dist",
-    "build-dist": "npx tsc --build tsconfig-dist.json && rm -rf .next/cache/webpack/*development*",
+    "build": "rm -rf .next/cache/webpack/*development* && next build && npm run build-dist",
+    "build-dist": "npx tsc --build tsconfig-dist.json",
     "start": "next start",
     "lint": "next lint"
   },
