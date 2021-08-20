@@ -363,7 +363,7 @@ def publish_package(args, package):
     sys.stdout.flush()
 
     if not package_version_is_modified_from_last_git_commit(package):
-        print("WARNING: You *might* need to first run update-version for '{package}', or somehow update the version in {package}/package.json.")
+        print(f"WARNING: You *might* need to first run update-version for '{package}', or somehow update the version in {package}/package.json.")
     # Do the build
     cmd("npm run build", package)
     try:
