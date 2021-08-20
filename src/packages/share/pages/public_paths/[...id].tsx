@@ -108,7 +108,7 @@ export async function getStaticProps(context) {
   const relativePath = context.params.id.slice(1).join("/");
   try {
     const props = await getPublicPathInfo(id, relativePath);
-    return { props, revalidate: 5 };
+    return { props, revalidate: 15 };
   } catch (_err) {
     //console.log(_err);
     return { notFound: true };

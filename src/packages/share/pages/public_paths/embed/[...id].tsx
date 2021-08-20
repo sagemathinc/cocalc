@@ -73,7 +73,7 @@ export async function getStaticProps(context) {
     const props = await getPublicPathInfo(id, relativePath);
     return {
       props: { ...props, layout: "embed" },
-      revalidate: 5,
+      revalidate: 15,
     };
   } catch (_err) {
     console.log(_err);

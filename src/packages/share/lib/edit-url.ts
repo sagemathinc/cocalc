@@ -7,11 +7,11 @@ import { appBasePath } from "./customize";
 
 interface Options {
   id: string;
-  relativePath: string;
+  path: string;
 }
 
-export default function editURL({ id, relativePath }: Options): string {
+export default function editURL({ id, path }: Options): string {
   return encodeURI(
-    `${appBasePath}/app?anonymous=true&launch=share/${id}/${relativePath}`
+    `${appBasePath}/app?anonymous=true&launch=share/${id}/${path}`
   );
 }
