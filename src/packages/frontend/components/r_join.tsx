@@ -9,7 +9,7 @@ import { len } from "@cocalc/util/misc";
 export function r_join(
   components: ReactNode[],
   sep: ReactNode = ", "
-): ReactNode[] {
+): JSX.Element {
   const w: ReactNode[] = [];
   for (const c of components) {
     if (c != null) {
@@ -25,5 +25,5 @@ export function r_join(
       v.push(<span key={-i - 1}>{sep}</span>);
     }
   }
-  return v;
+  return <>{v}</>;
 }
