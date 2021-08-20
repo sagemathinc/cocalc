@@ -11,7 +11,7 @@ interface Props {
   path: string;
   relativePath: string;
   isDir?: boolean;
-  exclude?: Set;
+  exclude?: Set<string>;
 }
 
 export default function PathActions({
