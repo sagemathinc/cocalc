@@ -110,7 +110,7 @@ export const SiteLicenses: React.FC<{}> = () => {
     );
   }
 
-  function render_main(): void | Rendered[] {
+  function render_main() {
     if (!view) return;
     if (!site_licenses) return;
     const v: Rendered[] = [];

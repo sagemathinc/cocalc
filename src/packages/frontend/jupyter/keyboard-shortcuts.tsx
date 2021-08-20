@@ -135,7 +135,7 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
       e.stopPropagation();
     }
 
-    function render_shortcuts(): Rendered[] {
+    function render_shortcuts() {
       const result: Rendered[] = [];
       for (const key in shortcuts) {
         const shortcut = shortcuts[key];

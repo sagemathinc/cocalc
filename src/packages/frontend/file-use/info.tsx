@@ -45,7 +45,7 @@ export class FileUseInfo extends Component<Props, {}> {
     );
   }
 
-  render_users(): Rendered[] | undefined {
+  render_users() {
     if (this.props.info.get("users") == null) return;
     const v: Rendered[] = [];
     // only list users who have actually done something aside from mark read/seen this file

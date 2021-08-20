@@ -4,15 +4,12 @@
  */
 
 import Link from "next/link";
-import ExternalLink from "components/external-link";
 import PathContents from "components/path-contents";
+import PathActions from "components/path-actions";
 import LinkedPath from "components/linked-path";
 import Loading from "components/loading";
 import License from "components/license";
 import ProjectLink from "components/project-link";
-import rawURL from "lib/raw-url";
-import editURL from "lib/edit-url";
-import downloadURL from "lib/download-url";
 import getPublicPathInfo from "lib/get-public-path-info";
 import useCounter from "lib/counter";
 
@@ -55,7 +52,7 @@ export default function PublicPath({
         path={path}
         relativePath={relativePath}
         id={id}
-        isdir={contents?.isdir}
+        isDir={contents?.isdir}
       />
       {description && (
         <>
@@ -81,23 +78,13 @@ export default function PublicPath({
       <b>Project:</b>{" "}
       <ProjectLink project_id={project_id} title={projectTitle} />
       <br />
-      <ExternalLink href={editURL({ id, relativePath })}>
-        Edit
-      </ExternalLink>,{" "}
-      <ExternalLink href={rawURL({ id, path, relativePath })}>Raw</ExternalLink>
-      ,{" "}
-      <Link
-        href={`/public_paths/embed/${id}${
-          relativePath ? "/" + relativePath : ""
-        }`}
-      >
-        <a>Embed</a>
-      </Link>
-      {!contents?.isdir && (
-        <>
-          , <a href={downloadURL(id, path, relativePath)}>Download</a>
-        </>
-      )}
+      <PathActions
+        id={id}
+        path={path}
+        relativePath={relativePath}
+        isDir={contents?.isdir}
+        exclude={new Set(["hosted"])}
+      />
       <hr />
       {contents != null && (
         <PathContents

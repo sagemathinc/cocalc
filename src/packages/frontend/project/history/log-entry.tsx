@@ -219,7 +219,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
   function multi_file_links(
     event: { files: string | string[] },
     link?: boolean
-  ): Rendered[] | Rendered {
+  ) {
     if (link == null) {
       link = true;
     }

@@ -72,7 +72,7 @@ class Authors extends Component<Props> {
     }
   }
 
-  private render_content(): Rendered | Rendered[] {
+  private render_content() {
     if (this.props.user_map == null) {
       return <Loading />;
     }

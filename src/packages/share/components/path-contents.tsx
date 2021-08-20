@@ -43,7 +43,6 @@ export default function PathContents({
     return (
       <div
         style={{
-          margin: "15px 0",
           border: "1px solid #ccc",
           padding: "20px 15px",
         }}

@@ -5,10 +5,10 @@
 
 import Link from "next/link";
 import PathContents from "components/path-contents";
+import PathActions from "components/path-actions";
 import Loading from "components/loading";
 import getPublicPathInfo from "lib/get-public-path-info";
 import useCounter from "lib/counter";
-import SiteName from "components/site-name";
 
 export default function PublicPath({
   id,
@@ -34,20 +34,22 @@ export default function PublicPath({
   }
   return (
     <div>
-      <Link href={`/public_paths/${id}`}>
-        <a
-          style={{
-            backgroundColor: "white",
-            position: "absolute",
-            right: 0,
-            padding: "0 5px",
-            border: "1px solid lightgrey",
-            borderRadius: "5px",
-          }}
-        >
-          <SiteName />
-        </a>
-      </Link>
+      <div
+        style={{
+          backgroundColor: "white",
+          display: "inline-block",
+          padding: "0 5px",
+          margin: "5px",
+        }}
+      >
+        <PathActions
+          id={id}
+          path={path}
+          relativePath={relativePath}
+          isDir={!!contents?.isdir}
+          exclude={new Set(["embed"])}
+        />
+      </div>
       {contents != null && (
         <PathContents
           id={id}
