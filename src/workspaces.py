@@ -376,9 +376,12 @@ def publish_package(args, package):
         print(
             f"Publish failed; you might need to manually revert the version in '{package}/package.json'."
         )
-    cmd(
-        f"git commit -v . -m 'Publish new version of package {package} to npmjs package repo.'",
-        package)
+    try:
+        cmd(
+            f"git commit -v . -m 'Publish new version of package {package} to npmjs package repo.'",
+            package)
+    except:
+        print(f"Didn't commit {package}; this may be fine.")
 
 
 def status(args):
