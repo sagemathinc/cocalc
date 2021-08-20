@@ -10,7 +10,6 @@ Synchronized table that tracks server settings.
 import { site_settings_conf } from "@cocalc/util/db-schema";
 import { startswith } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
-import { have_active_registration_tokens } from "../utils";
 import { database } from "./database";
 
 // Returns:
@@ -63,13 +62,6 @@ export default async function getServerSettings(): Promise<ServerSettings> {
       const recomm = all["version_recommended_browser"] || 0;
       pub[field] = version[field] = all[field] = Math.min(minver, recomm);
     }
-
-    // finally, signal the front end if it allows users to anonymously sign in
-    // OLD: this is currently derived from the existence of the sign up token
-    // NEW (past july 2020): there is a regisrtation token table
-    pub["allow_anonymous_sign_in"] = !(await have_active_registration_tokens(
-      database
-    ));
   };
   table.on("change", update);
   table.on("init", update);

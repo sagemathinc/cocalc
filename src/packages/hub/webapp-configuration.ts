@@ -47,19 +47,14 @@ async function get_passport_manager_async(): Promise<PassportManager> {
     if (pp_manager != null) {
       return pp_manager;
     } else {
-      L(`WARNING: Passport Manager not available yet -- trying again in ${ms}ms`);
+      L(
+        `WARNING: Passport Manager not available yet -- trying again in ${ms}ms`
+      );
       await delay(ms);
       ms = Math.min(10000, 1.3 * ms);
     }
   }
 }
-
-// these are special values, but can be overwritten by the specific theme
-const VANITY_HARDCODED = {
-  allow_anonymous_sign_in: false,
-  //kucalc: "onprem", // TODO: maybe do this, not sure
-  //commercial: false,
-} as const;
 
 export class WebappConfiguration {
   private readonly db: PostgreSQL;
@@ -79,11 +74,11 @@ export class WebappConfiguration {
 
   // server settings with whitelabeling settings
   // TODO post-process all values
-  public async settings(vid: string) {
+  public async settings(vID: string) {
     const res = await cb2(this.db._query, {
       query: "SELECT id, settings FROM whitelabeling",
       cache: true,
-      where: { "id = $::TEXT": vid },
+      where: { "id = $::TEXT": vID },
     });
     if (this.data == null) {
       // settings not yet initialized
@@ -107,11 +102,11 @@ export class WebappConfiguration {
     return undefined;
   }
 
-  private async theme(vid: string): Promise<Theme> {
+  private async theme(vID: string): Promise<Theme> {
     const res = await cb2(this.db._query, {
       query: "SELECT id, theme FROM whitelabeling",
       cache: true,
-      where: { "id = $::TEXT": vid },
+      where: { "id = $::TEXT": vID },
     });
     const data = res.rows[0];
     if (data != null) {
@@ -130,18 +125,15 @@ export class WebappConfiguration {
       L(`vanity theme=${JSON.stringify(theme)}`);
       return theme;
     } else {
-      L(`theme id=${vid} not found`);
+      L(`theme id=${vID} not found`);
       return {};
     }
   }
 
-  private async get_vanity(vid): Promise<object> {
-    if (vid != null && vid !== "") {
-      L(`vanity ID = "${vid}"`);
-      return {
-        ...VANITY_HARDCODED,
-        ...(await this.theme(vid)),
-      };
+  private async get_vanity(vID): Promise<object> {
+    if (vID != null && vID !== "") {
+      L(`vanity ID = "${vID}"`);
+      return await this.theme(vID);
     } else {
       return {};
     }
@@ -153,9 +145,9 @@ export class WebappConfiguration {
       // settings not yet initialized
       return {};
     }
-    const vid = this.get_vanity_id(host);
+    const vID = this.get_vanity_id(host);
     const config = this.data.pub;
-    const vanity = this.get_vanity(vid);
+    const vanity = this.get_vanity(vID);
     return { ...config, ...vanity, ...{ country, dns: host } };
   }
 

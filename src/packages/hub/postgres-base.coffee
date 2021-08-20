@@ -366,6 +366,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_client_index = 0
         return @_clients[@_client_index]
 
+    # Return query function of a database connection.
+    get_db_query: =>
+        db = @_client()
+        return db?.query.bind(db)
+
     _dbg: (f) =>
         if @_debug
             return (m) => winston.debug("PostgreSQL.#{f}: #{misc.trunc_middle(JSON.stringify(m), 250)}")

@@ -63,12 +63,12 @@ export interface CustomizeState {
   is_commercial: boolean;
   ssh_gateway: boolean;
   account_creation_email_instructions: string;
-  allow_anonymous_sign_in: boolean;
   commercial: boolean;
   default_quotas: "{}";
   dns: "cocalc.com";
   email_enabled: false;
   email_signup: boolean;
+  anonymous_signup: boolean;
   google_analytics: string;
   help_email: string;
   iframe_comm_hosts: string[];

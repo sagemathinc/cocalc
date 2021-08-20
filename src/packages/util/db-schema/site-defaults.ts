@@ -44,7 +44,8 @@ export type SiteSettingsKeys =
   | "max_upgrades"
   | "email_enabled"
   | "verify_emails"
-  | "email_signup";
+  | "email_signup"
+  | "anonymous_signup";
 
 export interface Config {
   readonly name: string;
@@ -349,6 +350,13 @@ export const site_settings_conf: SiteSettings = {
     name: "Allow email signup",
     desc: "Users can sign up via email & password. Could be subject to an 'account creation token'.",
     default: "yes",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  anonymous_signup: {
+    name: "Allow anonymous signup",
+    desc: "Users can create an account with no email or password.  This won't work if you have any registration tokens set below.",
+    default: "no",
     valid: only_booleans,
     to_val: to_bool,
   },
