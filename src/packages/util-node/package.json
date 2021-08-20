@@ -21,7 +21,7 @@
   ],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
-    "@cocalc/util": "^1.0.3",
+    "@cocalc/util": "^1.2.0",
     "@types/debug": "^4.1.7",
     "async": "^1.5.2",
     "debug": "^4.3.2",
