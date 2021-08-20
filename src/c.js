@@ -6,13 +6,20 @@
 /*
 Some convenient command-line shortcuts.  If you're working on the command line, do
 
-    require('./c')
+    ~/cocalc/src$ node -i -e "$(< c.js)"
+
+or just require('./c.js').
 
 The functions below in some cases return things, and in some cases set global variables!  Read docs.
 
-COPYRIGHT : (c) 2017 SageMath, Inc.
+COPYRIGHT : (c) 2021 SageMath, Inc.
 LICENSE   : AGPLv3
-*/
+*/;
+delete process.env.PGHOST;
+process.env.COCALC_ROOT = require('path').resolve(__dirname);
+console.log(process.env.COCALC_ROOT);
+process.env.PGUSER = "smc";
+process.env.PGHOST = require("./packages/util-node/dist/data").pghost;
 global.misc = require("./packages/util/dist/misc");
 global.done = misc.done;
 global.done1 = misc.done1;
@@ -41,7 +48,9 @@ console.log("db -- database");
 global.proj = global.project = (id) => {
   return require("./packages/hub/dist/servers/project-control")(id);
 };
-console.log("project('project_id') -- gives back objec to control the porject");
+console.log(
+  "project('project_id') -- gives back object to control the porject"
+);
 
 global.delete_account = (email) =>
   get_db(function (err) {
