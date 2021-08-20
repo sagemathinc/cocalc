@@ -7,7 +7,7 @@
 Get the public paths associated to a given project.  Unlisted paths are NOT included.
 */
 
-import getPool, { timeInSeconds } from "lib/database";
+import getPool, { timeInSeconds } from "@cocalc/util-node/database";
 import { PublicPath } from "lib/types";
 import { isUUID } from "lib/util";
 

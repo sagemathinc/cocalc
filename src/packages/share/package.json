@@ -28,6 +28,7 @@
     "dev": "next dev",
     "build": "rm -rf .next/cache/webpack/*development* && next build && npm run build-dist",
     "build-dist": "npx tsc --build tsconfig-dist.json",
+    "clean": "rm -rf .next dist",
     "start": "next start",
     "lint": "next lint"
   },
@@ -42,12 +43,7 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc#readme",
   "private": false,
-  "workspaces": [
-    "../frontend",
-    "../util-node",
-    "../util",
-    "../cdn"
-  ],
+  "workspaces": ["../frontend", "../util-node", "../util", "../cdn"],
   "dependencies-comment": "IMPORTANT: we install everything (including typescript) as normal deps since it may be needed at runtime due to server settings!!",
   "dependencies": {
     "@cocalc/cdn": "^1.3.0",

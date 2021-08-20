@@ -11,7 +11,7 @@ such as Google, and only exists for that purpose.
 
 import Link from "next/link";
 import SiteName from "components/site-name";
-import getPool from "lib/database";
+import getPool from "@cocalc/util-node/database";
 import PublicPaths from "components/public-paths";
 
 const PAGE_SIZE = 15;

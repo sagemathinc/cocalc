@@ -1,4 +1,4 @@
-import getPool from "./database";
+import getPool from "@cocalc/util-node/database";
 import { getLogger } from "@cocalc/util-node/logger";
 import LRU from "lru-cache";
 

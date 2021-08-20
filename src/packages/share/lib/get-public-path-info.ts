@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import getPool from "lib/database";
+import getPool from "@cocalc/util-node/database";
 import getContents from "lib/get-contents";
 import { getProjectTitle } from "lib/get-project";
 import { join } from "path";
