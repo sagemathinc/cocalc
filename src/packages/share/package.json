@@ -26,7 +26,7 @@
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty ",
     "dev": "next dev",
     "build": "next build && npm run build-dist",
-    "build-dist": "npx tsc --build tsconfig-dist.json",
+    "build-dist": "npx tsc --build tsconfig-dist.json && rm -rf .next/cache/webpack/*development*",
     "start": "next start",
     "lint": "next lint"
   },
