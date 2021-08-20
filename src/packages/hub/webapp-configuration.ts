@@ -22,7 +22,7 @@ import { site_settings_conf as SITE_SETTINGS_CONF } from "@cocalc/util/schema";
 import { have_active_registration_tokens } from "./utils";
 
 import LRUCache from "lru-cache";
-const CACHE = new LRUCache({ max: 10, maxAge: 3 * 60 * 1000 }); // 3 minutes
+const CACHE = new LRUCache({ max: 1000, maxAge: 60 * 1000 }); // 1 minutes
 
 export function clear_cache(): void {
   CACHE.reset();
