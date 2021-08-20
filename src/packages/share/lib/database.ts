@@ -3,9 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { dbPassword } from "@cocalc/util-node/data";
+
 import { Pool } from "pg";
-// TODO: need to deal with auth....
-const pool = new Pool();
+const pool = new Pool({ password: dbPassword() });
 
 export default function getPool() {
   return pool;

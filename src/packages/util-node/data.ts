@@ -14,6 +14,7 @@ RULES:
 */
 
 import { join, resolve } from "path";
+import { readFileSync } from "fs";
 
 function determineFromPath(): string {
   const cur = __dirname;
@@ -36,14 +37,12 @@ export const logs: string = process.env.LOGS ?? join(data, "logs");
 // TODO: This will hopefully be dreprecated once I simplify the compute server
 export const compute_sqlite: string = join(data, "compute.sqlite3");
 
-/*
-console.log("data paths", {
-  data,
-  pgdata,
-  pghost,
-  projects,
-  secrets,
-  logs,
-  compute_sqlite,
-});
-*/
+export function dbPassword(): string | undefined {
+  const filename = join(secrets, "postgres");
+  try {
+    // fine to use sync, since reading db password happens only on startup
+    return readFileSync(filename).toString().trim();
+  } catch {
+    return undefined;
+  }
+}
