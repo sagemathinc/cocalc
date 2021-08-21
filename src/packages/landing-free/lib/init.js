@@ -27,18 +27,18 @@ async function init({
   // but navigation between pages and serving pages is much slower.
   const dev = process.env.NODE_ENV != "production";
 
-  // If dev is false, things will only work if `npm run build` happened
-  // with the right configuration!
-  if (!dev) {
-    await buildIfNecessary(customize);
-  }
-
   let { basePath } = customize;
   if (basePath == null || basePath == "/") {
     // this is the next.js definition of "basePath";
     // it differs from what we use in cocalc and internally here too.
     basePath = "";
   }
+  // If dev is false, things will only work if `npm run build` happened
+  // with the right configuration!
+  if (!dev) {
+    await buildIfNecessary(basePath);
+  }
+
   winston.info(`initialized customize data ${JSON.stringify(customize)}`);
   // We do this to ensure that our config is exactly like when
   // running things directly (via npm run dev), without having
@@ -46,7 +46,6 @@ async function init({
   // a strange impact somewhere else in CoCalc.
   conf.basePath = basePath;
   conf.env.BASE_PATH = basePath;
-  conf.env.CUSTOMIZE = JSON.stringify(customize);
 
   winston.info(
     `creating next.js app with basePath="${basePath}", and dev=${dev}`

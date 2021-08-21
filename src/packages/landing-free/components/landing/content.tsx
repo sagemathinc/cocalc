@@ -1,18 +1,20 @@
 import { join } from "path";
 import { Layout, Row, Col } from "antd";
-import {
-  anonymousSignup,
-  basePath,
-  siteName,
-  siteDescription,
-  organizationName,
-  organizationURL,
-  splashImage,
-} from "lib/customize";
 import SquareLogo from "components/landing/logo-square";
 import A from "components/misc/A";
+import { useCustomize } from "lib/customize";
 
 export default function Content() {
+  const {
+    anonymousSignup,
+    basePath,
+    siteName,
+    siteDescription,
+    organizationName,
+    organizationURL,
+    splashImage,
+  } = useCustomize();
+  if (basePath == null) return null;
   return (
     <Layout.Content style={{ backgroundColor: "#c7d9f5" }}>
       <Row>
@@ -26,8 +28,14 @@ export default function Content() {
             <br />
             <h2>{siteName}</h2>
             <h3>{siteDescription}</h3>
-            An instance of <A href="https://cocalc.com/index.html">CoCalc</A>{" "}
-            {organizationName && organizationURL && <>hosted by <A href={organizationURL}>{organizationName}</A></>}
+            An instance of <A href="https://cocalc.com/index.html">
+              CoCalc
+            </A>{" "}
+            {organizationName && organizationURL && (
+              <>
+                hosted by <A href={organizationURL}>{organizationName}</A>
+              </>
+            )}
           </div>
         </Col>
         <Col sm={12} xs={24} style={{ display: "flex", alignItems: "center" }}>

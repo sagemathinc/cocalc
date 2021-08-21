@@ -16,7 +16,7 @@ const { readFile } = require("fs");
 const { join } = require("path");
 const { promisify } = require("util");
 
-async function needToBuild(customize) {
+async function needToBuild(basePath) {
   // If build ran before, it creates ./next/required-server-files.json
   // which has the field config.env.customize.
   // So we just check that file exists and has the correct value.
@@ -29,7 +29,7 @@ async function needToBuild(customize) {
     const { config } = JSON.parse(json);
     // we just compare using stringify, which could in theory be different
     // even though there is no change, which is fine.
-    return config.env.CUSTOMIZE != JSON.stringify(customize);
+    return config.env.BASE_PATH != basePath;
   } catch (err) {
     // console.log("required-server-files.json not found ", err);
     // missing or corrupt file -- no problem, this is expected to happen first time.
@@ -37,12 +37,10 @@ async function needToBuild(customize) {
   }
 }
 
-async function build(customize) {
-  // Do a build with BASE_PATH and CUSTOMIZE env vars set.
+async function build(basePath) {
   const env = {
     ...process.env,
-    CUSTOMIZE: JSON.stringify(customize),
-    BASE_PATH: customize.basePath,
+    BASE_PATH: basePath,
   };
   const cwd = join(__dirname, "..");
   console.log(
@@ -56,9 +54,9 @@ async function build(customize) {
   })();
 }
 
-module.exports = async function (customize) {
-  if (await needToBuild(customize)) {
-    await build(customize);
+module.exports = async function (basePath) {
+  if (await needToBuild(basePath)) {
+    await build(basePath);
   } else {
     console.log("next app already built");
   }

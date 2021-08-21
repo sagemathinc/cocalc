@@ -23,6 +23,7 @@
     "dev": "next dev",
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty",
     "build": "next build",
+    "clean": "rm -rf .next",
     "start": "next start",
     "lint": "next lint"
   },

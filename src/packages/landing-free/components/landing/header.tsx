@@ -1,14 +1,8 @@
 import SquareLogo from "./logo-square";
-import {
-  anonymousSignup,
-  basePath,
-  helpEmail,
-  siteName,
-  termsOfServiceURL,
-} from "lib/customize";
 import A from "components/misc/A";
 import { join } from "path";
 import { Layout } from "antd";
+import { useCustomize } from "lib/customize";
 
 const GAP = "32px";
 
@@ -19,6 +13,10 @@ const LinkStyle = {
 };
 
 export default function Header() {
+  const { anonymousSignup, basePath, helpEmail, siteName, termsOfServiceURL } =
+    useCustomize();
+  if (basePath == null) return null;
+
   return (
     <Layout.Header
       style={{
