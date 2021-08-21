@@ -56,11 +56,7 @@ collab = require('./postgres/collab')
 {get_personal_user} = require('./postgres/personal')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
-
-SERVER_SETTINGS_EXTRAS = require("@cocalc/util/db-schema/site-settings-extras").EXTRAS
-SITE_SETTINGS_CONF = require("@cocalc/util/schema").site_settings_conf
-LRU = require('lru-cache');
-SERVER_SETTINGS_CACHE = new LRU({ max: 50, maxAge: 60 * 1000 })
+getServerSettings = require('@cocalc/util-node/server-settings/server-settings').default;
 {pii_expire} = require("./utils")
 webapp_config_clear_cache = require("./webapp-configuration").clear_cache
 
@@ -276,40 +272,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     get_server_settings_cached: (opts) =>
         opts = defaults opts,
             cb: required
-
-        settings = SERVER_SETTINGS_CACHE.get('server_settings')
-        if settings
-            opts.cb(undefined, settings)
+        query = @get_db_query()
+        if !query
+            opts.cb("database not connected")
             return
-
-        dbg = @_dbg('get_server_settings_cached')
-        @_query
-            query : 'SELECT name, value FROM server_settings'
-            cache : true
-            cb    : (err, result) =>
-                if err
-                    opts.cb(err)
-                else
-                    x = {_timestamp: Date.now()}
-                    # process values, possibly post-process values
-                    for k in result.rows
-                        val = k.value
-                        config = SITE_SETTINGS_CONF[k.name] ? SERVER_SETTINGS_EXTRAS[k.name]
-                        if config?.to_val?
-                            val = config.to_val(val)
-                        x[k.name] = val
-                    # set default values for missing keys
-                    for config in [SERVER_SETTINGS_EXTRAS, SITE_SETTINGS_CONF]
-                        for ckey in Object.keys(config)
-                            if (not x[ckey]?) or x[ckey] == ''
-                                conf = config[ckey]
-                                if conf?.to_val?
-                                    x[ckey] = conf.to_val(conf.default)
-                                else
-                                    x[ckey] = conf.default
-                    SERVER_SETTINGS_CACHE.set('server_settings', x)
-                    #dbg("server_settings = #{JSON.stringify(x, null, 2)}")
-                    opts.cb(undefined, x)
+        try
+            opts.cb(undefined, await getServerSettings(query))
+        catch err
+            opts.cb(err)
 
     get_site_settings: (opts) =>
         opts = defaults opts,

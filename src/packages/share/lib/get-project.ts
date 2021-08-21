@@ -7,7 +7,7 @@
 Get information about a project.
 */
 
-import getPool from "lib/database";
+import getPool from "@cocalc/util-node/database";
 import { isUUID } from "lib/util";
 
 export async function getProjectTitle(

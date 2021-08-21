@@ -1,20 +1,42 @@
 /*
-Create a Javascript object that describes properties of the server.
-This is used on the next.js server landing pages to customize
-their look and behavior.
+
+
 */
 
-import basePath from "@cocalc/util-node/base-path";
-import { callback2 } from "@cocalc/util/async-utils";
-import { database } from "../database";
-import { Customize } from "@cocalc/landing-free/lib/customize";
-import { have_active_registration_tokens } from "@cocalc/hub/utils";
 import { join } from "path";
+import basePath from "../base-path";
+import getServerSettings from "./server-settings";
+
+export interface Customize {
+  siteName?: string;
+  siteDescription?: string;
+  organizationName?: string;
+  organizationEmail?: string;
+  organizationURL?: string;
+  termsOfServiceURL?: string;
+  helpEmail?: string;
+  contactEmail?: string;
+  isCommercial?: boolean;
+  anonymousSignup?: boolean;
+  logoSquareURL?: string;
+  logoRectangularURL?: string;
+  splashImage?: string;
+  indexInfo?: string;
+  basePath: string;
+  appBasePath: string;
+}
 
 const fallback = (a, b) => (typeof a == "string" && a.length > 0 ? a : `${b}`);
 
+/*
+Create a Javascript object that describes properties of the server.
+This is used on the next.js server landing pages and the share server
+to customize their look and behavior.
+*/
+
 export default async function getCustomize(): Promise<Customize> {
-  const settings = await callback2(database.get_server_settings_cached, {});
+  const settings = await getServerSettings();
+
   return {
     siteName: fallback(settings.site_name, "On Premises CoCalc"),
     siteDescription: fallback(
@@ -32,7 +54,7 @@ export default async function getCustomize(): Promise<Customize> {
 
     isCommercial: settings.commercial,
 
-    anonymousSignup: !(await have_active_registration_tokens(database)),
+    anonymousSignup: settings.anonymous_signup,
 
     logoSquareURL: fallback(
       settings.logo_square,
@@ -51,5 +73,5 @@ export default async function getCustomize(): Promise<Customize> {
 
     basePath,
     appBasePath: basePath,
-  };
+  } as Customize;
 }

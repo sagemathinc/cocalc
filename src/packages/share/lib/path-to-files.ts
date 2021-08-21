@@ -4,7 +4,7 @@
  */
 
 import { join } from "path";
-import getPool from "./database";
+import getPool from "@cocalc/util-node/database";
 import { projects } from "@cocalc/util-node/data";
 
 // Given a project_id/path, return the directory on the file system where

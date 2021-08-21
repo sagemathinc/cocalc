@@ -13,13 +13,16 @@ const { join } = require("path");
 const next = require("next");
 const conf = require("../next.config");
 const buildIfNecessary = require("./build.js");
+const getCustomize =
+  require("@cocalc/util-node/server-settings/customize").default;
 
 async function init({
   // winston = an instance of the winston logger.
   winston,
-  // and finally the information that describes the cocalc server, including the basePath.
-  customize,
 }) {
+  // Get information that describes the cocalc server from the database, including the basePath.
+  const customize = await getCustomize();
+
   // dev = Whether or not to run in dev mode.  This features hot module reloading,
   // but navigation between pages and serving pages is much slower.
   const dev = process.env.NODE_ENV != "production";
