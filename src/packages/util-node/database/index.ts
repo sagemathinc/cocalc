@@ -3,13 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { dbPassword } from "../data";
+import { pghost as host, pguser as user } from "../data";
+import dbPassword from "./password";
 export * from "./util";
 
 import { Pool } from "pg";
-const pool = new Pool({ password: dbPassword() });
+let pool: Pool | undefined = undefined;
 
-export default function getPool() {
+export default function getPool(): Pool {
+  if (pool == null) {
+    pool = new Pool({ password: dbPassword(), user, host });
+  }
   return pool;
 }
 

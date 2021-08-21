@@ -1,5 +1,5 @@
-// next.js defines / to be an invalid basepath, whereas in cocalc it is valid:
-
+// This is the next.js definition of basePath.  next.js defines "/"
+// to be an invalid basepath, whereas in cocalc it is valid:
 const basePath =
   process.env.BASE_PATH == "/"
     ? ""
@@ -17,7 +17,9 @@ module.exports = {
     ignoreBuildErrors: true,
   },
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    config.resolve.alias["pg-native"] = "."; // webpack breaks without this, even though it's dead code.
+    // Webpack breaks without this pg-native alias, even though it's dead code,
+    // due to how the pg module does package detection internally.
+    config.resolve.alias["pg-native"] = ".";
     return config;
   },
 };

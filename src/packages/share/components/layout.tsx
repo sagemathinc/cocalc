@@ -13,7 +13,7 @@ import Footer from "components/footer";
 import Header from "components/header";
 import { basePath } from "lib/customize";
 
-const favicon = `${basePath}/../webapp/favicon.ico`;
+const favicon = `${basePath}/../webapp/favicon-32x32.png`;
 
 export function Layout({ children }) {
   return (
