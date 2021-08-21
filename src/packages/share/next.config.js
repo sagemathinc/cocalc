@@ -36,6 +36,9 @@ module.exports = {
       resolve(__dirname, "../frontend/node_modules"),
       resolve(__dirname, "../util/node_modules"),
     ];
+    // Webpack breaks without this pg-native alias, even though it's dead code,
+    // due to how the pg module does package detection internally.
+    config.resolve.alias["pg-native"] = ".";
     // Important: return the modified config
     return config;
   },

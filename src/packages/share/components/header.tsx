@@ -1,17 +1,10 @@
 import Link from "next/link";
 import SquareLogo from "./logo-square";
-import {
-  anonymousSignup,
-  appBasePath,
-  basePath,
-  helpEmail,
-  siteName,
-  termsOfServiceURL,
-} from "lib/customize";
 import A from "components/misc/A";
 import { join } from "path";
 import { Layout } from "antd";
 import GoogleSearch from "components/google-search";
+import { useCustomize } from "lib/context";
 
 const GAP = "32px";
 
@@ -22,6 +15,15 @@ const LinkStyle = {
 };
 
 export default function Header() {
+  console.log("useCustomize() = ", useCustomize());
+  const {
+    anonymousSignup,
+    appBasePath,
+    basePath,
+    helpEmail,
+    siteName,
+    termsOfServiceURL,
+  } = useCustomize();
   return (
     <Layout.Header
       style={{

@@ -26,9 +26,10 @@
     "cocalc-prod": "export BASE_PATH=/$COCALC_PROJECT_ID/port/3000 && next build && next start",
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty ",
     "dev": "next dev",
+    "project-dev": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000/share; echo https://cocalc.com$BASE_PATH; npm run dev",
     "build": "rm -rf .next/cache/webpack/*development* && next build && npm run build-dist",
     "build-dist": "npx tsc --build tsconfig-dist.json",
-    "clean": "rm -rf .next dist",
+    "clean": "rm -rf .next dist && npx next telemetry disable",
     "start": "next start",
     "lint": "next lint"
   },

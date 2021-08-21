@@ -25,7 +25,7 @@
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty",
     "build-dist": "npx tsc --build tsconfig-dist.json",
     "build": "npm run build-dist && next build",
-    "clean": "rm -rf .next dist",
+    "clean": "rm -rf .next dist && npx next telemetry disable",
     "start": "unset PGHOST; next start",
     "lint": "next lint"
   },
