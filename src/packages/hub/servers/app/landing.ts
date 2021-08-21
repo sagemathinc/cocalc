@@ -10,9 +10,7 @@ import basePath from "@cocalc/util-node/base-path";
 
 export default async function init(app: Application) {
   const winston = getLogger("landing");
-  winston.info(
-    `Initializing the landing page server...`
-  );
+  winston.info("Initializing the landing page server...");
   const handler = await initLandingServer({
     basePath,
     winston,

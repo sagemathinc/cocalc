@@ -22,8 +22,9 @@
     "cocalc-prod": "export BASE_PATH=/$COCALC_PROJECT_ID/port/3000 && next build && next start",
     "dev": "next dev",
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty",
-    "build": "next build",
-    "clean": "rm -rf .next",
+    "build-dist": "npx tsc --build tsconfig-dist.json",
+    "build": "npm run build-dist && next build",
+    "clean": "rm -rf .next dist",
     "start": "next start",
     "lint": "next lint"
   },

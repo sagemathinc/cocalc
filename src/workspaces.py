@@ -22,6 +22,8 @@ def newest_file(path):
 
 
 SUCCESSFUL_BUILD = ".successful-build"
+
+
 def needs_build(package):
     # Code below was hopelessly naive, e.g, a failed build would not get retried.
     # We only need to do a build if the newest file in the tree is not
@@ -363,8 +365,13 @@ def publish_package(args, package):
     sys.stdout.flush()
 
     if not package_version_is_modified_from_last_git_commit(package):
-        print(f"WARNING: You *might* need to first run update-version for '{package}', or somehow update the version in {package}/package.json.")
+        print(
+            f"WARNING: You *might* need to first run update-version for '{package}', or somehow update the version in {package}/package.json."
+        )
     # Do the build
+    #  First ensure BASE_PATH is not set; we only want to publish to
+    #  npm with no custom base path.
+    del os.environ['BASE_PATH']
     cmd("npm run build", package)
     try:
         # And now publish it:
