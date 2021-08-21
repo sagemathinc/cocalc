@@ -3,7 +3,7 @@ import { Layout } from "antd";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Content from "components/landing/content";
-import { siteName } from "lib/customize";
+import { useCustomize } from "lib/context";
 
 // The favicon.ico should be this, but it doesn't work
 // when there a base path.  This will cause a problem, e.g, for
@@ -13,6 +13,7 @@ import { siteName } from "lib/customize";
 const FAVICON = "/webapp/favicon.ico";
 
 export default function Home() {
+  const { siteName } = useCustomize();
   return (
     <>
       <Head>
