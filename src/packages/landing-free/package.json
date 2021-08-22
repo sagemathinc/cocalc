@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/landing-free",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Landing pages for the free version of CoCalc.",
   "main": "lib/init.js",
   "files": [
@@ -41,10 +41,12 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc#readme",
   "private": false,
-  "workspaces": ["../util-node"],
+  "workspaces": [
+    "../util-node"
+  ],
   "dependencies-comment": "IMPORTANT: we install typescript as a normal dependency since it may be needed at runtime due to server settings changing!!",
   "dependencies": {
-    "@cocalc/util-node": "^1.1.0",
+    "@cocalc/util-node": "^1.2.0",
     "@types/react": "^17.0.14",
     "antd": "^4.16.8",
     "next": "^11.1.0",
