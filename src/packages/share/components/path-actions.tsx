@@ -5,6 +5,7 @@ import editURL from "lib/edit-url";
 import downloadURL from "lib/download-url";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import SiteName from "./site-name";
+import { useCustomize } from "lib/customize";
 
 interface Props {
   id: string;
@@ -21,6 +22,7 @@ export default function PathActions({
   isDir,
   exclude,
 }: Props) {
+  const { dns } = useCustomize();
   const include = (action: string) => !exclude?.has(action);
   const v: JSX.Element[] = [];
   if (include("hosted")) {
@@ -34,7 +36,7 @@ export default function PathActions({
   }
   if (include("edit")) {
     v.push(
-      <ExternalLink key="edit" href={editURL({ id, path })}>
+      <ExternalLink key="edit" href={editURL({ id, path, dns })}>
         Edit
       </ExternalLink>
     );

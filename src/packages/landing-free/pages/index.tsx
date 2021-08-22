@@ -5,7 +5,7 @@ import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Content from "components/landing/content";
 import { CustomizeContext } from "lib/customize";
-import getCustomize from "@cocalc/util-node/server-settings/customize";
+import withCustomize from "lib/get-context";
 
 const FAVICON = "/webapp/favicon-32x32.png";
 
@@ -27,6 +27,5 @@ export default function Home({ customize }) {
 }
 
 export async function getStaticProps() {
-  const customize = await getCustomize();
-  return { props: { customize }, revalidate: 15 };
+  return await withCustomize();
 }

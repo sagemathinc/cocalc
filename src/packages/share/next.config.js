@@ -1,21 +1,15 @@
 // next.js defines / to be an invalid basepath, whereas in cocalc it is valid:
+const BASE_PATH = process.env.BASE_PATH ?? "/";
 
-const basePath =
-  process.env.BASE_PATH == "/"
-    ? ""
-    : process.env.BASE_PATH
-    ? process.env.BASE_PATH
-    : "";
+// next.js definition:
+const basePath = BASE_PATH == "/" ? "" : BASE_PATH;
 
 const { resolve } = require("path");
 
 module.exports = {
   basePath,
   env: {
-    BASE_PATH: basePath, // make visible to frontend code.
-    CUSTOMIZE: process.env.CUSTOMIZE
-      ? process.env.CUSTOMIZE
-      : JSON.stringify({ siteName: "CoCalc" }),
+    BASE_PATH, // make visible to frontend code.
   },
   reactStrictMode: true,
   eslint: {
@@ -43,10 +37,6 @@ module.exports = {
     return config;
   },
   typescript: {
-    // Disable checking for typescript errors when making production build.
-    // We do this because we check using tsc anyways, and also due to runtime
-    // configuration right now the build is being updated when the server starts,
-    // and that needs to be fast.  (TODO: This is temporary!)
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
 };

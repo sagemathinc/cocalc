@@ -2,7 +2,7 @@
 
 import { encodePath } from "./raw-url";
 import { join } from "path";
-import { basePath } from "./customize";
+import { basePath } from "./base-path";
 
 export default function downloadURL(
   id: string,

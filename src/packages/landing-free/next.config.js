@@ -1,13 +1,15 @@
 // This is the next.js definition of basePath.  next.js defines "/"
 // to be an invalid basepath, whereas in cocalc it is valid:
-const basePath =
-  process.env.BASE_PATH == "/"
-    ? ""
-    : process.env.BASE_PATH
-    ? process.env.BASE_PATH
-    : "";
+
+const BASE_PATH = process.env.BASE_PATH ?? "/";
+
+// next.js definition:
+const basePath = BASE_PATH == "/" ? "" : BASE_PATH;
 
 module.exports = {
+  env: {
+    BASE_PATH, // make visible to frontend code.
+  },
   basePath,
   reactStrictMode: true,
   eslint: {

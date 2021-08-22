@@ -1,5 +1,13 @@
-import { logoSquareURL } from "lib/customize";
+import { useCustomize } from "lib/customize";
+import { appBasePath } from "lib/base-path";
+import { join } from "path";
+
 
 export default function SquareLogo({ style }: { style: React.CSSProperties }) {
-  return <img src={logoSquareURL} style={{ ...style, maxWidth: "100%" }} />;
+  const { logoSquareURL } = useCustomize();
+  if (logoSquareURL == null) return null;
+  const src = logoSquareURL.includes("://")
+    ? logoSquareURL
+    : join(appBasePath, logoSquareURL);
+  return <img src={src} style={{ ...style, maxWidth: "100%" }} />;
 }

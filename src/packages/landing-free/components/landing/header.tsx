@@ -3,6 +3,7 @@ import A from "components/misc/A";
 import { join } from "path";
 import { Layout } from "antd";
 import { useCustomize } from "lib/customize";
+import { basePath } from "lib/base-path";
 
 const GAP = "32px";
 
@@ -13,7 +14,7 @@ const LinkStyle = {
 };
 
 export default function Header() {
-  const { anonymousSignup, basePath, helpEmail, siteName, termsOfServiceURL } =
+  const { anonymousSignup, helpEmail, siteName, termsOfServiceURL } =
     useCustomize();
   if (basePath == null) return null;
 

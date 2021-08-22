@@ -13,28 +13,34 @@ Page for a given user.
  */
 
 import { trunc } from "lib/util";
-import getAccountInfo, { AccountInfo } from "lib/get-account-info";
+import getAccountInfo from "lib/get-account-info";
 import Loading from "components/loading";
 import PublicPaths from "components/public-paths";
+import { Layout } from "components/layout";
+import { Customize } from "lib/context";
+import withCustomize from "lib/get-context";
 
 export default function Account({
   firstName,
   lastName,
   publicPaths,
-}: AccountInfo) {
+  customize,
+}) {
   if (firstName == null || lastName == null || publicPaths == null) {
     return <Loading />;
   }
   const name = trunc(`${firstName} ${lastName}`, 150);
   return (
-    <div>
-      <h1>{name}</h1>
-      {name} is a collaborator on projects that contain the following public
-      documents:
-      <br />
-      <br />
-      <PublicPaths publicPaths={publicPaths} />
-    </div>
+    <Customize value={customize}>
+      <Layout>
+        <h1>{name}</h1>
+        {name} is a collaborator on projects that contain the following public
+        documents:
+        <br />
+        <br />
+        <PublicPaths publicPaths={publicPaths} />
+      </Layout>
+    </Customize>
   );
 }
 
@@ -46,10 +52,10 @@ export async function getStaticProps(context) {
   const { account_id } = context.params;
   try {
     const accountInfo = await getAccountInfo(account_id);
-    return {
+    return await withCustomize({
       props: accountInfo,
       revalidate: 30,
-    };
+    });
   } catch (err) {
     return { notFound: true };
   }

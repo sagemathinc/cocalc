@@ -4,7 +4,8 @@ import A from "components/misc/A";
 import { join } from "path";
 import { Layout } from "antd";
 import GoogleSearch from "components/google-search";
-import { useCustomize } from "lib/context";
+import { useCustomize } from "lib/customize";
+import { appBasePath, basePath } from "lib/base-path";
 
 const GAP = "32px";
 
@@ -15,11 +16,8 @@ const LinkStyle = {
 };
 
 export default function Header() {
-  console.log("useCustomize() = ", useCustomize());
   const {
     anonymousSignup,
-    appBasePath,
-    basePath,
     helpEmail,
     siteName,
     termsOfServiceURL,

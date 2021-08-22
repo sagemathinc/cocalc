@@ -11,7 +11,7 @@ import SiteName from "components/site-name";
 import Analytics from "components/analytics";
 import Footer from "components/footer";
 import Header from "components/header";
-import { basePath } from "lib/customize";
+import { basePath } from "lib/base-path";
 
 const favicon = `${basePath}/../webapp/favicon-32x32.png`;
 

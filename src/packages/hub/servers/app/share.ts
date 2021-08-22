@@ -22,9 +22,7 @@ export default async function init(app: Application) {
   const shareBasePath = join(basePath, "share");
   winston.info("Initializing the share server...");
   const handler = await initShareServer({
-    appBasePath: basePath,
     basePath: shareBasePath,
-    winston,
   });
 
   // The raw static server:

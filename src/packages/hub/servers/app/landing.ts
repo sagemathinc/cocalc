@@ -13,14 +13,16 @@ export default async function init(app: Application) {
   winston.info("Initializing the landing page server...");
   const handler = await initLandingServer({
     basePath,
-    winston,
   });
   const endpoints = [
     basePath,
     join(basePath, "doc", "*"),
     join(basePath, "_next", "*"),
   ];
-  winston.info("Now using next.js handler to handle select endpoints", endpoints);
+  winston.info(
+    "Now using next.js handler to handle select endpoints",
+    endpoints
+  );
   for (const endpoint of endpoints) {
     app.all(endpoint, handler);
   }

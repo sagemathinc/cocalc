@@ -4,5 +4,9 @@
  */
 
 export default function Loading() {
-  return <div>Loading...</div>;
+  return (
+    <div style={{ textAlign: "center", fontSize: "30pt", color: "#888" }}>
+      Loading...
+    </div>
+  );
 }

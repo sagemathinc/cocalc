@@ -13,12 +13,11 @@ import Link from "next/link";
 import SiteName from "components/site-name";
 import getPool from "@cocalc/util-node/database";
 import PublicPaths from "components/public-paths";
-import { Customize } from "lib/context";
-import customize from "lib/get-context";
 import { Layout } from "components/layout";
+import { Customize } from "lib/context";
+import withCustomize from "lib/get-context";
 
 const PAGE_SIZE = 15;
-const PRERENDER_PAGES = 10;
 
 function getPage(obj): number {
   let { page } = obj ?? {};
@@ -78,14 +77,7 @@ export default function All({ page, publicPaths, customize }) {
 }
 
 export async function getStaticPaths() {
-  const paths: any[] = [];
-  if (process.env.NODE_ENV != "development") {
-    // See https://stackoverflow.com/questions/62439413/navigation-between-statically-generated-pages-painfully-slow-in-dev-mode-next-js
-    for (let page = 1; page < PRERENDER_PAGES; page++) {
-      paths.push({ params: { page: `${page}` } });
-    }
-  }
-  return { paths: [], fallback: "blocking" };
+  return { paths: [], fallback: true };
 }
 
 export async function getStaticProps(context) {
@@ -96,7 +88,7 @@ export async function getStaticProps(context) {
     [PAGE_SIZE, PAGE_SIZE * (page - 1)]
   );
 
-  return await customize({
+  return await withCustomize({
     props: { page, publicPaths: rows },
     revalidate: 15,
   });

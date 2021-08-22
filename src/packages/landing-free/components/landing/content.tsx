@@ -3,18 +3,17 @@ import { Layout, Row, Col } from "antd";
 import SquareLogo from "components/landing/logo-square";
 import A from "components/misc/A";
 import { useCustomize } from "lib/customize";
+import { appBasePath, basePath } from "lib/base-path";
 
 export default function Content() {
   const {
     anonymousSignup,
-    basePath,
     siteName,
     siteDescription,
     organizationName,
     organizationURL,
     splashImage,
   } = useCustomize();
-  if (basePath == null) return null;
   return (
     <Layout.Content style={{ backgroundColor: "#c7d9f5" }}>
       <Row>
@@ -40,7 +39,14 @@ export default function Content() {
         </Col>
         <Col sm={12} xs={24} style={{ display: "flex", alignItems: "center" }}>
           {splashImage && (
-            <img src={splashImage} style={{ width: "100%", padding: "15px" }} />
+            <img
+              src={
+                splashImage.includes("://")
+                  ? splashImage
+                  : join(appBasePath, splashImage)
+              }
+              style={{ width: "100%", padding: "15px" }}
+            />
           )}
         </Col>
       </Row>
