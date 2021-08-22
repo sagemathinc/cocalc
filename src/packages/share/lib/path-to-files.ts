@@ -10,7 +10,7 @@ import { projects } from "@cocalc/util-node/data";
 // Given a project_id/path, return the directory on the file system where
 // that path should be located.
 export default function pathToFiles(project_id: string, path: string): string {
-  return join(projects, project_id, path);
+  return join(projects.replace("[project_id]", project_id), path);
 }
 
 export async function pathFromID(

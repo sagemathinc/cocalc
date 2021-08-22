@@ -29,7 +29,7 @@ export function dataPath(HOME: string): string {
 }
 
 export function homePath(project_id: string): string {
-  return join(projects, project_id);
+  return projects.replace("[project_id]", project_id);
 }
 
 export function getUsername(project_id: string): string {
