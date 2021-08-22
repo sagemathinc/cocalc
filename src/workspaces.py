@@ -371,7 +371,8 @@ def publish_package(args, package):
     # Do the build
     #  First ensure BASE_PATH is not set; we only want to publish to
     #  npm with no custom base path.
-    del os.environ['BASE_PATH']
+    if 'BASE_PATH' in os.environ:
+        del os.environ['BASE_PATH']
     cmd("npm run build", package)
     try:
         # And now publish it:
