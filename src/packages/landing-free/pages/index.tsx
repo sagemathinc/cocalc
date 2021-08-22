@@ -26,6 +26,6 @@ export default function Home({ customize }) {
   );
 }
 
-export async function getStaticProps() {
+export async function getServerSideProps() {
   return await withCustomize();
 }

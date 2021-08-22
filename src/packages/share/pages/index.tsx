@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Customize } from "lib/context";
-import customize from "lib/get-context";
+import useCustomize from "lib/get-context";
 import { Layout } from "components/layout";
 
 export default function Home({ customize }) {
@@ -27,6 +27,7 @@ export default function Home({ customize }) {
   );
 }
 
+
 export async function getStaticProps() {
-  return await customize();
+  return await useCustomize();
 }

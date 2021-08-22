@@ -12,7 +12,7 @@ export default async function get(obj?: object) {
     customize = {};
   }
   if (obj == null) {
-    return { props: { customize }, revalidate };
+    return { props: { customize }/*, revalidate */};
   }
   if (obj["revalidate"] == null) {
     obj["revalidate"] = revalidate;
