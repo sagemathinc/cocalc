@@ -1,8 +1,6 @@
 import getCustomize from "@cocalc/util-node/server-settings/customize";
 
-const revalidate = 30;
-
-export default async function get(obj?: object) {
+export default async function get(obj?: { props?: { customize?: any } }) {
   let customize;
   try {
     customize = await getCustomize();
@@ -12,17 +10,12 @@ export default async function get(obj?: object) {
     customize = {};
   }
   if (obj == null) {
-    return { props: { customize }/*, revalidate */};
+    return { props: { customize } };
   }
-  if (obj["revalidate"] == null) {
-    obj["revalidate"] = revalidate;
+  if (obj.props == null) {
+    obj.props = { customize };
   } else {
-    obj["revalidate"] = Math.min(revalidate, obj["revalidate"]);
-  }
-  if (obj["props"] == null) {
-    obj["props"] = { customize };
-  } else {
-    obj["props"]["customize"] = customize;
+    obj.props.customize = customize;
   }
   return obj;
 }

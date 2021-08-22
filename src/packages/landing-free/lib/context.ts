@@ -6,3 +6,4 @@ export const CustomizeContext = createContext<Partial<Customize>>({});
 export const useCustomize = () => {
   return useContext(CustomizeContext);
 };
+

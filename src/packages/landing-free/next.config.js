@@ -15,9 +15,6 @@ module.exports = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
     // Webpack breaks without this pg-native alias, even though it's dead code,
     // due to how the pg module does package detection internally.

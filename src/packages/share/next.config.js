@@ -36,7 +36,4 @@ module.exports = {
     // Important: return the modified config
     return config;
   },
-  typescript: {
-    ignoreBuildErrors: false,
-  },
 };

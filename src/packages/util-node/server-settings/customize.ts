@@ -1,5 +1,3 @@
-import { join } from "path";
-import basePath from "../base-path";
 import getServerSettings from "./server-settings";
 
 export interface Customize {
@@ -17,12 +15,11 @@ export interface Customize {
   logoRectangularURL?: string;
   splashImage?: string;
   indexInfo?: string;
-  basePath: string;
-  appBasePath: string;
   dns?: string;
 }
 
-const fallback = (a, b) => (typeof a == "string" && a.length > 0 ? a : `${b}`);
+const fallback = (a?: string, b?: string): string =>
+  typeof a == "string" && a.length > 0 ? a : `${b}`;
 
 /*
 Create a Javascript object that describes properties of the server.
@@ -52,10 +49,7 @@ export default async function getCustomize(): Promise<Customize> {
 
     anonymousSignup: settings.anonymous_signup,
 
-    logoSquareURL: fallback(
-      settings.logo_square,
-      join(basePath, "webapp/cocalc-icon.svg")
-    ),
+    logoSquareURL: fallback(settings.logo_square, "webapp/cocalc-icon.svg"),
     logoRectangularURL: fallback(
       settings.logo_rectangular,
       "webapp/open-cocalc-font-dark.svg"
@@ -66,9 +60,6 @@ export default async function getCustomize(): Promise<Customize> {
     ),
 
     indexInfo: settings.index_info_html,
-
-    basePath,
-    appBasePath: basePath,
 
     // can be used for links to edit share document in main site; needed if main site
     // on different domain than share server, e.g., share.cocalc.com vs cocalc.com.

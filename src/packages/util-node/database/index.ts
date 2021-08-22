@@ -18,7 +18,11 @@ export default function getPool(): Pool {
 }
 
 export function getQuery() {
+  // @ts-ignore -- TODO: would be nice to make this typed properly.
+  // Or just change the small amount of code that uses this to just
+  // use a pool...
   return async (...args) => {
+    // @ts-ignore
     return await getPool().query(...args);
   };
 }
