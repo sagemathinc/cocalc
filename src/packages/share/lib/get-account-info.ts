@@ -54,7 +54,7 @@ export async function getPublicPaths(accountID: string): Promise<PublicPath[]> {
   const query = `SELECT public_paths.id as id, public_paths.path as path, public_paths.description as description, ${timeInSeconds(
     "public_paths.last_edited",
     "last_edited"
-  )} FROM public_paths, projects WHERE public_paths.project_id = projects.project_id AND projects.last_active ? '${accountID}' AND projects.users ? '${accountID}' AND (public_paths.unlisted is null OR public_paths.unlisted = false) AND (public_paths.disabled is null OR public_paths.disabled = false) ORDER BY public_paths.last_edited DESC`;
+  )} FROM public_paths, projects WHERE public_paths.project_id = projects.project_id AND projects.last_active ? '${accountID}' AND projects.users ? '${accountID}' AND (public_paths.unlisted is null OR public_paths.unlisted = false) AND (public_paths.disabled is null OR public_paths.disabled = false) AND (public_paths.vhost is null OR public_paths.vhost = '') ORDER BY public_paths.last_edited DESC`;
   const { rows } = await pool.query(query);
   const publicPaths: PublicPath[] = [];
   for (const x of rows) {
