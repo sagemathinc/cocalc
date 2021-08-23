@@ -37,8 +37,8 @@ export default function redirect(basePath: string) {
    So we must consult the database to do this redirect, except in the raw/download cases.
    */
     const { url } = req;
+    // winston.http("redirect %s", url);
     if (url.startsWith(users)) {
-      winston.debug("/users redirect", url);
       res.redirect(301, accounts + url.slice(users.length));
       return;
     }
@@ -75,24 +75,26 @@ export default function redirect(basePath: string) {
           ? fullPath
           : await pathInShare(sha1hash, fullPath);
     } catch (_err) {
-      winston.debug("error getting pathInShare", _err);
+      winston.http("error getting pathInShare", _err);
       next();
       return;
     }
-    winston.debug(`got path="${path}"`);
+    // winston.http(`got path="${path}"`);
     const dest = join(basePath, `${page}/${sha1hash}${path ? "/" + path : ""}`);
-    winston.debug("/sha1 share redirect ", url, " --> ", dest);
+    winston.http("/sha1 share redirect ", url, " --> ", dest);
     res.redirect(301, dest);
   };
 }
 
 // cache forever if we grab from db, since these never change
 const sha1ToPath: { [sha1: string]: string } = {};
+
 async function pathInShare(
   sha1hash: string,
   fullPath: string
 ): Promise<string> {
-  winston.debug("pathInShare", { sha1hash, fullPath });
+  fullPath = decodeURI(fullPath);
+  // winston.debug("pathInShare", { sha1hash, fullPath });
   let sharePath: string;
   if (sha1ToPath[sha1hash] != null) {
     sharePath = sha1ToPath[sha1hash];
@@ -108,5 +110,5 @@ async function pathInShare(
     sharePath = rows[0].path;
     sha1ToPath[sha1hash] = sharePath;
   }
-  return fullPath.slice(sharePath.length + 1);
+  return encodeURI(fullPath.slice(sharePath.length + 1));
 }
