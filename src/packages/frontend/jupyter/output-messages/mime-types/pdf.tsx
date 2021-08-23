@@ -9,7 +9,7 @@ import { PDF } from "../pdf";
    I wouldn't be surprised if this implementation below is
    broken...
 */
-register("application/pdf", 3, ({ value, project_id }) => {
+register("application/pdf", 6, ({ value, project_id }) => {
   if (project_id == null || value == null) {
     console.warn("PDF: project_id and value must be specified");
     return <pre>Invalid PDF output</pre>;

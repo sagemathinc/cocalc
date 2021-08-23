@@ -31,6 +31,7 @@ const HANDLERS: {
   [typeRegexp: string]: { handler: Handler; priority: number };
 } = {};
 
+const priorities: { [priority: number]: string } = {};
 export default function register(
   typeRegexp: string, // string or regexp that matches the MIME type
   priority: number, // priority used when there are multiple description of same object
@@ -39,6 +40,12 @@ export default function register(
   if (priority < 0) {
     throw Error(`priority (=${priority}) must be nonnegative`);
   }
+  if (priorities[priority] && priorities[priority] != typeRegexp) {
+    console.warn(
+      `WARNING: Jupyter mime type priority (=${priority}) is used by both ${priorities[priority]} and ${typeRegexp}, which makes rendering undefined.`
+    );
+  }
+  priorities[priority] = typeRegexp;
   HANDLERS[typeRegexp] = { handler, priority };
 }
 

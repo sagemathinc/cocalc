@@ -7,7 +7,7 @@ function isSha1(s: string): boolean {
   return s.length === 40 && !!s.match(SHA1_REGEXP);
 }
 
-register("image/.*", 1, ({ project_id, message, value, type }) => {
+register("image/.*", 2, ({ project_id, message, value, type }) => {
   let height: any = undefined;
   let width: any = undefined;
   message.get("metadata", []).forEach((value, key) => {
