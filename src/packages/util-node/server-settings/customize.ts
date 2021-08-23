@@ -1,4 +1,4 @@
-import getServerSettings from "./server-settings";
+import { getServerSettings } from "./server-settings";
 
 export interface Customize {
   siteName?: string;

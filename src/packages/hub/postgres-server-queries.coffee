@@ -56,7 +56,7 @@ collab = require('./postgres/collab')
 {get_personal_user} = require('./postgres/personal')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
-getServerSettings = require('@cocalc/util-node/server-settings/server-settings').default;
+{getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/util-node/server-settings/server-settings');
 {pii_expire} = require("./utils")
 webapp_config_clear_cache = require("./webapp-configuration").clear_cache
 
@@ -256,7 +256,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         )
 
     reset_server_settings_cache: =>
-        SERVER_SETTINGS_CACHE.reset()
+        resetServerSettingsCache()
         webapp_config_clear_cache()
 
     get_server_setting: (opts) =>
@@ -337,7 +337,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     get_all_passport_settings_cached: (opts) =>
         opts = defaults opts,
             cb       : required
-        passports = SERVER_SETTINGS_CACHE.get('passports')
+        passports = getPassportsCached()
         if passports
             opts.cb(undefined, passports)
             return
@@ -346,7 +346,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 if err
                     opts.cb(err)
                 else
-                    SERVER_SETTINGS_CACHE.set('passports', res)
+                    setPassportsCached(res)
                     opts.cb(undefined, res)
 
     ###
