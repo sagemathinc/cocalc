@@ -7,13 +7,27 @@ import getPool from "../database";
 // We're just using this to cache one result for a while.  This could
 // be done with a simpler cache, but it's nice to use one cache everywhere.
 const CACHE_TIME_SECONDS = process.env.NODE_ENV == "development" ? 3 : 15;
-const cache = new LRU<"key", ServerSettings>({
+type CacheKeys = "server-settings" | "passports";
+// TODO add something for the passports type
+const cache = new LRU<CacheKeys, ServerSettings>({
   max: 1,
   maxAge: 1000 * CACHE_TIME_SECONDS,
 });
-const KEY: "key" = "key"; // just one key :-)
+const KEY: CacheKeys = "server-settings";
 
-export default async function getServerSettings(): Promise<ServerSettings> {
+export function resetServerSettingsCache() {
+  cache.reset();
+}
+
+export function getPassportsCached() {
+  return cache.get("passports");
+}
+
+export function setPassportsCached(val) {
+  return cache.set("passports", val);
+}
+
+export async function getServerSettings(): Promise<ServerSettings> {
   if (cache.has(KEY)) {
     return cache.get(KEY)!; // can't be null
   }
