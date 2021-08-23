@@ -27,10 +27,11 @@
     "cocalc-prod": "export BASE_PATH=/$COCALC_PROJECT_ID/port/3000 && next build && next start",
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty ",
     "dev": "next dev",
-    "project-dev": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000/share; echo https://cocalc.com$BASE_PATH; npm run dev",
     "build": "rm -rf .next/cache/webpack/*development* && BASE_PATH='/share' next build && npm run build-dist",
     "build-dist": "npx tsc --build tsconfig-dist.json",
+    "project-dev": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000/share; echo https://cocalc.com$BASE_PATH; npm run dev",
     "project-build": "npm run build-dist && BASE_PATH=/$COCALC_PROJECT_ID/port/5000/share next build",
+    "project-start": "unset PGHOST PGUSER COCALC_ROOT; BASE_PATH=/$COCALC_PROJECT_ID/port/5000/share PORT=5000 next start",
     "clean": "rm -rf .next dist && npx next telemetry disable",
     "start": "next start",
     "lint": "next lint"
@@ -46,12 +47,7 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc#readme",
   "private": false,
-  "workspaces": [
-    "../frontend",
-    "../util-node",
-    "../util",
-    "../cdn"
-  ],
+  "workspaces": ["../frontend", "../util-node", "../util", "../cdn"],
   "dependencies-comment": "IMPORTANT: we install everything (including typescript) as normal deps since it may be needed at runtime due to server settings!!",
   "dependencies": {
     "@cocalc/cdn": "^1.4.0",
