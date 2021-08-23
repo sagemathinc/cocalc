@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/share",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Landing pages for the free version of CoCalc.",
   "exports": {
     "./init": "./lib/init.js",
@@ -47,7 +47,12 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc#readme",
   "private": false,
-  "workspaces": ["../frontend", "../util-node", "../util", "../cdn"],
+  "workspaces": [
+    "../frontend",
+    "../util-node",
+    "../util",
+    "../cdn"
+  ],
   "dependencies-comment": "IMPORTANT: we install everything (including typescript) as normal deps since it may be needed at runtime due to server settings!!",
   "dependencies": {
     "@cocalc/cdn": "^1.4.0",
