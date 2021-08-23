@@ -2,16 +2,18 @@ import { join } from "path";
 import { NextFunction, Request, Response } from "express";
 import { getLogger } from "@cocalc/hub/logger";
 import { splitFirst } from "@cocalc/util/misc";
+import getPool from "@cocalc/util-node/database";
+
+const winston = getLogger("share-redirect");
 
 // Redirects for backward compatibility with the old share server.
 const sha1re = new RegExp(/\b([a-f0-9]{40})\b/);
 
 export default function redirect(basePath: string) {
-  const winston = getLogger("share-redirect");
   const users = join(basePath, "users/");
   const accounts = join(basePath, "accounts/");
   winston.info("creating share server legacy redirect", { users, accounts });
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     /*
    The mapping:
 
@@ -26,6 +28,13 @@ export default function redirect(basePath: string) {
    type of the file being downloaded in general. This is because "the/path" could
    be a *single* filename (when a user shares a single file, instead of a folder),
    in which case "/path" is empty.  (This is like gists versus github repos.)
+
+   Clarifying the first redirect:
+
+
+    /{share sha1 hash}/the/full/share/path/in/the/share.ipynb --> /public_paths/{share sha1 hash}/in/the/share.pynb
+
+   So we must consult the database to do this redirect, except in the raw/download cases.
    */
     const { url } = req;
     if (url.startsWith(users)) {
@@ -58,13 +67,46 @@ export default function redirect(basePath: string) {
     } else if (page == "embed") {
       page = "public_paths/embed";
     }
-    const [the_path] = splitFirst(url.slice(basePath.length + 42), "?");
-    const path =
-      page == "raw" || page == "download"
-        ? the_path
-        : splitFirst(the_path, "/")[1];
+    const [fullPath] = splitFirst(url.slice(basePath.length + 42), "?");
+    let path: string;
+    try {
+      path =
+        page == "raw" || page == "download"
+          ? fullPath
+          : await pathInShare(sha1hash, fullPath);
+    } catch (_err) {
+      winston.debug("error getting pathInShare", _err);
+      next();
+      return;
+    }
+    winston.debug(`got path="${path}"`);
     const dest = join(basePath, `${page}/${sha1hash}${path ? "/" + path : ""}`);
     winston.debug("/sha1 share redirect ", url, " --> ", dest);
     res.redirect(301, dest);
   };
+}
+
+// cache forever if we grab from db, since these never change
+const sha1ToPath: { [sha1: string]: string } = {};
+async function pathInShare(
+  sha1hash: string,
+  fullPath: string
+): Promise<string> {
+  winston.debug("pathInShare", { sha1hash, fullPath });
+  let sharePath: string;
+  if (sha1ToPath[sha1hash] != null) {
+    sharePath = sha1ToPath[sha1hash];
+  } else {
+    const pool = getPool();
+    const { rows } = await pool.query(
+      "SELECT path FROM public_paths WHERE id=$1",
+      [sha1hash]
+    );
+    if (rows.length == 0) {
+      throw Error("no such public path");
+    }
+    sharePath = rows[0].path;
+    sha1ToPath[sha1hash] = sharePath;
+  }
+  return fullPath.slice(sharePath.length + 1);
 }
