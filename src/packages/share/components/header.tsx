@@ -16,12 +16,11 @@ const LinkStyle = {
 };
 
 export default function Header() {
-  const {
-    anonymousSignup,
-    helpEmail,
-    siteName,
-    termsOfServiceURL,
-  } = useCustomize();
+  const { anonymousSignup, dns, helpEmail, siteName, termsOfServiceURL } =
+    useCustomize();
+  const appURL = dns
+    ? `https://${dns}/static/app.html`
+    : join(basePath, "../static/app.html");
   return (
     <Layout.Header
       style={{
@@ -36,13 +35,13 @@ export default function Header() {
         <SquareLogo style={{ height: "40px", marginRight: GAP }} />
       </a>
       {anonymousSignup && (
-        <a
+        <A
           style={LinkStyle}
-          href={join(basePath, "../static/app.html?anonymous=jupyter")}
+          href={`${appURL}?anonymous=jupyter`}
           title={`Try ${siteName} immediately without creating an account.`}
         >
           Try {siteName}
-        </a>
+        </A>
       )}{" "}
       <Link href="/">
         <a style={LinkStyle} title="View files that people have published.">
@@ -75,23 +74,23 @@ export default function Header() {
           href={`mailto:${helpEmail}`}
           title={`Ask us a question via email to ${helpEmail}.`}
         >
-          Help
+          Email Help
         </A>
       )}
-      <a
+      <A
         style={LinkStyle}
         href="https://doc.cocalc.com"
         title="View the CoCalc documenation."
       >
         Documentation
-      </a>
-      <a
+      </A>
+      <A
         style={LinkStyle}
-        href={join(basePath, "../static/app.html")}
+        href={appURL}
         title={`Sign in to ${siteName} or create an account.`}
       >
         Sign In
-      </a>
+      </A>
     </Layout.Header>
   );
 }

@@ -6,7 +6,6 @@
 // Default settings to customize a given site, typically a private install of CoCalc.
 
 import { is_valid_email_address } from "@cocalc/util/misc";
-import { DNS } from "@cocalc/util/theme";
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
@@ -130,8 +129,6 @@ export const site_settings_conf: SiteSettings = {
     desc: "DNS for your server, e.g. cocalc.universe.edu",
     default: "",
     valid: valid_dns_name,
-    // to make sure if dns isn't set or an empty string, it falls back to a known name
-    to_val: (val) => val || DNS,
   },
   theming: {
     name: "Show Theming",

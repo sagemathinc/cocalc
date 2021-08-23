@@ -13,10 +13,10 @@ interface Options {
 }
 
 export default function editURL({ id, path, dns }: Options): string {
-  const url = `/app?anonymous=true&launch=share/${id}/${path}`;
+  const url = `/static/app.html?anonymous=true&launch=share/${id}/${path}`;
   if (dns) {
     // if dns explicitly specified open on that machine, e.g. share.cocalc.com versus cocalc.com
-    return dns + encodeURI(url);
+    return `https://${dns}${encodeURI(url)}`;
   }
   return encodeURI(join(appBasePath, url));
 }
