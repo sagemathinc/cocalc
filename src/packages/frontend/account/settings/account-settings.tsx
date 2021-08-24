@@ -26,7 +26,7 @@ import { SiteName, TermsOfService } from "../../customize";
 import { keys, startswith } from "@cocalc/util/misc";
 import { set_account_table, ugly_error } from "../util";
 import { webapp_client } from "../../webapp-client";
-import { A, ErrorDisplay, Icon, Space, TimeAgo } from "../../r_misc";
+import { A, ErrorDisplay, Icon, Space, TimeAgo } from "../../components";
 import { SignOut } from "../sign-out";
 import { DeleteAccount } from "../delete-account";
 import { TextSetting } from "./text-setting";
@@ -38,6 +38,7 @@ import { log } from "../../user-tracking";
 import { PassportStrategy } from "../passport-types";
 import { PassportStrategyIcon, strategy2display } from "../../passports";
 import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 type ImmutablePassportStrategy = TypedMap<PassportStrategy>;
 
@@ -104,7 +105,7 @@ export class AccountSettings extends Component<Props, State> {
     if (strategy == null) return;
     const strategy_js = strategy.toJS();
     const name = strategy2display(strategy_js);
-    const href = join(window.app_base_path, 'auth', this.state.add_strategy_link);
+    const href = join(appBasePath, "auth", this.state.add_strategy_link);
     return (
       <Well>
         <h4>
@@ -295,12 +296,11 @@ export class AccountSettings extends Component<Props, State> {
     }
     const account_passports: string[] = this.get_account_passport_names();
 
-    const linked: List<ImmutablePassportStrategy> = this.props.strategies.filter(
-      (strategy) => {
+    const linked: List<ImmutablePassportStrategy> =
+      this.props.strategies.filter((strategy) => {
         const name = strategy?.get("name");
         return name !== "email" && account_passports.includes(name);
-      }
-    );
+      });
     if (linked.size === 0) return;
 
     const btns = linked
@@ -327,12 +327,11 @@ export class AccountSettings extends Component<Props, State> {
     }
     const account_passports: string[] = this.get_account_passport_names();
 
-    const not_linked: List<ImmutablePassportStrategy> = this.props.strategies.filter(
-      (strategy) => {
+    const not_linked: List<ImmutablePassportStrategy> =
+      this.props.strategies.filter((strategy) => {
         const name = strategy.get("name");
         return name !== "email" && !account_passports.includes(name);
-      }
-    );
+      });
     if (not_linked.size === 0) return;
 
     const heading = this.props.is_anonymous
@@ -511,7 +510,8 @@ export class AccountSettings extends Component<Props, State> {
       <Checkbox
         checked={this.props.unlisted}
         onChange={
-          (e) => this.actions().set_account_table({ unlisted: e.target.checked })
+          (e) =>
+            this.actions().set_account_table({ unlisted: e.target.checked })
           //this.actions().setState({ unlisted: !!e.target.checked })
         }
       >

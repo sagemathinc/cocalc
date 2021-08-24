@@ -10,7 +10,7 @@ Confirmation dialog, for explicitly confirming dangerous actions.
 import { React, Rendered } from "../app-framework";
 import { Map } from "immutable";
 
-import { Icon, IconName, Markdown } from "../r_misc";
+import { Icon, IconName, Markdown } from "../components";
 const { Button, Modal } = require("react-bootstrap"); // TODO: import types
 
 import { JupyterActions } from "./browser-actions";

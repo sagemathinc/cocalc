@@ -1,5 +1,5 @@
 import { React } from "../../app-framework";
-import { A } from "../../r_misc";
+import { A } from "../../components";
 import { DOC_LICENSE_URL } from "../../billing/data";
 
 export const AboutLicenses: React.FC = () => {

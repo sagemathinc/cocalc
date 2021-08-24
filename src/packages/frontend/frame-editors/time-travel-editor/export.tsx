@@ -11,7 +11,7 @@
 import { Rendered, Component, React } from "../../app-framework";
 import { Button } from "react-bootstrap";
 import { TimeTravelActions } from "./actions";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 
 interface Props {
   actions: TimeTravelActions;

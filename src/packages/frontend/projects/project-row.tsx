@@ -17,7 +17,7 @@ import {
 import { ProjectUsers } from "./project-users";
 import { AddCollaborators } from "../collaborators";
 import { Row, Col, Well } from "../antd-bootstrap";
-import { Icon, Markdown, ProjectState, Space, TimeAgo } from "../r_misc";
+import { Icon, Markdown, ProjectState, Space, TimeAgo } from "../components";
 import { id2name } from "../custom-software/init";
 import {
   CUSTOM_IMG_PREFIX,

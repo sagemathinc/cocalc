@@ -13,7 +13,7 @@ import { List } from "immutable";
 import { Range } from "react-range";
 import { Component, React, Rendered } from "../../app-framework";
 import { TimeTravelActions } from "./actions";
-import { TimeAgo } from "../../r_misc";
+import { TimeAgo } from "../../components";
 
 interface Props {
   id: string;

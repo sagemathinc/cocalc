@@ -26,7 +26,7 @@ import initStats from "./app/stats";
 import initAppRedirect from "./app/app-redirect";
 import initLanding from "./app/landing";
 import initShareNext from "./app/share";
-import initShareOld from "./share";
+import vhostShare from "@cocalc/share/lib/virtual-hosts";
 
 // Used for longterm caching of files
 const MAX_AGE = ms("10 days");
@@ -50,13 +50,19 @@ export default async function init(opts: Options): Promise<{
   const app = express();
   const router = express.Router();
 
-  app.use(cookieParser());
+  // This must go very early - we handle virtual hosts, like wstein.org
+  // before any other routes or middleware interfere.
+  if (opts.shareServer) {
+    app.use(vhostShare());
+  }
 
   // Enable compression, as suggested by
   //   http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
   // NOTE "Express runs everything in order" --
   // https://github.com/expressjs/compression/issues/35#issuecomment-77076170
   app.use(compression());
+
+  app.use(cookieParser());
 
   // Install custom middleware to track response time metrics via prometheus, and
   // also serve them up at /metrics.
@@ -108,11 +114,7 @@ export default async function init(opts: Options): Promise<{
 
   if (opts.shareServer) {
     // Landing page content: this is the "/" index page + assets, for docker, on-prem, dev.
-    if (process.env.COCALC_NEXTJS_SHARE) {
-      await initShareNext(app);
-    } else {
-      initShareOld(app);
-    }
+    await initShareNext(app);
   }
 
   // The /static content, used by docker, development, etc.
@@ -145,12 +147,6 @@ export default async function init(opts: Options): Promise<{
     // query is exactly "?key=value,key=..."
     const query = parseURL(req.url, true).search || "";
     res.redirect(join(basePath, "static/app.html") + query);
-  });
-
-  // The base_path.js endpoint is javascript that sets the
-  // app_base_path global variable for the client when loaded.
-  router.get("/base_path.js", (_req, res) => {
-    res.send(`window.app_base_path='${basePath}';`);
   });
 
   initAPI(router, opts.projectControl);

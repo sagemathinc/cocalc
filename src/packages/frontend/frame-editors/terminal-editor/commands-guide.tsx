@@ -30,7 +30,7 @@ import {
 const { Panel } = Collapse;
 // import { delay } from "awaiting";
 import { Map, List } from "immutable";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { plural, round1 } from "@cocalc/util/misc";
 import { TerminalActions } from "./actions";
 import { DirectoryListingEntry } from "../../project/explorer/types";

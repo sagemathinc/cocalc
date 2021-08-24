@@ -22,9 +22,10 @@ import {
   useRef,
   useEffect,
 } from "./app-framework";
-import { Icon, Tip } from "./r_misc";
+import { Icon, Tip } from "./components";
 import { join } from "path";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 // 3GB upload limit --  since that's the default filesystem quota
 // and it should be plenty?
@@ -84,11 +85,7 @@ const Header = () => {
 
 function postUrl(project_id: string, path: string): string {
   const dest_dir = encode_path(path);
-  return join(
-    window.app_base_path,
-    project_id,
-    `raw/.smc/upload?dest_dir=${dest_dir}`
-  );
+  return join(appBasePath, project_id, `raw/.smc/upload?dest_dir=${dest_dir}`);
 }
 
 interface FileUploadProps {

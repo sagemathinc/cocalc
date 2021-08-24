@@ -5,7 +5,7 @@
 
 import { Alert, Button, ButtonToolbar, Col, Row } from "react-bootstrap";
 import { stripe_amount, stripe_date, capitalize } from "@cocalc/util/misc";
-import { A } from "../r_misc";
+import { A } from "../components";
 import {
   CSS,
   React,

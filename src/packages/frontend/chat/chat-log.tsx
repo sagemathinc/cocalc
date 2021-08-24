@@ -16,7 +16,7 @@ import {
   useTypedRedux,
 } from "../app-framework";
 import { Alert } from "../antd-bootstrap";
-import { ScrollInfo, WindowedList } from "../r_misc/windowed-list";
+import { ScrollInfo, WindowedList } from "../components/windowed-list";
 import { Message } from "./message";
 import { search_match, search_split } from "@cocalc/util/misc";
 import { ChatActions } from "./actions";

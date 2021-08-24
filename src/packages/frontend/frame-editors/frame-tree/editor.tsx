@@ -12,7 +12,7 @@ import {
   Rendered,
   project_redux_name,
 } from "../../app-framework";
-import { ErrorDisplay, Loading, LoadingEstimate } from "@cocalc/frontend/r_misc";
+import { ErrorDisplay, Loading, LoadingEstimate } from "@cocalc/frontend/components";
 import { FormatBar } from "./format-bar";
 import { StatusBar } from "./status-bar";
 //TODO: import { FrameTree } from "./frame-tree";

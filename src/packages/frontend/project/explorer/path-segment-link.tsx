@@ -5,7 +5,7 @@
 
 import React from "react";
 import { Breadcrumb } from "antd";
-import { Tip } from "../../r_misc";
+import { Tip } from "../../components";
 
 interface Props {
   path: string;

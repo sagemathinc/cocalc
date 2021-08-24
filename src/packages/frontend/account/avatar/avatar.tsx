@@ -14,7 +14,7 @@ import {
   useState,
   useTypedRedux,
 } from "../../app-framework";
-import { Space } from "../../r_misc";
+import { Space } from "../../components";
 import { avatar_fontcolor } from "./font-color";
 import { ProjectTitle } from "../../projects/project-title";
 import { DEFAULT_COLOR } from "../../users/store";

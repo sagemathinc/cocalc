@@ -12,7 +12,7 @@ inform server side rendering.  We'll do something much better later.
 */
 
 import { isSha1Hash } from "lib/util";
-import getPool from "lib/database";
+import getPool from "@cocalc/util-node/database";
 
 export default async function handler(req, res) {
   const { id } = req.query;

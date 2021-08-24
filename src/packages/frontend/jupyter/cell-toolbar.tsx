@@ -18,7 +18,7 @@ import { CreateAssignmentToolbar } from "./nbgrader/cell-toolbar-create-assignme
 
 import { JupyterActions } from "./browser-actions";
 
-import { PROMPT_MIN_WIDTH } from "./prompt";
+import { PROMPT_MIN_WIDTH } from "./prompt/base";
 
 const STYLE: CSS = {
   marginLeft: PROMPT_MIN_WIDTH,

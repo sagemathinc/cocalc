@@ -14,7 +14,7 @@ happens, and also when the system is heavily loaded.
 
 import { Alert, Button } from "antd";
 import { redux, React, useMemo, useTypedRedux } from "../app-framework";
-import { A, Icon, ProjectState, Space, VisibleMDLG } from "../r_misc";
+import { A, Icon, ProjectState, Space, VisibleMDLG } from "../components";
 import { DOC_TRIAL } from "./trial-banner";
 import { allow_project_to_run } from "./client-side-throttle";
 import { server_seconds_ago } from "@cocalc/util/misc";

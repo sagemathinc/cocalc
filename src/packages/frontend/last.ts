@@ -19,6 +19,7 @@ import { mathjax_finish_startup } from "./misc";
 import * as prom_client from "./prom-client";
 import { MathJaxConfig } from "@cocalc/util/mathjax-config";
 import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export function init() {
   // see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
@@ -64,7 +65,7 @@ export function init() {
   } else {
     // mathjax startup. config is set above, now we dynamically insert the mathjax script URL
     const src = join(
-      window.app_base_path,
+      appBasePath,
       `cdn/mathjax-${CDN_VERSIONS.mathjax}/MathJax.js`
     );
 

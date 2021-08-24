@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "@cocalc/frontend/app-framework";
+import React from "react";
 import { merge } from "@cocalc/util/misc";
 
 export const OUT_STYLE: React.CSSProperties = {
@@ -36,7 +36,10 @@ export const OUTPUT_STYLE: React.CSSProperties = {
   marginLeft: "1px",
 };
 
-export const OUTPUT_STYLE_SCROLLED = merge({ maxHeight: "40vh" }, OUTPUT_STYLE);
+export const OUTPUT_STYLE_SCROLLED = {
+  ...OUTPUT_STYLE,
+  maxHeight: "40vh",
+};
 
 export const INPUT_STYLE: React.CSSProperties = {
   padding: "0em 0.25em",

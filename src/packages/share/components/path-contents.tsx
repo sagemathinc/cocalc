@@ -15,6 +15,7 @@ interface Props {
   content?: string;
   relativePath: string;
   path: string;
+  truncated?: string;
 }
 
 export default function PathContents({
@@ -24,20 +25,39 @@ export default function PathContents({
   content,
   relativePath,
   path,
+  truncated,
 }: Props) {
   if (isdir) {
     if (listing == null) return <Loading />;
     return (
-      <DirectoryListing id={id} listing={listing} relativePath={relativePath} />
+      <>
+        <Truncated truncated={truncated} />
+        <DirectoryListing
+          id={id}
+          listing={listing}
+          relativePath={relativePath}
+        />
+      </>
     );
   } else {
     return (
-      <FileContents
-        id={id}
-        content={content}
-        path={path}
-        relativePath={relativePath}
-      />
+      <div
+        style={{
+          border: "1px solid #ccc",
+          padding: "20px 15px",
+        }}
+      >
+        <Truncated truncated={truncated} />
+        <FileContents
+          id={id}
+          content={content}
+          path={path}
+          relativePath={relativePath}
+        />
+      </div>
     );
   }
 }
+
+const Truncated = ({ truncated }) =>
+  truncated == null ? null : <h3>{truncated}</h3>;

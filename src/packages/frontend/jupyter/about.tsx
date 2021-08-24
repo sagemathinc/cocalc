@@ -10,7 +10,7 @@ About dialog -- provides info about the Jupyter Notebook
 import Ansi from "ansi-to-react";
 import { React } from "../app-framework";
 import { Button, Modal } from "react-bootstrap";
-import { Icon, A } from "../r_misc";
+import { Icon, A } from "../components";
 const { ShowSupportLink } = require("../support");
 import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 import { KernelInfo } from "./types";

@@ -6,7 +6,7 @@
 import { CSS, React, redux, useRedux, useActions } from "../../app-framework";
 import { Card, Radio } from "antd";
 import { Checkbox } from "../../antd-bootstrap";
-import { A, Icon, NumberInput } from "../../r_misc";
+import { A, Icon, NumberInput } from "../../components";
 import { SelectProject } from "../../projects/select-project";
 
 import { CourseActions } from "../actions";

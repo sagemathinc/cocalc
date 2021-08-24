@@ -7,20 +7,20 @@
 Handling of output messages.
 */
 
-import { React, Rendered } from "@cocalc/frontend/app-framework";
-import { JupyterActions } from "../actions";
-import { Map } from "immutable";
+import React from "react";
+import type { Map } from "immutable";
+import type { JupyterActions } from "../actions";
 import { OUTPUT_STYLE, OUTPUT_STYLE_SCROLLED } from "./style";
-import { MoreOutput } from "./more-output";
 import { Stdout } from "./stdout";
 import { Stderr } from "./stderr";
+import { MoreOutput } from "./more-output";
 import { Input } from "./input";
 import { InputDone } from "./input-done";
-import { Data } from "./data";
+import { Data } from "./mime-types/data";
 import { Traceback } from "./traceback";
 import { NotImplemented } from "./not-implemented";
 
-function message_component(message: Map<string, any>): any {
+function messageComponent(message: Map<string, any>): any {
   if (message.get("more_output") != null) {
     return MoreOutput;
   }
@@ -58,7 +58,7 @@ interface CellOutputMessageProps {
 
 export const CellOutputMessage: React.FC<CellOutputMessageProps> = React.memo(
   (props: CellOutputMessageProps) => {
-    const C: any = message_component(props.message);
+    const C: any = messageComponent(props.message);
     return (
       <C
         message={props.message}
@@ -84,7 +84,7 @@ interface CellOutputMessagesProps {
   id?: string;
 }
 
-function should_memoize(prev, next) {
+function shouldMemoize(prev, next) {
   return (
     next.output.equals(prev.output) &&
     next.scrolled === prev.scrolled &&
@@ -105,68 +105,27 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
       id,
     } = props;
 
-    function render_output_message(
-      n: string,
-      mesg: Map<string, any>
-    ): Rendered {
-      return (
-        <CellOutputMessage
-          key={n}
-          message={mesg}
-          project_id={project_id}
-          directory={directory}
-          actions={actions}
-          name={name}
-          trust={trust}
-          id={id}
-        />
-      );
-    }
+    const obj: Map<string, any>[] = React.useMemo(
+      () => messageList(output),
+      [output]
+    );
 
-    function message_list(): Map<string, any>[] {
-      const v: any[] = [];
-      let k = 0;
-      for (let n = 0, end = output.size; n < end; n++) {
-        const mesg = output.get(`${n}`);
-        // Make this renderer robust against any possible weird shape of the actual
-        // output object, e.g., undefined or not immmutable js.
-        // Also, we're checking that get is defined --
-        //   see https://github.com/sagemathinc/cocalc/issues/2404
-        if (mesg == null || typeof mesg.get !== "function") {
-          console.warn(`Jupyter -- ignoring invalid mesg ${mesg}`);
-          continue;
-        }
-        const name = mesg.get("name");
-        if (
-          k > 0 &&
-          (name === "stdout" || name === "stderr") &&
-          v[k - 1].get("name") === name
-        ) {
-          // combine adjacent stdout / stderr messages...
-          let text = mesg.get("text");
-          if (typeof text !== "string") {
-            text = `${text}`;
-          }
-          const merged = v[k - 1].get("text") + mesg.get("text");
-          v[k - 1] = v[k - 1].set("text", merged);
-        } else {
-          v[k] = mesg;
-          k += 1;
-        }
-      }
-      return v;
-    }
-
-    // for the same output map, we derive the same list of objects
-    const object: Map<string, any>[] = React.useMemo(message_list, [output]);
-
-    const v: Rendered[] = [];
-    // (yes, I know n is a string in the next line, but that's fine since it is used only as a key)
-    let n: string;
-    for (n in object) {
-      const mesg = object[n];
+    const v: JSX.Element[] = [];
+    for (const n of numericallyOrderedKeys(obj)) {
+      const mesg = obj[n];
       if (mesg != null) {
-        v.push(render_output_message(n, mesg));
+        v.push(
+          <CellOutputMessage
+            key={n}
+            message={mesg}
+            project_id={project_id}
+            directory={directory}
+            actions={actions}
+            name={name}
+            trust={trust}
+            id={id}
+          />
+        );
       }
     }
     return (
@@ -178,5 +137,48 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
       </div>
     );
   },
-  should_memoize
+  shouldMemoize
 );
+
+function numericallyOrderedKeys(obj: object): number[] {
+  const v: number[] = [];
+  for (const n in obj) {
+    v.push(parseInt(n));
+  }
+  v.sort((a, b) => a - b);
+  return v;
+}
+
+function messageList(output: Map<string, any>): Map<string, any>[] {
+  const v: any[] = [];
+  let k = 0;
+  for (let n = 0, end = output.size; n < end; n++) {
+    const mesg = output.get(`${n}`);
+    // Make this renderer robust against any possible weird shape of the actual
+    // output object, e.g., undefined or not immmutable js.
+    // Also, we're checking that get is defined --
+    //   see https://github.com/sagemathinc/cocalc/issues/2404
+    if (mesg == null || typeof mesg.get !== "function") {
+      console.warn(`Jupyter -- ignoring invalid mesg ${mesg}`);
+      continue;
+    }
+    const name = mesg.get("name");
+    if (
+      k > 0 &&
+      (name === "stdout" || name === "stderr") &&
+      v[k - 1].get("name") === name
+    ) {
+      // combine adjacent stdout / stderr messages...
+      let text = mesg.get("text");
+      if (typeof text !== "string") {
+        text = `${text}`;
+      }
+      const merged = v[k - 1].get("text") + mesg.get("text");
+      v[k - 1] = v[k - 1].set("text", merged);
+    } else {
+      v[k] = mesg;
+      k += 1;
+    }
+  }
+  return v;
+}

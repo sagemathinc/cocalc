@@ -10,7 +10,7 @@ Task due date
 */
 
 import { React, CSS } from "../../app-framework";
-import { DateTimePicker, Icon, Space, TimeAgo } from "../../r_misc";
+import { DateTimePicker, Icon, Space, TimeAgo } from "../../components";
 import { TaskActions } from "./actions";
 
 const STYLE: CSS = {

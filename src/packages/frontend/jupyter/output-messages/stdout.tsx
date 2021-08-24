@@ -7,7 +7,7 @@
 Stdout rendering.
 */
 
-import { React } from "@cocalc/frontend/app-framework";
+import React from "react";
 import { Map } from "immutable";
 import { is_ansi, Ansi } from "./ansi";
 import { STDOUT_STYLE } from "./style";

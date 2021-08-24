@@ -7,7 +7,7 @@
 
 import { Button, Checkbox, Select } from "antd";
 const { Option } = Select;
-import { Space, TimeAgo } from "../r_misc";
+import { Space, TimeAgo } from "../components";
 import {
   React,
   redux,

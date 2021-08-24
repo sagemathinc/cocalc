@@ -6,7 +6,7 @@
 import { React, useActions, useTypedRedux } from "../app-framework";
 import { Button } from "../antd-bootstrap";
 import { Modal } from "react-bootstrap";
-import { Icon, Space } from "../r_misc";
+import { Icon, Space } from "../components";
 
 export const SupportFooter: React.FC = React.memo(() => {
   const status = useTypedRedux("support", "status");

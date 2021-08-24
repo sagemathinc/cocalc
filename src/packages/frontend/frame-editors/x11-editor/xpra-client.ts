@@ -15,11 +15,12 @@ import { XpraServer, ExecOpts0 } from "./xpra-server";
 import { ExecOutput } from "../generic/client";
 import { touch, touch_project } from "../generic/client";
 import { throttle } from "underscore";
-import { open_new_tab } from "../../misc-page";
+import { open_new_tab } from "../../misc";
 import { is_copy } from "./xpra/util";
 import { alert_message } from "@cocalc/frontend/alerts";
 const sha1 = require("sha1");
 import { close, hash_string } from "@cocalc/util/misc";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const BASE_DPI: number = 96;
 
@@ -162,7 +163,7 @@ export class XpraClient extends EventEmitter {
     origin = origin.slice(i);
 
     const path = join(
-      window.app_base_path,
+      appBasePath,
       this.options.project_id,
       "server",
       `${port}`

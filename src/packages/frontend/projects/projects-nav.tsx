@@ -25,7 +25,7 @@ import {
   useTypedRedux,
   CSS,
 } from "../app-framework";
-import { Loading, Icon, Tip } from "../r_misc";
+import { Loading, Icon, Tip } from "../components";
 import { NavTab } from "../app/nav-tab";
 import { WebsocketIndicator } from "../project/websocket/websocket-indicator";
 

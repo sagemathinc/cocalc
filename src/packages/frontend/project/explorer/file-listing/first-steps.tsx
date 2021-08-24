@@ -8,7 +8,7 @@ import React from "react";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { AppRedux } from "@cocalc/frontend/app-framework";
 
-import { Space } from "@cocalc/frontend/r_misc";
+import { Space } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 const { Row, Col } = require("react-bootstrap");
 import { SiteName } from "@cocalc/frontend/customize";

@@ -22,23 +22,12 @@ export { useSelector } from "react-redux";
 import { useRef, useEffect, useState } from "react";
 export { useFrameContext } from "../frame-editors/frame-tree/frame-context";
 
-// A *ref* that is true after component mounts, then false once
-// the component unmounts.  This obviously must be a ref since
-// it makes no sense for unmounting or mounting to trigger
-// a render cycle!.  I made this up myself, but it does turn out
-// to be identical to an npm package to do this:
-//    https://github.com/jmlweb/isMounted/blob/master/index.js
-
-export function useIsMountedRef() {
-  const is_mounted_ref = useRef<boolean>(false);
-  useEffect(() => {
-    is_mounted_ref.current = true;
-    return () => {
-      is_mounted_ref.current = false;
-    };
-  }, []);
-  return is_mounted_ref;
-}
+import useIsMountedRef from "./is-mounted-hook";
+export { useIsMountedRef };
+import useCounter from "./counter-hook";
+export { useCounter };
+import useToggle from "./toggle-hook";
+export { useToggle };
 
 export function useForceUpdate() {
   const [state, set_state] = useState<boolean>(true);
@@ -105,20 +94,4 @@ export function usePrevious<T>(val: T): T | null {
   }, [val]);
 
   return prevRef.current;
-}
-
-// This is a simple boolean toggle.
-export function useToggle(init: boolean = false): [boolean, () => void] {
-  const [val, set_val] = useState(init);
-  const toggle = () => set_val(!val);
-  return [val, toggle];
-}
-
-// Use this to count up or down. e.g.
-// const {val: counter_value, inc: inc_counter} = useCounter()
-export function useCounter(init: number = 0) {
-  const [val, set_val] = useState(init);
-  const inc = () => set_val(val + 1);
-  const dec = () => set_val(val - 1);
-  return { val, inc, dec };
 }

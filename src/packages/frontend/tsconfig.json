@@ -21,7 +21,7 @@
     "frame-editors/settings/__tests__",
     "jupyter/output-messages/__test__",
     "misc/__test__",
-    "r_misc/__tests__",
+    "components/__tests__",
     "test-mocha",
     "test",
     "*__tests__*",

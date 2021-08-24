@@ -8,7 +8,7 @@ Checkbox for toggling done status
 */
 
 import { React, CSS } from "../../app-framework";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { TaskActions } from "./actions";
 
 interface Props {

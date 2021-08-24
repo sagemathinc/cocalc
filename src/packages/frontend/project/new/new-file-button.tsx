@@ -6,7 +6,7 @@
 import React from "react";
 
 import { Button } from "antd";
-import { Icon, IconName, Space } from "../../r_misc";
+import { Icon, IconName, Space } from "../../components";
 
 interface Props {
   name: string;

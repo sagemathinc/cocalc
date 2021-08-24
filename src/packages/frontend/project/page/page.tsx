@@ -5,7 +5,7 @@
 
 import { Modal } from "antd";
 import { NavItem, Nav } from "react-bootstrap";
-import { Loading } from "../../r_misc";
+import { Loading } from "../../components";
 import { DeletedProjectWarning } from "../warnings/deleted";
 import { Content } from "./content";
 import { tab_to_path } from "@cocalc/util/misc";
@@ -17,7 +17,7 @@ import {
 } from "../../app-framework";
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
 import { ChatIndicator } from "../../chat/chat-indicator";
-import { ShareIndicator } from "../../share/share-indicator";
+import { ShareIndicator } from "./share-indicator";
 import { IS_TOUCH } from "../../feature";
 import { file_tab_labels } from "../file-tab-labels";
 import { DiskSpaceWarning } from "../warnings/disk-space";

@@ -5,7 +5,7 @@
 
 import React from "react";
 import { useConfirmation } from "./state-helpers";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { Button, ButtonGroup, Well } from "../../antd-bootstrap";
 import { Card } from "antd";
 

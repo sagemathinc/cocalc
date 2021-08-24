@@ -20,7 +20,7 @@ import {
   rtypes,
   AppRedux,
 } from "../../app-framework";
-import { Loading, ActivityDisplay, ErrorDisplay } from "../../r_misc";
+import { Loading, ActivityDisplay, ErrorDisplay } from "../../components";
 import {
   AssignmentsMap,
   CourseSettingsRecord,

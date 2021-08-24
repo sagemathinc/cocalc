@@ -1,6 +1,6 @@
 import { React, useRedux, useActions } from "../../app-framework";
 import { Button, Panel } from "../../antd-bootstrap";
-import { A, ErrorDisplay, Icon, Loading } from "../../r_misc";
+import { A, ErrorDisplay, Icon, Loading } from "../../components";
 
 export const Archive: React.FC<{ project_id: string; path: string }> = ({
   path,

@@ -5,10 +5,13 @@
 
 import Link from "next/link";
 import PathContents from "components/path-contents";
+import PathActions from "components/path-actions";
 import Loading from "components/loading";
 import getPublicPathInfo from "lib/get-public-path-info";
 import useCounter from "lib/counter";
-import SiteName from "components/site-name";
+import { Embed } from "components/layout";
+import { Customize } from "lib/context";
+import withCustomize from "lib/get-context";
 
 export default function PublicPath({
   id,
@@ -16,6 +19,7 @@ export default function PublicPath({
   relativePath,
   contents,
   error,
+  customize,
 }) {
   useCounter(id);
   if (id == null) return <Loading />;
@@ -33,30 +37,34 @@ export default function PublicPath({
     );
   }
   return (
-    <div>
-      <Link href={`/public_paths/${id}`}>
-        <a
+    <Customize value={customize}>
+      <Embed>
+        <div
           style={{
             backgroundColor: "white",
-            position: "absolute",
-            right: 0,
+            display: "inline-block",
             padding: "0 5px",
-            border: "1px solid lightgrey",
-            borderRadius: "5px",
+            margin: "5px",
           }}
         >
-          <SiteName />
-        </a>
-      </Link>
-      {contents != null && (
-        <PathContents
-          id={id}
-          relativePath={relativePath}
-          path={path}
-          {...contents}
-        />
-      )}
-    </div>
+          <PathActions
+            id={id}
+            path={path}
+            relativePath={relativePath}
+            isDir={!!contents?.isdir}
+            exclude={new Set(["embed"])}
+          />
+        </div>
+        {contents != null && (
+          <PathContents
+            id={id}
+            relativePath={relativePath}
+            path={path}
+            {...contents}
+          />
+        )}
+      </Embed>
+    </Customize>
   );
 }
 
@@ -69,10 +77,10 @@ export async function getStaticProps(context) {
   const relativePath = context.params.id.slice(1).join("/");
   try {
     const props = await getPublicPathInfo(id, relativePath);
-    return {
+    return await withCustomize({
       props: { ...props, layout: "embed" },
-      revalidate: 5,
-    };
+      revalidate: 15,
+    });
   } catch (_err) {
     console.log(_err);
     return { notFound: true };

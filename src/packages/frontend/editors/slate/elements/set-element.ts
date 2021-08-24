@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useRef } from "@cocalc/frontend/app-framework";
+import { useRef } from "react";
 import { Editor, Element, Transforms } from "slate";
 import { rangeAll } from "../slate-util";
 

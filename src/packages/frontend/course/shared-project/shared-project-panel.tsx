@@ -6,7 +6,7 @@
 import { React, Component, AppRedux, Rendered } from "../../app-framework";
 import { CourseActions } from "../actions";
 import { CourseSettingsRecord } from "../store";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { UsergroupAddOutlined } from "@ant-design/icons";
 
 import { Button, Popconfirm } from "antd";

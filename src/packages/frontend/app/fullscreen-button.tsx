@@ -4,7 +4,7 @@
  */
 
 import { React, useRedux, useActions } from "../app-framework";
-import { Icon, Tip } from "../r_misc";
+import { Icon, Tip } from "../components";
 import { COLORS } from "@cocalc/util/theme";
 import { user_tracking } from "../user-tracking";
 

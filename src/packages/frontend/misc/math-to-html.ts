@@ -33,3 +33,14 @@ export default function mathToHtml(
   cache.set(key, { html, err });
   return { __html: html ?? "", err };
 }
+
+export function latexMathToHtml(s: string): string {
+  const { __html, err } = s.startsWith("$$")
+    ? mathToHtml(s.slice(2, s.length - 2), false)
+    : mathToHtml(s.slice(1, s.length - 1), true);
+  if (err) {
+    return `<span style="color:#ff6666">${err}</span>`;
+  } else {
+    return __html;
+  }
+}

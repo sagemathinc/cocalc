@@ -13,7 +13,7 @@ import { ConfigurationActions } from "./actions";
 import { Card, Typography, Switch, Form, Button } from "antd";
 import { Datastore } from "../../projects/actions";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 
 interface Props {
   actions: ConfigurationActions;

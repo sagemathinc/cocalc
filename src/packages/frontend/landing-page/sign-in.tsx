@@ -5,8 +5,8 @@
 
 import { React, useActions, useEffect, useState } from "../app-framework";
 import { List } from "immutable";
-import { ErrorDisplay } from "../r_misc/error-display";
-import { Markdown } from "../r_misc";
+import { ErrorDisplay } from "../components/error-display";
+import { Markdown } from "../components";
 import { Passports } from "../passports";
 import { PassportStrategy } from "../account/passport-types";
 import { Col, Row, Button } from "../antd-bootstrap";

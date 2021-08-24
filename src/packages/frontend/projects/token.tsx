@@ -7,9 +7,9 @@
 
 import { Button } from "antd";
 import { React, useState } from "../app-framework";
-import { Icon, SearchInput } from "../r_misc";
+import { Icon, SearchInput } from "../components";
 import { add_self_to_project_using_token } from "../collaborators/handle-project-invite";
-import { open_popup_window } from "../misc-page/open-browser-tab";
+import { open_popup_window } from "../misc/open-browser-tab";
 
 export const AddToProjectToken: React.FC = React.memo(() => {
   const [token, set_token] = useState<string>("");

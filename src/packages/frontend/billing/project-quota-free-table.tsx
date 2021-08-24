@@ -10,9 +10,9 @@ in the backend static pages, so the tooltips are not visible there (no javascrip
 
 import { Component, React, Rendered } from "../app-framework";
 import { DEFAULT_QUOTAS, PROJECT_UPGRADES } from "@cocalc/util/schema";
-import { Tip } from "../r_misc/tip";
-import { Icon } from "../r_misc/icon";
-import { Space } from "../r_misc/space";
+import { Tip } from "../components/tip";
+import { Icon } from "../components/icon";
+import { Space } from "../components/space";
 const { Panel } = require("react-bootstrap"); // since the typescript declarations are our of sync with our crappy old version.
 
 import { render_project_quota } from "./util";

@@ -94,6 +94,7 @@ export function cleanup(): void {
     "NVM_BIN",
     "DEBUG",
     "PATH_COCALC",
+    "COCALC_ROOT",
   ];
   envrm.forEach((name) => delete process.env[name]);
 

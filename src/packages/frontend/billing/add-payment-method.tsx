@@ -5,7 +5,7 @@
 
 import { Button, ButtonToolbar, Row, Col, Well } from "../antd-bootstrap";
 import { Component, React, Rendered, redux } from "../app-framework";
-import { ErrorDisplay, Loading } from "../r_misc";
+import { ErrorDisplay, Loading } from "../components";
 import { HelpEmailLink } from "../customize";
 import { powered_by_stripe } from "./util";
 import { loadStripe, StripeCard } from "./stripe";

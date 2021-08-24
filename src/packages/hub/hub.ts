@@ -7,7 +7,6 @@
 // middle of the action, connected to potentially thousands of clients,
 // many Sage sessions, and PostgreSQL database.
 
-import { projects } from "@cocalc/util-node/data";
 import { spawn } from "child_process";
 import { COCALC_MODES } from "./servers/project-control";
 import blocked from "blocked";
@@ -368,11 +367,6 @@ async function main(): Promise<void> {
     .option(
       "--https-cert [string]",
       "serve over https.  argument should be a cert file (both https-key and https-cert must be specified)"
-    )
-    .option(
-      "--share-path [string]",
-      `describes where the share server finds shared files for each project at (default: ${projects}/[project_id])`,
-      `${projects}/[project_id]`
     )
     .option(
       "--agent-port <n>",

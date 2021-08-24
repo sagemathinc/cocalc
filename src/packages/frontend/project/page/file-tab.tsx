@@ -21,7 +21,7 @@ import {
   useTypedRedux,
 } from "../../app-framework";
 import { path_split, path_to_tab, trunc_left } from "@cocalc/util/misc";
-import { HiddenXS, Icon, Tip } from "../../r_misc";
+import { HiddenXS, Icon, Tip } from "../../components";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
 import { IS_SAFARI } from "../../feature";

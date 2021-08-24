@@ -5,8 +5,8 @@
 
 import { Alert, Well } from "react-bootstrap";
 import { Component, React, Rendered } from "../app-framework";
-import { Space } from "../r_misc/space";
-import { Icon } from "../r_misc/icon";
+import { Space } from "../components/space";
+import { Icon } from "../components/icon";
 
 import { Customer, Source } from "./types";
 import { AddPaymentMethod } from "./add-payment-method";

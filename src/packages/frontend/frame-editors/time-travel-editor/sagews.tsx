@@ -13,7 +13,7 @@ out a range.
 */
 
 import { SyncDoc } from "@cocalc/util/sync/editor/generic/sync-doc";
-import { Worksheet } from "../../sagews/worksheet";
+import Worksheet from "../../sagews/worksheet";
 import { parse_sagews } from "../../sagews/parse-sagews";
 import { Rendered, React, Component } from "../../app-framework";
 

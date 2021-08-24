@@ -9,10 +9,10 @@ import { delay } from "awaiting";
 import { React, redux, useTypedRedux } from "../app-framework";
 import { ticket_id_to_ticket_url } from "@cocalc/util/misc";
 import { Footer, HelpEmailLink } from "../customize";
-import { Icon, Loading, Markdown } from "../r_misc";
+import { Icon, Loading, Markdown } from "../components";
 import { isString } from "lodash";
 import { Alert, Button, Table } from "../antd-bootstrap";
-import { open_new_tab } from "../misc-page";
+import { open_new_tab } from "../misc";
 
 export const SupportTickets: React.FC = () => {
   const support_tickets = useTypedRedux("support", "support_tickets");

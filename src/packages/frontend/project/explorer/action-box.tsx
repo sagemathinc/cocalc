@@ -7,11 +7,11 @@ import React from "react";
 import ReactDOM from "react-dom";
 import * as immutable from "immutable";
 
-import { rtypes, rclass } from "../../app-framework";
-import { Icon, Loading, LoginLink } from "../../r_misc";
+import { rtypes, rclass } from "@cocalc/frontend/app-framework";
+import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
 import { DirectorySelector } from "../directory-selector";
-import { file_actions, ProjectActions } from "../../project_store";
-import { SelectProject } from "../../projects/select-project";
+import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
+import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { in_snapshot_path } from "../utils";
 
 import * as misc from "@cocalc/util/misc";
@@ -27,9 +27,9 @@ import {
   Alert,
   Checkbox,
 } from "react-bootstrap";
-import * as account from "../../account";
+import * as account from "@cocalc/frontend/account";
 
-import { Configure as ConfigureShare } from "../../share/config/config";
+import { Configure as ConfigureShare } from "@cocalc/frontend/share/config";
 
 type FileAction = undefined | keyof typeof file_actions;
 
@@ -147,9 +147,9 @@ export const ActionBox = rclass<ReactProps>(
     }
 
     compress_click = (): void => {
-      const destination = (ReactDOM.findDOMNode(
-        this.refs.result_archive
-      ) as any).value;
+      const destination = (
+        ReactDOM.findDOMNode(this.refs.result_archive) as any
+      ).value;
       this.props.actions.zip_files({
         src: this.props.checked_files.toArray(),
         dest: misc.path_to_file(this.props.current_path, destination),
@@ -370,9 +370,9 @@ export const ActionBox = rclass<ReactProps>(
                   placeholder="New file name..."
                   onChange={() =>
                     this.setState({
-                      new_name: (ReactDOM.findDOMNode(
-                        this.refs.new_name
-                      ) as any).value,
+                      new_name: (
+                        ReactDOM.findDOMNode(this.refs.new_name) as any
+                      ).value,
                     })
                   }
                   onKeyDown={this.action_key}
@@ -738,9 +738,9 @@ export const ActionBox = rclass<ReactProps>(
     };
 
     download_multiple_click = (): void => {
-      const destination = (ReactDOM.findDOMNode(
-        this.refs.download_archive
-      ) as any).value;
+      const destination = (
+        ReactDOM.findDOMNode(this.refs.download_archive) as any
+      ).value;
       const dest = misc.path_to_file(this.props.current_path, destination);
       const files = this.props.checked_files.toArray();
       this.props.actions.zip_files({

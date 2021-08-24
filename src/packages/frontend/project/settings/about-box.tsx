@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { LabeledRow, TextInput, SettingBox, TimeAgo } from "../../r_misc";
+import { LabeledRow, TextInput, SettingBox, TimeAgo } from "../../components";
 import { ProjectsActions } from "../../todo-types";
 
 interface Props {

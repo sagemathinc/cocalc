@@ -10,7 +10,7 @@ import { Button, Alert, Typography, Row, Col } from "antd";
 const { Text } = Typography;
 import { register_file_editor } from "../../frame-editors/frame-tree/register";
 import { filename_extension_notilde } from "@cocalc/util/misc";
-import { Loading } from "../../r_misc";
+import { Loading } from "../../components";
 import { Editor as CodeEditor } from "../../frame-editors/code-editor/editor";
 import { Actions as CodeEditorActions } from "../../frame-editors/code-editor/actions";
 

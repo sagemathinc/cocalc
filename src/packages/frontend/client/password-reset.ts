@@ -4,8 +4,9 @@
  */
 
 import { QueryParams } from "../misc/query-params";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
-const NAME = `${encodeURIComponent(window.app_base_path)}PWRESET`;
+const NAME = `${encodeURIComponent(appBasePath)}PWRESET`;
 
 import Cookies from "universal-cookie";
 const cookies = new Cookies();

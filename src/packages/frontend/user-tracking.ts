@@ -11,7 +11,7 @@ import { query, server_time } from "./frame-editors/generic/client";
 import { analytics_cookie_name as analytics, uuid } from "@cocalc/util/misc";
 import { redux } from "./app-framework";
 import { version } from "@cocalc/util/smc-version";
-import { get_cookie } from "./misc-page";
+import { get_cookie } from "./misc";
 import { webapp_client } from "./webapp-client";
 
 export async function log(eventName: string, payload: any): Promise<void> {

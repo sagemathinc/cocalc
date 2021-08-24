@@ -10,7 +10,7 @@ import {
   useState,
   useIsMountedRef,
 } from "../app-framework";
-import { Loading } from "../r_misc";
+import { Loading } from "../components";
 import { Button } from "../antd-bootstrap";
 
 export const LoadAllProjects: React.FC = React.memo(() => {

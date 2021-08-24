@@ -5,7 +5,7 @@
 
 import { Component, React, Rendered } from "../app-framework";
 const { User } = require("../users");
-import { Icon, TimeAgo, r_join } from "../r_misc";
+import { Icon, TimeAgo, r_join } from "../components";
 import { FileUseIcon } from "./icon";
 import { Map as iMap } from "immutable";
 const { Col, Grid, Row } = require("react-bootstrap");
@@ -45,7 +45,7 @@ export class FileUseInfo extends Component<Props, {}> {
     );
   }
 
-  render_users(): Rendered[] | undefined {
+  render_users() {
     if (this.props.info.get("users") == null) return;
     const v: Rendered[] = [];
     // only list users who have actually done something aside from mark read/seen this file

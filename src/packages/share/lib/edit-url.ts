@@ -3,10 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { applicationURL } from "./customize";
+import { join } from "path";
+import { appBasePath } from "./base-path";
 
-export default function editURL(id: string, path: string): string {
-  return encodeURI(
-    `${applicationURL}/app?anonymous=true&launch=share/${id}/${path}`
-  );
+interface Options {
+  id: string;
+  path: string;
+  dns?: string;
+}
+
+export default function editURL({ id, path, dns }: Options): string {
+  const url = `/static/app.html?anonymous=true&launch=share/${id}/${path}`;
+  if (dns) {
+    // if dns explicitly specified open on that machine, e.g. share.cocalc.com versus cocalc.com
+    return `https://${dns}${encodeURI(url)}`;
+  }
+  return encodeURI(join(appBasePath, url));
 }

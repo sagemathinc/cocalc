@@ -4,7 +4,7 @@
  */
 
 import { React } from "../app-framework";
-import { WindowedList } from "../r_misc/windowed-list";
+import { WindowedList } from "../components/windowed-list";
 import { LoadAllProjects } from "./load-all";
 import { ProjectRow } from "./project-row";
 

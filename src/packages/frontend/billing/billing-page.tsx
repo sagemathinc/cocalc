@@ -23,7 +23,7 @@ import {
   Icon,
   Loading,
   Space,
-} from "../r_misc";
+} from "../components";
 import { HelpEmailLink, PolicyPricingPageUrl, Footer } from "../customize";
 import { SubscriptionList } from "./subscription-list";
 import { PaymentMethods } from "./payment-methods";

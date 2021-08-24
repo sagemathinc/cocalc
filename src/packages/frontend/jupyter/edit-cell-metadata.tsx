@@ -8,7 +8,7 @@ Modal for editing cell metadata that are attached to any cell
 */
 
 import { React, Rendered } from "../app-framework";
-import { Icon } from "../r_misc/icon";
+import { Icon } from "../components/icon";
 import { Button, Modal } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";
 import { JSONEditor } from "./json-editor";

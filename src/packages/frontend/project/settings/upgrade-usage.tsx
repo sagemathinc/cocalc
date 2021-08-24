@@ -6,7 +6,7 @@
 import React from "react";
 import { ProjectsActions } from "@cocalc/frontend/todo-types";
 import { QuotaConsole } from "./quota-console";
-import { Icon, Loading, UpgradeAdjustor, SettingBox } from "@cocalc/frontend/r_misc";
+import { Icon, Loading, UpgradeAdjustor, SettingBox } from "@cocalc/frontend/components";
 import { redux, rtypes, rclass, Rendered } from "@cocalc/frontend/app-framework";
 import { URLBox } from "./url-box";
 import { Project } from "./types";

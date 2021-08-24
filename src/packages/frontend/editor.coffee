@@ -43,12 +43,13 @@ _ = underscore = require('underscore')
 {webapp_client} = require('./webapp-client')
 {EventEmitter}  = require('events')
 {alert_message} = require('./alerts')
+{ appBasePath } = require("@cocalc/frontend/customize/app-base-path");
 
 feature = require('./feature')
 IS_MOBILE = feature.IS_MOBILE
 
 misc = require('@cocalc/util/misc')
-{drag_start_iframe_disable, drag_stop_iframe_enable, sagews_canonical_mode} = require('./misc-page')
+{drag_start_iframe_disable, drag_stop_iframe_enable, sagews_canonical_mode} = require('./misc')
 
 # Ensure CodeMirror is available and configured
 CodeMirror = require("codemirror")
@@ -69,7 +70,62 @@ printing = require('./printing')
 {render_snippets_dialog} = require('./assistant/legacy')
 
 copypaste = require('./copy-paste-buffer')
-{extra_alt_keys} = require('mobile/codemirror')
+
+extra_alt_keys = (extraKeys, editor, opts) ->
+    misc.merge extraKeys,
+        "Shift-Alt-L" : (cm) => cm.align_assignments()
+        'Alt-Z'       : (cm) => cm.undo()
+        'Shift-Alt-Z' : (cm) => cm.redo()
+        'Alt-A'       : (cm) => cm.execCommand('selectAll')
+        'Shift-Alt-A' : (cm) => cm.execCommand('selectAll')
+        'Alt-K'       : (cm) => cm.execCommand('killLine')
+        'Alt-D'       : (cm) => cm.execCommand('selectNextOccurrence')
+        'Alt-F'       : (cm) => cm.execCommand('find')
+        'Shift-Alt-F' : (cm) => cm.execCommand('replace')
+        'Shift-Alt-R' : (cm) => cm.execCommand('replaceAll')
+        'Shift-Alt-D' : (cm) => cm.execCommand('duplicateLine')
+        'Alt-G'       : (cm) => cm.execCommand('findNext')
+        'Shift-Alt-G' : (cm) => cm.execCommand('findPrev')
+        'Alt-Up'      : (cm) => cm.execCommand('goPageUp')
+        'Alt-Down'    : (cm) => cm.execCommand('goPageDown')
+        'Alt-K'       : (cm) => cm.execCommand('goPageUp')
+        'Alt-J'       : (cm) => cm.execCommand('goPageDown')
+        'Alt-P'       : (cm) => cm.execCommand('goLineUp')
+        'Alt-N'       : (cm) => cm.execCommand('goLineDown')
+
+    if editor?.goto_line?
+        extraKeys['Alt-L'] = (cm) => editor.goto_line(cm)
+    if editor?.toggle_split_view?
+        extraKeys['Alt-I'] = (cm) => editor.toggle_split_view(cm)
+    if editor?.copy?
+        extraKeys['Alt-C'] = (cm) => editor.copy(cm)  # gets overwritten for vim mode, of course
+    else
+        extraKeys['Alt-C'] = (cm) => copypaste.set_buffer(cm.getSelection())
+
+    if editor?.cut?
+        extraKeys['Alt-X'] = (cm) => editor.cut(cm)
+    else
+        extraKeys['Alt-X'] = (cm) =>
+            copypaste.set_buffer(cm.getSelection())
+            cm.replaceSelection('')
+    if editor?.paste?
+        extraKeys['Alt-V'] = (cm) => editor.paste(cm)
+    else
+        extraKeys['Alt-V'] = (cm) => cm.replaceSelection(copypaste.get_buffer())
+    if editor?.click_save_button?
+        extraKeys['Alt-S'] = (cm) => editor.click_save_button()
+    else if editor?.save?
+        extraKeys['Alt-S'] = (cm) => editor.save()
+
+    if opts.bindings == 'vim'
+        # An additional key to get to visual mode in vim (added for ipad Smart Keyboard)
+        extraKeys["Alt-C"] = (cm) =>
+            CodeMirror.Vim.exitInsertMode(cm)
+        extraKeys["Alt-F"] = (cm) =>
+            cm.execCommand('goPageDown')
+        extraKeys["Alt-B"] = (cm) =>
+            cm.execCommand('goPageUp')
+
 
 {file_associations, VIDEO_EXTS} = require('./file-associations')
 
@@ -1844,7 +1900,7 @@ class JupyterNBViewerEmbedded extends FileEditor
             @iframe = @element.find(".smc-jupyter-nbviewer-content").find('iframe')
             {join} = require('path')
             ipynb_src = join(window.location.hostname,
-                             window.app_base_path,
+                             appBasePath,
                              @project_id,
                              'raw',
                              @filename)

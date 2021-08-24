@@ -20,6 +20,8 @@ import { checkboxPlugin } from "./checkbox-plugin";
 import { hashtagPlugin } from "./hashtag-plugin";
 import { mentionPlugin } from "./mentions-plugin";
 export { parseHeader } from "./header";
+import Markdown from "./component";
+export { Markdown };
 
 const MarkdownItFrontMatter = require("markdown-it-front-matter");
 import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";

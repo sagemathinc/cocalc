@@ -7,7 +7,7 @@ import * as CodeMirror from "codemirror";
 import { Button, Modal } from "antd";
 import { React } from "../../app-framework";
 import { alert_message } from "../../alerts";
-import { show_react_modal } from "../../misc-page";
+import { show_react_modal } from "../../misc";
 
 export interface Options {
   char: string; // utf8 representation of the symbol

@@ -4,7 +4,7 @@
  */
 
 import { Component, React, Rendered } from "../app-framework";
-import { A } from "@cocalc/frontend/r_misc";
+import { A } from "@cocalc/frontend/components";
 
 export class FAQ extends Component {
   public render(): Rendered {

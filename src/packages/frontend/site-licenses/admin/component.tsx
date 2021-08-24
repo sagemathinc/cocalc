@@ -30,7 +30,7 @@ import {
   useIsMountedRef,
 } from "../../app-framework";
 import { plural } from "@cocalc/util/misc";
-import { ErrorDisplay, Icon, Loading, Space, r_join } from "../../r_misc";
+import { ErrorDisplay, Icon, Loading, Space, r_join } from "../../components";
 import { actions } from "./actions";
 import { Alert, Button, Popconfirm } from "antd";
 import { License } from "./license";
@@ -110,7 +110,7 @@ export const SiteLicenses: React.FC<{}> = () => {
     );
   }
 
-  function render_main(): void | Rendered[] {
+  function render_main() {
     if (!view) return;
     if (!site_licenses) return;
     const v: Rendered[] = [];

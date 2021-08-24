@@ -22,7 +22,7 @@ import { Alert, Table, Button, Form, Popconfirm, Modal, Switch } from "antd";
 import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
 import { seconds2hms, unreachable } from "@cocalc/util/misc";
-import { A, Tip, Loading } from "../../r_misc";
+import { A, Tip, Loading } from "../../components";
 import { RestartProject } from "../settings/restart-project";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";

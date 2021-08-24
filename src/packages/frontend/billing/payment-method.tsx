@@ -5,8 +5,8 @@
 
 import { React, Rendered, useState } from "../app-framework";
 import { Alert, Button, ButtonToolbar, Row, Col } from "react-bootstrap";
-import { Icon, IconName} from "../r_misc/icon";
-import { Space } from "../r_misc/space";
+import { Icon, IconName} from "../components/icon";
+import { Space } from "../components/space";
 import { brand_to_icon_name } from "./data";
 
 import { Source } from "./types";

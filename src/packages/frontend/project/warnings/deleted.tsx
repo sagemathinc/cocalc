@@ -5,7 +5,7 @@
 
 import { React } from "../../app-framework";
 import { Alert } from "../../antd-bootstrap";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 
 // A warning to put on pages when the project is deleted
 export const DeletedProjectWarning: React.FC = () => {

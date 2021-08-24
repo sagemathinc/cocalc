@@ -12,7 +12,7 @@ import {
   Rendered,
 } from "../../app-framework";
 import { fromJS } from "immutable";
-import { Icon, Markdown, A } from "../../r_misc";
+import { Icon, Markdown, A } from "../../components";
 import {
   SoftwareEnvironment,
   SoftwareEnvironmentState,

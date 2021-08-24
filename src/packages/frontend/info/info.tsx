@@ -7,7 +7,7 @@
 
 import { React, Redux, Rendered, rclass, rtypes } from "../app-framework";
 import { Col, Row } from "../antd-bootstrap";
-import { Icon, Space } from "../r_misc";
+import { Icon, Space } from "../components";
 import { SiteDescription, Footer } from "../customize";
 import { ComputeEnvironment } from "../compute-environment";
 import { COLORS } from "@cocalc/util/theme";

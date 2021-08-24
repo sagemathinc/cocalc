@@ -33,7 +33,7 @@ import { Element } from "./element";
 import { Leaf } from "./leaf";
 import { withAutoFormat } from "./format";
 import { withNormalize } from "./normalize";
-import { withInsertBreakHack } from "./elements/link";
+import { withInsertBreakHack } from "./elements/link/editable";
 import { estimateSize } from "./elements";
 import { getHandler as getKeyboardHandler } from "./keyboard";
 
@@ -45,7 +45,7 @@ import { slatePointToMarkdownPosition } from "./sync";
 
 import { useMentions } from "./slate-mentions";
 import { mentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
-import { createMention } from "./elements/mention";
+import { createMention } from "./elements/mention/editable";
 import { submit_mentions } from "@cocalc/frontend/editors/markdown-input/mentions";
 
 import { useSearch, SearchHook } from "./search";

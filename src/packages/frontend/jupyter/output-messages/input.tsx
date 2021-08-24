@@ -4,10 +4,11 @@
  */
 
 import { delay } from "awaiting";
-import { React, ReactDOM, useState, useRef } from "@cocalc/frontend/app-framework";
+import React, { useState, useRef } from "react";
+import ReactDOM from "react-dom";
 import { Map } from "immutable";
 import { INPUT_STYLE, STDOUT_STYLE } from "./style";
-import { JupyterActions } from "../browser-actions";
+import type { JupyterActions } from "../browser-actions";
 
 interface InputProps {
   message: Map<string, any>;
@@ -38,7 +39,7 @@ export const Input: React.FC<InputProps> = (props: InputProps) => {
   //        to jump to that input.  That could tie into a global state indicator of which
   //        cell is currently running.  But that's outside the scope of this code.
   React.useEffect(() => {
-    const elt = ReactDOM.findDOMNode(inputRef.current);
+    const elt: any = ReactDOM.findDOMNode(inputRef.current);
     if (elt == null) return;
     elt.focus({ preventScroll: true });
   }, []);

@@ -5,7 +5,7 @@
 
 import { Map } from "immutable";
 const { User } = require("../../users");
-import { Loading, r_join } from "../../r_misc";
+import { Loading, r_join } from "../../components";
 import {
   Component,
   React,
@@ -72,7 +72,7 @@ class Authors extends Component<Props> {
     }
   }
 
-  private render_content(): Rendered | Rendered[] {
+  private render_content() {
     if (this.props.user_map == null) {
       return <Loading />;
     }

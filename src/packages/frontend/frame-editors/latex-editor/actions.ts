@@ -61,7 +61,7 @@ import {
   sha1,
 } from "@cocalc/util/misc";
 import { IBuildSpecs } from "./build";
-import { open_new_tab } from "../../misc-page";
+import { open_new_tab } from "../../misc";
 
 export interface BuildLog extends ExecOutput {
   parse?: IProcessedLatexLog;

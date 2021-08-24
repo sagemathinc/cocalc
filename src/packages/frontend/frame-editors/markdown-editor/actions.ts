@@ -23,7 +23,7 @@ import { formatAction as slateFormatAction } from "@cocalc/frontend/editors/slat
 import {
   TableOfContentsEntryList,
   TableOfContentsEntry,
-} from "@cocalc/frontend/r_misc";
+} from "@cocalc/frontend/components";
 import { fromJS } from "immutable";
 import { parseTableOfContents } from "@cocalc/frontend/markdown";
 import {

@@ -20,7 +20,7 @@ import { ReloadOutlined, DeleteOutlined } from "@ant-design/icons";
 import { PlusCircleOutlined, EditOutlined } from "@ant-design/icons";
 import { Button, Table, Typography, Form, Input, Checkbox } from "antd";
 import { Space, Alert, Switch, Popconfirm, Tooltip } from "antd";
-import { ErrorDisplay, SettingBox, Icon, Tip, A } from "../../r_misc";
+import { ErrorDisplay, SettingBox, Icon, Tip, A } from "../../components";
 import { RestartProject } from "./restart-project";
 import { unreachable } from "@cocalc/util/misc";
 import { DUMMY_SECRET } from "./const";

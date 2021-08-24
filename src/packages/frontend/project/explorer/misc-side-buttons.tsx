@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { HiddenSM, Icon, Tip } from "../../r_misc";
+import { HiddenSM, Icon, Tip } from "../../components";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { Button, ButtonGroup, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";

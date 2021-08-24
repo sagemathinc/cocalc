@@ -30,7 +30,7 @@ import {
   TextInput,
   TimeAgo,
   ErrorDisplay,
-} from "../../r_misc";
+} from "../../components";
 import { StudentProjectUpgrades } from "./upgrades";
 import { CourseActions } from "../actions";
 import { ProjectMap } from "../../todo-types";

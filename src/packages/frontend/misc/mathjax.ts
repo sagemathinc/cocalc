@@ -5,7 +5,7 @@
 
 // MathJax some code -- jQuery plugin
 // ATTN: do not call MathJax directly, but always use this .mathjax() plugin.
-// from React.js, the canonical way to call it is $(ReactDOM.findDOMNode(@)).mathjax() (e.g. Markdown in r_misc)
+// from React.js, the canonical way to call it is $(ReactDOM.findDOMNode(@)).mathjax() (e.g. Markdown in components)
 
 import { defaults } from "@cocalc/util/misc";
 

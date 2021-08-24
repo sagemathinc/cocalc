@@ -35,7 +35,7 @@ import { ConnectionStatus, FrameTree } from "../frame-tree/types";
 import { XpraClient } from "./xpra-client";
 import { Store } from "../../app-framework";
 import { alert_message } from "@cocalc/frontend/alerts";
-import { open_new_tab } from "../../misc-page";
+import { open_new_tab } from "../../misc";
 
 interface X11EditorState extends CodeEditorState {
   windows: Map<number, any>;

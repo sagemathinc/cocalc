@@ -29,7 +29,7 @@ import {
   TimeAgo,
   Icon,
   Space,
-} from "../../r_misc";
+} from "../../components";
 import { Checkbox } from "../../antd-bootstrap";
 import {
   DisplayUpgrades,

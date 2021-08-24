@@ -45,12 +45,12 @@ const Draggable = require("react-draggable");
 import {
   drag_start_iframe_disable,
   drag_stop_iframe_enable,
-} from "../../misc-page";
+} from "../../misc";
 import * as feature from "@cocalc/frontend/feature";
 import { FrameTitleBar } from "./title-bar";
 import { FrameTreeLeaf } from "./leaf";
 import * as tree_ops from "./tree-ops";
-import { Loading } from "../../r_misc";
+import { Loading } from "../../components";
 import { AvailableFeatures } from "../../project_configuration";
 import { get_file_editor } from "./register";
 import { TimeTravelActions } from "../time-travel-editor/actions";

@@ -6,7 +6,7 @@
 import { React, useActions, useTypedRedux } from "../app-framework";
 import { COLORS } from "@cocalc/util/theme";
 import { user_tracking } from "../user-tracking";
-import { Icon } from "../r_misc";
+import { Icon } from "../components";
 import { NavItem } from "react-bootstrap";
 import { blur_active_element } from "./util";
 

@@ -14,7 +14,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Tip } from "@cocalc/frontend/r_misc";
+import { Icon, Tip } from "@cocalc/frontend/components";
 
 export interface StudentProjectFunctionality {
   disableActions?: boolean;

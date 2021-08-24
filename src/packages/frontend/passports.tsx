@@ -7,10 +7,11 @@ import { join } from "path";
 import React from "react";
 import { List } from "immutable";
 import { capitalize } from "@cocalc/util/misc";
-import { isIconName, Icon, Tip } from "./r_misc";
+import { isIconName, Icon, Tip } from "./components";
 import { SiteName } from "./customize";
 import { PassportStrategy, PRIMARY_SSO } from "./account/passport-types";
 import { COLORS } from "@cocalc/util/theme";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 interface Props {
   strategies?: List<PassportStrategy>;
@@ -137,7 +138,7 @@ export class Passports extends React.Component<Props> {
   private strategy_url(name: string): string {
     let url = "";
     if (!this.props.disabled) {
-      url = join(window.app_base_path, "auth", name);
+      url = join(appBasePath, "auth", name);
       if (this.props.get_api_key) {
         url += `?get_api_key=${this.props.get_api_key}`;
       }

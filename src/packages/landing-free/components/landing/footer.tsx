@@ -1,12 +1,7 @@
 import A from "components/misc/A";
 import Logo from "./logo-rectangular";
-import {
-  siteName,
-  organizationName,
-  termsOfServiceURL,
-  contactEmail,
-} from "lib/customize";
 import { Layout } from "antd";
+import { useCustomize } from "lib/customize";
 
 function Item({
   first,
@@ -24,6 +19,8 @@ function Item({
 }
 
 export default function Footer() {
+  const { siteName, organizationName, termsOfServiceURL, contactEmail } =
+    useCustomize();
   return (
     <Layout.Footer
       style={{

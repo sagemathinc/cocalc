@@ -11,6 +11,7 @@ import { webapp_client } from "../webapp-client";
 import * as LS from "../misc/local-storage";
 import { SignedIn } from "@cocalc/util/message-types";
 import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 async function tracking_events(): Promise<void> {
   if (localStorage == null) return;
@@ -26,7 +27,7 @@ async function tracking_events(): Promise<void> {
 
 async function analytics_send(mesg: SignedIn): Promise<void> {
   window
-    .fetch(join(window.app_base_path, "analytics.js"), {
+    .fetch(join(appBasePath, "analytics.js"), {
       method: "POST",
       cache: "no-cache",
       credentials: "include",

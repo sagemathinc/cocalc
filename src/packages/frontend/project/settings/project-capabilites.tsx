@@ -5,7 +5,7 @@
 
 import React from "react";
 import { sortBy, keys } from "lodash";
-import { SettingBox, A, Icon, Loading } from "@cocalc/frontend/r_misc";
+import { SettingBox, A, Icon, Loading } from "@cocalc/frontend/components";
 import { rclass, rtypes, redux, Rendered } from "../../app-framework";
 import { Project } from "./types";
 import { Map } from "immutable";

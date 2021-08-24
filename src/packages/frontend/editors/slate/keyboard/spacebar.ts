@@ -7,7 +7,7 @@
 What happens when you hit the space bar.
 */
 
-import { toggleCheckbox } from "../elements/checkbox";
+import { toggleCheckbox } from "../elements/checkbox/editable";
 import { register } from "./register";
 
 // We also **allow** shift+space for autoformat, since it is easy to accidentally

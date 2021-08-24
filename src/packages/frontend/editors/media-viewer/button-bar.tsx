@@ -12,7 +12,7 @@ since there is no state or need for it...
 
 import { React } from "../../app-framework";
 
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { Button } from "../../antd-bootstrap";
 
 interface Props {

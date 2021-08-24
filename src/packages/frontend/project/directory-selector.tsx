@@ -19,7 +19,7 @@ import {
   rtypes,
   project_redux_name,
 } from "../app-framework";
-import { Icon, Loading } from "../r_misc";
+import { Icon, Loading } from "../components";
 import { path_split, startswith } from "@cocalc/util/misc";
 import { exec } from "../frame-editors/generic/client";
 import { alert_message } from "../alerts";

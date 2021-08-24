@@ -7,7 +7,7 @@
 X11 Window frame.
 */
 
-import { Icon } from "@cocalc/frontend/r_misc";
+import { Icon } from "@cocalc/frontend/components";
 
 import { Map } from "immutable";
 

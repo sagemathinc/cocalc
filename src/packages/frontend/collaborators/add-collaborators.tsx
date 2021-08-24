@@ -19,7 +19,7 @@ import {
   useState,
 } from "../app-framework";
 import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
-import { Icon, Loading, ErrorDisplay, Space } from "../r_misc";
+import { Icon, Loading, ErrorDisplay, Space } from "../components";
 import { webapp_client } from "../webapp-client";
 import { SITE_NAME } from "@cocalc/util/theme";
 import {

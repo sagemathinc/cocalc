@@ -12,7 +12,7 @@ Basically, this is like register_file_editor, but much more specialized.
 import { reuseInFlight } from "async-await-utils/hof";
 import { register_file_editor as general_register_file_editor } from "@cocalc/frontend/file-editors";
 import { redux_name } from "@cocalc/frontend/app-framework";
-import { IconName } from "@cocalc/frontend/r_misc/icon";
+import { IconName } from "@cocalc/frontend/components/icon";
 
 interface AsyncRegister {
   icon?: IconName;

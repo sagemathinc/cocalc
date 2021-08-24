@@ -7,10 +7,10 @@ import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { plural, capitalize } from "@cocalc/util/misc";
 
 import { Component, React, Rendered } from "../app-framework";
-import { Tip } from "../r_misc/tip";
-import { Icon } from "../r_misc/icon";
-import { Space } from "../r_misc/space";
-import { r_join } from "../r_misc/r_join";
+import { Tip } from "../components/tip";
+import { Icon } from "../components/icon";
+import { Space } from "../components/space";
+import { r_join } from "../components/r_join";
 import { Button } from "react-bootstrap";
 const { Panel } = require("react-bootstrap"); // since the typescript declarations are our of sync with our crappy old version.
 

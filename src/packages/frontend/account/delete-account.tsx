@@ -5,7 +5,7 @@
 
 import { Component, React, Rendered, rtypes } from "../app-framework";
 import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
-import { ErrorDisplay, Icon, A } from "../r_misc";
+import { ErrorDisplay, Icon, A } from "../components";
 
 interface Props {
   initial_click: () => void;

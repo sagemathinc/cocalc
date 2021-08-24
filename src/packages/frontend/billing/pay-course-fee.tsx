@@ -11,7 +11,7 @@ import {
   redux,
   rclass,
 } from "../app-framework";
-import { Icon } from "../r_misc/icon";
+import { Icon } from "../components/icon";
 import { Button, ButtonToolbar, Col, Row, Well } from "react-bootstrap";
 import { AppliedCoupons, CoursePay } from "./types";
 import { STUDENT_COURSE_PRICE } from "./data";

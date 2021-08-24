@@ -6,7 +6,7 @@
 import React from "react";
 import { delay } from "awaiting";
 import { Button } from "antd";
-import { Icon } from "@cocalc/frontend/r_misc";
+import { Icon } from "@cocalc/frontend/components";
 import { ReactEditor } from "../slate-react";
 import { selectNextMatch, selectPreviousMatch } from "./find-matches";
 

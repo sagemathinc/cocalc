@@ -6,7 +6,7 @@
 import { useInterval } from 'react-interval-hook';
 import { merge, cmp, copy } from "@cocalc/util/misc";
 import { React, redux, useMemo, useTypedRedux, useState } from "../../app-framework";
-import { Loading } from "../../r_misc";
+import { Loading } from "../../components";
 import { Avatar } from "./avatar";
 
 // How frequently all UsersViewing componenents are completely updated.

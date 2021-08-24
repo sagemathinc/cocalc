@@ -4,7 +4,7 @@
  */
 
 import { Metadata } from "./types";
-import { IconName } from "@cocalc/frontend/r_misc/icon";
+import { IconName } from "@cocalc/frontend/components/icon";
 
 type Language = "python" | "julia" | "r" | "sage" | "octave";
 

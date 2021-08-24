@@ -5,7 +5,7 @@
 
 import React from "react";
 import * as misc from "@cocalc/util/misc";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { redux } from "../../app-framework";
 
 import { Project } from "./types";

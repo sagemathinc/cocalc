@@ -20,15 +20,13 @@ const {
   once,
   retry_until_success,
 } = require("@cocalc/util/async-utils"); // so also works on backend.
-
 import { callback } from "awaiting";
 import { /* getScript*/ ajax, globalEval } from "jquery";
-
 import { redux } from "../../app-framework";
-
 import { set_project_websocket_state, WebsocketState } from "./websocket-state";
 import { webapp_client } from "../../webapp-client";
 import { allow_project_to_run } from "../client-side-throttle";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const connections = {};
 
@@ -67,15 +65,11 @@ async function connection_to_project0(project_id: string): Promise<any> {
 
   function log(..._args): void {
     // Uncomment for very verbose logging/debugging...
-    // console.log(`project websocket("${project_id}")`, ..._args);
+    console.log(`project websocket("${project_id}")`, ..._args);
   }
   log("connecting...");
   const window0: any = (global as any).window as any; // global part is so this also compiles on node.js.
-  const url: string = join(
-    window0.app_base_path,
-    project_id,
-    "raw/.smc/primus.js"
-  );
+  const url: string = join(appBasePath, project_id, "raw/.smc/primus.js");
 
   const Primus0 = window0.Primus; // the global primus
   let Primus;

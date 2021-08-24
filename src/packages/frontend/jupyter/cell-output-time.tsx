@@ -4,7 +4,7 @@
  */
 
 import { React } from "../app-framework";
-import { TimeAgo } from "../r_misc";
+import { TimeAgo } from "../components";
 
 interface CellTimingProps {
   start?: number;

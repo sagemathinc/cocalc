@@ -6,7 +6,6 @@
 // Default settings to customize a given site, typically a private install of CoCalc.
 
 import { is_valid_email_address } from "@cocalc/util/misc";
-import { DNS } from "@cocalc/util/theme";
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
@@ -44,7 +43,8 @@ export type SiteSettingsKeys =
   | "max_upgrades"
   | "email_enabled"
   | "verify_emails"
-  | "email_signup";
+  | "email_signup"
+  | "anonymous_signup";
 
 export interface Config {
   readonly name: string;
@@ -129,8 +129,6 @@ export const site_settings_conf: SiteSettings = {
     desc: "DNS for your server, e.g. cocalc.universe.edu",
     default: "",
     valid: valid_dns_name,
-    // to make sure if dns isn't set or an empty string, it falls back to a known name
-    to_val: (val) => val || DNS,
   },
   theming: {
     name: "Show Theming",
@@ -349,6 +347,13 @@ export const site_settings_conf: SiteSettings = {
     name: "Allow email signup",
     desc: "Users can sign up via email & password. Could be subject to an 'account creation token'.",
     default: "yes",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  anonymous_signup: {
+    name: "Allow anonymous signup",
+    desc: "Users can create an account with no email or password.  This won't work if you have any registration tokens set below.",
+    default: "no",
     valid: only_booleans,
     to_val: to_bool,
   },

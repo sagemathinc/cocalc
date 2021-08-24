@@ -5,7 +5,7 @@
 
 import React from "react";
 import { Button } from "antd";
-import { Icon, IconName } from "@cocalc/frontend/r_misc";
+import { Icon, IconName } from "@cocalc/frontend/components";
 import { formatAction } from "../format";
 import { SlateEditor } from "../editable-markdown";
 import { Marks } from "./marks";

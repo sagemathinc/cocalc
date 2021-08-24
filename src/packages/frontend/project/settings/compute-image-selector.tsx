@@ -7,7 +7,7 @@
 
 import { React } from "../../app-framework";
 import { fromJS } from "immutable";
-import { Icon, Space } from "../../r_misc";
+import { Icon, Space } from "../../components";
 import { COLORS } from "@cocalc/util/theme";
 import { unreachable } from "@cocalc/util/misc";
 import { Button, Menu, Dropdown } from "antd";

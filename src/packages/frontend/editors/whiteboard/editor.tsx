@@ -9,7 +9,7 @@ Top-level react component for task list
 
 import { React, useEditorRedux } from "../../app-framework";
 
-import { Loading } from "../../r_misc";
+import { Loading } from "../../components";
 
 import { WhiteboardActions } from "./actions";
 import { WhiteboardState } from "./types";

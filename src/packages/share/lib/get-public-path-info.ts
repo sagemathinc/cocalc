@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import getPool from "lib/database";
+import getPool from "@cocalc/util-node/database";
 import getContents from "lib/get-contents";
 import { getProjectTitle } from "lib/get-project";
 import { join } from "path";
@@ -25,7 +25,7 @@ export default async function getPublicPathInfo(id, relativePath) {
   const {
     rows,
   } = await pool.query(
-    "SELECT project_id, path, description, counter, compute_image, license FROM public_paths WHERE disabled IS NOT TRUE AND unlisted IS NOT TRUE AND vhost IS NULL AND id=$1",
+    "SELECT project_id, path, description, counter, compute_image, license FROM public_paths WHERE disabled IS NOT TRUE AND vhost IS NULL AND id=$1",
     [id]
   );
   if (rows.length == 0 || rows[0].project_id == null || rows[0].path == null) {

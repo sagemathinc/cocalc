@@ -110,3 +110,6 @@ require("./mode/mediawiki/mediawiki.js");
 require("./mode/lean");
 
 require("./mode/ada");
+
+require("./custom-modes");
+

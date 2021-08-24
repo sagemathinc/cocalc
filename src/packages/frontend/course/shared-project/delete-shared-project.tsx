@@ -6,7 +6,7 @@
 import { Component, React } from "../../app-framework";
 import { Button, ButtonGroup, Well } from "../../antd-bootstrap";
 import { Card } from "antd";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 
 interface DeleteSharedProjectPanelProps {
   delete: () => void;

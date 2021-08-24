@@ -6,7 +6,7 @@
 import * as CodeMirror from "codemirror";
 
 import { defaults, required, startswith } from "@cocalc/util/misc";
-import { sagews_canonical_mode, open_new_tab } from "../../misc-page";
+import { sagews_canonical_mode, open_new_tab } from "../../misc";
 import {
   FONT_FACES,
   commands as EDIT_COMMANDS,

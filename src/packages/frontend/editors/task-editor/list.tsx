@@ -10,7 +10,7 @@ Windowed List of Tasks -- we use windowing so that even task lists with 500 task
 import { List, Set } from "immutable";
 import { SortableContainer, SortableElement } from "react-sortable-hoc";
 import { React, useEffect, useRef } from "../../app-framework";
-import { WindowedList } from "../../r_misc/windowed-list";
+import { WindowedList } from "../../components/windowed-list";
 import { Task } from "./task";
 import { TaskActions } from "./actions";
 import { LocalTaskStateMap, SelectedHashtags, Tasks } from "./types";

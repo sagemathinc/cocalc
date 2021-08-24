@@ -12,7 +12,7 @@ import { Row, Col } from "../antd-bootstrap";
 import { Footer } from "../customize";
 import { OtherSettings } from "./other-settings";
 import { EditorSettings } from "./editor-settings/editor-settings";
-import { Loading } from "../r_misc";
+import { Loading } from "../components";
 
 export const AccountPreferences: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");

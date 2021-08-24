@@ -44,7 +44,7 @@ import {
   Icon,
   Space,
   Tip,
-} from "../../r_misc";
+} from "../../components";
 
 import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "../common";
 import * as util from "../util";

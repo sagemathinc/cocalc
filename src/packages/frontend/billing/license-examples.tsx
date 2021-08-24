@@ -6,7 +6,7 @@
 import { React } from "../app-framework";
 const { Panel } = require("react-bootstrap");
 import { Col, Row, Table } from "react-bootstrap";
-import { Space, Icon, IconName } from "../r_misc";
+import { Space, Icon, IconName } from "../components";
 import { COLORS } from "@cocalc/util/theme";
 import {
   Cost,

@@ -11,11 +11,13 @@ such as Google, and only exists for that purpose.
 
 import Link from "next/link";
 import SiteName from "components/site-name";
-import getPool from "lib/database";
+import getPool from "@cocalc/util-node/database";
 import PublicPaths from "components/public-paths";
+import { Layout } from "components/layout";
+import { Customize } from "lib/context";
+import withCustomize from "lib/get-context";
 
 const PAGE_SIZE = 15;
-const PRERENDER_PAGES = 10;
 
 function getPage(obj): number {
   let { page } = obj ?? {};
@@ -53,46 +55,41 @@ function Pager({ page, publicPaths }) {
   );
 }
 
-export default function All({ page, publicPaths }) {
+export default function All({ page, publicPaths, customize }) {
   const pager = <Pager page={page} publicPaths={publicPaths} />;
   return (
-    <div>
-      <h1>
-        All documents published on <SiteName />{" "}
-      </h1>
-      <h2>Documents</h2>
-      {pager}
-      <br />
-      <PublicPaths publicPaths={publicPaths} />
-      <br />
-      {pager}
-    </div>
+    <Customize value={customize}>
+      <Layout>
+        <div>
+          <h1>
+            All documents published on <SiteName />{" "}
+          </h1>
+          <h2>Documents</h2>
+          {pager}
+          <br />
+          <PublicPaths publicPaths={publicPaths} />
+          <br />
+          {pager}
+        </div>
+      </Layout>
+    </Customize>
   );
 }
 
 export async function getStaticPaths() {
-  const paths: any[] = [];
-  if (process.env.NODE_ENV != "development") {
-    // See https://stackoverflow.com/questions/62439413/navigation-between-statically-generated-pages-painfully-slow-in-dev-mode-next-js
-    for (let page = 1; page < PRERENDER_PAGES; page++) {
-      paths.push({ params: { page: `${page}` } });
-    }
-  }
   return { paths: [], fallback: true };
 }
 
 export async function getStaticProps(context) {
   const page = getPage(context.params);
   const pool = getPool();
-  const {
-    rows,
-  } = await pool.query(
+  const { rows } = await pool.query(
     "SELECT id, path, description, EXTRACT(EPOCH FROM last_edited)*1000 AS last_edited FROM public_paths WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE ORDER BY last_edited DESC LIMIT $1 OFFSET $2",
     [PAGE_SIZE, PAGE_SIZE * (page - 1)]
   );
 
-  return {
+  return await withCustomize({
     props: { page, publicPaths: rows },
-    revalidate: 5, // in production only queries once every few seconds
-  };
+    revalidate: 15,
+  });
 }

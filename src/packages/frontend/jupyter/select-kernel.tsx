@@ -12,7 +12,7 @@ import {
   OrderedMap /*, List as ImmutableList*/,
 } from "immutable";
 import * as misc from "@cocalc/util/misc";
-import { isIconName, Icon, Loading } from "../r_misc";
+import { isIconName, Icon, Loading } from "../components";
 import { Col, Row } from "../antd-bootstrap";
 import { Descriptions, Radio, Typography, Checkbox, Button } from "antd";
 import * as antd from "antd";

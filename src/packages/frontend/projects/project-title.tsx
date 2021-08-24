@@ -4,7 +4,7 @@
  */
 
 import { redux, React, useRedux } from "../app-framework";
-import { html_to_text } from "../misc-page";
+import { html_to_text } from "../misc";
 
 interface Props {
   project_id: string;

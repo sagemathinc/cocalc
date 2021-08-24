@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Rendered } from "@cocalc/frontend/app-framework";
+import React from "react";
 import { Map } from "immutable";
 import { endswith } from "@cocalc/util/misc";
 import { Ansi } from "./ansi";
@@ -21,7 +21,7 @@ export const Traceback: React.FC<TracebackProps> = React.memo(
   (props: TracebackProps) => {
     const { message } = props;
 
-    const v: Rendered[] = [];
+    const v: JSX.Element[] = [];
 
     const tb = message.get("traceback");
 

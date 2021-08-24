@@ -18,7 +18,7 @@ import {
 import { Markdown } from "./markdown";
 
 import { redux, React, useMemo, useRef, useState } from "../app-framework";
-import { Icon, Space, TimeAgo, Tip } from "../r_misc";
+import { Icon, Space, TimeAgo, Tip } from "../components";
 import { Button } from "../antd-bootstrap";
 import { Row, Col } from "antd";
 import { get_user_name } from "./chat-log";

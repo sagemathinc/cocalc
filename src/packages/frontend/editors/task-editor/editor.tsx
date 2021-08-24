@@ -14,7 +14,7 @@ import {
 } from "../../app-framework";
 
 import { Row, Col } from "../../antd-bootstrap";
-import { Loading } from "../../r_misc";
+import { Loading } from "../../components";
 import { TaskList } from "./list";
 import { ButtonBar } from "./button-bar";
 import { Find } from "./find";

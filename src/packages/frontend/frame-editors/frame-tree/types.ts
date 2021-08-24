@@ -5,7 +5,7 @@
 
 import { Map } from "immutable";
 
-import { IconName } from "@cocalc/frontend/r_misc/icon";
+import { IconName } from "@cocalc/frontend/components/icon";
 
 export type FrameDirection = "row" | "col";
 

@@ -7,7 +7,7 @@ import { Map } from "immutable";
 import { deep_copy } from "@cocalc/util/misc";
 import { redux, Component, React } from "../../app-framework";
 import { Panel } from "../../antd-bootstrap";
-import { Icon, Loading } from "../../r_misc";
+import { Icon, Loading } from "../../components";
 import { EditorSettingsCheckboxes } from "./checkboxes";
 import { EditorSettingsAutosaveInterval } from "./autosave-interval";
 import { EditorSettingsColorScheme } from "./color-schemes";

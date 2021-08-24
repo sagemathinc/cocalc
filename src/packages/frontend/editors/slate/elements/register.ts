@@ -3,11 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export { RenderElementProps } from "../slate-react";
-export * from "./hooks";
-
-import { React } from "@cocalc/frontend/app-framework";
-import { RenderElementProps } from "../slate-react";
+import type { RenderElementProps } from "../slate-react";
+export type { RenderElementProps } from "../slate-react";
+import React from "react";
 import { Descendant, Element } from "slate";
 import { State as MarkdownParserState, Token } from "../markdown-to-slate";
 import { Info } from "../slate-to-markdown";
@@ -69,19 +67,23 @@ interface Handler {
   // multiple distinct types of markdown tokens to handle
   // with the same plugin.
   markdownType?: string | string[];
-  toSlate: markdownToSlateFunction;
+  toSlate?: markdownToSlateFunction;
 
-  Element: React.FC<RenderElementProps>;
+  StaticElement?: React.FC<RenderElementProps>;
+
+  Element?: React.FC<RenderElementProps>;
 
   sizeEstimator?: sizeEstimatorFunction;
 
   childInfoHook?: childInfoHookFunction;
-  fromSlate: slateToMarkdownFunction;
+  fromSlate?: slateToMarkdownFunction;
 
   rules?: Rules;
 }
 
 const renderer: { [slateType: string]: React.FC<RenderElementProps> } = {};
+const staticRenderer: { [slateType: string]: React.FC<RenderElementProps> } =
+  {};
 const markdownToSlate: {
   [tokenType: string]: markdownToSlateFunction;
 } = {};
@@ -97,10 +99,13 @@ const sizeEstimators: {
 export function register(h: Handler): void {
   const t = typeof h.slateType == "string" ? [h.slateType] : h.slateType;
   for (const slateType of t) {
-    if (renderer[slateType] != null) {
-      throw Error(`render for slateType '${slateType}' already registered!`);
+    if (h.Element != null) {
+      renderer[slateType] = h.Element;
     }
-    renderer[slateType] = h.Element;
+
+    if (h.StaticElement != null) {
+      staticRenderer[slateType] = h.StaticElement;
+    }
 
     if (h.rules != null) {
       rules[slateType] = h.rules;
@@ -108,19 +113,15 @@ export function register(h: Handler): void {
 
     const x = h.markdownType ?? slateType;
     const types = typeof x == "string" ? [x] : x;
-    for (const type of types) {
-      if (markdownToSlate[type] != null) {
-        throw Error(`markdownToSlate for type '${type}' already registered!`);
+    if (h.toSlate != null) {
+      for (const type of types) {
+        markdownToSlate[type] = h.toSlate;
       }
-      markdownToSlate[type] = h.toSlate;
     }
 
-    if (slateToMarkdown[slateType] != null) {
-      throw Error(
-        `slateToMarkdown for type '${slateType}' already registered!`
-      );
+    if (h.fromSlate != null) {
+      slateToMarkdown[slateType] = h.fromSlate;
     }
-    slateToMarkdown[slateType] = h.fromSlate;
 
     if (h.childInfoHook != null) {
       childInfoHooks[slateType] = h.childInfoHook;
@@ -134,12 +135,28 @@ export function register(h: Handler): void {
 
 export function getRender(slateType: string): React.FC<RenderElementProps> {
   if (renderer[slateType] == null) {
+    if (staticRenderer[slateType] != null) {
+      return staticRenderer[slateType];
+    }
     console.log(
       `WARNING -- getRender: using generic plugin for type '${slateType}'; this is NOT likely to work.`
     );
     return renderer["generic"];
   }
   return renderer[slateType];
+}
+
+export function getStaticRender(
+  slateType: string
+): React.FC<RenderElementProps> {
+  //console.log("getStaticRender", slateType);
+  if (staticRenderer[slateType] == null) {
+    console.log(
+      `WARNING -- getStaticRender: using generic plugin for type '${slateType}'; this is NOT likely to work.`
+    );
+    return renderer["generic"];
+  }
+  return staticRenderer[slateType];
 }
 
 export function getMarkdownToSlate(

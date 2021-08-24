@@ -5,7 +5,7 @@
 
 import React from "react";
 import { TERM_MODE_CHAR } from "./file-listing";
-import { Icon, SearchInput } from "../../r_misc";
+import { Icon, SearchInput } from "../../components";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { ListingItem } from "./types";
 import { output_style_searchbox } from "./mini-terminal";

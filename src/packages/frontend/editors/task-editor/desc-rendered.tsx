@@ -8,7 +8,7 @@ Rendered view of the description of a single task
 */
 
 import { React } from "../../app-framework";
-import { Markdown } from "../../r_misc";
+import { Markdown } from "../../components";
 import { Set } from "immutable";
 import {
   process_hashtags,

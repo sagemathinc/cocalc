@@ -3,10 +3,26 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS, React } from "@cocalc/frontend/app-framework";
+import React, { CSSProperties as CSS } from "react";
 import { string_to_style } from "../util";
 import { register, SlateElement } from "./register";
 import { dict } from "@cocalc/util/misc";
+
+const VOID_TAGS = new Set([
+  "area",
+  "base",
+  "br",
+  "col",
+  "hr",
+  "img",
+  "input",
+  "link",
+  "meta",
+  "param",
+  "command",
+  " keygen",
+  "source",
+]);
 
 export interface Generic extends SlateElement {
   type: "generic";
@@ -41,6 +57,12 @@ register({
   Element: ({ attributes, children, element }) => {
     const elt = element as Generic;
     if (elt.tag) {
+      if (VOID_TAGS.has(elt.tag)) {
+        return React.createElement(elt.tag as string, {
+          ...attributes,
+          ...(elt.attrs as object),
+        });
+      }
       let style = {} as CSS;
       if (elt.tag == "ol" || elt.tag == "ul") {
         // NOTE: this is done correctly of course in the list plugin.

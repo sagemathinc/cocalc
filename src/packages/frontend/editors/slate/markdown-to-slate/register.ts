@@ -15,5 +15,6 @@ type Handler = (opts: {
 export const handlers: Handler[] = [];
 
 export function register(handler: Handler): void {
+  // console.log("register", handler);
   handlers.push(handler);
 }

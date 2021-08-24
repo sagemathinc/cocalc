@@ -9,7 +9,7 @@ Terminal Editor Actions
 import { delay } from "awaiting";
 import { Actions } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
-import { open_new_tab } from "../../misc-page";
+import { open_new_tab } from "../../misc";
 
 const HELP_URL = "https://doc.cocalc.com/terminal.html";
 

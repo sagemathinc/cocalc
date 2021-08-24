@@ -3,72 +3,59 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// Register all the types.
+/*
+Register all the types.
 
-// The order of registering these does NOT matter and has no
-// impact on semantics or speed.
+The order of registering these does NOT matter and has no
+impact on semantics or speed.
 
-// IMPORTANT: You must import the entire module **and** separately import
-// the type; otherwise the code in the module to register it is not run.
+IMPORTANT: You must import the entire module **and** separately import
+the type; otherwise the code in the module to register it is not run.
+*/
 
-import { Meta } from "./meta";
-import "./meta";
+import "./elements.css";
+import "./types-ssr";
 
-import { Checkbox } from "./checkbox";
-import "./checkbox";
-
-import { Emoji } from "./emoji";
-import "./emoji";
-
-import { Hashtag } from "./hashtag";
-import "./hashtag";
-
-import { HR } from "./hr";
-import "./hr";
-
-import { Paragraph } from "./paragraph";
-import "./paragraph";
-
-import { CodeBlock } from "./code_block";
-import "./code_block";
-
-import { Hardbreak, Softbreak } from "./linebreak";
-import "./linebreak";
-
-import { DisplayMath, InlineMath } from "./math";
-import "./math";
-
-import { Heading } from "./heading";
-import "./heading";
-
-import { HtmlBlock, HtmlInline } from "./html";
-import "./html";
-
-import { Mention } from "./mention";
-import "./mention";
-
-import { Table, THead, TBody, TR, TD, TH } from "./table";
-import "./table";
-
-import { BlockQuote } from "./blockquote";
+import type { BlockQuote } from "./blockquote";
 import "./blockquote";
-
-import { Link } from "./link";
-import "./link";
-
-import { Image } from "./image";
-import "./image";
-
-import { ListItem } from "./list-item";
-import "./list-item";
-
-import { BulletList, OrderedList } from "./list";
-import "./list";
-
-import { Generic } from "./generic";
+import type { Hardbreak, Softbreak } from "./break";
+import "./break/editable";
+import type { Checkbox } from "./checkbox";
+import "./checkbox/editable";
+import type { CodeBlock } from "./code-block";
+import "./code-block/editable";
+import type { Emoji } from "./emoji";
+import "./emoji/editable";
+import type { Generic } from "./generic";
 import "./generic";
+import type { Hashtag } from "./hashtag";
+import "./hashtag/editable";
+import type { Heading } from "./heading";
+import "./heading/editable";
+import type { HR } from "./hr";
+import "./hr/editable";
+import type { HtmlBlock, HtmlInline } from "./html";
+import "./html/editable";
+import type { Image } from "./image";
+import "./image/editable";
+import type { Link } from "./link";
+import "./link/editable";
+import type { ListItem } from "./list/list-item";
+import "./list/editable-list-item";
+import type { BulletList, OrderedList } from "./list";
+import "./list/editable-list";
+import type { DisplayMath, InlineMath } from "./math";
+import "./math/editable";
+import type { Mention } from "./mention";
+import "./mention/editable";
+import type { Meta } from "./meta";
+import "./meta/editable";
+import type { Paragraph } from "./paragraph";
+import "./paragraph/editable";
+import type { Table, THead, TBody, TR, TD, TH } from "./table";
+import "./table/editable";
 
-import { Marks } from "../markdown-to-slate/handle-marks";
+import type { Marks } from "../markdown-to-slate/handle-marks";
 
 declare module "slate" {
   export interface CustomTypes {

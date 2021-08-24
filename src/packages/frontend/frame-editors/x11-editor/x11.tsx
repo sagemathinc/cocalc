@@ -22,7 +22,7 @@ import { cmp, is_different } from "@cocalc/util/misc";
 import { Actions } from "./actions";
 import { WindowTab } from "./window-tab";
 import { TAB_BAR_GREY } from "./theme";
-import { Loading } from "@cocalc/frontend/r_misc";
+import { Loading } from "@cocalc/frontend/components";
 import { retry_until_success } from "@cocalc/util/async-utils";
 
 interface Props {

@@ -16,7 +16,7 @@ import {
   rclass,
   rtypes,
 } from "../../app-framework";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { DebounceInput } from "react-debounce-input";
 
 import { User } from "@cocalc/frontend/frame-editors/generic/client";

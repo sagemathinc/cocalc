@@ -1,6 +1,7 @@
-import { siteName, siteDescription } from "lib/customize";
+import { useCustomize } from "lib/customize";
 
 export default function SiteName({ full }: { full?: boolean }) {
+  const { siteName, siteDescription } = useCustomize();
   if (full) {
     return (
       <>

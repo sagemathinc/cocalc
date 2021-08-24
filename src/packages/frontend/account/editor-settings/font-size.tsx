@@ -4,7 +4,7 @@
  */
 
 import { React } from "../../app-framework";
-import { LabeledRow, NumberInput } from "../../r_misc";
+import { LabeledRow, NumberInput } from "../../components";
 
 interface Props {
   font_size: number;

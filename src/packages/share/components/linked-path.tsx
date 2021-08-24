@@ -9,10 +9,10 @@ interface Props {
   id: string;
   path: string;
   relativePath: string;
-  isdir?: boolean;
+  isDir?: boolean;
 }
 
-export default function LinkedPath({ id, path, relativePath, isdir }: Props) {
+export default function LinkedPath({ id, path, relativePath, isDir }: Props) {
   let href = `/public_paths/${id}`;
   const first = (
     <Link href={href} key={href}>
@@ -31,7 +31,7 @@ export default function LinkedPath({ id, path, relativePath, isdir }: Props) {
     );
     segments.push(slash(href));
   }
-  if (!isdir) {
+  if (!isDir) {
     segments.pop();
   }
   return <>{segments}</>;

@@ -18,7 +18,7 @@ import {
   Alert,
 } from "react-bootstrap";
 
-import { ErrorDisplay, Icon, Tip, SettingBox } from "../../r_misc";
+import { ErrorDisplay, Icon, Tip, SettingBox } from "../../components";
 import { ProjectActions } from "../../project_actions";
 
 import { special_filenames_with_no_extension } from "../../project-file";

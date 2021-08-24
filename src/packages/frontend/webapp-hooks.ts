@@ -11,7 +11,7 @@
 import { alert_message } from "./alerts";
 import { redux } from "./app-framework";
 import { webapp_client } from "./webapp-client";
-import { should_load_target_url } from "./misc-page";
+import { should_load_target_url } from "./misc";
 import { reset_password_key } from "./client/password-reset";
 import { load_target } from "./history";
 import {
@@ -19,6 +19,7 @@ import {
   hasRememberMe,
   setRememberMe,
 } from "@cocalc/util/remember-me";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 let first_login = true;
 
@@ -43,7 +44,7 @@ export function init() {
   });
 
   function signed_in(mesg) {
-    setRememberMe(window.app_base_path);
+    setRememberMe(appBasePath);
     // Record which hub we're connected to.
     redux.getActions("account").setState({ hub: mesg.hub });
     console.log(`Signed into ${mesg.hub} at ${new Date()}`);
@@ -67,10 +68,10 @@ export function init() {
     // Attempting to do a password reset -- clearly we do NOT want to wait in the hopes
     // that sign in via a cookie is going to work.  Without deleting this, the reset
     // password dialog that appears will immediately vanish with a frustrating redirect.
-    deleteRememberMe(window.app_base_path);
+    deleteRememberMe(appBasePath);
   }
 
-  if (hasRememberMe(window.app_base_path)) {
+  if (hasRememberMe(appBasePath)) {
     redux.getActions("account").setState({ remember_me: true });
     // just in case, always show manual login screen after 45s.
     setTimeout(
@@ -84,7 +85,7 @@ export function init() {
     if (account_store && account_store.get("is_logged_in")) {
       // if we thought user was logged in, but the cookie was invalid, force them to sign in again
       const f = function () {
-        if (!hasRememberMe(window.app_base_path)) {
+        if (!hasRememberMe(appBasePath)) {
           alert_message({
             type: "info",
             message: "You might have to sign in again.",
@@ -99,7 +100,7 @@ export function init() {
   // Check if user has a has_remember_me cookie (regardless if it is valid or not)
   // the real "remember_me" is set to be http-only and hence not accessible from javascript (security).
   redux.getActions("account").setState({
-    has_remember_me: hasRememberMe(window.app_base_path),
+    has_remember_me: hasRememberMe(appBasePath),
   });
 
   // Ensure the hooks to process various things after user signs in

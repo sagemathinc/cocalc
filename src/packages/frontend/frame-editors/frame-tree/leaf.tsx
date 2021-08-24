@@ -12,7 +12,7 @@ import {
   rclass,
   rtypes,
 } from "../../app-framework";
-import { ErrorDisplay, Loading } from "../../r_misc";
+import { ErrorDisplay, Loading } from "../../components";
 import { AvailableFeatures } from "../../project_configuration";
 
 import { Actions } from "../code-editor/actions";

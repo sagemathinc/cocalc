@@ -15,7 +15,7 @@ import { React } from "./app-framework";
 
 import { delay } from "awaiting";
 import { getStudentProjectFunctionality } from "./course";
-import { IconName } from "./r_misc/icon";
+import { IconName } from "./components/icon";
 
 declare let DEBUG: boolean;
 

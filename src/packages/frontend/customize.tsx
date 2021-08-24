@@ -15,12 +15,13 @@ import {
   build_date,
   smc_git_rev,
   UNIT,
-} from "./r_misc";
+} from "./components";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { dict, YEAR } from "@cocalc/util/misc";
 import * as theme from "@cocalc/util/theme";
 import { site_settings_conf } from "@cocalc/util/db-schema/site-defaults";
 import { join } from "path";
+import { appBasePath } from "./customize/app-base-path";
 
 export { TermsOfService } from "./customize/terms-of-service";
 
@@ -62,12 +63,12 @@ export interface CustomizeState {
   is_commercial: boolean;
   ssh_gateway: boolean;
   account_creation_email_instructions: string;
-  allow_anonymous_sign_in: boolean;
   commercial: boolean;
   default_quotas: "{}";
   dns: "cocalc.com";
   email_enabled: false;
   email_signup: boolean;
+  anonymous_signup: boolean;
   google_analytics: string;
   help_email: string;
   iframe_comm_hosts: string[];
@@ -137,7 +138,7 @@ async function init_customize() {
   let customize;
   await retry_until_success({
     f: async () => {
-      const url = join(window.app_base_path, "customize");
+      const url = join(appBasePath, "customize");
       try {
         customize = await (await fetch(url)).json();
       } catch (err) {
@@ -463,7 +464,7 @@ const FooterElement = rclass<{}>(
         <footer style={style}>
           <hr />
           <Space />
-          <a href={window.app_base_path}>
+          <a href={appBasePath}>
             <SiteName /> by {orga} &middot;{" "}
           </a>
           <a target="_blank" rel="noopener" href={TOSurl}>
@@ -488,26 +489,15 @@ export function Footer() {
 // first step of centralizing these URLs in one place → collecting all such pages into one
 // react-class with a 'type' prop is the next step (TODO)
 // then consolidate this with the existing site-settings database (e.g. TOS above is one fixed HTML string with an anchor)
-let app_base_path = "/";
-try {
-  app_base_path = (window as any).app_base_path || "/"; // fallback for react-static
-} catch (_err) {
-  // would fail on backend where window not defined.
-}
-export const PolicyIndexPageUrl = join(app_base_path, "policies/index.html");
-export const PolicyPricingPageUrl = join(
-  app_base_path,
-  "policies/pricing.html"
-);
-export const PolicyPrivacyPageUrl = join(
-  app_base_path,
-  "policies/privacy.html"
-);
+
+export const PolicyIndexPageUrl = join(appBasePath, "policies/index.html");
+export const PolicyPricingPageUrl = join(appBasePath, "policies/pricing.html");
+export const PolicyPrivacyPageUrl = join(appBasePath, "policies/privacy.html");
 export const PolicyCopyrightPageUrl = join(
-  app_base_path,
+  appBasePath,
   "policies/copyright.html"
 );
-export const PolicyTOSPageUrl = join(app_base_path, "policies/terms.html");
+export const PolicyTOSPageUrl = join(appBasePath, "policies/terms.html");
 
 import { gtag_id } from "@cocalc/util/theme";
 async function init_analytics() {
@@ -542,7 +532,7 @@ async function init_analytics() {
 
   // 2. CoCalc analytics
   const ctag = w.document.createElement("script");
-  ctag.src = join(w.app_base_path, "analytics.js?fqd=false");
+  ctag.src = join(appBasePath, "analytics.js?fqd=false");
   ctag.async = true;
   ctag.defer = true;
   w.document.getElementsByTagName("head")[0].appendChild(ctag);

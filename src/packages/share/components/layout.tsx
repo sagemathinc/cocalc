@@ -11,9 +11,9 @@ import SiteName from "components/site-name";
 import Analytics from "components/analytics";
 import Footer from "components/footer";
 import Header from "components/header";
-import { basePath } from "lib/customize";
+import { basePath } from "lib/base-path";
 
-const favicon = `${basePath}/../webapp/favicon.ico`;
+const favicon = `${basePath}/../webapp/favicon-32x32.png`;
 
 export function Layout({ children }) {
   return (
@@ -33,7 +33,7 @@ export function Layout({ children }) {
             style={{
               color: "#555",
               margin: "0 auto",
-              maxWidth: "1200px",
+              maxWidth: "900px",
               fontSize: "11pt",
               padding: "15px",
             }}

@@ -9,7 +9,7 @@ import { useDebounce } from "use-debounce";
 
 // CoCalc libraries
 import { history_path, path_split } from "@cocalc/util/misc";
-import { sanitize_html_safe } from "../misc-page";
+import { sanitize_html_safe } from "../misc";
 import { SaveButton } from "../frame-editors/frame-tree/save-button";
 
 // have to rewrite buttons like SaveButton in antd before we can
@@ -31,10 +31,10 @@ import {
   useRef,
   useRedux,
 } from "../app-framework";
-import { Icon, Loading, Tip, SearchInput, VisibleMDLG } from "../r_misc";
+import { Icon, Loading, Tip, SearchInput, VisibleMDLG } from "../components";
 import { Col, Row, Well } from "../antd-bootstrap";
 import { ChatLog } from "./chat-log";
-import { WindowedList } from "../r_misc/windowed-list";
+import { WindowedList } from "../components/windowed-list";
 
 import { VideoChatButton } from "./video/launch-button";
 import { Markdown } from "./markdown";

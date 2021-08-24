@@ -4,9 +4,9 @@
  */
 
 import { React, CSS } from "../../app-framework";
-import { Icon, VisibleMDLG } from "@cocalc/frontend/r_misc";
+import { Icon, VisibleMDLG } from "@cocalc/frontend/components";
 import { Button, ButtonSize } from "../../antd-bootstrap";
-import { UncommittedChanges } from "../../r_misc";
+import { UncommittedChanges } from "../../components";
 
 interface Props {
   has_unsaved_changes?: boolean;

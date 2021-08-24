@@ -7,7 +7,7 @@
 
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { getExtension } from "lib/util";
-import { codemirrorMode } from "lib/file-extensions";
+import { codemirrorMode } from "@cocalc/frontend/file-extensions";
 
 interface Props {
   content: string;

@@ -16,4 +16,4 @@
        }
 ```
 
-3. IMPORTANT: somehow Harald uploaded these to our collection of icons at https://www.iconfont.cn/?lang=en-us, and that's how they now get get loaded into cocalc, via `r_misc/icon.tsx` and `r_misc/iconfont.cn/` .
+3. IMPORTANT: somehow Harald uploaded these to our collection of icons at https://www.iconfont.cn/?lang=en-us, and that's how they now get get loaded into cocalc, via `components/icon.tsx` and `components/iconfont.cn/` .

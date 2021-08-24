@@ -12,7 +12,7 @@ import {
 } from "../app-framework";
 import { IS_MOBILE } from "../feature";
 import { user_activity } from "../tracker";
-import { A, Icon, Loading, SearchInput } from "../r_misc";
+import { A, Icon, Loading, SearchInput } from "../components";
 import { Button } from "../antd-bootstrap";
 import { ProjectUsers } from "../projects/project-users";
 import { AddCollaborators } from "../collaborators";

@@ -20,12 +20,13 @@ import { PROJECT_INVITE_QUERY_PARAM } from "./handle-project-invite";
 
 import { Button, Popconfirm, Table } from "antd";
 import { React, useState, useIsMountedRef } from "../app-framework";
-import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../r_misc";
+import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../components";
 import { ProjectInviteToken } from "@cocalc/util/db-schema/project-invite-tokens";
 import { webapp_client } from "../webapp-client";
 import { alert_message } from "../alerts";
 import { secure_random_token, server_weeks_ago } from "@cocalc/util/misc";
 import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const TOKEN_LENGTH = 16;
 const MAX_TOKENS = 200;
@@ -210,7 +211,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
       if (expires && expires <= webapp_client.server_time()) {
         return <div>This token is expired.</div>;
       }
-      const base = `${document.location.origin}${window.app_base_path}`;
+      const base = `${document.location.origin}${appBasePath}`;
       return (
         <div>
           Make this link available to people who you would like to join this

@@ -6,7 +6,7 @@
 import { Map } from "immutable";
 import { React, rclass, rtypes, Component, Rendered } from "../app-framework";
 import { Panel } from "../antd-bootstrap";
-import { LabeledRow, Loading, Space } from "../r_misc";
+import { LabeledRow, Loading, Space } from "../components";
 import { ColorPicker } from "../colorpicker";
 import { ProfileImageSelector } from "./profile-image";
 import { set_account_table } from "./util";

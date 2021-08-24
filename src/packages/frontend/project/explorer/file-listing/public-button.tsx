@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Space, Icon } from "../../../r_misc";
+import { Space, Icon } from "../../../components";
 const { Button } = require("react-bootstrap");
 
 export function PublicButton({ on_click }) {

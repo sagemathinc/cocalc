@@ -10,7 +10,7 @@
 
 import React from "react";
 import { capitalize } from "@cocalc/util/misc";
-import { Icon, Tip } from "@cocalc/frontend/r_misc";
+import { Icon, Tip } from "@cocalc/frontend/components";
 import { SPEC, SpecItem } from "./errors-and-warnings";
 import { IProcessedLatexLog, Error } from "./latex-log-parser";
 

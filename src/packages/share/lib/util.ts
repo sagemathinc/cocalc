@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+export { getExtension, containingPath } from "@cocalc/util/misc";
+
 export function isUUID(s: string): boolean {
   // todo: add full check.
   return typeof s == "string" && s.length == 36;
@@ -17,7 +19,3 @@ export function trunc(s: string, n: number): string {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
 
-export function getExtension(path: string): string {
-  const v = path.split(".");
-  return v.length <= 1 ? "" : v.pop() ?? "";
-}

@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { CopyToClipBoard } from "../../r_misc";
+import { CopyToClipBoard } from "../../components";
 
 export function URLBox() {
   let url = document.URL;

@@ -13,7 +13,7 @@ import {
 } from "../../antd-bootstrap";
 
 import { React, useState } from "../../app-framework";
-import { ErrorDisplay, Icon } from "../../r_misc";
+import { ErrorDisplay, Icon } from "../../components";
 
 // Sibling Libraries
 import { compute_fingerprint } from "./fingerprint";

@@ -9,7 +9,7 @@ import { copy } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Links } from "./links";
 import { li_style } from "./style";
-import { Icon, IconName } from "../r_misc/icon";
+import { Icon, IconName } from "../components/icon";
 
 interface Props {
   title: string;

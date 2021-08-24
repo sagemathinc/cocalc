@@ -20,7 +20,7 @@ import {
   PauseCircleOutlined,
 } from "@ant-design/icons";
 import { plural, seconds2hms, unreachable } from "@cocalc/util/misc";
-import { Tip, TimeElapsed, Icon, IconName } from "../../r_misc";
+import { Tip, TimeElapsed, Icon, IconName } from "../../components";
 import { CGroupInfo, DUState } from "./types";
 import { warning_color_pct, warning_color_disk, filename } from "./utils";
 import {

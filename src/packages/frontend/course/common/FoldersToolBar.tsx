@@ -22,7 +22,7 @@ import { webapp_client } from "../../webapp-client";
 
 // React libraries
 import { React, ReactDOM, Component, Rendered } from "../../app-framework";
-import { Icon, SearchInput, Space } from "../../r_misc";
+import { Icon, SearchInput, Space } from "../../components";
 import {
   Button,
   ButtonGroup,

@@ -1,17 +1,11 @@
 import Link from "next/link";
 import SquareLogo from "./logo-square";
-import {
-  anonymousSignup,
-  applicationURL,
-  basePath,
-  helpEmail,
-  siteName,
-  termsOfServiceURL,
-} from "lib/customize";
 import A from "components/misc/A";
 import { join } from "path";
 import { Layout } from "antd";
 import GoogleSearch from "components/google-search";
+import { useCustomize } from "lib/customize";
+import { appBasePath, basePath } from "lib/base-path";
 
 const GAP = "32px";
 
@@ -22,6 +16,11 @@ const LinkStyle = {
 };
 
 export default function Header() {
+  const { anonymousSignup, dns, helpEmail, siteName, termsOfServiceURL } =
+    useCustomize();
+  const appURL = dns
+    ? `https://${dns}/static/app.html`
+    : join(basePath, "../static/app.html");
   return (
     <Layout.Header
       style={{
@@ -32,9 +31,18 @@ export default function Header() {
         textAlign: "center",
       }}
     >
-      <a href={applicationURL}>
+      <a href={appBasePath}>
         <SquareLogo style={{ height: "40px", marginRight: GAP }} />
       </a>
+      {anonymousSignup && (
+        <A
+          style={LinkStyle}
+          href={`${appURL}?anonymous=jupyter`}
+          title={`Try ${siteName} immediately without creating an account.`}
+        >
+          Try {siteName}
+        </A>
+      )}{" "}
       <Link href="/">
         <a style={LinkStyle} title="View files that people have published.">
           Published Files
@@ -51,15 +59,6 @@ export default function Header() {
       >
         <GoogleSearch />
       </div>{" "}
-      {anonymousSignup && (
-        <a
-          style={LinkStyle}
-          href={join(basePath, "static/app.html?anonymous=jupyter")}
-          title={`Try ${siteName} immediately without creating an account.`}
-        >
-          Try {siteName}
-        </a>
-      )}
       {termsOfServiceURL && (
         <A
           style={LinkStyle}
@@ -75,23 +74,23 @@ export default function Header() {
           href={`mailto:${helpEmail}`}
           title={`Ask us a question via email to ${helpEmail}.`}
         >
-          Help
+          Email Help
         </A>
       )}
-      <a
+      <A
         style={LinkStyle}
         href="https://doc.cocalc.com"
         title="View the CoCalc documenation."
       >
         Documentation
-      </a>
-      <a
+      </A>
+      <A
         style={LinkStyle}
-        href={join(basePath, "../static/app.html")}
+        href={appURL}
         title={`Sign in to ${siteName} or create an account.`}
       >
         Sign In
-      </a>
+      </A>
     </Layout.Header>
   );
 }

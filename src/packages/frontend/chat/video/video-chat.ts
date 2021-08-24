@@ -2,7 +2,7 @@ import { client_db } from "@cocalc/util/schema";
 import { alert_message } from "../../alerts";
 import { webapp_client } from "../../webapp-client";
 import { len, trunc_middle } from "@cocalc/util/misc";
-import { open_new_tab } from "../../misc-page/open-browser-tab";
+import { open_new_tab } from "../../misc/open-browser-tab";
 import { redux } from "../../app-framework";
 
 const VIDEO_CHAT_SERVER = "https://meet.jit.si";

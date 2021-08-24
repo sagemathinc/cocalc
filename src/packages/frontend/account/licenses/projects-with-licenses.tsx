@@ -11,7 +11,7 @@ import {
   useEffect,
   redux,
 } from "../../app-framework";
-import { Loading, TimeAgo, WindowedList } from "../../r_misc";
+import { Loading, TimeAgo, WindowedList } from "../../components";
 import { projects_with_licenses } from "./util";
 import { plural, trunc_middle } from "@cocalc/util/misc";
 import { LICENSES_STYLE } from "./managed-licenses";

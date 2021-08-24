@@ -14,7 +14,7 @@ Editing a quota
 */
 
 import { Button, Checkbox, InputNumber, Row, Col } from "antd";
-import { A, Space } from "../../r_misc";
+import { A, Space } from "../../components";
 import { CSS, React, useMemo, useState } from "../../app-framework";
 import { Quota } from "@cocalc/util/db-schema/site-licenses";
 import { COSTS, GCE_COSTS, money } from "./util";

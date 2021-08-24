@@ -5,9 +5,10 @@
 
 import { join } from "path";
 import { redux } from "../app-framework";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 async function init() {
-  const url = join(window.app_base_path, "registration");
+  const url = join(appBasePath, "registration");
   const { token } = await (await fetch(url)).json();
   redux.getActions("account").setState({ token });
 }

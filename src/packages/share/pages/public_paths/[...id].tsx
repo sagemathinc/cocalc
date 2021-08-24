@@ -4,17 +4,17 @@
  */
 
 import Link from "next/link";
-import ExternalLink from "components/external-link";
 import PathContents from "components/path-contents";
+import PathActions from "components/path-actions";
 import LinkedPath from "components/linked-path";
 import Loading from "components/loading";
 import License from "components/license";
 import ProjectLink from "components/project-link";
-import rawURL from "lib/raw-url";
-import editURL from "lib/edit-url";
-import downloadURL from "lib/download-url";
 import getPublicPathInfo from "lib/get-public-path-info";
 import useCounter from "lib/counter";
+import { Layout } from "components/layout";
+import { Customize } from "lib/context";
+import withCustomize from "lib/get-context";
 
 // TODO: pre-render the most popuar n pages, according
 // to internal db counter.
@@ -32,6 +32,7 @@ export default function PublicPath({
   license,
   contents,
   error,
+  customize,
 }) {
   useCounter(id);
   if (id == null) return <Loading />;
@@ -49,73 +50,57 @@ export default function PublicPath({
     );
   }
   return (
-    <div>
-      <b>Path: </b>
-      <LinkedPath
-        path={path}
-        relativePath={relativePath}
-        id={id}
-        isdir={contents?.isdir}
-      />
-      {description && (
-        <>
-          <br />
-          <b>Description:</b> {description}
-        </>
-      )}
-      {counter && (
-        <>
-          <br />
-          <b>Views:</b> {counter}
-        </>
-      )}
-      <br />
-      <b>License:</b> <License license={license} />
-      <br />
-      {compute_image && (
-        <>
-          <b>Image:</b> {compute_image}
-          <br />
-        </>
-      )}
-      <b>Project:</b>{" "}
-      <ProjectLink project_id={project_id} title={projectTitle} />
-      <br />
-      <ExternalLink
-        href={editURL(id, relativePath ? path + "/" + relativePath : path)}
-      >
-        Edit
-      </ExternalLink>
-      ,{" "}
-      <ExternalLink href={rawURL(id, relativePath ? relativePath : path)}>
-        Raw
-      </ExternalLink>
-      ,{" "}
-      <Link
-        href={`/public_paths/embed/${id}${
-          relativePath ? "/" + relativePath : ""
-        }`}
-      >
-        <a>Embed</a>
-      </Link>
-      {!contents?.isdir && (
-        <>
-          ,{" "}
-          <a href={downloadURL(id, relativePath ? relativePath : path)}>
-            Download
-          </a>
-        </>
-      )}
-      <hr />
-      {contents != null && (
-        <PathContents
-          id={id}
-          relativePath={relativePath}
+    <Customize value={customize}>
+      <Layout>
+        <b>Path: </b>
+        <LinkedPath
           path={path}
-          {...contents}
+          relativePath={relativePath}
+          id={id}
+          isDir={contents?.isdir}
         />
-      )}
-    </div>
+        {description && (
+          <>
+            <br />
+            <b>Description:</b> {description}
+          </>
+        )}
+        {counter && (
+          <>
+            <br />
+            <b>Views:</b> {counter}
+          </>
+        )}
+        <br />
+        <b>License:</b> <License license={license} />
+        <br />
+        {compute_image && (
+          <>
+            <b>Image:</b> {compute_image}
+            <br />
+          </>
+        )}
+        <b>Project:</b>{" "}
+        <ProjectLink project_id={project_id} title={projectTitle} />
+        <br />
+        <PathActions
+          id={id}
+          path={path}
+          relativePath={relativePath}
+          isDir={contents?.isdir}
+          exclude={new Set(["hosted"])}
+        />
+        <hr />
+        {contents != null && (
+          <PathContents
+            id={id}
+            relativePath={relativePath}
+            path={path}
+            {...contents}
+          />
+        )}
+      </Layout>
+    </Customize>
   );
 }
 
@@ -129,13 +114,7 @@ export async function getStaticProps(context) {
   const relativePath = context.params.id.slice(1).join("/");
   try {
     const props = await getPublicPathInfo(id, relativePath);
-    if (process.env.COCALC_APP_SERVER != null) {
-      props.appServer = process.env.COCALC_APP_SERVER; // used for edit link
-    }
-    return {
-      props,
-      revalidate: 5,
-    };
+    return await withCustomize({ props, revalidate: 15 });
   } catch (_err) {
     //console.log(_err);
     return { notFound: true };

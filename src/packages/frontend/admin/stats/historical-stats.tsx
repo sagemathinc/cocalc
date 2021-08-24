@@ -4,7 +4,7 @@
  */
 
 import { React } from "../../app-framework";
-import { A, Icon } from "../../r_misc";
+import { A, Icon } from "../../components";
 
 // This is a URL only visible to certain users of https://cocalc.com!
 const STATS_URL =

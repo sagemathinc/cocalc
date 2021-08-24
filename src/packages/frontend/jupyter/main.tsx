@@ -16,8 +16,11 @@ import {
 } from "../app-framework";
 import * as immutable from "immutable";
 
-import { A, ErrorDisplay } from "../r_misc";
-import { Loading } from "../r_misc/loading";
+import { A, ErrorDisplay } from "../components";
+import { Loading } from "../components/loading";
+
+// Support for all the MIME types
+import "./output-messages/mime-types/init-frontend";
 
 // React components that implement parts of the Jupyter notebook.
 import { TopMenubar } from "./top-menubar";

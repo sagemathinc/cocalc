@@ -32,7 +32,7 @@ import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-i
 import { SiteLicenseInput } from "../../site-licenses/input";
 import { PurchaseOneLicenseLink } from "../../site-licenses/purchase";
 import { ShowSupportLink } from "../../support";
-import { A, Icon, Loading, Tip, UPGRADE_ERROR_STYLE } from "../../r_misc";
+import { A, Icon, Loading, Tip, UPGRADE_ERROR_STYLE } from "../../components";
 import { UpgradeRestartWarning } from "../../upgrade-restart-warning";
 import {
   Button,

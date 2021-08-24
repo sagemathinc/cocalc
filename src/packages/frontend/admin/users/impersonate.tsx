@@ -4,9 +4,10 @@
  */
 
 import { React, Component, Rendered } from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/r_misc";
+import { Loading } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 interface Props {
   account_id: string;
@@ -44,7 +45,10 @@ export class Impersonate extends Component<Props, State> {
     if (this.state.auth_token == null) {
       return <Loading />;
     }
-    const link = join(window.app_base_path, `settings/support/app?auth_token=${this.state.auth_token}`);
+    const link = join(
+      appBasePath,
+      `settings/support/app?auth_token=${this.state.auth_token}`
+    );
     return (
       <div>
         <a href={link} target="_blank" rel="noopener noreferrer">

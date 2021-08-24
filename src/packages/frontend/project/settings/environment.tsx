@@ -22,7 +22,7 @@ import {
   useIsMountedRef,
 } from "../../app-framework";
 import { Button } from "antd";
-import { ErrorDisplay, SettingBox, Space } from "../../r_misc";
+import { ErrorDisplay, SettingBox, Space } from "../../components";
 import jsonic from "jsonic";
 
 interface Props {

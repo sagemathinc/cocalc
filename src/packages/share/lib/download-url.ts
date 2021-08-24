@@ -1,13 +1,13 @@
-/*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
- */
+// See comment in raw-url for the definition.  This is the same, but with "raw" replaced by "download".
 
 import { encodePath } from "./raw-url";
-import { basePath } from "./customize";
+import { join } from "path";
+import { basePath } from "./base-path";
 
-export default function downloadURL(id: string, relativePath: string): string {
-  return `${basePath ?? ""}/public_paths/download/${id}/${encodePath(
-    relativePath
-  )}`;
+export default function downloadURL(
+  id: string,
+  path: string,
+  relativePath: string
+): string {
+  return `${basePath ?? ""}/download/${id}/${encodePath(join(path, relativePath))}`;
 }

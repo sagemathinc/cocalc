@@ -5,12 +5,9 @@
 
 import { join } from "path";
 import React from "react";
-import { DOMAIN_URL} from "@cocalc/util/theme";
-import { BASE_URL as DEFAULT_BASE_URL } from "@cocalc/frontend/misc/base-url";
 import { SiteName, PolicyPricingPageUrl } from "../customize";
-import { IconName } from "@cocalc/frontend/r_misc/icon";
-
-const BASE_URL = global["BACKEND"] ? DOMAIN_URL : DEFAULT_BASE_URL;
+import { IconName } from "@cocalc/frontend/components/icon";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 import {
   HELP_EMAIL,
@@ -128,7 +125,7 @@ export const CONNECT_LINKS : Links = {
   },
   share: {
     icon: "bullhorn",
-    href: join(BASE_URL, 'share'),
+    href: join(appBasePath, 'share'),
     link: "Shared public files",
   },
   support_mailing_list: {
@@ -280,7 +277,7 @@ export const ABOUT_LINKS : Links = {
   legal: {
     icon: "files",
     link: "Terms of Service, Pricing, Copyright and Privacy policies",
-    href: join(BASE_URL, "policies/index.html"),
+    href: join(appBasePath, "policies/index.html"),
   },
   developers: {
     icon: "keyboard",

@@ -14,7 +14,7 @@ import {
   VisibleLG,
   DropdownMenu,
   MenuItem,
-} from "../r_misc";
+} from "../components";
 import { endswith, capitalize } from "@cocalc/util/misc";
 import { Cells, CellType, Usage } from "./types";
 import { ALERT_COLS } from "./usage";

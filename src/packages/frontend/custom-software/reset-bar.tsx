@@ -6,7 +6,7 @@
 import React from "react";
 import { props2img, RESET_ICON } from "./util";
 import { ComputeImages } from "./init";
-import { A, Icon } from "../r_misc";
+import { A, Icon } from "../components";
 import { COLORS } from "@cocalc/util/theme";
 const { Button, Well, Row, Col, ButtonToolbar } = require("react-bootstrap");
 import { Available as AvailableFeatures } from "../project_configuration";

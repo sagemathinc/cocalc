@@ -4,8 +4,8 @@
  */
 
 import { Button } from "react-bootstrap";
-import { Icon } from "../../r_misc/icon";
-import { React } from "@cocalc/frontend/app-framework";
+import { Icon } from "../../components/icon";
+import React from "react";
 import { Map } from "immutable";
 import { JupyterActions } from "../actions";
 import { all_fields_equal } from "@cocalc/util/misc";

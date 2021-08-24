@@ -9,8 +9,7 @@ Functions for parsing input, etc.
 
 const { endswith } = require("@cocalc/util/misc");
 import { Syntax } from "@cocalc/util/code-formatter";
-
-import { runMode } from "./codemirror-static";
+import CodeMirror from "@cocalc/frontend/codemirror/static";
 
 export function run_mode(code: string, mode: string, language: string) {
   if (!code) {
@@ -32,7 +31,7 @@ export function run_mode(code: string, mode: string, language: string) {
 
 function last_style(code: string, mode = "python"): string | null | undefined {
   let style: string | null | undefined = undefined;
-  runMode(code, mode, (_, s) => {
+  CodeMirror.runMode(code, mode, (_, s) => {
     style = s;
   });
   return style;

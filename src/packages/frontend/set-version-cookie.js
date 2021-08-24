@@ -20,6 +20,7 @@ const cookies = new Cookies();
 
 import { version } from "@cocalc/util/smc-version";
 import { versionCookieName } from "@cocalc/util/consts";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 // We don't really want this cookie to expire.  All it does is record the version of
 // the code the client has loaded, and the version only goes up.  It does not provide
@@ -27,5 +28,5 @@ import { versionCookieName } from "@cocalc/util/consts";
 const days = 300;
 const future = new Date(new Date().getTime() + days * 24 * 60 * 60 * 1000);
 const opts = { expires: future, path: "/", secure: true, sameSite: "none" };
-const NAME = versionCookieName(window.app_base_path);
+const NAME = versionCookieName(appBasePath);
 cookies.set(NAME, version, opts);

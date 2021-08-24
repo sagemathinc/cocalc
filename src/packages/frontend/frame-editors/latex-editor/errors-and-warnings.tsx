@@ -12,7 +12,7 @@ import { capitalize, is_different, path_split } from "@cocalc/util/misc";
 import { React, Rendered, useRedux } from "../../app-framework";
 import { TypedMap } from "../../app-framework";
 import { BuildLogs } from "./actions";
-import { Icon, IconName, Loading } from "@cocalc/frontend/r_misc";
+import { Icon, IconName, Loading } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { use_build_logs } from "./hooks";
 import { EditorState } from "../frame-tree/types"

@@ -5,14 +5,14 @@
 
 import { React } from "../app-framework";
 const { HelpEmailLink, SiteName } = require("../customize");
-import { A } from "../r_misc";
+import { A } from "../components";
 import {
   STUDENT_COURSE_PRICE,
   TEACHER_PAYS,
   STUDENT_PAYS,
   INSTRUCTOR_GUIDE,
 } from "./data";
-import { Space } from "../r_misc/space";
+import { Space } from "../components/space";
 import { DOC_LICENSE_URL } from "./data";
 
 interface Props {

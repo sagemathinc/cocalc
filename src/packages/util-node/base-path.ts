@@ -48,9 +48,11 @@ function isValidBasePath(s: string): boolean {
 }
 
 function basePath(): string {
-  if (process.env.BASE_PATH != null) {
+  if (process.env.BASE_PATH) {
     if (!isValidBasePath(process.env.BASE_PATH)) {
-      throw Error(`BASE_PATH is invalid - ${DEFN}.`);
+      throw Error(
+        `BASE_PATH (="${process.env.BASE_PATH}") is invalid - ${DEFN}.`
+      );
     }
     return process.env.BASE_PATH;
   }

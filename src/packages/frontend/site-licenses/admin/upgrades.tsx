@@ -15,7 +15,7 @@ import {
   upgrade_fields,
 } from "./types";
 import { plural } from "@cocalc/util/misc";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { INPUT_STYLE } from "./license";
 import { presets } from "./upgrade-presets";
 

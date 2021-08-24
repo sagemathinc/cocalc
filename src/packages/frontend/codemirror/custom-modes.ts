@@ -7,7 +7,7 @@
 
 import { MARKERS } from "@cocalc/util/sagews";
 import { clone, object } from "underscore";
-import * as CodeMirror from "codemirror";
+import CodeMirror from "./codemirror";
 import "codemirror/addon/mode/multiplex";
 import "./multiplex";
 

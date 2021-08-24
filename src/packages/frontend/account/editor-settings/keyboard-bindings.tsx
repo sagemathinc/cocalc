@@ -4,7 +4,7 @@
  */
 
 import { React } from "../../app-framework";
-import { LabeledRow, SelectorInput } from "../../r_misc";
+import { LabeledRow, SelectorInput } from "../../components";
 
 const EDITOR_BINDINGS = {
   standard: "Standard",

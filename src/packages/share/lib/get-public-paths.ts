@@ -7,7 +7,7 @@
 Get the public paths associated to a given project.  Unlisted paths are NOT included.
 */
 
-import getPool from "lib/database";
+import getPool, { timeInSeconds } from "@cocalc/util-node/database";
 import { PublicPath } from "lib/types";
 import { isUUID } from "lib/util";
 
@@ -19,7 +19,9 @@ export default async function getPublicPaths(
   }
   const pool = getPool();
   const result = await pool.query(
-    "SELECT id, path, description, EXTRACT(EPOCH FROM last_edited)*1000 as last_edited FROM public_paths WHERE disabled IS NOT TRUE AND unlisted IS NOT TRUE AND project_id=$1 ORDER BY counter DESC",
+    `SELECT id, path, description, ${timeInSeconds(
+      "last_edited"
+    )} FROM public_paths WHERE disabled IS NOT TRUE AND unlisted IS NOT TRUE AND project_id=$1 ORDER BY last_edited DESC`,
     [project_id]
   );
   return result.rows;

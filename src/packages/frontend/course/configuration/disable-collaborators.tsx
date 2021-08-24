@@ -1,6 +1,6 @@
 import { Card, Checkbox } from "antd";
 import { React } from "../../app-framework";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 
 interface Props {
   checked: boolean;

@@ -4,7 +4,7 @@
  */
 
 import { React, useEffect, useRedux } from "../../app-framework";
-import { TableOfContents as TOC, TableOfContentsEntryList } from "../../r_misc";
+import { TableOfContents as TOC, TableOfContentsEntryList } from "../../components";
 import { Actions } from "./actions";
 
 interface Props {

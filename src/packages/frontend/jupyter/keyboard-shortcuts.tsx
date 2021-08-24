@@ -13,7 +13,7 @@ import { Map } from "immutable";
 import json from "json-stable-stringify";
 import { capitalize, copy_without, field_cmp, split } from "@cocalc/util/misc";
 import { Button, Modal, Grid, Row, Col } from "react-bootstrap";
-import { A, Icon, IconName, SearchInput, r_join } from "../r_misc";
+import { A, Icon, IconName, SearchInput, r_join } from "../components";
 import {
   commands as create_commands,
   CommandDescription,
@@ -135,7 +135,7 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
       e.stopPropagation();
     }
 
-    function render_shortcuts(): Rendered[] {
+    function render_shortcuts() {
       const result: Rendered[] = [];
       for (const key in shortcuts) {
         const shortcut = shortcuts[key];

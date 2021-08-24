@@ -7,7 +7,7 @@
 
 import { React, useRedux } from "../app-framework";
 import { COLORS } from "@cocalc/util/theme";
-import { Icon } from "../r_misc";
+import { Icon } from "../components";
 
 interface ModeProps {
   name: string;

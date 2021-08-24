@@ -47,7 +47,7 @@ required = defaults.required
 exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created', 'env']
 exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
 
-{read_db_password_from_disk} = require('./utils')
+dbPassword = require('@cocalc/util-node/database/password').default;
 
 class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database and 'disconnect' when connection to postgres fails
     constructor: (opts) ->
@@ -88,7 +88,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_concurrent_heavily_loaded = opts.concurrent_heavily_loaded
         @_user = opts.user
         @_database = opts.database
-        @_password = opts.password ? read_db_password_from_disk()
+        @_password = opts.password ? dbPassword()
         @_init_metrics()
 
         if opts.cache_expiry and opts.cache_size
@@ -365,6 +365,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if @_client_index >= @_clients.length
             @_client_index = 0
         return @_clients[@_client_index]
+
+    # Return query function of a database connection.
+    get_db_query: =>
+        db = @_client()
+        return db?.query.bind(db)
 
     _dbg: (f) =>
         if @_debug

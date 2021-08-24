@@ -5,7 +5,7 @@
 
 import React from "react";
 
-import { Icon } from "../r_misc";
+import { Icon } from "../components";
 const { Well } = require("react-bootstrap");
 
 export function NoNewNotifications({ text, style }) {

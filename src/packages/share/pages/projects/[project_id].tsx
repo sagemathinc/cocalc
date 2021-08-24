@@ -21,28 +21,38 @@ import getPublicPaths from "lib/get-public-paths";
 import PublicPaths from "components/public-paths";
 import Collaborators from "components/collaborators";
 import Loading from "components/loading";
+import { Layout } from "components/layout";
+import { Customize } from "lib/context";
+import withCustomize from "lib/get-context";
 
-export default function Project({ publicPaths, collaborators, projectTitle }) {
+export default function Project({
+  publicPaths,
+  collaborators,
+  projectTitle,
+  customize,
+}) {
   if (publicPaths == null || collaborators == null || projectTitle == null) {
     return <Loading />;
   }
   return (
-    <div>
-      <h1>Project: {projectTitle}</h1>
-      {collaborators != null && collaborators.length > 0 && (
-        <>
-          <h2>Collaborators</h2>
-          <Collaborators collaborators={collaborators} />
-          <br /> <br />
-        </>
-      )}
-      <h2>Public Paths</h2>
-      {publicPaths != null && publicPaths.length == 0 ? (
-        <div>No public paths.</div>
-      ) : (
-        <PublicPaths publicPaths={publicPaths} />
-      )}
-    </div>
+    <Customize value={customize}>
+      <Layout>
+        <h1>Project: {projectTitle}</h1>
+        {collaborators != null && collaborators.length > 0 && (
+          <>
+            <h2>Collaborators</h2>
+            <Collaborators collaborators={collaborators} />
+            <br /> <br />
+          </>
+        )}
+        <h2>Public Paths</h2>
+        {publicPaths != null && publicPaths.length == 0 ? (
+          <div>No public paths.</div>
+        ) : (
+          <PublicPaths publicPaths={publicPaths} />
+        )}
+      </Layout>
+    </Customize>
   );
 }
 
@@ -78,8 +88,8 @@ export async function getStaticProps(context) {
     return { notFound: true };
   }
 
-  return {
+  return await withCustomize({
     props: { projectTitle, publicPaths, collaborators },
     revalidate: 30,
-  };
+  });
 }

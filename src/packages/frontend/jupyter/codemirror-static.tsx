@@ -14,30 +14,8 @@
 //
 // In benchmarks, this seems to easily be 10x faster than creating an actual CodeMirror editor.
 
-
 import React from "react";
-
-// This tricky code works in both Node.js *and* the web browser, in a way that
-// works with Next.js SSR rendering.  It just tooks hours of careful thought
-// and trial and error to figure out.
-let CodeMirror;
-try {
-  // Try to require the full codemirror package.  In the browser via webpack
-  // this will work and runMode is defined.  In nextjs in the browser, this
-  // CodeMirror.runMode is null.
-  CodeMirror = require("codemirror");
-  if (CodeMirror?.runMode == null) {
-    throw Error();
-  }
-} catch (_) {
-  // In next.js browser or node.js, so we use the node runmode approach,
-  // which fully works in both situations.
-  CodeMirror =
-    global.CodeMirror = require("codemirror/addon/runmode/runmode.node");
-  require("@cocalc/frontend/codemirror/modes");
-}
-
-export const runMode = CodeMirror.runMode;
+import CodeMirror from "@cocalc/frontend/codemirror/static";
 
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
@@ -60,10 +38,11 @@ interface Props {
     mode?: string | { name?: string };
     theme?: string;
     lineNumbers?: boolean;
+    lineWrapping?: boolean; // not supported yet!
   };
   font_size?: number;
   set_click_coords?: (pos: { left: number; top: number }) => void;
-  style?: any; // optional style that is merged into BLURRED_STYLE
+  style?: React.CSSProperties; // optional style that is merged into BLURRED_STYLE
   no_border?: boolean; // if given, do not draw border around whole thing
 }
 
@@ -110,8 +89,7 @@ export function CodeMirrorStatic(props: Props) {
     };
 
     try {
-      // @ts-ignore -- fails in packages/hub right now...
-      runMode(props.value, mode, append);
+      CodeMirror.runMode(props.value, mode, append);
     } catch (err) {
       /* This does happen --
             https://github.com/sagemathinc/cocalc/issues/3626
@@ -147,18 +125,12 @@ export function CodeMirrorStatic(props: Props) {
         width = 69;
       }
       style = { paddingLeft: `${width + 4}px`, ...BLURRED_STYLE };
-      if (props.style != null) {
-        style = { ...style, ...props.style };
-      }
     } else {
       width = 0;
       style = BLURRED_STYLE;
-      if (props.style != null) {
-        style = { ...style, ...props.style };
-      }
     }
     if (theme == "default") {
-      style = { ...{ background: "white" }, ...style };
+      style.background = "white";
     }
 
     const v = theme.split(" ");
@@ -168,7 +140,7 @@ export function CodeMirrorStatic(props: Props) {
     return (
       <pre
         className={`CodeMirror ${theme_base} ${theme_extra} CodeMirror-wrap`}
-        style={style}
+        style={{ ...style, ...props.style }}
       >
         <div style={{ marginLeft: width }}>
           {render_lines(width)}
@@ -191,7 +163,7 @@ export function CodeMirrorStatic(props: Props) {
     }
   }
 
-  const style: React.CSSProperties = {
+  const divStyle: React.CSSProperties = {
     width: "100%",
     borderRadius: "2px",
     position: "relative",
@@ -199,7 +171,7 @@ export function CodeMirrorStatic(props: Props) {
     fontSize: props.font_size ? `${props.font_size}px` : undefined,
   };
   if (!props.no_border) {
-    style.border = "1px solid rgb(207, 207, 207)";
+    divStyle.border = "1px solid rgb(207, 207, 207)";
   }
-  return <div style={style}>{render_code()}</div>;
+  return <div style={divStyle}>{render_code()}</div>;
 }

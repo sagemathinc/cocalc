@@ -66,7 +66,7 @@ import * as CodeMirror from "codemirror";
 type EventHandlerFunction = (cm: CodeMirror.Editor) => void;
 import { aux_file, len, path_split, trunc_middle, trunc } from "@cocalc/util/misc";
 import { IS_MOBILE } from "../../feature";
-import { A } from "../../r_misc";
+import { A } from "../../components";
 import {
   React,
   ReactDOM,

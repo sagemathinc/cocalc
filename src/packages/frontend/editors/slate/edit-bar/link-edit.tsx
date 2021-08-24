@@ -5,9 +5,9 @@
 
 import React from "react";
 import { useState } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/r_misc";
+import { Icon } from "@cocalc/frontend/components";
 import { Editor } from "slate";
-import { open_new_tab } from "@cocalc/frontend/misc-page";
+import { open_new_tab } from "@cocalc/frontend/misc";
 import { Input } from "antd";
 import { setLinkURL } from "./link-url";
 

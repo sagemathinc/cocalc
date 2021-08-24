@@ -13,7 +13,7 @@ import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { NotebookMode } from "./types";
-import { IconName } from "@cocalc/frontend/r_misc";
+import { IconName } from "@cocalc/frontend/components";
 
 export interface KeyboardCommand {
   mode?: NotebookMode;

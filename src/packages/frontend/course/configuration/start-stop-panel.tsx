@@ -1,6 +1,6 @@
 import { Alert, Card, Row, Col } from "antd";
 import { Button, ButtonGroup } from "../../antd-bootstrap";
-import { Icon } from "../../r_misc";
+import { Icon } from "../../components";
 import { React, useState, useActions, useRedux } from "../../app-framework";
 import { CourseActions } from "../actions";
 import { capitalize } from "@cocalc/util/misc";

@@ -20,7 +20,7 @@ import { handlers } from "./register";
 import { State, Token } from "./types";
 import { parse_markdown } from "./parse-markdown";
 import { ensureDocNonempty } from "../padding";
-import { createMetaNode } from "../elements/meta";
+import { createMetaNode } from "../elements/meta/type";
 
 export function parse(token: Token, state: State, cache?): Descendant[] {
   //console.log("parse", JSON.stringify({ token, state }));

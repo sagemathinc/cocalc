@@ -14,7 +14,7 @@ import {
 } from "../app-framework";
 import { SiteLicensePublicInfo as Info } from "./types";
 import { site_license_public_info } from "./util";
-import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../r_misc";
+import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../components";
 import { alert_message } from "../alerts";
 import { Alert, Button, Input, Popconfirm, Popover } from "antd";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";

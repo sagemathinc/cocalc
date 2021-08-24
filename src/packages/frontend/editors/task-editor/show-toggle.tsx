@@ -8,7 +8,7 @@ Toggle whether or not to show tasks (deleted, done)
 */
 
 import { React, useRef } from "../../app-framework";
-import { Icon, Space } from "../../r_misc";
+import { Icon, Space } from "../../components";
 import { TaskActions } from "./actions";
 
 interface Props {
