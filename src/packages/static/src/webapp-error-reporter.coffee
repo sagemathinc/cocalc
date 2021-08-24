@@ -65,7 +65,7 @@ sendError = (opts) ->
         if isWhitelisted(opts)
             # Ignore this antd message in browser.
             return
-        misc = require('smc-util/misc')
+        misc = require('@cocalc/util/misc')
         opts = misc.defaults opts,
             name            : misc.required
             message         : misc.required
@@ -81,7 +81,7 @@ sendError = (opts) ->
             return
         already_reported.push(fingerprint)
         # attaching some additional info
-        feature = require('smc-webapp/feature')
+        feature = require('@cocalc/frontend/feature')
         opts.user_agent  = navigator?.userAgent
         opts.browser     = feature.get_browser()
         opts.mobile      = feature.IS_MOBILE
@@ -101,14 +101,14 @@ sendError = (opts) ->
             # As an added bonus, by try/catching and retrying once at least,
             # we are more likely to get the error report in case of a temporary
             # network or other glitch....
-            {webapp_client} = require('smc-webapp/webapp-client')   # can possibly be undefined
+            {webapp_client} = require('@cocalc/frontend/webapp-client')   # can possibly be undefined
             await webapp_client.tracking_client.webapp_error(opts)  # might fail.
         catch err
             console.info("failed to report error; trying again in 10 seconds", opts)
             {delay} = require('awaiting');
             await delay(10000)
             try
-                {webapp_client} = require('smc-webapp/webapp-client')
+                {webapp_client} = require('@cocalc/frontend/webapp-client')
                 await webapp_client.tracking_client.webapp_error(opts)
             catch err
                 console.info("failed to report error", err)
@@ -282,7 +282,7 @@ if ENABLED and window.setImmediate
 
 sendLogLine = (severity, args) ->
     require.ensure [], =>
-        misc = require('smc-util/misc')
+        misc = require('@cocalc/util/misc')
         if typeof(args) == 'object'
             message = misc.trunc_middle(misc.to_json(args), 1000)
         else
@@ -315,7 +315,7 @@ if ENABLED
             # just to make sure there is a message
             reason = e.reason ? '<no reason>'
             if typeof(reason) == 'object'
-                misc = require('smc-util/misc')
+                misc = require('@cocalc/util/misc')
                 reason = "#{reason.stack ? reason.message ? misc.trunc_middle(misc.to_json(reason), 1000)}"
             e.message = "unhandledrejection: #{reason}"
             reportException(e, "unhandledrejection")

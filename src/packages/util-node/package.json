@@ -1,0 +1,51 @@
+{
+  "name": "@cocalc/util-node",
+  "version": "1.3.1",
+  "description": "CoCalc misc utility functionality that is meant for running on node.js (not in browser)",
+  "exports": {
+    "./database": "./dist/database/index.js",
+    "./*": "./dist/*.js"
+  },
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
+  "scripts": {
+    "build": "npx tsc && npx coffee  -m -c -o dist/ .",
+    "tsc": "npx tsc --watch",
+    "test": "SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee"
+  },
+  "author": "SageMath, Inc.",
+  "license": "SEE LICENSE.md",
+  "workspaces": [
+    "../util"
+  ],
+  "dependencies": {
+    "@airbnb/node-memwatch": "^2.0.0",
+    "@cocalc/util": "^1.4.0",
+    "@types/debug": "^4.1.7",
+    "@types/lru-cache": "^5.1.1",
+    "@types/pg": "^8.6.1",
+    "async": "^1.5.2",
+    "debug": "^4.3.2",
+    "lru-cache": "^6.0.0",
+    "pg": "^8.7.1",
+    "shell-escape": "^0.2.0",
+    "sqlite3": "^5.0.2",
+    "supports-color": "^9.0.2",
+    "temp": "^0.9.4",
+    "underscore": "^1.12.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "devDependencies": {
+    "coffee-cache": "^1.0.2",
+    "coffeescript": "^2.5.1",
+    "expect": "^26.6.2",
+    "mocha": "^8.4.0",
+    "nyc": "^15.1.0",
+    "typescript": "^4.3.5"
+  }
+}

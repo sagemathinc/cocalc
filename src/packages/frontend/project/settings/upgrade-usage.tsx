@@ -1,0 +1,192 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import React from "react";
+import { ProjectsActions } from "@cocalc/frontend/todo-types";
+import { QuotaConsole } from "./quota-console";
+import { RunQuota } from "./run-quota";
+import {
+  Icon,
+  Loading,
+  UpgradeAdjustor,
+  SettingBox,
+} from "@cocalc/frontend/components";
+import {
+  redux,
+  rtypes,
+  rclass,
+  Rendered,
+} from "@cocalc/frontend/app-framework";
+import { URLBox } from "./url-box";
+import { Project } from "./types";
+import { HelpEmailLink } from "../../customize";
+import { SiteLicense } from "./site-license";
+import { COLORS } from "smc-util/theme";
+import { is_zero_map } from "@cocalc/util/misc";
+
+const { ShowSupportLink } = require("../../support");
+const { Row, Col, Button } = require("react-bootstrap");
+const { PROJECT_UPGRADES } = require("@cocalc/util/schema");
+
+interface Props {
+  project_id: string;
+  project: Project;
+  user_map: object;
+  account_groups: string[];
+  upgrades_you_can_use?: object;
+  upgrades_you_applied_to_all_projects?: object;
+  upgrades_you_applied_to_this_project?: object;
+  total_project_quotas?: object;
+  all_upgrades_to_this_project?: object;
+  site_license_upgrades?: object;
+  all_projects_have_been_loaded?: boolean;
+  actions: ProjectsActions; // projects actions
+  site_license_ids: string[];
+}
+
+export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
+  const {
+    project_id,
+    project,
+    user_map,
+    account_groups,
+    upgrades_you_can_use,
+    upgrades_you_applied_to_all_projects,
+    upgrades_you_applied_to_this_project,
+    total_project_quotas,
+    all_upgrades_to_this_project,
+    site_license_upgrades,
+    all_projects_have_been_loaded,
+    actions,
+    //site_license_ids,
+  } = props;
+
+  const is_commercial: boolean = useTypedRedux("customize", "is_commercial");
+  const kucalc: string = useTypedRedux("customize", "kucalc");
+
+  const [show_adjustor, set_show_adjustor] = React.useState<boolean>(false);
+
+  function submit_upgrade_quotas(new_quotas): void {
+    actions.apply_upgrades_to_project(project_id, new_quotas);
+    set_show_adjustor(false);
+  }
+
+  function render_upgrades_button(): Rendered {
+    if (!is_commercial) return; // never show if not commercial
+    return (
+      <Row style={{ borderBottom: "1px solid grey", paddingBottom: "15px" }}>
+        <Col sm={12}>
+          {is_zero_map(upgrades_you_can_use) ? (
+            <div style={{ float: "right" }}>
+              Increase these quotas using a license below.
+            </div>
+          ) : (
+            <Button
+              bsStyle="primary"
+              disabled={show_adjustor}
+              onClick={() => set_show_adjustor(true)}
+              style={{ float: "right", marginBottom: "5px" }}
+            >
+              <Icon name="arrow-circle-up" /> Adjust your upgrade
+              contributions...
+            </Button>
+          )}
+        </Col>
+      </Row>
+    );
+  }
+
+  function render_upgrade_adjustor(): Rendered {
+    if (!is_commercial) return; // never show if not commercial
+    if (!show_adjustor) return; // not being displayed since button not clicked
+    if (!all_projects_have_been_loaded) {
+      // Have to wait for this to get accurate value right now.
+      // Plan to fix: https://github.com/sagemathinc/cocalc/issues/4123
+      // Also, see https://github.com/sagemathinc/cocalc/issues/3802
+      redux.getActions("projects").load_all_projects();
+      return <Loading theme={"medium"} />;
+    }
+    return (
+      <UpgradeAdjustor
+        upgrades_you_can_use={upgrades_you_can_use}
+        upgrades_you_applied_to_all_projects={
+          upgrades_you_applied_to_all_projects
+        }
+        upgrades_you_applied_to_this_project={
+          upgrades_you_applied_to_this_project
+        }
+        quota_params={PROJECT_UPGRADES.params}
+        submit_upgrade_quotas={submit_upgrade_quotas}
+        cancel_upgrading={() => set_show_adjustor(false)}
+        total_project_quotas={total_project_quotas}
+      />
+    );
+  }
+
+  function render_quota_console(): Rendered {
+    // Note -- we always render this, even if is_commercial is false,
+    // since we want admins to be able to change the quotas.
+    return (
+      <QuotaConsole
+        project_id={project_id}
+        project_settings={project.get("settings")}
+        project_status={project.get("status")}
+        project_state={project.getIn(["state", "state"])}
+        user_map={user_map}
+        quota_params={PROJECT_UPGRADES.params}
+        account_groups={account_groups}
+        total_project_quotas={total_project_quotas}
+        all_upgrades_to_this_project={all_upgrades_to_this_project}
+        kucalc={kucalc}
+        is_commercial={is_commercial}
+        site_license_upgrades={site_license_upgrades}
+      />
+    );
+  }
+
+  function render_support(): Rendered {
+    if (!is_commercial) return; // don't render if not commercial
+    return (
+      <span style={{ color: COLORS.GRAY }}>
+        If you have any questions about upgrading a project, create a{" "}
+        <ShowSupportLink />, or email <HelpEmailLink /> and include the
+        following URL:
+        <URLBox />
+      </span>
+    );
+  }
+
+  function render_site_license(): Rendered {
+    if (!is_commercial) return;
+    return (
+      <SiteLicense
+        project_id={project_id}
+        site_license={project.get("site_license") as any}
+      />
+    );
+  }
+
+  function render_run_quota(): Rendered {
+    return (
+      <RunQuota
+        project_id={project_id}
+        project_state={project.getIn(["state", "state"])}
+      />
+    );
+  }
+
+  return (
+    <SettingBox title="Project usage and quotas" icon="dashboard">
+      {render_run_quota()}
+      {render_upgrades_button()}
+      {render_upgrade_adjustor()}
+      {render_quota_console()}
+      <hr />
+      {render_site_license()}
+      <hr />
+      {render_support()}
+    </SettingBox>
+  );
+});

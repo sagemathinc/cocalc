@@ -3,7 +3,7 @@
   "compilerOptions": {
     "module": "es2020",
     "incremental": false,
-    "rootDir": "./node_modules/smc-webapp/",
+    "rootDir": "./node_modules/@cocalc/frontend/",
     "outDir": "dist",
     "jsx": "react",
     "target": "es5",
@@ -21,7 +21,7 @@
     "frame-editors/settings/__tests__",
     "jupyter/output-messages/__test__",
     "misc/__test__",
-    "r_misc/__tests__",
+    "components/__tests__",
     "test-mocha",
     "test",
     "*__tests__*",

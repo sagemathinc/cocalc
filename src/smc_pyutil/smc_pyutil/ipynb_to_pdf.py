@@ -10,7 +10,7 @@ faster and more reliable, but potentially doesn't "look" as good,
 depending on your tastes.  It also has a dependency on chromium.
 """
 
-# ATTN: make sure to keep dependencies of this in sync with smc-project/configuration.ts
+# ATTN: make sure to keep dependencies of this in sync with projects/project/configuration.ts
 
 from __future__ import absolute_import, print_function
 from shutil import which
@@ -20,7 +20,7 @@ from itertools import repeat, chain
 
 
 def sanitize_nbconvert_path(path):
-    # same functionality as in smc-util/sanitize-nbconvert.ts
+    # same functionality as in packages/util/sanitize-nbconvert.ts
     # https://github.com/jupyter/nbconvert/issues/911
     return glob.escape(path)
 

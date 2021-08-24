@@ -1,30 +1,32 @@
-import Head from "next/head";
+import { join } from "path";
 import { Layout } from "antd";
+import Head from "next/head";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Content from "components/landing/content";
-import { siteName } from "lib/customize";
+import { CustomizeContext, Customize } from "lib/customize";
+import withCustomize from "lib/get-context";
+import { basePath } from "lib/base-path";
 
-// The favicon.ico should be this, but it doesn't work
-// when there a base path.  This will cause a problem, e.g, for
-// a server with a basePath that isn't running from cocalc.com.
-// TODO: why?  Fix this.  No clue...
-//const FAVICON = join(basePath, "webapp/favicon.ico");
-const FAVICON = "/webapp/favicon.ico";
+const FAVICON = "/webapp/favicon-32x32.png";
 
-export default function Home() {
+export default function Home({ customize }: { customize: Customize }) {
   return (
-    <>
+    <CustomizeContext.Provider value={customize}>
       <Head>
-        <title>{siteName} -- Collaborative Calculation</title>
+        <title>{customize.siteName} -- Collaborative Calculation</title>
         <meta name="description" content="CoCalc" />
-        <link rel="icon" href={FAVICON} />
+        <link rel="icon" href={join(basePath ?? "", FAVICON)} />
       </Head>
       <Layout>
         <Header />
         <Content />
         <Footer />
       </Layout>
-    </>
+    </CustomizeContext.Provider>
   );
+}
+
+export async function getServerSideProps() {
+  return await withCustomize();
 }

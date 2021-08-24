@@ -154,9 +154,15 @@ module.exports = function (PRODMODE) {
         },
       ],
     },
-    { test: /\.pug$/, loader: "pug-loader" },
     {
-      // This rule makes source maps compatible with other cocalc included modules like smc-util.  Without this, you
+      test: /\.worker\.(c|m)?js$/i,
+      loader: "worker-loader",
+      options: {
+        filename: "[name].[contenthash].worker.js",
+      },
+    },
+    {
+      // This rule makes source maps compatible with other cocalc included modules like @cocalc/util.  Without this, you
       // get lots of warnings in the console, and lots of source maps don't work at all.
       // https://stackoverflow.com/questions/61767538/devtools-failed-to-load-sourcemap-for-webpack-node-modules-js-map-http-e
       test: /\.(j|t)s$/,

@@ -2,16 +2,17 @@
 // install the page as a local webapp.  It's part of being a "progressive
 // web app", as was started in this PR: https://github.com/sagemathinc/cocalc/pull/5254
 
-import * as React from "react";
+import React from "react";
 import { Helmet } from "react-helmet";
 import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 window.addEventListener("load", async function () {
-  const path = join(window.app_base_path, "webapp/serviceWorker.js");
+  const path = join(appBasePath, "webapp/serviceWorker.js");
 
   try {
     await navigator.serviceWorker.register(path, {
-      scope: window.app_base_path,
+      scope: appBasePath,
     });
     console.log(`${path} registered successful`);
   } catch (err) {
@@ -24,7 +25,7 @@ export default function Manifest() {
     <Helmet>
       <link
         rel="manifest"
-        href={join(window.app_base_path, "customize?type=manifest")}
+        href={join(appBasePath, "customize?type=manifest")}
       />
     </Helmet>
   );

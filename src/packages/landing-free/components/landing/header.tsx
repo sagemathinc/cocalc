@@ -1,14 +1,9 @@
 import SquareLogo from "./logo-square";
-import {
-  anonymousSignup,
-  basePath,
-  helpEmail,
-  siteName,
-  termsOfServiceURL,
-} from "lib/customize";
 import A from "components/misc/A";
 import { join } from "path";
 import { Layout } from "antd";
+import { useCustomize } from "lib/customize";
+import { basePath } from "lib/base-path";
 
 const GAP = "32px";
 
@@ -19,6 +14,10 @@ const LinkStyle = {
 };
 
 export default function Header() {
+  const { anonymousSignup, helpEmail, siteName, termsOfServiceURL } =
+    useCustomize();
+  if (basePath == null) return null;
+
   return (
     <Layout.Header
       style={{
@@ -39,6 +38,13 @@ export default function Header() {
           Try {siteName}
         </a>
       )}
+      <a
+        style={LinkStyle}
+        href={join(basePath, "share")}
+        title="View files that people have published."
+      >
+        Published Files
+      </a>
       {termsOfServiceURL && (
         <A
           style={LinkStyle}
@@ -57,13 +63,6 @@ export default function Header() {
           Help
         </A>
       )}
-      <A
-        style={LinkStyle}
-        href={join(basePath, "share")}
-        title="View files that people have published."
-      >
-        Published Files
-      </A>
       <A
         style={LinkStyle}
         href="https://doc.cocalc.com"

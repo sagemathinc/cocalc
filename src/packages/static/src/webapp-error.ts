@@ -18,7 +18,7 @@ import Crash from "./crash";
 import CrashMessage from "./crash-message";
 import React from "react";
 // @ts-ignore
-import * as ReactDOM from "react-dom";
+import ReactDOM from "react-dom";
 
 function handle_window_error(msg, url, lineNo, columnNo, error) {
   if (error == null) {
