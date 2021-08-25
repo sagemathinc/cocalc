@@ -293,7 +293,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
             // 50% of max memory
             return hml / 2;
           } else {
-            1000; // 1 gb
+            return 1000; // 1 gb
           }
       }
       return 1;
