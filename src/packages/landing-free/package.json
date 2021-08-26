@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/landing-free",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "Landing pages for the free version of CoCalc.",
   "main": "lib/init.js",
   "files": [
@@ -47,14 +47,14 @@
   ],
   "dependencies-comment": "IMPORTANT: we install typescript as a normal dependency since it may be needed at runtime due to server settings changing!!",
   "dependencies": {
-    "@cocalc/util-node": "^1.3.0",
+    "@cocalc/util-node": "^1.4.0",
     "@types/react": "^17.0.14",
     "antd": "^4.16.8",
     "next": "^11.1.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "typescript": "^4.3.5",
-    "@cocalc/util": "^1.4.0"
+    "@cocalc/util": "^1.5.0"
   },
   "devDependencies": {
     "eslint": "^7.31.0",
