@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/util-node",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "CoCalc misc utility functionality that is meant for running on node.js (not in browser)",
   "exports": {
     "./database": "./dist/database/index.js",
