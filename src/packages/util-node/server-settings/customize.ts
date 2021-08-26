@@ -15,6 +15,7 @@ export interface Customize {
   logoRectangularURL?: string;
   splashImage?: string;
   indexInfo?: string;
+  shareServer?: boolean;
   dns?: string;
 }
 
