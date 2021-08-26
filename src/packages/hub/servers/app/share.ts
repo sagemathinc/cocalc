@@ -10,14 +10,23 @@ import handleRaw from "@cocalc/share/lib/handle-raw";
 import { getLogger } from "@cocalc/hub/logger";
 import redirect from "./share-redirect";
 import basePath from "@cocalc/util-node/base-path";
+import { database } from "../database";
+import { callback2 } from "@cocalc/util/async-utils";
 
 export default async function init(app: Application) {
   const winston = getLogger("share");
-  // getCustomize uses the server base path, but share server append /share to it.
 
-  // TODO: need way to configure share.cocalc.com to set
-  // customize.appBasePath = 'https://cocalc.com/'.
-  // This could be a command line flag, env variable, or the database.
+  const { rows } = await callback2(database._query, {
+    query: "SELECT value FROM server_settings WHERE name='share_server'",
+  });
+  if (rows.length == 0 || rows[0].value == "no") {
+    winston.info(
+      "Share server is disabled via the server_settings database table.  Enable in Admin preferences if you want to start it."
+    );
+    return;
+  } else {
+    winston.info("Share server is enabled in the database.  Starting!");
+  }
 
   const shareBasePath = join(basePath, "share");
   winston.info("Initializing the share server...");

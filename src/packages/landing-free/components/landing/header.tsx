@@ -14,8 +14,13 @@ const LinkStyle = {
 };
 
 export default function Header() {
-  const { anonymousSignup, helpEmail, siteName, termsOfServiceURL } =
-    useCustomize();
+  const {
+    anonymousSignup,
+    helpEmail,
+    siteName,
+    termsOfServiceURL,
+    shareServer,
+  } = useCustomize();
   if (basePath == null) return null;
 
   return (
@@ -38,13 +43,15 @@ export default function Header() {
           Try {siteName}
         </a>
       )}
-      <a
-        style={LinkStyle}
-        href={join(basePath, "share")}
-        title="View files that people have published."
-      >
-        Published Files
-      </a>
+      {shareServer && (
+        <a
+          style={LinkStyle}
+          href={join(basePath, "share")}
+          title="View files that people have published."
+        >
+          Published Files
+        </a>
+      )}
       {termsOfServiceURL && (
         <A
           style={LinkStyle}

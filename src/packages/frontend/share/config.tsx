@@ -80,6 +80,7 @@ interface Props {
 
   // redux props
   is_commercial?: boolean;
+  share_server?: boolean;
 }
 
 interface State {
@@ -96,6 +97,7 @@ class Configure extends Component<Props, State> {
     return {
       customize: {
         is_commercial: rtypes.bool,
+        share_server: rtypes.bool,
       },
     };
   }
@@ -395,7 +397,7 @@ class Configure extends Component<Props, State> {
     return (
       <Alert
         bsStyle={"danger"}
-        style={{ padding: "30px", marginBottom: "30px" }}
+        style={{ padding: "30px", margin: "30px" }}
       >
         <h3>Publicly sharing files requires internet access</h3>
         <div style={{ fontSize: "12pt" }}>
@@ -406,7 +408,25 @@ class Configure extends Component<Props, State> {
     );
   }
 
+  private render_share_server_disabled(): Rendered {
+    return (
+      <Alert
+        bsStyle={"warning"}
+        style={{ padding: "30px", margin: "30px" }}
+      >
+        <h3>Publicly sharing of files not enabled on this CoCalc server.</h3>
+        <div style={{ fontSize: "12pt" }}>
+          Public sharing is not enabled. An admin of the server can enable this
+          in Admin -- Site Settings -- Allow public file sharing.
+        </div>
+      </Alert>
+    );
+  }
+
   public render(): Rendered {
+    if (!this.props.share_server) {
+      return this.render_share_server_disabled();
+    }
     if (this.props.is_commercial && !this.props.has_network_access) {
       return this.render_needs_network_access();
     }

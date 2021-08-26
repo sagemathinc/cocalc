@@ -84,6 +84,7 @@ export interface CustomizeState {
   organization_email: string;
   organization_name: string;
   organization_url: string;
+  share_server: boolean;
   site_description: string;
   site_name: string;
   splash_image: string;

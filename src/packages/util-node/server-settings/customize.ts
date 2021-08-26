@@ -61,6 +61,8 @@ export default async function getCustomize(): Promise<Customize> {
 
     indexInfo: settings.index_info_html,
 
+    shareServer: !!settings.share_server,
+
     // can be used for links to edit share document in main site; needed if main site
     // on different domain than share server, e.g., share.cocalc.com vs cocalc.com.
     dns: settings.dns,

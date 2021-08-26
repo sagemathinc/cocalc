@@ -44,7 +44,8 @@ export type SiteSettingsKeys =
   | "email_enabled"
   | "verify_emails"
   | "email_signup"
-  | "anonymous_signup";
+  | "anonymous_signup"
+  | "share_server";
 
 export interface Config {
   readonly name: string;
@@ -353,6 +354,13 @@ export const site_settings_conf: SiteSettings = {
   anonymous_signup: {
     name: "Allow anonymous signup",
     desc: "Users can create an account with no email or password.  This won't work if you have any registration tokens set below.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  share_server: {
+    name: "Allow public file sharing",
+    desc: "Users are allowed to publicly share files on the public share server (https://yourserver/share).  If this is disabled, then the share server will not run and users will not be allowed to share files from their projects.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
