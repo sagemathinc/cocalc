@@ -1,4 +1,9 @@
 /*
+This code makes it possible to start this nextjs server as a
+Custmer Server as part of a running hub.  We thus combine together
+a node.js express server (the hub) with a nextjs server in a
+single process.
+
 IMPORTANT: to use this from packages/hub (say), it's critical that
 packages/hub *also* have its own copy of next installed.
 Otherwise, you'll see an error about
@@ -14,7 +19,7 @@ const getLogger = require("@cocalc/util-node/logger").default;
 const next = require("next");
 const conf = require("../next.config");
 
-const winston = getLogger("landing-free:init");
+const winston = getLogger("next:init");
 
 async function init({ basePath }) {
   // dev = Whether or not to run in dev mode.  This features hot module reloading,

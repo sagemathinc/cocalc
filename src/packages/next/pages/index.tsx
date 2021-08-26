@@ -4,15 +4,17 @@ import Head from "next/head";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Content from "components/landing/content";
-import { CustomizeContext, Customize } from "lib/customize";
-import withCustomize from "lib/get-context";
+
+import withCustomize from "lib/with-customize";
+import { Customize } from "lib/customize";
+
 import { basePath } from "lib/base-path";
 
 const FAVICON = "/webapp/favicon-32x32.png";
 
-export default function Home({ customize }: { customize: Customize }) {
+export default function Home({ customize }) {
   return (
-    <CustomizeContext.Provider value={customize}>
+    <Customize value={customize}>
       <Head>
         <title>{customize.siteName} -- Collaborative Calculation</title>
         <meta name="description" content="CoCalc" />
@@ -23,7 +25,7 @@ export default function Home({ customize }: { customize: Customize }) {
         <Content />
         <Footer />
       </Layout>
-    </CustomizeContext.Provider>
+    </Customize>
   );
 }
 
