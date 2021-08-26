@@ -6,7 +6,7 @@
 /*
 Showing list of users of a project
 */
-import { Component, React, redux, rclass, rtypes } from "../app-framework";
+import { Component, redux, rclass, rtypes } from "../app-framework";
 import { UserMap } from "../todo-types";
 
 const { User } = require("../users");

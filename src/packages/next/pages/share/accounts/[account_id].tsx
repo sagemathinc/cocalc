@@ -12,13 +12,13 @@ Page for a given user.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { trunc } from "lib/util";
-import getAccountInfo from "lib/get-account-info";
-import Loading from "components/loading";
-import PublicPaths from "components/public-paths";
-import { Layout } from "components/layout";
-import { Customize } from "lib/context";
-import withCustomize from "lib/get-context";
+import { trunc } from "lib/share/util";
+import getAccountInfo from "lib/share/get-account-info";
+import Loading from "components/share/loading";
+import PublicPaths from "components/share/public-paths";
+import { Layout } from "components/share/layout";
+import { Customize } from "lib/share/context";
+import withCustomize from "lib/share/get-context";
 
 export default function Account({
   firstName,

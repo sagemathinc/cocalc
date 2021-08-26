@@ -7,7 +7,6 @@
 Rendering a Sage worksheet cell
 */
 
-import React from "react";
 import CellInput from "./input";
 import CellOutput from "./output";
 import type { OutputMessages } from "./parse-sagews";

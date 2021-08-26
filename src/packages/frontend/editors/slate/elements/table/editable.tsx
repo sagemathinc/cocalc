@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React, { CSSProperties as CSS } from "react";
+import { CSSProperties as CSS } from "react";
 import { register } from "../register";
 import { useFocused, useSelected } from "../hooks";
 import { FOCUSED_COLOR, padLeft, padRight, padCenter } from "../../util";

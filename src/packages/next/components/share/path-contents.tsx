@@ -3,10 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import DirectoryListing from "components/directory-listing";
-import FileContents from "components/file-contents";
-import { FileInfo } from "lib/get-contents";
-import Loading from "components/loading";
+import DirectoryListing from "./directory-listing";
+import FileContents from "./file-contents";
+import { FileInfo } from "lib/share/get-contents";
+import Loading from "./loading";
 
 interface Props {
   id: string;

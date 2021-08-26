@@ -9,7 +9,7 @@ Show a minimal status bar at the bottom of the screen when status is set in the 
 Very simple for now.  We should obviously add more later, e.g., number of lines of the file...
 */
 
-import { React, Component, Rendered } from "../../app-framework";
+import { Component, Rendered } from "../../app-framework";
 import { Space } from "@cocalc/frontend/components";
 
 interface Props {

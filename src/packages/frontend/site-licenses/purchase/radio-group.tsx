@@ -6,7 +6,7 @@
 // Convenience function, mainly to make it easier to make vertical radio components,
 // since that's sligthtly awkward with antd.
 
-import { React, CSS } from "../../app-framework";
+import { CSS } from "../../app-framework";
 import { Radio } from "antd";
 import { Icon, IconName } from "../../components";
 

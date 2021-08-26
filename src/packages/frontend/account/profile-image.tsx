@@ -5,7 +5,7 @@
 
 import { Map as ImmutableMap } from "immutable";
 import { Button, ButtonToolbar, FormControl, Well } from "../antd-bootstrap";
-import { React, Component, Rendered, redux } from "../app-framework";
+import { Component, Rendered, redux } from "../app-framework";
 import { ErrorDisplay, Loading, ProfileIcon } from "../components";
 import md5 from "md5";
 

@@ -14,16 +14,16 @@ Page for a given user.
 
 /* Show all the public paths in a given project, and maybe other information about the project? */
 
-import { isUUID } from "lib/util";
-import getCollaborators from "lib/get-collaborators";
-import { getProjectTitle } from "lib/get-project";
-import getPublicPaths from "lib/get-public-paths";
-import PublicPaths from "components/public-paths";
-import Collaborators from "components/collaborators";
-import Loading from "components/loading";
-import { Layout } from "components/layout";
-import { Customize } from "lib/context";
-import withCustomize from "lib/get-context";
+import { isUUID } from "lib/share/util";
+import getCollaborators from "lib/share/get-collaborators";
+import { getProjectTitle } from "lib/share/get-project";
+import getPublicPaths from "lib/share/get-public-paths";
+import PublicPaths from "components/share/public-paths";
+import Collaborators from "components/share/collaborators";
+import Loading from "components/share/loading";
+import { Layout } from "components/share/layout";
+import { Customize } from "lib/share/context";
+import withCustomize from "lib/share/get-context";
 
 export default function Project({
   publicPaths,

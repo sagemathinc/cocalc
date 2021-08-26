@@ -3,8 +3,8 @@ import SquareLogo from "./logo-square";
 import A from "components/misc/A";
 import { join } from "path";
 import { Layout } from "antd";
-import GoogleSearch from "components/google-search";
-import { useCustomize } from "lib/customize";
+import GoogleSearch from "./google-search";
+import useCustomize from "lib/use-customize";
 import { appBasePath, basePath } from "lib/base-path";
 
 const GAP = "32px";
@@ -20,7 +20,7 @@ export default function Header() {
     useCustomize();
   const appURL = dns
     ? `https://${dns}/static/app.html`
-    : join(basePath, "../static/app.html");
+    : join(basePath, "static/app.html");
   return (
     <Layout.Header
       style={{

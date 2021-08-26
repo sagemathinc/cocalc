@@ -11,7 +11,7 @@ Example, when using the docstring browser (say), we could pop up the file that
 the code for the function is in here.
 */
 
-import { React, Rendered, Component } from "../../app-framework";
+import { Rendered, Component } from "../../app-framework";
 
 interface Props {
   project_id: string;

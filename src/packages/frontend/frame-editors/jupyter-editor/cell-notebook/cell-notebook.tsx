@@ -7,7 +7,7 @@
 Frame that display a Jupyter notebook in the traditional way with input and output cells.
 */
 
-import { React, Rendered, Component } from "../../../app-framework";
+import { Rendered, Component } from "../../../app-framework";
 import { JupyterEditor } from "../../../jupyter/main";
 import { Map } from "immutable";
 import { JupyterEditorActions } from "../actions";

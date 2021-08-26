@@ -7,7 +7,7 @@
 Frame that displays the raw JSON for a Jupyter Notebook
 */
 
-import { React } from "../../app-framework";
+
 
 import { JSONView } from "../../jupyter/json-view";
 

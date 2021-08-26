@@ -4,21 +4,17 @@
  */
 
 import Link from "next/link";
-import PathContents from "components/path-contents";
-import PathActions from "components/path-actions";
-import LinkedPath from "components/linked-path";
-import Loading from "components/loading";
-import License from "components/license";
-import ProjectLink from "components/project-link";
-import getPublicPathInfo from "lib/get-public-path-info";
-import useCounter from "lib/counter";
-import { Layout } from "components/layout";
-import { Customize } from "lib/context";
-import withCustomize from "lib/get-context";
-
-// TODO: pre-render the most popuar n pages, according
-// to internal db counter.
-// const PRERENDER_COUNT = 0;
+import PathContents from "components/share/path-contents";
+import PathActions from "components/share/path-actions";
+import LinkedPath from "components/share/linked-path";
+import Loading from "components/share/loading";
+import License from "components/share/license";
+import ProjectLink from "components/share/project-link";
+import getPublicPathInfo from "lib/share/get-public-path-info";
+import useCounter from "lib/share/counter";
+import { Layout } from "components/share/layout";
+import { Customize } from "lib/share/context";
+import withCustomize from "lib/share/get-context";
 
 export default function PublicPath({
   id,
@@ -105,7 +101,6 @@ export default function PublicPath({
 }
 
 export async function getStaticPaths() {
-  // TODO: take into account PRERENDER_COUNT?  (not in dev mode)
   return { paths: [], fallback: true };
 }
 

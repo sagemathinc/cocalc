@@ -1,11 +1,11 @@
 import Link from "next/link";
 import ExternalLink from "./external-link";
-import rawURL from "lib/raw-url";
-import editURL from "lib/edit-url";
-import downloadURL from "lib/download-url";
+import rawURL from "lib/share/raw-url";
+import editURL from "lib/share/edit-url";
+import downloadURL from "lib/share/download-url";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import SiteName from "./site-name";
-import { useCustomize } from "lib/customize";
+import useCustomize from "lib/use-customize";
 
 interface Props {
   id: string;

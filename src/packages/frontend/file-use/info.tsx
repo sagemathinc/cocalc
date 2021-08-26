@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, Rendered } from "../app-framework";
+import { Component, Rendered } from "../app-framework";
 const { User } = require("../users");
 import { Icon, TimeAgo, r_join } from "../components";
 import { FileUseIcon } from "./icon";

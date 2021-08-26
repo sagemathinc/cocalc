@@ -12,7 +12,6 @@ import { keys } from "underscore";
 // React libraries and components
 import {
   Component,
-  React,
   ReactDOM,
   rclass,
   rtypes,

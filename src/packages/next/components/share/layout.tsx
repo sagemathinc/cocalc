@@ -3,17 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { join } from "path";
 import { Layout as AntdLayout } from "antd";
 
 import Head from "next/head";
 
-import SiteName from "components/site-name";
-import Analytics from "components/analytics";
-import Footer from "components/footer";
-import Header from "components/header";
+import SiteName from "./site-name";
+import Analytics from "./analytics";
+import Footer from "./footer";
+import Header from "./header";
 import { basePath } from "lib/base-path";
 
-const favicon = `${basePath}/../webapp/favicon-32x32.png`;
+const favicon = join(basePath, "webapp/favicon-32x32.png");
 
 export function Layout({ children }) {
   return (

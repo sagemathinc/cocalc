@@ -8,7 +8,7 @@ Display of basic information about a user, with link to get more information abo
 */
 
 import { Icon, Space, TimeAgo } from "@cocalc/frontend/components";
-import { React, Component, Rendered } from "@cocalc/frontend/app-framework";
+import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { capitalize } from "@cocalc/util/misc";
 import { Row, Col } from "react-bootstrap";
 import { User } from "@cocalc/frontend/frame-editors/generic/client";

@@ -1,5 +1,5 @@
 import { ProjectSearchBody } from "./body";
-import { React } from "../../app-framework";
+
 import { ProjectSearchHeader } from "./header";
 
 export const ProjectSearch: React.FC<{ project_id: string }> = ({

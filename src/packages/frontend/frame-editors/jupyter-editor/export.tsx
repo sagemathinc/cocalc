@@ -7,7 +7,7 @@
 Frame for exporting notebook to some other format (mainly using nbconvert).
 */
 
-import { React, Rendered, Component } from "../../app-framework";
+import { Rendered, Component } from "../../app-framework";
 
 interface Props {
   project_id: string;

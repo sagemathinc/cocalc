@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useTypedRedux, useActions } from "../app-framework";
+import { useTypedRedux, useActions } from "../app-framework";
 import { user_activity } from "../tracker";
 import { Button, ButtonGroup } from "../antd-bootstrap";
 import { Icon } from "../components";

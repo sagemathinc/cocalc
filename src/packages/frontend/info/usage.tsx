@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useRedux, useTypedRedux } from "../app-framework";
+import { useRedux, useTypedRedux } from "../app-framework";
 import { Icon, Loading, TimeAgo } from "../components";
 import { ProgressBar, Table } from "react-bootstrap";
 import { RECENT_TIMES_KEY } from "@cocalc/util/schema";

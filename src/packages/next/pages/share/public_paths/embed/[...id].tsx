@@ -4,14 +4,14 @@
  */
 
 import Link from "next/link";
-import PathContents from "components/path-contents";
-import PathActions from "components/path-actions";
-import Loading from "components/loading";
-import getPublicPathInfo from "lib/get-public-path-info";
-import useCounter from "lib/counter";
-import { Embed } from "components/layout";
-import { Customize } from "lib/context";
-import withCustomize from "lib/get-context";
+import PathContents from "components/share/path-contents";
+import PathActions from "components/share/path-actions";
+import Loading from "components/share/loading";
+import getPublicPathInfo from "lib/share/get-public-path-info";
+import useCounter from "lib/share/counter";
+import { Embed } from "components/share/layout";
+import { Customize } from "lib/share/context";
+import withCustomize from "lib/share/get-context";
 
 export default function PublicPath({
   id,

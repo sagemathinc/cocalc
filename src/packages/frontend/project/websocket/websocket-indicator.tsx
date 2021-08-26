@@ -7,7 +7,7 @@
 Websocket connection status indicator for a single project.
 */
 
-import { React, Rendered, Component } from "../../app-framework";
+import { Rendered, Component } from "../../app-framework";
 
 import { WebsocketState } from "./websocket-state";
 

@@ -1,5 +1,5 @@
 import User from "./user";
-import { User as IUser } from "lib/types";
+import { User as IUser } from "lib/share/types";
 
 export default function Collaborators({
   collaborators,

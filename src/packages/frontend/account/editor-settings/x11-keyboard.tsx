@@ -4,7 +4,7 @@
  */
 
 import { LabeledRow, Loading, SelectorInput } from "../../components";
-import { React } from "../../app-framework";
+
 import { PHYSICAL_KEYBOARDS } from "../../frame-editors/x11-editor/xpra/keyboards";
 
 interface PhysicalKeyboardProps {

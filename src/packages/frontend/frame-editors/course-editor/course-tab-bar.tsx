@@ -9,7 +9,7 @@ It looks good and provides backwards UX compatibility for our users,
 so they can mostly ignore the frame editor if they want to.
 */
 
-import { React, Component, Rendered } from "../../app-framework";
+import { Component, Rendered } from "../../app-framework";
 
 import { Tabs } from "antd";
 const { TabPane } = Tabs;

@@ -4,22 +4,10 @@
  */
 
 import { delay } from "awaiting";
-
-import {
-  redux,
-  rclass,
-  rtypes,
-  Component,
-  React,
-  Rendered,
-} from "../app-framework";
-
+import { redux, rclass, rtypes, Component, Rendered } from "../app-framework";
 import { Loading } from "../components";
-
 import { FileUseViewer } from "./viewer";
-
 import { Map as iMap } from "immutable";
-
 import { MentionsMap } from "../notifications/mentions/types";
 
 interface Props {

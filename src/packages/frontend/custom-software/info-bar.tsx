@@ -5,7 +5,7 @@
 
 // in "Files", this shows some information and action buttons related to the custom software environment
 
-import { Component, React } from "../app-framework";
+import { Component } from "../app-framework";
 import { Map as iMap } from "immutable";
 import {
   CUSTOM_SOFTWARE_HELP_URL as help_url,

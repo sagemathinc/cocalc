@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { getExtension } from "lib/util";
+import { getExtension } from "lib/share/util";
 import {
   isAudio,
   isCodemirror,
@@ -12,17 +12,17 @@ import {
   isMarkdown,
   isVideo,
 } from "@cocalc/frontend/file-extensions";
-import rawURL from "lib/raw-url";
-import { isIOS, isSafari } from "lib/feature";
-import CodeMirror from "components/codemirror";
-import SageWorksheet from "components/sage-worksheet";
+import rawURL from "lib/share/raw-url";
+import { isIOS, isSafari } from "lib/share/feature";
+import CodeMirror from "./codemirror";
+import SageWorksheet from "./sage-worksheet";
 import JupyterNotebook from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
 //import { Markdown } from "@cocalc/frontend/markdown";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import HTML from "@cocalc/frontend/components/html-ssr";
 import A from "components/misc/A";
-import { containingPath } from "lib/util";
-import getUrlTransform from "lib/url-transform";
+import { containingPath } from "lib/share/util";
+import getUrlTransform from "lib/share/url-transform";
 import getAnchorTagComponent from "./anchor-tag-component";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 
@@ -49,7 +49,7 @@ export default function FileContents({
     const value = {
       urlTransform: getUrlTransform({ id, path, relativePath: relPath }),
       AnchorTagComponent: getAnchorTagComponent({ id, relativePath: relPath }),
-      noSanitize: true,  // this is temporarily disabled for initial release, since it is not yet needed.
+      noSanitize: true, // this is temporarily disabled for initial release, since it is not yet needed.
     };
     return <FileContext.Provider value={value}>{x}</FileContext.Provider>;
   };

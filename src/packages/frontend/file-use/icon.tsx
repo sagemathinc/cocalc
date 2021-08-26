@@ -4,11 +4,8 @@
  */
 
 import { filename_extension_notilde } from "@cocalc/util/misc";
-
 const { file_icon_class } = require("../editor");
-
-import { Component, React } from "../app-framework";
-
+import { Component } from "../app-framework";
 import { Icon } from "../components";
 
 interface Props {

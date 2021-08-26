@@ -7,7 +7,7 @@
 Some buttons
 */
 
-import { React, Rendered } from "@cocalc/frontend/app-framework";
+import { Rendered } from "@cocalc/frontend/app-framework";
 import { TimeActions } from "./actions";
 type TimeActions = InstanceType<typeof TimeActions>;
 

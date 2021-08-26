@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
 import { register, SlateElement } from "../register";
 
 export interface ListItem extends SlateElement {

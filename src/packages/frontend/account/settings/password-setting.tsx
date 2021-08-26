@@ -4,7 +4,7 @@
  */
 
 import { ErrorDisplay, LabeledRow, Saving } from "../../components";
-import { React, Component, Rendered, ReactDOM } from "../../app-framework";
+import { Component, Rendered, ReactDOM } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
 import {
   Button,

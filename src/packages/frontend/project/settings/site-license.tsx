@@ -7,7 +7,7 @@
 // src/@cocalc/frontend/course/configuration/upgrades.tsx
 
 import { Map } from "immutable";
-import { redux, Component, Rendered, React } from "../../app-framework";
+import { redux, Component, Rendered } from "../../app-framework";
 import { Button } from "../../antd-bootstrap";
 import { Icon } from "../../components";
 import { alert_message } from "../../alerts";

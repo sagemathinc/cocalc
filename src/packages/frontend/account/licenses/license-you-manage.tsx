@@ -1,4 +1,4 @@
-import { React } from "../../app-framework";
+
 
 import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-info";
 

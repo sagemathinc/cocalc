@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, Rendered, redux } from "../app-framework";
+import { Component, Rendered, redux } from "../app-framework";
 import { Map } from "immutable";
 import { webapp_client } from "../webapp-client";
 import { Checkbox, Panel } from "../antd-bootstrap";

@@ -8,13 +8,7 @@ import { Icon, IconName, Space, TimeAgo } from "@cocalc/frontend/components";
 import { server_time } from "../generic/client";
 import { Message } from "./types";
 import { capitalize, is_different } from "@cocalc/util/misc";
-import {
-  React,
-  Component,
-  Rendered,
-  rclass,
-  rtypes,
-} from "../../app-framework";
+import { Component, Rendered, rclass, rtypes } from "../../app-framework";
 
 interface Props {
   font_size: number;

@@ -9,13 +9,7 @@ Functionality and UI to ensure a user with given email (or account_id) is sync'd
 
 import { List } from "immutable";
 import { Row, Col, Button } from "../../antd-bootstrap";
-import {
-  React,
-  Component,
-  Rendered,
-  rclass,
-  rtypes,
-} from "../../app-framework";
+import { Component, Rendered, rclass, rtypes } from "../../app-framework";
 import { Icon } from "../../components";
 import { DebounceInput } from "react-debounce-input";
 

@@ -6,7 +6,7 @@
 /* Static codemirror-based renderer. */
 
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
-import { getExtension } from "lib/util";
+import { getExtension } from "lib/share/util";
 import { codemirrorMode } from "@cocalc/frontend/file-extensions";
 
 interface Props {

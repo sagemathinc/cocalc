@@ -9,7 +9,7 @@ Get the collaborators on a given project.  Unlisted collaborators are NOT includ
 
 import getPool from "@cocalc/util-node/database";
 import { User } from "./types";
-import { isUUID } from "lib/util";
+import { isUUID } from "./util";
 
 export default async function getCollaborators(
   project_id: string

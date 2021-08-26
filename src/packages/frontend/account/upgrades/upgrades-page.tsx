@@ -6,7 +6,7 @@
 import "./project-upgrades-table";
 import { Map } from "immutable";
 import { round1, plural } from "@cocalc/util/misc";
-import { redux, rclass, rtypes, Component, React } from "../../app-framework";
+import { redux, rclass, rtypes, Component } from "../../app-framework";
 import { A, Icon, Loading, Space } from "../../components";
 
 import {

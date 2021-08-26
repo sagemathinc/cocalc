@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useActions, useTypedRedux } from "../app-framework";
+import { useActions, useTypedRedux } from "../app-framework";
 import { Modal } from "react-bootstrap";
 import { Icon } from "../components";
 import { SupportInfo } from "./info";

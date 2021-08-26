@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { User as IUser } from "lib/types";
-import { trunc } from "lib/util";
+import { User as IUser } from "lib/share/types";
+import { trunc } from "lib/share/util";
 
 interface Props {
   user: IUser;

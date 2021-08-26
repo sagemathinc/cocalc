@@ -4,7 +4,7 @@
  */
 
 import { Card } from "antd";
-import { React, useRedux, useActions } from "../../app-framework";
+import { useRedux, useActions } from "../../app-framework";
 import { Icon, NumberInput } from "../../components";
 import { CourseActions } from "../actions";
 import { MAX_COPY_PARALLEL } from "../store";

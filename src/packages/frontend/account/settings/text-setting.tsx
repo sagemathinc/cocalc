@@ -4,7 +4,7 @@
  */
 
 import { Input } from "antd";
-import { React } from "../../app-framework";
+
 import { LabeledRow } from "../../components";
 
 // in a grid:   Title [text input]

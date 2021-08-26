@@ -4,7 +4,7 @@
  */
 
 import { Card } from "antd";
-import { React } from "../../app-framework";
+
 import { Icon } from "../../components";
 import { SITE_NAME, LIVE_DEMO_REQUEST } from "@cocalc/util/theme";
 

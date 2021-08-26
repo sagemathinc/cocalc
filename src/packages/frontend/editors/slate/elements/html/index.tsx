@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
 import { register, SlateElement } from "../register";
 import { toSlate as toSlateImage } from "../image";
 import HTML from "@cocalc/frontend/components/html-ssr";

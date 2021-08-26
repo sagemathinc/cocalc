@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useTypedRedux } from "../app-framework";
+import { useTypedRedux } from "../app-framework";
 import { Icon, LabeledRow, Loading, SelectorInput } from "../components";
 import { Panel } from "../antd-bootstrap";
 import { set_account_table } from "./util";

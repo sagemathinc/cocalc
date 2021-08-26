@@ -1,4 +1,3 @@
-import React from "react";
 import { A } from "@cocalc/frontend/components";
 import { isCoCalcURL, parseCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 import { redux } from "@cocalc/frontend/app-framework";

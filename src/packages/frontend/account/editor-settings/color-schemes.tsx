@@ -4,7 +4,7 @@
  */
 
 import { Map } from "immutable";
-import { React } from "../../app-framework";
+
 import { LabeledRow, SelectorInput } from "../../components";
 import { CodeMirrorStatic } from "../../jupyter/codemirror-static";
 import { cm_options } from "../../frame-editors/codemirror/cm-options";

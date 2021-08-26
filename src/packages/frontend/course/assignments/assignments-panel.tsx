@@ -18,7 +18,6 @@ import { STUDENT_SUBDIR } from "./actions";
 import { AssignmentCopyStep, AssignmentStatus } from "../types";
 import {
   Component,
-  React,
   rclass,
   rtypes,
   redux,

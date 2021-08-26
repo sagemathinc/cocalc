@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { register } from "../register";
 import { useFocused, useProcessLinks, useSelected, useSlate } from "../hooks";
 import { ensure_ends_in_two_newline, FOCUSED_COLOR } from "../../util";

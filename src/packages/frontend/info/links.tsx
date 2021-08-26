@@ -4,7 +4,6 @@
  */
 
 import { join } from "path";
-import React from "react";
 import { SiteName, PolicyPricingPageUrl } from "../customize";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";

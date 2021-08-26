@@ -10,7 +10,6 @@ X11 Window frame.
 import { Map, Set } from "immutable";
 import { delay } from "awaiting";
 import {
-  React,
   Component,
   ReactDOM,
   Rendered,

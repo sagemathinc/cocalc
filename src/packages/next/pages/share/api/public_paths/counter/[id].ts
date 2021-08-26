@@ -11,7 +11,7 @@ I'm just implementing this to get the same functionality as before and maybe bet
 inform server side rendering.  We'll do something much better later.
 */
 
-import { isSha1Hash } from "lib/util";
+import { isSha1Hash } from "lib/share/util";
 import getPool from "@cocalc/util-node/database";
 
 export default async function handler(req, res) {

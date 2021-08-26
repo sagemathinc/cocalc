@@ -1,4 +1,3 @@
-import React from "react";
 import register from "./register";
 import { Ansi, is_ansi as isAnsi } from "../ansi";
 import { STDOUT_STYLE } from "../style";

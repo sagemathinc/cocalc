@@ -6,7 +6,7 @@
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { plural, capitalize } from "@cocalc/util/misc";
 
-import { Component, React, Rendered } from "../app-framework";
+import { Component, Rendered } from "../app-framework";
 import { Tip } from "../components/tip";
 import { Icon } from "../components/icon";
 import { Space } from "../components/space";

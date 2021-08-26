@@ -8,7 +8,7 @@
 - This is really just some minimal data *about* the history for now.
 */
 
-import { Rendered, Component, React } from "../../app-framework";
+import { Rendered, Component } from "../../app-framework";
 import { Button } from "react-bootstrap";
 import { TimeTravelActions } from "./actions";
 import { Icon } from "../../components";

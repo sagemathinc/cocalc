@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useActions, useEffect, useState } from "../app-framework";
+import { useActions, useEffect, useState } from "../app-framework";
 import { List } from "immutable";
 import { ErrorDisplay } from "../components/error-display";
 import { Markdown } from "../components";

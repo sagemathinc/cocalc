@@ -1,1 +1,2 @@
-export { useCustomize } from "./customize";
+import { useCustomize } from "./customize";
+export default useCustomize;

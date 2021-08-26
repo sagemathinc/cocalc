@@ -10,7 +10,7 @@ nbgrader functionality: the create assignment toolbar.
 import { DebounceInput } from "react-debounce-input";
 import { Button, FormControl, Form } from "../../antd-bootstrap";
 import { Map } from "immutable";
-import { React, Rendered, useRef } from "../../app-framework";
+import { Rendered, useRef } from "../../app-framework";
 import { Icon } from "../../components/icon";
 import { JupyterActions } from "../browser-actions";
 import { Metadata } from "./types";

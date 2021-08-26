@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../app-framework";
+
 import { ManagedLicenses } from "./managed-licenses";
 import { ProjectsWithLicenses } from "./projects-with-licenses";
 import { AboutLicenses } from "./about-licenses";

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Customize } from "lib/context";
-import withCustomize from "lib/get-context";
-import { Layout } from "components/layout";
+import { Layout } from "components/share/layout";
+import withCustomize from "lib/with-customize";
+import { Customize } from "lib/customize";
 
 export default function Home({ customize }) {
   return (

@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useState } from "../app-framework";
+import { useState } from "../app-framework";
 import { Row, Col } from "../antd-bootstrap";
 import { Icon } from "../components";
 import { open_popup_window } from "../misc/open-browser-tab";

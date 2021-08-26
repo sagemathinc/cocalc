@@ -4,7 +4,7 @@
  */
 
 // API Key Configuration
-import { React, Component, Rendered, ReactDOM } from "../../app-framework";
+import { Component, Rendered, ReactDOM } from "../../app-framework";
 import {
   CloseX,
   CopyToClipBoard,

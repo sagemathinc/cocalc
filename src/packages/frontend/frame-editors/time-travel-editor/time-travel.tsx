@@ -8,13 +8,7 @@
 import { List, Map } from "immutable";
 import { ButtonGroup } from "react-bootstrap";
 
-import {
-  React,
-  Component,
-  Rendered,
-  rclass,
-  rtypes,
-} from "../../app-framework";
+import { Component, Rendered, rclass, rtypes } from "../../app-framework";
 import { Loading } from "../../components";
 
 import { TimeTravelActions } from "./actions";

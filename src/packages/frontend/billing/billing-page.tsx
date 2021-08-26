@@ -6,14 +6,7 @@
 // Ensure the billing Actions and Store are created:
 require("./actions");
 
-import {
-  Component,
-  Rendered,
-  React,
-  redux,
-  rtypes,
-  rclass,
-} from "../app-framework";
+import { Component, Rendered, redux, rtypes, rclass } from "../app-framework";
 import { AppliedCoupons, Customer, InvoicesMap } from "./types";
 import { Map } from "immutable";
 import {

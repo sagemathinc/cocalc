@@ -8,7 +8,7 @@ The Landing Page
 */
 
 import * as immutable from "immutable";
-import { Component, rclass, React, rtypes, Rendered } from "../app-framework";
+import { Component, rclass, rtypes, Rendered } from "../app-framework";
 import { Row, Col, Alert } from "../antd-bootstrap";
 import { A, UNIT } from "../components";
 import { SiteDescription, Footer } from "../customize";

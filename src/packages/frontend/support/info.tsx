@@ -2,7 +2,7 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { React, useActions, useTypedRedux } from "../app-framework";
+import { useActions, useTypedRedux } from "../app-framework";
 import { Alert, Button } from "../antd-bootstrap";
 import { A, Icon, Loading } from "../components";
 import { HelpEmailLink } from "../customize";

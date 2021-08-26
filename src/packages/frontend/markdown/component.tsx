@@ -22,7 +22,6 @@ CoCalc has two other ways to convert Markdown to React:
   Then our slate editor renders the document via React.
 */
 
-import React from "react";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import { latexMathToHtml } from "@cocalc/frontend/misc/math-to-html";
 import { replace_all } from "@cocalc/util/misc";

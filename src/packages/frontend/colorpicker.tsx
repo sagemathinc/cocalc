@@ -21,7 +21,7 @@ blew up in my face.  I.e., it has some weird hidden global shared state.
 Try to integrate maybe something like react-color instead, though my
 attempt to do tht broke lots of other things (strangely).
 */
-import { React, Component } from "./app-framework"; // TODO: this will move
+import { Component } from "./app-framework"; // TODO: this will move
 
 // TODO: when upgrade to react@>=16.3, we can use React.createRef instead of call backrefs below.
 

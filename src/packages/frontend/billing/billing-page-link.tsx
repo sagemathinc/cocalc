@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Rendered } from "../app-framework";
+import { Rendered } from "../app-framework";
 import { load_target } from "../history";
 
 export function BillingPageLink(opts: { text?: string }): Rendered {

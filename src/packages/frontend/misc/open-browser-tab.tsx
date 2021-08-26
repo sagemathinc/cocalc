@@ -3,10 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-
 import { defaults } from "@cocalc/util/misc";
-
 import { alert_message } from "../alerts";
 
 interface WindowOpts {

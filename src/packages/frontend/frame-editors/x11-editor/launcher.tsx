@@ -7,13 +7,7 @@
 X11 Window frame.
 */
 
-import {
-  React,
-  Component,
-  Rendered,
-  rclass,
-  rtypes,
-} from "../../app-framework";
+import { Component, Rendered, rclass, rtypes } from "../../app-framework";
 import { debounce, keys, sortBy } from "underscore";
 const { Button } = require("react-bootstrap");
 import { Icon } from "../../components";

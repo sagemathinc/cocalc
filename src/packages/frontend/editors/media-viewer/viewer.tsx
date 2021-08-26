@@ -9,7 +9,7 @@ Image viewer component -- for viewing standard image types.
 
 import { filename_extension } from "@cocalc/util/misc";
 
-import { React, useState } from "../../app-framework";
+import { useState } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
 import { MediaViewerButtonBar } from "./button-bar";
 import { VIDEO_EXTS, IMAGE_EXTS, AUDIO_EXTS } from "../../file-associations";

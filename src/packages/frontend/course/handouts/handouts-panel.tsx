@@ -15,7 +15,6 @@ import {
 
 // React Libraries
 import {
-  React,
   rtypes,
   Component,
   rclass,

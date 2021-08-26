@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useActions, useEffect, useTypedRedux } from "../app-framework";
+import { useActions, useEffect, useTypedRedux } from "../app-framework";
 import { Subscription } from "../billing/subscription";
 
 interface Props {

@@ -26,7 +26,7 @@ export {
   Table,
 } from "react-bootstrap";
 
-import { React, Rendered } from "./app-framework";
+import { Rendered } from "./app-framework";
 import { r_join, Space } from "./components";
 
 import {

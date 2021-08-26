@@ -11,7 +11,7 @@ import { Icon } from "@cocalc/frontend/components";
 
 import { Map } from "immutable";
 
-import { React, Component, Rendered } from "../../app-framework";
+import { Component, Rendered } from "../../app-framework";
 
 import { Actions } from "./actions";
 

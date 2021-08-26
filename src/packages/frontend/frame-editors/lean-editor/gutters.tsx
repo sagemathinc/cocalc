@@ -8,17 +8,10 @@ Manage codemirror gutters that provide messages and other info from the backend 
 */
 
 import { Rendered } from "@cocalc/frontend/app-framework";
-
 import { List } from "immutable";
-
-import React from "react";
-
 import { Icon, Tip } from "@cocalc/frontend/components";
-
 import { RenderedMessage, message_color, message_icon } from "./lean-messages";
-
 import { Message, Task } from "./types";
-
 import { Editor } from "codemirror";
 
 export function update_gutters(opts: {

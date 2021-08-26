@@ -4,7 +4,7 @@
  */
 
 import { Map } from "immutable";
-import { Rendered, Component, React } from "../../app-framework";
+import { Rendered, Component } from "../../app-framework";
 import { capitalize, is_different, keys } from "@cocalc/util/misc";
 import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 import { Checkbox } from "../../antd-bootstrap";

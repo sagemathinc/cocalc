@@ -4,7 +4,7 @@
  */
 
 import jsonic from "jsonic";
-import { React, Rendered, Component, TypedMap } from "../../app-framework";
+import { Rendered, Component, TypedMap } from "../../app-framework";
 import { DebounceInput } from "react-debounce-input";
 import { SiteLicense } from "./types";
 import { actions } from "./actions";

@@ -7,7 +7,7 @@
 Frame that displays the raw JSON for a Jupyter Notebook
 */
 
-import { React } from "../../app-framework";
+
 
 import { RawEditor } from "../../jupyter/raw-editor";
 

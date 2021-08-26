@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
 import { SlateElement, register } from "../register";
 
 export interface Emoji extends SlateElement {

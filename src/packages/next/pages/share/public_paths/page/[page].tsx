@@ -10,12 +10,12 @@ such as Google, and only exists for that purpose.
 */
 
 import Link from "next/link";
-import SiteName from "components/site-name";
+import SiteName from "components/share/site-name";
 import getPool from "@cocalc/util-node/database";
-import PublicPaths from "components/public-paths";
-import { Layout } from "components/layout";
-import { Customize } from "lib/context";
-import withCustomize from "lib/get-context";
+import PublicPaths from "components/share/public-paths";
+import { Layout } from "components/share/layout";
+import { Customize } from "lib/share/context";
+import withCustomize from "lib/share/get-context";
 
 const PAGE_SIZE = 15;
 

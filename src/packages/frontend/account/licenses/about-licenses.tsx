@@ -1,4 +1,4 @@
-import { React } from "../../app-framework";
+
 import { A } from "../../components";
 import { DOC_LICENSE_URL } from "../../billing/data";
 

@@ -3,12 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import pathToFiles from "lib/path-to-files";
+import pathToFiles from "./path-to-files";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { sortBy } from "lodash";
 import { hasSpecialViewer } from "@cocalc/frontend/file-extensions";
-import { getExtension } from "lib/util";
+import { getExtension } from "./util";
 
 const MB: number = 1000000;
 const LIMITS = {

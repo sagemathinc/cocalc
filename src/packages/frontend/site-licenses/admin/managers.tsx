@@ -4,7 +4,7 @@
  */
 
 import { List } from "immutable";
-import { React, redux, useState, useTypedRedux } from "../../app-framework";
+import { redux, useState, useTypedRedux } from "../../app-framework";
 import { ManagerInfo } from "./types";
 import { User } from "../../users";
 import { r_join, Space } from "../../components";

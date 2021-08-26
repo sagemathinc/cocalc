@@ -5,7 +5,7 @@
 
 import { useInterval } from 'react-interval-hook';
 import { merge, cmp, copy } from "@cocalc/util/misc";
-import { React, redux, useMemo, useTypedRedux, useState } from "../../app-framework";
+import { redux, useMemo, useTypedRedux, useState } from "../../app-framework";
 import { Loading } from "../../components";
 import { Avatar } from "./avatar";
 

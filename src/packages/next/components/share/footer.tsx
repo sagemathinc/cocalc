@@ -1,6 +1,6 @@
 import A from "components/misc/A";
 import Logo from "./logo-rectangular";
-import { useCustomize } from "lib/customize";
+import useCustomize from "lib/use-customize";
 import { Layout } from "antd";
 
 function Item({

@@ -7,14 +7,7 @@ import { Map } from "immutable";
 import humanizeList from "humanize-list";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Upgrades } from "@cocalc/util/upgrades/types";
-import {
-  rclass,
-  rtypes,
-  Rendered,
-  Component,
-  React,
-  redux,
-} from "../app-framework";
+import { rclass, rtypes, Rendered, Component, redux } from "../app-framework";
 import { len } from "@cocalc/util/misc";
 import { visit_billing_page } from "../billing/billing-page-link";
 

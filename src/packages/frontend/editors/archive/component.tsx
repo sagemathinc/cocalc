@@ -1,4 +1,4 @@
-import { React, useRedux, useActions } from "../../app-framework";
+import { useRedux, useActions } from "../../app-framework";
 import { Button, Panel } from "../../antd-bootstrap";
 import { A, ErrorDisplay, Icon, Loading } from "../../components";
 

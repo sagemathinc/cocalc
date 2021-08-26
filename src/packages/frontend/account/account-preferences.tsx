@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useTypedRedux } from "../app-framework";
+import { useTypedRedux } from "../app-framework";
 import { ProfileSettings } from "./profile-settings";
 import { TerminalSettings } from "./terminal-settings";
 import { KeyboardSettings } from "./keyboard-settings";

@@ -1,4 +1,3 @@
-import React from "react";
 import { STDERR_STYLE } from "../style";
 
 export default function FallbackHandler({ type }) {

@@ -15,7 +15,7 @@ out a range.
 import { SyncDoc } from "@cocalc/util/sync/editor/generic/sync-doc";
 import Worksheet from "../../sagews/worksheet";
 import { parse_sagews } from "../../sagews/parse-sagews";
-import { Rendered, React, Component } from "../../app-framework";
+import { Rendered, Component } from "../../app-framework";
 
 interface Props {
   syncdoc: SyncDoc; // syncdoc corresponding to a Sage worksheet

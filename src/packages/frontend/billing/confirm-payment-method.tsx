@@ -4,7 +4,7 @@
  */
 
 import { Alert, Well } from "react-bootstrap";
-import { Component, React, Rendered } from "../app-framework";
+import { Component, Rendered } from "../app-framework";
 import { Space } from "../components/space";
 import { Icon } from "../components/icon";
 

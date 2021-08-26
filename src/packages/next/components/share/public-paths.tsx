@@ -9,7 +9,7 @@ A table of a list of public paths.
 
 import Link from "next/link";
 import { Table } from "antd";
-import { PublicPath } from "lib/types";
+import { PublicPath } from "lib/share/types";
 
 const COLUMNS = [
   {

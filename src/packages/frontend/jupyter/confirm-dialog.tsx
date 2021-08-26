@@ -7,7 +7,7 @@
 Confirmation dialog, for explicitly confirming dangerous actions.
 */
 
-import { React, Rendered } from "../app-framework";
+import { Rendered } from "../app-framework";
 import { Map } from "immutable";
 
 import { Icon, IconName, Markdown } from "../components";

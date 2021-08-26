@@ -5,7 +5,7 @@
 
 import Link from "next/link";
 import { Table } from "antd";
-import { FileInfo } from "lib/get-contents";
+import { FileInfo } from "lib/share/get-contents";
 import { join } from "path";
 import {
   human_readable_size as humanReadableSize,

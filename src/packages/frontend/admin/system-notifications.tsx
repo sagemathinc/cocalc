@@ -4,7 +4,6 @@
  */
 
 import {
-  React,
   ReactDOM,
   Component,
   rtypes,

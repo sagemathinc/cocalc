@@ -9,7 +9,7 @@ The format bar
 
 const css_colors = require("css-color-names");
 
-import { React, Component, Rendered } from "../../app-framework";
+import { Component, Rendered } from "../../app-framework";
 import { cmp } from "@cocalc/util/misc";
 import { SetMap } from "./types";
 import { DropdownMenu, MenuItem } from "../../components";

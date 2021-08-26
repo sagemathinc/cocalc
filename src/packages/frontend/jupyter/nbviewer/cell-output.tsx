@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { fromJS, Map } from "immutable";
 import { CellOutput } from "../cell-output";
 

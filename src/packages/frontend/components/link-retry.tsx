@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useEffect, useIsMountedRef, useState } from "../app-framework";
+import { useEffect, useIsMountedRef, useState } from "../app-framework";
 import { Loading, Space, Icon } from "../components";
 import { Button } from "../antd-bootstrap";
 import { retry_until_success } from "@cocalc/util/async-utils";

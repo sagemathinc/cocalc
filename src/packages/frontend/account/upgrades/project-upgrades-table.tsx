@@ -5,7 +5,7 @@
 
 import { Map } from "immutable";
 import { webapp_client } from "../../webapp-client";
-import { rclass, redux, rtypes, Component, React } from "../../app-framework";
+import { rclass, redux, rtypes, Component } from "../../app-framework";
 import { ErrorDisplay, UpgradeAdjustor, r_join } from "../../components";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { ProjectTitle } from "../../projects/project-title";

@@ -5,7 +5,7 @@
 
 import { Transforms } from "slate";
 import { SlateEditor } from "./editable-markdown";
-import { React, useActions, useRef } from "@cocalc/frontend/app-framework";
+import { useActions, useRef } from "@cocalc/frontend/app-framework";
 import { Dropzone, FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { join } from "path";
 import { aux_file, path_split } from "@cocalc/util/misc";

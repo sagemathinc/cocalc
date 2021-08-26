@@ -1,5 +1,5 @@
 import { Layout } from "antd";
-import { useCustomize } from "lib/customize";
+import useCustomize from "lib/use-customize";
 
 export default function Content() {
   const { siteName, anonymousSignup } = useCustomize();

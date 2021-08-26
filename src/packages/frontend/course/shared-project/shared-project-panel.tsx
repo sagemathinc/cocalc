@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component, AppRedux, Rendered } from "../../app-framework";
+import { Component, AppRedux, Rendered } from "../../app-framework";
 import { CourseActions } from "../actions";
 import { CourseSettingsRecord } from "../store";
 import { Icon } from "../../components";

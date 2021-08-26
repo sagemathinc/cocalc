@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Rendered } from "../app-framework";
+import { Rendered } from "../app-framework";
 import { Icon } from "../components/icon";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Tip } from "../components/tip";

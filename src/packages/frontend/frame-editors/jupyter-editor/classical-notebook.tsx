@@ -7,7 +7,7 @@
 Frame for showing the classic notebook
 */
 
-import { React, Rendered, Component } from "../../app-framework";
+import { Rendered, Component } from "../../app-framework";
 
 interface Props {
   project_id: string;

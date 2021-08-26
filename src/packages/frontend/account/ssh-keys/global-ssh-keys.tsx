@@ -1,5 +1,5 @@
 import { Col, Row } from "../../antd-bootstrap";
-import { React, redux, useRedux } from "../../app-framework";
+import { redux, useRedux } from "../../app-framework";
 import { A } from "../../components";
 import { SSHKeyAdder } from "./ssh-key-adder";
 import { SSHKeyList } from "./ssh-key-list";

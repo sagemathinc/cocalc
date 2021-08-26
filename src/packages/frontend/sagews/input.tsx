@@ -7,7 +7,6 @@
 Rendering input part of a Sage worksheet cell
 */
 
-import React from "react";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { FLAGS } from "@cocalc/util/sagews";
 

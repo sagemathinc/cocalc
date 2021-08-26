@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, Component, Rendered } from "../app-framework";
+import { Component, Rendered } from "../app-framework";
 import { Col } from "../antd-bootstrap";
 import { copy } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";

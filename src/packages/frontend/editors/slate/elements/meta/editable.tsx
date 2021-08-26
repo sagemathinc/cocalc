@@ -20,7 +20,6 @@ output:
 
 */
 
-import React from "react";
 import { register } from "../register";
 import { useSlate } from "../hooks";
 import { A } from "@cocalc/frontend/components";

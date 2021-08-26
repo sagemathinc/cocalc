@@ -21,7 +21,7 @@ import { is_different } from "@cocalc/util/misc";
 import { webapp_client } from "../../webapp-client";
 
 // React libraries
-import { React, ReactDOM, Component, Rendered } from "../../app-framework";
+import { ReactDOM, Component, Rendered } from "../../app-framework";
 import { Icon, SearchInput, Space } from "../../components";
 import {
   Button,

@@ -8,7 +8,7 @@ Component that manages rendering all the gutter markers associated to a Codemirr
 */
 
 import { Map } from "immutable";
-import { React, Component, Rendered } from "../../app-framework";
+import { Component, Rendered } from "../../app-framework";
 import { GutterMarker } from "./codemirror-gutter-marker";
 import * as CodeMirror from "codemirror";
 

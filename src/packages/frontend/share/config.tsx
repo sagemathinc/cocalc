@@ -32,7 +32,6 @@ import {
 } from "react-bootstrap";
 import {
   redux,
-  React,
   ReactDOM,
   Component,
   Rendered,

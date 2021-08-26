@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { register } from "../register";
 import { useFocused, useProcessLinks, useSelected, useSlate } from "../hooks";
 import { useSetElement } from "../set-element";
