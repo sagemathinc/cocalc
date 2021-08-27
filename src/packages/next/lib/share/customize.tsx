@@ -1,6 +1,5 @@
 export { useCustomize } from "lib/customize";
 import { Customize as CustomizeContext } from "lib/customize";
-import SiteName from "components/share/site-name";
 import Link from "next/link";
 
 export function Customize({ value, children }) {
