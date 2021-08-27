@@ -23,7 +23,7 @@ import Collaborators from "components/share/collaborators";
 import Loading from "components/share/loading";
 import { Layout } from "components/share/layout";
 import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+import { Customize } from "lib/share/customize";
 
 export default function Project({
   publicPaths,

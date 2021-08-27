@@ -18,7 +18,7 @@ import Loading from "components/share/loading";
 import PublicPaths from "components/share/public-paths";
 import { Layout } from "components/share/layout";
 import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+import { Customize } from "lib/share/customize";
 
 export default function Account({
   firstName,

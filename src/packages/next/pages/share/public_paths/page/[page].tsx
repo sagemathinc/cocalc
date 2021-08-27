@@ -15,7 +15,7 @@ import getPool from "@cocalc/util-node/database";
 import PublicPaths from "components/share/public-paths";
 import { Layout } from "components/share/layout";
 import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+import { Customize } from "lib/share/customize";
 import GoogleSearch from "components/share/google-search";
 
 const PAGE_SIZE = 15;

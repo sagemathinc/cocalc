@@ -11,7 +11,7 @@ import getPublicPathInfo from "lib/share/get-public-path-info";
 import useCounter from "lib/share/counter";
 import { Embed } from "components/share/layout";
 import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+import { Customize } from "lib/share/customize";
 
 export default function PublicPath({
   id,
