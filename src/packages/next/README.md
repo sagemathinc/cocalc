@@ -9,3 +9,7 @@ You don't **need** to start your own nextjs server here -- the hub handles that.
 ## The Landing Page
 
 The landing page is `pages/index.tsx`.
+
+## The Share Server
+
+The paths for the share server are in `pages/share`.  Also see `lib/share` and `components/share` for code specific to the share server.
