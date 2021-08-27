@@ -2,12 +2,15 @@
 
 import { encodePath } from "./raw-url";
 import { join } from "path";
-import { basePath } from "./base-path";
+import { basePath } from "lib/base-path";
 
 export default function downloadURL(
   id: string,
   path: string,
   relativePath: string
 ): string {
-  return `${basePath ?? ""}/share/download/${id}/${encodePath(join(path, relativePath))}`;
+  return join(
+    basePath,
+    `share/download/${id}/${encodePath(join(path, relativePath))}`
+  );
 }

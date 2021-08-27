@@ -4,7 +4,7 @@
  */
 
 import { join } from "path";
-import { appBasePath } from "./base-path";
+import { basePath } from "lib/base-path";
 
 interface Options {
   id: string;
@@ -13,10 +13,12 @@ interface Options {
 }
 
 export default function editURL({ id, path, dns }: Options): string {
-  const url = `/static/app.html?anonymous=true&launch=share/${id}/${path}`;
+  const url = encodeURI(
+    `static/app.html?anonymous=true&launch=share/${id}/${path}`
+  );
   if (dns) {
     // if dns explicitly specified open on that machine, e.g. share.cocalc.com versus cocalc.com
-    return `https://${dns}${encodeURI(url)}`;
+    return `https://${dns}/${url}`;
   }
-  return encodeURI(join(appBasePath, url));
+  return join(basePath, url);
 }
