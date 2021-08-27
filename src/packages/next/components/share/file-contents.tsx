@@ -2,7 +2,6 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-
 import { getExtension } from "lib/share/util";
 import {
   isAudio,
@@ -49,7 +48,8 @@ export default function FileContents({
     const value = {
       urlTransform: getUrlTransform({ id, path, relativePath: relPath }),
       AnchorTagComponent: getAnchorTagComponent({ id, relativePath: relPath }),
-      noSanitize: true, // this is temporarily disabled for initial release, since it is not yet needed.
+      noSanitize: false, // We **MUST** sanitize, since we users could launch XSS attacks, mess up style, etc.,
+      // This will, of course, break things, in which case users will have to open them in their own projects.
     };
     return <FileContext.Provider value={value}>{x}</FileContext.Provider>;
   };
