@@ -7,7 +7,7 @@
     "../util-node",
     "../util"
   ],
-  "version": "1.28.0",
+  "version": "1.28.1",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
@@ -50,7 +50,7 @@
   "devDependencies": {
     "@cocalc/assets": "^1.3.0",
     "@cocalc/cdn": "^1.5.0",
-    "@cocalc/frontend": "^1.5.0",
+    "@cocalc/frontend": "^1.5.1",
     "@cocalc/util": "^1.6.0",
     "@cocalc/util-node": "^1.5.0",
     "@types/enzyme": "^3.10.8",
