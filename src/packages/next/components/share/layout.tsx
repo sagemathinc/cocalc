@@ -25,8 +25,9 @@ export function Layout({ children }) {
         </title>
         <meta name="description" content="CoCalc Share Server" />
         <link rel="icon" href={favicon} />
-        <Analytics />
       </Head>
+      <Analytics />{" "}
+      {/* Analytics can't be in Head because of script tags! https://github.com/vercel/next.js/pull/26253 */}
       <AntdLayout>
         <Header />
         <AntdLayout.Content style={{ background: "white" }}>
