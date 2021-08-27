@@ -23,11 +23,11 @@ export default async function init(app: Application) {
   winston.info("Initializing the share server...");
   const handler = await initNextServer({ basePath });
   const shareServer = await runShareServer();
+  const shareBasePath = join(basePath, "share");
 
   if (shareServer) {
     // We create a redirect middleware and a raw/download
     // middleware, since the share server will be fully available.
-    const shareBasePath = join(basePath, "share");
     // 1: The raw static server:
     const raw = join(shareBasePath, "raw");
     app.all(

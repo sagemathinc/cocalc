@@ -14,7 +14,7 @@ interface Options {
 }
 
 export default function rawURL({ id, path, relativePath }: Options): string {
-  return `${basePath ?? ""}/raw/${id}/${encodePath(join(path, relativePath))}`;
+  return `${basePath ?? ""}/share/raw/${id}/${encodePath(join(path, relativePath))}`;
 }
 
 export function encodePath(path: string) {

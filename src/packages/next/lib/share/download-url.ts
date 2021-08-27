@@ -9,5 +9,5 @@ export default function downloadURL(
   path: string,
   relativePath: string
 ): string {
-  return `${basePath ?? ""}/download/${id}/${encodePath(join(path, relativePath))}`;
+  return `${basePath ?? ""}/share/download/${id}/${encodePath(join(path, relativePath))}`;
 }

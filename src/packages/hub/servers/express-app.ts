@@ -50,7 +50,7 @@ export default async function init(opts: Options): Promise<{
 
   // This must go very early - we handle virtual hosts, like wstein.org
   // before any other routes or middleware interfere.
-  if (opts.shareServer) {
+  if (opts.nextServer) {
     app.use(vhostShare());
   }
 
