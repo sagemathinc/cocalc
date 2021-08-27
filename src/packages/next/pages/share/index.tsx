@@ -1,33 +1,28 @@
-import Link from "next/link";
-import { Layout } from "components/share/layout";
+import { join } from "path";
+import { Layout } from "antd";
+import Head from "next/head";
+import Footer from "components/landing/footer";
+import Header from "components/landing/header";
+import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
-import GoogleSearch from "components/share/google-search";
+
+import { basePath } from "lib/base-path";
+
+const FAVICON = "/webapp/favicon-32x32.png";
 
 export default function Home({ customize }) {
   return (
     <Customize value={customize}>
+      <Head>
+        <title>{customize.siteName} -- Collaborative Calculation</title>
+        <meta name="description" content="CoCalc" />
+        <link rel="icon" href={join(basePath ?? "", FAVICON)} />
+      </Head>
       <Layout>
-        <div
-          style={{
-            margin: "30px 0",
-            border: "1px solid lightgrey",
-            padding: "30px",
-            borderRadius: "5px",
-          }}
-        >
-          <h1>Published Files</h1>
-          <br />
-          <h2>
-            Browse{" "}
-            <Link href="/share/public_paths/page/1">
-              <a>publicly indexed shared files.</a>
-            </Link>
-          </h2>
-
-          <h2>Search</h2>
-          <GoogleSearch />
-        </div>
+        <Header />
+        <Content />
+        <Footer />
       </Layout>
     </Customize>
   );

@@ -6,21 +6,22 @@ const basePath = BASE_PATH == "/" ? "" : BASE_PATH;
 
 const { resolve } = require("path");
 
+const cacheDirectory = `/tmp/nextjs-${require("os").userInfo().username}`;
+
 module.exports = {
   basePath,
-  env: {
-    BASE_PATH, // make visible to frontend code.
-  },
+  env: { BASE_PATH },
   reactStrictMode: true,
-  eslint: {
-    // Warning: Dangerously allow production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  eslint: { ignoreDuringBuilds: true },
+  // typescript: { ignoreBuildErrors: true },
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    config.cache = {
+      type: "filesystem",
+      buildDependencies: {
+        config: [__filename],
+      },
+      cacheDirectory,
+    };
     // We have to be VERY explicit about the order of module imports.
     // Otherwise, e.g,. importing antd in @cocalc/frontend results in importing
     // react from @cocalc/frontend, and we end up with two distinct copies
@@ -32,7 +33,6 @@ module.exports = {
       resolve(__dirname, "node_modules"),
       resolve(__dirname, "../frontend/node_modules"),
       resolve(__dirname, "../util/node_modules"),
-      resolve(__dirname, "../util-node/node_modules"),
     ];
     // Webpack breaks without this pg-native alias, even though it's dead code,
     // due to how the pg module does package detection internally.

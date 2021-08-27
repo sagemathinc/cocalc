@@ -117,7 +117,7 @@ const useDiskCache = true;
 
 // It's critical that the caching filesystem is VERY fast, but
 // it is fine if the data is wiped, so use /tmp.
-const cacheDirectory = "/tmp/webpack";
+const cacheDirectory = `/tmp/webpack-${require("os").userInfo().username}`;
 
 if (useDiskCache) {
   console.log(`\nUsing '${cacheDirectory}' as filesystem cache.\n`);
