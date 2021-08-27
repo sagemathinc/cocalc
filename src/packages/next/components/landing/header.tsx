@@ -1,5 +1,5 @@
 import Link from "next/link";
-import SquareLogo from "./logo-square";
+import SquareLogo from "components/logo-square";
 import A from "components/misc/A";
 import { join } from "path";
 import { Layout } from "antd";

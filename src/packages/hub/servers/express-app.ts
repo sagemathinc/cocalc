@@ -24,8 +24,7 @@ import initSetCookies from "./app/set-cookies";
 import initCustomize from "./app/customize";
 import initStats from "./app/stats";
 import initAppRedirect from "./app/app-redirect";
-import initLanding from "./app/landing";
-import initShareNext from "./app/share";
+import initNext from "./app/next";
 import vhostShare from "@cocalc/next/lib/share/virtual-hosts";
 
 // Used for longterm caching of files
@@ -35,8 +34,7 @@ const SHORT_AGE = ms("10 seconds");
 interface Options {
   projectControl;
   isPersonal: boolean;
-  landingServer: boolean;
-  shareServer: boolean;
+  nextServer: boolean;
 }
 
 export default async function init(opts: Options): Promise<{
@@ -107,14 +105,9 @@ export default async function init(opts: Options): Promise<{
   // setup all healthcheck endpoints
   await setupHealthChecks({ router, db: database });
 
-  if (opts.landingServer) {
-    // Landing page content: this is the "/" index page + assets, for docker, on-prem, dev.
-    await initLanding(app);
-  }
-
-  if (opts.shareServer) {
-    // Landing page content: this is the "/" index page + assets, for docker, on-prem, dev.
-    await initShareNext(app);
+  if (opts.nextServer) {
+    // The Next.js server
+    await initNext(app);
   }
 
   // The /static content, used by docker, development, etc.

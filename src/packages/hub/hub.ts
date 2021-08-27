@@ -231,8 +231,7 @@ async function startServer(): Promise<void> {
   const { router, app } = await initExpressApp({
     isPersonal: program.personal,
     projectControl,
-    landingServer: !!program.landingServer,
-    shareServer: !!program.shareServer,
+    nextServer: !!program.nextServer,
   });
 
   // The express app create via initExpressApp above **assumes** that init_passport is done
@@ -279,7 +278,7 @@ async function startServer(): Promise<void> {
     });
   }
 
-  if (program.websocketServer || program.proxyServer || program.shareServer) {
+  if (program.websocketServer || program.proxyServer || program.nextServer) {
     winston.info(
       "Starting registering periodically with the database and updating a health check..."
     );
@@ -351,15 +350,11 @@ async function main(): Promise<void> {
     )
     .option(
       "--all",
-      "runs all of the servers: websocket, proxy, share, and landing (so you don't have to pass all those opts separately), and also mentions updator and updates db schema on startup; use this in situations where there is a single hub that serves everything (instead of a microservice situation like kucalc)"
+      "runs all of the servers: websocket, proxy, next (so you don't have to pass all those opts separately), and also mentions updator and updates db schema on startup; use this in situations where there is a single hub that serves everything (instead of a microservice situation like kucalc)"
     )
     .option("--websocket-server", "run the websocket server")
     .option("--proxy-server", "run the proxy server")
-    .option("--share-server", "run the share server")
-    .option(
-      "--landing-server",
-      "run the closed source landing pages server (requires @cocalc/landing installed)"
-    )
+    .option("--next-server", "run the nextjs server (landing pages, share server, etc.)")
     .option(
       "--https-key [string]",
       "serve over https.  argument should be a key file (both https-key and https-cert must be specified)"
@@ -439,8 +434,7 @@ async function main(): Promise<void> {
   if (program.all) {
     program.websocketServer =
       program.proxyServer =
-      program.shareServer =
-      program.landingServer =
+      program.nextServer =
       program.mentions =
       program.updateDatabaseSchema =
         true;
@@ -477,7 +471,7 @@ async function main(): Promise<void> {
     } else if (program.updateStats) {
       await callback2(database.get_stats);
       process.exit();
-    } else if (program.mode == "kucalc" && program.landingServer) {
+    } else if (program.mode == "kucalc" && program.nextServer) {
       // Kucalc has its own *dedicated* landing server,
       // whereas for the other modes startServer (below) just
       // enables a landing server when the flag is set.

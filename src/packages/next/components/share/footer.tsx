@@ -1,5 +1,5 @@
 import A from "components/misc/A";
-import Logo from "./logo-rectangular";
+import Logo from "components/logo-rectangular";
 import useCustomize from "lib/use-customize";
 import { Layout } from "antd";
 

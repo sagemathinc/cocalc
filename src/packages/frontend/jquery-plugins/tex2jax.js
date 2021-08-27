@@ -173,7 +173,7 @@ exports.tex2jax = {
       } else {
         cname =
           typeof element.className === "undefined" ? "" : element.className;
-        tname = typeof element.tagName === "undefined" ? "" : element.tagName;
+        tname = typeof element?.tagName === "undefined" ? "" : element?.tagName;
         if (typeof cname !== "string") {
           cname = String(cname);
         } // jsxgraph uses non-string class names!

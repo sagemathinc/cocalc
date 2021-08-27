@@ -4,4 +4,3 @@
 // via the database.
 
 export const basePath = process.env.BASE_PATH ?? "/";
-export const appBasePath = basePath;

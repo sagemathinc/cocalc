@@ -1,9 +1,9 @@
 import { join } from "path";
 import { Layout, Row, Col } from "antd";
-import SquareLogo from "components/landing/logo-square";
+import SquareLogo from "components/logo-square";
 import A from "components/misc/A";
 import { useCustomize } from "lib/customize";
-import { appBasePath, basePath } from "lib/base-path";
+import { basePath } from "lib/base-path";
 
 export default function Content() {
   const {
@@ -43,7 +43,7 @@ export default function Content() {
               src={
                 splashImage.includes("://")
                   ? splashImage
-                  : join(appBasePath, splashImage)
+                  : join(basePath, splashImage)
               }
               style={{ width: "100%", padding: "15px" }}
             />

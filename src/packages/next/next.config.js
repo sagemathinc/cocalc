@@ -17,6 +17,9 @@ module.exports = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
     // We have to be VERY explicit about the order of module imports.
     // Otherwise, e.g,. importing antd in @cocalc/frontend results in importing
@@ -29,6 +32,7 @@ module.exports = {
       resolve(__dirname, "node_modules"),
       resolve(__dirname, "../frontend/node_modules"),
       resolve(__dirname, "../util/node_modules"),
+      resolve(__dirname, "../util-node/node_modules"),
     ];
     // Webpack breaks without this pg-native alias, even though it's dead code,
     // due to how the pg module does package detection internally.

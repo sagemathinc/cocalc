@@ -11,7 +11,7 @@ export default function useCounter(id: string | undefined) {
   const router = useRouter();
   useEffect(() => {
     if (id != null) {
-      fetch(`${router.basePath}/api/public_paths/counter/${id}`);
+      fetch(`${router.basePath}/api/share/public_paths/counter/${id}`);
     }
   }, [id]);
 }
