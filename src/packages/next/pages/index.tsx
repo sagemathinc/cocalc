@@ -4,7 +4,6 @@ import Head from "next/head";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Content from "components/landing/content";
-
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 

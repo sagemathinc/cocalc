@@ -17,8 +17,8 @@ import getAccountInfo from "lib/share/get-account-info";
 import Loading from "components/share/loading";
 import PublicPaths from "components/share/public-paths";
 import { Layout } from "components/share/layout";
-import { Customize } from "lib/share/context";
-import withCustomize from "lib/share/get-context";
+import withCustomize from "lib/with-customize";
+import { Customize } from "lib/customize";
 
 export default function Account({
   firstName,
@@ -44,6 +44,19 @@ export default function Account({
   );
 }
 
+export async function getServerSideProps(context) {
+  const { account_id } = context.params;
+  try {
+    const accountInfo = await getAccountInfo(account_id);
+    return await withCustomize({
+      props: accountInfo,
+    });
+  } catch (err) {
+    return { notFound: true };
+  }
+}
+
+/*
 export async function getStaticPaths() {
   return { paths: [], fallback: true };
 }
@@ -60,3 +73,4 @@ export async function getStaticProps(context) {
     return { notFound: true };
   }
 }
+*/

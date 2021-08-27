@@ -4,7 +4,7 @@
 
 import { join } from "path";
 import { Application } from "express";
-import initLandingServer from "@cocalc/landing-free";
+import initLandingServer from "@cocalc/next";
 import { getLogger } from "@cocalc/hub/logger";
 import basePath from "@cocalc/util-node/base-path";
 

@@ -1,9 +1,0 @@
-{
-  "extends": "../tsconfig.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "outDir": "dist",
-    "lib": ["ESNext"]
-  },
-  "exclude": ["node_modules", "dist", "pages", "components", "public", "styles"]
-}

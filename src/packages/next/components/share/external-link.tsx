@@ -3,8 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-
 export default function ExternalLink(props) {
   return (
     <a {...props} target={"_blank"} rel={"noopener"}>

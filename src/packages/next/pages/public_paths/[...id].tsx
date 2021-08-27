@@ -13,8 +13,8 @@ import ProjectLink from "components/share/project-link";
 import getPublicPathInfo from "lib/share/get-public-path-info";
 import useCounter from "lib/share/counter";
 import { Layout } from "components/share/layout";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+import { Customize } from "lib/share/context";
+import withCustomize from "lib/share/get-context";
 
 export default function PublicPath({
   id,
@@ -36,7 +36,7 @@ export default function PublicPath({
     return (
       <div>
         There was a problem loading "{relativePath}" in{" "}
-        <Link href={`/share/public_paths/${id}`}>
+        <Link href={`/public_paths/${id}`}>
           <a>{path}.</a>
         </Link>
         <br />
@@ -100,19 +100,6 @@ export default function PublicPath({
   );
 }
 
-export async function getServerSideProps(context) {
-  const id = context.params.id[0];
-  const relativePath = context.params.id.slice(1).join("/");
-  try {
-    const props = await getPublicPathInfo(id, relativePath);
-    return await withCustomize({ props });
-  } catch (_err) {
-    //console.log(_err);
-    return { notFound: true };
-  }
-}
-
-/*
 export async function getStaticPaths() {
   return { paths: [], fallback: true };
 }
@@ -128,4 +115,3 @@ export async function getStaticProps(context) {
     return { notFound: true };
   }
 }
-*/

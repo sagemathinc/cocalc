@@ -62,7 +62,7 @@ function columns(id, relativePath) {
       render: (name, record) => {
         return (
           <Link
-            href={`/public_paths/${id}/${encodeURIComponent(
+            href={`/share/public_paths/${id}/${encodeURIComponent(
               join(relativePath, name)
             )}`}
           >

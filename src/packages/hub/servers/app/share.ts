@@ -1,12 +1,12 @@
 /*
  Serve the share server, which is a Next.js application, on /share
- */
+*/
 
 import { join } from "path";
 import { Application, Request, Response, NextFunction } from "express";
 // @ts-ignore -- for some reason typescript can't find this.  It is a js file.
-import initShareServer from "@cocalc/share/init";
-import handleRaw from "@cocalc/share/lib/handle-raw";
+import initShareServer from "@cocalc/next/init";
+import handleRaw from "@cocalc/next/lib/share/handle-raw";
 import { getLogger } from "@cocalc/hub/logger";
 import redirect from "./share-redirect";
 import basePath from "@cocalc/util-node/base-path";

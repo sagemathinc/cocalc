@@ -22,8 +22,8 @@ import PublicPaths from "components/share/public-paths";
 import Collaborators from "components/share/collaborators";
 import Loading from "components/share/loading";
 import { Layout } from "components/share/layout";
-import { Customize } from "lib/share/context";
-import withCustomize from "lib/share/get-context";
+import withCustomize from "lib/with-customize";
+import { Customize } from "lib/customize";
 
 export default function Project({
   publicPaths,
@@ -56,6 +56,40 @@ export default function Project({
   );
 }
 
+export async function getServerSideProps(context) {
+  const { project_id } = context.params;
+  if (!isUUID(project_id)) {
+    return { notFound: true };
+  }
+
+  let projectTitle;
+  try {
+    projectTitle = await getProjectTitle(project_id);
+  } catch (err) {
+    console.warn(err);
+    return { notFound: true };
+  }
+
+  let publicPaths;
+  try {
+    publicPaths = await getPublicPaths(project_id);
+  } catch (_err) {
+    return { notFound: true };
+  }
+
+  let collaborators;
+  try {
+    collaborators = await getCollaborators(project_id);
+  } catch (_err) {
+    return { notFound: true };
+  }
+
+  return await withCustomize({
+    props: { projectTitle, publicPaths, collaborators },
+  });
+}
+
+/*
 export async function getStaticPaths() {
   return { paths: [], fallback: true };
 }
@@ -93,3 +127,4 @@ export async function getStaticProps(context) {
     revalidate: 30,
   });
 }
+*/

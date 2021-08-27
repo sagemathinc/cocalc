@@ -19,7 +19,7 @@ const COLUMNS = [
     // We use width 100% and display inline-block so that user can click anywhere
     // in the title *column* and open the path.  It's more user friendly.
     render: (title, record) => (
-      <Link href={`/public_paths/${record.id}`}>
+      <Link href={`/share/public_paths/${record.id}`}>
         <a style={{ width: "100%", display: "inline-block" }}>{title}</a>
       </Link>
     ),

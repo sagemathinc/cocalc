@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Layout } from "components/share/layout";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
+import GoogleSearch from "components/share/google-search";
 
 export default function Home({ customize }) {
   return (
@@ -17,10 +18,15 @@ export default function Home({ customize }) {
         >
           <h1>Published Files</h1>
           <br />
-          Browse{" "}
-          <Link href="/public_paths/page/1">
-            <a>publicly indexed shared files.</a>
-          </Link>
+          <h2>
+            Browse{" "}
+            <Link href="/share/public_paths/page/1">
+              <a>publicly indexed shared files.</a>
+            </Link>
+          </h2>
+
+          <h2>Search</h2>
+          <GoogleSearch />
         </div>
       </Layout>
     </Customize>

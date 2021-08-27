@@ -3,7 +3,6 @@ import SquareLogo from "./logo-square";
 import A from "components/misc/A";
 import { join } from "path";
 import { Layout } from "antd";
-import GoogleSearch from "./google-search";
 import useCustomize from "lib/use-customize";
 import { appBasePath, basePath } from "lib/base-path";
 
@@ -31,9 +30,11 @@ export default function Header() {
         textAlign: "center",
       }}
     >
-      <a href={appBasePath}>
-        <SquareLogo style={{ height: "40px", marginRight: GAP }} />
-      </a>
+      <Link href={"/"}>
+        <a>
+          <SquareLogo style={{ height: "40px", marginRight: GAP }} />
+        </a>
+      </Link>
       {anonymousSignup && (
         <A
           style={LinkStyle}
@@ -43,22 +44,12 @@ export default function Header() {
           Try {siteName}
         </A>
       )}{" "}
-      <Link href="/">
+      <Link href="/share/public_paths/page/1">
         <a style={LinkStyle} title="View files that people have published.">
           Published Files
         </a>
       </Link>
-      <div
-        style={{
-          display: "inline-block",
-          maxWidth: "40ex",
-          verticalAlign: "bottom",
-          marginRight: GAP,
-          marginTop: "10px",
-        }}
-      >
-        <GoogleSearch />
-      </div>{" "}
+      {" "}
       {termsOfServiceURL && (
         <A
           style={LinkStyle}

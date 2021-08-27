@@ -9,7 +9,7 @@ interface Props {
 export default function User(props: Props) {
   const { account_id, first_name, last_name } = props.user;
   return (
-    <Link href={`/accounts/${account_id}`}>
+    <Link href={`/share/accounts/${account_id}`}>
       <a>{trunc(`${first_name} ${last_name}`, 50)}</a>
     </Link>
   );

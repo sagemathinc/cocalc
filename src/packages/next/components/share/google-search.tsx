@@ -13,11 +13,8 @@ export default function GoogleSearch() {
       allowClear
       enterButton="Google"
       onSearch={(value) => {
-        const url =
-          "https://www.google.com/search?q=site%3A" +
-          window.location.host +
-          "+" +
-          value;
+        const host = window.location.host;
+        const url = `https://www.google.com/search?q=site%3A${host}+${value}`;
         // Open url in a new tab.
         const tab = window.open(url, "_blank");
         if (tab != null) {

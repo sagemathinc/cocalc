@@ -1,3 +1,4 @@
+import Link from "next/link";
 import SquareLogo from "./logo-square";
 import A from "components/misc/A";
 import { join } from "path";
@@ -44,13 +45,11 @@ export default function Header() {
         </a>
       )}
       {shareServer && (
-        <a
-          style={LinkStyle}
-          href={join(basePath, "share")}
-          title="View files that people have published."
-        >
-          Published Files
-        </a>
+        <Link href={"/share/public_paths/page/1"}>
+          <a style={LinkStyle} title="View files that people have published.">
+            Published Files
+          </a>
+        </Link>
       )}
       {termsOfServiceURL && (
         <A
@@ -67,7 +66,7 @@ export default function Header() {
           href={`mailto:${helpEmail}`}
           title={`Ask us a question via email to ${helpEmail}.`}
         >
-          Help
+          Email Help
         </A>
       )}
       <A

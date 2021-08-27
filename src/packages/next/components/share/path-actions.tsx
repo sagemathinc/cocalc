@@ -27,7 +27,7 @@ export default function PathActions({
   const v: JSX.Element[] = [];
   if (include("hosted")) {
     v.push(
-      <Link key="hosted" href={`/public_paths/${id}`}>
+      <Link key="hosted" href={`/share/public_paths/${id}`}>
         <a>
           Hosted by <SiteName />
         </a>
@@ -52,7 +52,7 @@ export default function PathActions({
     v.push(
       <Link
         key="embed"
-        href={`/public_paths/embed/${id}${
+        href={`/share/public_paths/embed/${id}${
           relativePath ? "/" + relativePath : ""
         }`}
       >

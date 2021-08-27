@@ -26,7 +26,7 @@ import initStats from "./app/stats";
 import initAppRedirect from "./app/app-redirect";
 import initLanding from "./app/landing";
 import initShareNext from "./app/share";
-import vhostShare from "@cocalc/share/lib/virtual-hosts";
+import vhostShare from "@cocalc/next/lib/share/virtual-hosts";
 
 // Used for longterm caching of files
 const MAX_AGE = ms("10 days");

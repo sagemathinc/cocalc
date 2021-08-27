@@ -5,7 +5,8 @@
   "main": "lib/init.js",
   "exports": {
     "./init": "./lib/init.js",
-    "./lib/*": "./dist/lib/*.js"
+    "./lib/*": "./dist/lib/*.js",
+    "./lib/share": "./dist/lib/share/*.js"
   },
   "files": [
     ".next/*",

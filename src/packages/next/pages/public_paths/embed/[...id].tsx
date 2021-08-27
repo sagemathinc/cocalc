@@ -10,8 +10,8 @@ import Loading from "components/share/loading";
 import getPublicPathInfo from "lib/share/get-public-path-info";
 import useCounter from "lib/share/counter";
 import { Embed } from "components/share/layout";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+import { Customize } from "lib/share/context";
+import withCustomize from "lib/share/get-context";
 
 export default function PublicPath({
   id,
@@ -27,7 +27,7 @@ export default function PublicPath({
     return (
       <div>
         There was a problem loading "{relativePath}" in{" "}
-        <Link href={`/share/public_paths/${id}`}>
+        <Link href={`/public_paths/${id}`}>
           <a>{path}.</a>
         </Link>
         <br />

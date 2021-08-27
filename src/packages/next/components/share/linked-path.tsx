@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default function LinkedPath({ id, path, relativePath, isDir }: Props) {
-  let href = `/public_paths/${id}`;
+  let href = `/share/public_paths/${id}`;
   const first = (
     <Link href={href} key={href}>
       <a>{path}</a>

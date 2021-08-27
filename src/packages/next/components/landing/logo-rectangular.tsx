@@ -1,3 +1,4 @@
+import React from "react";
 import { useCustomize } from "lib/customize";
 import { appBasePath } from "lib/base-path";
 import { join } from "path";
