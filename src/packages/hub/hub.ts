@@ -65,22 +65,6 @@ async function reset_password(email_address: string): Promise<void> {
   }
 }
 
-async function startLandingService(): Promise<void> {
-  // This @cocalc/landing is a private npm package that is
-  // installed on https://cocalc.com only.  Hence we use require,
-  // since it need not be here.
-  const { LandingServer } = require("@cocalc/landing");
-  const { uncaught_exception_total } = await initMetrics();
-  const landing_server = new LandingServer({
-    db: database,
-    port,
-    base_url: basePath,
-  });
-  await landing_server.start();
-
-  addErrorListeners(uncaught_exception_total);
-}
-
 // This calculates and updates the statistics for the /stats endpoint.
 // It's important that we call this periodically, because otherwise the /stats data is outdated.
 async function init_update_stats(): Promise<void> {
@@ -354,7 +338,10 @@ async function main(): Promise<void> {
     )
     .option("--websocket-server", "run the websocket server")
     .option("--proxy-server", "run the proxy server")
-    .option("--next-server", "run the nextjs server (landing pages, share server, etc.)")
+    .option(
+      "--next-server",
+      "run the nextjs server (landing pages, share server, etc.)"
+    )
     .option(
       "--https-key [string]",
       "serve over https.  argument should be a key file (both https-key and https-cert must be specified)"
@@ -471,12 +458,6 @@ async function main(): Promise<void> {
     } else if (program.updateStats) {
       await callback2(database.get_stats);
       process.exit();
-    } else if (program.mode == "kucalc" && program.nextServer) {
-      // Kucalc has its own *dedicated* landing server,
-      // whereas for the other modes startServer (below) just
-      // enables a landing server when the flag is set.
-      console.log("LANDING PAGE MODE");
-      await startLandingService();
     } else {
       await startServer();
     }
