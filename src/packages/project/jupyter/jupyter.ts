@@ -196,7 +196,8 @@ const _jupyter_kernels: { [path: string]: JupyterKernel } = {};
 
 export class JupyterKernel
   extends EventEmitter
-  implements JupyterKernelInterface {
+  implements JupyterKernelInterface
+{
   public name: string;
   public store: any; // used mainly for stdin support right now...
   public readonly identity: string = uuid();
@@ -253,8 +254,10 @@ export class JupyterKernel
     return this._path;
   }
 
+  // no-op if calling it doesn't change the state.
   private _set_state(state: string): void {
     // state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
+    if (this._state == state) return;
     this._state = state;
     this.emit("state", this._state);
     this.emit(this._state); // we *SHOULD* use this everywhere, not above.
@@ -368,12 +371,14 @@ export class JupyterKernel
     this.channel?.subscribe((mesg) => {
       switch (mesg.channel) {
         case "shell":
+          this._set_state("running");
           this.emit("shell", mesg);
           break;
         case "stdin":
           this.emit("stdin", mesg);
           break;
         case "iopub":
+          this._set_state("running");
           if (mesg.content != null && mesg.content.execution_state != null) {
             this.emit("execution_state", mesg.content.execution_state);
           }
@@ -425,12 +430,6 @@ export class JupyterKernel
     if (this._state === "closed") {
       throw Error("closed");
     }
-
-    // We have now received an iopub or shell message from the kernel,
-    // so kernel has started running.
-    dbg("start_running");
-
-    this._set_state("running");
   }
 
   async _get_kernel_info(): Promise<void> {

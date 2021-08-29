@@ -104,7 +104,7 @@ export class JupyterActions extends JupyterActions0 {
 
   set_kernel_state = (state: any, save = false) => {
     this._kernel_state = state;
-    return this._set({ type: "settings", kernel_state: state }, save);
+    this._set({ type: "settings", kernel_state: state }, save);
   };
 
   // Called exactly once when the manager first starts up after the store is initialized.
@@ -439,8 +439,13 @@ export class JupyterActions extends JupyterActions0 {
     if (cells != null) {
       cells.forEach((cell, id) => {
         const state = cell.get("state");
-        if (state != null && state !== "done" && !this._running_cells?.[id]) {
-          dbg(`set cell ${id} to done`);
+        if (
+          state != null &&
+          state != "done" &&
+          state != "start" &&  // regarding "start", see https://github.com/sagemathinc/cocalc/issues/5467
+          !this._running_cells?.[id]
+        ) {
+          dbg(`set cell ${id} with state "${state}" to done`);
           this._set({ type: "cell", id, state: "done" }, false);
           change = true;
         }

@@ -61,7 +61,7 @@ winston = getLogger('Client')
 
 DEBUG = false
 # Easy way to enable debugging in any project anywhere.
-DEBUG_FILE = process.env.HOME + '/.smc-DEBUG'
+DEBUG_FILE = join(process.env.HOME, '.smc-DEBUG')
 if fs.existsSync(DEBUG_FILE)
     DEBUG = true
 else if kucalc.IN_KUCALC

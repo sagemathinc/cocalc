@@ -20,8 +20,7 @@ let IS_MOBILE,
   IS_MACOS,
   isMobile,
   get_browser,
-  get_mobile,
-  is_responsive_mode;
+  get_mobile;
 
 if (typeof window != "undefined" && typeof navigator != "undefined") {
   // In a web browser.
@@ -130,15 +129,11 @@ if (typeof window != "undefined" && typeof navigator != "undefined") {
     return undefined;
   };
 
-  // returns true if the page is currently displayed in responsive mode (the window is less than 768px)
-  // Use this because CSS and JS display different widths due to scrollbar
-  is_responsive_mode = () => $(".webapp-responsive-mode-test").width() < 768;
-
   // MOBILE for us means "responsive skinny" and on a mobile device.
   // On iPad, where the screen is wide, we do not enable MOBILE, since that
   // currently disables things like chat completely.
   // See https://github.com/sagemathinc/cocalc/issues/1392
-  IS_MOBILE = isMobile.any() && is_responsive_mode();
+  IS_MOBILE = isMobile.any();
 
   // See https://stackoverflow.com/questions/56578799/tell-ipados-from-macos-on-the-web
   const isIpadOS =
@@ -208,7 +203,6 @@ export {
   IS_ANDROID,
   IS_MACOS,
   isMobile,
-  is_responsive_mode,
   get_browser,
   get_mobile,
 };

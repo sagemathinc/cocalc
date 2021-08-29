@@ -16,6 +16,7 @@ import { JupyterActions } from "./browser-actions";
 import { Usage, AlertLevel, BackendState } from "./types";
 import { ALERT_COLS } from "./usage";
 import { PROJECT_INFO_TITLE } from "../project/info";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 
 const KERNEL_NAME_STYLE: CSS = {
   margin: "0px 5px",
@@ -57,6 +58,13 @@ const BACKEND_STATE_STYLE: CSS = {
   paddingTop: "2.5px",
 } as const;
 
+const BACKEND_STATE_HUMAN = {
+  init: "Initializing",
+  ready: "Ready to start",
+  starting: "Starting",
+  running: "Running",
+};
+
 interface KernelProps {
   actions: JupyterActions;
   is_fullscreen?: boolean;
@@ -67,13 +75,8 @@ interface KernelProps {
 
 export const Kernel: React.FC<KernelProps> = React.memo(
   (props: KernelProps) => {
-    const {
-      actions,
-      is_fullscreen,
-      name,
-      usage,
-      expected_cell_runtime,
-    } = props;
+    const { actions, is_fullscreen, name, usage, expected_cell_runtime } =
+      props;
 
     // redux section
     const trust: undefined | boolean = useRedux([name, "trust"]);
@@ -176,8 +179,8 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         case "init":
           name = "unlink";
           break;
-        case "ready":
-          name = "cocalc-ring";
+        case "ready": // ready to start but NOT running
+          name = "stop";
           break;
         case "spawning":
           name = "cocalc-ring";
@@ -237,15 +240,14 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       if (backend_state === "running") {
         switch (kernel_state) {
           case "busy":
-            return "Kernel is busy.";
+            return "Kernel is busy";
           case "idle":
-            return "Kernel is idle.";
-          default:
-            return "Kernel will start when you run code.";
+            return "Kernel is idle";
         }
-      } else {
-        return "";
+      } else if (backend_state == "starting") {
+        return "Kernel is starting";
       }
+      return "Kernel will start when you run code";
     }
 
     function get_kernel_name(): JSX.Element {
@@ -261,9 +263,32 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       }
     }
 
+    function renderKernelState() {
+      if (!backend_state) return <div></div>;
+      return (
+        <div
+          style={{
+            float: "right",
+            display: "inline-block",
+            paddingRight: "10px",
+            marginTop: "7px",
+            color: "#888",
+            borderRight: "1px solid grey",
+          }}
+        >
+          {get_kernel_tip()}
+        </div>
+      );
+    }
+
     // a popover information, containin more in depth details about the kernel
     function render_tip(title: any, body: any) {
-      const backend_tip = `Backend is ${backend_state}.`;
+      const backend_tip =
+        backend_state == null
+          ? ""
+          : `Backend is ${
+              BACKEND_STATE_HUMAN[backend_state] ?? backend_state
+            }.`;
       const kernel_tip = get_kernel_tip();
 
       const usage_tip = (
@@ -455,6 +480,10 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       return <span />;
     }
 
+    if (IS_MOBILE) {
+      return renderKernelState();
+    }
+
     const info = (
       <div
         style={{
@@ -482,6 +511,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       <span>
         {render_logo()}
         {render_tip(get_kernel_name(), body)}
+        {renderKernelState()}
       </span>
     );
   }
