@@ -151,7 +151,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         "print preview",
         "slideshow",
         "nbconvert slides",
-        "<Download as...",
+        "<Save and Download as...",
         ">nbconvert ipynb",
         script_entry,
         ">nbconvert html",
