@@ -4,7 +4,7 @@
  */
 
 import { join } from "path";
-import { basePath } from "lib/base-path";
+import basePath from "lib/base-path";
 
 interface Options {
   id: string;

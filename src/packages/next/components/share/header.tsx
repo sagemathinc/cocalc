@@ -4,7 +4,7 @@ import A from "components/misc/A";
 import { join } from "path";
 import { Layout } from "antd";
 import useCustomize from "lib/use-customize";
-import { basePath } from "lib/base-path";
+import basePath from "lib/base-path";
 
 const GAP = "32px";
 

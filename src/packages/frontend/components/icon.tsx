@@ -453,7 +453,8 @@ const IconSpec = {
 import { createFromIconfontCN } from "@ant-design/icons";
 let IconFont: any = undefined;
 try {
-  if (typeof window != "undefined") { // obviously won't work if window is undefined based on looking at the code...
+  if (typeof window != "undefined") {
+    // obviously won't work if window is undefined based on looking at the code...
     // This loads a bunch of svg elements of the form <svg id="icon-<name>"... into the DOM.
     // The antd Icon code then duplicates these via the <use> html tag
     // (https://developer.mozilla.org/en-US/docs/Web/SVG/Element/use)
@@ -505,6 +506,8 @@ export const IconName = undefined; // Javascript needs this, though we are only 
 export function isIconName(name: string): name is IconName {
   return IconSpec[name] != null;
 }
+
+export const iconNames: IconName[] = Object.keys(IconSpec) as any;
 
 interface Props {
   name?: IconName;

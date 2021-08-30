@@ -5,7 +5,7 @@ The raw URL is the following, of course encoded as a URL:
 */
 
 import { join } from "path";
-import { basePath } from "lib/base-path";
+import basePath from "lib/base-path";
 
 interface Options {
   id: string;

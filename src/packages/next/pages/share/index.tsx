@@ -7,7 +7,7 @@ import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/share/customize";
 
-import { basePath } from "lib/base-path";
+import basePath from "lib/base-path";
 
 const FAVICON = "/webapp/favicon-32x32.png";
 

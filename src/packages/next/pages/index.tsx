@@ -8,7 +8,7 @@ import Header from "components/landing/header";
 import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
-import { basePath } from "lib/base-path";
+import basePath from "lib/base-path";
 
 const FAVICON = "/webapp/favicon-32x32.png";
 

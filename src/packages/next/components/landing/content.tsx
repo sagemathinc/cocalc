@@ -1,9 +1,8 @@
-import { join } from "path";
 import { Row, Col } from "antd";
 import { useCustomize } from "lib/customize";
-import { basePath } from "lib/base-path";
 import { ReactNode } from "react";
 import SignIn from "components/landing/sign-in";
+import { ImageURL } from "./util";
 
 interface Props {
   title: ReactNode;
@@ -65,9 +64,3 @@ export default function Content({
   );
 }
 
-function ImageURL(url: string): string {
-  if (url.includes("://")) {
-    return url;
-  }
-  return join(basePath, "doc", url);
-}

@@ -1,6 +1,6 @@
 import { join } from "path";
 import { useCustomize } from "lib/customize";
-import { basePath } from "lib/base-path";
+import basePath from "lib/base-path";
 
 interface Props {
   startup?: string; // customize the button, e.g. "Start Jupyter Now".
@@ -10,7 +10,7 @@ interface Props {
 export default function SignIn({ startup, hideFree }: Props) {
   const { anonymousSignup, siteName } = useCustomize();
   return (
-    <div style={{ textAlign: "center" }}>
+    <div style={{ textAlign: "center", padding: "30px 15px"}}>
       {/* We use className="ant-btn" instead of an actual Button, because otherwise
             we get a ton of useLayoutEffects due to server-side rendering.*/}
       {anonymousSignup && (

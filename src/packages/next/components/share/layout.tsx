@@ -12,7 +12,7 @@ import SiteName from "./site-name";
 import Analytics from "./analytics";
 import Footer from "./footer";
 import Header from "./header";
-import { basePath } from "lib/base-path";
+import basePath from "lib/base-path";
 
 const favicon = join(basePath, "webapp/favicon-32x32.png");
 

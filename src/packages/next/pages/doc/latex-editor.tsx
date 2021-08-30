@@ -1,5 +1,6 @@
 import { join } from "path";
-import { Layout, Row, Col } from "antd";
+import Link from "next/link";
+import { Layout, Row, Col, Typography } from "antd";
 import Head from "next/head";
 import Footer from "components/landing/footer";
 import A from "components/misc/A";
@@ -8,9 +9,11 @@ import Header from "components/landing/header";
 import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
-import { basePath } from "lib/base-path";
+import basePath from "lib/base-path";
 import SignIn from "components/landing/sign-in";
+import Info from "components/landing/info";
 
+const { Text } = Typography;
 const FAVICON = "/webapp/favicon-32x32.png";
 
 export default function LatexEditor({ customize }) {
@@ -36,6 +39,7 @@ export default function LatexEditor({ customize }) {
               image={"cocalc-latex-editor-2019.png"}
             />
           </div>
+
           <div
             style={{
               padding: "60px 10%",
@@ -52,10 +56,187 @@ export default function LatexEditor({ customize }) {
               </Col>
             </Row>
             <Ready />
-            <SignIn startup={"LaTeX"} />
           </div>
-          <Footer />
+          <SignIn startup={"LaTeX"} />
+          <Info
+            anchor="a-environments"
+            icon="tex"
+            title="Managed LaTeX environments"
+            image="latex-custom-command-02.png"
+          >
+            <p>
+              CoCalc makes sure that your desired LaTeX engine is available and
+              ready to use. You can choose between{" "}
+              <strong>
+                <A href="http://www.tug.org/applications/pdftex/">PDF Latex</A>
+              </strong>
+              ,{" "}
+              <strong>
+                <A href="http://xetex.sourceforge.net/">XeLaTeX</A>
+              </strong>{" "}
+              or{" "}
+              <strong>
+                <A href="http://www.luatex.org/">LuaTeX</A>
+              </strong>
+              .
+            </p>
+            <p>
+              Many packages and utilities like{" "}
+              <A href="https://sourceforge.net/projects/pgf/">PGF and TikZ</A>{" "}
+              are pre-installed.
+            </p>
+            <p>
+              Behind the scenes,{" "}
+              <A href="http://mg.readthedocs.io/latexmk.html">LatexMK</A> is
+              configured to manage the compilation process, which means that you
+              do not have to bother too much about any additional configuration.
+            </p>
+            <p>
+              Besides that, it is possible to{" "}
+              <strong>fully customize the compilation command</strong>. This
+              means you can bring your own shell script or Makefile!{" "}
+            </p>
+          </Info>
+          <Info
+            anchor="a-realtimesync"
+            icon="users"
+            title="Collaborative editing without limits"
+            image="cocalc-latex-concurrent-editing.png"
+          >
+            <p>
+              Privately share your project with{" "}
+              <strong>any number of collaborators</strong>. Concurrent
+              modifications of the LaTeX document are{" "}
+              <strong>synchronized in real time</strong>. You see the cursors of
+              others while they edit the document and also see the presence of
+              watching collaborators.
+            </p>
+            <p>
+              Additionally, the compilation status and output is synchronized
+              between everyone, because everything runs online and is fully
+              managed by CoCalc.
+            </p>
+            <p>
+              This ensures that everyone involved experiences editing the
+              document in exactly the same way.{" "}
+            </p>
+          </Info>
+          <Info
+            anchor="a-computational"
+            icon="laptop"
+            title="Full computational environment"
+            image="cocalc-latex-editor-2019.png"
+          >
+            <p>
+              One thing that sets CoCalc apart from other online LaTeX editors
+              is <strong>full access to computational software</strong>. This
+              means you can seamlessly transition from <em>computing</em> your
+              results to <em>publishing</em> them.
+            </p>
+            <p>
+              CoCalc supports running{" "}
+              <A href="https://www.python.org">Python</A>,{" "}
+              <A href="http://www.sagemath.org/">SageMath</A>,{" "}
+              <A href="http://www.r-project.org/">R Statistical Software</A>,{" "}
+              <A href="http://julialang.org">Julia</A>, and more in the same
+              project as your LaTeX document.
+            </p>
+            <p>
+              Consult the{" "}
+              <A href="../doc/software.html">Available Software page</A> or look
+              at our{" "}
+              <A href="../doc/jupyter-notebook.html">Jupyter Notebook page</A>{" "}
+              for more information.{" "}
+            </p>
+          </Info>
+          <Info
+            anchor="a-calculations"
+            title="Run calculations inside your LaTeX documents!"
+          >
+            Embed Sage, R, or Python code in your document to automatically
+            generate text, plots, formulas or tables. The code is evaluated as
+            part of the compilation process and the output will be included in
+            the generated document.
+          </Info>
+
+          <Info
+            anchor="a-sagetex"
+            title="SageTex"
+            icon="sagemath"
+            image="cocalc-sagetex.png"
+          >
+            <p>
+              <strong>
+                <A href="http://doc.sagemath.org/html/en/tutorial/sagetex.html">
+                  SageTeX
+                </A>{" "}
+                lets you embed <A href="https://www.sagemath.org/">SageMath</A>{" "}
+                in your document!
+              </strong>
+            </p>
+            <p>
+              Write Sage commands like{" "}
+              <Text code>
+                \sage{"{"}2 + 2{"}"}
+              </Text>{" "}
+              in LaTeX and the document will contain "4",{" "}
+              <Text code>
+                \sage{"{"}f.taylor(x, 0, 10){"}"}
+              </Text>{" "}
+              for the Taylor expansion of a function <em>f</em>, and drawing
+              graphs becomes as simple as{" "}
+              <Text code>
+                \sageplot{"{"}sin(x^2){"}"}
+              </Text>
+              .
+            </p>
+            <p>
+              <strong>
+                CoCalc deals with all the underlying details for you:
+              </strong>
+            </p>
+            <ul>
+              <li>It runs the initial compilation pass,</li>
+              <li>
+                uses <A href="https://www.sagemath.org/">SageMath</A> to compute
+                the text output, graphs and images,
+              </li>
+              <li>
+                and then runs a second compilation pass to produce the final PDF
+                output.
+              </li>
+            </ul>
+          </Info>
+
+          <Info
+            anchor="a-pythontex"
+            title="PythonTex"
+            icon="python"
+            image="cocalc-pythontex.png"
+          >
+            <p>
+              <strong>
+                <A href="https://ctan.org/pkg/pythontex">PythonTeX</A> allows
+                you to run Python from within a document and typeset the
+                results.
+              </strong>
+            </p>
+            <p>
+              For example, <Text code>\py{2 + 4 ** 2}</Text> produces "18". You
+              can use all{" "}
+              <Link href="/doc/software-python">
+                <a>available python libraries</a>
+              </Link>{" "}
+              for Python 3, and in particular, check out PythonTeX's support for
+              SymPy and drawing plots via <Text code>pylab</Text>.
+            </p>
+            <p>
+              Again, CoCalc automatically detects that you want to run PythonTeX
+              and handles all the details for you.{" "}
+            </p>
+          </Info>
         </Layout.Content>
+        <Footer />
       </Layout>
     </Customize>
   );

@@ -1,6 +1,6 @@
 import { join } from "path";
 import useCustomize from "lib/use-customize";
-import { basePath } from "lib/base-path";
+import basePath from "lib/base-path";
 
 export default function SquareLogo({ style }: { style: React.CSSProperties }) {
   const { logoSquareURL } = useCustomize();
