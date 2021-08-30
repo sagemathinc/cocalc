@@ -6,7 +6,7 @@ import { ImageURL } from "./util";
 interface Props {
   anchor: string;
   icon?: IconName;
-  title: string;
+  title: ReactNode;
   image?: string;
   video?: string;
   children: ReactNode;

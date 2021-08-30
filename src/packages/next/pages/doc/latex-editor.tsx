@@ -1,3 +1,4 @@
+import React from "react";
 import { join } from "path";
 import Link from "next/link";
 import { Layout, Row, Col, Typography } from "antd";
@@ -12,9 +13,17 @@ import { Customize } from "lib/customize";
 import basePath from "lib/base-path";
 import SignIn from "components/landing/sign-in";
 import Info from "components/landing/info";
+import Pitch from "components/landing/pitch";
+import Publishing from "components/landing/publishing";
+import mathToHtml from "@cocalc/frontend/misc/math-to-html";
 
 const { Text } = Typography;
 const FAVICON = "/webapp/favicon-32x32.png";
+
+const LaTeX = React.memo(() => {
+  const { __html } = mathToHtml("\\LaTeX", true);
+  return <span dangerouslySetInnerHTML={{ __html }}></span>;
+});
 
 export default function LatexEditor({ customize }) {
   const { siteName } = customize;
@@ -30,7 +39,7 @@ export default function LatexEditor({ customize }) {
         <Layout.Content>
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
-              startup={"LaTeX"}
+              startup={<LaTeX />}
               logo={"latex-logo.svg"}
               title={"Online LaTeX Editor"}
               subtitle={
@@ -40,33 +49,106 @@ export default function LatexEditor({ customize }) {
             />
           </div>
 
-          <div
-            style={{
-              padding: "60px 10%",
-              backgroundColor: "white",
-              fontSize: "11pt",
-            }}
-          >
-            <Row>
-              <Col lg={12}>
-                <NoInstall />
-              </Col>
-              <Col lg={12}>
-                <MadeEasy />
-              </Col>
-            </Row>
-            <Ready />
-          </div>
-          <SignIn startup={"LaTeX"} />
+          <Pitch
+            col1={
+              <div>
+                <h2>No software install required: 100% online</h2>
+                <p>
+                  CoCalc's{" "}
+                  <A href="https://doc.cocalc.com/latex.html">
+                    <LaTeX /> editor
+                  </A>{" "}
+                  supports
+                </p>
+                <ul>
+                  <li>
+                    <strong>side-by-side preview</strong> with{" "}
+                    <strong>forward and inverse search</strong>,
+                  </li>
+                  <li>
+                    compiles upon saving and marks errors in the source file,
+                  </li>
+                  <li>
+                    periodically <a href="#a-backups">backups</a> all your
+                    files,
+                  </li>
+                  <li>
+                    <strong>
+                      <a href="#a-calculations">runs embedded calculations</a>
+                    </strong>{" "}
+                    right inside your document,
+                  </li>
+                  <li>
+                    <strong>
+                      <A href="https://doc.cocalc.com/latex-features.html#latex-multi-file-support">
+                        multi-file support
+                      </A>
+                    </strong>{" "}
+                    that discovers included files automatically, and
+                  </li>
+                  <li>
+                    every{" "}
+                    <strong>
+                      <a href="#a-timetravel">change is recorded</a>
+                    </strong>{" "}
+                    while you type.
+                  </li>
+                </ul>
+              </div>
+            }
+            col2={
+              <div>
+                <h2>
+                  Working with <LaTeX /> made easy
+                </h2>
+                <dl>
+                  <dt>
+                    Tired of sending changes back and forth with your
+                    colleagues?
+                  </dt>
+                  <dd>
+                    <strong>
+                      <a href="#a-realtimesync">Collaborate online</a>
+                    </strong>{" "}
+                    without any limits!
+                  </dd>
+                  <dt>Scared of breaking a document?</dt>
+                  <dd>
+                    Revert recent changes via{" "}
+                    <a href="#a-timetravel">time-travel</a> edit history.
+                  </dd>
+                  <dt>
+                    Worried about maintaining your <LaTeX /> environment?
+                  </dt>
+                  <dd>CoCalc takes care of everything.</dd>
+                  <dt>Want to work from anywhere?</dt>
+                  <dd>
+                    You only need a web-browser and Internet access, or you can{" "}
+                    <A href="https://github.com/sagemathinc/cocalc-docker#readme">
+                      run your own server.
+                    </A>
+                  </dd>
+                </dl>
+              </div>
+            }
+            ext="tex"
+          />
+
+          <SignIn startup={<LaTeX />} />
+
           <Info
             anchor="a-environments"
             icon="tex-file"
-            title="Managed LaTeX environments"
+            title={
+              <>
+                Managed <LaTeX /> environments
+              </>
+            }
             image="latex-custom-command-02.png"
           >
             <p>
-              CoCalc makes sure that your desired LaTeX engine is available and
-              ready to use. You can choose between{" "}
+              CoCalc makes sure that your desired <LaTeX /> engine is available
+              and ready to use. You can choose between{" "}
               <strong>
                 <A href="http://www.tug.org/applications/pdftex/">PDF Latex</A>
               </strong>
@@ -97,6 +179,7 @@ export default function LatexEditor({ customize }) {
               means you can bring your own shell script or Makefile!{" "}
             </p>
           </Info>
+
           <Info
             anchor="a-realtimesync"
             icon="users"
@@ -106,7 +189,7 @@ export default function LatexEditor({ customize }) {
             <p>
               Privately share your project with{" "}
               <strong>any number of collaborators</strong>. Concurrent
-              modifications of the LaTeX document are{" "}
+              modifications of the <LaTeX /> document are{" "}
               <strong>synchronized in real time</strong>. You see the cursors of
               others while they edit the document and also see the presence of
               watching collaborators.
@@ -121,6 +204,7 @@ export default function LatexEditor({ customize }) {
               document in exactly the same way.{" "}
             </p>
           </Info>
+
           <Info
             anchor="a-computational"
             icon="laptop"
@@ -128,10 +212,10 @@ export default function LatexEditor({ customize }) {
             image="cocalc-latex-editor-2019.png"
           >
             <p>
-              One thing that sets CoCalc apart from other online LaTeX editors
-              is <strong>full access to computational software</strong>. This
-              means you can seamlessly transition from <em>computing</em> your
-              results to <em>publishing</em> them.
+              One thing that sets CoCalc apart from other online <LaTeX />{" "}
+              editors is <strong>full access to computational software</strong>.
+              This means you can seamlessly transition from <em>computing</em>{" "}
+              your results to <em>publishing</em> them.
             </p>
             <p>
               CoCalc supports running{" "}
@@ -139,7 +223,7 @@ export default function LatexEditor({ customize }) {
               <A href="http://www.sagemath.org/">SageMath</A>,{" "}
               <A href="http://www.r-project.org/">R Statistical Software</A>,{" "}
               <A href="http://julialang.org">Julia</A>, and more in the same
-              project as your LaTeX document.
+              project as your <LaTeX /> document.
             </p>
             <p>
               Consult the{" "}
@@ -149,9 +233,18 @@ export default function LatexEditor({ customize }) {
               for more information.{" "}
             </p>
           </Info>
+
+          <Info.Heading>
+            SageMath + Python + R + <LaTeX />
+          </Info.Heading>
+
           <Info
             anchor="a-calculations"
-            title="Run calculations inside your LaTeX documents!"
+            title={
+              <>
+                Run calculations inside your <LaTeX /> documents!
+              </>
+            }
           >
             Embed Sage, R, or Python code in your document to automatically
             generate text, plots, formulas or tables. The code is evaluated as
@@ -179,7 +272,7 @@ export default function LatexEditor({ customize }) {
               <Text code>
                 \sage{"{"}2 + 3{"}"}
               </Text>{" "}
-              in LaTeX and the document will contain "5",{" "}
+              in <LaTeX /> and the document will contain "5",{" "}
               <Text code>
                 \sage{"{"}f.taylor(x, 0, 10){"}"}
               </Text>{" "}
@@ -253,7 +346,7 @@ export default function LatexEditor({ customize }) {
               documents (with filename extension <tt>.Rnw</tt>). This gives you
               the ability to embed arbitrary{" "}
               <A href="https://www.r-project.org/">R Software</A> commands and
-              plots in your LaTeX file.
+              plots in your <LaTeX /> file.
             </p>
             <p>
               Behind the scenes, CoCalc deals with all underlying details for
@@ -268,8 +361,8 @@ export default function LatexEditor({ customize }) {
                 ,
               </li>
               <li>
-                orchestrates the full compilation pipeline for LaTeX and running
-                R, and
+                orchestrates the full compilation pipeline for <LaTeX /> and
+                running R, and
               </li>
               <li>
                 reconciles the line-numbers of the .Rnw file with the
@@ -284,7 +377,9 @@ export default function LatexEditor({ customize }) {
             </ul>
           </Info>
 
-          <Info.Heading>Features</Info.Heading>
+          <Info.Heading>
+            <LaTeX /> Editing Features
+          </Info.Heading>
 
           <Info
             anchor="a-forwardinverse"
@@ -294,7 +389,7 @@ export default function LatexEditor({ customize }) {
           >
             <p>Let CoCalc help you find your way around in large documents!</p>
             <p>
-              <strong>Forward Search</strong> lets you jump from the LaTeX
+              <strong>Forward Search</strong> lets you jump from the <LaTeX />
               source to the corresponding part in the rendered preview. That
               saves you time looking for the output.
             </p>
@@ -324,8 +419,8 @@ export default function LatexEditor({ customize }) {
                 </Link>
               </strong>{" "}
               is specific to the CoCalc platform. It records all changes in the
-              LaTeX notebook in fine detail. You can go back and forth in time
-              using a slider across thousands of changes to recover your
+              <LaTeX /> notebook in fine detail. You can go back and forth in
+              time using a slider across thousands of changes to recover your
               previous edits.
             </p>
             <p>
@@ -347,7 +442,7 @@ export default function LatexEditor({ customize }) {
               <strong>
                 <A href="https://doc.cocalc.com/chat.html">side-by-side chat</A>
               </strong>{" "}
-              for each LaTeX file lets you discuss your content with
+              for each <LaTeX /> file lets you discuss your content with
               collaborators or give feedback to your students while they are
               working on their assignments.
             </p>
@@ -359,7 +454,7 @@ export default function LatexEditor({ customize }) {
             <p>
               Chat messages also support{" "}
               <A href="https://en.wikipedia.org/wiki/Markdown">Markdown</A>{" "}
-              formatting with LaTeX formulas.{" "}
+              formatting with <LaTeX /> formulas.{" "}
             </p>
           </Info>
 
@@ -382,7 +477,17 @@ export default function LatexEditor({ customize }) {
               This means you can recover older versions of your files in case
               they are corrupted or accidentally deleted.{" "}
             </p>
+            <p>
+              These backups are complementary to{" "}
+              <Link href="#a-timetravel">
+                <a>TimeTravel</a>
+              </Link>{" "}
+              and provides browseable backups of images and data files in
+              addition to the documents you are actively working on.
+            </p>
           </Info>
+          <Publishing />
+          <SignIn startup={<LaTeX />} />
         </Layout.Content>
         <Footer />
       </Layout>
@@ -392,91 +497,4 @@ export default function LatexEditor({ customize }) {
 
 export async function getServerSideProps() {
   return await withCustomize();
-}
-
-function NoInstall() {
-  return (
-    <div>
-      <h2>No software install required: 100% online</h2>
-      <p>
-        CoCalc's <A href="https://doc.cocalc.com/latex.html">LaTeX editor</A>{" "}
-        supports
-      </p>
-      <ul>
-        <li>
-          <strong>side-by-side preview</strong> with{" "}
-          <strong>forward and inverse search</strong>,
-        </li>
-        <li>compiles upon saving and marks errors in the source file,</li>
-        <li>
-          periodically <a href="#a-backups">backups</a> all your files,
-        </li>
-        <li>
-          <strong>
-            <a href="#a-calculations">runs embedded calculations</a>
-          </strong>{" "}
-          right inside your document,
-        </li>
-        <li>
-          <strong>
-            <A href="https://doc.cocalc.com/latex-features.html#latex-multi-file-support">
-              multi-file support
-            </A>
-          </strong>{" "}
-          that discovers included files automatically, and
-        </li>
-        <li>
-          every{" "}
-          <strong>
-            <a href="#a-timetravel">change is recorded</a>
-          </strong>{" "}
-          while you type.
-        </li>
-      </ul>
-    </div>
-  );
-}
-
-function MadeEasy() {
-  return (
-    <div>
-      <h2>Working with LaTeX made easy</h2>
-      <dl>
-        <dt>Tired of sending changes back and forth with your colleagues?</dt>
-        <dd>
-          <strong>
-            <a href="#a-realtimesync">Collaborate online</a>
-          </strong>{" "}
-          without any limits!
-        </dd>
-        <dt>Scared of breaking a document?</dt>
-        <dd>
-          Revert recent changes via <a href="#a-timetravel">time-travel</a> edit
-          history.
-        </dd>
-        <dt>Worried about maintaining your LaTeX environment?</dt>
-        <dd>CoCalc takes care of everything.</dd>
-        <dt>Want to work from anywhere?</dt>
-        <dd>
-          You only need a web-browser and Internet access, or you can{" "}
-          <A href="https://github.com/sagemathinc/cocalc-docker#readme">
-            run your own server.
-          </A>
-        </dd>
-      </dl>
-    </div>
-  );
-}
-
-function Ready() {
-  return (
-    <div style={{ textAlign: "center", padding: "30px 0" }}>
-      <strong>Ready out of the box</strong>:{" "}
-      <A href="https://doc.cocalc.com/getting-started.html">
-        Sign up, create a project
-      </A>
-      , create or <A href="https://doc.cocalc.com/howto/upload.html">upload</A>{" "}
-      a <code>*.tex</code> file, and you're ready to tex!{" "}
-    </div>
-  );
 }
