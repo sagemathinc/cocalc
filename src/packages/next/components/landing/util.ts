@@ -1,7 +1,7 @@
 import { join } from "path";
 import basePath from "lib/base-path";
 
-export function ImageURL(url: string): string {
+export function MediaURL(url: string): string {
   if (url.includes("://")) {
     return url;
   }

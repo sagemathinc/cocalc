@@ -1,14 +1,14 @@
 import { Row, Col } from "antd";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { ReactNode } from "react";
-import { ImageURL } from "./util";
+import { MediaURL } from "./util";
 
 interface Props {
   anchor: string;
   icon?: IconName;
   title: ReactNode;
   image?: string;
-  video?: string;
+  video?: string | string[];
   children: ReactNode;
 }
 
@@ -33,12 +33,14 @@ export default function Info({
 
   let graphic: ReactNode = null;
   if (image != null) {
-    graphic = <img style={{ maxWidth: "100%" }} src={ImageURL(image)} />;
+    graphic = <img style={{ maxWidth: "100%" }} src={MediaURL(image)} />;
   } else if (video != null) {
+    if (typeof video == "string") video = [video];
+    verifyHasMp4(video);
     graphic = (
       <div style={{ position: "relative", width: "100%" }}>
         <video style={{ width: "100%" }} loop controls>
-          <source src={ImageURL(video)} type="video/webm; codecs=vp9" />
+          {sources(video)}
         </video>
       </div>
     );
@@ -68,6 +70,26 @@ export default function Info({
         </div>
       )}
     </div>
+  );
+}
+
+function sources(video: string[]) {
+  const v: JSX.Element[] = [];
+  for (const x of video) {
+    v.push(<source src={MediaURL(x)} />);
+  }
+  return v;
+}
+
+function verifyHasMp4(video: string[]) {
+  for (const x of video) {
+    if (x.endsWith(".mp4")) {
+      return;
+    }
+  }
+  console.warn(
+    "include mp4 format for the video, so that it is viewable on iOS!!",
+    video
   );
 }
 

@@ -1,4 +1,3 @@
-import React from "react";
 import Link from "next/link";
 import { Layout, Typography } from "antd";
 import Footer from "components/landing/footer";
@@ -11,15 +10,11 @@ import SignIn from "components/landing/sign-in";
 import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
 import Publishing from "components/landing/publishing";
-import mathToHtml from "@cocalc/frontend/misc/math-to-html";
 import Head from "components/landing/head";
+import LaTeX from "components/landing/latex";
+import Backups from "components/landing/backups";
 
 const { Text } = Typography;
-
-const LaTeX = React.memo(() => {
-  const { __html } = mathToHtml("\\LaTeX", true);
-  return <span dangerouslySetInnerHTML={{ __html }}></span>;
-});
 
 export default function LatexEditor({ customize }) {
   return (
@@ -34,7 +29,7 @@ export default function LatexEditor({ customize }) {
               logo={"latex-logo.svg"}
               title={"Online LaTeX Editor"}
               subtitle={
-                "Focus on writing LaTeX and CoCalc takes care of everything else."
+                "Focus on writing LaTeX.  CoCalc takes care of everything else."
               }
               image={"cocalc-latex-editor-2019.png"}
             />
@@ -382,7 +377,10 @@ export default function LatexEditor({ customize }) {
             anchor="a-forwardinverse"
             title="Forward and Inverse search"
             icon="sync"
-            video={"latex-forward-inverse-02.webm"}
+            video={[
+              "latex-forward-inverse-02.webm",
+              "latex-forward-inverse-02.mp4",
+            ]}
           >
             <p>Let CoCalc help you find your way around in large documents!</p>
             <p>
@@ -455,34 +453,7 @@ export default function LatexEditor({ customize }) {
             </p>
           </Info>
 
-          <Info
-            anchor="a-backups"
-            title="Backups"
-            icon="life-saver"
-            image="cocalc-backup-1.png"
-          >
-            <p>
-              Every couple of minutes,{" "}
-              <strong>
-                all files in your project are saved in consistent readonly
-                snapshots{" "}
-                <A href="https://en.wikipedia.org/wiki/ZFS">using ZFS</A>
-              </strong>
-              .
-            </p>
-            <p>
-              This means you can recover older versions of your files in case
-              they are corrupted or accidentally deleted.{" "}
-            </p>
-            <p>
-              These backups are complementary to{" "}
-              <Link href="#a-timetravel">
-                <a>TimeTravel</a>
-              </Link>{" "}
-              and provides browseable backups of images and data files in
-              addition to the documents you are actively working on.
-            </p>
-          </Info>
+          <Backups />
           <Publishing />
           <SignIn startup={<LaTeX />} />
         </Layout.Content>
