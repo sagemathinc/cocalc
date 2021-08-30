@@ -1,7 +1,7 @@
 /* Show all our icons. */
 
-import { Input, Space } from "antd";
-import { Icon, IconName, iconNames } from "@cocalc/frontend/components/icon";
+import { Input } from "antd";
+import { Icon, iconNames } from "@cocalc/frontend/components/icon";
 import { useState } from "react";
 
 const { Search } = Input;

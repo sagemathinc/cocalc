@@ -21,8 +21,7 @@ export default function Info({
   children,
 }: Props) {
   const head = (
-    <h2>
-      <a name={anchor} />
+    <h2 id={anchor}>
       {icon && (
         <>
           <Icon name={icon} />{" "}

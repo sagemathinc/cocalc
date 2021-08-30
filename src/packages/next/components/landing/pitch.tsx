@@ -36,7 +36,7 @@ function CallToAction({ ext }) {
         Sign up, create a project
       </A>
       , create or <A href="https://doc.cocalc.com/howto/upload.html">upload</A>{" "}
-      a {ext && <Text code>*.{ext}</Text>} file, and you're ready to go!
+      your {ext && <Text code>*.{ext}</Text>} file, and you're ready to go!
     </div>
   );
 }

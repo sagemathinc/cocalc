@@ -1,16 +1,17 @@
 import { join } from "path";
 import { useCustomize } from "lib/customize";
 import basePath from "lib/base-path";
+import { ReactNode } from "react";
 
 interface Props {
-  startup?: string; // customize the button, e.g. "Start Jupyter Now".
+  startup?: ReactNode; // customize the button, e.g. "Start Jupyter Now".
   hideFree?: boolean;
 }
 
 export default function SignIn({ startup, hideFree }: Props) {
   const { anonymousSignup, siteName } = useCustomize();
   return (
-    <div style={{ textAlign: "center", padding: "30px 15px"}}>
+    <div style={{ textAlign: "center", padding: "30px 15px" }}>
       {/* We use className="ant-btn" instead of an actual Button, because otherwise
             we get a ton of useLayoutEffects due to server-side rendering.*/}
       {anonymousSignup && (
@@ -22,9 +23,7 @@ export default function SignIn({ startup, hideFree }: Props) {
             color: "white",
           }}
           href={join(basePath, "static/app.html?anonymous=jupyter")}
-          title={`Immediately run ${
-            startup ?? siteName
-          } without creating an account.`}
+          title={"Try now without creating an account!"}
         >
           Run {startup ?? siteName} Now
         </a>

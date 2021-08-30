@@ -1,24 +1,20 @@
 import React from "react";
-import { join } from "path";
 import Link from "next/link";
-import { Layout, Row, Col, Typography } from "antd";
-import Head from "next/head";
+import { Layout, Typography } from "antd";
 import Footer from "components/landing/footer";
 import A from "components/misc/A";
-import SquareLogo from "components/logo-square";
 import Header from "components/landing/header";
 import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
-import basePath from "lib/base-path";
 import SignIn from "components/landing/sign-in";
 import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
 import Publishing from "components/landing/publishing";
 import mathToHtml from "@cocalc/frontend/misc/math-to-html";
+import Head from "components/landing/head";
 
 const { Text } = Typography;
-const FAVICON = "/webapp/favicon-32x32.png";
 
 const LaTeX = React.memo(() => {
   const { __html } = mathToHtml("\\LaTeX", true);
@@ -26,14 +22,9 @@ const LaTeX = React.memo(() => {
 });
 
 export default function LatexEditor({ customize }) {
-  const { siteName } = customize;
   return (
     <Customize value={customize}>
-      <Head>
-        <title>{siteName} -- Online LaTeX Editor</title>
-        <meta name="description" content="CoCalc" />
-        <link rel="icon" href={join(basePath ?? "", FAVICON)} />
-      </Head>
+      <Head title="Online LaTeX Editor" />
       <Layout>
         <Header />
         <Layout.Content>
@@ -52,7 +43,9 @@ export default function LatexEditor({ customize }) {
           <Pitch
             col1={
               <div>
-                <h2>No software install required: 100% online</h2>
+                <h2>
+                  No software install required: <small>100% online</small>
+                </h2>
                 <p>
                   CoCalc's{" "}
                   <A href="https://doc.cocalc.com/latex.html">
@@ -227,9 +220,13 @@ export default function LatexEditor({ customize }) {
             </p>
             <p>
               Consult the{" "}
-              <A href="../doc/software.html">Available Software page</A> or look
-              at our{" "}
-              <A href="../doc/jupyter-notebook.html">Jupyter Notebook page</A>{" "}
+              <Link href="/doc/software">
+                <a>Available Software page</a>
+              </Link>{" "}
+              or look at our{" "}
+              <Link href="/doc/jupyter-notebook">
+                <a>Jupyter Notebook page</a>
+              </Link>{" "}
               for more information.{" "}
             </p>
           </Info>
@@ -323,7 +320,7 @@ export default function LatexEditor({ customize }) {
               <Link href="/doc/software-python">
                 <a>available python libraries</a>
               </Link>{" "}
-              for Python 3, drawing plots via <tt>pylab</tt>, and use
+              for Python 3, drawing plots via <code>pylab</code>, and use
               PythonTeX's SymPy support.
             </p>
             <p>
@@ -343,8 +340,8 @@ export default function LatexEditor({ customize }) {
               <strong>
                 <A href="https://yihui.name/knitr/">Knitr</A>
               </strong>{" "}
-              documents (with filename extension <tt>.Rnw</tt>). This gives you
-              the ability to embed arbitrary{" "}
+              documents (with filename extension <code>.Rnw</code>). This gives
+              you the ability to embed arbitrary{" "}
               <A href="https://www.r-project.org/">R Software</A> commands and
               plots in your <LaTeX /> file.
             </p>

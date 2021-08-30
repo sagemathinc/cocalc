@@ -1,27 +1,29 @@
-import { join } from "path";
+import Link from "next/link";
 import { Layout } from "antd";
-import Head from "next/head";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
-import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/share/customize";
-
-import basePath from "lib/base-path";
-
-const FAVICON = "/webapp/favicon-32x32.png";
+import Head from "components/landing/head";
+import SquareLogo from "components/logo-square";
+import SiteName from "components/share/site-name";
 
 export default function Home({ customize }) {
   return (
     <Customize value={customize}>
-      <Head>
-        <title>{customize.siteName} -- Collaborative Calculation</title>
-        <meta name="description" content="CoCalc" />
-        <link rel="icon" href={join(basePath ?? "", FAVICON)} />
-      </Head>
+      <Head title={"Shared Public Files"} />
       <Layout>
         <Header />
-        <Content />
+        <div style={{ fontSize: "16pt", textAlign: "center", margin: "60px" }}>
+          <SquareLogo style={{ width: "120px" }} />
+          <br/><br/><br/>
+          Browse recent{" "}
+          <Link href="/share/public_paths/page/1">
+            <a>
+              <SiteName /> Shared Public Files...
+            </a>
+          </Link>
+        </div>
         <Footer />
       </Layout>
     </Customize>

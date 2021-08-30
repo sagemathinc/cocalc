@@ -1,5 +1,4 @@
 import { Row, Col } from "antd";
-import { useCustomize } from "lib/customize";
 import { ReactNode } from "react";
 import SignIn from "components/landing/sign-in";
 import { ImageURL } from "./util";
@@ -7,10 +6,10 @@ import { ImageURL } from "./util";
 interface Props {
   title: ReactNode;
   subtitle: ReactNode;
-  description: ReactNode;
+  description?: ReactNode;
   logo?: ReactNode;
   image?: string;
-  startup?: string;
+  startup?: ReactNode;
 }
 
 function Logo({ logo, title }) {
@@ -29,8 +28,6 @@ export default function Content({
   image,
   startup,
 }: Props) {
-  const { anonymousSignup, siteName } = useCustomize();
-
   return (
     <div style={{ padding: "30px 0" }}>
       <Row>
@@ -43,11 +40,13 @@ export default function Content({
             paddingTop: "15px",
           }}
         >
-          <div style={{ textAlign: "center", margin: "auto" }}>
+          <div
+            style={{ textAlign: "center", margin: "auto", padding: "0 10%" }}
+          >
             <Logo logo={logo} title={title} />
             <h2 style={{ color: "#333" }}>{title}</h2>
             <h3 style={{ color: "#333" }}>{subtitle}</h3>
-            <div style={{ color: "#333" }}>{description}</div>
+            <div style={{ color: "#666" }}>{description}</div>
           </div>
         </Col>
         <Col sm={12} xs={24} style={{ display: "flex", alignItems: "center" }}>
@@ -63,4 +62,3 @@ export default function Content({
     </div>
   );
 }
-
