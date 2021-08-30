@@ -26,7 +26,7 @@ function icons(search) {
 export default function Icons() {
   const [search, setSearch] = useState<string>("");
   return (
-    <div style={{ margin: "30px" }}>
+    <div style={{ margin: "60px" }}>
       <h1>CoCalc Icons</h1>
       <Search
         placeholder="Search..."
@@ -34,6 +34,8 @@ export default function Icons() {
         onChange={(e) => setSearch(e.target.value)}
         style={{ width: 400 }}
       />
+      <br/>
+      <br/>
       {icons(search)}
     </div>
   );

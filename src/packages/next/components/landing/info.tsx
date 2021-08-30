@@ -7,15 +7,17 @@ interface Props {
   anchor: string;
   icon?: IconName;
   title: string;
-  image: string;
+  image?: string;
+  video?: string;
   children: ReactNode;
 }
 
-export default function InfoBlock({
+export default function Info({
   anchor,
   icon,
   title,
   image,
+  video,
   children,
 }: Props) {
   const head = (
@@ -29,14 +31,27 @@ export default function InfoBlock({
       {title}
     </h2>
   );
+
+  let graphic: ReactNode = null;
+  if (image != null) {
+    graphic = <img style={{ maxWidth: "100%" }} src={ImageURL(image)} />;
+  } else if (video != null) {
+    graphic = (
+      <div style={{ position: "relative", width: "100%" }}>
+        <video style={{ width: "100%" }} loop controls>
+          <source src={ImageURL(video)} type="video/webm; codecs=vp9" />
+        </video>
+      </div>
+    );
+  }
   return (
     <div style={{ padding: "60px 10%", background: "white", fontSize: "11pt" }}>
-      {image ? (
+      {graphic ? (
         <>
           {head}
           <Row>
             <Col lg={12} style={{ paddingRight: "30px" }}>
-              <img style={{ maxWidth: "100%" }} src={ImageURL(image)} />
+              {graphic}
             </Col>
             <Col lg={12} style={{ paddingRight: "30px" }}>
               {children}
@@ -56,3 +71,18 @@ export default function InfoBlock({
     </div>
   );
 }
+
+Info.Heading = ({ children }) => {
+  return (
+    <h1
+      style={{
+        textAlign: "center",
+        fontSize: "400%",
+        margin: "40px",
+        color: "#666",
+      }}
+    >
+      {children}
+    </h1>
+  );
+};

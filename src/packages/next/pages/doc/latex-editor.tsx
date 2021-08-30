@@ -60,7 +60,7 @@ export default function LatexEditor({ customize }) {
           <SignIn startup={"LaTeX"} />
           <Info
             anchor="a-environments"
-            icon="tex"
+            icon="tex-file"
             title="Managed LaTeX environments"
             image="latex-custom-command-02.png"
           >
@@ -177,9 +177,9 @@ export default function LatexEditor({ customize }) {
             <p>
               Write Sage commands like{" "}
               <Text code>
-                \sage{"{"}2 + 2{"}"}
+                \sage{"{"}2 + 3{"}"}
               </Text>{" "}
-              in LaTeX and the document will contain "4",{" "}
+              in LaTeX and the document will contain "5",{" "}
               <Text code>
                 \sage{"{"}f.taylor(x, 0, 10){"}"}
               </Text>{" "}
@@ -222,17 +222,165 @@ export default function LatexEditor({ customize }) {
               </strong>
             </p>
             <p>
-              For example, <Text code>\py{2 + 4 ** 2}</Text> produces "18". You
-              can use all{" "}
+              For example,{" "}
+              <Text code>
+                \py{"{"}2 + 4**2{"}"}
+              </Text>{" "}
+              produces "18". You can use all{" "}
               <Link href="/doc/software-python">
                 <a>available python libraries</a>
               </Link>{" "}
-              for Python 3, and in particular, check out PythonTeX's support for
-              SymPy and drawing plots via <Text code>pylab</Text>.
+              for Python 3, drawing plots via <tt>pylab</tt>, and use
+              PythonTeX's SymPy support.
             </p>
             <p>
               Again, CoCalc automatically detects that you want to run PythonTeX
               and handles all the details for you.{" "}
+            </p>
+          </Info>
+
+          <Info
+            anchor="a-knitr"
+            title="R/Knitr"
+            icon="r"
+            image="latex-editor-rnw-01.png"
+          >
+            <p>
+              CoCalc's Latex editor also supports{" "}
+              <strong>
+                <A href="https://yihui.name/knitr/">Knitr</A>
+              </strong>{" "}
+              documents (with filename extension <tt>.Rnw</tt>). This gives you
+              the ability to embed arbitrary{" "}
+              <A href="https://www.r-project.org/">R Software</A> commands and
+              plots in your LaTeX file.
+            </p>
+            <p>
+              Behind the scenes, CoCalc deals with all underlying details for
+              you:
+            </p>
+            <ul>
+              <li>
+                installation and management of{" "}
+                <Link href="/doc/software-r">
+                  <a>all R packages</a>
+                </Link>
+                ,
+              </li>
+              <li>
+                orchestrates the full compilation pipeline for LaTeX and running
+                R, and
+              </li>
+              <li>
+                reconciles the line-numbers of the .Rnw file with the
+                corresponding .tex document for correct{" "}
+                <Link href="#a-forwardinverse">
+                  <a>
+                    <strong>forward and inverse search</strong>
+                  </a>
+                </Link>
+                .{" "}
+              </li>
+            </ul>
+          </Info>
+
+          <Info.Heading>Features</Info.Heading>
+
+          <Info
+            anchor="a-forwardinverse"
+            title="Forward and Inverse search"
+            icon="sync"
+            video={"latex-forward-inverse-02.webm"}
+          >
+            <p>Let CoCalc help you find your way around in large documents!</p>
+            <p>
+              <strong>Forward Search</strong> lets you jump from the LaTeX
+              source to the corresponding part in the rendered preview. That
+              saves you time looking for the output.
+            </p>
+            <p>
+              <strong>Inverse search</strong> does the opposite: double-click on
+              a part in the output and your cursor jumps (roughly) to the line
+              in the source file for that output.
+            </p>
+            <p>
+              Under the hood, CoCalc uses{" "}
+              <A href="https://github.com/jlaurens/synctex">SyncTeX</A>{" "}
+              seamlessly.
+            </p>
+          </Info>
+
+          <Info
+            anchor="a-timetravel"
+            title="TimeTravel"
+            icon="history"
+            image="latex-editor-timetravel-01.png"
+          >
+            <p>
+              The{" "}
+              <strong>
+                <Link href="/doc/time-travel">
+                  <a>TimeTravel feature</a>
+                </Link>
+              </strong>{" "}
+              is specific to the CoCalc platform. It records all changes in the
+              LaTeX notebook in fine detail. You can go back and forth in time
+              using a slider across thousands of changes to recover your
+              previous edits.
+            </p>
+            <p>
+              This is especially helpful for pinpointing which of the recent
+              changes caused a <strong>compilation error</strong>. You can see
+              the recent changes and exactly where the modifications happened,
+              and who made them.
+            </p>
+          </Info>
+
+          <Info
+            anchor="a-chat"
+            title="Side Chat"
+            icon="comment"
+            image="cocalc-latex-side-chat-v2.png"
+          >
+            <p>
+              A{" "}
+              <strong>
+                <A href="https://doc.cocalc.com/chat.html">side-by-side chat</A>
+              </strong>{" "}
+              for each LaTeX file lets you discuss your content with
+              collaborators or give feedback to your students while they are
+              working on their assignments.
+            </p>
+            <p>
+              Collaborators who are offline will be notified about new messages
+              the next time they sign in. If you @mention them, they receive an
+              email notification.
+            </p>
+            <p>
+              Chat messages also support{" "}
+              <A href="https://en.wikipedia.org/wiki/Markdown">Markdown</A>{" "}
+              formatting with LaTeX formulas.{" "}
+            </p>
+          </Info>
+
+          <Info
+            anchor="a-backups"
+            title="Backups"
+            icon="life-saver"
+            image="cocalc-backup-1.png"
+          >
+            <p>
+              Every couple of minutes,{" "}
+              <strong>
+                all files in your project are saved in consistent readonly
+                snapshots{" "}
+                <A href="https://en.wikipedia.org/wiki/ZFS">using ZFS</A>
+              </strong>
+              .
+            </p>
+            <p>
+              This means you can recover older versions of your files in case
+              they are corrupted or accidentally deleted.{" "}
             </p>
           </Info>
         </Layout.Content>
