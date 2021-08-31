@@ -226,7 +226,7 @@ export default function LatexEditor({ customize }) {
             </p>
           </Info>
 
-          <Info.Heading>
+          <Info.Heading description={"Easy to use together in CoCalc!"}>
             SageMath + Python + R + <LaTeX />
           </Info.Heading>
 
@@ -369,7 +369,20 @@ export default function LatexEditor({ customize }) {
             </ul>
           </Info>
 
-          <Info.Heading>
+          <Info.Heading
+            description={
+              <>
+                The following are some specific features of editing <LaTeX /> in
+                CoCalc.
+                <br />
+                There is also more{" "}
+                <A href="https://doc.cocalc.com/latex.html">
+                  comprehensive documentation
+                </A>
+                .
+              </>
+            }
+          >
             <LaTeX /> Editing Features
           </Info.Heading>
 

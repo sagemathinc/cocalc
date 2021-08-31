@@ -108,46 +108,6 @@ export default function JupyterNotebook({ customize }) {
           <SignIn startup="Jupyter" />
 
           <Info
-            anchor="a-environments"
-            icon="ipynb"
-            title="Managed Jupyter environments"
-            image="latex-custom-command-02.png"
-          >
-            <p>
-              CoCalc makes sure that your desired Jupyter engine is available
-              and ready to use. You can choose between{" "}
-              <strong>
-                <A href="http://www.tug.org/applications/pdftex/">PDF Latex</A>
-              </strong>
-              ,{" "}
-              <strong>
-                <A href="http://xetex.sourceforge.net/">XeLaTeX</A>
-              </strong>{" "}
-              or{" "}
-              <strong>
-                <A href="http://www.luatex.org/">LuaTeX</A>
-              </strong>
-              .
-            </p>
-            <p>
-              Many packages and utilities like{" "}
-              <A href="https://sourceforge.net/projects/pgf/">PGF and TikZ</A>{" "}
-              are pre-installed.
-            </p>
-            <p>
-              Behind the scenes,{" "}
-              <A href="http://mg.readthedocs.io/latexmk.html">LatexMK</A> is
-              configured to manage the compilation process, which means that you
-              do not have to bother too much about any additional configuration.
-            </p>
-            <p>
-              Besides that, it is possible to{" "}
-              <strong>fully customize the compilation command</strong>. This
-              means you can bring your own shell script or Makefile!{" "}
-            </p>
-          </Info>
-
-          <Info
             title="Collaborative editing"
             icon="users"
             image="cocalc-real-time-jupyter.png"
@@ -177,6 +137,23 @@ export default function JupyterNotebook({ customize }) {
               the same way.
             </p>
           </Info>
+
+          <Info.Heading
+            description={
+              <>
+                The following are some more specific features of Jupyter
+                notebooks in CoCalc.
+                <br />
+                There is also more{" "}
+                <A href="https://doc.cocalc.com/jupyter.html">
+                  comprehensive documentation
+                </A>
+                .
+              </>
+            }
+          >
+            Feature Overview
+          </Info.Heading>
 
           <Info
             anchor="a-timetravel"

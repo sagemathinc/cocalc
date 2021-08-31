@@ -93,17 +93,23 @@ function verifyHasMp4(video: string[]) {
   );
 }
 
-Info.Heading = ({ children }) => {
+Info.Heading = ({ children, description }) => {
   return (
-    <h1
+    <div
       style={{
         textAlign: "center",
-        fontSize: "400%",
         margin: "40px",
-        color: "#666",
       }}
     >
-      {children}
-    </h1>
+      <h1
+        style={{
+          fontSize: "400%",
+          color: "#444",
+        }}
+      >
+        {children}
+      </h1>
+      <div style={{ fontSize: "13pt", color: "#666" }}>{description}</div>
+    </div>
   );
 };
