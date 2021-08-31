@@ -245,7 +245,12 @@ export default function JupyterNotebook({ customize }) {
             }
             icon="terminal"
             image="cocalc-shell-script-run.png"
-            caption={<></>}
+            caption={
+              <>
+                Bash <Code>script.sh</Code> file (left),{" "}
+                <Code>bash -f script.sh</Code> to run (right)
+              </>
+            }
             anchor="a-shell-script"
           >
             <p>
@@ -265,8 +270,7 @@ export default function JupyterNotebook({ customize }) {
               for example <Code>script.sh</Code>. Opening that file presents you
               an editor with <strong>syntax highlighting</strong>. Then click
               the <Code>Shell</Code> button to open up a Terminal and type in{" "}
-              <Code>{"bash -f <filename.sh></filename.sh>"}</Code> to run your
-              script.
+              <Code>{"bash -f script.sh"}</Code> to run your script.
             </p>
             <p>
               This helps you learning Bash by exploring its commands directly in
@@ -274,7 +278,44 @@ export default function JupyterNotebook({ customize }) {
             </p>
           </Info>
 
+          <Info
+            title="Jupyter Bash kernel"
+            image="cocalc-jupyter-bash.png"
+            icon="ipynb"
+            anchor="a-jupyter"
+          >
+            <p>
+              Are you looking for something beyond a terminal or editing shell
+              scripts? CoCalc also offers{" "}
+              <strong>
+                <Link href="/doc/jupyter-notebook">
+                  <a>Jupyter Notebooks</a>
+                </Link>{" "}
+                running the{" "}
+                <A href="https://github.com/takluyver/bash_kernel">
+                  bash kernel
+                </A>
+              </strong>
+              .
+            </p>
+            <p>
+              This is similar to working with a terminal, but it saves all the
+              input you typed and the corresponding output in "cells". That
+              helps you with learning Linux commands, because it makes it easier
+              to edit the code input or compare different outcomes of similar
+              code. Besides that, you can also take notes between code cells.
+            </p>
+            <p>
+              With{" "}
+              <A href="https://cocalc.com/app?anonymous=jupyter-bash">
+                one click here
+              </A>{" "}
+              you can try out the Bash Jupyter kernel right now!
+            </p>
+          </Info>
+
           <SignIn startup="Linux" />
+          
         </Layout.Content>
         <Footer />
       </Layout>

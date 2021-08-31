@@ -9,6 +9,7 @@ interface Props {
   title: ReactNode;
   image?: string;
   video?: string | string[];
+  caption?: ReactNode;
   children: ReactNode;
 }
 
@@ -18,6 +19,7 @@ export default function Info({
   title,
   image,
   video,
+  caption,
   children,
 }: Props) {
   const head = (
@@ -45,6 +47,16 @@ export default function Info({
       </div>
     );
   }
+  if (graphic != null && caption != null) {
+    graphic = (
+      <div>
+        {graphic}
+        <br />
+        <div style={{ textAlign: "center" }}>{caption}</div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: "60px 10%", background: "white", fontSize: "11pt" }}>
       {graphic ? (
@@ -52,9 +64,21 @@ export default function Info({
           {head}
           <Row>
             <Col lg={12} style={{ paddingRight: "30px" }}>
-              {graphic}
+              <div style={{ margin: "15px" }}>{graphic}</div>
             </Col>
-            <Col lg={12} style={{ paddingRight: "30px" }}>
+            <Col
+              lg={12}
+              style={{
+                border: "1px solid #ddd",
+                background: "#fafafa",
+                borderRadius: "3px",
+                padding: "20px",
+                display: "flex",
+                justifyContent: "center",
+                alignContent: "center",
+                flexDirection: "column",
+              }}
+            >
               {children}
             </Col>
           </Row>
