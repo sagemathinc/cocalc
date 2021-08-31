@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Layout, Typography } from "antd";
+import { Layout } from "antd";
 import Footer from "components/landing/footer";
 import A from "components/misc/A";
 import Header from "components/landing/header";
@@ -13,8 +13,7 @@ import Publishing from "components/landing/publishing";
 import Head from "components/landing/head";
 import LaTeX from "components/landing/latex";
 import Backups from "components/landing/backups";
-
-const { Text } = Typography;
+import Code from "components/landing/code";
 
 export default function LatexEditor({ customize }) {
   return (
@@ -261,18 +260,18 @@ export default function LatexEditor({ customize }) {
             </p>
             <p>
               Write Sage commands like{" "}
-              <Text code>
+              <Code>
                 \sage{"{"}2 + 3{"}"}
-              </Text>{" "}
+              </Code>{" "}
               in <LaTeX /> and the document will contain "5",{" "}
-              <Text code>
+              <Code>
                 \sage{"{"}f.taylor(x, 0, 10){"}"}
-              </Text>{" "}
+              </Code>{" "}
               for the Taylor expansion of a function <em>f</em>, and drawing
               graphs becomes as simple as{" "}
-              <Text code>
+              <Code>
                 \sageplot{"{"}sin(x^2){"}"}
-              </Text>
+              </Code>
               .
             </p>
             <p>
@@ -308,9 +307,9 @@ export default function LatexEditor({ customize }) {
             </p>
             <p>
               For example,{" "}
-              <Text code>
+              <Code>
                 \py{"{"}2 + 4**2{"}"}
-              </Text>{" "}
+              </Code>{" "}
               produces "18". You can use all{" "}
               <Link href="/doc/software-python">
                 <a>available python libraries</a>

@@ -1,0 +1,287 @@
+import Link from "next/link";
+import { Layout } from "antd";
+import Footer from "components/landing/footer";
+import A from "components/misc/A";
+import Header from "components/landing/header";
+import Content from "components/landing/content";
+import withCustomize from "lib/with-customize";
+import { Customize } from "lib/customize";
+import SignIn from "components/landing/sign-in";
+import Info from "components/landing/info";
+import Pitch from "components/landing/pitch";
+import Publishing from "components/landing/publishing";
+import Head from "components/landing/head";
+import LaTeX from "components/landing/latex";
+import Backups from "components/landing/backups";
+import { Icon } from "@cocalc/frontend/components/icon";
+import Code from "components/landing/code";
+
+export default function JupyterNotebook({ customize }) {
+  return (
+    <Customize value={customize}>
+      <Head title="Online Linux Environment" />
+      <Layout>
+        <Header />
+        <Layout.Content>
+          <div style={{ backgroundColor: "#c7d9f5" }}>
+            <Content
+              startup={"Linux"}
+              logo={"linux-logo.svg"}
+              title={"Online Linux Environment"}
+              subtitle={
+                "Learn Linux and Bash Scripting without messing up your own computer."
+              }
+              image={"cocalc-shell-script-run.png"}
+            />
+          </div>
+
+          <Pitch
+            col1={
+              <>
+                <h2>Full Linux Terminal</h2>
+                <p>
+                  <strong>
+                    CoCalc offers a full, collaborative, real-time synchronized{" "}
+                    <A href="https://en.wikipedia.org/wiki/Linux">Linux</A>{" "}
+                    <A href="https://en.wikipedia.org/wiki/Command-line_interface">
+                      Command Line Terminal
+                    </A>{" "}
+                    in your browser.
+                  </strong>
+                </p>
+                <p>
+                  Take a look at our{" "}
+                  <strong>
+                    <A href="https://doc.cocalc.com/terminal.html">
+                      terminal documentation
+                    </A>
+                  </strong>{" "}
+                  to learn more about it!
+                </p>
+                <p>
+                  Browse the{" "}
+                  <strong>
+                    <Link href="/doc/software-executables">
+                      <a>installed software</a>
+                    </Link>
+                  </strong>{" "}
+                  in CoCalc.
+                </p>
+                <p>
+                  CoCalc is made for{" "}
+                  <strong>
+                    <Link href="/doc/teaching">
+                      <a>teaching a course</a>
+                    </Link>
+                  </strong>
+                  : students just have to sign in to get started!{" "}
+                </p>
+              </>
+            }
+            col2={
+              <>
+                <h2>Benefits of working 100% online</h2>
+                <ul>
+                  <li>
+                    You no longer have to <strong>install and maintain</strong>{" "}
+                    any software.
+                  </li>
+                  <li>
+                    It is possible to{" "}
+                    <strong>
+                      collaboratively use the same terminal in realtime
+                    </strong>
+                    .
+                  </li>
+                  <li>You can also edit and run shell script files.</li>
+                  <li>
+                    Use{" "}
+                    <strong>
+                      <A href="https://doc.cocalc.com/chat.html">chat</A>
+                    </strong>{" "}
+                    next to the Terminal to discuss your commands with others.
+                  </li>
+                  <li>
+                    <strong>Automatic backup</strong> keeps your files safe!
+                  </li>
+                  <li>
+                    You can <strong>copy and paste</strong> between your local
+                    desktop and the online terminal.
+                  </li>
+                </ul>
+              </>
+            }
+          />
+
+          <Pitch
+            ext="sh"
+            col1={
+              <>
+                <h2>
+                  <Icon name="user-check" /> What you <strong>can</strong> do
+                  ...
+                </h2>
+                <ul>
+                  <li>Learn Bash scripting</li>
+                  <li>Learn how to use the Linux command line</li>
+                  <li>
+                    Run scripts written in{" "}
+                    <strong>Python, R, PHP, Ruby, Go, Perl, Nodejs </strong>{" "}
+                    etc.
+                  </li>
+                  <li>
+                    Compile programs written in{" "}
+                    <strong>C/C++, Java, Rust, Assembly, Fortan, Julia,</strong>{" "}
+                    etc.
+                  </li>
+                  <li>Process and store datafiles</li>
+                  <li>Collaborate</li>
+                  <li>Use graphical X11 applications</li>
+                </ul>
+              </>
+            }
+            col2={
+              <>
+                <h2>
+                  <Icon name="user-slash" /> ... what you{" "}
+                  <strong>cannot</strong> do.
+                </h2>
+                <ul>
+                  <li>
+                    <strong>
+                      <code>Root</code>
+                    </strong>
+                    : due to how CoCalc works, you cannot have root rights.
+                    However, there is a wealth of software{" "}
+                    <Link href="/doc/software">
+                      <a>already installed</a>
+                    </Link>
+                    , including both systems utilities and packages for specific
+                    language environments. Regarding Python, R, Nodejs, and
+                    Julia environments, you can{" "}
+                    <A href="https://doc.cocalc.com/howto/index.html">
+                      install them in your project
+                    </A>
+                    . If something is missing,{" "}
+                    <A href="mailto:help@cocalc.com">please tell us</A>.
+                  </li>
+                  <li>
+                    <strong>
+                      Communicate with the Internet without buying a license
+                    </strong>
+                    : if you want to run code to download data from another
+                    server or checkout a Git repository – or just want to
+                    support CoCalc – you need a{" "}
+                    <A href="https://doc.cocalc.com/licenses.html">license</A>{" "}
+                    applied to your project. Learn more about the{" "}
+                    <A href="https://doc.cocalc.com/trial.html">
+                      Trial Projects
+                    </A>{" "}
+                    that you can use for free.
+                  </li>
+                  <li>
+                    <strong>Port forwards:</strong> you cannot forward arbitrary
+                    ports over ssh to your local computer.
+                  </li>
+                </ul>
+              </>
+            }
+          />
+
+          <SignIn startup="Linux" />
+
+          <Info
+            title="Realtime collaboration"
+            icon="users"
+            image="cocalc-terminal-collab.gif"
+            anchor="a-real-time"
+          >
+            <p>
+              Terminals in CoCalc are represented by files with the extension{" "}
+              <code>.term</code>. The same terminal can be opened by two or more
+              people simultaneous. Both see the same view, which adaptively
+              resizes to a common size.
+            </p>
+            <p>
+              Additionally, you can open a{" "}
+              <A href="https://doc.cocalc.com/chat.html">chat</A> panel to
+              exchange thoughts and ideas.
+            </p>
+            <p>
+              This is ideal for getting advice from a colleague or{" "}
+              <A href="https://doc.cocalc.com/teaching-interactions.html">
+                helping one of your students
+              </A>
+              .{" "}
+            </p>
+          </Info>
+
+          <Info.Heading
+            description={
+              <>
+                The following are some additional specific features of Linux
+                Terminals in CoCalc.
+                <br />
+                There is also more{" "}
+                <A href="https://doc.cocalc.com/terminal.html">
+                  comprehensive documentation
+                </A>
+                .
+              </>
+            }
+          >
+            Feature Overview
+          </Info.Heading>
+
+          <Info
+            title={
+              <>
+                Run{" "}
+                <A href="https://en.wikipedia.org/wiki/Bash_(Unix_shell)">
+                  Bash
+                </A>{" "}
+                scripts
+              </>
+            }
+            icon="terminal"
+            image="cocalc-shell-script-run.png"
+            caption={<></>}
+            anchor="a-shell-script"
+          >
+            <p>
+              CoCalc's{" "}
+              <A href="https://doc.cocalc.com/frame-editor.html">code editor</A>{" "}
+              supports{" "}
+              <strong>
+                editing a{" "}
+                <A href="https://www.gnu.org/software/bash/">bash script</A>{" "}
+                side-by-side with a{" "}
+                <A href="https://doc.cocalc.com/terminal.html">terminal</A>
+              </strong>
+              .
+            </p>
+            <p>
+              To get started, create a script file ending with <Code>.sh</Code>,
+              for example <Code>script.sh</Code>. Opening that file presents you
+              an editor with <strong>syntax highlighting</strong>. Then click
+              the <Code>Shell</Code> button to open up a Terminal and type in{" "}
+              <Code>{"bash -f <filename.sh></filename.sh>"}</Code> to run your
+              script.
+            </p>
+            <p>
+              This helps you learning Bash by exploring its commands directly in
+              your browser and immediately experiencing the results.{" "}
+            </p>
+          </Info>
+
+          <SignIn startup="Linux" />
+        </Layout.Content>
+        <Footer />
+      </Layout>
+    </Customize>
+  );
+}
+
+export async function getServerSideProps() {
+  return await withCustomize();
+}
