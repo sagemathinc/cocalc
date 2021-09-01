@@ -58,16 +58,16 @@ export default function Info({
   }
 
   return (
-    <div style={{ padding: "60px 10%", background: "white", fontSize: "11pt" }}>
+    <div style={{ padding: "60px 5%", background: "white", fontSize: "11pt" }}>
       {graphic ? (
         <>
           {head}
           <Row>
-            <Col lg={12} style={{ paddingRight: "30px" }}>
-              <div style={{ margin: "15px" }}>{graphic}</div>
+            <Col lg={15} style={{ paddingRight: "30px" }}>
+              <div style={{ margin: "5px" }}>{graphic}</div>
             </Col>
             <Col
-              lg={12}
+              lg={9}
               style={{
                 border: "1px solid #ddd",
                 background: "#fafafa",

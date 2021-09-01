@@ -314,8 +314,85 @@ export default function JupyterNotebook({ customize }) {
             </p>
           </Info>
 
+          <Info
+            title="Snapshot backups"
+            image="cocalc-snapshots.png"
+            icon="camera"
+            anchor="a-snapshot-backups"
+          >
+            <p>
+              The CoCalc terminal is ideal for{" "}
+              <strong>teaching and learning Linux</strong>, because when you
+              make a mistake, it has your back!
+            </p>
+            <p>
+              Everything runs remotely on CoCalc's servers. This means you do
+              not have to worry about messing up your own computer, dealing with
+              setup and installation issues yourself, or fear losing or
+              corrupting files on your computer.
+            </p>
+            <p>
+              <strong>Snapshots</strong> are consistent read-only views of all
+              your files in a{" "}
+              <A href="https://doc.cocalc.com/project.html">CoCalc project</A>.
+              You can restore your files by copying back the ones that were lost
+              or corrupted.
+            </p>
+            <p>
+              Therefore, CoCalc is ideal to learn basic shell commands safely
+              online.
+            </p>
+          </Info>
+
+          <Info
+            title="Databases (PostgreSQL, MySQL, SQLite)"
+            image="terminal-jupyter-postgresql.png"
+            icon="database"
+            anchor="a-database"
+          >
+            <p>
+              <strong>
+                CoCalc supports running various databases inside a project.
+              </strong>{" "}
+              They run in the same protected networking environment as all other
+              processes in a project. This is ideal for{" "}
+              <strong>learning SQL</strong> or{" "}
+              <strong>persistently storing data</strong> as a result of your
+              computations.
+            </p>
+            <p>
+              <strong>PostgreSQL</strong>: read {" "}
+              <A href="https://doc.cocalc.com/howto/postgresql.html">
+                our guide
+              </A>{" "}
+              to get started.
+            </p>
+            <p>
+              Besides{" "}
+              <A href="https://https://www.postgresql.org/">PostgreSQL</A>,
+              CoCalc also supports <A href="https://www.mysql.com/">MySQL</A>{" "}
+              and <A href="https://sqlite.org">SQLite</A>.
+            </p>
+            <p>
+              To interact with the databases, CoCalc{" "}
+              <strong>pre-installs suitable Python and R libraries</strong> for
+              your convenience.
+            </p>
+            <p>
+              In the screenshot on the left, you can see how a PostgreSQL
+              database was setup and started in the first terminal. In the
+              second terminal, <Code>psql</Code> is used to connect to it and
+              create a table and insert data. Finally, the{" "}
+              <Link href="/doc/jupyter-notebook">
+                <a>Jupyter Notebook</a>
+              </Link>{" "}
+              on the left connects via the{" "}
+              <A href="http://initd.org/psycopg/docs/">psycopg2</A> library and
+              issues a query to the database!
+            </p>
+          </Info>
+
           <SignIn startup="Linux" />
-          
         </Layout.Content>
         <Footer />
       </Layout>
