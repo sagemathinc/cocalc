@@ -25,9 +25,9 @@ export default function Info({
   const head = (
     <h2 id={anchor}>
       {icon && (
-        <>
+        <span style={{ fontSize: "24pt", marginRight:'5px' }}>
           <Icon name={icon} />{" "}
-        </>
+        </span>
       )}
       {title}
     </h2>
@@ -52,7 +52,10 @@ export default function Info({
       <div>
         {graphic}
         <br />
-        <div style={{ textAlign: "center" }}>{caption}</div>
+        <br />
+        <div style={{ textAlign: "center", color: "#666", fontSize: "13pt" }}>
+          {caption}
+        </div>
       </div>
     );
   }
@@ -63,16 +66,14 @@ export default function Info({
         <>
           {head}
           <Row>
-            <Col lg={15} style={{ paddingRight: "30px" }}>
-              <div style={{ margin: "5px" }}>{graphic}</div>
-            </Col>
             <Col
               lg={9}
               style={{
-                border: "1px solid #ddd",
+                border: "1px solid white",
                 background: "#fafafa",
-                borderRadius: "3px",
+                borderRadius: "5px",
                 padding: "20px",
+                marginBottom: "15px",
                 display: "flex",
                 justifyContent: "center",
                 alignContent: "center",
@@ -80,6 +81,9 @@ export default function Info({
               }}
             >
               {children}
+            </Col>
+            <Col lg={15} style={{ padding: "0 30px" }}>
+              <div>{graphic}</div>
             </Col>
           </Row>
         </>

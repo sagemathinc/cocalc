@@ -15,6 +15,7 @@ import LaTeX from "components/landing/latex";
 import Backups from "components/landing/backups";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Code from "components/landing/code";
+import Snapshots from "components/landing/snapshots";
 
 export default function JupyterNotebook({ customize }) {
   return (
@@ -314,12 +315,7 @@ export default function JupyterNotebook({ customize }) {
             </p>
           </Info>
 
-          <Info
-            title="Snapshot backups"
-            image="cocalc-snapshots.png"
-            icon="camera"
-            anchor="a-snapshot-backups"
-          >
+          <Snapshots>
             <p>
               The CoCalc terminal is ideal for{" "}
               <strong>teaching and learning Linux</strong>, because when you
@@ -331,18 +327,7 @@ export default function JupyterNotebook({ customize }) {
               setup and installation issues yourself, or fear losing or
               corrupting files on your computer.
             </p>
-            <p>
-              <strong>Snapshots</strong> are consistent read-only views of all
-              your files in a{" "}
-              <A href="https://doc.cocalc.com/project.html">CoCalc project</A>.
-              You can restore your files by copying back the ones that were lost
-              or corrupted.
-            </p>
-            <p>
-              Therefore, CoCalc is ideal to learn basic shell commands safely
-              online.
-            </p>
-          </Info>
+          </Snapshots>
 
           <Info
             title="Databases (PostgreSQL, MySQL, SQLite)"
@@ -361,7 +346,7 @@ export default function JupyterNotebook({ customize }) {
               computations.
             </p>
             <p>
-              <strong>PostgreSQL</strong>: read {" "}
+              <strong>PostgreSQL</strong>: read{" "}
               <A href="https://doc.cocalc.com/howto/postgresql.html">
                 our guide
               </A>{" "}
@@ -379,10 +364,10 @@ export default function JupyterNotebook({ customize }) {
               your convenience.
             </p>
             <p>
-              In the screenshot on the left, you can see how a PostgreSQL
-              database was setup and started in the first terminal. In the
-              second terminal, <Code>psql</Code> is used to connect to it and
-              create a table and insert data. Finally, the{" "}
+              In the screenshot, you can see how a PostgreSQL database was setup
+              and started in the first terminal. In the second terminal,{" "}
+              <Code>psql</Code> is used to connect to it and create a table and
+              insert data. Finally, the{" "}
               <Link href="/doc/jupyter-notebook">
                 <a>Jupyter Notebook</a>
               </Link>{" "}
