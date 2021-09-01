@@ -32,7 +32,7 @@ export default function Content({
     <div style={{ padding: "30px 0" }}>
       <Row>
         <Col
-          sm={12}
+          sm={10}
           xs={24}
           style={{
             display: "flex",
@@ -53,12 +53,11 @@ export default function Content({
           </div>
         </Col>
         <Col
-          sm={12}
+          sm={14}
           xs={24}
           style={{
             display: "flex",
             alignItems: "center",
-            paddingRight: "30px",
           }}
         >
           {image && (

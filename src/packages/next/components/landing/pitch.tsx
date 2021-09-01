@@ -1,4 +1,4 @@
-import { Row, Col, Typography } from "antd";
+import { Row, Col } from "antd";
 import { ReactNode } from "react";
 import A from "components/misc/A";
 import Code from "./code";

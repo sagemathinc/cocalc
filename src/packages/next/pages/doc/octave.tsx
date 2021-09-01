@@ -9,12 +9,7 @@ import { Customize } from "lib/customize";
 import SignIn from "components/landing/sign-in";
 import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
-import Publishing from "components/landing/publishing";
 import Head from "components/landing/head";
-import LaTeX from "components/landing/latex";
-import Backups from "components/landing/backups";
-import { Icon } from "@cocalc/frontend/components/icon";
-import Code from "components/landing/code";
 import Snapshots from "components/landing/snapshots";
 
 const octave = <A href="https://www.gnu.org/software/octave/index">Octave</A>;

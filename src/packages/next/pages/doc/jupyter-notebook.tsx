@@ -9,7 +9,6 @@ import { Customize } from "lib/customize";
 import SignIn from "components/landing/sign-in";
 import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
-import Publishing from "components/landing/publishing";
 import Head from "components/landing/head";
 import LaTeX from "components/landing/latex";
 import Backups from "components/landing/backups";

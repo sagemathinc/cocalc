@@ -39,7 +39,7 @@ export default function SignIn({ startup, hideFree }: Props) {
       {!hideFree && (
         <>
           <br />
-          Start free, then upgrade later
+          Start free today. Upgrade later.
         </>
       )}
     </div>
