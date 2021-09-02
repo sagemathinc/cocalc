@@ -12,8 +12,8 @@ function icons(search) {
   for (const name of iconNames) {
     if (!name.includes(search)) continue;
     v.push(
-      <div>
-        <span style={{ fontSize: "20pt", margin: "0 15px" }}>
+      <div key={name} style={{ display: "inline-block", width: "200px" }}>
+        <span style={{ fontSize: "24pt", margin: "0 15px" }}>
           <Icon name={name} />
         </span>
         <span>{name}</span>
@@ -34,8 +34,8 @@ export default function Icons() {
         onChange={(e) => setSearch(e.target.value)}
         style={{ width: 400 }}
       />
-      <br/>
-      <br/>
+      <br />
+      <br />
       {icons(search)}
     </div>
   );
