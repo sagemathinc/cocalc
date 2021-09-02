@@ -320,6 +320,12 @@ export default function JupyterNotebook({ customize }) {
               </strong>
               .{" "}
             </p>
+            <p>
+              You can even close your browser during long running computations,
+              and check on the results later.{" "}
+              <strong>Output will not be lost</strong> while your browser is
+              closed.
+            </p>
           </Info>
 
           <Backups />

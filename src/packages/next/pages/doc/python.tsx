@@ -310,25 +310,88 @@ export default function Octave({ customize }) {
             image="cocalc-jupyter-format-python.gif"
             anchor="a-codeformatting"
           >
-            <p>...</p>
+            <p>
+              <strong>
+                CoCalc has one-click code formatting for Jupyter notebooks and
+                code files!
+              </strong>
+            </p>
+            <p>
+              Your python code is formatted in a clean and consistent way using{" "}
+              <A href="https://github.com/google/yapf#yapf">yapf</A>.
+            </p>
+            <p>
+              This reduces cognitive load reading source code, and ensures all
+              code written by your team has a consistent and beautiful style.
+            </p>
+            <p>
+              Python code formatting works with{" "}
+              <strong>
+                pure <code>.py</code> files
+              </strong>{" "}
+              and <strong>Jupyter Notebooks running a Python kernel</strong>.
+            </p>
           </Info>
 
           <Info
-            title={"Command-line support"}
+            title={"Command line support"}
             icon="terminal"
             image="cocalc-frame-editor-python.png"
             anchor="a-commandline"
           >
-            <p>...</p>
+            <p>
+              Your existing Python scripts run on CoCalc. Either open a{" "}
+              <A href="https://doc.cocalc.com/terminal.html">Terminal</A> in the
+              code editor, or click the "Shell" button to open a Python command
+              line.
+            </p>
+            <p>
+              Terminals also gives you access to{" "}
+              <A href="https://www.git-scm.com">git</A> and{" "}
+              <Link href="/doc/software-executables">
+                <a>many more utilities</a>
+              </Link>
+              .
+            </p>
+            <p>
+              Regarding collaboration, terminals can be used{" "}
+              <strong>by multiple users at once</strong>. This means you can
+              work with your coworkers in the same session at the same time.
+              Everyone sees the same output, and coordinate via{" "}
+              <A href="https://doc.cocalc.com/chat.html">side chat</A> next to
+              the terminal.
+            </p>
+            <p>You can also simultaneously work with many terminal sessions.</p>
+            <p>
+              For long-running programs, you can even close your browser and
+              check on the result later.
+            </p>
           </Info>
 
           <Info
-            title={"Chatroom for files"}
+            title={"Chatroom about your Python code"}
             icon="comment"
             image="cocalc-jupyter-python-sidechat.png"
             anchor="a-chat"
           >
-            <p>...</p>
+            <p>
+              Collaboration is a first class citizen on CoCalc. Use{" "}
+              <A href="https://doc.cocalc.com/chat.html">side-chat</A> for each
+              file to discuss content with your colleagues or students.
+            </p>
+            <p>
+              Additionally, avatars give you{" "}
+              <strong>presence information</strong> about who is currently also
+              working on a file.
+            </p>
+            <p>
+              Collaborators who are not online will be notified about new
+              messages the next time they sign in.
+            </p>
+            <p>
+              <A href="https://doc.cocalc.com/chat.html">Chat</A> also supports
+              markdown formatting and <LaTeX /> formulas.
+            </p>
           </Info>
 
           <Publishing />
