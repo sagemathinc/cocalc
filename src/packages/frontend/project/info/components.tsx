@@ -453,7 +453,7 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
     // we don't let users send signals to processes classified as "project" or "ssh daemon"
     const dont_kill = ["project", "sshd"];
     const selected = selected_user.filter((pid) => {
-      const type = processes[pid].cocalc?.type;
+      const type = processes[pid]?.cocalc?.type;
       if (type == null) return true;
       return !dont_kill.includes(type);
     });
