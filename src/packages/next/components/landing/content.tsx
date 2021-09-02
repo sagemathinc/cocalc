@@ -47,7 +47,7 @@ export default function Content({
             <br />
             <br />
 
-            <h2 style={{ color: "#333" }}>{title}</h2>
+            <h1 style={{ color: "#333" }}>{title}</h1>
             <h3 style={{ color: "#333" }}>{subtitle}</h3>
             <div style={{ color: "#666" }}>{description}</div>
           </div>

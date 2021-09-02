@@ -1,7 +1,13 @@
 import { Row, Col } from "antd";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
-import { ReactNode } from "react";
+import { CSSProperties, ReactNode } from "react";
 import { MediaURL } from "./util";
+
+const showcase = {
+  width: "100%",
+  boxShadow: "2px 2px 4px rgb(0 0 0 / 25%), 0 2px 4px rgb(0 0 0 / 22%)",
+  borderRadius: "3px",
+} as CSSProperties;
 
 interface Props {
   anchor: string;
@@ -25,7 +31,7 @@ export default function Info({
   const head = (
     <h2 id={anchor}>
       {icon && (
-        <span style={{ fontSize: "24pt", marginRight:'5px' }}>
+        <span style={{ fontSize: "24pt", marginRight: "5px" }}>
           <Icon name={icon} />{" "}
         </span>
       )}
@@ -35,13 +41,13 @@ export default function Info({
 
   let graphic: ReactNode = null;
   if (image != null) {
-    graphic = <img style={{ maxWidth: "100%" }} src={MediaURL(image)} />;
+    graphic = <img style={showcase} src={MediaURL(image)} />;
   } else if (video != null) {
     if (typeof video == "string") video = [video];
     verifyHasMp4(video);
     graphic = (
       <div style={{ position: "relative", width: "100%" }}>
-        <video style={{ width: "100%" }} loop controls>
+        <video style={showcase} loop controls>
           {sources(video)}
         </video>
       </div>
