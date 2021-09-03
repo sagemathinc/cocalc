@@ -19,8 +19,10 @@ export default function Pitch({ col1, col2, ext }: Props) {
       }}
     >
       <Row>
-        <Col lg={12}>{col1}</Col>
-        <Col lg={12}>{col2}</Col>
+        <Col lg={12} style={{ paddingRight: "15px" }}>
+          {col1}
+        </Col>
+        <Col lg={12} style={{ paddingLeft: "15px" }}>{col2}</Col>
       </Row>
       {ext && <CallToAction ext={ext} />}
     </div>
