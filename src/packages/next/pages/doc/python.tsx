@@ -393,6 +393,8 @@ export default function Octave({ customize }) {
               markdown formatting and <LaTeX /> formulas.
             </p>
           </Info>
+          
+          
 
           <Publishing />
 

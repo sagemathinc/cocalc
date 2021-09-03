@@ -13,6 +13,7 @@ import Publishing from "components/landing/publishing";
 import Head from "components/landing/head";
 import LaTeX from "components/landing/latex";
 import Backups from "components/landing/backups";
+import Collaboration from "components/landing/collaboration";
 import Code from "components/landing/code";
 
 export default function LatexEditor({ customize }) {
@@ -167,30 +168,7 @@ export default function LatexEditor({ customize }) {
             </p>
           </Info>
 
-          <Info
-            anchor="a-realtimesync"
-            icon="users"
-            title="Collaborative editing without limits"
-            image="cocalc-latex-concurrent-editing.png"
-          >
-            <p>
-              Privately share your project with{" "}
-              <strong>any number of collaborators</strong>. Concurrent
-              modifications of the <LaTeX /> document are{" "}
-              <strong>synchronized in real time</strong>. You see the cursors of
-              others while they edit the document and also see the presence of
-              watching collaborators.
-            </p>
-            <p>
-              Additionally, the compilation status and output is synchronized
-              between everyone, because everything runs online and is fully
-              managed by CoCalc.
-            </p>
-            <p>
-              This ensures that everyone involved experiences editing the
-              document in exactly the same way.{" "}
-            </p>
-          </Info>
+          <Collaboration image="cocalc-latex-concurrent-editing.png"/>
 
           <Info
             anchor="a-computational"

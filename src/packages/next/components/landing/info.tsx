@@ -110,7 +110,7 @@ export default function Info({
 function sources(video: string[]) {
   const v: JSX.Element[] = [];
   for (const x of video) {
-    v.push(<source src={MediaURL(x)} />);
+    v.push(<source key={x} src={MediaURL(x)} />);
   }
   return v;
 }

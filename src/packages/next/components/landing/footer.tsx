@@ -2,6 +2,7 @@ import A from "components/misc/A";
 import Logo from "components/logo-rectangular";
 import { Layout } from "antd";
 import { useCustomize } from "lib/customize";
+import Contact from "./contact";
 
 function Item({
   first,
@@ -41,7 +42,7 @@ export default function Footer() {
         )}
         {contactEmail && (
           <Item>
-            <A href={"mailto:" + contactEmail}>Contact {contactEmail}</A>
+            <Contact />
           </Item>
         )}
       </div>
