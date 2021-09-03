@@ -8,5 +8,5 @@ export default function SquareLogo({ style }: { style: React.CSSProperties }) {
   const src = logoSquareURL.includes("://")
     ? logoSquareURL
     : join(basePath, logoSquareURL);
-  return <img src={src} style={{ ...style, maxWidth: "100%" }} />;
+  return <img alt="Rectangular CoCalc Logo"  src={src} style={{ ...style, maxWidth: "100%" }} />;
 }

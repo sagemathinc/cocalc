@@ -9,6 +9,8 @@ export default function Backups() {
       title="Backups"
       icon="life-saver"
       image="cocalc-backup-1.png"
+      alt="Directory listing of filesystem backups of a CoCalc project"
+      rows
     >
       <p>
         Every couple of minutes,{" "}

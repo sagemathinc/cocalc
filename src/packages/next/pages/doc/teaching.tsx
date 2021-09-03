@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import Link from "next/link";
 import { Layout, Row, Col } from "antd";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
@@ -10,7 +9,6 @@ import SignIn from "components/landing/sign-in";
 import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
 import Head from "components/landing/head";
-import Snapshots from "components/landing/snapshots";
 import { Icon } from "@cocalc/frontend/components/icon";
 import A from "components/misc/A";
 import Contact from "components/landing/contact";
@@ -35,6 +33,7 @@ export default function Teaching({ customize }) {
                 </>
               }
               image={"cocalc-course-assignments-2019.png"}
+              alt={"Screenshot of Cocalc's course management interface"}
             />
           </div>
 
@@ -143,7 +142,11 @@ export default function Teaching({ customize }) {
                   and returning everyone's assignments.
                 </p>
                 <div>
-                  <img src="cocalc-teaching.png" style={{ width: "100%" }} />
+                  <img
+                    src="cocalc-teaching.png"
+                    style={{ width: "100%" }}
+                    alt="Diagram showing how to use CoCalc for teaching."
+                  />
                 </div>
               </div>
             }
@@ -193,12 +196,15 @@ export default function Teaching({ customize }) {
 
           <SignIn />
 
+          <div style={{ height: "60px", backgroundColor: "white" }}></div>
+
           <Info.Heading>Feature Overview</Info.Heading>
 
           <Info
             title="NBGrader support"
             icon="graduation-cap"
             image="cocalc-jupyter-nbgrader-overview.png"
+            alt="Editing an NBgrader Jupyter notebook"
             anchor="a-nbgrader"
           >
             <p>
@@ -235,6 +241,7 @@ export default function Teaching({ customize }) {
                   image="jupyter-logo.svg"
                   href="/doc/jupyter-notebook"
                   title="Jupyter Notebooks"
+                  alt="Jupyter logo"
                 >
                   CoCalc's own{" "}
                   <A href="/doc/jupyter-notebook">Jupyter Notebook</A>{" "}
@@ -247,6 +254,7 @@ export default function Teaching({ customize }) {
                   image="sage-sticker-1x1_inch-small.png"
                   href="https://doc.cocalc.com/sagews.html"
                   title="Sage Worksheets"
+                  alt="SageMath sticker logo"
                 >
                   <A href="https://doc.cocalc.com/sagews.html">
                     Sage Worksheets
@@ -261,6 +269,7 @@ export default function Teaching({ customize }) {
                 <Tool
                   image="latex-logo.svg"
                   href="/doc/latex-editor"
+                  alt="LaTeX Logo"
                   title={
                     <>
                       <LaTeX /> Editor
@@ -282,6 +291,7 @@ export default function Teaching({ customize }) {
                   image="linux-logo.svg"
                   href="/doc/terminal"
                   title="Linux Terminal"
+                  alt="Tux Linux Penguin"
                 >
                   Use the collaborative CoCalc terminal to access all powerful
                   command line tools in a{" "}
@@ -351,17 +361,18 @@ export async function getServerSideProps() {
 
 interface ToolProps {
   image: string;
+  alt: string;
   href: string;
   title: ReactNode;
   children: ReactNode;
 }
 
-function Tool({ image, href, title, children }) {
+function Tool({ image, alt, href, title, children }: ToolProps) {
   return (
     <div style={{ padding: "15px" }}>
       <div style={{ textAlign: "center", marginBottom: "30px" }}>
         <A href={href}>
-          <img style={{ height: "70px" }} src={image} />
+          <img style={{ height: "70px" }} src={image} alt={alt} />
         </A>
       </div>
       <h2 style={{ textAlign: "center" }}>
@@ -397,6 +408,7 @@ function Testimonial({
     >
       <img
         src={image}
+        alt={name}
         title={title}
         style={{
           height: "100px",

@@ -8,6 +8,7 @@ export default function Publishing() {
       title="Publishing"
       icon="bullhorn"
       image="cocalc-share-latex-document.png"
+      alt="Viewing a PDF file in the share server"
     >
       <p>
         CoCalc helps you <strong>sharing your work with the world</strong>. It

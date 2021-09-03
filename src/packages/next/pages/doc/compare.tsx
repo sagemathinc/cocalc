@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Layout } from "antd";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
@@ -10,6 +9,7 @@ import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
 import Head from "components/landing/head";
 import Snapshots from "components/landing/snapshots";
+import A from "components/misc/A";
 
 const component = "Python";
 const title = `Run ${component} Online`;
@@ -30,18 +30,14 @@ export default function Octave({ customize }) {
                 <>
                   <div>
                     Run {component} scripts,{" "}
-                    <Link href="/doc/jupyter-notebook">
-                      <a>Jupyter notebooks</a>
-                    </Link>
-                    , or even a{" "}
-                    <Link href="/doc/x11">
-                      <a>graphical application</a>
-                    </Link>{" "}
-                    in a full, remote {component} environment.
+                    <A href="/doc/jupyter-notebook">Jupyter notebooks</A>, or
+                    even a <A href="/doc/x11">graphical application</A> in a
+                    full, remote {component} environment.
                   </div>
                 </>
               }
               image={"frame-editor-python.png"}
+              alt={"TODO"}
             />
           </div>
 
@@ -57,7 +53,13 @@ export default function Octave({ customize }) {
             Feature Overview
           </Info.Heading>
 
-          <Info title="title" icon="square" image="image.png" anchor="a-">
+          <Info
+            title="title"
+            icon="square"
+            image="image.png"
+            anchor="a-"
+            alt={"TODO"}
+          >
             <p>CoCalc offers...</p>
           </Info>
 

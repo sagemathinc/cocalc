@@ -9,6 +9,7 @@ interface Props {
   description?: ReactNode;
   logo?: ReactNode;
   image?: string;
+  alt?: string;
   startup?: ReactNode;
 }
 
@@ -26,6 +27,7 @@ export default function Content({
   description,
   logo,
   image,
+  alt,
   startup,
 }: Props) {
   return (
@@ -64,6 +66,7 @@ export default function Content({
             <img
               src={MediaURL(image)}
               style={{ width: "100%", padding: "15px" }}
+              alt={alt}
             />
           )}
         </Col>

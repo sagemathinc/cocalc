@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Layout } from "antd";
 import Footer from "components/landing/footer";
 import A from "components/misc/A";
@@ -34,6 +33,7 @@ export default function Octave({ customize }) {
                 </>
               }
               image={"cocalc-octave-jupyter-20200511.png"}
+              alt="Plotting a Sombrero in a Jupyter notebook using Octave"
             />
           </div>
 
@@ -45,9 +45,7 @@ export default function Octave({ customize }) {
                   <li>
                     Via CoCalc's own real-time synchronized{" "}
                     <strong>
-                      <Link href="/doc/jupyter-notebook">
-                        <a>Jupyter Notebooks</a>
-                      </Link>
+                      <A href="/doc/jupyter-notebook">Jupyter Notebooks</A>
                     </strong>{" "}
                     –{" "}
                     <A href="https://doc.cocalc.com/jupyter.html">learn more</A>
@@ -56,9 +54,7 @@ export default function Octave({ customize }) {
                   <li>
                     A full, collaborative, real-time synchronized{" "}
                     <strong>
-                      <Link href="/doc/terminal">
-                        <a>Linux Terminal</a>
-                      </Link>
+                      <A href="/doc/terminal">Linux Terminal</A>
                     </strong>{" "}
                     –{" "}
                     <A href="https://doc.cocalc.com/terminal.html">
@@ -69,9 +65,7 @@ export default function Octave({ customize }) {
                   <li>
                     A{" "}
                     <strong>
-                      <Link href="/doc/x11">
-                        <a>virtual X11 graphical Linux desktop</a>
-                      </Link>
+                      <A href="/doc/x11">virtual X11 graphical Linux desktop</A>
                     </strong>{" "}
                     – <A href="https://doc.cocalc.com/x11.html">learn more</A>.
                   </li>
@@ -80,9 +74,9 @@ export default function Octave({ customize }) {
                 <h3>Packages</h3>
                 <div>
                   Browse a{" "}
-                  <Link href="/doc/software-octave">
-                    <a>list of all installed Octave packages...</a>
-                  </Link>
+                  <A href="/doc/software-octave">
+                    list of all installed Octave packages...
+                  </A>
                 </div>
               </>
             }
@@ -93,10 +87,8 @@ export default function Octave({ customize }) {
                   <li>
                     You no longer have to <strong>install and maintain</strong>{" "}
                     Octave. In particular when you're{" "}
-                    <Link href="/doc/teaching">
-                      <a>teaching a class</a>
-                    </Link>
-                    , students just have to sign in to CoCalc to get started!
+                    <A href="/doc/teaching">teaching a class</A>, students just
+                    have to sign in to CoCalc to get started!
                   </li>
                   <li>
                     All your files are private, stored persistently, snapshotted
@@ -130,6 +122,7 @@ export default function Octave({ customize }) {
             icon="ipynb"
             image="cocalc-octave-jupyter-20200511.png"
             anchor="a-jupyter"
+            alt="Using Octave in a Jupyter notebook"
           >
             <p>
               CoCalc offers its own Jupyter Notebook implementation. It has a
@@ -162,6 +155,7 @@ export default function Octave({ customize }) {
             icon="octave"
             image="cocalc-octave-terminal-20200511.png"
             anchor="a-terminal"
+            alt="Using Octave in a CoCalc terminal"
             caption="Octave in CoCalc's Terminal"
           >
             <p>
@@ -184,9 +178,11 @@ export default function Octave({ customize }) {
             icon="window-restore"
             image="cocalc-octave-x11-20200511.png"
             anchor="a-x11"
+            alt="Using the traditional Octave GUI via X11"
+            rows
           >
             <p>
-              You can start Octave's GUI in a full remote desktop as
+              You can start Octave's GUI in a full remote desktop as{" "}
               <A href="https://doc.cocalc.com/x11.html">explained here</A>.
             </p>
             <p>
@@ -203,6 +199,8 @@ export default function Octave({ customize }) {
             image="octave-x11-terminal.png"
             anchor="a-x11-terminal"
             caption="X11 Terminal with interactive 3D plot"
+            alt="Using a Terminal with Octave and X11 to draw an interactive 3D plot"
+            rows
           >
             <p>
               Run any graphical applications written for Octave in your web

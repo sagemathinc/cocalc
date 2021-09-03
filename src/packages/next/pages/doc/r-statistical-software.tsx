@@ -44,6 +44,7 @@ export default function R({ customize }) {
                 </>
               }
               image={"cocalc-r-jupyter.png"}
+              alt={"Use of R in Jupyter"}
             />
           </div>
 
@@ -122,6 +123,7 @@ export default function R({ customize }) {
             icon="ipynb"
             image="cocalc-r-jupyter.png"
             anchor="a-jupyternotebook"
+            alt={"Using R via the Jupyter notebook"}
           >
             <p>
               CoCalc offers a{" "}
@@ -153,6 +155,7 @@ export default function R({ customize }) {
             icon="tex"
             image="cocalc-r-latex.png"
             anchor="a-latex"
+            alt="Using Knitr in CoCalc to create an R-enhanced LaTeX document."
           >
             <p>
               The fully integrated{" "}
@@ -234,6 +237,7 @@ export default function R({ customize }) {
             icon="markdown"
             image="cocalc-rmd-demo-R-python3-plotting.png"
             anchor="a-rmarkdown"
+            alt="An Rmarkdown document with a plot"
           >
             <p>
               <strong>
@@ -269,6 +273,7 @@ export default function R({ customize }) {
               "cocalc-jupyter-r-format-cell.mp4",
             ]}
             anchor="a-codeformatting"
+            alt="Video showing formatting of R in a Jupyter notebook"
           >
             <p>
               <strong>CoCalc is able to format your R code.</strong>
@@ -307,6 +312,7 @@ export default function R({ customize }) {
             icon="terminal"
             image="cocalc-rcode.png"
             anchor="a-commandline"
+            alt="Using R from a command line terminal"
           >
             <p>
               All your existing R scripts run on the command line right in
@@ -341,6 +347,7 @@ export default function R({ customize }) {
             icon="comment"
             image="cocalc-r-side-chat.png"
             anchor="a-chat"
+            alt="Chatting about an R Jupyter notebook"
           >
             <p>
               Collaboration is a first class citizen on CoCalc. A{" "}
@@ -365,6 +372,7 @@ export default function R({ customize }) {
             icon="server"
             image="cocalc-r-environment.png"
             anchor="a-environment"
+            alt="Exploring the stack of installed R packages in a Jupyter notebook"
           >
             <p>
               CoCalc makes sure that the computational environment for R is
@@ -391,6 +399,7 @@ export default function R({ customize }) {
               "cocalc-timetravel-r-jupyter-3x.mp4",
             ]}
             anchor="a-timetravel"
+            alt="Video showing the time travel slider in an R Jupyter notebook"
           >
             <p>
               The{" "}

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Layout } from "antd";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
@@ -35,14 +34,9 @@ export default function Octave({ customize }) {
                 <>
                   <div>
                     Run {component} scripts,{" "}
-                    <Link href="/doc/jupyter-notebook">
-                      <a>Jupyter notebooks</a>
-                    </Link>
-                    , or even a{" "}
-                    <Link href="/doc/x11">
-                      <a>graphical application</a>
-                    </Link>{" "}
-                    in a full, remote {component} environment.
+                    <A href="/doc/jupyter-notebook">Jupyter notebooks</A>, or
+                    even a <A href="/doc/x11">graphical application</A> in a
+                    full, remote {component} environment.
                   </div>
                 </>
               }
@@ -97,9 +91,9 @@ export default function Octave({ customize }) {
                 </ul>
                 <p>
                   Find more details in the{" "}
-                  <Link href="/doc/software-python">
-                    <a>list of installed Python libraries</a>
-                  </Link>
+                  <A href="/doc/software-python">
+                    list of installed Python libraries
+                  </A>
                   .
                 </p>
               </div>
@@ -115,11 +109,8 @@ export default function Octave({ customize }) {
                     <A href="https://doc.cocalc.com/howto/upload.html">
                       uploading
                     </A>
-                    ,{" "}
-                    <Link href="/doc/jupyter-notebook">
-                      <a>Jupyter Notebooks</a>
-                    </Link>{" "}
-                    or Python scripts.
+                    , <A href="/doc/jupyter-notebook">Jupyter Notebooks</A> or
+                    Python scripts.
                   </li>
                   <li>
                     No need to download and install{" "}
@@ -131,17 +122,12 @@ export default function Octave({ customize }) {
                   </li>
                   <li>
                     CoCalc already{" "}
-                    <Link href="/doc/software-python">
-                      <a>provides many packages</a>
-                    </Link>
+                    <A href="/doc/software-python">provides many packages</A>
                     for you.
                   </li>
                   <li>
-                    The{" "}
-                    <Link href="/doc/latex-editor">
-                      <a>LaTeX editor</a>
-                    </Link>{" "}
-                    is already integrated with{" "}
+                    The <A href="/doc/latex-editor">LaTeX editor</A> is already
+                    integrated with{" "}
                     <A href="https://ctan.org/pkg/pythontex">PythonTeX</A> and{" "}
                     <A href="https://ctan.org/pkg/sagetex">SageTeX</A>.
                   </li>
@@ -165,16 +151,15 @@ export default function Octave({ customize }) {
             icon="users"
             image="cocalc-real-time-jupyter.png"
             anchor="a-collaboration"
+            alt="Editing a Jupyter notebook in two windows at the same time"
           >
             <p>
               As the name suggests, CoCalc's strength is{" "}
               <strong>online code collaboration</strong>. Collaboration applies
               to editing plain Python files,{" "}
               <A href="https://doc.cocalc.com/sagews.html">Sage Worksheets</A>,{" "}
-              <Link href="/doc/jupyter-notebook">
-                <a>Jupyter Notebooks</a>
-              </Link>
-              , and much more.
+              <A href="/doc/jupyter-notebook">Jupyter Notebooks</A>, and much
+              more.
             </p>
             <p>
               This enables you to work more effectively as a team to solve the
@@ -196,13 +181,13 @@ export default function Octave({ customize }) {
             icon="ipynb"
             image="cocalc-python-jupyter.png"
             anchor="a-jupyternotebook"
+            rows
+            alt="Plotting using Matplotlib and Numpy in a Jupyter notebook"
           >
             <p>
               CoCalc offers a{" "}
               <strong>
-                <Link href="/doc/jupyter-notebook">
-                  <a>complete rewrite</a>
-                </Link>
+                <A href="/doc/jupyter-notebook">complete rewrite</A>
               </strong>{" "}
               of the classical{" "}
               <A href="http://jupyter.org/">Jupyter notebook</A> interface. It
@@ -218,10 +203,7 @@ export default function Octave({ customize }) {
             </p>
             <p>
               There are several{" "}
-              <Link href="/doc/software-python">
-                <a>Python environments available</a>
-              </Link>
-              .
+              <A href="/doc/software-python">Python environments available</A>.
             </p>
             <p>
               You can also easily run{" "}
@@ -243,16 +225,18 @@ export default function Octave({ customize }) {
             icon="tex-file"
             image="cocalc-latex-pythontex.png"
             anchor="a-latex"
+            alt="Using PythonTex with LaTeX"
+            rows
           >
             <div>
               The fully integrated{" "}
-              <a href="./latex-editor.html">CoCalc latex editor</a> covers all
-              your basic needs for working with <code>.tex</code> files
+              <A href="/doc/latex-editor">CoCalc latex editor</A> covers all
+              your basic needs for working with <Code>.tex</Code> files
               containing{" "}
-              <a href="https://github.com/gpoore/pythontex">PythonTeX</a> or{" "}
-              <a href="http://doc.sagemath.org/html/en/tutorial/sagetex.html">
+              <A href="https://github.com/gpoore/pythontex">PythonTeX</A> or{" "}
+              <A href="http://doc.sagemath.org/html/en/tutorial/sagetex.html">
                 SageTeX
-              </a>{" "}
+              </A>{" "}
               code. The document is synchronized with your collaborators in
               real-time and everyone sees the very same compiled PDF.
             </div>
@@ -260,8 +244,8 @@ export default function Octave({ customize }) {
             <ul>
               <li>
                 <strong>Manages the entire compilation pipeline for you</strong>
-                : it automatically calls <code>pyhontex3</code> or{" "}
-                <code>sage</code> to pre-process the code,
+                : it automatically calls <Code>pyhontex3</Code> or{" "}
+                <Code>sage</Code> to pre-process the code,
               </li>
               <li>
                 Supports <strong>forward and inverse search</strong> to help you
@@ -273,7 +257,7 @@ export default function Octave({ customize }) {
               </li>
               <li>
                 and via{" "}
-                <a href="https://doc.cocalc.com/time-travel.html">TimeTravel</a>{" "}
+                <A href="https://doc.cocalc.com/time-travel.html">TimeTravel</A>{" "}
                 you can go back in time to see your latest edits in order to{" "}
                 <strong>easily recover from a recent mistake</strong>.
               </li>
@@ -284,21 +268,21 @@ export default function Octave({ customize }) {
             </div>
             <ol>
               <li>
-                <a href="https://doc.cocalc.com/howto/upload.html">Upload</a> or
+                <A href="https://doc.cocalc.com/howto/upload.html">Upload</A> or
                 fetch your datasets,
               </li>
               <li>
-                Use <a href="#a-jupyternotebook">Jupyter Notebooks</a> to
+                Use <A href="#a-jupyternotebook">Jupyter Notebooks</A> to
                 explore the data, process it, and calculate your results,
               </li>
               <li>
-                <a href="#a-chat">Discuss</a> and{" "}
-                <a href="#a-collaboration">collaborate</a> with your research
+                <A href="#a-chat">Discuss</A> and{" "}
+                <A href="#a-collaboration">collaborate</A> with your research
                 team,
               </li>
               <li>Write your research paper in a LaTeX document,</li>
               <li>
-                <a href="#a-publishing">Publish</a> the datasets, your research
+                <A href="#a-publishing">Publish</A> the datasets, your research
                 code, and the PDF of your paper online, all hosted on CoCalc.{" "}
               </li>
             </ol>
@@ -309,6 +293,7 @@ export default function Octave({ customize }) {
             icon="network-wired"
             image="cocalc-jupyter-format-python.gif"
             anchor="a-codeformatting"
+            alt="Video of formatting Python code in a Jupyter notebook with 1 click"
           >
             <p>
               <strong>
@@ -338,6 +323,7 @@ export default function Octave({ customize }) {
             icon="terminal"
             image="cocalc-frame-editor-python.png"
             anchor="a-commandline"
+            alt="Using scikit learn from the command line to run Python code"
           >
             <p>
               Your existing Python scripts run on CoCalc. Either open a{" "}
@@ -348,10 +334,7 @@ export default function Octave({ customize }) {
             <p>
               Terminals also gives you access to{" "}
               <A href="https://www.git-scm.com">git</A> and{" "}
-              <Link href="/doc/software-executables">
-                <a>many more utilities</a>
-              </Link>
-              .
+              <A href="/doc/software-executables">many more utilities</A>.
             </p>
             <p>
               Regarding collaboration, terminals can be used{" "}
@@ -373,6 +356,7 @@ export default function Octave({ customize }) {
             icon="comment"
             image="cocalc-jupyter-python-sidechat.png"
             anchor="a-chat"
+            alt="A Jupyter notebook with a chat window on the side"
           >
             <p>
               Collaboration is a first class citizen on CoCalc. Use{" "}
@@ -393,8 +377,6 @@ export default function Octave({ customize }) {
               markdown formatting and <LaTeX /> formulas.
             </p>
           </Info>
-          
-          
 
           <Publishing />
 

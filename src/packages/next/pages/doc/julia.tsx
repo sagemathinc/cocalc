@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Layout } from "antd";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
@@ -30,16 +29,14 @@ export default function Julia({ customize }) {
               subtitle={
                 <>
                   <div>
-                    Run {component} scripts,{" "}
-                    <A href="">Pluto</A> and{" "}
-                    <Link href="/doc/jupyter-notebook">
-                      <a>IJulia Jupyter notebooks</a>
-                    </Link>{" "}
+                    Run {component} scripts, <A href="">Pluto</A> and{" "}
+                    <A href="/doc/jupyter-notebook">IJulia Jupyter notebooks</A>{" "}
                     in a full, remote {component} environment.
                   </div>
                 </>
               }
               image={"julia.png"}
+              alt={"Using Julia in a Jupyter notebook"}
             />
           </div>
 
@@ -55,7 +52,13 @@ export default function Julia({ customize }) {
             Feature Overview
           </Info.Heading>
 
-          <Info title="title" icon="square" image="image.png" anchor="a-">
+          <Info
+            title="title"
+            icon="square"
+            image="image.png"
+            anchor="a-"
+            alt={"TODO"}
+          >
             <p>CoCalc offers...</p>
           </Info>
 

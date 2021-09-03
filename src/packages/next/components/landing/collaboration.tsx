@@ -12,6 +12,7 @@ export default function Collaboration({ image }: Props) {
       icon="users"
       title="Collaborative editing without limits"
       image={image}
+      alt="Editing a document in two browser windows"
     >
       <p>
         Privately share your project with{" "}

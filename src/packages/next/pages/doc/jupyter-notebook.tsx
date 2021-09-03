@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Layout } from "antd";
 import Footer from "components/landing/footer";
 import A from "components/misc/A";
@@ -29,6 +28,7 @@ export default function JupyterNotebook({ customize }) {
                 "CoCalc's own collaborative, fully compatible and supercharged notebooks."
               }
               image={"cocalc-jupyter2-20170508.png"}
+              alt={"Using Pandas and Tensorflow in a Jupyter notebook"}
             />
           </div>
 
@@ -49,11 +49,9 @@ export default function JupyterNotebook({ customize }) {
                     project collaborators
                   </A>{" "}
                   – all changes are{" "}
-                  <Link href="#a-realtimesync">
-                    <strong>
-                      <a>synchronized in real-time</a>
-                    </strong>
-                  </Link>
+                  <A href="#a-realtimesync">
+                    <strong>synchronized in real-time</strong>
+                  </A>
                   .
                 </p>
                 <p>
@@ -70,9 +68,7 @@ export default function JupyterNotebook({ customize }) {
                   <li>
                     A sophisticated{" "}
                     <strong>
-                      <Link href="/doc/teaching">
-                        <a>course management system</a>
-                      </Link>
+                      <A href="/doc/teaching">course management system</A>
                     </strong>{" "}
                     keeps track of all notebooks of all students. It manages
                     distributing and collecting files as well as grading.
@@ -111,6 +107,7 @@ export default function JupyterNotebook({ customize }) {
             icon="users"
             image="cocalc-real-time-jupyter.png"
             anchor="a-realtimesync"
+            alt={"Two browser windows editing the same Jupyter notebook"}
           >
             <p>
               You can share your Jupyter notebooks privately with project
@@ -162,6 +159,7 @@ export default function JupyterNotebook({ customize }) {
               "cocalc-jupyter2-timetravel-20170515-3x.webm",
               "cocalc-jupyter2-timetravel-20170515-3x.mp4",
             ]}
+            alt="Video showing the TimeTravel slider in a SageMath Jupyter notebook"
           >
             <p>
               The{" "}
@@ -192,6 +190,7 @@ export default function JupyterNotebook({ customize }) {
             title="NBGrader: automatically grading assignments in Jupyter notebooks"
             icon="graduation-cap"
             image="cocalc-jupyter-nbgrader-overview.png"
+            alt="Creating an NBGrader-enhanced Jupyter notebook"
           >
             <p>
               CoCalc's Jupyter Notebooks fully support both{" "}
@@ -218,6 +217,7 @@ export default function JupyterNotebook({ customize }) {
             title="Chat about your Jupyter notebook"
             icon="comment"
             image="cocalc-chat-jupyter-20171120-2.png"
+            alt="Chatting about a Jupyter notebook"
           >
             <p>
               A{" "}
@@ -244,6 +244,7 @@ export default function JupyterNotebook({ customize }) {
             title="Managed Jupyter kernels"
             icon="python"
             image="cocalc-jupyter-kernels.png"
+            alt="Dropdown menu showing a large number of preinstalled Jupyter kernels"
           >
             <p>
               CoCalc makes sure that your desired computational environment is
@@ -256,10 +257,7 @@ export default function JupyterNotebook({ customize }) {
               .
             </p>
             <p>
-              Look at our{" "}
-              <Link href="/doc/software">
-                <a>list of available software</a>
-              </Link>{" "}
+              Look at our <A href="/doc/software">list of available software</A>{" "}
               for more about what is available.
             </p>
           </Info>
@@ -268,10 +266,12 @@ export default function JupyterNotebook({ customize }) {
             anchor="a-kernels"
             title="JupyterLab and Jupyter Classic"
             icon="server"
-            image="cocalc-jupyter2-20170508.png"
+            image="jupyter-lab.png"
+            alt="Running JupyterLab inside a CoCalc Project"
+            rows
           >
             <p>
-              CoCalc-Jupyter is a <strong>complete rewrite</strong> of the
+              CoCalc's Jupyter is a <strong>complete rewrite</strong> of the
               classical <A href="http://jupyter.org/">Jupyter notebook</A>{" "}
               interface and backend server. It is tightly integrated into CoCalc
               and adds realtime collaboration, TimeTravel history and{" "}
@@ -288,9 +288,12 @@ export default function JupyterNotebook({ customize }) {
                 fully supports running
               </A>{" "}
               standard JupyterLab and Jupyter Classic notebook servers from any
-              CoCalc project! This assures that you can still use all libraries
-              and extension that might rely on specifics of one of those
-              implementations.
+              CoCalc project! You can still use all libraries and extension that
+              might rely on specifics of one of those implementations. Moreover,{" "}
+              <strong>
+                you can fully use your CoCalc project via the powerful
+                JupyterLab interface!
+              </strong>
             </p>
             <p>
               CoCalc also supports{" "}
@@ -306,6 +309,7 @@ export default function JupyterNotebook({ customize }) {
             title="CPU and memory monitoring for each notebook"
             icon="line-chart"
             image="cocalc-jupyter2-memory-cpu.png"
+            alt="Jupyter notebook showing CPU and memory indicators"
           >
             <p>
               Long running notebook sessions or intense computations might
@@ -335,14 +339,13 @@ export default function JupyterNotebook({ customize }) {
             title="Publishing your notebooks"
             icon="bullhorn"
             image="cocalc-jupyter-share-nasa.png"
+            alt="Jupyter notebook hosted on the CoCalc share server"
           >
             <p>
               CoCalc helps you{" "}
-              <Link href="/share">
-                <strong>
-                  <a>share your work with the world</a>
-                </strong>
-              </Link>
+              <A href="/share">
+                <strong>share your work with the world</strong>
+              </A>
               . It offers its own hosting of shared documents, which includes
               Jupyter notebooks and any other associated data files.
             </p>

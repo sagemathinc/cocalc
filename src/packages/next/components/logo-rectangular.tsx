@@ -12,5 +12,5 @@ export default function RectangularLogo({
   const src = logoRectangularURL.includes("://")
     ? logoRectangularURL
     : join(basePath, logoRectangularURL);
-  return <img src={src} style={{ ...style, maxWidth: "100%" }} />;
+  return <img alt="Rectangular CoCalc Logo" src={src} style={{ ...style, maxWidth: "100%" }} />;
 }

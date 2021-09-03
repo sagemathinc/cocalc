@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Layout } from "antd";
 import Footer from "components/landing/footer";
 import A from "components/misc/A";
@@ -133,6 +132,7 @@ export default function LatexEditor({ customize }) {
               </>
             }
             image="latex-custom-command-02.png"
+            alt="Menu showing the different LaTeX engines in CoCalc"
           >
             <p>
               CoCalc makes sure that your desired <LaTeX /> engine is available
@@ -168,13 +168,15 @@ export default function LatexEditor({ customize }) {
             </p>
           </Info>
 
-          <Collaboration image="cocalc-latex-concurrent-editing.png"/>
+          <Collaboration image="cocalc-latex-concurrent-editing.png" />
 
           <Info
             anchor="a-computational"
             icon="laptop"
             title="Full computational environment"
             image="cocalc-latex-editor-2019.png"
+            alt="Two browser windows editing the same LaTeX file"
+            rows
           >
             <p>
               One thing that sets CoCalc apart from other online <LaTeX />{" "}
@@ -191,15 +193,10 @@ export default function LatexEditor({ customize }) {
               project as your <LaTeX /> document.
             </p>
             <p>
-              Consult the{" "}
-              <Link href="/doc/software">
-                <a>Available Software page</a>
-              </Link>{" "}
-              or look at our{" "}
-              <Link href="/doc/jupyter-notebook">
-                <a>Jupyter Notebook page</a>
-              </Link>{" "}
-              for more information.{" "}
+              Consult the <A href="/doc/software">Available Software page</A> or
+              look at our{" "}
+              <A href="/doc/jupyter-notebook">Jupyter Notebook page</A> for more
+              information.{" "}
             </p>
           </Info>
 
@@ -214,6 +211,7 @@ export default function LatexEditor({ customize }) {
                 Run calculations inside your <LaTeX /> documents!
               </>
             }
+            alt="A LaTeX document with embedded SageMath code"
           >
             Embed Sage, R, or Python code in your document to automatically
             generate text, plots, formulas or tables. The code is evaluated as
@@ -226,6 +224,7 @@ export default function LatexEditor({ customize }) {
             title="SageTex"
             icon="sagemath"
             image="cocalc-sagetex.png"
+            alt="Editing LaTeX with SageTex code"
           >
             <p>
               <strong>
@@ -275,6 +274,7 @@ export default function LatexEditor({ customize }) {
             title="PythonTex"
             icon="python"
             image="cocalc-pythontex.png"
+            alt="Editing LaTeX with PythonTex code"
           >
             <p>
               <strong>
@@ -289,10 +289,8 @@ export default function LatexEditor({ customize }) {
                 \py{"{"}2 + 4**2{"}"}
               </Code>{" "}
               produces "18". You can use all{" "}
-              <Link href="/doc/software-python">
-                <a>available python libraries</a>
-              </Link>{" "}
-              for Python 3, drawing plots via <code>pylab</code>, and use
+              <A href="/doc/software-python">available python libraries</A> for
+              Python 3, drawing plots via <code>pylab</code>, and use
               PythonTeX's SymPy support.
             </p>
             <p>
@@ -306,6 +304,7 @@ export default function LatexEditor({ customize }) {
             title="R/Knitr"
             icon="r"
             image="latex-editor-rnw-01.png"
+            alt="Editing LaTeX with R/Knitr code"
           >
             <p>
               CoCalc's Latex editor also supports{" "}
@@ -324,10 +323,7 @@ export default function LatexEditor({ customize }) {
             <ul>
               <li>
                 installation and management of{" "}
-                <Link href="/doc/software-r">
-                  <a>all R packages</a>
-                </Link>
-                ,
+                <A href="/doc/software-r">all R packages</A>,
               </li>
               <li>
                 orchestrates the full compilation pipeline for <LaTeX /> and
@@ -336,11 +332,9 @@ export default function LatexEditor({ customize }) {
               <li>
                 reconciles the line-numbers of the .Rnw file with the
                 corresponding .tex document for correct{" "}
-                <Link href="#a-forwardinverse">
-                  <a>
-                    <strong>forward and inverse search</strong>
-                  </a>
-                </Link>
+                <A href="#a-forwardinverse">
+                  <strong>forward and inverse search</strong>
+                </A>
                 .{" "}
               </li>
             </ul>
@@ -371,17 +365,19 @@ export default function LatexEditor({ customize }) {
               "latex-forward-inverse-02.webm",
               "latex-forward-inverse-02.mp4",
             ]}
+            rows
+            alt="Video showing forward and inverse search in a LaTeX document"
           >
             <p>Let CoCalc help you find your way around in large documents!</p>
             <p>
-              <strong>Forward Search</strong> lets you jump from the <LaTeX />
-              source to the corresponding part in the rendered preview. That
+              <strong>Forward Search</strong> lets you jump from the <LaTeX />{" "}
+              source to the corresponding part in the rendered preview. This
               saves you time looking for the output.
             </p>
             <p>
-              <strong>Inverse search</strong> does the opposite: double-click on
-              a part in the output and your cursor jumps (roughly) to the line
-              in the source file for that output.
+              <strong>Inverse search</strong> does the opposite: double click on
+              the output and your cursor jumps to the line in the source file
+              for that output.
             </p>
             <p>
               Under the hood, CoCalc uses{" "}
@@ -395,15 +391,16 @@ export default function LatexEditor({ customize }) {
             title="TimeTravel"
             icon="history"
             image="latex-editor-timetravel-01.png"
+            alt={
+              "Using the TimeTravel slider to see what changed in a LaTeX document"
+            }
           >
             <p>
               The{" "}
               <strong>
-                <Link href="/doc/time-travel">
-                  <a>TimeTravel feature</a>
-                </Link>
+                <A href="/doc/time-travel">TimeTravel feature</A>
               </strong>{" "}
-              is specific to the CoCalc platform. It records all changes in the
+              is specific to the CoCalc platform. It records all changes in the{" "}
               <LaTeX /> notebook in fine detail. You can go back and forth in
               time using a slider across thousands of changes to recover your
               previous edits.
@@ -421,6 +418,7 @@ export default function LatexEditor({ customize }) {
             title="Side Chat"
             icon="comment"
             image="cocalc-latex-side-chat-v2.png"
+            alt="Chatting about a LaTeX document right next to that document"
           >
             <p>
               A{" "}

@@ -14,9 +14,11 @@ interface Props {
   icon?: IconName;
   title: ReactNode;
   image?: string;
+  alt: string;
   video?: string | string[];
   caption?: ReactNode;
   children: ReactNode;
+  rows?: boolean; // if given show as two rows instead of a single row and two columns
 }
 
 export default function Info({
@@ -24,9 +26,11 @@ export default function Info({
   icon,
   title,
   image,
+  alt,
   video,
   caption,
   children,
+  rows,
 }: Props) {
   const head = (
     <h2 id={anchor}>
@@ -41,7 +45,9 @@ export default function Info({
 
   let graphic: ReactNode = null;
   if (image != null) {
-    graphic = <img style={showcase} src={MediaURL(image)} />;
+    graphic = (
+      <img style={showcase} src={MediaURL(image)} alt={alt ?? caption} />
+    );
   } else if (video != null) {
     if (typeof video == "string") video = [video];
     verifyHasMp4(video);
@@ -68,7 +74,7 @@ export default function Info({
 
   return (
     <div style={{ padding: "60px 5%", background: "white", fontSize: "11pt" }}>
-      {graphic ? (
+      {graphic && !rows ? (
         <>
           {head}
           <Row>
@@ -95,11 +101,16 @@ export default function Info({
         </>
       ) : (
         <div style={{ width: "100%" }}>
-          <div
-            style={{ maxWidth: "900px", textAlign: "center", margin: "0 auto" }}
-          >
-            {head}
-            {children}
+          <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+            <div style={{ background: "#fafafa", padding: "20px" }}>
+              <div style={{ textAlign: "center" }}>{head}</div>
+              <div
+                style={{ margin: "auto", maxWidth: rows ? "600px" : undefined }}
+              >
+                {children}
+              </div>
+            </div>
+            {rows && <div style={{ margin: "15px 0" }}>{graphic}</div>}
           </div>
         </div>
       )}
@@ -127,7 +138,12 @@ function verifyHasMp4(video: string[]) {
   );
 }
 
-Info.Heading = ({ children, description }) => {
+interface HeadingProps {
+  children: ReactNode;
+  description?: ReactNode;
+}
+
+Info.Heading = ({ children, description }: HeadingProps) => {
   return (
     <div
       style={{

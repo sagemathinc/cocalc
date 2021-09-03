@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Layout } from "antd";
 import Footer from "components/landing/footer";
 import A from "components/misc/A";
@@ -30,6 +29,7 @@ export default function JupyterNotebook({ customize }) {
                 "Learn Linux and Bash Scripting without messing up your own computer."
               }
               image={"cocalc-shell-script-run.png"}
+              alt={"Running a bash script to count in Linux"}
             />
           </div>
 
@@ -59,18 +59,14 @@ export default function JupyterNotebook({ customize }) {
                 <p>
                   Browse the{" "}
                   <strong>
-                    <Link href="/doc/software-executables">
-                      <a>installed software</a>
-                    </Link>
+                    <A href="/doc/software-executables">installed software</A>
                   </strong>{" "}
                   in CoCalc.
                 </p>
                 <p>
                   CoCalc is made for{" "}
                   <strong>
-                    <Link href="/doc/teaching">
-                      <a>teaching a course</a>
-                    </Link>
+                    <A href="/doc/teaching">teaching a course</A>
                   </strong>
                   : students just have to sign in to get started!{" "}
                 </p>
@@ -151,12 +147,10 @@ export default function JupyterNotebook({ customize }) {
                     </strong>
                     : due to how CoCalc works, you cannot have root rights.
                     However, there is a wealth of software{" "}
-                    <Link href="/doc/software">
-                      <a>already installed</a>
-                    </Link>
-                    , including both systems utilities and packages for specific
-                    language environments. Regarding Python, R, Nodejs, and
-                    Julia environments, you can{" "}
+                    <A href="/doc/software">already installed</A>, including
+                    both systems utilities and packages for specific language
+                    environments. Regarding Python, R, Nodejs, and Julia
+                    environments, you can{" "}
                     <A href="https://doc.cocalc.com/howto/index.html">
                       install them in your project
                     </A>
@@ -193,6 +187,7 @@ export default function JupyterNotebook({ customize }) {
             icon="users"
             image="cocalc-terminal-collab.gif"
             anchor="a-real-time"
+            alt="Video showing using vim collaboratively with chat"
           >
             <p>
               Terminals in CoCalc are represented by files with the extension{" "}
@@ -250,6 +245,7 @@ export default function JupyterNotebook({ customize }) {
               </>
             }
             anchor="a-shell-script"
+            alt="Running a bash script to count in Linux"
           >
             <p>
               CoCalc's{" "}
@@ -281,15 +277,14 @@ export default function JupyterNotebook({ customize }) {
             image="cocalc-jupyter-bash.png"
             icon="ipynb"
             anchor="a-jupyter"
+            alt="Using Bash via a Jupyter notebook"
           >
             <p>
               Are you looking for something beyond a terminal or editing shell
               scripts? CoCalc also offers{" "}
               <strong>
-                <Link href="/doc/jupyter-notebook">
-                  <a>Jupyter Notebooks</a>
-                </Link>{" "}
-                running the{" "}
+                <A href="/doc/jupyter-notebook">Jupyter Notebooks</A> running
+                the{" "}
                 <A href="https://github.com/takluyver/bash_kernel">
                   bash kernel
                 </A>
@@ -331,6 +326,8 @@ export default function JupyterNotebook({ customize }) {
             image="terminal-jupyter-postgresql.png"
             icon="database"
             anchor="a-database"
+            rows
+            alt="Using a PostgreSQL database via a terminal and a Jupyter notebook"
           >
             <p>
               <strong>
@@ -365,10 +362,8 @@ export default function JupyterNotebook({ customize }) {
               and started in the first terminal. In the second terminal,{" "}
               <Code>psql</Code> is used to connect to it and create a table and
               insert data. Finally, the{" "}
-              <Link href="/doc/jupyter-notebook">
-                <a>Jupyter Notebook</a>
-              </Link>{" "}
-              on the left connects via the{" "}
+              <A href="/doc/jupyter-notebook">Jupyter Notebook</A> on the left
+              connects via the{" "}
               <A href="http://initd.org/psycopg/docs/">psycopg2</A> library and
               issues a query to the database!
             </p>
