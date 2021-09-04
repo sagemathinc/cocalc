@@ -132,9 +132,11 @@ export default function R({ customize }) {
               </strong>{" "}
               of the classical{" "}
               <A href="http://jupyter.org/">Jupyter notebook</A> interface. It
-              is tightly integrated into CoCalc and adds real-time
-              collaboration, TimeTravel history and{" "}
-              <A href="http://doc.cocalc.com/jupyter.html">more</A>.
+              is{" "}
+              <A href="http://doc.cocalc.com/jupyter.html">
+                tightly integrated into CoCalc
+              </A>{" "}
+              and adds real-time collaboration, TimeTravel history and more.
             </p>
             <p>
               There is also support in CoCalc for easily using R with the{" "}

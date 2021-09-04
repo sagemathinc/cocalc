@@ -11,6 +11,7 @@ interface Props {
   image?: string;
   alt?: string;
   startup?: ReactNode;
+  caption?: string;
 }
 
 function Logo({ logo, title }) {
@@ -29,6 +30,7 @@ export default function Content({
   image,
   alt,
   startup,
+  caption,
 }: Props) {
   return (
     <div style={{ padding: "30px 0" }}>
@@ -54,20 +56,20 @@ export default function Content({
             <div style={{ color: "#666" }}>{description}</div>
           </div>
         </Col>
-        <Col
-          sm={14}
-          xs={24}
-          style={{
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
+        <Col sm={14} xs={24}>
           {image && (
-            <img
-              src={MediaURL(image)}
-              style={{ width: "100%", padding: "15px" }}
-              alt={alt}
-            />
+            <>
+              <img
+                src={MediaURL(image)}
+                style={{ width: "100%", padding: "15px" }}
+                alt={alt}
+              />
+              <div
+                style={{ textAlign: "center", color: "#444", fontSize: "12pt" }}
+              >
+                {caption}
+              </div>
+            </>
           )}
         </Col>
       </Row>
