@@ -287,7 +287,10 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     function val_max_value(index): number {
       switch (index) {
         case "cpu_pct":
-          return 100;
+          // the cgroup cpu limit could be less than 1, but we want to alert about
+          // processes using 100% cpu, even if there is much more headroom.
+          const avail_cores = Math.min(1, info?.cgroup?.cpu_cores_limit ?? 1);
+          return 100 * avail_cores;
         case "cpu_tot":
           return idle_timeout;
         case "mem":
