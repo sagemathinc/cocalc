@@ -18,7 +18,7 @@ export default function JupyterNotebook({ customize }) {
     <Customize value={customize}>
       <Head title="Online Linux Environment" />
       <Layout>
-        <Header />
+        <Header landing="linux" />
         <Layout.Content>
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content

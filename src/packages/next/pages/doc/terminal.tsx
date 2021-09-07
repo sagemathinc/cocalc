@@ -4,22 +4,22 @@ import Header from "components/landing/header";
 import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
-import A from "components/misc/A";
+//import A from "components/misc/A";
 import SignIn from "components/landing/sign-in";
 import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
 import Head from "components/landing/head";
 import Snapshots from "components/landing/snapshots";
 
-const component = "Julia";
-const title = `Run ${component} Online`;
+const component = "Terminal";
+const title = `Use a Linux Terminal Online`;
 
-export default function Julia({ customize }) {
+export default function Terminal({ customize }) {
   return (
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
-        <Header landing="julia" />
+        <Header landing="terminal" />
         <Layout.Content>
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
@@ -28,15 +28,11 @@ export default function Julia({ customize }) {
               title={title}
               subtitle={
                 <>
-                  <div>
-                    Run {component} scripts, <A href="">Pluto</A> and{" "}
-                    <A href="/doc/jupyter-notebook">IJulia Jupyter notebooks</A>{" "}
-                    in a full, remote {component} environment.
-                  </div>
+                  <div>todo</div>
                 </>
               }
-              image={"julia.png"}
-              alt={"Using Julia in a Jupyter notebook"}
+              image={"terminal.png"}
+              alt={"Using a Terminal"}
             />
           </div>
 

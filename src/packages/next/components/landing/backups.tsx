@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Info from "./info";
 import A from "components/misc/A";
 
@@ -26,11 +25,9 @@ export default function Backups() {
       </p>
       <p>
         These backups are complementary to{" "}
-        <Link href="#a-timetravel">
-          <a>TimeTravel</a>
-        </Link>{" "}
-        and provides browseable backups of images and data files in addition to
-        the documents you are actively working on.
+        <A href="#a-timetravel">TimeTravel</A> and provides browseable backups
+        of images and data files in addition to the documents you are actively
+        working on.
       </p>
     </Info>
   );

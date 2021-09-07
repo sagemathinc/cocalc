@@ -1,5 +1,5 @@
-import Link from "next/link";
 import Info from "./info";
+import A from "components/misc/A";
 
 export default function Publishing() {
   return (
@@ -12,11 +12,8 @@ export default function Publishing() {
     >
       <p>
         CoCalc helps you <strong>sharing your work with the world</strong>. It
-        offers its own hosting of{" "}
-        <Link href="/share">
-          <a>shared documents</a>
-        </Link>
-        , alongside with any associated data files.
+        offers its own hosting of <A href="/share">shared documents</A>,
+        alongside with any associated data files.
       </p>
       <p>
         You can configure if your published files should be listed publicly, or
