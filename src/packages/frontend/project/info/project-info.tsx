@@ -26,7 +26,10 @@ import { A, Tip, Loading } from "../../components";
 import { RestartProject } from "../settings/restart-project";
 import { Channel } from "../../project/websocket/types";
 import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
-import { ProjectInfo as ProjectInfoType, Process } from "@cocalc/project/project-info/types";
+import {
+  ProjectInfo as ProjectInfoType,
+  Process,
+} from "@cocalc/project/project-info/types";
 import { cgroup_stats } from "@cocalc/project/project-status/utils";
 import {
   CGroupFC,
@@ -106,7 +109,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     const [modal, set_modal] = useState<string | Process | undefined>(
       undefined
     );
-    const [show_bug, set_show_bug] = useState(false);
+    const [show_long_loading, set_show_long_loading] = useState(false);
 
     React.useMemo(() => {
       if (project_map == null) return;
@@ -139,7 +142,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
 
     // used in render_not_loading_info()
     React.useEffect(() => {
-      const timer = setTimeout(() => set_show_bug(true), 5000);
+      const timer = setTimeout(() => set_show_long_loading(true), 30000);
       return () => clearTimeout(timer);
     }, []);
 
@@ -535,26 +538,21 @@ export const ProjectInfo: React.FC<Props> = React.memo(
       }
     }
 
-    // TODO remove this after https://github.com/sagemathinc/cocalc/issues/5081 is fixed
     function render_not_loading_info() {
       return (
         <>
           <div>
             <Loading />
           </div>
-          {show_bug && (
+          {show_long_loading && (
             <Alert
               type="info"
               message={
                 <div>
                   <p>
-                    If the Table of Processes does not load, you probably hit{" "}
-                    <A
-                      href={"https://github.com/sagemathinc/cocalc/issues/5081"}
-                    >
-                      Issue #5081
-                    </A>
-                    . You have to restart the project to make it work again.
+                    If the Table of Processes does not load, the project might
+                    be malfunctioning or saturated by load. Try restarting the
+                    project to make it work again.
                   </p>
                   {render_restart_project()}
                 </div>
