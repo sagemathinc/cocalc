@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import A from "components/misc/A";
 import Info from "./info";
+import image from "public/doc/cocalc-snapshots.png";
 
 interface Props {
   children?: ReactNode;
@@ -10,7 +11,7 @@ export default function Snapshots({ children }: Props) {
   return (
     <Info
       title="Snapshot backups"
-      image="cocalc-snapshots.png"
+      image={image}
       icon="life-saver"
       anchor="a-snapshot-backups"
       alt="Browsing filesystem snapshots in a CoCalc project"

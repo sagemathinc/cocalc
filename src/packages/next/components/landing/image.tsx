@@ -43,8 +43,8 @@ export default function Image({ src, style, alt, width }: Props) {
   return (
     <div
       style={{
-        ...style,
         width: "100%",
+        ...style,
         display: "inline-block",
       }}
     >

@@ -15,6 +15,15 @@ import Backups from "components/landing/backups";
 import Collaboration from "components/landing/collaboration";
 import Code from "components/landing/code";
 
+import Logo from "public/doc/latex-logo.svg";
+import LatexEditorImage from "public/doc/cocalc-latex-editor-2019.png";
+import CustomCommand from "public/doc/latex-custom-command-02.png";
+import Sagetex from "public/doc/cocalc-sagetex.png";
+import Pythontex from "public/doc/cocalc-pythontex.png";
+import Knitr from "public/doc/latex-editor-rnw-01.png";
+import LatexTimetravel from "public/doc/latex-editor-timetravel-01.png";
+import Sidechat from "public/doc/cocalc-latex-side-chat-v2.png";
+
 export default function LatexEditor({ customize }) {
   return (
     <Customize value={customize}>
@@ -25,12 +34,12 @@ export default function LatexEditor({ customize }) {
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
               startup={<LaTeX />}
-              logo={"latex-logo.svg"}
+              logo={Logo}
               title={"Online LaTeX Editor"}
               subtitle={
                 "Focus on writing LaTeX.  CoCalc takes care of everything else."
               }
-              image={"cocalc-latex-editor-2019.png"}
+              image={LatexEditorImage}
             />
           </div>
 
@@ -131,7 +140,7 @@ export default function LatexEditor({ customize }) {
                 Managed <LaTeX /> environments
               </>
             }
-            image="latex-custom-command-02.png"
+            image={CustomCommand}
             alt="Menu showing the different LaTeX engines in CoCalc"
           >
             <p>
@@ -174,7 +183,7 @@ export default function LatexEditor({ customize }) {
             anchor="a-computational"
             icon="laptop"
             title="Full computational environment"
-            image="cocalc-latex-editor-2019.png"
+            image={LatexEditorImage}
             alt="Two browser windows editing the same LaTeX file"
             rows
           >
@@ -223,7 +232,7 @@ export default function LatexEditor({ customize }) {
             anchor="a-sagetex"
             title="SageTex"
             icon="sagemath"
-            image="cocalc-sagetex.png"
+            image={Sagetex}
             alt="Editing LaTeX with SageTex code"
           >
             <p>
@@ -273,7 +282,7 @@ export default function LatexEditor({ customize }) {
             anchor="a-pythontex"
             title="PythonTex"
             icon="python"
-            image="cocalc-pythontex.png"
+            image={Pythontex}
             alt="Editing LaTeX with PythonTex code"
           >
             <p>
@@ -303,7 +312,7 @@ export default function LatexEditor({ customize }) {
             anchor="a-knitr"
             title="R/Knitr"
             icon="r"
-            image="latex-editor-rnw-01.png"
+            image={Knitr}
             alt="Editing LaTeX with R/Knitr code"
           >
             <p>
@@ -390,7 +399,7 @@ export default function LatexEditor({ customize }) {
             anchor="a-timetravel"
             title="TimeTravel"
             icon="history"
-            image="latex-editor-timetravel-01.png"
+            image={LatexTimetravel}
             alt={
               "Using the TimeTravel slider to see what changed in a LaTeX document"
             }
@@ -417,7 +426,7 @@ export default function LatexEditor({ customize }) {
             anchor="a-chat"
             title="Side Chat"
             icon="comment"
-            image="cocalc-latex-side-chat-v2.png"
+            image={Sidechat}
             alt="Chatting about a LaTeX document right next to that document"
           >
             <p>

@@ -13,6 +13,12 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import Code from "components/landing/code";
 import Snapshots from "components/landing/snapshots";
 
+import logo from "public/doc/linux-logo.svg";
+import shellScript from "public/doc/cocalc-shell-script-run.png";
+import terminalCollab from "public/doc/cocalc-terminal-collab.gif";
+import jupyterBash from "public/doc/cocalc-jupyter-bash.png";
+import postgres from "public/doc/terminal-jupyter-postgresql.png";
+
 export default function JupyterNotebook({ customize }) {
   return (
     <Customize value={customize}>
@@ -23,12 +29,12 @@ export default function JupyterNotebook({ customize }) {
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
               startup={"Linux"}
-              logo={"linux-logo.svg"}
+              logo={logo}
               title={"Online Linux Environment"}
               subtitle={
                 "Learn Linux and Bash Scripting without messing up your own computer."
               }
-              image={"cocalc-shell-script-run.png"}
+              image={shellScript}
               alt={"Running a bash script to count in Linux"}
             />
           </div>
@@ -185,7 +191,7 @@ export default function JupyterNotebook({ customize }) {
           <Info
             title="Realtime collaboration"
             icon="users"
-            image="cocalc-terminal-collab.gif"
+            image={terminalCollab}
             anchor="a-real-time"
             alt="Video showing using vim collaboratively with chat"
           >
@@ -237,7 +243,7 @@ export default function JupyterNotebook({ customize }) {
               </>
             }
             icon="terminal"
-            image="cocalc-shell-script-run.png"
+            image={shellScript}
             caption={
               <>
                 Bash <Code>script.sh</Code> file (left),{" "}
@@ -274,7 +280,7 @@ export default function JupyterNotebook({ customize }) {
 
           <Info
             title="Jupyter Bash kernel"
-            image="cocalc-jupyter-bash.png"
+            image={jupyterBash}
             icon="ipynb"
             anchor="a-jupyter"
             alt="Using Bash via a Jupyter notebook"
@@ -323,7 +329,7 @@ export default function JupyterNotebook({ customize }) {
 
           <Info
             title="Databases (PostgreSQL, MySQL, SQLite)"
-            image="terminal-jupyter-postgresql.png"
+            image={postgres}
             icon="database"
             anchor="a-database"
             rows

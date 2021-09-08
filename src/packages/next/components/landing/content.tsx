@@ -17,7 +17,7 @@ interface Props {
 function Logo({ logo, title }) {
   if (!logo) return null;
   if (typeof logo == "string" || logo?.src != null) {
-    return <Image src={logo} width={200} alt={`${title} logo`} />;
+    return <Image src={logo} style={{width:'200px'}} alt={`${title} logo`} />;
   }
   return logo;
 }

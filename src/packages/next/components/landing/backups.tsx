@@ -1,13 +1,15 @@
 import Info from "./info";
 import A from "components/misc/A";
 
+import image from "public/doc/cocalc-backup-1.png";
+
 export default function Backups() {
   return (
     <Info
       anchor="a-backups"
       title="Backups"
       icon="life-saver"
-      image="cocalc-backup-1.png"
+      image={image}
       alt="Directory listing of filesystem backups of a CoCalc project"
       rows
     >

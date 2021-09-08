@@ -14,6 +14,13 @@ import Backups from "components/landing/backups";
 
 import JupyterLogo from "/public/doc/jupyter-logo.svg";
 import JupyterTF from "/public/doc/cocalc-jupyter2-20170508.png";
+import RTC from "/public/doc/cocalc-real-time-jupyter.png";
+import Nbgrader from "/public/doc/cocalc-jupyter-nbgrader-overview.png";
+import JupyterChat from "/public/doc/cocalc-chat-jupyter-20171120-2.png";
+import JupyterKernels from "/public/doc/cocalc-jupyter-kernels.png";
+import JupyterLab from "/public/doc/jupyter-lab.png";
+import JupyterMem from "/public/doc/cocalc-jupyter2-memory-cpu.png";
+import JupyterNasa from "/public/doc/cocalc-jupyter-share-nasa.png";
 
 export default function JupyterNotebook({ customize }) {
   return (
@@ -108,7 +115,7 @@ export default function JupyterNotebook({ customize }) {
           <Info
             title="Collaborative editing"
             icon="users"
-            image="cocalc-real-time-jupyter.png"
+            image={RTC}
             anchor="a-realtimesync"
             alt={"Two browser windows editing the same Jupyter notebook"}
           >
@@ -192,7 +199,7 @@ export default function JupyterNotebook({ customize }) {
             anchor="a-nbgrader"
             title="NBGrader: automatically grading assignments in Jupyter notebooks"
             icon="graduation-cap"
-            image="cocalc-jupyter-nbgrader-overview.png"
+            image={Nbgrader}
             alt="Creating an NBGrader-enhanced Jupyter notebook"
           >
             <p>
@@ -219,7 +226,7 @@ export default function JupyterNotebook({ customize }) {
             anchor="a-chat"
             title="Chat about your Jupyter notebook"
             icon="comment"
-            image="cocalc-chat-jupyter-20171120-2.png"
+            image={JupyterChat}
             alt="Chatting about a Jupyter notebook"
           >
             <p>
@@ -246,7 +253,7 @@ export default function JupyterNotebook({ customize }) {
             anchor="a-kernels"
             title="Managed Jupyter kernels"
             icon="python"
-            image="cocalc-jupyter-kernels.png"
+            image={JupyterKernels}
             alt="Dropdown menu showing a large number of preinstalled Jupyter kernels"
           >
             <p>
@@ -269,7 +276,7 @@ export default function JupyterNotebook({ customize }) {
             anchor="a-kernels"
             title="JupyterLab and Jupyter Classic"
             icon="server"
-            image="jupyter-lab.png"
+            image={JupyterLab}
             alt="Running JupyterLab inside a CoCalc Project"
             rows
           >
@@ -311,7 +318,7 @@ export default function JupyterNotebook({ customize }) {
             anchor="a-monitoring"
             title="CPU and memory monitoring for each notebook"
             icon="line-chart"
-            image="cocalc-jupyter2-memory-cpu.png"
+            image={JupyterMem}
             alt="Jupyter notebook showing CPU and memory indicators"
           >
             <p>
@@ -341,7 +348,7 @@ export default function JupyterNotebook({ customize }) {
             anchor="a-publishing"
             title="Publishing your notebooks"
             icon="bullhorn"
-            image="cocalc-jupyter-share-nasa.png"
+            image={JupyterNasa}
             alt="Jupyter notebook hosted on the CoCalc share server"
           >
             <p>

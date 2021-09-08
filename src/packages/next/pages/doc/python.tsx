@@ -15,6 +15,7 @@ import LaTeX from "components/landing/latex";
 import Publishing from "components/landing/publishing";
 import Code from "components/landing/code";
 
+import PythonLogo from "public/doc/python-logo.svg";
 import FrameEditorPython from "public/doc/frame-editor-python.png";
 import CollabRTC from "public/doc/cocalc-real-time-jupyter.png";
 import CocalcPythonJupyter from "public/doc/cocalc-python-jupyter.png";
@@ -36,7 +37,7 @@ export default function Octave({ customize }) {
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
               startup={component}
-              logo={`${component.toLowerCase()}-logo.svg`}
+              logo={PythonLogo}
               title={title}
               subtitle={
                 <>
