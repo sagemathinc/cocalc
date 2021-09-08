@@ -1,14 +1,14 @@
 import { Row, Col } from "antd";
 import { ReactNode } from "react";
 import SignIn from "components/landing/sign-in";
-import { MediaURL } from "./util";
+import Image from "./image";
 
 interface Props {
   title: ReactNode;
   subtitle: ReactNode;
   description?: ReactNode;
-  logo?: ReactNode;
-  image?: string;
+  logo?: ReactNode | string | StaticImageData;
+  image?: string | StaticImageData;
   alt?: string;
   startup?: ReactNode;
   caption?: string;
@@ -16,8 +16,8 @@ interface Props {
 
 function Logo({ logo, title }) {
   if (!logo) return null;
-  if (typeof logo == "string") {
-    return <img src={MediaURL(logo)} width="200px" alt={`${title} logo`} />;
+  if (typeof logo == "string" || logo?.src != null) {
+    return <Image src={logo} width={200} alt={`${title} logo`} />;
   }
   return logo;
 }
@@ -59,11 +59,7 @@ export default function Content({
         <Col sm={14} xs={24}>
           {image && (
             <>
-              <img
-                src={MediaURL(image)}
-                style={{ width: "100%", padding: "15px" }}
-                alt={alt}
-              />
+              <Image src={image} style={{ padding: "15px" }} alt={alt} />
               <div
                 style={{ textAlign: "center", color: "#444", fontSize: "12pt" }}
               >

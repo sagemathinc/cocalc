@@ -15,6 +15,14 @@ import LaTeX from "components/landing/latex";
 import Publishing from "components/landing/publishing";
 import Code from "components/landing/code";
 
+import FrameEditorPython from "public/doc/frame-editor-python.png";
+import CollabRTC from "public/doc/cocalc-real-time-jupyter.png";
+import CocalcPythonJupyter from "public/doc/cocalc-python-jupyter.png";
+import CoCalcLaTeXPythonTex from "public/doc/cocalc-latex-pythontex.png";
+import FormatGIF from "public/doc/cocalc-jupyter-format-python.gif";
+import CommandLineTerminal from "public/doc/cocalc-frame-editor-python.png";
+import SideChatImage from "public/doc/cocalc-jupyter-python-sidechat.png";
+
 const component = "Python";
 const title = `Run ${component} Online`;
 
@@ -40,7 +48,7 @@ export default function Octave({ customize }) {
                   </div>
                 </>
               }
-              image={"frame-editor-python.png"}
+              image={FrameEditorPython}
             />
           </div>
 
@@ -149,7 +157,7 @@ export default function Octave({ customize }) {
           <Info
             title="Collaborative workspaces"
             icon="users"
-            image="cocalc-real-time-jupyter.png"
+            image={CollabRTC}
             anchor="a-collaboration"
             alt="Editing a Jupyter notebook in two windows at the same time"
           >
@@ -179,7 +187,7 @@ export default function Octave({ customize }) {
           <Info
             title="Python in Jupyter Notebooks"
             icon="ipynb"
-            image="cocalc-python-jupyter.png"
+            image={CocalcPythonJupyter}
             anchor="a-jupyternotebook"
             rows
             alt="Plotting using Matplotlib and Numpy in a Jupyter notebook"
@@ -223,7 +231,7 @@ export default function Octave({ customize }) {
               </>
             }
             icon="tex-file"
-            image="cocalc-latex-pythontex.png"
+            image={CoCalcLaTeXPythonTex}
             anchor="a-latex"
             alt="Using PythonTex with LaTeX"
             rows
@@ -291,7 +299,7 @@ export default function Octave({ customize }) {
           <Info
             title={"Code formatting"}
             icon="network-wired"
-            image="cocalc-jupyter-format-python.gif"
+            image={FormatGIF}
             anchor="a-codeformatting"
             alt="Video of formatting Python code in a Jupyter notebook with 1 click"
           >
@@ -321,7 +329,7 @@ export default function Octave({ customize }) {
           <Info
             title={"Command line support"}
             icon="terminal"
-            image="cocalc-frame-editor-python.png"
+            image={CommandLineTerminal}
             anchor="a-commandline"
             alt="Using scikit learn from the command line to run Python code"
           >
@@ -354,7 +362,7 @@ export default function Octave({ customize }) {
           <Info
             title={"Chatroom about your Python code"}
             icon="comment"
-            image="cocalc-jupyter-python-sidechat.png"
+            image={SideChatImage}
             anchor="a-chat"
             alt="A Jupyter notebook with a chat window on the side"
           >

@@ -2,6 +2,7 @@ import { Row, Col } from "antd";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { CSSProperties, ReactNode } from "react";
 import { MediaURL } from "./util";
+import Image, { StaticImageData } from "./image";
 
 const showcase = {
   width: "100%",
@@ -13,12 +14,12 @@ interface Props {
   anchor: string;
   icon?: IconName;
   title: ReactNode;
-  image?: string;
+  image?: string | StaticImageData;
   alt: string;
   video?: string | string[];
   caption?: ReactNode;
   children: ReactNode;
-  rows?: boolean; // if given show as two rows instead of a single row and two columns
+  rows?: boolean; // if given image is wide and need more space or its very hard to see... (called "rows" since that's what I used once...)
 }
 
 export default function Info({
@@ -33,21 +34,22 @@ export default function Info({
   rows,
 }: Props) {
   const head = (
-    <h2 id={anchor}>
+    <h1
+      id={anchor}
+      style={{ textAlign: "center", marginBottom: "20px", color: "#333" }}
+    >
       {icon && (
         <span style={{ fontSize: "24pt", marginRight: "5px" }}>
           <Icon name={icon} />{" "}
         </span>
       )}
       {title}
-    </h2>
+    </h1>
   );
 
   let graphic: ReactNode = null;
   if (image != null) {
-    graphic = (
-      <img style={showcase} src={MediaURL(image)} alt={alt ?? caption} />
-    );
+    graphic = <Image style={showcase} src={image} alt={alt ?? caption} />;
   } else if (video != null) {
     if (typeof video == "string") video = [video];
     verifyHasMp4(video);
@@ -74,12 +76,12 @@ export default function Info({
 
   return (
     <div style={{ padding: "60px 5%", background: "white", fontSize: "11pt" }}>
-      {graphic && !rows ? (
+      {graphic ? (
         <>
           {head}
           <Row>
             <Col
-              lg={9}
+              lg={rows ? 7 : 9}
               style={{
                 border: "1px solid white",
                 background: "#fafafa",
@@ -94,15 +96,24 @@ export default function Info({
             >
               {children}
             </Col>
-            <Col lg={15} style={{ padding: "0 30px" }}>
-              <div>{graphic}</div>
+            <Col
+              lg={rows ? 17 : 15}
+              style={{ padding: "0 30px", width: "100%" }}
+            >
+              {graphic}
             </Col>
           </Row>
         </>
       ) : (
         <div style={{ width: "100%" }}>
           <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-            <div style={{ background: "#fafafa", padding: "20px" }}>
+            <div
+              style={{
+                background: "#fafafa",
+                padding: "20px",
+                marginBottom: "15px",
+              }}
+            >
               <div style={{ textAlign: "center" }}>{head}</div>
               <div
                 style={{ margin: "auto", maxWidth: rows ? "600px" : undefined }}
@@ -110,7 +121,6 @@ export default function Info({
                 {children}
               </div>
             </div>
-            {rows && <div style={{ margin: "15px 0" }}>{graphic}</div>}
           </div>
         </div>
       )}

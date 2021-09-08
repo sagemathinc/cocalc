@@ -3,15 +3,15 @@ import A from "components/misc/A";
 
 const PAGES = {
   "jupyter-notebook": { label: "Jupyter" },
-  terminal: { label: "Terminal" },
-  linux: { label: "Linux" },
   "latex-editor": { label: "LaTeX" },
+  linux: { label: "Linux" },
   python: { label: "Python" },
   "r-statistical-software": { label: "R Stats" },
   sage: { label: "SageMath" },
   octave: { label: "Octave" },
   julia: { label: "Julia", disabled: false },
   teaching: { label: "Teaching" },
+  terminal: { label: "Terminal" },
   x11: { label: "X11" },
   compare: { label: "Compare" },
   api: { label: "API" },

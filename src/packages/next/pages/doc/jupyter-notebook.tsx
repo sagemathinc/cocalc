@@ -12,6 +12,9 @@ import Head from "components/landing/head";
 import LaTeX from "components/landing/latex";
 import Backups from "components/landing/backups";
 
+import JupyterLogo from "/public/doc/jupyter-logo.svg";
+import JupyterTF from "/public/doc/cocalc-jupyter2-20170508.png";
+
 export default function JupyterNotebook({ customize }) {
   return (
     <Customize value={customize}>
@@ -22,12 +25,12 @@ export default function JupyterNotebook({ customize }) {
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
               startup={"Jupyter"}
-              logo={"jupyter-logo.svg"}
+              logo={JupyterLogo}
               title={"Online Jupyter Notebooks"}
               subtitle={
                 "CoCalc's own collaborative, fully compatible and supercharged notebooks."
               }
-              image={"cocalc-jupyter2-20170508.png"}
+              image={JupyterTF}
               alt={"Using Pandas and Tensorflow in a Jupyter notebook"}
             />
           </div>
