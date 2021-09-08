@@ -17,6 +17,14 @@ import Code from "components/landing/code";
 import Contact from "components/landing/contact";
 import Collaboration from "components/landing/collaboration";
 
+import logo from "public/doc/r-logo.svg";
+import rJupyter from "public/doc/cocalc-r-jupyter.png";
+import rLatex from "public/doc/cocalc-r-latex.png";
+import rmdDemo from "public/doc/cocalc-rmd-demo-R-python3-plotting.png";
+import rcode from "public/doc/cocalc-rcode.png";
+import sidechat from "public/doc/cocalc-r-side-chat.png";
+import rEnvironment from "public/doc/cocalc-r-environment.png";
+
 const component = "R";
 const title = `Run ${component} Online`;
 
@@ -30,7 +38,7 @@ export default function R({ customize }) {
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
               startup={component}
-              logo={`${component.toLowerCase()}-logo.svg`}
+              logo={logo}
               title={title}
               subtitle={
                 <>
@@ -43,7 +51,7 @@ export default function R({ customize }) {
                   in a full, remote online R environment.
                 </>
               }
-              image={"cocalc-r-jupyter.png"}
+              image={rJupyter}
               alt={"Use of R in Jupyter"}
             />
           </div>
@@ -121,7 +129,7 @@ export default function R({ customize }) {
           <Info
             title="R in Jupyter Notebooks"
             icon="ipynb"
-            image="cocalc-r-jupyter.png"
+            image={rJupyter}
             anchor="a-jupyternotebook"
             alt={"Using R via the Jupyter notebook"}
           >
@@ -155,7 +163,7 @@ export default function R({ customize }) {
               </>
             }
             icon="tex"
-            image="cocalc-r-latex.png"
+            image={rLatex}
             anchor="a-latex"
             alt="Using Knitr in CoCalc to create an R-enhanced LaTeX document."
           >
@@ -237,7 +245,7 @@ export default function R({ customize }) {
           <Info
             title="RMarkdown support"
             icon="markdown"
-            image="cocalc-rmd-demo-R-python3-plotting.png"
+            image={rmdDemo}
             anchor="a-rmarkdown"
             alt="An Rmarkdown document with a plot"
           >
@@ -312,7 +320,7 @@ export default function R({ customize }) {
           <Info
             title={"Command line support"}
             icon="terminal"
-            image="cocalc-rcode.png"
+            image={rcode}
             anchor="a-commandline"
             alt="Using R from a command line terminal"
           >
@@ -347,7 +355,7 @@ export default function R({ customize }) {
           <Info
             title="Chatrooms and side chat"
             icon="comment"
-            image="cocalc-r-side-chat.png"
+            image={sidechat}
             anchor="a-chat"
             alt="Chatting about an R Jupyter notebook"
           >
@@ -372,7 +380,7 @@ export default function R({ customize }) {
           <Info
             title="Managed R Environment"
             icon="server"
-            image="cocalc-r-environment.png"
+            image={rEnvironment}
             anchor="a-environment"
             alt="Exploring the stack of installed R packages in a Jupyter notebook"
           >

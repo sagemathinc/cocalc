@@ -11,6 +11,12 @@ import Pitch from "components/landing/pitch";
 import Head from "components/landing/head";
 import Snapshots from "components/landing/snapshots";
 
+import logo from "public/doc/octave-logo.svg";
+import octaveJupyter from "public/doc/cocalc-octave-jupyter-20200511.png";
+import octaveTerminal from "public/doc/cocalc-octave-terminal-20200511.png";
+import octaveX11 from "public/doc/cocalc-octave-x11-20200511.png";
+import x11Terminal from "public/doc/octave-x11-terminal.png";
+
 const octave = <A href="https://www.gnu.org/software/octave/index">Octave</A>;
 const title = "Run Octave Online";
 
@@ -24,7 +30,7 @@ export default function Octave({ customize }) {
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
               startup={"Octave"}
-              logo={"octave-logo.svg"}
+              logo={logo}
               title={title}
               subtitle={
                 <>
@@ -32,7 +38,7 @@ export default function Octave({ customize }) {
                   X11 desktop. The syntax is largely compatible with MATLAB®!
                 </>
               }
-              image={"cocalc-octave-jupyter-20200511.png"}
+              image={octaveJupyter}
               alt="Plotting a Sombrero in a Jupyter notebook using Octave"
             />
           </div>
@@ -120,7 +126,7 @@ export default function Octave({ customize }) {
           <Info
             title="Jupyter Notebook support"
             icon="ipynb"
-            image="cocalc-octave-jupyter-20200511.png"
+            image={octaveJupyter}
             anchor="a-jupyter"
             alt="Using Octave in a Jupyter notebook"
           >
@@ -153,7 +159,7 @@ export default function Octave({ customize }) {
           <Info
             title="Octave in a Terminal"
             icon="octave"
-            image="cocalc-octave-terminal-20200511.png"
+            image={octaveTerminal}
             anchor="a-terminal"
             alt="Using Octave in a CoCalc terminal"
             caption="Octave in CoCalc's Terminal"
@@ -176,7 +182,7 @@ export default function Octave({ customize }) {
           <Info
             title="Octave in an X11 Graphical Desktop"
             icon="window-restore"
-            image="cocalc-octave-x11-20200511.png"
+            image={octaveX11}
             anchor="a-x11"
             alt="Using the traditional Octave GUI via X11"
             rows
@@ -196,7 +202,7 @@ export default function Octave({ customize }) {
           <Info
             title="Octave in an X11 Terminal"
             icon="terminal"
-            image="octave-x11-terminal.png"
+            image={x11Terminal}
             anchor="a-x11-terminal"
             caption="X11 Terminal with interactive 3D plot"
             alt="Using a Terminal with Octave and X11 to draw an interactive 3D plot"

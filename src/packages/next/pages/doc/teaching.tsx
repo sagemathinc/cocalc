@@ -13,6 +13,16 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import A from "components/misc/A";
 import Contact from "components/landing/contact";
 import LaTeX from "components/landing/latex";
+import Image from "components/landing/image";
+
+import logo from "public/doc/fa-graduation-cap.svg";
+import assignments from "public/doc/cocalc-course-assignments-2019.png";
+import nbgrader from "public/doc/cocalc-jupyter-nbgrader-overview.png";
+import sticker from "public/doc/sage-sticker-1x1_inch-small.png";
+import latexLogo from "public/doc/latex-logo.svg";
+import linuxLogo from "public/doc/linux-logo.svg";
+import kiran from "public/doc/kiran.jpeg";
+import conley from "public/doc/will_conley.jpg";
 
 export default function Teaching({ customize }) {
   return (
@@ -24,7 +34,7 @@ export default function Teaching({ customize }) {
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
               startup={"CoCalc"}
-              logo={"fa-graduation-cap.svg"}
+              logo={logo}
               title={"Teaching scientific software online"}
               subtitle={
                 <>
@@ -32,7 +42,7 @@ export default function Teaching({ customize }) {
                   pain of teaching scientific software!
                 </>
               }
-              image={"cocalc-course-assignments-2019.png"}
+              image={assignments}
               alt={"Screenshot of Cocalc's course management interface"}
             />
           </div>
@@ -203,7 +213,7 @@ export default function Teaching({ customize }) {
           <Info
             title="NBGrader support"
             icon="graduation-cap"
-            image="cocalc-jupyter-nbgrader-overview.png"
+            image={nbgrader}
             alt="Editing an NBgrader Jupyter notebook"
             anchor="a-nbgrader"
           >
@@ -238,7 +248,7 @@ export default function Teaching({ customize }) {
             <Row>
               <Col lg={6}>
                 <Tool
-                  image="jupyter-logo.svg"
+                  image={logo}
                   href="/doc/jupyter-notebook"
                   title="Jupyter Notebooks"
                   alt="Jupyter logo"
@@ -251,7 +261,7 @@ export default function Teaching({ customize }) {
               </Col>
               <Col lg={6}>
                 <Tool
-                  image="sage-sticker-1x1_inch-small.png"
+                  image={sticker}
                   href="https://doc.cocalc.com/sagews.html"
                   title="Sage Worksheets"
                   alt="SageMath sticker logo"
@@ -267,7 +277,7 @@ export default function Teaching({ customize }) {
               </Col>
               <Col lg={6}>
                 <Tool
-                  image="latex-logo.svg"
+                  image={latexLogo}
                   href="/doc/latex-editor"
                   alt="LaTeX Logo"
                   title={
@@ -288,7 +298,7 @@ export default function Teaching({ customize }) {
               </Col>
               <Col lg={6}>
                 <Tool
-                  image="linux-logo.svg"
+                  image={linuxLogo}
                   href="/doc/terminal"
                   title="Linux Terminal"
                   alt="Tux Linux Penguin"
@@ -312,10 +322,9 @@ export default function Teaching({ customize }) {
             <Row>
               <Col lg={12}>
                 <Testimonial
-                  image="kiran.jpeg"
+                  image={kiran}
                   name="Kiran Kedlaya"
                   coords="UC San Diego, March 2017"
-                  title="© Autor: Mathematisches Forschungsinstitut Oberwolfach gGmbH (MFO) -- Lizenz: CC BY-SA 2.0 (de)"
                 >
                   I just found out that my CoCalc class got by far the best
                   course evaluations for any course I've taught at UCSD to date
@@ -327,7 +336,7 @@ export default function Teaching({ customize }) {
               </Col>
               <Col lg={12}>
                 <Testimonial
-                  image="will_conley.jpg"
+                  image={conley}
                   name="Will Conley"
                   coords="University of California at Los Angeles, Fall 2016"
                 >
@@ -360,7 +369,7 @@ export async function getServerSideProps() {
 }
 
 interface ToolProps {
-  image: string;
+  image;
   alt: string;
   href: string;
   title: ReactNode;
@@ -370,9 +379,9 @@ interface ToolProps {
 function Tool({ image, alt, href, title, children }: ToolProps) {
   return (
     <div style={{ padding: "15px" }}>
-      <div style={{ textAlign: "center", marginBottom: "30px" }}>
+      <div style={{ textAlign: "center", marginBottom: "30px", height:'70px' }}>
         <A href={href}>
-          <img style={{ height: "70px" }} src={image} alt={alt} />
+          <Image style={{ width: "70px" }} src={image} alt={alt} />
         </A>
       </div>
       <h2 style={{ textAlign: "center" }}>
@@ -384,20 +393,13 @@ function Tool({ image, alt, href, title, children }: ToolProps) {
 }
 
 interface TestimonialProps {
-  image: string;
+  image;
   name: string;
   coords: string;
   children: ReactNode;
-  title?: string;
 }
 
-function Testimonial({
-  image,
-  name,
-  coords,
-  children,
-  title,
-}: TestimonialProps) {
+function Testimonial({ image, name, coords, children }: TestimonialProps) {
   return (
     <blockquote
       style={{
@@ -406,12 +408,11 @@ function Testimonial({
         borderLeft: "5px solid #eee",
       }}
     >
-      <img
+      <Image
         src={image}
         alt={name}
-        title={title}
         style={{
-          height: "100px",
+          width: "90px",
           borderRadius: "6px",
           float: "left",
           margin: "15px",
