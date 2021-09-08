@@ -17,6 +17,7 @@ import {
   parse_number_input,
   is_valid_uuid_string,
 } from "@cocalc/util/misc";
+import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
 import { max_quota, site_license_quota } from "@cocalc/util/upgrades/quota";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
@@ -245,7 +246,12 @@ export class ProjectsStore extends Store<ProjectsState> {
   public is_collaborator(project_id: string): boolean {
     return (
       webapp_client.account_id != null &&
-      this.getIn(["project_map", project_id, 'users', webapp_client.account_id]) != null
+      this.getIn([
+        "project_map",
+        project_id,
+        "users",
+        webapp_client.account_id,
+      ]) != null
     );
   }
 
@@ -374,9 +380,8 @@ export class ProjectsStore extends Store<ProjectsState> {
       mintime += info?.getIn(["upgrades", "mintime"]) ?? 0;
     });
     // contribution from site license
-    const site_license = this.get_total_site_license_upgrades_to_project(
-      project_id
-    );
+    const site_license =
+      this.get_total_site_license_upgrades_to_project(project_id);
     mintime += site_license.mintime;
 
     return 1000 * mintime;
@@ -444,9 +449,8 @@ export class ProjectsStore extends Store<ProjectsState> {
       copy(ZERO_QUOTAS);
     coerce_codomain_to_numbers(base_values);
     const upgrades = this.get_total_project_upgrades(project_id);
-    const site_license_upgrades = this.get_total_site_license_upgrades_to_project(
-      project_id
-    );
+    const site_license_upgrades =
+      this.get_total_site_license_upgrades_to_project(project_id);
     const quota = map_sum(
       map_sum(base_values, upgrades as any),
       site_license_upgrades as any
@@ -454,6 +458,24 @@ export class ProjectsStore extends Store<ProjectsState> {
     this.new_format_license_quota(project_id, quota);
 
     return quota;
+  }
+
+  // rough distinction between different types of projects
+  public classify_project(
+    project_id: string
+  ): { kind: "free" | "member"; upgraded: boolean } | undefined {
+    const quotas = this.get_total_project_quotas(project_id);
+    if (quotas == null) {
+      return undefined;
+    }
+    const kind = quotas.member_host ?? true ? "member" : "free";
+    // if any quota regarding cpu or memory is upgraded, we treat it better than purely free projects
+    const upgraded =
+      (quotas.memory != null && quotas.memory > DEFAULT_QUOTAS.memory) ||
+      (quotas.memory_request != null && quotas.memory_request > 200) ||
+      (quotas.always_running ?? false) ||
+      (quotas.cores != null && quotas.cores > DEFAULT_QUOTAS.cores);
+    return { kind, upgraded };
   }
 
   public is_always_running(project_id: string): boolean {
