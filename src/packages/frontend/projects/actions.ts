@@ -815,6 +815,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       return false;
     }
     let did_start = false;
+    const t0 = webapp_client.server_time().getTime();
     const action_request = this.current_action_request(project_id);
     if (action_request == null || action_request != "start") {
       // need to make an action request:
@@ -836,6 +837,8 @@ export class ProjectsActions extends Actions<ProjectsState> {
     });
     this.project_log(project_id, {
       event: "project_started",
+      duration_ms: webapp_client.server_time().getTime() - t0,
+      ...store.classify_project(project_id),
     });
     return did_start;
   }
@@ -847,6 +850,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       return false;
     }
     let did_stop = false;
+    const t0 = webapp_client.server_time().getTime();
     const action_request = this.current_action_request(project_id);
     if (action_request == null || action_request != "stop") {
       // need to do it!
@@ -873,6 +877,8 @@ export class ProjectsActions extends Actions<ProjectsState> {
     });
     this.project_log(project_id, {
       event: "project_stopped",
+      duration_ms: webapp_client.server_time().getTime() - t0,
+      ...store.classify_project(project_id),
     });
     return did_stop;
   }
