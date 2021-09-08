@@ -5,14 +5,10 @@
 
 import * as misc from "@cocalc/util/misc";
 import React from "react";
-
 import * as lodash from "lodash";
 const TRUNC = 90;
-
 import { Rendered, redux } from "../../app-framework";
-
 import { Grid, Col, Row } from "react-bootstrap";
-
 import {
   Icon,
   IconName,
@@ -31,7 +27,7 @@ import { file_associations } from "../../file-associations";
 import { SystemProcess } from "./system-process";
 import { UserMap } from "@cocalc/frontend/todo-types";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-
+import { round1 } from "@cocalc/util/misc";
 import {
   ProjectEvent,
   OpenFile,
@@ -575,6 +571,12 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
     }
   }
 
+  function renderDuration() {
+    if (props.event.duration_ms != null) {
+      return <> (time = {round1(props.event.duration_ms / 1000)} seconds) </>;
+    }
+  }
+
   const style = props.cursor ? selected_item : props.backgroundStyle;
   return (
     <Grid fluid={true} style={{ width: "100%" }}>
@@ -588,6 +590,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
           {render_user()}
           <Space />
           {render_desc()}
+          {renderDuration()}
           <Space />
           <TimeAgo style={style} date={props.time} popover={true} />
         </Col>

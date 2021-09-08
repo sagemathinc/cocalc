@@ -11,7 +11,8 @@ export interface Upgrades {
   memory_request?: number;
   mintime?: number;
   network?: number;
-  member_host?: number;
+  member_host?: boolean;
   ephemeral_state?: number;
   ephemeral_disk?: number;
+  always_running?: boolean;
 }
