@@ -278,7 +278,7 @@ export default function JupyterNotebook({ customize }) {
             icon="server"
             image={JupyterLab}
             alt="Running JupyterLab inside a CoCalc Project"
-            rows
+            wide
           >
             <p>
               CoCalc's Jupyter is a <strong>complete rewrite</strong> of the

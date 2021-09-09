@@ -39,152 +39,7 @@ export default function JupyterNotebook({ customize }) {
             />
           </div>
 
-          <Pitch
-            col1={
-              <>
-                <h2>Full Linux Terminal</h2>
-                <p>
-                  <strong>
-                    CoCalc offers a full, collaborative, real-time synchronized{" "}
-                    <A href="https://en.wikipedia.org/wiki/Linux">Linux</A>{" "}
-                    <A href="https://en.wikipedia.org/wiki/Command-line_interface">
-                      Command Line Terminal
-                    </A>{" "}
-                    in your browser.
-                  </strong>
-                </p>
-                <p>
-                  Take a look at our{" "}
-                  <strong>
-                    <A href="https://doc.cocalc.com/terminal.html">
-                      terminal documentation
-                    </A>
-                  </strong>{" "}
-                  to learn more about it!
-                </p>
-                <p>
-                  Browse the{" "}
-                  <strong>
-                    <A href="/doc/software-executables">installed software</A>
-                  </strong>{" "}
-                  in CoCalc.
-                </p>
-                <p>
-                  CoCalc is made for{" "}
-                  <strong>
-                    <A href="/doc/teaching">teaching a course</A>
-                  </strong>
-                  : students just have to sign in to get started!{" "}
-                </p>
-              </>
-            }
-            col2={
-              <>
-                <h2>Benefits of working 100% online</h2>
-                <ul>
-                  <li>
-                    You no longer have to <strong>install and maintain</strong>{" "}
-                    any software.
-                  </li>
-                  <li>
-                    It is possible to{" "}
-                    <strong>
-                      collaboratively use the same terminal in realtime
-                    </strong>
-                    .
-                  </li>
-                  <li>You can also edit and run shell script files.</li>
-                  <li>
-                    Use{" "}
-                    <strong>
-                      <A href="https://doc.cocalc.com/chat.html">chat</A>
-                    </strong>{" "}
-                    next to the Terminal to discuss your commands with others.
-                  </li>
-                  <li>
-                    <strong>Automatic backup</strong> keeps your files safe!
-                  </li>
-                  <li>
-                    You can <strong>copy and paste</strong> between your local
-                    desktop and the online terminal.
-                  </li>
-                </ul>
-              </>
-            }
-          />
-
-          <Pitch
-            ext="sh"
-            col1={
-              <>
-                <h2>
-                  <Icon name="user-check" /> What you <strong>can</strong> do
-                  ...
-                </h2>
-                <ul>
-                  <li>Learn Bash scripting</li>
-                  <li>Learn how to use the Linux command line</li>
-                  <li>
-                    Run scripts written in{" "}
-                    <strong>Python, R, PHP, Ruby, Go, Perl, Nodejs </strong>{" "}
-                    etc.
-                  </li>
-                  <li>
-                    Compile programs written in{" "}
-                    <strong>C/C++, Java, Rust, Assembly, Fortan, Julia,</strong>{" "}
-                    etc.
-                  </li>
-                  <li>Process and store datafiles</li>
-                  <li>Collaborate</li>
-                  <li>Use graphical X11 applications</li>
-                </ul>
-              </>
-            }
-            col2={
-              <>
-                <h2>
-                  <Icon name="user-slash" /> ... what you{" "}
-                  <strong>cannot</strong> do.
-                </h2>
-                <ul>
-                  <li>
-                    <strong>
-                      <code>Root</code>
-                    </strong>
-                    : due to how CoCalc works, you cannot have root rights.
-                    However, there is a wealth of software{" "}
-                    <A href="/doc/software">already installed</A>, including
-                    both systems utilities and packages for specific language
-                    environments. Regarding Python, R, Nodejs, and Julia
-                    environments, you can{" "}
-                    <A href="https://doc.cocalc.com/howto/index.html">
-                      install them in your project
-                    </A>
-                    . If something is missing,{" "}
-                    <A href="mailto:help@cocalc.com">please tell us</A>.
-                  </li>
-                  <li>
-                    <strong>
-                      Communicate with the Internet without buying a license
-                    </strong>
-                    : if you want to run code to download data from another
-                    server or checkout a Git repository – or just want to
-                    support CoCalc – you need a{" "}
-                    <A href="https://doc.cocalc.com/licenses.html">license</A>{" "}
-                    applied to your project. Learn more about the{" "}
-                    <A href="https://doc.cocalc.com/trial.html">
-                      Trial Projects
-                    </A>{" "}
-                    that you can use for free.
-                  </li>
-                  <li>
-                    <strong>Port forwards:</strong> you cannot forward arbitrary
-                    ports over ssh to your local computer.
-                  </li>
-                </ul>
-              </>
-            }
-          />
+          <FullLinuxTerminal />
 
           <SignIn startup="Linux" />
 
@@ -332,7 +187,7 @@ export default function JupyterNotebook({ customize }) {
             image={postgres}
             icon="database"
             anchor="a-database"
-            rows
+            wide
             alt="Using a PostgreSQL database via a terminal and a Jupyter notebook"
           >
             <p>
@@ -385,4 +240,153 @@ export default function JupyterNotebook({ customize }) {
 
 export async function getServerSideProps() {
   return await withCustomize();
+}
+
+export function FullLinuxTerminal() {
+  return (
+    <>
+      <Pitch
+        col1={
+          <>
+            <h2>Full Linux Terminal</h2>
+            <p>
+              <strong>
+                CoCalc offers a full, collaborative, real-time synchronized{" "}
+                <A href="https://en.wikipedia.org/wiki/Linux">Linux</A>{" "}
+                <A href="https://en.wikipedia.org/wiki/Command-line_interface">
+                  Command Line Terminal
+                </A>{" "}
+                in your browser.
+              </strong>
+            </p>
+            <p>
+              Take a look at our{" "}
+              <strong>
+                <A href="https://doc.cocalc.com/terminal.html">
+                  terminal documentation
+                </A>
+              </strong>{" "}
+              to learn more about it!
+            </p>
+            <p>
+              Browse the{" "}
+              <strong>
+                <A href="/doc/software-executables">installed software</A>
+              </strong>{" "}
+              in CoCalc.
+            </p>
+            <p>
+              CoCalc is made for{" "}
+              <strong>
+                <A href="/doc/teaching">teaching a course</A>
+              </strong>
+              : students just have to sign in to get started!{" "}
+            </p>
+          </>
+        }
+        col2={
+          <>
+            <h2>Benefits of working 100% online</h2>
+            <ul>
+              <li>
+                You no longer have to <strong>install and maintain</strong> any
+                software.
+              </li>
+              <li>
+                It is possible to{" "}
+                <strong>
+                  collaboratively use the same terminal in realtime
+                </strong>
+                .
+              </li>
+              <li>You can also edit and run shell script files.</li>
+              <li>
+                Use{" "}
+                <strong>
+                  <A href="https://doc.cocalc.com/chat.html">chat</A>
+                </strong>{" "}
+                next to the Terminal to discuss your commands with others.
+              </li>
+              <li>
+                <strong>Automatic backup</strong> keeps your files safe!
+              </li>
+              <li>
+                You can <strong>copy and paste</strong> between your local
+                desktop and the online terminal.
+              </li>
+            </ul>
+          </>
+        }
+      />
+
+      <Pitch
+        ext="sh"
+        col1={
+          <>
+            <h2>
+              <Icon name="user-check" /> What you <strong>can</strong> do ...
+            </h2>
+            <ul>
+              <li>Learn Bash scripting</li>
+              <li>Learn how to use the Linux command line</li>
+              <li>
+                Run scripts written in{" "}
+                <strong>Python, R, PHP, Ruby, Go, Perl, Nodejs </strong> etc.
+              </li>
+              <li>
+                Compile programs written in{" "}
+                <strong>C/C++, Java, Rust, Assembly, Fortan, Julia,</strong>{" "}
+                etc.
+              </li>
+              <li>Process and store datafiles</li>
+              <li>Collaborate</li>
+              <li>Use graphical X11 applications</li>
+            </ul>
+          </>
+        }
+        col2={
+          <>
+            <h2>
+              <Icon name="user-slash" /> ... what you <strong>cannot</strong>{" "}
+              do.
+            </h2>
+            <ul>
+              <li>
+                <strong>
+                  <code>Root</code>
+                </strong>
+                : due to how CoCalc works, you cannot have root rights. However,
+                there is a wealth of software{" "}
+                <A href="/doc/software">already installed</A>, including both
+                systems utilities and packages for specific language
+                environments. Regarding Python, R, Nodejs, and Julia
+                environments, you can{" "}
+                <A href="https://doc.cocalc.com/howto/index.html">
+                  install them in your project
+                </A>
+                . If something is missing,{" "}
+                <A href="mailto:help@cocalc.com">please tell us</A>.
+              </li>
+              <li>
+                <strong>
+                  Communicate with the Internet without buying a license
+                </strong>
+                : if you want to run code to download data from another server
+                or checkout a Git repository – or just want to support CoCalc –
+                you need a{" "}
+                <A href="https://doc.cocalc.com/licenses.html">license</A>{" "}
+                applied to your project. Learn more about the{" "}
+                <A href="https://doc.cocalc.com/trial.html">Trial Projects</A>{" "}
+                that you can use for free.
+              </li>
+              <li>
+                <strong>Port forwards:</strong> you cannot forward arbitrary
+                ports over ssh to your local computer.
+              </li>
+            </ul>
+          </>
+        }
+      />
+    </>
+  );
 }

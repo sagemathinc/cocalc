@@ -15,7 +15,7 @@ export default function Snapshots({ children }: Props) {
       icon="life-saver"
       anchor="a-snapshot-backups"
       alt="Browsing filesystem snapshots in a CoCalc project"
-      rows
+      wide
     >
       <p>
         <strong>Snapshots</strong> are consistent read-only views of all your

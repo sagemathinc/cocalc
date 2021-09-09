@@ -190,7 +190,7 @@ export default function Octave({ customize }) {
             icon="ipynb"
             image={CocalcPythonJupyter}
             anchor="a-jupyternotebook"
-            rows
+            wide
             alt="Plotting using Matplotlib and Numpy in a Jupyter notebook"
           >
             <p>
@@ -235,7 +235,7 @@ export default function Octave({ customize }) {
             image={CoCalcLaTeXPythonTex}
             anchor="a-latex"
             alt="Using PythonTex with LaTeX"
-            rows
+            wide
           >
             <div>
               The fully integrated{" "}

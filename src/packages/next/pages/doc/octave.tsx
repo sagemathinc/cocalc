@@ -185,7 +185,7 @@ export default function Octave({ customize }) {
             image={octaveX11}
             anchor="a-x11"
             alt="Using the traditional Octave GUI via X11"
-            rows
+            wide
           >
             <p>
               You can start Octave's GUI in a full remote desktop as{" "}
@@ -206,7 +206,7 @@ export default function Octave({ customize }) {
             anchor="a-x11-terminal"
             caption="X11 Terminal with interactive 3D plot"
             alt="Using a Terminal with Octave and X11 to draw an interactive 3D plot"
-            rows
+            wide
           >
             <p>
               Run any graphical applications written for Octave in your web

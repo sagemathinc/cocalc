@@ -19,7 +19,8 @@ interface Props {
   video?: string | string[];
   caption?: ReactNode;
   children: ReactNode;
-  rows?: boolean; // if given image is wide and need more space or its very hard to see... (called "rows" since that's what I used once...)
+  wide?: boolean; // if given image is wide and could use more space or its very hard to see.
+  swapCols?: boolean; // if true, then put text on left and image on right.
 }
 
 export default function Info({
@@ -31,7 +32,8 @@ export default function Info({
   video,
   caption,
   children,
-  rows,
+  wide,
+  swapCols,
 }: Props) {
   const head = (
     <h1
@@ -74,56 +76,62 @@ export default function Info({
     );
   }
 
-  return (
-    <div style={{ padding: "60px 5%", background: "white", fontSize: "11pt" }}>
-      {graphic ? (
-        <>
-          {head}
-          <Row>
-            <Col
-              lg={rows ? 7 : 9}
-              style={{
-                border: "1px solid white",
-                background: "#fafafa",
-                borderRadius: "5px",
-                padding: "20px",
-                marginBottom: "15px",
-                display: "flex",
-                justifyContent: "center",
-                alignContent: "center",
-                flexDirection: "column",
-              }}
+  if (!graphic) {
+    return (
+      <div style={{ width: "100%" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <div
+            style={{
+              background: "#fafafa",
+              padding: "20px",
+              marginBottom: "15px",
+            }}
+          >
+            <div style={{ textAlign: "center" }}>{head}</div>
+            <div
+              style={{ margin: "auto", maxWidth: wide ? "600px" : undefined }}
             >
               {children}
-            </Col>
-            <Col
-              lg={rows ? 17 : 15}
-              style={{ padding: "0 30px", width: "100%" }}
-            >
-              {graphic}
-            </Col>
-          </Row>
-        </>
-      ) : (
-        <div style={{ width: "100%" }}>
-          <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-            <div
-              style={{
-                background: "#fafafa",
-                padding: "20px",
-                marginBottom: "15px",
-              }}
-            >
-              <div style={{ textAlign: "center" }}>{head}</div>
-              <div
-                style={{ margin: "auto", maxWidth: rows ? "600px" : undefined }}
-              >
-                {children}
-              </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  const textCol = (
+    <Col
+      lg={wide ? 7 : 9}
+      style={{
+        border: "1px solid white",
+        background: "#fafafa",
+        borderRadius: "5px",
+        padding: "20px",
+        marginBottom: "15px",
+        display: "flex",
+        justifyContent: "center",
+        alignContent: "center",
+        flexDirection: "column",
+        fontSize: "12pt",
+      }}
+    >
+      {children}
+    </Col>
+  );
+  const graphicCol = (
+    <Col lg={wide ? 17 : 15} style={{ padding: "0 30px", width: "100%" }}>
+      {graphic}
+    </Col>
+  );
+
+  const cols = swapCols ? [textCol, graphicCol] : [graphicCol, textCol];
+
+  return (
+    <div style={{ padding: "60px 5%", background: "white", fontSize: "11pt" }}>
+      <>
+        {head}
+        <Row>{cols}</Row>
+      </>
     </div>
   );
 }

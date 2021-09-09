@@ -185,7 +185,7 @@ export default function LatexEditor({ customize }) {
             title="Full computational environment"
             image={LatexEditorImage}
             alt="Two browser windows editing the same LaTeX file"
-            rows
+            wide
           >
             <p>
               One thing that sets CoCalc apart from other online <LaTeX />{" "}
@@ -374,7 +374,7 @@ export default function LatexEditor({ customize }) {
               "latex-forward-inverse-02.webm",
               "latex-forward-inverse-02.mp4",
             ]}
-            rows
+            wide
             alt="Video showing forward and inverse search in a LaTeX document"
           >
             <p>Let CoCalc help you find your way around in large documents!</p>

@@ -170,7 +170,7 @@ export default function X11({ customize }) {
             image="swirl-course.png"
             anchor="a-swirl"
             alt="Using Swirl via X11 to do the basic programming course"
-            rows
+            wide
           >
             <img
               src="swirl_new_large_final.png"
