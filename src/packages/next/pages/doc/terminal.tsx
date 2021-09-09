@@ -8,7 +8,6 @@ import A from "components/misc/A";
 import SignIn from "components/landing/sign-in";
 import Info from "components/landing/info";
 import Code from "components/landing/code";
-import Pitch from "components/landing/pitch";
 import Head from "components/landing/head";
 import Snapshots from "components/landing/snapshots";
 import { FullLinuxTerminal } from "./linux";
