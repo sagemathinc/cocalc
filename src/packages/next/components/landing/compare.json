@@ -1,0 +1,99 @@
+[
+  {
+    "title": "Online Jupyter Notebooks",
+    "link": "/doc/jupyter-notebook",
+    "products": [
+      { "key": "cocalc", "name": "CoCalc", "link": "https://cocalc.com" },
+      {
+        "key": "mybinder",
+        "name": "MyBinder",
+        "link": "https://mybinder.org/"
+      },
+      {
+        "key": "colab",
+        "name": "Colab",
+        "link": "https://colab.research.google.com/"
+      },
+      { "key": "datalore", "name": "Datalore", "link": "https://datalore.io" },
+      {
+        "key": "deepnote",
+        "name": "Deepnote",
+        "link": "https://www.deepnote.com/"
+      }
+    ],
+    "rows": [
+      {
+        "feature": "100% compatibility",
+        "cocalc": true,
+        "mybinder": true,
+        "colab": true
+      },
+      {
+        "feature": "Programming languages",
+        "cocalc": "Python, Sage, R, Octave, and many more",
+        "mybinder": "Python, R, etc. and customizable",
+        "colab": "Python 3",
+        "datalore": "Python 3",
+        "deepnote": "Python 3, ...?"
+      },
+      {
+        "feature": "IPython Widgets",
+        "cocalc": true,
+        "mybinder": true,
+        "colab": true,
+        "datalore": false
+      },
+      {
+        "feature": "File sharing between users",
+        "cocalc": true,
+        "mybinder": false,
+        "colab": true,
+        "datalore": true,
+        "deepnote": true
+      },
+      {
+        "feature": "Realtime collaboration and sync",
+        "cocalc": true,
+        "colab": false,
+        "mybinder": "Possible via extension to JupyterLab.",
+        "datalore": true,
+        "deepnote": true
+      },
+      {
+        "feature": "Persistence",
+        "cocalc": true,
+        "colab": "Notebook persists, but data and files do not."
+      }
+    ]
+  },
+  {
+    "title": "Online LaTeX Editors",
+    "link": "/doc/latex-editor",
+    "products": [
+      { "key": "cocalc", "name": "CoCalc", "link": "https://cocalc.com" },
+      {
+        "key": "overleaf",
+        "name": "Overleaf (Sharelatex)",
+        "link": "https://www.overleaf.com/"
+      },
+      {
+        "key": "authorea",
+        "name": "Authorea",
+        "link": "https://www.authorea.com/"
+      },
+      {
+        "key": "papeeria",
+        "name": "Papeeria",
+        "link": "https://papeeria.com/"
+      }
+    ],
+    "rows": [
+      {
+        "feature": "Realtime collaboration and sync",
+        "overleaf": "Limited number of collaborators",
+        "authorea": false,
+        "papeeria": false
+      }
+    ]
+  }
+]

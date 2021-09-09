@@ -9,6 +9,7 @@ import Head from "components/landing/head";
 import { Icon } from "@cocalc/frontend/components/icon";
 import A from "components/misc/A";
 import Code from "components/landing/code";
+import Tables from "components/landing/compare";
 
 const component = "CoCalc";
 const title = `Run ${component} Now`;
@@ -32,21 +33,20 @@ export default function Octave({ customize }) {
               name="table"
             />
             <h1 style={{ fontSize: "26pt" }}>
-              Comparing CoCalc to other products
+              Comparing CoCalc to MyBinder, Colab, Datalore, Deepnote, Overleaf,
+              Authorea, Papeeria, and more...
             </h1>
             <SignIn startup={"CoCalc"} />
           </div>
 
           <Alert
             style={{ margin: "30px 10%" }}
-            message={<span style={{ fontSize: "16pt" }}>Disclaimer</span>}
             description={
               <>
-                <p style={{ fontSize: "12pt" }}>
-                  Any comparisons on this page were made in good faith; however,
-                  they may contain errors or bias, since we know CoCalc much
-                  better than the products we are comparing it to, and morever
-                  features are always changing.
+                <p style={{ fontSize: "11pt" }}>
+                  These comparisons were made in good faith; however, they may
+                  contain errors, since we know CoCalc much better and the
+                  products are constantly improving.
                 </p>
                 <Contact /> if anything looks wrong or incomplete!
               </>
@@ -54,6 +54,8 @@ export default function Octave({ customize }) {
             type="warning"
             showIcon
           />
+
+          <Tables />
 
           <div
             style={{
@@ -92,12 +94,12 @@ export default function Octave({ customize }) {
                   the plan, Overleaf supports only 1, 10 or unlimited
                   collaborators.{" "}
                   <A href="https://www.overleaf.com/user/subscription/plans">
-                    Plans  &amp; Pricing, 2020-03-12
+                    Plans &amp; Pricing, 2020-03-12
                   </A>
                 </li>
                 <li>
-                  <strong>Publishing:</strong> The content of the file can be made
-                  publicly available on the internet.
+                  <strong>Publishing:</strong> The content of the file can be
+                  made publicly available on the internet.
                 </li>
                 <li>
                   <strong>Forward/Inverse search:</strong> Jump from the cursor
