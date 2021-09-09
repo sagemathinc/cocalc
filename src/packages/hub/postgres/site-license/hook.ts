@@ -199,6 +199,9 @@ async function site_license_hook0(
       }
     } else {
       dbg(`Not currently valid license -- "${license_id}".`);
+      // due to how jsonb_set works, we have to set this to null,
+      // because otherwise an existing license entry continues to exist.
+      new_site_license[license_id] = null;
     }
   }
 
