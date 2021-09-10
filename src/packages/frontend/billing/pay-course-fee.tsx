@@ -69,7 +69,7 @@ class PayCourseFee extends Component<Props, State> {
           .getStore("projects")
           .get_total_upgrades_you_have_applied();
         return (
-          (upgrades?.member_host ?? 0) - (applied?.member_host ?? 0) > 0 &&
+          (upgrades?.member_host ?? 0) - (applied?.member_host ? 1 : 0) > 0 &&
           (upgrades?.network ?? 0) - (applied?.network ?? 0) > 0
         );
       },
@@ -81,7 +81,7 @@ class PayCourseFee extends Component<Props, State> {
           });
         } else {
           // Upgrades now available -- apply a network and members only upgrades to the course project.
-          const upgrades = { member_host: 1, network: 1 };
+          const upgrades = { member_host: true, network: 1 };
           redux
             .getActions("projects")
             .apply_upgrades_to_project(this.props.project_id, upgrades);

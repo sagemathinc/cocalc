@@ -541,7 +541,9 @@ const missing: any = {};
 export const Icon: React.FC<Props> = (props: Props) => {
   if (props.unicode != null) {
     return (
-      <span style={UNICODE_STYLE}>{String.fromCharCode(props.unicode!)}</span>
+      <span style={{ ...UNICODE_STYLE, ...props.style }}>
+        {String.fromCharCode(props.unicode!)}
+      </span>
     );
   }
 

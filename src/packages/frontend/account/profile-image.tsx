@@ -8,11 +8,10 @@ import { Button, ButtonToolbar, FormControl, Well } from "../antd-bootstrap";
 import { Component, Rendered, redux } from "../app-framework";
 import { ErrorDisplay, Loading, ProfileIcon } from "../components";
 import md5 from "md5";
+import Pica from "pica";
 
-import ReactCrop from "react-image-crop";
+import ReactCropComponent from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-
-const ReactCropComponent = (ReactCrop as any).Component;
 
 // This is what facebook uses, and it makes
 // 40x40 look very good.  It takes about 20KB
@@ -28,7 +27,7 @@ interface ProfileImageSelectorProps {
 interface ProfileImageSelectorState {
   is_dragging_image_over_dropzone: boolean;
   custom_image_src?: string;
-  crop?: ReactCrop.Crop;
+  crop: ReactCrop.Crop;
   is_loading?: boolean;
   error?: any;
   show_default_explanation?: boolean;
@@ -401,7 +400,7 @@ async function getCroppedImg(image, crop: ReactCrop.Crop): Promise<string> {
     const canvas2 = document.createElement("canvas");
     canvas2.width = AVATAR_SIZE;
     canvas2.height = AVATAR_SIZE;
-    const pica = require("pica")();
+    const pica = Pica();
     await pica.resize(canvas, canvas2);
     return canvas2.toDataURL("image/jpeg");
   } else {

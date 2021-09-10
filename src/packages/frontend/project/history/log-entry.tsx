@@ -572,8 +572,15 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
   }
 
   function renderDuration() {
-    if (props.event.duration_ms != null) {
-      return <> (time = {round1(props.event.duration_ms / 1000)} seconds) </>;
+    if (typeof props.event != "string" && props.event["duration_ms"] != null) {
+      return (
+        <>
+          {" "}
+          (time = {round1(
+            (props.event["duration_ms"] ?? 0) / 1000
+          )} seconds){" "}
+        </>
+      );
     }
   }
 
