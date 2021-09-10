@@ -27,7 +27,7 @@ interface ProfileImageSelectorProps {
 interface ProfileImageSelectorState {
   is_dragging_image_over_dropzone: boolean;
   custom_image_src?: string;
-  crop?: ReactCrop.Crop;
+  crop: ReactCrop.Crop;
   is_loading?: boolean;
   error?: any;
   show_default_explanation?: boolean;

@@ -119,6 +119,7 @@ export type ProjectControlEvent = {
     | "project_stopped"
     | "project_started";
   time?: number;
+  duration_ms?: number;
 };
 
 export type FileActionEvent =

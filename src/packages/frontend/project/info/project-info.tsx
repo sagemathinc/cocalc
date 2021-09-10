@@ -21,7 +21,7 @@ import { Col, Row } from "../../antd-bootstrap";
 import { Alert, Table, Button, Form, Popconfirm, Modal, Switch } from "antd";
 import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { webapp_client } from "../../webapp-client";
-import { seconds2hms, unreachable } from "@cocalc/util/misc";
+import { seconds2hms, unreachable, field_cmp } from "@cocalc/util/misc";
 import { A, Tip, Loading } from "../../components";
 import { RestartProject } from "../settings/restart-project";
 import { Channel } from "../../project/websocket/types";
@@ -651,6 +651,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
                     <b>{proc.name}</b> <span>{proc.args}</span>
                   </span>
                 )}
+                sorter={field_cmp("name")}
               />
               <Table.Column<ProcessRow>
                 key="cocalc"
@@ -658,13 +659,25 @@ export const ProjectInfo: React.FC<Props> = React.memo(
                 width="10%"
                 align={"left"}
                 render={(proc) => render_cocalc(proc)}
+                sorter={field_cmp("cocalc")}
+              />
+              <Table.Column<ProcessRow>
+                key="pid"
+                title={"PID"}
+                width="10%"
+                align={"left"}
+                render={render_val("pid", (x) =>
+                  x.pid == null ? "" : `${x.pid}`
+                )}
+                sorter={field_cmp("pid")}
               />
               <Table.Column<ProcessRow>
                 key="cpu_state"
                 title={state_title}
-                width="2%"
+                width="5%"
                 align={"right"}
                 render={(proc) => <ProcState state={proc.state} />}
+                sorter={field_cmp("state")}
               />
               <Table.Column<ProcessRow>
                 key="cpu_pct"
@@ -673,6 +686,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
                 dataIndex="cpu_pct"
                 align={"right"}
                 render={render_val("cpu_pct", (val) => `${val.toFixed(1)}%`)}
+                sorter={field_cmp("cpu_pct")}
               />
               <Table.Column<ProcessRow>
                 key="cpu_tot"
@@ -681,6 +695,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
                 width="10%"
                 align={"right"}
                 render={render_val("cpu_tot", (val) => seconds2hms(val))}
+                sorter={field_cmp("cpu_tot")}
               />
               <Table.Column<ProcessRow>
                 key="mem"
@@ -689,6 +704,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
                 width="10%"
                 align={"right"}
                 render={render_val("mem", (val) => `${val.toFixed(0)}MiB`)}
+                sorter={field_cmp("mem")}
               />
             </Table>
           </Row>
@@ -716,7 +732,8 @@ export const ProjectInfo: React.FC<Props> = React.memo(
           <p>
             Sub-processes are shown as a tree. When you collapse a branch, the
             values you see are the sum of that particular process and all its
-            children.
+            children. Note that because of this tree structure, sorting happens
+            in each branch, since the tree structure must also be preserved.
           </p>
           <p>
             If there are any issues detected, there will be highlights in red.

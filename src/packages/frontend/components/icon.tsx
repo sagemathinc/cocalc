@@ -453,7 +453,8 @@ const IconSpec = {
 import { createFromIconfontCN } from "@ant-design/icons";
 let IconFont: any = undefined;
 try {
-  if (typeof window != "undefined") { // obviously won't work if window is undefined based on looking at the code...
+  if (typeof window != "undefined") {
+    // obviously won't work if window is undefined based on looking at the code...
     // This loads a bunch of svg elements of the form <svg id="icon-<name>"... into the DOM.
     // The antd Icon code then duplicates these via the <use> html tag
     // (https://developer.mozilla.org/en-US/docs/Web/SVG/Element/use)
@@ -538,7 +539,9 @@ const missing: any = {};
 export const Icon: React.FC<Props> = (props: Props) => {
   if (props.unicode != null) {
     return (
-      <span style={UNICODE_STYLE}>{String.fromCharCode(props.unicode!)}</span>
+      <span style={{ ...UNICODE_STYLE, ...props.style }}>
+        {String.fromCharCode(props.unicode!)}
+      </span>
     );
   }
 
