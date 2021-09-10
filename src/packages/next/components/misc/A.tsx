@@ -2,6 +2,9 @@ import Link from "next/link";
 
 export default function A(props: any) {
   const { href } = props;
+  if (href == null) {
+    return <a {...props} />;
+  }
   if (href.includes("://") || href.startsWith("mailto:")) {
     return <a {...props} target={"_blank"} rel={"noopener"} />;
   }

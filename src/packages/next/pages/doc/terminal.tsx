@@ -11,6 +11,8 @@ import Code from "components/landing/code";
 import Head from "components/landing/head";
 import Snapshots from "components/landing/snapshots";
 import { FullLinuxTerminal } from "./linux";
+import Comparison from "components/landing/compare";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 const component = "a Linux Terminal";
 const title = `Online Linux Terminal`;
@@ -162,6 +164,12 @@ export default function Terminal({ customize }) {
           </Info>
 
           <Snapshots />
+
+          <Comparison name="terminal" disclaimer            title={
+              <h2 style={{ textAlign: "center" }}>
+                <Icon name="bolt" /> Terminals in CoCalc versus the competition
+              </h2>
+            }/>
 
           <SignIn startup={component} />
         </Layout.Content>

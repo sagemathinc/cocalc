@@ -11,6 +11,8 @@ import Pitch from "components/landing/pitch";
 import Head from "components/landing/head";
 import LaTeX from "components/landing/latex";
 import Backups from "components/landing/backups";
+import Comparison from "components/landing/compare";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 import JupyterLogo from "/public/doc/jupyter-logo.svg";
 import JupyterTF from "/public/doc/cocalc-jupyter2-20170508.png";
@@ -368,6 +370,16 @@ export default function JupyterNotebook({ customize }) {
               <A href="https://nbconvert.readthedocs.io">nbconvert</A>.{" "}
             </p>
           </Info>
+
+          <Comparison
+            name="jupyter"
+            disclaimer
+            title={
+              <h2 style={{ textAlign: "center" }}>
+                <Icon name="bolt" /> Jupyter notebooks in CoCalc versus the competition
+              </h2>
+            }
+          />
 
           <SignIn startup="Jupyter" />
         </Layout.Content>

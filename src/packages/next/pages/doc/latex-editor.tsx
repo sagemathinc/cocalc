@@ -14,6 +14,8 @@ import LaTeX from "components/landing/latex";
 import Backups from "components/landing/backups";
 import Collaboration from "components/landing/collaboration";
 import Code from "components/landing/code";
+import Comparison from "components/landing/compare";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 import Logo from "public/doc/latex-logo.svg";
 import LatexEditorImage from "public/doc/cocalc-latex-editor-2019.png";
@@ -452,6 +454,17 @@ export default function LatexEditor({ customize }) {
 
           <Backups />
           <Publishing />
+
+          <Comparison
+            name="latex"
+            disclaimer
+            title={
+              <h2 style={{ textAlign: "center" }}>
+                <Icon name="bolt" /> <LaTeX /> in CoCalc versus the competition
+              </h2>
+            }
+          />
+
           <SignIn startup={<LaTeX />} />
         </Layout.Content>
         <Footer />

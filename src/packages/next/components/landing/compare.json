@@ -1,5 +1,6 @@
 [
   {
+    "name": "jupyter",
     "title": "Online Jupyter Notebooks",
     "link": "/doc/jupyter-notebook",
     "products": [
@@ -52,7 +53,7 @@
         "deepnote": true
       },
       {
-        "feature": "Realtime collaboration and sync",
+        "feature": "Realtime collaboration: multiple people use the same notebook together",
         "cocalc": true,
         "colab": false,
         "mybinder": "Possible via extension to JupyterLab.",
@@ -62,18 +63,76 @@
       {
         "feature": "Persistence",
         "cocalc": true,
-        "colab": "Notebook persists, but data and files do not."
+        "mybinder": false,
+        "colab": "Notebook persists, but data and files do not.",
+        "datalore": true,
+        "deepnote": true
+      },
+      {
+        "feature": "Large preinstalled software environment",
+        "cocalc": "Linux with around 10K packages",
+        "mybinder": "Limited",
+        "colab": false,
+        "deepnote": "Linux with around 350 packages"
+      },
+      {
+        "feature": "Access",
+        "cocalc": "Free and paid",
+        "mybinder": "Free only",
+        "colab": "Free and paid",
+        "datalore": "Free and paid",
+        "deepnote": "Free and paid"
+      },
+      {
+        "feature": "Disk space",
+        "cocalc": "3GB/project for free",
+        "mybinder": "Ephemeral"
+      },
+      {
+        "feature": "Public Google-indexed searchable publishing of files",
+        "cocalc": "Paid",
+        "mybinder": false,
+        "datalore": true,
+        "deepnote": true
+      },
+      {
+        "feature": "Self hosting",
+        "cocalc": true,
+        "mybinder": true,
+        "colab": false,
+        "datalore": false,
+        "deepnote": false
+      },
+      {
+        "feature": "Open source",
+        "cocalc": {
+          "type": false,
+          "note": "No (GPLv3 + noncommercial use clause)"
+        },
+        "mybinder": true,
+        "colab": false,
+        "datalore": false,
+        "deepnote": false
+      },
+      {
+        "feature": "GPUs",
+        "cocalc": { "type": false, "note": "Only when self hosted" },
+        "mybinder": "Only when self hosted",
+        "colab": "Yes, for free!",
+        "datalore": false,
+        "deepnote": true
       }
     ]
   },
   {
+    "name": "latex",
     "title": "Online LaTeX Editors",
     "link": "/doc/latex-editor",
     "products": [
       { "key": "cocalc", "name": "CoCalc", "link": "https://cocalc.com" },
       {
         "key": "overleaf",
-        "name": "Overleaf (Sharelatex)",
+        "name": "Overleaf",
         "link": "https://www.overleaf.com/"
       },
       {
@@ -90,9 +149,195 @@
     "rows": [
       {
         "feature": "Realtime collaboration and sync",
+        "cocalc": true,
         "overleaf": "Limited number of collaborators",
+        "authorea": false
+      },
+      {
+        "feature": "PDFLaTeX rendering engine",
+        "cocalc": true,
+        "overleaf": true,
+        "authorea": false
+      },
+      {
+        "feature": "XeLaTeX rendering engine",
+        "cocalc": true,
+        "overleaf": true,
+        "authorea": false
+      },
+      {
+        "feature": "LuaTeX rendering engine",
+        "cocalc": true,
+        "overleaf": true,
+        "authorea": false
+      },
+      {
+        "feature": "Upload files",
+        "cocalc": true,
+        "overleaf": true,
+        "authorea": true,
+        "papeeria": true
+      },
+      {
+        "feature": "Forward and inverse search",
+        "cocalc": true,
+        "overleaf": true,
+        "authorea": null,
+        "papeeria": true
+      },
+      {
+        "feature": "Multifile support",
+        "cocalc": true,
+        "overleaf": true,
+        "authorea": null,
+        "papeeria": true
+      },
+      {
+        "feature": "WYSIWYG",
+        "cocalc": false,
+        "overleaf": {
+          "type": true,
+          "note": "This is only a partial WYSIWYG-like mode."
+        },
+        "authorea": true,
+        "papeeria": false
+      },
+      {
+        "feature": "Equation editor",
+        "cocalc": false,
+        "overleaf": false,
+        "authorea": true,
+        "papeeria": false
+      },
+      {
+        "feature": "Bibliography",
+        "cocalc": {
+          "type": true,
+          "note": "Only BibTex via LaTeX (nothing sophisticated)"
+        },
+        "overleaf": true,
+        "authorea": true,
+        "papeeria": { "type": true, "note": "Limited" }
+      },
+      {
+        "feature": "Preloaded journal templates",
+        "cocalc": {
+          "type": false,
+          "note": "However, you can easily upload a template from a journal."
+        },
+        "overleaf": true,
+        "authorea": true,
+        "papeeria": false
+      },
+      {
+        "feature": "Run Python, R and other scripts as part of compilation",
+        "cocalc": {
+          "type": true,
+          "note": "CoCalc is particularly good at this."
+        },
+        "overleaf": { "type": true, "note": "But limited." },
         "authorea": false,
         "papeeria": false
+      },
+      {
+        "feature": "R/Knitr",
+        "cocalc": true,
+        "overleaf": "Limited - very few packages, limited syntax, no caching, slow",
+        "authorea": false,
+        "papeeria": false
+      },
+      {
+        "feature": "SageTex",
+        "cocalc": true,
+        "overleaf": false,
+        "authorea": false,
+        "papeeria": false
+      },
+      {
+        "feature": "PythonTex",
+        "cocalc": true,
+        "overleaf": false,
+        "authorea": false,
+        "papeeria": false
+      },
+      {
+        "feature": "Self hosting",
+        "cocalc": true,
+        "overleaf": true,
+        "authorea": false,
+        "papeeria": false
+      }
+    ]
+  },
+  {
+    "name": "terminal",
+    "title": "Online Linux Terminal",
+    "link": "/doc/terminal",
+    "products": [
+      { "key": "cocalc", "name": "CoCalc", "link": "https://cocalc.com" },
+      {
+        "key": "cloud",
+        "name": "GCE/AWS/Azure Clouds"
+      },
+      {
+        "key": "lxd",
+        "name": "LXD.org",
+        "link": "https://linuxcontainers.org/"
+      },
+      {
+        "key": "webminal",
+        "name": "Webminal",
+        "link": "https://www.webminal.org/"
+      }
+    ],
+    "rows": [
+      {
+        "feature": "Free access for unlimited time",
+        "cocalc": true,
+        "cloud": { "type": false, "note": "Limited trial with credit card" },
+        "lxd": true,
+        "webminal": true
+      },
+      { "feature": "Full Linux", "cocalc": true, "cloud": true, "lxd": true },
+      {
+        "feature": "Count of of pre-installed packages, by runing 'apt list --installed | wc -l' or 'rpm -qa | wc -l'",
+        "cocalc": "~ 9500",
+        "cloud": null,
+        "lxd": "~ 200",
+        "webminal": "~ 700"
+      },
+      {
+        "feature": "Copy/paste",
+        "cocalc": true,
+        "cloud": true,
+        "lxd": true
+      },
+      {
+        "feature": "Periodic backups of your data",
+        "cocalc": true,
+        "cloud": true,
+        "lxd": false,
+        "webminal": false
+      },
+      {
+        "feature": "Persistent of your data",
+        "cocalc": true,
+        "cloud": true,
+        "lxd": false
+      },
+      {
+        "feature": "Ease of setup and configuration",
+        "cocalc": "Easy",
+        "cloud": "Hard",
+        "lxd": "Very Easy",
+        "webminal": "Medium"
+      },
+      {
+        "feature": "Root access",
+        "cocalc": false,
+        "cloud": true,
+        "lxd": true,
+        "webminal": { "note": "Limited" }
       }
     ]
   }
