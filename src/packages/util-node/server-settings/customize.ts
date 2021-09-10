@@ -16,6 +16,7 @@ export interface Customize {
   splashImage?: string;
   indexInfo?: string;
   shareServer?: boolean;
+  landingPages?: boolean;
   dns?: string;
 }
 
@@ -63,6 +64,8 @@ export default async function getCustomize(): Promise<Customize> {
     indexInfo: settings.index_info_html,
 
     shareServer: !!settings.share_server,
+
+    landingPages: !!settings.landing_pages,
 
     // can be used for links to edit share document in main site; needed if main site
     // on different domain than share server, e.g., share.cocalc.com vs cocalc.com.

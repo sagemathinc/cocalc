@@ -101,6 +101,7 @@ export default function Info({
 
   const textCol = (
     <Col
+      key="text"
       lg={wide ? 7 : 9}
       style={{
         border: "1px solid white",
@@ -119,7 +120,11 @@ export default function Info({
     </Col>
   );
   const graphicCol = (
-    <Col lg={wide ? 17 : 15} style={{ padding: "0 30px", width: "100%" }}>
+    <Col
+      key="graphics"
+      lg={wide ? 17 : 15}
+      style={{ padding: "0 30px", width: "100%" }}
+    >
       {graphic}
     </Col>
   );

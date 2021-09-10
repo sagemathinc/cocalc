@@ -26,6 +26,7 @@ export default function Header({ landing }: Props) {
     siteName,
     termsOfServiceURL,
     shareServer,
+    landingPages,
   } = useCustomize();
   if (basePath == null) return null;
 
@@ -90,7 +91,7 @@ export default function Header({ landing }: Props) {
           Sign In
         </a>
       </Layout.Header>
-      {landing && <LandingNav landing={landing} />}
+      {landingPages && <LandingNav landing={landing} />}
     </>
   );
 }

@@ -31,7 +31,11 @@ const FIELD_DEFAULTS = {
 } as const;
 
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
-import { ConfigValid, Config, RowType } from "@cocalc/util/db-schema/site-defaults";
+import {
+  ConfigValid,
+  Config,
+  RowType,
+} from "@cocalc/util/db-schema/site-defaults";
 
 import { isEqual } from "lodash";
 
@@ -441,6 +445,11 @@ class SiteSettingsComponent extends Component<
 
   private render_default_row(name): Rendered | undefined {
     const conf: Config = site_settings_conf[name];
+    if (conf.cocalc_only) {
+      if (!document.location.host.endsWith("cocalc.com")) {
+        return null;
+      }
+    }
     return this.render_row(name, conf);
   }
 

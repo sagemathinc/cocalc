@@ -45,7 +45,8 @@ export type SiteSettingsKeys =
   | "verify_emails"
   | "email_signup"
   | "anonymous_signup"
-  | "share_server";
+  | "share_server"
+  | "landing_pages";
 
 export interface Config {
   readonly name: string;
@@ -64,6 +65,7 @@ export interface Config {
   readonly type?: RowType;
   readonly clearable?: boolean; // default false
   readonly multiline?: number;
+  readonly cocalc_only?: boolean; // only for use on cocalc.com (or subdomains)
 }
 
 export type SiteSettings = Record<SiteSettingsKeys, Config>;
@@ -364,5 +366,14 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+  },
+  landing_pages: {
+    name: "Landing pages",
+    desc: "Host landing pages about the functionality of CoCalc.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    show: only_cocalc_com,
+    cocalc_only: true,
   },
 };

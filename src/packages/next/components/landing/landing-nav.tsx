@@ -20,7 +20,7 @@ const PAGES = {
 export type LandingPageName = keyof typeof PAGES;
 
 interface Props {
-  landing: LandingPageName;
+  landing?: LandingPageName;
 }
 
 export default function LandingNav({ landing }: Props) {
