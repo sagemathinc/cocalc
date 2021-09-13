@@ -163,6 +163,7 @@ const listData = [
     link: "https://doc.cocalc.com/api/",
     title: "API interface",
     image: apiScreenshot,
+    logo: "icon:server",
     description: (
       <>
         Programmatically control CoCalc from your own server. Embed CoCalc
@@ -235,11 +236,7 @@ export default function Features({ customize }) {
                             size={80}
                             shape="square"
                             icon={
-                              <NextImage
-                                src={item.logo}
-                                width={80}
-                                height={80}
-                              />
+                              <Image src={item.logo} width={80} height={80} />
                             }
                           />
                         )

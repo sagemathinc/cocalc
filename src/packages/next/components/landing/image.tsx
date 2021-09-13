@@ -3,6 +3,7 @@ import { MediaURL } from "./util";
 import basePath from "lib/base-path";
 import { join } from "path";
 import { CSSProperties } from "react";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 // copied from https://github.com/vercel/next.js/blob/eb871d30915d668dd9ba897d4d04ced207ce2e6d/packages/next/image-types/global.d.ts
 // since it seems not exported...
@@ -18,16 +19,21 @@ interface Props {
   style?: CSSProperties;
   alt?: string;
   width?: number;
+  width?: number;
 }
 
-export default function Image({ src, style, alt, width }: Props) {
+export default function Image({ src, style, alt, width, height }: Props) {
   if (typeof src == "string") {
+    if (src.startsWith("icon:")) {
+      return <Icon name={src.slice(5)} />;
+    }
     return (
       <img
         src={MediaURL(src)}
         style={{ ...style, maxWidth: "100%" }}
         alt={alt}
         width={width}
+        height={height}
       />
     );
   }
@@ -39,6 +45,9 @@ export default function Image({ src, style, alt, width }: Props) {
     // The next/image implementation is in packages/next/client/image.tsx of nextjs itself.
     // Here's the issue: https://github.com/vercel/next.js/issues/22244
     src.src = join(basePath, src.src);
+  }
+  if (height != null && width != null) {
+    return <NextImage src={src} alt={alt} height={height} width={width} />;
   }
   return (
     <div
