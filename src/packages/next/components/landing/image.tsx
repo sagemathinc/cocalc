@@ -31,7 +31,7 @@ export default function Image({ src, style, alt, width }: Props) {
       />
     );
   }
-  if (basePath.length > 1 && !src.src.startsWith(basePath)) {
+  if (basePath.length > 1 && !src.src?.startsWith(basePath)) {
     // This is a hack to workaround the very annoying fact that
     // next/image does NOT properly support the nextjs basePath
     // option.  This is definitely a bug in nextjs, and when it

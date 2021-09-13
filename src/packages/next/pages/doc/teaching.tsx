@@ -29,7 +29,7 @@ export default function Teaching({ customize }) {
     <Customize value={customize}>
       <Head title={"Teaching scientific software"} />
       <Layout>
-        <Header landing="teaching" />
+        <Header page="features" subPage="teaching" />
         <Layout.Content>
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content

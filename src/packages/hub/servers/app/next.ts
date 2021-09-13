@@ -70,7 +70,10 @@ export default async function init(app: Application) {
   // traffic for:
   const endpoints = [
     basePath, // top-level landing page
-    join(basePath, "doc", "*"), // everything under /doc -- all the other landing pages
+    join(basePath, "doc*"), // everything under /doc -- all the other landing pages
+    join(basePath, "software*"),
+    join(basePath, "policies*"),
+    join(basePath, "billing*"),
     join(basePath, "_next", "*"),
     shareBasePath, // everything under "/share"
     join(shareBasePath, "*"),

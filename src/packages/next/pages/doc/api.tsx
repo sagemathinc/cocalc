@@ -4,7 +4,6 @@ import Header from "components/landing/header";
 import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
-//import A from "components/misc/A";
 import SignIn from "components/landing/sign-in";
 import Info from "components/landing/info";
 import Pitch from "components/landing/pitch";
@@ -19,7 +18,7 @@ export default function API({ customize }) {
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
-        <Header landing="api" />
+        <Header page="features" subPage="api" />
         <Layout.Content>
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content

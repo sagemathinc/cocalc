@@ -11,6 +11,9 @@ import Head from "components/landing/head";
 import A from "components/misc/A";
 import Code from "components/landing/code";
 
+import x11Logo from "/public/doc/x11-logo.svg";
+import x11Screenshot from "/public/doc/x11-01.png";
+
 const component = "X11 Desktop";
 const title = `Run ${component} Graphical Linux Applications`;
 
@@ -19,12 +22,12 @@ export default function X11({ customize }) {
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
-        <Header landing="x11" />
+        <Header page="features" subPage="x11" />
         <Layout.Content>
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
               startup={component}
-              logo={"x11-logo.svg"}
+              logo={x11Logo}
               title={title}
               subtitle={
                 <>
@@ -36,7 +39,7 @@ export default function X11({ customize }) {
                   </div>
                 </>
               }
-              image={"x11-01.png"}
+              image={x11Screenshot}
               alt={"Screenshot of wxMaxima in X11"}
               caption={"Using wxMaxima in X11"}
             />

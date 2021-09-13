@@ -16,7 +16,7 @@ export default function Octave({ customize }) {
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
-        <Header landing="compare" />
+        <Header page="features" subPage="compare" />
         <Layout.Content>
           <div
             style={{

@@ -32,7 +32,7 @@ export default function Octave({ customize }) {
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
-        <Header landing="python" />
+        <Header page="features" subPage="python" />
         <Layout.Content>
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content

@@ -19,7 +19,7 @@ export default function Julia({ customize }) {
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
-        <Header landing="julia" />
+        <Header page="features" subPage="julia" />
         <Layout.Content>
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content

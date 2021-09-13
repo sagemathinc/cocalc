@@ -5,7 +5,7 @@ import { join } from "path";
 import { Layout } from "antd";
 import { useCustomize } from "lib/customize";
 import basePath from "lib/base-path";
-import LandingNav, { LandingPageName } from "./landing-nav";
+import SubNav, { Page, SubPage } from "./sub-nav";
 
 const GAP = "32px";
 
@@ -15,11 +15,19 @@ const LinkStyle = {
   display: "inline-block",
 };
 
+const SelectedStyle = {
+  ...LinkStyle,
+  color: "#c7d9f5",
+  fontWeight: "bold",
+  borderBottom: "1px solid white",
+};
+
 interface Props {
-  landing?: LandingPageName;
+  page?: Page;
+  subPage?: SubPage;
 }
 
-export default function Header({ landing }: Props) {
+export default function Header({ page, subPage }: Props) {
   const {
     anonymousSignup,
     helpEmail,
@@ -41,7 +49,37 @@ export default function Header({ landing }: Props) {
           textAlign: "center",
         }}
       >
-        <SquareLogo style={{ height: "40px", marginRight: GAP }} />
+        <A href="/">
+          <SquareLogo style={{ height: "40px", marginRight: GAP }} />
+        </A>
+        {landingPages && (
+          <>
+            <A
+              href="/doc/"
+              style={page == "features" ? SelectedStyle : LinkStyle}
+            >
+              Features
+            </A>
+            <A
+              href="/software"
+              style={page == "software" ? SelectedStyle : LinkStyle}
+            >
+              Software
+            </A>
+            <A
+              href="/billing"
+              style={page == "billing" ? SelectedStyle : LinkStyle}
+            >
+              Pricing
+            </A>
+            <A
+              href="/policies"
+              style={page == "policies" ? SelectedStyle : LinkStyle}
+            >
+              Policies
+            </A>
+          </>
+        )}
         {anonymousSignup && (
           <a
             style={LinkStyle}
@@ -73,7 +111,7 @@ export default function Header({ landing }: Props) {
             href={`mailto:${helpEmail}`}
             title={`Ask us a question via email to ${helpEmail}.`}
           >
-            Email Help
+            Help
           </A>
         )}
         <A
@@ -81,7 +119,7 @@ export default function Header({ landing }: Props) {
           href="https://doc.cocalc.com"
           title="View the CoCalc documenation."
         >
-          Documentation
+          Docs
         </A>
         <a
           style={LinkStyle}
@@ -91,7 +129,7 @@ export default function Header({ landing }: Props) {
           Sign In
         </a>
       </Layout.Header>
-      {landingPages && <LandingNav landing={landing} />}
+      {landingPages && page && <SubNav page={page} subPage={subPage} />}
     </>
   );
 }

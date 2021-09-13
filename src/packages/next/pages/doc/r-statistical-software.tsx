@@ -33,7 +33,7 @@ export default function R({ customize }) {
     <Customize value={customize}>
       <Head title={"R Statistical Software"} />
       <Layout>
-        <Header landing="r-statistical-software" />
+        <Header page="features" subPage="r-statistical-software" />
         <Layout.Content>
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content

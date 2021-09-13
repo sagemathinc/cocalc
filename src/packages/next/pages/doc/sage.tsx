@@ -19,7 +19,7 @@ export default function Terminal({ customize }) {
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
-        <Header landing="sage" />
+        <Header page="features" subPage="sage" />
         <Layout.Content>
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content

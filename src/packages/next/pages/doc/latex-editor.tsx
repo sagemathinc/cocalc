@@ -31,7 +31,7 @@ export default function LatexEditor({ customize }) {
     <Customize value={customize}>
       <Head title="Online LaTeX Editor" />
       <Layout>
-        <Header landing="latex-editor" />
+        <Header page="features" subPage="latex-editor" />
         <Layout.Content>
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
