@@ -14,15 +14,15 @@ import Backups from "components/landing/backups";
 import Comparison from "components/landing/compare";
 import { Icon } from "@cocalc/frontend/components/icon";
 
-import JupyterLogo from "/public/doc/jupyter-logo.svg";
-import JupyterTF from "/public/doc/cocalc-jupyter2-20170508.png";
-import RTC from "/public/doc/cocalc-real-time-jupyter.png";
-import Nbgrader from "/public/doc/cocalc-jupyter-nbgrader-overview.png";
-import JupyterChat from "/public/doc/cocalc-chat-jupyter-20171120-2.png";
-import JupyterKernels from "/public/doc/cocalc-jupyter-kernels.png";
-import JupyterLab from "/public/doc/jupyter-lab.png";
-import JupyterMem from "/public/doc/cocalc-jupyter2-memory-cpu.png";
-import JupyterNasa from "/public/doc/cocalc-jupyter-share-nasa.png";
+import JupyterLogo from "/public/features/jupyter-logo.svg";
+import JupyterTF from "/public/features/cocalc-jupyter2-20170508.png";
+import RTC from "/public/features/cocalc-real-time-jupyter.png";
+import Nbgrader from "/public/features/cocalc-jupyter-nbgrader-overview.png";
+import JupyterChat from "/public/features/cocalc-chat-jupyter-20171120-2.png";
+import JupyterKernels from "/public/features/cocalc-jupyter-kernels.png";
+import JupyterLab from "/public/features/jupyter-lab.png";
+import JupyterMem from "/public/features/cocalc-jupyter2-memory-cpu.png";
+import JupyterNasa from "/public/features/cocalc-jupyter-share-nasa.png";
 
 export default function JupyterNotebook({ customize }) {
   return (
@@ -80,7 +80,7 @@ export default function JupyterNotebook({ customize }) {
                   <li>
                     A sophisticated{" "}
                     <strong>
-                      <A href="/doc/teaching">course management system</A>
+                      <A href="/features/teaching">course management system</A>
                     </strong>{" "}
                     keeps track of all notebooks of all students. It manages
                     distributing and collecting files as well as grading.
@@ -269,7 +269,7 @@ export default function JupyterNotebook({ customize }) {
               .
             </p>
             <p>
-              Look at our <A href="/doc/software">list of available software</A>{" "}
+              Look at our <A href="/features/software">list of available software</A>{" "}
               for more about what is available.
             </p>
           </Info>

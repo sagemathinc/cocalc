@@ -11,8 +11,8 @@ import Head from "components/landing/head";
 import A from "components/misc/A";
 import Code from "components/landing/code";
 
-import x11Logo from "/public/doc/x11-logo.svg";
-import x11Screenshot from "/public/doc/x11-01.png";
+import x11Logo from "/public/features/x11-logo.svg";
+import x11Screenshot from "/public/features/x11-01.png";
 
 const component = "X11 Desktop";
 const title = `Run ${component} Graphical Linux Applications`;
@@ -33,8 +33,8 @@ export default function X11({ customize }) {
                 <>
                   <div>
                     Run {component} scripts,{" "}
-                    <A href="/doc/jupyter-notebook">Jupyter notebooks</A>, or
-                    even full <A href="/doc/x11">graphical applications</A> in a
+                    <A href="/features/jupyter-notebook">Jupyter notebooks</A>, or
+                    even full <A href="/features/x11">graphical applications</A> in a
                     remote {component} environment.
                   </div>
                 </>
@@ -197,7 +197,7 @@ export default function X11({ customize }) {
             </p>
             <p>
               You can use swirl in{" "}
-              <A href="/doc/teaching">teaching a course.</A>
+              <A href="/features/teaching">teaching a course.</A>
             </p>
           </Info>
 

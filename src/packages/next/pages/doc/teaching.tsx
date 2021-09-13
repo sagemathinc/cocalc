@@ -15,14 +15,14 @@ import Contact from "components/landing/contact";
 import LaTeX from "components/landing/latex";
 import Image from "components/landing/image";
 
-import logo from "public/doc/fa-graduation-cap.svg";
-import assignments from "public/doc/cocalc-course-assignments-2019.png";
-import nbgrader from "public/doc/cocalc-jupyter-nbgrader-overview.png";
-import sticker from "public/doc/sage-sticker-1x1_inch-small.png";
-import latexLogo from "public/doc/latex-logo.svg";
-import linuxLogo from "public/doc/linux-logo.svg";
-import kiran from "public/doc/kiran.jpeg";
-import conley from "public/doc/will_conley.jpg";
+import logo from "public/features/fa-graduation-cap.svg";
+import assignments from "public/features/cocalc-course-assignments-2019.png";
+import nbgrader from "public/features/cocalc-jupyter-nbgrader-overview.png";
+import sticker from "public/features/sage-sticker-1x1_inch-small.png";
+import latexLogo from "public/features/latex-logo.svg";
+import linuxLogo from "public/features/linux-logo.svg";
+import kiran from "public/features/kiran.jpeg";
+import conley from "public/features/will_conley.jpg";
 
 export default function Teaching({ customize }) {
   return (
@@ -123,7 +123,7 @@ export default function Teaching({ customize }) {
                 </ul>
                 <p>
                   CoCalc's massive default{" "}
-                  <A href="/doc/software">Software Environment</A> provides
+                  <A href="/features/software">Software Environment</A> provides
                   nearly everything anybody{" "}
                   <strong>has ever asked us to install since 2013!</strong>
                 </p>
@@ -249,12 +249,12 @@ export default function Teaching({ customize }) {
               <Col lg={6}>
                 <Tool
                   image={logo}
-                  href="/doc/jupyter-notebook"
+                  href="/features/jupyter-notebook"
                   title="Jupyter Notebooks"
                   alt="Jupyter logo"
                 >
                   CoCalc's own{" "}
-                  <A href="/doc/jupyter-notebook">Jupyter Notebook</A>{" "}
+                  <A href="/features/jupyter-notebook">Jupyter Notebook</A>{" "}
                   implementation offers realtime synchronization, TimeTravel,
                   automatic grading, side chat, and more.
                 </Tool>
@@ -278,7 +278,7 @@ export default function Teaching({ customize }) {
               <Col lg={6}>
                 <Tool
                   image={latexLogo}
-                  href="/doc/latex-editor"
+                  href="/features/latex-editor"
                   alt="LaTeX Logo"
                   title={
                     <>
@@ -287,7 +287,7 @@ export default function Teaching({ customize }) {
                   }
                 >
                   A full{" "}
-                  <A href="/doc/latex-editor">
+                  <A href="/features/latex-editor">
                     <LaTeX />
                     editor
                   </A>{" "}
@@ -299,13 +299,13 @@ export default function Teaching({ customize }) {
               <Col lg={6}>
                 <Tool
                   image={linuxLogo}
-                  href="/doc/terminal"
+                  href="/features/terminal"
                   title="Linux Terminal"
                   alt="Tux Linux Penguin"
                 >
                   Use the collaborative CoCalc terminal to access all powerful
                   command line tools in a{" "}
-                  <A href="/doc/linux">full Ubuntu Linux environment</A>.
+                  <A href="/features/linux">full Ubuntu Linux environment</A>.
                 </Tool>
               </Col>
             </Row>

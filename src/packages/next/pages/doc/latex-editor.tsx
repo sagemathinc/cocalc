@@ -17,14 +17,14 @@ import Code from "components/landing/code";
 import Comparison from "components/landing/compare";
 import { Icon } from "@cocalc/frontend/components/icon";
 
-import Logo from "public/doc/latex-logo.svg";
-import LatexEditorImage from "public/doc/cocalc-latex-editor-2019.png";
-import CustomCommand from "public/doc/latex-custom-command-02.png";
-import Sagetex from "public/doc/cocalc-sagetex.png";
-import Pythontex from "public/doc/cocalc-pythontex.png";
-import Knitr from "public/doc/latex-editor-rnw-01.png";
-import LatexTimetravel from "public/doc/latex-editor-timetravel-01.png";
-import Sidechat from "public/doc/cocalc-latex-side-chat-v2.png";
+import Logo from "public/features/latex-logo.svg";
+import LatexEditorImage from "public/features/cocalc-latex-editor-2019.png";
+import CustomCommand from "public/features/latex-custom-command-02.png";
+import Sagetex from "public/features/cocalc-sagetex.png";
+import Pythontex from "public/features/cocalc-pythontex.png";
+import Knitr from "public/features/latex-editor-rnw-01.png";
+import LatexTimetravel from "public/features/latex-editor-timetravel-01.png";
+import Sidechat from "public/features/cocalc-latex-side-chat-v2.png";
 
 export default function LatexEditor({ customize }) {
   return (
@@ -204,9 +204,9 @@ export default function LatexEditor({ customize }) {
               project as your <LaTeX /> document.
             </p>
             <p>
-              Consult the <A href="/doc/software">Available Software page</A> or
+              Consult the <A href="/features/software">Available Software page</A> or
               look at our{" "}
-              <A href="/doc/jupyter-notebook">Jupyter Notebook page</A> for more
+              <A href="/features/jupyter-notebook">Jupyter Notebook page</A> for more
               information.{" "}
             </p>
           </Info>
@@ -300,7 +300,7 @@ export default function LatexEditor({ customize }) {
                 \py{"{"}2 + 4**2{"}"}
               </Code>{" "}
               produces "18". You can use all{" "}
-              <A href="/doc/software-python">available python libraries</A> for
+              <A href="/features/software-python">available python libraries</A> for
               Python 3, drawing plots via <code>pylab</code>, and use
               PythonTeX's SymPy support.
             </p>
@@ -334,7 +334,7 @@ export default function LatexEditor({ customize }) {
             <ul>
               <li>
                 installation and management of{" "}
-                <A href="/doc/software-r">all R packages</A>,
+                <A href="/features/software-r">all R packages</A>,
               </li>
               <li>
                 orchestrates the full compilation pipeline for <LaTeX /> and
@@ -409,7 +409,7 @@ export default function LatexEditor({ customize }) {
             <p>
               The{" "}
               <strong>
-                <A href="/doc/time-travel">TimeTravel feature</A>
+                <A href="/features/time-travel">TimeTravel feature</A>
               </strong>{" "}
               is specific to the CoCalc platform. It records all changes in the{" "}
               <LaTeX /> notebook in fine detail. You can go back and forth in

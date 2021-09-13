@@ -17,13 +17,13 @@ import Code from "components/landing/code";
 import Contact from "components/landing/contact";
 import Collaboration from "components/landing/collaboration";
 
-import logo from "public/doc/r-logo.svg";
-import rJupyter from "public/doc/cocalc-r-jupyter.png";
-import rLatex from "public/doc/cocalc-r-latex.png";
-import rmdDemo from "public/doc/cocalc-rmd-demo-R-python3-plotting.png";
-import rcode from "public/doc/cocalc-rcode.png";
-import sidechat from "public/doc/cocalc-r-side-chat.png";
-import rEnvironment from "public/doc/cocalc-r-environment.png";
+import logo from "public/features/r-logo.svg";
+import rJupyter from "public/features/cocalc-r-jupyter.png";
+import rLatex from "public/features/cocalc-r-latex.png";
+import rmdDemo from "public/features/cocalc-rmd-demo-R-python3-plotting.png";
+import rcode from "public/features/cocalc-rcode.png";
+import sidechat from "public/features/cocalc-r-side-chat.png";
+import rEnvironment from "public/features/cocalc-r-environment.png";
 
 const component = "R";
 const title = `Run ${component} Online`;
@@ -66,7 +66,7 @@ export default function R({ customize }) {
                 <p>
                   CoCalc handles all the tedious details for you, regardless of
                   whether you want to work on the{" "}
-                  <A href="/doc/terminal">command line</A>, run{" "}
+                  <A href="/features/terminal">command line</A>, run{" "}
                   <A href="#a-jupyternotebook">Jupyter Notebooks</A>, create
                   RMarkdown files, or use{" "}
                   <A href="#a-latex">
@@ -93,11 +93,11 @@ export default function R({ customize }) {
                   </li>
                   <li>
                     CoCalc already{" "}
-                    <A href="/doc/software-r">provides many packages</A> for
+                    <A href="/features/software-r">provides many packages</A> for
                     you.
                   </li>
                   <li>
-                    The <A href="/doc/latex-editor">LaTeX editor</A> is already
+                    The <A href="/features/latex-editor">LaTeX editor</A> is already
                     integrated with R.
                   </li>
                   <li>
@@ -110,7 +110,7 @@ export default function R({ customize }) {
                     uploading R files
                   </A>
                   , RMarkdown documents, or{" "}
-                  <A href="/doc/jupyter-notebook">Jupyter notebooks</A>.
+                  <A href="/features/jupyter-notebook">Jupyter notebooks</A>.
                 </div>
               </div>
             }
@@ -136,7 +136,7 @@ export default function R({ customize }) {
             <p>
               CoCalc offers a{" "}
               <strong>
-                <A href="/doc/jupyter-notebook">complete rewrite</A>
+                <A href="/features/jupyter-notebook">complete rewrite</A>
               </strong>{" "}
               of the classical{" "}
               <A href="http://jupyter.org/">Jupyter notebook</A> interface. It
@@ -169,7 +169,7 @@ export default function R({ customize }) {
           >
             <p>
               The fully integrated{" "}
-              <A href="/doc/latex-editor">
+              <A href="/features/latex-editor">
                 CoCalc <LaTeX /> editor
               </A>{" "}
               covers all your basic needs for working with <Code>.tex</Code>,{" "}
@@ -331,7 +331,7 @@ export default function R({ customize }) {
               and you find yourself in a familiar Linux shell with a local
               filesystem for your data files, access to{" "}
               <A href="https://www.git-scm.com">Git</A> and{" "}
-              <A href="/doc/software-executables">more...</A>{" "}
+              <A href="/features/software-executables">more...</A>{" "}
               <strong>Feel at home and run your analysis as usual!</strong>
             </p>
             <p>
@@ -391,7 +391,7 @@ export default function R({ customize }) {
             </p>
             <p>
               Look at our{" "}
-              <A href="/doc/software-r">list of available packages</A> in more
+              <A href="/features/software-r">list of available packages</A> in more
               detail. If something is missing, please tell us about it (
               <Contact />) so we can install that package globally.
             </p>

@@ -11,11 +11,11 @@ import Pitch from "components/landing/pitch";
 import Head from "components/landing/head";
 import Snapshots from "components/landing/snapshots";
 
-import logo from "public/doc/octave-logo.svg";
-import octaveJupyter from "public/doc/cocalc-octave-jupyter-20200511.png";
-import octaveTerminal from "public/doc/cocalc-octave-terminal-20200511.png";
-import octaveX11 from "public/doc/cocalc-octave-x11-20200511.png";
-import x11Terminal from "public/doc/octave-x11-terminal.png";
+import logo from "public/features/octave-logo.svg";
+import octaveJupyter from "public/features/cocalc-octave-jupyter-20200511.png";
+import octaveTerminal from "public/features/cocalc-octave-terminal-20200511.png";
+import octaveX11 from "public/features/cocalc-octave-x11-20200511.png";
+import x11Terminal from "public/features/octave-x11-terminal.png";
 
 const octave = <A href="https://www.gnu.org/software/octave/index">Octave</A>;
 const title = "Run Octave Online";
@@ -51,7 +51,7 @@ export default function Octave({ customize }) {
                   <li>
                     Via CoCalc's own real-time synchronized{" "}
                     <strong>
-                      <A href="/doc/jupyter-notebook">Jupyter Notebooks</A>
+                      <A href="/features/jupyter-notebook">Jupyter Notebooks</A>
                     </strong>{" "}
                     –{" "}
                     <A href="https://doc.cocalc.com/jupyter.html">learn more</A>
@@ -60,7 +60,7 @@ export default function Octave({ customize }) {
                   <li>
                     A full, collaborative, real-time synchronized{" "}
                     <strong>
-                      <A href="/doc/terminal">Linux Terminal</A>
+                      <A href="/features/terminal">Linux Terminal</A>
                     </strong>{" "}
                     –{" "}
                     <A href="https://doc.cocalc.com/terminal.html">
@@ -71,7 +71,7 @@ export default function Octave({ customize }) {
                   <li>
                     A{" "}
                     <strong>
-                      <A href="/doc/x11">virtual X11 graphical Linux desktop</A>
+                      <A href="/features/x11">virtual X11 graphical Linux desktop</A>
                     </strong>{" "}
                     – <A href="https://doc.cocalc.com/x11.html">learn more</A>.
                   </li>
@@ -80,7 +80,7 @@ export default function Octave({ customize }) {
                 <h3>Packages</h3>
                 <div>
                   Browse a{" "}
-                  <A href="/doc/software-octave">
+                  <A href="/features/software-octave">
                     list of all installed Octave packages...
                   </A>
                 </div>
@@ -93,7 +93,7 @@ export default function Octave({ customize }) {
                   <li>
                     You no longer have to <strong>install and maintain</strong>{" "}
                     Octave. In particular when you're{" "}
-                    <A href="/doc/teaching">teaching a class</A>, students just
+                    <A href="/features/teaching">teaching a class</A>, students just
                     have to sign in to CoCalc to get started!
                   </li>
                   <li>
@@ -215,7 +215,7 @@ export default function Octave({ customize }) {
             <p>
               You can start Octave in the X11 graphical terminal. When you plot
               graphics they will appear in a window to the right. If you paste{" "}
-              <A href="https://octave.org/doc/v4.2.1/Three_002dDimensional-Plots.html#Three_002dDimensional-Plots">
+              <A href="https://octave.org/features/v4.2.1/Three_002dDimensional-Plots.html#Three_002dDimensional-Plots">
                 this code
               </A>
               , you can then grab and rotate the 3D plot.

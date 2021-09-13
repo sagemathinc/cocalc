@@ -9,33 +9,33 @@ import LaTeX from "components/landing/latex";
 import Image from "components/landing/image";
 import NextImage from "next/image";
 
-import JupyterLogo from "/public/doc/jupyter-logo.svg";
-import JupyterTF from "/public/doc/cocalc-jupyter2-20170508.png";
-import PythonLogo from "/public/doc/python-logo.svg";
-import FrameEditorPython from "/public/doc/frame-editor-python.png";
-import Rlogo from "/public/doc/r-logo.svg";
-import RJupyter from "/public/doc/cocalc-r-jupyter.png";
-import LatexLogo from "/public/doc/latex-logo.svg";
-import LatexEditorImage from "/public/doc/cocalc-latex-editor-2019.png";
-import octaveLogo from "/public/doc/octave-logo.svg";
-import octaveJupyter from "/public/doc/cocalc-octave-jupyter-20200511.png";
-import x11Logo from "/public/doc/x11-logo.svg";
-import x11Screenshot from "/public/doc/x11-01.png";
-import linuxLogo from "/public/doc/linux-logo.svg";
-import linuxShellScript from "/public/doc/cocalc-shell-script-run.png";
-import terminalLogo from "/public/doc/linux-logo.svg";
-import terminalScreenshot from "/public/doc/terminal.png";
-import teachingLogo from "/public/doc/fa-graduation-cap.svg";
-import teachingScreenshot from "/public/doc/cocalc-course-assignments-2019.png";
-import apiScreenshot from "/public/doc/api-screenshot.png";
-import sageLogo from "/public/doc/sage-sticker-1x1_inch-small.png";
-import sageScreenshot from "/public/doc/cocalc-sagetex.png";
+import JupyterLogo from "/public/features/jupyter-logo.svg";
+import JupyterTF from "/public/features/cocalc-jupyter2-20170508.png";
+import PythonLogo from "/public/features/python-logo.svg";
+import FrameEditorPython from "/public/features/frame-editor-python.png";
+import Rlogo from "/public/features/r-logo.svg";
+import RJupyter from "/public/features/cocalc-r-jupyter.png";
+import LatexLogo from "/public/features/latex-logo.svg";
+import LatexEditorImage from "/public/features/cocalc-latex-editor-2019.png";
+import octaveLogo from "/public/features/octave-logo.svg";
+import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
+import x11Logo from "/public/features/x11-logo.svg";
+import x11Screenshot from "/public/features/x11-01.png";
+import linuxLogo from "/public/features/linux-logo.svg";
+import linuxShellScript from "/public/features/cocalc-shell-script-run.png";
+import terminalLogo from "/public/features/linux-logo.svg";
+import terminalScreenshot from "/public/features/terminal.png";
+import teachingLogo from "/public/features/fa-graduation-cap.svg";
+import teachingScreenshot from "/public/features/cocalc-course-assignments-2019.png";
+import apiScreenshot from "/public/features/api-screenshot.png";
+import sageLogo from "/public/features/sage-sticker-1x1_inch-small.png";
+import sageScreenshot from "/public/features/cocalc-sagetex.png";
 
 import { List, Avatar } from "antd";
 
 const listData = [
   {
-    href: "/doc/jupyter-notebook",
+    href: "/features/jupyter-notebook",
     title: "Jupyter Notebooks",
     logo: JupyterLogo,
     image: JupyterTF,
@@ -49,7 +49,7 @@ const listData = [
     ),
   },
   {
-    link: "/doc/python",
+    link: "/features/python",
     title: "Huge Preinstalled Python stack",
     logo: PythonLogo,
     image: FrameEditorPython,
@@ -57,12 +57,12 @@ const listData = [
       <>
         {" "}
         Use Python in coCalc for data science, statistics, mathematics, physics,
-        machine learning, and <A href="/doc/software-python">more</A>.{" "}
+        machine learning, and <A href="/features/software-python">more</A>.{" "}
       </>
     ),
   },
   {
-    link: "/doc/r-statistical-software",
+    link: "/features/r-statistical-software",
     title: "R statistical software",
     logo: Rlogo,
     image: RJupyter,
@@ -74,7 +74,7 @@ const listData = [
     ),
   },
   {
-    link: "/doc/latex-editor",
+    link: "/features/latex-editor",
     title: (
       <>
         Collaborative <LaTeX /> Editor
@@ -91,7 +91,7 @@ const listData = [
     ),
   },
   {
-    link: "/doc/octave",
+    link: "/features/octave",
     title: "GNU Octave",
     logo: octaveLogo,
     image: octaveJupyter,
@@ -105,7 +105,7 @@ const listData = [
     ),
   },
   {
-    link: "/doc/x11",
+    link: "/features/x11",
     title: "Linux Graphical X11 Desktop",
     logo: x11Logo,
     image: x11Screenshot,
@@ -118,7 +118,7 @@ const listData = [
     ),
   },
   {
-    link: "/doc/linux",
+    link: "/features/linux",
     title: "Online Linux Environment",
     logo: linuxLogo,
     image: linuxShellScript,
@@ -132,7 +132,7 @@ const listData = [
     ),
   },
   {
-    link: "/doc/terminal",
+    link: "/features/terminal",
     title: "Linux Terminal",
     logo: terminalLogo,
     image: terminalScreenshot,
@@ -144,7 +144,7 @@ const listData = [
     ),
   },
   {
-    link: "/doc/teaching",
+    link: "/features/teaching",
     title: "Teaching a course",
     logo: teachingLogo,
     image: teachingScreenshot,

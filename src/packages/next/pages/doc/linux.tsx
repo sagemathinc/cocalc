@@ -13,11 +13,11 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import Code from "components/landing/code";
 import Snapshots from "components/landing/snapshots";
 
-import logo from "public/doc/linux-logo.svg";
-import shellScript from "public/doc/cocalc-shell-script-run.png";
-import terminalCollab from "public/doc/cocalc-terminal-collab.gif";
-import jupyterBash from "public/doc/cocalc-jupyter-bash.png";
-import postgres from "public/doc/terminal-jupyter-postgresql.png";
+import logo from "public/features/linux-logo.svg";
+import shellScript from "public/features/cocalc-shell-script-run.png";
+import terminalCollab from "public/features/cocalc-terminal-collab.gif";
+import jupyterBash from "public/features/cocalc-jupyter-bash.png";
+import postgres from "public/features/terminal-jupyter-postgresql.png";
 
 export default function JupyterNotebook({ customize }) {
   return (
@@ -144,7 +144,7 @@ export default function JupyterNotebook({ customize }) {
               Are you looking for something beyond a terminal or editing shell
               scripts? CoCalc also offers{" "}
               <strong>
-                <A href="/doc/jupyter-notebook">Jupyter Notebooks</A> running
+                <A href="/features/jupyter-notebook">Jupyter Notebooks</A> running
                 the{" "}
                 <A href="https://github.com/takluyver/bash_kernel">
                   bash kernel
@@ -223,7 +223,7 @@ export default function JupyterNotebook({ customize }) {
               and started in the first terminal. In the second terminal,{" "}
               <Code>psql</Code> is used to connect to it and create a table and
               insert data. Finally, the{" "}
-              <A href="/doc/jupyter-notebook">Jupyter Notebook</A> on the left
+              <A href="/features/jupyter-notebook">Jupyter Notebook</A> on the left
               connects via the{" "}
               <A href="http://initd.org/psycopg/docs/">psycopg2</A> library and
               issues a query to the database!
@@ -271,14 +271,14 @@ export function FullLinuxTerminal() {
             <p>
               Browse the{" "}
               <strong>
-                <A href="/doc/software-executables">installed software</A>
+                <A href="/features/software-executables">installed software</A>
               </strong>{" "}
               in CoCalc.
             </p>
             <p>
               CoCalc is made for{" "}
               <strong>
-                <A href="/doc/teaching">teaching a course</A>
+                <A href="/features/teaching">teaching a course</A>
               </strong>
               : students just have to sign in to get started!{" "}
             </p>
@@ -357,7 +357,7 @@ export function FullLinuxTerminal() {
                 </strong>
                 : due to how CoCalc works, you cannot have root rights. However,
                 there is a wealth of software{" "}
-                <A href="/doc/software">already installed</A>, including both
+                <A href="/features/software">already installed</A>, including both
                 systems utilities and packages for specific language
                 environments. Regarding Python, R, Nodejs, and Julia
                 environments, you can{" "}

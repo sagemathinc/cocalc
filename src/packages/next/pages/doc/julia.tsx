@@ -30,7 +30,7 @@ export default function Julia({ customize }) {
                 <>
                   <div>
                     Run {component} scripts, <A href="">Pluto</A> and{" "}
-                    <A href="/doc/jupyter-notebook">IJulia Jupyter notebooks</A>{" "}
+                    <A href="/features/jupyter-notebook">IJulia Jupyter notebooks</A>{" "}
                     in a full, remote {component} environment.
                   </div>
                 </>

@@ -17,11 +17,11 @@ import { Icon } from "@cocalc/frontend/components/icon";
 const component = "a Linux Terminal";
 const title = `Online Linux Terminal`;
 
-import terminal from "/public/doc/terminal.png";
-import logo from "/public/doc/linux-logo.svg";
-import collabDemo from "/public/doc/cocalc-terminal-collab.gif";
-import shellScript from "/public/doc/cocalc-shell-script-run.png";
-import stack from "/public/doc/terminal-software.png";
+import terminal from "/public/features/terminal.png";
+import logo from "/public/features/linux-logo.svg";
+import collabDemo from "/public/features/cocalc-terminal-collab.gif";
+import shellScript from "/public/features/cocalc-shell-script-run.png";
+import stack from "/public/features/terminal-software.png";
 
 export default function Terminal({ customize }) {
   return (
@@ -140,7 +140,7 @@ export default function Terminal({ customize }) {
             </p>
             <p>
               There is also support for many programming languages and
-              compilers. <A href="..//doc/python.html">Python</A>, JAVA, C/C++
+              compilers. <A href="..//features/python.html">Python</A>, JAVA, C/C++
               via <A href="https://gcc.gnu.org/">GCC</A> and{" "}
               <A href="https://clang.llvm.org/">Clang</A>,{" "}
               <A href="https://ziglang.org/">Zig</A>,{" "}
@@ -157,7 +157,7 @@ export default function Terminal({ customize }) {
             <p>
               Look at our{" "}
               <strong>
-                <A href="/doc/software-executables">list of executables</A>
+                <A href="/features/software-executables">list of executables</A>
               </strong>{" "}
               to check what is available!{" "}
             </p>

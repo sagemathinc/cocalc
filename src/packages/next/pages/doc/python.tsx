@@ -15,14 +15,14 @@ import LaTeX from "components/landing/latex";
 import Publishing from "components/landing/publishing";
 import Code from "components/landing/code";
 
-import PythonLogo from "public/doc/python-logo.svg";
-import FrameEditorPython from "public/doc/frame-editor-python.png";
-import CollabRTC from "public/doc/cocalc-real-time-jupyter.png";
-import CocalcPythonJupyter from "public/doc/cocalc-python-jupyter.png";
-import CoCalcLaTeXPythonTex from "public/doc/cocalc-latex-pythontex.png";
-import FormatGIF from "public/doc/cocalc-jupyter-format-python.gif";
-import CommandLineTerminal from "public/doc/cocalc-frame-editor-python.png";
-import SideChatImage from "public/doc/cocalc-jupyter-python-sidechat.png";
+import PythonLogo from "public/features/python-logo.svg";
+import FrameEditorPython from "public/features/frame-editor-python.png";
+import CollabRTC from "public/features/cocalc-real-time-jupyter.png";
+import CocalcPythonJupyter from "public/features/cocalc-python-jupyter.png";
+import CoCalcLaTeXPythonTex from "public/features/cocalc-latex-pythontex.png";
+import FormatGIF from "public/features/cocalc-jupyter-format-python.gif";
+import CommandLineTerminal from "public/features/cocalc-frame-editor-python.png";
+import SideChatImage from "public/features/cocalc-jupyter-python-sidechat.png";
 
 const component = "Python";
 const title = `Run ${component} Online`;
@@ -43,8 +43,8 @@ export default function Octave({ customize }) {
                 <>
                   <div>
                     Run {component} scripts,{" "}
-                    <A href="/doc/jupyter-notebook">Jupyter notebooks</A>, or
-                    even a <A href="/doc/x11">graphical application</A> in a
+                    <A href="/features/jupyter-notebook">Jupyter notebooks</A>, or
+                    even a <A href="/features/x11">graphical application</A> in a
                     full, remote {component} environment.
                   </div>
                 </>
@@ -100,7 +100,7 @@ export default function Octave({ customize }) {
                 </ul>
                 <p>
                   Find more details in the{" "}
-                  <A href="/doc/software-python">
+                  <A href="/features/software-python">
                     list of installed Python libraries
                   </A>
                   .
@@ -118,7 +118,7 @@ export default function Octave({ customize }) {
                     <A href="https://doc.cocalc.com/howto/upload.html">
                       uploading
                     </A>
-                    , <A href="/doc/jupyter-notebook">Jupyter Notebooks</A> or
+                    , <A href="/features/jupyter-notebook">Jupyter Notebooks</A> or
                     Python scripts.
                   </li>
                   <li>
@@ -131,11 +131,11 @@ export default function Octave({ customize }) {
                   </li>
                   <li>
                     CoCalc already{" "}
-                    <A href="/doc/software-python">provides many packages</A>
+                    <A href="/features/software-python">provides many packages</A>
                     for you.
                   </li>
                   <li>
-                    The <A href="/doc/latex-editor">LaTeX editor</A> is already
+                    The <A href="/features/latex-editor">LaTeX editor</A> is already
                     integrated with{" "}
                     <A href="https://ctan.org/pkg/pythontex">PythonTeX</A> and{" "}
                     <A href="https://ctan.org/pkg/sagetex">SageTeX</A>.
@@ -167,7 +167,7 @@ export default function Octave({ customize }) {
               <strong>online code collaboration</strong>. Collaboration applies
               to editing plain Python files,{" "}
               <A href="https://doc.cocalc.com/sagews.html">Sage Worksheets</A>,{" "}
-              <A href="/doc/jupyter-notebook">Jupyter Notebooks</A>, and much
+              <A href="/features/jupyter-notebook">Jupyter Notebooks</A>, and much
               more.
             </p>
             <p>
@@ -196,7 +196,7 @@ export default function Octave({ customize }) {
             <p>
               CoCalc offers a{" "}
               <strong>
-                <A href="/doc/jupyter-notebook">complete rewrite</A>
+                <A href="/features/jupyter-notebook">complete rewrite</A>
               </strong>{" "}
               of the classical{" "}
               <A href="http://jupyter.org/">Jupyter notebook</A> interface. It
@@ -212,7 +212,7 @@ export default function Octave({ customize }) {
             </p>
             <p>
               There are several{" "}
-              <A href="/doc/software-python">Python environments available</A>.
+              <A href="/features/software-python">Python environments available</A>.
             </p>
             <p>
               You can also easily run{" "}
@@ -239,7 +239,7 @@ export default function Octave({ customize }) {
           >
             <div>
               The fully integrated{" "}
-              <A href="/doc/latex-editor">CoCalc latex editor</A> covers all
+              <A href="/features/latex-editor">CoCalc latex editor</A> covers all
               your basic needs for working with <Code>.tex</Code> files
               containing{" "}
               <A href="https://github.com/gpoore/pythontex">PythonTeX</A> or{" "}
@@ -343,7 +343,7 @@ export default function Octave({ customize }) {
             <p>
               Terminals also gives you access to{" "}
               <A href="https://www.git-scm.com">git</A> and{" "}
-              <A href="/doc/software-executables">many more utilities</A>.
+              <A href="/features/software-executables">many more utilities</A>.
             </p>
             <p>
               Regarding collaboration, terminals can be used{" "}
