@@ -1,7 +1,7 @@
 import Info from "./info";
 import A from "components/misc/A";
 
-import image from "public/doc/cocalc-backup-1.png";
+import image from "public/features/cocalc-backup-1.png";
 
 export default function Backups() {
   return (

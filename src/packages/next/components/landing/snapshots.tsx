@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import A from "components/misc/A";
 import Info from "./info";
-import image from "public/doc/cocalc-snapshots.png";
+import image from "public/features/cocalc-snapshots.png";
 
 interface Props {
   children?: ReactNode;

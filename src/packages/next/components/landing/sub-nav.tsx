@@ -88,7 +88,7 @@ export default function SubNav({ page, subPage }: Props) {
 function SubPageTab({ name, selected, label }) {
   return (
     <A
-      href={`/doc/${name}`}
+      href={`/features/${name}`}
       style={
         selected ? { fontWeight: "bold", color: "blue" } : { color: "#555" }
       }

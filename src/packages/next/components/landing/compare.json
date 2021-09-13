@@ -2,7 +2,7 @@
   {
     "name": "jupyter",
     "title": "Online Jupyter Notebooks",
-    "link": "/doc/jupyter-notebook",
+    "link": "/features/jupyter-notebook",
     "products": [
       { "key": "cocalc", "name": "CoCalc", "link": "https://cocalc.com" },
       {
@@ -127,7 +127,7 @@
   {
     "name": "latex",
     "title": "Online LaTeX Editors",
-    "link": "/doc/latex-editor",
+    "link": "/features/latex-editor",
     "products": [
       { "key": "cocalc", "name": "CoCalc", "link": "https://cocalc.com" },
       {
@@ -272,7 +272,7 @@
   {
     "name": "terminal",
     "title": "Online Linux Terminal",
-    "link": "/doc/terminal",
+    "link": "/features/terminal",
     "products": [
       { "key": "cocalc", "name": "CoCalc", "link": "https://cocalc.com" },
       {

@@ -7,7 +7,6 @@ import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import LaTeX from "components/landing/latex";
 import Image from "components/landing/image";
-import NextImage from "next/image";
 
 import JupyterLogo from "/public/features/jupyter-logo.svg";
 import JupyterTF from "/public/features/cocalc-jupyter2-20170508.png";

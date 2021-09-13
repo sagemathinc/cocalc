@@ -128,6 +128,7 @@ function ComparisonTable({
         columns={columns}
         bordered
         pagination={false}
+        rowKey={"feature"}
       />
       {disclaimer && <Disclaimer />}
     </div>

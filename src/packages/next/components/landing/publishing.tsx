@@ -1,7 +1,7 @@
 import Info from "./info";
 import A from "components/misc/A";
 
-import image from "public/doc/cocalc-share-latex-document.png";
+import image from "public/features/cocalc-share-latex-document.png";
 
 export default function Publishing() {
   return (

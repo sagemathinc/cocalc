@@ -70,14 +70,12 @@ export default async function init(app: Application) {
   // traffic for:
   const endpoints = [
     basePath, // top-level landing page
-    join(basePath, "doc*"), // everything under /doc -- all the other landing pages
+    join(basePath, "features*"),
     join(basePath, "software*"),
     join(basePath, "policies*"),
     join(basePath, "billing*"),
-    join(basePath, "_next", "*"),
-    shareBasePath, // everything under "/share"
-    join(shareBasePath, "*"),
-    join(shareBasePath, "_next", "*"),
+    join(basePath, "share*"),
+    join(basePath, "_next*"),
   ];
   winston.info(
     "Now using next.js packages/share handler to handle select endpoints under /share",

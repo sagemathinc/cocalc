@@ -55,7 +55,7 @@ export default function Header({ page, subPage }: Props) {
         {landingPages && (
           <>
             <A
-              href="/doc/"
+              href="/features/"
               style={page == "features" ? SelectedStyle : LinkStyle}
             >
               Features
