@@ -65,7 +65,7 @@ const dataSource = [
 export default function Software({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="Online Linux Environment" />
+      <Head title="CoCalc Software" />
       <Header page="software" />
       <IndexList
         title="Available Software"
