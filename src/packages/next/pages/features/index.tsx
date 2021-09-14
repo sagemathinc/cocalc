@@ -6,7 +6,7 @@ import Head from "components/landing/head";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import LaTeX from "components/landing/latex";
-import Image from "components/landing/image";
+import IndexList, { DataSource } from "components/landing/index-list";
 
 import JupyterLogo from "/public/features/jupyter-logo.svg";
 import JupyterTF from "/public/features/cocalc-jupyter2-20170508.png";
@@ -30,12 +30,10 @@ import apiScreenshot from "/public/features/api-screenshot.png";
 import sageLogo from "/public/features/sage-sticker-1x1_inch-small.png";
 import sageScreenshot from "/public/features/cocalc-sagetex.png";
 
-import { List, Avatar } from "antd";
-
-const listData = [
+const dataSource = [
   {
-    href: "/features/jupyter-notebook",
-    title: "Jupyter Notebooks",
+    link: "/features/jupyter-notebook",
+    title: "Jupyter notebooks",
     logo: JupyterLogo,
     image: JupyterTF,
     description: (
@@ -49,7 +47,7 @@ const listData = [
   },
   {
     link: "/features/python",
-    title: "Huge Preinstalled Python stack",
+    title: "Huge installed Python stack",
     logo: PythonLogo,
     image: FrameEditorPython,
     description: (
@@ -76,7 +74,7 @@ const listData = [
     link: "/features/latex-editor",
     title: (
       <>
-        Collaborative <LaTeX /> Editor
+        Collaborative <LaTeX /> editor
       </>
     ),
     logo: LatexLogo,
@@ -105,7 +103,7 @@ const listData = [
   },
   {
     link: "/features/x11",
-    title: "Linux Graphical X11 Desktop",
+    title: "Linux graphical X11 desktop",
     logo: x11Logo,
     image: x11Screenshot,
     description: (
@@ -118,7 +116,7 @@ const listData = [
   },
   {
     link: "/features/linux",
-    title: "Online Linux Environment",
+    title: "Online Linux environment",
     logo: linuxLogo,
     image: linuxShellScript,
     description: (
@@ -132,7 +130,7 @@ const listData = [
   },
   {
     link: "/features/terminal",
-    title: "Linux Terminal",
+    title: "Linux terminal",
     logo: terminalLogo,
     image: terminalScreenshot,
     description: (
@@ -162,7 +160,7 @@ const listData = [
     link: "https://doc.cocalc.com/api/",
     title: "API interface",
     image: apiScreenshot,
-    logo: "icon:server",
+    logo: "server",
     description: (
       <>
         Programmatically control CoCalc from your own server. Embed CoCalc
@@ -186,7 +184,7 @@ const listData = [
       </>
     ),
   },
-];
+] as DataSource;
 
 export default function Features({ customize }) {
   return (
@@ -194,65 +192,11 @@ export default function Features({ customize }) {
       <Head title="CoCalc Features" />
       <Layout>
         <Header page="features" />
-        <Layout.Content
-          style={{
-            backgroundColor: "white",
-          }}
-        >
-          <div
-            style={{
-              maxWidth: "900px",
-              margin: "15px auto",
-              padding: "15px",
-              backgroundColor: "white",
-            }}
-          >
-            <h1>Overview of CoCalc features</h1>
-            <p>These pages are an overview of what CoCalc is able to do.</p>
-            <List
-              itemLayout="vertical"
-              size="large"
-              dataSource={listData}
-              renderItem={(item) => {
-                return (
-                  <List.Item
-                    key={item.link}
-                    extra={
-                      item.image && (
-                        <div style={{ width: "250px" }}>
-                          <A href={item.link}>
-                            <Image src={item.image} alt="logo" />
-                          </A>
-                        </div>
-                      )
-                    }
-                  >
-                    <List.Item.Meta
-                      avatar={
-                        item.logo && (
-                          <Avatar
-                            alt={item.title + " logo "}
-                            size={80}
-                            shape="square"
-                            icon={
-                              <Image src={item.logo} width={80} height={80} />
-                            }
-                          />
-                        )
-                      }
-                      title={<A href={item.link}>{item.title}</A>}
-                      description={
-                        <span style={{ color: "#666" }}>
-                          {item.description}
-                        </span>
-                      }
-                    />
-                  </List.Item>
-                );
-              }}
-            />
-          </div>
-        </Layout.Content>
+        <IndexList
+          title="Overview of CoCalc features"
+          description="These pages are an overview of what CoCalc is able to do."
+          dataSource={dataSource}
+        />
         <Footer />
       </Layout>
     </Customize>

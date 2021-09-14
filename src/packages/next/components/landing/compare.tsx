@@ -15,7 +15,12 @@ export default function Compare({ name, disclaimer, title }: Props) {
   for (const table of DATA) {
     if (name != null && table.name != name) continue;
     v.push(
-      <ComparisonTable table={table} disclaimer={disclaimer} title={title} />
+      <ComparisonTable
+        key={table.name}
+        table={table}
+        disclaimer={disclaimer}
+        title={title}
+      />
     );
   }
   return <div style={{ background: "white", width: "100%" }}>{v}</div>;

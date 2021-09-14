@@ -3,7 +3,6 @@ import { MediaURL } from "./util";
 import basePath from "lib/base-path";
 import { join } from "path";
 import { CSSProperties } from "react";
-import { Icon, IconName } from "@cocalc/frontend/components/icon";
 
 // copied from https://github.com/vercel/next.js/blob/eb871d30915d668dd9ba897d4d04ced207ce2e6d/packages/next/image-types/global.d.ts
 // since it seems not exported...
@@ -24,10 +23,6 @@ interface Props {
 
 export default function Image({ src, style, alt, width, height }: Props) {
   if (typeof src == "string") {
-    if (src.startsWith("icon:")) {
-      // not typed checked
-      return <Icon name={src.slice(5) as IconName} />;
-    }
     return (
       <img
         src={MediaURL(src)}

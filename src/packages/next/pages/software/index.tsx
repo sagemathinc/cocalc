@@ -1,64 +1,78 @@
-import A from "components/misc/A";
-import { Layout } from "antd";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
+import IndexList, { DataSource } from "components/landing/index-list";
+
+import executablesScreenshot from "public/software/executables.png";
+import pythonScreenshot from "/public/features/frame-editor-python.png";
+import RJupyter from "/public/features/cocalc-r-jupyter.png";
+import JuliaJupyter from "/public/software/julia-jupyter.png";
+import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
+
+const dataSource = [
+  {
+    link: "/software/executables",
+    title: "Executables",
+    logo: "laptop",
+    image: executablesScreenshot,
+    description: (
+      <>
+        CoCalc comes pre-installed with thousands of programs that you can run
+        from the terminal or in an X11 environment, or call from your notebooks
+        or scripts.
+      </>
+    ),
+  },
+  {
+    link: "/software/python",
+    title: "Python libraries",
+    logo: "python",
+    image: pythonScreenshot,
+    description: (
+      <>
+        CoCalc offers a large number of Python libraries preinstalled system
+        wide, in Anaconda, and in several versions of Sage.
+      </>
+    ),
+  },
+  {
+    link: "/software/r",
+    title: "R statistical software packages",
+    logo: "r",
+    image: RJupyter,
+    description: <>CoCalc maintains an extensive set of R packages</>,
+  },
+  {
+    link: "/software/julia",
+    title: "Julia libraries",
+    logo: "julia",
+    image: JuliaJupyter,
+    description: (
+      <>CoCalc regularly updates Julia and installs many common packages.</>
+    ),
+  },
+  {
+    link: "/software/octave",
+    title: "Octave packages",
+    logo: "octave",
+    image: octaveJupyter,
+    description: <>There are several Octave packages that are preinstalled.</>,
+  },
+] as DataSource;
 
 export default function Software({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Online Linux Environment" />
-      <Layout>
-        <Header page="software" />
-        <Layout.Content
-          style={{
-            backgroundColor: "white",
-          }}
-        >
-          <div
-            style={{
-              maxWidth: "900px",
-              margin: "15px auto",
-              padding: "15px",
-              backgroundColor: "white",
-            }}
-          >
-            <h1>Available Software</h1>
-            <p>
-              These pages contain information about available software on
-              CoCalc.
-            </p>
-            <ul>
-              <li>
-                <A href="/doc/software-executables">Executables:</A>{" "}
-                <span>(subset) of available software on CoCalc</span>
-              </li>
-              <li>
-                <A href="/doc/software-python">Python Libraries:</A>{" "}
-                <span>
-                  see what libraries in which environments CoCalc offers and
-                  their versions
-                </span>
-              </li>
-              <li>
-                <A href="/doc/software-r">R Statistical Software Packages:</A>{" "}
-                <span>CoCalc maintains an extensive set of R packages</span>
-              </li>
-              <li>
-                <A href="/doc/software-julia">Julia Libraries:</A>{" "}
-                <span>installed libraries for Julia</span>
-              </li>
-              <li>
-                <A href="/doc/software-octave">Octave Packages:</A>{" "}
-                <span>installed packages for Octave</span>
-              </li>
-            </ul>
-          </div>
-        </Layout.Content>
-        <Footer />
-      </Layout>
+      <Header page="software" />
+      <IndexList
+        title="Available Software"
+        description="These pages contain information about available software on CoCalc."
+        dataSource={dataSource}
+      />
+      <Footer />
     </Customize>
   );
 }
