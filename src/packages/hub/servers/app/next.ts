@@ -73,7 +73,7 @@ export default async function init(app: Application) {
     join(basePath, "features*"),
     join(basePath, "software*"),
     join(basePath, "policies*"),
-    join(basePath, "billing*"),
+    join(basePath, "pricing*"),
     join(basePath, "share*"),
     join(basePath, "_next*"),
   ];

@@ -58,7 +58,7 @@ export default function Header({ page, subPage }: Props) {
               href="/features/"
               style={page == "features" ? SelectedStyle : LinkStyle}
             >
-              Features
+              Why CoCalc?
             </A>
             <A
               href="/software"
@@ -67,8 +67,8 @@ export default function Header({ page, subPage }: Props) {
               Software
             </A>
             <A
-              href="/billing"
-              style={page == "billing" ? SelectedStyle : LinkStyle}
+              href="/pricing"
+              style={page == "pricing" ? SelectedStyle : LinkStyle}
             >
               Pricing
             </A>
@@ -92,11 +92,11 @@ export default function Header({ page, subPage }: Props) {
         {shareServer && (
           <Link href={"/share/public_paths/page/1"}>
             <a style={LinkStyle} title="View files that people have published.">
-              Published Files
+              Browse
             </a>
           </Link>
         )}
-        {termsOfServiceURL && (
+        {!landingPages && termsOfServiceURL && (
           <A
             style={LinkStyle}
             href={termsOfServiceURL}

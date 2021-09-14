@@ -27,7 +27,7 @@ const dataSource = [
   },
   {
     link: "/software/python",
-    title: "Python libraries",
+    title: "Python Libraries",
     logo: "python",
     image: pythonScreenshot,
     description: (
@@ -39,14 +39,14 @@ const dataSource = [
   },
   {
     link: "/software/r",
-    title: "R statistical software packages",
+    title: "R Statistical Software Packages",
     logo: "r",
     image: RJupyter,
     description: <>CoCalc maintains an extensive set of R packages</>,
   },
   {
     link: "/software/julia",
-    title: "Julia libraries",
+    title: "Julia Libraries",
     logo: "julia",
     image: JuliaJupyter,
     description: (
@@ -55,7 +55,7 @@ const dataSource = [
   },
   {
     link: "/software/octave",
-    title: "Octave packages",
+    title: "Octave Packages",
     logo: "octave",
     image: octaveJupyter,
     description: <>There are several Octave packages that are preinstalled.</>,

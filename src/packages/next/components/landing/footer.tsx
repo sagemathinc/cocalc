@@ -20,7 +20,7 @@ function Item({
 }
 
 export default function Footer() {
-  const { siteName, organizationName, termsOfServiceURL, contactEmail } =
+  const { siteName, organizationName, termsOfServiceURL, contactEmail, landingPages } =
     useCustomize();
   return (
     <Layout.Footer
@@ -35,7 +35,7 @@ export default function Footer() {
           <A href="https://cocalc.com/index.html">CoCalc</A>
         </Item>
         {organizationName && <Item>{organizationName}</Item>}
-        {termsOfServiceURL && (
+        {!landingPages && termsOfServiceURL && (
           <Item>
             <A href={termsOfServiceURL}>Terms of Service</A>
           </Item>

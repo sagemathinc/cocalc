@@ -19,6 +19,7 @@ interface Props {
   title: ReactNode;
   description: ReactNode;
   dataSource: Item[];
+  updated?: string;
 }
 
 export default function IndexList({ title, description, dataSource }: Props) {

@@ -25,22 +25,26 @@ const features = {
   api: { label: "API" },
 };
 
-const billing = {
-  pricing: { lable: "Pricing" },
+const pricing = {
+  products: { label: "Products" },
+  subscriptions: { label: "Subscriptions" },
+  courses: { label: "Courses" },
+  dedicated: { label: "Dedicated" },
+  onprem: { label: "OnPrem" },
 };
 
 const policies = {
-  terms_of_service: { label: "Terms of service" },
+  terms_of_service: { label: "Terms of Service" },
   copyright: { label: "Copyright" },
   privacy: { label: "Privacy" },
-  thirdparties: { label: "Third parties" },
-  ferpa: { label: "FERPA compliance" },
+  thirdparties: { label: "Third Parties" },
+  ferpa: { label: "FERPA Compliance" },
 };
 
 const PAGES = {
   features,
   software,
-  billing,
+  pricing,
   policies,
 };
 
@@ -48,7 +52,7 @@ export type Page = keyof typeof PAGES;
 export type SubPage =
   | keyof typeof software
   | keyof typeof features
-  | keyof typeof billing
+  | keyof typeof pricing
   | keyof typeof policies;
 
 interface Props {
@@ -90,7 +94,14 @@ function SubPageTab({ name, selected, label }) {
     <A
       href={`/features/${name}`}
       style={
-        selected ? { fontWeight: "bold", color: "blue" } : { color: "#555" }
+        selected
+          ? {
+              fontWeight: "bold",
+              color: "blue",
+              paddingBottom: "5px",
+              borderBottom: "2px solid blue",
+            }
+          : { color: "#555" }
       }
     >
       {label}
