@@ -69,6 +69,7 @@ export default function SubNav({ page, subPage }: Props) {
     tabs.push(
       <SubPageTab
         key={name}
+        page={page}
         selected={subPage == name}
         name={name}
         label={p[name].label}
@@ -89,10 +90,10 @@ export default function SubNav({ page, subPage }: Props) {
   );
 }
 
-function SubPageTab({ name, selected, label }) {
+function SubPageTab({ page, name, selected, label }) {
   return (
     <A
-      href={`/features/${name}`}
+      href={`/${page}/${name}`}
       style={
         selected
           ? {
