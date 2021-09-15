@@ -1,26 +1,8 @@
 import { useMemo, useState } from "react";
 import { Input, Table } from "antd";
 import Code from "components/landing/code";
-import DATA from "dist/compute-inventory.json";
-import { splitFirst, splitLast } from "@cocalc/util/misc-path";
-import { capitalize, field_cmp } from "@cocalc/util/misc";
-const { executables } = DATA;
 import { debounce } from "lodash";
-
-interface Item {
-  name: string;
-  path: string;
-  output: string;
-}
-
-const dataSource: Item[] = [];
-
-for (const path in executables) {
-  const name = capitalize(splitFirst(splitLast(path, "/")[1], "-")[0]);
-  dataSource.push({ path, output: executables[path], name });
-}
-
-dataSource.sort(field_cmp("name"));
+import executables, { Item } from "lib/landing/executables";
 
 const COLUMNS = [
   {
@@ -60,6 +42,7 @@ const COLUMNS = [
 ];
 
 export default function ExecutablesTable() {
+  const dataSource = useMemo(executables, []);
   const [search, setSearch] = useState<string>("");
   const onChange = useMemo(
     () =>
