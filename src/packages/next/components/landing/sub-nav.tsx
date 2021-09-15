@@ -34,7 +34,7 @@ const pricing = {
 };
 
 const policies = {
-  terms_of_service: { label: "Terms of Service" },
+  terms: { label: "Terms of Service" },
   copyright: { label: "Copyright" },
   privacy: { label: "Privacy" },
   thirdparties: { label: "Third Parties" },
