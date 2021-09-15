@@ -12,6 +12,10 @@ import { Icon, IconName } from "@cocalc/frontend/components/icon";
 interface Item {
   title: ReactNode;
   icon: IconName;
+  disk: number;
+  ram: number;
+  cores: number;
+  price: number;
 }
 
 const data: Item[] = [
@@ -44,7 +48,7 @@ const data: Item[] = [
 export default function Products({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="CoCalc - Dedicated Virtual Machines" />
+      <Head title="Dedicated Virtual Machines" />
       <Header page="pricing" subPage="dedicated" />
       <Layout.Content
         style={{
@@ -64,7 +68,6 @@ export default function Products({ customize }) {
               <Icon name="server" style={{ marginRight: "30px" }} /> CoCalc -
               Dedicated Virtual Machines
             </h1>
-            <h2>Last Updated: September 15, 2021</h2>
           </div>
           <div style={{ fontSize: "12pt" }}>
             <p>

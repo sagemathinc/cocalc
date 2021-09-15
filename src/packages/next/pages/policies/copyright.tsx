@@ -9,7 +9,7 @@ import A from "components/misc/A";
 export default function Copyright({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="CoCalc - Copyright Policy" />
+      <Head title="Copyright Policy" />
       <Header page="policies" subPage="copyright" />
       <Layout.Content
         style={{

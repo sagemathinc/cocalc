@@ -8,7 +8,7 @@ import { Customize } from "lib/customize";
 export default function FERPA({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="CoCalc - FERPA Policy" />
+      <Head title="FERPA Policy" />
       <Header page="policies" subPage="ferpa" />
       <Layout.Content
         style={{

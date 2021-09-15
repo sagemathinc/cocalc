@@ -9,7 +9,7 @@ import A from "components/misc/A";
 export default function TermsOfService({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="CoCalc - Third Parties" />
+      <Head title="Third Parties" />
       <Header page="policies" subPage="thirdparties" />
       <Layout.Content
         style={{

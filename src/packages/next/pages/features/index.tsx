@@ -189,7 +189,7 @@ const dataSource = [
 export default function Features({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="CoCalc Features" />
+      <Head title="Features" />
       <Layout>
         <Header page="features" />
         <IndexList

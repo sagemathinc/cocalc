@@ -9,7 +9,7 @@ import A from "components/misc/A";
 export default function Privacy({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="CoCalc - Privacy Policy" />
+      <Head title="Privacy Policy" />
       <Header page="policies" subPage="privacy" />
       <Layout.Content
         style={{

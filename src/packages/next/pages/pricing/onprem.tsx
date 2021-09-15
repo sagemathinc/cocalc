@@ -5,11 +5,12 @@ import { Layout } from "antd";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import A from "components/misc/A";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 export default function OnPrem({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="CoCalc - On Premises Offerings" />
+      <Head title="On Premises Offerings" />
       <Header page="pricing" subPage="onprem" />
       <Layout.Content
         style={{
@@ -25,8 +26,11 @@ export default function OnPrem({ customize }) {
           }}
         >
           <div style={{ textAlign: "center", color: "#444" }}>
-            <h1 style={{ fontSize: "28pt" }}>CoCalc - On Premises Offerings</h1>
-            <h2>Last Updated: September 15, 2021</h2>
+            <h1 style={{ fontSize: "28pt" }}>
+              {" "}
+              <Icon name="laptop" style={{ marginRight: "30px" }} /> CoCalc - On
+              Premises Offerings
+            </h1>
           </div>
           <div style={{ fontSize: "12pt" }}>
             Contact us at <A href="mailto:help@cocalc.com">help@cocalc.com</A>{" "}
