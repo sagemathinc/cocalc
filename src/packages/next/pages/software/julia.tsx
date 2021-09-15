@@ -7,13 +7,12 @@ import JuliaLibraries from "components/landing/julia-libraries";
 import Image from "components/landing/image";
 import { Alert, Layout } from "antd";
 import A from "components/misc/A";
-import pythonScreenshot from "/public/features/frame-editor-python.png";
-import Code from "components/landing/code";
+import screenshot from "/public/software/julia-jupyter.png";
 
 export default function Software({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="Executables in CoCalc" />
+      <Head title="Julia Packages in CoCalc" />
       <Header page="software" subPage="julia" />
       <Layout.Content
         style={{
@@ -29,18 +28,19 @@ export default function Software({ customize }) {
           }}
         >
           <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
-            Installed Python Libraries
+            Installed Julia Packages
           </h1>
           <p style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}>
-            <Image src={pythonScreenshot} />
+            <Image src={screenshot} />
           </p>
           <p>
-            This table below lists available Python libraries for each supported
-            environment. If something is missing, you can{" "}
-            <A href="https://doc.cocalc.com/howto/install-python-lib.html">
+            This table lists available{" "}
+            <A href="https://julialang.org/">Julia</A> libraries. If something
+            is missing, you can{" "}
+            <A href="https://doc.cocalc.com/howto/install-julia-package.html">
               install additional libraries
             </A>
-            , or request the we install them.
+            , or request that we install them.
           </p>
           <Alert
             style={{ margin: "15px 0" }}
@@ -49,54 +49,22 @@ export default function Software({ customize }) {
               <span style={{ fontSize: "10pt" }}>
                 Learn more about{" "}
                 <strong>
-                  <A href="/features/python">Python in CoCalc</A>
+                  <A href="/features/julia">Julia in CoCalc</A>
+                </strong>{" "}
+                and our{" "}
+                <strong>
+                  <A href="https://doc.cocalc.com/howto/pluto.html">Pluto</A>
                 </strong>{" "}
                 and{" "}
                 <strong>
-                  <A href="/features/jupyter-notebook">
-                    Jupyter Notebook support
-                  </A>
-                </strong>
-                .
+                  <A href="/features/jupyter-notebook">Jupyter</A>
+                </strong>{" "}
+                Notebook support.
               </span>
             }
             type="info"
             showIcon
           />
-          <h2>Python Environments</h2>
-          <ul>
-            <li>
-              <b>
-                <A href="https://docs.python.org/3/">Python 3</A>:{" "}
-              </b>
-              The default system wide Python 3 environment.
-            </li>
-            <li>
-              <b>
-                <A href="http://www.sagemath.org/">SageMath</A>:{" "}
-              </b>
-              The Python environment inside the most recent default system wide
-              SageMath instance. Note that several older versions of Sage are
-              also available.
-            </li>
-            <li>
-              <b>
-                <A href="https://www.anaconda.com/what-is-anaconda/">
-                  Anaconda 2020
-                </A>
-                :{" "}
-              </b>
-              The Anaconda 2020.02 Python 3 distribution. Select the "Anaconda
-              2020" flavored kernel in Jupyter notebooks or execute
-              <Code>anaconda2020</Code> in a terminal to start it.
-            </li>
-            <li>
-              <b>
-                <A href="https://docs.python.org/2/">Python 2</A>:{" "}
-              </b>
-              The default system wide Python 2 environment.
-            </li>
-          </ul>
 
           <JuliaLibraries />
         </div>

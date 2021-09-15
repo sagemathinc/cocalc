@@ -13,7 +13,7 @@ import Code from "components/landing/code";
 export default function Software({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="Executables in CoCalc" />
+      <Head title="Python Libraries in CoCalc" />
       <Header page="software" subPage="python" />
       <Layout.Content
         style={{
@@ -35,12 +35,12 @@ export default function Software({ customize }) {
             <Image src={pythonScreenshot} />
           </p>
           <p>
-            This table below lists available Python libraries for each supported
+            The table below lists available Python libraries for each supported
             environment. If something is missing, you can{" "}
             <A href="https://doc.cocalc.com/howto/install-python-lib.html">
-              install additional libraries
+              install it yourself
             </A>
-            , or request the we install them.
+            , or request that we install it.
           </p>
           <Alert
             style={{ margin: "15px 0" }}

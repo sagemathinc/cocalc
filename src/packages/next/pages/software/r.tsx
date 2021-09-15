@@ -7,13 +7,12 @@ import RLibraries from "components/landing/r-libraries";
 import Image from "components/landing/image";
 import { Alert, Layout } from "antd";
 import A from "components/misc/A";
-import pythonScreenshot from "/public/features/frame-editor-python.png";
-import Code from "components/landing/code";
+import screenshot from "/public/features/cocalc-r-jupyter.png";
 
-export default function Software({ customize }) {
+export default function RSoftware({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="Executables in CoCalc" />
+      <Head title="R Packages in CoCalc" />
       <Header page="software" subPage="r" />
       <Layout.Content
         style={{
@@ -29,18 +28,19 @@ export default function Software({ customize }) {
           }}
         >
           <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
-            Installed Python Libraries
+            Installed R Statistical Software Packages
           </h1>
           <p style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}>
-            <Image src={pythonScreenshot} />
+            <Image src={screenshot} />
           </p>
           <p>
-            This table below lists available Python libraries for each supported
-            environment. If something is missing, you can{" "}
-            <A href="https://doc.cocalc.com/howto/install-python-lib.html">
-              install additional libraries
+            This table lists all R packages that are{" "}
+            <b>immediately available by default in every CoCalc project</b>,
+            along with their version numbers. If a package is missing, you can{" "}
+            <A href="https://doc.cocalc.com/howto/install-r-package.html">
+              install it yourself
             </A>
-            , or request the we install them.
+            , or request that we install them.
           </p>
           <Alert
             style={{ margin: "15px 0" }}
@@ -49,12 +49,8 @@ export default function Software({ customize }) {
               <span style={{ fontSize: "10pt" }}>
                 Learn more about{" "}
                 <strong>
-                  <A href="/features/python">Python in CoCalc</A>
-                </strong>{" "}
-                and{" "}
-                <strong>
-                  <A href="/features/jupyter-notebook">
-                    Jupyter Notebook support
+                  <A href="/features/r-statistical-software">
+                    R functionality in CoCalc
                   </A>
                 </strong>
                 .
@@ -63,38 +59,25 @@ export default function Software({ customize }) {
             type="info"
             showIcon
           />
-          <h2>Python Environments</h2>
+          <h2>R Statistical Software Environments</h2>
+
           <ul>
             <li>
               <b>
-                <A href="https://docs.python.org/3/">Python 3</A>:{" "}
+                <A href="https://www.r-project.org/">R Project</A>:{" "}
               </b>
-              The default system wide Python 3 environment.
+              The official R distribution from the R Project, installed
+              systemwide.
             </li>
             <li>
               <b>
-                <A href="http://www.sagemath.org/">SageMath</A>:{" "}
-              </b>
-              The Python environment inside the most recent default system wide
-              SageMath instance. Note that several older versions of Sage are
-              also available.
-            </li>
-            <li>
-              <b>
-                <A href="https://www.anaconda.com/what-is-anaconda/">
-                  Anaconda 2020
+                <A href="http://doc.sagemath.org/html/en/reference/interfaces/sage/interfaces/r.html">
+                  SageMath's R
                 </A>
                 :{" "}
               </b>
-              The Anaconda 2020.02 Python 3 distribution. Select the "Anaconda
-              2020" flavored kernel in Jupyter notebooks or execute
-              <Code>anaconda2020</Code> in a terminal to start it.
-            </li>
-            <li>
-              <b>
-                <A href="https://docs.python.org/2/">Python 2</A>:{" "}
-              </b>
-              The default system wide Python 2 environment.
+              the R distribution included within SageMath. Start via "R-sage" or
+              select the appropriate kernel.
             </li>
           </ul>
 

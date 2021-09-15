@@ -46,7 +46,7 @@ const dataSource = [
   },
   {
     link: "/software/julia",
-    title: "Julia Libraries",
+    title: "Julia Packages",
     logo: "julia",
     image: JuliaJupyter,
     description: (

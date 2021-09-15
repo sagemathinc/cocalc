@@ -58,7 +58,7 @@ export default function libraries(
       name,
       key: name.toLowerCase(),
       summary,
-      url,
+      url: url?.split(",")[0], // there may be multiple url's separated by commas in some cases
       search: (name + (summary ?? "")).toLowerCase(),
     };
     for (const env in cmd) {
