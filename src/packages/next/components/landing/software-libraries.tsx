@@ -59,7 +59,7 @@ export default function SoftwareLibraries({ prog, columns, maxWidth }: Props) {
           columns={columns}
           bordered
           pagination={false}
-          rowKey={"path"}
+          rowKey={"index"}
           dataSource={data}
         />
       </div>

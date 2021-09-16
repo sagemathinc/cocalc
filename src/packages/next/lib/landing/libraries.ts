@@ -52,9 +52,11 @@ export default function libraries(
   const components = COMPONENTS[prog];
 
   const libs: Item[] = [];
+  let index = 0;
   for (const name in components) {
     const { url, summary } = components[name] ?? {};
     const item = {
+      index: libs.length,
       name,
       key: name.toLowerCase(),
       summary,

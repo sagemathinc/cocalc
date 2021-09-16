@@ -30,9 +30,9 @@ export default function RSoftware({ customize }) {
           <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
             Installed R Statistical Software Packages
           </h1>
-          <p style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}>
+          <div style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}>
             <Image src={screenshot} />
-          </p>
+          </div>
           <p>
             This table lists all R packages that are{" "}
             <b>immediately available by default in every CoCalc project</b>,

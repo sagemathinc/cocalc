@@ -31,9 +31,11 @@ export default function Software({ customize }) {
           <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
             Installed Python Libraries
           </h1>
-          <p style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}>
+          <div
+            style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}
+          >
             <Image src={pythonScreenshot} />
-          </p>
+          </div>
           <p>
             The table below lists available Python libraries for each supported
             environment. If something is missing, you can{" "}
