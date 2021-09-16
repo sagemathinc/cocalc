@@ -91,7 +91,10 @@ export default function Header({ page, subPage }: Props) {
         )}
         {shareServer && (
           <Link href={"/share/public_paths/page/1"}>
-            <a style={LinkStyle} title="View files that people have published.">
+            <a
+              style={page == "share" ? SelectedStyle : LinkStyle}
+              title="View files that people have published."
+            >
               Browse
             </a>
           </Link>

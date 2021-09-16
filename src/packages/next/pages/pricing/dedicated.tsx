@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
@@ -11,7 +10,7 @@ import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import PricingItem, { Line } from "components/landing/pricing-item";
 
 interface Item {
-  title: ReactNode;
+  title: string;
   icon: IconName;
   disk: number;
   ram: number;

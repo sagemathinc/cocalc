@@ -4,12 +4,12 @@ import Head from "components/landing/head";
 import { Alert, Layout, List } from "antd";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import A from "components/misc/A";
 import PricingItem, { Line } from "components/landing/pricing-item";
 
 interface Item {
-  title: ReactNode;
+  title: string;
   icon: IconName;
   projects: number;
   disk: number;
