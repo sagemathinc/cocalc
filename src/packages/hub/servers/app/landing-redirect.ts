@@ -75,7 +75,7 @@ export default function redirect() {
   logger.info("creating landing pages legacy redirect");
   return async (req: Request, res: Response, next: NextFunction) => {
     const { url } = req;
-    logger.http("redirect %s", url);
+    //logger.http("redirect %s", url);
 
     // Check for a quick obvious "no".
     if (

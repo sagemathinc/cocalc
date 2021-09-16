@@ -9,7 +9,6 @@ import { Layout as AntdLayout } from "antd";
 import Head from "next/head";
 
 import SiteName from "./site-name";
-import Analytics from "./analytics";
 import Footer from "./footer";
 import Header from "./header";
 import basePath from "lib/base-path";
@@ -26,8 +25,6 @@ export function Layout({ children }) {
         <meta name="description" content="CoCalc Share Server" />
         <link rel="icon" href={favicon} />
       </Head>
-      <Analytics />{" "}
-      {/* Analytics can't be in Head because of script tags! https://github.com/vercel/next.js/pull/26253 */}
       <AntdLayout>
         <Header />
         <AntdLayout.Content style={{ background: "white" }}>

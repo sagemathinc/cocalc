@@ -271,7 +271,7 @@ export const site_settings_conf: SiteSettings = {
   },
   google_analytics: {
     name: "Google Analytics",
-    desc: `The GA tag, only for the cocalc.com production site`,
+    desc: `The Google Analyitcs tag for tracking usage of your site`,
     default: "",
     show: only_cocalc_com,
   },

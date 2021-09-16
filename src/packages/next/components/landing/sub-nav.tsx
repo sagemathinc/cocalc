@@ -46,6 +46,7 @@ const PAGES = {
   software,
   pricing,
   policies,
+  share: {},
 };
 
 export type Page = keyof typeof PAGES;

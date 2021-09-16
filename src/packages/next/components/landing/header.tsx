@@ -6,6 +6,7 @@ import { Layout } from "antd";
 import { useCustomize } from "lib/customize";
 import basePath from "lib/base-path";
 import SubNav, { Page, SubPage } from "./sub-nav";
+import Analytics from "components/analytics";
 
 const GAP = "32px";
 
@@ -40,6 +41,7 @@ export default function Header({ page, subPage }: Props) {
 
   return (
     <>
+      <Analytics />
       <Layout.Header
         style={{
           minHeight: "64px",
