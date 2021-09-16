@@ -19,7 +19,7 @@ const SelectedStyle = {
   ...LinkStyle,
   color: "#c7d9f5",
   fontWeight: "bold",
-  borderBottom: "1px solid white",
+  borderBottom: "5px solid #c7d9f5",
 };
 
 interface Props {
@@ -80,15 +80,6 @@ export default function Header({ page, subPage }: Props) {
             </A>
           </>
         )}
-        {anonymousSignup && (
-          <a
-            style={LinkStyle}
-            href={join(basePath, "static/app.html?anonymous=jupyter")}
-            title={`Try ${siteName} immediately without creating an account.`}
-          >
-            Try {siteName}
-          </a>
-        )}
         {shareServer && (
           <Link href={"/share/public_paths/page/1"}>
             <a
@@ -99,6 +90,15 @@ export default function Header({ page, subPage }: Props) {
             </a>
           </Link>
         )}
+        {anonymousSignup && (
+          <a
+            style={LinkStyle}
+            href={join(basePath, "static/app.html?anonymous=jupyter")}
+            title={`Try ${siteName} immediately without creating an account.`}
+          >
+            Try {siteName}
+          </a>
+        )}{" "}
         {!landingPages && termsOfServiceURL && (
           <A
             style={LinkStyle}

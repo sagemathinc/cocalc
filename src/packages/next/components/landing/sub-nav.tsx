@@ -99,8 +99,8 @@ function SubPageTab({ page, name, selected, label }) {
           ? {
               fontWeight: "bold",
               color: "blue",
-              paddingBottom: "5px",
-              borderBottom: "2px solid blue",
+              paddingBottom: "3px",
+              borderBottom: "3px solid blue",
             }
           : { color: "#555" }
       }
