@@ -6,8 +6,9 @@ import { Layout } from "antd";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import A from "components/misc/A";
-import { List, Card } from "antd";
+import { List } from "antd";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import PricingItem, { Line } from "components/landing/pricing-item";
 
 interface Item {
   title: ReactNode;
@@ -95,50 +96,22 @@ export default function Products({ customize }) {
               grid={{ gutter: 16, column: 3, xs: 1, sm: 1 }}
               dataSource={data}
               renderItem={(item) => (
-                <List.Item>
-                  <Card
-                    type="inner"
-                    title={
-                      <>
-                        <Icon
-                          name={item.icon}
-                          style={{ marginRight: "10px" }}
-                        />{" "}
-                        {item.title}
-                      </>
-                    }
+                <PricingItem title={item.title} icon={item.icon}>
+                  <Line amount={item.disk} desc="Disk space" />
+                  <Line amount={item.ram} desc="Dedicated RAM" />
+                  <Line amount={item.cores} desc="Dedicated CPU" />
+                  <br />
+                  <br />
+                  <span
+                    style={{
+                      fontWeight: "bold",
+                      fontSize: "18pt",
+                      color: "#666",
+                    }}
                   >
-                    <div>
-                      <b style={{ width: "50%", display: "inline-block" }}>
-                        {item.disk} GB
-                      </b>{" "}
-                      Disk space
-                    </div>
-                    <div>
-                      <b style={{ width: "50%", display: "inline-block" }}>
-                        {item.ram} GB
-                      </b>{" "}
-                      Dedicated RAM
-                    </div>
-                    <div>
-                      <b style={{ width: "50%", display: "inline-block" }}>
-                        {item.cores} core
-                      </b>{" "}
-                      Dedicated CPU
-                    </div>
-                    <br />
-                    <br />
-                    <span
-                      style={{
-                        fontWeight: "bold",
-                        fontSize: "18pt",
-                        color: "#666",
-                      }}
-                    >
-                      ${item.price}/month
-                    </span>
-                  </Card>
-                </List.Item>
+                    ${item.price}/month
+                  </span>
+                </PricingItem>
               )}
             />
           </div>

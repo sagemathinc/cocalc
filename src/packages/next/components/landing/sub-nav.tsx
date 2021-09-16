@@ -29,7 +29,7 @@ const pricing = {
   products: { label: "Products" },
   subscriptions: { label: "Subscriptions" },
   courses: { label: "Courses" },
-  dedicated: { label: "Dedicated" },
+  dedicated: { label: "Dedicated VM's" },
   onprem: { label: "OnPrem" },
 };
 

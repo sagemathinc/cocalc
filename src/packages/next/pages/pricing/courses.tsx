@@ -2,11 +2,12 @@ import { ReactNode } from "react";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
-import { List, Card, Layout } from "antd";
+import { List, Layout } from "antd";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import A from "components/misc/A";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import PricingItem, { Line } from "components/landing/pricing-item";
 
 interface Item {
   title: ReactNode;
@@ -182,100 +183,47 @@ export default function Courses({ customize }) {
               grid={{ gutter: 16, column: 3, xs: 1, sm: 1 }}
               dataSource={data}
               renderItem={(item) => (
-                <List.Item>
-                  <Card
-                    type="inner"
-                    title={
-                      <>
-                        <Icon
-                          name={item.icon}
-                          style={{ marginRight: "10px" }}
-                        />{" "}
-                        {item.title}
-                      </>
-                    }
-                  >
-                    <div>
-                      <b style={{ width: "50%", display: "inline-block" }}>
-                        {item.teachers}
-                      </b>{" "}
-                      Teacher
-                    </div>
-                    <div>
-                      <b style={{ width: "50%", display: "inline-block" }}>
-                        {item.students}
-                      </b>{" "}
-                      Students
-                    </div>
-                    <div>
-                      <b style={{ width: "50%", display: "inline-block" }}>
-                        {item.duration}
-                      </b>{" "}
-                      Duration
-                    </div>
-                    <div>
-                      <b style={{ width: "50%", display: "inline-block" }}>
-                        {item.shared_ram} GB
-                      </b>{" "}
-                      Shared RAM
-                    </div>
-                    {item.dedicated_ram && (
-                      <div>
-                        <b style={{ width: "50%", display: "inline-block" }}>
-                          {item.dedicated_ram} GB
-                        </b>{" "}
-                        Dedicated RAM
-                      </div>
-                    )}
-                    <div>
-                      <b style={{ width: "50%", display: "inline-block" }}>
-                        {item.shared_cores} core
-                      </b>{" "}
-                      Shared CPU
-                    </div>
-                    {item.dedicated_cores && (
-                      <div>
-                        <b style={{ width: "50%", display: "inline-block" }}>
-                          {item.dedicated_cores} core
-                        </b>{" "}
-                        Dedicated CPU
-                      </div>
-                    )}
-                    <div>
-                      <b style={{ width: "50%", display: "inline-block" }}>
-                        {item.disk} GB
-                      </b>{" "}
-                      Disk space
-                    </div>
-                    <br />
-                    <br />
-                    <div>
+                <PricingItem title={item.title} icon={item.icon}>
+                  <Line amount={item.teachers} desc="Teacher" />
+                  <Line amount={item.students} desc="Students" />
+                  <Line amount={item.duration} desc="Duration" />
+                  <Line amount={item.shared_ram} desc="Shared RAM" />
+                  <Line amount={item.shared_cores} desc="Shared CPU" />
+                  <Line amount={item.disk} desc="Disk space" />
+                  <Line amount={item.dedicated_ram} desc="Dedicated RAM" />
+                  <Line amount={item.dedicated_cores} desc="Dedicated CPU" />
+                  <br />
+                  <br />
+                  <div>
+                    <span
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: "18pt",
+                        color: "#555",
+                      }}
+                    >
+                      ${item.online}
+                    </span>{" "}
+                  </div>
+                  {item.retail ? (
+                    <div style={{ color: "#888" }}>
+                      (
                       <span
                         style={{
                           fontWeight: "bold",
-                          fontSize: "18pt",
-                          color: "#555",
+                          fontSize: "14pt",
                         }}
                       >
-                        ${item.online}
+                        ${item.retail}
                       </span>{" "}
+                      via purchase order)
                     </div>
-                    {item.retail && (
-                      <div style={{ color: "#999" }}>
-                        (
-                        <span
-                          style={{
-                            fontWeight: "bold",
-                            fontSize: "14pt",
-                          }}
-                        >
-                          ${item.retail}
-                        </span>{" "}
-                        via purchase order)
-                      </div>
-                    )}
-                  </Card>
-                </List.Item>
+                  ) : (
+                    <div>
+                      <span style={{ fontSize: "14pt" }}>&nbsp;</span>
+                    </div>
+                  )}
+                </PricingItem>
               )}
             />
 
