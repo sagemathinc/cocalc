@@ -47,7 +47,7 @@ export default function Footer() {
       </div>
       <br />
       <div>
-        <Logo style={{ height: "40px" }} />
+        <Logo style={{ height: "40px", width: "40px" }} />
       </div>
     </Layout.Footer>
   );

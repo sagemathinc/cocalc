@@ -8,6 +8,8 @@ import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import Head from "components/landing/head";
 
+import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
+
 export default function Home({ customize }) {
   const {
     siteName,
@@ -36,7 +38,7 @@ export default function Home({ customize }) {
                 )}
               </div>
             }
-            image={splashImage}
+            image={splashImage ? splashImage : screenshot}
           />
           <Footer />
         </Layout.Content>

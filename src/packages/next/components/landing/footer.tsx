@@ -20,8 +20,13 @@ function Item({
 }
 
 export default function Footer() {
-  const { siteName, organizationName, termsOfServiceURL, contactEmail, landingPages } =
-    useCustomize();
+  const {
+    siteName,
+    organizationName,
+    termsOfServiceURL,
+    contactEmail,
+    landingPages,
+  } = useCustomize();
   return (
     <Layout.Footer
       style={{
@@ -48,7 +53,7 @@ export default function Footer() {
       </div>
       <br />
       <div>
-        <Logo style={{ height: "40px" }} />
+        <Logo style={{ height: "40px", width: "40px" }} />
       </div>
     </Layout.Footer>
   );
