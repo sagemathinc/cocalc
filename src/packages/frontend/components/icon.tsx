@@ -507,6 +507,8 @@ export function isIconName(name: string): name is IconName {
   return IconSpec[name] != null;
 }
 
+export const iconNames: IconName[] = Object.keys(IconSpec) as any;
+
 interface Props {
   name?: IconName;
   unicode?: number; // (optional) set a hex 16 bit charcode to render a unicode char, e.g. 0x2620

@@ -1,6 +1,6 @@
 import { join } from "path";
 import useCustomize from "lib/use-customize";
-import { basePath } from "lib/base-path";
+import basePath from "lib/base-path";
 
 export default function SquareLogo({ style }: { style: React.CSSProperties }) {
   const { logoSquareURL } = useCustomize();
@@ -8,5 +8,5 @@ export default function SquareLogo({ style }: { style: React.CSSProperties }) {
   const src = logoSquareURL.includes("://")
     ? logoSquareURL
     : join(basePath, logoSquareURL);
-  return <img src={src} style={{ ...style, maxWidth: "100%" }} />;
+  return <img alt="Rectangular CoCalc Logo"  src={src} style={{ ...style, maxWidth: "100%" }} />;
 }

@@ -3,4 +3,6 @@
 // This is not part of customize, since it can't be changed at runtime
 // via the database.
 
-export const basePath: string = process.env.BASE_PATH ?? "/";
+const basePath: string = process.env.BASE_PATH ?? "/";
+
+export default basePath;

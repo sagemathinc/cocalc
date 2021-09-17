@@ -2,6 +2,7 @@ import A from "components/misc/A";
 import Logo from "components/logo-rectangular";
 import { Layout } from "antd";
 import { useCustomize } from "lib/customize";
+import Contact from "./contact";
 
 function Item({
   first,
@@ -19,7 +20,7 @@ function Item({
 }
 
 export default function Footer() {
-  const { siteName, organizationName, termsOfServiceURL, contactEmail } =
+  const { siteName, organizationName, termsOfServiceURL, contactEmail, landingPages } =
     useCustomize();
   return (
     <Layout.Footer
@@ -34,14 +35,14 @@ export default function Footer() {
           <A href="https://cocalc.com/index.html">CoCalc</A>
         </Item>
         {organizationName && <Item>{organizationName}</Item>}
-        {termsOfServiceURL && (
+        {!landingPages && termsOfServiceURL && (
           <Item>
             <A href={termsOfServiceURL}>Terms of Service</A>
           </Item>
         )}
         {contactEmail && (
           <Item>
-            <A href={"mailto:" + contactEmail}>Contact {contactEmail}</A>
+            <Contact />
           </Item>
         )}
       </div>

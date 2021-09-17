@@ -12,7 +12,8 @@ import { Application, Request, Response, NextFunction } from "express";
 import initNextServer from "@cocalc/next/init";
 import handleRaw from "@cocalc/next/lib/share/handle-raw";
 import { getLogger } from "@cocalc/hub/logger";
-import redirect from "./share-redirect";
+import shareRedirect from "./share-redirect";
+import createLandingRedirect from "./landing-redirect";
 import basePath from "@cocalc/util-node/base-path";
 import { database } from "../database";
 import { callback2 } from "@cocalc/util/async-utils";
@@ -20,7 +21,7 @@ import { callback2 } from "@cocalc/util/async-utils";
 export default async function init(app: Application) {
   const winston = getLogger("nextjs");
 
-  winston.info("Initializing the share server...");
+  winston.info("Initializing the nextjs server...");
   const handler = await initNextServer({ basePath });
   const shareServer = await runShareServer();
   const shareBasePath = join(basePath, "share");
@@ -62,19 +63,25 @@ export default async function init(app: Application) {
 
     // 3: Redirects for backward compat; unfortunately there's slight
     // overhead for doing this on every request.
-    app.all(join(shareBasePath, "*"), redirect(shareBasePath));
+
+    app.all(join(shareBasePath, "*"), shareRedirect(shareBasePath));
   }
+
+  const landingRedirect = createLandingRedirect();
+  app.all(join(basePath, "doc*"), landingRedirect);
+  app.all(join(basePath, "policies*"), landingRedirect);
 
   // The next.js server that servers everything else.
   // These are the routes that the next.js server gets
   // traffic for:
   const endpoints = [
     basePath, // top-level landing page
-    join(basePath, "doc", "*"), // everything under /doc -- all the other landing pages
-    join(basePath, "_next", "*"),
-    shareBasePath, // everything under "/share"
-    join(shareBasePath, "*"),
-    join(shareBasePath, "_next", "*"),
+    join(basePath, "features*"),
+    join(basePath, "software*"),
+    join(basePath, "policies*"),
+    join(basePath, "pricing*"),
+    join(basePath, "share*"),
+    join(basePath, "_next*"),
   ];
   winston.info(
     "Now using next.js packages/share handler to handle select endpoints under /share",

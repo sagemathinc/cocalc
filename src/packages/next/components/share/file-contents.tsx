@@ -16,7 +16,6 @@ import { isIOS, isSafari } from "lib/share/feature";
 import CodeMirror from "./codemirror";
 import SageWorksheet from "./sage-worksheet";
 import JupyterNotebook from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
-//import { Markdown } from "@cocalc/frontend/markdown";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import HTML from "@cocalc/frontend/components/html-ssr";
 import A from "components/misc/A";

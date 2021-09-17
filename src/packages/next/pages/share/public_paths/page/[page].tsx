@@ -63,7 +63,7 @@ export default function All({ page, publicPaths, customize }) {
       <Layout>
         <div>
           <h1>
-            Documents published on <SiteName />
+            Browse Public Documents on <SiteName />
             <div style={{ float: "right", width: "200px" }}>
               <GoogleSearch />
             </div>

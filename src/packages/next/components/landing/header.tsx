@@ -4,7 +4,9 @@ import A from "components/misc/A";
 import { join } from "path";
 import { Layout } from "antd";
 import { useCustomize } from "lib/customize";
-import { basePath } from "lib/base-path";
+import basePath from "lib/base-path";
+import SubNav, { Page, SubPage } from "./sub-nav";
+import Analytics from "components/analytics";
 
 const GAP = "32px";
 
@@ -14,75 +16,125 @@ const LinkStyle = {
   display: "inline-block",
 };
 
-export default function Header() {
+const SelectedStyle = {
+  ...LinkStyle,
+  color: "#c7d9f5",
+  fontWeight: "bold",
+  borderBottom: "5px solid #c7d9f5",
+};
+
+interface Props {
+  page?: Page;
+  subPage?: SubPage;
+}
+
+export default function Header({ page, subPage }: Props) {
   const {
     anonymousSignup,
     helpEmail,
     siteName,
     termsOfServiceURL,
     shareServer,
+    landingPages,
   } = useCustomize();
   if (basePath == null) return null;
 
   return (
-    <Layout.Header
-      style={{
-        minHeight: "64px",
-        height: "auto",
-        lineHeight: "32px",
-        padding: "16px",
-        textAlign: "center",
-      }}
-    >
-      <SquareLogo style={{ height: "40px", marginRight: GAP }} />
-      {anonymousSignup && (
+    <>
+      <Analytics />
+      <Layout.Header
+        style={{
+          minHeight: "64px",
+          height: "auto",
+          lineHeight: "32px",
+          padding: "16px",
+          textAlign: "center",
+        }}
+      >
+        <A href="/">
+          <SquareLogo style={{ height: "40px", marginRight: GAP }} />
+        </A>
+        {landingPages && (
+          <>
+            <A
+              href="/features/"
+              style={page == "features" ? SelectedStyle : LinkStyle}
+            >
+              Why CoCalc?
+            </A>
+            <A
+              href="/software"
+              style={page == "software" ? SelectedStyle : LinkStyle}
+            >
+              Software
+            </A>
+            <A
+              href="/pricing"
+              style={page == "pricing" ? SelectedStyle : LinkStyle}
+            >
+              Pricing
+            </A>
+            <A
+              href="/policies"
+              style={page == "policies" ? SelectedStyle : LinkStyle}
+            >
+              Policies
+            </A>
+          </>
+        )}
+        {shareServer && (
+          <Link href={"/share/public_paths/page/1"}>
+            <a
+              style={page == "share" ? SelectedStyle : LinkStyle}
+              title="View files that people have published."
+            >
+              Explore
+            </a>
+          </Link>
+        )}
+        {anonymousSignup && (
+          <a
+            style={LinkStyle}
+            href={join(basePath, "static/app.html?anonymous=jupyter")}
+            title={`Try ${siteName} immediately without creating an account.`}
+          >
+            Try {siteName}
+          </a>
+        )}{" "}
+        {!landingPages && termsOfServiceURL && (
+          <A
+            style={LinkStyle}
+            href={termsOfServiceURL}
+            title="View the terms of service and other legal documents."
+          >
+            Legal
+          </A>
+        )}
+        {helpEmail && (
+          <A
+            style={LinkStyle}
+            href={`mailto:${helpEmail}`}
+            title={`Ask us a question via email to ${helpEmail}.`}
+          >
+            Help
+          </A>
+        )}
+        <A
+          style={LinkStyle}
+          href="https://doc.cocalc.com"
+          title="View the CoCalc documenation."
+        >
+          Docs
+        </A>
         <a
           style={LinkStyle}
-          href={join(basePath, "static/app.html?anonymous=jupyter")}
-          title={`Try ${siteName} immediately without creating an account.`}
+          href={join(basePath, "static/app.html")}
+          title={`Sign in to ${siteName} or create an account.`}
         >
-          Try {siteName}
+          Sign In
         </a>
-      )}
-      {shareServer && (
-        <Link href={"/share/public_paths/page/1"}>
-          <a style={LinkStyle} title="View files that people have published.">
-            Published Files
-          </a>
-        </Link>
-      )}
-      {termsOfServiceURL && (
-        <A
-          style={LinkStyle}
-          href={termsOfServiceURL}
-          title="View the terms of service and other legal documents."
-        >
-          Legal
-        </A>
-      )}
-      {helpEmail && (
-        <A
-          style={LinkStyle}
-          href={`mailto:${helpEmail}`}
-          title={`Ask us a question via email to ${helpEmail}.`}
-        >
-          Email Help
-        </A>
-      )}
-      <A
-        style={LinkStyle}
-        href="https://doc.cocalc.com"
-        title="View the CoCalc documenation."
-      >
-        Documentation
-      </A>
-      <a
-        style={LinkStyle}
-        href={join(basePath, "static/app.html")}
-        title={`Sign in to ${siteName} or create an account.`}
-      >
-        Sign In
-      </a>
-    </Layout.Header>
+      </Layout.Header>
+      {landingPages && page && <SubNav page={page} subPage={subPage} />}
+    </>
   );
 }
