@@ -4,7 +4,6 @@ import Header from "components/landing/header";
 import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
-import SignIn from "components/landing/sign-in";
 import Head from "components/landing/head";
 import Info from "components/landing/info";
 import A from "components/misc/A";
