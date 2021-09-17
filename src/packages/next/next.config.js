@@ -40,4 +40,10 @@ module.exports = {
     // Important: return the modified config
     return config;
   },
+  // For i18n, see https://nextjs.org/docs/advanced-features/i18n-routing
+  // We are doing this at all since it improves our Lighthouse accessibility score.
+  i18n: {
+    locales: ["en-US"],
+    defaultLocale: "en-US",
+  },
 };
