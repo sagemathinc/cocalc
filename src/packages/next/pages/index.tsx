@@ -25,7 +25,7 @@ export default function Home({ customize }) {
         <Header />
         <Layout.Content style={{ backgroundColor: "#c7d9f5" }}>
           <Content
-            logo={<SquareLogo style={{ width: "120px" }} />}
+            logo={<SquareLogo style={{ width: "120px", height: "120px" }} />}
             title={siteName}
             subtitle={siteDescription}
             description={

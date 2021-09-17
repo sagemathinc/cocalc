@@ -15,8 +15,10 @@ export default function Home({ customize }) {
       <Layout>
         <Header />
         <div style={{ fontSize: "16pt", textAlign: "center", margin: "60px" }}>
-          <SquareLogo style={{ width: "120px" }} />
-          <br/><br/><br/>
+          <SquareLogo style={{ width: "120px", height: "120px" }} />
+          <br />
+          <br />
+          <br />
           Browse recent{" "}
           <Link href="/share/public_paths/page/1">
             <a>

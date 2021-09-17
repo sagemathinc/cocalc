@@ -52,7 +52,26 @@ export default function Header({ page, subPage }: Props) {
         }}
       >
         <A href="/">
-          <SquareLogo style={{ height: "40px", marginRight: GAP }} />
+          {/* WARNING: This mess is all to support using the next/image component for the image via our Image component.  It's ugly. */}
+          <div
+            style={{
+              position: "relative",
+              display: "inline-block",
+              height: "40px",
+              width: "40px",
+              marginTop: "-30px",
+              marginRight: GAP,
+            }}
+          >
+            <SquareLogo
+              style={{
+                height: "40px",
+                width: "40px",
+                position: "absolute",
+                top: "15px",
+              }}
+            />
+          </div>
         </A>
         {landingPages && (
           <>

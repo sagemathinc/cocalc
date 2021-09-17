@@ -1,4 +1,3 @@
-import { join } from "path";
 import useCustomize from "lib/use-customize";
 import logo from "public/cocalc-icon.svg";
 import Image from "components/landing/image";

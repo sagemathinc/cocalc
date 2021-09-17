@@ -1,12 +1,17 @@
-import { join } from "path";
 import useCustomize from "lib/use-customize";
-import basePath from "lib/base-path";
+import logo from "public/cocalc-icon.svg";
+import Image from "components/landing/image";
 
+const alt = "Square CoCalc Logo";
 export default function SquareLogo({ style }: { style: React.CSSProperties }) {
   const { logoSquareURL } = useCustomize();
-  if (logoSquareURL == null) return null;
-  const src = logoSquareURL.includes("://")
-    ? logoSquareURL
-    : join(basePath, logoSquareURL);
-  return <img alt="Rectangular CoCalc Logo"  src={src} style={{ ...style, maxWidth: "100%" }} />;
+  if (!logoSquareURL) {
+    return (
+      <Image alt={alt} src={logo} style={{ ...style, maxWidth: "100%" }} />
+    );
+  }
+
+  return (
+    <img alt={alt} src={logoSquareURL} style={{ ...style, maxWidth: "100%" }} />
+  );
 }

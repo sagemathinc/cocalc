@@ -52,7 +52,7 @@ export default async function getCustomize(): Promise<Customize> {
 
     anonymousSignup: settings.anonymous_signup,
 
-    logoSquareURL: fallback(settings.logo_square, "webapp/cocalc-icon.svg"),
+    logoSquareURL: settings.logo_square,
     logoRectangularURL: settings.logo_rectangular,
     splashImage: settings.splash_image,
 
