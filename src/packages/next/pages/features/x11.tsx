@@ -13,6 +13,8 @@ import Code from "components/landing/code";
 
 import x11Logo from "/public/features/x11-logo.svg";
 import x11Screenshot from "/public/features/x11-01.png";
+import applications from "/public/features/x11-applications.png";
+import swirl from "/public/features/swirl_new_large_final.png";
 
 const component = "X11 Desktop";
 const title = `Run ${component} Graphical Linux Applications`;
@@ -33,8 +35,9 @@ export default function X11({ customize }) {
                 <>
                   <div>
                     Run {component} scripts,{" "}
-                    <A href="/features/jupyter-notebook">Jupyter notebooks</A>, or
-                    even full <A href="/features/x11">graphical applications</A> in a
+                    <A href="/features/jupyter-notebook">Jupyter notebooks</A>,
+                    or even full{" "}
+                    <A href="/features/x11">graphical applications</A> in a
                     remote {component} environment.
                   </div>
                 </>
@@ -152,10 +155,10 @@ export default function X11({ customize }) {
               background: "white",
             }}
           >
-            <img
-              src="x11-applications.png"
+            <Image
+              src={applications}
               width="80%"
-              alt="X11 Applications in CoCalc"
+              alt="Image showing buttons for many X11 Applications in CoCalc"
             />
           </div>
 
@@ -175,9 +178,10 @@ export default function X11({ customize }) {
             alt="Using Swirl via X11 to do the basic programming course"
             wide
           >
-            <img
-              src="swirl_new_large_final.png"
+            <Image
+              src={swirl}
               style={{ width: "100%", marginBottom: "15px" }}
+              alt="Using Swirl and X11 in CoCalc"
             />
             <p>
               CoCalc provides a way to use the{" "}

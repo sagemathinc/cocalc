@@ -23,6 +23,7 @@ import latexLogo from "public/features/latex-logo.svg";
 import linuxLogo from "public/features/linux-logo.svg";
 import kiran from "public/features/kiran.jpeg";
 import conley from "public/features/will_conley.jpg";
+import teaching from "public/features/cocalc-teaching.png";
 
 export default function Teaching({ customize }) {
   return (
@@ -152,8 +153,8 @@ export default function Teaching({ customize }) {
                   and returning everyone's assignments.
                 </p>
                 <div>
-                  <img
-                    src="cocalc-teaching.png"
+                  <Image
+                    src={teaching}
                     style={{ width: "100%" }}
                     alt="Diagram showing how to use CoCalc for teaching."
                   />
@@ -379,7 +380,9 @@ interface ToolProps {
 function Tool({ image, alt, href, title, children }: ToolProps) {
   return (
     <div style={{ padding: "15px" }}>
-      <div style={{ textAlign: "center", marginBottom: "30px", height:'70px' }}>
+      <div
+        style={{ textAlign: "center", marginBottom: "30px", height: "70px" }}
+      >
         <A href={href}>
           <Image style={{ width: "70px" }} src={image} alt={alt} />
         </A>
