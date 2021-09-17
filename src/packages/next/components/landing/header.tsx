@@ -60,7 +60,7 @@ export default function Header({ page, subPage }: Props) {
               height: "40px",
               width: "40px",
               marginTop: "-30px",
-              marginRight: GAP,
+              marginRight: "64px",
             }}
           >
             <SquareLogo
