@@ -23,7 +23,7 @@ export default function Home({ customize }) {
       <Head title="Collaborative Calculation" />
       <Layout>
         <Header />
-        <Layout.Content style={{ backgroundColor: "#c7d9f5" }}>
+        <Layout.Content style={{ backgroundColor: "white" }}>
           <Content
             logo={<SquareLogo style={{ width: "120px", height: "120px" }} />}
             title={siteName}
@@ -39,6 +39,7 @@ export default function Home({ customize }) {
               </div>
             }
             image={splashImage ? splashImage : screenshot}
+            alt={"Screenshot showing CoCalc in action!"}
           />
           <Footer />
         </Layout.Content>

@@ -32,6 +32,7 @@ export default function Footer() {
       style={{
         textAlign: "center",
         borderTop: "1px solid lightgrey",
+        backgroundColor: "white",
       }}
     >
       <div>

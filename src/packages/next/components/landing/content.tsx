@@ -52,8 +52,8 @@ export default function Content({
             <br />
 
             <h1 style={{ color: "#333" }}>{title}</h1>
-            <h3 style={{ color: "#333" }}>{subtitle}</h3>
-            <div style={{ color: "#666" }}>{description}</div>
+            <h2 style={{ color: "#333" }}>{subtitle}</h2>
+            <h3 style={{ color: "#666" }}>{description}</h3>
           </div>
         </Col>
         <Col sm={14} xs={24}>
@@ -61,7 +61,7 @@ export default function Content({
             <>
               <Image src={image} style={{ padding: "15px" }} alt={alt} />
               <div
-                style={{ textAlign: "center", color: "#444", fontSize: "12pt" }}
+                style={{ textAlign: "center", color: "#333", fontSize: "12pt" }}
               >
                 {caption}
               </div>
