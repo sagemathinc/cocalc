@@ -26,6 +26,7 @@ import initStats from "./app/stats";
 import initAppRedirect from "./app/app-redirect";
 import initNext from "./app/next";
 import vhostShare from "@cocalc/next/lib/share/virtual-hosts";
+import initRobots from "./robots";
 
 // Used for longterm caching of files
 const MAX_AGE = ms("10 days");
@@ -87,17 +88,7 @@ export default async function init(opts: Options): Promise<{
     );
   };
 
-  // robots.txt: disable everything except /share.  In particular, don't allow
-  // indexing for published subdirectories to avoid a lot of 500/404 errors.
-  router.use("/robots.txt", (_req, res) => {
-    res.header("Content-Type", "text/plain");
-    res.header("Cache-Control", "private, no-cache, must-revalidate");
-    res.write(`User-agent: *
-               Allow: /share
-               Disallow: /*
-               `);
-    res.end();
-  });
+  router.use("/robots.txt", initRobots());
 
   // setup the analytics.js endpoint
   await initAnalytics(router, database);
