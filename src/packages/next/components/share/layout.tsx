@@ -3,24 +3,31 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { ReactNode } from "react";
 import { join } from "path";
 import { Layout as AntdLayout } from "antd";
 
 import Head from "next/head";
 import Analytics from "components/analytics";
-import SiteName from "./site-name";
 import Footer from "./footer";
 import Header from "./header";
 import basePath from "lib/base-path";
+import useCustomize from "lib/use-customize";
 
 const favicon = join(basePath, "webapp/favicon-32x32.png");
 
-export function Layout({ children }) {
+interface Props {
+  title: string;
+  children: ReactNode;
+}
+
+export function Layout({ title, children }: Props) {
+  const { siteName } = useCustomize();
   return (
     <>
       <Head>
         <title>
-          <SiteName />
+          {siteName} -- {title}
         </title>
         <meta name="description" content="CoCalc Share Server" />
         <link rel="icon" href={favicon} />
@@ -46,12 +53,13 @@ export function Layout({ children }) {
   );
 }
 
-export function Embed({ children }) {
+export function Embed({ title, children }: Props) {
+  const { siteName } = useCustomize();
   return (
     <>
       <Head>
         <title>
-          <SiteName />
+          {siteName} -- {title}
         </title>
         <link rel="icon" href={favicon} />
       </Head>

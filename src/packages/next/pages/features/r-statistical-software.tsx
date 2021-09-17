@@ -24,6 +24,7 @@ import rmdDemo from "public/features/cocalc-rmd-demo-R-python3-plotting.png";
 import rcode from "public/features/cocalc-rcode.png";
 import sidechat from "public/features/cocalc-r-side-chat.png";
 import rEnvironment from "public/features/cocalc-r-environment.png";
+import jupyterCollab from "public/features/cocalc-r-jupyter-collaborate.png";
 
 const component = "R";
 const title = `Run ${component} Online`;
@@ -93,12 +94,12 @@ export default function R({ customize }) {
                   </li>
                   <li>
                     CoCalc already{" "}
-                    <A href="/features/software-r">provides many packages</A> for
-                    you.
+                    <A href="/features/software-r">provides many packages</A>{" "}
+                    for you.
                   </li>
                   <li>
-                    The <A href="/features/latex-editor">LaTeX editor</A> is already
-                    integrated with R.
+                    The <A href="/features/latex-editor">LaTeX editor</A> is
+                    already integrated with R.
                   </li>
                   <li>
                     You no longer have to maintain everything on your own.
@@ -154,7 +155,7 @@ export default function R({ customize }) {
             </p>
           </Info>
 
-          <Collaboration image="cocalc-r-jupyter-collaborate.png" />
+          <Collaboration image={jupyterCollab} />
 
           <Info
             title={
@@ -279,8 +280,8 @@ export default function R({ customize }) {
             title="Code formatting"
             icon="network-wired"
             video={[
-              "cocalc-jupyter-r-format-cell.webm",
-              "cocalc-jupyter-r-format-cell.mp4",
+              "public/features/cocalc-jupyter-r-format-cell.webm",
+              "public/features/cocalc-jupyter-r-format-cell.mp4",
             ]}
             anchor="a-codeformatting"
             alt="Video showing formatting of R in a Jupyter notebook"
@@ -391,8 +392,8 @@ export default function R({ customize }) {
             </p>
             <p>
               Look at our{" "}
-              <A href="/features/software-r">list of available packages</A> in more
-              detail. If something is missing, please tell us about it (
+              <A href="/features/software-r">list of available packages</A> in
+              more detail. If something is missing, please tell us about it (
               <Contact />) so we can install that package globally.
             </p>
           </Info>
@@ -405,8 +406,8 @@ export default function R({ customize }) {
             title="TimeTravel"
             icon="square"
             video={[
-              "cocalc-timetravel-r-jupyter-3x.webm",
-              "cocalc-timetravel-r-jupyter-3x.mp4",
+              "public/features/cocalc-timetravel-r-jupyter-3x.webm",
+              "public/features/cocalc-timetravel-r-jupyter-3x.mp4",
             ]}
             anchor="a-timetravel"
             alt="Video showing the time travel slider in an R Jupyter notebook"

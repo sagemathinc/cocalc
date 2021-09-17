@@ -140,8 +140,8 @@ export default function Terminal({ customize }) {
             </p>
             <p>
               There is also support for many programming languages and
-              compilers. <A href="..//features/python.html">Python</A>, JAVA, C/C++
-              via <A href="https://gcc.gnu.org/">GCC</A> and{" "}
+              compilers. <A href="/features/python">Python</A>, JAVA, C/C++ via{" "}
+              <A href="https://gcc.gnu.org/">GCC</A> and{" "}
               <A href="https://clang.llvm.org/">Clang</A>,{" "}
               <A href="https://ziglang.org/">Zig</A>,{" "}
               <A href="https://en.wikipedia.org/wiki/Ada_(programming_language)">
@@ -165,11 +165,15 @@ export default function Terminal({ customize }) {
 
           <Snapshots />
 
-          <Comparison name="terminal" disclaimer            title={
+          <Comparison
+            name="terminal"
+            disclaimer
+            title={
               <h2 style={{ textAlign: "center" }}>
                 <Icon name="bolt" /> Terminals in CoCalc versus the competition
               </h2>
-            }/>
+            }
+          />
 
           <SignIn startup={component} />
         </Layout.Content>

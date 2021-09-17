@@ -32,7 +32,7 @@ export default function Account({
   const name = trunc(`${firstName} ${lastName}`, 150);
   return (
     <Customize value={customize}>
-      <Layout>
+      <Layout title={name}>
         <h1>{name}</h1>
         {name} is a collaborator on projects that contain the following public
         documents:

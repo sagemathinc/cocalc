@@ -12,6 +12,7 @@ import useCounter from "lib/share/counter";
 import { Embed } from "components/share/layout";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/share/customize";
+import { getTitle } from "lib/share/util";
 
 export default function PublicPath({
   id,
@@ -38,7 +39,7 @@ export default function PublicPath({
   }
   return (
     <Customize value={customize}>
-      <Embed>
+      <Embed title={getTitle({ path, relativePath })}>
         <div
           style={{
             backgroundColor: "white",

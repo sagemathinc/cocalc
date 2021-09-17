@@ -60,7 +60,7 @@ export default function All({ page, publicPaths, customize }) {
   const pager = <Pager page={page} publicPaths={publicPaths} />;
   return (
     <Customize value={customize}>
-      <Layout>
+      <Layout title={`Page ${page} of public files`}>
         <div>
           <h1>
             Browse Public Documents on <SiteName />

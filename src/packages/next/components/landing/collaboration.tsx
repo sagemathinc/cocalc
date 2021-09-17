@@ -1,8 +1,9 @@
 import Info from "./info";
 import A from "components/misc/A";
+import { StaticImageData } from "./image";
 
 interface Props {
-  image: string;
+  image: StaticImageData;
 }
 
 export default function Collaboration({ image }: Props) {

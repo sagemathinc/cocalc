@@ -36,7 +36,7 @@ export default function Project({
   }
   return (
     <Customize value={customize}>
-      <Layout>
+      <Layout title={projectTitle}>
         <h1>Project: {projectTitle}</h1>
         {collaborators != null && collaborators.length > 0 && (
           <>

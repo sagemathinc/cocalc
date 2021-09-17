@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { basename } from "path";
 export { getExtension, containingPath } from "@cocalc/util/misc";
 
 export function isUUID(s: string): boolean {
@@ -19,3 +20,13 @@ export function trunc(s: string, n: number): string {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
 
+export function getTitle({
+  path,
+  relativePath,
+}: {
+  path: string;
+  relativePath: string;
+}): string {
+  const b = basename(relativePath);
+  return b ? b : basename(path);
+}

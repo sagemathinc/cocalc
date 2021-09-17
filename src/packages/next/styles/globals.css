@@ -1,13 +1,8 @@
-html,
-body {
-  padding: 0;
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
-}
+/* Antd's links are way too light according to
+the Google Lighthouse accessibility guidelines. */
 
-* {
-  box-sizing: border-box;
+a {
+  color: #1870cc;
 }
 
 .uppercase {

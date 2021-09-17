@@ -50,10 +50,10 @@ export default function Software({ customize }) {
             description={
               <span style={{ fontSize: "10pt" }}>
                 Learn more about{" "}
-                <strong>
+                {/* NOT done yet! <strong>
                   <A href="/features/julia">Julia in CoCalc</A>
                 </strong>{" "}
-                and our{" "}
+                and our{" "}*/}
                 <strong>
                   <A href="https://doc.cocalc.com/howto/pluto.html">Pluto</A>
                 </strong>{" "}

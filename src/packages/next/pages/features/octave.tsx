@@ -52,28 +52,24 @@ export default function Octave({ customize }) {
                     Via CoCalc's own real-time synchronized{" "}
                     <strong>
                       <A href="/features/jupyter-notebook">Jupyter Notebooks</A>
-                    </strong>{" "}
-                    –{" "}
-                    <A href="https://doc.cocalc.com/jupyter.html">learn more</A>
+                    </strong>
                     .
                   </li>
                   <li>
                     A full, collaborative, real-time synchronized{" "}
                     <strong>
                       <A href="/features/terminal">Linux Terminal</A>
-                    </strong>{" "}
-                    –{" "}
-                    <A href="https://doc.cocalc.com/terminal.html">
-                      learn more
-                    </A>
+                    </strong>
                     .
                   </li>
                   <li>
                     A{" "}
                     <strong>
-                      <A href="/features/x11">virtual X11 graphical Linux desktop</A>
-                    </strong>{" "}
-                    – <A href="https://doc.cocalc.com/x11.html">learn more</A>.
+                      <A href="/features/x11">
+                        virtual X11 graphical Linux desktop
+                      </A>
+                    </strong>
+                    .
                   </li>
                 </ul>
                 <br />
@@ -93,8 +89,8 @@ export default function Octave({ customize }) {
                   <li>
                     You no longer have to <strong>install and maintain</strong>{" "}
                     Octave. In particular when you're{" "}
-                    <A href="/features/teaching">teaching a class</A>, students just
-                    have to sign in to CoCalc to get started!
+                    <A href="/features/teaching">teaching a class</A>, students
+                    just have to sign in to CoCalc to get started!
                   </li>
                   <li>
                     All your files are private, stored persistently, snapshotted

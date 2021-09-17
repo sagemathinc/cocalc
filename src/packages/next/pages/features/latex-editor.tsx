@@ -25,6 +25,7 @@ import Pythontex from "public/features/cocalc-pythontex.png";
 import Knitr from "public/features/latex-editor-rnw-01.png";
 import LatexTimetravel from "public/features/latex-editor-timetravel-01.png";
 import Sidechat from "public/features/cocalc-latex-side-chat-v2.png";
+import LatexCollab from "public/features/cocalc-latex-concurrent-editing.png";
 
 export default function LatexEditor({ customize }) {
   return (
@@ -179,7 +180,7 @@ export default function LatexEditor({ customize }) {
             </p>
           </Info>
 
-          <Collaboration image="cocalc-latex-concurrent-editing.png" />
+          <Collaboration image={LatexCollab} />
 
           <Info
             anchor="a-computational"
@@ -204,10 +205,11 @@ export default function LatexEditor({ customize }) {
               project as your <LaTeX /> document.
             </p>
             <p>
-              Consult the <A href="/features/software">Available Software page</A> or
-              look at our{" "}
-              <A href="/features/jupyter-notebook">Jupyter Notebook page</A> for more
-              information.{" "}
+              Consult the{" "}
+              <A href="/features/software">Available Software page</A> or look
+              at our{" "}
+              <A href="/features/jupyter-notebook">Jupyter Notebook page</A> for
+              more information.{" "}
             </p>
           </Info>
 
@@ -300,8 +302,8 @@ export default function LatexEditor({ customize }) {
                 \py{"{"}2 + 4**2{"}"}
               </Code>{" "}
               produces "18". You can use all{" "}
-              <A href="/features/software-python">available python libraries</A> for
-              Python 3, drawing plots via <code>pylab</code>, and use
+              <A href="/features/software-python">available python libraries</A>{" "}
+              for Python 3, drawing plots via <code>pylab</code>, and use
               PythonTeX's SymPy support.
             </p>
             <p>
@@ -373,8 +375,8 @@ export default function LatexEditor({ customize }) {
             title="Forward and Inverse search"
             icon="sync"
             video={[
-              "latex-forward-inverse-02.webm",
-              "latex-forward-inverse-02.mp4",
+              "public/features/latex-forward-inverse-02.webm",
+              "public/features/latex-forward-inverse-02.mp4",
             ]}
             wide
             alt="Video showing forward and inverse search in a LaTeX document"
