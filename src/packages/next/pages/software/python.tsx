@@ -34,7 +34,10 @@ export default function Software({ customize }) {
           <div
             style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}
           >
-            <Image src={pythonScreenshot} />
+            <Image
+              src={pythonScreenshot}
+              alt="Writing and running a Python program"
+            />
           </div>
           <p>
             The table below lists available Python libraries for each supported

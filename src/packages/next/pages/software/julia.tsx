@@ -30,8 +30,10 @@ export default function Software({ customize }) {
           <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
             Installed Julia Packages
           </h1>
-          <div style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}>
-            <Image src={screenshot} />
+          <div
+            style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}
+          >
+            <Image src={screenshot} alt="Using Julia in a Jupyter notebook" />
           </div>
           <p>
             This table lists available{" "}

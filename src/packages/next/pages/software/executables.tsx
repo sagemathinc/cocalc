@@ -33,7 +33,10 @@ export default function Software({ customize }) {
             Executables in CoCalc
           </h1>
           <div style={{ width: "50%", float: "right", paddingBottom: "15px" }}>
-            <Image src={executablesScreenshot} />
+            <Image
+              src={executablesScreenshot}
+              alt="Terminal showing listing executables in CoCalc"
+            />
           </div>
           <p>
             This is a non-comprehensive list of executables available on CoCalc.

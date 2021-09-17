@@ -16,7 +16,7 @@ export interface StaticImageData {
 interface Props {
   src: string | StaticImageData;
   style?: CSSProperties;
-  alt?: string;
+  alt: string;
   width?: number;
   height?: number;
 }

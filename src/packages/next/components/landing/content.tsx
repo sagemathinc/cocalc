@@ -17,7 +17,9 @@ interface Props {
 function Logo({ logo, title }) {
   if (!logo) return null;
   if (typeof logo == "string" || logo?.src != null) {
-    return <Image src={logo} style={{width:'200px'}} alt={`${title} logo`} />;
+    return (
+      <Image src={logo} style={{ width: "200px" }} alt={`${title} logo`} />
+    );
   }
   return logo;
 }
@@ -59,7 +61,11 @@ export default function Content({
         <Col sm={14} xs={24}>
           {image && (
             <>
-              <Image src={image} style={{ padding: "15px" }} alt={alt} />
+              <Image
+                src={image}
+                style={{ padding: "15px" }}
+                alt={alt ?? `Image illustrating ${title}`}
+              />
               <div
                 style={{ textAlign: "center", color: "#333", fontSize: "12pt" }}
               >
