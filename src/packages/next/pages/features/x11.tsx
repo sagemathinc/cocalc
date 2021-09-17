@@ -10,11 +10,14 @@ import Pitch from "components/landing/pitch";
 import Head from "components/landing/head";
 import A from "components/misc/A";
 import Code from "components/landing/code";
+import Image from "components/landing/image";
 
 import x11Logo from "/public/features/x11-logo.svg";
 import x11Screenshot from "/public/features/x11-01.png";
 import applications from "/public/features/x11-applications.png";
 import swirl from "/public/features/swirl_new_large_final.png";
+import swirlCourse from "/public/features/swirl-course.png";
+import x11Firefox from "/public/features/x11-firefox.png";
 
 const component = "X11 Desktop";
 const title = `Run ${component} Graphical Linux Applications`;
@@ -156,8 +159,8 @@ export default function X11({ customize }) {
             }}
           >
             <Image
+              style={{ width: "80%" }}
               src={applications}
-              width="80%"
               alt="Image showing buttons for many X11 Applications in CoCalc"
             />
           </div>
@@ -173,7 +176,7 @@ export default function X11({ customize }) {
           <Info
             title="Use R's {swirl} in your web browser"
             icon="r"
-            image="swirl-course.png"
+            image={swirlCourse}
             anchor="a-swirl"
             alt="Using Swirl via X11 to do the basic programming course"
             wide
@@ -208,7 +211,7 @@ export default function X11({ customize }) {
           <Info
             title="Use Firefox to test a web server"
             icon="firefox"
-            image="x11-firefox.png"
+            image={x11Firefox}
             anchor="a-firefox"
             alt="Using Firefox to connect to a local web server"
           >
