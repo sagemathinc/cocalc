@@ -157,7 +157,7 @@ const dataSource = [
     ),
   },
   {
-    link: "https://doc.cocalc.com/api/",
+    link: "/features/api",
     title: "API interface",
     image: apiScreenshot,
     logo: "server",

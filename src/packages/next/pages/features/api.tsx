@@ -5,12 +5,12 @@ import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import SignIn from "components/landing/sign-in";
-import Info from "components/landing/info";
-import Pitch from "components/landing/pitch";
 import Head from "components/landing/head";
-import Snapshots from "components/landing/snapshots";
+import Info from "components/landing/info";
+import A from "components/misc/A";
 
-const component = "API";
+import screenshot from "public/features/api-screenshot.png";
+
 const title = "API";
 
 export default function API({ customize }) {
@@ -22,41 +22,29 @@ export default function API({ customize }) {
         <Layout.Content>
           <div style={{ backgroundColor: "#c7d9f5" }}>
             <Content
-              startup={component}
+              startup={"CoCalc"}
               title={title}
               subtitle={
                 <>
-                  <div>todo</div>
+                  Programmatically control CoCalc from your own server. Embed
+                  CoCalc within other products with a customized external look
+                  and feel.
                 </>
               }
-              image={"api.png"}
+              image={screenshot}
               alt={"Using the API"}
             />
           </div>
 
-          <Pitch col1={"col1"} col2={"col2"} />
-
-          <SignIn startup={component} />
-
           <Info.Heading
-            description={<>There are many ways to use the CoCalc API.</>}
+            description={
+              <>
+                The documentation explains what you can do with the CoCalc API.
+              </>
+            }
           >
-            Feature Overview
+            <A href="https://doc.cocalc.com/api/">CoCalc API Documentation</A>
           </Info.Heading>
-
-          <Info
-            title="title"
-            icon="square"
-            image="image.png"
-            anchor="a-"
-            alt={"TODO"}
-          >
-            <p>CoCalc offers...</p>
-          </Info>
-
-          <Snapshots />
-
-          <SignIn startup={component} />
         </Layout.Content>
         <Footer />
       </Layout>

@@ -46,7 +46,7 @@ export default function OnPrem({ customize }) {
               </li>
               <li style={{ margin: "10px 0" }}>
                 <A href="https://github.com/sagemathinc/cocalc-kubernetes/blob/master/README.md">
-                  CoCalc-Kubernetes
+                  CoCalc-Kubernetes:
                 </A>{" "}
                 use CoCalc on small Kubernetes cluster ($1499/year)
               </li>
