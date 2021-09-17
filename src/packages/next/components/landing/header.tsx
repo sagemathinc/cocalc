@@ -88,7 +88,7 @@ export default function Header({ page, subPage }: Props) {
               style={page == "share" ? SelectedStyle : LinkStyle}
               title="View files that people have published."
             >
-              Browse
+              Explore
             </a>
           </Link>
         )}

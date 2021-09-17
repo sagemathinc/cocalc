@@ -7,7 +7,7 @@ import { join } from "path";
 import { Layout as AntdLayout } from "antd";
 
 import Head from "next/head";
-
+import Analytics from "components/analytics";
 import SiteName from "./site-name";
 import Footer from "./footer";
 import Header from "./header";
@@ -54,8 +54,8 @@ export function Embed({ children }) {
           <SiteName />
         </title>
         <link rel="icon" href={favicon} />
-        <Analytics />
       </Head>
+      <Analytics />
       <main>{children}</main>
     </>
   );
