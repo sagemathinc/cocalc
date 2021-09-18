@@ -113,8 +113,8 @@ export default function LatexEditor({ customize }) {
                   </dd>
                   <dt>Scared of breaking a document?</dt>
                   <dd>
-                    Revert recent changes via{" "}
-                    <a href="#a-timetravel">time-travel</a> edit history.
+                    Revert recent changes using{" "}
+                    <a href="#a-timetravel">TimeTravel</a>.
                   </dd>
                   <dt>
                     Worried about maintaining your <LaTeX /> environment?
@@ -122,10 +122,8 @@ export default function LatexEditor({ customize }) {
                   <dd>CoCalc takes care of everything.</dd>
                   <dt>Want to work from anywhere?</dt>
                   <dd>
-                    You only need a web-browser and Internet access, or you can{" "}
-                    <A href="https://github.com/sagemathinc/cocalc-docker#readme">
-                      run your own server.
-                    </A>
+                    You only need a web browser and Internet access, or you can{" "}
+                    <A href="/pricing/onprem">run your own server.</A>
                   </dd>
                 </dl>
               </div>
@@ -170,13 +168,12 @@ export default function LatexEditor({ customize }) {
             <p>
               Behind the scenes,{" "}
               <A href="http://mg.readthedocs.io/latexmk.html">LatexMK</A> is
-              configured to manage the compilation process, which means that you
-              do not have to bother too much about any additional configuration.
+              configured to manage the compilation process.
             </p>
             <p>
-              Besides that, it is possible to{" "}
-              <strong>fully customize the compilation command</strong>. This
-              means you can bring your own shell script or Makefile!{" "}
+              It is also possible to{" "}
+              <strong>fully customize the compilation command</strong>, so you
+              can bring your own shell script or even use a Makefile!
             </p>
           </Info>
 
@@ -205,9 +202,8 @@ export default function LatexEditor({ customize }) {
               project as your <LaTeX /> document.
             </p>
             <p>
-              Consult the{" "}
-              <A href="/features/software">Available Software page</A> or look
-              at our{" "}
+              Consult the <A href="/software">Available Software page</A> or
+              look at our{" "}
               <A href="/features/jupyter-notebook">Jupyter Notebook page</A> for
               more information.{" "}
             </p>
@@ -302,8 +298,8 @@ export default function LatexEditor({ customize }) {
                 \py{"{"}2 + 4**2{"}"}
               </Code>{" "}
               produces "18". You can use all{" "}
-              <A href="/features/software-python">available python libraries</A>{" "}
-              for Python 3, drawing plots via <code>pylab</code>, and use
+              <A href="/software/python">available python libraries</A> for
+              Python 3, drawing plots via <code>pylab</code>, and use
               PythonTeX's SymPy support.
             </p>
             <p>
@@ -320,7 +316,7 @@ export default function LatexEditor({ customize }) {
             alt="Editing LaTeX with R/Knitr code"
           >
             <p>
-              CoCalc's Latex editor also supports{" "}
+              CoCalc's <LaTeX /> editor also supports{" "}
               <strong>
                 <A href="https://yihui.name/knitr/">Knitr</A>
               </strong>{" "}
@@ -336,14 +332,14 @@ export default function LatexEditor({ customize }) {
             <ul>
               <li>
                 installation and management of{" "}
-                <A href="/features/software-r">all R packages</A>,
+                <A href="/software/r">all R packages</A>,
               </li>
               <li>
                 orchestrates the full compilation pipeline for <LaTeX /> and
                 running R, and
               </li>
               <li>
-                reconciles the line-numbers of the .Rnw file with the
+                reconciles the line numbers of the .Rnw file with the
                 corresponding .tex document for correct{" "}
                 <A href="#a-forwardinverse">
                   <strong>forward and inverse search</strong>
@@ -409,14 +405,10 @@ export default function LatexEditor({ customize }) {
             }
           >
             <p>
-              The{" "}
-              <strong>
-                <A href="/features/time-travel">TimeTravel feature</A>
-              </strong>{" "}
-              is specific to the CoCalc platform. It records all changes in the{" "}
-              <LaTeX /> notebook in fine detail. You can go back and forth in
-              time using a slider across thousands of changes to recover your
-              previous edits.
+              The <strong>TimeTravel feature</strong> is specific to the CoCalc
+              platform. It records all changes in the <LaTeX /> notebook in fine
+              detail. You can go back and forth in time using a slider across
+              thousands of changes to recover your previous edits.
             </p>
             <p>
               This is especially helpful for pinpointing which of the recent

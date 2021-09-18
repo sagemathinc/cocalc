@@ -174,11 +174,8 @@ export default function JupyterNotebook({ customize }) {
             alt="Video showing the TimeTravel slider in a SageMath Jupyter notebook"
           >
             <p>
-              The{" "}
               <strong>
-                <A href="https://doc.cocalc.com/time-travel.html">
-                  TimeTravel feature
-                </A>
+                <A href="https://doc.cocalc.com/time-travel.html">TimeTravel</A>
               </strong>{" "}
               is a powerful feature of the CoCalc platform. It records all your
               changes in your Jupyter notebook in fine detail. You can go back
@@ -192,8 +189,8 @@ export default function JupyterNotebook({ customize }) {
             <p>
               You can also browse the entire process of creating the notebook
               from the start. This lets you discover how you arrived at a
-              particular solution and see what you (or your student) tried
-              before.
+              particular solution and see what you (or your students) tried to
+              get there.
             </p>
           </Info>
 
@@ -238,7 +235,7 @@ export default function JupyterNotebook({ customize }) {
               </strong>{" "}
               of each Jupyter notebook lets you discuss the content of your
               notebook with colleagues or students. You can drag and drop or
-              past images and files into chat, use <LaTeX /> math formulas, and
+              paste images and files into chat, use <LaTeX /> math formulas, and
               fix typos in messages.
             </p>
             <p>
@@ -260,17 +257,17 @@ export default function JupyterNotebook({ customize }) {
           >
             <p>
               CoCalc makes sure that your desired computational environment is
-              available and ready to work with. You just have to select from
-              many pre-installed and <strong>fully managed kernels</strong> to
-              start with your work. You can also create your own{" "}
+              available and ready to work with. Select from many pre-installed
+              and <strong>fully managed kernels</strong>. You can also create
+              your own{" "}
               <A href="https://doc.cocalc.com/howto/custom-jupyter-kernel.html">
                 custom kernel
               </A>
               .
             </p>
             <p>
-              Look at our <A href="/features/software">list of available software</A>{" "}
-              for more about what is available.
+              Look at our <A href="/software">list of available software</A> for
+              more about what is available.
             </p>
           </Info>
 
@@ -376,7 +373,8 @@ export default function JupyterNotebook({ customize }) {
             disclaimer
             title={
               <h2 style={{ textAlign: "center" }}>
-                <Icon name="bolt" /> Jupyter notebooks in CoCalc versus the competition
+                <Icon name="bolt" /> Jupyter notebooks in CoCalc versus the
+                competition
               </h2>
             }
           />

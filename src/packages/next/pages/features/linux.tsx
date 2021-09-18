@@ -144,8 +144,8 @@ export default function JupyterNotebook({ customize }) {
               Are you looking for something beyond a terminal or editing shell
               scripts? CoCalc also offers{" "}
               <strong>
-                <A href="/features/jupyter-notebook">Jupyter Notebooks</A> running
-                the{" "}
+                <A href="/features/jupyter-notebook">Jupyter Notebooks</A>{" "}
+                running the{" "}
                 <A href="https://github.com/takluyver/bash_kernel">
                   bash kernel
                 </A>
@@ -223,8 +223,8 @@ export default function JupyterNotebook({ customize }) {
               and started in the first terminal. In the second terminal,{" "}
               <Code>psql</Code> is used to connect to it and create a table and
               insert data. Finally, the{" "}
-              <A href="/features/jupyter-notebook">Jupyter Notebook</A> on the left
-              connects via the{" "}
+              <A href="/features/jupyter-notebook">Jupyter Notebook</A> on the
+              left connects via the{" "}
               <A href="http://initd.org/psycopg/docs/">psycopg2</A> library and
               issues a query to the database!
             </p>
@@ -271,7 +271,7 @@ export function FullLinuxTerminal() {
             <p>
               Browse the{" "}
               <strong>
-                <A href="/features/software-executables">installed software</A>
+                <A href="/software/executables">installed software</A>
               </strong>{" "}
               in CoCalc.
             </p>
@@ -293,7 +293,7 @@ export function FullLinuxTerminal() {
                 software.
               </li>
               <li>
-                It is possible to{" "}
+                It is possible for multiple people to{" "}
                 <strong>
                   collaboratively use the same terminal in realtime
                 </strong>
@@ -335,7 +335,9 @@ export function FullLinuxTerminal() {
               </li>
               <li>
                 Compile programs written in{" "}
-                <strong>C/C++, Java, Rust, Assembly, Fortan, Julia,</strong>{" "}
+                <strong>
+                  C/C++, Java, Rust, Assembly, Fortan, Julia, Zig, Haskell,
+                </strong>{" "}
                 etc.
               </li>
               <li>Process and store datafiles</li>
@@ -357,12 +359,11 @@ export function FullLinuxTerminal() {
                 </strong>
                 : due to how CoCalc works, you cannot have root rights. However,
                 there is a wealth of software{" "}
-                <A href="/features/software">already installed</A>, including both
-                systems utilities and packages for specific language
-                environments. Regarding Python, R, Nodejs, and Julia
-                environments, you can{" "}
+                <A href="/software">already installed</A>, including both system
+                utilities and packages for specific language environments.
+                Regarding Python, R, Nodejs, and Julia environments, you can{" "}
                 <A href="https://doc.cocalc.com/howto/index.html">
-                  install them in your project
+                  install additional packages in your project
                 </A>
                 . If something is missing,{" "}
                 <A href="mailto:help@cocalc.com">please tell us</A>.
@@ -381,7 +382,11 @@ export function FullLinuxTerminal() {
               </li>
               <li>
                 <strong>Port forwards:</strong> you cannot forward arbitrary
-                ports over ssh to your local computer.
+                ports over ssh to your local computer. (You <strong>CAN</strong>{" "}
+                <A href="https://doc.cocalc.com/project-settings.html#ssh-keys">
+                  ssh into your project
+                </A>
+                .)
               </li>
             </ul>
           </>

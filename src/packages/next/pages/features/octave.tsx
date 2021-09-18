@@ -76,7 +76,7 @@ export default function Octave({ customize }) {
                 <h3>Packages</h3>
                 <div>
                   Browse a{" "}
-                  <A href="/features/software-octave">
+                  <A href="/software/octave">
                     list of all installed Octave packages...
                   </A>
                 </div>

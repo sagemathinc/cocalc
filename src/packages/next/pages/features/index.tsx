@@ -53,8 +53,8 @@ const dataSource = [
     description: (
       <>
         {" "}
-        Use Python in coCalc for data science, statistics, mathematics, physics,
-        machine learning, and <A href="/features/software-python">more</A>.{" "}
+        Use Python in CoCalc for data science, statistics, mathematics, physics,
+        machine learning, and <A href="/software/python">more</A>.{" "}
       </>
     ),
   },
@@ -108,7 +108,7 @@ const dataSource = [
     image: x11Screenshot,
     description: (
       <>
-        Run graphical applications in CoCalc's remote virtual display
+        Run graphical applications in CoCalc's remote virtual desktop
         environment. Read more in the{" "}
         <A href="https://doc.cocalc.com/x11.html">X11 documentation</A>.
       </>
@@ -135,7 +135,7 @@ const dataSource = [
     image: terminalScreenshot,
     description: (
       <>
-        Work in a collaborative remote Linux shell. Read more in its{" "}
+        Work in a collaborative remote Linux shell. Read more in our{" "}
         <A href="https://doc.cocalc.com/terminal.html">documentation</A>.
       </>
     ),

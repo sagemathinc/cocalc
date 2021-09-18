@@ -124,7 +124,7 @@ export default function Teaching({ customize }) {
                 </ul>
                 <p>
                   CoCalc's massive default{" "}
-                  <A href="/features/software">Software Environment</A> provides
+                  <A href="/software">Software Environment</A> provides
                   nearly everything anybody{" "}
                   <strong>has ever asked us to install since 2013!</strong>
                 </p>

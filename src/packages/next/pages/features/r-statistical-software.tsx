@@ -94,8 +94,7 @@ export default function R({ customize }) {
                   </li>
                   <li>
                     CoCalc already{" "}
-                    <A href="/features/software-r">provides many packages</A>{" "}
-                    for you.
+                    <A href="/software/r">provides many packages</A> for you.
                   </li>
                   <li>
                     The <A href="/features/latex-editor">LaTeX editor</A> is
@@ -332,7 +331,7 @@ export default function R({ customize }) {
               and you find yourself in a familiar Linux shell with a local
               filesystem for your data files, access to{" "}
               <A href="https://www.git-scm.com">Git</A> and{" "}
-              <A href="/features/software-executables">more...</A>{" "}
+              <A href="/software/executables">more...</A>{" "}
               <strong>Feel at home and run your analysis as usual!</strong>
             </p>
             <p>
@@ -391,9 +390,8 @@ export default function R({ customize }) {
               to get started with your analysis without any overhead.
             </p>
             <p>
-              Look at our{" "}
-              <A href="/features/software-r">list of available packages</A> in
-              more detail. If something is missing, please tell us about it (
+              Look at our <A href="/software/r">list of available packages</A>{" "}
+              in more detail. If something is missing, please tell us about it (
               <Contact />) so we can install that package globally.
             </p>
           </Info>
@@ -430,9 +428,9 @@ export default function R({ customize }) {
               from one version to the next.
             </p>
             <p>
-              You can relive the entire process of creating a Jupyter notebook
-              from the very start. This lets you discover how you arrived at a
-              particular solution and see what you (or your student) attempted
+              You can visualize the entire process of creating a Jupyter
+              notebook from the start. This lets you discover how you arrived at
+              a particular solution and see what you (or your student) attempted
               before the final solution.
             </p>
           </Info>

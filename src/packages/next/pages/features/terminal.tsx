@@ -157,7 +157,7 @@ export default function Terminal({ customize }) {
             <p>
               Look at our{" "}
               <strong>
-                <A href="/features/software-executables">list of executables</A>
+                <A href="/software/executables">list of executables</A>
               </strong>{" "}
               to check what is available!{" "}
             </p>
