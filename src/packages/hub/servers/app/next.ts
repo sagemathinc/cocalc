@@ -81,6 +81,7 @@ export default async function init(app: Application) {
     join(basePath, "policies*"),
     join(basePath, "pricing*"),
     join(basePath, "share*"),
+    join(basePath, "api*"), // could be other api routes later -- but api/v1 is served via express!!!
     join(basePath, "_next*"),
   ];
   winston.info(

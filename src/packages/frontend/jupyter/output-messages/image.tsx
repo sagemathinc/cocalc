@@ -62,7 +62,7 @@ export const Image: React.FC<ImageProps> = React.memo((props: ImageProps) => {
     if (on_error != null) {
       props["onError"] = on_error;
     }
-    return <img {...props} />;
+    return <img {...props} alt="Image in a Jupyter notebook" />;
   }
 
   function render_using_server(project_id: string, sha1: string): JSX.Element {

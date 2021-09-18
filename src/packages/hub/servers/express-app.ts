@@ -96,10 +96,7 @@ export default async function init(opts: Options): Promise<{
   // setup all healthcheck endpoints
   await setupHealthChecks({ router, db: database });
 
-  if (opts.nextServer) {
-    // The Next.js server
-    await initNext(app);
-  }
+  initAPI(router, opts.projectControl);
 
   // The /static content, used by docker, development, etc.
   // This is the stuff that's packaged up via webpack in packages/static.
@@ -133,7 +130,6 @@ export default async function init(opts: Options): Promise<{
     res.redirect(join(basePath, "static/app.html") + query);
   });
 
-  initAPI(router, opts.projectControl);
   initBlobs(router);
   initSetCookies(router);
   initCustomize(router, opts.isPersonal);
@@ -144,6 +140,14 @@ export default async function init(opts: Options): Promise<{
     app.use(basePath, router);
   } else {
     app.use(router);
+  }
+
+  // IMPORTANT: do app.use(router) above **before**
+  // installling the nextjs server, since things like
+  // /api/v1 served above must have precedence.
+  if (opts.nextServer) {
+    // The Next.js server
+    await initNext(app);
   }
 
   return { app, router };

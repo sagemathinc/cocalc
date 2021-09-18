@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   }
   const pool = getPool();
   await pool.query(
-    "UPDATE public_paths SET counter = counter + 1 WHERE id=$1",
+    "UPDATE public_paths SET counter = coalesce(counter,0) + 1 WHERE id=$1",
     [id]
   );
   res.end();
