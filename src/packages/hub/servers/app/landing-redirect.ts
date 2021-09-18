@@ -4,6 +4,8 @@ pages work with the new next.js implementation.
 
 The mapping is as follows, with the first match winning:
 
+    /index.html --> /
+
     /policies/pricing.html --> /pricing
     /policies/index.html --> /policies
     /policies/[page].html -> /policies/[page]
@@ -29,6 +31,7 @@ const CODE = 302; // temporary redirect
 const logger = getLogger("landing-redirect");
 
 const RULES = [
+  { start: join(basePath, "index.html"), to: basePath },
   {
     start: join(basePath, "policies/pricing.html"),
     to: join(basePath, "pricing"),
@@ -71,6 +74,7 @@ const RULES = [
 export default function redirect() {
   const doc = join(basePath, "doc/");
   const policies = join(basePath, "policies/");
+  const index_html = join(basePath, "index.html");
 
   logger.info("creating landing pages legacy redirect");
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -80,7 +84,7 @@ export default function redirect() {
     // Check for a quick obvious "no".
     if (
       !url.endsWith(".html") ||
-      !(url.startsWith(doc) || url.startsWith(policies))
+      !(url.startsWith(doc) || url.startsWith(policies) || url == index_html)
     ) {
       // The url doesn't ended in html or it doesn't start with /doc or /policies,
       // so clearly not going to redirect it.

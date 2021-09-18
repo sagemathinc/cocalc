@@ -31,7 +31,7 @@ export default function Footer() {
       <div>
         {siteName ?? <Item first>CoCalc</Item>}
         <Item>
-          <A href="https://cocalc.com/index.html">CoCalc</A>
+          <A href="https://cocalc.com">CoCalc</A>
         </Item>
         {organizationName && <Item>{organizationName}</Item>}
         {termsOfServiceURL && (

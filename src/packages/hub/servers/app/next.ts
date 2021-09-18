@@ -68,6 +68,7 @@ export default async function init(app: Application) {
   }
 
   const landingRedirect = createLandingRedirect();
+  app.all(join(basePath, "index.html"), landingRedirect);
   app.all(join(basePath, "doc*"), landingRedirect);
   app.all(join(basePath, "policies*"), landingRedirect);
 
