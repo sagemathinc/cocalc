@@ -47,7 +47,7 @@ export default function Software({ customize }) {
             To run anything listed below, you need to either{" "}
             <A href="/features/terminal">open a "Terminal"</A> or run the
             command indirectly via a{" "}
-            <A href="/features/jupyter">Jupyter notebook</A>.
+            <A href="/features/jupyter-notebook">Jupyter notebook</A>.
           </p>
           <p>
             On CoCalc, you can also install or compile your own executable
