@@ -76,7 +76,7 @@ export default function R({ customize }) {
                   .
                 </p>
                 <p>
-                  This page is about ways to use R in the
+                  This page is about ways to use R in the{" "}
                   <A href="../">CoCalc platform</A>.
                 </p>
               </div>
@@ -402,7 +402,7 @@ export default function R({ customize }) {
 
           <Info
             title="TimeTravel"
-            icon="square"
+            icon="history"
             video={[
               "features/cocalc-timetravel-r-jupyter-3x.webm",
               "features/cocalc-timetravel-r-jupyter-3x.mp4",

@@ -30,8 +30,7 @@ export default function Octave({ customize }) {
               name="table"
             />
             <h1 style={{ fontSize: "26pt" }}>
-              Comparing CoCalc to MyBinder, Colab, Datalore, Deepnote, Overleaf,
-              Authorea, Papeeria, and more...
+              Comparing CoCalc to the Competition
             </h1>
             <SignIn startup={"CoCalc"} />
           </div>

@@ -39,9 +39,8 @@ export default function X11({ customize }) {
                   <div>
                     Run {component} scripts,{" "}
                     <A href="/features/jupyter-notebook">Jupyter notebooks</A>,
-                    or even full{" "}
-                    <A href="/features/x11">graphical applications</A> in a
-                    remote {component} environment.
+                    or even full graphical applications in a remote {component}{" "}
+                    environment.
                   </div>
                 </>
               }

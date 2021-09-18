@@ -35,7 +35,8 @@ export default function Octave({ customize }) {
               subtitle={
                 <>
                   Run {octave} in an online Terminal, a Jupyter Notebook or an
-                  X11 desktop. The syntax is largely compatible with MATLAB®!
+                  X11 desktop. Octave is largely compatible with MATLAB®! For
+                  many teaching purposes you can use Octave instead of MATLAB.
                 </>
               }
               image={octaveJupyter}
@@ -210,11 +211,8 @@ export default function Octave({ customize }) {
             </p>
             <p>
               You can start Octave in the X11 graphical terminal. When you plot
-              graphics they will appear in a window to the right. If you paste{" "}
-              <A href="https://octave.org/features/v4.2.1/Three_002dDimensional-Plots.html#Three_002dDimensional-Plots">
-                this code
-              </A>
-              , you can then grab and rotate the 3D plot.
+              graphics they will appear in a window to the right. In the example
+              in the screenshot, it is possible to grab and rotate the 3D plot.
             </p>
           </Info>
 

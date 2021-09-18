@@ -13,7 +13,7 @@ export default function Publishing() {
       alt="Viewing a PDF file in the share server"
     >
       <p>
-        CoCalc helps you <strong>sharing your work with the world</strong>. It
+        CoCalc helps you <strong>share your work with the world</strong>. It
         offers its own hosting of <A href="/share">shared documents</A>,
         alongside with any associated data files.
       </p>

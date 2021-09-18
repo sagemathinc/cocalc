@@ -38,7 +38,7 @@ export default function RSoftware({ customize }) {
           <p>
             This table lists all R packages that are{" "}
             <b>immediately available by default in every CoCalc project</b>,
-            along with their version numbers. If a package is missing, you can{" "}
+            along with their version numbers. If something is missing, you can{" "}
             <A href="https://doc.cocalc.com/howto/install-r-package.html">
               install it yourself
             </A>

@@ -406,9 +406,9 @@ export default function LatexEditor({ customize }) {
           >
             <p>
               The <strong>TimeTravel feature</strong> is specific to the CoCalc
-              platform. It records all changes in the <LaTeX /> notebook in fine
-              detail. You can go back and forth in time using a slider across
-              thousands of changes to recover your previous edits.
+              platform. It records all changes in the document in fine detail.
+              You can go back and forth in time using a slider across thousands
+              of changes to recover your previous edits.
             </p>
             <p>
               This is especially helpful for pinpointing which of the recent

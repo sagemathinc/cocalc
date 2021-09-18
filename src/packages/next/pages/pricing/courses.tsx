@@ -134,8 +134,8 @@ export default function Courses({ customize }) {
             </p>
             <p>
               Once you obtain a license key,{" "}
-              <A href="https://doc.cocalc.com/teaching-notes.html#site-license-course-setup">
-                apply to all your student projects
+              <A href="https://doc.cocalc.com/teaching-upgrade-course.html">
+                apply it to all your student projects
               </A>
               .
             </p>
