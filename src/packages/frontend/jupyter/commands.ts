@@ -197,6 +197,7 @@ export function commands(
       m: "Run all (do not stop on errors)...",
       menu: "Restart and run all (do not stop on errors)...",
       i: "run",
+      k: [{ which: 13, ctrl: true, shift: true }],
       f: () => jupyter_actions.restart_and_run_all_no_halt(),
     },
 
@@ -272,8 +273,7 @@ export function commands(
         ) {
           // Vim mode is trickier...
           if (
-            frame_actions.store.get("cur_cell_vim_mode", "escape") !==
-            "escape"
+            frame_actions.store.get("cur_cell_vim_mode", "escape") !== "escape"
           ) {
             return;
           }
@@ -627,8 +627,7 @@ export function commands(
     "run cell and insert below": {
       m: "Run cells and insert cell below",
       k: [{ which: 13, alt: true }],
-      f: () =>
-        frame_actions.run_selected_cells_and_insert_new_cell_below(),
+      f: () => frame_actions.run_selected_cells_and_insert_new_cell_below(),
     },
 
     "run cell and select next": {
@@ -847,8 +846,7 @@ export function commands(
 
     "delete protect": {
       m: "Delete protection -- toggle whether cells are deletable",
-      f: () =>
-        frame_actions.toggle_delete_protection_on_selected_cells(),
+      f: () => frame_actions.toggle_delete_protection_on_selected_cells(),
     },
 
     protect: {
