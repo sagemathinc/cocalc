@@ -375,8 +375,8 @@ export default function LatexEditor({ customize }) {
             title="Forward and Inverse search"
             icon="sync"
             video={[
-              "public/features/latex-forward-inverse-02.webm",
-              "public/features/latex-forward-inverse-02.mp4",
+              "features/latex-forward-inverse-02.webm",
+              "features/latex-forward-inverse-02.mp4",
             ]}
             wide
             alt="Video showing forward and inverse search in a LaTeX document"

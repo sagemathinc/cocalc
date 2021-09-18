@@ -9,5 +9,5 @@ export function MediaURL(url) {
   if (url.includes("://")) {
     return url;
   }
-  return join(basePath, "doc", url);
+  return join(basePath, url);
 }

@@ -280,8 +280,8 @@ export default function R({ customize }) {
             title="Code formatting"
             icon="network-wired"
             video={[
-              "public/features/cocalc-jupyter-r-format-cell.webm",
-              "public/features/cocalc-jupyter-r-format-cell.mp4",
+              "features/cocalc-jupyter-r-format-cell.webm",
+              "features/cocalc-jupyter-r-format-cell.mp4",
             ]}
             anchor="a-codeformatting"
             alt="Video showing formatting of R in a Jupyter notebook"
@@ -406,8 +406,8 @@ export default function R({ customize }) {
             title="TimeTravel"
             icon="square"
             video={[
-              "public/features/cocalc-timetravel-r-jupyter-3x.webm",
-              "public/features/cocalc-timetravel-r-jupyter-3x.mp4",
+              "features/cocalc-timetravel-r-jupyter-3x.webm",
+              "features/cocalc-timetravel-r-jupyter-3x.mp4",
             ]}
             anchor="a-timetravel"
             alt="Video showing the time travel slider in an R Jupyter notebook"

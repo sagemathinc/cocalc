@@ -168,8 +168,8 @@ export default function JupyterNotebook({ customize }) {
             title="TimeTravel"
             icon="history"
             video={[
-              "public/features/cocalc-jupyter2-timetravel-20170515-3x.webm",
-              "public/features/cocalc-jupyter2-timetravel-20170515-3x.mp4",
+              "features/cocalc-jupyter2-timetravel-20170515-3x.webm",
+              "features/cocalc-jupyter2-timetravel-20170515-3x.mp4",
             ]}
             alt="Video showing the TimeTravel slider in a SageMath Jupyter notebook"
           >

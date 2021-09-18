@@ -75,12 +75,14 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
             <List.Item.Meta
               avatar={
                 item.logo && (
-                  <Avatar
-                    alt={item.title + " logo "}
-                    size={80}
-                    shape="square"
-                    icon={icon}
-                  />
+                  <A href={item.link}>
+                    <Avatar
+                      alt={item.title + " logo "}
+                      size={80}
+                      shape="square"
+                      icon={icon}
+                    />
+                  </A>
                 )
               }
               title={<A href={item.link}>{item.title}</A>}
