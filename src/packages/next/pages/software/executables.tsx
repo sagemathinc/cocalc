@@ -4,7 +4,6 @@ import Head from "components/landing/head";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import ExecutablesTable from "components/landing/executables-table";
-import Code from "components/landing/code";
 import Image from "components/landing/image";
 import { Layout } from "antd";
 import A from "components/misc/A";
