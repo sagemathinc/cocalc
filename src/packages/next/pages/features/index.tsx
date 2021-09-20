@@ -52,9 +52,9 @@ const dataSource = [
     image: FrameEditorPython,
     description: (
       <>
-        {" "}
         Use Python in CoCalc for data science, statistics, mathematics, physics,
-        machine learning, and <A href="/software/python">more</A>.{" "}
+        machine learning. Many{" "}
+        <A href="/software/python">packages are included in CoCalc</A>!
       </>
     ),
   },

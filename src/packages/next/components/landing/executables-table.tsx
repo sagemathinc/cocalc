@@ -19,7 +19,7 @@ const COLUMNS = [
     render: (path) => <Code>{path}</Code>,
   },
   {
-    title: "--version output",
+    title: "Information",
     key: "output",
     dataIndex: "output",
     width: "40%",

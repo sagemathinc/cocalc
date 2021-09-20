@@ -200,9 +200,11 @@ export default function Octave({ customize }) {
               </strong>{" "}
               of the classical{" "}
               <A href="http://jupyter.org/">Jupyter notebook</A> interface. It
-              is tightly integrated into CoCalc and adds realtime collaboration,
-              TimeTravel history and{" "}
-              <A href="http://doc.cocalc.com/jupyter.html">more</A>.
+              is tightly integrated into CoCalc and adds realtime collaboration,{" "}
+              <A href="http://doc.cocalc.com/jupyter.html">
+                TimeTravel history and much more
+              </A>
+              .
             </p>
             <p>
               The user interface is very similar to Jupyter classic. It uses the

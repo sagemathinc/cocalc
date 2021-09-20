@@ -40,8 +40,6 @@ export default function Software({ customize }) {
           </div>
           <p>
             This is a non-comprehensive list of executables available on CoCalc.
-            We also include the output of running the executable with{" "}
-            <Code>--version</Code>.
           </p>
           <p>
             To run anything listed below, you need to either{" "}

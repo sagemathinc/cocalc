@@ -331,7 +331,7 @@ export default function R({ customize }) {
               and you find yourself in a familiar Linux shell with a local
               filesystem for your data files, access to{" "}
               <A href="https://www.git-scm.com">Git</A> and{" "}
-              <A href="/software/executables">more...</A>{" "}
+              <A href="/software/executables">a large number of commands...</A>{" "}
               <strong>Feel at home and run your analysis as usual!</strong>
             </p>
             <p>
