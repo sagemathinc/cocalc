@@ -7,38 +7,61 @@
 A table of a list of public paths.
 */
 
-import Link from "next/link";
 import { Table } from "antd";
 import { PublicPath } from "lib/share/types";
+import A from "components/misc/A";
 
+function Description({ description }: { description: string }) {
+  return (
+    <div style={{ maxWidth: "50ex", maxHeight: "5em", overflow: "auto" }}>
+      {`${description}`}
+    </div>
+  );
+}
+
+function LastEdited({ last_edited }: { last_edited: Date }) {
+  return <>{`${new Date(last_edited).toLocaleString()}`}</>;
+}
+
+function Title({ id, title }: { id: string; title: string }) {
+  return <A href={`/share/public_paths/${id}`}>{title}</A>;
+}
 const COLUMNS = [
   {
     title: "Path",
     dataIndex: "path",
     key: "path",
-    // We use width 100% and display inline-block so that user can click anywhere
-    // in the title *column* and open the path.  It's more user friendly.
-    render: (title, record) => (
-      <Link href={`/share/public_paths/${record.id}`}>
-        <a style={{ width: "100%", display: "inline-block" }}>{title}</a>
-      </Link>
-    ),
+    render: (title, record) => <Title id={record.id} title={title} />,
+    responsive: ["sm"] as any,
   },
   {
     title: "Description",
     dataIndex: "description",
     key: "description",
-    render: (description) => (
-      <div style={{ maxWidth: "50ex", maxHeight: "5em", overflow: "auto" }}>
-        {description}
-      </div>
-    ),
+    render: (description) => <Description description={description} />,
+    responsive: ["sm"] as any,
   },
   {
     title: "Last Edited",
     dataIndex: "last_edited",
     key: "last_edited",
-    render: (last_edited) => `${new Date(last_edited).toLocaleString()}`,
+    render: (last_edited) => <LastEdited last_edited={last_edited} />,
+    responsive: ["sm"] as any,
+  },
+  {
+    title: "Documents",
+    responsive: ["xs"] as any,
+    key: "path",
+    render: (_, record) => {
+      const { path, last_edited, id, description } = record;
+      return (
+        <div>
+          <Title title={path} id={id} />
+          <Description description={description} />
+          <LastEdited last_edited={last_edited} />
+        </div>
+      );
+    },
   },
 ];
 
@@ -54,6 +77,7 @@ export default function PublicPaths({ publicPaths }: Props): JSX.Element {
       loading={publicPaths == null}
       dataSource={publicPaths}
       columns={COLUMNS}
+      style={{ overflowX: "auto" }}
     />
   );
 }
