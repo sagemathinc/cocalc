@@ -278,32 +278,6 @@ export const ABOUT_LINKS : Links = {
     link: "Terms of Service, Pricing, Copyright and Privacy policies",
     href: join(appBasePath, "policies/index.html"),
   },
-  developers: {
-    icon: "keyboard",
-    text: (
-      <span>
-        <a
-          target="_blank"
-          rel="noopener"
-          href="http://blog.sagemath.com/cocalc/2018/09/10/where-is-cocalc-from.html"
-        >
-          Core developers
-        </a>
-        : John Jeng,{" "}
-        <a target="_blank" rel="noopener" href="http://harald.schil.ly/">
-          Harald Schilly
-        </a>
-        ,{" "}
-        <a target="_blank" rel="noopener" href="https://twitter.com/haldroid">
-          Hal Snyder
-        </a>
-        ,{" "}
-        <a target="_blank" rel="noopener" href="http://wstein.org">
-          William Stein
-        </a>
-      </span>
-    ),
-  },
   incorporated: {
     icon: "gavel",
     text:
