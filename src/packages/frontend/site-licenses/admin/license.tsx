@@ -242,7 +242,11 @@ export class License extends Component<Props> {
                 value={value}
                 onChange={(e) => onChange((e.target as any).value)}
                 onBlur={() => {
-                  onChange(JSON.stringify(jsonic(value), undefined, 2));
+                  try {
+                    onChange(JSON.stringify(jsonic(value), undefined, 2));
+                  } catch (_err) {
+                    // This just means jsonic can't transform it to valid json.
+                  }
                 }}
               />
               <br />
