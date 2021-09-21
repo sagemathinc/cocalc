@@ -35,6 +35,8 @@ describe("default quota", () => {
       network: false,
       privileged: false,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     };
     expect(basic).toEqual(exp);
   });
@@ -1246,5 +1248,66 @@ describe("default quota", () => {
       privileged: false,
       always_running: false,
     });
+  });
+
+  it("dedicated vm do not mix with quotas", () => {
+    const site_license = {
+      a: {
+        quota: {
+          dedicated_vm: { machine: "n2-standard-4" },
+          dedicated_disk: { type: "standard", size_gb: 128 },
+        },
+      },
+      b: {
+        quota: {
+          ram: 2,
+          always_running: true,
+        },
+      },
+      c: {
+        quota: {
+          cpu: 2,
+          ram: 1,
+          always_running: true,
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_license);
+    expect(q.always_running).toBe(false);
+    expect(q.dedicated_vm).toBe("n2-standard-4");
+  });
+
+  it("several dedicated disks", () => {
+    const site_license = {
+      a: {
+        quota: {
+          dedicated_disk: { type: "standard", size_gb: 512 },
+        },
+      },
+      b: {
+        quota: {
+          dedicated_disk: { type: "ssd", size_gb: 128 },
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_license);
+    expect(q.dedicated_disks.length).toBe(2);
+  });
+
+  it("only one dedicated VM", () => {
+    const site_license = {
+      a: {
+        quota: {
+          dedicated_vm: { machine: "n2-standard-4" },
+        },
+      },
+      b: {
+        quota: {
+          dedicated_vm: { machine: "n2-highmem-4" },
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_license);
+    expect(["n2-standard-4", "n2-highmem-4"]).toContain(q.dedicated_vm);
   });
 });

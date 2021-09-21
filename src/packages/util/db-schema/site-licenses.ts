@@ -21,6 +21,21 @@ import { is_valid_uuid_string, plural } from "../misc";
 import { Table } from "./types";
 import { SCHEMA } from "./index";
 
+export type DedicatedDisk =
+  | {
+      size_gb: number;
+      type: "ssd" | "standard" | "balanced";
+    }
+  | false;
+
+export function isDedicatedDisk(d): d is DedicatedDisk {
+  return (
+    d != null &&
+    typeof d.size_gb === "number" &&
+    ["ssd", "standard", "balanced"].includes(d.type)
+  );
+}
+
 export interface Quota {
   ram?: number;
   dedicated_ram?: number;
@@ -30,6 +45,8 @@ export interface Quota {
   always_running?: boolean;
   member?: boolean;
   user?: "academic" | "business";
+  dedicated_vm?: { machine: string } | false;
+  dedicated_disk?: DedicatedDisk;
 }
 
 // For typescript use of these from user side, we make this available:
@@ -95,8 +112,7 @@ Table({
     },
     title: {
       type: "string",
-      desc:
-        "Descriptive name of the license, e.g., the class and university or other information.",
+      desc: "Descriptive name of the license, e.g., the class and university or other information.",
     },
     description: {
       type: "string",
@@ -104,18 +120,15 @@ Table({
     },
     info: {
       type: "map",
-      desc:
-        "Structured object for admins to store structured information about this license.  This serves a similar purpose to description, but must be a valid JSON object map.",
+      desc: "Structured object for admins to store structured information about this license.  This serves a similar purpose to description, but must be a valid JSON object map.",
     },
     expires: {
       type: "timestamp",
-      desc:
-        "Date when the license expires.  At this point in time the license no longer upgrades projects, and any running upgraded projects have their upgrades removed, which may result in thosoe projects being stoped.",
+      desc: "Date when the license expires.  At this point in time the license no longer upgrades projects, and any running upgraded projects have their upgrades removed, which may result in thosoe projects being stoped.",
     },
     activates: {
       type: "timestamp",
-      desc:
-        "Date when this license starts working.  Before this date, the license can be applied to projects, but nothing happens.",
+      desc: "Date when this license starts working.  Before this date, the license can be applied to projects, but nothing happens.",
     },
     created: {
       type: "timestamp",
@@ -123,40 +136,33 @@ Table({
     },
     last_used: {
       type: "timestamp",
-      desc:
-        "when this license was last used to upgrade a project when the project was starting.  Obviously, we don't update this *every* single time a project starts - it's throttled, so it'll only be updated periodically (maybe once per minute).",
+      desc: "when this license was last used to upgrade a project when the project was starting.  Obviously, we don't update this *every* single time a project starts - it's throttled, so it'll only be updated periodically (maybe once per minute).",
     },
     managers: {
       type: "array",
       pg_type:
         "TEXT[]" /* TODO/NOTE: I made a mistake -- this should have been UUID[]! */,
-      desc:
-        "A list of the account_id's of users that are allowed to manage how this site license is being used.",
+      desc: "A list of the account_id's of users that are allowed to manage how this site license is being used.",
     },
     restricted: {
       type: "boolean",
-      desc:
-        "NOTE IMPLEMENTED YET: If true, then only managers are allowed to add this site license to a project.  If false, anybody who knows the license key can use it on projects.",
+      desc: "NOTE IMPLEMENTED YET: If true, then only managers are allowed to add this site license to a project.  If false, anybody who knows the license key can use it on projects.",
     },
     upgrades: {
       type: "map",
-      desc:
-        "Map of the upgrades that are applied to a project when it has this site license; this is the same as the settings field of a project, so e.g., {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  This matches with our older purchases and our internal system.  Instead of this one can give quota.",
+      desc: "Map of the upgrades that are applied to a project when it has this site license; this is the same as the settings field of a project, so e.g., {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  This matches with our older purchases and our internal system.  Instead of this one can give quota.",
     },
     quota: {
       type: "map",
-      desc:
-        "The exact quota a project using this license gets -- {ram: total amount of memory in GB, cpu: total number of shared vCPUs, disk:total GB of disk space, always_running:true/false, member:true/false, user:'academic'|'business'}.  (Plan is) that such a license does not provide upgrades, but instead a fixed quota.",
+      desc: "The exact quota a project using this license gets -- {ram: total amount of memory in GB, cpu: total number of shared vCPUs, disk:total GB of disk space, always_running:true/false, member:true/false, user:'academic'|'business'}.  (Plan is) that such a license does not provide upgrades, but instead a fixed quota.",
     },
     run_limit: {
       type: "integer",
-      desc:
-        "The maximum number of running projects that may be simultaneously upgraded using this license.  When this is exceeded, older projects have the license automatically removed.  If removal changes project upgrades, then those projects have the upgrades removed and are stopped.",
+      desc: "The maximum number of running projects that may be simultaneously upgraded using this license.  When this is exceeded, older projects have the license automatically removed.  If removal changes project upgrades, then those projects have the upgrades removed and are stopped.",
     },
     apply_limit: {
       type: "integer",
-      desc:
-        "The maximum number of projects that may simultaneously have this license applied to them.  When this is exceeded, older projects have the license automatically removed.  If this changes how the projects are upgraded, then those projects are stopped.",
+      desc: "The maximum number of projects that may simultaneously have this license applied to them.  When this is exceeded, older projects have the license automatically removed.  If this changes how the projects are upgraded, then those projects are stopped.",
     },
     // todo: add a subscription field in case this license is paid for by a subscription. We periodically check
     // that the subscription is still valid, otherwise we expire the license.
@@ -236,8 +242,7 @@ Table({
   },
   rules: {
     virtual: true, // don't make an actual table
-    desc:
-      "Site Licenses that match a query (default limit of ${MATCHING_SITE_LICENSES_LIMIT} most active)",
+    desc: "Site Licenses that match a query (default limit of ${MATCHING_SITE_LICENSES_LIMIT} most active)",
     anonymous: false,
     primary_key: ["id"],
     user_query: {
@@ -299,8 +304,7 @@ Table({
   fields: {
     running: {
       type: "map",
-      desc:
-        "Map from license_id to a count of how many *running* projects are using that license right now.  Only includes licenses that are being used.",
+      desc: "Map from license_id to a count of how many *running* projects are using that license right now.  Only includes licenses that are being used.",
     },
     time: {
       type: "timestamp",
@@ -344,13 +348,11 @@ Table({
     },
     cutoff: {
       type: "timestamp",
-      desc:
-        "include projects that were running with this license applied at some point since cutoff; E.g., if cutoff is right now, then we get the currently running projects, and if cuttoff is a timestamp a week ago, we get all projects that ran using this license during the last week.  Default: NOW().",
+      desc: "include projects that were running with this license applied at some point since cutoff; E.g., if cutoff is right now, then we get the currently running projects, and if cuttoff is a timestamp a week ago, we get all projects that ran using this license during the last week.  Default: NOW().",
     },
     limit: {
       type: "integer",
-      desc:
-        "limit on the number of results to return, to avoid overloading things. Default: 1000.  This is only used by admins so for now having a large limit and no paging is probably fine.",
+      desc: "limit on the number of results to return, to avoid overloading things. Default: 1000.  This is only used by admins so for now having a large limit and no paging is probably fine.",
     },
     project_id: SCHEMA.projects.fields.project_id, // id of project
     title: SCHEMA.projects.fields.title, // first 80 characters of title of project
@@ -361,8 +363,7 @@ Table({
   },
   rules: {
     virtual: true, // don't make an actual table
-    desc:
-      "Site License usage information for running projects with a particular license",
+    desc: "Site License usage information for running projects with a particular license",
     anonymous: false,
     primary_key: ["license_id", "project_id"],
     user_query: {
@@ -441,19 +442,16 @@ Table({
     },
     cutoff: {
       type: "timestamp",
-      desc:
-        "include projects that were running with this license applied at some point since cutoff; E.g., if cutoff is right now, then we get the currently running projects, and if cuttoff is a timestamp a week ago, we get all projects that ran using this license during the last week.  Default: NOW().",
+      desc: "include projects that were running with this license applied at some point since cutoff; E.g., if cutoff is right now, then we get the currently running projects, and if cuttoff is a timestamp a week ago, we get all projects that ran using this license during the last week.  Default: NOW().",
     },
     number: {
       type: "integer",
-      desc:
-        "how many projects using the site license at some point since cutoff",
+      desc: "how many projects using the site license at some point since cutoff",
     },
   },
   rules: {
     virtual: true, // don't make an actual table
-    desc:
-      "Virtual table for determining the number of projects that recently used a given site license",
+    desc: "Virtual table for determining the number of projects that recently used a given site license",
     anonymous: false,
     primary_key: ["license_id", "cutoff"],
     user_query: {
@@ -517,13 +515,11 @@ Table({
     managers: SCHEMA.site_licenses.fields.managers,
     running: {
       type: "integer",
-      desc:
-        "Number of running projects currently using this license.   Regarding security, we assume that if the user knows the license id, then they are allowed to know how many projects are using it.",
+      desc: "Number of running projects currently using this license.   Regarding security, we assume that if the user knows the license id, then they are allowed to know how many projects are using it.",
     },
     is_manager: {
       type: "boolean",
-      desc:
-        "True if user making the query is a manager of this license.  Frontend UI might tell them this and show license code and other links.",
+      desc: "True if user making the query is a manager of this license.  Frontend UI might tell them this and show license code and other links.",
     },
   },
   rules: {
@@ -594,8 +590,7 @@ Table({
     },
   },
   rules: {
-    desc:
-      "Table for logging when site licenses are used to upgrade running projects.",
+    desc: "Table for logging when site licenses are used to upgrade running projects.",
     primary_key: ["license_id", "project_id", "start"],
     pg_indexes: ["license_id"],
   },
