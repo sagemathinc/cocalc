@@ -45,9 +45,8 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
   const [err, set_err] = useState<string | undefined>(undefined);
   const [loading, set_loading] = useState<boolean>(true);
   const isMountedRef = useIsMountedRef();
-  const [is_editing_description, set_is_editing_description] = useState<
-    boolean
-  >(false);
+  const [is_editing_description, set_is_editing_description] =
+    useState<boolean>(false);
   const [is_editing_title, set_is_editing_title] = useState<boolean>(false);
   const [title, set_title] = useState<string>("");
   const [description, set_description] = useState<string>("");
@@ -172,12 +171,14 @@ export const SiteLicensePublicInfo: React.FC<Props> = ({
 
   function render_expires(): JSX.Element | undefined {
     if (!info?.expires) return;
-    let word: string = new Date() >= info.expires ? "expired" : "will expire";
+    const expired = new Date() >= info.expires;
+    let word = expired ? "EXPIRED" : "will expire";
     return (
-      <span>
-        {" "}
+      <div
+        style={expired ? { fontSize: "14pt", fontWeight: "bold" } : undefined}
+      >
         ({word} <TimeAgo date={info.expires} />)
-      </span>
+      </div>
     );
   }
 

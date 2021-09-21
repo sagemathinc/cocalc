@@ -62,6 +62,7 @@ export class ConfigurationActions {
   public remove_site_license_id(license_id: string): void {
     const store = this.course_actions.get_store();
     let cur = store.getIn(["settings", "site_license_id"]) ?? "";
+    let removed = store.getIn(["settings", "site_license_removed"]) ?? "";
     if (cur.indexOf(license_id) == -1) return; // already removed
     const v: string[] = [];
     for (const id of cur.split(",")) {
@@ -69,7 +70,15 @@ export class ConfigurationActions {
         v.push(id);
       }
     }
-    this.set({ site_license_id: v.join(","), table: "settings" });
+    const site_license_id = v.join(",");
+if (!removed.includes(license_id)) {
+      removed = removed.split(",").concat([license_id]).join(",");
+    }
+    this.set({
+      site_license_id,
+      site_license_removed: removed,
+      table: "settings",
+    });
   }
 
   public set_site_license_strategy(

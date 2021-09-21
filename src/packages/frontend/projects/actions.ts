@@ -714,6 +714,13 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (!is_valid_uuid_string(project_id)) {
       throw Error(`invalid project_id "${project_id}"`);
     }
+    if (license_id.includes(",")) {
+      for (const id of license_id.split(",")) {
+        this.log_site_license_change(project_id, id, action);
+      }
+      return;
+    }
+
     let info;
     if (!license_id) {
       info = { title: "All licenses" };
