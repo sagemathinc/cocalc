@@ -269,6 +269,10 @@ function isSettingsQuota(slq?: QuotaSetting): slq is Upgrades {
 //
 // this heuristic groups all licenses by always_running and member hosting, and then picks the first nonempty group.
 // TODO: once we have a license with an extended uptime (hours instead of ~30 mins), we introduce that as a third dimension.
+//
+// Fall 2021: on top of that, "dedicted resources" are treated in a special way
+// * VMs: do not mix with any other upgrades, only one per project
+// * disks: orthogonal to VMs, more than one per project is possible
 function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
   if (site_licenses == null || isEmpty(site_licenses)) return {};
 
