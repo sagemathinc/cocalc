@@ -36,12 +36,12 @@ costs add).
 
 // TODO: relative path just needed in manage-*
 
-import { isEmpty /*, isArray, every*/ } from "lodash";
+import { isEmpty } from "lodash";
 import { DEFAULT_QUOTAS, upgrades } from "../upgrade-spec";
 import {
   Quota as SiteLicenseQuota,
   DedicatedDisk,
-  //isDedicatedDisk,
+  DedicatedVM,
 } from "../db-schema/site-licenses";
 import { len } from "../misc";
 
@@ -273,34 +273,28 @@ function isSettingsQuota(slq?: QuotaSetting): slq is Upgrades {
   );
 }
 
-//function isDedicatedDiskArray(d): d is DedicatedDisk[] {
-//  return d != null && isArray(d) && every(d.map(isDedicatedDisk));
-//}
-
-function select_dedicated_vm(site_licenses: SiteLicenses): SiteLicenses | null {
+function select_dedicated_vm(site_licenses: SiteLicenses): DedicatedVM | null {
   // if there is a dedicated_vm upgrade, pick the first one
-  for (const [key, val] of Object.entries(site_licenses)) {
-    if (!isSiteLicenseQuotaSetting(val)) continue;
-    if (typeof val.quota.dedicated_vm === "string") {
-      return { [key]: val };
+  for (const val of Object.values(site_licenses)) {
+    if (isSiteLicenseQuotaSetting(val) && val.quota.dedicated_vm != null) {
+      const vm = val.quota.dedicated_vm;
+      if (typeof vm !== "boolean" && typeof vm?.machine === "string") {
+        return vm;
+      }
     }
   }
   return null;
 }
 
-function select_dedicated_disks(site_licenses: SiteLicenses): {
-  site_licenses: SiteLicenses;
-  dedicated_disks: SiteLicenses;
-} {
-  const dedicated_disks = {};
-  for (const [key, val] of Object.entries(site_licenses)) {
-    if (!isSiteLicenseQuotaSetting(val)) continue;
-    if (val.quota.dedicated_disk != null) {
-      dedicated_disks[key] = val;
-      delete site_licenses[key];
+// extract all dedicated disks that are defined anywhere
+function select_dedicated_disks(site_licenses: SiteLicenses): DedicatedDisk[] {
+  const dedicated_disks: DedicatedDisk[] = [];
+  for (const val of Object.values(site_licenses)) {
+    if (isSiteLicenseQuotaSetting(val) && val.quota.dedicated_disk != null) {
+      dedicated_disks.push(val.quota.dedicated_disk);
     }
   }
-  return { site_licenses, dedicated_disks };
+  return dedicated_disks;
 }
 
 // some site licenses do not mix.
@@ -313,16 +307,21 @@ function select_dedicated_disks(site_licenses: SiteLicenses): {
 // Fall 2021: on top of that, "dedicted resources" are treated in a special way
 // * VMs: do not mix with any other upgrades, only one per project
 // * disks: orthogonal to VMs, more than one per project is possible
-function select_site_licenses(site_licenses_arg?: SiteLicenses): SiteLicenses {
-  if (site_licenses_arg == null || isEmpty(site_licenses_arg)) return {};
+function select_site_licenses(site_licenses?: SiteLicenses): {
+  site_licenses: SiteLicenses;
+  dedicated_disks?: DedicatedDisk[];
+  dedicated_vm?: DedicatedVM;
+} {
+  if (site_licenses == null || isEmpty(site_licenses))
+    return { site_licenses: {} };
 
   // this "extracts" all dedicated disk upgrades from the site_licenses map
-  const { site_licenses, dedicated_disks } =
-    select_dedicated_disks(site_licenses_arg);
+  const dedicated_disks = select_dedicated_disks(site_licenses);
 
-  const dedicated_vm: SiteLicenses | null = select_dedicated_vm(site_licenses);
+  const dedicated_vm: DedicatedVM | null = select_dedicated_vm(site_licenses);
+
   if (dedicated_vm != null) {
-    return { ...dedicated_disks, ...dedicated_vm };
+    return { site_licenses: {}, dedicated_disks, dedicated_vm };
   }
 
   // key is <member>-<always_running> as 0/1 numbers
@@ -362,19 +361,14 @@ function select_site_licenses(site_licenses_arg?: SiteLicenses): SiteLicenses {
     }
   })();
 
-  if (selected == null) return {};
+  if (selected == null) return { site_licenses: {}, dedicated_disks };
 
   const selected_licenses = selected.reduce((acc, cur) => {
     acc[cur] = site_licenses[cur];
     return acc;
   }, {});
 
-  console.log("combined", selected_licenses, dedicated_disks, " -->> ", {
-    ...selected_licenses,
-    ...dedicated_disks,
-  });
-
-  return { ...selected_licenses, ...dedicated_disks };
+  return { site_licenses: selected_licenses, dedicated_disks };
 }
 
 // there is an old schema, inherited from SageMathCloud, etc. and newer iterations.
@@ -564,8 +558,6 @@ function quota_v2(opts: OptsV2): Quota {
       .map((v: { upgrades: Upgrades }) => upgrade2quota(v.upgrades))
   );
 
-  console.log("site_licenses", site_licenses);
-
   // v1 of licenses, encoding upgrades directly
   const license_upgrades_sum = sum_quotas(
     ...Object.values(site_licenses).filter(isSettingsQuota).map(upgrade2quota)
@@ -636,11 +628,23 @@ export function quota(
   });
 
   // we might not consider all of them!
-  site_licenses = Object.freeze(select_site_licenses(site_licenses));
+  const {
+    site_licenses: site_licenses_selected,
+    dedicated_disks = [],
+    dedicated_vm = false,
+  } = select_site_licenses(site_licenses);
 
-  console.log("site_licenses", site_licenses);
+  site_licenses = Object.freeze(site_licenses_selected);
 
-  return quota_v2({
+  if (dedicated_vm !== false) {
+    return {
+      ...ZERO_QUOTA,
+      dedicated_vm,
+      dedicated_disks,
+    };
+  }
+
+  const total_quota = quota_v2({
     quota,
     settings: upgrade2quota(settings),
     max_upgrades: upgrade2quota(max_upgrades),
@@ -648,6 +652,9 @@ export function quota(
     site_licenses,
     site_settings,
   });
+
+  total_quota.dedicated_disks = dedicated_disks;
+  return total_quota;
 }
 
 // this is used by webapp, not part of this quota calculation, and also not tested
@@ -676,7 +683,9 @@ export function site_license_quota(
   max_upgrades_param?: Upgrades
 ): Quota {
   // we filter here as well, b/c this function is used elsewhere
-  site_licenses = Object.freeze(select_site_licenses(site_licenses));
+  const { site_licenses: site_licenses_selected } =
+    select_site_licenses(site_licenses);
+  site_licenses = Object.freeze(site_licenses_selected);
   // a fallback, should take site settings into account here as well
   const max_upgrades: Upgrades = max_upgrades_param ?? MAX_UPGRADES;
 

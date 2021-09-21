@@ -28,6 +28,8 @@ export type DedicatedDisk =
     }
   | false;
 
+export type DedicatedVM = { machine: string };
+
 export function isDedicatedDisk(d): d is DedicatedDisk {
   return (
     d != null &&
@@ -45,7 +47,7 @@ export interface Quota {
   always_running?: boolean;
   member?: boolean;
   user?: "academic" | "business";
-  dedicated_vm?: { machine: string } | false;
+  dedicated_vm?: DedicatedVM | false;
   dedicated_disk?: DedicatedDisk;
 }
 

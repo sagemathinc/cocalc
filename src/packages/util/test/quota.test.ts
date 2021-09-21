@@ -54,6 +54,8 @@ describe("default quota", () => {
       network: false,
       privileged: false,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     };
     expect(member).toEqual(exp);
   });
@@ -71,6 +73,8 @@ describe("default quota", () => {
       network: true, // what this upgrade is about
       privileged: false,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     };
     expect(admin1).toEqual(exp);
   });
@@ -113,6 +117,8 @@ describe("default quota", () => {
       idle_timeout: 1899, // 1800 secs free
       disk_quota: 4000,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     };
     expect(added).toEqual(exp);
   });
@@ -139,6 +145,8 @@ describe("default quota", () => {
       idle_timeout: 1800, // 1800 secs free
       disk_quota: 3000,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     };
     expect(quota({}, users)).toEqual(exp);
   });
@@ -171,6 +179,8 @@ describe("default quota", () => {
       network: true,
       privileged: false,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     };
     expect(maxedout).toEqual(exp);
   });
@@ -199,6 +209,8 @@ describe("default quota", () => {
       network: true,
       privileged: false,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     };
     expect(maxedout).toEqual(exp);
   });
@@ -248,6 +260,8 @@ describe("default quota", () => {
       idle_timeout: 24 * 3600 * (Math.min(90, 50 + 50) + 33) - 1800, // 1800 secs free
       disk_quota: 22000,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     };
     expect(quota(settings, users)).toEqual(exp);
   });
@@ -277,6 +291,8 @@ describe("default quota", () => {
       memory_request: 2000,
       privileged: false,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     };
 
     expect(quota(settings, users)).toEqual(exp);
@@ -304,6 +320,8 @@ describe("default quota", () => {
       memory_request: 512,
       network: true,
       privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -374,6 +392,8 @@ describe("default quota", () => {
       network: true,
       privileged: false,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -399,6 +419,8 @@ describe("default quota", () => {
       network: true,
       privileged: false,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -442,6 +464,8 @@ describe("default quota", () => {
       network: true,
       privileged: false,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -489,6 +513,8 @@ describe("default quota", () => {
       cpu_limit: 0.5,
       idle_timeout: 300,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -519,6 +545,8 @@ describe("default quota", () => {
       network: true,
       privileged: false,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -601,6 +629,8 @@ describe("default quota", () => {
       cpu_limit: 1.5,
       idle_timeout: 1800,
       always_running: true,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -637,6 +667,8 @@ describe("default quota", () => {
       cpu_limit: 1.5,
       idle_timeout: 1800,
       always_running: true,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -664,6 +696,8 @@ describe("default quota", () => {
       idle_timeout: 9999,
       disk_quota: 5432,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -702,6 +736,8 @@ describe("default quota", () => {
       cpu_limit: 0.44, // below minimum cap, because max_upgrades in settings are stronger than hardcoded vals
       idle_timeout: 999,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -736,6 +772,8 @@ describe("default quota", () => {
       idle_timeout: 3600, // capped by max_upgrades
       disk_quota: 512,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -765,6 +803,8 @@ describe("default quota", () => {
       idle_timeout: 1800,
       disk_quota: 3000,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -799,6 +839,8 @@ describe("default quota", () => {
       idle_timeout: 3600, // capped by max_upgrades
       disk_quota: 512,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -915,6 +957,8 @@ describe("default quota", () => {
       network: true, // what this upgrade is about
       privileged: false,
       always_running: true,
+      dedicated_disks: [],
+      dedicated_vm: false,
     };
     expect(admin1).toEqual(exp);
   });
@@ -967,6 +1011,8 @@ describe("default quota", () => {
       memory_request: 200,
       network: false,
       privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -1006,6 +1052,8 @@ describe("default quota", () => {
       memory_request: 1234, // upgrade
       network: true, // both
       privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -1135,6 +1183,8 @@ describe("default quota", () => {
       cpu_limit: 3,
       idle_timeout: 1800,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -1200,6 +1250,8 @@ describe("default quota", () => {
       privileged: false,
       idle_timeout: 999,
       disk_quota: 333,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
@@ -1247,14 +1299,20 @@ describe("default quota", () => {
       network: true,
       privileged: false,
       always_running: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
     });
   });
 
   it("dedicated vm do not mix with quotas", () => {
     const site_license = {
-      a: {
+      a1: {
         quota: {
           dedicated_vm: { machine: "n2-standard-4" },
+        },
+      },
+      a2: {
+        quota: {
           dedicated_disk: { type: "standard", size_gb: 128 },
         },
       },
@@ -1273,9 +1331,27 @@ describe("default quota", () => {
       },
     };
     const q = quota({}, { userX: {} }, site_license);
+    expect(q.dedicated_vm.machine).toBe("n2-standard-4");
     expect(q.always_running).toBe(false);
-    expect(q.dedicated_vm).toBe("n2-standard-4");
+    expect(q.dedicated_disks.length).toBe(1);
   });
+  
+  
+  it("dedicated vm do not mix with quotas", () => {
+    const site_license = {
+      a1: {
+        quota: {
+          dedicated_vm: { machine: "n2-standard-4" },
+          dedicated_disk: { type: "standard", size_gb: 128 },
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_license);
+    expect(q.dedicated_vm.machine).toBe("n2-standard-4");
+    expect(q.always_running).toBe(false);
+    expect(q.dedicated_disks.length).toBe(1);
+  });
+
 
   it("several dedicated disks", () => {
     const site_license = {
@@ -1308,6 +1384,6 @@ describe("default quota", () => {
       },
     };
     const q = quota({}, { userX: {} }, site_license);
-    expect(["n2-standard-4", "n2-highmem-4"]).toContain(q.dedicated_vm);
+    expect(["n2-standard-4", "n2-highmem-4"]).toContain(q.dedicated_vm.machine);
   });
 });
