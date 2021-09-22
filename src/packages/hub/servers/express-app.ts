@@ -143,8 +143,10 @@ export default async function init(opts: Options): Promise<{
   }
 
   // IMPORTANT: do app.use(router) above **before**
-  // installling the nextjs server, since things like
+  // installing the nextjs server, since things like
   // /api/v1 served above must have precedence.
+  // The nextjs server must be LAST, since it takes
+  // all routes not otherwise handled above.
   if (opts.nextServer) {
     // The Next.js server
     await initNext(app);
