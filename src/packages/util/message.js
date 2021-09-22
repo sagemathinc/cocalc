@@ -1965,15 +1965,16 @@ message({
 /*
 Ping/pong -- used for clock sync, etc.
 */
-message2({
-  event: "ping",
-  fields: {
-    id: {
-      init: undefined,
-      desc: "A unique UUID for the query",
+API(
+  message2({
+    event: "ping",
+    fields: {
+      id: {
+        init: undefined,
+        desc: "A unique UUID for the query",
+      },
     },
-  },
-  desc: `\
+    desc: `\
 Test API connection, return time as ISO string when server responds to ping.
 
 Security key may be blank.
@@ -2007,7 +2008,8 @@ Using JSON format to provide request id:
   ==> {"event":"pong","id":"8ec4ac73-2595-42d2-ad47-0b9641043b46","now":"2017-05-24T17:15:59.288Z"}
 \`\`\`\
 `,
-});
+  })
+);
 
 message({
   event: "pong",

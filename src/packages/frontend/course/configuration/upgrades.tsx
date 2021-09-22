@@ -72,9 +72,8 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
   const [upgrade_plan, set_upgrade_plan] = useState<object | undefined>(
     undefined
   );
-  const [loading_all_projects, set_loading_all_projects] = useState<boolean>(
-    false
-  );
+  const [loading_all_projects, set_loading_all_projects] =
+    useState<boolean>(false);
   const [show_site_license, set_show_site_license] = useState<boolean>(false);
 
   const all_projects_have_been_loaded = useTypedRedux(
@@ -229,13 +228,8 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
     // current   -- Sum of total upgrades currently allocated by anybody to the course projects
     // yours     -- How much of this quota this user has allocated to this quota total.
     // num_projects -- How many student projects there are.
-    const {
-      display,
-      desc,
-      display_factor,
-      display_unit,
-      input_type,
-    } = PROJECT_UPGRADES.params[quota];
+    const { display, desc, display_factor, display_unit, input_type } =
+      PROJECT_UPGRADES.params[quota];
 
     yours *= display_factor;
     current *= display_factor;
@@ -361,7 +355,8 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
     if (projects_store == null) {
       return <Loading />;
     }
-    const applied_upgrades = projects_store.get_total_upgrades_you_have_applied();
+    const applied_upgrades =
+      projects_store.get_total_upgrades_you_have_applied();
 
     // Sum total amount of each quota that we have applied to all student projects
     let total_upgrades = {}; // all upgrades by anybody
@@ -604,7 +599,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
         <b>
           {licenses.length} license{licenses.length > 1 ? "s" : ""}
         </b>
-        :
+        , unless it is expired or in use by too many projects:
         <br />
         <div
           style={{

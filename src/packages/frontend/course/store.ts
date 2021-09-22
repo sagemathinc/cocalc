@@ -4,18 +4,19 @@
  */
 
 // React libraries
-import { Store, redux } from "../app-framework";
+import { Store, redux } from "@cocalc/frontend/app-framework";
+import { site_license_public_info } from "@cocalc/frontend/site-licenses/util";
 // CoCalc libraries
 import { cmp, cmp_array, set } from "@cocalc/util/misc";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 // Course Library
 import { STEPS } from "./util";
 import { Map, Set, List } from "immutable";
-import { TypedMap, createTypedMap } from "../app-framework";
+import { TypedMap, createTypedMap } from "@cocalc/frontend/app-framework";
 import { SITE_NAME } from "@cocalc/util/theme";
 // Upgrades
 import * as project_upgrades from "./project-upgrades";
-import { Datastore } from "../projects/actions";
+import { Datastore } from "@cocalc/frontend/projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 
 export const PARALLEL_DEFAULT = 5;
@@ -133,6 +134,7 @@ export type CourseSettingsRecord = TypedMap<{
   title: string;
   upgrade_goal: Map<any, any>;
   site_license_id?: string;
+  site_license_removed?: string; // comma separated list of licenses that have been explicitly removed from this course.
   site_license_strategy?: SiteLicenseStrategy;
   copy_parallel?: number;
   nbgrader_grade_in_instructor_project?: boolean; // deprecated
@@ -916,6 +918,26 @@ export class CourseStore extends Store<CourseState> {
     if (n < 1) return 1;
     if (n > 50) return 50;
     return n;
+  }
+
+  public async getLicenses(force?: boolean): Promise<{
+    [license_id: string]: { expired: boolean; runLimit: number };
+  }> {
+    const licenses: {
+      [license_id: string]: { expired: boolean; runLimit: number };
+    } = {};
+    const license_ids = this.getIn(["settings", "site_license_id"]) ?? "";
+    for (const license_id of license_ids.split(",")) {
+      if (!license_id) continue;
+      const { expires, run_limit } = await site_license_public_info(
+        license_id,
+        force
+      );
+      const expired = !!(expires && expires <= new Date());
+      const runLimit = run_limit ? run_limit : 999999999999999; // effectively unlimited
+      licenses[license_id] = { expired, runLimit };
+    }
+    return licenses;
   }
 }
 

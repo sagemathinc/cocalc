@@ -22,6 +22,7 @@ export interface SyncDBRecordSettings {
   shared_project_id?: string;
   pay?: string;
   site_license_id?: string;
+  site_license_removed?: string;
   site_license_strategy?: SiteLicenseStrategy;
   copy_parallel?: number; // how many assignments to copy at once in parallel when assigning/collecting/returning
   nbgrader_grade_in_instructor_project?: boolean; // deprecated
