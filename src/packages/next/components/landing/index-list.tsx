@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import { List, Avatar } from "antd";
 import Image, { StaticImageData } from "components/landing/image";
 import A from "components/misc/A";
@@ -9,7 +9,8 @@ interface Item {
   link: string;
   title: ReactNode;
   logo: IconName | StaticImageData;
-  image: StaticImageData;
+  image?: StaticImageData;
+  imageWidth?: string;
   description: ReactNode;
 }
 
@@ -20,9 +21,21 @@ interface Props {
   description: ReactNode;
   dataSource: Item[];
   updated?: string;
+  file?: (item) => boolean;
 }
 
-export default function IndexList({ title, description, dataSource }: Props) {
+export default function IndexList({
+  title,
+  description,
+  dataSource,
+  filter,
+}: Props) {
+  const filtedDataSource = useMemo(() => {
+    if (filter == null) {
+      return dataSource;
+    }
+    return dataSource.filter(filter);
+  }, [filter]);
   return (
     <Layout.Content
       style={{
@@ -64,7 +77,7 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
           </div>
         );
         const extra = item.image && (
-          <div style={{ width: "275px" }}>
+          <div style={{ width: item.imageWidth ?? "275px" }}>
             <A href={item.link}>
               <Image src={item.image} alt="Screenshot" />
             </A>
