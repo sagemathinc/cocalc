@@ -21,7 +21,7 @@ import { is_valid_uuid_string, plural } from "../misc";
 import { Table } from "./types";
 import { SCHEMA } from "./index";
 
-export type DedicatedDiskTypes = "ssd" | "standard" | "balanced"
+export type DedicatedDiskTypes = "ssd" | "standard" | "balanced";
 
 export type DedicatedDisk =
   | {
@@ -175,7 +175,10 @@ Table({
     desc: "Site Licenses",
     anonymous: false,
     primary_key: "id",
-    pg_indexes: [],
+    pg_indexes: [
+      "((quota -> 'dedicated_vm'))",
+      "((quota -> 'dedicated_disk'))",
+    ],
     user_query: {
       get: {
         pg_where: [],

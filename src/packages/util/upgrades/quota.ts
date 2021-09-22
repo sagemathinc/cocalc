@@ -771,6 +771,8 @@ function limit_quota(total_quota: RQuota, max_upgrades: Upgrades): Quota {
       total_quota[key] &&= val;
     } else if (typeof val === "number") {
       total_quota[key] = Math.min(total_quota[key], val);
+    } else if (["dedicated_disks", "dedicated_vm"].includes(key)) {
+      // they are ignored
     } else {
       throw Error(`unhandled key ${key}`);
     }
