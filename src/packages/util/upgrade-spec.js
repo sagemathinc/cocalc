@@ -80,8 +80,7 @@ upgrades.params = {
     pricing_unit: "GB",
     pricing_factor: 1 / 1000,
     input_type: "number",
-    desc:
-      "Upper bound on RAM that all processes in a project may use in total (shared with other projects; not guaranteed).",
+    desc: "Upper bound on RAM that all processes in a project may use in total (shared with other projects; not guaranteed).",
   },
   memory_request: {
     display: "Dedicated RAM",
@@ -101,8 +100,7 @@ upgrades.params = {
     pricing_unit: "core",
     pricing_factor: 1,
     input_type: "number",
-    desc:
-      "Upper bound on the number of shared CPU cores that your project may use (shared with other projects; not guaranteed).",
+    desc: "Upper bound on the number of shared CPU cores that your project may use (shared with other projects; not guaranteed).",
   },
   cpu_shares: {
     display: "Dedicated CPU",
@@ -112,8 +110,7 @@ upgrades.params = {
     pricing_unit: "core",
     pricing_factor: 1 / 1024,
     input_type: "number",
-    desc:
-      "Guaranteed minimum number of CPU cores that are dedicated to your project.",
+    desc: "Guaranteed minimum number of CPU cores that are dedicated to your project.",
   },
   mintime: {
     display: "Idle timeout",
@@ -123,8 +120,7 @@ upgrades.params = {
     pricing_unit: "day",
     pricing_factor: 1 / 86400,
     input_type: "number",
-    desc:
-      "If the project is not used for this long, then it will be automatically stopped.",
+    desc: "If the project is not used for this long, then it will be automatically stopped.",
   },
   network: {
     display: "Internet access",
@@ -134,8 +130,7 @@ upgrades.params = {
     pricing_unit: "project",
     pricing_factor: 1,
     input_type: "checkbox",
-    desc:
-      "Full internet access enables a project to connect to the computers outside of CoCalc, download software packages, etc.",
+    desc: "Full internet access enables a project to connect to the computers outside of CoCalc, download software packages, etc.",
   },
   member_host: {
     display: "Member hosting",
@@ -145,8 +140,7 @@ upgrades.params = {
     pricing_unit: "project",
     pricing_factor: 1,
     input_type: "checkbox",
-    desc:
-      "Runs this project on a machine hosting less projects, aside from the free projects, and without random reboots.",
+    desc: "Runs this project on a machine hosting less projects, aside from the free projects, and without random reboots.",
   },
   always_running: {
     display: "Always running",
@@ -156,8 +150,7 @@ upgrades.params = {
     pricing_unit: "project",
     pricing_factor: 1,
     input_type: "checkbox",
-    desc:
-      "Ensures this project is always running.  If the project stops or crashes for any reason, it is automatically started again.",
+    desc: "Ensures this project is always running.  If the project stops or crashes for any reason, it is automatically started again.",
   },
   ephemeral_state: {
     display: "Ephemeral state",

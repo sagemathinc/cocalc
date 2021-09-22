@@ -4,6 +4,16 @@
  */
 
 import { isEqual } from "lodash";
+import {
+  DedicatedDisk,
+  DedicatedVM,
+} from "@cocalc/util/db-schema/site-licenses";
+import { dedicatedPrice } from "./dedicated";
+
+export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+export const AVG_MONTH_DAYS = 30.5;
+export const AVG_YEAR_DAYS = 12 * AVG_MONTH_DAYS;
+export const ONE_MONTH_MS = AVG_MONTH_DAYS * ONE_DAY_MS;
 
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "max" | "custom";
@@ -43,6 +53,8 @@ export interface PurchaseInfo {
   custom_disk: number;
   custom_always_running: boolean;
   custom_member: boolean;
+  dedicated_disk?: DedicatedDisk;
+  dedicated_vm?: DedicatedVM;
   title?: string;
   description?: string;
 }
@@ -220,7 +232,29 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_disk,
     custom_always_running,
     custom_member,
+    dedicated_disk,
+    dedicated_vm,
   } = info;
+  if (!!dedicated_disk || !!dedicated_vm) {
+    const cost = dedicatedPrice({
+      start,
+      end,
+      subscription,
+      dedicated_disk,
+      dedicated_vm,
+    });
+    if (cost == null) {
+      throw new Error("Problem calculating dedicated price");
+    }
+    return {
+      cost,
+      discounted_cost: cost,
+      cost_per_project_per_month: 0,
+      cost_sub_month: 0,
+      cost_sub_year: 0,
+    };
+  }
+
   if (upgrade == "standard") {
     // set custom_* to what they would be:
     custom_ram = STANDARD.ram;
@@ -297,8 +331,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
       throw Error("end must be set if subscription is no");
     }
     // scale by factor of a month
-    const months =
-      (end.valueOf() - start.valueOf()) / (30.5 * 24 * 60 * 60 * 1000);
+    const months = (end.valueOf() - start.valueOf()) / ONE_MONTH_MS;
     cost *= months;
   } else if (subscription == "yearly") {
     cost *= 12;

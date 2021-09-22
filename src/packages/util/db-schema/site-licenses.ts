@@ -21,10 +21,12 @@ import { is_valid_uuid_string, plural } from "../misc";
 import { Table } from "./types";
 import { SCHEMA } from "./index";
 
+export type DedicatedDiskTypes = "ssd" | "standard" | "balanced"
+
 export type DedicatedDisk =
   | {
       size_gb: number;
-      type: "ssd" | "standard" | "balanced";
+      type: DedicatedDiskTypes;
     }
   | false;
 
