@@ -79,7 +79,7 @@ type NumParser = (s: string | number | undefined) => number;
 type Str2Num = (s: string | number) => number;
 
 // the end result
-interface Quota {
+export interface Quota {
   network?: boolean;
   member_host?: boolean;
   always_running?: boolean;
@@ -90,7 +90,7 @@ interface Quota {
   cpu_request?: number;
   privileged?: boolean;
   idle_timeout?: number;
-  dedicated_vm?: { machine: string } | false;
+  dedicated_vm?: { machine: string } | boolean;
   dedicated_disks?: DedicatedDisk[];
 }
 
@@ -662,10 +662,12 @@ export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
   for (const field in license_quota) {
     if (license_quota[field] == null) continue;
     if (typeof license_quota[field] == "boolean") {
-      // boolean
       quota[field] = !!license_quota[field] || !!quota[field];
-    } else {
+    } else if (typeof license_quota[field] === "number") {
       quota[field] = Math.max(license_quota[field] ?? 0, quota[field] ?? 0);
+    } else if (["dedicated_disks", "dedicated_vm"].includes(field)) {
+      // this is a special case, just for the frontend code – not a general "max" function
+      quota[field] = license_quota[field];
     }
   }
 }
@@ -683,7 +685,7 @@ export function site_license_quota(
   max_upgrades_param?: Upgrades
 ): Quota {
   // we filter here as well, b/c this function is used elsewhere
-  const { site_licenses: site_licenses_selected } =
+  const { site_licenses: site_licenses_selected, dedicated_vm = false } =
     select_site_licenses(site_licenses);
   site_licenses = Object.freeze(site_licenses_selected);
   // a fallback, should take site settings into account here as well
@@ -742,6 +744,14 @@ export function site_license_quota(
     }
   }
 
+  // if there is a dedicated VM, all other licenses are ignored and we set those quotas,
+  // to avoid warnings and the red banner. the exact spec for mem/ram will be set by the backend, not here!
+  if (dedicated_vm != null) {
+    total_quota.dedicated_vm = dedicated_vm;
+    total_quota.member_host = true;
+    total_quota.network = true;
+  }
+
   const ret = limit_quota(total_quota, max_upgrades);
   //console.log("total_quota_limited", JSON.stringify(ret, null, 2));
   return ret;
@@ -767,12 +777,12 @@ total_quota =  {            max_upgrades = {
 
 function limit_quota(total_quota: RQuota, max_upgrades: Upgrades): Quota {
   for (const [key, val] of Object.entries(upgrade2quota(max_upgrades))) {
-    if (typeof val === "boolean") {
+    if (["dedicated_disks", "dedicated_vm"].includes(key)) {
+      // they are ignored
+    } else if (typeof val === "boolean") {
       total_quota[key] &&= val;
     } else if (typeof val === "number") {
       total_quota[key] = Math.min(total_quota[key], val);
-    } else if (["dedicated_disks", "dedicated_vm"].includes(key)) {
-      // they are ignored
     } else {
       throw Error(`unhandled key ${key}`);
     }

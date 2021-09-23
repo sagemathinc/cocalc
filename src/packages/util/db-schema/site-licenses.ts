@@ -49,7 +49,7 @@ export interface Quota {
   always_running?: boolean;
   member?: boolean;
   user?: "academic" | "business";
-  dedicated_vm?: DedicatedVM | false;
+  dedicated_vm?: DedicatedVM | boolean;
   dedicated_disk?: DedicatedDisk;
 }
 

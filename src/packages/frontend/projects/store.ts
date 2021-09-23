@@ -19,7 +19,11 @@ import {
 } from "@cocalc/util/misc";
 import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
-import { max_quota, site_license_quota } from "@cocalc/util/upgrades/quota";
+import {
+  max_quota,
+  site_license_quota,
+  Quota,
+} from "@cocalc/util/upgrades/quota";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { fromPairs } from "lodash";
 const ZERO_QUOTAS = fromPairs(
@@ -456,7 +460,17 @@ export class ProjectsStore extends Store<ProjectsState> {
       site_license_upgrades as any
     );
     this.new_format_license_quota(project_id, quota);
-
+    //// no idea what type "quota" is – coercing to "Quota"
+    //const quota2 = quota as Quota;
+    //if (
+    //  quota2.dedicated_vm === true ||
+    //  (typeof quota2.dedicated_vm !== "boolean" &&
+    //    typeof quota2.dedicated_vm?.machine === "string")
+    //) {
+    //  // we treat dedicated VMs like "member hosting" (no banner or warnings)
+    //  // and also grant them internet access
+    //  quota.member_host = quota.network = 1;
+    //}
     return quota;
   }
 
