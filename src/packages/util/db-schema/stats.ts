@@ -53,3 +53,63 @@ Table({
     pg_indexes: ["time"],
   },
 });
+
+interface HistoricCounts {
+  "5min"?: number;
+  "1h"?: number;
+  "1d"?: number;
+  "7d"?: number;
+  "30d"?: number;
+}
+
+interface CountsByExtension {
+  md?: string;
+  py?: string;
+  jpg?: string;
+  pdf?: string;
+  png?: string;
+  rmd?: string;
+  rnw?: string;
+  rst?: string;
+  svg?: string;
+  tex?: string;
+  txt?: string;
+  x11?: string;
+  jpeg?: string;
+  lean?: string;
+  rtex?: string;
+  sage?: string;
+  term?: string;
+  ipynb?: string;
+  tasks?: string;
+  course?: string;
+  sagews?: string;
+  "sage-chat"?: string;
+}
+
+export interface Stats {
+  id: string;
+  time: Date | number;
+  accounts: number;
+  accounts_created: HistoricCounts;
+  accounts_active: HistoricCounts;
+  projects: number;
+  projects_created: HistoricCounts;
+  projects_active: HistoricCounts;
+  files_opened: {
+    total: {
+      "1h": CountsByExtension;
+      "1d": CountsByExtension;
+      "7d": CountsByExtension;
+      "30d": CountsByExtension;
+    };
+    distinct: {
+      "1h": CountsByExtension;
+      "1d": CountsByExtension;
+      "7d": CountsByExtension;
+      "30d": CountsByExtension;
+    };
+  };
+  running_projects: { free: number; member: number };
+  hub_servers: { host: string; clients: number }[];
+}

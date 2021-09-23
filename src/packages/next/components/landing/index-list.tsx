@@ -4,14 +4,17 @@ import Image, { StaticImageData } from "components/landing/image";
 import A from "components/misc/A";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { Layout } from "antd";
+import useCustomize from "lib/use-customize";
 
-interface Item {
+export interface Item {
   link: string;
   title: ReactNode;
   logo: IconName | StaticImageData;
   image?: StaticImageData;
   imageWidth?: string;
   description: ReactNode;
+  shareServer?: boolean; // only show if the share server is enabled
+  landingPages?: boolean; // only show if landing pages are enabled.
 }
 
 export type DataSource = Item[];
@@ -21,21 +24,18 @@ interface Props {
   description: ReactNode;
   dataSource: Item[];
   updated?: string;
-  file?: (item) => boolean;
+  filter?: (item) => boolean;
 }
 
-export default function IndexList({
-  title,
-  description,
-  dataSource,
-  filter,
-}: Props) {
+export default function IndexList({ title, description, dataSource }: Props) {
+  const { shareServer, landingPages } = useCustomize();
   const filtedDataSource = useMemo(() => {
-    if (filter == null) {
-      return dataSource;
-    }
-    return dataSource.filter(filter);
-  }, [filter]);
+    return dataSource.filter((item) => {
+      if (item.shareServer && !shareServer) return false;
+      if (item.landingPages && !landingPages) return false;
+      return true;
+    });
+  }, [shareServer, landingPages, dataSource]);
   return (
     <Layout.Content
       style={{
@@ -54,7 +54,7 @@ export default function IndexList({
           {title}
         </h1>
         <p>{description}</p>
-        <DataList dataSource={dataSource} />
+        <DataList dataSource={filtedDataSource} />
       </div>
     </Layout.Content>
   );
