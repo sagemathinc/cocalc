@@ -43,6 +43,7 @@ Table({
         throttle_changes: 2000,
         fields: {
           project_id: null,
+          name: null,
           title: "",
           description: "",
           users: {},
@@ -68,6 +69,7 @@ Table({
         fields: {
           project_id: "project_write",
           title: true,
+          name: true,
           description: true,
           deleted: true,
           invite_requests: true, // project collabs can modify this (e.g., to remove from it once user added or rejected)
@@ -125,6 +127,11 @@ Table({
     project_id: {
       type: "uuid",
       desc: "The project id, which is the primary key that determines the project.",
+    },
+    name: {
+      type: "string",
+      pg_type: "VARCHAR(100)",
+      desc: "The optional name of this project.  Must be globally unique (up to case) across all projects with a given *owner*.  It can be between 1 and 100 characters from a-z A-Z 0-9 period and dash.",
     },
     title: {
       type: "string",

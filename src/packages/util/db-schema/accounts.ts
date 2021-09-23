@@ -4,6 +4,7 @@
  */
 
 import { Table } from "./types";
+import { checkAccountName } from "./name-rules";
 
 import {
   DEFAULT_FONT_SIZE,
@@ -29,8 +30,7 @@ Table({
     },
     creation_actions_done: {
       type: "boolean",
-      desc:
-        "Set to true after all creation actions (e.g., add to projects) associated to this account are succesfully completed.",
+      desc: "Set to true after all creation actions (e.g., add to projects) associated to this account are succesfully completed.",
     },
     password_hash: {
       type: "string",
@@ -41,11 +41,15 @@ Table({
       type: "boolean",
       desc: "True if the account has been deleted.",
     },
+    name: {
+      type: "string",
+      pg_type: "VARCHAR(39)",
+      desc: "The username of this user.  This is optional but globally unique across all users.  It can be between 1 and 39 characters from a-z A-Z 0-9 - and must not start with a dash.",
+    },
     email_address: {
       type: "string",
       pg_type: "VARCHAR(254)", // see http://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address
-      desc:
-        "The email address of the user.  This is optional, since users may instead be associated to passport logins.",
+      desc: "The email address of the user.  This is optional, since users may instead be associated to passport logins.",
       unique: true,
     }, // only one record in database can have this email address (if given)
     email_address_before_delete: {
@@ -54,33 +58,27 @@ Table({
     },
     email_address_verified: {
       type: "map",
-      desc:
-        'Verified email addresses as { "email@addre.ss" : <timestamp>, ... }',
+      desc: 'Verified email addresses as { "email@addre.ss" : <timestamp>, ... }',
     },
     email_address_challenge: {
       type: "map",
-      desc:
-        'Contains random token for verification of an address: {"email": "...", "token": <random>, "time" : <timestamp for timeout>}',
+      desc: 'Contains random token for verification of an address: {"email": "...", "token": <random>, "time" : <timestamp for timeout>}',
     },
     email_address_problem: {
       type: "map",
-      desc:
-        'Describes a problem with a given email address. example: { "wrong@email.address" : { "type": "bounce", "time": "2018-...", "mesg": "554 5.7.1 <....>: Recipient address rejected: Access denied, user does not exist", "status": <status code>}}',
+      desc: 'Describes a problem with a given email address. example: { "wrong@email.address" : { "type": "bounce", "time": "2018-...", "mesg": "554 5.7.1 <....>: Recipient address rejected: Access denied, user does not exist", "status": <status code>}}',
     },
     passports: {
       type: "map",
-      desc:
-        'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile',
+      desc: 'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile',
     },
     editor_settings: {
       type: "map",
-      desc:
-        "Description of configuration settings for the editor.  See the user_query get defaults.",
+      desc: "Description of configuration settings for the editor.  See the user_query get defaults.",
     },
     other_settings: {
       type: "map",
-      desc:
-        "Miscellaneous overall configuration settings for SMC, e.g., confirm close on exit?",
+      desc: "Miscellaneous overall configuration settings for SMC, e.g., confirm close on exit?",
     },
     first_name: {
       type: "string",
@@ -122,24 +120,20 @@ Table({
     },
     stripe_customer: {
       type: "map",
-      desc:
-        "Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve).",
+      desc: "Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve).",
     },
     coupon_history: {
       type: "map",
-      desc:
-        "Information about which coupons the customer has used and the number of times",
+      desc: "Information about which coupons the customer has used and the number of times",
     },
     profile: {
       type: "map",
-      desc:
-        "Information related to displaying an avatar for this user's location and presence in a document or chatroom.",
+      desc: "Information related to displaying an avatar for this user's location and presence in a document or chatroom.",
     },
     groups: {
       type: "array",
       pg_type: "TEXT[]",
-      desc:
-        "Array of groups that this user belongs to; usually empty.  The only group right now is 'admin', which grants admin rights.",
+      desc: "Array of groups that this user belongs to; usually empty.  The only group right now is 'admin', which grants admin rights.",
     },
     ssh_keys: {
       type: "map",
@@ -147,8 +141,7 @@ Table({
     },
     api_key: {
       type: "string",
-      desc:
-        "Optional API key that grants full API access to anything this account can access. Key is of the form 'sk_9QabcrqJFy7JIhvAGih5c6Nb', where the random part is 24 characters (base 62).",
+      desc: "Optional API key that grants full API access to anything this account can access. Key is of the form 'sk_9QabcrqJFy7JIhvAGih5c6Nb', where the random part is 24 characters (base 62).",
     },
     sign_up_usage_intent: {
       type: "string",
@@ -165,8 +158,7 @@ Table({
     },
     unlisted: {
       type: "boolean",
-      desc:
-        "If true then exclude user for full name searches (but not exact email address searches).",
+      desc: "If true then exclude user for full name searches (but not exact email address searches).",
     },
   },
   rules: {
@@ -182,6 +174,9 @@ Table({
       "last_active DESC NULLS LAST",
       "lti_id",
       "unlisted",
+    ],
+    pg_unique_indexes: [
+      "LOWER(name)", // ensure user-assigned name is case sensitive globally unique.
     ],
     user_query: {
       get: {
@@ -242,6 +237,7 @@ Table({
             no_free_warnings: false,
             allow_mentions: true,
           },
+          name: null,
           first_name: "",
           last_name: "",
           terminal: {
@@ -269,6 +265,7 @@ Table({
       set: {
         fields: {
           account_id: "account_id",
+          name: true,
           editor_settings: true,
           other_settings: true,
           first_name: true,
@@ -283,6 +280,15 @@ Table({
           unlisted: true,
         },
         check_hook(_db, obj, _account_id, _project_id, cb) {
+          if (obj["name"]) {
+            try {
+              checkAccountName(obj["name"]);
+            } catch (err) {
+              cb(err);
+              return;
+            }
+            // database itself will check for global uniqueness.
+          }
           // Hook to truncate some text fields to at most 254 characters, to avoid
           // further trouble down the line.
           for (const field of ["first_name", "last_name", "email_address"]) {
