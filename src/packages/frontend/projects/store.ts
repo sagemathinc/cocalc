@@ -19,12 +19,12 @@ import {
 } from "@cocalc/util/misc";
 import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
-import {
-  max_quota,
-  site_license_quota,
-  Quota,
-} from "@cocalc/util/upgrades/quota";
+import { max_quota, site_license_quota } from "@cocalc/util/upgrades/quota";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import {
+  DedicatedDisk,
+  DedicatedVM,
+} from "@cocalc/util//db-schema/site-licenses";
 import { fromPairs } from "lodash";
 const ZERO_QUOTAS = fromPairs(
   Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0])
@@ -423,6 +423,7 @@ export class ProjectsStore extends Store<ProjectsState> {
         const info = site_license[license_id];
         const object = info ?? {};
         for (let prop in object) {
+          if (prop === "quota") continue;
           const val = object[prop];
           upgrades[prop] =
             (upgrades[prop] ?? 0) + (parse_number_input(val) ?? 0);
@@ -430,6 +431,30 @@ export class ProjectsStore extends Store<ProjectsState> {
       }
     }
     return upgrades;
+  }
+
+  public get_total_site_license_dedicated(project_id: string): {
+    vm: false | DedicatedVM;
+    disks: DedicatedDisk[];
+  } {
+    const site_license: any = this.getIn([
+      "project_map",
+      project_id,
+      "site_license",
+    ])?.toJS();
+    const disks: DedicatedDisk[] = [];
+    let vm: false | DedicatedVM = false;
+    for (const license of Object.values(site_license ?? {})) {
+      const quota = (license as any).quota;
+      if (quota == null) continue;
+      if (quota.dedicated_disk != null) {
+        disks.push(quota.dedicated_disk);
+      }
+      if (!vm && typeof quota.dedicated_vm?.machine === "string") {
+        vm = quota.dedicated_vm;
+      }
+    }
+    return { vm, disks };
   }
 
   // Return string array of the site licenses that are applied to this project.
@@ -460,17 +485,6 @@ export class ProjectsStore extends Store<ProjectsState> {
       site_license_upgrades as any
     );
     this.new_format_license_quota(project_id, quota);
-    //// no idea what type "quota" is – coercing to "Quota"
-    //const quota2 = quota as Quota;
-    //if (
-    //  quota2.dedicated_vm === true ||
-    //  (typeof quota2.dedicated_vm !== "boolean" &&
-    //    typeof quota2.dedicated_vm?.machine === "string")
-    //) {
-    //  // we treat dedicated VMs like "member hosting" (no banner or warnings)
-    //  // and also grant them internet access
-    //  quota.member_host = quota.network = 1;
-    //}
     return quota;
   }
 
