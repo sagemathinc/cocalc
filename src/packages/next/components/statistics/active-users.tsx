@@ -33,10 +33,9 @@ export default function ActiveUsers({ created, active, hubServers }: Props) {
     <div>
       <h2>Active Users: {active["5min"]}</h2>
       <p>
-        There are {connectedUsers(hubServers)} users connected right now, of
-        which {active["5min"]} actively edited a file in the last 5 minutes.
-        Track the number of users that were recently active or created accounts
-        below.
+        There are {connectedUsers(hubServers)} users connected right now, and
+        {" "}{active["5min"]} actively edited a file in the last 5 minutes. Track the
+        number of users that were recently active or created accounts below.
       </p>
 
       <Table
