@@ -33,14 +33,12 @@ import { init_stripe } from "./stripe";
 import port from "@cocalc/util-node/port";
 import { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
-import initHttpServer from "./servers/http";
 import initHttpRedirect from "./servers/http-redirect";
 import initDatabase from "./servers/database";
 import initProjectControl from "./servers/project-control";
 import initIdleTimeout from "./project-control/stop-idle-projects";
 import initVersionServer from "./servers/version";
 import initPrimus from "./servers/primus";
-import initProxy from "./proxy";
 
 // Logger tagged with 'hub' for this file.
 const winston = getLogger("hub");
@@ -212,10 +210,13 @@ async function startServer(): Promise<void> {
     }
   }
 
-  const { router, app } = await initExpressApp({
+  const { router, httpServer } = await initExpressApp({
     isPersonal: program.personal,
     projectControl,
+    proxyServer: !!program.proxyServer,
     nextServer: !!program.nextServer,
+        cert: program.httpsCert,
+    key: program.httpsKey,
   });
 
   // The express app create via initExpressApp above **assumes** that init_passport is done
@@ -226,11 +227,6 @@ async function startServer(): Promise<void> {
     host: program.hostname,
   });
 
-  const httpServer = initHttpServer({
-    cert: program.httpsCert,
-    key: program.httpsKey,
-    app,
-  });
 
   winston.info(`starting webserver listening on ${program.hostname}:${port}`);
   await callback(httpServer.listen.bind(httpServer), port, program.hostname);
@@ -249,16 +245,6 @@ async function startServer(): Promise<void> {
       clients,
       host: program.hostname,
       isPersonal: program.personal,
-    });
-  }
-
-  if (program.proxyServer) {
-    winston.info(`initializing the http proxy server on port ${port}`);
-    initProxy({
-      projectControl,
-      isPersonal: !!program.personal,
-      httpServer,
-      app,
     });
   }
 

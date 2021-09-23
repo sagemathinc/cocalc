@@ -27,6 +27,8 @@ import initAppRedirect from "./app/app-redirect";
 import initNext from "./app/next";
 import vhostShare from "@cocalc/next/lib/share/virtual-hosts";
 import initRobots from "./robots";
+import initProxy from "../proxy";
+import initHttpServer from "./http";
 
 // Used for longterm caching of files
 const MAX_AGE = ms("10 days");
@@ -36,10 +38,13 @@ interface Options {
   projectControl;
   isPersonal: boolean;
   nextServer: boolean;
+  proxyServer: boolean;
+  cert?: string;
+  key?: string;
 }
 
 export default async function init(opts: Options): Promise<{
-  app: express.Application;
+  httpServer;
   router: express.Router;
 }> {
   const winston = getLogger("express-app");
@@ -142,15 +147,29 @@ export default async function init(opts: Options): Promise<{
     app.use(router);
   }
 
-  // IMPORTANT: do app.use(router) above **before**
-  // installing the nextjs server, since things like
-  // /api/v1 served above must have precedence.
-  // The nextjs server must be LAST, since it takes
+  const httpServer = initHttpServer({
+    cert: opts.cert,
+    key: opts.key,
+    app,
+  });
+
+  if (opts.proxyServer) {
+    winston.info(`initializing the http proxy server`);
+    initProxy({
+      projectControl: opts.projectControl,
+      isPersonal: opts.isPersonal,
+      httpServer,
+      app,
+    });
+  }
+
+  // IMPORTANT:
+  // The nextjs server must be **LAST** (!), since it takes
   // all routes not otherwise handled above.
   if (opts.nextServer) {
     // The Next.js server
     await initNext(app);
   }
 
-  return { app, router };
+  return { httpServer, router };
 }
