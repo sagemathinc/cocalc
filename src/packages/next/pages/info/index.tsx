@@ -40,8 +40,8 @@ const dataSource = [
     ),
   },
   {
-    link: "/info/stats",
-    title: "Statistics",
+    link: "/info/status",
+    title: "System Status",
     logo: "dashboard",
     description: (
       <>

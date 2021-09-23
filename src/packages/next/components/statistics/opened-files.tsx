@@ -100,6 +100,7 @@ function processFilesOpened(
   "7d": number;
   "30d": number;
 }[] {
+  let lastHour = 0;
   const counts = distinct ? filesOpened.distinct : filesOpened.total;
   const byExtension: {
     [ext: string]: {
@@ -118,6 +119,9 @@ function processFilesOpened(
         byExtension[ext] = { "1h": 0, "1d": 0, "7d": 0, "30d": 0 };
       }
       byExtension[ext][time] += cnt;
+      if (time == "1h") {
+        lastHour += cnt;
+      }
     }
   }
 
@@ -132,7 +136,7 @@ function processFilesOpened(
     const counts = byExtension[ext];
     rows.push({ ext, ...counts });
   }
-  return rows;
+  return { rows, lastHour };
 }
 
 export default function OpenedFiles({
@@ -141,7 +145,7 @@ export default function OpenedFiles({
   filesOpened: Stats["files_opened"];
 }) {
   const [distinct, setDistinct] = useState<boolean>(true);
-  const rows = useMemo(
+  const { rows, lastHour } = useMemo(
     () => processFilesOpened(filesOpened, distinct),
     [distinct, filesOpened]
   );
@@ -151,7 +155,9 @@ export default function OpenedFiles({
       <div style={{ float: "right" }}>
         <Switch checked={distinct} onChange={setDistinct} /> Distinct
       </div>
-      <h2>Files</h2>
+      <h2>
+        {distinct ? "Distinct " : ""}Files Used in the Last Hour: {lastHour}{" "}
+      </h2>
       <p>
         Number of {distinct ? "distinct" : ""} files of each type that people
         opened during the last hour, day, week and month.

@@ -51,6 +51,9 @@ export default function Footer() {
             <Contact />
           </Item>
         )}
+        <Item>
+          <A href="/info/status">Status</A>
+        </Item>
       </div>
       <br />
       <div>

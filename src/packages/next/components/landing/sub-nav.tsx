@@ -44,7 +44,7 @@ const policies = {
 const info = {
   help: { label: "Help" },
   connect: { label: "Connect" },
-  stats: { label: "Stats" },
+  status: { label: "Status" },
 };
 
 const PAGES = {
