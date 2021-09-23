@@ -54,7 +54,7 @@ Table({
   },
 });
 
-interface HistoricCounts {
+export interface HistoricCounts {
   "5min"?: number;
   "1h"?: number;
   "1d"?: number;
@@ -95,7 +95,7 @@ export interface Stats {
   accounts_active: HistoricCounts;
   projects: number;
   projects_created: HistoricCounts;
-  projects_active: HistoricCounts;
+  projects_edited: HistoricCounts;
   files_opened: {
     total: {
       "1h": CountsByExtension;

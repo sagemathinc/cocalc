@@ -6,20 +6,7 @@ import { file_associations } from "@cocalc/frontend/file-associations";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { cmp, field_cmp } from "@cocalc/util/cmp";
 
-interface Props {
-  stats: Stats;
-}
-
-export default function Statistics({ stats }: Props) {
-  return (
-    <div>
-      <OpenedFiles files_opened={stats.files_opened} />
-      <pre>{JSON.stringify(stats, undefined, 2)}</pre>
-    </div>
-  );
-}
-
-const editedFilesColumns = [
+const openedFilesColumns = [
   {
     title: "Type of File",
     dataIndex: "ext",
@@ -104,7 +91,7 @@ const extensionToInfo: { [ext: string]: { desc: string; link?: string } } = {
 };
 
 function processFilesOpened(
-  files_opened,
+  filesOpened,
   distinct: boolean
 ): {
   ext: string;
@@ -113,7 +100,7 @@ function processFilesOpened(
   "7d": number;
   "30d": number;
 }[] {
-  const counts = distinct ? files_opened.distinct : files_opened.total;
+  const counts = distinct ? filesOpened.distinct : filesOpened.total;
   const byExtension: {
     [ext: string]: {
       "1h": number;
@@ -148,15 +135,15 @@ function processFilesOpened(
   return rows;
 }
 
-function OpenedFiles({
-  files_opened,
+export default function OpenedFiles({
+  filesOpened,
 }: {
-  files_opened: Stats["files_opened"];
+  filesOpened: Stats["files_opened"];
 }) {
-  const [distinct, setDistinct] = useState<boolean>(false);
+  const [distinct, setDistinct] = useState<boolean>(true);
   const rows = useMemo(
-    () => processFilesOpened(files_opened, distinct),
-    [distinct, files_opened]
+    () => processFilesOpened(filesOpened, distinct),
+    [distinct, filesOpened]
   );
 
   return (
@@ -164,14 +151,14 @@ function OpenedFiles({
       <div style={{ float: "right" }}>
         <Switch checked={distinct} onChange={setDistinct} /> Distinct
       </div>
-      <h2>How Many Opened Files</h2>
+      <h2>Files</h2>
       <p>
         Number of {distinct ? "distinct" : ""} files of each type that people
         opened during the last hour, day, week and month.
       </p>
       <Table
         dataSource={rows}
-        columns={editedFilesColumns}
+        columns={openedFilesColumns}
         bordered
         pagination={false}
         rowKey={"ext"}

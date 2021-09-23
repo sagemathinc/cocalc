@@ -6,7 +6,7 @@ import { Customize } from "lib/customize";
 import { Layout } from "antd";
 import getStats from "lib/landing/stats";
 import { Icon } from "@cocalc/frontend/components/icon";
-import Statistics from "components/landing/statistics";
+import Statistics from "components/statistics";
 
 export default function Stats({ customize, stats }) {
   const { siteName } = customize;

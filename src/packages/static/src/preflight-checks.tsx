@@ -16,16 +16,7 @@ Chrome is wrong on that page, I assume we should check for 61 or 62.
 
 const APP_NAME = "CoCalc";
 
-const A: React.FC<{ href: string; children }> = ({ href, children }) => (
-  <a
-    href={href}
-    target={"_blank"}
-    rel={"noopener"}
-    style={{ textDecoration: "none" }}
-  >
-    {children}
-  </a>
-);
+import A from "./link";
 
 interface Spec {
   name: string;
