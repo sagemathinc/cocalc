@@ -94,12 +94,15 @@ function processFilesOpened(
   filesOpened,
   distinct: boolean
 ): {
-  ext: string;
-  "1h": number;
-  "1d": number;
-  "7d": number;
-  "30d": number;
-}[] {
+  rows: {
+    ext: string;
+    "1h": number;
+    "1d": number;
+    "7d": number;
+    "30d": number;
+  }[];
+  lastHour: number;
+} {
   let lastHour = 0;
   const counts = distinct ? filesOpened.distinct : filesOpened.total;
   const byExtension: {
