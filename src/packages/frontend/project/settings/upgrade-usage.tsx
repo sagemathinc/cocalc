@@ -23,6 +23,11 @@ import {
   DedicatedDisk,
   DedicatedVM,
 } from "@cocalc/util//db-schema/site-licenses";
+import {
+  PRICES,
+  DISK_NAMES,
+} from "@cocalc/frontend/site-licenses/purchase/dedicated";
+import { plural } from "@cocalc/util/misc";
 
 const { ShowSupportLink } = require("../../support");
 const { Row, Col, Button } = require("react-bootstrap");
@@ -101,6 +106,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
       </Row>
     );
   }
+
   function render_upgrade_adjustor(): Rendered {
     if (!is_commercial) return; // never show if not commercial
     if (!show_adjustor) return; // not being displayed since button not clicked
@@ -127,6 +133,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
       />
     );
   }
+
   function render_quota_console(): Rendered {
     // Note -- we always render this, even if is_commercial is false,
     // since we want admins to be able to change the quotas.
@@ -156,24 +163,56 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     if (dedicated_resources == null) return <div>Dedicated VM not defined</div>;
     if (dedicated_resources.vm === false) throw new Error("AssertionError");
     const vm = dedicated_resources.vm;
+    const human_readable = PRICES.vms[vm.machine]?.name;
+    const name = vm.name;
+
     return (
       <div>
-        <p>This project runs on a dedicated virtual machine.</p>
+        <p>This project is configured to run on a dedicated virtual machine.</p>
         <p>
-          Type: <code>{vm.machine}</code>
+          <strong>
+            <code>{vm.machine}</code>
+          </strong>
+          {human_readable && <span>&nbsp;providing {human_readable}</span>}
+          {name && (
+            <>
+              , <code>id={name}</code>
+            </>
+          )}
         </p>
       </div>
     );
   }
 
+  function render_dedicated_disks_list(disks): Rendered {
+    const entries: Rendered[] = [];
+    for (const disk of disks) {
+      if (typeof disk === "boolean") continue;
+      entries.push(
+        <li key={disk.id}>
+          {disk.size_gb} GiB, {DISK_NAMES[disk.type] ?? disk.type} speed
+          {disk.name && (
+            <>
+              , <code>id={disk.name}</code>
+            </>
+          )}
+        </li>
+      );
+    }
+    return <>{entries}</>;
+  }
+
   function render_dedicated_disks(): Rendered {
     if (dedicated_resources == null) return;
+    const disks = dedicated_resources.disks;
+    if (disks == null) return;
+    const num = disks.length;
     return (
       <>
         <hr />
         <div>
-          <p>Attached dedicated disk(s):</p>
-          <p>{JSON.stringify(dedicated_resources.disks, null, 2)}</p>
+          <p>Configured dedicated {plural(num, "disk")}:</p>
+          <ul>{render_dedicated_disks_list(disks)}</ul>
         </div>
       </>
     );

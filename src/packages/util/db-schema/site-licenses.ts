@@ -27,10 +27,14 @@ export type DedicatedDisk =
   | {
       size_gb: number;
       type: DedicatedDiskTypes;
+      name: string; // the ID of the disk, globally unique, derived from the license-ID, generated upon license creation or maybe manually.
     }
   | false;
 
-export type DedicatedVM = { machine: string };
+export type DedicatedVM = {
+  name: string; // the ID of the VM, globally unique, derived from the license-ID, generated upon license creation or maybe manually.
+  machine: string;
+};
 
 export function isDedicatedDisk(d): d is DedicatedDisk {
   return (

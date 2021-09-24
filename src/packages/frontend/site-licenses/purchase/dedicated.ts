@@ -12,7 +12,7 @@ import { ONE_DAY_MS, AVG_MONTH_DAYS, AVG_YEAR_DAYS } from "./util";
 
 interface VMsType {
   [id: string]: {
-    name: string;
+    name?: string;
     price_day: number;
     spec: { mem: number; cpu: number };
     quota: { dedicated_vm: string }; // only those defined in VMS below
@@ -35,35 +35,30 @@ function rawPrice2Retail(p: number): number {
   return (2 * p) / AVG_MONTH_DAYS;
 }
 
-const VMS_DATA = [
+const VMS_DATA: VMsType[string][] = [
   {
-    name: "2 Cores, 15 GB RAM",
     price_day: rawPrice2Retail(95.64),
-    spec: { mem: 15, cpu: 4 },
+    spec: { mem: 15, cpu: 2 },
     quota: { dedicated_vm: "n2-standard-2" },
   },
   {
-    name: "4 Cores, 15 GB RAM",
     price_day: rawPrice2Retail(141.79),
     spec: { mem: 15, cpu: 4 },
     quota: { dedicated_vm: "n2-standard-4" },
   },
   {
-    name: "4 Cores, 30 GB RAM",
     price_day: rawPrice2Retail(191.28),
-    spec: { mem: 31, cpu: 4 },
+    spec: { mem: 30, cpu: 4 },
     quota: { dedicated_vm: "n2-highmem-4" },
   },
   {
-    name: "8 Cores, 30 GB RAM",
     price_day: rawPrice2Retail(283.58),
     spec: { mem: 30, cpu: 4 },
     quota: { dedicated_vm: "n2-standard-8" },
   },
   {
-    name: "8 Cores, 62 GB RAM",
     price_day: rawPrice2Retail(382.56),
-    spec: { mem: 62, cpu: 4 },
+    spec: { mem: 62, cpu: 8 },
     quota: { dedicated_vm: "n2-highmem-8" },
   },
 ];
@@ -71,13 +66,14 @@ const VMS_DATA = [
 const VMS: VMsType = {};
 
 for (const vmtype of VMS_DATA) {
+  vmtype.name = `${vmtype.spec.cpu} CPU cores, ${vmtype.spec.mem} GiB RAM`;
   VMS[vmtype.quota.dedicated_vm] = vmtype;
 }
 
-const DISK_NAMES: { [type in DedicatedDiskTypes]: string } = {
-  standard: "Slow",
-  balanced: "Medium",
-  ssd: "Fast",
+export const DISK_NAMES: { [type in DedicatedDiskTypes]: string } = {
+  standard: "slow",
+  balanced: "medium",
+  ssd: "fast",
 };
 
 // we add a bit for snapshot storage

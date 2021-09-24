@@ -445,6 +445,8 @@ export class ProjectsStore extends Store<ProjectsState> {
     const disks: DedicatedDisk[] = [];
     let vm: false | DedicatedVM = false;
     for (const license of Object.values(site_license ?? {})) {
+      // could be null in the moment when a license is removed!
+      if (license == null) continue;
       const quota = (license as any).quota;
       if (quota == null) continue;
       if (quota.dedicated_disk != null) {
