@@ -4,6 +4,7 @@
  */
 
 import { Map, List } from "immutable";
+import { Alert as AntdAlert } from "antd";
 import {
   redux,
   Component,
@@ -46,6 +47,7 @@ interface Props {
   account_id?: string;
   first_name?: string;
   last_name?: string;
+  name?: string;
   unlisted?: boolean;
   email_address?: string;
   email_address_verified?: Map<string, any>;
@@ -65,6 +67,7 @@ interface State {
   remove_strategy_button?: string;
   terms_checkbox: boolean;
   show_delete_confirmation: boolean;
+  username: boolean;
 }
 
 export class AccountSettings extends Component<Props, State> {
@@ -75,6 +78,7 @@ export class AccountSettings extends Component<Props, State> {
       remove_strategy_button: undefined,
       terms_checkbox: false,
       show_delete_confirmation: false,
+      username: false,
     };
   }
 
@@ -472,6 +476,7 @@ export class AccountSettings extends Component<Props, State> {
           value={this.props.first_name}
           onChange={(e) => this.handle_change(e, "first_name")}
           onBlur={(e) => this.save_change(e, "first_name")}
+          onPressEnter={(e) => this.save_change(e, "first_name")}
           maxLength={254}
           disabled={this.props.is_anonymous && !this.state.terms_checkbox}
         />
@@ -480,9 +485,37 @@ export class AccountSettings extends Component<Props, State> {
           value={this.props.last_name}
           onChange={(e) => this.handle_change(e, "last_name")}
           onBlur={(e) => this.save_change(e, "last_name")}
+          onPressEnter={(e) => this.save_change(e, "last_name")}
           maxLength={254}
           disabled={this.props.is_anonymous && !this.state.terms_checkbox}
         />
+        <TextSetting
+          label="Username (optional)"
+          value={this.props.name}
+          onChange={(e) => this.handle_change(e, "name")}
+          onBlur={(e) => {
+            this.setState({ username: false });
+            this.save_change(e, "name");
+          }}
+          onFocus={() => {
+            this.setState({ username: true });
+          }}
+          onPressEnter={(e) => this.save_change(e, "name")}
+          maxLength={39}
+          disabled={this.props.is_anonymous && !this.state.terms_checkbox}
+        />
+        {this.state.username && (
+          <AntdAlert
+            style={{ margin: "15px 0" }}
+            message={
+              "A username provides nicer links for shared public documents. Leaving the above box blank to not have a username is fine." +
+              (this.props.name
+                ? " TEMPORARY WARNING: If you change your username, existing share links using the previous username will break, so change with caution."
+                : "")
+            }
+            type="info"
+          />
+        )}
       </>
     );
   }
@@ -504,15 +537,13 @@ export class AccountSettings extends Component<Props, State> {
 
   private render_unlisted(): Rendered {
     if (!this.props.account_id) {
-      return; // makes no sense to change email if there is no account
+      return; // makes no sense to change unlisted status if there is no account
     }
     return (
       <Checkbox
         checked={this.props.unlisted}
-        onChange={
-          (e) =>
-            this.actions().set_account_table({ unlisted: e.target.checked })
-          //this.actions().setState({ unlisted: !!e.target.checked })
+        onChange={(e) =>
+          this.actions().set_account_table({ unlisted: e.target.checked })
         }
       >
         Unlisted: you can only be found by an exact email address match

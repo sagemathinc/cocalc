@@ -178,7 +178,7 @@ Table({
             try {
               checkPublicPathName(obj["name"]);
             } catch (err) {
-              cb(err);
+              cb(err.toString());
               return;
             }
             // It's a valid name, so next check that it is unique

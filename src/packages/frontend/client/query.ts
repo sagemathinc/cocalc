@@ -77,7 +77,7 @@ export class QueryClient {
           const result = await this.call(mesg, opts.timeout);
           opts.cb(undefined, result);
         } catch (err) {
-          opts.cb(err.message);
+          opts.cb(typeof err == "string" ? err : err.message ?? err);
         }
       } else {
         return await this.call(mesg, opts.timeout);

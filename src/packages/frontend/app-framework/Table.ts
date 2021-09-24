@@ -51,6 +51,11 @@ export abstract class Table {
         this.options()
       );
     }
+
+    this._table.on("error", (error) => {
+      console.warn(`Synctable error (table='${name}'): ${error}`);
+    });
+
     if (this._change != null) {
       // Call the _change method whenever there is a change.
       this._table.on("change", (keys) => {

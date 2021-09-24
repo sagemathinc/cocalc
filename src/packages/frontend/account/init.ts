@@ -32,6 +32,12 @@ export function init(redux) {
   init_dark_mode(store);
 
   redux.createTable("account", AccountTable);
+  redux.getTable("account")._table.on("error", (tableError) => {
+    actions.setState({ tableError });
+  });
+  redux.getTable("account")._table.on("clear-error", () => {
+    actions.setState({ tableError: undefined });
+  });
 
   // Password reset
   actions.setState({ reset_key: reset_password_key() });

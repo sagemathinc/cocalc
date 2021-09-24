@@ -284,7 +284,7 @@ Table({
             try {
               checkAccountName(obj["name"]);
             } catch (err) {
-              cb(err);
+              cb(err.toString());
               return;
             }
             // database itself will check for global uniqueness.

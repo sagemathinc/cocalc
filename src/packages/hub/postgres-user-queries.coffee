@@ -862,7 +862,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             try
                 checkProjectName(new_val.name);
             catch err
-                cb(err)
+                cb(err.toString())
                 return
             if new_val.name
                 # Setting name to something nontrivial, so we must check uniqueness
