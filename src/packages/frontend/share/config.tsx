@@ -48,7 +48,7 @@ import {
 import { publicShareUrl, shareServerUrl } from "./util";
 import { License } from "./license";
 import { trunc_middle } from "@cocalc/util/misc";
-import ConfigureName from "./configure-name"
+import ConfigureName from "./configure-name";
 
 interface PublicInfo {
   created: Date;
@@ -362,7 +362,6 @@ class Configure extends Component<Props, State> {
           <ConfigureName
             project_id={this.props.project_id}
             path={this.props.path}
-            name={this.props.public?.name}
           />
         </Col>
       </Row>
@@ -391,12 +390,7 @@ class Configure extends Component<Props, State> {
   }
 
   private render_close_button(): Rendered {
-    return (
-      <div>
-        <br />
-        <Button onClick={this.props.close}>Close</Button>
-      </div>
-    );
+    return <Button onClick={this.props.close}>Close</Button>;
   }
 
   private render_needs_network_access(): Rendered {

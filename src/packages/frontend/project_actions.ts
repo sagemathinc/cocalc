@@ -80,6 +80,7 @@ export const QUERIES = {
       id: null,
       project_id: null,
       path: null,
+      name: null,
       description: null,
       disabled: null,
       unlisted: null,
@@ -2440,6 +2441,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         unlisted: !!obj.get("unlisted"),
       });
     }
+  }
+
+  // Make a database query to set the name of a
+  // public path.  Because this can error due to
+  // an invalid name it's good to do this rather than
+  // changing the public_paths table.  This function
+  // will throw an exception if anything goes wrong setting
+  // the name.
+  public async setPublicPathName(path: string, name: string): Promise<void> {
+    const id = client_db.sha1(this.project_id, path);
+    const query = { public_paths: { project_id: this.project_id, path, name, id } };
+    await webapp_client.async_query({ query });
   }
 
   /*

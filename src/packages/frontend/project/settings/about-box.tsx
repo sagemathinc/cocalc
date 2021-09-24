@@ -45,7 +45,7 @@ export function AboutBox(props: Props) {
           }
         />
       </LabeledRow>
-      <LabeledRow label="Name">
+      <LabeledRow label="Name (optional)">
         <TextInput
           type="textarea"
           rows={1}

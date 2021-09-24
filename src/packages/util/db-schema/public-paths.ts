@@ -12,6 +12,7 @@ export interface PublicPath {
   id: string;
   project_id: string;
   path: string;
+  name?: string;
   description?: string;
   disabled?: boolean;
   unlisted?: boolean;
@@ -38,6 +39,7 @@ Table({
           project_id: true,
           title: true,
           description: true,
+          name: true,
         },
       },
     },
@@ -174,36 +176,40 @@ Table({
           path: true,
         },
         check_hook(db, obj, _account_id, project_id, cb) {
-          if (obj["name"]) {
-            try {
-              checkPublicPathName(obj["name"]);
-            } catch (err) {
-              cb(err.toString());
-              return;
-            }
-            // It's a valid name, so next check that it is unique
-            db._query({
-              query: "SELECT COUNT(*) FROM public_paths",
-              where: {
-                "project_id = $::UUID": project_id,
-                "path != $::TEXT": obj["path"],
-                "LOWER(name) = $::TEXT": obj["name"].toLowerCase(),
-              },
-              cb: (err, result) => {
-                if (err) {
-                  cb(err);
-                  return;
-                }
-                if (result.rows[0].count > 0) {
-                  cb(
-                    "There is already a public path in this project with the same name.  Names are not case sensitive."
-                  );
-                }
-              },
-            });
-          } else {
+          if (!obj["name"]) {
             cb();
+            return;
           }
+          // confirm that the name is valid:
+          try {
+            checkPublicPathName(obj["name"]);
+          } catch (err) {
+            cb(err.toString());
+            return;
+          }
+          // It's a valid name, so next check that it is unique
+          db._query({
+            query: "SELECT COUNT(*) FROM public_paths",
+            where: {
+              "project_id = $::UUID": project_id,
+              "path != $::TEXT": obj["path"],
+              "LOWER(name) = $::TEXT": obj["name"].toLowerCase(),
+            },
+            cb: (err, result) => {
+              if (err) {
+                cb(err);
+                return;
+              }
+              if (result.rows[0].count > 0) {
+                cb(
+                  "There is already a public path in this project with the same name.  Names are not case sensitive."
+                );
+                return;
+              }
+              // success
+              cb();
+            },
+          });
         },
       },
     },
@@ -232,6 +238,7 @@ Table({
           id: null,
           project_id: null,
           path: null,
+          name: null,
           description: null,
           disabled: null, // if true then disabled
           unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
@@ -266,6 +273,7 @@ Table({
           id: null,
           project_id: null,
           path: null,
+          name: null,
           description: null,
           disabled: null, // if true then disabled
           unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
