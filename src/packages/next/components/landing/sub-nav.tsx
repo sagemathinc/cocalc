@@ -41,12 +41,19 @@ const policies = {
   ferpa: { label: "FERPA Compliance" },
 };
 
+const info = {
+  help: { label: "Help" },
+  connect: { label: "Connect" },
+  status: { label: "Status" },
+};
+
 const PAGES = {
   features,
   software,
   pricing,
   policies,
   share: {},
+  info,
 };
 
 export type Page = keyof typeof PAGES;
@@ -54,7 +61,8 @@ export type SubPage =
   | keyof typeof software
   | keyof typeof features
   | keyof typeof pricing
-  | keyof typeof policies;
+  | keyof typeof policies
+  | keyof typeof info;
 
 interface Props {
   page: Page;

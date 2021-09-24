@@ -274,15 +274,6 @@ export const Page: React.FC = () => {
       >
         {logged_in && groups?.includes("admin") && render_admin_tab()}
         {!logged_in && render_sign_in_tab()}
-        <NavTab
-          name={"about"}
-          label={<SiteName />}
-          label_class={NAV_CLASS}
-          icon={"info-circle"}
-          inner_style={{ padding: "10px", display: "flex" }}
-          active_top_tab={active_top_tab}
-          hide_label={!show_label}
-        />
         {render_support()}
         {logged_in && render_account_tab()}
         {render_bell()}

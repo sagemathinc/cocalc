@@ -1,16 +1,20 @@
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import { List, Avatar } from "antd";
 import Image, { StaticImageData } from "components/landing/image";
 import A from "components/misc/A";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { Layout } from "antd";
+import useCustomize from "lib/use-customize";
 
-interface Item {
+export interface Item {
   link: string;
   title: ReactNode;
   logo: IconName | StaticImageData;
-  image: StaticImageData;
+  image?: StaticImageData;
+  imageWidth?: string;
   description: ReactNode;
+  shareServer?: boolean; // only show if the share server is enabled
+  landingPages?: boolean; // only show if landing pages are enabled.
 }
 
 export type DataSource = Item[];
@@ -20,9 +24,18 @@ interface Props {
   description: ReactNode;
   dataSource: Item[];
   updated?: string;
+  filter?: (item) => boolean;
 }
 
 export default function IndexList({ title, description, dataSource }: Props) {
+  const { shareServer, landingPages } = useCustomize();
+  const filtedDataSource = useMemo(() => {
+    return dataSource.filter((item) => {
+      if (item.shareServer && !shareServer) return false;
+      if (item.landingPages && !landingPages) return false;
+      return true;
+    });
+  }, [shareServer, landingPages, dataSource]);
   return (
     <Layout.Content
       style={{
@@ -41,7 +54,7 @@ export default function IndexList({ title, description, dataSource }: Props) {
           {title}
         </h1>
         <p>{description}</p>
-        <DataList dataSource={dataSource} />
+        <DataList dataSource={filtedDataSource} />
       </div>
     </Layout.Content>
   );
@@ -64,7 +77,7 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
           </div>
         );
         const extra = item.image && (
-          <div style={{ width: "275px" }}>
+          <div style={{ width: item.imageWidth ?? "275px" }}>
             <A href={item.link}>
               <Image src={item.image} alt="Screenshot" />
             </A>

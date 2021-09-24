@@ -73,25 +73,10 @@ export default async function init(app: Application) {
   app.all(join(basePath, "policies*"), landingRedirect);
 
   // The next.js server that servers everything else.
-  // These are the routes that the next.js server gets
-  // traffic for:
-  const endpoints = [
-    basePath, // top-level landing page
-    join(basePath, "features*"),
-    join(basePath, "software*"),
-    join(basePath, "policies*"),
-    join(basePath, "pricing*"),
-    join(basePath, "share*"),
-    join(basePath, "api*"), // could be other api routes later -- but api/v1 is served via express!!!
-    join(basePath, "_next*"),
-  ];
   winston.info(
-    "Now using next.js packages/share handler to handle select endpoints under /share",
-    endpoints
+    "Now using next.js packages/share handler to handle all endpoints not otherwise handled"
   );
-  for (const endpoint of endpoints) {
-    app.all(endpoint, handler);
-  }
+  app.all("*", handler);
 }
 
 function parseURL(req: Request, base): { id: string; path: string } {

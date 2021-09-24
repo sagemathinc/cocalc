@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/next",
-  "version": "0.4.8",
+  "version": "0.5.0",
   "description": "CoCalc's nextjs server",
   "main": "lib/init.js",
   "exports": {
@@ -57,7 +57,7 @@
   "dependencies": {
     "@cocalc/cdn": "^1.5.0",
     "@cocalc/frontend": "^1.6.0",
-    "@cocalc/util": "^1.7.0",
+    "@cocalc/util": "^1.7.1",
     "@cocalc/util-node": "^1.6.5",
     "@types/express": "^4.17.13",
     "@types/react": "^17.0.14",

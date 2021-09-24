@@ -8,6 +8,12 @@ import { A, Icon, Loading } from "../components";
 import { HelpEmailLink } from "../customize";
 import { location } from "./util";
 import { DISCORD_INVITE } from "@cocalc/util/theme";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
+
+export function infoLink(sub: string = ""): string {
+  return join(appBasePath, "info", sub);
+}
 
 export const SupportInfo: React.FC = () => {
   const url = useTypedRedux("support", "url");
@@ -103,19 +109,14 @@ export const SupportInfo: React.FC = () => {
     }
     return (
       <div>
-        <h2 style={{ marginTop: "-5px" }}>Information</h2>
+        <h2 style={{ marginTop: "-5px" }}>
+          <A href={join(appBasePath, "info")}>Information</A>
+        </h2>
         <ul>
           <li>
-            <A href="https://doc.cocalc.com">
-              <b>
-                CoCalc Documentation and help
-              </b>
-            </A>
-          </li>
-          <li>
-            <A href="https://github.com/sagemathinc/cocalc-desktop#readme">
-              Try CoCalc Desktop, which may help address performance and
-              compatibility issues with cocalc.com...
+            <A href={join(appBasePath, "info")}>
+              <Icon name="external-link" />{" "}
+              <b>More documentation and help...</b>
             </A>
           </li>
           <li>

@@ -8,7 +8,6 @@ import { React, useTypedRedux } from "../app-framework";
 import { ProjectsPage } from "../projects/projects-page";
 import { AccountPage } from "../account/account-page";
 import { KioskModeBanner } from "./kiosk-mode-banner";
-import { InfoPage } from "../info/info";
 import { FileUsePage } from "../file-use/page";
 import { NotificationPage } from "../notifications";
 import { AdminPage } from "../admin";
@@ -44,10 +43,6 @@ export const ActiveContent: React.FC = React.memo(() => {
         break;
       case "account":
         v.push(<AccountPage key={"account"} />);
-        break;
-      case "help":
-      case "about":
-        v.push(<InfoPage key={"about"} />);
         break;
       case "file-use":
         v.push(<FileUsePage key={"file-use"} />);

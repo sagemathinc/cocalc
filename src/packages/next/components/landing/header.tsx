@@ -31,7 +31,6 @@ interface Props {
 export default function Header({ page, subPage }: Props) {
   const {
     anonymousSignup,
-    helpEmail,
     siteName,
     termsOfServiceURL,
     shareServer,
@@ -111,15 +110,6 @@ export default function Header({ page, subPage }: Props) {
             </a>
           </Link>
         )}
-        {anonymousSignup && (
-          <a
-            style={LinkStyle}
-            href={join(basePath, "static/app.html?anonymous=jupyter")}
-            title={`Try ${siteName} immediately without creating an account.`}
-          >
-            Try {siteName}
-          </a>
-        )}{" "}
         {!landingPages && termsOfServiceURL && (
           <A
             style={LinkStyle}
@@ -129,22 +119,22 @@ export default function Header({ page, subPage }: Props) {
             Legal
           </A>
         )}
-        {helpEmail && (
-          <A
-            style={LinkStyle}
-            href={`mailto:${helpEmail}`}
-            title={`Ask us a question via email to ${helpEmail}.`}
-          >
-            Help
-          </A>
-        )}
         <A
-          style={LinkStyle}
-          href="https://doc.cocalc.com"
-          title="View the CoCalc documenation."
+          style={page == "info" ? SelectedStyle : LinkStyle}
+          href="/info"
+          title="Information and links to resources for learning more about CoCalc"
         >
-          Docs
+          Info
         </A>
+        {anonymousSignup && (
+          <a
+            style={LinkStyle}
+            href={join(basePath, "static/app.html?anonymous=jupyter")}
+            title={`Try ${siteName} immediately without creating an account.`}
+          >
+            Try {siteName}
+          </a>
+        )}{" "}
         <a
           style={LinkStyle}
           href={join(basePath, "static/app.html")}

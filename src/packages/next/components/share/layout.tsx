@@ -9,7 +9,7 @@ import { Layout as AntdLayout } from "antd";
 
 import Head from "next/head";
 import Analytics from "components/analytics";
-import Footer from "./footer";
+import Footer from "components/landing/footer";
 import Header from "./header";
 import basePath from "lib/base-path";
 import useCustomize from "lib/use-customize";

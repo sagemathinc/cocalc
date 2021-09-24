@@ -9,10 +9,11 @@ import { delay } from "awaiting";
 import { redux, useTypedRedux } from "../app-framework";
 import { ticket_id_to_ticket_url } from "@cocalc/util/misc";
 import { Footer, HelpEmailLink } from "../customize";
-import { Icon, Loading, Markdown } from "../components";
+import { A, Icon, Loading, Markdown } from "../components";
 import { isString } from "lodash";
 import { Alert, Button, Table } from "../antd-bootstrap";
 import { open_new_tab } from "../misc";
+import { infoLink } from "./info";
 
 export const SupportTickets: React.FC = () => {
   const support_tickets = useTypedRedux("support", "support_tickets");
@@ -129,19 +130,24 @@ export const SupportTickets: React.FC = () => {
     <div>
       <h2>Support tickets</h2>
       <div style={{ color: "#666" }}>
-        Check the status of your support tickets here.
-        <br />
-        To report an issue, navigate to the file in question and click the{" "}
-        <div
-          style={{
-            display: "inline-block",
-            padding: "5px",
-            backgroundColor: "rgb(224,224,224)",
-          }}
-        >
-          <Icon name="medkit" /> Help
-        </div>{" "}
-        button in the top right corner.
+        <p>Check the status of your support tickets here.</p>
+        <p>
+          To report an issue, navigate to the file in question and click the{" "}
+          <div
+            style={{
+              display: "inline-block",
+              padding: "5px",
+              backgroundColor: "rgb(224,224,224)",
+            }}
+          >
+            <Icon name="medkit" /> Help
+          </div>{" "}
+          button in the top right corner.
+        </p>
+        <p>
+          There are also{" "}
+          <A href={infoLink()}>many other resources for help...</A>
+        </p>
       </div>
       <div style={{ minHeight: "65vh" }}>{content}</div>
       <Footer />
