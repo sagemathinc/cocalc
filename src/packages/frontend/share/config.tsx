@@ -48,6 +48,7 @@ import {
 import { publicShareUrl, shareServerUrl } from "./util";
 import { License } from "./license";
 import { trunc_middle } from "@cocalc/util/misc";
+import ConfigureName from "./configure-name"
 
 interface PublicInfo {
   created: Date;
@@ -57,6 +58,7 @@ interface PublicInfo {
   path: string;
   unlisted: boolean;
   license?: string;
+  name?: string;
 }
 
 interface Props {
@@ -357,6 +359,11 @@ class Configure extends Component<Props, State> {
         </Col>
         <Col sm={6} style={{ color: "#666" }}>
           {this.render_link(parent_is_public)}
+          <ConfigureName
+            project_id={this.props.project_id}
+            path={this.props.path}
+            name={this.props.public?.name}
+          />
         </Col>
       </Row>
     );
@@ -394,10 +401,7 @@ class Configure extends Component<Props, State> {
 
   private render_needs_network_access(): Rendered {
     return (
-      <Alert
-        bsStyle={"danger"}
-        style={{ padding: "30px", margin: "30px" }}
-      >
+      <Alert bsStyle={"danger"} style={{ padding: "30px", margin: "30px" }}>
         <h3>Publicly sharing files requires internet access</h3>
         <div style={{ fontSize: "12pt" }}>
           You <b>must</b> first enable the 'Internet access' upgrade in project
@@ -409,10 +413,7 @@ class Configure extends Component<Props, State> {
 
   private render_share_server_disabled(): Rendered {
     return (
-      <Alert
-        bsStyle={"warning"}
-        style={{ padding: "30px", margin: "30px" }}
-      >
+      <Alert bsStyle={"warning"} style={{ padding: "30px", margin: "30px" }}>
         <h3>Publicly sharing of files not enabled on this CoCalc server.</h3>
         <div style={{ fontSize: "12pt" }}>
           Public sharing is not enabled. An admin of the server can enable this
