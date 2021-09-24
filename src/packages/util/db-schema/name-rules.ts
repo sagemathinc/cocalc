@@ -53,7 +53,7 @@ export function checkProjectName(name: string) {
   }
   if (!/^[\.a-z\d](?:[\.a-z\d]|-(?=[\.a-z\d])){0,99}$/i.test(name)) {
     throw Error(
-      "name must contain only a-z,A-Z,0-9, . or -, and not start with hyphen."
+      "name must contain only a-z,A-Z,0-9, . or -, and not start with hyphen or have spaces."
     );
   }
 }
@@ -75,7 +75,7 @@ export function checkPublicPathName(name: string) {
   }
   if (!/^[\.a-z\d](?:[\.a-z\d]|-(?=[\.a-z\d])){0,99}$/i.test(name)) {
     throw Error(
-      "name must contain only a-z,A-Z,0-9, . or -, and not start with hyphen."
+      "name must contain only a-z,A-Z,0-9, . or -, and not start with hyphen or have spaces."
     );
   }
 }

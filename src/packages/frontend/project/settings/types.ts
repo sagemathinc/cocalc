@@ -28,6 +28,7 @@ export type SiteLicense = TypedMap<{
 export type Project = TypedMap<{
   title: string;
   description: string;
+  name?: string;
   project_id: string;
   deleted?: boolean;
   hidden?: boolean;

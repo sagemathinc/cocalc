@@ -13,6 +13,8 @@ interface Props {
   type?: string;
   rows?: number;
   autoFocus?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 interface State {
@@ -63,6 +65,8 @@ export class TextInput extends React.Component<Props, State> {
             this.state.text != undefined ? this.state.text : this.props.text
           }
           onChange={(e) => this.setState({ text: e.target.value })}
+          onFocus={this.props.onFocus}
+          onBlur={this.props.onBlur}
           autoFocus={this.props.autoFocus}
         />
       </FormGroup>

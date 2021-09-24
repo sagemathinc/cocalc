@@ -62,6 +62,17 @@ Why? Because the load_all_projects query is potentially **expensive**.
 
 let all_projects_have_been_loaded: boolean = false;
 
+function initTableError(): void {
+  const table = redux.getTable("projects");
+  if (!table) return;
+  table._table.on("error", (tableError) => {
+    redux.getActions("projects").setState({ tableError });
+  });
+  table._table.on("clear-error", () => {
+    redux.getActions("projects").setState({ tableError: undefined });
+  });
+}
+
 export const load_all_projects = reuseInFlight(async () => {
   if (DEBUG && COCALC_MINIMAL) {
     console.error(
@@ -74,6 +85,7 @@ export const load_all_projects = reuseInFlight(async () => {
   all_projects_have_been_loaded = true; // used internally in this file only to be optimally fast.
   redux.removeTable("projects");
   redux.createTable("projects", ProjectsAllTable);
+  initTableError();
   await once(redux.getTable("projects")._table, "connected");
   redux
     .getActions("projects")
@@ -82,6 +94,7 @@ export const load_all_projects = reuseInFlight(async () => {
 
 async function load_recent_projects(): Promise<void> {
   const table = redux.createTable("projects", ProjectsTable);
+  initTableError();
   await once(table._table, "connected");
   if (table._table.get().size === 0) {
     // WARNING: that the following is done is assumed in

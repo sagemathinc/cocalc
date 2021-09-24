@@ -184,7 +184,11 @@ Table({
             // It's a valid name, so next check that it is unique
             db._query({
               query: "SELECT COUNT(*) FROM public_paths",
-              where: { "project_id = $::UUID": project_id },
+              where: {
+                "project_id = $::UUID": project_id,
+                "path != $::TEXT": obj["path"],
+                "LOWER(name) = $::TEXT": obj["name"].toLowerCase(),
+              },
               cb: (err, result) => {
                 if (err) {
                   cb(err);
@@ -192,7 +196,7 @@ Table({
                 }
                 if (result.rows[0].count > 0) {
                   cb(
-                    "There is already a public path in this project with the same name."
+                    "There is already a public path in this project with the same name.  Names are not case sensitive."
                   );
                 }
               },
