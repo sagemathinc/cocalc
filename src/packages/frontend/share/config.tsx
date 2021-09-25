@@ -383,8 +383,7 @@ class Configure extends Component<Props, State> {
         </a>{" "}
         either indexed by search engines (listed), or only visible with the link
         (unlisted). Files are automatically copied to the public server within
-        about 30 seconds after you explicitly edit them. (To instead privately
-        collaborate, go to Project settings and "Add new collaborators".)
+        about 30 seconds after you explicitly edit them.
       </div>
     );
   }

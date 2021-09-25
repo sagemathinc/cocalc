@@ -62,6 +62,7 @@
     "@types/express": "^4.17.13",
     "@types/react": "^17.0.14",
     "antd": "^4.16.8",
+    "async-await-utils": "^3.0.1",
     "basic-auth": "^2.0.1",
     "express": "^4.17.1",
     "lru-cache": "^6.0.0",

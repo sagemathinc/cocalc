@@ -53,13 +53,6 @@ export default function ConfigureName({ project_id, path }: Props) {
         </Button>
       ) : (
         <span>
-          {" "}
-          Edit the name below; it can be up to 100 letters, digits, dashes
-          and periods, and must be unique in this project. (TEMPORARY WARNING:
-          If you change the name, existing public shared links using the
-          previous name will break, so change with caution.) For optimal URLs,
-          also set the project name in project settings and the project owner
-          username in account preferences.
           <Input
             onPressEnter={save}
             onBlur={save}
@@ -72,11 +65,17 @@ export default function ConfigureName({ project_id, path }: Props) {
             readOnly={saving}
             style={{ margin: "15px 0" }}
           />
-          {saving ? "Saving..." : ""}
-          {saved ? "Saved" : ""}
+          {saving ? "Saving... " : ""}
+          {saved ? "Saved. " : ""}
           {error && (
             <Alert style={{ margin: "15px 0" }} type="error" message={error} />
           )}
+          Edit the name; it can be up to 100 letters, digits, dashes and
+          periods, and must be unique in this project. (TEMPORARY WARNING: If
+          you change the name, existing public shared links using the previous
+          name will break, so change with caution.) For optimal URLs, also set
+          the project name in project settings and the project owner username in
+          account preferences.
         </span>
       )}
     </div>
