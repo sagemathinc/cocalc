@@ -44,7 +44,7 @@ Table({
     name: {
       type: "string",
       pg_type: "VARCHAR(39)",
-      desc: "The username of this user.  This is optional but globally unique across all users.  It can be between 1 and 39 characters from a-z A-Z 0-9 - and must not start with a dash.",
+      desc: "The username of this user.  This is optional but globally unique across all accoutns *and* organizations.  It can be between 1 and 39 characters from a-z A-Z 0-9 - and must not start with a dash.",
     },
     email_address: {
       type: "string",
@@ -176,8 +176,10 @@ Table({
       "unlisted",
     ],
     pg_unique_indexes: [
-      "LOWER(name)", // ensure user-assigned name is case sensitive globally unique.
-    ],
+      "LOWER(name)", // ensure user-assigned name is case sensitive globally unique
+    ], // note that we actually require uniqueness across accounts and organizations
+    // and this index is just a step in that direction; full uniquness must be
+    // checked as an extra step.
     user_query: {
       get: {
         throttle_changes: 500,
@@ -279,7 +281,7 @@ Table({
           sign_up_usage_intent: true,
           unlisted: true,
         },
-        check_hook(_db, obj, _account_id, _project_id, cb) {
+        async check_hook(db, obj, account_id, _project_id, cb) {
           if (obj["name"]) {
             try {
               checkAccountName(obj["name"]);
@@ -287,7 +289,11 @@ Table({
               cb(err.toString());
               return;
             }
-            // database itself will check for global uniqueness.
+            const id = await db.nameToAccountOrOrganization(obj["name"]);
+            if (id != null && id != account_id) {
+              cb("name is already taken by another organization or account");
+              return;
+            }
           }
           // Hook to truncate some text fields to at most 254 characters, to avoid
           // further trouble down the line.

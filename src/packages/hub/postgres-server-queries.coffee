@@ -2218,6 +2218,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             project_id  : required
             account_id  : required
+            cache       : true
             cb          : required  # cb(err, true if is actual collab on project)
         if not @_validate_opts(opts) then return
         @_query
@@ -3168,3 +3169,36 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async
     get_all_public_paths: (account_id) =>
         return await get_all_public_paths(@, account_id)
+
+    # async
+    # Return true if the given account is a member or
+    # owner of the given organization.
+    accountIsInOrganization: (opts) =>
+        result = await @async_query
+            query : 'SELECT COUNT(*) FROM organizations'
+            cache : true
+            where : ['organization_id :: UUID = $1', "users ? $2"]
+            params: [opts.organization_id, opts.account_id]
+        return parseInt(result?.rows?[0]?.count) > 0
+
+    # given a name, returns undefined if it is not in use,
+    # and the account_id or organization_id that is using it
+    # if it is in use.
+    nameToAccountOrOrganization: (name) =>
+        name = name.toLowerCase()
+        result = await @async_query
+            query : 'SELECT account_id FROM accounts'
+            cache : false
+            where : ['LOWER(name) = $1']
+            params: [name]
+        if result.rows.length > 0
+            return result.rows[0].account_id
+        result = await @async_query
+            query : 'SELECT organization_id FROM organizations'
+            cache : false
+            where : ['LOWER(name) = $1']
+            params: [name]
+        if result.rows.length > 0
+            return result.rows[0].organization_id
+        return undefined
+

@@ -25,6 +25,7 @@ import "./instances"; // probably deprecated
 import "./listings";
 import "./lti";
 import "./mentions";
+import "./organizations";
 import "./password-reset";
 import "./project-info";
 import "./project-log";
