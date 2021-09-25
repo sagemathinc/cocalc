@@ -30,6 +30,7 @@ export async function getServerSideProps(context) {
       const { res } = context;
       res.writeHead(302, { location: join(basePath, accountInfo.name) });
       res.end();
+      return;
     }
     return await withCustomize({
       props: accountInfo,

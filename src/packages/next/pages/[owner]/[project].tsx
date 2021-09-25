@@ -2,18 +2,23 @@
 // or organization.
 
 import getProjectId from "lib/names/project";
+import withCustomize from "lib/with-customize";
+import getProjectTitle from "lib/share/get-project";
+import getProject from "lib/project/info";
+import Project from "components/project/project";
 
-export default function Project({ info }) {
-  return <pre>{JSON.stringify(info, 0, 2)}</pre>;
-}
+export default Project;
 
 export async function getServerSideProps(context) {
   const { owner, project } = context.params;
   try {
-    const info = await getProjectId(owner, project);
-    return { props: { info } };
+    const project_id = await getProjectId(owner, project);
+    const { title } = await getProjectTitle(project_id);
+    const props = await getProject(project_id);
+    props.projectTitle = title;
+    return withCustomize({ props });
   } catch (_err) {
-    // console.log(_err);
+    console.log(_err);
     return { notFound: true };
   }
 }
