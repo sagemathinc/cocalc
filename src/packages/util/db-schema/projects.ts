@@ -143,7 +143,7 @@ Table({
     }, // markdown rendering possibly not implemented
     users: {
       type: "map",
-      desc: "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}, ssh:{...}}.",
+      desc: "This is a map from account_id's to {hide:bool, group:'owner'|'collaborator', upgrades:{memory:1000, ...}, ssh:{...}}.",
     },
     invite: {
       type: "map",
