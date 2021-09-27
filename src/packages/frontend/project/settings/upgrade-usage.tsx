@@ -22,11 +22,10 @@ import { is_zero_map } from "@cocalc/util/misc";
 import {
   DedicatedDisk,
   DedicatedVM,
-} from "@cocalc/util//db-schema/site-licenses";
-import {
-  PRICES,
   DISK_NAMES,
-} from "@cocalc/frontend/site-licenses/purchase/dedicated";
+  dedicated_disk_display,
+} from "@cocalc/util//db-schema/site-licenses";
+import { PRICES } from "@cocalc/frontend/site-licenses/purchase/dedicated";
 import { plural } from "@cocalc/util/misc";
 
 const { ShowSupportLink } = require("../../support");
@@ -189,8 +188,8 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     for (const disk of disks) {
       if (typeof disk === "boolean") continue;
       entries.push(
-        <li key={disk.id}>
-          {disk.size_gb} GiB, {DISK_NAMES[disk.type] ?? disk.type} speed
+        <li key={disk.name}>
+          {dedicated_disk_display(disk)}
           {disk.name && (
             <>
               , <code>id={disk.name}</code>

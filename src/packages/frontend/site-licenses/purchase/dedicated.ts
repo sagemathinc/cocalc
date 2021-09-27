@@ -7,7 +7,10 @@
 // no sustained use discounts
 // "quota" ends up in the license's quota field
 
-import { DedicatedDiskTypes } from "@cocalc/util/db-schema/site-licenses";
+import {
+  DedicatedDiskTypes,
+  DISK_NAMES,
+} from "@cocalc/util/db-schema/site-licenses";
 import { ONE_DAY_MS, AVG_MONTH_DAYS, AVG_YEAR_DAYS } from "./util";
 
 interface VMsType {
@@ -70,12 +73,6 @@ for (const vmtype of VMS_DATA) {
   VMS[vmtype.quota.dedicated_vm] = vmtype;
 }
 
-export const DISK_NAMES: { [type in DedicatedDiskTypes]: string } = {
-  standard: "slow",
-  balanced: "medium",
-  ssd: "fast",
-};
-
 // we add a bit for snapshot storage
 const SNAPSHOT_FACTOR = 0.25;
 
@@ -86,14 +83,14 @@ const DISK_MONTHLY_1GB: { [id in DedicatedDiskTypes]: number } = {
   ssd: (SNAPSHOT_FACTOR * 174.08) / 1024,
 };
 
-for (const size of [64, 128, 256]) {
+for (const size_gb of [64, 128, 256]) {
   for (const type of ["standard", "balanced", "ssd"] as DedicatedDiskTypes[]) {
     const quota = {
-      dedicated_disk: { size_gb: size, type },
+      dedicated_disk: { size_gb, type },
     };
-    const name = `${size} GB ${DISK_NAMES[type]}`;
-    const price_day = DISK_MONTHLY_1GB[type] * size;
-    DISKS[`{type}-{size}`] = { name, price_day, quota };
+    const name = `${size_gb} GB ${DISK_NAMES[type]}`;
+    const price_day = DISK_MONTHLY_1GB[type] * size_gb;
+    DISKS[`${size_gb}-${type}`] = { name, price_day, quota };
   }
 }
 

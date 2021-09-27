@@ -36,12 +36,23 @@ export type DedicatedVM = {
   machine: string;
 };
 
+export const DISK_NAMES: { [type in DedicatedDiskTypes]: string } = {
+  standard: "slow",
+  balanced: "medium",
+  ssd: "fast",
+};
+
 export function isDedicatedDisk(d): d is DedicatedDisk {
   return (
     d != null &&
     typeof d.size_gb === "number" &&
     ["ssd", "standard", "balanced"].includes(d.type)
   );
+}
+
+export function dedicated_disk_display(disk: DedicatedDisk): string {
+  if (typeof disk === "boolean") return "";
+  return `${disk.size_gb} GiB, ${DISK_NAMES[disk.type] ?? disk.type} speed`;
 }
 
 export interface Quota {
@@ -83,6 +94,7 @@ export function describe_quota(quota: Quota, short?: boolean): string {
       " license providing ";
   }
   const v: string[] = [];
+
   if (quota.ram) {
     v.push(`${quota.ram}GB RAM`);
   }
@@ -100,8 +112,23 @@ export function describe_quota(quota: Quota, short?: boolean): string {
       `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "CPU")}`
     );
   }
-  if (quota.member) {
-    v.push("member" + (short ? "" : " hosting"));
+  if (
+    typeof quota.dedicated_vm !== "boolean" &&
+    typeof quota.dedicated_vm?.machine === "string"
+  ) {
+    v.push(
+      `hosting on a dedicated VM of type "${quota.dedicated_vm?.machine}"`
+    );
+  } else {
+    if (quota.member) {
+      v.push("member" + (short ? "" : " hosting"));
+    }
+  }
+  if (
+    quota.dedicated_disk != null &&
+    typeof quota.dedicated_disk !== "boolean"
+  ) {
+    v.push(`a dedicated disk (${dedicated_disk_display(quota.dedicated_disk)})`);
   }
   if (quota.always_running) {
     v.push("always running");
