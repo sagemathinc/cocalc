@@ -134,9 +134,10 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
             )
           }
         >
-          <i>Include the hidden tests:</i> Select this if you want the students
-          to see why their answers failed your hidden tests. The drawback is
-          that you've revealed all the hidden tests to the students.
+          <i>Include the hidden tests:</i> Select this if you want the notebook
+          to contain why answers failed your hidden tests. The drawback is that
+          if you return assignments to your students, then you will reveal all
+          the hidden tests to the students.
         </Checkbox>
       </div>
     );
