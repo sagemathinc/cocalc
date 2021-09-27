@@ -17,7 +17,6 @@ const ELEMENT_STYLE: React.CSSProperties = {
 const BODY_STYLE: React.CSSProperties = {
   marginRight: "10px",
   whiteSpace: "pre-wrap",
-  fontSize: "85%",
 } as const;
 
 const CLOSE_X: React.CSSProperties = {
