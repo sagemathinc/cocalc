@@ -261,7 +261,7 @@ export const NewProjectCreator: React.FC<Props> = ({
               <FormControl
                 ref={new_project_title_ref}
                 type="text"
-                placeholder="Project title"
+                placeholder="Project title -- you can easily change this at any time!"
                 disabled={state === "saving"}
                 value={title_text}
                 onChange={input_on_change}
@@ -292,7 +292,7 @@ export const NewProjectCreator: React.FC<Props> = ({
                 onClick={() => create_project()}
                 bsStyle="success"
               >
-                Create Project
+                Create Project{create_disabled() ? " (enter a title above!)" : ""}
               </Button>
             </ButtonToolbar>
           </Col>
