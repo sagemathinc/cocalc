@@ -224,7 +224,7 @@ class MultipleAddSearch extends Component<
     if (!target) return;
 
     return (
-      <Card style={{ margin: "15px 0" }} title={"Create assignment"}>
+      <Card style={{ margin: "15px 0" }} title={"Create assignment or handout folder"}>
         Create '{target}'?
         <br />
         <br />
