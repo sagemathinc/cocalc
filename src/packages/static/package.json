@@ -7,7 +7,7 @@
     "../util-node",
     "../util"
   ],
-  "version": "1.31.0",
+  "version": "1.31.1",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
