@@ -36,9 +36,10 @@ export default function Software({ customize }) {
             <Image src={screenshot} alt="Using Julia in a Jupyter notebook" />
           </div>
           <p>
-            This table lists available{" "}
-            <A href="https://julialang.org/">Julia</A> libraries. If something
-            is missing, you can{" "}
+            Julia is a fast modern compiled language that is{" "}
+            <A href="/features/julia">well supported</A> on CoCalc. This table
+            lists available <A href="https://julialang.org/">Julia</A>{" "}
+            libraries. If something is missing, you can{" "}
             <A href="https://doc.cocalc.com/howto/install-julia-package.html">
               install additional libraries
             </A>
@@ -50,10 +51,10 @@ export default function Software({ customize }) {
             description={
               <span style={{ fontSize: "10pt" }}>
                 Learn more about{" "}
-                {/* NOT done yet! <strong>
+                <strong>
                   <A href="/features/julia">Julia in CoCalc</A>
                 </strong>{" "}
-                and our{" "}*/}
+                and our{" "}
                 <strong>
                   <A href="https://doc.cocalc.com/howto/pluto.html">Pluto</A>
                 </strong>{" "}
