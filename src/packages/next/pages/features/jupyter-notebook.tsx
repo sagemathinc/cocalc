@@ -105,7 +105,7 @@ export default function JupyterNotebook({ customize }) {
                   Python environments,{" "}
                   <A href="http://www.sagemath.org/">SageMath</A>,{" "}
                   <A href="http://www.r-project.org/">R Statistical Software</A>
-                  , <A href="http://julialang.org">Julia</A> and many more.{" "}
+                  , <A href="/features/julia">Julia</A> and many more.{" "}
                 </p>
               </div>
             }

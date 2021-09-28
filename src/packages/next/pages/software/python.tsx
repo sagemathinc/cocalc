@@ -68,7 +68,9 @@ export default function Software({ customize }) {
             type="info"
             showIcon
           />
-          <h2>Python Environments</h2>
+          <h2>
+            <A href="/features/python">Python Environments</A>
+          </h2>
           <ul>
             <li>
               <b>
@@ -78,7 +80,7 @@ export default function Software({ customize }) {
             </li>
             <li>
               <b>
-                <A href="http://www.sagemath.org/">SageMath</A>:{" "}
+                <A href="/features/sage">SageMath</A>:{" "}
               </b>
               The Python environment inside the most recent default system wide
               SageMath instance. Note that several older versions of Sage are
