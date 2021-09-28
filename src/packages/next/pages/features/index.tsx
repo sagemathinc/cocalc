@@ -28,7 +28,7 @@ import teachingLogo from "/public/features/fa-graduation-cap.svg";
 import teachingScreenshot from "/public/features/cocalc-course-assignments-2019.png";
 import apiScreenshot from "/public/features/api-screenshot.png";
 import sageLogo from "/public/features/sage-sticker-1x1_inch-small.png";
-import sageScreenshot from "/public/features/cocalc-sagetex.png";
+import sageScreenshot from "public/features/sage-worksheet.png";
 import juliaLogo from "public/features/julia-logo.svg";
 import juliaScreenshot from "public/features/julia-jupyter.png";
 
@@ -86,6 +86,24 @@ const dataSource = [
         CoCalc's <LaTeX /> editor can help you be a more productive author
         online. Check out{" "}
         <A href="https://doc.cocalc.com/latex.html">its documentation</A>.
+      </>
+    ),
+  },
+  {
+    link: "/features/sage",
+    title: "SageMath Online",
+    logo: sageLogo,
+    image: sageScreenshot,
+    description: (
+      <>
+        <A href="/features/sage">SageMath</A> is very well supported in CoCalc,
+        because <A href="https://wstein.org">William Stein</A>, who started
+        SageMath, also started CoCalc. Many versions of Sage are preinstalled
+        and there is excellent integration with{" "}
+        <A href="/features/latex-editor">
+          <LaTeX />
+        </A>
+        .
       </>
     ),
   },

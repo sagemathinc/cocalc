@@ -15,7 +15,7 @@ const features = {
   linux: { label: "Linux" },
   python: { label: "Python" },
   "r-statistical-software": { label: "R Stats" },
-  sage: { label: "SageMath", disabled: true },
+  sage: { label: "SageMath" },
   octave: { label: "Octave" },
   julia: { label: "Julia" },
   teaching: { label: "Teaching" },
