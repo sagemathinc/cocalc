@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+set -ev
+time npm run update-version --packages=$1 --newversion=$2
+time npm run publish --packages=$1
