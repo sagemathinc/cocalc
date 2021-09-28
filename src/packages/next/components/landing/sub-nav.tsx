@@ -17,7 +17,7 @@ const features = {
   "r-statistical-software": { label: "R Stats" },
   sage: { label: "SageMath", disabled: true },
   octave: { label: "Octave" },
-  julia: { label: "Julia", disabled: true },
+  julia: { label: "Julia" },
   teaching: { label: "Teaching" },
   terminal: { label: "Terminal" },
   x11: { label: "X11" },

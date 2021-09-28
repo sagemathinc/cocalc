@@ -194,11 +194,12 @@ export default function LatexEditor({ customize }) {
               your results to <em>publishing</em> them.
             </p>
             <p>
-              CoCalc supports running{" "}
-              <A href="https://www.python.org">Python</A>,{" "}
+              CoCalc supports running <A href="/features/python">Python</A>,{" "}
               <A href="http://www.sagemath.org/">SageMath</A>,{" "}
-              <A href="http://www.r-project.org/">R Statistical Software</A>,{" "}
-              <A href="http://julialang.org">Julia</A>, and more in the same
+              <A href="/features/r-statistical-software">
+                R Statistical Software
+              </A>
+              , <A href="/features/julia">Julia</A>, and more in the same
               project as your <LaTeX /> document.
             </p>
             <p>
