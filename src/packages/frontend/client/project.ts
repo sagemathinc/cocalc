@@ -289,7 +289,7 @@ export class ProjectClient {
 
   public async find_directories(opts: {
     project_id: string;
-    query?: string; // see the -iname option to the UNIX find command.
+    query?: string; // see the -iwholename option to the UNIX find command.
     path?: string; // Root path to find directories from
     exclusions?: string[]; // paths relative to `opts.path`. Skips whole sub-trees
     include_hidden?: boolean;
@@ -301,7 +301,7 @@ export class ProjectClient {
   }> {
     opts = defaults(opts, {
       project_id: required,
-      query: "*", // see the -iname option to the UNIX find command.
+      query: "*", // see the -iwholename option to the UNIX find command.
       path: ".", // Root path to find directories from
       exclusions: undefined, // Array<String> Paths relative to `opts.path`. Skips whole sub-trees
       include_hidden: false,
@@ -318,7 +318,7 @@ export class ProjectClient {
       "-o",
       "-type",
       "d",
-      "-iname",
+      "-iwholename",  // See https://github.com/sagemathinc/cocalc/issues/5502
       `'${opts.query}'`,
       "-readable",
     ];

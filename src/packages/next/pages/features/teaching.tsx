@@ -28,7 +28,7 @@ import teaching from "public/features/cocalc-teaching.png";
 export default function Teaching({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title={"Teaching scientific software"} />
+      <Head title={"Teach scientific software online using Jupyter Notebook, Python, R, and more"} />
       <Layout>
         <Header page="features" subPage="teaching" />
         <Layout.Content>
@@ -36,7 +36,7 @@ export default function Teaching({ customize }) {
             <Content
               startup={"CoCalc"}
               logo={logo}
-              title={"Teaching scientific software online"}
+              title={"Teach scientific software online using Jupyter Notebook, Python, R, and more"}
               subtitle={
                 <>
                   CoCalc is a virtual online computer lab: it takes away the
@@ -44,7 +44,7 @@ export default function Teaching({ customize }) {
                 </>
               }
               image={assignments}
-              alt={"Screenshot of Cocalc's course management interface"}
+              alt={"Cocalc's course management interface"}
             />
           </div>
 

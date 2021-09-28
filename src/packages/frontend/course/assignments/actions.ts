@@ -730,9 +730,10 @@ ${details}
           id,
           desc: `${student_name}'s project doesn't exist, so creating it.`,
         });
-        student_project_id = await this.course_actions.student_projects.create_student_project(
-          student_id
-        );
+        student_project_id =
+          await this.course_actions.student_projects.create_student_project(
+            student_id
+          );
         if (!student_project_id) {
           throw Error("failed to create project");
         }
@@ -1348,10 +1349,20 @@ ${details}
     }
     const path = assignment.get("path");
     const project_id = store.get("course_project_id");
-    const files = await redux
-      .getProjectStore(project_id)
-      .get_listings()
-      .get_listing_directly(path);
+    let files;
+    try {
+      files = await redux
+        .getProjectStore(project_id)
+        .get_listings()
+        .get_listing_directly(path);
+    } catch (err) {
+      // This happens, e.g., if the instructor moves the directory
+      // that contains their version of the ipynb file.
+      // See https://github.com/sagemathinc/cocalc/issues/5501
+      const error = `Unable to find the directory where you created this assignment.  If you moved or renamed it, please move or copy it back to "${path}", then try again.    (${err})`;
+      this.course_actions.set_error(error);
+      throw err;
+    }
     const result: { [path: string]: string } = {};
 
     if (this.course_actions.is_closed()) return result;

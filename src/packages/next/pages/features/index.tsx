@@ -28,7 +28,9 @@ import teachingLogo from "/public/features/fa-graduation-cap.svg";
 import teachingScreenshot from "/public/features/cocalc-course-assignments-2019.png";
 import apiScreenshot from "/public/features/api-screenshot.png";
 import sageLogo from "/public/features/sage-sticker-1x1_inch-small.png";
-import sageScreenshot from "/public/features/cocalc-sagetex.png";
+import sageScreenshot from "public/features/sage-worksheet.png";
+import juliaLogo from "public/features/julia-logo.svg";
+import juliaScreenshot from "public/features/julia-jupyter.png";
 
 const dataSource = [
   {
@@ -88,6 +90,24 @@ const dataSource = [
     ),
   },
   {
+    link: "/features/sage",
+    title: "SageMath Online",
+    logo: sageLogo,
+    image: sageScreenshot,
+    description: (
+      <>
+        <A href="/features/sage">SageMath</A> is very well supported in CoCalc,
+        because <A href="https://wstein.org">William Stein</A>, who started
+        SageMath, also started CoCalc. Many versions of Sage are preinstalled
+        and there is excellent integration with{" "}
+        <A href="/features/latex-editor">
+          <LaTeX />
+        </A>
+        .
+      </>
+    ),
+  },
+  {
     link: "/features/octave",
     title: "GNU Octave",
     logo: octaveLogo,
@@ -98,6 +118,22 @@ const dataSource = [
         CoCalc – the syntax is largely compatible with MATLAB
         <sup>®</sup>. Use Jupyter notebooks, write programs, and display X11
         graphics.
+      </>
+    ),
+  },
+  {
+    link: "/features/julia",
+    title: "Julia",
+    logo: juliaLogo,
+    image: juliaScreenshot,
+    description: (
+      <>
+        Use <A href="https://julialang.org/">Julia</A> on CoCalc with{" "}
+        <A href="https://doc.cocalc.com/howto/pluto.html">Pluto</A> and{" "}
+        <A href="/features/jupyter-notebook">Jupyter</A> notebooks. Edit Julia
+        code and run it in <A href="/features/terminal">a terminal</A> or
+        notebook. <A href="/features/teaching">Teach classes using nbgrader</A>{" "}
+        with the Julia kernel.
       </>
     ),
   },
