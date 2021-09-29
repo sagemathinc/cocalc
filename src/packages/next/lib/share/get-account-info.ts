@@ -6,6 +6,7 @@ export interface AccountInfo {
   accountID: string;
   firstName: string;
   lastName: string;
+  name: string;
   publicPaths: PublicPath[];
 }
 

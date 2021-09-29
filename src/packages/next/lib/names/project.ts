@@ -30,7 +30,7 @@ export default async function getProjectId(
 // Also, if multiple requests at about the same time, only make one to the db.
 const getProjectIdNoCache = reuseInFlight(
   async (owner: string, project: string) => {
-    const { type, owner_id } = await getOwner(owner);
+    const { owner_id } = await getOwner(owner);
     const pool = getPool();
 
     // NOTE: it's not enough that owner is a collab on the project -- they have to be the owner.

@@ -14,8 +14,7 @@ export async function getServerSideProps(context) {
   try {
     const project_id = await getProjectId(owner, project);
     const { title } = await getProjectTitle(project_id);
-    const props = await getProject(project_id);
-    props.projectTitle = title;
+    const props = { ...(await getProject(project_id)), projectTitle: title };
     return withCustomize({ props });
   } catch (_err) {
     console.log(_err);
