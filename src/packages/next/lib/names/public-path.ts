@@ -62,7 +62,6 @@ export async function getPublicPathNames(
     "SELECT name, users FROM projects WHERE project_id=$1 AND name IS NOT NULL AND name != ''",
     [project_id]
   );
-  console.log(2, result.rows);
   if (result.rows.length == 0) return;
 
   const { name: project, users } = result.rows[0];

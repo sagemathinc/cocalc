@@ -41,7 +41,7 @@ export async function getServerSideProps(context) {
         const { res } = context;
         res.writeHead(302, { location: join(basePath, owner, name) });
         res.end();
-        return;
+        return { props: {} };
       }
     }
     props = await getProjectInfo(project_id);

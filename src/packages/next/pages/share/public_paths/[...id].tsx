@@ -17,15 +17,25 @@ export async function getServerSideProps(context) {
   const relativePath = context.params.id.slice(1).join("/");
   try {
     const names = await getPublicPathNames(id);
-    console.log("names = ", names);
     if (names != null) {
       // redirect
       const { res } = context;
-      res.writeHead(302, {
-        location: join(basePath, names.owner, names.project, names.public_path),
-      });
+      let location = join(
+        basePath,
+        names.owner,
+        names.project,
+        names.public_path
+      );
+      if (context.params.id.length > 1) {
+        location = join(
+          location,
+          "files",
+          context.params.id.slice(1).join("/")
+        );
+      }
+      res.writeHead(302, { location });
       res.end();
-      return;
+      return { props: {} };
     }
     const props = await getPublicPathInfo(id, relativePath);
     return await withCustomize({ props });
