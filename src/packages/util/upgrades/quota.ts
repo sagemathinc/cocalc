@@ -278,7 +278,7 @@ function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
     "0-1": [],
     "1-0": [],
     "1-1": [],
-  };
+  } as { [key: string]: string[] };
 
   // classification
   for (const [key, val] of Object.entries(site_licenses)) {
@@ -296,7 +296,7 @@ function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
   }
 
   // selection -- always_running comes first, then member hosting
-  const selected: string[] | null = (function () {
+  const selected: string[] | undefined = (function () {
     for (const ar of ["1", "0"]) {
       // always running
       for (const mh of ["1", "0"]) {

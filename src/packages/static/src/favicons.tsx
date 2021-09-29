@@ -1,6 +1,5 @@
 // Specify the favicion.
 
-import React from "react";
 import { Helmet } from "react-helmet";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";

@@ -1,4 +1,3 @@
-import React from "react";
 import { HELP_EMAIL } from "@cocalc/util/theme";
 
 export default function CrashMessage({
