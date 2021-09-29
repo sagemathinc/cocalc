@@ -47,3 +47,27 @@ const getOwnerNoCache = reuseInFlight(async (owner: string) => {
   }
   throw Error(`no account or organization '${owner}'`);
 });
+
+export async function getOwnerName(
+  owner_id: string
+): Promise<string | undefined> {
+  const pool = getPool();
+  let result = await pool.query(
+    "SELECT name FROM accounts WHERE account_id=$1",
+    [owner_id]
+  );
+  if (result.rows.length > 0) {
+    const { name } = result.rows[0];
+    if (!name) return;
+    return name;
+  }
+  result = await pool.query(
+    "SELECT name FROM organizations WHERE organization_id=$1",
+    [owner_id]
+  );
+  if (result.rows.length > 0) {
+    const { name } = result.rows[0];
+    if (!name) return;
+    return name;
+  }
+}
