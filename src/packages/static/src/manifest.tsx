@@ -2,7 +2,6 @@
 // install the page as a local webapp.  It's part of being a "progressive
 // web app", as was started in this PR: https://github.com/sagemathinc/cocalc/pull/5254
 
-import React from "react";
 import { Helmet } from "react-helmet";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";

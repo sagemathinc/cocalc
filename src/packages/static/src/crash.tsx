@@ -1,4 +1,3 @@
-import React from "react";
 import { HELP_EMAIL } from "@cocalc/util/theme";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";

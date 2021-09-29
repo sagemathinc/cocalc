@@ -3,7 +3,7 @@ import { ReactNode, CSSProperties } from "react";
 interface Props {
   href: string;
   children?: ReactNode;
-  style: CSSProperties;
+  style?: CSSProperties;
 }
 export default function A({ href, children, style }: Props) {
   return (
