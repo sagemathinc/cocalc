@@ -2,7 +2,7 @@ import getPool from "@cocalc/util-node/database";
 
 // Returns account_id or organization_id of the owner of this project.
 export default async function getOwner(project_id: string): Promise<string> {
-  const pool = getPool();
+  const pool = getPool("eon"); // we don't even have a way to change the owner ever in cocalc.
 
   // TODO: this seems *really* stupid/inefficient in general, e.g., what if
   // there are 1000 users?  I don't know JSONB PostgreSQL enough to come up

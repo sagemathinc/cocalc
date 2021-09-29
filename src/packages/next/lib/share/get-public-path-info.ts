@@ -10,7 +10,6 @@ import { join } from "path";
 const basePath = require("./basePath")();
 
 export default async function getPublicPathInfo(id, relativePath) {
-  const pool = getPool();
 
   if (
     typeof id != "string" ||
@@ -20,6 +19,8 @@ export default async function getPublicPathInfo(id, relativePath) {
   ) {
     throw Error("invalid id or relativePath");
   }
+
+  const pool = getPool('short');
 
   // Get the database entry that describes the public path
   const { rows } = await pool.query(

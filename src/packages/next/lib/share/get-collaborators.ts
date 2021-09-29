@@ -17,7 +17,7 @@ export default async function getCollaborators(
   if (!isUUID(project_id)) {
     throw Error("project_id must be a uuid");
   }
-  const pool = getPool();
+  const pool = getPool('medium');
   const result = await pool.query(
     "SELECT accounts.account_id, accounts.first_name, accounts.last_name FROM accounts, (SELECT jsonb_object_keys(users) AS account_id FROM projects WHERE project_id=$1) AS users WHERE accounts.account_id=users.account_id::UUID AND accounts.unlisted IS NOT TRUE",
     [project_id]

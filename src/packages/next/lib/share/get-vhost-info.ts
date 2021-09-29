@@ -36,7 +36,9 @@ export default async function getVirtualHostInfo(
     return cache.get(vhost);
   }
 
-  const pool = getPool();
+  // long: once a vhost is set, it's unlikely to change for a while, since it literally
+  // requires updating DNS entries to have any impact.
+  const pool = getPool("long");
 
   // Get the database entry that describes the public path with given vhost.
   // NOTE: we are assuming there is at most one with a given vhost.  If there

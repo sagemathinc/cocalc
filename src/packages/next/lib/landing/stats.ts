@@ -3,7 +3,7 @@ import { Stats } from "@cocalc/util/db-schema/stats";
 
 // Returns undefined if no stats data is available.
 export default async function getStats(): Promise<Stats | undefined> {
-  const pool = getPool();
+  const pool = getPool('long');
   const result = await pool.query(
     "SELECT * FROM stats ORDER BY time DESC LIMIT 1"
   );

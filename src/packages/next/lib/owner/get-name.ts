@@ -4,7 +4,7 @@ import getPool from "@cocalc/util-node/database";
 
 // Returns "" if owner doesn't have a name set.
 export default async function getName(owner_id: string): Promise<string> {
-  const pool = getPool();
+  const pool = getPool('medium');
 
   for (const type of ["account", "organization"]) {
     const result = await pool.query(

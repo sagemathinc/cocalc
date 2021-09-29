@@ -26,7 +26,7 @@ export async function getName(
   if (!isUUID(accountID)) {
     throw Error("invalid UUID");
   }
-  const pool = getPool();
+  const pool = getPool('medium');
 
   // Get the database entry
   const { rows } = await pool.query(
@@ -49,7 +49,7 @@ export async function getPublicPaths(accountID: string): Promise<PublicPath[]> {
     // into the query string directly, and this is input directly from the user!
     throw Error("invalid UUID");
   }
-  const pool = getPool();
+  const pool = getPool('medium');
 
   // Returns public paths for which account_id is a collaborator on the project that has
   // actively used the project.

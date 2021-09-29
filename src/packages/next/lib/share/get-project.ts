@@ -18,7 +18,7 @@ interface ProjectInfo {
 export default async function getProjectInfo(
   project_id: string
 ): Promise<ProjectInfo> {
-  const pool = getPool();
+  const pool = getPool('medium');
 
   if (!isUUID(project_id)) {
     throw Error(`project_id ${project_id} must be a uuid`);

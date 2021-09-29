@@ -81,7 +81,7 @@ export default function All({ page, publicPaths, customize }) {
 
 export async function getServerSideProps(context) {
   const page = getPage(context.params);
-  const pool = getPool();
+  const pool = getPool('medium');
   const { rows } = await pool.query(
     "SELECT id, path, description, EXTRACT(EPOCH FROM last_edited)*1000 AS last_edited FROM public_paths WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE ORDER BY last_edited DESC LIMIT $1 OFFSET $2",
     [PAGE_SIZE, PAGE_SIZE * (page - 1)]
@@ -92,22 +92,4 @@ export async function getServerSideProps(context) {
   });
 }
 
-/*
-export async function getStaticPaths() {
-  return { paths: [], fallback: true };
-}
 
-export async function getStaticProps(context) {
-  const page = getPage(context.params);
-  const pool = getPool();
-  const { rows } = await pool.query(
-    "SELECT id, path, description, EXTRACT(EPOCH FROM last_edited)*1000 AS last_edited FROM public_paths WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE ORDER BY last_edited DESC LIMIT $1 OFFSET $2",
-    [PAGE_SIZE, PAGE_SIZE * (page - 1)]
-  );
-
-  return await withCustomize({
-    props: { page, publicPaths: rows },
-    revalidate: 15,
-  });
-}
-*/
