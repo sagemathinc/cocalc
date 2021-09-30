@@ -85,7 +85,6 @@ sendError = (opts) ->
         opts.user_agent  = navigator?.userAgent
         opts.browser     = feature.get_browser()
         opts.mobile      = feature.IS_MOBILE
-        opts.responsive  = feature.is_responsive_mode()
         opts.smc_version = SMC_VERSION
         opts.build_date  = BUILD_DATE
         opts.smc_git_rev = COCALC_GIT_REVISION
