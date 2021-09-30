@@ -6,7 +6,7 @@ const {
   user_has_write_access_to_project,
   user_has_read_access_to_project,
 } = require("../access");
-import { generate_hash } from "../auth";
+import generateHash from "@cocalc/util-node/auth/hash";
 const winston = getLogger("proxy: has-access");
 
 interface Options {
@@ -46,7 +46,7 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
   try {
     dbg("get remember_me message");
     const x = remember_me.split("$");
-    const hash = generate_hash(x[0], x[1], x[2], x[3]);
+    const hash = generateHash(x[0], x[1], parseInt(x[2]), x[3]);
     const signed_in_mesg = await callback2(database.get_remember_me, {
       hash,
       cache: true,

@@ -32,9 +32,12 @@ export async function getServerSideProps(context) {
       res.end();
       return { props: {} };
     }
-    return await withCustomize({
-      props: accountInfo,
-    });
+    return await withCustomize(
+      {
+        props: accountInfo,
+      },
+      context
+    );
   } catch (_err) {
     // console.log(err);
     return { notFound: true };

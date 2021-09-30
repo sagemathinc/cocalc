@@ -36,7 +36,9 @@ hub_projects         = require('./projects')
 db_schema            = require('@cocalc/util/db-schema')
 { escapeHtml }       = require("escape-html")
 {CopyPath}           = require('./copy-path')
-{remember_me_cookie_name} = require('./auth')
+{ COOKIE_NAME }=require("@cocalc/util-node/auth/remember-me");
+generateHash =require("@cocalc/util-node/auth/hash").default;
+
 path_join = require('path').join
 base_path = require('@cocalc/util-node/base-path').default
 
@@ -164,7 +166,7 @@ class exports.Client extends EventEmitter
         # Setup remember-me related cookie handling
         @cookies = {}
         c = new Cookies(@conn.request, COOKIE_OPTIONS)
-        @_remember_me_value = c.get(remember_me_cookie_name())
+        @_remember_me_value = c.get(COOKIE_NAME)
 
         @check_for_remember_me()
 
@@ -303,7 +305,7 @@ class exports.Client extends EventEmitter
             @remember_me_failed("invalid remember_me cookie")
             return
         try
-            hash = auth.generate_hash(x[0], x[1], x[2], x[3])
+            hash = generateHash(x[0], x[1], x[2], x[3])
         catch err
             dbg("unable to generate hash from '#{value}' -- #{err}")
             @remember_me_failed("invalid remember_me cookie")
@@ -503,7 +505,7 @@ class exports.Client extends EventEmitter
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
         @set_cookie  # same name also hardcoded in the client!
-            name  : remember_me_cookie_name()
+            name  : COOKIE_NAME
             value : @_remember_me_value
             ttl   : ttl
 

@@ -4,7 +4,8 @@
   "description": "CoCalc misc utility functionality that is meant for running on node.js (not in browser)",
   "exports": {
     "./database": "./dist/database/index.js",
-    "./*": "./dist/*.js"
+    "./*": "./dist/*.js",
+    "./auth/*": "./dist/auth/*.js"
   },
   "keywords": [
     "utilities",
@@ -18,11 +19,13 @@
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "workspaces": [
+    ".",
     "../util"
   ],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
     "@cocalc/util": "^1.8.0",
+    "@cocalc/util-node": "file:",
     "@types/debug": "^4.1.7",
     "@types/lru-cache": "^5.1.1",
     "@types/pg": "^8.6.1",

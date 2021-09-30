@@ -1,8 +1,14 @@
+import Cookies from "cookies";
 import getCustomize from "@cocalc/util-node/server-settings/customize";
+import { COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/util-node/auth/remember-me";
+import getAccountId from "lib/account/get-account";
 
 const revalidate = 30;
 
-export default async function get(obj?: { props?: any; revalidate?: number }) {
+export default async function get(
+  obj?: { props?: any; revalidate?: number },
+  context
+) {
   let customize;
   try {
     customize = await getCustomize();
@@ -10,6 +16,15 @@ export default async function get(obj?: { props?: any; revalidate?: number }) {
     // fallback to be empty; during static build
     // this happens.
     customize = {};
+  }
+  if (context?.req != null) {
+    const cookies = new Cookies(context.req, context.res);
+    console.log("cookie name = ", REMEMBER_ME_COOKIE_NAME);
+    const rememberMe = cookies.get(REMEMBER_ME_COOKIE_NAME);
+    if (rememberMe) {
+      const account_id = await getAccountId(rememberMe);
+      console.log("account_id=", account_id);
+    }
   }
   if (obj == null) {
     return { props: { customize } };
