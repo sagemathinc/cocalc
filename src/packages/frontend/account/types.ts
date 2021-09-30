@@ -17,6 +17,7 @@ export interface AccountState {
   terminal: Map<string, any>;
   first_name?: string;
   last_name?: string;
+  name?: string;
   unlisted?: boolean;
   profile: TypedMap<{ color: string }>;
   email_address?: string;
@@ -67,4 +68,5 @@ export interface AccountState {
   evaluate_key?: string;
   autosave?: number;
   show_purchase_form?: boolean;
+  tableError?: TypedMap<{ error: string; query: any }>;
 }

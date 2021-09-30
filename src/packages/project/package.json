@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/project",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "CoCalc: project daemon",
   "exports": {
     "./named-servers": "./dist/named-servers/index.js",
@@ -24,10 +24,10 @@
     "."
   ],
   "dependencies": {
-    "@cocalc/frontend": "^1.5.2",
+    "@cocalc/frontend": "^1.7.0",
     "@cocalc/project": "*",
-    "@cocalc/util": "^1.6.0",
-    "@cocalc/util-node": "^1.5.0",
+    "@cocalc/util": "^1.8.0",
+    "@cocalc/util-node": "^1.7.0",
     "@types/lru-cache": "^5.1.1",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
@@ -85,7 +85,7 @@
     "@types/node": "^14.17.5",
     "coffeelint": "^2.1.0",
     "coffeescript": "^2.5.1",
-    "typescript": "^4.3.5"
+    "typescript": "^4.4.3"
   },
   "scripts": {
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' npx cocalc-project",

@@ -16,7 +16,8 @@ export default function pathToFiles(project_id: string, path: string): string {
 export async function pathFromID(
   id: string
 ): Promise<{ projectPath: string; fsPath: string }> {
-  const pool = getPool();
+  // 'infinite' since actually result can't change since id determines the path (it's a reverse sha1 hash computation)
+  const pool = getPool("infinite");
   const { rows } = await pool.query(
     "SELECT project_id, path FROM public_paths WHERE id=$1 AND disabled IS NOT TRUE",
     [id]

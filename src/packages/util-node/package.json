@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/util-node",
-  "version": "1.6.5",
+  "version": "1.7.0",
   "description": "CoCalc misc utility functionality that is meant for running on node.js (not in browser)",
   "exports": {
     "./database": "./dist/database/index.js",
@@ -22,11 +22,12 @@
   ],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
-    "@cocalc/util": "^1.7.0",
+    "@cocalc/util": "^1.8.0",
     "@types/debug": "^4.1.7",
     "@types/lru-cache": "^5.1.1",
     "@types/pg": "^8.6.1",
     "async": "^1.5.2",
+    "async-await-utils": "^3.0.1",
     "debug": "^4.3.2",
     "lru-cache": "^6.0.0",
     "pg": "^8.7.1",
@@ -46,6 +47,6 @@
     "expect": "^26.6.2",
     "mocha": "^8.4.0",
     "nyc": "^15.1.0",
-    "typescript": "^4.3.5"
+    "typescript": "^4.4.3"
   }
 }

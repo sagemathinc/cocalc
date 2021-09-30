@@ -4,7 +4,7 @@
  */
 
 import { List, Map, Set } from "immutable";
-import { redux, Store } from "../app-framework";
+import { redux, Store, TypedMap } from "../app-framework";
 import { webapp_client } from "../webapp-client";
 import {
   coerce_codomain_to_numbers,
@@ -53,6 +53,8 @@ export interface ProjectsState {
   public_project_titles: Map<string, any>;
 
   project_websockets: Map<string, WebsocketState>;
+
+  tableError?: TypedMap<{ error: string; query: any }>;
 }
 
 // Define projects store

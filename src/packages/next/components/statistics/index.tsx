@@ -2,6 +2,7 @@ import { Stats } from "@cocalc/util/db-schema/stats";
 import OpenedFiles from "./opened-files";
 import ActiveUsers from "./active-users";
 import ActiveProjects from "./active-projects";
+import A from "components/misc/A";
 
 interface Props {
   stats: Stats;
@@ -10,7 +11,8 @@ interface Props {
 export default function Statistics({ stats }: Props) {
   return (
     <div style={{ maxWidth: "100%", overflowX: "scroll" }}>
-      Last Updated: {new Date(stats.time).toLocaleString()}
+      Last Updated: {new Date(stats.time).toLocaleString()}{" "}
+      <A href="/info/status">(update)</A>
       <br />
       <br />
       <ActiveUsers

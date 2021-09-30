@@ -10,21 +10,29 @@ Get information about a project.
 import getPool from "@cocalc/util-node/database";
 import { isUUID } from "./util";
 
-export async function getProjectTitle(
+interface ProjectInfo {
+  title: string;
+  name: string;
+}
+
+export default async function getProjectInfo(
   project_id: string
-): Promise<string | undefined> {
-  const pool = getPool();
+): Promise<ProjectInfo> {
+  const pool = getPool('medium');
 
   if (!isUUID(project_id)) {
     throw Error(`project_id ${project_id} must be a uuid`);
   }
 
   const project = await pool.query(
-    "SELECT title FROM projects WHERE project_id=$1",
+    "SELECT title, name FROM projects WHERE project_id=$1",
     [project_id]
   );
   if (project.rows.length == 0) {
     throw Error(`no project with id ${project_id}`);
   }
-  return project.rows[0]?.title;
+  return {
+    title: project.rows[0].title ?? "",
+    name: project.rows[0].name ?? "",
+  } as ProjectInfo;
 }

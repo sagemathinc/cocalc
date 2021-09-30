@@ -43,6 +43,7 @@ Table({
         throttle_changes: 2000,
         fields: {
           project_id: null,
+          name: null,
           title: "",
           description: "",
           users: {},
@@ -68,6 +69,7 @@ Table({
         fields: {
           project_id: "project_write",
           title: true,
+          name: true,
           description: true,
           deleted: true,
           invite_requests: true, // project collabs can modify this (e.g., to remove from it once user added or rejected)
@@ -126,6 +128,11 @@ Table({
       type: "uuid",
       desc: "The project id, which is the primary key that determines the project.",
     },
+    name: {
+      type: "string",
+      pg_type: "VARCHAR(100)",
+      desc: "The optional name of this project.  Must be globally unique (up to case) across all projects with a given *owner*.  It can be between 1 and 100 characters from a-z A-Z 0-9 period and dash.",
+    },
     title: {
       type: "string",
       desc: "The short title of the project. Should use no special formatting, except hashtags.",
@@ -136,7 +143,7 @@ Table({
     }, // markdown rendering possibly not implemented
     users: {
       type: "map",
-      desc: "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}, ssh:{...}}.",
+      desc: "This is a map from account_id's to {hide:bool, group:'owner'|'collaborator', upgrades:{memory:1000, ...}, ssh:{...}}.",
     },
     invite: {
       type: "map",

@@ -5,12 +5,11 @@
 
 import getPool from "@cocalc/util-node/database";
 import getContents from "./get-contents";
-import { getProjectTitle } from "./get-project";
+import getProjectInfo from "./get-project";
 import { join } from "path";
 const basePath = require("./basePath")();
 
 export default async function getPublicPathInfo(id, relativePath) {
-  const pool = getPool();
 
   if (
     typeof id != "string" ||
@@ -21,10 +20,10 @@ export default async function getPublicPathInfo(id, relativePath) {
     throw Error("invalid id or relativePath");
   }
 
+  const pool = getPool('short');
+
   // Get the database entry that describes the public path
-  const {
-    rows,
-  } = await pool.query(
+  const { rows } = await pool.query(
     "SELECT project_id, path, description, counter, compute_image, license FROM public_paths WHERE disabled IS NOT TRUE AND vhost IS NULL AND id=$1",
     [id]
   );
@@ -41,7 +40,7 @@ export default async function getPublicPathInfo(id, relativePath) {
   } catch (error) {
     return { id, ...rows[0], relativePath, error: error.toString() };
   }
-  const projectTitle = await getProjectTitle(rows[0].project_id);
+  const projectTitle = (await getProjectInfo(rows[0].project_id)).title;
 
   return { id, ...rows[0], contents, relativePath, projectTitle, basePath };
 }

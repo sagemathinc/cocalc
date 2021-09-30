@@ -30,6 +30,10 @@ required = defaults.required
 
 {file_use_times} = require('./postgres/file-use-times')
 
+{ checkProjectName } = require("@cocalc/util/db-schema/name-rules");
+{callback2} = require('@cocalc/util/async-utils')
+
+
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Cancel all queued up queries by the given client
     cancel_user_queries: (opts) =>
@@ -852,6 +856,35 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     _user_set_query_project_change_before: (old_val, new_val, account_id, cb) =>
         dbg = @_dbg("_user_set_query_project_change_before #{account_id}, #{misc.to_json(old_val)} --> #{misc.to_json(new_val)}")
         dbg()
+
+        if new_val?.name and (new_val?.name != old_val?.name)
+            # Changing or setting the name of the project to something nontrivial.
+            try
+                checkProjectName(new_val.name);
+            catch err
+                cb(err.toString())
+                return
+            if new_val.name
+                # Setting name to something nontrivial, so we must check uniqueness
+                # among all projects this user owns.
+                result = await callback2 @_query,
+                    query : 'SELECT COUNT(*) FROM projects'
+                    where :
+                        "users#>>'{#{account_id},group}' = $::TEXT" : 'owner'
+                        "project_id != $::UUID" : new_val.project_id
+                        "LOWER(name) = $::TEXT":new_val.name.toLowerCase()
+                if result.rows[0].count > 0
+                    cb("There is already a project with the same owner as this project and name='#{new_val.name}'.   Names are not case sensitive.")
+                    return
+                # A second constraint is that only the project owner can change the project name.
+                result = await callback2 @_query,
+                    query : 'SELECT COUNT(*) FROM projects'
+                    where :
+                        "users#>>'{#{account_id},group}' = $::TEXT" : 'owner'
+                        "project_id = $::UUID" : new_val.project_id
+                if result.rows[0].count == 0
+                    cb("Only the owner of the project can currently change the project name.")
+                    return
 
         if new_val?.action_request? and (new_val.action_request.time - (old_val?.action_request?.time ? 0) != 0)
             # Requesting an action, e.g., save, restart, etc.

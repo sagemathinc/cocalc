@@ -17,7 +17,8 @@ export default async function getPublicPaths(
   if (!isUUID(project_id)) {
     throw Error("project_id must be a uuid");
   }
-  const pool = getPool();
+  // short: user might create a new public path then want to look at it shortly thereafter
+  const pool = getPool('short');
   const result = await pool.query(
     `SELECT id, path, description, ${timeInSeconds(
       "last_edited"

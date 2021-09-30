@@ -4,127 +4,52 @@
  */
 
 /*
-Page for a given user.
-*/
-
-/*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/* Show all the public paths in a given project, and maybe other information about the project? */
+/*
+Page for a given project.
+Show all the public paths in a given project, and maybe other information about the project?
+*/
 
+import { join } from "path";
+import basePath from "lib/base-path";
 import { isUUID } from "lib/share/util";
-import getCollaborators from "lib/share/get-collaborators";
-import { getProjectTitle } from "lib/share/get-project";
-import getPublicPaths from "lib/share/get-public-paths";
-import PublicPaths from "components/share/public-paths";
-import Collaborators from "components/share/collaborators";
-import Loading from "components/share/loading";
-import { Layout } from "components/share/layout";
 import withCustomize from "lib/with-customize";
-import { Customize } from "lib/share/customize";
+import getProject from "lib/share/get-project";
+import getProjectInfo from "lib/project/info";
+import getProjectOwner from "lib/project/get-owner";
+import getOwnerName from "lib/owner/get-name";
+import Project from "components/project/project";
 
-export default function Project({
-  publicPaths,
-  collaborators,
-  projectTitle,
-  customize,
-}) {
-  if (publicPaths == null || collaborators == null || projectTitle == null) {
-    return <Loading />;
-  }
-  return (
-    <Customize value={customize}>
-      <Layout title={projectTitle}>
-        <h1>Project: {projectTitle}</h1>
-        {collaborators != null && collaborators.length > 0 && (
-          <>
-            <h2>Collaborators</h2>
-            <Collaborators collaborators={collaborators} />
-            <br /> <br />
-          </>
-        )}
-        <h2>Public Paths</h2>
-        {publicPaths != null && publicPaths.length == 0 ? (
-          <div>No public paths.</div>
-        ) : (
-          <PublicPaths publicPaths={publicPaths} />
-        )}
-      </Layout>
-    </Customize>
-  );
-}
+export default Project;
 
 export async function getServerSideProps(context) {
   const { project_id } = context.params;
   if (!isUUID(project_id)) {
     return { notFound: true };
   }
-
-  let projectTitle;
+  let props;
   try {
-    projectTitle = await getProjectTitle(project_id);
-  } catch (err) {
-    console.warn(err);
-    return { notFound: true };
-  }
-
-  let publicPaths;
-  try {
-    publicPaths = await getPublicPaths(project_id);
+    const { name, title } = await getProject(project_id);
+    if (name) {
+      // This project probably has a nice vanity name. Possibly redirect to that instead.
+      const owner_id = await getProjectOwner(project_id);
+      const owner = await getOwnerName(owner_id);
+      if (owner) {
+        const { res } = context;
+        res.writeHead(302, { location: join(basePath, owner, name) });
+        res.end();
+        return { props: {} };
+      }
+    }
+    props = await getProjectInfo(project_id);
+    props.projectTitle = title;
   } catch (_err) {
+    // console.warn(_err)
     return { notFound: true };
   }
 
-  let collaborators;
-  try {
-    collaborators = await getCollaborators(project_id);
-  } catch (_err) {
-    return { notFound: true };
-  }
-
-  return await withCustomize({
-    props: { projectTitle, publicPaths, collaborators },
-  });
+  return await withCustomize({ props });
 }
-
-/*
-export async function getStaticPaths() {
-  return { paths: [], fallback: true };
-}
-
-export async function getStaticProps(context) {
-  const { project_id } = context.params;
-  if (!isUUID(project_id)) {
-    return { notFound: true };
-  }
-
-  let projectTitle;
-  try {
-    projectTitle = await getProjectTitle(project_id);
-  } catch (err) {
-    console.warn(err);
-    return { notFound: true };
-  }
-
-  let publicPaths;
-  try {
-    publicPaths = await getPublicPaths(project_id);
-  } catch (_err) {
-    return { notFound: true };
-  }
-
-  let collaborators;
-  try {
-    collaborators = await getCollaborators(project_id);
-  } catch (_err) {
-    return { notFound: true };
-  }
-
-  return await withCustomize({
-    props: { projectTitle, publicPaths, collaborators },
-    revalidate: 30,
-  });
-}
-*/

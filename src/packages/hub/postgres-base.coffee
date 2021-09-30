@@ -989,8 +989,15 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             name = "#{table}_#{misc.make_valid_name(query)}_idx"  # this first, then...
             if query.indexOf('(') == -1                           # do this **after** making name.
                 query = "(#{query})"
-            queries.push({name:name, query:query})
+            queries.push({name:name, query:query, unique:false})
+        w = schema.pg_unique_indexes ? []
+        for query in w
+            name = "#{table}_#{misc.make_valid_name(query)}_unique_idx"
+            if query[0] != '('
+                query = "(#{query})"
+            queries.push({name:name, query:query, unique:true})
         return queries
+
 
     _create_indexes: (table, cb) =>
         dbg = @_dbg("_create_indexes('#{table}')")
@@ -1009,7 +1016,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             # the problem might be that several create index commands were issued rapidly, which trew this off
             # So, for now, it's probably best to either create them manually first (concurrently) or be
             # aware that this does lock up briefly.
-            query = "CREATE INDEX #{info.name} ON #{table} #{query}"
+            query = "CREATE #{if info.unique then 'UNIQUE' else ''} INDEX #{info.name} ON #{table} #{query}"
             @_query
                 query : query
                 cb    : cb
@@ -1076,8 +1083,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         dbg("will add column '#{column}' to the database")
                         tasks.push({action:'add', column:column})
                     else if cur_type != goal_type
-                        if goal_type.indexOf('[]') != -1
-                            # NO support for array schema changes (even detecting)!
+                        if goal_type.includes('[]') or goal_type.includes('varchar')
+                            # NO support for array or varchar schema changes (even detecting)!
                             continue
                         dbg("type difference for column '#{column}' -- cur='#{cur_type}' versus goal='#{goal_type}'")
                         tasks.push({action:'alter', column:column})

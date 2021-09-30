@@ -404,8 +404,8 @@ export const ReactEditor = {
     // COMPAT: In Firefox, `caretRangeFromPoint` doesn't exist. (2016/07/25)
     if (document.caretRangeFromPoint) {
       domRange = document.caretRangeFromPoint(x, y);
-    } else {
-      const position = document.caretPositionFromPoint(x, y);
+    } else if (document["caretPositionFromPoint"]) {
+      const position = document["caretPositionFromPoint"](x, y);
 
       if (position) {
         domRange = document.createRange();
@@ -616,8 +616,8 @@ export const ReactEditor = {
     let node, offset;
     const AMOUNT = 22;
     const delta = reverse ? -AMOUNT - rect.height : AMOUNT; // TODO!
-    if (document.caretPositionFromPoint != null) {
-      const caret = document.caretPositionFromPoint(rect.x, rect.y - delta);
+    if (document["caretPositionFromPoint"] != null) {
+      const caret = document["caretPositionFromPoint"](rect.x, rect.y - delta);
       if (caret == null) return;
       node = caret.offsetNode;
       offset = caret.offset;

@@ -35,6 +35,7 @@ import {
   ProjectConfiguration,
 } from "@cocalc/frontend/project_configuration";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
+import SavingProjectSettingsError from "./saving-project-settings-error";
 
 interface ReactProps {
   project_id: string;
@@ -172,13 +173,15 @@ export const Body = rclass<ReactProps>(
           <h1 style={{ marginTop: "0px" }}>
             <Icon name="wrench" /> Project Settings
           </h1>
+          <SavingProjectSettingsError project_id={this.props.project_id} />
           <Row>
             <Col sm={6}>
               <AboutBox
                 project_id={id}
-                project_title={this.props.project.get("title") || ""}
-                description={this.props.project.get("description") || ""}
+                project_title={this.props.project.get("title") ?? ""}
+                description={this.props.project.get("description") ?? ""}
                 created={this.props.project.get("created")}
+                name={this.props.project.get("name")}
                 actions={redux.getActions("projects")}
               />
               <UpgradeUsage

@@ -88,6 +88,7 @@ export class SyncTable extends EventEmitter {
   private throttle_changes?: number;
   private throttled_emit_changes?: Function;
   private last_server_time: number = 0;
+  private error: { error: string; query: Query } | undefined = undefined;
 
   // Immutable map -- the value of this synctable.
   private value?: Map<string, Map<string, any>>;
@@ -295,6 +296,12 @@ export class SyncTable extends EventEmitter {
     }
 
     while (this.has_uncommitted_changes()) {
+      if (this.error) {
+        // do not try to save when there's an error since that
+        // won't help.  Need to attempt to fix it first.
+        console.warn("WARNING -- not saving ", this.error);
+        return;
+      }
       //console.log("SAVE -- has uncommitted changes, so trying again.");
       if (this.state !== "connected") {
         // wait for state change
@@ -443,6 +450,11 @@ export class SyncTable extends EventEmitter {
       // nothing actually changed, so nothing further to do.
       return new_val;
     }
+
+    // clear error state -- the change may be just what is needed
+    // to fix the error, e.g., attempting to save an invalid account
+    // setting, then fixing it.
+    this.clearError();
 
     for (const field in this.required_set_fields) {
       if (!new_val.has(field)) {
@@ -904,7 +916,13 @@ export class SyncTable extends EventEmitter {
      This function must not be called more than once at a time.
      Returns boolean:
         false -- there are no additional changes to be saved
-        true -- new changes appeared during the _save that need to be saved.
+        true -- new changes may have appeared during the _save that
+                need to be saved.
+
+     If writing to the database results in an error (but not due to no network),
+     then an error state is set (which client can consult), an even is emitted,
+     and we do not try to write to the database again until that error
+     state is cleared. One way it can be cleared is by changing the table.
   */
   private async _save(): Promise<boolean> {
     //console.log("_save");
@@ -1005,6 +1023,7 @@ export class SyncTable extends EventEmitter {
         });
         this.last_save = value; // success -- don't have to save this stuff anymore...
       } catch (err) {
+        this.setError(err, query);
         dbg("db query failed", err);
         if (is_fatal(err.toString())) {
           console.warn("FATAL doing set", this.table, err);
@@ -1058,6 +1077,16 @@ export class SyncTable extends EventEmitter {
     const is_done = len(this.changes) === 0;
     dbg("done? ", is_done);
     return !is_done;
+  }
+
+  private setError(error: string, query: Query): void {
+    this.error = { error, query };
+    this.emit("error", this.error);
+  }
+
+  public clearError(): void {
+    this.error = undefined;
+    this.emit("clear-error");
   }
 
   private async wait_until_versions_are_updated(
@@ -1365,9 +1394,9 @@ export class SyncTable extends EventEmitter {
     */
   }
 
-  public apply_changes_to_browser_client(
-    changes: VersionedChange[]
-  ): { [key: string]: boolean } {
+  public apply_changes_to_browser_client(changes: VersionedChange[]): {
+    [key: string]: boolean;
+  } {
     const dbg = this.dbg("apply_changes_to_browser_client");
     dbg("got ", changes.length, "changes");
     this.assert_not_closed("apply_changes_to_browser_client");
@@ -1435,7 +1464,7 @@ export class SyncTable extends EventEmitter {
         if (this.value == null) {
           throw Error("value must not be null");
         }
-        let obj : any = this.value.get(key);
+        let obj: any = this.value.get(key);
         if (obj == null) {
           throw Error(`there must be an object in this.value with key ${key}`);
         }

@@ -253,7 +253,8 @@ interface TableSchema<F extends Fields> {
   unique_writes?: boolean; // If true, assume no reason for a user to write the same record twice.
   anonymous?: boolean;
   virtual?: string | true; // Must be another table name or true
-  pg_indexes?: any[];
+  pg_indexes?: string[];
+  pg_unique_indexes?: string[];
   user_query?: UserOrProjectQuery<F>;
   project_query?: UserOrProjectQuery<F>;
 }

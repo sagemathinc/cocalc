@@ -3,8 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-
 /*
 ES6 support https://www.w3schools.com/js/js_versions.asp
 Firefox: 54
@@ -14,6 +12,7 @@ Opera: 55
 Chrome is wrong on that page, I assume we should check for 61 or 62.
 */
 
+import { useLayoutEffect } from "react";
 const APP_NAME = "CoCalc";
 
 import A from "./link";
@@ -79,7 +78,7 @@ const STYLE = {
   fontFamily: "sans-serif",
 } as React.CSSProperties;
 
-function allowedToRun(spec: Spec) {
+function allowedToRun() {
   if (window.location.href.includes(SKIP_TOKEN)) {
     return true;
   }
@@ -94,9 +93,8 @@ function allowedToRun(spec: Spec) {
 }
 
 export default function PreflightCheck() {
-  const spec = getSpec();
-  const allowed = allowedToRun(spec);
-  React.useLayoutEffect(() => {
+  const allowed = allowedToRun();
+  useLayoutEffect(() => {
     if (!allowed) {
       // Cause everything to stop right after
       // the initial render.
@@ -109,6 +107,7 @@ export default function PreflightCheck() {
     return null;
   }
 
+  const spec = getSpec();
   return (
     <div style={STYLE}>
       <h1 style={{ color: "red", fontSize: "400%" }}>&#9888;</h1>

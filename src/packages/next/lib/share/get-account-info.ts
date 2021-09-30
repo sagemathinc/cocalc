@@ -6,6 +6,7 @@ export interface AccountInfo {
   accountID: string;
   firstName: string;
   lastName: string;
+  name: string;
   publicPaths: PublicPath[];
 }
 
@@ -21,21 +22,25 @@ export default async function getAccountInfo(
 
 export async function getName(
   accountID: string
-): Promise<{ firstName: string; lastName: string }> {
+): Promise<{ firstName: string; lastName: string; name: string }> {
   if (!isUUID(accountID)) {
     throw Error("invalid UUID");
   }
-  const pool = getPool();
+  const pool = getPool('medium');
 
   // Get the database entry
   const { rows } = await pool.query(
-    "SELECT first_name, last_name FROM accounts WHERE unlisted IS NOT TRUE AND account_id=$1",
+    "SELECT name, first_name, last_name FROM accounts WHERE account_id=$1",
     [accountID]
   );
   if (rows.length == 0) {
     throw Error("no such user");
   }
-  return { firstName: rows[0].first_name, lastName: rows[0].last_name };
+  return {
+    firstName: rows[0].first_name,
+    lastName: rows[0].last_name,
+    name: rows[0].name,
+  };
 }
 
 export async function getPublicPaths(accountID: string): Promise<PublicPath[]> {
@@ -44,7 +49,7 @@ export async function getPublicPaths(accountID: string): Promise<PublicPath[]> {
     // into the query string directly, and this is input directly from the user!
     throw Error("invalid UUID");
   }
-  const pool = getPool();
+  const pool = getPool('medium');
 
   // Returns public paths for which account_id is a collaborator on the project that has
   // actively used the project.

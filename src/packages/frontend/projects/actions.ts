@@ -157,6 +157,25 @@ export class ProjectsActions extends Actions<ProjectsState> {
     });
   }
 
+  public async set_project_name(
+    project_id: string,
+    name: string
+  ): Promise<void> {
+    if (!(await this.have_project(project_id))) {
+      console.warn(
+        `Can't set project name -- you are not a collaborator on project '${project_id}'.`
+      );
+      return;
+    }
+    // set in the Table
+    await this.projects_table_set({ project_id, name });
+    // create entry in the project's log
+    await this.redux.getProjectActions(project_id).async_log({
+      event: "set",
+      name,
+    });
+  }
+
   public async add_ssh_key_to_project(opts: {
     project_id: string;
     fingerprint: string;

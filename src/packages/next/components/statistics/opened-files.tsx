@@ -162,8 +162,8 @@ export default function OpenedFiles({
         {distinct ? "Distinct " : ""}Files Used in the Last Hour: {lastHour}{" "}
       </h2>
       <p>
-        Number of {distinct ? "distinct" : ""} files of each type that people
-        opened during the last hour, day, week and month.
+        Track the number of {distinct ? "distinct" : ""} files of each type that
+        people opened during the last hour, day, week and month.
       </p>
       <Table
         dataSource={rows}
