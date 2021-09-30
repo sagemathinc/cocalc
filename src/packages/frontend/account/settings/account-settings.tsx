@@ -508,9 +508,9 @@ export class AccountSettings extends Component<Props, State> {
           <AntdAlert
             style={{ margin: "15px 0" }}
             message={
-              "A username provides nicer links for shared public documents. Leaving the above box blank to not have a username is fine." +
+              "Setting your username provides much nicer URL's for shared public documents. Leave the above box blank to not have a username." +
               (this.props.name
-                ? " TEMPORARY WARNING: If you change your username, existing share links using the previous username will break, so change with caution."
+                ? " TEMPORARY WARNING: If you change your username, existing links using the previous username will no longer work, so change with caution."
                 : "")
             }
             type="info"

@@ -73,9 +73,9 @@ export default function ConfigureName({ project_id, path }: Props) {
           Edit the name; it can be up to 100 letters, digits, dashes and
           periods, and must be unique in this project. (TEMPORARY WARNING: If
           you change the name, existing public shared links using the previous
-          name will break, so change with caution.) For optimal URLs, also set
-          the project name in project settings and the project owner username in
-          account preferences.
+          name will break, so change with caution.) For a nice URLs, set the
+          project name in Project Settings and{" "}
+          <b>the project owner's name must be set in Account Preferences</b>.
         </span>
       )}
     </div>

@@ -361,7 +361,7 @@ class Configure extends Component<Props, State> {
           {this.render_link(parent_is_public)}
           <ConfigureName
             project_id={this.props.project_id}
-            path={this.props.path}
+            path={this.props.public?.path ?? this.props.path}
           />
         </Col>
       </Row>

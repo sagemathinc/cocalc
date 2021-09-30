@@ -9,6 +9,8 @@ which requires a DB query.
 If a rule fails, throws an Error.
 */
 
+import { is_valid_uuid_string } from "../misc";
+
 export function isReserved(name: string): boolean {
   return RESERVED.has(name.toLowerCase());
 }
@@ -18,6 +20,7 @@ Account name:
  - between 1 and 39 characters
  - doesn't start with a -
  - only includes the characters 0-9,a-z,A-Z,-
+ - Don't allow uuid's.
  - cannot include consecutive hyphens
 */
 export function checkAccountName(name: string) {
@@ -26,6 +29,9 @@ export function checkAccountName(name: string) {
   }
   if (name.length > 39) {
     throw Error("name must have at most 39 characters");
+  }
+  if (is_valid_uuid_string(name)) {
+    throw Error("name must not be a v4 UUID");
   }
   if (name.includes("--")) {
     throw Error("name must not contain consecutive hyphens");
@@ -47,6 +53,7 @@ Project name:
 - Max length: 100 characters
 - All characters must be either a hyphen (-), a period (.), or alphanumeric
 - Unique amongst projects with given owner
+- Don't allow uuid's.
 */
 export function checkProjectName(name: string) {
   if (name.length < 1) {
@@ -54,6 +61,9 @@ export function checkProjectName(name: string) {
   }
   if (name.length > 100) {
     throw Error("name must have at most 100 characters");
+  }
+  if (is_valid_uuid_string(name)) {
+    throw Error("name must not be a v4 UUID");
   }
   if (!/^[\.a-z\d](?:[\.a-z\d]|-(?=[\.a-z\d])){0,99}$/i.test(name)) {
     throw Error(
@@ -68,6 +78,7 @@ Public path name:
 - Max length: 100 characters
 - All characters must be either a hyphen (-), a period (.), or alphanumeric
 - Unique amongst public paths in a given project.
+- Don't allow uuid's.
 */
 
 export function checkPublicPathName(name: string) {
@@ -76,6 +87,9 @@ export function checkPublicPathName(name: string) {
   }
   if (name.length > 100) {
     throw Error("name must have at most 100 characters");
+  }
+  if (is_valid_uuid_string(name)) {
+    throw Error("name must not be a v4 UUID");
   }
   if (!/^[\.a-z\d](?:[\.a-z\d]|-(?=[\.a-z\d])){0,99}$/i.test(name)) {
     throw Error(

@@ -60,9 +60,9 @@ export function AboutBox(props: Props) {
           <Alert
             style={{ margin: "15px 0" }}
             message={
-              "The project name is currently only used to provide better URL's for publicly shared documents. It can be at most 100 characters long and must be unique among all projects you own. Only the project owner can change the project name." +
+              "The project name is currently only used to provide better URL's for publicly shared documents. It can be at most 100 characters long and must be unique among all projects you own. Only the project owner can change the project name.  To be useful, the owner should also set their username in Account Preferences." +
               (props.name
-                ? " TEMPORARY WARNING: If you change the project name, existing public shared links using the previous name will break, so change with caution."
+                ? " TEMPORARY WARNING: If you change the project name, existing links using the previous name will no longer work, so change with caution."
                 : "")
             }
             type="info"
