@@ -52,6 +52,6 @@ export function shareServerUrl(): string {
   return `${serverUrl()}/share`;
 }
 
-function serverUrl(): string {
-  return `${document.location.origin}${appBasePath}`;
+function serverUrl(): string { // does NOT end in a slash
+  return `${document.location.origin}${appBasePath == "/" ? "" : appBasePath}`;
 }
