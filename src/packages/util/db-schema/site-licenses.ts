@@ -207,8 +207,8 @@ Table({
     anonymous: false,
     primary_key: "id",
     pg_indexes: [
-      "((quota -> 'dedicated_vm'))",
-      "((quota -> 'dedicated_disk'))",
+      "((quota -> 'dedicated_disk' IS NOT NULL))",
+      "((quota -> 'dedicated_vm' IS NOT NULL))",
     ],
     user_query: {
       get: {
