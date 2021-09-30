@@ -22,7 +22,6 @@ import { is_zero_map } from "@cocalc/util/misc";
 import {
   DedicatedDisk,
   DedicatedVM,
-  DISK_NAMES,
   dedicated_disk_display,
 } from "@cocalc/util//db-schema/site-licenses";
 import { PRICES } from "@cocalc/frontend/site-licenses/purchase/dedicated";
