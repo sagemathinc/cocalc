@@ -51,5 +51,5 @@ export async function getServerSideProps(context) {
     return { notFound: true };
   }
 
-  return await withCustomize({ props });
+  return await withCustomize({ context, props });
 }

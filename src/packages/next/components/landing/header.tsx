@@ -35,6 +35,7 @@ export default function Header({ page, subPage }: Props) {
     termsOfServiceURL,
     shareServer,
     landingPages,
+    account,
   } = useCustomize();
   if (basePath == null) return null;
 
@@ -140,7 +141,7 @@ export default function Header({ page, subPage }: Props) {
           href={join(basePath, "static/app.html")}
           title={`Sign in to ${siteName} or create an account.`}
         >
-          Sign In
+          {account ? "Signed In" : "Sign In"}
         </a>
       </Layout.Header>
       {landingPages && page && <SubNav page={page} subPage={subPage} />}

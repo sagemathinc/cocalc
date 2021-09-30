@@ -38,7 +38,7 @@ export async function getServerSideProps(context) {
       return { props: {} };
     }
     const props = await getPublicPathInfo(id, relativePath);
-    return await withCustomize({ props });
+    return await withCustomize({ context, props });
   } catch (_err) {
     console.log(_err);
     return { notFound: true };

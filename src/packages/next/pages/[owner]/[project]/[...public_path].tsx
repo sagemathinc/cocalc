@@ -22,7 +22,7 @@ export async function getServerSideProps(context) {
       relativePath = public_path.slice(2).join("/");
     }
     const props = await getPublicPathInfo(public_path_id, relativePath);
-    return await withCustomize({ props });
+    return await withCustomize({ context, props });
   } catch (_err) {
     // console.log(_err);
     return { notFound: true };

@@ -5,10 +5,11 @@ import getAccountId from "lib/account/get-account";
 
 const revalidate = 30;
 
-export default async function get(
-  obj?: { props?: any; revalidate?: number },
-  context
-) {
+export default async function get(obj: {
+  props?: any;
+  revalidate?: number;
+  context: any;
+}) {
   let customize;
   try {
     customize = await getCustomize();
@@ -17,13 +18,15 @@ export default async function get(
     // this happens.
     customize = {};
   }
-  if (context?.req != null) {
-    const cookies = new Cookies(context.req, context.res);
+  if (obj.context?.req != null) {
+    const cookies = new Cookies(obj.context.req, obj.context.res);
     console.log("cookie name = ", REMEMBER_ME_COOKIE_NAME);
     const rememberMe = cookies.get(REMEMBER_ME_COOKIE_NAME);
     if (rememberMe) {
       const account_id = await getAccountId(rememberMe);
-      console.log("account_id=", account_id);
+      if (account_id) {
+        customize.account = { account_id };
+      }
     }
   }
   if (obj == null) {
@@ -37,5 +40,6 @@ export default async function get(
   } else {
     obj.props.customize = customize;
   }
+  delete obj.context;
   return obj;
 }

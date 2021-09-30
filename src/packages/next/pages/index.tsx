@@ -49,5 +49,5 @@ export default function Home({ customize }) {
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomize(undefined, context);
+  return await withCustomize({ context });
 }

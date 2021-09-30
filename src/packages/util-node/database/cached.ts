@@ -26,7 +26,7 @@ const MAX_AGE_S = {
   short: 5, // just to avoid a very rapid fire sequence of re-requests
   medium: 15, // usually use this.
   long: 30,
-  eon: 10 * 60, // a really long time -- for now, 10 minutes.  example, the owner of a project.
+  minutes: 10 * 60, // a really long time -- for now, 10 minutes.  example, the owner of a project.
   infinite: 60 * 60 * 24 * 365, // effectively forever; e.g., getting path from share id is really just a reversed sha1 hash, so can't change.
 };
 
