@@ -1,5 +1,9 @@
 import { createContext, useContext } from "react";
-import type { Customize } from "@cocalc/util-node/server-settings/customize";
+import type { Customize as ServerCustomize } from "@cocalc/util-node/server-settings/customize";
+
+interface Customize extends ServerCustomize {
+  account?: { account_id: string };
+}
 
 const CustomizeContext = createContext<Partial<Customize>>({});
 const { Provider } = CustomizeContext;

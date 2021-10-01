@@ -28,7 +28,11 @@ import teaching from "public/features/cocalc-teaching.png";
 export default function Teaching({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title={"Teach scientific software online using Jupyter Notebook, Python, R, and more"} />
+      <Head
+        title={
+          "Teach scientific software online using Jupyter Notebook, Python, R, and more"
+        }
+      />
       <Layout>
         <Header page="features" subPage="teaching" />
         <Layout.Content>
@@ -36,7 +40,9 @@ export default function Teaching({ customize }) {
             <Content
               startup={"CoCalc"}
               logo={logo}
-              title={"Teach scientific software online using Jupyter Notebook, Python, R, and more"}
+              title={
+                "Teach scientific software online using Jupyter Notebook, Python, R, and more"
+              }
               subtitle={
                 <>
                   CoCalc is a virtual online computer lab: it takes away the
@@ -124,8 +130,8 @@ export default function Teaching({ customize }) {
                 </ul>
                 <p>
                   CoCalc's massive default{" "}
-                  <A href="/software">Software Environment</A> provides
-                  nearly everything anybody{" "}
+                  <A href="/software">Software Environment</A> provides nearly
+                  everything anybody{" "}
                   <strong>has ever asked us to install since 2013!</strong>
                 </p>
               </div>
@@ -365,8 +371,8 @@ export default function Teaching({ customize }) {
   );
 }
 
-export async function getServerSideProps() {
-  return await withCustomize();
+export async function getServerSideProps(context) {
+  return await withCustomize({ context });
 }
 
 interface ToolProps {

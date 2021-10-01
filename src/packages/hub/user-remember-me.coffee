@@ -12,6 +12,7 @@ in case they invalidate their cookie.
 Cache = require('lru-cache')
 
 auth    = require('./auth')
+generateHash =require("@cocalc/util-node/auth/hash").default;
 
 # Do NOT change this - this exact string is assumed in @cocalc/util/client
 {NOT_SIGNED_IN} = require("@cocalc/util/consts")
@@ -28,7 +29,7 @@ exports.get_account_id = (database, remember_me, cb) ->
         return
     x = remember_me.split('$')
     try
-        hash = auth.generate_hash(x[0], x[1], x[2], x[3])
+        hash = generateHash(x[0], x[1], x[2], x[3])
     catch err
         cb(NOT_SIGNED_IN)
         return

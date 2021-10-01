@@ -61,6 +61,8 @@ import {
 } from "@cocalc/frontend/account/passport-types";
 const safeJsonStringify = require("safe-json-stringify");
 import base_path from "@cocalc/util-node/base-path";
+import generateHash from "@cocalc/util-node/auth/hash";
+import { COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/util-node/auth/remember-me";
 
 // primary strategies -- all other ones are "extra"
 const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO];
@@ -91,20 +93,11 @@ const { defaults, required } = misc;
 
 const API_KEY_COOKIE_NAME = base_path + "get_api_key";
 
-// Nov'19: actually two cookies due to same-site changes.
-// See https://web.dev/samesite-cookie-recipes/#handling-incompatible-clients
-export function remember_me_cookie_name(): string {
-  return `${
-    base_path.length <= 1 ? "" : encodeURIComponent(base_path)
-  }remember_me`;
-}
-
 //#######################################
 // Password hashing
 //#######################################
 
 const password_hash_library = require("password-hash");
-const crypto = require("crypto");
 
 // You can change the parameters at any time and no existing passwords
 // or cookies should break.  This will only impact newly created
@@ -114,27 +107,6 @@ const HASH_ALGORITHM = "sha512";
 const HASH_ITERATIONS = 1000;
 const HASH_SALT_LENGTH = 32;
 
-// This function is private and burried inside the password-hash
-// library.  To avoid having to fork/modify that library, we've just
-// copied it here.  We need it for remember_me cookies.
-export function generate_hash(algorithm, salt, iterations, password): string {
-  // there are cases where createHmac throws an error, because "salt" is undefined
-  if (algorithm == null || salt == null) {
-    throw new Error(
-      `undefined arguments: algorithm='${algorithm}' salt='${salt}'`
-    );
-  }
-  iterations = iterations || 1;
-  let hash = password;
-  for (
-    let i = 1, end = iterations, asc = 1 <= end;
-    asc ? i <= end : i >= end;
-    asc ? i++ : i--
-  ) {
-    hash = crypto.createHmac(algorithm, salt).update(hash).digest("hex");
-  }
-  return algorithm + "$" + salt + "$" + iterations + "$" + hash;
-}
 
 export function password_hash(password): string {
   // This blocks the server for about 5-9ms.
@@ -823,7 +795,7 @@ export class PassportManager {
       account_id: undefined,
       email_address: undefined,
       target: path_join(base_path + "app#login"),
-      remember_me_cookie: cookies.get(remember_me_cookie_name()),
+      remember_me_cookie: cookies.get(REMEMBER_ME_COOKIE_NAME),
       get_api_key: cookies.get(API_KEY_COOKIE_NAME),
       action: undefined,
       api_key: undefined,
@@ -932,7 +904,7 @@ export class PassportManager {
     }
     let hash;
     try {
-      hash = generate_hash(x[0], x[1], x[2], x[3]);
+      hash = generateHash(x[0], x[1], parseInt(x[2]), x[3]);
     } catch (error) {
       const err = error;
       dbg(
@@ -1221,7 +1193,7 @@ export class PassportManager {
     });
 
     dbg("and also set remember_me cookie in client");
-    locals.cookies.set(remember_me_cookie_name(), remember_me_value, {
+    locals.cookies.set(REMEMBER_ME_COOKIE_NAME, remember_me_value, {
       maxAge: ttl_s * 1000,
     });
   }

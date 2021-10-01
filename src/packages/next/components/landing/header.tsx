@@ -35,6 +35,7 @@ export default function Header({ page, subPage }: Props) {
     termsOfServiceURL,
     shareServer,
     landingPages,
+    account,
   } = useCustomize();
   if (basePath == null) return null;
 
@@ -72,6 +73,15 @@ export default function Header({ page, subPage }: Props) {
             />
           </div>
         </A>
+        {account && (
+          <a
+            style={LinkStyle}
+            href={join(basePath, "projects")}
+            title={"View your projects"}
+          >
+            Projects
+          </a>
+        )}
         {landingPages && (
           <>
             <A
@@ -126,7 +136,7 @@ export default function Header({ page, subPage }: Props) {
         >
           Info
         </A>
-        {anonymousSignup && (
+        {!account && anonymousSignup && (
           <a
             style={LinkStyle}
             href={join(basePath, "static/app.html?anonymous=jupyter")}
@@ -137,10 +147,14 @@ export default function Header({ page, subPage }: Props) {
         )}{" "}
         <a
           style={LinkStyle}
-          href={join(basePath, "static/app.html")}
-          title={`Sign in to ${siteName} or create an account.`}
+          href={join(basePath, "settings")}
+          title={
+            account
+              ? "View your Account Settings"
+              : `Sign in to ${siteName} or create an account.`
+          }
         >
-          Sign In
+          {account ? "Account" : "Sign In"}
         </a>
       </Layout.Header>
       {landingPages && page && <SubNav page={page} subPage={subPage} />}

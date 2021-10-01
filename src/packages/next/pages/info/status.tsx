@@ -43,7 +43,7 @@ export default function Stats({ customize, stats }) {
   );
 }
 
-export async function getServerSideProps() {
+export async function getServerSideProps(context) {
   const stats = await getStats();
-  return await withCustomize({ props: { stats } });
+  return await withCustomize({ context, props: { stats } });
 }

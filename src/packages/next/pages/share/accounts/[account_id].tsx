@@ -33,6 +33,7 @@ export async function getServerSideProps(context) {
       return { props: {} };
     }
     return await withCustomize({
+      context,
       props: accountInfo,
     });
   } catch (_err) {

@@ -79,6 +79,7 @@ export async function getStaticProps(context) {
   try {
     const props = await getPublicPathInfo(id, relativePath);
     return await withCustomize({
+      context,
       props: { ...props, layout: "embed" },
       revalidate: 15,
     });

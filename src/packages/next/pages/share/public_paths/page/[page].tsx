@@ -81,15 +81,11 @@ export default function All({ page, publicPaths, customize }) {
 
 export async function getServerSideProps(context) {
   const page = getPage(context.params);
-  const pool = getPool('medium');
+  const pool = getPool("medium");
   const { rows } = await pool.query(
     "SELECT id, path, description, EXTRACT(EPOCH FROM last_edited)*1000 AS last_edited FROM public_paths WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE ORDER BY last_edited DESC LIMIT $1 OFFSET $2",
     [PAGE_SIZE, PAGE_SIZE * (page - 1)]
   );
 
-  return await withCustomize({
-    props: { page, publicPaths: rows },
-  });
+  return await withCustomize({ context, props: { page, publicPaths: rows } });
 }
-
-

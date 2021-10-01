@@ -238,8 +238,8 @@ export default function JupyterNotebook({ customize }) {
   );
 }
 
-export async function getServerSideProps() {
-  return await withCustomize();
+export async function getServerSideProps(context) {
+  return await withCustomize({ context });
 }
 
 export function FullLinuxTerminal() {
