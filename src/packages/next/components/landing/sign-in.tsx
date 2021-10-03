@@ -1,7 +1,7 @@
 import { join } from "path";
 import { useCustomize } from "lib/customize";
 import basePath from "lib/base-path";
-import { ReactNode } from "react";
+import { CSSProperties, ReactNode } from "react";
 import A from "components/misc/A";
 
 interface Props {
@@ -9,7 +9,10 @@ interface Props {
   hideFree?: boolean;
 }
 
-const STYLE = { textAlign: "center", padding: "30px 15px 0 15px" };
+const STYLE = {
+  textAlign: "center",
+  padding: "30px 15px 0 15px",
+} as CSSProperties;
 
 export default function SignIn({ startup, hideFree }: Props) {
   const { anonymousSignup, siteName, account } = useCustomize();
