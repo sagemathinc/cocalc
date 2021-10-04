@@ -25,6 +25,32 @@ register({
   StaticElement: ({ attributes, children, element }) => {
     if (element.type != "heading") throw Error("bug");
     const { level } = element;
-    return React.createElement(`h${level}`, attributes, children);
+    const id = toId(toText(element));
+    return React.createElement(`h${level}`, { id, ...attributes }, children);
   },
 });
+
+function toText(element) {
+  if (element.text != null) {
+    return element.text;
+  }
+  if (element.children != null) {
+    let s = "";
+    for (const child of element.children) {
+      s += toText(child);
+    }
+    return s;
+  }
+  return "";
+}
+
+// We automatically generate id's for headers as follows:
+// We make the underlying text lower case, replace spaces by dashes,
+// and delete all other punctuation.
+// This matches with some other markdown processor we were evidently once using.
+function toId(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[.,\/#!$%\^&\*;:{}=_`~()]/g, "");
+}

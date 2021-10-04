@@ -20,7 +20,6 @@ export default async function get(obj: {
   }
   if (obj.context?.req != null) {
     const cookies = new Cookies(obj.context.req, obj.context.res);
-    console.log("cookie name = ", REMEMBER_ME_COOKIE_NAME);
     const rememberMe = cookies.get(REMEMBER_ME_COOKIE_NAME);
     if (rememberMe) {
       const account_id = await getAccountId(rememberMe);
