@@ -38,10 +38,16 @@ const dataSource = [
     description: <>List of third parties used to provide CoCalc.</>,
   },
   {
-    link: "/software/ferpa",
+    link: "/policies/ferpa",
     title: "FERPA compliance statement",
     logo: "graduation-cap",
     description: <>CoCalc's FERPA Compliance statement.</>,
+  },
+    {
+    link: "/policies/accessibility",
+    title: "Accessibility",
+    logo: "eye",
+    description: <>CoCalc Voluntary Product Accessibility Template (VPAT)</>,
   },
 ] as DataSource;
 
