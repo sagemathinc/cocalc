@@ -5,7 +5,7 @@ export default function A(props: any) {
   if (href == null) {
     return <a {...props} />;
   }
-  if (href.includes("://") || href.startsWith("mailto:")) {
+  if (props.external || href.includes("://") || href.startsWith("mailto:")) {
     return <a {...props} target={"_blank"} rel={"noopener"} />;
   }
   const props2 = {};
