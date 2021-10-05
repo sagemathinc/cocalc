@@ -295,12 +295,8 @@ export const HandoutsPanel = rclass<HandoutsPanelReactProps>(
 
     public render(): Rendered {
       // Computed data from state changes have to go in render
-      const {
-        shown_handouts,
-        deleted_handouts,
-        num_omitted,
-        num_deleted,
-      } = this.compute_handouts_list();
+      const { shown_handouts, deleted_handouts, num_omitted, num_deleted } =
+        this.compute_handouts_list();
       const add_handout = this.yield_adder(deleted_handouts);
 
       const header = (
@@ -341,8 +337,7 @@ export function HandoutsPanelHeader(props: { n: number }) {
       tip="This tab lists all of the handouts associated with your course."
     >
       <span>
-        <Icon name="files" /> Handouts{" "}
-        {props.n != null ? ` (${props.n})` : ""}
+        <Icon name="files" /> Handouts {props.n != null ? ` (${props.n})` : ""}
       </span>
     </Tip>
   );
@@ -751,8 +746,7 @@ Select "Replace student files!" in case you do not want to create any backups an
         key="confirm_delete"
         message={
           <div>
-            Are you sure you want to delete this handout (you can undelete it
-            later)?
+            Are you sure you want to delete this handout?
             <br /> <br />
             <ButtonGroup>
               <Button key="yes" onClick={this.delete_handout} bsStyle="danger">
@@ -868,7 +862,7 @@ Select "Replace student files!" in case you do not want to create any backups an
   private get_store(): CourseStore {
     const store = redux.getStore(this.props.name);
     if (store == null) throw Error("store must be defined");
-    return (store as unknown) as CourseStore;
+    return store as unknown as CourseStore;
   }
 
   private render_handout_heading(): Rendered {
@@ -960,7 +954,7 @@ class StudentListForHandout extends Component<StudentListForHandoutProps> {
   private get_store(): CourseStore {
     const store = redux.getStore(this.props.name);
     if (store == null) throw Error("store must be defined");
-    return (store as unknown) as CourseStore;
+    return store as unknown as CourseStore;
   }
 
   private render_students(): Rendered {
@@ -1039,9 +1033,7 @@ interface StudentHandoutInfoHeaderProps {
   title: string;
 }
 
-class StudentHandoutInfoHeader extends Component<
-  StudentHandoutInfoHeaderProps
-> {
+class StudentHandoutInfoHeader extends Component<StudentHandoutInfoHeaderProps> {
   render_col(step_number, key, width) {
     let tip, title;
     switch (key) {

@@ -53,6 +53,8 @@ import { CustomizeStudentProjectFunctionality } from "./customize-student-projec
 import { StudentProjectSoftwareEnvironment } from "./student-project-software-environment";
 import { DatastoreConfig } from "./datastore-config";
 
+import EmptyTrash from "./empty-trash";
+
 const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
 interface Props {
@@ -671,6 +673,8 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
               actions={actions.configuration}
               datastore={settings.get("datastore")}
             />
+            <br />
+            <EmptyTrash />
           </Col>
         </Row>
       </div>

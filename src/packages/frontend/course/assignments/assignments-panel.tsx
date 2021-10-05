@@ -1541,8 +1541,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   render_confirm_delete() {
     const message = (
       <div>
-        Are you sure you want to delete this assignment (you can undelete it
-        later)?
+        Are you sure you want to delete this assignment?
         <br /> <br />
         <ButtonGroup>
           <Button key="yes" onClick={this.delete_assignment} bsStyle="danger">
