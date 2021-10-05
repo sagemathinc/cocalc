@@ -1151,8 +1151,8 @@ class Student extends Component<StudentProps, StudentState> {
         // less than 2 minutes -- still hope, so render that creating
         return (
           <div>
-            <Icon name="cocalc-ring" spin /> Creating project...
-            (started <TimeAgo date={create} />)
+            <Icon name="cocalc-ring" spin /> Creating project... (started{" "}
+            <TimeAgo date={create} />)
           </div>
         );
       }
@@ -1272,8 +1272,7 @@ class Student extends Component<StudentProps, StudentState> {
     if (this.state.confirm_delete) {
       return (
         <div>
-          Are you sure you want to delete this student (you can always undelete
-          them later)?
+          Are you sure you want to delete this student?
           <Space />
           <ButtonGroup>
             <Button onClick={this.delete_student} bsStyle="danger">

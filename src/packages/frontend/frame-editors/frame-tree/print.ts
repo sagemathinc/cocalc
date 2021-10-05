@@ -72,9 +72,10 @@ export function print_window(w): void {
   if (w.window.print === null) {
     return;
   }
-  const f = () => w.window.print();
-  // Wait until the render is (probably) done, then display print dialog.
-  w.window.setTimeout(f, 100);
+  // Wait until the render is done, then display print dialog.
+  w.window.onload = () => {
+    w.window.print();
+  };
 }
 
 function write_content(w, opts: PrintOptions): void {

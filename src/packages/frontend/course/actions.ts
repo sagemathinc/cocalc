@@ -32,7 +32,7 @@ import { bind_methods } from "@cocalc/util/misc";
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
 
-const primary_key = {
+export const primary_key = {
   students: "student_id",
   assignments: "assignment_id",
   handouts: "handout_id",

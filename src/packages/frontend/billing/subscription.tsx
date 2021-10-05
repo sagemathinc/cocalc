@@ -98,7 +98,11 @@ export const Subscription: React.FC<Props> = ({ subscription, style }) => {
             >
               {cancelling ? "Cancelling..." : "Cancel..."}
             </Button>
-          ) : undefined}
+          ) : (
+            <Button style={{ float: "right" }} disabled={true}>
+              Cancelled
+            </Button>
+          )}
         </Col>
       </Row>
     );

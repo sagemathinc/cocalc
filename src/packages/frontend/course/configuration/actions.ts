@@ -9,7 +9,7 @@ Actions involving configuration of the course.
 
 import { webapp_client } from "../../webapp-client";
 import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
-import { CourseActions } from "../actions";
+import { CourseActions, primary_key } from "../actions";
 import { store as projects_store } from "../../projects/store";
 import { redux } from "../../app-framework";
 import { reuseInFlight } from "async-await-utils/hof";
@@ -71,7 +71,7 @@ export class ConfigurationActions {
       }
     }
     const site_license_id = v.join(",");
-if (!removed.includes(license_id)) {
+    if (!removed.includes(license_id)) {
       removed = removed.split(",").concat([license_id]).join(",");
     }
     this.set({
@@ -346,5 +346,22 @@ if (!removed.includes(license_id)) {
     this.course_actions.shared_project.set_datastore();
     // in case there is one, we have to set the datastore as well
     this.configure_nbgrader_grade_project();
+  }
+
+  public purgeDeleted(): void {
+    const { syncdb } = this.course_actions;
+    for (const record of syncdb.get()) {
+      if (record?.get("deleted")) {
+        for (const table in primary_key) {
+          const key = primary_key[table];
+          if (record.get(key)) {
+            console.log("deleting ", record.toJS());
+            syncdb.delete({ [key]: record.get(key) });
+            break;
+          }
+        }
+      }
+    }
+    syncdb.commit();
   }
 }

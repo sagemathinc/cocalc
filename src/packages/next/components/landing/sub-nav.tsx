@@ -38,7 +38,8 @@ const policies = {
   copyright: { label: "Copyright" },
   privacy: { label: "Privacy" },
   thirdparties: { label: "Third Parties" },
-  ferpa: { label: "FERPA Compliance" },
+  ferpa: { label: "FERPA" },
+  accessibility: { label: "Accessibility" },
 };
 
 const info = {

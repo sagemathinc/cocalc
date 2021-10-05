@@ -6,17 +6,27 @@ export default function A(props: any) {
     return <a {...props} />;
   }
   if (props.external || href.includes("://") || href.startsWith("mailto:")) {
-    return <a {...props} target={"_blank"} rel={"noopener"} />;
-  }
-  const props2 = {};
-  for (const i in props) {
-    if (i != "href") {
-      props2[i] = props[i];
-    }
+    return (
+      <a
+        {...copyWithout(props, "external")}
+        target={"_blank"}
+        rel={"noopener"}
+      />
+    );
   }
   return (
     <Link href={href}>
-      <a {...props2} />
+      <a {...copyWithout(props, "href")} />
     </Link>
   );
+}
+
+function copyWithout(props, without: string) {
+  const props2 = {};
+  for (const key in props) {
+    if (key != without) {
+      props2[key] = props[key];
+    }
+  }
+  return props2;
 }
