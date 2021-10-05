@@ -135,6 +135,9 @@ export const Body = rclass<ReactProps>(
       const site_license_ids: string[] = store.get_site_license_ids(
         this.props.project_id
       );
+      const dedicated_resources = store.get_total_site_license_dedicated(
+        this.props.project_id
+      );
 
       const available = is_available(this.props.configuration);
       const have_jupyter_lab = available.jupyter_lab;
@@ -201,6 +204,7 @@ export const Body = rclass<ReactProps>(
                 }
                 site_license_upgrades={site_license_upgrades}
                 site_license_ids={site_license_ids}
+                dedicated_resources={dedicated_resources}
               />
 
               <HideDeleteBox
