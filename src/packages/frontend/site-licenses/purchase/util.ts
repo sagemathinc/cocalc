@@ -7,13 +7,9 @@ import { isEqual } from "lodash";
 import {
   DedicatedDisk,
   DedicatedVM,
+  ONE_MONTH_MS,
 } from "@cocalc/util/db-schema/site-licenses";
 import { dedicatedPrice } from "./dedicated";
-
-export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-export const AVG_MONTH_DAYS = 30.5;
-export const AVG_YEAR_DAYS = 12 * AVG_MONTH_DAYS;
-export const ONE_MONTH_MS = AVG_MONTH_DAYS * ONE_DAY_MS;
 
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "max" | "custom";

@@ -750,6 +750,8 @@ export function site_license_quota(
     total_quota.dedicated_vm = dedicated_vm;
     total_quota.member_host = true;
     total_quota.network = true;
+    total_quota.cpu_limit = 0;
+    total_quota.memory_limit = 0
   }
 
   const ret = limit_quota(total_quota, max_upgrades);

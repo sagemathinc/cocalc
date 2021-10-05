@@ -21,6 +21,11 @@ import { is_valid_uuid_string, plural } from "../misc";
 import { Table } from "./types";
 import { SCHEMA } from "./index";
 
+export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+export const AVG_MONTH_DAYS = 30.5;
+export const AVG_YEAR_DAYS = 12 * AVG_MONTH_DAYS;
+export const ONE_MONTH_MS = AVG_MONTH_DAYS * ONE_DAY_MS;
+
 export type DedicatedDiskTypes = "ssd" | "standard" | "balanced";
 
 export type DedicatedDisk =
@@ -53,6 +58,23 @@ export function isDedicatedDisk(d): d is DedicatedDisk {
 export function dedicated_disk_display(disk: DedicatedDisk): string {
   if (typeof disk === "boolean") return "";
   return `${disk.size_gb} GiB, ${DISK_NAMES[disk.type] ?? disk.type} speed`;
+}
+
+export interface VMsType {
+  [id: string]: {
+    name?: string;
+    price_day: number;
+    spec: { mem: number; cpu: number };
+    quota: { dedicated_vm: string }; // only those defined in VMS below
+  };
+}
+
+export interface DiskType {
+  [id: string]: {
+    name: string;
+    price_day: number;
+    quota: { dedicated_disk: { size_gb: number; type: DedicatedDiskTypes } };
+  };
 }
 
 export interface Quota {
@@ -128,7 +150,9 @@ export function describe_quota(quota: Quota, short?: boolean): string {
     quota.dedicated_disk != null &&
     typeof quota.dedicated_disk !== "boolean"
   ) {
-    v.push(`a dedicated disk (${dedicated_disk_display(quota.dedicated_disk)})`);
+    v.push(
+      `a dedicated disk (${dedicated_disk_display(quota.dedicated_disk)})`
+    );
   }
   if (quota.always_running) {
     v.push("always running");

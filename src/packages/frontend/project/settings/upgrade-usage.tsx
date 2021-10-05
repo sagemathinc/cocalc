@@ -24,7 +24,7 @@ import {
   DedicatedVM,
   dedicated_disk_display,
 } from "@cocalc/util//db-schema/site-licenses";
-import { PRICES } from "@cocalc/frontend/site-licenses/purchase/dedicated";
+import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { plural } from "@cocalc/util/misc";
 
 const { ShowSupportLink } = require("../../support");
