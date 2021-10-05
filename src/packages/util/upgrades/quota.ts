@@ -44,6 +44,10 @@ import {
   DedicatedVM,
 } from "../db-schema/site-licenses";
 import { len } from "../misc";
+import { VMS } from "@cocalc/util/upgrades/dedicated";
+// TODO how to use the logger ?
+//import { getLogger } from "@cocalc/util-node/logger";
+//const L = getLogger("upgrades:quota");
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -637,8 +641,28 @@ export function quota(
   site_licenses = Object.freeze(site_licenses_selected);
 
   if (dedicated_vm !== false) {
+    const vm = VMS[dedicated_vm.machine];
+    const dedicated_quota: Partial<RQuota> = {
+      network: true,
+      member_host: true,
+      always_running: true,
+      memory_limit: 128 * 1000, //  fallback, hence this setting is very high!
+      cpu_limit: 16, // fallback, hence this setting is very high!
+    };
+    if (vm == null) {
+      console.log(`no VM spec known for machine "${dedicated_vm.machine}"`);
+    } else {
+      if (vm.spec?.cpu != null) {
+        dedicated_quota.cpu_limit = vm.spec?.cpu;
+      }
+      if (vm.spec?.mem != null) {
+        dedicated_quota.memory_limit = 1000 * vm.spec?.mem;
+      }
+    }
+
     return {
       ...ZERO_QUOTA,
+      ...dedicated_quota,
       dedicated_vm,
       dedicated_disks,
     };
@@ -744,14 +768,13 @@ export function site_license_quota(
     }
   }
 
-  // if there is a dedicated VM, all other licenses are ignored and we set those quotas,
-  // to avoid warnings and the red banner. the exact spec for mem/ram will be set by the backend, not here!
+  // remember: this function is for the front-end
+  // if there is a dedicated VM, all other licenses are ignored and we set some quotas
+  // to avoid warnings and the red banner, that's all.
   if (dedicated_vm != null) {
     total_quota.dedicated_vm = dedicated_vm;
     total_quota.member_host = true;
     total_quota.network = true;
-    total_quota.cpu_limit = 0;
-    total_quota.memory_limit = 0
   }
 
   const ret = limit_quota(total_quota, max_upgrades);

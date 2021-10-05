@@ -11,7 +11,7 @@ import {
   AVG_MONTH_DAYS,
 } from "@cocalc/util/db-schema/site-licenses";
 
-// derive price to chage from raw monthly price
+// derive price to charge per day from the base monthly price
 function rawPrice2Retail(p: number): number {
   // factor of 2 and an average month
   return (2 * p) / AVG_MONTH_DAYS;
@@ -45,7 +45,7 @@ const VMS_DATA: VMsType[string][] = [
   },
 ];
 
-const VMS: VMsType = {};
+export const VMS: VMsType = {};
 
 for (const vmtype of VMS_DATA) {
   vmtype.name = `${vmtype.spec.cpu} CPU cores, ${vmtype.spec.mem} GiB RAM`;

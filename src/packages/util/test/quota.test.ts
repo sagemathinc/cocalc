@@ -1308,7 +1308,7 @@ describe("default quota", () => {
     const site_license = {
       a1: {
         quota: {
-          dedicated_vm: { machine: "n2-standard-4", name: "foo" },
+          dedicated_vm: { machine: "n2-highmem-8", name: "foo" },
         },
       },
       a2: {
@@ -1319,20 +1319,25 @@ describe("default quota", () => {
       b: {
         quota: {
           ram: 2,
-          always_running: true,
+          always_running: false,
         },
       },
       c: {
         quota: {
           cpu: 2,
           ram: 1,
-          always_running: true,
+          always_running: false,
         },
       },
     };
     const q = quota({}, { userX: {} }, site_license);
-    expect(q.dedicated_vm).toEqual({ machine: "n2-standard-4", name: "foo" });
-    expect(q.always_running).toBe(false);
+    expect(q.dedicated_vm).toEqual({ machine: "n2-highmem-8", name: "foo" });
+    // projects on dedicated VMs get this quota
+    expect(q.always_running).toBe(true);
+    expect(q.member_host).toBe(true);
+    expect(q.network).toBe(true);
+    expect(q.memory_limit).toBe(62000);
+    expect(q.cpu_limit).toBe(8);
     expect(q.dedicated_disks).toEqual([
       { type: "standard", size_gb: 128, name: "bar" },
     ]);
@@ -1349,8 +1354,12 @@ describe("default quota", () => {
     };
     const q = quota({}, { userX: {} }, site_license);
     expect(q.dedicated_vm.machine).toBe("n2-standard-4");
-    expect(q.always_running).toBe(false);
+    expect(q.always_running).toBe(true);
+    expect(q.member_host).toBe(true);
+    expect(q.network).toBe(true);
     expect(q.dedicated_disks.length).toBe(1);
+    expect(q.memory_limit).toBe(15000);
+    expect(q.cpu_limit).toBe(4);
   });
 
   it("several dedicated disks", () => {
