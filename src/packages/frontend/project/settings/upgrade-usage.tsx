@@ -23,7 +23,7 @@ import {
   DedicatedDisk,
   DedicatedVM,
   dedicated_disk_display,
-} from "@cocalc/util//db-schema/site-licenses";
+} from "@cocalc/util/db-schema/site-licenses";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { plural } from "@cocalc/util/misc";
 
