@@ -6,13 +6,26 @@
 import React from "react";
 import { ProjectsActions } from "@cocalc/frontend/todo-types";
 import { QuotaConsole } from "./quota-console";
-import { Icon, Loading, UpgradeAdjustor, SettingBox } from "@cocalc/frontend/components";
-import { redux, rtypes, rclass, Rendered } from "@cocalc/frontend/app-framework";
+import {
+  Icon,
+  Loading,
+  UpgradeAdjustor,
+  SettingBox,
+} from "@cocalc/frontend/components";
+import { redux, Rendered, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { URLBox } from "./url-box";
 import { Project } from "./types";
 import { HelpEmailLink } from "../../customize";
 import { SiteLicense } from "./site-license";
+import { COLORS } from "@cocalc/util/theme";
 import { is_zero_map } from "@cocalc/util/misc";
+import {
+  DedicatedDisk,
+  DedicatedVM,
+  dedicated_disk_display,
+} from "@cocalc/util//db-schema/site-licenses";
+import { PRICES } from "@cocalc/util/upgrades/dedicated";
+import { plural } from "@cocalc/util/misc";
 
 const { ShowSupportLink } = require("../../support");
 const { Row, Col, Button } = require("react-bootstrap");
@@ -32,53 +45,55 @@ interface Props {
   all_projects_have_been_loaded?: boolean;
   actions: ProjectsActions; // projects actions
   site_license_ids: string[];
-
-  // redux props
-  is_commercial?: boolean;
-  kucalc?: string;
+  dedicated_resources?: {
+    vm: false | DedicatedVM;
+    disks: DedicatedDisk[];
+  };
 }
 
-interface State {
-  show_adjustor: boolean;
-}
+export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
+  const {
+    project_id,
+    project,
+    user_map,
+    account_groups,
+    upgrades_you_can_use,
+    upgrades_you_applied_to_all_projects,
+    upgrades_you_applied_to_this_project,
+    total_project_quotas,
+    all_upgrades_to_this_project,
+    site_license_upgrades,
+    all_projects_have_been_loaded,
+    actions,
+    //site_license_ids,
+    dedicated_resources,
+  } = props;
 
-class UpgradeUsage extends React.Component<Props, State> {
-  constructor(props) {
-    super(props);
-    this.state = { show_adjustor: false };
+  const is_commercial: boolean = useTypedRedux("customize", "is_commercial");
+  const kucalc: string = useTypedRedux("customize", "kucalc");
+
+  const [show_adjustor, set_show_adjustor] = React.useState<boolean>(false);
+
+  function submit_upgrade_quotas(new_quotas): void {
+    actions.apply_upgrades_to_project(project_id, new_quotas);
+    set_show_adjustor(false);
   }
 
-  public static reduxProps(): object {
-    return {
-      customize: {
-        is_commercial: rtypes.bool,
-        kucalc: rtypes.string,
-      },
-    };
-  }
-
-  private submit_upgrade_quotas(new_quotas): void {
-    this.props.actions.apply_upgrades_to_project(
-      this.props.project_id,
-      new_quotas
-    );
-    this.setState({ show_adjustor: false });
-  }
-
-  private render_upgrades_button(): Rendered {
-    if (!this.props.is_commercial) return; // never show if not commercial
+  function render_upgrades_button(): Rendered {
+    if (!is_commercial) return; // never show if not commercial
+    if (dedicated_resources?.vm !== false) return;
     return (
       <Row style={{ borderBottom: "1px solid grey", paddingBottom: "15px" }}>
         <Col sm={12}>
-          {is_zero_map(this.props.upgrades_you_can_use) ? (
+          {is_zero_map(upgrades_you_can_use) ? (
             <div style={{ float: "right" }}>
               Increase these quotas using a license below.
             </div>
           ) : (
             <Button
               bsStyle="primary"
-              disabled={this.state.show_adjustor}
-              onClick={() => this.setState({ show_adjustor: true })}
+              disabled={show_adjustor}
+              onClick={() => set_show_adjustor(true)}
               style={{ float: "right", marginBottom: "5px" }}
             >
               <Icon name="arrow-circle-up" /> Adjust your upgrade
@@ -90,10 +105,10 @@ class UpgradeUsage extends React.Component<Props, State> {
     );
   }
 
-  private render_upgrade_adjustor(): Rendered {
-    if (!this.props.is_commercial) return; // never show if not commercial
-    if (!this.state.show_adjustor) return; // not being displayed since button not clicked
-    if (!this.props.all_projects_have_been_loaded) {
+  function render_upgrade_adjustor(): Rendered {
+    if (!is_commercial) return; // never show if not commercial
+    if (!show_adjustor) return; // not being displayed since button not clicked
+    if (!all_projects_have_been_loaded) {
       // Have to wait for this to get accurate value right now.
       // Plan to fix: https://github.com/sagemathinc/cocalc/issues/4123
       // Also, see https://github.com/sagemathinc/cocalc/issues/3802
@@ -102,46 +117,109 @@ class UpgradeUsage extends React.Component<Props, State> {
     }
     return (
       <UpgradeAdjustor
-        upgrades_you_can_use={this.props.upgrades_you_can_use}
+        upgrades_you_can_use={upgrades_you_can_use}
         upgrades_you_applied_to_all_projects={
-          this.props.upgrades_you_applied_to_all_projects
+          upgrades_you_applied_to_all_projects
         }
         upgrades_you_applied_to_this_project={
-          this.props.upgrades_you_applied_to_this_project
+          upgrades_you_applied_to_this_project
         }
         quota_params={PROJECT_UPGRADES.params}
-        submit_upgrade_quotas={this.submit_upgrade_quotas.bind(this)}
-        cancel_upgrading={() => this.setState({ show_adjustor: false })}
-        total_project_quotas={this.props.total_project_quotas}
+        submit_upgrade_quotas={submit_upgrade_quotas}
+        cancel_upgrading={() => set_show_adjustor(false)}
+        total_project_quotas={total_project_quotas}
       />
     );
   }
 
-  private render_quota_console(): Rendered {
+  function render_quota_console(): Rendered {
     // Note -- we always render this, even if is_commercial is false,
     // since we want admins to be able to change the quotas.
+    // except if this runs on a dedicated VM – where the back-end manages the quotas
+    if (dedicated_resources?.vm !== false) {
+      return render_dedicated_vm();
+    }
     return (
       <QuotaConsole
-        project_id={this.props.project_id}
-        project_settings={this.props.project.get("settings")}
-        project_status={this.props.project.get("status")}
-        project_state={this.props.project.getIn(["state", "state"])}
-        user_map={this.props.user_map}
+        project_id={project_id}
+        project_settings={project.get("settings")}
+        project_status={project.get("status")}
+        project_state={project.getIn(["state", "state"])}
+        user_map={user_map}
         quota_params={PROJECT_UPGRADES.params}
-        account_groups={this.props.account_groups}
-        total_project_quotas={this.props.total_project_quotas}
-        all_upgrades_to_this_project={this.props.all_upgrades_to_this_project}
-        kucalc={this.props.kucalc}
-        is_commercial={this.props.is_commercial}
-        site_license_upgrades={this.props.site_license_upgrades}
+        account_groups={account_groups}
+        total_project_quotas={total_project_quotas}
+        all_upgrades_to_this_project={all_upgrades_to_this_project}
+        kucalc={kucalc}
+        is_commercial={is_commercial}
+        site_license_upgrades={site_license_upgrades}
       />
     );
   }
 
-  private render_support(): Rendered {
-    if (!this.props.is_commercial) return; // don't render if not commercial
+  function render_dedicated_vm(): Rendered {
+    if (dedicated_resources == null) return <div>Dedicated VM not defined</div>;
+    if (dedicated_resources.vm === false) throw new Error("AssertionError");
+    const vm = dedicated_resources.vm;
+    const human_readable = PRICES.vms[vm.machine]?.name;
+    const name = vm.name;
+
     return (
-      <span style={{ color: "#666" }}>
+      <div>
+        <p>This project is configured to run on a dedicated virtual machine.</p>
+        <p>
+          <strong>
+            <code>{vm.machine}</code>
+          </strong>
+          {human_readable && <span>&nbsp;providing {human_readable}</span>}
+          {name && (
+            <>
+              , <code>id={name}</code>
+            </>
+          )}
+        </p>
+      </div>
+    );
+  }
+
+  function render_dedicated_disks_list(disks): Rendered {
+    const entries: Rendered[] = [];
+    for (const disk of disks) {
+      if (typeof disk === "boolean") continue;
+      entries.push(
+        <li key={disk.name}>
+          {dedicated_disk_display(disk)}
+          {disk.name && (
+            <>
+              , <code>id={disk.name}</code>
+            </>
+          )}
+        </li>
+      );
+    }
+    return <>{entries}</>;
+  }
+
+  function render_dedicated_disks(): Rendered {
+    if (dedicated_resources == null) return;
+    const disks = dedicated_resources.disks;
+    if (disks == null) return;
+    const num = disks.length;
+    return (
+      <>
+        <hr />
+        <div>
+          <p>Configured dedicated {plural(num, "disk")}:</p>
+          <ul>{render_dedicated_disks_list(disks)}</ul>
+        </div>
+      </>
+    );
+  }
+
+  function render_support(): Rendered {
+    if (!is_commercial) return; // don't render if not commercial
+    return (
+      <span style={{ color: COLORS.GRAY }}>
         If you have any questions about upgrading a project, create a{" "}
         <ShowSupportLink />, or email <HelpEmailLink /> and include the
         following URL:
@@ -150,30 +228,26 @@ class UpgradeUsage extends React.Component<Props, State> {
     );
   }
 
-  private render_site_license(): Rendered {
-    if (!this.props.is_commercial) return;
+  function render_site_license(): Rendered {
+    if (!is_commercial) return;
     return (
       <SiteLicense
-        project_id={this.props.project_id}
-        site_license={this.props.project.get("site_license") as any}
+        project_id={project_id}
+        site_license={project.get("site_license") as any}
       />
     );
   }
 
-  public render(): Rendered {
-    return (
-      <SettingBox title="Project usage and quotas" icon="dashboard">
-        {this.render_upgrades_button()}
-        {this.render_upgrade_adjustor()}
-        {this.render_quota_console()}
-        <hr />
-        {this.render_site_license()}
-        <hr />
-        {this.render_support()}
-      </SettingBox>
-    );
-  }
-}
-
-const tmp = rclass(UpgradeUsage);
-export { tmp as UpgradeUsage };
+  return (
+    <SettingBox title="Project usage and quotas" icon="dashboard">
+      {render_upgrades_button()}
+      {render_upgrade_adjustor()}
+      {render_quota_console()}
+      {render_dedicated_disks()}
+      <hr />
+      {render_site_license()}
+      <hr />
+      {render_support()}
+    </SettingBox>
+  );
+});

@@ -38,8 +38,16 @@ costs add).
 
 import { isEmpty } from "lodash";
 import { DEFAULT_QUOTAS, upgrades } from "../upgrade-spec";
-import { Quota as SiteLicenseQuota } from "../db-schema/site-licenses";
+import {
+  Quota as SiteLicenseQuota,
+  DedicatedDisk,
+  DedicatedVM,
+} from "../db-schema/site-licenses";
 import { len } from "../misc";
+import { VMS } from "@cocalc/util/upgrades/dedicated";
+// TODO how to use the logger ?
+//import { getLogger } from "@cocalc/util-node/logger";
+//const L = getLogger("upgrades:quota");
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -75,7 +83,7 @@ type NumParser = (s: string | number | undefined) => number;
 type Str2Num = (s: string | number) => number;
 
 // the end result
-interface Quota {
+export interface Quota {
   network?: boolean;
   member_host?: boolean;
   always_running?: boolean;
@@ -86,6 +94,8 @@ interface Quota {
   cpu_request?: number;
   privileged?: boolean;
   idle_timeout?: number;
+  dedicated_vm?: { machine: string } | boolean;
+  dedicated_disks?: DedicatedDisk[];
 }
 
 type RQuota = Required<Quota>;
@@ -176,6 +186,8 @@ const ZERO_QUOTA: RQuota = {
   cpu_limit: 0,
   idle_timeout: 0,
   always_running: false,
+  dedicated_vm: false,
+  dedicated_disks: [] as DedicatedDisk[],
 } as const;
 
 // base quota + calculated default quotas is the quota object each project gets by default
@@ -191,6 +203,8 @@ const BASE_QUOTAS: RQuota = {
   cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPU's
   idle_timeout: DEFAULT_QUOTAS.mintime, // minimum uptime
   always_running: false, // if true, a service restarts the project if it isn't running
+  dedicated_vm: false,
+  dedicated_disks: [] as DedicatedDisk[],
 } as const;
 
 // sanitize the overcommitment ratio or discard it
@@ -263,14 +277,56 @@ function isSettingsQuota(slq?: QuotaSetting): slq is Upgrades {
   );
 }
 
+function select_dedicated_vm(site_licenses: SiteLicenses): DedicatedVM | null {
+  // if there is a dedicated_vm upgrade, pick the first one
+  for (const val of Object.values(site_licenses)) {
+    if (isSiteLicenseQuotaSetting(val) && val.quota.dedicated_vm != null) {
+      const vm = val.quota.dedicated_vm;
+      if (typeof vm !== "boolean" && typeof vm?.machine === "string") {
+        return vm;
+      }
+    }
+  }
+  return null;
+}
+
+// extract all dedicated disks that are defined anywhere
+function select_dedicated_disks(site_licenses: SiteLicenses): DedicatedDisk[] {
+  const dedicated_disks: DedicatedDisk[] = [];
+  for (const val of Object.values(site_licenses)) {
+    if (isSiteLicenseQuotaSetting(val) && val.quota.dedicated_disk != null) {
+      dedicated_disks.push(val.quota.dedicated_disk);
+    }
+  }
+  return dedicated_disks;
+}
+
 // some site licenses do not mix.
 // e.g. always_running==true can't upgrade another (especially large) one not having always_running set.
 // also preempt upgrades shouldn't uprade member hosting upgades.
 //
 // this heuristic groups all licenses by always_running and member hosting, and then picks the first nonempty group.
 // TODO: once we have a license with an extended uptime (hours instead of ~30 mins), we introduce that as a third dimension.
-function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
-  if (site_licenses == null || isEmpty(site_licenses)) return {};
+//
+// Fall 2021: on top of that, "dedicted resources" are treated in a special way
+// * VMs: do not mix with any other upgrades, only one per project
+// * disks: orthogonal to VMs, more than one per project is possible
+function select_site_licenses(site_licenses?: SiteLicenses): {
+  site_licenses: SiteLicenses;
+  dedicated_disks?: DedicatedDisk[];
+  dedicated_vm?: DedicatedVM;
+} {
+  if (site_licenses == null || isEmpty(site_licenses))
+    return { site_licenses: {} };
+
+  // this "extracts" all dedicated disk upgrades from the site_licenses map
+  const dedicated_disks = select_dedicated_disks(site_licenses);
+
+  const dedicated_vm: DedicatedVM | null = select_dedicated_vm(site_licenses);
+
+  if (dedicated_vm != null) {
+    return { site_licenses: {}, dedicated_disks, dedicated_vm };
+  }
 
   // key is <member>-<always_running> as 0/1 numbers
   const groups = {
@@ -309,12 +365,14 @@ function select_site_licenses(site_licenses?: SiteLicenses): SiteLicenses {
     }
   })();
 
-  if (selected == null) return {};
+  if (selected == null) return { site_licenses: {}, dedicated_disks };
 
-  return selected.reduce((acc, cur) => {
+  const selected_licenses = selected.reduce((acc, cur) => {
     acc[cur] = site_licenses[cur];
     return acc;
   }, {});
+
+  return { site_licenses: selected_licenses, dedicated_disks };
 }
 
 // there is an old schema, inherited from SageMathCloud, etc. and newer iterations.
@@ -335,6 +393,8 @@ function upgrade2quota(up: Partial<Upgrades>): RQuota {
     cpu_request: dflt_num(up.cpu_shares) / 1024,
     privileged: dflt_false(up.privileged),
     idle_timeout: dflt_num(up.mintime),
+    dedicated_vm: false, // old schema has no dedicated_vm upgrades
+    dedicated_disks: [] as DedicatedDisk[], // old schema has no dedicated_disk upgrades
   };
 }
 
@@ -351,6 +411,8 @@ function license2quota(q: Partial<SiteLicenseQuota>): RQuota {
     cpu_request: q.dedicated_cpu ?? 0,
     privileged: false,
     idle_timeout: 0, // always zero, until we have an upgrade schema in place
+    dedicated_vm: q.dedicated_vm ?? false,
+    dedicated_disks: [] as DedicatedDisk[],
   };
 }
 
@@ -377,7 +439,7 @@ function op_quotas(q1: RQuota, q2: RQuota, op: "min" | "max"): RQuota {
   for (const [k, v] of Object.entries(ZERO_QUOTA)) {
     if (typeof v === "boolean") {
       q[k] = op === "min" ? q1[k] && q2[k] : q1[k] || q2[k];
-    } else {
+    } else if (typeof v === "number") {
       const cmp = op === "min" ? Math.min : Math.max;
       q[k] = cmp(q1[k], q2[k]);
     }
@@ -570,9 +632,43 @@ export function quota(
   });
 
   // we might not consider all of them!
-  site_licenses = Object.freeze(select_site_licenses(site_licenses));
+  const {
+    site_licenses: site_licenses_selected,
+    dedicated_disks = [],
+    dedicated_vm = false,
+  } = select_site_licenses(site_licenses);
 
-  return quota_v2({
+  site_licenses = Object.freeze(site_licenses_selected);
+
+  if (dedicated_vm !== false) {
+    const vm = VMS[dedicated_vm.machine];
+    const dedicated_quota: Partial<RQuota> = {
+      network: true,
+      member_host: true,
+      always_running: true,
+      memory_limit: 128 * 1000, //  fallback, hence this setting is very high!
+      cpu_limit: 16, // fallback, hence this setting is very high!
+    };
+    if (vm == null) {
+      console.log(`no VM spec known for machine "${dedicated_vm.machine}"`);
+    } else {
+      if (vm.spec?.cpu != null) {
+        dedicated_quota.cpu_limit = vm.spec?.cpu;
+      }
+      if (vm.spec?.mem != null) {
+        dedicated_quota.memory_limit = 1000 * vm.spec?.mem;
+      }
+    }
+
+    return {
+      ...ZERO_QUOTA,
+      ...dedicated_quota,
+      dedicated_vm,
+      dedicated_disks,
+    };
+  }
+
+  const total_quota = quota_v2({
     quota,
     settings: upgrade2quota(settings),
     max_upgrades: upgrade2quota(max_upgrades),
@@ -580,6 +676,9 @@ export function quota(
     site_licenses,
     site_settings,
   });
+
+  total_quota.dedicated_disks = dedicated_disks;
+  return total_quota;
 }
 
 // this is used by webapp, not part of this quota calculation, and also not tested
@@ -587,10 +686,12 @@ export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
   for (const field in license_quota) {
     if (license_quota[field] == null) continue;
     if (typeof license_quota[field] == "boolean") {
-      // boolean
       quota[field] = !!license_quota[field] || !!quota[field];
-    } else {
+    } else if (typeof license_quota[field] === "number") {
       quota[field] = Math.max(license_quota[field] ?? 0, quota[field] ?? 0);
+    } else if (["dedicated_disks", "dedicated_vm"].includes(field)) {
+      // this is a special case, just for the frontend code – not a general "max" function
+      quota[field] = license_quota[field];
     }
   }
 }
@@ -608,7 +709,9 @@ export function site_license_quota(
   max_upgrades_param?: Upgrades
 ): Quota {
   // we filter here as well, b/c this function is used elsewhere
-  site_licenses = Object.freeze(select_site_licenses(site_licenses));
+  const { site_licenses: site_licenses_selected, dedicated_vm = false } =
+    select_site_licenses(site_licenses);
+  site_licenses = Object.freeze(site_licenses_selected);
   // a fallback, should take site settings into account here as well
   const max_upgrades: Upgrades = max_upgrades_param ?? MAX_UPGRADES;
 
@@ -624,6 +727,8 @@ export function site_license_quota(
     member_host: false,
     privileged: false,
     idle_timeout: 0,
+    dedicated_vm: false,
+    dedicated_disks: [],
   };
 
   for (const license of Object.values(site_licenses)) {
@@ -663,6 +768,15 @@ export function site_license_quota(
     }
   }
 
+  // remember: this function is for the front-end
+  // if there is a dedicated VM, all other licenses are ignored and we set some quotas
+  // to avoid warnings and the red banner, that's all.
+  if (dedicated_vm != null) {
+    total_quota.dedicated_vm = dedicated_vm;
+    total_quota.member_host = true;
+    total_quota.network = true;
+  }
+
   const ret = limit_quota(total_quota, max_upgrades);
   //console.log("total_quota_limited", JSON.stringify(ret, null, 2));
   return ret;
@@ -688,10 +802,14 @@ total_quota =  {            max_upgrades = {
 
 function limit_quota(total_quota: RQuota, max_upgrades: Upgrades): Quota {
   for (const [key, val] of Object.entries(upgrade2quota(max_upgrades))) {
-    if (typeof val === "boolean") {
+    if (["dedicated_disks", "dedicated_vm"].includes(key)) {
+      // they are ignored
+    } else if (typeof val === "boolean") {
       total_quota[key] &&= val;
-    } else {
+    } else if (typeof val === "number") {
       total_quota[key] = Math.min(total_quota[key], val);
+    } else {
+      throw Error(`unhandled key ${key}`);
     }
   }
   return total_quota;

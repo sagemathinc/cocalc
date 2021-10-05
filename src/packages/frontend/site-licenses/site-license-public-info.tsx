@@ -34,13 +34,8 @@ interface Props {
   warn_if?: (info) => void | string;
 }
 
-export const SiteLicensePublicInfo: React.FC<Props> = ({
-  license_id,
-  project_id,
-  upgrades,
-  onRemove,
-  warn_if,
-}) => {
+export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
+  const { license_id, project_id, upgrades, onRemove, warn_if } = props;
   const [info, set_info] = useState<Info | undefined>(undefined);
   const [err, set_err] = useState<string | undefined>(undefined);
   const [loading, set_loading] = useState<boolean>(true);

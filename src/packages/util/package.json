@@ -13,7 +13,8 @@
     "build": "npx tsc",
     "tsc": "npx tsc --watch",
     "testsync": "cd sync && npx jest",
-    "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee; cd test && npx jest"
+    "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee; cd test && npx jest",
+    "testquota": "cd test && npx jest quota.test.ts"
   },
   "author": "SageMath, Inc.",
   "keywords": [
@@ -24,9 +25,7 @@
     "realtime synchronization"
   ],
   "license": "SEE LICENSE.md",
-  "workspaces": [
-    "."
-  ],
+  "workspaces": ["."],
   "dependencies": {
     "@cocalc/util": "*",
     "@types/uuid": "^8.3.1",
