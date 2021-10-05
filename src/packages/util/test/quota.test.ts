@@ -1308,12 +1308,12 @@ describe("default quota", () => {
     const site_license = {
       a1: {
         quota: {
-          dedicated_vm: { machine: "n2-standard-4" },
+          dedicated_vm: { machine: "n2-standard-4", name: "foo" },
         },
       },
       a2: {
         quota: {
-          dedicated_disk: { type: "standard", size_gb: 128 },
+          dedicated_disk: { type: "standard", size_gb: 128, name: "bar" },
         },
       },
       b: {
@@ -1331,12 +1331,13 @@ describe("default quota", () => {
       },
     };
     const q = quota({}, { userX: {} }, site_license);
-    expect(q.dedicated_vm.machine).toBe("n2-standard-4");
+    expect(q.dedicated_vm).toEqual({ machine: "n2-standard-4", name: "foo" });
     expect(q.always_running).toBe(false);
-    expect(q.dedicated_disks.length).toBe(1);
+    expect(q.dedicated_disks).toEqual([
+      { type: "standard", size_gb: 128, name: "bar" },
+    ]);
   });
-  
-  
+
   it("dedicated vm do not mix with quotas", () => {
     const site_license = {
       a1: {
@@ -1351,7 +1352,6 @@ describe("default quota", () => {
     expect(q.always_running).toBe(false);
     expect(q.dedicated_disks.length).toBe(1);
   });
-
 
   it("several dedicated disks", () => {
     const site_license = {
