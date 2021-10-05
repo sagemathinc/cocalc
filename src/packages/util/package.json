@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/util",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
     "./*": "./dist/*.js",
@@ -25,7 +25,9 @@
     "realtime synchronization"
   ],
   "license": "SEE LICENSE.md",
-  "workspaces": ["."],
+  "workspaces": [
+    "."
+  ],
   "dependencies": {
     "@cocalc/util": "*",
     "@types/uuid": "^8.3.1",
