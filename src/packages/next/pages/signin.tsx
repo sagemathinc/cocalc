@@ -1,12 +1,11 @@
 import { Layout } from "antd";
 import Footer from "components/landing/footer";
-import A from "components/misc/A";
-import SquareLogo from "components/logo-square";
 import Header from "components/landing/header";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import Head from "components/landing/head";
 import basePath from "lib/base-path";
+import SignIn from "components/account/signin";
 
 export default function Home({ customize }) {
   const { siteName } = customize;
@@ -16,12 +15,7 @@ export default function Home({ customize }) {
       <Layout>
         <Header page="signin" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <SquareLogo style={{ width: "120px", height: "120px" }} />
-          Sign in to {siteName}
-          <br />
-          <br />
-          New to {siteName}? <A href="/signup">Create an account</A> or{" "}
-          <A href="/try">try {siteName} without creating an account</A>.
+          <SignIn />
           <Footer />
         </Layout.Content>
       </Layout>
