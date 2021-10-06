@@ -55,6 +55,9 @@ const PAGES = {
   policies,
   share: {},
   info,
+  signup: {},
+  signin: {},
+  try: {},
 };
 
 export type Page = keyof typeof PAGES;
