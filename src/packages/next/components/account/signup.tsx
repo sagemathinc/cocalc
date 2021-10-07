@@ -35,37 +35,40 @@ export default function SignUp() {
             receive support emails from CoCalc.
           </Checkbox>
         </p>
-        {terms && <EmailOrSSO email={email} setEmail={setEmail} />}
-        {terms && email && (
-          <p>
-            <p>Password</p>
-            <Input.Password
-              value={password}
-              placeholder="Password"
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </p>
-        )}
-        {terms && email && password && (
-          <p>
-            <p>First name</p>
-            <Input
-              placeholder="First name"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-            />
-          </p>
-        )}
-        {terms && email && password && firstName && (
-          <p>
-            <p>Last name</p>
-            <Input
-              placeholder="Last name"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-            />
-          </p>
-        )}
+        <form>
+          {terms && <EmailOrSSO email={email} setEmail={setEmail} />}
+          {terms && email && (
+            <p>
+              <p>Password</p>
+              <Input.Password
+                value={password}
+                placeholder="Password"
+                autoComplete="new-password"
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </p>
+          )}
+          {terms && email && password && (
+            <p>
+              <p>First name</p>
+              <Input
+                placeholder="First name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+            </p>
+          )}
+          {terms && email && password && firstName && (
+            <p>
+              <p>Last name</p>
+              <Input
+                placeholder="Last name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </p>
+          )}
+        </form>
         {terms && email && (
           <p>
             <Button
@@ -118,6 +121,7 @@ function EmailOrSSO({ email, setEmail }) {
       <p>
         <Input
           placeholder="Email address"
+          autoComplete="username"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />

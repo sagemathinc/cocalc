@@ -5,6 +5,7 @@ import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
 import SSO from "./sso";
 import { LOGIN_STYLE } from "./shared";
+import apiPost from "lib/api/post";
 
 export default function SignIn() {
   const { siteName } = useCustomize();
@@ -19,43 +20,47 @@ export default function SignIn() {
       </div>
 
       <div style={LOGIN_STYLE}>
-        <p style={{ marginTop: "10px" }}>
+        <div style={{ margin: "10px 0" }}>
           Email address or{" "}
           <div
             style={{ float: "right", marginBottom: "15px", marginTop: "-10px" }}
           >
             <SSO />
           </div>
-        </p>
-        <Input
-          placeholder="Email address"
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        {email && (
-          <div style={{ marginTop: "30px" }}>
-            <p>
-              Password{" "}
-              <A style={{ float: "right" }} href="/password_reset">
-                Forgot password?
-              </A>
-            </p>
-            <Input.Password
-              placeholder="Password"
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-        )}
-        {password && (
-          <Button
-            shape="round"
-            size="large"
-            type="primary"
-            style={{ width: "100%", marginTop: "20px" }}
-            onClick={() => signIn(email, password)}
-          >
-            Sign In
-          </Button>
-        )}
+        </div>
+        <form>
+          <Input
+            placeholder="Email address"
+            autoComplete="username"
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          {email && (
+            <div style={{ marginTop: "30px" }}>
+              <p>
+                Password{" "}
+                <A style={{ float: "right" }} href="/password_reset">
+                  Forgot password?
+                </A>
+              </p>
+              <Input.Password
+                autoComplete="current-password"
+                placeholder="Password"
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          )}
+          {password && (
+            <Button
+              shape="round"
+              size="large"
+              type="primary"
+              style={{ width: "100%", marginTop: "20px" }}
+              onClick={() => signIn(email, password)}
+            >
+              Sign In
+            </Button>
+          )}
+        </form>
       </div>
 
       <div
@@ -75,6 +80,7 @@ export default function SignIn() {
   );
 }
 
-function signIn(email, password) {
-  console.log("sign in using ", { email, password });
+async function signIn(email, password) {
+  const result = await apiPost("account/signin", { email, password });
+  console.log("result = ", result);
 }
