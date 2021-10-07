@@ -15,6 +15,7 @@ email                = require('./email')
 {is_valid_password}  = require('./client/create-account')
 auth                 = require('./auth')
 base_path   = require('@cocalc/util-node/base-path').default
+passwordHash = require("@cocalc/util-node/auth/password-hash").default;
 
 exports.PW_RESET_ENDPOINT = PW_RESET_ENDPOINT = '/auth/password_reset'
 exports.PW_RESET_KEY = PW_RESET_KEY = 'token'
@@ -201,7 +202,7 @@ exports.reset_forgot_password = (opts) ->
             # Make the change
             opts.database.change_password
                 account_id    : account_id
-                password_hash : auth.password_hash(opts.mesg.new_password)
+                password_hash : passwordHash(opts.mesg.new_password)
                 cb            : (err, account) ->
                     if err
                         cb(err)
@@ -269,7 +270,7 @@ exports.change_password = (opts) ->
 
             opts.database.change_password
                 account_id    : opts.account_id
-                password_hash : auth.password_hash(opts.mesg.new_password),
+                password_hash : passwordHash(opts.mesg.new_password),
                 cb            : cb
     ], opts.cb)
 

@@ -18,6 +18,11 @@ Sign in works as follows:
 
 import { verify } from "password-hash";
 import getPool from "@cocalc/util-node/database";
+import {
+  createRememberMeCookie,
+  COOKIE_NAME,
+} from "@cocalc/util-node/auth/remember-me";
+import Cookies from "cookies";
 
 export default async function signIn(req, res) {
   if (req.method === "POST") {
@@ -26,7 +31,22 @@ export default async function signIn(req, res) {
     try {
       account_id = await getAccount(email, password);
     } catch (err) {
-      res.json({ error: `${err}` });
+      res.json({ error: `Problem signing into account -- ${err}` });
+      return;
+    }
+    let value, ttl_s;
+    try {
+      ({ value, ttl_s } = await createRememberMeCookie(account_id));
+    } catch (err) {
+      res.json({ error: `Problem creating session cookie -- ${err}` });
+      return;
+    }
+    try {
+      const cookies = new Cookies(req, res, { maxAge: ttl_s * 1000 });
+      cookies.set(COOKIE_NAME, value);
+    } catch (err) {
+      res.json({ error: `Problem setting cookie -- ${err}` });
+      return;
     }
     res.json({ account_id });
   } else {
@@ -34,11 +54,14 @@ export default async function signIn(req, res) {
   }
 }
 
-function getAccoint(email_address: string, password: string): Promise<string> {
+async function getAccount(
+  email_address: string,
+  password: string
+): Promise<string> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT account_id, password_hash FROM accounts WHERE email_address=$1",
-    [email]
+    [email_address]
   );
   if (rows.length == 0) {
     throw Error(`no account with email address '${email_address}'`);

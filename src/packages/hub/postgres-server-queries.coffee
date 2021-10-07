@@ -59,6 +59,7 @@ collab = require('./postgres/collab')
 {getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/util-node/server-settings/server-settings');
 {pii_expire} = require("./utils")
 webapp_config_clear_cache = require("./webapp-configuration").clear_cache
+passwordHash = require("@cocalc/util-node/auth/password-hash").default;
 
 {stripe_name} = require('./stripe/client')
 
@@ -1490,7 +1491,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cache               : true
             cb                  : required   # cb(err, signed_in_message)
         try
-            opts.cb(undefined, await get_remember_me(@, opts.hash, opts.cache))
+            account_id = await get_remember_me(@, opts.hash, opts.cache)
+            opts.cb(undefined, {event:"signed_in", account_id:account_id})
         catch err
             opts.cb(err)
 
@@ -1588,7 +1590,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 # change the user's password in the database.
                 @change_password
                     account_id    : opts.account_id
-                    password_hash : require('./auth').password_hash(opts.password)
+                    password_hash : passwordHash(opts.password)
                     cb            : cb
         ], (err) =>
             if err

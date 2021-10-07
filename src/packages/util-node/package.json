@@ -33,6 +33,7 @@
     "async-await-utils": "^3.0.1",
     "debug": "^4.3.2",
     "lru-cache": "^6.0.0",
+    "password-hash": "^1.2.2",
     "pg": "^8.7.1",
     "shell-escape": "^0.2.0",
     "sqlite3": "^5.0.2",

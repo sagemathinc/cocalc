@@ -32,6 +32,7 @@ import {
   get_passports,
 } from "../utils";
 import { getLogger } from "@cocalc/hub/logger";
+import passwordHash from "@cocalc/util-node/auth/password-hash";
 
 const winston = getLogger("create-account");
 
@@ -314,7 +315,7 @@ export async function create_account(
       last_name: opts.mesg.last_name,
       email_address: opts.mesg.email_address,
       password_hash: opts.mesg.password
-        ? auth.password_hash(opts.mesg.password)
+        ? passwordHash(opts.mesg.password)
         : undefined,
       created_by: opts.client.ip_address,
       usage_intent: opts.mesg.usage_intent,
