@@ -24,9 +24,7 @@ import { NextFunction, Request, Response } from "express";
 import { getLogger } from "@cocalc/hub/logger";
 import basePath from "@cocalc/util-node/base-path";
 
-// We will use temporary redirect for a few days (weeks?) until
-// we are sure the next.js rewrite works, then switch to 301 (permanent).
-const CODE = 302; // temporary redirect
+const CODE = 301; // permanent redirect
 
 const logger = getLogger("landing-redirect");
 
