@@ -1,12 +1,11 @@
 import { Layout } from "antd";
 import Footer from "components/landing/footer";
-import A from "components/misc/A";
-import SquareLogo from "components/logo-square";
 import Header from "components/landing/header";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import Head from "components/landing/head";
 import basePath from "lib/base-path";
+import SignUp from "components/account/signup";
 
 export default function Home({ customize }) {
   const { siteName } = customize;
@@ -16,16 +15,7 @@ export default function Home({ customize }) {
       <Layout>
         <Header page="signup" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <SquareLogo style={{ width: "120px", height: "120px" }} />
-          Create a {siteName} Account
-          <br />
-          I agree to the Terms of Service. I also agree to receive occasional
-          emails from CoCalc related to support.
-          <br />
-          Already have an account? <A href="/signin">Sign in...</A>
-          <br />
-          Don't want to provide us with any information?{" "}
-          <A href="/try">Try {siteName} without creating an account...</A>
+          <SignUp />
           <Footer />
         </Layout.Content>
       </Layout>

@@ -1,12 +1,11 @@
 import { Layout } from "antd";
 import Footer from "components/landing/footer";
-import A from "components/misc/A";
-import SquareLogo from "components/logo-square";
 import Header from "components/landing/header";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import Head from "components/landing/head";
 import basePath from "lib/base-path";
+import Try from "components/account/try";
 
 export default function Home({ customize }) {
   const { siteName } = customize;
@@ -16,21 +15,7 @@ export default function Home({ customize }) {
       <Layout>
         <Header page="try" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <SquareLogo style={{ width: "120px", height: "120px" }} />
-          <A href="static/app.html?anonymous=jupyter">
-            Try out CoCalc Anonymously right now...
-          </A>
-          <br />
-          You do <b>not</b> have to <A href="/signup">create an account</A>.
-          Instead, when you{" "}
-          <A href="static/app.html?anonymous=jupyter">
-            try {siteName} anonymously
-          </A>
-          , a project is created for you with a Jupyter notebook, and you can
-          play around with it. Later{" "}
-          <A href="/signup">transition to an account</A>{" "}
-          when you see how useful {siteName} is. If you already have a{" "}
-          {siteName} account, <A href="/signin">you can also sign in</A>.
+          <Try />
           <Footer />
         </Layout.Content>
       </Layout>
