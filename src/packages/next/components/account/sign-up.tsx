@@ -1,10 +1,12 @@
 import { Button, Checkbox, Input } from "antd";
-import { useState } from "react";
+import { CSSProperties, useState } from "react";
 import SquareLogo from "components/logo-square";
 import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
 import SSO from "./sso";
 import { LOGIN_STYLE } from "./shared";
+
+const LINE = { marginBottom: "15px" } as CSSProperties;
 
 export default function SignUp() {
   const { siteName } = useCustomize();
@@ -38,7 +40,7 @@ export default function SignUp() {
         <form>
           {terms && <EmailOrSSO email={email} setEmail={setEmail} />}
           {terms && email && (
-            <p>
+            <div style={LINE}>
               <p>Password</p>
               <Input.Password
                 value={password}
@@ -46,31 +48,31 @@ export default function SignUp() {
                 autoComplete="new-password"
                 onChange={(e) => setPassword(e.target.value)}
               />
-            </p>
+            </div>
           )}
           {terms && email && password && (
-            <p>
+            <div style={LINE}>
               <p>First name</p>
               <Input
                 placeholder="First name"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
               />
-            </p>
+            </div>
           )}
           {terms && email && password && firstName && (
-            <p>
+            <div style={LINE}>
               <p>Last name</p>
               <Input
                 placeholder="Last name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
               />
-            </p>
+            </div>
           )}
         </form>
         {terms && email && (
-          <p>
+          <div style={LINE}>
             <Button
               shape="round"
               size="large"
@@ -88,7 +90,7 @@ export default function SignUp() {
                 ? "(enter your last name)"
                 : ""}
             </Button>
-          </p>
+          </div>
         )}
       </div>
 
@@ -101,7 +103,7 @@ export default function SignUp() {
         }}
       >
         <p>
-          Already have an account? <A href="/signin">Sign In</A>
+          Already have an account? <A href="/sign-in">Sign In</A>
         </p>
         Don't want to provide any information?
         <br />
@@ -127,9 +129,9 @@ function EmailOrSSO({ email, setEmail }) {
         />
       </p>
       {!email && (
-        <p style={{ textAlign: "center" }}>
+        <div style={{ textAlign: "center" }}>
           <SSO />
-        </p>
+        </div>
       )}
     </div>
   );

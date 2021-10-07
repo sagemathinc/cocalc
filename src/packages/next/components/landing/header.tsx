@@ -156,15 +156,15 @@ export default function Header({ page, subPage }: Props) {
         ) : (
           <>
             <A
-              style={page == "signin" ? SelectedStyle : LinkStyle}
-              href="/signin"
+              style={page == "sign-in" ? SelectedStyle : LinkStyle}
+              href="/sign-in"
               title={`Sign in to ${siteName} or create an account.`}
             >
               Sign In
             </A>
             <A
-              style={page == "signup" ? SelectedStyle : LinkStyle}
-              href="/signup"
+              style={page == "sign-up" ? SelectedStyle : LinkStyle}
+              href="/sign-up"
               title={`Sign up for a ${siteName} account.`}
             >
               Sign Up

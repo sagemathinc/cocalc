@@ -5,7 +5,7 @@ import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import Head from "components/landing/head";
 import basePath from "lib/base-path";
-import SignIn from "components/account/signin";
+import SignUp from "components/account/sign-up";
 
 export default function Home({ customize }) {
   const { siteName } = customize;
@@ -13,9 +13,9 @@ export default function Home({ customize }) {
     <Customize value={customize}>
       <Head title={`Sign in to ${siteName}`} />
       <Layout>
-        <Header page="signin" />
+        <Header page="sign-up" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <SignIn />
+          <SignUp />
           <Footer />
         </Layout.Content>
       </Layout>

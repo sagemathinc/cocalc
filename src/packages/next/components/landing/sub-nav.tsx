@@ -55,8 +55,8 @@ const PAGES = {
   policies,
   share: {},
   info,
-  signup: {},
-  signin: {},
+  "sign-up": {},
+  "sign-in": {},
   try: {},
 };
 

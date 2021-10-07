@@ -27,8 +27,8 @@ export default function Try() {
           </Button>
         </p>
         <p>
-          Try {siteName} out <b>without</b> <A href="/signup">creating an account</A>{" "}
-          or <A href="/signin">signing in</A>!
+          Try {siteName} out <b>without</b> <A href="/sign-up">creating an account</A>{" "}
+          or <A href="/sign-in">signing in</A>!
         </p>
       </div>
       <div
@@ -40,9 +40,9 @@ export default function Try() {
         }}
       >
         <p>
-          Already have an account? <A href="/signin">Sign In</A>
+          Already have an account? <A href="/sign-in">Sign In</A>
         </p>
-        Need an account? <A href="/signup">Sign Up</A>
+        Need an account? <A href="/sign-up">Sign Up</A>
       </div>
     </div>
   );

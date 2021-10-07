@@ -72,7 +72,7 @@ export default function SignIn() {
         }}
       >
         <p>
-          New to {siteName}? <A href="/signup">Sign Up</A>
+          New to {siteName}? <A href="/sign-up">Sign Up</A>
         </p>
         Unsure? <A href="/try">Try {siteName} without creating an account</A>
       </div>
@@ -81,6 +81,6 @@ export default function SignIn() {
 }
 
 async function signIn(email, password) {
-  const result = await apiPost("account/signin", { email, password });
+  const result = await apiPost("account/sign-in", { email, password });
   console.log("result = ", result);
 }
