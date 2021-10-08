@@ -47,7 +47,7 @@ export default async function signIn(req, res) {
   }
 }
 
-async function getAccount(
+export async function getAccount(
   email_address: string,
   password: string
 ): Promise<string> {

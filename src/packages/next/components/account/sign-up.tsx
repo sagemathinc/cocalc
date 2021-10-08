@@ -1,9 +1,12 @@
-import { Button, Checkbox, Input } from "antd";
-import { CSSProperties, useState } from "react";
+import { Alert, Button, Checkbox, Input } from "antd";
+import { CSSProperties, useRef, useState } from "react";
 import SquareLogo from "components/logo-square";
 import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
-import { len } from "@cocalc/util/misc";
+import {
+  len,
+  is_valid_email_address as isValidEmailAddress,
+} from "@cocalc/util/misc";
 import apiPost from "lib/api/post";
 import SSO from "./sso";
 import { LOGIN_STYLE } from "./shared";
@@ -20,17 +23,28 @@ export default function SignUp() {
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
   const [signingUp, setSigningUp] = useState<boolean>(false);
-  const [error, setError] = useState<{
+  const [issues, setIssues] = useState<{
     email?: string;
     password?: string;
     terms?: string;
     error?: string;
   }>({});
 
+  const submittable = useRef<boolean>(false);
+
+  submittable.current = !!(
+    terms &&
+    email &&
+    isValidEmailAddress(email) &&
+    password &&
+    firstName &&
+    lastName
+  );
+
   async function signUp() {
-    console.log("signUp", { email, password, firstName, lastName });
+    if (!submittable.current) return;
     if (signingUp) return;
-    setError({});
+    setIssues({});
     try {
       setSigningUp(true);
       const result = await apiPost("/account/sign-up", {
@@ -41,12 +55,12 @@ export default function SignUp() {
         lastName,
       });
       if (result.issues && len(result.issues) > 0) {
-        setError(result.issues);
+        setIssues(result.issues);
       } else {
         router.push("/");
       }
     } catch (err) {
-      setError({ error: `${err}` });
+      setIssues({ error: `${err}` });
     } finally {
       setSigningUp(false);
     }
@@ -60,17 +74,40 @@ export default function SignUp() {
       </div>
 
       <div style={LOGIN_STYLE}>
-        <p style={{ marginTop: "10px" }}>
-          <Checkbox
-            style={{ marginRight: "10px", fontSize: "12pt", color: "#666" }}
-            onChange={(e) => setTerms(e.target.checked)}
-          >
-            I agree to the <A href="/policies/terms">Terms of Service</A> and to
-            receive support emails from CoCalc.
-          </Checkbox>
-        </p>
+        <Checkbox
+          style={{
+            marginTop: "10px",
+            marginBottom: terms ? "10px" : undefined,
+            fontSize: "12pt",
+            color: "#666",
+          }}
+          onChange={(e) => setTerms(e.target.checked)}
+        >
+          I agree to the{" "}
+          <A external={true} href="/policies/terms">
+            Terms of Service
+          </A>{" "}
+          and to receive support emails from CoCalc.
+        </Checkbox>
         <form>
-          {terms && <EmailOrSSO email={email} setEmail={setEmail} />}
+          {terms && (
+            <EmailOrSSO email={email} setEmail={setEmail} signUp={signUp} />
+          )}
+          {issues.email && (
+            <Alert
+              style={LINE}
+              type="error"
+              showIcon
+              message={issues.email}
+              description={
+                <>
+                  Choose a different email address,{" "}
+                  <A href="/sign-in">sign in</A>, or{" "}
+                  <A href="/password-reset">reset your password</A>.
+                </>
+              }
+            />
+          )}
           {terms && email && (
             <div style={LINE}>
               <p>Password</p>
@@ -80,8 +117,12 @@ export default function SignUp() {
                 placeholder="Password"
                 autoComplete="new-password"
                 onChange={(e) => setPassword(e.target.value)}
+                onPressEnter={signUp}
               />
             </div>
+          )}
+          {issues.password && (
+            <Alert style={LINE} type="error" showIcon message={issues.email} />
           )}
           {terms && email && password?.length >= 6 && (
             <div style={LINE}>
@@ -91,6 +132,7 @@ export default function SignUp() {
                 placeholder="First name"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
+                onPressEnter={signUp}
               />
             </div>
           )}
@@ -112,7 +154,7 @@ export default function SignUp() {
             <Button
               shape="round"
               size="large"
-              disabled={!(terms && email && password && firstName && lastName)}
+              disabled={!submittable.current}
               type="primary"
               style={{ width: "100%" }}
               onClick={signUp}
@@ -123,11 +165,15 @@ export default function SignUp() {
                 ? "Enter your first name above"
                 : !lastName
                 ? "Enter your last name above"
+                : !isValidEmailAddress(email)
+                ? "Enter a valid email address above"
                 : "Sign Up!"}
             </Button>
           </div>
         )}
-        <pre>{JSON.stringify(error)}</pre>
+        {issues.error && (
+          <Alert style={LINE} type="error" showIcon message={issues.error} />
+        )}
       </div>
 
       <div
@@ -149,7 +195,7 @@ export default function SignUp() {
   );
 }
 
-function EmailOrSSO({ email, setEmail }) {
+function EmailOrSSO({ email, setEmail, signUp }) {
   return (
     <div>
       <p>
@@ -164,6 +210,7 @@ function EmailOrSSO({ email, setEmail }) {
           autoComplete="username"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          onPressEnter={signUp}
         />
       </p>
       {!email && (
