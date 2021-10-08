@@ -50,7 +50,7 @@ export default function SignUp() {
               />
             </div>
           )}
-          {terms && email && password && (
+          {terms && email && password?.length >= 6 && (
             <div style={LINE}>
               <p>First name</p>
               <Input
@@ -67,6 +67,7 @@ export default function SignUp() {
                 placeholder="Last name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
+                onPressEnter={signUp}
               />
             </div>
           )}
@@ -81,14 +82,13 @@ export default function SignUp() {
               style={{ width: "100%" }}
               onClick={signUp}
             >
-              Sign Up{" "}
-              {!password
-                ? "(enter a password)"
+              {!password || password.length < 6
+                ? "Choose password with at least 6 characters"
                 : !firstName
-                ? "(enter your first name)"
+                ? "Enter your first name above"
                 : !lastName
-                ? "(enter your last name)"
-                : ""}
+                ? "Enter your last name above"
+                : "Sign Up!"}
             </Button>
           </div>
         )}
@@ -117,8 +117,9 @@ function EmailOrSSO({ email, setEmail }) {
   return (
     <div>
       <p>
-        Use either your email address, or login via <a>Google</a>, <a>Github</a>
-        , <a>Twitter</a>, or <a>Facebook</a>.
+        Login using either your email address and a password, or use your{" "}
+        <a>Google</a>, <a>Github</a>, <a>Twitter</a>, or <a>Facebook</a>{" "}
+        account.
       </p>
       <p>
         <Input

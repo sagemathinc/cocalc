@@ -4,7 +4,7 @@ import { join } from "path";
 export default async function apiPost(
   path: string,
   data: object
-): Promise<object> {
+): Promise<{ [key: string]: any }> {
   const response = await fetch(join(basePath, "api", path), {
     method: "POST",
     headers: { "Content-Type": "application/json" },

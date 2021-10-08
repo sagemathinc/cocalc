@@ -76,7 +76,7 @@ export class AccountActions extends Actions<AccountState> {
     const doc_conn =
       "[connectivity debugging tips](https://doc.cocalc.com/howto/connectivity-issues.html)";
     const err_help = `\
-Please reload this browser tab and try again.
+Please try again.
 
 If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.help()}.\
 `;

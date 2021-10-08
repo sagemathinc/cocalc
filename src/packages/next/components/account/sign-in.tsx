@@ -1,4 +1,4 @@
-import { Button, Input } from "antd";
+import { Alert, Button, Input } from "antd";
 import { useState } from "react";
 import SquareLogo from "components/logo-square";
 import useCustomize from "lib/use-customize";
@@ -6,11 +6,35 @@ import A from "components/misc/A";
 import SSO from "./sso";
 import { LOGIN_STYLE } from "./shared";
 import apiPost from "lib/api/post";
+import { Icon } from "@cocalc/frontend/components/icon";
+import Contact from "components/landing/contact";
+import { useRouter } from "next/router";
 
 export default function SignIn() {
   const { siteName } = useCustomize();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [signingIn, setSigningIn] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const router = useRouter();
+
+  async function signIn() {
+    if (signingIn) return;
+    try {
+      setError("");
+      setSigningIn(true);
+      const result = await apiPost("account/sign-in", { email, password });
+      if (result.error) {
+        setError(`${result.error}`);
+      } else {
+        router.push("/");
+      }
+    } catch (err) {
+      setError(`${err}`);
+    } finally {
+      setSigningIn(false);
+    }
+  }
 
   return (
     <div style={{ padding: "0 15px" }}>
@@ -21,15 +45,14 @@ export default function SignIn() {
 
       <div style={LOGIN_STYLE}>
         <div style={{ margin: "10px 0" }}>
-          Email address or{" "}
-          <div
-            style={{ float: "right", marginBottom: "15px", marginTop: "-10px" }}
-          >
+          Sign in using your email address and password or{" "}
+          <div style={{ textAlign: "center", marginTop: "10px" }}>
             <SSO />
           </div>
         </div>
         <form>
           <Input
+            autoFocus
             placeholder="Email address"
             autoComplete="username"
             onChange={(e) => setEmail(e.target.value)}
@@ -46,21 +69,51 @@ export default function SignIn() {
                 autoComplete="current-password"
                 placeholder="Password"
                 onChange={(e) => setPassword(e.target.value)}
+                onPressEnter={signIn}
               />
             </div>
           )}
-          {password && (
+          {email && (
             <Button
+              disabled={signingIn || !(password?.length >= 6)}
               shape="round"
               size="large"
               type="primary"
               style={{ width: "100%", marginTop: "20px" }}
-              onClick={() => signIn(email, password)}
+              onClick={signIn}
             >
-              Sign In
+              {signingIn ? (
+                <>
+                  <Icon name="spinner" spin /> Signing In...
+                </>
+              ) : !password || password.length < 6 ? (
+                "Enter your password above."
+              ) : (
+                "Sign In"
+              )}
             </Button>
           )}
         </form>
+        {error && (
+          <Alert
+            style={{ marginTop: "20px" }}
+            message="Error"
+            description={
+              <>
+                <p>
+                  <b>{error}</b>
+                </p>
+                <p>
+                  If you can't remember your password,{" "}
+                  <A href="/password_reset">reset it</A>. If that doesn't work{" "}
+                  <Contact />.
+                </p>
+              </>
+            }
+            type="error"
+            showIcon
+          />
+        )}
       </div>
 
       <div
@@ -78,9 +131,4 @@ export default function SignIn() {
       </div>
     </div>
   );
-}
-
-async function signIn(email, password) {
-  const result = await apiPost("account/sign-in", { email, password });
-  console.log("result = ", result);
 }
