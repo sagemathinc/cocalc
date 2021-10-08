@@ -71,7 +71,8 @@ export type SubPage =
   | keyof typeof features
   | keyof typeof pricing
   | keyof typeof policies
-  | keyof typeof info;
+  | keyof typeof info
+  | keyof typeof sign_in;
 
 interface Props {
   page: Page;

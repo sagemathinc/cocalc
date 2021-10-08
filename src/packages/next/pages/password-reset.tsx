@@ -4,11 +4,9 @@ import Header from "components/landing/header";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import Head from "components/landing/head";
-import basePath from "lib/base-path";
 import PasswordReset from "components/account/password-reset";
 
 export default function Home({ customize }) {
-  const { siteName } = customize;
   return (
     <Customize value={customize}>
       <Head title={"Forgot your Password?"} />

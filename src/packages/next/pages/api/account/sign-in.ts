@@ -41,21 +41,7 @@ export default async function signIn(req, res) {
       recordFail(email, req.ip);
       return;
     }
-    let value, ttl_s;
-    try {
-      ({ value, ttl_s } = await createRememberMeCookie(account_id));
-    } catch (err) {
-      res.json({ error: `Problem creating session cookie -- ${err}.` });
-      return;
-    }
-    try {
-      const cookies = new Cookies(req, res, { maxAge: ttl_s * 1000 });
-      cookies.set(COOKIE_NAME, value);
-    } catch (err) {
-      res.json({ error: `Problem setting cookie -- ${err}.` });
-      return;
-    }
-    res.json({ account_id });
+    signUserIn(req, res, account_id);
   } else {
     res.status(404).json({ message: "Sign In must use a POST request." });
   }
@@ -78,4 +64,22 @@ async function getAccount(
     throw Error(`password for '${email_address}' is incorrect`);
   }
   return account_id;
+}
+
+export async function signUserIn(req, res, account_id: string): Promise<void> {
+  let value, ttl_s;
+  try {
+    ({ value, ttl_s } = await createRememberMeCookie(account_id));
+  } catch (err) {
+    res.json({ error: `Problem creating session cookie -- ${err}.` });
+    return;
+  }
+  try {
+    const cookies = new Cookies(req, res, { maxAge: ttl_s * 1000 });
+    cookies.set(COOKIE_NAME, value);
+  } catch (err) {
+    res.json({ error: `Problem setting cookie -- ${err}.` });
+    return;
+  }
+  res.json({ account_id });
 }

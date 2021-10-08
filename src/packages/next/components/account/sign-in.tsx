@@ -20,8 +20,8 @@ export default function SignIn() {
 
   async function signIn() {
     if (signingIn) return;
+    setError("");
     try {
-      setError("");
       setSigningIn(true);
       const result = await apiPost("/account/sign-in", { email, password });
       if (result.error) {

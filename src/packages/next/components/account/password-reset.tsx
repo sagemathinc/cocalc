@@ -7,7 +7,6 @@ import { LOGIN_STYLE } from "./shared";
 import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Contact from "components/landing/contact";
-import { useRouter } from "next/router";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 
 export default function PasswordReset() {

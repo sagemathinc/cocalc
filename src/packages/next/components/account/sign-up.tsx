@@ -3,21 +3,53 @@ import { CSSProperties, useState } from "react";
 import SquareLogo from "components/logo-square";
 import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
+import { len } from "@cocalc/util/misc";
+import apiPost from "lib/api/post";
 import SSO from "./sso";
 import { LOGIN_STYLE } from "./shared";
+import { useRouter } from "next/router";
 
 const LINE = { marginBottom: "15px" } as CSSProperties;
 
 export default function SignUp() {
+  const router = useRouter();
   const { siteName } = useCustomize();
   const [terms, setTerms] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
+  const [signingUp, setSigningUp] = useState<boolean>(false);
+  const [error, setError] = useState<{
+    email?: string;
+    password?: string;
+    terms?: string;
+    error?: string;
+  }>({});
 
-  function signUp() {
+  async function signUp() {
     console.log("signUp", { email, password, firstName, lastName });
+    if (signingUp) return;
+    setError({});
+    try {
+      setSigningUp(true);
+      const result = await apiPost("/account/sign-up", {
+        terms,
+        email,
+        password,
+        firstName,
+        lastName,
+      });
+      if (result.issues && len(result.issues) > 0) {
+        setError(result.issues);
+      } else {
+        router.push("/");
+      }
+    } catch (err) {
+      setError({ error: `${err}` });
+    } finally {
+      setSigningUp(false);
+    }
   }
 
   return (
@@ -95,6 +127,7 @@ export default function SignUp() {
             </Button>
           </div>
         )}
+        <pre>{JSON.stringify(error)}</pre>
       </div>
 
       <div
