@@ -48,6 +48,11 @@ const info = {
   status: { label: "Status" },
 };
 
+const sign_in = {
+  "sign-in": { label: "Sign In", href: "/sign-in" },
+  "password-reset": { label: "Password Reset", href: "/password-reset" },
+};
+
 const PAGES = {
   features,
   software,
@@ -56,7 +61,7 @@ const PAGES = {
   share: {},
   info,
   "sign-up": {},
-  "sign-in": {},
+  "sign-in": sign_in,
   try: {},
 };
 
@@ -86,6 +91,7 @@ export default function SubNav({ page, subPage }: Props) {
         selected={subPage == name}
         name={name}
         label={p[name].label}
+        href={p[name].href}
       />
     );
   }
@@ -103,10 +109,10 @@ export default function SubNav({ page, subPage }: Props) {
   );
 }
 
-function SubPageTab({ page, name, selected, label }) {
+function SubPageTab({ page, name, selected, label, href }) {
   return (
     <A
-      href={`/${page}/${name}`}
+      href={href ?? `/${page}/${name}`}
       style={
         selected
           ? {

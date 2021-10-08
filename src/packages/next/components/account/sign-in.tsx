@@ -23,7 +23,7 @@ export default function SignIn() {
     try {
       setError("");
       setSigningIn(true);
-      const result = await apiPost("account/sign-in", { email, password });
+      const result = await apiPost("/account/sign-in", { email, password });
       if (result.error) {
         setError(`${result.error}`);
       } else {
@@ -53,23 +53,23 @@ export default function SignIn() {
         <form>
           <Input
             autoFocus
+            style={{ fontSize: "12pt" }}
             placeholder="Email address"
             autoComplete="username"
             onChange={(e) => setEmail(e.target.value)}
           />
           {email && (
             <div style={{ marginTop: "30px" }}>
-              <p>
-                Password{" "}
-                <A style={{ float: "right" }} href="/password_reset">
-                  Forgot password?
-                </A>
-              </p>
+              <p>Password </p>
               <Input.Password
+                style={{ fontSize: "12pt" }}
                 autoComplete="current-password"
                 placeholder="Password"
                 onChange={(e) => setPassword(e.target.value)}
-                onPressEnter={signIn}
+                onPressEnter={(e) => {
+                  e.preventDefault();
+                  signIn();
+                }}
               />
             </div>
           )}
@@ -95,24 +95,35 @@ export default function SignIn() {
           )}
         </form>
         {error && (
-          <Alert
-            style={{ marginTop: "20px" }}
-            message="Error"
-            description={
-              <>
-                <p>
-                  <b>{error}</b>
-                </p>
-                <p>
-                  If you can't remember your password,{" "}
-                  <A href="/password_reset">reset it</A>. If that doesn't work{" "}
-                  <Contact />.
-                </p>
-              </>
-            }
-            type="error"
-            showIcon
-          />
+          <>
+            <Alert
+              style={{ marginTop: "20px" }}
+              message="Error"
+              description={
+                <>
+                  <p>
+                    <b>{error}</b>
+                  </p>
+                  <p>
+                    If you can't remember your password,{" "}
+                    <A href="/password-reset">reset it</A>. If that doesn't work{" "}
+                    <Contact />.
+                  </p>
+                </>
+              }
+              type="error"
+              showIcon
+            />
+            <div
+              style={{
+                textAlign: "center",
+                marginTop: "15px",
+                fontSize: "14pt",
+              }}
+            >
+              <A href="/password-reset">Forgot password?</A>
+            </div>
+          </>
         )}
       </div>
 

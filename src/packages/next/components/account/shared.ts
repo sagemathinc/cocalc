@@ -5,8 +5,8 @@ export const LOGIN_STYLE = {
   margin: "auto",
   border: "1px solid lightgrey",
   borderRadius: "5px",
-  padding: "15px 20px",
+  padding: "10px 20px 20px 20px",
   backgroundColor: "#fafafa",
   fontSize: "12pt",
-  color: "#666",
+  color: "#606060",
 } as CSSProperties;

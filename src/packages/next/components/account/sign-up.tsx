@@ -43,6 +43,7 @@ export default function SignUp() {
             <div style={LINE}>
               <p>Password</p>
               <Input.Password
+                style={{ fontSize: "12pt" }}
                 value={password}
                 placeholder="Password"
                 autoComplete="new-password"
@@ -54,6 +55,7 @@ export default function SignUp() {
             <div style={LINE}>
               <p>First name</p>
               <Input
+                style={{ fontSize: "12pt" }}
                 placeholder="First name"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
@@ -64,6 +66,7 @@ export default function SignUp() {
             <div style={LINE}>
               <p>Last name</p>
               <Input
+                style={{ fontSize: "12pt" }}
                 placeholder="Last name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
@@ -123,6 +126,7 @@ function EmailOrSSO({ email, setEmail }) {
       </p>
       <p>
         <Input
+          style={{ fontSize: "12pt" }}
           placeholder="Email address"
           autoComplete="username"
           value={email}

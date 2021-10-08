@@ -15,21 +15,18 @@ export default function Try() {
       </div>
 
       <div style={LOGIN_STYLE}>
-        <p>
-          <Button
-            shape="round"
-            size="large"
-            type="primary"
-            style={{ width: "100%", marginTop: "20px" }}
-            href="static/app.html?anonymous=jupyter"
-          >
-            Use {siteName} Anonymously
-          </Button>
-        </p>
-        <p>
-          Try {siteName} out <b>without</b> <A href="/sign-up">creating an account</A>{" "}
-          or <A href="/sign-in">signing in</A>!
-        </p>
+        Try {siteName} out <b>without</b>{" "}
+        <A href="/sign-up">creating an account</A> or{" "}
+        <A href="/sign-in">signing in</A>!
+        <Button
+          shape="round"
+          size="large"
+          type="primary"
+          style={{ width: "100%", marginTop: "20px" }}
+          href="static/app.html?anonymous=jupyter"
+        >
+          Use {siteName} Anonymously
+        </Button>
       </div>
       <div
         style={{
