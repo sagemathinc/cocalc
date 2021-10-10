@@ -14,15 +14,20 @@ export default function PasswordReset() {
   const [email, setEmail] = useState<string>("");
   const [resetting, setResetting] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
 
   async function resetPassword() {
     if (resetting) return;
     try {
       setError("");
+      setSuccess("");
       setResetting(true);
       const result = await apiPost("/account/password-reset", { email });
       if (result.error) {
         setError(`${result.error}`);
+      } else if (result.success) {
+        setEmail("");
+        setSuccess(result.success);
       }
     } catch (err) {
       setError(`${err}`);
@@ -40,8 +45,8 @@ export default function PasswordReset() {
 
       <div style={LOGIN_STYLE}>
         <div style={{ margin: "10px 0" }}>
-          Enter your account's email address and we will send you a password
-          reset link.
+          Enter your {siteName} account's email address and we will email a
+          password reset link to you.
         </div>
         <form>
           <Input
@@ -49,15 +54,21 @@ export default function PasswordReset() {
             autoFocus
             placeholder="Enter your email address"
             autoComplete="username"
-            onChange={(e) => setEmail(e.target.value)}
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setError("");
+              setSuccess("");
+            }}
             onPressEnter={(e) => {
               e.preventDefault();
+              if (resetting || !isValidEmailAddress(email)) return;
               resetPassword();
             }}
           />
           {email && (
             <Button
-              disabled={resetting || !email || !isValidEmailAddress(email)}
+              disabled={resetting || !isValidEmailAddress(email) || !!error}
               shape="round"
               size="large"
               type="primary"
@@ -68,7 +79,7 @@ export default function PasswordReset() {
                 <>
                   <Icon name="spinner" spin /> Sending password reset email...
                 </>
-              ) : !email || !isValidEmailAddress(email) ? (
+              ) : !email || !isValidEmailAddress(email) || error ? (
                 "Enter your email address."
               ) : (
                 "Send password reset email"
@@ -81,16 +92,20 @@ export default function PasswordReset() {
             style={{ marginTop: "20px" }}
             message="Error"
             description={
-              <>
-                <p>
-                  <b>{error}</b>
-                </p>
-                <p>
-                  If you are stuck <Contact />.
-                </p>
-              </>
+              <div style={{ fontSize: "12pt" }}>
+                <b>{error}</b> If you are stuck <Contact />.
+              </div>
             }
             type="error"
+            showIcon
+          />
+        )}
+        {success && (
+          <Alert
+            style={{ marginTop: "20px" }}
+            message={<b>Success</b>}
+            description={<div style={{ fontSize: "12pt" }}>{success}</div>}
+            type="success"
             showIcon
           />
         )}
@@ -102,6 +117,7 @@ export default function PasswordReset() {
           backgroundColor: "white",
           marginTop: "30px",
           marginBottom: "30px",
+          paddingTop: "15px",
         }}
       >
         <p>
@@ -110,10 +126,8 @@ export default function PasswordReset() {
         <p>
           Do not have an account? <A href="/sign-up">Sign Up</A>
         </p>
-        <p>
-          You can also{" "}
-          <A href="/try">try {siteName} without creating an account</A>
-        </p>
+        You can also{" "}
+        <A href="/try">try {siteName} without creating an account</A>
       </div>
     </div>
   );

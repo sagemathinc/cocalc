@@ -7,55 +7,53 @@
 Password reset works as follows:
 
 1. Query the database to make sure there is a user with the given email address.
-
-TODO
+2. If a password reset was already sent within the last XX minutes,
+   return an error -- we don't want people to spam other people with
+   password resets.
+3. Generate password reset token and write to database.
+4. Send email.
+5. Send response to user that email has been sent (or there was an error).
 */
 
-export default async function signIn() {}
-
-/*
-import { verify } from "password-hash";
-import getPool from "@cocalc/util-node/database";
+import isAccountAvailable from "@cocalc/util-node/auth/is-account-available";
 import {
-  createRememberMeCookie,
-  COOKIE_NAME,
-} from "@cocalc/util-node/auth/remember-me";
-import { signInCheck, recordFail } from "@cocalc/util-node/auth/throttle";
-import Cookies from "cookies";
+  recentAttempts,
+  createReset,
+} from "@cocalc/util-node/auth/password-reset";
 
-export default async function signIn(req, res) {
-  if (req.method === "POST") {
-    const { email, password } = req.body;
-    const check = signInCheck(email, req.ip);
-    if (check) {
-      res.json({ error: check });
-      return;
-    }
-    let account_id: string;
-    try {
-      account_id = await getAccount(email, password);
-    } catch (err) {
-      res.json({ error: `Problem signing into account -- ${err}.` });
-      recordFail(email, req.ip);
-      return;
-    }
-    let value, ttl_s;
-    try {
-      ({ value, ttl_s } = await createRememberMeCookie(account_id));
-    } catch (err) {
-      res.json({ error: `Problem creating session cookie -- ${err}.` });
-      return;
-    }
-    try {
-      const cookies = new Cookies(req, res, { maxAge: ttl_s * 1000 });
-      cookies.set(COOKIE_NAME, value);
-    } catch (err) {
-      res.json({ error: `Problem setting cookie -- ${err}.` });
-      return;
-    }
-    res.json({ account_id });
-  } else {
+export default async function passwordReset(req, res) {
+  if (req.method !== "POST") {
     res.status(404).json({ message: "Sign In must use a POST request." });
+    return;
   }
+
+  const { email } = req.body;
+
+  if (await isAccountAvailable(email)) {
+    // Bad -- email is *available*, which means no way to reset
+    // the password for it, since it doesn't exist.
+    res.json({ error: `There is no account with email "${email}".` });
+    return;
+  }
+  // Check that user isn't spamming email.
+
+  const n = await recentAttempts(email, req.ip);
+  if (n > 1) {
+    res.json({
+      error: `We recently sent a password reset for "${email}" (n=${n}).  Please check your email or wait a while and try later.`,
+    });
+    return;
+  }
+
+  const id = await createReset(email, req.ip, 60 * 60 * 4); // 4 hour ttl seems reasonable for this.
+
+  // TODO:
+  // - Send email with the id and link
+  // - Link should be back to next.js server (i.e., a new password reset target)
+  // - Implement that target and backend handling of it.
+
+  res.json({
+    success: `Password reset email successfully sent to ${email}.`,
+  });
+  return;
 }
-*/

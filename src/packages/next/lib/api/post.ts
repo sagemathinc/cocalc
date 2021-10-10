@@ -10,5 +10,10 @@ export default async function apiPost(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  return await response.json();
+  try {
+    return await response.json();
+  } catch (err) {
+    console.log(response);
+    throw err;
+  }
 }
