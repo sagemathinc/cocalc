@@ -20,8 +20,8 @@ import {
   is_valid_email_address as isValidEmailAddress,
 } from "@cocalc/util/misc";
 import { v4 } from "uuid";
-import isAccountAvailable from "@cocalc/util-node/auth/is-account-available";
-import createAccount from "@cocalc/util-node/auth/create-account";
+import isAccountAvailable from "@cocalc/backend/auth/is-account-available";
+import createAccount from "@cocalc/backend/auth/create-account";
 import { getAccount, signUserIn } from "./sign-in";
 
 interface Issues {

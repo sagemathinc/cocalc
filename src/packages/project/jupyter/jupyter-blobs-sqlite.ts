@@ -10,9 +10,9 @@ Jupyter's in-memory blob store (based on sqlite), which hooks into the raw http 
 import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
 import * as fs from "fs";
 import { readFile } from "./async-utils-node";
-import Logger from "@cocalc/util-node/logger";
+import Logger from "@cocalc/backend/logger";
 import { months_ago, to_json } from "@cocalc/util/misc";
-const misc_node = require("@cocalc/util-node/misc_node");
+const misc_node = require("@cocalc/backend/misc_node");
 import Database from "better-sqlite3";
 import { Router } from "express";
 

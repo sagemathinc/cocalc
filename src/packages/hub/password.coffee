@@ -14,8 +14,8 @@ email                = require('./email')
 {defaults, required} = misc
 {is_valid_password}  = require('./client/create-account')
 auth                 = require('./auth')
-base_path   = require('@cocalc/util-node/base-path').default
-passwordHash = require("@cocalc/util-node/auth/password-hash").default;
+base_path   = require('@cocalc/backend/base-path').default
+passwordHash = require("@cocalc/backend/auth/password-hash").default;
 
 exports.PW_RESET_ENDPOINT = PW_RESET_ENDPOINT = '/auth/password_reset'
 exports.PW_RESET_KEY = PW_RESET_KEY = 'token'

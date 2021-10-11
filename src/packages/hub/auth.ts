@@ -59,12 +59,12 @@ import {
   PRIMARY_SSO,
 } from "@cocalc/frontend/account/passport-types";
 const safeJsonStringify = require("safe-json-stringify");
-import base_path from "@cocalc/util-node/base-path";
-import generateHash from "@cocalc/util-node/auth/hash";
+import base_path from "@cocalc/backend/base-path";
+import generateHash from "@cocalc/backend/auth/hash";
 import passwordHash, {
   verifyPassword,
-} from "@cocalc/util-node/auth/password-hash";
-import { createRememberMeCookie, COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/util-node/auth/remember-me";
+} from "@cocalc/backend/auth/password-hash";
+import { createRememberMeCookie, COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/remember-me";
 
 // primary strategies -- all other ones are "extra"
 const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO];

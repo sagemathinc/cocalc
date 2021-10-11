@@ -14,7 +14,7 @@ underscore   = require('underscore')
 
 {defaults, is_array} = misc = require('@cocalc/util/misc')
 required = defaults.required
-misc_node = require('@cocalc/util-node/misc_node')
+misc_node = require('@cocalc/backend/misc_node')
 
 {pg_type, one_result, all_results, quote_field} = require('./postgres-base')
 

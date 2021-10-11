@@ -4,7 +4,7 @@
     "../assets",
     "../frontend",
     "../cdn",
-    "../util-node",
+    "../backend",
     "../util"
   ],
   "version": "1.34.0",
@@ -52,7 +52,7 @@
     "@cocalc/cdn": "^1.6.0",
     "@cocalc/frontend": "^1.9.0",
     "@cocalc/util": "^1.9.0",
-    "@cocalc/util-node": "^1.7.1",
+    "@cocalc/backend": "^1.7.1",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^26.0.23",
     "@types/jquery": "^3.5.5",

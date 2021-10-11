@@ -33,7 +33,7 @@ async   = require('async')
 
 message    = require('@cocalc/util/message')
 misc       = require('@cocalc/util/misc')
-misc_node  = require('@cocalc/util-node/misc_node')
+misc_node  = require('@cocalc/backend/misc_node')
 synctable2 = require('@cocalc/util/sync/table')
 syncdb2    = require('@cocalc/util/sync/editor/db')
 schema     = require('@cocalc/util/schema')

@@ -29,7 +29,7 @@ _       = require('underscore')
 {defaults, required} = misc
 
 winston      = require('./logger').getLogger('support')
-data = require('@cocalc/util-node/data')
+data = require('@cocalc/backend/data')
 
 zendesk_password_filename = ->
     return path.join(data.data, 'secrets/zendesk')

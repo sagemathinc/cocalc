@@ -2089,7 +2089,7 @@ export function obj_key_subs(obj: object, subs: { [key: string]: any }): void {
 }
 
 // this is a helper for sanitizing html. It is used in
-// * packages/util-node/misc_node → sanitize_html
+// * packages/backend/misc_node → sanitize_html
 // * packages/frontend/misc-page    → sanitize_html
 export function sanitize_html_attributes($, node): void {
   $.each(node.attributes, function () {

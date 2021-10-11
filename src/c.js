@@ -19,7 +19,7 @@ delete process.env.PGHOST;
 process.env.COCALC_ROOT = require('path').resolve(__dirname);
 console.log(process.env.COCALC_ROOT);
 process.env.PGUSER = "smc";
-process.env.PGHOST = require("./packages/util-node/dist/data").pghost;
+process.env.PGHOST = require("./packages/backend/dist/data").pghost;
 global.misc = require("./packages/util/dist/misc");
 global.done = misc.done;
 global.done1 = misc.done1;

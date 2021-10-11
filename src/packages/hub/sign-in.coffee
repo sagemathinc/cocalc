@@ -22,8 +22,8 @@ message              = require('@cocalc/util/message')
 misc                 = require('@cocalc/util/misc')
 {required, defaults} = misc
 auth                 = require('./auth')
-{process_env_int}    = require("@cocalc/util-node/misc")
-throttle             = require("@cocalc/util-node/auth/throttle")
+{process_env_int}    = require("@cocalc/backend/misc")
+throttle             = require("@cocalc/backend/auth/throttle")
 Bottleneck           = require("bottleneck")
 
 # these parameters are per group and per hub!

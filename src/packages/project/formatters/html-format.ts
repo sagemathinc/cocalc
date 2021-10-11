@@ -5,7 +5,7 @@
 
 const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
-const { execute_code } = require("@cocalc/util-node/execute-code");
+const { execute_code } = require("@cocalc/backend/execute-code");
 const { callback } = require("awaiting");
 const { callback_opts } = require("@cocalc/util/async-utils");
 

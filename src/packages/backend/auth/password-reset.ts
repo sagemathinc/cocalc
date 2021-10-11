@@ -1,19 +1,19 @@
 import { v4 } from "uuid";
-import getPool from "@cocalc/util-node/database";
-import { expireTime } from "@cocalc/util-node/database/util";
+import getPool from "@cocalc/backend/database";
+import { expireTime } from "@cocalc/backend/database/util";
 
 // Returns number of "recent" attempts to reset the password with this
 // email from this ip address. By "recent" we mean, "in the last 10 minutes".
 export async function recentAttempts(
   email_address: string,
-  ip: string
+  ip_address: string
 ): Promise<number> {
-  const pool = getPool("medium");
+  const pool = getPool();
   const { rows } = await pool.query(
-    "select COUNT(*) from password_reset_attempts WHERE email_address=$1 AND ip_address=$2 AND time >= NOW() - INTERVAL '10 min'",
-    [email_address, ip]
+    "SELECT COUNT(*) FROM password_reset_attempts WHERE email_address=$1 AND ip_address=$2 AND time >= NOW() - INTERVAL '10 min'",
+    [email_address, ip_address]
   );
-  return rows[0].count;
+  return parseInt(rows[0].count);
 }
 
 export async function createReset(
@@ -21,7 +21,7 @@ export async function createReset(
   ip_address: string,
   ttl_s: number
 ): Promise<string> {
-  const pool = getPool("medium");
+  const pool = getPool();
 
   // Record that there was an attempt:
   if (ip_address) {

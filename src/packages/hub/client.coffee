@@ -36,12 +36,12 @@ hub_projects         = require('./projects')
 db_schema            = require('@cocalc/util/db-schema')
 { escapeHtml }       = require("escape-html")
 {CopyPath}           = require('./copy-path')
-{ COOKIE_NAME }=require("@cocalc/util-node/auth/remember-me");
-generateHash =require("@cocalc/util-node/auth/hash").default;
-passwordHash = require("@cocalc/util-node/auth/password-hash").default;
+{ COOKIE_NAME }=require("@cocalc/backend/auth/remember-me");
+generateHash =require("@cocalc/backend/auth/hash").default;
+passwordHash = require("@cocalc/backend/auth/password-hash").default;
 
 path_join = require('path').join
-base_path = require('@cocalc/util-node/base-path').default
+base_path = require('@cocalc/backend/base-path').default
 
 underscore = require('underscore')
 

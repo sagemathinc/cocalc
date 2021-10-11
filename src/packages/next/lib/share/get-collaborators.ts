@@ -7,7 +7,7 @@
 Get the collaborators on a given project.  Unlisted collaborators are NOT included.
 */
 
-import getPool from "@cocalc/util-node/database";
+import getPool from "@cocalc/backend/database";
 import { User } from "./types";
 import { isUUID } from "./util";
 

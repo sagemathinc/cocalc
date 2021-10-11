@@ -20,8 +20,8 @@ async   = require('async')
 
 random_key = require("random-key")
 
-misc_node = require('@cocalc/util-node/misc_node')
-misc2_node = require('@cocalc/util-node/misc')
+misc_node = require('@cocalc/backend/misc_node')
+misc2_node = require('@cocalc/backend/misc')
 
 {defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
@@ -56,10 +56,10 @@ collab = require('./postgres/collab')
 {get_personal_user} = require('./postgres/personal')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
-{getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/util-node/server-settings/server-settings');
+{getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/backend/server-settings/server-settings');
 {pii_expire} = require("./utils")
 webapp_config_clear_cache = require("./webapp-configuration").clear_cache
-passwordHash = require("@cocalc/util-node/auth/password-hash").default;
+passwordHash = require("@cocalc/backend/auth/password-hash").default;
 
 {stripe_name} = require('./stripe/client')
 

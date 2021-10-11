@@ -32,7 +32,7 @@ import {
   get_passports,
 } from "../utils";
 import { getLogger } from "@cocalc/hub/logger";
-import passwordHash from "@cocalc/util-node/auth/password-hash";
+import passwordHash from "@cocalc/backend/auth/password-hash";
 
 const winston = getLogger("create-account");
 

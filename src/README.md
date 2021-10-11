@@ -110,7 +110,7 @@ This is very useful if you pull in a git branch or switch to a different git bra
 
 #### Environment Variables
 
-See `packages/util-node/data.ts` .  In particular, you can set BASE\_PATH, DATA, PGHOST, PGDATA, PROJECTS, SECRETS to override the defaults.  Data is stored in `cocalc/src/data/`  by default.
+See `packages/backend/data.ts` .  In particular, you can set BASE\_PATH, DATA, PGHOST, PGDATA, PROJECTS, SECRETS to override the defaults.  Data is stored in `cocalc/src/data/`  by default.
 
 #### Filesystem Build Caching
 

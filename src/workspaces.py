@@ -89,7 +89,7 @@ def all_packages():
     v = [
         'packages/cdn',  # packages/hub assumes this is built
         'packages/util',
-        'packages/util-node',
+        'packages/backend',
         'packages/hub',
         'packages/frontend',
         'packages/project',

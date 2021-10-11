@@ -1,4 +1,4 @@
-import getPool from "@cocalc/util-node/database";
+import getPool from "@cocalc/backend/database";
 import passwordHash from "./password-hash";
 
 interface Params {

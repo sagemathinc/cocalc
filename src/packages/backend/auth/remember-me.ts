@@ -1,8 +1,8 @@
-import basePath from "@cocalc/util-node/base-path";
+import basePath from "@cocalc/backend/base-path";
 import { v4 } from "uuid";
 import passwordHash from "./password-hash";
-import getPool from "@cocalc/util-node/database";
-import { expireTime } from "@cocalc/util-node/database/util";
+import getPool from "@cocalc/backend/database";
+import { expireTime } from "@cocalc/backend/database/util";
 
 export const COOKIE_NAME = `${
   basePath.length <= 1 ? "" : encodeURIComponent(basePath)

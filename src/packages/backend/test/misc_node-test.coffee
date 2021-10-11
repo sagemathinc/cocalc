@@ -17,7 +17,7 @@ describe 'computing a sha1 hash: ', ->
     expect(misc_node.sha1("CoCalc")).toBe('c898c97dca68742a5a6331f9fa0ca02483cbfd25')
 
 describe "execute code", ->
-    ex = require("@cocalc/util-node/execute-code").execute_code
+    ex = require("@cocalc/backend/execute-code").execute_code
 
     it "runs normal code in bash", (done) =>
         ex

@@ -22,7 +22,7 @@ This is defined in the "RULES" array below.
 import { join } from "path";
 import { NextFunction, Request, Response } from "express";
 import { getLogger } from "@cocalc/hub/logger";
-import basePath from "@cocalc/util-node/base-path";
+import basePath from "@cocalc/backend/base-path";
 
 const CODE = 301; // permanent redirect
 

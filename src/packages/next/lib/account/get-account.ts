@@ -1,5 +1,5 @@
-import getPool from "@cocalc/util-node/database";
-import generateHash from "@cocalc/util-node/auth/hash";
+import getPool from "@cocalc/backend/database";
+import generateHash from "@cocalc/backend/auth/hash";
 
 // Return account_id if they are signed in.
 // If not, returns undefined.

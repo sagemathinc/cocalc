@@ -7,7 +7,7 @@ I.e., malicious code running in a project shouldn't be able to steal
 auth credentials for all users of a project!
 */
 
-import { COOKIE_NAME } from "@cocalc/util-node/auth/remember-me";
+import { COOKIE_NAME } from "@cocalc/backend/auth/remember-me";
 
 export default function stripRememberMeCookie(cookie): {
   cookie: string;

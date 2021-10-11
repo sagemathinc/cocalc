@@ -7,7 +7,7 @@
 Get information about a project.
 */
 
-import getPool from "@cocalc/util-node/database";
+import getPool from "@cocalc/backend/database";
 import { isUUID } from "./util";
 
 interface ProjectInfo {

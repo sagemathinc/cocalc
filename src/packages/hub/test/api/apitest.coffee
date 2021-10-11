@@ -25,7 +25,7 @@ sinon.stub(email, 'send_email').callsFake (opts) ->
 
 pgtest = require('../postgres/pgtest')
 
-passwordHash = require("@cocalc/util-node/auth/password-hash").default;
+passwordHash = require("@cocalc/backend/auth/password-hash").default;
 
 compute_client = require('../../compute-client')
 auth = require('../../auth')

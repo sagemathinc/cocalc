@@ -15,11 +15,11 @@ Password reset works as follows:
 5. Send response to user that email has been sent (or there was an error).
 */
 
-import isAccountAvailable from "@cocalc/util-node/auth/is-account-available";
+import isAccountAvailable from "@cocalc/backend/auth/is-account-available";
 import {
   recentAttempts,
   createReset,
-} from "@cocalc/util-node/auth/password-reset";
+} from "@cocalc/backend/auth/password-reset";
 
 export default async function passwordReset(req, res) {
   if (req.method !== "POST") {
@@ -40,13 +40,13 @@ export default async function passwordReset(req, res) {
   const n = await recentAttempts(email, req.ip);
   if (n > 1) {
     res.json({
-      error: `We recently sent a password reset for "${email}" (n=${n}).  Please check your email or wait a while and try later.`,
+      error: `We recently sent multiple password resets for "${email}".  Check your email or wait a while and try later.`,
     });
     return;
   }
 
   const id = await createReset(email, req.ip, 60 * 60 * 4); // 4 hour ttl seems reasonable for this.
-
+  console.log("id = ", id);
   // TODO:
   // - Send email with the id and link
   // - Link should be back to next.js server (i.e., a new password reset target)

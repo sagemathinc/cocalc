@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { Customize as ServerCustomize } from "@cocalc/util-node/server-settings/customize";
+import type { Customize as ServerCustomize } from "@cocalc/backend/server-settings/customize";
 
 interface Customize extends ServerCustomize {
   account?: { account_id: string };

@@ -6,7 +6,7 @@
 global.db = require('./postgres').db()
 
 misc = require '@cocalc/util/misc'
-misc_node = require '@cocalc/util-node/misc_node'
+misc_node = require '@cocalc/backend/misc_node'
 # TODO: this is purely for interactive debugging -- remove later.
 global.done = global.d = misc.done
 global.done1 = global.d1 = misc.done1

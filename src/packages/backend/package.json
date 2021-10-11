@@ -1,7 +1,7 @@
 {
-  "name": "@cocalc/util-node",
-  "version": "1.7.1",
-  "description": "CoCalc misc utility functionality that is meant for running on node.js (not in browser)",
+  "name": "@cocalc/backend",
+  "version": "1.0.0",
+  "description": "CoCalc backend functionality: functionality used by either the hub, the next.js server or the project.",
   "exports": {
     "./database": "./dist/database/index.js",
     "./*": "./dist/*.js",
@@ -25,7 +25,7 @@
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
     "@cocalc/util": "^1.8.0",
-    "@cocalc/util-node": "file:",
+    "@cocalc/backend": "file:",
     "@types/debug": "^4.1.7",
     "@types/lru-cache": "^5.1.1",
     "@types/pg": "^8.6.1",

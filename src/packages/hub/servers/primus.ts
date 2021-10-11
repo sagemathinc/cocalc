@@ -1,8 +1,8 @@
 import { join } from "path";
 import { Router } from "express";
 const Primus = require("primus");
-import base_path from "@cocalc/util-node/base-path";
-import Logger from "@cocalc/util-node/logger";
+import base_path from "@cocalc/backend/base-path";
+import Logger from "@cocalc/backend/logger";
 import setup_primus_client from "@cocalc/hub/primus-client";
 const { Client } = require("@cocalc/hub/client");
 import { len } from "@cocalc/util/misc";

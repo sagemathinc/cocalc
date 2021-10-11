@@ -14,7 +14,7 @@ import handleRaw from "@cocalc/next/lib/share/handle-raw";
 import { getLogger } from "@cocalc/hub/logger";
 import shareRedirect from "./share-redirect";
 import createLandingRedirect from "./landing-redirect";
-import basePath from "@cocalc/util-node/base-path";
+import basePath from "@cocalc/backend/base-path";
 import { database } from "../database";
 import { callback2 } from "@cocalc/util/async-utils";
 

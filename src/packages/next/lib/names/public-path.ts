@@ -2,7 +2,7 @@
 from the database.  This should be enough to render
 a nice "homepage" for that user or organization.
 */
-import getPool from "@cocalc/util-node/database";
+import getPool from "@cocalc/backend/database";
 import getProjectId from "./project";
 import { getOwnerName } from "lib/names/owner";
 

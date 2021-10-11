@@ -1,4 +1,4 @@
-import getPool, { timeInSeconds } from "@cocalc/util-node/database";
+import getPool, { timeInSeconds } from "@cocalc/backend/database";
 import { isUUID } from "./util";
 import { PublicPath } from "./types";
 
