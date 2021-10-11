@@ -20,40 +20,50 @@ import {
   recentAttempts,
   createReset,
 } from "@cocalc/backend/auth/password-reset";
+import sendPasswordResetEmail from "@cocalc/backend/email/password-reset";
 
 export default async function passwordReset(req, res) {
   if (req.method !== "POST") {
-    res.status(404).json({ message: "Sign In must use a POST request." });
+    res
+      .status(404)
+      .json({ message: "password reset must use a POST request." });
     return;
   }
 
   const { email } = req.body;
+  const result = await handle(email, req.ip);
+  res.json(result);
+}
 
+async function handle(email: string, ip: string): Promise<object> {
   if (await isAccountAvailable(email)) {
     // Bad -- email is *available*, which means no way to reset
     // the password for it, since it doesn't exist.
-    res.json({ error: `There is no account with email "${email}".` });
-    return;
+    return { error: `There is no account with email "${email}".` };
   }
   // Check that user isn't spamming email.
 
-  const n = await recentAttempts(email, req.ip);
+  const n = await recentAttempts(email, ip);
   if (n > 1) {
-    res.json({
+    return {
       error: `We recently sent multiple password resets for "${email}".  Check your email or wait a while and try later.`,
-    });
-    return;
+    };
   }
 
-  const id = await createReset(email, req.ip, 60 * 60 * 4); // 4 hour ttl seems reasonable for this.
-  console.log("id = ", id);
+  const id = await createReset(email, ip, 60 * 60 * 4); // 4 hour ttl seems reasonable for this.
   // TODO:
   // - Send email with the id and link
   // - Link should be back to next.js server (i.e., a new password reset target)
   // - Implement that target and backend handling of it.
+  try {
+    await sendPasswordResetEmail(email, id);
+  } catch (err) {
+    return {
+      error: `Sending password reset email failed -- ${err}`,
+    };
+  }
 
-  res.json({
+  return {
     success: `Password reset email successfully sent to ${email}.`,
-  });
-  return;
+  };
 }
