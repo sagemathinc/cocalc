@@ -5,7 +5,7 @@ import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import Head from "components/landing/head";
 import basePath from "lib/base-path";
-import SignIn from "components/account/sign-in";
+import SignIn from "components/auth/sign-in";
 
 export default function Home({ customize }) {
   const { siteName } = customize;

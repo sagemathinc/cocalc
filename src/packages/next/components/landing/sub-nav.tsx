@@ -49,8 +49,8 @@ const info = {
 };
 
 const sign_in = {
-  "sign-in": { label: "Sign In", href: "/sign-in" },
-  "password-reset": { label: "Password Reset", href: "/password-reset" },
+  "sign-in": { label: "Sign In", href: "/auth/sign-in" },
+  "password-reset": { label: "Password Reset", href: "/auth/password-reset" },
 };
 
 const PAGES = {

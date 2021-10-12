@@ -14,7 +14,6 @@ export default async function getProjectId(
   owner: string,
   project: string
 ): Promise<string> {
-  console.log("getProjectId", owner, project);
   const { owner_id } = await getOwner(owner);
   const pool = getPool("long"); // map from owner/project --> project_id unlikely to change and when it does, stale data is ok.
 

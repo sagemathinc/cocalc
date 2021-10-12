@@ -139,7 +139,7 @@ export default function Header({ page, subPage }: Props) {
         {!account && anonymousSignup && (
           <A
             style={page == "try" ? SelectedStyle : LinkStyle}
-            href={"/try"}
+            href={"/auth/try"}
             title={`Try ${siteName} immediately without creating an account.`}
           >
             Try {siteName}
@@ -157,14 +157,14 @@ export default function Header({ page, subPage }: Props) {
           <>
             <A
               style={page == "sign-in" ? SelectedStyle : LinkStyle}
-              href="/sign-in"
+              href="/auth/sign-in"
               title={`Sign in to ${siteName} or create an account.`}
             >
               Sign In
             </A>
             <A
               style={page == "sign-up" ? SelectedStyle : LinkStyle}
-              href="/sign-up"
+              href="/auth/sign-up"
               title={`Sign up for a ${siteName} account.`}
             >
               Sign Up

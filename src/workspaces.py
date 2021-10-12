@@ -390,6 +390,7 @@ def publish_package(args, package):
             package)
     except:
         print(f"Didn't commit {package}; this may be fine.")
+    cmd("git push")
 
 
 def status(args):

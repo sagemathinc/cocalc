@@ -62,7 +62,7 @@ async function getSettings(): Promise<{ [setting: string]: any }> {
 }
 
 function getBody(settings, email_address: string, id: string): string {
-  const url = `https://${settings.dns}/password-reset/${id}`;
+  const url = `https://${settings.dns}/auth/password-reset/${id}`;
   let body = `
 <div>
 Hello,

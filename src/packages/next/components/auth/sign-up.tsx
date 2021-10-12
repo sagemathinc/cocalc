@@ -47,7 +47,7 @@ export default function SignUp() {
     setIssues({});
     try {
       setSigningUp(true);
-      const result = await apiPost("/account/sign-up", {
+      const result = await apiPost("/auth/sign-up", {
         terms,
         email,
         password,
@@ -102,8 +102,8 @@ export default function SignUp() {
               description={
                 <>
                   Choose a different email address,{" "}
-                  <A href="/sign-in">sign in</A>, or{" "}
-                  <A href="/password-reset">reset your password</A>.
+                  <A href="/auth/sign-in">sign in</A>, or{" "}
+                  <A href="/auth/password-reset">reset your password</A>.
                 </>
               }
             />
@@ -185,11 +185,11 @@ export default function SignUp() {
         }}
       >
         <p>
-          Already have an account? <A href="/sign-in">Sign In</A>
+          Already have an account? <A href="/auth/sign-in">Sign In</A>
         </p>
         Don't want to provide any information?
         <br />
-        <A href="/try">Try {siteName} without creating an account.</A>
+        <A href="/auth/try">Try {siteName} without creating an account.</A>
       </div>
     </div>
   );

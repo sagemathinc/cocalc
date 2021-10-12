@@ -44,7 +44,7 @@ export default function SignIn({ startup, hideFree }: Props) {
           type="primary"
           style={{ margin: "10px" }}
           title={"Try now without creating an account!"}
-          onClick={() => router.push("/try")}
+          onClick={() => router.push("/auth/try")}
         >
           Try {startup ?? siteName} Now
         </Button>
@@ -53,7 +53,7 @@ export default function SignIn({ startup, hideFree }: Props) {
         size="large"
         style={{ margin: "10px" }}
         title={"Either create a new account or sign into an existing account."}
-        onClick={() => router.push("/sign-in")}
+        onClick={() => router.push("/auth/sign-in")}
       >
         Sign In
       </Button>
@@ -61,7 +61,7 @@ export default function SignIn({ startup, hideFree }: Props) {
         size="large"
         style={{ margin: "10px" }}
         title={"Create a new account."}
-        onClick={() => router.push("/sign-up")}
+        onClick={() => router.push("/auth/sign-up")}
       >
         Sign Up
       </Button>

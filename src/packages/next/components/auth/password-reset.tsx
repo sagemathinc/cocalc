@@ -22,7 +22,7 @@ export default function PasswordReset() {
       setError("");
       setSuccess("");
       setResetting(true);
-      const result = await apiPost("/account/password-reset", { email });
+      const result = await apiPost("/auth/password-reset", { email });
       if (result.error) {
         setError(`${result.error}`);
       } else if (result.success) {
@@ -121,13 +121,13 @@ export default function PasswordReset() {
         }}
       >
         <p>
-          Remember your password? <A href="/sign-in">Sign In</A>
+          Remember your password? <A href="/auth/sign-in">Sign In</A>
         </p>
         <p>
-          Do not have an account? <A href="/sign-up">Sign Up</A>
+          Do not have an account? <A href="/auth/sign-up">Sign Up</A>
         </p>
         You can also{" "}
-        <A href="/try">try {siteName} without creating an account</A>
+        <A href="/auth/try">try {siteName} without creating an account</A>
       </div>
     </div>
   );

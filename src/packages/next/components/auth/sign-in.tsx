@@ -23,7 +23,7 @@ export default function SignIn() {
     setError("");
     try {
       setSigningIn(true);
-      const result = await apiPost("/account/sign-in", { email, password });
+      const result = await apiPost("/auth/sign-in", { email, password });
       if (result.error) {
         setError(`${result.error}`);
       } else {
@@ -136,9 +136,9 @@ export default function SignIn() {
         }}
       >
         <p>
-          New to {siteName}? <A href="/sign-up">Sign Up</A>
+          New to {siteName}? <A href="/auth/sign-up">Sign Up</A>
         </p>
-        Unsure? <A href="/try">Try {siteName} without creating an account</A>
+        Unsure? <A href="/auth/try">Try {siteName} without creating an account</A>
       </div>
     </div>
   );
