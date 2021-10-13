@@ -7,9 +7,14 @@ import type { Message } from "./message";
 import getPool from "@cocalc/backend/database";
 import sendViaSMTP from "./smtp";
 import sendViaSendgrid from "./sendgrid";
+import sendEmailThrottle from "./throttle";
 
-export default async function sendEmail(message: Message): Promise<void> {
+export default async function sendEmail(
+  message: Message,
+  account_id?: string
+): Promise<void> {
   const pool = getPool("long");
+  await sendEmailThrottle(account_id);
   const { rows } = await pool.query(
     "SELECT value FROM server_settings WHERE name='email_backend'"
   );
