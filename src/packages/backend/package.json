@@ -26,6 +26,7 @@
     "@airbnb/node-memwatch": "^2.0.0",
     "@cocalc/backend": "file:",
     "@cocalc/util": "^1.8.0",
+    "@sendgrid/mail": "^7.4.7",
     "@types/debug": "^4.1.7",
     "@types/lru-cache": "^5.1.1",
     "@types/nodemailer": "^6.4.4",

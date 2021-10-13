@@ -14,7 +14,7 @@ export default async function sendPasswordResetEmail(
     settings = await getSettings();
   } catch (err) {
     throw Error(
-      "Password reset is not fully configured for this server. Contact the site administrator. -- ${err}"
+      `Password reset is not fully configured for this server. Contact the site administrator. -- ${err}`
     );
   }
   const from = `${settings.site_name ?? "CoCalc"} <${
@@ -41,7 +41,9 @@ async function getServer(settings): Promise<Transporter> {
   server = await createTransport({
     host: settings.password_reset_smtp_server,
     port: settings.password_reset_smtp_port,
-    secure: settings.password_reset_smtp_secure, // true for 465, false for other ports
+    secure:
+      !settings.password_reset_smtp_port ||
+      settings.password_reset_smtp_port == 465, // true for 465, false for other ports
     auth: {
       user: settings.password_reset_smtp_login,
       pass: settings.password_reset_smtp_password,
@@ -82,7 +84,7 @@ async function getSettings(): Promise<Settings> {
     throw Error("Secondary SMTP password must be configured");
   }
   if (!settings.password_reset_smtp_from) {
-    throw Error("Secondary SMTP password must be configured");
+    throw Error("Secondary SMTP from must be configured");
   }
   if (!settings.dns) {
     throw Error("Domain name must be configured");
