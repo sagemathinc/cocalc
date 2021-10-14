@@ -149,28 +149,30 @@ export default function SignUp() {
             </div>
           )}
         </form>
-        {terms && email && (
-          <div style={LINE}>
-            <Button
-              shape="round"
-              size="large"
-              disabled={!submittable.current}
-              type="primary"
-              style={{ width: "100%" }}
-              onClick={signUp}
-            >
-              {!password || password.length < 6
-                ? "Choose password with at least 6 characters"
-                : !firstName
-                ? "Enter your first name above"
-                : !lastName
-                ? "Enter your last name above"
-                : !isValidEmailAddress(email)
-                ? "Enter a valid email address above"
-                : "Sign Up!"}
-            </Button>
-          </div>
-        )}
+        <div style={LINE}>
+          <Button
+            shape="round"
+            size="large"
+            disabled={!submittable.current}
+            type="primary"
+            style={{ width: "100%", marginTop:'15px' }}
+            onClick={signUp}
+          >
+            {!terms
+              ? "Agree to the terms"
+              : !email
+              ? "How will you sign in?"
+              : !password || password.length < 6
+              ? "Choose password with at least 6 characters"
+              : !firstName
+              ? "Enter your first name above"
+              : !lastName
+              ? "Enter your last name above"
+              : !isValidEmailAddress(email)
+              ? "Enter a valid email address above"
+              : "Sign Up!"}
+          </Button>
+        </div>
         {issues.error && (
           <Alert style={LINE} type="error" showIcon message={issues.error} />
         )}

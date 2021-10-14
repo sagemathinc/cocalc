@@ -14,7 +14,8 @@ import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc
 import siteURL from "@cocalc/backend/server-settings/site-url";
 
 export default async function sendWelcomeEmail(
-  email_address: string
+  email_address: string,
+  account_id: string
 ): Promise<void> {
   if (!isValidEmailAddress(email_address)) {
     throw Error("invalid email address");
@@ -22,12 +23,15 @@ export default async function sendWelcomeEmail(
 
   const { text, html } = await getWelcomeEmail(email_address);
 
-  await sendEmail({
-    to: email_address,
-    subject: "Welcome!",
-    text,
-    html,
-  });
+  await sendEmail(
+    {
+      to: email_address,
+      subject: "Welcome!",
+      text,
+      html,
+    },
+    account_id
+  );
 }
 
 async function getWelcomeEmail(
@@ -45,7 +49,7 @@ async function getWelcomeEmail(
 </p>
 
 <p style="margin-top:0;margin-bottom:20px;">
-You received this email because an account with your email address was created.
+You received this email because an account with the email address ${email_address} was created.
 </p>
 
 ${verify.html}
@@ -147,7 +151,7 @@ ${site_name} helps you to work with open-source scientific software in your web 
 
 ${site_url}
 
-You received this email because an account with your email address was created.
+You received this email because an account with the email address ${email_address} was created.
 
 ${verify.text}
 

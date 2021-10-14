@@ -11,7 +11,7 @@ import sendEmailThrottle from "./throttle";
 
 export default async function sendEmail(
   message: Message,
-  account_id?: string
+  account_id?: string // account that we are sending this email *on behalf of*, if any (used for throttling).
 ): Promise<void> {
   const pool = getPool("long");
   await sendEmailThrottle(account_id);
