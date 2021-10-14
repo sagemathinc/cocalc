@@ -152,7 +152,16 @@ export default function Header({ page, subPage }: Props) {
             href={join(basePath, "settings")}
             title={"View your Account Settings"}
           >
-            {account.account_id && <Avatar account_id={account.account_id} />}{" "}
+            {/* The negative margin fixes some weird behavior that stretches header. */}
+            {account.account_id && (
+              <>
+                <Avatar
+                  account_id={account.account_id}
+                  style={{ margin: "-10px 0" }}
+                />
+                &nbsp;&nbsp;
+              </>
+            )}
             Account
           </a>
         ) : (

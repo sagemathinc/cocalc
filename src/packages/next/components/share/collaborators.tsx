@@ -9,7 +9,7 @@ export default function Collaborators({
   const v: JSX.Element[] = [];
   for (const user of collaborators ?? []) {
     v.push(<User key={user.account_id} user={user} />);
-    v.push(<span key={user.account_id+','}>{", "}</span>);
+    v.push(<span key={user.account_id+','}>{", "}&nbsp;&nbsp;</span>);
   }
   v.pop(); // discard last comma.
   return <>{v}</>;
