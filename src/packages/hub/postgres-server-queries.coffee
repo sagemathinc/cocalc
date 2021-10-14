@@ -769,7 +769,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         )
 
 
-    verify_email_check_token: (opts) =>
+    verify_email_check_token: (opts) =>   # rewritten in backend/auth/redeem-verify-email.ts
         opts = defaults opts,
             email_address : required
             token         : required
@@ -834,7 +834,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb     : cb
         ], opts.cb)
 
-    # returns a the email address and verified email address
+    # returns the email address and whether or not it is verified
     verify_email_get: (opts) =>
         opts = defaults opts,
             account_id    : required
@@ -846,7 +846,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 opts.cb?(err, x)
 
     # answers the question as cb(null, [true or false])
-    is_verified_email: (opts) =>
+    is_verified_email: (opts) =>  # rewritten in backend/auth/redeem-verify-email.ts
         opts = defaults opts,
             email_address : required
             cb            : required

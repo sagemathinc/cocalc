@@ -4,7 +4,7 @@ import { Layout } from "antd";
 import Head from "components/landing/head";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import RedeemEmailVerifyToken from "components/auth/redeem-verify-email";
+import RedeemVerify from "components/auth/redeem-verify-email";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import { useRouter } from "next/router";
@@ -19,7 +19,7 @@ export default function PasswordReset({ token, customize }) {
       <Layout>
         <Header />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <RedeemEmailVerifyToken token={token} email_address={`${email}`} />
+          <RedeemVerify token={token} email_address={`${email}`} />
           <Footer />
         </Layout.Content>
       </Layout>

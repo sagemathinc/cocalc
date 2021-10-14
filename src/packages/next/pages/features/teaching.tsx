@@ -14,7 +14,6 @@ import A from "components/misc/A";
 import Contact from "components/landing/contact";
 import LaTeX from "components/landing/latex";
 import Image from "components/landing/image";
-
 import logo from "public/features/fa-graduation-cap.svg";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
 import nbgrader from "public/features/cocalc-jupyter-nbgrader-overview.png";

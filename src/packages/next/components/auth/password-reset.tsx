@@ -93,7 +93,8 @@ export default function PasswordReset() {
             message="Error"
             description={
               <div style={{ fontSize: "12pt" }}>
-                <b>{error}</b> If you are stuck <Contact />.
+                <b>{error}</b>
+                <br /> If you are stuck <Contact lower />.
               </div>
             }
             type="error"
