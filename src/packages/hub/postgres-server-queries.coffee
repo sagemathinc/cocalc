@@ -721,7 +721,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     else
                         opts.cb(err)
 
-    verify_email_create_token: (opts) =>
+    verify_email_create_token: (opts) =>  # has been rewritten in backend/email/verify.ts
         opts = defaults opts,
             account_id    : required
             cb            : undefined
@@ -744,7 +744,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 # TODO maybe expire tokens after some time
                 if locals.old_challenge?
                     old = locals.old_challenge
-                    # return the same token if the is one for the same email
+                    # return the same token if there is one for the same email
                     if old.token? and old.email == locals.email_address
                         locals.token = locals.old_challenge.token
                         cb()

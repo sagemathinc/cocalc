@@ -41,7 +41,7 @@ export default async function signIn(req, res) {
       recordFail(email, req.ip);
       return;
     }
-    signUserIn(req, res, account_id);
+    await signUserIn(req, res, account_id);
   } else {
     res.status(404).json({ message: "Sign In must use a POST request." });
   }

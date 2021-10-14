@@ -4,13 +4,12 @@ import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { site_settings_conf as CONF } from "@cocalc/util/schema";
 import getPool from "../database";
 
-// We're just using this to cache one result for a while.  This could
-// be done with a simpler cache, but it's nice to use one cache everywhere.
+// We're just using this to cache this result for a **few seconds**.
 const CACHE_TIME_SECONDS = process.env.NODE_ENV == "development" ? 3 : 15;
 type CacheKeys = "server-settings" | "passports";
-// TODO add something for the passports type
+// TODO add something for the passports data type?
 const cache = new LRU<CacheKeys, ServerSettings>({
-  max: 1,
+  max: 10,
   maxAge: 1000 * CACHE_TIME_SECONDS,
 });
 const KEY: CacheKeys = "server-settings";

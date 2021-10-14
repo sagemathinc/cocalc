@@ -647,8 +647,11 @@ class SiteSettingsComponent extends Component<
       >
         <b>Important:</b>{" "}
         <i>
-          You must entirely restart the CoCalc server for most of these settings
-          to take effect.
+          Most settings will take effect within 1 minute of saving them;
+          however, some might require restarting the server. If the box
+          containing a setting is red, that means the value that you entered is
+          invalid. Also, the form below are not very nice since it is not user
+          facing; we plan to implement a nicer interface soon.
         </i>
       </div>
     );

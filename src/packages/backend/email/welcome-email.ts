@@ -7,54 +7,48 @@ in the database or if sending of email is not configured.
 */
 
 import sendEmail from "./send-email";
-import getPool from "@cocalc/backend/database";
+import { getServerSettings } from "@cocalc/backend/server-settings";
+import { LIVE_DEMO_REQUEST } from "@cocalc/util/theme";
+import { getVerifyEmail } from "./verify";
+import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
+import siteURL from "@cocalc/backend/server-settings/site-url";
 
 export default async function sendWelcomeEmail(
-  account_id: string
+  email_address: string
 ): Promise<void> {
-  const pool = getPool();
-  const { rows } = await pool.query(
-    "SELECT email_address FROM accounts WHERE account_id=$1",
-    [account_id]
-  );
-  if (rows.length == 0) {
-    throw Error("no such account");
-  }
-  const { email_address } = rows[0];
-  if (!email_address) {
-    throw Error(
-      "user has no email address, so can't send them a welcome email"
-    );
+  if (!isValidEmailAddress(email_address)) {
+    throw Error("invalid email address");
   }
 
-  const subject = "Welcome!";
-  const text = "Welcome!";
-  const html = "Welcome!";
+  const { text, html } = await getWelcomeEmail(email_address);
 
-  sendEmail({
+  await sendEmail({
     to: email_address,
-    subject,
+    subject: "Welcome!",
     text,
     html,
   });
 }
 
-/*
-function welcomeHtml({ token_url, verify_emails, site_name, url }) {
-  return `\
+async function getWelcomeEmail(
+  email_address: string
+): Promise<{ text: string; html: string }> {
+  const verify = await getVerifyEmail(email_address);
+  const { help_email, site_name } = await getServerSettings();
+
+  const site_url = await siteURL();
+  const html = `\
 <h1>Welcome to ${site_name}</h1>
 
 <p style="margin-top:0;margin-bottom:10px;">
-<a href="${url}">${site_name}</a> helps you to work with open-source scientific software in your web browser.
+<a href="${site_url}">${site_name}</a> helps you to work with open-source scientific software in your web browser.
 </p>
 
 <p style="margin-top:0;margin-bottom:20px;">
 You received this email because an account with your email address was created.
-This was either initiated by you, a friend or colleague invited you, or you're
-a student as part of a course.
 </p>
 
-${verify_emails ? verify_email_html(token_url) : ""}
+${verify.html}
 
 <hr size="1"/>
 
@@ -62,11 +56,12 @@ ${verify_emails ? verify_email_html(token_url) : ""}
 <p style="margin-top:0;margin-bottom:10px;">
 In ${site_name} your work happens inside <strong>private projects</strong>.
 These are personal workspaces which contain your files, computational worksheets, and data.
-You can run your computations through the web interface, via interactive worksheets and notebooks, or by executing a program in a terminal.
-${site_name} supports online editing of
-    <a href="https://jupyter.org/">Jupyter Notebooks</a>,
-    <a href="https://www.sagemath.org/">Sage Worksheets</a>,
-    <a href="https://en.wikibooks.org/wiki/LaTeX">Latex files</a>, etc.
+You can run your computations through the web interface, via interactive worksheets
+and notebooks, or by executing a program in a terminal. ${site_name} supports
+online editing of
+    <a href="https://cocalc.com/features/jupyter-notebook">Jupyter Notebooks</a>,
+    <a href="https://cocalc.com/features/sage">Sage Worksheets</a>,
+    <a href="https://cocalc.com/features/latex-editor">LaTeX files</a>, etc.
 </p>
 
 <p style="margin-top:0;margin-bottom:10px;">
@@ -109,7 +104,7 @@ You can share your thoughts in a <strong>side chat</strong> next to each documen
 
 <p><strong>Software:</strong>
 <ul>
-<li style="margin-top:0;margin-bottom:10px;">Mathematical calculation:
+<li style="margin-top:0;margin-bottom:10px;">Mathematical Calculation:
     <a href="https://www.sagemath.org/">SageMath</a>,
     <a href="https://www.sympy.org/">SymPy</a>, etc.
 </li>
@@ -118,17 +113,17 @@ You can share your thoughts in a <strong>side chat</strong> next to each documen
     <a href="http://pandas.pydata.org/">Pandas</a>,
     <a href="http://www.statsmodels.org/">statsmodels</a>,
     <a href="http://scikit-learn.org/">scikit-learn</a>,
-    <a href="http://www.nltk.org/">NLTK</a>, etc.
+    <a href="http://www.nltk.org/">NLTK</a>, and <a href="https://cocalc.com/software">much more</a>.
 </li>
-<li style="margin-top:0;margin-bottom:10px;">Various other computation:
+<li style="margin-top:0;margin-bottom:10px;">Various other Computation:
     <a href="https://www.tensorflow.org/">Tensorflow</a>,
-    <a href="https://www.gnu.org/software/octave/">Octave</a>,
-    <a href="https://julialang.org/">Julia</a>, etc.
+    <a href="https://cocalc.com/features/octave">Octave</a>,
+    <a href="https://cocalc.com/features/julia">Julia</a>, etc.
 </li>
 </ul>
 
 <p style="margin-top:0;margin-bottom:20px;">
-Visit our <a href="https://cocalc.com/doc/software.html">Software overview page</a> for more details!
+Visit our <a href="https://cocalc.com/features">Feature Overview Page</a> for more details!
 </p>
 
 
@@ -136,13 +131,78 @@ Visit our <a href="https://cocalc.com/doc/software.html">Software overview page<
 <strong>Questions?</strong>
 </p>
 <p style="margin-top:0;margin-bottom:10px;">
-Schedule a Live Demo with a specialist from CoCalc: <a href="${LIVE_DEMO_REQUEST}">request form</a>.
+Schedule a Live Demo with a specialist from CoCalc.com: <a href="${LIVE_DEMO_REQUEST}">request form</a>.
 </p>
 <p style="margin-top:0;margin-bottom:20px;">
 In case of problems, concerns why you received this email, or other questions please contact:
-<a href="mailto:${HELP_EMAIL}">${HELP_EMAIL}</a>.
+<a href="mailto:${help_email}">${help_email}</a>.
 </p>
 \
 `;
+
+  const text = `
+Welcome to ${site_name}!
+
+${site_name} helps you to work with open-source scientific software in your web browser.
+
+${site_url}
+
+You received this email because an account with your email address was created.
+
+${verify.text}
+
+EXPLORING ${site_name}
+
+In ${site_name} your work happens inside private projects.  These are personal
+workspaces which contain your files, computational worksheets, and data.
+You can run your computations through the web interface, via interactive worksheets
+and notebooks, or by executing a program in a terminal. ${site_name} supports
+online editing of Jupyter Notebooks, Sage Worksheets, LaTeX files, and much more.
+
+HOW TO GET FROM 0 to 100:
+
+CoCalc Manual: https://doc.cocalc.com/
+
+Working with Jupyter Notebooks: https://doc.cocalc.com/jupyter.html
+
+Working with SageMath Worksheets: https://doc.cocalc.com/sagews.html
+
+Subscriptions: https://cocalc.com/policies/pricing.html
+
+Teaching a course on CoCalc: https://doc.cocalc.com/teaching-instructors.html
+
+Troubleshooting connectivity issues: https://doc.cocalc.com/howto/connectivity-issues.html
+
+Common mathematical syntax errors: https://github.com/sagemathinc/cocalc/wiki/MathematicalSyntaxErrors
+
+COLLABORATION
+
+You can invite collaborators to work with you inside a project.
+Like you, they can edit the files in that project.
+Edits are visible in real time for everyone online.
+You can share your thoughts in a side chat next to each document.
+
+SOFTWARE
+
+- Mathematical Calculation: https://www.sagemath.org, https://www.sympy.org, etc.
+
+- Statistics and Data Science: https://www.r-project.org/, http://pandas.pydata.org/,
+http://www.statsmodels.org/, http://scikit-learn.org/, http://www.nltk.org/, and
+much more.  See https://cocalc.com/software
+
+Various other Computation: https://www.tensorflow.org/, https://cocalc.com/features/octave,
+https://cocalc.com/features/julia
+
+Visit our Feature Overview Page at https://cocalc.com/features for more details!
+
+QUESTIONS?
+
+Schedule a Live Demo with a specialist from CoCalc.com:
+
+${LIVE_DEMO_REQUEST}
+
+In case of problems, concerns why you received this email, or other questions
+please contact ${help_email}
+`;
+  return { html, text };
 }
-*/

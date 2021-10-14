@@ -4,6 +4,7 @@ import { createTransport } from "nodemailer";
 import type { Transporter } from "nodemailer";
 import getPool from "@cocalc/backend/database";
 import getFooter from "./footer";
+import siteURL from "@cocalc/backend/server-settings/site-url";
 
 export default async function sendPasswordResetEmail(
   email_address: string, // target user who will receive the password reset email
@@ -22,7 +23,12 @@ export default async function sendPasswordResetEmail(
   }>`;
   const server = await getServer(settings);
   const subject = `${settings.site_name ?? "CoCalc"} Password Reset`;
-  const { html, text } = getMessage(settings, email_address, id);
+  const { html, text } = getMessage(
+    settings,
+    email_address,
+    id,
+    await siteURL()
+  );
   server.sendMail({
     from,
     replyTo: from,
@@ -59,7 +65,6 @@ interface Settings {
   password_reset_smtp_password: string;
   password_reset_smtp_from: string;
   password_reset_smtp_port?: string;
-  dns: string;
   site_name: string;
   help_email: string;
   company_name: string;
@@ -86,9 +91,6 @@ async function getSettings(): Promise<Settings> {
   if (!settings.password_reset_smtp_from) {
     throw Error("Secondary SMTP from must be configured");
   }
-  if (!settings.dns) {
-    throw Error("Domain name must be configured");
-  }
   if (!settings.site_name) {
     settings.site_name = "Open CoCalc";
   }
@@ -105,9 +107,9 @@ async function getSettings(): Promise<Settings> {
 function getMessage(
   settings,
   email_address: string,
-  id: string
+  id: string,
+  site_url: string
 ): { html: string; text: string } {
-  const site_url = `https://${settings.dns}`;
   const reset_url = `${site_url}/auth/password-reset/${id}`;
   const footer = getFooter({ ...settings, site_url });
 

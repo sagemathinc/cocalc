@@ -23,6 +23,7 @@ import { v4 } from "uuid";
 import isAccountAvailable from "@cocalc/backend/auth/is-account-available";
 import createAccount from "@cocalc/backend/auth/create-account";
 import { getAccount, signUserIn } from "./sign-in";
+import sendWelcomeEmail from "@cocalc/backend/email/welcome-email";
 
 interface Issues {
   terms?: string;
@@ -30,13 +31,13 @@ interface Issues {
   password?: string;
 }
 
-export default async function signIn(req, res) {
+export default async function signUp(req, res) {
   if (req.method === "POST") {
     const { email, password, firstName, lastName } = req.body;
 
     try {
       const account_id = await getAccount(email, password);
-      signUserIn(req, res, account_id);
+      await signUserIn(req, res, account_id);
       return;
     } catch (_err) {
       // fine -- just means they don't already have an account.
@@ -64,7 +65,17 @@ export default async function signIn(req, res) {
       account_id,
     });
 
-    signUserIn(req, res, account_id);
+    if (email) {
+      try {
+        await sendWelcomeEmail(email);
+      } catch (err) {
+        // Expected to fail, e.g., when sendgrid or smtp not configured yet.
+        // TODO: should log using debug instead of console?
+        console.log(`WARNING: failed to send welcome email to ${email}`, err);
+      }
+    }
+
+    await signUserIn(req, res, account_id);
     return;
   } else {
     res.status(404).json({ message: "Sign In must use a POST request." });

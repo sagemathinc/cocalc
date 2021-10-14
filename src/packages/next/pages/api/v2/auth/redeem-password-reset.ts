@@ -32,6 +32,6 @@ export default async function redeemPasswordResetAPIEndPoint(req, res) {
     res.json({ error: `${err}` });
     return;
   }
-  signUserIn(req, res, account_id);
+  await signUserIn(req, res, account_id);
   return;
 }

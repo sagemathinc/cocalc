@@ -4,13 +4,11 @@
   "description": "CoCalc backend functionality: functionality used by either the hub, the next.js server or the project.",
   "exports": {
     "./database": "./dist/database/index.js",
+    "./server-settings": "./dist/server-settings/index.js",
     "./*": "./dist/*.js",
     "./auth/*": "./dist/auth/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "build": "npx tsc && npx coffee  -m -c -o dist/ .",
     "tsc": "npx tsc --watch",
@@ -18,10 +16,7 @@
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
-  "workspaces": [
-    ".",
-    "../util"
-  ],
+  "workspaces": [".", "../util"],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
     "@cocalc/backend": "file:",
@@ -38,6 +33,7 @@
     "nodemailer": "^6.6.5",
     "password-hash": "^1.2.2",
     "pg": "^8.7.1",
+    "random-key": "^0.3.2",
     "shell-escape": "^0.2.0",
     "sqlite3": "^5.0.2",
     "supports-color": "^9.0.2",
