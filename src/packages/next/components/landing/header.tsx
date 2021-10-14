@@ -7,6 +7,7 @@ import { useCustomize } from "lib/customize";
 import basePath from "lib/base-path";
 import SubNav, { Page, SubPage } from "./sub-nav";
 import Analytics from "components/analytics";
+import Avatar from "components/account/avatar";
 
 const GAP = "24px";
 
@@ -151,6 +152,7 @@ export default function Header({ page, subPage }: Props) {
             href={join(basePath, "settings")}
             title={"View your Account Settings"}
           >
+            {account.account_id && <Avatar account_id={account.account_id} />}{" "}
             Account
           </a>
         ) : (
