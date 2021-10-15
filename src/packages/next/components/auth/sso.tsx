@@ -25,7 +25,7 @@ export default function SSO({ strategies, size }: Props) {
   return (
     <div>
       {strategies.map((strategy) => (
-        <StrategyAvatar strategy={strategy} size={size ?? 60} />
+        <StrategyAvatar key={strategy.name} strategy={strategy} size={size ?? 60} />
       ))}
     </div>
   );

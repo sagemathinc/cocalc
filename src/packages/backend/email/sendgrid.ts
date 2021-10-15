@@ -7,6 +7,7 @@ import getPool from "@cocalc/backend/database";
 import sgMail from "@sendgrid/mail";
 import type { Message } from "./message";
 import getHelpEmail from "./help";
+import appendFooter from "./footer";
 
 // Init throws error if we can't initialize Sendgrid right now.
 // It also updates the key if it changes in at most one minute (?).
@@ -38,5 +39,5 @@ export default async function sendEmail(message: Message): Promise<void> {
   if (!message.from) {
     message.from = await getHelpEmail(); // fallback
   }
-  await sg.send(message);
+  await sg.send(await appendFooter(message));
 }

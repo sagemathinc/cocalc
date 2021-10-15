@@ -141,7 +141,6 @@ Schedule a Live Demo with a specialist from CoCalc.com: <a href="${LIVE_DEMO_REQ
 In case of problems, concerns why you received this email, or other questions please contact:
 <a href="mailto:${help_email}">${help_email}</a>.
 </p>
-\
 `;
 
   const text = `
@@ -206,7 +205,6 @@ Schedule a Live Demo with a specialist from CoCalc.com:
 ${LIVE_DEMO_REQUEST}
 
 In case of problems, concerns why you received this email, or other questions
-please contact ${help_email}
-`;
+please contact ${help_email}.`;
   return { html, text };
 }
