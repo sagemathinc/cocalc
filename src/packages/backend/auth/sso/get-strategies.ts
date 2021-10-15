@@ -15,7 +15,7 @@ interface Strategy {
 export default async function getStrategies(): Promise<Strategy[]> {
   const pool = getPool("long");
   const { rows } = await pool.query(
-    "SELECT strategy, conf#>>'{icon}' as icon, conf#>>'{display}' as display FROM passport_settings"
+    "SELECT strategy, conf#>>'{icon}' as icon, conf#>>'{display}' as display FROM passport_settings WHERE strategy != 'site_conf'"
   );
   const strategies: Strategy[] = [];
   for (const row of rows) {
