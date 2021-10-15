@@ -159,8 +159,8 @@ export const syntax2tool: Readonly<Config> = Object.freeze({
   py: "python", // should be yapf or whatever …
   python: "python", // should be yapf or whatever …
   python3: "python", // should be yapf or whatever …
-  R: "r", // should be "formatR",
-  r: "r", // should be "formatR",
+  R: "formatR",
+  r: "formatR",
   zig: "zig",
   JavaScript: "babel", // in prettier
   jsx: "babel", // in prettier
