@@ -1,54 +1,84 @@
+import { Avatar, Tooltip } from "antd";
 import { CSSProperties } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
+import basePath from "lib/base-path";
+import { join } from "path";
 
-export default function SSO() {
+interface Strategy {
+  name: string;
+  display: string;
+  icon: string;
+  backgroundColor?: string;
+}
+
+interface Props {
+  strategies?: Strategy[];
+  size?: number;
+}
+
+export function getLink(strategy: string): string {
+  return join(basePath, "auth", strategy);
+}
+
+export default function SSO({ strategies, size }: Props) {
+  if (!strategies) return <></>;
   return (
     <div>
-      <Google /> <GitHub /> <Twitter /> <Facebook />
+      {strategies.map((strategy) => (
+        <StrategyAvatar strategy={strategy} size={size ?? 60} />
+      ))}
     </div>
   );
 }
 
-const STYLE = {
-  fontSize: "42px",
-  color: "white",
-  margin: "0 2px",
-} as CSSProperties;
-
-function Facebook() {
-  return (
-    <a href="" title={"Sign in using Facebook"}>
-      <Icon name="facebook" style={{ ...STYLE, backgroundColor: "#428bca" }} />
-    </a>
-  );
-}
-
-function GitHub() {
-  return (
-    <a href="" title={"Sign in using GitHub"}>
-      <Icon name="github" style={{ ...STYLE, backgroundColor: "black" }} />
-    </a>
-  );
-}
-
-function Google() {
-  return (
-    <a href="" title={"Sign in using Google"}>
-      <Icon
-        name="google"
-        style={{ ...STYLE, backgroundColor: "rgb(220, 72, 57)" }}
+function StrategyAvatar({
+  strategy,
+  size,
+}: {
+  strategy: Strategy;
+  size: number;
+}) {
+  const STYLE = {
+    fontSize: `${size - 2}px`,
+    color: "white",
+    margin: "0 2px",
+  } as CSSProperties;
+  const { name, display, icon, backgroundColor } = strategy;
+  let src;
+  if (icon.includes("://")) {
+    src = (
+      <img
+        src={icon}
+        style={{
+          height: `${size - 2}px`,
+          width: `${size - 2}px`,
+          marginLeft: "2.5px",
+        }}
       />
-    </a>
-  );
-}
-
-function Twitter() {
+    );
+  } else {
+    src = <Icon name={icon as any} style={{ ...STYLE, backgroundColor }} />;
+  }
   return (
-    <a href="" title={"Sign in using Twitter"}>
-      <Icon
-        name="twitter"
-        style={{ ...STYLE, backgroundColor: "rgb(85, 172, 238)" }}
-      />
-    </a>
+    <Tooltip
+      title={
+        <>
+          {icon.includes("://") ? (
+            ""
+          ) : (
+            <Icon
+              name={icon as any}
+              style={{ fontSize: "14pt", marginRight: "10px" }}
+            />
+          )}{" "}
+          Use your {display} account.
+        </>
+      }
+      color={backgroundColor}
+    >
+      <a href={getLink(name)} style={{ margin: "0 2.5px" }}>
+        <Avatar shape="square" size={size} src={src} gap={1} />
+      </a>
+    </Tooltip>
   );
 }

@@ -14,7 +14,7 @@ import { useRouter } from "next/router";
 
 const LINE = { marginBottom: "15px" } as CSSProperties;
 
-export default function SignUp() {
+export default function SignUp({ strategies }) {
   const router = useRouter();
   const { siteName } = useCustomize();
   const [terms, setTerms] = useState<boolean>(false);
@@ -91,7 +91,12 @@ export default function SignUp() {
         </Checkbox>
         <form>
           {terms && (
-            <EmailOrSSO email={email} setEmail={setEmail} signUp={signUp} />
+            <EmailOrSSO
+              email={email}
+              setEmail={setEmail}
+              signUp={signUp}
+              strategies={strategies}
+            />
           )}
           {issues.email && (
             <Alert
@@ -155,7 +160,7 @@ export default function SignUp() {
             size="large"
             disabled={!submittable.current}
             type="primary"
-            style={{ width: "100%", marginTop:'15px' }}
+            style={{ width: "100%", marginTop: "15px" }}
             onClick={signUp}
           >
             {!terms
@@ -197,14 +202,10 @@ export default function SignUp() {
   );
 }
 
-function EmailOrSSO({ email, setEmail, signUp }) {
+function EmailOrSSO({ email, setEmail, signUp, strategies }) {
   return (
     <div>
-      <p>
-        Login using either your email address and a password, or use your{" "}
-        <a>Google</a>, <a>Github</a>, <a>Twitter</a>, or <a>Facebook</a>{" "}
-        account.
-      </p>
+      <p>{strategies.length > 0 ? "Sign up using either your email address or a single sign on provider." : "Enter the email address you will use to sign in."}</p>
       <p>
         <Input
           style={{ fontSize: "12pt" }}
@@ -217,7 +218,7 @@ function EmailOrSSO({ email, setEmail, signUp }) {
       </p>
       {!email && (
         <div style={{ textAlign: "center" }}>
-          <SSO />
+          <SSO strategies={strategies} />
         </div>
       )}
     </div>

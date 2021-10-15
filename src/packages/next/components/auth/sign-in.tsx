@@ -10,7 +10,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import Contact from "components/landing/contact";
 import { useRouter } from "next/router";
 
-export default function SignIn() {
+export default function SignIn({ strategies }) {
   const { siteName } = useCustomize();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -45,10 +45,7 @@ export default function SignIn() {
 
       <div style={LOGIN_STYLE}>
         <div style={{ margin: "10px 0" }}>
-          Sign in using your email address and password or{" "}
-          <div style={{ textAlign: "center", marginTop: "10px" }}>
-            <SSO />
-          </div>
+          Sign in using your email address or a single sign on provider.
         </div>
         <form>
           <Input
@@ -58,6 +55,11 @@ export default function SignIn() {
             autoComplete="username"
             onChange={(e) => setEmail(e.target.value)}
           />
+          {!email && (
+            <div style={{ textAlign: "center", marginTop: "20px" }}>
+              <SSO strategies={strategies} />
+            </div>
+          )}
           {email && (
             <div style={{ marginTop: "30px" }}>
               <p>Password </p>
@@ -138,7 +140,8 @@ export default function SignIn() {
         <p>
           New to {siteName}? <A href="/auth/sign-up">Sign Up</A>
         </p>
-        Unsure? <A href="/auth/try">Try {siteName} without creating an account</A>
+        Unsure?{" "}
+        <A href="/auth/try">Try {siteName} without creating an account</A>
       </div>
     </div>
   );

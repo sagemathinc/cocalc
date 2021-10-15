@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { User as IUser } from "lib/share/types";
 import { trunc } from "lib/share/util";
 import Avatar from "components/account/avatar";
 

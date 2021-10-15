@@ -6,8 +6,9 @@ import { Customize } from "lib/customize";
 import Head from "components/landing/head";
 import basePath from "lib/base-path";
 import SignUp from "components/auth/sign-up";
+import getStrategies from "@cocalc/backend/auth/sso/get-strategies";
 
-export default function Home({ customize }) {
+export default function Home({ customize, strategies }) {
   const { siteName } = customize;
   return (
     <Customize value={customize}>
@@ -15,7 +16,7 @@ export default function Home({ customize }) {
       <Layout>
         <Header page="sign-up" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <SignUp />
+          <SignUp strategies={strategies} />
           <Footer />
         </Layout.Content>
       </Layout>
@@ -32,5 +33,6 @@ export async function getServerSideProps(context) {
     res.end();
     return { props: {} };
   }
+  customize.props.strategies = await getStrategies();
   return customize;
 }

@@ -1,3 +1,4 @@
+import { CSSProperties } from "react";
 import useProfile from "lib/hooks/profile";
 import { trunc } from "lib/share/util";
 
@@ -12,5 +13,5 @@ export default function Name({ account_id, style }: Props) {
     return <></>;
   }
   const { first_name, last_name } = profile;
-  return <>{trunc(`${first_name} ${last_name}`, 50)}</>;
+  return <span style={style}>{trunc(`${first_name} ${last_name}`, 50)}</span>;
 }
