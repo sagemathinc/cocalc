@@ -16,25 +16,34 @@ import { setPriority } from "os";
 // 19 is the minimum, we keep it 1 above that.
 export const DEFAULT_FREE_PROCS_NICENESS = 18;
 
-// this is for kucalc projects only
-export function is_free_project(): boolean {
+// this only lists some of the fields in use, there might be more
+interface ProjectConfig {
+  quota?: { member_host?: boolean };
+  dedicated_disks?: { name: string }[];
+}
+
+export function getProjectConfig(): ProjectConfig | null {
   const conf_enc = process.env.COCALC_PROJECT_CONFIG;
   if (conf_enc == null) {
-    L("No COCALC_PROJECT_CONFIG env variable");
-    return false;
+    return null;
   }
   try {
     L(`configure(${conf_enc.slice(0, 30)}...)`);
     const conf_raw = Buffer.from(conf_enc, "base64").toString("utf8");
-    const conf = JSON.parse(conf_raw);
-    const ifp = conf?.quota?.member_host === false;
-    L(`is_free_project: ${ifp}`);
-    return ifp;
+    return JSON.parse(conf_raw);
   } catch (err) {
     // we report and ignore errors
-    L(`ERROR configure -- cannot process '${conf_enc}' -- ${err}`);
-    return false;
+    L(`ERROR parsing COCALC_PROJECT_CONFIG -- '${conf_enc}' -- ${err}`);
+    return null;
   }
+}
+
+// this is for kucalc projects only
+export function is_free_project(): boolean {
+  const conf = getProjectConfig();
+  const ifp = conf?.quota?.member_host === false;
+  L(`is_free_project: ${ifp}`);
+  return ifp;
 }
 
 export function configure() {
