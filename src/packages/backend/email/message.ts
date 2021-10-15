@@ -4,4 +4,6 @@ export interface Message {
   subject: string;
   text: string;
   html: string;
+  categories?: string[];
+  asm_group?: number;
 }

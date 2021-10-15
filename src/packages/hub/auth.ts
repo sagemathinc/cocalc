@@ -64,7 +64,10 @@ import generateHash from "@cocalc/backend/auth/hash";
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
-import { createRememberMeCookie, COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/remember-me";
+import {
+  createRememberMeCookie,
+  COOKIE_NAME as REMEMBER_ME_COOKIE_NAME,
+} from "@cocalc/backend/auth/remember-me";
 
 // primary strategies -- all other ones are "extra"
 const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO];
@@ -358,13 +361,13 @@ export class PassportManager {
       return this.strategies;
     }
     try {
-      // we always offer email!
+      // we always offer email!  (Note: why?  it may make sense to disable.)
       this.strategies = { email: { name: "email" } };
       const settings = await cb2(this.database.get_all_passport_settings);
       for (const setting of settings) {
         const name = setting.strategy;
         const conf = setting.conf as PassportStrategyDB;
-        if (conf.disabled === true) {
+        if (!conf || conf.disabled === true) {
           continue;
         }
         conf.name = name;
@@ -1150,7 +1153,7 @@ export class PassportManager {
     dbg("passport created: set remember_me cookie, so user gets logged in");
 
     dbg("create remember_me cookie and save in database");
-    const {value, ttl_s} = await createRememberMeCookie(locals.account_id);
+    const { value, ttl_s } = await createRememberMeCookie(locals.account_id);
 
     dbg("and also set remember_me cookie in client");
     locals.cookies.set(REMEMBER_ME_COOKIE_NAME, value, {

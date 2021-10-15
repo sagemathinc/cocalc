@@ -8,6 +8,7 @@ import sgMail from "@sendgrid/mail";
 import type { Message } from "./message";
 import getHelpEmail from "./help";
 import appendFooter from "./footer";
+import { SENDGRID_TEMPLATE_ID } from "@cocalc/util/theme";
 
 // Init throws error if we can't initialize Sendgrid right now.
 // It also updates the key if it changes in at most one minute (?).
@@ -36,8 +37,17 @@ export async function getSendgrid(): Promise<any> {
 
 export default async function sendEmail(message: Message): Promise<void> {
   const sg = await getSendgrid();
-  if (!message.from) {
-    message.from = await getHelpEmail(); // fallback
+  const msg: any = await appendFooter(message);
+  if (!msg.from) {
+    msg.from = await getHelpEmail(); // fallback
   }
-  await sg.send(await appendFooter(message));
+  if (msg.asm_group) {
+    msg.asm = { group_id: msg.asm_group };
+    delete msg.asm_group;
+  }
+  // plain template with a header (cocalc logo), a h1 title, and a footer
+  msg.template_id = SENDGRID_TEMPLATE_ID;
+
+  // https://docs.sendgrid.com/api-reference/mail-send/mail-send
+  await sg.send(msg);
 }

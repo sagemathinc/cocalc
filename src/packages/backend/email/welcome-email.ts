@@ -29,6 +29,8 @@ export default async function sendWelcomeEmail(
       subject: "Welcome!",
       text,
       html,
+      categories: ["welcome"],
+      asm_group: 147985,
     },
     account_id
   );
