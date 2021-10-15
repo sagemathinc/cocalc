@@ -110,7 +110,7 @@ export default function SignIn({ strategies }) {
                   </p>
                   <p>
                     If you can't remember your password,{" "}
-                    <A href="/password-reset">reset it</A>. If that doesn't work{" "}
+                    <A href="/auth/password-reset">reset it</A>. If that doesn't work{" "}
                     <Contact />.
                   </p>
                 </>
@@ -125,7 +125,7 @@ export default function SignIn({ strategies }) {
                 fontSize: "14pt",
               }}
             >
-              <A href="/password-reset">Forgot password?</A>
+              <A href="/auth/password-reset">Forgot password?</A>
             </div>
           </>
         )}
