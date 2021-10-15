@@ -97,7 +97,8 @@ def all_packages():
     ]
     for x in os.listdir('packages'):
         path = os.path.join("packages", x)
-        if path not in v and os.path.isdir(path):
+        if path not in v and os.path.isdir(path) and os.path.exists(
+                os.path.join(path, 'package.json')):
             v.append(path)
     return v
 
@@ -271,7 +272,8 @@ def clean(args):
     def g(path):
         cmd("npm run clean --if-present", path)
 
-    thread_map(g, [os.path.abspath(path) for path in v], nb_threads=10)
+    thread_map(g, [os.path.abspath(path) for path in v],
+               nb_threads=3 if args.parallel else 1)
 
 
 def delete_package_lock(args):
@@ -295,7 +297,7 @@ def npm(args):
         cmd(*args)
 
     if args.parallel:
-        thread_map(f, inputs)
+        thread_map(f, inputs, 3)
     else:
         thread_map(f, inputs, 1)
 
