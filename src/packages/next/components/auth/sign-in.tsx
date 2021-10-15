@@ -45,7 +45,9 @@ export default function SignIn({ strategies }) {
 
       <div style={LOGIN_STYLE}>
         <div style={{ margin: "10px 0" }}>
-          Sign in using your email address or a single sign on provider.
+          {strategies.length > 0
+            ? "Sign in using your email address or a single sign on provider."
+            : "Sign in using your email address."}
         </div>
         <form>
           <Input
