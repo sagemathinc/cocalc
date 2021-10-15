@@ -25,7 +25,8 @@ export default async function sendEmail(
     }
   }
   const server = await getServer(settings);
-  await server.sendMail(await appendFooter(message));
+  const msg = await appendFooter(message);
+  await server.sendMail(msg);
 }
 
 let server: undefined | Transporter = undefined;
