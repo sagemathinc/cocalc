@@ -75,6 +75,7 @@ async function get_db_client(db: PostgreSQL) {
 }
 
 // if the email address's domain should go through SSO, return the domain name
+// THIS HAS BEEN REWRITTEN AT @cocalc/backend/auth/is-domain-exclusive-sso
 async function is_domain_exclusive_sso(
   db: PostgreSQL,
   email?: string

@@ -21,6 +21,7 @@ import {
 } from "@cocalc/util/misc";
 import { v4 } from "uuid";
 import isAccountAvailable from "@cocalc/backend/auth/is-account-available";
+import isDomainExclusiveSSO from "@cocalc/backend/auth/is-domain-exclusive-sso";
 import createAccount from "@cocalc/backend/auth/create-account";
 import { getAccount, signUserIn } from "./sign-in";
 import sendWelcomeEmail from "@cocalc/backend/email/welcome-email";
@@ -46,6 +47,16 @@ export default async function signUp(req, res) {
     const issues = checkObviousConditions(req.body);
     if (len(issues) > 0) {
       res.json({ issues });
+      return;
+    }
+
+    const exclusive = await isDomainExclusiveSSO(email);
+    if (exclusive) {
+      res.json({
+        issues: {
+          email: `To sign up with "@${exclusive}", you have to use the corresponding single sign on mechanism.  Delete your email address above, then click the SSO icon.`,
+        },
+      });
       return;
     }
 

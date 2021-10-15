@@ -12,7 +12,7 @@ import SSO from "./sso";
 import { LOGIN_STYLE } from "./shared";
 import { useRouter } from "next/router";
 
-const LINE = { marginBottom: "15px" } as CSSProperties;
+const LINE = { margin: "15px 0" } as CSSProperties;
 
 export default function SignUp({ strategies }) {
   const router = useRouter();

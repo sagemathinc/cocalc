@@ -8,7 +8,10 @@
     "./*": "./dist/*.js",
     "./auth/*": "./dist/auth/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "build": "npx tsc && npx coffee  -m -c -o dist/ .",
     "tsc": "npx tsc --watch",
@@ -16,7 +19,10 @@
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
-  "workspaces": [".", "../util"],
+  "workspaces": [
+    ".",
+    "../util"
+  ],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
     "@cocalc/backend": "file:",
@@ -31,6 +37,7 @@
     "debug": "^4.3.2",
     "lru-cache": "^6.0.0",
     "nodemailer": "^6.6.5",
+    "parse-domain": "^4.1.0",
     "password-hash": "^1.2.2",
     "pg": "^8.7.1",
     "random-key": "^0.3.2",
