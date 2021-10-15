@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/next",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "description": "CoCalc's nextjs server",
   "main": "lib/init.js",
   "exports": {
@@ -28,9 +28,10 @@
     "dev-project": "unset PGHOST PGUSER COCALC_ROOT && export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000 && echo https://cocalc.com$BASE_PATH && npm run inventory &&  npm run dev",
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty",
     "inventory": "mkdir -p dist/inventory && curl https://storage.googleapis.com/cocalc-compute-environment/compute-components.json -o dist/inventory/compute-components.json && curl https://storage.googleapis.com/cocalc-compute-environment/compute-inventory.json -o dist/inventory/compute-inventory.json",
-    "build": "npx next telemetry disable && rm -rf .next && npm run inventory && npm run build-dist && next build",
+    "build-deps": "cd ../backend && npm run build && cd ../util && npm run build",
+    "build": "npm run build-deps && npx next telemetry disable && rm -rf .next && npm run inventory && npm run build-dist && next build",
     "build-dist": "rm -rf dist && npm run inventory && npx tsc --build tsconfig-dist.json",
-    "build-project": "npx next telemetry disable && npm run build-dist && BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
+    "build-project": "npm run build-deps && npx next telemetry disable && npm run build-dist && BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
     "clean": "rm -rf .next dist",
     "start": "unset PGHOST; next start",
     "start-project": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000; echo https://cocalc.com$BASE_PATH; npm run start",
