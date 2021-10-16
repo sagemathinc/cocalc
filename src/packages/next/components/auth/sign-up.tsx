@@ -205,7 +205,11 @@ export default function SignUp({ strategies }) {
 function EmailOrSSO({ email, setEmail, signUp, strategies }) {
   return (
     <div>
-      <p>{strategies.length > 0 ? "Sign up using either your email address or a single sign on provider." : "Enter the email address you will use to sign in."}</p>
+      <p>
+        {strategies.length > 0
+          ? "Sign up using either your email address or a single sign on provider."
+          : "Enter the email address you will use to sign in."}
+      </p>
       <p>
         <Input
           style={{ fontSize: "12pt" }}

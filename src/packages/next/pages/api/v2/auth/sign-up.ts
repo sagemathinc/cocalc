@@ -34,7 +34,11 @@ interface Issues {
 
 export default async function signUp(req, res) {
   if (req.method === "POST") {
-    const { email, password, firstName, lastName } = req.body;
+    let { email, password, firstName, lastName } = req.body;
+    password = password.trim();
+    email = email.toLowerCase().trim();
+    firstName = firstName.trim();
+    lastName = lastName.trim();
 
     try {
       const account_id = await getAccount(email, password);

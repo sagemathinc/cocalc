@@ -27,7 +27,8 @@ import Cookies from "cookies";
 
 export default async function signIn(req, res) {
   if (req.method === "POST") {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+    email = email.toLowerCase().trim();
     const check = signInCheck(email, req.ip);
     if (check) {
       res.json({ error: check });
