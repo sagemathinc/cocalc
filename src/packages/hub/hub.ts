@@ -23,7 +23,7 @@ import base_path from "@cocalc/backend/base-path";
 import { migrate_account_token } from "./postgres/migrate-account-token";
 import { init_start_always_running_projects } from "./postgres/always-running";
 import { set_agent_endpoint } from "./health-checks";
-import { handle_mentions_loop } from "./mentions/handle";
+import initHandleMentions from "@cocalc/backend/mentions/handle";
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 import { start as startHubRegister } from "./hub_register";
 const initZendesk = require("./support").init_support; // import { init_support as initZendesk } from "./support";
@@ -152,7 +152,7 @@ async function startServer(): Promise<void> {
   // Mentions
   if (program.mentions) {
     winston.info("enabling handling of mentions...");
-    handle_mentions_loop(database);
+    initHandleMentions();
   }
 
   // Project control
@@ -215,7 +215,7 @@ async function startServer(): Promise<void> {
     projectControl,
     proxyServer: !!program.proxyServer,
     nextServer: !!program.nextServer,
-        cert: program.httpsCert,
+    cert: program.httpsCert,
     key: program.httpsKey,
   });
 
@@ -226,7 +226,6 @@ async function startServer(): Promise<void> {
     database,
     host: program.hostname,
   });
-
 
   winston.info(`starting webserver listening on ${program.hostname}:${port}`);
   await callback(httpServer.listen.bind(httpServer), port, program.hostname);

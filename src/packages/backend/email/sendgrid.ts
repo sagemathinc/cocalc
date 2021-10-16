@@ -1,6 +1,10 @@
 /* We use the official V3 Sendgrid API:
 
 https://www.npmjs.com/package/@sendgrid/mail
+
+The cocalc ASM group numbers are at
+
+https://app.sendgrid.com/suppressions/advanced_suppression_manager
 */
 
 import getPool from "@cocalc/backend/database";
