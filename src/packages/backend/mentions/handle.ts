@@ -13,7 +13,7 @@ const logger = getLogger("mentions - handle");
 // TODO: should be in the database server settings; also should be
 // user configurable, and this is just a default
 const minEmailInterval = "6 hours";
-const maxPerInterval = 2; // get up to 2 emails for a given chatroom every 6 hours.
+const maxPerInterval = 50; // up to 50 emails for a given chatroom every 6 hours.
 
 // We check for new notifications this frequently.
 const polIntervalSeconds = 15;
