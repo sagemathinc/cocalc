@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/backend",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "CoCalc backend functionality: functionality used by either the hub, the next.js server or the project.",
   "exports": {
     "./database": "./dist/database/index.js",
