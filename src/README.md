@@ -1,11 +1,23 @@
 # How to Build and Run CoCalc
 
-Updated: **August 2021**
+Updated: **October 2021**
 
-Requirement: You must be using Node version 14.x (at least).  **This will definitely not work with node.js version 12 or earlier!** In a [CoCalc.com](http://CoCalc.com) project, you can put this in ~/.bashrc do to get a new enough version.
+CoCalc is a pretty large and complicated project, and it will only work with the current standard LTS release of node.js (14.x) and a recent version of npm (at least 7.x).
+
+**Node.js and NPM Version Requirements:**
+
+- You must be using Node version 14.x.  **CoCalc will definitely not build with node.js version 12 or earlier AND not with version 16 or later!** In a [CoCalc.com](http://CoCalc.com) project, you can put this in `~/.bashrc`  to get a valid node version:
 
 ```sh
 . /cocalc/nvm/nvm.sh
+```
+
+(NOTE: Probably the only reason CoCalc doesn't work on Node 16.x is that Next.js doesn't; however, that [will be fixed](https://github.com/vercel/next.js/pull/28710) in their next release.)
+
+- You must using npm 7.x or 8.x.  **CoCalc will definitely build with npm 6.x or yarn.**  You can do this to get a working version of npm.  This isn't necessary in a cocalc project if you sourced `nvm.sh` as above.
+
+```sh
+npm install -g npm@latest
 ```
 
 ## Initial Build
@@ -110,7 +122,7 @@ This is very useful if you pull in a git branch or switch to a different git bra
 
 #### Environment Variables
 
-See `packages/util-node/data.ts` .  In particular, you can set BASE\_PATH, DATA, PGHOST, PGDATA, PROJECTS, SECRETS to override the defaults.  Data is stored in `cocalc/src/data/`  by default.
+See `packages/backend/data.ts` .  In particular, you can set BASE\_PATH, DATA, PGHOST, PGDATA, PROJECTS, SECRETS to override the defaults.  Data is stored in `cocalc/src/data/`  by default.
 
 #### Filesystem Build Caching
 
@@ -150,7 +162,7 @@ To publish a package `foo` (that is in \`src/packages/foo\`) to [npmjs.com](http
 ~/cocalc/src$ npm run publish --packages=foo                            # optional --tag=mytag
 ```
 
-Where it says `--newversion=`, reasonable options are `"major"`, `"minor"`, and `"patch"`.
+Where it says `--newversion=`, reasonable options are `"major"`, `"minor"`, and `"patch"`.  There is a handy script `src/scripts/publish` that combines the two steps above.
 
 When publishing the versions of all workspace dependencies are updated to whatever is in your current cocalc branch.   Thus if you publish a major version update to one package, then when you publish the packages that depend on it, they will explicitly be set to depend on that new major version.
 

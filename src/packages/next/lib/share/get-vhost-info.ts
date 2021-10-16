@@ -1,5 +1,5 @@
-import getPool from "@cocalc/util-node/database";
-import { getLogger } from "@cocalc/util-node/logger";
+import getPool from "@cocalc/backend/database";
+import { getLogger } from "@cocalc/backend/logger";
 import LRU from "lru-cache";
 
 const logger = getLogger("get-vhost-info");

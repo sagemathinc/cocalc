@@ -129,7 +129,7 @@ export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
   dns: {
     name: "Domain name",
-    desc: "DNS for your server, e.g. cocalc.universe.edu",
+    desc: "DNS for your server, e.g. cocalc.universe.edu.  Does NOT include the basePath.",
     default: "",
     valid: valid_dns_name,
   },

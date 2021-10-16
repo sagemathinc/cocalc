@@ -12,7 +12,7 @@ in case they invalidate their cookie.
 Cache = require('lru-cache')
 
 auth    = require('./auth')
-generateHash =require("@cocalc/util-node/auth/hash").default;
+generateHash =require("@cocalc/backend/auth/hash").default;
 
 # Do NOT change this - this exact string is assumed in @cocalc/util/client
 {NOT_SIGNED_IN} = require("@cocalc/util/consts")

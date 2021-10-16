@@ -17,6 +17,7 @@ import "./collaborators";
 import "./compute-images";
 import "./compute-servers";
 import "./copy-paths";
+import "./email-counter";
 import "./file-access-log";
 import "./file-use";
 import "./file-use-times";

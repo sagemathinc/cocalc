@@ -14,23 +14,23 @@ import { program as commander, Option } from "commander";
 import { callback2 } from "@cocalc/util/async-utils";
 import { callback } from "awaiting";
 import { getLogger } from "./logger";
-import { init as initMemory } from "@cocalc/util-node/memory";
-import basePath from "@cocalc/util-node/base-path";
+import { init as initMemory } from "@cocalc/backend/memory";
+import basePath from "@cocalc/backend/base-path";
 import { retry_until_success } from "@cocalc/util/async-utils";
 const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
 import { init_passport } from "./auth";
-import base_path from "@cocalc/util-node/base-path";
+import base_path from "@cocalc/backend/base-path";
 import { migrate_account_token } from "./postgres/migrate-account-token";
 import { init_start_always_running_projects } from "./postgres/always-running";
 import { set_agent_endpoint } from "./health-checks";
-import { handle_mentions_loop } from "./mentions/handle";
+import initHandleMentions from "@cocalc/backend/mentions/handle";
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 import { start as startHubRegister } from "./hub_register";
 const initZendesk = require("./support").init_support; // import { init_support as initZendesk } from "./support";
 import { getClients } from "./clients";
 import { stripe_sync } from "./stripe/sync";
 import { init_stripe } from "./stripe";
-import port from "@cocalc/util-node/port";
+import port from "@cocalc/backend/port";
 import { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
 import initHttpRedirect from "./servers/http-redirect";
@@ -152,7 +152,7 @@ async function startServer(): Promise<void> {
   // Mentions
   if (program.mentions) {
     winston.info("enabling handling of mentions...");
-    handle_mentions_loop(database);
+    initHandleMentions();
   }
 
   // Project control
@@ -215,7 +215,7 @@ async function startServer(): Promise<void> {
     projectControl,
     proxyServer: !!program.proxyServer,
     nextServer: !!program.nextServer,
-        cert: program.httpsCert,
+    cert: program.httpsCert,
     key: program.httpsKey,
   });
 
@@ -226,7 +226,6 @@ async function startServer(): Promise<void> {
     database,
     host: program.hostname,
   });
-
 
   winston.info(`starting webserver listening on ${program.hostname}:${port}`);
   await callback(httpServer.listen.bind(httpServer), port, program.hostname);

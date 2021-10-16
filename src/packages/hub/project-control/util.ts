@@ -3,13 +3,13 @@ import { join, resolve } from "path";
 import { exec as exec0, spawn } from "child_process";
 import * as fs from "fs";
 
-import { projects, root } from "@cocalc/util-node/data";
+import { projects, root } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "@cocalc/hub/logger";
 import { CopyOptions, ProjectState, ProjectStatus } from "./base";
-import { getUid } from "@cocalc/util-node/misc";
-import base_path from "@cocalc/util-node/base-path";
+import { getUid } from "@cocalc/backend/misc";
+import base_path from "@cocalc/backend/base-path";
 import { database } from "@cocalc/hub/servers/database";
 
 const winston = getLogger("project-control:util");

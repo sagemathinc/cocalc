@@ -20,8 +20,8 @@ async   = require('async')
 
 random_key = require("random-key")
 
-misc_node = require('@cocalc/util-node/misc_node')
-misc2_node = require('@cocalc/util-node/misc')
+misc_node = require('@cocalc/backend/misc_node')
+misc2_node = require('@cocalc/backend/misc')
 
 {defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
@@ -56,9 +56,10 @@ collab = require('./postgres/collab')
 {get_personal_user} = require('./postgres/personal')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
-{getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/util-node/server-settings/server-settings');
+{getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/backend/server-settings/server-settings');
 {pii_expire} = require("./utils")
 webapp_config_clear_cache = require("./webapp-configuration").clear_cache
+passwordHash = require("@cocalc/backend/auth/password-hash").default;
 
 {stripe_name} = require('./stripe/client')
 
@@ -720,7 +721,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     else
                         opts.cb(err)
 
-    verify_email_create_token: (opts) =>
+    verify_email_create_token: (opts) =>  # has been rewritten in backend/email/verify.ts
         opts = defaults opts,
             account_id    : required
             cb            : undefined
@@ -743,7 +744,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 # TODO maybe expire tokens after some time
                 if locals.old_challenge?
                     old = locals.old_challenge
-                    # return the same token if the is one for the same email
+                    # return the same token if there is one for the same email
                     if old.token? and old.email == locals.email_address
                         locals.token = locals.old_challenge.token
                         cb()
@@ -768,7 +769,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         )
 
 
-    verify_email_check_token: (opts) =>
+    verify_email_check_token: (opts) =>   # rewritten in backend/auth/redeem-verify-email.ts
         opts = defaults opts,
             email_address : required
             token         : required
@@ -833,7 +834,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb     : cb
         ], opts.cb)
 
-    # returns a the email address and verified email address
+    # returns the email address and whether or not it is verified
     verify_email_get: (opts) =>
         opts = defaults opts,
             account_id    : required
@@ -845,7 +846,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 opts.cb?(err, x)
 
     # answers the question as cb(null, [true or false])
-    is_verified_email: (opts) =>
+    is_verified_email: (opts) =>  # rewritten in backend/auth/redeem-verify-email.ts
         opts = defaults opts,
             email_address : required
             cb            : required
@@ -1490,7 +1491,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cache               : true
             cb                  : required   # cb(err, signed_in_message)
         try
-            opts.cb(undefined, await get_remember_me(@, opts.hash, opts.cache))
+            account_id = await get_remember_me(@, opts.hash, opts.cache)
+            opts.cb(undefined, {event:"signed_in", account_id:account_id})
         catch err
             opts.cb(err)
 
@@ -1588,7 +1590,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 # change the user's password in the database.
                 @change_password
                     account_id    : opts.account_id
-                    password_hash : require('./auth').password_hash(opts.password)
+                    password_hash : passwordHash(opts.password)
                     cb            : cb
         ], (err) =>
             if err

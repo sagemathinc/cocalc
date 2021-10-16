@@ -7,6 +7,7 @@ import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import Head from "components/landing/head";
+import Name from "components/account/name";
 
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
 
@@ -24,6 +25,20 @@ export default function Home({ customize }) {
       <Layout>
         <Header />
         <Layout.Content style={{ backgroundColor: "white" }}>
+          {customize.account && (
+            <div
+              style={{
+                textAlign: "center",
+                margin: "30px 0 -15px 0",
+                color: "#666",
+                fontSize: "30pt",
+                fontWeight: 500,
+              }}
+            >
+              {" "}
+              Signed in as <Name account_id={customize.account.account_id} />
+            </div>
+          )}
           <Content
             logo={<SquareLogo style={{ width: "120px", height: "120px" }} />}
             title={siteName}

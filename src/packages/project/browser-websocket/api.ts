@@ -169,7 +169,7 @@ async function listing(
 import { handle_request as jupyter } from "../jupyter/websocket-api";
 
 // Execute code
-const { execute_code } = require("@cocalc/util-node/misc_node");
+const { execute_code } = require("@cocalc/backend/misc_node");
 interface ExecuteOutput {
   stdout: string;
   stderr: string;

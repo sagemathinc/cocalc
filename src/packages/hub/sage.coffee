@@ -46,7 +46,7 @@ message = require("@cocalc/util/message")
 misc    = require('@cocalc/util/misc')
 {defaults, required} = misc
 
-{connect_to_locked_socket, enable_mesg} = require('@cocalc/util-node/misc_node')
+{connect_to_locked_socket, enable_mesg} = require('@cocalc/backend/misc_node')
 
 exports.send_control_message = (opts) ->
     opts = defaults opts,

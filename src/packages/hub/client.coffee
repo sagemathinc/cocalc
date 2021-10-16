@@ -36,11 +36,12 @@ hub_projects         = require('./projects')
 db_schema            = require('@cocalc/util/db-schema')
 { escapeHtml }       = require("escape-html")
 {CopyPath}           = require('./copy-path')
-{ COOKIE_NAME }=require("@cocalc/util-node/auth/remember-me");
-generateHash =require("@cocalc/util-node/auth/hash").default;
+{ COOKIE_NAME }=require("@cocalc/backend/auth/remember-me");
+generateHash =require("@cocalc/backend/auth/hash").default;
+passwordHash = require("@cocalc/backend/auth/password-hash").default;
 
 path_join = require('path').join
-base_path = require('@cocalc/util-node/base-path').default
+base_path = require('@cocalc/backend/base-path').default
 
 underscore = require('underscore')
 
@@ -315,16 +316,15 @@ class exports.Client extends EventEmitter
         @database.get_remember_me
             hash : hash
             cb   : (error, signed_in_mesg) =>
-                dbg("remember_me: got error", error,  "signed_in_mesg", signed_in_mesg)
+                dbg("remember_me: got ", error)
                 if error
                     @remember_me_failed("error accessing database")
                     return
-                if not signed_in_mesg?
+                if not signed_in_mesg or not signed_in_mesg.account_id
                     @remember_me_failed("remember_me deleted or expired")
                     return
                 # sign them in if not already signed in
                 if @account_id != signed_in_mesg.account_id
-                    signed_in_mesg.hub = @_opts.host + ':' + @_opts.port
                     @hash_session_id   = hash
                     @signed_in(signed_in_mesg)
                     @push_to_client(signed_in_mesg)
@@ -416,8 +416,6 @@ class exports.Client extends EventEmitter
         sign_in.record_sign_in
             ip_address      : @ip_address
             successful      : true
-            remember_me     : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
-            email_address   : signed_in_mesg.email_address
             account_id      : signed_in_mesg.account_id
             database        : @database
 
@@ -500,7 +498,7 @@ class exports.Client extends EventEmitter
         delete opts0.cb
         signed_in_mesg   = message.signed_in(opts0)
         session_id       = uuid.v4()
-        @hash_session_id = auth.password_hash(session_id)
+        @hash_session_id = passwordHash(session_id)
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')

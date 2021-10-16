@@ -13,7 +13,7 @@ TODO:
 
 import { spawn, SpawnOptions } from "child_process";
 import { callback } from "awaiting";
-const { abspath } = require("@cocalc/util-node/misc_node");
+const { abspath } = require("@cocalc/backend/misc_node");
 const { path_split } = require("@cocalc/util/misc");
 import { clone } from "underscore";
 

@@ -6,7 +6,7 @@
 const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
-const { execute_code } = require("@cocalc/util-node/execute-code");
+const { execute_code } = require("@cocalc/backend/execute-code");
 const { callback_opts } = require("@cocalc/util/async-utils");
 
 interface ParserOptions {

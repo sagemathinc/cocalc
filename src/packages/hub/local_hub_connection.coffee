@@ -15,7 +15,7 @@ winston = require('./logger').getLogger('local-hub-connection')
 underscore = require('underscore')
 
 message = require('@cocalc/util/message')
-misc_node = require('@cocalc/util-node/misc_node')
+misc_node = require('@cocalc/backend/misc_node')
 misc    = require('@cocalc/util/misc')
 {defaults, required} = misc
 

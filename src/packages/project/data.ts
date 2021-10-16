@@ -3,7 +3,7 @@ Paths to temporary files used by the project.
 */
 
 import { join } from "path";
-import { data } from "@cocalc/util-node/data";
+import { data } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 
 export const infoJson = join(data, "info.json");

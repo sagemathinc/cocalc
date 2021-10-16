@@ -13,7 +13,7 @@ LICENSE   : AGPLv3
 fs         = require('fs')
 async      = require('async')
 
-misc_node  = require('@cocalc/util-node/misc_node')
+misc_node  = require('@cocalc/backend/misc_node')
 
 {defaults} = misc = require('@cocalc/util/misc')
 required   = defaults.required

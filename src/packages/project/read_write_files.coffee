@@ -11,7 +11,7 @@ async     = require('async')
 winston = require('./logger').getLogger('read-write-files')
 
 message   = require('@cocalc/util/message')
-misc_node = require('@cocalc/util-node/misc_node')
+misc_node = require('@cocalc/backend/misc_node')
 misc      = require('@cocalc/util/misc')
 
 common    = require('./common')

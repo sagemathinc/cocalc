@@ -9,12 +9,16 @@ NOTES:
    it difficult to understand error messages too.
  - Similar for "npm run build" in parallel -- it subtly breaks.
 
+TEST:
+ - This should always work:  "mypy workspaces.py"
 """
 
 import argparse, json, os, shutil, subprocess, sys, time
 
+from typing import Any, Optional, Callable, List
 
-def newest_file(path):
+
+def newest_file(path: str) -> str:
     # See https://gist.github.com/brwyatt/c21a888d79927cb476a4.
     return os.popen(
         f'cd "{path}"&& find . -type f -printf "%C@ %p\n" | sort -rn | head -n 1 | cut -d" " -f2'
@@ -24,7 +28,7 @@ def newest_file(path):
 SUCCESSFUL_BUILD = ".successful-build"
 
 
-def needs_build(package):
+def needs_build(package: str) -> bool:
     # Code below was hopelessly naive, e.g, a failed build would not get retried.
     # We only need to do a build if the newest file in the tree is not
     # in the dist directory.
@@ -33,7 +37,9 @@ def needs_build(package):
     return not newest.startswith('./' + SUCCESSFUL_BUILD)
 
 
-def handle_path(s, path=None, verbose=True):
+def handle_path(s: str,
+                path: Optional[str] = None,
+                verbose: bool = True) -> None:
     desc = s
     if path is not None:
         os.chdir(path)
@@ -42,8 +48,8 @@ def handle_path(s, path=None, verbose=True):
         print(desc)
 
 
-def cmd(s, path=None, verbose=True):
-    home = os.path.abspath(os.curdir)
+def cmd(s: str, path: Optional[str] = None, verbose: bool = True) -> None:
+    home: str = os.path.abspath(os.curdir)
     try:
         handle_path(s, path, verbose)
         if os.system(s):
@@ -52,7 +58,7 @@ def cmd(s, path=None, verbose=True):
         os.chdir(home)
 
 
-def run(s, path=None, verbose=True):
+def run(s: str, path: Optional[str] = None, verbose: bool = True) -> str:
     home = os.path.abspath(os.curdir)
     try:
         handle_path(s, path, verbose)
@@ -65,7 +71,9 @@ def run(s, path=None, verbose=True):
         os.chdir(home)
 
 
-def thread_map(callable, inputs, nb_threads=10):
+def thread_map(callable: Callable,
+               inputs: List[Any],
+               nb_threads: int = 10) -> List:
     if len(inputs) == 0:
         return []
     if nb_threads == 1:
@@ -75,21 +83,12 @@ def thread_map(callable, inputs, nb_threads=10):
     return tp.map(callable, inputs)
 
 
-def matches(package, packages):
-    if not packages and not exclude: return True
-    name = package.split('/')[-1]
-    for pkg in packages.split(','):
-        if pkg == name:
-            return True
-    return False
-
-
-def all_packages():
+def all_packages() -> List[str]:
     # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments.
     v = [
         'packages/cdn',  # packages/hub assumes this is built
         'packages/util',
-        'packages/util-node',
+        'packages/backend',
         'packages/hub',
         'packages/frontend',
         'packages/project',
@@ -97,12 +96,13 @@ def all_packages():
     ]
     for x in os.listdir('packages'):
         path = os.path.join("packages", x)
-        if path not in v and os.path.isdir(path):
+        if path not in v and os.path.isdir(path) and os.path.exists(
+                os.path.join(path, 'package.json')):
             v.append(path)
     return v
 
 
-def packages(args):
+def packages(args) -> List[str]:
     v = all_packages()
     # Filter to only the ones in packages (if given)
     if args.packages:
@@ -118,22 +118,22 @@ def packages(args):
     return v
 
 
-def package_json(package):
+def package_json(package: str) -> dict:
     return json.loads(open(f'{package}/package.json').read())
 
 
-def write_package_json(package, x):
+def write_package_json(package: str, x: dict) -> None:
     open(f'{package}/package.json', 'w').write(json.dumps(x, indent=2))
 
 
-def dependent_packages(package):
+def dependent_packages(package: str) -> List[str]:
     # Get a list of the packages
     # it depends on by reading package.json
     x = package_json(package)
     if "workspaces" not in x:
         # no workspaces
         return []
-    v = []
+    v: List[str] = []
     for path in x["workspaces"]:
         # path is a relative path
         npath = os.path.normpath(os.path.join(package, path))
@@ -142,15 +142,15 @@ def dependent_packages(package):
     return v
 
 
-def get_package_version(package):
+def get_package_version(package: str) -> str:
     return package_json(package)["version"]
 
 
-def get_package_npm_name(package):
+def get_package_npm_name(package: str) -> str:
     return package_json(package)["name"]
 
 
-def update_dependent_versions(package):
+def update_dependent_versions(package: str) -> None:
     """
     Update the versions of all of the workspaces that this
     package depends on.  The versions are set to whatever the
@@ -195,18 +195,18 @@ def update_dependent_versions(package):
         write_package_json(package, x)
 
 
-def update_all_dependent_versions():
+def update_all_dependent_versions() -> None:
     for package in all_packages():
         update_dependent_versions(package)
 
 
-def banner(s):
+def banner(s: str) -> None:
     print("\n" + "=" * 70)
     print("|| " + s)
     print("=" * 70 + "\n")
 
 
-def ci(args):
+def ci(args) -> None:
     v = packages(args)
     # First do npm ci not in parallel (which doesn't work with workspaces):
     for path in v:
@@ -214,11 +214,11 @@ def ci(args):
 
 
 # Build all the packages that need to be built.
-def build(args):
+def build(args) -> None:
     v = [package for package in packages(args) if needs_build(package)]
     CUR = os.path.abspath('.')
 
-    def f(path):
+    def f(path: str) -> None:
         if not args.parallel and path != 'packages/static':
             # NOTE: in parallel mode we don't delete or there is no
             # hope of this working.
@@ -239,7 +239,7 @@ def build(args):
         thread_map(f, v, 1)
 
 
-def clean(args):
+def clean(args) -> None:
     v = packages(args)
 
     if args.dist_only:
@@ -271,11 +271,12 @@ def clean(args):
     def g(path):
         cmd("npm run clean --if-present", path)
 
-    thread_map(g, [os.path.abspath(path) for path in v], nb_threads=10)
+    thread_map(g, [os.path.abspath(path) for path in v],
+               nb_threads=3 if args.parallel else 1)
 
 
-def delete_package_lock(args):
-    def f(path):
+def delete_package_lock(args) -> None:
+    def f(path: str) -> None:
         p = os.path.join(path, 'package-lock.json')
         if os.path.exists(p):
             os.unlink(p)
@@ -284,18 +285,18 @@ def delete_package_lock(args):
                nb_threads=10)
 
 
-def npm(args):
+def npm(args) -> None:
     v = packages(args)
-    inputs = []
+    inputs: List[List[str]] = []
     for path in v:
         s = 'npm ' + ' '.join(['%s' % x for x in args.args])
         inputs.append([s, os.path.abspath(path)])
 
-    def f(args):
+    def f(args) -> None:
         cmd(*args)
 
     if args.parallel:
-        thread_map(f, inputs)
+        thread_map(f, inputs, 3)
     else:
         thread_map(f, inputs, 1)
 
@@ -307,12 +308,12 @@ def version_check(args):
 NEVER = '0000000000'
 
 
-def last_commit_when_version_changed(package):
+def last_commit_when_version_changed(package: str) -> str:
     return run('git blame package.json |grep \'  "version":\'', package,
                False).split()[0]
 
 
-def package_status(args, package):
+def package_status(args, package: str) -> None:
     commit = last_commit_when_version_changed(package)
     print("\nPackage:", package)
     sys.stdout.flush()
@@ -322,7 +323,7 @@ def package_status(args, package):
     cmd("git diff  --name-status %s ." % commit, package, False)
 
 
-def package_diff(args, package):
+def package_diff(args, package: str) -> None:
     commit = last_commit_when_version_changed(package)
     print("\nPackage:", package)
     sys.stdout.flush()
@@ -335,7 +336,7 @@ def package_diff(args, package):
 # Returns true if the package version in package.json if different
 # from what was last committed to git.  More precisely, the 'version:'
 # line has changed since the last git commit.
-def package_version_is_modified_from_last_git_commit(package):
+def package_version_is_modified_from_last_git_commit(package: str) -> bool:
     # If the version: line in package.json has changed since the
     # last commit (or never commited), then git says the commit
     # where it changed is '0000000000'.   We thus bump the version
@@ -351,7 +352,7 @@ def package_version_is_modified_from_last_git_commit(package):
 # the last git commit, NOT what is published on npmjs since:
 #   - it is slow to get that info from npmjs
 #   - it's difficult to deal with tags there
-def bump_package_version_if_necessary(package, newversion):
+def bump_package_version_if_necessary(package: str, newversion: str) -> None:
     print(f"Check if we need to bump version of {package}")
     if package_version_is_modified_from_last_git_commit(package):
         print(f"No, version of {package} already changed")
@@ -360,7 +361,7 @@ def bump_package_version_if_necessary(package, newversion):
     cmd(f"npm --no-git-tag-version version {newversion}", package)
 
 
-def publish_package(args, package):
+def publish_package(args, package: str) -> None:
     print("\nPackage:", package)
     sys.stdout.flush()
 
@@ -390,19 +391,20 @@ def publish_package(args, package):
             package)
     except:
         print(f"Didn't commit {package}; this may be fine.")
+    cmd("git pull && git push")
 
 
-def status(args):
+def status(args) -> None:
     for package in packages(args):
         package_status(args, package)
 
 
-def diff(args):
+def diff(args) -> None:
     for package in packages(args):
         package_diff(args, package)
 
 
-def update_version(args):
+def update_version(args) -> None:
     if not args.newversion:
         raise RuntimeError(
             "newversion must be specified (e.g. 'patch', 'minor', 'major')")
@@ -413,7 +415,7 @@ def update_version(args):
         bump_package_version_if_necessary(package, args.newversion)
 
 
-def publish(args):
+def publish(args) -> None:
     # We first update all the explicit workspace version dependencies.
     # I.e., we make it so all the @cocalc/packagename:"^x.y.z" lines
     # in package.json are correct and reflect the versions of our packages here.
@@ -426,7 +428,7 @@ def publish(args):
         publish_package(args, package)
 
 
-def node_version_check():
+def node_version_check() -> None:
     version = int(os.popen('node --version').read().split('.')[0][1:])
     if version < 14:
         err = f"CoCalc requires node.js v14, but you're using node v{version}."
@@ -436,7 +438,7 @@ def node_version_check():
         raise RuntimeError(err)
 
 
-def main():
+def main() -> None:
     node_version_check()
 
     def packages_arg(parser):

@@ -5,7 +5,7 @@ a nice "homepage" for that user or organization.
 
 */
 
-import getPool from "@cocalc/util-node/database";
+import getPool from "@cocalc/backend/database";
 import getOwner from "./owner";
 
 // Throws an exception if there is no project with this name.
@@ -14,7 +14,6 @@ export default async function getProjectId(
   owner: string,
   project: string
 ): Promise<string> {
-  console.log("getProjectId", owner, project);
   const { owner_id } = await getOwner(owner);
   const pool = getPool("long"); // map from owner/project --> project_id unlikely to change and when it does, stale data is ok.
 

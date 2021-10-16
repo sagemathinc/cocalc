@@ -37,7 +37,7 @@ pg      = require('pg')
 winston      = require('./logger').getLogger('postgres')
 {do_query_with_pg_params} = require('./postgres/set-pg-params')
 
-misc_node = require('@cocalc/util-node/misc_node')
+misc_node = require('@cocalc/backend/misc_node')
 
 {defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
@@ -47,7 +47,7 @@ required = defaults.required
 exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created', 'env']
 exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
 
-dbPassword = require('@cocalc/util-node/database/password').default;
+dbPassword = require('@cocalc/backend/database/password').default;
 
 class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database and 'disconnect' when connection to postgres fails
     constructor: (opts) ->

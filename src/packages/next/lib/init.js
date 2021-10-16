@@ -15,7 +15,7 @@ https://www.gitmemory.com/issue/vercel/next.js/26127/862661818
 */
 
 const { join } = require("path");
-const getLogger = require("@cocalc/util-node/logger").default;
+const getLogger = require("@cocalc/backend/logger").default;
 const next = require("next");
 const conf = require("../next.config");
 

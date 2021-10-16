@@ -1,6 +1,6 @@
 import Cookies from "cookies";
-import getCustomize from "@cocalc/util-node/server-settings/customize";
-import { COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/util-node/auth/remember-me";
+import getCustomize from "@cocalc/backend/server-settings/customize";
+import { COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/remember-me";
 import getAccountId from "lib/account/get-account";
 
 const revalidate = 30;

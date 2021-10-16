@@ -32,6 +32,7 @@ import {
   get_passports,
 } from "../utils";
 import { getLogger } from "@cocalc/hub/logger";
+import passwordHash from "@cocalc/backend/auth/password-hash";
 
 const winston = getLogger("create-account");
 
@@ -74,6 +75,7 @@ async function get_db_client(db: PostgreSQL) {
 }
 
 // if the email address's domain should go through SSO, return the domain name
+// THIS HAS BEEN REWRITTEN AT @cocalc/backend/auth/is-domain-exclusive-sso
 async function is_domain_exclusive_sso(
   db: PostgreSQL,
   email?: string
@@ -86,7 +88,7 @@ async function is_domain_exclusive_sso(
 
   const blocked = new Set<string>([]);
   for (const pp of passports) {
-    for (const domain of pp.conf.exclusive_domains ?? []) {
+    for (const domain of pp.conf?.exclusive_domains ?? []) {
       blocked.add(domain);
     }
   }
@@ -314,7 +316,7 @@ export async function create_account(
       last_name: opts.mesg.last_name,
       email_address: opts.mesg.email_address,
       password_hash: opts.mesg.password
-        ? auth.password_hash(opts.mesg.password)
+        ? passwordHash(opts.mesg.password)
         : undefined,
       created_by: opts.client.ip_address,
       usage_intent: opts.mesg.usage_intent,

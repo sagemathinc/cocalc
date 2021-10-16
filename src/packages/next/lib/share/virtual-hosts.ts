@@ -8,12 +8,12 @@ Support for virtual hosts.
 */
 
 import type { Request, Response } from "express";
-import { getLogger } from "@cocalc/util-node/logger";
+import { getLogger } from "@cocalc/backend/logger";
 import pathToFiles from "./path-to-files";
 import isAuthenticated from "./authenticate";
 import getVirtualHostInfo from "./get-vhost-info";
 import { staticHandler } from "./handle-raw";
-import basePath from "@cocalc/util-node/base-path";
+import basePath from "@cocalc/backend/base-path";
 
 const logger = getLogger("virtual-hosts");
 

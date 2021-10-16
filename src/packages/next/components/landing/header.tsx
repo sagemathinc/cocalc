@@ -7,8 +7,9 @@ import { useCustomize } from "lib/customize";
 import basePath from "lib/base-path";
 import SubNav, { Page, SubPage } from "./sub-nav";
 import Analytics from "components/analytics";
+import Avatar from "components/account/avatar";
 
-const GAP = "32px";
+const GAP = "24px";
 
 const LinkStyle = {
   color: "white",
@@ -137,25 +138,50 @@ export default function Header({ page, subPage }: Props) {
           Info
         </A>
         {!account && anonymousSignup && (
-          <a
-            style={LinkStyle}
-            href={join(basePath, "static/app.html?anonymous=jupyter")}
+          <A
+            style={page == "try" ? SelectedStyle : LinkStyle}
+            href={"/auth/try"}
             title={`Try ${siteName} immediately without creating an account.`}
           >
             Try {siteName}
-          </a>
+          </A>
         )}{" "}
-        <a
-          style={LinkStyle}
-          href={join(basePath, "settings")}
-          title={
-            account
-              ? "View your Account Settings"
-              : `Sign in to ${siteName} or create an account.`
-          }
-        >
-          {account ? "Account" : "Sign In"}
-        </a>
+        {account ? (
+          <a
+            style={LinkStyle}
+            href={join(basePath, "settings")}
+            title={"View your Account Settings"}
+          >
+            {/* The negative margin fixes some weird behavior that stretches header. */}
+            {account.account_id && (
+              <>
+                <Avatar
+                  account_id={account.account_id}
+                  style={{ margin: "-10px 0" }}
+                />
+                &nbsp;&nbsp;
+              </>
+            )}
+            Account
+          </a>
+        ) : (
+          <>
+            <A
+              style={page == "sign-in" ? SelectedStyle : LinkStyle}
+              href="/auth/sign-in"
+              title={`Sign in to ${siteName} or create an account.`}
+            >
+              Sign In
+            </A>
+            <A
+              style={page == "sign-up" ? SelectedStyle : LinkStyle}
+              href="/auth/sign-up"
+              title={`Sign up for a ${siteName} account.`}
+            >
+              Sign Up
+            </A>
+          </>
+        )}
       </Layout.Header>
       {landingPages && page && <SubNav page={page} subPage={subPage} />}
     </>

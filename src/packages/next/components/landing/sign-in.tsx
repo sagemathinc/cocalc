@@ -3,6 +3,8 @@ import { useCustomize } from "lib/customize";
 import basePath from "lib/base-path";
 import { CSSProperties, ReactNode } from "react";
 import A from "components/misc/A";
+import { Button } from "antd";
+import { useRouter } from "next/router";
 
 interface Props {
   startup?: ReactNode; // customize the button, e.g. "Start Jupyter Now".
@@ -16,6 +18,7 @@ const STYLE = {
 
 export default function SignIn({ startup, hideFree }: Props) {
   const { anonymousSignup, siteName, account } = useCustomize();
+  const router = useRouter();
   if (account != null) {
     return (
       <div style={STYLE}>
@@ -36,27 +39,32 @@ export default function SignIn({ startup, hideFree }: Props) {
       {/* We use className="ant-btn" instead of an actual Button, because otherwise
             we get a ton of useLayoutEffects due to server-side rendering.*/}
       {anonymousSignup && (
-        <a
-          className="ant-btn"
-          style={{
-            backgroundColor: "#5cb85c",
-            borderColor: "#4cae4c",
-            color: "white",
-          }}
-          href={join(basePath, "static/app.html?anonymous=jupyter")}
+        <Button
+          size="large"
+          type="primary"
+          style={{ margin: "10px" }}
           title={"Try now without creating an account!"}
+          onClick={() => router.push("/auth/try")}
         >
-          Run {startup ?? siteName} Now
-        </a>
+          Try {startup ?? siteName} Now
+        </Button>
       )}
-      <a
-        className="ant-btn"
-        href={join(basePath, "static/app.html")}
-        style={{ margin: "15px" }}
+      <Button
+        size="large"
+        style={{ margin: "10px" }}
         title={"Either create a new account or sign into an existing account."}
+        onClick={() => router.push("/auth/sign-in")}
       >
-        Create Account or Sign In
-      </a>
+        Sign In
+      </Button>
+      <Button
+        size="large"
+        style={{ margin: "10px" }}
+        title={"Create a new account."}
+        onClick={() => router.push("/auth/sign-up")}
+      >
+        Sign Up
+      </Button>
       {!hideFree && (
         <>
           <br />

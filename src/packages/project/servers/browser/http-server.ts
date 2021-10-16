@@ -14,7 +14,7 @@ import { join } from "path";
 import { writeFile } from "fs";
 import { once } from "@cocalc/util/async-utils";
 import { options } from "@cocalc/project/init-program";
-import basePath from "@cocalc/util-node/base-path";
+import basePath from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/project/logger";
 import { browserPortFile, project_id } from "@cocalc/project/data";
 import initDirectoryListing from "@cocalc/project/directory-listing";

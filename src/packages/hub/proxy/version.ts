@@ -1,7 +1,7 @@
 import Cookies from "cookies";
 
 import { versionCookieName } from "@cocalc/util/consts";
-import base_path from "@cocalc/util-node/base-path";
+import base_path from "@cocalc/backend/base-path";
 
 import getServerSettings from "../servers/server-settings";
 import getLogger from "../logger";

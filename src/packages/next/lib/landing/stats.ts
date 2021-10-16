@@ -1,4 +1,4 @@
-import getPool from "@cocalc/util-node/database";
+import getPool from "@cocalc/backend/database";
 import { Stats } from "@cocalc/util/db-schema/stats";
 
 // Returns undefined if no stats data is available.

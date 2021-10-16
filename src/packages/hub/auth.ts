@@ -44,7 +44,6 @@ import passport from "passport";
 import * as dot from "dot-object";
 import * as _ from "lodash";
 import * as misc from "@cocalc/util/misc";
-import * as message from "@cocalc/util/message"; // message protocol between front-end and back-end
 const sign_in = require("./sign-in");
 import Cookies from "cookies";
 import express_session from "express-session";
@@ -60,9 +59,15 @@ import {
   PRIMARY_SSO,
 } from "@cocalc/frontend/account/passport-types";
 const safeJsonStringify = require("safe-json-stringify");
-import base_path from "@cocalc/util-node/base-path";
-import generateHash from "@cocalc/util-node/auth/hash";
-import { COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/util-node/auth/remember-me";
+import base_path from "@cocalc/backend/base-path";
+import generateHash from "@cocalc/backend/auth/hash";
+import passwordHash, {
+  verifyPassword,
+} from "@cocalc/backend/auth/password-hash";
+import {
+  createRememberMeCookie,
+  COOKIE_NAME as REMEMBER_ME_COOKIE_NAME,
+} from "@cocalc/backend/auth/remember-me";
 
 // primary strategies -- all other ones are "extra"
 const PRIMARY_STRATEGIES = ["email", "site_conf", ...PRIMARY_SSO];
@@ -96,26 +101,6 @@ const API_KEY_COOKIE_NAME = base_path + "get_api_key";
 //#######################################
 // Password hashing
 //#######################################
-
-const password_hash_library = require("password-hash");
-
-// You can change the parameters at any time and no existing passwords
-// or cookies should break.  This will only impact newly created
-// passwords and cookies.  Old ones can be read just fine (with the old
-// parameters).
-const HASH_ALGORITHM = "sha512";
-const HASH_ITERATIONS = 1000;
-const HASH_SALT_LENGTH = 32;
-
-
-export function password_hash(password): string {
-  // This blocks the server for about 5-9ms.
-  return password_hash_library.generate(password, {
-    algorithm: HASH_ALGORITHM,
-    saltLength: HASH_SALT_LENGTH,
-    iterations: HASH_ITERATIONS,
-  });
-}
 
 interface PassportLogin {
   strategy: string;
@@ -376,13 +361,13 @@ export class PassportManager {
       return this.strategies;
     }
     try {
-      // we always offer email!
+      // we always offer email!  (Note: why?  it may make sense to disable.)
       this.strategies = { email: { name: "email" } };
       const settings = await cb2(this.database.get_all_passport_settings);
       for (const setting of settings) {
         const name = setting.strategy;
         const conf = setting.conf as PassportStrategyDB;
-        if (conf.disabled === true) {
+        if (!conf || conf.disabled === true) {
           continue;
         }
         conf.name = name;
@@ -1155,7 +1140,7 @@ export class PassportManager {
   }
 
   private async handle_new_sign_in(
-    opts: PassportLogin,
+    _opts: PassportLogin,
     locals: PassportLoginLocals
   ): Promise<void> {
     if (locals.has_valid_remember_me) return;
@@ -1167,33 +1152,11 @@ export class PassportManager {
 
     dbg("passport created: set remember_me cookie, so user gets logged in");
 
-    // create and set remember_me cookie, then redirect.
-    // See the remember_me method of client for the algorithm we use.
-    const signed_in_mesg = message.signed_in({
-      remember_me: true,
-      hub: opts.host,
-      account_id: locals.account_id,
-      first_name: opts.first_name,
-      last_name: opts.last_name,
-    });
-
-    dbg("create remember_me cookie");
-    const session_id = v4();
-    const hash_session_id = password_hash(session_id);
-    const ttl_s = 24 * 3600 * 30; // 30 days
-    const x: string[] = hash_session_id.split("$");
-    const remember_me_value = [x[0], x[1], x[2], session_id].join("$");
-
-    dbg("save remember_me cookie in database");
-    await cb2(this.database.save_remember_me, {
-      account_id: locals.account_id,
-      hash: hash_session_id,
-      value: signed_in_mesg,
-      ttl: ttl_s,
-    });
+    dbg("create remember_me cookie and save in database");
+    const { value, ttl_s } = await createRememberMeCookie(locals.account_id);
 
     dbg("and also set remember_me cookie in client");
-    locals.cookies.set(REMEMBER_ME_COOKIE_NAME, remember_me_value, {
+    locals.cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
       maxAge: ttl_s * 1000,
     });
   }
@@ -1249,7 +1212,7 @@ export async function is_password_correct(
   });
 
   if (opts.password_hash != null) {
-    const r = password_hash_library.verify(opts.password, opts.password_hash);
+    const r = verifyPassword(opts.password, opts.password_hash);
     opts.cb(undefined, r);
   } else if (opts.account_id != null || opts.email_address != null) {
     try {
@@ -1265,7 +1228,7 @@ export async function is_password_correct(
           // setting the email address and password at the same time.
           opts.database.change_password({
             account_id: opts.account_id,
-            password_hash: password_hash(opts.password),
+            password_hash: passwordHash(opts.password),
             invalidate_remember_me: false,
             cb: (err) => opts.cb(err, true),
           });
@@ -1275,7 +1238,7 @@ export async function is_password_correct(
       } else {
         opts.cb(
           undefined,
-          password_hash_library.verify(opts.password, account.password_hash)
+          verifyPassword(opts.password, account.password_hash)
         );
       }
     } catch (error) {

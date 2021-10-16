@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/next",
-  "version": "0.10.1",
+  "version": "0.11.3",
   "description": "CoCalc's nextjs server",
   "main": "lib/init.js",
   "exports": {
@@ -28,9 +28,10 @@
     "dev-project": "unset PGHOST PGUSER COCALC_ROOT && export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000 && echo https://cocalc.com$BASE_PATH && npm run inventory &&  npm run dev",
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty",
     "inventory": "mkdir -p dist/inventory && curl https://storage.googleapis.com/cocalc-compute-environment/compute-components.json -o dist/inventory/compute-components.json && curl https://storage.googleapis.com/cocalc-compute-environment/compute-inventory.json -o dist/inventory/compute-inventory.json",
-    "build": "npx next telemetry disable && rm -rf .next && npm run inventory && npm run build-dist && next build",
+    "build-deps": "cd ../backend && npm run build && cd ../util && npm run build",
+    "build": "npm run build-deps && npx next telemetry disable && rm -rf .next && npm run inventory && npm run build-dist && next build",
     "build-dist": "rm -rf dist && npm run inventory && npx tsc --build tsconfig-dist.json",
-    "build-project": "npx next telemetry disable && npm run build-dist && BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
+    "build-project": "npm run build-deps && npx next telemetry disable && npm run build-dist && BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
     "clean": "rm -rf .next dist",
     "start": "unset PGHOST; next start",
     "start-project": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000; echo https://cocalc.com$BASE_PATH; npm run start",
@@ -51,14 +52,14 @@
     "../cdn",
     "../frontend",
     "../util",
-    "../util-node"
+    "../backend"
   ],
   "dependencies-comment": "IMPORTANT: we install typescript as a normal dependency since it may be needed at runtime due to server settings changing!!",
   "dependencies": {
-    "@cocalc/cdn": "^1.6.0",
-    "@cocalc/frontend": "^1.7.0",
-    "@cocalc/util": "^1.8.0",
-    "@cocalc/util-node": "^1.7.1",
+    "@cocalc/cdn": "^1.7.0",
+    "@cocalc/frontend": "^1.10.0",
+    "@cocalc/util": "^1.10.0",
+    "@cocalc/backend": "^1.2.1",
     "@types/express": "^4.17.13",
     "@types/react": "^17.0.14",
     "antd": "^4.16.8",
@@ -74,7 +75,8 @@
     "serve-index": "^1.9.1",
     "sharp": "^0.29.1",
     "tslib": "^2.3.1",
-    "typescript": "^4.4.3"
+    "typescript": "^4.4.3",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "eslint": "^7.31.0",

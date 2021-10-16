@@ -246,7 +246,7 @@ describe 'testing working with blobs: ', ->
     @timeout(10000)
     beforeEach(setup)
     afterEach(teardown)
-    {uuidsha1} = require('@cocalc/util-node/misc_node')
+    {uuidsha1} = require('@cocalc/backend/misc_node')
     project_id = misc.uuid()
     it 'creating a blob and reading it', (done) ->
         blob = Buffer.from("This is a test blob")

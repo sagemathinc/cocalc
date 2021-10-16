@@ -46,7 +46,7 @@ import {
 import { len } from "../misc";
 import { VMS } from "@cocalc/util/upgrades/dedicated";
 // TODO how to use the logger ?
-//import { getLogger } from "@cocalc/util-node/logger";
+//import { getLogger } from "@cocalc/backend/logger";
 //const L = getLogger("upgrades:quota");
 
 const MAX_UPGRADES = upgrades.max_per_project;

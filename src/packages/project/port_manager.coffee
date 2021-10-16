@@ -10,7 +10,7 @@ It reads the port from memory or from disk and returns it.
 ###
 
 fs = require('fs')
-misc_node = require('@cocalc/util-node/misc_node')
+misc_node = require('@cocalc/backend/misc_node')
 
 SMC = process.env.SMC
 

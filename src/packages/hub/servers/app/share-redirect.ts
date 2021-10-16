@@ -2,7 +2,7 @@ import { join } from "path";
 import { NextFunction, Request, Response } from "express";
 import { getLogger } from "@cocalc/hub/logger";
 import { splitFirst } from "@cocalc/util/misc";
-import getPool from "@cocalc/util-node/database";
+import getPool from "@cocalc/backend/database";
 
 const winston = getLogger("share-redirect");
 

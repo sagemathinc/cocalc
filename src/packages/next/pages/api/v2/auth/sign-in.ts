@@ -1,0 +1,86 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
+Sign in works as follows:
+
+1. Query the database for the account_id and password_hash
+   with the given username.
+
+2. Use the password-hash library to determine whether or
+   not the given password hashes properly.  If so, create and
+   set a secure remember_me http cookie confirming that the
+   client is that user and tell user they are now authenticated.
+   If not, send an error back.
+*/
+
+import { verify } from "password-hash";
+import getPool from "@cocalc/backend/database";
+import {
+  createRememberMeCookie,
+  COOKIE_NAME,
+} from "@cocalc/backend/auth/remember-me";
+import { signInCheck, recordFail } from "@cocalc/backend/auth/throttle";
+import Cookies from "cookies";
+
+export default async function signIn(req, res) {
+  if (req.method === "POST") {
+    let { email, password } = req.body;
+    email = email.toLowerCase().trim();
+    const check = signInCheck(email, req.ip);
+    if (check) {
+      res.json({ error: check });
+      return;
+    }
+    let account_id: string;
+    try {
+      account_id = await getAccount(email, password);
+    } catch (err) {
+      res.json({ error: `Problem signing into account -- ${err}.` });
+      recordFail(email, req.ip);
+      return;
+    }
+    await signUserIn(req, res, account_id);
+  } else {
+    res.status(404).json({ message: "Sign In must use a POST request." });
+  }
+}
+
+export async function getAccount(
+  email_address: string,
+  password: string
+): Promise<string> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT account_id, password_hash FROM accounts WHERE email_address=$1",
+    [email_address]
+  );
+  if (rows.length == 0) {
+    throw Error(`no account with email address '${email_address}'`);
+  }
+  const { account_id, password_hash } = rows[0];
+  if (!verify(password, password_hash)) {
+    throw Error(`password for '${email_address}' is incorrect`);
+  }
+  return account_id;
+}
+
+export async function signUserIn(req, res, account_id: string): Promise<void> {
+  let value, ttl_s;
+  try {
+    ({ value, ttl_s } = await createRememberMeCookie(account_id));
+  } catch (err) {
+    res.json({ error: `Problem creating session cookie -- ${err}.` });
+    return;
+  }
+  try {
+    const cookies = new Cookies(req, res, { maxAge: ttl_s * 1000 });
+    cookies.set(COOKIE_NAME, value);
+  } catch (err) {
+    res.json({ error: `Problem setting cookie -- ${err}.` });
+    return;
+  }
+  res.json({ account_id });
+}

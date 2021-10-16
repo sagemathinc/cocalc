@@ -392,7 +392,7 @@ export default function R({ customize }) {
             <p>
               Look at our <A href="/software/r">list of available packages</A>{" "}
               in more detail. If something is missing, please tell us about it (
-              <Contact />) so we can install that package globally.
+              <Contact lower />) so we can install that package globally.
             </p>
           </Info>
 

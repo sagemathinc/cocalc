@@ -96,7 +96,7 @@ interface Logger {
 }
 
 import stringify from "fast-json-stable-stringify";
-const { sha1 } = require("@cocalc/util-node/misc_node");
+const { sha1 } = require("@cocalc/backend/misc_node");
 
 const COCALC_EPHEMERAL_STATE: boolean =
   process.env.COCALC_EPHEMERAL_STATE === "yes";

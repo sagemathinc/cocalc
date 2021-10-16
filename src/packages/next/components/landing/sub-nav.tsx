@@ -48,6 +48,11 @@ const info = {
   status: { label: "Status" },
 };
 
+const sign_in = {
+  "sign-in": { label: "Sign In", href: "/auth/sign-in" },
+  "password-reset": { label: "Password Reset", href: "/auth/password-reset" },
+};
+
 const PAGES = {
   features,
   software,
@@ -55,6 +60,9 @@ const PAGES = {
   policies,
   share: {},
   info,
+  "sign-up": {},
+  "sign-in": sign_in,
+  try: {},
 };
 
 export type Page = keyof typeof PAGES;
@@ -63,7 +71,8 @@ export type SubPage =
   | keyof typeof features
   | keyof typeof pricing
   | keyof typeof policies
-  | keyof typeof info;
+  | keyof typeof info
+  | keyof typeof sign_in;
 
 interface Props {
   page: Page;
@@ -83,6 +92,7 @@ export default function SubNav({ page, subPage }: Props) {
         selected={subPage == name}
         name={name}
         label={p[name].label}
+        href={p[name].href}
       />
     );
   }
@@ -100,10 +110,10 @@ export default function SubNav({ page, subPage }: Props) {
   );
 }
 
-function SubPageTab({ page, name, selected, label }) {
+function SubPageTab({ page, name, selected, label, href }) {
   return (
     <A
-      href={`/${page}/${name}`}
+      href={href ?? `/${page}/${name}`}
       style={
         selected
           ? {

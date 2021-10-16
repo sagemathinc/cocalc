@@ -181,6 +181,9 @@ async function get_formatting(): Promise<Capabilities> {
     if (tool === ("formatR" as FormatTool)) {
       // TODO special case. must check for package "formatR" in "R" -- for now just test for R
       status.push(have("R"));
+    } else if (tool == ("bib-biber" as FormatTool)) {
+      // another special case
+      status.push(have("biber"));
     } else if (
       tool === ("html-tidy" as FormatTool) ||
       tool === ("xml-tidy" as FormatTool)
