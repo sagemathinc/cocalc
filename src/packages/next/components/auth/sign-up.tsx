@@ -14,11 +14,12 @@ import { useRouter } from "next/router";
 
 const LINE = { margin: "15px 0" } as CSSProperties;
 
-export default function SignUp({ strategies }) {
+export default function SignUp({ strategies, requiresToken }) {
   const router = useRouter();
-  const { siteName } = useCustomize();
+  const { anonymousSignup, siteName } = useCustomize();
   const [terms, setTerms] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
+  const [registrationToken, setRegistrationToken] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
@@ -28,12 +29,14 @@ export default function SignUp({ strategies }) {
     password?: string;
     terms?: string;
     error?: string;
+    registrationToken?: string;
   }>({});
 
   const submittable = useRef<boolean>(false);
 
   submittable.current = !!(
     terms &&
+    (!requiresToken || registrationToken) &&
     email &&
     isValidEmailAddress(email) &&
     password &&
@@ -53,6 +56,7 @@ export default function SignUp({ strategies }) {
         password,
         firstName,
         lastName,
+        registrationToken,
       });
       if (result.issues && len(result.issues) > 0) {
         setIssues(result.issues);
@@ -69,7 +73,7 @@ export default function SignUp({ strategies }) {
   return (
     <div style={{ padding: "0 15px" }}>
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
-        <SquareLogo style={{ width: "100px", height: "100px" }} />
+        <SquareLogo style={{ width: "100px", height: "100px", marginBottom:'15px' }} />
         <h1>Create a {siteName} Account</h1>
       </div>
 
@@ -90,6 +94,31 @@ export default function SignUp({ strategies }) {
           and to receive support emails from CoCalc.
         </Checkbox>
         <form>
+          {issues.registrationToken && (
+            <Alert
+              style={LINE}
+              type="error"
+              showIcon
+              message={issues.registrationToken}
+              description={
+                <>
+                  You may have to contact the site administrator for a
+                  registration token.
+                </>
+              }
+            />
+          )}
+          {terms && requiresToken && (
+            <div style={LINE}>
+              <p>Registration Token</p>
+              <Input
+                style={{ fontSize: "12pt" }}
+                value={registrationToken}
+                placeholder="Enter your secret registration token"
+                onChange={(e) => setRegistrationToken(e.target.value)}
+              />
+            </div>
+          )}
           {terms && (
             <EmailOrSSO
               email={email}
@@ -165,6 +194,8 @@ export default function SignUp({ strategies }) {
           >
             {!terms
               ? "Agree to the terms"
+              : requiresToken && !registrationToken
+              ? "Enter the secret registration token"
               : !email
               ? "How will you sign in?"
               : !password || password.length < 6
@@ -187,16 +218,18 @@ export default function SignUp({ strategies }) {
         style={{
           ...LOGIN_STYLE,
           backgroundColor: "white",
-          marginTop: "30px",
-          marginBottom: "30px",
+          margin: "30px auto",
+          padding: "15px",
         }}
       >
-        <p>
-          Already have an account? <A href="/auth/sign-in">Sign In</A>
-        </p>
-        Don't want to provide any information?
-        <br />
-        <A href="/auth/try">Try {siteName} without creating an account.</A>
+        Already have an account? <A href="/auth/sign-in">Sign In</A>
+        {anonymousSignup && (
+          <div style={{ marginTop: "15px" }}>
+            Don't want to provide any information?
+            <br />
+            <A href="/auth/try">Try {siteName} without creating an account.</A>
+          </div>
+        )}
       </div>
     </div>
   );

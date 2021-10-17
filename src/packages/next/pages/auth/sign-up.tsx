@@ -7,8 +7,9 @@ import Head from "components/landing/head";
 import basePath from "lib/base-path";
 import SignUp from "components/auth/sign-up";
 import getStrategies from "@cocalc/backend/auth/sso/get-strategies";
+import getRequiresToken from "@cocalc/backend/auth/tokens/get-requires-token";
 
-export default function Home({ customize, strategies }) {
+export default function Home({ customize, strategies, requiresToken }) {
   const { siteName } = customize;
   return (
     <Customize value={customize}>
@@ -16,7 +17,7 @@ export default function Home({ customize, strategies }) {
       <Layout>
         <Header page="sign-up" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <SignUp strategies={strategies} />
+          <SignUp strategies={strategies} requiresToken={requiresToken} />
           <Footer />
         </Layout.Content>
       </Layout>
@@ -34,5 +35,6 @@ export async function getServerSideProps(context) {
     return { props: {} };
   }
   customize.props.strategies = await getStrategies();
+  customize.props.requiresToken = await getRequiresToken();
   return customize;
 }
