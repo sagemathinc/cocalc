@@ -3,6 +3,8 @@ import SquareLogo from "components/logo-square";
 import useCustomize from "lib/use-customize";
 import { LOGIN_STYLE } from "./shared";
 import A from "components/misc/A";
+import basePath from "lib/base-path";
+import { join } from "path";
 
 export default function Try() {
   const { siteName } = useCustomize();
@@ -23,7 +25,7 @@ export default function Try() {
           size="large"
           type="primary"
           style={{ width: "100%", marginTop: "20px" }}
-          href="static/app.html?anonymous=jupyter"
+          href={join(basePath, "static/app.html?anonymous=jupyter")}
         >
           Use {siteName} Anonymously
         </Button>
