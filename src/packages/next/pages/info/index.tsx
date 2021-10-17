@@ -25,11 +25,14 @@ const dataSource = [
     logo: "users",
     description: (
       <>
-        <A href="https://discord.gg/nEHs2GK">Chat with other users</A>, view the{" "}
-        <A href="https://twitter.com/cocalc_com">CoCalc Twitter feed</A>,
+        <A href="https://discord.gg/nEHs2GK">Chat on Discord</A>, start a{" "}
+        <A href="https://github.com/sagemathinc/cocalc/discussions">
+          GitHub discussion
+        </A>
+        , view <A href="https://twitter.com/cocalc_com">our Twitter feed</A>,
         subscribe to{" "}
         <A href="https://groups.google.com/forum/?fromgroups#!forum/cocalc">
-          the coCalc mailing list
+          the mailing list
         </A>
         , read <A href="http://blog.sagemath.com/">the blog</A>, browse our{" "}
         <A href="https://github.com/sagemathinc/cocalc/tree/master/src">

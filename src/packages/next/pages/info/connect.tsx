@@ -15,6 +15,7 @@ import Blog from "public/info/blog.png";
 import Twitter from "public/info/twitter.png";
 import Facebook from "public/info/facebook.png";
 import Github from "public/info/github.png";
+import GitHubDiscussions from "public/info/github-discussions.png";
 
 const imageWidth = "350px";
 
@@ -61,13 +62,34 @@ const dataSource = [
     ),
   },
   {
+    link: "https://github.com/sagemathinc/cocalc/discussions",
+    logo: "github",
+    imageWidth,
+    image: GitHubDiscussions,
+    title: (
+      <>
+        CoCalc <b>GitHub Discussions</b>
+      </>
+    ),
+    description: (
+      <>
+        Discuss CoCalc with the community at the{" "}
+        <A href="https://github.com/sagemathinc/cocalc/discussions">
+          GitHub CoCalc Discussion forum
+        </A>
+        . This is a good place to ask questions, start discussions, and show and
+        tell.
+      </>
+    ),
+  },
+  {
     link: "https://github.com/sagemathinc/cocalc",
     logo: "github",
     imageWidth,
     image: Github,
     title: (
       <>
-        CoCalc's <b>GitHub</b> Page
+        CoCalc's <b>Source Code</b>
       </>
     ),
     description: (
