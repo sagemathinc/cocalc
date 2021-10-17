@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/next",
-  "version": "0.11.3",
+  "version": "0.11.4",
   "description": "CoCalc's nextjs server",
   "main": "lib/init.js",
   "exports": {
