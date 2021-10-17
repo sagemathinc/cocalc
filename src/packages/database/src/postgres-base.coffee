@@ -44,6 +44,8 @@ required = defaults.required
 
 {SCHEMA, client_db} = require('@cocalc/util/schema')
 
+metrics = require('./metrics')
+
 exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created', 'env']
 exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
 
@@ -379,12 +381,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     _init_metrics: =>
         # initialize metrics
-        MetricsRecorder  = require('./metrics-recorder')
-        @query_time_histogram = MetricsRecorder.new_histogram('db_query_ms_histogram', 'db queries'
+        @query_time_histogram = metrics.newHistogram('db_query_ms_histogram', 'db queries'
             buckets : [1, 5, 10, 20, 50, 100, 200, 500, 1000, 5000, 10000]
             labels: ['table']
         )
-        @concurrent_counter = MetricsRecorder.new_counter('db_concurrent_total',
+        @concurrent_counter = metrics.newCounter('db_concurrent_total',
             'Concurrent queries (started and finished)',
             ['state']
         )

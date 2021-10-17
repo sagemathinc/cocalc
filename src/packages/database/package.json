@@ -21,6 +21,7 @@
     "lodash": "^4.17.21",
     "lru-cache": "^6.0.0",
     "pg": "^8.7.1",
+    "prom-client": "^13.0.0",
     "random-key": "^0.3.2",
     "snappy": "^7.0.3",
     "sql-string-escape": "^1.1.6",

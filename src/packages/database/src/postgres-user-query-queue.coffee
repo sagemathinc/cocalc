@@ -40,14 +40,13 @@ GLOBAL_LIMIT = 250
 MAX_QUEUE_SIZE = 150  # client isn't supposed to send more than around 25-50 at once.
 
 # setup metrics
-metrics_recorder = require('./metrics-recorder')
-query_queue_exec = metrics_recorder.new_counter('query_queue_executed_total',
+metrics = require('./metrics')
+query_queue_exec = metrics.newCounter('query_queue_executed_total',
                     'Executed queries and their status', ['status'])
-query_queue_duration = metrics_recorder.new_counter('query_queue_duration_seconds_total',
+query_queue_duration = metrics.newCounter('query_queue_duration_seconds_total',
                     'Total time it took to evaluate queries')
-query_queue_done = metrics_recorder.new_counter('query_queue_done_total',
+query_queue_done = metrics.newCounter('query_queue_done_total',
                     'Total number of evaluated queries')
-#query_queue_info = metrics_recorder.new_gauge('query_queue_info', 'Information update about outstanding queries in the queue', ['client', 'info'])
 
 global_count = 0
 
