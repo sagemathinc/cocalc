@@ -6,7 +6,8 @@
     "./database": "./dist/database/index.js",
     "./server-settings": "./dist/server-settings/index.js",
     "./*": "./dist/*.js",
-    "./auth/*": "./dist/auth/*.js"
+    "./auth/*": "./dist/auth/*.js",
+    "./auth/tokens/*": "./dist/auth/tokens/*.js"
   },
   "keywords": [
     "utilities",

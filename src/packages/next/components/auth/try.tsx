@@ -7,12 +7,22 @@ import basePath from "lib/base-path";
 import { join } from "path";
 
 export default function Try() {
-  const { siteName } = useCustomize();
+  const { siteName, anonymousSignup } = useCustomize();
+
+  if (!anonymousSignup) {
+    return (
+      <h1 style={{ textAlign: "center", margin: "45px auto" }}>
+        Anonymous Trial of {siteName} Not Currently Available
+      </h1>
+    );
+  }
 
   return (
     <div style={{ padding: "0 15px 30px 15px" }}>
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
-        <SquareLogo style={{ width: "100px", height: "100px" }} />
+        <SquareLogo
+          style={{ width: "100px", height: "100px", marginBottom: "15px" }}
+        />
         <h1>Use {siteName} Anonymously</h1>
       </div>
 
@@ -34,14 +44,14 @@ export default function Try() {
         style={{
           ...LOGIN_STYLE,
           backgroundColor: "white",
-          marginTop: "30px",
-          marginBottom: "30px",
+          margin: "30px auto",
+          padding: "15px",
         }}
       >
-        <p>
-          Already have an account? <A href="/auth/sign-in">Sign In</A>
-        </p>
-        Need an account? <A href="/auth/sign-up">Sign Up</A>
+        Already have an account? <A href="/auth/sign-in">Sign In</A>
+        <div style={{ marginTop: "15px" }}>
+          Need an account? <A href="/auth/sign-up">Sign Up</A>
+        </div>
       </div>
     </div>
   );
