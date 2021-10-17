@@ -7,7 +7,7 @@ import { Map } from "immutable";
 import { isEqual } from "lodash";
 import { PostgreSQL } from "../types";
 import { query } from "../query";
-import { TypedMap } from "@cocalc/frontend/app-framework";
+import { TypedMap } from "@cocalc/util/types/typed-map";
 import { is_valid_uuid_string, len } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import { number_of_running_projects_using_license } from "./analytics";
@@ -32,7 +32,9 @@ interface License {
   run_limit?: number;
 }
 
-async function get_valid_licenses(db): Promise<Map<string, TypedMap<License>>> {
+type LicenseMap = TypedMap<License>;
+
+async function get_valid_licenses(db): Promise<Map<string, LicenseMap>> {
   // Todo -- filter on expiration...
   if (licenses == null) {
     licenses = await callback2(db.synctable.bind(db), {

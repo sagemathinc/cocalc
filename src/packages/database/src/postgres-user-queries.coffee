@@ -17,7 +17,7 @@ MAX_PATCH_FUTURE_MS = 1000*60*3
 
 EventEmitter = require('events')
 async        = require('async')
-underscore   = require('underscore')
+lodash       = require('lodash')
 
 {one_result, all_results, count_result, pg_type, quote_field} = require('./postgres-base')
 
@@ -291,7 +291,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if remove_from_query?
             # If remove_from_query is specified it should be an array of strings
             # and we do not includes these in what is returned.
-            v = underscore.difference(v, remove_from_query)
+            v = lodash.difference(v, remove_from_query)
         return v
 
     _require_is_admin: (account_id, cb) =>
@@ -914,7 +914,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         for id in misc.keys(old_val).concat(new_val)
             if account_id != id
                 # make sure user doesn't change anybody else's allocation
-                if not underscore.isEqual(old_val?[id]?.upgrades, new_val?[id]?.upgrades)
+                if not lodash.isEqual(old_val?[id]?.upgrades, new_val?[id]?.upgrades)
                     err = "FATAL: user '#{account_id}' tried to change user '#{id}' allocation toward a project"
                     dbg(err)
                     cb(err)
@@ -930,7 +930,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         dbg()
         old_upgrades = old_val.users?[account_id]?.upgrades
         new_upgrades = new_val.users?[account_id]?.upgrades
-        if new_upgrades? and not underscore.isEqual(old_upgrades, new_upgrades)
+        if new_upgrades? and not lodash.isEqual(old_upgrades, new_upgrades)
             dbg("upgrades changed for #{account_id} from #{misc.to_json(old_upgrades)} to #{misc.to_json(new_upgrades)}")
             project = undefined
             async.series([

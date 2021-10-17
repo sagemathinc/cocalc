@@ -1,7 +1,3 @@
-/*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
- */
 
 // Do NOT change this - this exact string is assumed in @cocalc/hub/user-remember-me and @cocalc/util/client
 // Of course, they do use this very constant.  It's just that if you change this you might have

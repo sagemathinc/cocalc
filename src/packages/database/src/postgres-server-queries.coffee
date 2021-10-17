@@ -58,10 +58,9 @@ collab = require('./postgres/collab')
 {calc_stats} = require('./postgres/stats')
 {getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/backend/server-settings/server-settings');
 {pii_expire} = require("./utils")
-webapp_config_clear_cache = require("./webapp-configuration").clear_cache
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 
-{stripe_name} = require('./stripe/client')
+stripe_name = require('@cocalc/util/stripe/name').default;
 
 # log events, which contain personal information (email, account_id, ...)
 PII_EVENTS = ['create_account',
@@ -258,7 +257,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     reset_server_settings_cache: =>
         resetServerSettingsCache()
-        webapp_config_clear_cache()
 
     get_server_setting: (opts) =>
         opts = defaults opts,

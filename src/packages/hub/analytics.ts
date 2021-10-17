@@ -13,7 +13,8 @@ import {
   uuid,
 } from "@cocalc/util/misc";
 import { PostgreSQL } from "./postgres/types";
-import { get_server_settings, pii_retention_to_future } from "./utils";
+import { get_server_settings } from "@cocalc/database/postgres/server-settings";
+import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import * as fs from "fs";
 const UglifyJS = require("uglify-js");
 // express-js cors plugin:
@@ -36,7 +37,8 @@ const result = UglifyJS.minify(
 if (result.error) {
   throw Error(`Error minifying analytics-script.js -- ${result.error}`);
 }
-export const analytics_js = "if (window.exports === undefined) { var exports={}; } \n" + result.code;
+export const analytics_js =
+  "if (window.exports === undefined) { var exports={}; } \n" + result.code;
 
 function create_log(name) {
   return getLogger(`analytics.${name}`).debug;

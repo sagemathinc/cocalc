@@ -8,7 +8,7 @@ import { RECENT_TIMES, RECENT_TIMES_KEY } from "@cocalc/util/schema";
 import * as misc from "@cocalc/util/misc";
 const { defaults } = misc;
 const required = defaults.required;
-const _ = require("underscore");
+import { map, zipObject } from "lodash";
 
 import { PostgreSQL } from "./types";
 const { all_results } = require("../postgres-base");
@@ -115,7 +115,7 @@ ORDER BY ext
 
   // misc.copy? see "all_results"
   const rows = res.rows.map((x) => misc.copy(x));
-  const values = _.object(_.pluck(rows, "ext"), _.pluck(rows, "cnt"));
+  const values = zipObject(map(rows, "ext"), map(rows, "cnt"));
   data[key] = values;
 }
 

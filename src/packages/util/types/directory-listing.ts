@@ -1,5 +1,3 @@
-/* Misc types that are used in frontends, backends, etc. */
-
 export interface DirectoryListingEntry {
   name: string;
   isdir?: boolean;

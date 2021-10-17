@@ -26,11 +26,8 @@ import { delay } from "awaiting";
 import { callback2 } from "@cocalc/util/async-utils";
 import { PostgreSQL } from "../postgres/types";
 const { api_key_action } = require("../api/manage");
-import {
-  get_server_settings,
-  have_active_registration_tokens,
-  get_passports,
-} from "../utils";
+import { have_active_registration_tokens, get_passports } from "../utils";
+import { get_server_settings } from "@cocalc/database/postgres/server-settings";
 import { getLogger } from "@cocalc/hub/logger";
 import passwordHash from "@cocalc/backend/auth/password-hash";
 

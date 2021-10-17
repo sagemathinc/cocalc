@@ -10,7 +10,6 @@ EventEmitter = require('events')
 
 immutable    = require('immutable')
 async        = require('async')
-underscore   = require('underscore')
 
 {defaults, is_array} = misc = require('@cocalc/util/misc')
 required = defaults.required
@@ -221,8 +220,6 @@ class SyncTable extends EventEmitter
             @_select_columns = misc.keys(SCHEMA[@_table].fields)
 
         @_select_query = "SELECT #{(quote_field(x) for x in @_select_columns)} FROM #{@_table}"
-
-        #@_update = underscore.throttle(@_update, 500)
 
         @_init (err) =>
             if err and not cb?

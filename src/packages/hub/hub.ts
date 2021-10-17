@@ -20,7 +20,6 @@ import { retry_until_success } from "@cocalc/util/async-utils";
 const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
 import { init_passport } from "./auth";
 import base_path from "@cocalc/backend/base-path";
-import { migrate_account_token } from "./postgres/migrate-account-token";
 import { init_start_always_running_projects } from "./postgres/always-running";
 import { set_agent_endpoint } from "./health-checks";
 import initHandleMentions from "@cocalc/backend/mentions/handle";
@@ -144,10 +143,6 @@ async function startServer(): Promise<void> {
     winston.info("Configure agent port");
     set_agent_endpoint(program.agentPort, program.hostname);
   }
-
-  // Handle potentially ancient cocalc installs with old account registration token.
-  winston.info("Check for all account registration token");
-  await migrate_account_token(database);
 
   // Mentions
   if (program.mentions) {

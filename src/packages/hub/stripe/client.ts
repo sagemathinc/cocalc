@@ -7,13 +7,13 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
 // STOPGAP FIX: relative dirs necessary for manage service
 import { callback2 } from "@cocalc/util/async-utils";
-import { trunc_middle } from "@cocalc/util/misc";
 import * as message from "@cocalc/util/message";
 import {
   available_upgrades,
   get_total_upgrades,
 } from "@cocalc/util/upgrades";
 import { PostgreSQL } from "../postgres/types";
+import stripeName from "@cocalc/util/stripe/name";
 
 import Stripe from "stripe";
 
@@ -187,7 +187,7 @@ export class StripeClient {
       account_id: this.client.account_id,
     });
     const email = r.email_address;
-    const description = stripe_name(r.first_name, r.last_name);
+    const description = stripeName(r.first_name, r.last_name);
     dbg(`they are ${description} with email ${email}`);
 
     dbg("creating stripe customer");
@@ -477,7 +477,7 @@ export class StripeClient {
     });
     let customer_id = r.stripe_customer_id;
     const email = r.email_address;
-    const description = stripe_name(r.first_name, r.last_name);
+    const description = stripeName(r.first_name, r.last_name);
     mesg.account_id = r.account_id;
     if (customer_id != null) {
       dbg(
@@ -568,8 +568,4 @@ export class StripeClient {
       this.client.account_id
     );
   }
-}
-
-export function stripe_name(first_name, last_name): string {
-  return trunc_middle(`${first_name ?? ""} ${last_name ?? ""}`, 200);
 }

@@ -6,6 +6,8 @@
     "./*": "./dist/*.js",
     "./db-schema": "./dist/db-schema/index.js",
     "./fill": "./dist/fill/index.js",
+    "./types": "./dist/types/index.js",
+    "./consts": "./dist/consts/index.js",
     "./sync/table": "./dist/sync/table/index.js",
     "./sync/editor/db": "./dist/sync/editor/db/index.js"
   },

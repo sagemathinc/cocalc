@@ -34,7 +34,7 @@ LRU = require('lru-cache')
 
 pg      = require('pg')
 
-winston      = require('./logger').getLogger('postgres')
+winston      = require('@cocalc/backend/logger').getLogger('postgres')
 {do_query_with_pg_params} = require('./postgres/set-pg-params')
 
 misc_node = require('@cocalc/backend/misc_node')

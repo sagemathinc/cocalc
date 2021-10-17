@@ -23,7 +23,7 @@ import { Space, Alert, Switch, Popconfirm, Tooltip } from "antd";
 import { ErrorDisplay, SettingBox, Icon, Tip, A } from "../../components";
 import { RestartProject } from "./restart-project";
 import { unreachable } from "@cocalc/util/misc";
-import { DUMMY_SECRET } from "./const";
+import { DUMMY_SECRET } from "@cocalc/util/consts";
 import { DatastoreConfig as Config } from "./types";
 
 const SECRET_TOOLTIP = `\nSecrets can't be edited. Either keep "${DUMMY_SECRET}" as it is to retain the current value, or enter a new secret to replace the existing one.`;

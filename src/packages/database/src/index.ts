@@ -36,7 +36,7 @@ for (const module of [
   "user-queries",
   "ops",
 ]) {
-  PostgreSQL = require(`@cocalc/hub/postgres-${module}`).extend_PostgreSQL(
+  PostgreSQL = require(`./postgres-${module}`).extend_PostgreSQL(
     PostgreSQL
   );
 }

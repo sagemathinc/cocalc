@@ -1,0 +1,56 @@
+{
+  "name": "@cocalc/database",
+  "version": "0.1.0",
+  "description": "CoCalc: code for working with our PostgreSQL database",
+  "exports": "./dist/src/index.js",
+  "workspaces": [
+    "./",
+    "../util",
+    "../backend"
+  ],
+  "dependencies": {
+    "@cocalc/backend": "file:../backend",
+    "@cocalc/database": ":file",
+    "@cocalc/util": "^1.10.0",
+    "@types/lodash": "^4.14.175",
+    "@types/lru-cache": "^5.1.1",
+    "@types/uuid": "^8.3.1",
+    "async": "^1.5.2",
+    "awaiting": "^3.0.0",
+    "immutable": "^3.8.2",
+    "lodash": "^4.17.21",
+    "lru-cache": "^6.0.0",
+    "pg": "^8.7.1",
+    "random-key": "^0.3.2",
+    "snappy": "^7.0.3",
+    "sql-string-escape": "^1.1.6",
+    "stripe": "^8.183.0",
+    "uuid": "^8.3.2",
+    "validator": "^13.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^14.17.5",
+    "coffeescript": "^2.5.1",
+    "node-cjsx": "^2.0.0",
+    "typescript": "^4.4.3"
+  },
+  "scripts": {
+    "build": "npx tsc && coffee -m -c -o dist/ .",
+    "clean": "rm -rf dist",
+    "tsc": "npx tsc --watch  --pretty "
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "keywords": [
+    "postgresql",
+    "cocalc"
+  ],
+  "author": "SageMath, Inc.",
+  "license": "SEE LICENSE.md",
+  "bugs": {
+    "url": "https://github.com/sagemathinc/cocalc/issues"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc"
+}
