@@ -3,7 +3,7 @@
 # License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
 #########################################################################
 
-global.db = require('./postgres').db()
+global.db = require('@cocalc/database/postgres').db()
 
 misc = require '@cocalc/util/misc'
 misc_node = require '@cocalc/backend/misc_node'

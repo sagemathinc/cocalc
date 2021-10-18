@@ -14,7 +14,7 @@ import { create_missing_plans } from "./plans";
 import { get_stripe, init_stripe } from "./connection";
 // STOPGAP FIX: relative dirs necessary for manage service
 import { callback2 } from "@cocalc/util/async-utils";
-import { PostgreSQL } from "../postgres/types";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 
 export async function stripe_sync({
   logger,

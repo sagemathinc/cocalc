@@ -16,7 +16,7 @@
  */
 
 // variable PREFIX, NAME, DOMAIN and ID are injected in the hub's http server
-declare var NAME, ID, DOMAIN, PREFIX;
+declare var NAME, ID, DOMAIN, PREFIX, window, document;
 
 // write cookie. it would be cool to set this via the http request itself,
 // but for reasons I don't know it doesn't work across subdomains.

@@ -20,7 +20,7 @@ import { retry_until_success } from "@cocalc/util/async-utils";
 const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
 import { init_passport } from "./auth";
 import base_path from "@cocalc/backend/base-path";
-import { init_start_always_running_projects } from "./postgres/always-running";
+import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
 import { set_agent_endpoint } from "./health-checks";
 import initHandleMentions from "@cocalc/backend/mentions/handle";
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
@@ -411,7 +411,7 @@ async function main(): Promise<void> {
 
   try {
     // Everything we do here requires the database to be initialized. Once
-    // this is called, require('./postgres/database').default() is a valid db
+    // this is called, require('@cocalc/database/postgres/database').default() is a valid db
     // instance that can be used.
     initDatabase({
       host: program.databaseNodes,

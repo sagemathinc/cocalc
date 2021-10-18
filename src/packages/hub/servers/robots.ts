@@ -1,4 +1,4 @@
-import { get_server_settings } from "@cocalc/database/server-settings";
+import { get_server_settings } from "@cocalc/database/postgres/server-settings";
 import { database } from "./database";
 
 export default function getHandler() {

@@ -8,7 +8,7 @@
 const winston = require("./logger").getLogger("hub");
 import * as misc from "@cocalc/util/misc";
 const { defaults, required } = misc;
-import { PostgreSQL } from "./postgres/types";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 
 // Global variables
 let started = false;

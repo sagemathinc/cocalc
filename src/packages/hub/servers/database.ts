@@ -1,4 +1,4 @@
-import { db } from "../postgres";
+import { db } from "@cocalc/database";
 
 // IMPORTANT: For typescript we make the default export have type PostgreSQL.
 // In reality the default could be undefined until init gets called.

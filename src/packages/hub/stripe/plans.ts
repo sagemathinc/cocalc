@@ -13,7 +13,7 @@ import Stripe from "stripe";
 // STOPGAP FIX: relative dirs necessary for manage service
 import { upgrades } from "@cocalc/util/upgrade-spec";
 import { init_stripe } from "./connection";
-import { PostgreSQL } from "../postgres/types";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 
 // Create all plans that are missing
 export async function create_missing_plans(

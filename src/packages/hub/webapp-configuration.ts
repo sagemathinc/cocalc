@@ -14,7 +14,7 @@ import debug from "debug";
 const L = debug("hub:webapp-config");
 import { delay } from "awaiting";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
-import { PostgreSQL } from "./postgres/types";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { PassportManager, get_passport_manager } from "./auth";
 import getServerSettings from "./servers/server-settings";
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";

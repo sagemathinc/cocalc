@@ -53,7 +53,7 @@ import {
   email_verification_problem,
   welcome_email,
 } from "./email";
-import { PostgreSQL } from "./postgres/types";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import {
   PassportStrategy,
   PRIMARY_SSO,

@@ -24,7 +24,7 @@ import { ProjectState, ProjectStatus } from "@cocalc/util/db-schema/projects";
 import { quota } from "@cocalc/util/upgrades/quota";
 import { delay } from "awaiting";
 import getLogger from "@cocalc/hub/logger";
-import { site_license_hook } from "@cocalc/hub/postgres/site-license/hook";
+import { site_license_hook } from "@cocalc/database/postgres/site-license/hook";
 
 export type { ProjectState, ProjectStatus };
 

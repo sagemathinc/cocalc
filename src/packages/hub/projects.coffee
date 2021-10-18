@@ -9,7 +9,7 @@ Projects
 
 winston  = require('./logger').getLogger('projects')
 
-postgres = require('./postgres')
+postgres = require('@cocalc/database')
 local_hub_connection = require('./local_hub_connection')
 message = require('@cocalc/util/message')
 {callback2} = require('@cocalc/util/async-utils')

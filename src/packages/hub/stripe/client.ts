@@ -12,7 +12,7 @@ import {
   available_upgrades,
   get_total_upgrades,
 } from "@cocalc/util/upgrades";
-import { PostgreSQL } from "../postgres/types";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import stripeName from "@cocalc/util/stripe/name";
 
 import Stripe from "stripe";

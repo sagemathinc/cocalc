@@ -12,7 +12,7 @@ import {
   is_valid_uuid_string,
   uuid,
 } from "@cocalc/util/misc";
-import { PostgreSQL } from "./postgres/types";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { get_server_settings } from "@cocalc/database/postgres/server-settings";
 import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import * as fs from "fs";

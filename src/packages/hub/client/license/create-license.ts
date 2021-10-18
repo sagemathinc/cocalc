@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { PostgreSQL } from "../../postgres/types";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { PurchaseInfo } from "@cocalc/frontend/site-licenses/purchase/util";
 import { v4 as uuid } from "uuid";
 

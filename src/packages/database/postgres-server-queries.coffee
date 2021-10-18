@@ -57,7 +57,7 @@ collab = require('./postgres/collab')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
 {getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/backend/server-settings/server-settings');
-{pii_expire} = require("./utils")
+{pii_expire} = require("./postgres/pii")
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 
 stripe_name = require('@cocalc/util/stripe/name').default;

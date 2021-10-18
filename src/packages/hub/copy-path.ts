@@ -9,7 +9,7 @@
 const access = require("./access");
 import { callback2 } from "@cocalc/util/async-utils";
 import * as message from "@cocalc/util/message";
-const { one_result } = require("./postgres");
+import { one_result } from "@cocalc/database";
 import { is_valid_uuid_string, to_json } from "@cocalc/util/misc";
 import { ProjectControlFunction } from "@cocalc/hub/servers/project-control";
 

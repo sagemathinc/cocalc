@@ -24,7 +24,7 @@ import {
 } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { callback2 } from "@cocalc/util/async-utils";
-import { PostgreSQL } from "../postgres/types";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 const { api_key_action } = require("../api/manage");
 import { have_active_registration_tokens, get_passports } from "../utils";
 import { get_server_settings } from "@cocalc/database/postgres/server-settings";
@@ -104,7 +104,7 @@ async function is_domain_exclusive_sso(
 // Also it has a bug:  Basically, you have a big try/catch and you rollback the transaction if there
 // is an exception. However, if something goes wrong your code actually just does return "error message.".
 // Hence if ever anybody enters an incorrect token, the transaction just gets left opened -- it is
-// never committed or rolled back. 
+// never committed or rolled back.
 async function check_registration_token(
   db: PostgreSQL,
   token: string | undefined

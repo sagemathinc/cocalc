@@ -40,6 +40,8 @@ db_schema            = require('@cocalc/util/db-schema')
 generateHash =require("@cocalc/backend/auth/hash").default;
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 
+{one_result} = require("@cocalc/database")
+
 path_join = require('path').join
 base_path = require('@cocalc/backend/base-path').default
 
@@ -48,10 +50,10 @@ underscore = require('underscore')
 {callback} = require('awaiting')
 {callback2} = require('@cocalc/util/async-utils')
 
-{record_user_tracking} = require('./postgres/user-tracking')
-{project_has_network_access} = require('./postgres/project-queries')
-{is_paying_customer} = require('./postgres/account-queries')
-{get_personal_user} = require('./postgres/personal')
+{record_user_tracking} = require('@cocalc/database/postgres/user-tracking')
+{project_has_network_access} = require('@cocalc/database/postgres/project-queries')
+{is_paying_customer} = require('@cocalc/database/postgres/account-queries')
+{get_personal_user} = require('@cocalc/database/postgres/personal')
 
 {PW_RESET_ENDPOINT, PW_RESET_KEY} = require('./password')
 
@@ -1167,7 +1169,6 @@ class exports.Client extends EventEmitter
                     if locals.done
                         cb(); return
 
-                    {one_result} = require('./postgres')
                     @database._query
                         query : "SELECT email_address FROM accounts"
                         where : "account_id = $::UUID" : mesg.account_id

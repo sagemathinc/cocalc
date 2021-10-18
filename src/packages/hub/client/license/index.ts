@@ -14,7 +14,7 @@ What this does:
 - if the request is to make a purchase, makes that purchase and creates the license
 */
 
-import { PostgreSQL } from "../../postgres/types";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import {
   PurchaseInfo,
   sanity_checks,

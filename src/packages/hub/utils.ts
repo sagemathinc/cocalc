@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { PostgreSQL } from "@cocalc/database/postgres/types";
 import { callback2 } from "@cocalc/util/async-utils";
-import { PassportStrategyDB } from "./auth";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import type { PassportStrategyDB } from "./auth";
 
 export async function have_active_registration_tokens(
   db: PostgreSQL

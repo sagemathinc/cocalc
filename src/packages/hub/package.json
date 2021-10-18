@@ -15,12 +15,14 @@
     "../next",
     "../static",
     "../util",
-    "../backend"
+    "../backend",
+    "../database"
   ],
   "dependencies": {
     "@cocalc/assets": "^1.5.0",
     "@cocalc/backend": "^1.2.0",
     "@cocalc/cdn": "^1.7.0",
+    "@cocalc/database": "^0.1.0",
     "@cocalc/frontend": "^1.10.0",
     "@cocalc/next": "^0.11.2",
     "@cocalc/static": "^1.35.0",
@@ -89,12 +91,12 @@
     "sanitize-html": "^2.3.2",
     "serve-index": "^1.9.1",
     "sql-string-escape": "^1.1.6",
-    "stripe": "^8.183.0",
+    "stripe": "^8.78.0",
     "temp": "^0.9.4",
     "uglify-js": "^3.14.1",
     "underscore": "^1.12.1",
     "uuid": "^8.3.2",
-    "validator": "^13.0.0"
+    "validator": "^13.6.0"
   },
   "devDependencies": {
     "@types/http-proxy": "^1.17.6",
@@ -117,7 +119,7 @@
     "typescript": "^4.4.3"
   },
   "scripts": {
-    "build": "npx tsc && coffee -m -c -o dist/ . && cd ../backend && npm run build && cd ../util && npm run build",
+    "build": "npx tsc && coffee -m -c -o dist/ . && cd ../backend && npm run build && cd ../database && npm run build && cd ../util && npm run build",
     "hub-project-dev-nobuild": "unset DATA COCALC_ROOT BASE_PATH && PGUSER='smc' PGHOST=$INIT_CWD/../../data/postgres/socket DEBUG='cocalc:*,-cocalc:silly:*',$DEBUG NODE_ENV=development NODE_OPTIONS='--max_old_space_size=8000 --trace-warnings --enable-source-maps' npx cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",
     "hub-project-dev": "npm run build && npm run hub-project-dev-nobuild",
     "hub-project-prod": "npm run build && unset DATA COCALC_ROOT  BASE_PATH && PGUSER='smc' PGHOST=$INIT_CWD/../../data/postgres/socket DEBUG='cocalc:*,-cocalc:silly:*',$DEBUG NODE_ENV=production NODE_OPTIONS='--max_old_space_size=8000 --enable-source-maps' npx cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",
