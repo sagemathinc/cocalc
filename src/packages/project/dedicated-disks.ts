@@ -16,30 +16,32 @@ import { getLogger } from "./logger";
 const { info, warn } = getLogger("dedicated-disks");
 import { getProjectConfig } from "./project-setup";
 
-async function ensure_symlink(name: string) {
-  const disk = join("/", "local", name);
-  const link = join(homedir(), `disk-${name}`);
+async function ensure_symlink(name: string): Promise<boolean> {
+  const local = join("/", "local");
+  const disk = join(local, name);
+  const link = join(homedir(), "disks");
   try {
     await fs.access(disk, F_OK | R_OK | W_OK);
   } catch {
     warn(`disk directory ${disk} not writeable -- abort`);
-    return;
+    return false;
   }
-  // create a symlink if there isn't already a file (or exactly that symlink)
-  // don't disturb what's already there
+  // create a symlink to the /local directory
+  // don't disturb what's already in $HOME
   try {
     await fs.access(link, F_OK);
     info(`'${link}' already exists`);
-    return;
   } catch {
     // link does not exist, hence we create it
     try {
-      await fs.symlink(disk, link);
+      await fs.symlink(local, link);
       info(`successfully symlinked ${link} → ${disk}`);
     } catch (err) {
       warn(`problem symlinking ${link} → ${disk} -- ${err}`);
     }
   }
+  // even if there is a problem, it makes no senes to try again
+  return true;
 }
 
 export async function init() {
@@ -50,7 +52,11 @@ export async function init() {
   if (!isArray(conf.quota.dedicated_disks)) return;
   for (const disk of conf.quota.dedicated_disks) {
     if (typeof disk.name === "string") {
-      await ensure_symlink(disk.name);
+      // if there is a disk, a symlink is made to point to the directory where it is
+      // hence it is enough to link to it once
+      if (await ensure_symlink(disk.name)) {
+        return;
+      }
     }
   }
 }
