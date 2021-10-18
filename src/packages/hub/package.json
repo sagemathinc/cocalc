@@ -80,7 +80,6 @@
     "passport-saml": "^3.1.0",
     "passport-twitter": "^1.0.4",
     "password-hash": "^1.2.2",
-    "pg": "^8.7.1",
     "primus": "^8.0.3",
     "prom-client": "^13.0.0",
     "random-key": "^0.3.2",
