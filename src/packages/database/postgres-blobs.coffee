@@ -20,7 +20,6 @@ LICENSE   : AGPLv3
 COCALC_BLOB_STORE = process.env.COCALC_BLOB_STORE
 
 async   = require('async')
-snappy  = require('snappy')
 zlib    = require('zlib')
 fs      = require('fs')
 
@@ -48,7 +47,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                                    # infinite ttl = 0.
             project_id : required  # the id of the project that is saving the blob
             check      : false     # if true, will give error if misc_node.uuidsha1(opts.blob) != opts.uuid
-            compress   : undefined # optional compression to use: 'gzip', 'zlib', 'snappy'; only used if blob not already in db.
+            compress   : undefined # optional compression to use: 'gzip', 'zlib'; only used if blob not already in db.
             level      : -1        # compression level (if compressed) -- see https://github.com/expressjs/compression#level
             cb         : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
         if not Buffer.isBuffer(opts.blob)
@@ -84,9 +83,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                                 opts.blob = blob; cb(err)
                         when 'zlib'
                             zlib.deflate opts.blob, {level:opts.level}, (err, blob) =>
-                                opts.blob = blob; cb(err)
-                        when 'snappy'
-                            snappy.compress opts.blob, (err, blob) =>
                                 opts.blob = blob; cb(err)
                         else
                             cb("compression format '#{opts.compress}' not implemented")
@@ -224,9 +220,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     when 'zlib'
                         zlib.inflate blob, (err, _blob) =>
                             blob = _blob; cb(err)
-                    when 'snappy'
-                        snappy.uncompress blob, (err, _blob) =>
-                            blob = _blob; cb(err)
                     else
                         cb("compression format '#{x.compress}' not implemented")
         ], (err) =>
@@ -248,24 +241,16 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where : "id = $::UUID" : opts.uuid
             cb    : opts.cb
 
-    # Return gcloud API interface
-    gcloud: () =>
-        return @_gcloud ?= require('./smc_gcloud').gcloud()
-
     blob_store: (bucket) =>
         if not bucket
             bucket = COCALC_BLOB_STORE
-        if misc.startswith(bucket, 'gs://')
-            # Google Cloud Storage -- only works if hub has full direct gcloud storage API access, so
-            # NOT in KuCalc or Docker or really anywhere anymore...
-            return @gcloud().bucket(name: bucket.slice('gs://'.length))
-        else
-            # Filesystem -- could be a big NFS volume, remotely mounted gcsfuse, or just
-            # a single big local filesystem -- etc. -- we don't care.
-            return filesystem_bucket(name: bucket)
+        # Filesystem -- could be a big NFS volume, remotely mounted gcsfuse, or just
+        # a single big local filesystem -- etc. -- we don't care.
+        return filesystem_bucket(name: bucket)
 
     # Uploads the blob with given sha1 uuid to gcloud storage, if it hasn't already
-    # been uploaded there.
+    # been uploaded there.  Actually we copy to a directory, which uses gcsfuse to
+    # implicitly upload to gcloud...
     copy_blob_to_gcloud: (opts) =>
         opts = defaults opts,
             uuid   : required   # uuid=sha1-based uuid coming from blob

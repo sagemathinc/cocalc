@@ -5,7 +5,8 @@
   "exports": {
     ".": "./dist/index.js",
     "./*": "./dist/*.js",
-    "./postgres/*": "./dist/postgres/*.js"
+    "./postgres/*": "./dist/postgres/*.js",
+    "./user-query": "./dist/user-query/index.js"
   },
   "workspaces": [
     "./",
@@ -29,7 +30,7 @@
     "pg": "^8.7.1",
     "prom-client": "^13.0.0",
     "random-key": "^0.3.2",
-    "snappy": "^7.0.3",
+    "read": "^1.0.7",
     "sql-string-escape": "^1.1.6",
     "stripe": "^8.78.0",
     "uuid": "^8.3.2",
@@ -42,7 +43,7 @@
     "typescript": "^4.4.3"
   },
   "scripts": {
-    "build": "npx tsc && coffee -m -c -o dist/ ./",
+    "build": "npx tsc && coffee -c -o dist/ ./",
     "clean": "rm -rf dist",
     "tsc": "npx tsc --watch  --pretty "
   },

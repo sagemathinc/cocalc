@@ -36,11 +36,13 @@ for (const module of [
   "user-queries",
   "ops",
 ]) {
-  PostgreSQL = require(`./postgres-${module}`).extend_PostgreSQL(
-    PostgreSQL
-  );
+  PostgreSQL = require(`./postgres-${module}`).extend_PostgreSQL(PostgreSQL);
 }
 
-export function db(opts) {
-  return new PostgreSQL(opts);
+let theDB: any = undefined;
+export function db(opts={}) {
+  if (theDB === undefined) {
+    theDB = new PostgreSQL(opts);
+  }
+  return theDB;
 }

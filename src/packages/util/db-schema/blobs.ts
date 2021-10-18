@@ -52,7 +52,7 @@ Table({
     },
     compress: {
       type: "string",
-      desc: "optional compression used: 'gzip', 'zlib', 'snappy'",
+      desc: "optional compression used: 'gzip' or 'zlib'",
     },
   },
   rules: {

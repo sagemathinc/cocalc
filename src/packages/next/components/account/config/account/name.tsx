@@ -1,26 +1,31 @@
-//import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Input, Space } from "antd";
-//import apiPost from "lib/api/post";
+import apiPost from "lib/api/post";
 
 export default function AccountName() {
-//   const [data, setData] = useState<any>(undefined);
-//   const [error, setError] = useState<string>("");
+  const [data, setData] = useState<any>(undefined);
+  const [error, setError] = useState<string>("");
 
-//   useEffect(() => {
-//     (async () => {
-//       const result = await apiPost("/query", {
-//         accounts: { first_name: null, last_name: null, user_name: null },
-//       });
-//       if (result.error) {
-//         setError(result.error);
-//       } else {
-//         setData(result.data);
-//       }
-//     })();
-//   }, []);
+  useEffect(() => {
+    (async () => {
+      const result = await apiPost("/user-query", {
+        query: {
+          accounts: { first_name: null, last_name: null, user_name: null },
+        },
+      });
+      console.log("got result=", result);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setData(result.query);
+      }
+    })();
+  }, []);
 
   return (
     <div>
+      <pre>{JSON.stringify(data, undefined, 2)}</pre>
+      <pre>{JSON.stringify(error, undefined, 2)}</pre>
       <form>
         <Space
           direction="vertical"

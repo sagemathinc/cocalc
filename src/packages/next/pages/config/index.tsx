@@ -1,8 +1,8 @@
 import { join } from "path";
 import basePath from "lib/base-path";
 
-export default function () {
-  return <></>;
+export default function Index() {
+  return <>Testing.</>;
 }
 
 export async function getServerSideProps(context) {

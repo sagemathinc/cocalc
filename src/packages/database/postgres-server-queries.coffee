@@ -36,6 +36,8 @@ required = defaults.required
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
+read = require('read')
+
 {PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres-base')
 
 {syncdoc_history} = require('./postgres/syncdoc-history')
@@ -1548,7 +1550,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             random        : true      # if true (the default), will generate and print a random password.
             cb            : undefined
         dbg = @_dbg("reset_password")
-        read = require('read')
         async.series([
             (cb) =>
                 if opts.account_id?

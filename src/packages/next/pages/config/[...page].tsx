@@ -33,11 +33,19 @@ export default function Preferences({ customize, page }) {
                 });
               }}
             >
-              <Input.Search
-                placeholder="Search config..."
-                onSearch={(x) => console.log(x)}
-                style={{ width: 190, margin: "5px" }}
-              />
+              <SubMenu
+                key="search"
+                icon={<Icon name="search" />}
+                title="Search"
+              >
+                <Menu.Item key="input">
+                  <Input.Search
+                    placeholder="Search config..."
+                    onSearch={(x) => console.log(x)}
+                    style={{ width: "100%" }}
+                  />
+                </Menu.Item>
+              </SubMenu>
               <SubMenu
                 key="account"
                 icon={<Icon name="user" />}
@@ -108,7 +116,7 @@ export default function Preferences({ customize, page }) {
               }}
             >
               <Alert
-                style={{margin:'15px auto', maxWidth:'600px'}}
+                style={{ margin: "15px auto", maxWidth: "600px" }}
                 message={<b>Under Constructions</b>}
                 description={
                   <>
