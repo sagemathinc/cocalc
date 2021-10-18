@@ -18,7 +18,7 @@ import { getProjectConfig } from "./project-setup";
 
 async function ensure_symlink(name: string) {
   const disk = join("/", "local", name);
-  const link = join(homedir(), `${disk}-${name}`);
+  const link = join(homedir(), `disk-${name}`);
   try {
     await fs.access(disk, F_OK | R_OK | W_OK);
   } catch {
@@ -37,7 +37,7 @@ async function ensure_symlink(name: string) {
       await fs.symlink(disk, link);
       info(`successfully symlinked ${link} → ${disk}`);
     } catch (err) {
-      warn(`problem symlinking ${link} → ${disk} -- {err}`);
+      warn(`problem symlinking ${link} → ${disk} -- ${err}`);
     }
   }
 }
