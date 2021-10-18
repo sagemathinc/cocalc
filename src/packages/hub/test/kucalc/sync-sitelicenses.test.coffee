@@ -16,7 +16,7 @@ expect = require('expect')
 
 misc = require('@cocalc/util/misc')
 
-ss = require("@cocalc/hub/postgres/site-license/sync-subscriptions")
+ss = require("@cocalc/database/site-license/sync-subscriptions")
 
 setup_db = (cb) ->
     # TODO insert bogus data

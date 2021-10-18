@@ -4,7 +4,7 @@
 Periodically update the stats in the database.
 */
 
-const postgres = require("@cocalc/hub/postgres");
+const postgres = require("@cocalc/database");
 
 const ttl = parseInt(process.env.STATS_TTL_S ?? "300");
 const db = postgres.db({
