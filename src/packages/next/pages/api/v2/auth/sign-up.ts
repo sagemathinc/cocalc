@@ -25,6 +25,7 @@ import isDomainExclusiveSSO from "@cocalc/backend/auth/is-domain-exclusive-sso";
 import createAccount from "@cocalc/backend/auth/create-account";
 import { getAccount, signUserIn } from "./sign-in";
 import sendWelcomeEmail from "@cocalc/backend/email/welcome-email";
+import redeemRegistrationToken from "@cocalc/backend/auth/tokens/redeem";
 
 interface Issues {
   terms?: string;
@@ -34,11 +35,13 @@ interface Issues {
 
 export default async function signUp(req, res) {
   if (req.method === "POST") {
-    let { email, password, firstName, lastName } = req.body;
+    let { terms, email, password, firstName, lastName, registrationToken } =
+      req.body;
     password = password.trim();
     email = email.toLowerCase().trim();
     firstName = firstName.trim();
     lastName = lastName.trim();
+    registrationToken = registrationToken.trim();
 
     try {
       const account_id = await getAccount(email, password);
@@ -48,7 +51,7 @@ export default async function signUp(req, res) {
       // fine -- just means they don't already have an account.
     }
 
-    const issues = checkObviousConditions(req.body);
+    const issues = checkObviousConditions({ terms, email, password });
     if (len(issues) > 0) {
       res.json({ issues });
       return;
@@ -67,6 +70,17 @@ export default async function signUp(req, res) {
     if (!(await isAccountAvailable(email))) {
       res.json({
         issues: { email: `Email address "${email}" already in use.` },
+      });
+      return;
+    }
+
+    try {
+      await redeemRegistrationToken(registrationToken);
+    } catch (err) {
+      res.json({
+        issues: {
+          registrationToken: `Issue with registration token -- ${err}`,
+        },
       });
       return;
     }

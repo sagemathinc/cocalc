@@ -159,13 +159,6 @@ export default function JupyterNotebook({ customize }) {
               to edit the code input or compare different outcomes of similar
               code. Besides that, you can also take notes between code cells.
             </p>
-            <p>
-              With{" "}
-              <A href="https://cocalc.com/app?anonymous=jupyter-bash">
-                one click here
-              </A>{" "}
-              you can try out the Bash Jupyter kernel right now!
-            </p>
           </Info>
 
           <Snapshots>

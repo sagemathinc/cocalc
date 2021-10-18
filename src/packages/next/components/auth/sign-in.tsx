@@ -11,7 +11,7 @@ import Contact from "components/landing/contact";
 import { useRouter } from "next/router";
 
 export default function SignIn({ strategies }) {
-  const { siteName } = useCustomize();
+  const { anonymousSignup, siteName } = useCustomize();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [signingIn, setSigningIn] = useState<boolean>(false);
@@ -39,7 +39,7 @@ export default function SignIn({ strategies }) {
   return (
     <div style={{ padding: "0 15px" }}>
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
-        <SquareLogo style={{ width: "100px", height: "100px" }} />
+        <SquareLogo style={{ width: "100px", height: "100px", marginBottom:'15px' }} />
         <h1>Sign In to {siteName}</h1>
       </div>
 
@@ -110,8 +110,8 @@ export default function SignIn({ strategies }) {
                   </p>
                   <p>
                     If you can't remember your password,{" "}
-                    <A href="/auth/password-reset">reset it</A>. If that doesn't work{" "}
-                    <Contact />.
+                    <A href="/auth/password-reset">reset it</A>. If that doesn't
+                    work <Contact />.
                   </p>
                 </>
               }
@@ -135,15 +135,18 @@ export default function SignIn({ strategies }) {
         style={{
           ...LOGIN_STYLE,
           backgroundColor: "white",
-          marginTop: "30px",
-          marginBottom: "30px",
+          margin: "30px auto",
+          padding: "15px",
         }}
       >
-        <p>
-          New to {siteName}? <A href="/auth/sign-up">Sign Up</A>
-        </p>
-        Unsure?{" "}
-        <A href="/auth/try">Try {siteName} without creating an account</A>
+        New to {siteName}? <A href="/auth/sign-up">Sign Up</A>
+        {anonymousSignup && (
+          <div style={{ marginTop: "15px" }}>
+            Don't want to provide any information?
+            <br />
+            <A href="/auth/try">Try {siteName} without creating an account.</A>
+          </div>
+        )}
       </div>
     </div>
   );
