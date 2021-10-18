@@ -11,7 +11,7 @@ import { promises as fs, constants as fs_constants } from "fs";
 const { F_OK, W_OK, R_OK } = fs_constants;
 import { join } from "path";
 import { homedir } from "os";
-
+import { isArray } from "lodash";
 import { getLogger } from "./logger";
 const { info, warn } = getLogger("dedicated-disks");
 import { getProjectConfig } from "./project-setup";
@@ -45,8 +45,10 @@ async function ensure_symlink(name: string) {
 export async function init() {
   info("initializing");
   const conf = getProjectConfig();
-  if (conf?.dedicated_disks == null) return;
-  for (const disk of conf.dedicated_disks) {
+  // we're a bit extra careful, because there could be anything in the DB
+  if (conf?.quota?.dedicated_disks == null) return;
+  if (!isArray(conf.quota.dedicated_disks)) return;
+  for (const disk of conf.quota.dedicated_disks) {
     if (typeof disk.name === "string") {
       await ensure_symlink(disk.name);
     }

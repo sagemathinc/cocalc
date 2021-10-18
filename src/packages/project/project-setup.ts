@@ -18,8 +18,10 @@ export const DEFAULT_FREE_PROCS_NICENESS = 18;
 
 // this only lists some of the fields in use, there might be more
 interface ProjectConfig {
-  quota?: { member_host?: boolean };
-  dedicated_disks?: { name: string }[];
+  quota?: {
+    member_host?: boolean;
+    dedicated_disks?: { name: string }[];
+  };
 }
 
 export function getProjectConfig(): ProjectConfig | null {
