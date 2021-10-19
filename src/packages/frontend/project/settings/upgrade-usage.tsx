@@ -205,6 +205,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     const disks = dedicated_resources.disks;
     if (disks == null) return;
     const num = disks.length;
+    if (num === 0) return;
     return (
       <>
         <hr />
@@ -219,22 +220,28 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
   function render_support(): Rendered {
     if (!is_commercial) return; // don't render if not commercial
     return (
-      <span style={{ color: COLORS.GRAY }}>
-        If you have any questions about upgrading a project, create a{" "}
-        <ShowSupportLink />, or email <HelpEmailLink /> and include the
-        following URL:
-        <URLBox />
-      </span>
+      <>
+        <hr />
+        <span style={{ color: COLORS.GRAY }}>
+          If you have any questions about upgrading a project, create a{" "}
+          <ShowSupportLink />, or email <HelpEmailLink /> and include the
+          following URL:
+          <URLBox />
+        </span>
+      </>
     );
   }
 
   function render_site_license(): Rendered {
     if (!is_commercial) return;
     return (
-      <SiteLicense
-        project_id={project_id}
-        site_license={project.get("site_license") as any}
-      />
+      <>
+        <hr />
+        <SiteLicense
+          project_id={project_id}
+          site_license={project.get("site_license") as any}
+        />
+      </>
     );
   }
 
@@ -244,9 +251,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
       {render_upgrade_adjustor()}
       {render_quota_console()}
       {render_dedicated_disks()}
-      <hr />
       {render_site_license()}
-      <hr />
       {render_support()}
     </SettingBox>
   );
