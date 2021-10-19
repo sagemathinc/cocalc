@@ -26,6 +26,7 @@ import {
 } from "@cocalc/util/db-schema/site-licenses";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { plural } from "@cocalc/util/misc";
+import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 
 const { ShowSupportLink } = require("../../support");
 const { Row, Col, Button } = require("react-bootstrap");
@@ -71,6 +72,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
 
   const is_commercial: boolean = useTypedRedux("customize", "is_commercial");
   const kucalc: string = useTypedRedux("customize", "kucalc");
+  const in_kucalc = kucalc !== KUCALC_DISABLED;
 
   const [show_adjustor, set_show_adjustor] = React.useState<boolean>(false);
 
@@ -229,7 +231,8 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_site_license(): Rendered {
-    if (!is_commercial) return;
+    // site licenses are also used in on-prem setups to tweak project quotas
+    if (!in_kucalc) return;
     return (
       <SiteLicense
         project_id={project_id}
