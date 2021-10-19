@@ -9,4 +9,5 @@ export async function getServerSideProps(context) {
   const { res } = context;
   res.writeHead(302, { location: join(basePath, "config/account/name") });
   res.end();
+  return { props: {} };
 }
