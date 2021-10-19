@@ -6,10 +6,10 @@ type Option = any; // TODO
 
 interface Options {
   client_id?: string; // if given, uses to control number of queries at once by one client.
-  account_id?: string;  // at least one of account_id or project_id must be specified
+  account_id?: string; // at least one of account_id or project_id must be specified
   project_id?: string;
   query: Query;
-  options: Option[];
+  options?: Option[];
 }
 
 export default async function userQuery({
