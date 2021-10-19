@@ -1,5 +1,6 @@
 import { r_join } from "@cocalc/frontend/components/r_join";
 import A from "components/misc/A";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 const software = {
   executables: { label: "Executables" },
@@ -43,14 +44,20 @@ const policies = {
 };
 
 const info = {
-  help: { label: "Help" },
-  connect: { label: "Connect" },
+  doc: { label: "Documentation" },
   status: { label: "Status" },
+  run: { label: "Run CoCalc" },
 };
 
 const sign_in = {
   "sign-in": { label: "Sign In", href: "/auth/sign-in" },
   "password-reset": { label: "Password Reset", href: "/auth/password-reset" },
+};
+
+const support = {
+  community: { label: "Community" },
+  create: { label: "Support Ticket" },
+  tickets: { label: "Status" },
 };
 
 const PAGES = {
@@ -63,6 +70,7 @@ const PAGES = {
   "sign-up": {},
   "sign-in": sign_in,
   try: {},
+  support,
 };
 
 export type Page = keyof typeof PAGES;
@@ -72,7 +80,8 @@ export type SubPage =
   | keyof typeof pricing
   | keyof typeof policies
   | keyof typeof info
-  | keyof typeof sign_in;
+  | keyof typeof sign_in
+  | keyof typeof support;
 
 interface Props {
   page: Page;
@@ -80,7 +89,16 @@ interface Props {
 }
 
 export default function SubNav({ page, subPage }: Props) {
-  const tabs: JSX.Element[] = [];
+  const tabs: JSX.Element[] = [
+    <SubPageTab
+      key={"index"}
+      page={page}
+      selected={!subPage}
+      name={"index"}
+      label={<Icon name="home" />}
+      href={`/${page}`}
+    />,
+  ];
   const p = PAGES[page];
   if (p == null) return null;
   for (const name in p) {

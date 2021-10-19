@@ -1,24 +1,22 @@
 import { Layout } from "antd";
 import Header from "components/landing/header";
 import Footer from "components/landing/footer";
-import ConfigLayout from "components/account/config/layout";
+import Create from "components/support/create";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
-export default function Preferences({ customize, page }) {
+export default function Preferences({ customize }) {
   return (
     <Customize value={customize}>
       <Layout>
-        <Header />
-        <ConfigLayout page={page} />
-        <Footer />
+        <Header page="support" subPage="create" />
+        <Create />
+        <Footer/>
       </Layout>
     </Customize>
   );
 }
 
 export async function getServerSideProps(context) {
-  const { page } = context.params;
-
-  return await withCustomize({ context, props: { page } });
+  return await withCustomize({ context });
 }

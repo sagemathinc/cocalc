@@ -4,13 +4,18 @@ import Head from "components/landing/head";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import IndexList, { DataSource } from "components/landing/index-list";
+import A from "components/misc/A";
 
 const dataSource = [
   {
     link: "/policies/terms",
     title: "Terms of service",
     logo: "thumbs-up",
-    description: <>These govern use of CoCalc.</>,
+    description: (
+      <>
+        The <A href="/policies/terms">Terms of Service</A> govern use of CoCalc.
+      </>
+    ),
   },
   {
     link: "/policies/copyright",
@@ -18,8 +23,9 @@ const dataSource = [
     logo: "dot-circle",
     description: (
       <>
-        How SageMath, Inc. respects copyright policies, and seeks to provide a
-        site that does not infringe on others' copyright.
+        The <A href="/policies/copyright">Copyright Policy</A> explains how
+        SageMath, Inc. respects copyright policies, and provides a site that
+        does not infringe on others' copyright.
       </>
     ),
   },
@@ -28,26 +34,48 @@ const dataSource = [
     title: "Privacy",
     logo: "user-secret",
     description: (
-      <>How SageMath, Inc. seeks to respect the privacy of its users.</>
+      <>
+        The <A href="/policies/privacy">Privacy Policy</A> describes how
+        SageMath, Inc. respects the privacy of its users.
+      </>
     ),
   },
   {
     link: "/policies/thirdparties",
     title: "Third parties",
     logo: "users",
-    description: <>List of third parties used to provide CoCalc.</>,
+    description: (
+      <>
+        Our <A href="/policies/thirdparties">List of third parties</A>{" "}
+        enumerates what is used to provide CoCalc.
+      </>
+    ),
   },
   {
     link: "/policies/ferpa",
     title: "FERPA compliance statement",
     logo: "graduation-cap",
-    description: <>CoCalc's FERPA Compliance statement.</>,
+    description: (
+      <>
+        <A href="/policies/ferpa">CoCalc's FERPA Compliance statement</A>{" "}
+        explains how we address FERPA requirements at US educational
+        instituations.
+      </>
+    ),
   },
-    {
+  {
     link: "/policies/accessibility",
     title: "Accessibility",
     logo: "eye",
-    description: <>CoCalc Voluntary Product Accessibility Template (VPAT)</>,
+    description: (
+      <>
+        CoCalc's{" "}
+        <A href="/policies/accessibility">
+          Voluntary Product Accessibility Template (VPAT)
+        </A>{" "}
+        describes how we address accessibility issues.
+      </>
+    ),
   },
 ] as DataSource;
 

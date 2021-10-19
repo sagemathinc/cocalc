@@ -10,6 +10,7 @@ import pythonScreenshot from "/public/features/frame-editor-python.png";
 import RJupyter from "/public/features/cocalc-r-jupyter.png";
 import JuliaJupyter from "/public/software/julia-jupyter.png";
 import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
+import A from "components/misc/A";
 
 const dataSource = [
   {
@@ -19,9 +20,10 @@ const dataSource = [
     image: executablesScreenshot,
     description: (
       <>
-        CoCalc comes pre-installed with thousands of programs that you can run
-        from the terminal or in an X11 environment, or call from your notebooks
-        or scripts.
+        CoCalc comes pre-installed with{" "}
+        <A href="/software/executables">thousands of programs</A> that you can
+        run from the terminal or in an X11 environment, or call from your
+        notebooks or scripts.
       </>
     ),
   },
@@ -32,7 +34,8 @@ const dataSource = [
     image: pythonScreenshot,
     description: (
       <>
-        CoCalc offers a large number of Python libraries preinstalled system
+        CoCalc offers a large number of{" "}
+        <A href="/software/python">Python libraries preinstalled</A> system
         wide, in Anaconda, and in several versions of Sage.
       </>
     ),
@@ -42,7 +45,12 @@ const dataSource = [
     title: "R Statistical Software Packages",
     logo: "r",
     image: RJupyter,
-    description: <>CoCalc maintains an extensive set of R packages</>,
+    description: (
+      <>
+        CoCalc maintains an extensive set of{" "}
+        <A href="/software/r">R packages</A>
+      </>
+    ),
   },
   {
     link: "/software/julia",
@@ -50,7 +58,10 @@ const dataSource = [
     logo: "julia",
     image: JuliaJupyter,
     description: (
-      <>CoCalc regularly updates Julia and installs many common packages.</>
+      <>
+        CoCalc regularly updates Julia and installs{" "}
+        <A href="/software/julia">many common Julia packages</A>.
+      </>
     ),
   },
   {
@@ -58,7 +69,12 @@ const dataSource = [
     title: "Octave Packages",
     logo: "octave",
     image: octaveJupyter,
-    description: <>There are several Octave packages that are preinstalled.</>,
+    description: (
+      <>
+        There are several <A href="/software/octave">Octave packages</A> that
+        are preinstalled.
+      </>
+    ),
   },
 ] as DataSource;
 
