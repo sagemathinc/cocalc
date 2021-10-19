@@ -83,7 +83,7 @@
     "primus": "^8.0.3",
     "prom-client": "^13.0.0",
     "random-key": "^0.3.2",
-    "read": "^1.0.5",
+    "read": "^1.0.7",
     "require-reload": "^0.2.2",
     "rimraf": "^2.4.4",
     "safe-json-stringify": "^1.2.0",
