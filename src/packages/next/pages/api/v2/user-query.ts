@@ -18,8 +18,7 @@ export default async function handle(req, res) {
 
   try {
     const result = await userQuery({ account_id, query });
-    console.log(result);
-    res.json({ result });
+    res.json({ query: result });
   } catch (err) {
     res.json({ error: `${err}` });
   }
