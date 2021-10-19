@@ -28,7 +28,7 @@ export default function PathContents({
   truncated,
 }: Props) {
   if (isdir) {
-    if (listing == null) return <Loading />;
+    if (listing == null) return <Loading style={{ fontSize: "30px" }} />;
     return (
       <>
         <Truncated truncated={truncated} />

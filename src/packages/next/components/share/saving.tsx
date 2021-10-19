@@ -26,7 +26,7 @@ export default function Loading({ delay, style }: Props) {
   }
   return (
     <div style={{ color: "#666", ...style }}>
-      <Icon name="spinner" spin /> Loading...
+      <Icon name="spinner" spin /> Saving...
     </div>
   );
 }

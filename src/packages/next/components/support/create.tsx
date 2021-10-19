@@ -1,11 +1,20 @@
 import { Alert, Button, Space, Input, Layout, Radio } from "antd";
 import { useRef, useState } from "react";
 import A from "components/misc/A";
+import useDatabase from "lib/hooks/database";
+import Loading from "components/share/loading";
+
+function VSpace({ children }) {
+  return (
+    <Space direction="vertical" style={{ width: "100%", fontSize: "12pt" }}>
+      {children}
+    </Space>
+  );
+}
 
 export default function Create() {
   const [type, setType] = useState<string>("bug");
   const submittable = useRef<boolean>(false);
-
   submittable.current = true;
 
   return (
@@ -30,15 +39,8 @@ export default function Create() {
         <h2>Create Your Ticket</h2>
         <Instructions />
         <form>
-          <Space
-            direction="vertical"
-            style={{ width: "100%", fontSize: "12pt" }}
-          >
-            <b>Email address</b>
-            <Input
-              placeholder="Email address..."
-              style={{ maxWidth: "500px" }}
-            />
+          <VSpace>
+            <Email />
             <br />
             <b>Summary</b>
             <Input placeholder="Short summary..." />
@@ -51,7 +53,7 @@ export default function Create() {
               defaultValue={"bug"}
               onChange={(e) => setType(e.target.value)}
             >
-              <Space direction="vertical">
+              <VSpace>
                 <Radio value={"bug"}>
                   <b>Bug report: </b> something is not working the way I think
                   it should work.
@@ -60,12 +62,12 @@ export default function Create() {
                   <b>Question:</b> I have a question about billing,
                   functionality, teaching, etc.
                 </Radio>
-              </Space>
+              </VSpace>
             </Radio.Group>
             <br />
             <Files />
             {type == "bug" ? <Bug /> : <Question />}
-          </Space>
+          </VSpace>
           <p style={{ marginTop: "30px" }}>
             After submitting this ticket, you'll receive a link, which you
             should save until you receive a confirmation email. You can also{" "}
@@ -93,20 +95,20 @@ export default function Create() {
 
 function Files() {
   return (
-    <Space direction="vertical" style={{ width: "100%" }}>
+    <VSpace>
       <b>Files</b>
       Click the checkbox next to any files that are relevant. This will make it
-      easy for us to more quickly debug your problem.
+      vastly easier for us to quickly understand your problem.
       <pre>...list of files here...</pre>
       If any relevant files aren't listed here, please include their URL below
       (e.g., copy and paste from the address bar).
-    </Space>
+    </VSpace>
   );
 }
 
 function Bug() {
   return (
-    <Space direction="vertical" style={{ width: "100%" }}>
+    <VSpace>
       <b>1. What did you do exactly?</b>
       <Input.TextArea rows={3} placeholder="1. What did you do exactly?" />
       <br />
@@ -118,16 +120,16 @@ function Bug() {
         rows={3}
         placeholder="3. How did this differ from what you expected?"
       />
-    </Space>
+    </VSpace>
   );
 }
 
 function Question() {
   return (
-    <Space direction="vertical" style={{ width: "100%" }}>
+    <VSpace>
       <b>Your Question</b>
       <Input.TextArea rows={6} placeholder="Your question..." />
-    </Space>
+    </VSpace>
   );
 }
 
@@ -149,19 +151,60 @@ function FAQ() {
       <h2>Frequently Asked Questions</h2>
       Check through this list of very frequent questions first:
       <Alert
+        message={"FAQ"}
         style={{ margin: "20px 30px" }}
         type="warning"
         description={
           <ul style={{ marginBottom: 0 }}>
-            <li> File or project or account gone? </li>
-            <li> Jupyter notebook or SageMath worksheet slow or crashing? </li>
-            <li> Questions about SageMath?</li>
             <li>
-              Just want to quickly chat? Visit the CoCalc Discord server!{" "}
+              {" "}
+              <A href="https://doc.cocalc.com/howto/missing-project.html">
+                File or project is gone?
+              </A>{" "}
+            </li>
+            <li>
+              {" "}
+              Jupyter notebook or SageMath worksheet{" "}
+              <A href="https://doc.cocalc.com/howto/slow-worksheet.html">
+                slow
+              </A>{" "}
+              or{" "}
+              <A href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">
+                crashing
+              </A>
+              ?{" "}
+            </li>
+            <li>
+              {" "}
+              <A href="https://doc.cocalc.com/howto/sage-question.html">
+                Questions about SageMath?
+              </A>
+            </li>
+            <li>
+              Just want to quickly chat? Visit the{" "}
+              <A href="https://discord.gg/nEHs2GK">CoCalc Discord server</A>.
             </li>
           </ul>
         }
       />
     </div>
+  );
+}
+
+function Email() {
+  const { loading, value } = useDatabase({ accounts: { email_address: null } });
+  return (
+    <VSpace>
+      <b>Email address</b>
+      {loading ? (
+        <Loading />
+      ) : (
+        <Input
+          defaultValue={value.accounts?.email_address}
+          placeholder="Email address..."
+          style={{ maxWidth: "500px" }}
+        />
+      )}
+    </VSpace>
   );
 }

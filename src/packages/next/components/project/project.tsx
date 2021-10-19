@@ -17,7 +17,7 @@ export default function Project({
   customize,
 }) {
   if (publicPaths == null || collaborators == null || projectTitle == null) {
-    return <Loading />;
+    return <Loading  style={{ fontSize: "30px" }} />;
   }
   return (
     <Customize value={customize}>

@@ -23,7 +23,7 @@ export default function PublicPath({
   customize,
 }) {
   useCounter(id);
-  if (id == null) return <Loading />;
+  if (id == null) return <Loading style={{ fontSize: "30px" }} />;
   if (error != null) {
     return (
       <div>
