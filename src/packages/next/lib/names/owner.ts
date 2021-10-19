@@ -4,6 +4,7 @@ a nice "homepage" for that user or organization.
 */
 
 import getPool from "@cocalc/backend/database";
+import { isReserved } from "@cocalc/util/db-schema/name-rules";
 
 // Throws an exception if there is no account or org with this name.
 // TODO: take into account redirects for when name is changed.
@@ -14,6 +15,11 @@ interface Owner {
 }
 
 export default async function getOwner(owner: string): Promise<Owner> {
+  if (isReserved(owner)) {
+    // can't be so save us the trouble of consulting database; these are common
+    // so this is a good win.
+    throw Error("no such owner - reserved name");
+  }
   const pool = getPool("long");
   // Is it an account?
   let result = await pool.query(
