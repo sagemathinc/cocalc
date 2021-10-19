@@ -16,7 +16,7 @@ import { getLogger } from "./logger";
 const { info, warn } = getLogger("dedicated-disks");
 import { getProjectConfig } from "./project-setup";
 
-async function ensure_symlink(name: string): Promise<boolean> {
+async function ensureSymlink(name: string): Promise<boolean> {
   const local = join("/", "local");
   const disk = join(local, name);
   const link = join(homedir(), "disks");
@@ -40,7 +40,7 @@ async function ensure_symlink(name: string): Promise<boolean> {
       warn(`problem symlinking ${link} → ${disk} -- ${err}`);
     }
   }
-  // even if there is a problem, it makes no senes to try again
+  // even if there is a problem, it makes no sense to try again
   return true;
 }
 
@@ -54,7 +54,7 @@ export async function init() {
     if (typeof disk.name === "string") {
       // if there is a disk, a symlink is made to point to the directory where it is
       // hence it is enough to link to it once
-      if (await ensure_symlink(disk.name)) {
+      if (await ensureSymlink(disk.name)) {
         return;
       }
     }
