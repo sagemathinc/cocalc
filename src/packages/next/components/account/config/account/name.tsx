@@ -10,14 +10,14 @@ export default function AccountName() {
     (async () => {
       const result = await apiPost("/user-query", {
         query: {
-          accounts: { first_name: null, last_name: null, user_name: null },
+          accounts: { first_name: null, last_name: null, name: null },
         },
       });
       console.log("got result=", result);
       if (result.error) {
         setError(result.error);
       } else {
-        setData(result.query);
+        setData(result);
       }
     })();
   }, []);

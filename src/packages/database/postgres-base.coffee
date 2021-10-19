@@ -38,6 +38,7 @@ winston      = require('@cocalc/backend/logger').getLogger('postgres')
 {do_query_with_pg_params} = require('./postgres/set-pg-params')
 
 misc_node = require('@cocalc/backend/misc_node')
+data = require("@cocalc/backend/data")
 
 {defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
@@ -53,11 +54,12 @@ dbPassword = require('@cocalc/backend/database/password').default;
 
 class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database and 'disconnect' when connection to postgres fails
     constructor: (opts) ->
+
         super()
         opts = defaults opts,
-            host            : process.env['PGHOST'] ? 'localhost'    # or 'hostname:port' or 'host1,host2,...' (multiple hosts) -- TODO -- :port only works for one host.
+            host            : data.pghost       # or 'hostname:port' or 'host1,host2,...' (multiple hosts) -- TODO -- :port only works for one host.
             database        : process.env['SMC_DB'] ? 'smc'
-            user            : process.env['PGUSER'] ? 'smc'
+            user            : data.pguser
             debug           : exports.DEBUG
             connect         : true
             password        : undefined
@@ -234,7 +236,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                             for x in ips
                                 locals.hosts.push(x.address)
                             cb()
-                async.map(@_host.split(','), f, cb)
+                async.map(@_host.split(','), f, (err) => cb(err))
             (cb) =>
                 dbg("connecting to #{JSON.stringify(locals.hosts)}...")
                 if locals.hosts.length == 0
@@ -280,27 +282,27 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 # I'm going to redo this with experience.
                 locals.clients_that_worked = []
                 locals.errors = []
-                f = (c) =>
+                f = (client, c) =>
                     try
-                        await c.connect()
-                        locals.clients_that_worked.push(c)
+                        await client.connect()
+                        locals.clients_that_worked.push(client)
                     catch err
                         locals.errors.push(err)
-
-                await Promise.all((f(c) for c in locals.clients))
-
-                if locals.clients_that_worked.length == 0
-                    console.warn("ALL clients failed", locals.errors)
-                    dbg("ALL clients failed", locals.errors)
-                    cb("ALL clients failed to connect")
-                else
-                    # take what we got
-                    if locals.clients.length == locals.clients_that_worked.length
-                        dbg("ALL clients worked")
+                    c()
+                async.map locals.clients, f, () =>
+                    if locals.clients_that_worked.length == 0
+                        console.warn("ALL clients failed", locals.errors)
+                        dbg("ALL clients failed", locals.errors)
+                        cb("ALL clients failed to connect")
                     else
-                        dbg("ONLY #{locals.clients_that_worked.length} clients worked")
-                    locals.clients = locals.clients_that_worked
-                    cb()
+                        # take what we got
+                        if locals.clients.length == locals.clients_that_worked.length
+                            dbg("ALL clients worked")
+                        else
+                            dbg("ONLY #{locals.clients_that_worked.length} clients worked")
+                        locals.clients = locals.clients_that_worked
+                        dbg("cb = ", cb)
+                        cb()
 
             (cb) =>
                 @_connect_time = new Date()
@@ -311,14 +313,14 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 # function...
                 f = (client, cb) =>
                     it_hung = =>
-                        cb("hung")
+                        cb?("hung")
                         cb = undefined
                     timeout = setTimeout(it_hung, 15000)
                     dbg("now connected; checking if we can actually query the DB via client #{locals.i}")
                     locals.i += 1
                     client.query "SELECT NOW()", (err) =>
                         clearTimeout(timeout)
-                        cb(err)
+                        cb?(err)
                 async.map(locals.clients, f, cb)
             (cb) =>
                 # we set a statement_timeout, to avoid queries locking up PG

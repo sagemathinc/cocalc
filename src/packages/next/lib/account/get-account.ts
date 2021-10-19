@@ -1,18 +1,23 @@
 import getPool from "@cocalc/backend/database";
 import generateHash from "@cocalc/backend/auth/hash";
+import { COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/remember-me";
+import Cookies from "cookies";
 
 // Return account_id if they are signed in.
 // If not, returns undefined.
 // This is determined by looking in their cookie and checking
 // who it identifies in the database.
-export default async function getAccount(
-  cookie: string
-): Promise<string | undefined> {
+export default async function getAccount(req): Promise<string | undefined> {
   // caching a bit --  We thus want the query below to happen rarely.  We also
   // get expire field as well (since it is usually there) so that the result isn't empty
   // (hence not cached) when a cookie has expired.
   const pool = getPool("short");
-  const hash = getHash(cookie);
+  const cookies = new Cookies(req);
+  const rememberMe = cookies.get(REMEMBER_ME_COOKIE_NAME);
+  if (!rememberMe) {
+    return;
+  }
+  const hash = getHash(rememberMe);
   // important to use CHAR(127) instead of TEXT for 100x performance gain.
   const result = await pool.query(
     "SELECT account_id, expire FROM remember_me WHERE hash = $1::CHAR(127)",
