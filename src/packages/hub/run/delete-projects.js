@@ -6,7 +6,7 @@ TODO: For now, this just calls the unlink function. Later on it
 should do more (actually delete data, etc.).
 */
 
-const postgres = require("@cocalc/hub/postgres");
+const postgres = require("@cocalc/database");
 
 const INTERVAL_H = process.env.INTERVAL_H ?? "4";
 const INTERVAL_MS = parseInt(INTERVAL_H) * 60 * 60 * 1000;

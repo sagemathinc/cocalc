@@ -3,7 +3,7 @@
 Delete expired rows in the database.
 */
 
-const postgres = require("@cocalc/hub/postgres");
+const postgres = require("@cocalc/database");
 
 const WAIT_BETWEEN_RUNS_S = process.env.WAIT_BETWEEN_RUNS_S ?? "7200";
 const INTERVAL_MS = parseInt(WAIT_BETWEEN_RUNS_S) * 1000;
