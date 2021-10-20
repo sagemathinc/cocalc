@@ -1,23 +1,29 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import apiPost from "lib/api/post";
 import useIsMounted from "./mounted";
 
-export default function useQuery(initialQuery) {
+export default function useQuery(initialQuery?): {
+  error: string;
+  value: any;
+  loading: boolean;
+  query: (any) => Promise<any>;
+} {
   const isMounted = useIsMounted();
   const [value, setValue] = useState<any>(initialQuery);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(!!initialQuery);
 
-  async function query(query, loading = true) {
+  async function query(query) {
     setLoading(true);
     let result;
     try {
       result = await apiPost("/user-query", { query });
     } catch (err) {
       if (!isMounted.current) return;
-      setError(`${err}`);
+      const error = `${err}`;
+      setError(error);
       setLoading(false);
-      return;
+      return { error };
     }
     if (!isMounted.current) return;
     if (result.error) {
@@ -26,6 +32,7 @@ export default function useQuery(initialQuery) {
       setValue(result.query);
     }
     setLoading(false);
+    return result;
   }
 
   useEffect(() => {

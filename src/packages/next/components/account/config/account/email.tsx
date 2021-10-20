@@ -4,7 +4,6 @@ import Loading from "components/share/loading";
 
 export default function Email() {
   const db = useDatabase({ accounts: { email_address: null } });
-  console.log("db = ", db);
   return (
     <div>
       <form>

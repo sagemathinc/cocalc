@@ -65,6 +65,7 @@
     "@types/express": "^4.17.13",
     "@types/react": "^17.0.14",
     "antd": "^4.16.13",
+    "awaiting": "^3.0.0",
     "basic-auth": "^2.0.1",
     "cookies": "^0.8.0",
     "express": "^4.17.1",

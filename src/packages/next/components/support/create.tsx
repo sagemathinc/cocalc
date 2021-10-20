@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import A from "components/misc/A";
 import useDatabase from "lib/hooks/database";
 import Loading from "components/share/loading";
+import RecentFiles from "./recent-files";
 
 function VSpace({ children }) {
   return (
@@ -13,9 +14,14 @@ function VSpace({ children }) {
 }
 
 export default function Create() {
+  const [files, setFiles] = useState<string[]>([]);
   const [type, setType] = useState<string>("bug");
   const submittable = useRef<boolean>(false);
   submittable.current = true;
+
+  function createSupportTicket() {
+    console.log({ type, files });
+  }
 
   return (
     <Layout.Content
@@ -29,6 +35,7 @@ export default function Create() {
           margin: "15px auto",
           padding: "15px",
           backgroundColor: "white",
+          color: "#555",
         }}
       >
         {" "}
@@ -65,7 +72,8 @@ export default function Create() {
               </VSpace>
             </Radio.Group>
             <br />
-            <Files />
+            <Files onChange={setFiles} />
+            <br />
             {type == "bug" ? <Bug /> : <Question />}
           </VSpace>
           <p style={{ marginTop: "30px" }}>
@@ -83,6 +91,7 @@ export default function Create() {
               size="large"
               disabled={!submittable.current}
               type="primary"
+              onClick={createSupportTicket}
             >
               Create Support Ticket
             </Button>
@@ -93,15 +102,18 @@ export default function Create() {
   );
 }
 
-function Files() {
+function Files({ onChange }) {
   return (
     <VSpace>
-      <b>Files</b>
-      Click the checkbox next to any files that are relevant. This will make it
-      vastly easier for us to quickly understand your problem.
-      <pre>...list of files here...</pre>
-      If any relevant files aren't listed here, please include their URL below
-      (e.g., copy and paste from the address bar).
+      <b>Relevant Files (Optional)</b>
+      Select any relevant files below. This will make it much easier for us to
+      quickly understand your problem. If a file isn't listed, please include
+      their URL below (e.g., copy and paste from the address bar).
+      <RecentFiles interval="6 hours" onChange={onChange} />
+      <Input.TextArea
+        rows={2}
+        placeholder="Optional URLs of any other files?"
+      />
     </VSpace>
   );
 }
@@ -110,15 +122,15 @@ function Bug() {
   return (
     <VSpace>
       <b>1. What did you do exactly?</b>
-      <Input.TextArea rows={3} placeholder="1. What did you do exactly?" />
+      <Input.TextArea rows={3} placeholder="Describe what you did..." />
       <br />
       <b>2. What happened?</b>
-      <Input.TextArea rows={3} placeholder="2. What happened?" />
+      <Input.TextArea rows={3} placeholder="Tell us what happened..." />
       <br />
       <b>3. How did this differ from what you expected?</b>
       <Input.TextArea
-        rows={3}
-        placeholder="3. How did this differ from what you expected?"
+        rows={4}
+        placeholder="Explain how this differs from what you expected..."
       />
     </VSpace>
   );
