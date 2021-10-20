@@ -5,6 +5,9 @@ import A from "components/misc/A";
 import useDatabase from "lib/hooks/database";
 import Loading from "components/share/loading";
 import RecentFiles from "./recent-files";
+import { useRouter } from "next/router";
+import useCustomize from "lib/use-customize";
+import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 
 function VSpace({ children }) {
   return (
@@ -15,17 +18,29 @@ function VSpace({ children }) {
 }
 
 export default function Create() {
+  const router = useRouter();
+  // The URL the user was viewing when they requested support.
+  // This could easily be blank, but if it is set it can be useful.
+  const { url } = router.query;
   const [files, setFiles] = useState<string[]>([]);
   const [type, setType] = useState<string>("bug");
   const [email, setEmail] = useState<string>("");
   const [body, setBody] = useState<string>("");
   const [summary, setSummary] = useState<string>("");
+  const { account } = useCustomize();
 
   const submittable = useRef<boolean>(false);
-  submittable.current = !!(email && summary && body);
+  submittable.current = !!(isValidEmailAddress(email) && summary && body);
 
   function createSupportTicket() {
-    console.log({ type, files, email, body });
+    console.log({
+      type,
+      files,
+      email,
+      body,
+      url,
+      account_id: account?.account_id,
+    });
   }
 
   return (
@@ -45,7 +60,7 @@ export default function Create() {
       >
         {" "}
         <h1 style={{ textAlign: "center", fontSize: "24pt" }}>
-          Create Support Ticket
+          Create a New Support Ticket
         </h1>
         <FAQ />
         <h2>Create Your Ticket</h2>
@@ -106,8 +121,8 @@ export default function Create() {
               onClick={createSupportTicket}
             >
               <Icon name="paper-plane" />{" "}
-              {!email
-                ? "Enter Email Address above"
+              {!isValidEmailAddress(email)
+                ? "Enter Valid Email Address above"
                 : !summary
                 ? "Enter Summary above"
                 : !body
@@ -274,6 +289,7 @@ function Email({ onChange }) {
         <Loading />
       ) : (
         <Input
+          prefix={<Icon name="envelope" style={{ color: "rgba(0,0,0,.25)" }} />}
           defaultValue={value.accounts?.email_address}
           placeholder="Email address..."
           style={{ maxWidth: "500px" }}
