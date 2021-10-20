@@ -1,5 +1,6 @@
 import { Alert, Button, Space, Input, Layout, Radio } from "antd";
-import { useRef, useState } from "react";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { useEffect, useRef, useState } from "react";
 import A from "components/misc/A";
 import useDatabase from "lib/hooks/database";
 import Loading from "components/share/loading";
@@ -16,11 +17,15 @@ function VSpace({ children }) {
 export default function Create() {
   const [files, setFiles] = useState<string[]>([]);
   const [type, setType] = useState<string>("bug");
+  const [email, setEmail] = useState<string>("");
+  const [body, setBody] = useState<string>("");
+  const [summary, setSummary] = useState<string>("");
+
   const submittable = useRef<boolean>(false);
-  submittable.current = true;
+  submittable.current = !!(email && summary && body);
 
   function createSupportTicket() {
-    console.log({ type, files });
+    console.log({ type, files, email, body });
   }
 
   return (
@@ -47,10 +52,13 @@ export default function Create() {
         <Instructions />
         <form>
           <VSpace>
-            <Email />
+            <Email onChange={setEmail} />
             <br />
             <b>Summary</b>
-            <Input placeholder="Short summary..." />
+            <Input
+              placeholder="Summarize what's happening..."
+              onChange={(e) => setSummary(e.target.value)}
+            />
             <br />
             <b>
               Is this a <i>bug report</i> or a <i>question</i>?
@@ -74,7 +82,11 @@ export default function Create() {
             <br />
             <Files onChange={setFiles} />
             <br />
-            {type == "bug" ? <Bug /> : <Question />}
+            {type == "bug" ? (
+              <Bug onChange={setBody} />
+            ) : (
+              <Question onChange={setBody} />
+            )}
           </VSpace>
           <p style={{ marginTop: "30px" }}>
             After submitting this ticket, you'll receive a link, which you
@@ -93,7 +105,14 @@ export default function Create() {
               type="primary"
               onClick={createSupportTicket}
             >
-              Create Support Ticket
+              <Icon name="paper-plane" />{" "}
+              {!email
+                ? "Enter Email Address above"
+                : !summary
+                ? "Enter Summary above"
+                : !body
+                ? "Describe your issue above"
+                : "Create Support Ticket"}
             </Button>
           </div>
         </form>
@@ -109,7 +128,7 @@ function Files({ onChange }) {
       Select any relevant files below. This will make it much easier for us to
       quickly understand your problem. If a file isn't listed, please include
       their URL below (e.g., copy and paste from the address bar).
-      <RecentFiles interval="6 hours" onChange={onChange} />
+      <RecentFiles interval="1 day" onChange={onChange} />
       <Input.TextArea
         rows={2}
         placeholder="Optional URLs of any other files?"
@@ -118,29 +137,68 @@ function Files({ onChange }) {
   );
 }
 
-function Bug() {
+function Bug({ onChange }) {
+  const answers = useRef<[string, string, string]>(["", "", ""]);
+  function update(i: 0 | 1 | 2, value: string): void {
+    answers.current[i] = value;
+    onChange?.(answers.current.join("\n\n\n").trim());
+  }
+
   return (
     <VSpace>
       <b>1. What did you do exactly?</b>
-      <Input.TextArea rows={3} placeholder="Describe what you did..." />
+      <Input.TextArea
+        rows={3}
+        placeholder="Describe what you did..."
+        onChange={(e) =>
+          update(
+            0,
+            e.target.value
+              ? "1. What did you do exactly?\n" + e.target.value
+              : ""
+          )
+        }
+      />
       <br />
       <b>2. What happened?</b>
-      <Input.TextArea rows={3} placeholder="Tell us what happened..." />
+      <Input.TextArea
+        rows={3}
+        placeholder="Tell us what happened..."
+        onChange={(e) =>
+          update(
+            1,
+            e.target.value ? "2. What happened?\n" + e.target.value : ""
+          )
+        }
+      />
       <br />
       <b>3. How did this differ from what you expected?</b>
       <Input.TextArea
         rows={4}
         placeholder="Explain how this differs from what you expected..."
+        onChange={(e) =>
+          update(
+            2,
+            e.target.value
+              ? "3. How did this differ from what you expected?\n" +
+                  e.target.value
+              : ""
+          )
+        }
       />
     </VSpace>
   );
 }
 
-function Question() {
+function Question({ onChange }) {
   return (
     <VSpace>
       <b>Your Question</b>
-      <Input.TextArea rows={6} placeholder="Your question..." />
+      <Input.TextArea
+        rows={6}
+        placeholder="Your question..."
+        onChange={(e) => onChange(e.target.value)}
+      />
     </VSpace>
   );
 }
@@ -161,22 +219,22 @@ function FAQ() {
     <div>
       {" "}
       <h2>Frequently Asked Questions</h2>
-      Check through this list of very frequent questions first:
+      Check the frequent questions first:
       <Alert
-        message={"FAQ"}
+        message={""}
         style={{ margin: "20px 30px" }}
         type="warning"
         description={
-          <ul style={{ marginBottom: 0 }}>
+          <ul style={{ marginBottom: 0, fontSize: "11pt" }}>
             <li>
               {" "}
               <A href="https://doc.cocalc.com/howto/missing-project.html">
-                File or project is gone?
+                My file or project is gone?
               </A>{" "}
             </li>
             <li>
               {" "}
-              Jupyter notebook or SageMath worksheet{" "}
+              My Jupyter notebook or SageMath worksheet is{" "}
               <A href="https://doc.cocalc.com/howto/slow-worksheet.html">
                 slow
               </A>{" "}
@@ -189,11 +247,11 @@ function FAQ() {
             <li>
               {" "}
               <A href="https://doc.cocalc.com/howto/sage-question.html">
-                Questions about SageMath?
+                I have questions about SageMath.
               </A>
             </li>
             <li>
-              Just want to quickly chat? Visit the{" "}
+              I need to quickly chat. Visit the{" "}
               <A href="https://discord.gg/nEHs2GK">CoCalc Discord server</A>.
             </li>
           </ul>
@@ -203,11 +261,15 @@ function FAQ() {
   );
 }
 
-function Email() {
+function Email({ onChange }) {
   const { loading, value } = useDatabase({ accounts: { email_address: null } });
+  useEffect(() => {
+    onChange(value.accounts?.email_address);
+  }, [value]);
+
   return (
     <VSpace>
-      <b>Email address</b>
+      <b>Email Address</b>
       {loading ? (
         <Loading />
       ) : (
@@ -215,6 +277,7 @@ function Email() {
           defaultValue={value.accounts?.email_address}
           placeholder="Email address..."
           style={{ maxWidth: "500px" }}
+          onChange={(e) => onChange?.(e.target.value)}
         />
       )}
     </VSpace>

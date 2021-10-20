@@ -1,4 +1,5 @@
 import { getServerSettings } from "./server-settings";
+import siteURL from "./site-url";
 
 export interface Customize {
   siteName?: string;
@@ -18,6 +19,7 @@ export interface Customize {
   shareServer?: boolean;
   landingPages?: boolean;
   dns?: string;
+  siteURL?: string;
   googleAnalytics?: string;
 }
 
@@ -67,5 +69,7 @@ export default async function getCustomize(): Promise<Customize> {
     // can be used for links to edit share document in main site; needed if main site
     // on different domain than share server, e.g., share.cocalc.com vs cocalc.com.
     dns: settings.dns,
+    // site url combines the dns, https:// and the basePath.  It never ends in a slash!
+    siteURL: await siteURL(settings.dns),
   } as Customize;
 }

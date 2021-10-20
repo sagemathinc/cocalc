@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
 import { Alert, TreeSelect } from "antd";
+import useCustomize from "lib/use-customize";
 
 interface Node {
   title: ReactNode;
@@ -15,10 +16,18 @@ interface Props {
 }
 
 export default function RecentFiles({ interval, onChange }: Props) {
+  const { siteURL } = useCustomize();
   const { result, error } = useAPI("file-access", {
-    interval: interval ?? "6 hours",
+    interval: interval ?? "1 day",
   });
   const [treeData, setTreeData] = useState<Node[]>([]);
+
+  function url(project_id: string, path?: string) {
+    let s = siteURL + "/" + encodeURI(`projects/${project_id}`);
+    if (!path) return s;
+    return s + `/files/${path}`;
+  }
+
   useEffect(() => {
     if (!result) return;
 
@@ -49,13 +58,13 @@ export default function RecentFiles({ interval, onChange }: Props) {
             Project: <b>{files[0].title}</b>
           </>
         ),
-        value: encodeURI(`projects/${files[0].project_id}`),
+        value: url(files[0].project_id),
         children,
       });
       for (const file of files) {
         children.push({
           title: file.path,
-          value: encodeURI(`projects/${file.project_id}/files/${file.path}`),
+          value: url(file.project_id, file.path),
         });
       }
     }
@@ -73,7 +82,7 @@ export default function RecentFiles({ interval, onChange }: Props) {
           <TreeSelect
             style={{ width: "100%" }}
             treeData={treeData}
-            placeholder="Select relevant files..."
+            placeholder="Search for relevant files..."
             allowClear
             multiple
             treeDefaultExpandAll={true}
