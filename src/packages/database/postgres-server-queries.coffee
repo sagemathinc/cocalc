@@ -1480,7 +1480,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb    : opts.cb
 
     # Get remember me cookie with given hash.  If it has expired,
-    # get back undefined instead.  (Actually deleting expired).
+    # **get back undefined instead**.  (Actually deleting expired).
     # We use retry_until_success, since an intermittent database
     # reconnect can result in a cb error that will very soon
     # work fine, and we don't to flat out sign the client out
@@ -1489,12 +1489,17 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             hash                : required
             cache               : true
-            cb                  : required   # cb(err, signed_in_message)
+            cb                  : required   # cb(err, signed_in_message | undefined)
+        account_id = undefined
         try
             account_id = await get_remember_me(@, opts.hash, opts.cache)
-            opts.cb(undefined, {event:"signed_in", account_id:account_id})
         catch err
             opts.cb(err)
+            return
+        if account_id
+            opts.cb(undefined, {event:"signed_in", account_id:account_id})
+        else
+            opts.cb()
 
     delete_remember_me: (opts) =>
         opts = defaults opts,
