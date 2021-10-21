@@ -5,7 +5,6 @@ import basePath from "@cocalc/backend/base-path";
 // by an env variable when server starts) and the "Domain name"
 // setting of site settings.  This URL does NOT end in a /
 export default async function siteURL(dns?: string): Promise<string> {
-  console.log("siteURL", { dns });
   if (!dns) {
     dns = (await getServerSettings()).dns;
   }

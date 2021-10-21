@@ -1,13 +1,13 @@
 import { Alert, Button, Space, Input, Layout, Radio } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import A from "components/misc/A";
 import useDatabase from "lib/hooks/database";
 import Loading from "components/share/loading";
 import RecentFiles from "./recent-files";
 import { useRouter } from "next/router";
-import useCustomize from "lib/use-customize";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
+import apiPost from "lib/api/post";
 
 function VSpace({ children }) {
   return (
@@ -27,20 +27,31 @@ export default function Create() {
   const [email, setEmail] = useState<string>("");
   const [body, setBody] = useState<string>("");
   const [summary, setSummary] = useState<string>("");
-  const { account } = useCustomize();
+  const [submitError, setSubmitError] = useState<ReactNode>("");
+  const [success, setSuccess] = useState<ReactNode>("");
 
   const submittable = useRef<boolean>(false);
   submittable.current = !!(isValidEmailAddress(email) && summary && body);
 
-  function createSupportTicket() {
-    console.log({
-      type,
-      files,
-      email,
-      body,
-      url,
-      account_id: account?.account_id,
-    });
+  async function createSupportTicket() {
+    const options = { type, files, email, body, url };
+    setSubmitError("");
+    let result;
+    try {
+      result = await apiPost("/support/create-ticket", { options });
+    } catch (err) {
+      result = { error: `${err}` };
+    }
+    if (result.error) {
+      console.log("set error to ", result.error);
+      setSubmitError(result.error);
+    } else {
+      setSuccess(
+        <div>
+          Please save this URL: <A href={result.url}>{result.url}</A>
+        </div>
+      );
+    }
   }
 
   return (
@@ -129,6 +140,28 @@ export default function Create() {
                 ? "Describe your issue above"
                 : "Create Support Ticket"}
             </Button>
+            {submitError && (
+              <Alert
+                type="error"
+                message="Error creating support ticket"
+                description={submitError}
+                closable
+                showIcon
+                onClose={() => setSubmitError("")}
+                style={{ margin: "15px auto", maxWidth: "500px" }}
+              />
+            )}
+            {success && (
+              <Alert
+                type="success"
+                message="Successfully created support ticket"
+                description={success}
+                onClose={() => setSuccess("")}
+                closable
+                showIcon
+                style={{ margin: "15px auto", maxWidth: "500px" }}
+              />
+            )}
           </div>
         </form>
       </div>

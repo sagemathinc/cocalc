@@ -28,7 +28,6 @@ local_hub_connection = require('./local_hub_connection')
 sign_in              = require('./sign-in')
 hub_projects         = require('./projects')
 {StripeClient}       = require('./stripe/client')
-{get_support}        = require('./support')
 {send_email, send_invite_email} = require('./email')
 {api_key_action}     = require('./api/manage')
 {create_account, delete_account} = require('./client/create-account')
@@ -1777,33 +1776,14 @@ class exports.Client extends EventEmitter
     ###
     mesg_create_support_ticket: (mesg) =>
         dbg = @dbg("mesg_create_support_ticket")
-        dbg("#{misc.to_json(mesg)}")
-
-        m = underscore.omit(mesg, 'id', 'event')
-        get_support().create_ticket m, (err, url) =>
-            dbg("callback being called with #{err} and url: #{url}")
-            if err?
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(
-                    message.support_ticket_url(id:mesg.id, url: url))
+        dbg('deprecated')
+        @error_to_client(id:mesg.id, error:'deprecated')
 
     mesg_get_support_tickets: (mesg) =>
         # retrieves the support tickets the user with the current account_id
         dbg = @dbg("mesg_get_support_tickets")
-        dbg("#{misc.to_json(mesg)}")
-        if not @account_id
-            err = "You must be signed in to use support related functions."
-            @error_to_client(id:mesg.id, error:err)
-            return
-
-        get_support().get_support_tickets @account_id, (err, tickets) =>
-            if err?
-                @error_to_client(id:mesg.id, error:err)
-            else
-                dbg("tickets: #{misc.to_json(tickets)}")
-                @push_to_client(
-                    message.support_tickets(id:mesg.id, tickets: tickets))
+        dbg('deprecated')
+        @error_to_client(id:mesg.id, error:'deprecated')
 
     ###
     Stripe-integration billing code

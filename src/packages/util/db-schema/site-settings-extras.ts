@@ -70,7 +70,11 @@ export type SiteSettingsExtrasKeys =
   | "password_reset_smtp_login"
   | "password_reset_smtp_password"
   | "password_reset_smtp_port"
-  | "password_reset_smtp_secure";
+  | "password_reset_smtp_secure"
+  | "zendesk_heading"
+  | "zendesk_token"
+  | "zendesk_username"
+  | "zendesk_uri";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -115,6 +119,28 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     show: only_commercial,
     password: true,
+  },
+  zendesk_heading: {
+    name: "Zendesk API Configuration",
+    desc: "",
+    default: "",
+    type: "header",
+  },
+  zendesk_token: {
+    name: "Zendesk Token",
+    desc: "This is the API Token in Zendesk in their Admin --> API page",
+    default: "",
+    password: true,
+  },
+  zendesk_username: {
+    name: "Zendesk Username",
+    desc: 'This is the username for Zendesk.  E.g., for cocalc.com it is "support-agent@cocalc.com"',
+    default: "",
+  },
+  zendesk_uri: {
+    name: "Zendesk Uri",
+    desc: 'This is the Uri for your Zendesk server.  E.g., for cocalc.com it is "https://sagemathcloud.zendesk.com/api/v2"',
+    default: "",
   },
   email_backend: {
     name: "Email backend type",

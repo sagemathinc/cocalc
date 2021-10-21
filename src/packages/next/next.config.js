@@ -22,25 +22,31 @@ module.exports = {
       },
       cacheDirectory,
     };
-    // We have to be VERY explicit about the order of module imports.
-    // Otherwise, e.g,. importing antd in @cocalc/frontend results in importing
-    // react from @cocalc/frontend, and we end up with two distinct copies
-    // of React in our application.  This doesn't work at all!  By being
-    // explicit as below, we completely eliminate that problem.  However,
-    // we do may to add things here if we create new modules.
-    config.resolve.modules = [
-      __dirname,
-      resolve(__dirname, "node_modules"),
-      resolve(__dirname, "../frontend/node_modules"),
-      resolve(__dirname, "../util/node_modules"),
-      resolve(__dirname, "../backend/node_modules"),
-      resolve(__dirname, "../database/node_modules"),
-    ];
     // Webpack breaks without this pg-native alias, even though it's dead code,
     // due to how the pg module does package detection internally.
     config.resolve.alias["pg-native"] = ".";
+    // These aliases are so we don't end up with two distinct copies
+    // of React in our application, since this doesn't work at all!
+    config.resolve.alias["react"] = resolve(__dirname, "node_modules", "react");
+    config.resolve.alias["react-dom"] = resolve(
+      __dirname,
+      "node_modules",
+      "react-dom"
+    );
+    config.ignoreWarnings = [
+      // This yargs warning is caused by node-zendesk in the @cocalc/backend package
+      // being a generally bad citizen.  Things seem to work fine (we barely use the
+      // zendesk api anyways).
+      { module: /^\.\.\/backend\/node_modules\/yargs.*/ },
+    ];
+
     // Important: return the modified config
     return config;
+  },
+  // This is because the debug module color support would otherwise log this warning constantly:
+  // Module not found: ESM packages (supports-color) need to be imported. Use 'import' to reference the package instead. https://nextjs.org/docs/messages/import-esm-externals
+  experimental: {
+    esmExternals: "loose",
   },
   // For i18n, see https://nextjs.org/docs/advanced-features/i18n-routing
   // We are doing this at all since it improves our Lighthouse accessibility score.
