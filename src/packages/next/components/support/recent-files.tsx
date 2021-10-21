@@ -2,7 +2,6 @@ import { ReactNode, useEffect, useState } from "react";
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
 import { Alert, TreeSelect } from "antd";
-import useCustomize from "lib/use-customize";
 
 interface Node {
   title: ReactNode;
@@ -12,21 +11,14 @@ interface Node {
 
 interface Props {
   interval?: string; // postgreSQL interval, e.g., "1 day"
-  onChange?: (value: string[]) => void;
+  onChange?: (value: { project_id: string; path?: string }[]) => void;
 }
 
 export default function RecentFiles({ interval, onChange }: Props) {
-  const { siteURL } = useCustomize();
   const { result, error } = useAPI("file-access", {
     interval: interval ?? "1 day",
   });
   const [treeData, setTreeData] = useState<Node[]>([]);
-
-  function url(project_id: string, path?: string) {
-    let s = siteURL + "/" + encodeURI(`projects/${project_id}`);
-    if (!path) return s;
-    return s + `/files/${path}`;
-  }
 
   useEffect(() => {
     if (!result) return;
@@ -58,13 +50,13 @@ export default function RecentFiles({ interval, onChange }: Props) {
             Project: <b>{files[0].title}</b>
           </>
         ),
-        value: url(files[0].project_id),
+        value: files[0].project_id,
         children,
       });
       for (const file of files) {
         children.push({
           title: file.path,
-          value: url(file.project_id, file.path),
+          value: file.project_id + file.path,
         });
       }
     }
@@ -88,7 +80,20 @@ export default function RecentFiles({ interval, onChange }: Props) {
             treeDefaultExpandAll={true}
             showSearch
             dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
-            onChange={onChange}
+            onChange={(selected: string[]) => {
+              if (!onChange) return;
+              const v: { project_id: string; path?: string }[] = [];
+              for (const value of selected) {
+                const project_id = value.slice(0, 36);
+                if (value.length <= 36) {
+                  v.push({ project_id });
+                } else {
+                  const path = value.slice(36);
+                  v.push({ project_id, path });
+                }
+              }
+              onChange(v);
+            }}
           />
         </>
       )}

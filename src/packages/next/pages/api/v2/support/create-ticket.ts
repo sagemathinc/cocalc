@@ -3,6 +3,7 @@ Create a support ticket.
 */
 
 import createSupportTicket from "@cocalc/backend/support/create-ticket";
+import getAccountId from "lib/account/get-account";
 
 export default async function handle(req, res) {
   if (req.method !== "POST") {
@@ -14,8 +15,9 @@ export default async function handle(req, res) {
 
   let url;
   try {
-    url = await createSupportTicket(options);
-    console.log("createSupportTicket returned", {url});
+    const account_id = await getAccountId(req);
+    url = await createSupportTicket({ ...options, account_id });
+    console.log("createSupportTicket returned", { url });
   } catch (err) {
     res.json({ error: `${err}` });
     return;

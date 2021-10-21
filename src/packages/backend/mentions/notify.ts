@@ -20,7 +20,7 @@ export default async function sendNotificationIfPossible(
     return "nothing";
   }
 
-  const sourceName = trunc(await getName(source), 60);
+  const sourceName = trunc((await getName(source)) ?? "Unknown User", 60);
   const projectTitle = await getProjectTitle(key.project_id);
 
   const context =

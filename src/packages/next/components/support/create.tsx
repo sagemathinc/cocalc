@@ -8,6 +8,7 @@ import RecentFiles from "./recent-files";
 import { useRouter } from "next/router";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import apiPost from "lib/api/post";
+import getBrowserInfo from "./browser-info";
 
 function VSpace({ children }) {
   return (
@@ -22,19 +23,23 @@ export default function Create() {
   // The URL the user was viewing when they requested support.
   // This could easily be blank, but if it is set it can be useful.
   const { url } = router.query;
-  const [files, setFiles] = useState<string[]>([]);
+  const [files, setFiles] = useState<{ project_id: string; path?: string }[]>(
+    []
+  );
   const [type, setType] = useState<string>("bug");
   const [email, setEmail] = useState<string>("");
   const [body, setBody] = useState<string>("");
-  const [summary, setSummary] = useState<string>("");
+  const [subject, setSubject] = useState<string>("");
+
   const [submitError, setSubmitError] = useState<ReactNode>("");
   const [success, setSuccess] = useState<ReactNode>("");
 
   const submittable = useRef<boolean>(false);
-  submittable.current = !!(isValidEmailAddress(email) && summary && body);
+  submittable.current = !!(isValidEmailAddress(email) && subject && body);
 
   async function createSupportTicket() {
-    const options = { type, files, email, body, url };
+    const info = getBrowserInfo();
+    const options = { type, files, email, body, url, subject, info };
     setSubmitError("");
     let result;
     try {
@@ -80,10 +85,10 @@ export default function Create() {
           <VSpace>
             <Email onChange={setEmail} />
             <br />
-            <b>Summary</b>
+            <b>Subject</b>
             <Input
               placeholder="Summarize what's happening..."
-              onChange={(e) => setSummary(e.target.value)}
+              onChange={(e) => setSubject(e.target.value)}
             />
             <br />
             <b>
@@ -134,8 +139,8 @@ export default function Create() {
               <Icon name="paper-plane" />{" "}
               {!isValidEmailAddress(email)
                 ? "Enter Valid Email Address above"
-                : !summary
-                ? "Enter Summary above"
+                : !subject
+                ? "Enter Subject above"
                 : !body
                 ? "Describe your issue above"
                 : "Create Support Ticket"}
@@ -177,10 +182,6 @@ function Files({ onChange }) {
       quickly understand your problem. If a file isn't listed, please include
       their URL below (e.g., copy and paste from the address bar).
       <RecentFiles interval="1 day" onChange={onChange} />
-      <Input.TextArea
-        rows={2}
-        placeholder="Optional URLs of any other files?"
-      />
     </VSpace>
   );
 }
