@@ -35,7 +35,7 @@ const VMS_DATA: VMsType[string][] = [
   },
   {
     price_day: rawPrice2Retail(283.58),
-    spec: { mem: 30, cpu: 4 },
+    spec: { mem: 30, cpu: 8 },
     quota: { dedicated_vm: "n2-standard-8" },
   },
   {
