@@ -44,7 +44,7 @@ export async function getServerSettings(): Promise<ServerSettings> {
   // set default values for missing keys
   for (const config of [EXTRAS, CONF]) {
     for (const key in config) {
-      if (!settings[key]) {
+      if (settings[key] == null) {
         const conf = config[key];
         settings[key] =
           conf?.to_val != null ? conf.to_val(conf.default) : conf.default;
