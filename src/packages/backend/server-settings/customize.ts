@@ -11,7 +11,6 @@ export interface Customize {
   helpEmail?: string;
   contactEmail?: string;
   isCommercial?: boolean;
-  anonymousSignup?: boolean;
   logoSquareURL?: string;
   logoRectangularURL?: string;
   splashImage?: string;
@@ -21,6 +20,8 @@ export interface Customize {
   dns?: string;
   siteURL?: string;
   googleAnalytics?: string;
+  anonymousSignup?: boolean;
+  emailSignup?: boolean;
 }
 
 const fallback = (a?: string, b?: string): string =>
@@ -53,6 +54,7 @@ export default async function getCustomize(): Promise<Customize> {
     isCommercial: settings.commercial,
 
     anonymousSignup: settings.anonymous_signup,
+    emailSignup: settings.email_signup,
 
     logoSquareURL: settings.logo_square,
     logoRectangularURL: settings.logo_rectangular,

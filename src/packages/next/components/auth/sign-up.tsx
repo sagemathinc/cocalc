@@ -16,7 +16,7 @@ const LINE = { margin: "15px 0" } as CSSProperties;
 
 export default function SignUp({ strategies, requiresToken }) {
   const router = useRouter();
-  const { anonymousSignup, siteName } = useCustomize();
+  const { anonymousSignup, siteName, emailSignup } = useCustomize();
   const [terms, setTerms] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
   const [registrationToken, setRegistrationToken] = useState<string>("");
@@ -70,10 +70,40 @@ export default function SignUp({ strategies, requiresToken }) {
     }
   }
 
+  if (!emailSignup && strategies.length == 0) {
+    return (
+      <Alert
+        style={{ margin: "30px 15%" }}
+        type="error"
+        showIcon
+        message={"No Account Creation Allowed"}
+        description={
+          <div style={{ fontSize: "14pt", marginTop: "20px" }}>
+            <b>
+              There is no method enabled for creating an account on this server.
+            </b>
+            {anonymousSignup && (
+              <>
+                <br />
+                <br />
+                However, you can still{" "}
+                <A href="/auth/try">
+                  try {siteName} without creating an account.
+                </A>
+              </>
+            )}
+          </div>
+        }
+      />
+    );
+  }
+
   return (
     <div style={{ padding: "0 15px" }}>
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
-        <SquareLogo style={{ width: "100px", height: "100px", marginBottom:'15px' }} />
+        <SquareLogo
+          style={{ width: "100px", height: "100px", marginBottom: "15px" }}
+        />
         <h1>Create a {siteName} Account</h1>
       </div>
 
@@ -236,23 +266,31 @@ export default function SignUp({ strategies, requiresToken }) {
 }
 
 function EmailOrSSO({ email, setEmail, signUp, strategies }) {
+  const { emailSignup } = useCustomize();
+  if (strategies == null) {
+    strategies = [];
+  }
   return (
     <div>
       <p>
-        {strategies.length > 0
+        {strategies.length > 0 && emailSignup
           ? "Sign up using either your email address or a single sign on provider."
-          : "Enter the email address you will use to sign in."}
+          : emailSignup
+          ? "Enter the email address you will use to sign in."
+          : "Sign up using a single sign on provider."}
       </p>
-      <p>
-        <Input
-          style={{ fontSize: "12pt" }}
-          placeholder="Email address"
-          autoComplete="username"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          onPressEnter={signUp}
-        />
-      </p>
+      {emailSignup && (
+        <p>
+          <Input
+            style={{ fontSize: "12pt" }}
+            placeholder="Email address"
+            autoComplete="username"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onPressEnter={signUp}
+          />
+        </p>
+      )}
       {!email && (
         <div style={{ textAlign: "center" }}>
           <SSO strategies={strategies} />
