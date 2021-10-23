@@ -73,7 +73,6 @@ export const AccountPage: React.FC = () => {
         redux.getActions("billing").update_customer();
         break;
       case "support":
-        redux.getActions("support").load_support_tickets();
         break;
       case "signout":
         return;

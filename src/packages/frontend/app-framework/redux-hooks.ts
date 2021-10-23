@@ -192,7 +192,6 @@ export interface StoreStates {
   mentions: types.MentionsState;
   page: types.PageState;
   projects: types.ProjectsState;
-  support: types.SupportState;
   users: types.UsersState;
   "compute-environment": types.ComputeEnvironmentState;
 }
@@ -313,7 +312,6 @@ export interface ActionsTypes {
   mentions: types.MentionsActions;
   page: types.PageActions;
   projects: types.ProjectsActions;
-  support: types.SupportActions;
   users: types.UsersActions;
 }
 
@@ -329,7 +327,6 @@ export function useActions(name: "file_use"): types.FileUseActions;
 export function useActions(name: "mentions"): types.MentionsActions;
 export function useActions(name: "page"): types.PageActions;
 export function useActions(name: "projects"): types.ProjectsActions;
-export function useActions(name: "support"): types.SupportActions;
 export function useActions(name: "users"): types.UsersActions;
 export function useActions(
   name: "compute-environment"
@@ -391,7 +388,6 @@ export interface Stores {
   mentions: types.MentionsStore;
   page: types.PageStore;
   projects: types.ProjectsStore;
-  support: types.SupportStore;
   users: types.UsersStore;
   "compute-environment": types.ComputeEnvironmentStore;
 }

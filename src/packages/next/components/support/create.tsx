@@ -31,7 +31,7 @@ export default function Create() {
     []
   );
   const [type, setType] = useState<"problem" | "question" | "task">(
-    router.query.type ?? "problem"
+    router.query.type ? router.query.type : "problem"
   );
   const [email, setEmail] = useState<string>(account?.email_address ?? "");
   const [body, setBody] = useState<string>(router.query.body ?? "");
