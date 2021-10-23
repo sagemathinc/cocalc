@@ -15,7 +15,7 @@ export default async function get(
     revalidate?: number;
     context: any;
   },
-  options: { name?: boolean } = {}
+  options: Options = {}
 ) {
   let customize;
   try {

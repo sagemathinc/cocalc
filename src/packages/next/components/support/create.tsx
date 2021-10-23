@@ -1,6 +1,6 @@
 import { Alert, Button, Divider, Space, Input, Layout, Radio } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useRef, useState } from "react";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import RecentFiles from "./recent-files";
@@ -11,6 +11,7 @@ import getBrowserInfo from "./browser-info";
 import { useCustomize } from "lib/customize";
 import { NoZendesk } from "./util";
 import { Type } from "./tickets";
+import SiteName from "components/share/site-name";
 
 function VSpace({ children }) {
   return (
@@ -29,8 +30,8 @@ export default function Create() {
   const [files, setFiles] = useState<{ project_id: string; path?: string }[]>(
     []
   );
-  const [type, setType] = useState<string>("problem");
-  const [email, setEmail] = useState<string>(account?.email_address);
+  const [type, setType] = useState<"problem" | "question" | "task">("problem");
+  const [email, setEmail] = useState<string>(account?.email_address ?? "");
   const [body, setBody] = useState<string>("");
   const [subject, setSubject] = useState<string>("");
 
@@ -142,7 +143,8 @@ export default function Create() {
             />
             <br />
             <b>
-              Is this a <i>Problem</i> or a <i>Question</i>?
+              Is this a <i>Problem</i>, <i>Question</i>,{" "}
+              <i>Software Install Task</i>?
             </b>
             <Radio.Group
               name="radiogroup"
@@ -157,6 +159,10 @@ export default function Create() {
                 <Radio value={"question"}>
                   <Type type="question" /> I have a question about billing,
                   functionality, teaching, etc.
+                </Radio>
+                <Radio value={"task"}>
+                  <Type type="task" /> Is it possible for you to install some
+                  software that I need in order to use <SiteName />?
                 </Radio>
               </VSpace>
             </Radio.Group>
@@ -173,11 +179,9 @@ export default function Create() {
                 paddingLeft: "15px",
               }}
             >
-              {type == "problem" ? (
-                <Problem onChange={setBody} />
-              ) : (
-                <Question onChange={setBody} />
-              )}
+              {type == "problem" && <Problem onChange={setBody} />}
+              {type == "question" && <Question onChange={setBody} />}
+              {type == "task" && <Task onChange={setBody} />}
             </div>
           </VSpace>
           <p style={{ marginTop: "30px" }}>
@@ -282,7 +286,7 @@ function Problem({ onChange }) {
           update(
             0,
             e.target.value
-              ? "\n\n1. What did you do exactly?\n\n" + e.target.value
+              ? "\n\nWHAT DID YOU DO EXACTLY?\n\n" + e.target.value
               : ""
           )
         }
@@ -295,20 +299,20 @@ function Problem({ onChange }) {
         onChange={(e) =>
           update(
             1,
-            e.target.value ? "\n\n2. What happened?\n\n" + e.target.value : ""
+            e.target.value ? "\n\nWHAT HAPPENED?\n\n" + e.target.value : ""
           )
         }
       />
       <br />
       <b>How did this differ from what you expected?</b>
       <Input.TextArea
-        rows={4}
+        rows={3}
         placeholder="Explain how this differs from what you expected..."
         onChange={(e) =>
           update(
             2,
             e.target.value
-              ? "\n\n3. How did this differ from what you expected?\n\n" +
+              ? "\n\nHOW DID THIS DIFFER FROM WHAT YOU EXPECTED?\n\n" +
                   e.target.value
               : ""
           )
@@ -328,6 +332,86 @@ function Question({ onChange }) {
   );
 }
 
+function Task({ onChange }) {
+  const answers = useRef<[string, string, string]>(["", "", ""]);
+  function update(i: 0 | 1 | 2, value: string): void {
+    answers.current[i] = value;
+    onChange?.(answers.current.join("\n\n\n").trim());
+  }
+
+  return (
+    <div>
+      Each <SiteName /> project is a Docker image running Ubuntu Linux on 64-bit
+      x86 hardware, so it is possible for us to install most standard Linux
+      software, and we have already installed{" "}
+      <A href="/software">a huge amount</A>. If there is something you need that
+      is missing, let us know below.
+      <br />
+      <br />
+      <b>What software do you need?</b> In particular, if this is a Python
+      library, explain which of the{" "}
+      <A href="software/python">many Python environments</A> you need it
+      installed into and why you can't just{" "}
+      <A href="https://doc.cocalc.com/howto/install-python-lib.html">
+        install it yourself
+      </A>
+      .
+      <br />
+      <Input.TextArea
+        style={{ marginTop: "10px" }}
+        rows={4}
+        placeholder="Describe what software you need installed..."
+        onChange={(e) =>
+          update(
+            0,
+            e.target.value
+              ? "\n\nWHAT SOFTWARE DO YOU NEED?\n\n" + e.target.value
+              : ""
+          )
+        }
+      />
+      <br />
+      <br />
+      <br />
+      <b>How do you plan to use this software?</b> For example, does it need to
+      be installed across <SiteName /> for a course you are teaching that starts
+      in 3 weeks?
+      <br />
+      <Input.TextArea
+        style={{ marginTop: "10px" }}
+        rows={3}
+        placeholder="Explain how you will use the software ..."
+        onChange={(e) =>
+          update(
+            1,
+            e.target.value
+              ? "\n\nHOW DO YOU PLAN TO USE THIS SOFTWARE?\n\n" + e.target.value
+              : ""
+          )
+        }
+      />
+      <br />
+      <br />
+      <br />
+      <b>How can we test that the software is properly installed?</b>
+      <br />
+      <Input.TextArea
+        style={{ marginTop: "10px" }}
+        rows={3}
+        placeholder="Explain how we can test the software..."
+        onChange={(e) =>
+          update(
+            2,
+            e.target.value
+              ? "\n\nHOW CAN WE TEST THAT THE SOFTWARE IS PROPERLY INSTALLED?\n\n" +
+                  e.target.value
+              : ""
+          )
+        }
+      />
+    </div>
+  );
+}
 function Instructions() {
   return (
     <div>

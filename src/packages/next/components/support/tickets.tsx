@@ -147,16 +147,22 @@ function Status({ status }) {
   );
 }
 
+const TYPE_COLOR = {
+  problem: "red",
+  question: "blue",
+  task: "orange",
+};
+
 export function Type({
   status,
   type,
 }: {
   status?: string;
-  type: "problem" | "question";
+  type: "problem" | "question" | "task";
 }) {
   return (
     <Tag
-      color={status == "solved" ? "#666" : type == "problem" ? "red" : "blue"}
+      color={status == "solved" ? "#666" : TYPE_COLOR[type]}
       style={{ fontSize: "12pt" }}
     >
       {capitalize(type)}
