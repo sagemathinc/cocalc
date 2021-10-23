@@ -9,6 +9,7 @@ import { useRouter } from "next/router";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import apiPost from "lib/api/post";
 import getBrowserInfo from "./browser-info";
+import { useCustomize } from "lib/customize";
 
 function VSpace({ children }) {
   return (
@@ -19,6 +20,7 @@ function VSpace({ children }) {
 }
 
 export default function Create() {
+  const { contactEmail } = useCustomize();
   const router = useRouter();
   // The URL the user was viewing when they requested support.
   // This could easily be blank, but if it is set it can be useful.
@@ -82,7 +84,13 @@ export default function Create() {
           <A href="/support/tickets">
             check the status of your support tickets
           </A>
-          .
+          .{" "}
+          {contactEmail && (
+            <>
+              You can also email us directly at{" "}
+              <A href={`mailto:${contactEmail}`}>{contactEmail}</A>.
+            </>
+          )}
         </p>
         <FAQ />
         <h2>Create Your Ticket</h2>
@@ -143,7 +151,11 @@ export default function Create() {
               onClick={createSupportTicket}
             >
               <Icon name="paper-plane" />{" "}
-              {!isValidEmailAddress(email)
+              {success
+                ? "Thank you for creating a ticket"
+                : submitError
+                ? "Close the error box to try again"
+                : !isValidEmailAddress(email)
                 ? "Enter Valid Email Address above"
                 : !subject
                 ? "Enter Subject above"
@@ -152,22 +164,34 @@ export default function Create() {
                 : "Create Support Ticket"}
             </Button>
             {submitError && (
-              <Alert
-                type="error"
-                message="Error creating support ticket"
-                description={submitError}
-                closable
-                showIcon
-                onClose={() => setSubmitError("")}
-                style={{ margin: "15px auto", maxWidth: "500px" }}
-              />
+              <div>
+                <Alert
+                  type="error"
+                  message="Error creating support ticket"
+                  description={submitError}
+                  closable
+                  showIcon
+                  onClose={() => setSubmitError("")}
+                  style={{ margin: "15px auto", maxWidth: "500px" }}
+                />
+                <br />
+                {contactEmail && (
+                  <>
+                    If you continue to have problems, email us directly at{" "}
+                    <A href={`mailto:${contactEmail}`}>{contactEmail}</A>.
+                  </>
+                )}
+              </div>
             )}
             {success && (
               <Alert
                 type="success"
                 message="Successfully created support ticket"
                 description={success}
-                onClose={() => setSuccess("")}
+                onClose={() => {
+                  // simplest way to reset all the information in the form.
+                  router.reload();
+                }}
                 closable
                 showIcon
                 style={{ margin: "15px auto", maxWidth: "500px" }}

@@ -9,7 +9,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 
 export default function Tickets() {
   let { result, error } = useAPI("support/tickets");
-  console.log(result);
   return (
     <Layout.Content
       style={{
