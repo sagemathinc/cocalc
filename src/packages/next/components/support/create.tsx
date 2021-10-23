@@ -30,10 +30,12 @@ export default function Create() {
   const [files, setFiles] = useState<{ project_id: string; path?: string }[]>(
     []
   );
-  const [type, setType] = useState<"problem" | "question" | "task">("problem");
+  const [type, setType] = useState<"problem" | "question" | "task">(
+    router.query.type ?? "problem"
+  );
   const [email, setEmail] = useState<string>(account?.email_address ?? "");
-  const [body, setBody] = useState<string>("");
-  const [subject, setSubject] = useState<string>("");
+  const [body, setBody] = useState<string>(router.query.body ?? "");
+  const [subject, setSubject] = useState<string>(router.query.subject ?? "");
 
   const [submitError, setSubmitError] = useState<ReactNode>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -102,23 +104,27 @@ export default function Create() {
         <h1 style={{ textAlign: "center", fontSize: "24pt" }}>
           Create a New Support Ticket
         </h1>
-        <p style={{ fontSize: "12pt" }}>
-          Create a new support ticket below or{" "}
-          <A href="/support/tickets">
-            check the status of your support tickets
-          </A>
-          .{" "}
-          {contactEmail && (
-            <>
-              You can also email us directly at{" "}
-              <A href={`mailto:${contactEmail}`}>{contactEmail}</A>.
-            </>
-          )}
-        </p>
-        <FAQ />
-        <h1>Create Your Ticket</h1>
-        <Instructions />
-        <Divider>Support Ticket</Divider>
+        {router.query.hideExtra != "true" && (
+          <>
+            <p style={{ fontSize: "12pt" }}>
+              Create a new support ticket below or{" "}
+              <A href="/support/tickets">
+                check the status of your support tickets
+              </A>
+              .{" "}
+              {contactEmail && (
+                <>
+                  You can also email us directly at{" "}
+                  <A href={`mailto:${contactEmail}`}>{contactEmail}</A>.
+                </>
+              )}
+            </p>
+            <FAQ />
+            <h1>Create Your Ticket</h1>
+            <Instructions />
+            <Divider>Support Ticket</Divider>
+          </>
+        )}
         <form>
           <VSpace>
             <b>
@@ -140,15 +146,16 @@ export default function Create() {
             <Input
               placeholder="Summarize what this ticket is about..."
               onChange={(e) => setSubject(e.target.value)}
+              defaultValue={subject}
             />
             <br />
             <b>
-              Is this a <i>Problem</i>, <i>Question</i>,{" "}
+              Is this a <i>Problem</i>, <i>Question</i>, or{" "}
               <i>Software Install Task</i>?
             </b>
             <Radio.Group
               name="radiogroup"
-              defaultValue={"problem"}
+              defaultValue={type}
               onChange={(e) => setType(e.target.value)}
             >
               <VSpace>
@@ -167,8 +174,12 @@ export default function Create() {
               </VSpace>
             </Radio.Group>
             <br />
-            <Files onChange={setFiles} />
-            <br />
+            {router.query.hideExtra != "true" && (
+              <>
+                <Files onChange={setFiles} />
+                <br />
+              </>
+            )}
             <b>
               <Status done={body && body.length > 10} /> Description
             </b>
@@ -180,7 +191,9 @@ export default function Create() {
               }}
             >
               {type == "problem" && <Problem onChange={setBody} />}
-              {type == "question" && <Question onChange={setBody} />}
+              {type == "question" && (
+                <Question onChange={setBody} defaultValue={body} />
+              )}
               {type == "task" && <Task onChange={setBody} />}
             </div>
           </VSpace>
@@ -322,10 +335,11 @@ function Problem({ onChange }) {
   );
 }
 
-function Question({ onChange }) {
+function Question({ defaultValue, onChange }) {
   return (
     <Input.TextArea
       rows={6}
+      defaultValue={defaultValue}
       placeholder="Your question..."
       onChange={(e) => onChange(e.target.value)}
     />

@@ -655,6 +655,12 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           onChange={(event) => set_quote_info(event.target.value)}
         />
         <br />
+        <br />
+        <div style={{ fontSize: "12pt" }}>
+          Click the button below to enter the above information in a support
+          request. We will then respond with more information.
+        </div>
+        <br />
         <Button
           size="large"
           disabled={disabled}
@@ -663,7 +669,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         >
           <Icon name="envelope" />
           <Space />
-          <Space /> Please contact me...
+          <Space /> Copy information to support ticket...
         </Button>
       </div>
     );
