@@ -48,7 +48,6 @@ export default function Create() {
       result = { error: `${err}` };
     }
     if (result.error) {
-      console.log("set error to ", result.error);
       setSubmitError(result.error);
     } else {
       setSuccess(
@@ -78,6 +77,13 @@ export default function Create() {
         <h1 style={{ textAlign: "center", fontSize: "24pt" }}>
           Create a New Support Ticket
         </h1>
+        <p style={{ fontSize: "12pt" }}>
+          Create a new support ticket below or{" "}
+          <A href="/support/tickets">
+            check the status of your support tickets
+          </A>
+          .
+        </p>
         <FAQ />
         <h2>Create Your Ticket</h2>
         <Instructions />
@@ -92,7 +98,7 @@ export default function Create() {
             />
             <br />
             <b>
-              Is this a <i>bug report</i> or a <i>question</i>?
+              Is this a <i>Bug Report</i> or a <i>Question</i>?
             </b>
             <Radio.Group
               name="radiogroup"
@@ -177,7 +183,7 @@ export default function Create() {
 function Files({ onChange }) {
   return (
     <VSpace>
-      <b>Relevant Files (Optional)</b>
+      <b>Relevant Files</b>
       Select any relevant files below. This will make it much easier for us to
       quickly understand your problem. If a file isn't listed, please include
       their URL below (e.g., copy and paste from the address bar).
@@ -203,7 +209,7 @@ function Bug({ onChange }) {
           update(
             0,
             e.target.value
-              ? "1. What did you do exactly?\n" + e.target.value
+              ? "**1. What did you do exactly?**\n\n" + e.target.value
               : ""
           )
         }
@@ -216,7 +222,7 @@ function Bug({ onChange }) {
         onChange={(e) =>
           update(
             1,
-            e.target.value ? "2. What happened?\n" + e.target.value : ""
+            e.target.value ? "**2. What happened?**\n\n" + e.target.value : ""
           )
         }
       />
@@ -229,7 +235,7 @@ function Bug({ onChange }) {
           update(
             2,
             e.target.value
-              ? "3. How did this differ from what you expected?\n" +
+              ? "**3. How did this differ from what you expected?**\n\n" +
                   e.target.value
               : ""
           )

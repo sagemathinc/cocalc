@@ -57,7 +57,7 @@ const sign_in = {
 const support = {
   community: { label: "Community" },
   create: { label: "Create Ticket" },
-  status: { label: "Status" },
+  tickets: { label: "Tickets" },
 };
 
 const PAGES = {

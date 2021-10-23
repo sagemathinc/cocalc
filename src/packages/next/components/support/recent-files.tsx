@@ -31,7 +31,7 @@ export default function RecentFiles({ interval, onChange }: Props) {
         project_id: string;
       }[];
     } = {};
-    for (const file of result.files) {
+    for (const file of result.files ?? []) {
       if (projects[file.project_id] == null) {
         projects[file.project_id] = [file];
       } else {
