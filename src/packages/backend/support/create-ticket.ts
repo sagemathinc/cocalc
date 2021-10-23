@@ -44,7 +44,7 @@ export default async function createTicket(options: Options): Promise<string> {
     }
   }
   if (info) {
-    body += "\n\n\n**BROWSER INFO:**\n\n";
+    body += "\n\n\nBROWSER INFO:\n\n";
     body += `\n\n- userAgent="${info.userAgent}"`;
     body += `\n\n- browser="${info.browser}"`;
   }

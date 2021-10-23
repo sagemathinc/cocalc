@@ -34,10 +34,18 @@ export default function Create() {
   const [subject, setSubject] = useState<string>("");
 
   const [submitError, setSubmitError] = useState<ReactNode>("");
+  const [submitting, setSubmitting] = useState<bool>(false);
   const [success, setSuccess] = useState<ReactNode>("");
 
   const submittable = useRef<boolean>(false);
-  submittable.current = !!(isValidEmailAddress(email) && subject && body);
+  submittable.current = !!(
+    !submitting &&
+    !submitError &&
+    !success &&
+    isValidEmailAddress(email) &&
+    subject &&
+    body
+  );
 
   async function createSupportTicket() {
     const info = getBrowserInfo();
@@ -45,16 +53,25 @@ export default function Create() {
     setSubmitError("");
     let result;
     try {
+      setSubmitting(true);
       result = await apiPost("/support/create-ticket", { options });
     } catch (err) {
       result = { error: `${err}` };
+    } finally {
+      setSubmitting(false);
     }
     if (result.error) {
       setSubmitError(result.error);
     } else {
       setSuccess(
         <div>
-          Please save this URL: <A href={result.url}>{result.url}</A>
+          <p>
+            Please save this URL: <A href={result.url}>{result.url}</A>
+          </p>
+          <p>
+            You can also see the{" "}
+            <A href="/support/tickets">status of your support tickets</A>.
+          </p>
         </div>
       );
     }
@@ -151,7 +168,9 @@ export default function Create() {
               onClick={createSupportTicket}
             >
               <Icon name="paper-plane" />{" "}
-              {success
+              {submitting
+                ? "Submitting..."
+                : success
                 ? "Thank you for creating a ticket"
                 : submitError
                 ? "Close the error box to try again"
@@ -163,6 +182,7 @@ export default function Create() {
                 ? "Describe your issue above"
                 : "Create Support Ticket"}
             </Button>
+            {submitting && <Loading style={{ fontSize: "32pt" }} />}
             {submitError && (
               <div>
                 <Alert
@@ -233,7 +253,7 @@ function Bug({ onChange }) {
           update(
             0,
             e.target.value
-              ? "**1. What did you do exactly?**\n\n" + e.target.value
+              ? "\n\n1. What did you do exactly?\n\n" + e.target.value
               : ""
           )
         }
@@ -246,7 +266,7 @@ function Bug({ onChange }) {
         onChange={(e) =>
           update(
             1,
-            e.target.value ? "**2. What happened?**\n\n" + e.target.value : ""
+            e.target.value ? "\n\n2. What happened?\n\n" + e.target.value : ""
           )
         }
       />
@@ -259,7 +279,7 @@ function Bug({ onChange }) {
           update(
             2,
             e.target.value
-              ? "**3. How did this differ from what you expected?**\n\n" +
+              ? "\n\n3. How did this differ from what you expected?\n\n" +
                   e.target.value
               : ""
           )
