@@ -20,17 +20,20 @@ export default async function getAccountInfo(
   };
 }
 
-export async function getName(
-  account_id: string
-): Promise<{ first_name: string; last_name: string; name: string }> {
+export async function getName(account_id: string): Promise<{
+  first_name: string;
+  last_name: string;
+  name: string;
+  email_address: string;
+}> {
   if (!isUUID(account_id)) {
     throw Error("invalid UUID");
   }
-  const pool = getPool("medium");
+  const pool = getPool("long");
 
   // Get the database entry
   const { rows } = await pool.query(
-    "SELECT name, first_name, last_name FROM accounts WHERE account_id=$1",
+    "SELECT name, first_name, last_name, email_address FROM accounts WHERE account_id=$1",
     [account_id]
   );
   if (rows.length == 0) {
@@ -40,6 +43,7 @@ export async function getName(
     first_name: rows[0].first_name,
     last_name: rows[0].last_name,
     name: rows[0].name,
+    email_address: rows[0].email_address,
   };
 }
 

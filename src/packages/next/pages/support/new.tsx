@@ -13,12 +13,12 @@ export default function Preferences({ customize }) {
       <Layout>
         <Header page="support" subPage="new" />
         <Create />
-        <Footer/>
+        <Footer />
       </Layout>
     </Customize>
   );
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomize({ context });
+  return await withCustomize({ context }, { name: true });
 }

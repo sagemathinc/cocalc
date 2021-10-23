@@ -2,7 +2,6 @@ import { Alert, Button, Divider, Space, Input, Layout, Radio } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import A from "components/misc/A";
-import useDatabase from "lib/hooks/database";
 import Loading from "components/share/loading";
 import RecentFiles from "./recent-files";
 import { useRouter } from "next/router";
@@ -22,7 +21,7 @@ function VSpace({ children }) {
 }
 
 export default function Create() {
-  const { contactEmail, zendesk } = useCustomize();
+  const { contactEmail, zendesk, account } = useCustomize();
   const router = useRouter();
   // The URL the user was viewing when they requested support.
   // This could easily be blank, but if it is set it can be useful.
@@ -31,7 +30,7 @@ export default function Create() {
     []
   );
   const [type, setType] = useState<string>("problem");
-  const [email, setEmail] = useState<string>("");
+  const [email, setEmail] = useState<string>(account?.email_address);
   const [body, setBody] = useState<string>("");
   const [subject, setSubject] = useState<string>("");
 
@@ -124,7 +123,15 @@ export default function Create() {
             <b>
               <Status done={isValidEmailAddress(email)} /> Your Email Address
             </b>
-            <Email onChange={setEmail} />
+            <Input
+              prefix={
+                <Icon name="envelope" style={{ color: "rgba(0,0,0,.25)" }} />
+              }
+              defaultValue={email}
+              placeholder="Email address..."
+              style={{ maxWidth: "500px" }}
+              onChange={(e) => setEmail(e.target.value)}
+            />
             <br />
             <b>
               <Status done={subject} /> Subject
@@ -376,29 +383,6 @@ function FAQ() {
         }
       />
     </div>
-  );
-}
-
-function Email({ onChange }) {
-  const { loading, value } = useDatabase({ accounts: { email_address: null } });
-  useEffect(() => {
-    onChange(value.accounts?.email_address);
-  }, [value]);
-
-  return (
-    <VSpace>
-      {loading ? (
-        <Loading />
-      ) : (
-        <Input
-          prefix={<Icon name="envelope" style={{ color: "rgba(0,0,0,.25)" }} />}
-          defaultValue={value.accounts?.email_address}
-          placeholder="Email address..."
-          style={{ maxWidth: "500px" }}
-          onChange={(e) => onChange?.(e.target.value)}
-        />
-      )}
-    </VSpace>
   );
 }
 

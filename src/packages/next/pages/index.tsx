@@ -7,7 +7,6 @@ import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import Head from "components/landing/head";
-import Name from "components/account/name";
 
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
 
@@ -35,8 +34,8 @@ export default function Home({ customize }) {
                 fontWeight: 500,
               }}
             >
-              {" "}
-              Signed in as <Name account_id={customize.account.account_id} />
+              Signed in as {customize.account.first_name}{" "}
+              {customize.account.last_name}
             </div>
           )}
           <Content
@@ -64,5 +63,5 @@ export default function Home({ customize }) {
 }
 
 export async function getServerSideProps(context) {
-  return await withCustomize({ context });
+  return await withCustomize({ context }, { name: true });
 }
