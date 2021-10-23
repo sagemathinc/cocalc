@@ -122,7 +122,7 @@ export default function Create() {
         <form>
           <VSpace>
             <b>
-              <Status done={email} /> Your Email Address
+              <Status done={isValidEmailAddress(email)} /> Your Email Address
             </b>
             <Email onChange={setEmail} />
             <br />
@@ -251,8 +251,8 @@ function Files({ onChange }) {
   return (
     <VSpace>
       <b>Relevant Files</b>
-      Select any relevant files below. This will make it much easier for us to
-      quickly understand your problem.
+      Select any relevant projects and files below. This will make it much
+      easier for us to quickly understand your problem.
       <RecentFiles interval="1 day" onChange={onChange} />
     </VSpace>
   );

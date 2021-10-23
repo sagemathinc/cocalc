@@ -1,7 +1,18 @@
+/*
+Note: The TreeSelect component we use below has numerous accessibility
+issues, which are being tracked upstream:
+
+    https://github.com/ant-design/ant-design/issues/22343
+
+This component significantly degrades our lighthouse accessibility
+score for this page.
+*/
+
 import { ReactNode, useEffect, useState } from "react";
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
 import { Alert, TreeSelect } from "antd";
+import { Placeholder } from "./util";
 
 interface Node {
   title: ReactNode;
@@ -74,7 +85,9 @@ export default function RecentFiles({ interval, onChange }: Props) {
           <TreeSelect
             style={{ width: "100%" }}
             treeData={treeData}
-            placeholder="Search for relevant files..."
+            placeholder={
+              <Placeholder>Search for relevant files...</Placeholder>
+            }
             allowClear
             multiple
             treeDefaultExpandAll={true}

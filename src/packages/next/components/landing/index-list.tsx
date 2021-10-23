@@ -82,7 +82,10 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
         const extra = item.image && (
           <div style={{ width: item.imageWidth ?? "275px" }}>
             <A href={item.link}>
-              <Image src={item.image} alt="Screenshot" />
+              <Image
+                src={item.image}
+                alt={`Screenshot illustrating ${item.title}`}
+              />
             </A>
           </div>
         );
@@ -91,7 +94,7 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
             <List.Item.Meta
               avatar={
                 item.logo && (
-                  <A href={item.link}>
+                  <A href={item.link} alt={item.title + " logo "}>
                     <Avatar
                       alt={item.title + " logo "}
                       size={80}

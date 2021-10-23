@@ -20,3 +20,9 @@ export function NoZendesk() {
     />
   );
 }
+
+export function Placeholder({ children }) {
+  // This is because the placeholder text that antd uses is WAY
+  // too light, according to Google's Lighthouse accessibility score.
+  return <span style={{ color: "#888" }}>{children}</span>;
+}

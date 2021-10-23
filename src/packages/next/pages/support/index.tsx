@@ -1,5 +1,6 @@
 import { Layout } from "antd";
 import Header from "components/landing/header";
+import Head from "components/landing/head";
 import Footer from "components/landing/footer";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
@@ -87,10 +88,11 @@ const dataSource = [
 export default function Preferences({ customize }) {
   return (
     <Customize value={customize}>
+      <Head title="Support" />
       <Layout>
         <Header page="support" />
         <IndexList
-          title="CoCalc Support"
+          title="Support"
           description={
             <>
               We provide excellent support for our customers. If you run into a

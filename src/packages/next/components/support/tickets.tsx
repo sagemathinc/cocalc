@@ -37,7 +37,8 @@ export default function Tickets() {
         </h1>
         <p style={{ fontSize: "12pt" }}>
           Check the status of your support tickets here or{" "}
-          <A href="/support/create">create a new ticket</A>.
+          <A href="/support/create">create a new ticket</A>. Newly created
+          tickets do not appear here for a few minutes.
         </p>
         {error && (
           <Alert
@@ -75,7 +76,7 @@ const COLOR = {
   new: "orange",
   open: "orange",
   pending: "red",
-  solved: "grey",
+  solved: "#666",
 };
 
 function statusToColor(status: string): string {
@@ -155,7 +156,7 @@ export function Type({
 }) {
   return (
     <Tag
-      color={status == "solved" ? "grey" : type == "problem" ? "red" : "blue"}
+      color={status == "solved" ? "#666" : type == "problem" ? "red" : "blue"}
       style={{ fontSize: "12pt" }}
     >
       {capitalize(type)}
