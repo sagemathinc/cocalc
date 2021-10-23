@@ -9,7 +9,7 @@ export default function Preferences({ customize }) {
   return (
     <Customize value={customize}>
       <Layout>
-        <Header page="support" subPage="create" />
+        <Header page="support" subPage="new" />
         <Create />
         <Footer/>
       </Layout>

@@ -39,6 +39,7 @@ import { create_quote_support_ticket } from "./get-a-quote";
 import { QuotaEditor } from "./quota-editor";
 import { DOC_LICENSE_URL } from "../../billing/data";
 import { COLORS } from "@cocalc/util/theme";
+import { supportURL } from "@cocalc/frontend/support/open";
 
 const LENGTH_PRESETS = [
   { label: "2 Days", desc: { n: 2, key: "days" } },
@@ -368,8 +369,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             {
               icon: "calendar-times",
               label: "Start and end dates",
-              desc:
-                "pay for a specific period of time (as short as one day and as long as 2 years).  Licenses start at 0:00 in your local timezone on the start date and end at 23:59 your local time zone on the ending date.",
+              desc: "pay for a specific period of time (as short as one day and as long as 2 years).  Licenses start at 0:00 in your local timezone on the start date and end at 23:59 your local time zone on the ending date.",
               value: "no",
             },
           ]}
@@ -735,13 +735,14 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
 
   function render_instructions() {
     return (
-      <div style={{ marginBottom: "15px" }}>
+      <div style={{ marginBottom: "15px", fontSize: "12pt" }}>
         Buy licenses or request a quote below, as{" "}
         <A href={DOC_LICENSE_URL}>explained here</A>. If you are planning on
         making a significant purchase, but need to test things out first,{" "}
-        <a onClick={() => redux.getActions("support").set_show(true)}>
-          please request a free trial.
-        </a>
+        <A href={supportURL}>
+          create a support ticket and request more details or a free trial
+        </A>
+        .
       </div>
     );
   }
@@ -754,7 +755,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         </>
       }
       extra={<a onClick={onClose}>close</a>}
-      style={{ borderColor: COLORS.BLUE }}
+      style={{ borderColor: COLORS.BLUE, maxWidth: "900px", margin: "auto" }}
     >
       {render_instructions()}
       {render_user()}

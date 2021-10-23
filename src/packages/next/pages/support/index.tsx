@@ -34,14 +34,14 @@ const dataSource = [
     ),
   },
   {
-    link: "/support/create",
+    link: "/support/new",
     title: "Create a New Support Ticket",
     logo: "medkit",
     hide: (customize) => !customize.zendesk,
     description: (
       <>
         If you are having any trouble or just have a question,{" "}
-        <A href="/support/create">
+        <A href="/support/new">
           <b>create a support ticket</b>
         </A>
         .
@@ -97,7 +97,7 @@ export default function Preferences({ customize }) {
               problem, read{" "}
               <A href="https://doc.cocalc.com/">our extensive documentation</A>,{" "}
               <A href="/support/community">check online forums and chatrooms</A>{" "}
-              or <A href="/support/create">create a support ticket</A>.
+              or <A href="/support/new">create a support ticket</A>.
             </>
           }
           dataSource={dataSource}

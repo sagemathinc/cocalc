@@ -57,7 +57,7 @@ const sign_in = {
 
 const support = {
   community: { label: "Community" },
-  create: { label: "Create Ticket", hide: (customize) => !customize.zendesk },
+  new: { label: "New Ticket", hide: (customize) => !customize.zendesk },
   tickets: { label: "Tickets", hide: (customize) => !customize.zendesk },
 };
 

@@ -54,7 +54,7 @@ export default function Footer() {
         )}
         {zendesk && (
           <Item>
-            <A href="/support/create">Support Ticket</A>
+            <A href="/support/new">Support Ticket</A>
           </Item>
         )}
         <Item>

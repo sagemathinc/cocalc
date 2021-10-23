@@ -36,7 +36,7 @@ export default function Create() {
   const [subject, setSubject] = useState<string>("");
 
   const [submitError, setSubmitError] = useState<ReactNode>("");
-  const [submitting, setSubmitting] = useState<bool>(false);
+  const [submitting, setSubmitting] = useState<boolean>(false);
   const [success, setSuccess] = useState<ReactNode>("");
 
   const submittable = useRef<boolean>(false);

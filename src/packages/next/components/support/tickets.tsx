@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Alert, Divider, Layout, Table, Tag, Timeline, Tooltip } from "antd";
+import { Alert, Divider, Layout, Tag, Timeline, Tooltip } from "antd";
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
 import A from "components/misc/A";
@@ -146,7 +146,13 @@ function Status({ status }) {
   );
 }
 
-export function Type({ status, type }) {
+export function Type({
+  status,
+  type,
+}: {
+  status?: string;
+  type: "problem" | "question";
+}) {
   return (
     <Tag
       color={status == "solved" ? "grey" : type == "problem" ? "red" : "blue"}
@@ -159,8 +165,7 @@ export function Type({ status, type }) {
 
 function dateToString(d: string): string {
   try {
-    d = new Date(d);
-    return d.toLocaleString();
+    return new Date(d).toLocaleString();
   } catch (_err) {
     return d;
   }
