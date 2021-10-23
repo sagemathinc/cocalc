@@ -30,7 +30,6 @@ export default async function createTicket(options: Options): Promise<string> {
 
   // create corresponding zendesk user, or get current user if already created.
   const userResult = await client.users.createOrUpdate(user);
-  log.debug("got ", { userResult });
 
   let { body } = options;
 
@@ -58,7 +57,7 @@ export default async function createTicket(options: Options): Promise<string> {
       comment: { body },
       external_id: account_id,
       subject,
-      type: (type == "bug" ? "problem" : "question") as Tickets.TicketType,
+      type: type as Tickets.TicketType,
       // @ts-ignore: @types/node-zendesk is wrong:
       requester_id: userResult.id,
     },

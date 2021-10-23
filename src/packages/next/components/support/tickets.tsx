@@ -6,9 +6,16 @@ import A from "components/misc/A";
 import { capitalize, trunc } from "@cocalc/util/misc";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { NoZendesk } from "./util";
+import { useCustomize } from "lib/customize";
 
 export default function Tickets() {
   let { result, error } = useAPI("support/tickets");
+  const { zendesk } = useCustomize();
+
+  if (!zendesk) {
+    return <NoZendesk />;
+  }
   return (
     <Layout.Content
       style={{
@@ -139,7 +146,7 @@ function Status({ status }) {
   );
 }
 
-function Type({ status, type }) {
+export function Type({ status, type }) {
   return (
     <Tag
       color={status == "solved" ? "grey" : type == "problem" ? "red" : "blue"}

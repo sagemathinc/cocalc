@@ -26,6 +26,7 @@ export default function Footer() {
     termsOfServiceURL,
     contactEmail,
     landingPages,
+    zendesk,
   } = useCustomize();
   return (
     <Layout.Footer
@@ -49,6 +50,11 @@ export default function Footer() {
         {contactEmail && (
           <Item>
             <Contact />
+          </Item>
+        )}
+        {zendesk && (
+          <Item>
+            <A href="/support/create">Support Ticket</A>
           </Item>
         )}
         <Item>

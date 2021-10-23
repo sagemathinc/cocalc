@@ -1,4 +1,4 @@
-import { Alert, Button, Space, Input, Layout, Radio } from "antd";
+import { Alert, Button, Divider, Space, Input, Layout, Radio } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import A from "components/misc/A";
@@ -10,6 +10,8 @@ import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc
 import apiPost from "lib/api/post";
 import getBrowserInfo from "./browser-info";
 import { useCustomize } from "lib/customize";
+import { NoZendesk } from "./util";
+import { Type } from "./tickets";
 
 function VSpace({ children }) {
   return (
@@ -20,7 +22,7 @@ function VSpace({ children }) {
 }
 
 export default function Create() {
-  const { contactEmail } = useCustomize();
+  const { contactEmail, zendesk } = useCustomize();
   const router = useRouter();
   // The URL the user was viewing when they requested support.
   // This could easily be blank, but if it is set it can be useful.
@@ -28,7 +30,7 @@ export default function Create() {
   const [files, setFiles] = useState<{ project_id: string; path?: string }[]>(
     []
   );
-  const [type, setType] = useState<string>("bug");
+  const [type, setType] = useState<string>("problem");
   const [email, setEmail] = useState<string>("");
   const [body, setBody] = useState<string>("");
   const [subject, setSubject] = useState<string>("");
@@ -46,6 +48,10 @@ export default function Create() {
     subject &&
     body
   );
+
+  if (!zendesk) {
+    return <NoZendesk />;
+  }
 
   async function createSupportTicket() {
     const info = getBrowserInfo();
@@ -110,33 +116,39 @@ export default function Create() {
           )}
         </p>
         <FAQ />
-        <h2>Create Your Ticket</h2>
+        <h1>Create Your Ticket</h1>
         <Instructions />
+        <Divider>Support Ticket</Divider>
         <form>
           <VSpace>
+            <b>
+              <Status done={email} /> Your Email Address
+            </b>
             <Email onChange={setEmail} />
             <br />
-            <b>Subject</b>
+            <b>
+              <Status done={subject} /> Subject
+            </b>
             <Input
-              placeholder="Summarize what's happening..."
+              placeholder="Summarize what this ticket is about..."
               onChange={(e) => setSubject(e.target.value)}
             />
             <br />
             <b>
-              Is this a <i>Bug Report</i> or a <i>Question</i>?
+              Is this a <i>Problem</i> or a <i>Question</i>?
             </b>
             <Radio.Group
               name="radiogroup"
-              defaultValue={"bug"}
+              defaultValue={"problem"}
               onChange={(e) => setType(e.target.value)}
             >
               <VSpace>
-                <Radio value={"bug"}>
-                  <b>Bug report: </b> something is not working the way I think
-                  it should work.
+                <Radio value={"problem"}>
+                  <Type type="problem" /> Something is not working the way I
+                  think it should work.
                 </Radio>
                 <Radio value={"question"}>
-                  <b>Question:</b> I have a question about billing,
+                  <Type type="question" /> I have a question about billing,
                   functionality, teaching, etc.
                 </Radio>
               </VSpace>
@@ -144,16 +156,27 @@ export default function Create() {
             <br />
             <Files onChange={setFiles} />
             <br />
-            {type == "bug" ? (
-              <Bug onChange={setBody} />
-            ) : (
-              <Question onChange={setBody} />
-            )}
+            <b>
+              <Status done={body && body.length > 10} /> Description
+            </b>
+            <div
+              style={{
+                marginLeft: "30px",
+                borderLeft: "1px solid lightgrey",
+                paddingLeft: "15px",
+              }}
+            >
+              {type == "problem" ? (
+                <Problem onChange={setBody} />
+              ) : (
+                <Question onChange={setBody} />
+              )}
+            </div>
           </VSpace>
           <p style={{ marginTop: "30px" }}>
             After submitting this ticket, you'll receive a link, which you
             should save until you receive a confirmation email. You can also{" "}
-            <A href="/support/status">
+            <A href="/support/tickets">
               check the status of your support tickets
             </A>
             .
@@ -229,14 +252,13 @@ function Files({ onChange }) {
     <VSpace>
       <b>Relevant Files</b>
       Select any relevant files below. This will make it much easier for us to
-      quickly understand your problem. If a file isn't listed, please include
-      their URL below (e.g., copy and paste from the address bar).
+      quickly understand your problem.
       <RecentFiles interval="1 day" onChange={onChange} />
     </VSpace>
   );
 }
 
-function Bug({ onChange }) {
+function Problem({ onChange }) {
   const answers = useRef<[string, string, string]>(["", "", ""]);
   function update(i: 0 | 1 | 2, value: string): void {
     answers.current[i] = value;
@@ -245,7 +267,7 @@ function Bug({ onChange }) {
 
   return (
     <VSpace>
-      <b>1. What did you do exactly?</b>
+      <b>What did you do exactly?</b>
       <Input.TextArea
         rows={3}
         placeholder="Describe what you did..."
@@ -259,7 +281,7 @@ function Bug({ onChange }) {
         }
       />
       <br />
-      <b>2. What happened?</b>
+      <b>What happened?</b>
       <Input.TextArea
         rows={3}
         placeholder="Tell us what happened..."
@@ -271,7 +293,7 @@ function Bug({ onChange }) {
         }
       />
       <br />
-      <b>3. How did this differ from what you expected?</b>
+      <b>How did this differ from what you expected?</b>
       <Input.TextArea
         rows={4}
         placeholder="Explain how this differs from what you expected..."
@@ -291,14 +313,11 @@ function Bug({ onChange }) {
 
 function Question({ onChange }) {
   return (
-    <VSpace>
-      <b>Your Question</b>
-      <Input.TextArea
-        rows={6}
-        placeholder="Your question..."
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </VSpace>
+    <Input.TextArea
+      rows={6}
+      placeholder="Your question..."
+      onChange={(e) => onChange(e.target.value)}
+    />
   );
 }
 
@@ -318,7 +337,6 @@ function FAQ() {
     <div>
       {" "}
       <h2>Frequently Asked Questions</h2>
-      Check the frequent questions first:
       <Alert
         message={""}
         style={{ margin: "20px 30px" }}
@@ -345,13 +363,14 @@ function FAQ() {
             </li>
             <li>
               {" "}
+              I have{" "}
               <A href="https://doc.cocalc.com/howto/sage-question.html">
-                I have questions about SageMath.
+                questions about SageMath.
               </A>
             </li>
             <li>
-              I need to quickly chat. Visit the{" "}
-              <A href="https://discord.gg/nEHs2GK">CoCalc Discord server</A>.
+              I just need to{" "}
+              <A href="https://discord.gg/nEHs2GK">quickly chat</A>.
             </li>
           </ul>
         }
@@ -368,7 +387,6 @@ function Email({ onChange }) {
 
   return (
     <VSpace>
-      <b>Email Address</b>
       {loading ? (
         <Loading />
       ) : (
@@ -381,5 +399,18 @@ function Email({ onChange }) {
         />
       )}
     </VSpace>
+  );
+}
+
+function Status({ done }) {
+  return (
+    <Icon
+      style={{
+        color: done ? "green" : "red",
+        fontWeight: "bold",
+        fontSize: "12pt",
+      }}
+      name={done ? "check" : "arrow-right"}
+    />
   );
 }

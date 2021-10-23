@@ -9,3 +9,4 @@ const CustomizeContext = createContext<Partial<Customize>>({});
 const { Provider } = CustomizeContext;
 export const useCustomize = () => useContext(CustomizeContext) ?? {};
 export { Provider as Customize };
+export type { Customize as CustomizeType };

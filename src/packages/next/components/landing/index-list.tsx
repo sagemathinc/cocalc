@@ -4,7 +4,7 @@ import Image, { StaticImageData } from "components/landing/image";
 import A from "components/misc/A";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { Layout } from "antd";
-import useCustomize from "lib/use-customize";
+import useCustomize, { CustomizeType } from "lib/use-customize";
 
 export interface Item {
   link: string;
@@ -15,6 +15,7 @@ export interface Item {
   description: ReactNode;
   shareServer?: boolean; // only show if the share server is enabled
   landingPages?: boolean; // only show if landing pages are enabled.
+  hide?: (CustomizeType) => boolean; // if returns true, then this item will be hidden.
 }
 
 export type DataSource = Item[];
@@ -28,11 +29,13 @@ interface Props {
 }
 
 export default function IndexList({ title, description, dataSource }: Props) {
-  const { shareServer, landingPages } = useCustomize();
+  const customize = useCustomize();
+  const { shareServer, landingPages } = customize;
   const filtedDataSource = useMemo(() => {
     return dataSource.filter((item) => {
       if (item.shareServer && !shareServer) return false;
       if (item.landingPages && !landingPages) return false;
+      if (item.hide?.(customize)) return false;
       return true;
     });
   }, [shareServer, landingPages, dataSource]);

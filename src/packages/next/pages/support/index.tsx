@@ -37,6 +37,7 @@ const dataSource = [
     link: "/support/create",
     title: "Create a New Support Ticket",
     logo: "medkit",
+    hide: (customize) => !customize.zendesk,
     description: (
       <>
         If you are having any trouble or just have a question,{" "}
@@ -51,6 +52,7 @@ const dataSource = [
     link: "/support/tickets",
     title: "Status of Support Tickets",
     logo: "life-saver",
+    hide: (customize) => !customize.zendesk,
     description: (
       <>
         Check on the{" "}
@@ -66,6 +68,7 @@ const dataSource = [
     link: "https://docs.google.com/forms/d/e/1FAIpQLSesDZkGD2XVu8BHKd_sPwn5g7MrLAA8EYRTpB6daedGVMTpkA/viewform",
     title: "Request a Live Demo!",
     logo: "video-camera",
+    hide: (customize) => !customize.isCommercial,
     description: (
       <>
         If you're seriously considering using CoCalc to teach a course, but

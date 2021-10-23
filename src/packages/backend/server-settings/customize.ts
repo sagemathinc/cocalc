@@ -22,6 +22,7 @@ export interface Customize {
   googleAnalytics?: string;
   anonymousSignup?: boolean;
   emailSignup?: boolean;
+  zendesk?: boolean; // true if zendesk support is configured.
 }
 
 const fallback = (a?: string, b?: string): string =>
@@ -73,5 +74,10 @@ export default async function getCustomize(): Promise<Customize> {
     dns: settings.dns,
     // site url combines the dns, https:// and the basePath.  It never ends in a slash!
     siteURL: await siteURL(settings.dns),
+
+    zendesk:
+      settings.zendesk_token &&
+      settings.zendesk_username &&
+      settings.zendesk_uri,
   } as Customize;
 }

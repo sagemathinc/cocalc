@@ -1,6 +1,7 @@
 import { r_join } from "@cocalc/frontend/components/r_join";
 import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { useCustomize } from "lib/customize";
 
 const software = {
   executables: { label: "Executables" },
@@ -56,8 +57,8 @@ const sign_in = {
 
 const support = {
   community: { label: "Community" },
-  create: { label: "Create Ticket" },
-  tickets: { label: "Tickets" },
+  create: { label: "Create Ticket", hide: (customize) => !customize.zendesk },
+  tickets: { label: "Tickets", hide: (customize) => !customize.zendesk },
 };
 
 const PAGES = {
@@ -89,6 +90,7 @@ interface Props {
 }
 
 export default function SubNav({ page, subPage }: Props) {
+  const customize = useCustomize();
   const tabs: JSX.Element[] = [
     <SubPageTab
       key={"index"}
@@ -103,6 +105,7 @@ export default function SubNav({ page, subPage }: Props) {
   if (p == null) return null;
   for (const name in p) {
     if (p[name]?.disabled) continue;
+    if (p[name]?.hide?.(customize)) continue;
     tabs.push(
       <SubPageTab
         key={name}
