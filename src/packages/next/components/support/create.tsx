@@ -21,6 +21,13 @@ function VSpace({ children }) {
   );
 }
 
+type Type = "problem" | "question" | "task";
+
+function stringToType(s?: any): Type {
+  if (s == "problem" || s == "question" || s == "task") return s;
+  return "problem"; // default;
+}
+
 export default function Create() {
   const { contactEmail, zendesk, account } = useCustomize();
   const router = useRouter();
@@ -30,12 +37,14 @@ export default function Create() {
   const [files, setFiles] = useState<{ project_id: string; path?: string }[]>(
     []
   );
-  const [type, setType] = useState<"problem" | "question" | "task">(
-    router.query.type ? router.query.type : "problem"
-  );
+  const [type, setType] = useState<Type>(stringToType(router.query.type));
   const [email, setEmail] = useState<string>(account?.email_address ?? "");
-  const [body, setBody] = useState<string>(router.query.body ?? "");
-  const [subject, setSubject] = useState<string>(router.query.subject ?? "");
+  const [body, setBody] = useState<string>(
+    router.query.body ? `${router.query.body}` : ""
+  );
+  const [subject, setSubject] = useState<string>(
+    router.query.subject ? `${router.query.subject}` : ""
+  );
 
   const [submitError, setSubmitError] = useState<ReactNode>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
