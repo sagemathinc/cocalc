@@ -9,7 +9,7 @@ import { TerminalSettings } from "./terminal-settings";
 import { KeyboardSettings } from "./keyboard-settings";
 import { AccountSettings } from "./settings/account-settings";
 import { Row, Col } from "../antd-bootstrap";
-import { Footer } from "../customize";
+import { Footer } from "@cocalc/frontend/customize";
 import { OtherSettings } from "./other-settings";
 import { EditorSettings } from "./editor-settings/editor-settings";
 import { Loading } from "../components";

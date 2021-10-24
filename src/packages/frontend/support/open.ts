@@ -1,6 +1,6 @@
 // Opens support page in a new browser tab
 // with url query param set to the current location.
-import { open_popup_window as openPopupWindow } from "@cocalc/frontend/misc/open-browser-tab";
+import { open_new_tab as openNewTab } from "@cocalc/frontend/misc/open-browser-tab";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
 
@@ -20,7 +20,7 @@ export default function openSupport(options: Options = {}) {
     options.url = window.location.href;
   }
   // Note that this is a 2K limit on URL lengths, so the body had better not be too large.
-  openPopupWindow(
+  openNewTab(
     encodeURI(
       supportURL +
         `?hideExtra=${options.hideExtra}&url=${options.url}&type=${

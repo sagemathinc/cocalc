@@ -3,12 +3,10 @@ import { redux, useRedux } from "../../app-framework";
 import { A } from "../../components";
 import { SSHKeyAdder } from "./ssh-key-adder";
 import { SSHKeyList } from "./ssh-key-list";
+import { Footer } from "@cocalc/frontend/customize";
 
 export const SSHKeysPage: React.FC = () => {
-  const ssh_keys = useRedux(
-    "account",
-    "ssh_keys",
-  );
+  const ssh_keys = useRedux("account", "ssh_keys");
 
   function render_pre_list_message() {
     return (
@@ -60,6 +58,7 @@ export const SSHKeysPage: React.FC = () => {
           </div>
         </Col>
       </Row>
+      <Footer />
     </div>
   );
 };

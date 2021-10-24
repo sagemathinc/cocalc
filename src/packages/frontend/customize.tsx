@@ -9,6 +9,7 @@ import { List } from "immutable";
 import { redux, Redux, rclass, rtypes, Store, Actions } from "./app-framework";
 import React from "react";
 import {
+  A,
   Loading,
   Space,
   smc_version,
@@ -220,15 +221,11 @@ const HelpEmailLink0 = rclass<Props0>(
       if (this.props._is_configured) {
         if (this.props.help_email?.length > 0) {
           return (
-            <a
-              href={`mailto:${this.props.help_email}`}
-              target="_blank"
-              style={style}
-            >
+            <A href={`mailto:${this.props.help_email}`} style={style}>
               {this.props.text != undefined
                 ? this.props.text
                 : this.props.help_email}
-            </a>
+            </A>
           );
         } else {
           return (
@@ -456,23 +453,20 @@ const FooterElement = rclass<{}>(
         `Version ${smc_version} @ ${build_date}` +
         ` | ${smc_git_rev.slice(0, 8)}`;
       const style: React.CSSProperties = {
-        fontSize: "small",
         color: "gray",
         textAlign: "center",
-        padding: `${2 * UNIT}px 0`,
+        paddingBottom: `${UNIT}px`,
       };
       return (
         <footer style={style}>
           <hr />
           <Space />
-          <a href={appBasePath}>
+          <A href={appBasePath}>
             <SiteName /> by {orga} &middot;{" "}
-          </a>
-          <a target="_blank" rel="noopener" href={TOSurl}>
-            Terms of Service
-          </a>{" "}
-          &middot; <HelpEmailLink /> &middot;{" "}
-          <span title={yt}>&copy; {YEAR}</span>
+          </A>
+          <A href={join(appBasePath, "info/status")}>System Status &middot; </A>
+          <A href={TOSurl}>Terms of Service</A> &middot; <HelpEmailLink />{" "}
+          &middot; <span title={yt}>&copy; {YEAR}</span>
         </footer>
       );
     }
@@ -491,14 +485,11 @@ export function Footer() {
 // react-class with a 'type' prop is the next step (TODO)
 // then consolidate this with the existing site-settings database (e.g. TOS above is one fixed HTML string with an anchor)
 
-export const PolicyIndexPageUrl = join(appBasePath, "policies/index.html");
-export const PolicyPricingPageUrl = join(appBasePath, "policies/pricing.html");
-export const PolicyPrivacyPageUrl = join(appBasePath, "policies/privacy.html");
-export const PolicyCopyrightPageUrl = join(
-  appBasePath,
-  "policies/copyright.html"
-);
-export const PolicyTOSPageUrl = join(appBasePath, "policies/terms.html");
+export const PolicyIndexPageUrl = join(appBasePath, "policies");
+export const PolicyPricingPageUrl = join(appBasePath, "policies/pricing");
+export const PolicyPrivacyPageUrl = join(appBasePath, "policies/privacy");
+export const PolicyCopyrightPageUrl = join(appBasePath, "policies/copyright");
+export const PolicyTOSPageUrl = join(appBasePath, "policies/terms");
 
 import { gtag_id } from "@cocalc/util/theme";
 async function init_analytics() {
