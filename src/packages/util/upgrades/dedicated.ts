@@ -19,9 +19,14 @@ function rawPrice2Retail(p: number): number {
 
 const VMS_DATA: VMsType[string][] = [
   {
+    price_day: rawPrice2Retail(70.90),
+    spec: { mem: 7, cpu: 2 },
+    quota: { dedicated_vm: "n2-standard-2" },
+  },
+  {
     price_day: rawPrice2Retail(95.64),
     spec: { mem: 15, cpu: 2 },
-    quota: { dedicated_vm: "n2-standard-2" },
+    quota: { dedicated_vm: "n2-highmem-2" },
   },
   {
     price_day: rawPrice2Retail(141.79),
@@ -30,12 +35,12 @@ const VMS_DATA: VMsType[string][] = [
   },
   {
     price_day: rawPrice2Retail(191.28),
-    spec: { mem: 30, cpu: 4 },
+    spec: { mem: 31, cpu: 4 },
     quota: { dedicated_vm: "n2-highmem-4" },
   },
   {
     price_day: rawPrice2Retail(283.58),
-    spec: { mem: 30, cpu: 4 },
+    spec: { mem: 31, cpu: 8 },
     quota: { dedicated_vm: "n2-standard-8" },
   },
   {

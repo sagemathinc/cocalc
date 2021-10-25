@@ -648,6 +648,8 @@ export function quota(
       always_running: true,
       memory_limit: 128 * 1000, //  fallback, hence this setting is very high!
       cpu_limit: 16, // fallback, hence this setting is very high!
+      disk_quota: quota.disk_quota, // TODO: introduce disk quotas for VMs or use dedicated disks
+      idle_timeout: quota.idle_timeout, // always_running is true, but it's sane to set this > 0
     };
     if (vm == null) {
       console.log(`no VM spec known for machine "${dedicated_vm.machine}"`);

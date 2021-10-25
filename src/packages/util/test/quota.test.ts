@@ -1331,16 +1331,21 @@ describe("default quota", () => {
       },
     };
     const q = quota({}, { userX: {} }, site_license);
-    expect(q.dedicated_vm).toEqual({ machine: "n2-highmem-8", name: "foo" });
     // projects on dedicated VMs get this quota
-    expect(q.always_running).toBe(true);
-    expect(q.member_host).toBe(true);
-    expect(q.network).toBe(true);
-    expect(q.memory_limit).toBe(62000);
-    expect(q.cpu_limit).toBe(8);
-    expect(q.dedicated_disks).toEqual([
-      { type: "standard", size_gb: 128, name: "bar" },
-    ]);
+    expect(q).toEqual({
+      network: true, // paying user
+      member_host: true, // for the UI, not functionality
+      always_running: true, // included for dedi VMs
+      memory_request: 0, // irrelevant
+      memory_limit: 62000, // according to VM specs
+      cpu_request: 0, // irrelevant
+      cpu_limit: 8, // according to VM specs
+      privileged: false,
+      idle_timeout: 1800, // default, just > 0, always_running is true anyways
+      disk_quota: 3000,
+      dedicated_disks: [{ type: "standard", size_gb: 128, name: "bar" }],
+      dedicated_vm: { machine: "n2-highmem-8", name: "foo" },
+    });
   });
 
   it("dedicated vm do not mix with quotas", () => {
