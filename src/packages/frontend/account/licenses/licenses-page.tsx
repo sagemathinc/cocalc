@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
 import { ManagedLicenses } from "./managed-licenses";
 import { ProjectsWithLicenses } from "./projects-with-licenses";
 import { AboutLicenses } from "./about-licenses";
 import { PurchaseOneLicenseLink } from "../../site-licenses/purchase";
+import { Footer } from "@cocalc/frontend/customize";
 
 export const LicensesPage: React.FC = () => {
   return (
@@ -19,6 +19,8 @@ export const LicensesPage: React.FC = () => {
       <ManagedLicenses />
       <br />
       <ProjectsWithLicenses />
+      <br />
+      <Footer />
     </div>
   );
 };

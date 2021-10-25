@@ -21,14 +21,19 @@ export default function Account({
   account_id,
 }: Props) {
   if (first_name == null || last_name == null || publicPaths == null) {
-    return <Loading />;
+    return <Loading style={{ fontSize: "30px" }} />;
   }
   const name = trunc(`${first_name} ${last_name}`, 150);
   return (
     <Customize value={customize}>
       <Layout title={name}>
         <h1>
-          <Avatar account_id={account_id} size={64} style={{float:'right'}} /> {name}
+          <Avatar
+            account_id={account_id}
+            size={64}
+            style={{ float: "right" }}
+          />{" "}
+          {name}
         </h1>
         {name} is a collaborator on projects that contain the following public
         documents:

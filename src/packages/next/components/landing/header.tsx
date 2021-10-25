@@ -89,7 +89,7 @@ export default function Header({ page, subPage }: Props) {
               href="/features/"
               style={page == "features" ? SelectedStyle : LinkStyle}
             >
-              Why CoCalc?
+              Why?
             </A>
             <A
               href="/software"
@@ -102,12 +102,6 @@ export default function Header({ page, subPage }: Props) {
               style={page == "pricing" ? SelectedStyle : LinkStyle}
             >
               Pricing
-            </A>
-            <A
-              href="/policies"
-              style={page == "policies" ? SelectedStyle : LinkStyle}
-            >
-              Policies
             </A>
           </>
         )}
@@ -137,6 +131,13 @@ export default function Header({ page, subPage }: Props) {
         >
           Info
         </A>
+        <A
+          style={page == "support" ? SelectedStyle : LinkStyle}
+          href="/support"
+          title="Create and view support tickets"
+        >
+          Support
+        </A>{" "}
         {!account && anonymousSignup && (
           <A
             style={page == "try" ? SelectedStyle : LinkStyle}
@@ -146,6 +147,14 @@ export default function Header({ page, subPage }: Props) {
             Try {siteName}
           </A>
         )}{" "}
+        {landingPages && (
+          <A
+            href="/policies"
+            style={page == "policies" ? SelectedStyle : LinkStyle}
+          >
+            Policies
+          </A>
+        )}
         {account ? (
           <a
             style={LinkStyle}

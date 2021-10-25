@@ -3,7 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, redux } from "../app-framework";
+import React from "react";
+import openSupport from "./open";
 
 interface Props {
   text?: string;
@@ -11,7 +12,7 @@ interface Props {
 
 function show(evt) {
   evt.preventDefault();
-  redux.getActions("support").set_show(true);
+  openSupport();
 }
 
 export const ShowSupportLink: React.FC<Props> = React.memo(({ text }) => {

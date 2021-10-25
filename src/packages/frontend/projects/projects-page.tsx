@@ -30,6 +30,7 @@ import { Hashtags } from "./hashtags";
 import { ProjectsListingDescription } from "./project-list-desc";
 import { ProjectList } from "./project-list";
 import { get_visible_projects, get_visible_hashtags } from "./util";
+import { Footer } from "@cocalc/frontend/customize";
 
 const PROJECTS_TITLE_STYLE: React.CSSProperties = {
   color: "#666",
@@ -196,6 +197,7 @@ export const ProjectsPage: React.FC = () => {
           <ProjectList visible_projects={visible_projects} />
         </Col>
       </Row>
+      <Footer/>
     </Col>
   );
 };

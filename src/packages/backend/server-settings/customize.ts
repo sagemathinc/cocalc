@@ -1,4 +1,5 @@
 import { getServerSettings } from "./server-settings";
+import siteURL from "./site-url";
 
 export interface Customize {
   siteName?: string;
@@ -10,7 +11,6 @@ export interface Customize {
   helpEmail?: string;
   contactEmail?: string;
   isCommercial?: boolean;
-  anonymousSignup?: boolean;
   logoSquareURL?: string;
   logoRectangularURL?: string;
   splashImage?: string;
@@ -18,7 +18,11 @@ export interface Customize {
   shareServer?: boolean;
   landingPages?: boolean;
   dns?: string;
+  siteURL?: string;
   googleAnalytics?: string;
+  anonymousSignup?: boolean;
+  emailSignup?: boolean;
+  zendesk?: boolean; // true if zendesk support is configured.
 }
 
 const fallback = (a?: string, b?: string): string =>
@@ -51,6 +55,7 @@ export default async function getCustomize(): Promise<Customize> {
     isCommercial: settings.commercial,
 
     anonymousSignup: settings.anonymous_signup,
+    emailSignup: settings.email_signup,
 
     logoSquareURL: settings.logo_square,
     logoRectangularURL: settings.logo_rectangular,
@@ -67,5 +72,12 @@ export default async function getCustomize(): Promise<Customize> {
     // can be used for links to edit share document in main site; needed if main site
     // on different domain than share server, e.g., share.cocalc.com vs cocalc.com.
     dns: settings.dns,
+    // site url combines the dns, https:// and the basePath.  It never ends in a slash!
+    siteURL: await siteURL(settings.dns),
+
+    zendesk:
+      settings.zendesk_token &&
+      settings.zendesk_username &&
+      settings.zendesk_uri,
   } as Customize;
 }

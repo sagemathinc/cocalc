@@ -173,7 +173,6 @@ export class AppRedux {
   getActions(name: "billing"): types.BillingActions;
   getActions(name: "page"): types.PageActions;
   getActions(name: "users"): types.UsersActions;
-  getActions(name: "support"): types.SupportActions;
   getActions(name: "admin-users"): types.AdminUsersActions;
   getActions(name: "admin-site-licenses"): types.SiteLicensesActions;
   getActions(name: "mentions"): types.MentionsActions;
@@ -237,7 +236,6 @@ export class AppRedux {
   getStore(name: "projects"): types.ProjectsStore;
   getStore(name: "billing"): types.BillingStore;
   getStore(name: "page"): types.PageStore;
-  getStore(name: "support"): types.SupportStore;
   getStore(name: "admin-users"): types.AdminUsersStore;
   getStore(name: "admin-site-licenses"): types.SiteLicensesStore;
   getStore(name: "mentions"): types.MentionsStore;

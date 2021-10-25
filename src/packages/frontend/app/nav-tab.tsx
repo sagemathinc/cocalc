@@ -46,7 +46,12 @@ export const NavTab: React.FC<Props> = React.memo((props) => {
   function render_icon() {
     if (props.icon != null) {
       if (typeof props.icon === "string") {
-        return <Icon name={props.icon} style={{ paddingRight: 2 }} />;
+        return (
+          <Icon
+            name={props.icon}
+            style={{ paddingRight: 2, fontSize: "20px" }}
+          />
+        );
       } else {
         return props.icon;
       }

@@ -1837,11 +1837,6 @@ export function peer_grading(
   return assignment;
 }
 
-// Converts ticket number to support ticket url (currently zendesk)
-export function ticket_id_to_ticket_url(tid: string): string {
-  return `https://sagemathcloud.zendesk.com/requests/${tid}`;
-}
-
 // Checks if the string only makes sense (heuristically) as downloadable url
 export function is_only_downloadable(s: string): boolean {
   return s.indexOf("://") !== -1 || startswith(s, "git@github.com");

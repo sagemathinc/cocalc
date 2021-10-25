@@ -1,5 +1,6 @@
 import { Layout } from "antd";
 import Header from "components/landing/header";
+import Footer from "components/landing/footer";
 import ConfigLayout from "components/account/config/layout";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
@@ -9,7 +10,8 @@ export default function Preferences({ customize, page }) {
     <Customize value={customize}>
       <Layout>
         <Header />
-        <ConfigLayout page={page}/>
+        <ConfigLayout page={page} />
+        <Footer />
       </Layout>
     </Customize>
   );

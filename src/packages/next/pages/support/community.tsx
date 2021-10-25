@@ -216,8 +216,8 @@ const dataSource = [
 export default function Connect({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="Connect with the Community" />
-      <Header page="info" subPage="connect" />
+      <Head title="Community Support" />
+      <Header page="support" subPage="community" />
       <Layout.Content
         style={{
           backgroundColor: "white",

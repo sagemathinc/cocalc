@@ -25,7 +25,6 @@ import { set_agent_endpoint } from "./health-checks";
 import initHandleMentions from "@cocalc/backend/mentions/handle";
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 import { start as startHubRegister } from "./hub_register";
-const initZendesk = require("./support").init_support; // import { init_support as initZendesk } from "./support";
 import { getClients } from "./clients";
 import { stripe_sync } from "./stripe/sync";
 import { init_stripe } from "./stripe";
@@ -170,10 +169,6 @@ async function startServer(): Promise<void> {
     // Stripe
     winston.info("initializing stripe support...");
     await init_stripe(database, winston);
-
-    // Zendesk
-    winston.info("initializing zendesk support...");
-    await callback(initZendesk);
 
     if (program.mode == "single-user" && process.env.USER == "user") {
       // Definitely in dev mode, probably on cocalc.com in a project, so we kill

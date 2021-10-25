@@ -17,9 +17,16 @@ import {
 import { PublicPath as PublicPath0 } from "@cocalc/util/db-schema/public-paths";
 import { trunc, trunc_middle } from "@cocalc/util/misc";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { ErrorDisplay, Icon, Loading, Space, TimeAgo } from "@cocalc/frontend/components";
+import {
+  ErrorDisplay,
+  Icon,
+  Loading,
+  Space,
+  TimeAgo,
+} from "@cocalc/frontend/components";
 import { UnpublishEverything } from "./unpublish-everything";
 import { LICENSES } from "@cocalc/frontend/share/licenses";
+import { Footer } from "@cocalc/frontend/customize";
 
 interface PublicPath extends PublicPath0 {
   status?: string;
@@ -215,6 +222,8 @@ export const PublicPaths: React.FC = () => {
         <Table rowKey="id" columns={COLUMNS} dataSource={paths} />
       )}
       <UnpublishEverything data={data} refresh={fetch} />
+      <br />
+      <Footer />
     </div>
   );
 };

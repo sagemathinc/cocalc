@@ -61,10 +61,6 @@ export type { PageState } from "../app/store";
 export { ProjectsActions } from "../projects/actions";
 export { ProjectsStore } from "../projects/store";
 export type { ProjectsState } from "../projects/store";
-// support
-export { SupportStore } from "../support/store";
-export { SupportActions } from "../support/actions";
-export type { SupportState } from "../support/types";
 // users
 export { UsersStore } from "../users/store";
 export { UsersActions } from "../users/actions";

@@ -40,24 +40,6 @@ const dataSource: DataSource = [
   },
   {
     landingPages: true,
-    link: "https://docs.google.com/forms/d/e/1FAIpQLSesDZkGD2XVu8BHKd_sPwn5g7MrLAA8EYRTpB6daedGVMTpkA/viewform",
-    title: "Request a Live Demo!",
-    logo: "video-camera",
-    description: (
-      <>
-        If you're seriously considering using CoCalc to teach a course, but
-        aren't sure of some of the details and really need to just{" "}
-        <b>talk to a person</b>,{" "}
-        <A href="https://docs.google.com/forms/d/e/1FAIpQLSesDZkGD2XVu8BHKd_sPwn5g7MrLAA8EYRTpB6daedGVMTpkA/viewform">
-          fill out this form and request a live video chat with us
-        </A>
-        . We love chatting (in English and German), and will hopefully be able
-        to answer all of your questions.
-      </>
-    ),
-  },
-  {
-    landingPages: true,
     link: "https://github.com/sagemathinc/cocalc-desktop#readme",
     title: "Install the CoCalc Desktop Application",
     logo: "laptop",
@@ -91,7 +73,7 @@ const dataSource: DataSource = [
 ] as DataSource;
 
 export default function Help({ customize }) {
-  const { siteName, contactEmail } = customize;
+  const { contactEmail } = customize;
   let data = dataSource;
   if (contactEmail) {
     const link = `mailto:${contactEmail}`;
@@ -116,8 +98,8 @@ export default function Help({ customize }) {
   }
   return (
     <Customize value={customize}>
-      <Head title="Help and Support" />
-      <Header page="info" subPage="help" />
+      <Head title="CoCalc Documentation" />
+      <Header page="info" subPage="doc" />
       <Layout.Content
         style={{
           backgroundColor: "white",
@@ -135,7 +117,7 @@ export default function Help({ customize }) {
             title={
               <>
                 <Icon name="life-saver" style={{ marginRight: "30px" }} />
-                {siteName} - Help and Support
+                CoCalc - Documentation
               </>
             }
             description={
