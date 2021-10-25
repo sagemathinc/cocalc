@@ -280,7 +280,12 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       if (nbconvert_dialog == null) {
         return []; // broken case -- shouldn't happen
       }
-      return ["--to", nbconvert_dialog.get("to")];
+      const to = nbconvert_dialog.get("to");
+      const v = ["--to", to];
+      if (to == "html") {
+        v.push(...["--template", "classic"]);
+      }
+      return v;
     }
 
     function run(): void {
@@ -332,8 +337,9 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
     }
 
     function slides_url(): string {
-      const base = misc.separate_file_extension(misc.path_split(path).tail)
-        .name;
+      const base = misc.separate_file_extension(
+        misc.path_split(path).tail
+      ).name;
       const name = base + ".slides.html#/";
       return `https://cocalc.com/${project_id}/server/18080/` + name;
     }

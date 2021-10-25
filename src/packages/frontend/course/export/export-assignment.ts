@@ -111,7 +111,7 @@ async function export_one_directory(
           );
           await exec({
             command: "jupyter",
-            args: ["nbconvert", source + "/" + name, "--to", "html"],
+            args: ["nbconvert", source + "/" + name, "--to", "html", "--template", "classic"],
             project_id,
             timeout,
           });

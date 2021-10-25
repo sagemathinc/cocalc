@@ -52,6 +52,8 @@ def ipynb_to_pdf(path):
         sanitize_nbconvert_path(path),
         "--to",
         "html",
+        "--template",
+        "classic",
         "--output=%s" % html,
     ])
     # --no-sandbox so it works in cocalc-docker (see https://stackoverflow.com/questions/43665276/how-to-run-google-chrome-headless-in-docker); should be OK, given our security model...
