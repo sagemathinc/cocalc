@@ -3,91 +3,74 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+/*
+This provides information about resource usage of a specific file in a project.
+It is similar to "projet-status", in a way, because it also listens on the
+general project process information generated in a project, but condenses
+this for a specific path. The first example use is a specific jupyter notebook.
+This will end up in the notebook interface as an indicator to show %CPU and MEM.
+*/
+
 import { Table } from "./types";
 
-/*
-Tracking web-analytics
-this records data about users hitting cocalc and cocalc-related websites
-this table is 100% back-end only.
-*/
 Table({
-  name: "analytics",
-  rules: {
-    primary_key: ["token"],
-    pg_indexes: ["token", "data_time"],
-    durability: "soft",
-  },
+  name: "usage_info",
   fields: {
-    token: {
+    project_id: {
       type: "uuid",
+      desc: "The project id.",
     },
-    data: {
-      type: "map",
-      desc: "referrer, landing page, utm, etc.",
-    },
-    data_time: {
-      type: "timestamp",
-      desc: "when the data field was set",
-    },
-    account_id: {
-      type: "uuid",
-      desc: "set only once, when the user (eventually) signs in",
-    },
-    account_id_time: {
-      type: "timestamp",
-      desc: "when the account id was set",
-    },
-    expire: {
-      type: "timestamp",
-      desc: "future date, when the entry will be deleted",
-    },
-  },
-});
-
-/*
-Table for tracking events related to a particular
-account which help us optimize for growth.
-Example entry;
- account_id: 'some uuid'
- time: a timestamp
- key: 'sign_up_how_find_cocalc'
- value: 'via a google search'
-
-Or if user got to cocalc via a chat mention link:
-
- account_id: 'some uuid'
- time: a timestamp
- key: 'mention'
- value: 'url of a chat file'
-
-The user cannot read or write directly to this table.
-Writes are done via an API call, which (in theory can)
-enforces some limit (to avoid abuse) at some point...
-*/
-Table({
-  name: "user_tracking",
-  rules: {
-    primary_key: ["account_id", "time"],
-    pg_indexes: ["event", "time"],
-    durability: "soft",
-  },
-  fields: {
-    account_id: {
-      type: "uuid",
-      desc: "id of the user's account",
-    },
-    time: {
-      type: "timestamp",
-      desc: "time of this message",
-    },
-    event: {
+    path: {
       type: "string",
-      desc: "event we are tracking",
-      pg_check: "NOT NULL",
+      desc: "the relative path to the file",
     },
-    value: {
+    usage: {
       type: "map",
-      desc: "optional further info about the event (as a map)",
+      pg_type: "JSONB[]",
+      desc: "Usage information, for cpu, mem, etc.",
+    },
+  },
+  rules: {
+    durability: "ephemeral", // won't be stored in the database at all ever.
+    desc:
+      "Resource usage information for processes associated with a specific file (e.g. jupyter notbeook)",
+    primary_key: ["project_id", "path"],
+    user_query: {
+      get: {
+        pg_where: ["projects"],
+        fields: {
+          project_id: null,
+          path: null,
+          usage: null,
+        },
+      },
+      set: {
+        // users can set that they are interested in this
+        fields: {
+          project_id: "project_id",
+          path: true,
+        },
+      },
+    },
+
+    project_query: {
+      get: {
+        pg_where: [{ "project_id = $::UUID": "project_id" }],
+        fields: {
+          project_id: null,
+          path: null,
+          usage: null,
+        },
+      },
+      set: {
+        // delete=true, since project *IS* allowed to delete entries
+        delete: true,
+        fields: {
+          project_id: "project_id",
+          path: true,
+          usage: true,
+        },
+      },
     },
   },
 });
