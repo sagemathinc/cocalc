@@ -191,7 +191,9 @@ export function load_target(
 window.onpopstate = (_) => {
   load_target(
     decodeURIComponent(
-      document.location.pathname.slice(appBasePath.length + 1)
+      document.location.pathname.slice(
+        appBasePath.length + appBasePath.endsWith("/") ? 0 : 1
+      )
     ),
     false,
     false
