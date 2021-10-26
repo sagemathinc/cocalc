@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/next",
-  "version": "0.14.2",
+  "version": "0.14.3",
   "description": "CoCalc's nextjs server",
   "main": "lib/init.js",
   "exports": {
@@ -29,7 +29,7 @@
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty",
     "inventory": "bash ./inventory/setup-inventory.sh",
     "build-deps": "cd ../backend && npm run build && cd ../util && npm run build",
-    "build": "npm run build-deps && npx next telemetry disable && rm -rf .next && npm run inventory && npm run build-dist && next build",
+    "build": "npm run build-deps && npx next telemetry disable && rm -rf .next && npm run build-dist && next build",
     "build-dist": "rm -rf dist && npm run inventory && npx tsc --build tsconfig-dist.json",
     "build-project": "npm run build-deps && npx next telemetry disable && npm run build-dist && BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
     "clean": "rm -rf .next dist",

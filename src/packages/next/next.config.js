@@ -4,9 +4,14 @@ const BASE_PATH = process.env.BASE_PATH ?? "/";
 // next.js definition:
 const basePath = BASE_PATH == "/" ? "" : BASE_PATH;
 
-const { resolve } = require("path");
+const { join, resolve } = require("path");
 
-const cacheDirectory = `/tmp/nextjs-${require("os").userInfo().username}`;
+// Important!  We include basePath in tmp dir because if you build with a different
+// basePath, then the cache may "corrupt everything".
+const cacheDirectory = join(
+  `/tmp/nextjs-${require("os").userInfo().username}`,
+  basePath
+);
 
 module.exports = {
   basePath,
