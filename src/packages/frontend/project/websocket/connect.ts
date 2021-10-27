@@ -77,7 +77,10 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // So that the store reflects that we are not connected but are trying.
   set_project_websocket_state(project_id, "offline");
 
+  const MAX_AJAX_TIMEOUT_MS: number = 3500;
+
   async function get_primus(do_eval: boolean) {
+    let timeout: number = 750;
     await retry_until_success({
       // log: console.log,
       f: async function () {
@@ -101,8 +104,20 @@ async function connection_to_project0(project_id: string): Promise<any> {
             READING_PRIMUS_JS = true;
           }
 
+          /*
+          We use a timeout in the ajax call before, since while the project is
+          starting up the call ends up taking a LONG time to "Stall out" due to settings
+          in a proxy server somewhere along the way.  This makes the project start time
+          (i.e., how long until websocket is working) seem really slow for no good reason.
+          Instead, we keep retrying the primus.js GET request pretty aggressively until
+          success.
+          NOTE: there is the real potential of very slow 3G clients not being able to complete the
+          GET, which is why we increase it each time up to MAX_AJAX_TIMEOUT_MS.
+          */
+
           const load_primus = (cb) => {
             ajax({
+              timeout,
               type: "GET",
               url,
               // text, in contrast to "script", doesn't eval it -- we do that!
@@ -124,7 +139,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
             });
           };
           log(
-            `load_primus: attempt to get primus.js with do_eval=${do_eval}`
+            `load_primus: attempt to get primus.js with timeout=${timeout}ms and do_eval=${do_eval}`
           );
           await callback(load_primus);
           log("load_primus: done");
@@ -137,6 +152,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
           if (do_eval) {
             READING_PRIMUS_JS = false;
           }
+          timeout = Math.min(timeout * 1.2, MAX_AJAX_TIMEOUT_MS);
           //console.log("success!");
         }
       },
