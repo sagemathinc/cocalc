@@ -74,7 +74,9 @@ export default function FileContents({
     // Amazingly, nextjs handles this sort of thing fine!
     return isIOS() || isSafari() ? (
       <h1 style={{ textAlign: "center", margin: "30px" }}>
-        <A href={raw}>View this PDF...</A>
+        <A href={raw} external>
+          View this PDF...
+        </A>
       </h1>
     ) : (
       <embed
@@ -86,7 +88,9 @@ export default function FileContents({
   } else if (content == null) {
     return (
       <h1 style={{ textAlign: "center", margin: "30px" }}>
-        <A href={raw}>Open or Download...</A>{" "}
+        <A href={raw} external>
+          Open or Download...
+        </A>{" "}
       </h1>
     );
   } else if (isCodemirror(ext)) {
