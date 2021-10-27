@@ -93,7 +93,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       proxy = createProxyServer({
         ws: false,
         target,
-        timeout: 7000,
+        timeout: 60000,
       });
       // and cache it.
       cache.set(target, proxy);
