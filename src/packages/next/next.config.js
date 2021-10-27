@@ -15,6 +15,7 @@ const cacheDirectory = join(
 
 module.exports = {
   basePath,
+  //swcMinify: true, // would enable 7x faster RUST-based minifier -- however this crashes for us (https://github.com/vercel/next.js/discussions/30237#discussioncomment-1542842)
   env: { BASE_PATH },
   reactStrictMode: true,
   eslint: { ignoreDuringBuilds: true },
