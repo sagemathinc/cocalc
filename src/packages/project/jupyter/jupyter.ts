@@ -49,7 +49,7 @@ import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
 
 const { key_value_store } = require("@cocalc/util/key-value-store");
 
-import { blob_store, BlobStore } from "./jupyter-blobs-sqlite";
+import { get_blob_store } from "./jupyter-blobs-sqlite";
 import { JUPYTER_MIMETYPES } from "@cocalc/frontend/jupyter/util";
 import {
   is_likely_iframe,
@@ -697,6 +697,10 @@ export class JupyterKernel
     return await new CodeExecutionEmitter(this, opts).go();
   }
 
+  get_blob_store() {
+    return get_blob_store();
+  }
+
   process_output(content: any): void {
     if (this._state === "closed") {
       return;
@@ -715,7 +719,7 @@ export class JupyterKernel
     for (type of JUPYTER_MIMETYPES) {
       if (content.data[type] != null) {
         if (type.split("/")[0] === "image" || type === "application/pdf") {
-          content.data[type] = blob_store.save(content.data[type], type);
+          content.data[type] = get_blob_store()?.save(content.data[type], type);
         } else if (
           type === "text/html" &&
           is_likely_iframe(content.data[type])
@@ -726,17 +730,12 @@ export class JupyterKernel
           //  {iframe: sha1 of srcdoc}
           content.data["iframe"] = iframe_process(
             content.data[type],
-            blob_store
+            get_blob_store()
           );
           delete content.data[type];
         }
       }
     }
-  }
-
-  // Returns a reference to the blob store.
-  get_blob_store(): BlobStore {
-    return blob_store; // the unique global one.
   }
 
   async call(msg_type: string, content?: any): Promise<any> {
@@ -868,7 +867,9 @@ export class JupyterKernel
       path = process.env.HOME + "/" + path;
     }
     async function f(): Promise<string> {
-      return blob_store.readFile(path, "base64");
+      const bs = get_blob_store();
+      if (bs == null) throw new Error("BlobStore not available");
+      return bs.readFile(path, "base64");
     }
     try {
       return await retry_until_success({
@@ -881,8 +882,8 @@ export class JupyterKernel
     }
   }
 
-  process_attachment(base64, mime): string {
-    return blob_store.save(base64, mime);
+  process_attachment(base64, mime): string | undefined {
+    return get_blob_store()?.save(base64, mime);
   }
 
   process_comm_message_from_kernel(mesg): void {

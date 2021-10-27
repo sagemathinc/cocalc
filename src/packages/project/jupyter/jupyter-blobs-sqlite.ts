@@ -224,4 +224,14 @@ export class BlobStore implements BlobStoreInterface {
   }
 }
 
-export const blob_store = new BlobStore();
+let blob_store: BlobStore | undefined = undefined;
+
+export function get_blob_store() {
+  if (blob_store != null) return blob_store;
+  try {
+    blob_store = new BlobStore();
+    return blob_store;
+  } catch (err) {
+    winston.warn(`unable to instantiate BlobStore -- ${err}`);
+  }
+}

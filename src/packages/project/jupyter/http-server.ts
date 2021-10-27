@@ -11,11 +11,14 @@ kernels, sending signals, doing tab completions, and so on.
 */
 
 import * as os_path from "path";
+import { delay } from "awaiting";
 import { Router } from "express";
 import { exists } from "./async-utils-node";
-import { blob_store } from "./jupyter-blobs-sqlite";
+import { get_blob_store, BlobStore } from "./jupyter-blobs-sqlite";
 import { get_kernel_data } from "./kernel-data";
 import { startswith } from "@cocalc/util/misc";
+import Logger from "@cocalc/backend/logger";
+const winston = Logger("jupyter-http-server");
 
 const BASE = "/.smc/jupyter/";
 
@@ -64,12 +67,20 @@ function jupyter_kernel_info_handler(router): void {
   });
 }
 
-export default function init(): Router {
-  // Install handling for the blob store
-  const router: Router = blob_store.express_router(BASE);
+export default async function init(): Promise<Router> {
+  while (true) {
+    const blob_store: BlobStore | undefined = get_blob_store();
+    if (blob_store != null) {
+      // Install handling for the blob store
+      const router: Router = blob_store.express_router(BASE);
 
-  // Handler for Jupyter kernel info
-  jupyter_kernel_info_handler(router);
+      // Handler for Jupyter kernel info
+      jupyter_kernel_info_handler(router);
 
-  return router;
+      return router;
+    } else {
+      winston.warn("delaying setup, because BlobStore not available yet");
+      await delay(5000);
+    }
+  }
 }
