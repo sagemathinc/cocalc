@@ -42,7 +42,7 @@ export default function init(server: Server, basePath: string): Router {
   //UglifyJS.minify(primus.library()).code;
 
   router.get("/.smc/primus.js", (_, res) => {
-    winston.debug("serving up minified primus.js to a specific client");
+    winston.debug("serving up primus.js to a specific client");
     res.send(library);
   });
   winston.info(
