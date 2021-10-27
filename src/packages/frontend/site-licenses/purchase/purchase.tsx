@@ -39,7 +39,7 @@ import { create_quote_support_ticket } from "./get-a-quote";
 import { QuotaEditor } from "./quota-editor";
 import { DOC_LICENSE_URL } from "../../billing/data";
 import { COLORS } from "@cocalc/util/theme";
-import { supportURL } from "@cocalc/frontend/support/open";
+import { supportURL } from "@cocalc/frontend/support/url";
 
 const LENGTH_PRESETS = [
   { label: "2 Days", desc: { n: 2, key: "days" } },

@@ -1,4 +1,3 @@
-import { HELP_EMAIL } from "@cocalc/util/theme";
 import supportURL from "@cocalc/frontend/support/url";
 import A from "./link";
 

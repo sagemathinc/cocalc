@@ -8,7 +8,7 @@ import { A, Icon } from "../components";
 import openSupport, {
   supportURL,
   ticketsURL,
-} from "@cocalc/frontend/support/open";
+} from "@cocalc/frontend/support/url";
 
 export const SupportTickets: React.FC = () => {
   return (
