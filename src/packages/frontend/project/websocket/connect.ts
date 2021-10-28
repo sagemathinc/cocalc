@@ -156,10 +156,15 @@ async function connection_to_project0(project_id: string): Promise<any> {
           //console.log("success!");
         }
       },
-      start_delay: 250,
-      max_delay: 2000, // do not make too aggressive or it DDOS proxy server;
+      start_delay: 50,
+      max_delay: 5000, // do not make too aggressive or it DDOS proxy server;
       // but also not too slow since project startup will feel slow to user.
-      factor: 1.2,
+      // NOTE that since we wait until the project is running before any attempt to connect,
+      // most of the time we do a GET request, then wait for it to fail, which takes timeout ms.
+      // This delay here (that retry_until_success introduces) is really only due to
+      // paranoia htat maybe the GET request fails very quickly (I don't know if that
+      // is even possible).
+      factor: 1.1,
       desc: "connecting to project",
       log: (...x) => {
         log("retry primus:", ...x);

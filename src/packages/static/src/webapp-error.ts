@@ -40,15 +40,16 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
   crash.style.display = "block";
 
   let errorbox = document.getElementById("cocalc-error-report-startup");
-  let showExplanation = true;
+  let showLoadFail = true;
   if (errorbox == null) {
     // app did startup, hence the banner is removed from the DOM
-    // instead, check if there is the react error report banner and insert it there!
+    // instead, check if there is the react error report banner and insert it there.
     errorbox = document.getElementById("cocalc-error-report-react");
-    showExplanation = false;
+    showLoadFail = false;
     if (errorbox == null) return;
   }
   const stack = error?.stack ?? "<no stacktrace>"; // note: we actually ignore error == null above.
+  console.log({ errorbox }, "rendering", { msg, lineNo });
   ReactDOM.render(
     React.createElement(CrashMessage, {
       msg,
@@ -56,7 +57,7 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
       columnNo,
       url,
       stack,
-      showExplanation,
+      showLoadFail,
     }),
     errorbox
   );
@@ -83,7 +84,10 @@ export function startedUp() {
 
 function isWhitelisted({ msg, url, error }): boolean {
   try {
-    if (url.includes("darkreader") || msg.includes("Cannot read property 'cssRules'")) {
+    if (
+      url.includes("darkreader") ||
+      msg.includes("Cannot read property 'cssRules'")
+    ) {
       // darkreader causes "TypeError: Cannot read property 'cssRules' of null"
       // sometimes when editing PDF files previewed using PDFjs.  It's probably a complicated
       // issue involving PDFJS.

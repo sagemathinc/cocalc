@@ -39,7 +39,9 @@ export default function SignIn({ strategies }) {
   return (
     <div style={{ padding: "0 15px" }}>
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
-        <SquareLogo style={{ width: "100px", height: "100px", marginBottom:'15px' }} />
+        <SquareLogo
+          style={{ width: "100px", height: "100px", marginBottom: "15px" }}
+        />
         <h1>Sign In to {siteName}</h1>
       </div>
 
@@ -62,21 +64,20 @@ export default function SignIn({ strategies }) {
               <SSO strategies={strategies} />
             </div>
           )}
-          {email && (
-            <div style={{ marginTop: "30px" }}>
-              <p>Password </p>
-              <Input.Password
-                style={{ fontSize: "12pt" }}
-                autoComplete="current-password"
-                placeholder="Password"
-                onChange={(e) => setPassword(e.target.value)}
-                onPressEnter={(e) => {
-                  e.preventDefault();
-                  signIn();
-                }}
-              />
-            </div>
-          )}
+          {/* Don't ever hide password input, since that messes up autofill */}
+          <div style={{ marginTop: "30px" }}>
+            <p>Password </p>
+            <Input.Password
+              style={{ fontSize: "12pt" }}
+              autoComplete="current-password"
+              placeholder="Password"
+              onChange={(e) => setPassword(e.target.value)}
+              onPressEnter={(e) => {
+                e.preventDefault();
+                signIn();
+              }}
+            />
+          </div>
           {email && (
             <Button
               disabled={signingIn || !(password?.length >= 6)}

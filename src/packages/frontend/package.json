@@ -64,7 +64,7 @@
     "cat-names": "^2.0.0",
     "chai": "^4.2.0",
     "cheerio": "^1.0.0-rc.10",
-    "codemirror": "^5.62.2",
+    "codemirror": "^5.63.3",
     "copy-to-clipboard": "^3.0.8",
     "create-react-class": "^15.7.0",
     "css-color-names": "0.0.4",
@@ -159,7 +159,7 @@
   },
   "devDependencies": {
     "@types/chai": "^4.2.11",
-    "@types/codemirror": "^0.0.106",
+    "@types/codemirror": "^5.60.5",
     "@types/jquery": "^3.5.5",
     "@types/katex": "^0.11.0",
     "@types/lodash": "^4.14.175",

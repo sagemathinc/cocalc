@@ -173,8 +173,8 @@ export default function Create() {
                   think it should work.
                 </Radio>
                 <Radio value={"question"}>
-                  <Type type="question" /> I have a question about billing,
-                  functionality, teaching, etc.
+                  <Type type="question" /> I have a question about
+                  billing, functionality, teaching, something not working, etc.
                 </Radio>
                 <Radio value={"task"}>
                   <Type type="task" /> Is it possible for you to install some

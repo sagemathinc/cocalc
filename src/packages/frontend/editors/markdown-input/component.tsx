@@ -64,7 +64,13 @@ const AUX_FILE_EXT = "upload";
 import { join } from "path";
 import * as CodeMirror from "codemirror";
 type EventHandlerFunction = (cm: CodeMirror.Editor) => void;
-import { aux_file, len, path_split, trunc_middle, trunc } from "@cocalc/util/misc";
+import {
+  aux_file,
+  len,
+  path_split,
+  trunc_middle,
+  trunc,
+} from "@cocalc/util/misc";
 import { IS_MOBILE } from "../../feature";
 import { A } from "../../components";
 import {
@@ -85,7 +91,6 @@ import { mentionableUsers } from "./mentionable-users";
 
 // This code depends on codemirror being initialized.
 import "@cocalc/frontend/codemirror/init";
-
 
 const BLURED_STYLE: React.CSSProperties = {
   border: "1px solid rgb(204,204,204)", // focused will be rgb(112, 178, 230);
@@ -281,7 +286,15 @@ export const MarkdownInput: React.FC<Props> = ({
           if (attributes == null) continue; // some other sort of mark?
           const { account_id } = attributes;
           if (account_id == null) continue;
-          const { from, to } = mark.find();
+          const loc = mark.find();
+          if (loc == null) continue;
+          let from, to;
+          if (loc["from"]) {
+            // @ts-ignore
+            ({ from, to } = loc);
+          } else {
+            from = to = loc;
+          }
           const text = `<span class="user-mention" account-id=${account_id} >${cm.current.getRange(
             from,
             to

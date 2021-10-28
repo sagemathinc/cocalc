@@ -9,7 +9,7 @@ import SubNav, { Page, SubPage } from "./sub-nav";
 import Analytics from "components/analytics";
 import Avatar from "components/account/avatar";
 
-const GAP = "24px";
+const GAP = "4%";
 
 const LinkStyle = {
   color: "white",
@@ -105,16 +105,6 @@ export default function Header({ page, subPage }: Props) {
             </A>
           </>
         )}
-        {shareServer && (
-          <Link href={"/share/public_paths/page/1"}>
-            <a
-              style={page == "share" ? SelectedStyle : LinkStyle}
-              title="View files that people have published."
-            >
-              Explore
-            </a>
-          </Link>
-        )}
         {!landingPages && termsOfServiceURL && (
           <A
             style={LinkStyle}
@@ -131,6 +121,24 @@ export default function Header({ page, subPage }: Props) {
         >
           Info
         </A>
+        {landingPages && (
+          <A
+            href="/policies"
+            style={page == "policies" ? SelectedStyle : LinkStyle}
+          >
+            Policies
+          </A>
+        )}
+        {shareServer && (
+          <Link href={"/share/public_paths/page/1"}>
+            <a
+              style={page == "share" ? SelectedStyle : LinkStyle}
+              title="View files that people have published."
+            >
+              Explore
+            </a>
+          </Link>
+        )}
         <A
           style={page == "support" ? SelectedStyle : LinkStyle}
           href="/support"
@@ -144,17 +152,9 @@ export default function Header({ page, subPage }: Props) {
             href={"/auth/try"}
             title={`Try ${siteName} immediately without creating an account.`}
           >
-            Try {siteName}
+            Try
           </A>
         )}{" "}
-        {landingPages && (
-          <A
-            href="/policies"
-            style={page == "policies" ? SelectedStyle : LinkStyle}
-          >
-            Policies
-          </A>
-        )}
         {account ? (
           <a
             style={LinkStyle}
