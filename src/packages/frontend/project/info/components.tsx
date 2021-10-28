@@ -15,10 +15,8 @@ import {
   //Badge,
   Switch,
 } from "antd";
-import {
-  QuestionCircleOutlined,
-  PauseCircleOutlined,
-} from "@ant-design/icons";
+import { QuestionCircleOutlined, PauseCircleOutlined } from "@ant-design/icons";
+import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { plural, seconds2hms, unreachable } from "@cocalc/util/misc";
 import { Tip, TimeElapsed, Icon, IconName } from "../../components";
 import { CGroupInfo, DUState } from "./types";
@@ -30,7 +28,7 @@ import {
   Processes,
   Signal,
 } from "@cocalc/project/project-info/types";
-import { AlertType } from "@cocalc/project/project-status/types";
+import { AlertType, ComponentName } from "@cocalc/project/project-status/types";
 import { Channel } from "../websocket/types";
 import { COLORS } from "@cocalc/util/theme";
 import humanizeList from "humanize-list";
@@ -258,7 +256,50 @@ function useProgressProps() {
   return props;
 }
 
-interface CGroupFCProps {
+interface ProjectProblemsProps {
+  project_status?: immutable.Map<string, any>;
+}
+
+export const ProjectProblems: React.FC<ProjectProblemsProps> = React.memo(
+  (props: ProjectProblemsProps) => {
+    const { project_status } = props;
+    const all_alerts = project_status?.get("alerts") ?? immutable.Map();
+
+    const component_alerts: ComponentName[] = [];
+    for (const a of all_alerts) {
+      if (a.get("type") === "component") {
+        component_alerts.push(...a.get("names")?.toJS());
+      }
+    }
+
+    function explanation(name: ComponentName) {
+      switch (name) {
+        case "BlobStore":
+          return "This component manages locally stored binary data and it is currently broken. This means for example, images in Jupyter Notebooks will not show up. Most likely the file storage is full. Please delete some files or increase the quota limit.";
+        default:
+          return `Unknown problem "${name}"`;
+      }
+    }
+
+    function render_problem(name: ComponentName) {
+      return (
+        <div key={name}>
+          <strong>{name}</strong>: {explanation(name)}
+        </div>
+      );
+    }
+
+    if (component_alerts.length == 0) return null;
+
+    return (
+      <Alert bsStyle="danger" banner={true}>
+        {component_alerts.map(render_problem)}
+      </Alert>
+    );
+  }
+);
+
+interface CGroupProps {
   have_cgroup: boolean;
   cg_info: CGroupInfo;
   disk_usage: DUState;
@@ -267,8 +308,8 @@ interface CGroupFCProps {
   project_status?: immutable.Map<string, any>;
 }
 
-export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
-  (props: CGroupFCProps) => {
+export const CGroup: React.FC<CGroupProps> = React.memo(
+  (props: CGroupProps) => {
     const {
       have_cgroup,
       cg_info,
@@ -278,9 +319,10 @@ export const CGroupFC: React.FC<CGroupFCProps> = React.memo(
       project_status,
     } = props;
     const progprops = useProgressProps();
-    const status_alerts: Readonly<string[]> =
-      project_status?.get("alerts").map((a) => a.get("type")) ??
-      immutable.Map();
+    const all_alerts = project_status?.get("alerts") ?? immutable.Map();
+    const status_alerts: Readonly<string[]> = all_alerts.map((a) =>
+      a.get("type")
+    );
 
     const row1: CSS = { fontWeight: "bold", fontSize: "110%" };
 
@@ -508,7 +550,8 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       const pn = plural(n, "process", "processes");
       const pids = humanizeList(selected);
       const extra = signal_extra(signal);
-      const poptitle = `Are you sure you want to send signal ${name} (${signal}) to ${pn} ${pids}? ${extra}`.trim();
+      const poptitle =
+        `Are you sure you want to send signal ${name} (${signal}) to ${pn} ${pids}? ${extra}`.trim();
       const icon = render_signal_icon(signal);
       const dangerous = [
         Signal.Kill,

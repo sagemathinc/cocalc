@@ -32,7 +32,8 @@ import {
 } from "@cocalc/project/project-info/types";
 import { cgroup_stats } from "@cocalc/project/project-status/utils";
 import {
-  CGroupFC,
+  CGroup,
+  ProjectProblems,
   CoCalcFile,
   LabelQuestionmark,
   ProcState,
@@ -781,7 +782,8 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     function render_body() {
       return (
         <>
-          <CGroupFC
+          <ProjectProblems project_status={project_status} />
+          <CGroup
             have_cgroup={info?.cgroup != null}
             cg_info={cg_info}
             disk_usage={disk_usage}
