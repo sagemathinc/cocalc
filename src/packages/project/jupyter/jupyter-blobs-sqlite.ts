@@ -15,8 +15,8 @@ import { months_ago, to_json } from "@cocalc/util/misc";
 const misc_node = require("@cocalc/backend/misc_node");
 import Database from "better-sqlite3";
 import { Router } from "express";
-
 const winston = Logger("jupyter-blobs-sqlite");
+import { get_ProjectStatusServer } from "@cocalc/project/project-status/server";
 
 const JUPYTER_BLOBS_DB_FILE: string =
   process.env.JUPYTER_BLOBS_DB_FILE ??
@@ -230,8 +230,10 @@ export function get_blob_store() {
   if (blob_store != null) return blob_store;
   try {
     blob_store = new BlobStore();
+    get_ProjectStatusServer().clearComponentAlert("BlobStore");
     return blob_store;
   } catch (err) {
+    get_ProjectStatusServer().setComponentAlert("BlobStore");
     winston.warn(`unable to instantiate BlobStore -- ${err}`);
   }
 }
