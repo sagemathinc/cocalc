@@ -96,7 +96,7 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   cancel_execute(id: string): void;
   execute_code_now(opts: ExecOpts): Promise<object[]>;
   process_output(content: any): void;
-  get_blob_store(): BlobStoreInterface;
+  get_blob_store(): BlobStoreInterface | undefined;
   complete(opts: { code: any; cursor_pos: any });
   introspect(opts: {
     code: any;
@@ -107,7 +107,7 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   more_output(id: string): any[];
   nbconvert(args: string[], timeout?: number): Promise<void>;
   load_attachment(path: string): Promise<string>;
-  process_attachment(base64, mime): string;
+  process_attachment(base64, mime): string | undefined;
   send_comm_message_to_kernel(msg_id: string, comm_id: string, data: any): void;
   get_connection_file(): string | undefined;
 }

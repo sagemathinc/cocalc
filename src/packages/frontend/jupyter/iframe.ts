@@ -9,6 +9,8 @@ Efficient backend processing of iframe srcdoc's.
 MOTIVATION: Sage jmol.
 */
 
+import { BlobStoreInterface } from "./project-interface";
+
 const misc = require("@cocalc/util/misc"); // TODO: import type
 
 export function is_likely_iframe(content: string): boolean {
@@ -25,7 +27,10 @@ export function is_likely_iframe(content: string): boolean {
   );
 }
 
-export function process(content: string, blob_store: any) {
+export function process(
+  content: string,
+  blob_store: BlobStoreInterface | undefined
+) {
   // TODO: type
   const content_lower = content.toLowerCase();
   const i = content_lower.indexOf("<html>");
@@ -39,7 +44,7 @@ export function process(content: string, blob_store: any) {
   } else {
     src = `<html>${content}</html>`;
   }
-  return blob_store.save(unescape(src), "text/html", content);
+  return blob_store?.save?.(unescape(src), "text/html", content);
 }
 
 const entity_map = {

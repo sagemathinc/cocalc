@@ -61,7 +61,11 @@ export default async function init(): Promise<void> {
 
   // Setup the jupyter/... server, which is used by our jupyter server for blobs, etc.
   winston.info("initializing Jupyter support HTTP server");
-  app.use(base, initJupyter());
+  (async () => {
+    // if the BlobStore isn't available immediately, this will take a while to initialize
+    // we don't want to block the remainder of this setup...
+    app.use(base, await initJupyter());
+  })();
 
   // Setup the ws websocket server, which is used by clients
   // for direct websocket connections to the project, and also
