@@ -365,6 +365,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           key={"compress"}
           bsSize={button_size()}
           onClick={() => props.actions.unset_frame_full()}
+          bsStyle={"warning"}
         >
           <Icon name={"compress"} />
         </StyledButton>
