@@ -133,6 +133,17 @@ There are two types of filesystem build caching. These greatly improve the time 
 - In the `dist/` subdirectory of a package, there's a file `tsconfig.tsbuildinfo` that caches incremental typescript builds, so running `tsc` is much faster. This is enabled by setting `incremental: true` in `tsconfig.json`. I've never actually seen a case where caching of this file caused a problem (those typescript developers are careful).
 - Webpack caches its builds in `/tmp/webpack` . This is configured in `packages/static/webpack.config.js` , and we use `/tmp` since random access file system performance is critical for this **large** GB+ cache -- otherwise, it's almost slower than no cache. (I also benchmarked tsc, and it works fine on a potentially slow local filesystem.) I did sees bugs with this cache when I had some useless antd tree shaking plugin enabled, but I have never seen any problems with it since I got rid of that.
 
+#### Creating an admin user
+
+It is handy to have a user with admin rights in your dev cocalc server.  With the database running you can make a `user@example.com` an admin as follows: 
+
+```sh
+~/cocalc/src$ npm run c
+> db.make_user_admin({email_address:'user@example.com', cb:console.log})
+```
+
+Admin users have an extra tab inside the main cocalc app labeled "Admin" where they can configure many aspects of the server, search for users, etc.
+
 ## Packages
 
 ### Get the Status of Packages
