@@ -24,7 +24,7 @@
     "."
   ],
   "dependencies": {
-    "@cocalc/frontend": "^1.11.0",
+    "@cocalc/frontend": "^1.12.1",
     "@cocalc/project": "*",
     "@cocalc/util": "^1.13.3",
     "@cocalc/backend": "^1.5.0",
