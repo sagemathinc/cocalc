@@ -85,6 +85,18 @@ export function startedUp() {
 function isWhitelisted({ msg, url, error }): boolean {
   try {
     if (
+      error?.stack?.includes("/cdn/mathjax-2.7.9/MathJax.js") &&
+      error?.stack?.includes("ReferenceError: i is not defined")
+    ) {
+      // Sometimes users are reporting this "noise" when view an html file.  I think it's
+      // a bug in upstream MathJax 2.x, which has no further updates ever (and MathJax 3.x
+      // is very different), so there is nothing we can do, except remove mathjax 2.x.
+      // I've never been able to reproduce this bug, by the way, even opening the same
+      // files as users.
+      // So for now we whitelist.
+      return false;
+    }
+    if (
       url.includes("darkreader") ||
       msg.includes("Cannot read property 'cssRules'")
     ) {
@@ -95,7 +107,6 @@ function isWhitelisted({ msg, url, error }): boolean {
       // together, so it doesn't.
       return true;
     }
-    error = error; // typescript
     return false;
   } catch (_err) {
     // if anything is wrong with checking above, still show error.
