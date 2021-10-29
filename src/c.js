@@ -34,7 +34,7 @@ function get_db(cb) {
     } // HACK -- might not really be initialized yet!
     return db;
   } else {
-    db = require("./packages/hub/dist/postgres").db({ debug: true });
+    db = require("./packages/database/dist").db({ debug: true });
     db.connect({ cb });
     return db;
   }
