@@ -117,7 +117,7 @@ function katex_plugin(): void {
         try {
           if (renderToString == null) {
             // important to share server that we only do this once
-            ({ renderToString } = await import("katex"));
+            ({ renderToString } = (await import("katex")).default);
             if (!is_share_server()) {
               // @ts-ignore -- see https://github.com/vaadin/flow/issues/6335
               import("katex/dist/katex.min.css");
