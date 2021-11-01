@@ -4,7 +4,7 @@
  */
 
 import { macros } from "@cocalc/frontend/jquery-plugins/math-katex";
-import { renderToString } from "katex";
+import katex from "katex";
 import LRU from "lru-cache";
 
 const cache = new LRU({ max: 200 });
@@ -23,7 +23,7 @@ export default function mathToHtml(
     math = "\\LaTeX";
   }
   try {
-    html = renderToString(math, {
+    html = katex.renderToString(math, {
       displayMode: !isInline,
       macros,
     });
