@@ -6,7 +6,7 @@ const {
   user_has_write_access_to_project,
   user_has_read_access_to_project,
 } = require("../access");
-import generateHash from "@cocalc/backend/auth/hash";
+import generateHash from "@cocalc/server/auth/hash";
 const winston = getLogger("proxy: has-access");
 
 interface Options {

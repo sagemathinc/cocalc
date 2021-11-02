@@ -40,10 +40,10 @@ module.exports = {
       "react-dom"
     );
     config.ignoreWarnings = [
-      // This yargs warning is caused by node-zendesk in the @cocalc/backend package
+      // This yargs warning is caused by node-zendesk in the @cocalc/server package
       // being a generally bad citizen.  Things seem to work fine (we barely use the
       // zendesk api anyways).
-      { module: /^\.\.\/backend\/node_modules\/yargs.*/ },
+      { module: /^\.\.\/server\/node_modules\/yargs.*/ },
     ];
 
     // Important: return the modified config

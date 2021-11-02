@@ -20,12 +20,12 @@ import {
   is_valid_email_address as isValidEmailAddress,
 } from "@cocalc/util/misc";
 import { v4 } from "uuid";
-import isAccountAvailable from "@cocalc/backend/auth/is-account-available";
-import isDomainExclusiveSSO from "@cocalc/backend/auth/is-domain-exclusive-sso";
-import createAccount from "@cocalc/database/accounts/create-account";
+import isAccountAvailable from "@cocalc/server/auth/is-account-available";
+import isDomainExclusiveSSO from "@cocalc/server/auth/is-domain-exclusive-sso";
+import createAccount from "@cocalc/server/accounts/create-account";
 import { getAccount, signUserIn } from "./sign-in";
 import sendWelcomeEmail from "@cocalc/backend/email/welcome-email";
-import redeemRegistrationToken from "@cocalc/backend/auth/tokens/redeem";
+import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
 import { getServerSettings } from "@cocalc/backend/server-settings/server-settings";
 
 interface Issues {

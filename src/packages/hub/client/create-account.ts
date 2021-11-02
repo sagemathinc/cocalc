@@ -72,7 +72,7 @@ async function get_db_client(db: PostgreSQL) {
 }
 
 // if the email address's domain should go through SSO, return the domain name
-// THIS HAS BEEN REWRITTEN AT @cocalc/backend/auth/is-domain-exclusive-sso
+// THIS HAS BEEN REWRITTEN AT @cocalc/server/auth/is-domain-exclusive-sso
 async function is_domain_exclusive_sso(
   db: PostgreSQL,
   email?: string
@@ -99,7 +99,7 @@ async function is_domain_exclusive_sso(
 }
 
 // return true if allowed to continue creating an account (either no token required or token matches)
-// NOTE: completely rewritten in src/packages/backend/auth/tokens/redeem.ts
+// NOTE: completely rewritten in src/packages/server/auth/tokens/redeem.ts
 // This is not really used (except for the settings app sign in page, which is going to get deleted).
 // Also it has a bug:  Basically, you have a big try/catch and you rollback the transaction if there
 // is an exception. However, if something goes wrong your code actually just does return "error message.".

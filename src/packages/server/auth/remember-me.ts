@@ -1,6 +1,6 @@
 import basePath from "@cocalc/backend/base-path";
 import { v4 } from "uuid";
-import passwordHash from "./password-hash";
+import passwordHash from "@cocalc/backend/auth/password-hash";
 import getPool from "@cocalc/backend/database";
 import { expireTime } from "@cocalc/backend/database/util";
 

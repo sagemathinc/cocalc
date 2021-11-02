@@ -2,7 +2,7 @@
 // immediately after creating the account.
 
 import getPool from "@cocalc/backend/database";
-import addUserToProject from "@cocalc/database/projects/add-user-to-project";
+import addUserToProject from "@cocalc/server/projects/add-user-to-project";
 
 export default async function accountCreationActions(
   email_address: string,

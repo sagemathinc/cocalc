@@ -4,28 +4,44 @@
   "description": "CoCalc server functionality: functions used by either the hub and the next.js server",
   "exports": {
     "./*": "./dist/*.js",
-    "./mentions/*": "./dist/mentions/*.js"
+    "./auth/*": "./dist/auth/*.js",
+    "./accounts/*": "./dist/accounts/*.js",
+    "./mentions/*": "./dist/mentions/*.js",
+    "./projects/*": "./dist/projects/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "build": "npx tsc",
     "tsc": "npx tsc --watch"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
-  "workspaces": [".", "../backend", "../database", "../util"],
+  "workspaces": [
+    ".",
+    "../backend",
+    "../database",
+    "../util"
+  ],
   "dependencies": {
     "@cocalc/backend": "^1.5.1",
     "@cocalc/database": "^0.4.1",
     "@cocalc/util": "^1.12.0",
-    "awaiting": "^3.0.0"
+    "@types/lru-cache": "^5.1.1",
+    "@types/node-zendesk": "^2.0.4",
+    "awaiting": "^3.0.0",
+    "lru-cache": "^6.0.0",
+    "node-zendesk": "^2.1.0",
+    "parse-domain": "^4.1.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/node": "^16.11.6",
+    "@types/node": "^14.17.32",
     "typescript": "^4.4.4"
   }
 }

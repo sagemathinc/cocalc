@@ -6,7 +6,7 @@ import { Customize } from "lib/customize";
 import Head from "components/landing/head";
 import basePath from "lib/base-path";
 import SignIn from "components/auth/sign-in";
-import getStrategies from "@cocalc/backend/auth/sso/get-strategies";
+import getStrategies from "@cocalc/server/auth/sso/get-strategies";
 
 export default function Home({ customize, strategies }) {
   const { siteName } = customize;
