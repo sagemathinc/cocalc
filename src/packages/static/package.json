@@ -2,12 +2,12 @@
   "name": "@cocalc/static",
   "workspaces": [
     "../assets",
-    "../frontend",
-    "../cdn",
     "../backend",
+    "../cdn",
+    "../frontend",
     "../util"
   ],
-  "version": "1.42.0",
+  "version": "1.42.1",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
@@ -50,14 +50,14 @@
   "devDependencies": {
     "@cocalc/assets": "^1.5.0",
     "@cocalc/backend": "^1.5.0",
-    "@cocalc/cdn": "^1.7.0",
+    "@cocalc/cdn": "^1.8.0",
     "@cocalc/frontend": "^1.12.2",
     "@cocalc/util": "^1.13.3",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^26.0.23",
     "@types/jquery": "^3.5.5",
     "@types/node": "^14.17.5",
-    "@types/react": "^17.0.14",
+    "@types/react": "^17.0.33",
     "@typescript-eslint/eslint-plugin": "^4.24.0",
     "@typescript-eslint/parser": "^4.24.0",
     "assert": "^2.0.0",

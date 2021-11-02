@@ -31,7 +31,6 @@
     "."
   ],
   "dependencies": {
-    "@cocalc/util": "*",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",

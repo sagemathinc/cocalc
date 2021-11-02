@@ -17,16 +17,10 @@
     "math",
     "mathematics"
   ],
-  "workspaces": [
-    "../util",
-    "../frontend",
-    "../backend",
-    "."
-  ],
+  "workspaces": [".", "../backend", "../frontend", "../util"],
   "dependencies": {
     "@cocalc/backend": "^1.5.0",
     "@cocalc/frontend": "^1.12.2",
-    "@cocalc/project": "*",
     "@cocalc/util": "^1.13.3",
     "@types/lru-cache": "^5.1.1",
     "@types/uuid": "^8.3.1",
@@ -93,9 +87,7 @@
     "tsc": "npx tsc --watch"
   },
   "author": "SageMath, Inc.",
-  "contributors": [
-    "William Stein <wstein@sagemath.com>"
-  ],
+  "contributors": ["William Stein <wstein@sagemath.com>"],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"

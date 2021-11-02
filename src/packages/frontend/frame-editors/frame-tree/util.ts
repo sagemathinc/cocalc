@@ -8,9 +8,12 @@ Utility functions useful for frame-tree editors.
 */
 
 import { path_split, separate_file_extension } from "@cocalc/util/misc";
-export { aux_file } from "@cocalc/util/misc";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+
+// for some reason doing this aux_file thing in one line is confusing webpack.
+import { aux_file } from "@cocalc/util/misc";
+export { aux_file };
 
 export function parse_path(path: string): {
   directory: string;
