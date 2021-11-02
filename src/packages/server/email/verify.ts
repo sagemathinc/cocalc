@@ -1,6 +1,6 @@
 import getPool from "@cocalc/database/pool";
 import { generate } from "random-key";
-import siteURL from "@cocalc/backend/server-settings/site-url";
+import siteURL from "@cocalc/server/settings/site-url";
 
 export async function getVerifyEmail(
   email_address: string

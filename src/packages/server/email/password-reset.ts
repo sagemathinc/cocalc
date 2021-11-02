@@ -1,9 +1,9 @@
 /* Send a password reset email */
 
-import siteURL from "@cocalc/backend/server-settings/site-url";
+import siteURL from "@cocalc/server/settings/site-url";
 import sendViaSMTP from "./smtp";
 import sendViaSendgrid from "./sendgrid";
-import { getServerSettings } from "@cocalc/backend/server-settings";
+import { getServerSettings } from "@cocalc/server/settings";
 
 export default async function sendPasswordResetEmail(
   email_address: string, // target email_address of user who will receive the password reset email

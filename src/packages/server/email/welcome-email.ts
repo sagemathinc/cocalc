@@ -7,11 +7,11 @@ in the database or if sending of email is not configured.
 */
 
 import sendEmail from "./send-email";
-import { getServerSettings } from "@cocalc/backend/server-settings";
+import { getServerSettings } from "@cocalc/server/settings";
 import { LIVE_DEMO_REQUEST } from "@cocalc/util/theme";
 import { getVerifyEmail } from "./verify";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
-import siteURL from "@cocalc/backend/server-settings/site-url";
+import siteURL from "@cocalc/server/settings/site-url";
 
 export default async function sendWelcomeEmail(
   email_address: string,

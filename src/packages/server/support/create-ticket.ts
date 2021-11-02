@@ -1,6 +1,6 @@
 import type { Tickets } from "node-zendesk";
 import { getLogger } from "@cocalc/backend/logger";
-import siteURL from "@cocalc/backend/server-settings/site-url";
+import siteURL from "@cocalc/server/settings/site-url";
 import getName, { getNameByEmail } from "@cocalc/server/accounts/get-name";
 import getClient from "./zendesk-client";
 import { urlToUserURL } from "./util";

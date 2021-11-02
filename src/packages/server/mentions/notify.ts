@@ -3,8 +3,8 @@ import getName from "@cocalc/server/accounts/get-name";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import getProjectTitle from "@cocalc/server/projects/get-title";
 import { trunc } from "@cocalc/util/misc";
-import siteURL from "@cocalc/backend/server-settings/site-url";
-import { getServerSettings } from "@cocalc/backend/server-settings";
+import siteURL from "@cocalc/server/settings/site-url";
+import { getServerSettings } from "@cocalc/server/settings";
 import sendEmail from "@cocalc/server/email/send-email";
 
 export default async function sendNotificationIfPossible(

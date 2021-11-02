@@ -1,6 +1,6 @@
-import { getServerSettings } from "@cocalc/backend/server-settings";
+import { getServerSettings } from "@cocalc/server/settings";
 import type { Message } from "./message";
-import siteURL from "@cocalc/backend/server-settings/site-url";
+import siteURL from "@cocalc/server/settings/site-url";
 
 export async function getFooter(): Promise<{
   html: string;

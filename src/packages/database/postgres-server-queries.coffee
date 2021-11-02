@@ -58,7 +58,7 @@ collab = require('./postgres/collab')
 {get_personal_user} = require('./postgres/personal')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
-{getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/backend/server-settings/server-settings');
+{getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/server/settings/server-settings');
 {pii_expire} = require("./postgres/pii")
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 

@@ -1,4 +1,4 @@
-import getCustomize from "@cocalc/backend/server-settings/customize";
+import getCustomize from "@cocalc/server/settings/customize";
 import getAccountId from "lib/account/get-account";
 import { getName } from "lib/share/get-account-info";
 

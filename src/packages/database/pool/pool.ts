@@ -1,4 +1,4 @@
-import { pghost as host, pguser as user } from "../data";
+import { pghost as host, pguser as user } from "@cocalc/backend/data";
 import dbPassword from "./password";
 export * from "./util";
 import getCachedPool, { Length } from "./cached";

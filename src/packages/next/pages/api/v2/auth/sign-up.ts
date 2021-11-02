@@ -26,7 +26,7 @@ import createAccount from "@cocalc/server/accounts/create-account";
 import { getAccount, signUserIn } from "./sign-in";
 import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
 import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
-import { getServerSettings } from "@cocalc/backend/server-settings/server-settings";
+import { getServerSettings } from "@cocalc/server/settings/server-settings";
 
 interface Issues {
   terms?: string;

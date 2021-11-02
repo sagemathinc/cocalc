@@ -1,5 +1,5 @@
 import { join } from "path";
-import { secrets } from "../data";
+import { secrets } from "@cocalc/backend/data";
 import { readFileSync } from "fs";
 
 export default function dbPassword(): string | undefined {
