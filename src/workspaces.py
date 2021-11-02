@@ -13,7 +13,7 @@ TEST:
  - This should always work:  "mypy workspaces.py"
 """
 
-import argparse, json, os, shutil, subprocess, sys, time
+import argparse, json, os, platform, shutil, subprocess, sys, time
 
 from typing import Any, Optional, Callable, List
 
@@ -21,10 +21,16 @@ MAX_PACKAGE_LOCK_SIZE_MB = 5
 
 
 def newest_file(path: str) -> str:
-    # See https://gist.github.com/brwyatt/c21a888d79927cb476a4.
-    return os.popen(
-        f'cd "{path}"&& find . -type f -printf "%C@ %p\n" | sort -rn | head -n 1 | cut -d" " -f2'
-    ).read().strip()
+    if platform.system() != 'Darwin':
+        # See https://gist.github.com/brwyatt/c21a888d79927cb476a4 for this Linux
+        # version:
+        cmd = 'find . -type f -printf "%C@ %p\n" | sort -rn | head -n 1 | cut -d" " -f2'
+    else:
+        # but we had to rewrite this as suggested at
+        # https://unix.stackexchange.com/questions/272491/bash-error-find-printf-unknown-primary-or-operator
+        # etc to work on MacOS.
+        cmd = 'find . -type f -print0 | xargs -0r stat -f "%Fc %N" | sort -rn | head -n 1 | cut -d" " -f2'
+    return os.popen(f'cd "{path}" && {cmd}').read().strip()
 
 
 SUCCESSFUL_BUILD = ".successful-build"
