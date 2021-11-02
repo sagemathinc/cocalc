@@ -17,7 +17,7 @@ Sign in works as follows:
 */
 
 import { verify } from "password-hash";
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import {
   createRememberMeCookie,
   COOKIE_NAME,

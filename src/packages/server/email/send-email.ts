@@ -4,7 +4,7 @@ or throw an exception if none is properly configured.
 */
 
 import type { Message } from "./message";
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import sendViaSMTP from "./smtp";
 import sendViaSendgrid from "./sendgrid";
 import sendEmailThrottle from "./throttle";

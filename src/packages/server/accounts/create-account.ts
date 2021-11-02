@@ -1,4 +1,4 @@
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import passwordHash from "@cocalc/backend/auth/password-hash";
 import accountCreationActions, {
   creationActionsDone,

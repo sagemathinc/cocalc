@@ -3,7 +3,7 @@
 has been verified.
 */
 
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 
 export default async function redeemVerifyEmail(

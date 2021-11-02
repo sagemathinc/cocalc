@@ -1,4 +1,4 @@
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import { generate } from "random-key";
 import siteURL from "@cocalc/backend/server-settings/site-url";
 

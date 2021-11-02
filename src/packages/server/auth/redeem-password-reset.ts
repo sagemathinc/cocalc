@@ -6,9 +6,9 @@
 5. Return account_id of user who just reset their password.
 */
 
-import getPool from "@cocalc/backend/database";
-import getAccountId from "@cocalc/backend/database/account/get";
-import setPassword from "@cocalc/backend/database/account/set-password";
+import getPool from "@cocalc/database/pool";
+import getAccountId from "@cocalc/database/pool/account/get";
+import setPassword from "@cocalc/database/pool/account/set-password";
 
 export default async function redeemPasswordReset(
   password: string,

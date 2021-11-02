@@ -3,7 +3,7 @@
    even if called frequently.
 */
 
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 
 export default async function getHelpEmail(): Promise<string> {
   const pool = getPool("long");

@@ -1,7 +1,7 @@
 // If no such account or no name set, returns "Unknown User".
 // Answers are cached for a while.
 
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 
 export default async function getName(
   account_id: string

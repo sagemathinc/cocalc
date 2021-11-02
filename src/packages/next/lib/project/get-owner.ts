@@ -1,4 +1,4 @@
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 
 // Returns account_id or organization_id of the owner of this project.
 export default async function getOwner(project_id: string): Promise<string> {

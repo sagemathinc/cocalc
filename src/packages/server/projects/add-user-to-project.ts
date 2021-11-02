@@ -1,4 +1,4 @@
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import { jsonbSet } from "@cocalc/database/postgres/jsonb-utils";
 import { is_valid_uuid_string as isValidUUID } from "@cocalc/util/misc";
 

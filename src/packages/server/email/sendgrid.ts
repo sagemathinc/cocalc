@@ -7,7 +7,7 @@ The cocalc ASM group numbers are at
 https://app.sendgrid.com/suppressions/advanced_suppression_manager
 */
 
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import sgMail from "@sendgrid/mail";
 import type { Message } from "./message";
 import getHelpEmail from "./help";

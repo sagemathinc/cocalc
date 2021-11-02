@@ -20,6 +20,7 @@
     "@cocalc/util": "^1.13.3",
     "@types/lodash": "^4.14.175",
     "@types/lru-cache": "^5.1.1",
+    "@types/pg": "^8.6.1",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",

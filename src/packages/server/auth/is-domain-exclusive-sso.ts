@@ -1,4 +1,4 @@
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import { parseDomain, ParseResultType } from "parse-domain";
 
 export default async function isDomainExclusiveSSO(

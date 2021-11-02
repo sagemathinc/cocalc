@@ -2,7 +2,7 @@
 Handle all mentions that haven't yet been handled.
 */
 
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import { delay } from "awaiting";
 import { getLogger } from "@cocalc/backend/logger";
 import type { Action, Key } from "./types";

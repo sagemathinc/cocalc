@@ -1,7 +1,7 @@
 // Do all the account creation actions for the given account.  This should be called
 // immediately after creating the account.
 
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import addUserToProject from "@cocalc/server/projects/add-user-to-project";
 
 export default async function accountCreationActions(

@@ -7,7 +7,7 @@ then returns no matter what the input is.
 */
 
 import getRequiresTokens from "./get-requires-token";
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 
 export default async function redeem(token: string): Promise<void> {
   const required = await getRequiresTokens();

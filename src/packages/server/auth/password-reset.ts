@@ -1,6 +1,6 @@
 import { v4 } from "uuid";
-import getPool from "@cocalc/backend/database";
-import { expireTime } from "@cocalc/backend/database/util";
+import getPool from "@cocalc/database/pool";
+import { expireTime } from "@cocalc/database/pool/util";
 
 // Returns number of "recent" attempts to reset the password with this
 // email from this ip address. By "recent" we mean, "in the last 10 minutes".

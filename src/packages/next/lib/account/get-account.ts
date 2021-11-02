@@ -1,4 +1,4 @@
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import generateHash from "@cocalc/server/auth/hash";
 import { COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/server/auth/remember-me";
 import Cookies from "cookies";

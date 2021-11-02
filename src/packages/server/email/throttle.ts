@@ -6,7 +6,7 @@ For now starting with a simple limit: at most XXX messages per day.
 
 const DAILY_LIMIT = 1000;
 
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 
 // Call this function whenever an email will be sent on behalf of the given account.
 // It will increment a counter for each day, and if it goes too high it throws

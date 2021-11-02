@@ -2,7 +2,7 @@ import LRU from "lru-cache";
 import { AllSiteSettingsCached as ServerSettings } from "@cocalc/util/db-schema/types";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { site_settings_conf as CONF } from "@cocalc/util/schema";
-import getPool from "../database";
+import getPool from "@cocalc/database/pool";
 
 // We're just using this to cache this result for a **few seconds**.
 const CACHE_TIME_SECONDS = process.env.NODE_ENV == "development" ? 3 : 15;

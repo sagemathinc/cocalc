@@ -1,7 +1,7 @@
 /* Get a string[] of the names of strategies that are
    currently configured. Cached a bit so safe to call a lot. */
 
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import { capitalize } from "@cocalc/util/misc";
 
 // Just enough for display to the user:

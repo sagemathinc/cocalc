@@ -1,4 +1,4 @@
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 
 export default async function getRequiresTokens(): Promise<boolean> {
   const pool = getPool("long");

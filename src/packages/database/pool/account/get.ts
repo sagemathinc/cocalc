@@ -1,4 +1,4 @@
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 
 // raises an exception if no such account.
 export default async function getAccountId({

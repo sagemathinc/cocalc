@@ -1,4 +1,4 @@
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import { createTransport } from "nodemailer";
 import type { Transporter } from "nodemailer";
 import type { Message } from "./message";

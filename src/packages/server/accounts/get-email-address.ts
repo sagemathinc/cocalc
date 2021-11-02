@@ -1,7 +1,7 @@
 // Get email address of an account. If no such account or email not set, returns undefined...
 // Answers are cached for a while.
 
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 
 export default async function getEmailAddress(
   account_id: string

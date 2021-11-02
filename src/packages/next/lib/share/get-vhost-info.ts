@@ -1,4 +1,4 @@
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import { getLogger } from "@cocalc/backend/logger";
 import LRU from "lru-cache";
 
