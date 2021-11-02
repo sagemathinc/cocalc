@@ -3,24 +3,17 @@
   "version": "1.5.0",
   "description": "CoCalc server functionality: functions used by either the hub and the next.js server",
   "exports": {
-    "./*": "./dist/*.js"
+    "./*": "./dist/*.js",
+    "./mentions/*": "./dist/mentions/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
-    "build": "npx tsc && npx coffee  -m -c -o dist/ .",
+    "build": "npx tsc",
     "tsc": "npx tsc --watch"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
-  "workspaces": [
-    ".",
-    "../util",
-    "../backend",
-    "../database"
-  ],
+  "workspaces": [".", "../util", "../backend", "../database"],
   "dependencies": {
     "@cocalc/backend": "*",
     "@cocalc/database": "*",
