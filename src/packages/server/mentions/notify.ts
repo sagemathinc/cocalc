@@ -5,7 +5,7 @@ import getProjectTitle from "@cocalc/server/projects/get-title";
 import { trunc } from "@cocalc/util/misc";
 import siteURL from "@cocalc/backend/server-settings/site-url";
 import { getServerSettings } from "@cocalc/backend/server-settings";
-import sendEmail from "@cocalc/backend/email/send-email";
+import sendEmail from "@cocalc/server/email/send-email";
 
 export default async function sendNotificationIfPossible(
   key: Key,

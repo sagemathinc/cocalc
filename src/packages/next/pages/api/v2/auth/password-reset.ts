@@ -20,7 +20,7 @@ import {
   recentAttempts,
   createReset,
 } from "@cocalc/server/auth/password-reset";
-import sendPasswordResetEmail from "@cocalc/backend/email/password-reset";
+import sendPasswordResetEmail from "@cocalc/server/email/password-reset";
 
 export default async function passwordReset(req, res) {
   if (req.method !== "POST") {
