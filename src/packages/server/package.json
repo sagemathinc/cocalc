@@ -6,8 +6,10 @@
     "./*": "./dist/*.js",
     "./auth/*": "./dist/auth/*.js",
     "./accounts/*": "./dist/accounts/*.js",
+    "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",
     "./projects/*": "./dist/projects/*.js"
+    "./server-settings/*": "./dist/server-settings/*.js"
   },
   "keywords": [
     "utilities",
@@ -33,11 +35,13 @@
     "@types/lru-cache": "^5.1.1",
     "@types/node-zendesk": "^2.0.4",
     "@types/nodemailer": "^6.4.4",
+    "@types/pg": "^8.6.1",
     "awaiting": "^3.0.0",
     "lru-cache": "^6.0.0",
     "node-zendesk": "^2.1.0",
     "nodemailer": "^6.7.0",
     "parse-domain": "^4.1.0",
+    "pg": "^8.7.1",
     "random-key": "^0.3.2"
   },
   "repository": {
