@@ -6,6 +6,8 @@
     ".": "./dist/index.js",
     "./*": "./dist/*.js",
     "./postgres/*": "./dist/postgres/*.js",
+    "./accounts/*": "./dist/accounts/*.js",
+    "./projects/*": "./dist/projects/*.js",
     "./user-query": "./dist/user-query/index.js"
   },
   "workspaces": [

@@ -1,5 +1,8 @@
 import getPool from "@cocalc/backend/database";
-import passwordHash from "./password-hash";
+import passwordHash from "@cocalc/backend/auth/password-hash";
+import accountCreationActions, {
+  creationActionsDone,
+} from "./account-creation-actions";
 
 interface Params {
   email: string;
@@ -18,7 +21,9 @@ export default async function createAccount({
 }: Params): Promise<void> {
   const pool = getPool();
   await pool.query(
-    "INSERT INTO accounts (email_address, password_hash, first_name, last_name, account_id) VALUES($1::TEXT, $2::TEXT, $3::TEXT, $4::TEXT, $5::UUID)",
+    "INSERT INTO accounts (email_address, password_hash, first_name, last_name, account_id, created) VALUES($1::TEXT, $2::TEXT, $3::TEXT, $4::TEXT, $5::UUID, NOW())",
     [email, passwordHash(password), firstName, lastName, account_id]
   );
+  await accountCreationActions(email, account_id);
+  await creationActionsDone(account_id);
 }
