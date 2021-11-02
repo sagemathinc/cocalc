@@ -1,0 +1,36 @@
+{
+  "name": "@cocalc/server",
+  "version": "1.5.0",
+  "description": "CoCalc server functionality: functions used by either the hub and the next.js server",
+  "exports": {
+    "./*": "./dist/*.js"
+  },
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
+  "scripts": {
+    "build": "npx tsc && npx coffee  -m -c -o dist/ .",
+    "tsc": "npx tsc --watch"
+  },
+  "author": "SageMath, Inc.",
+  "license": "SEE LICENSE.md",
+  "workspaces": [
+    ".",
+    "../util",
+    "../backend",
+    "../database"
+  ],
+  "dependencies": {
+    "@cocalc/backend": "*",
+    "@cocalc/database": "*",
+    "@cocalc/util": "^1.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "devDependencies": {
+    "typescript": "^4.4.4"
+  }
+}
