@@ -14,6 +14,7 @@
     "../database",
     "../frontend",
     "../next",
+    "../server",
     "../static",
     "../util"
   ],
@@ -24,6 +25,7 @@
     "@cocalc/database": "^0.4.0",
     "@cocalc/frontend": "^1.11.0",
     "@cocalc/next": "^0.14.4",
+    "@cocalc/server": "^0.0.1",
     "@cocalc/static": "^1.38.5",
     "@cocalc/util": "^1.13.3",
     "@passport-next/passport-google-oauth2": "^1.0.0",
