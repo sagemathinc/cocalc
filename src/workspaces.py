@@ -17,6 +17,8 @@ import argparse, json, os, shutil, subprocess, sys, time
 
 from typing import Any, Optional, Callable, List
 
+MAX_PACKAGE_LOCK_SIZE_MB = 5
+
 
 def newest_file(path: str) -> str:
     # See https://gist.github.com/brwyatt/c21a888d79927cb476a4.
@@ -302,6 +304,7 @@ def npm(args) -> None:
 
 
 def version_check(args):
+    ensure_package_lock_isnt_huge()
     cmd("scripts/check_npm_packages.py")
 
 
@@ -361,9 +364,30 @@ def bump_package_version_if_necessary(package: str, newversion: str) -> None:
     cmd(f"npm --no-git-tag-version version {newversion}", package)
 
 
+# Once, probably due to circular dependencies (not sure) a package-lock.json
+# file jumped from 1.5MB to 50MB-75MB in size!  Sadly nobody noticed for a bit, and
+# this big package-lock got commited forever to our repositor :-(.  Thus
+# we often check that no package lock files have blown up.
+def ensure_package_lock_isnt_huge(package: str = '') -> None:
+    if not package:
+        for pkg in all_packages():
+            ensure_package_lock_isnt_huge(pkg)
+        return
+
+    print(
+        f"Checking that the package-lock.json file hasn't mysteriously blown up in size for {package}"
+    )
+    lock = f'{package}/package-lock.json'
+    if os.path.getsize(lock) > 1000000 * MAX_PACKAGE_LOCK_SIZE_MB:
+        raise RuntimeError(
+            f"{lock} is HUGE! Refusing to do anything further.  Please investigate."
+        )
+
+
 def publish_package(args, package: str) -> None:
     print("\nPackage:", package)
     sys.stdout.flush()
+    ensure_package_lock_isnt_huge(package)
 
     if not package_version_is_modified_from_last_git_commit(package):
         print(

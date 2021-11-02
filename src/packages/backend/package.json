@@ -26,7 +26,6 @@
   ],
   "dependencies": {
     "@airbnb/node-memwatch": "^2.0.0",
-    "@cocalc/backend": "*",
     "@cocalc/util": "^1.13.3",
     "@sendgrid/mail": "^7.4.7",
     "@types/debug": "^4.1.7",
