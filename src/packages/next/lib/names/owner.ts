@@ -3,7 +3,7 @@ from the database.  This should be enough to render
 a nice "homepage" for that user or organization.
 */
 
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import { isReserved } from "@cocalc/util/db-schema/name-rules";
 
 // Throws an exception if there is no account or org with this name.

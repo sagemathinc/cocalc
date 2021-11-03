@@ -1,6 +1,6 @@
-import getPool from "@cocalc/backend/database";
-import generateHash from "@cocalc/backend/auth/hash";
-import { COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/remember-me";
+import getPool from "@cocalc/database/pool";
+import generateHash from "@cocalc/server/auth/hash";
+import { COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/server/auth/remember-me";
 import Cookies from "cookies";
 
 // Return account_id if they are signed in.

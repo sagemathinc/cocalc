@@ -1,6 +1,6 @@
 // Get the name of an owner, i.e., an account_id or organization_id.
 
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 
 // Returns "" if owner doesn't have a name set.
 export default async function getName(owner_id: string): Promise<string> {

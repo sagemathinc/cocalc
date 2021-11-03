@@ -22,7 +22,7 @@ import { init_passport } from "./auth";
 import base_path from "@cocalc/backend/base-path";
 import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
 import { set_agent_endpoint } from "./health-checks";
-import initHandleMentions from "@cocalc/backend/mentions/handle";
+import initHandleMentions from "@cocalc/server/mentions/handle";
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 import { start as startHubRegister } from "./hub_register";
 import { getClients } from "./clients";

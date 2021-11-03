@@ -11,7 +11,7 @@ such as Google, and only exists for that purpose.
 
 import Link from "next/link";
 import SiteName from "components/share/site-name";
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import PublicPaths from "components/share/public-paths";
 import { Layout } from "components/share/layout";
 import withCustomize from "lib/with-customize";

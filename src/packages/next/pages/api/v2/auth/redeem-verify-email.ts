@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import redeemVerifyEmail from "@cocalc/backend/auth/redeem-verify-email";
+import redeemVerifyEmail from "@cocalc/server/auth/redeem-verify-email";
 
 export default async function redeemVerifyEmailAPICall(req, res) {
   if (req.method !== "POST") {

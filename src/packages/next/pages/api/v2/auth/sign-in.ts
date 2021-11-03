@@ -17,12 +17,12 @@ Sign in works as follows:
 */
 
 import { verify } from "password-hash";
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import {
   createRememberMeCookie,
   COOKIE_NAME,
-} from "@cocalc/backend/auth/remember-me";
-import { signInCheck, recordFail } from "@cocalc/backend/auth/throttle";
+} from "@cocalc/server/auth/remember-me";
+import { signInCheck, recordFail } from "@cocalc/server/auth/throttle";
 import Cookies from "cookies";
 
 export default async function signIn(req, res) {

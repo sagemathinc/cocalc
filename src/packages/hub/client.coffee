@@ -35,8 +35,8 @@ hub_projects         = require('./projects')
 db_schema            = require('@cocalc/util/db-schema')
 { escapeHtml }       = require("escape-html")
 {CopyPath}           = require('./copy-path')
-{ COOKIE_NAME }=require("@cocalc/backend/auth/remember-me");
-generateHash =require("@cocalc/backend/auth/hash").default;
+{ COOKIE_NAME }=require("@cocalc/server/auth/remember-me");
+generateHash =require("@cocalc/server/auth/hash").default;
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 
 {one_result} = require("@cocalc/database")

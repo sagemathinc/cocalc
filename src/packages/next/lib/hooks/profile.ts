@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Profile } from "@cocalc/backend/accounts/profile/types";
+import { Profile } from "@cocalc/server/accounts/profile/types";
 import LRU from "lru-cache";
 import apiPost from "lib/api/post";
 // How often to check for new avatars.

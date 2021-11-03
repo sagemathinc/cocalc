@@ -5,7 +5,7 @@ the account_id.  It is the color, the name, and
 the image.
 */
 
-import getProfile from "@cocalc/backend/accounts/profile/get";
+import getProfile from "@cocalc/server/accounts/profile/get";
 
 export default async function handle(req, res) {
   if (req.method !== "POST") {

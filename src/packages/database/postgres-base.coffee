@@ -50,7 +50,7 @@ metrics = require('./metrics')
 exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created', 'env']
 exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
 
-dbPassword = require('@cocalc/backend/database/password').default;
+dbPassword = require('@cocalc/database/pool/password').default;
 
 class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whenever we successfully connect to the database and 'disconnect' when connection to postgres fails
     constructor: (opts) ->

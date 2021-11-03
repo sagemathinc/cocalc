@@ -58,7 +58,7 @@ collab = require('./postgres/collab')
 {get_personal_user} = require('./postgres/personal')
 {projects_that_need_to_be_started} = require('./postgres/always-running');
 {calc_stats} = require('./postgres/stats')
-{getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/backend/server-settings/server-settings');
+{getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/server/settings/server-settings');
 {pii_expire} = require("./postgres/pii")
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 
@@ -769,7 +769,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         )
 
 
-    verify_email_check_token: (opts) =>   # rewritten in backend/auth/redeem-verify-email.ts
+    verify_email_check_token: (opts) =>   # rewritten in server/auth/redeem-verify-email.ts
         opts = defaults opts,
             email_address : required
             token         : required
@@ -846,7 +846,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 opts.cb?(err, x)
 
     # answers the question as cb(null, [true or false])
-    is_verified_email: (opts) =>  # rewritten in backend/auth/redeem-verify-email.ts
+    is_verified_email: (opts) =>  # rewritten in server/auth/redeem-verify-email.ts
         opts = defaults opts,
             email_address : required
             cb            : required

@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import getContents from "./get-contents";
 import getProjectInfo from "./get-project";
 import { join } from "path";
-const basePath = require("./basePath")();
+import basePath from "lib/base-path";
 
 export default async function getPublicPathInfo(id, relativePath) {
 

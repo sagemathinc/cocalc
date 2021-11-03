@@ -4,7 +4,7 @@ better find things.
 */
 
 import getAccountId from "lib/account/get-account";
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 
 export default async function handle(req, res) {
   if (req.method !== "POST") {

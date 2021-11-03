@@ -2,7 +2,7 @@
 Get all support tickets for a signed in user.
 */
 
-import getSupportTickets from "@cocalc/backend/support/get-tickets";
+import getSupportTickets from "@cocalc/server/support/get-tickets";
 import getAccountId from "lib/account/get-account";
 
 export default async function handle(req, res) {

@@ -5,7 +5,7 @@ a nice "homepage" for that user or organization.
 
 */
 
-import getPool from "@cocalc/backend/database";
+import getPool from "@cocalc/database/pool";
 import getOwner from "./owner";
 
 // Throws an exception if there is no project with this name.

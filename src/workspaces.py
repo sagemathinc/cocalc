@@ -13,16 +13,24 @@ TEST:
  - This should always work:  "mypy workspaces.py"
 """
 
-import argparse, json, os, shutil, subprocess, sys, time
+import argparse, json, os, platform, shutil, subprocess, sys, time
 
 from typing import Any, Optional, Callable, List
 
+MAX_PACKAGE_LOCK_SIZE_MB = 5
+
 
 def newest_file(path: str) -> str:
-    # See https://gist.github.com/brwyatt/c21a888d79927cb476a4.
-    return os.popen(
-        f'cd "{path}"&& find . -type f -printf "%C@ %p\n" | sort -rn | head -n 1 | cut -d" " -f2'
-    ).read().strip()
+    if platform.system() != 'Darwin':
+        # See https://gist.github.com/brwyatt/c21a888d79927cb476a4 for this Linux
+        # version:
+        cmd = 'find . -type f -printf "%C@ %p\n" | sort -rn | head -n 1 | cut -d" " -f2'
+    else:
+        # but we had to rewrite this as suggested at
+        # https://unix.stackexchange.com/questions/272491/bash-error-find-printf-unknown-primary-or-operator
+        # etc to work on MacOS.
+        cmd = 'find . -type f -print0 | xargs -0r stat -f "%Fc %N" | sort -rn | head -n 1 | cut -d" " -f2'
+    return os.popen(f'cd "{path}" && {cmd}').read().strip()
 
 
 SUCCESSFUL_BUILD = ".successful-build"
@@ -92,7 +100,8 @@ def all_packages() -> List[str]:
         'packages/hub',
         'packages/frontend',
         'packages/project',
-        'packages/assets'
+        'packages/assets',
+        'packages/server', # packages/next assumes this is built
     ]
     for x in os.listdir('packages'):
         path = os.path.join("packages", x)
@@ -302,6 +311,7 @@ def npm(args) -> None:
 
 
 def version_check(args):
+    ensure_package_lock_isnt_huge()
     cmd("scripts/check_npm_packages.py")
 
 
@@ -361,9 +371,27 @@ def bump_package_version_if_necessary(package: str, newversion: str) -> None:
     cmd(f"npm --no-git-tag-version version {newversion}", package)
 
 
+# Once, probably due to circular dependencies (not sure) a package-lock.json
+# file jumped from 1.5MB to 50MB-75MB in size!  Sadly nobody noticed for a bit, and
+# this big package-lock got commited forever to our repositor :-(.  Thus
+# we often check that no package lock files have blown up.
+def ensure_package_lock_isnt_huge(package: str = '') -> None:
+    if not package:
+        for pkg in all_packages():
+            ensure_package_lock_isnt_huge(pkg)
+        return
+
+    lock = f'{package}/package-lock.json'
+    if os.path.getsize(lock) > 1000000 * MAX_PACKAGE_LOCK_SIZE_MB:
+        raise RuntimeError(
+            f"{lock} is HUGE! Refusing to do anything further.  Please investigate."
+        )
+
+
 def publish_package(args, package: str) -> None:
     print("\nPackage:", package)
     sys.stdout.flush()
+    ensure_package_lock_isnt_huge(package)
 
     if not package_version_is_modified_from_last_git_commit(package):
         print(

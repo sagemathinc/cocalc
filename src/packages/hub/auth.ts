@@ -59,14 +59,14 @@ import {
 } from "@cocalc/frontend/account/passport-types";
 const safeJsonStringify = require("safe-json-stringify");
 import base_path from "@cocalc/backend/base-path";
-import generateHash from "@cocalc/backend/auth/hash";
+import generateHash from "@cocalc/server/auth/hash";
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
 import {
   createRememberMeCookie,
   COOKIE_NAME as REMEMBER_ME_COOKIE_NAME,
-} from "@cocalc/backend/auth/remember-me";
+} from "@cocalc/server/auth/remember-me";
 
 const logger = getLogger("auth");
 

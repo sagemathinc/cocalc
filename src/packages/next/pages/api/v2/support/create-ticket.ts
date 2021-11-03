@@ -2,7 +2,7 @@
 Create a support ticket.
 */
 
-import createSupportTicket from "@cocalc/backend/support/create-ticket";
+import createSupportTicket from "@cocalc/server/support/create-ticket";
 import getAccountId from "lib/account/get-account";
 
 export default async function handle(req, res) {

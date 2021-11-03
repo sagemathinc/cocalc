@@ -15,12 +15,12 @@ Password reset works as follows:
 5. Send response to user that email has been sent (or there was an error).
 */
 
-import isAccountAvailable from "@cocalc/backend/auth/is-account-available";
+import isAccountAvailable from "@cocalc/server/auth/is-account-available";
 import {
   recentAttempts,
   createReset,
-} from "@cocalc/backend/auth/password-reset";
-import sendPasswordResetEmail from "@cocalc/backend/email/password-reset";
+} from "@cocalc/server/auth/password-reset";
+import sendPasswordResetEmail from "@cocalc/server/email/password-reset";
 
 export default async function passwordReset(req, res) {
   if (req.method !== "POST") {
