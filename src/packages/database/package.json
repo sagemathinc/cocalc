@@ -4,9 +4,9 @@
   "description": "CoCalc: code for working with our PostgreSQL database",
   "exports": {
     ".": "./dist/index.js",
-    "./*": "./dist/*.js",
     "./accounts/*": "./dist/accounts/*.js",
     "./pool": "./dist/pool/index.js",
+    "./pool/*": "./dist/pool/*.js",
     "./postgres/*": "./dist/postgres/*.js",
     "./projects/*": "./dist/projects/*.js",
     "./user-query": "./dist/user-query/index.js"
