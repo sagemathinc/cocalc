@@ -7,7 +7,7 @@ import getPool from "@cocalc/database/pool";
 import getContents from "./get-contents";
 import getProjectInfo from "./get-project";
 import { join } from "path";
-const basePath = require("./basePath")();
+import basePath from "lib/base-path";
 
 export default async function getPublicPathInfo(id, relativePath) {
 

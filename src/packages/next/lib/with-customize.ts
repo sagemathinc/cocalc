@@ -9,7 +9,7 @@ interface Options {
   // last_name, name(=username), email_address in the account field. This is one more db query.
 }
 
-export default async function get(
+export default async function withCustomize(
   obj: {
     props?: any;
     revalidate?: number;
