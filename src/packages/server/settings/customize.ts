@@ -22,6 +22,7 @@ export interface Customize {
   googleAnalytics?: string;
   anonymousSignup?: boolean;
   emailSignup?: boolean;
+  accountCreationInstructions?: string;
   zendesk?: boolean; // true if zendesk support is configured.
 }
 
@@ -56,6 +57,7 @@ export default async function getCustomize(): Promise<Customize> {
 
     anonymousSignup: settings.anonymous_signup,
     emailSignup: settings.email_signup,
+    accountCreationInstructions: settings.account_creation_email_instructions,
 
     logoSquareURL: settings.logo_square,
     logoRectangularURL: settings.logo_rectangular,

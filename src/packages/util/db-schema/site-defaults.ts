@@ -178,8 +178,8 @@ export const site_settings_conf: SiteSettings = {
   },
   account_creation_email_instructions: {
     name: "Account creation",
-    desc: "Instructions displayed next to the box where a user creates their account using their name and email address.",
-    default: "Create an Account",
+    desc: `Instructions displayed above near the box where a user creates their account, e.g., "Let's begin the adventure!"`,
+    default: "",
     clearable: true,
     show: show_theming_vars,
   },

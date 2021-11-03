@@ -16,7 +16,12 @@ const LINE = { margin: "15px 0" } as CSSProperties;
 
 export default function SignUp({ strategies, requiresToken }) {
   const router = useRouter();
-  const { anonymousSignup, siteName, emailSignup } = useCustomize();
+  const {
+    anonymousSignup,
+    siteName,
+    emailSignup,
+    accountCreationInstructions,
+  } = useCustomize();
   const [terms, setTerms] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
   const [registrationToken, setRegistrationToken] = useState<string>("");
@@ -105,6 +110,7 @@ export default function SignUp({ strategies, requiresToken }) {
           style={{ width: "100px", height: "100px", marginBottom: "15px" }}
         />
         <h1>Create a {siteName} Account</h1>
+        {accountCreationInstructions}
       </div>
 
       <div style={LOGIN_STYLE}>
