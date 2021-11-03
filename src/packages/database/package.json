@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/database",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "CoCalc: code for working with our PostgreSQL database",
   "exports": {
     ".": "./dist/index.js",
@@ -11,9 +11,14 @@
     "./projects/*": "./dist/projects/*.js",
     "./user-query": "./dist/user-query/index.js"
   },
-  "workspaces": ["./", "../backend", "../server", "../util"],
+  "workspaces": [
+    "./",
+    "../backend",
+    "../server",
+    "../util"
+  ],
   "dependencies": {
-    "@cocalc/backend": "^1.5.1",
+    "@cocalc/backend": "^1.6.0",
     "@cocalc/server": "^0.0.1",
     "@cocalc/util": "^1.13.3",
     "@types/lodash": "^4.14.175",
@@ -51,7 +56,10 @@
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"
   },
-  "keywords": ["postgresql", "cocalc"],
+  "keywords": [
+    "postgresql",
+    "cocalc"
+  ],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "bugs": {
