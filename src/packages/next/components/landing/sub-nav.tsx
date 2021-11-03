@@ -4,6 +4,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { useCustomize } from "lib/customize";
 
 const software = {
+  index: {},
   executables: { label: "Executables" },
   python: { label: "Python" },
   r: { label: "R Stats" },
@@ -12,6 +13,7 @@ const software = {
 };
 
 const features = {
+  index: {},
   "jupyter-notebook": { label: "Jupyter" },
   "latex-editor": { label: "LaTeX" },
   linux: { label: "Linux" },
@@ -28,6 +30,7 @@ const features = {
 };
 
 const pricing = {
+  index: {},
   products: { label: "Products" },
   subscriptions: { label: "Subscriptions" },
   courses: { label: "Courses" },
@@ -36,6 +39,7 @@ const pricing = {
 };
 
 const policies = {
+  index: {},
   terms: { label: "Terms of Service" },
   copyright: { label: "Copyright" },
   privacy: { label: "Privacy" },
@@ -45,6 +49,7 @@ const policies = {
 };
 
 const info = {
+  index: {},
   doc: { label: "Documentation" },
   status: { label: "Status" },
   run: { label: "Run CoCalc" },
@@ -56,6 +61,7 @@ const sign_in = {
 };
 
 const support = {
+  index: {},
   community: { label: "Community" },
   new: { label: "New Ticket", hide: (customize) => !customize.zendesk },
   tickets: { label: "Tickets", hide: (customize) => !customize.zendesk },
@@ -91,29 +97,36 @@ interface Props {
 
 export default function SubNav({ page, subPage }: Props) {
   const customize = useCustomize();
-  const tabs: JSX.Element[] = [
-    <SubPageTab
-      key={"index"}
-      page={page}
-      selected={!subPage}
-      name={"index"}
-      label={<Icon name="home" />}
-      href={`/${page}`}
-    />,
-  ];
+  const tabs: JSX.Element[] = [];
   const p = PAGES[page];
   if (p == null) return null;
   for (const name in p) {
     if (p[name]?.disabled) continue;
     if (p[name]?.hide?.(customize)) continue;
+    let { label, href, icon } = p[name];
+    if (name == "index") {
+      if (!href) href = `/${page}`;
+      if (!icon) icon = "home";
+    }
+    const selected = name == "index" ? !subPage : subPage == name;
     tabs.push(
       <SubPageTab
         key={name}
         page={page}
-        selected={subPage == name}
+        selected={selected}
         name={name}
-        label={p[name].label}
-        href={p[name].href}
+        label={
+          <>
+            {icon && (
+              <>
+                <Icon name={icon} />
+                {label ? " " : ""}
+              </>
+            )}
+            {label}
+          </>
+        }
+        href={href}
       />
     );
   }
