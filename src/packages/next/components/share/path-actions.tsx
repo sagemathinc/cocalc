@@ -61,7 +61,7 @@ export default function PathActions({
     );
   }
   if (include("edit")) {
-    v.push(<Edit key="edit" id={id} path={path} project_id={project_id} />);
+    v.push(<Edit key="edit" id={id} path={path} relativePath={relativePath} project_id={project_id} />);
   }
 
   return r_join(v, " | ");

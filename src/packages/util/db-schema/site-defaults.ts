@@ -102,7 +102,7 @@ export const only_nonneg_int = (val) =>
   ((v) => only_ints(v) && v >= 0)(to_int(val));
 
 // TODO a cheap'n'dirty validation is good enough
-const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
+//const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
 
 export const split_iframe_comm_hosts = (hosts) =>
   hosts.match(/[a-z0-9.-]+/g) || [];
@@ -129,9 +129,9 @@ export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
   dns: {
     name: "Domain name",
-    desc: "DNS for your server, e.g. cocalc.universe.edu.  Does NOT include the basePath.",
+    desc: "DNS for your server, e.g. cocalc.universe.edu.  Does NOT include the basePath.  It optionally can start with http:// (for non SSL) and end in a :number for a port.  This is mainly used for password resets and invitation and sign up emails, since they need to know a link to the site.",
     default: "",
-    valid: valid_dns_name,
+    //valid: valid_dns_name,
   },
   theming: {
     name: "Show Theming",

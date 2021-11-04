@@ -27,10 +27,11 @@ import editURL from "lib/share/edit-url";
 interface Props {
   id: string;
   path: string;
+  relativePath: string;
   project_id: string;
 }
 
-export default function Edit({ id, path, project_id }: Props) {
+export default function Edit({ id, path, relativePath, project_id }: Props) {
   const [expanded, setExpanded] = useState<boolean>(false);
 
   return (
@@ -50,6 +51,7 @@ export default function Edit({ id, path, project_id }: Props) {
         <EditOptions
           id={id}
           path={path}
+          relativePath={relativePath}
           project_id={project_id}
           onClose={() => setExpanded(false)}
         />
@@ -62,7 +64,13 @@ interface EditProps extends Props {
   onClose: () => void;
 }
 
-function EditOptions({ id, path, project_id, onClose }: EditProps) {
+function EditOptions({
+  id,
+  path,
+  relativePath,
+  project_id,
+  onClose,
+}: EditProps) {
   const { account } = useCustomize();
   return (
     <Card
@@ -78,43 +86,62 @@ function EditOptions({ id, path, project_id, onClose }: EditProps) {
       }
     >
       {account?.account_id != null && (
-        <SignedInOptions id={id} path={path} project_id={project_id} />
+        <SignedInOptions
+          id={id}
+          path={path}
+          relativePath={relativePath}
+          project_id={project_id}
+        />
       )}
       {account?.account_id == null && (
-        <NotSignedInOptions id={id} path={path} />
+        <NotSignedInOptions id={id} path={path} relativePath={relativePath} />
       )}
       <br />
     </Card>
   );
 }
 
-function SignedInOptions({ id, path, project_id }) {
+function SignedInOptions({ id, path, relativePath, project_id }) {
   const { isCollaborator } = useCustomize();
   return isCollaborator ? (
-    <OpenDirectly project_id={project_id} path={path} />
+    <OpenDirectly
+      project_id={project_id}
+      path={path}
+      relativePath={relativePath}
+    />
   ) : (
-    <CopyToProject id={id} path={path} />
+    <CopyToProject id={id} path={path} relativePath={relativePath} />
   );
 }
 
 function OpenDirectly({
   project_id,
   path,
+  relativePath,
 }: {
   project_id: string;
   path: string;
+  relativePath: string;
 }) {
-  const { dns } = useCustomize();
-  const url = dns + project_id + "/" + path;
+  const { siteURL } = useCustomize();
   return (
     <div>
       You are signed in as a collaborator on{" "}
-      <A href={"bar"} external>
+      <A href={editURL({ type: "collaborator", project_id, siteURL })} external>
         the project
       </A>{" "}
       that contains{" "}
-      <A href={"foo"} external>
-        this document
+      <A
+        href={editURL({
+          type: "collaborator",
+          project_id,
+          path,
+          relativePath,
+          siteURL,
+        })}
+        external
+      >
+        this shared document
       </A>
       .
     </div>
@@ -149,27 +176,25 @@ function SignIn() {
   return (
     <div>
       <Divider>
-        <Icon name="sign-in" style={{ marginRight: "10px" }} /> Your Project
+        <Icon name="sign-in" style={{ marginRight: "10px" }} /> Choose Project
       </Divider>
-      <A>Sign In</A> or <A>Sign Up</A> to edit this in one of your projects.
+      <A>Sign In</A> or <A>Sign Up</A> to edit in one of your projects.
     </div>
   );
 }
 
 function OpenAnonymously({ id, path }) {
-  const { dns } = useCustomize();
+  const { siteURL } = useCustomize();
   return (
     <div>
       <Divider>
         <Icon name="mask" style={{ marginRight: "10px" }} /> Anonymously
       </Divider>
       Alternatively, with{" "}
-      <A href={editURL({ id, path, dns })}>
+      <A href={editURL({ id, path, relativePath, siteURL, type: "anonymous" })}>
         one click you can edit anonymously without signing up
       </A>
       ! Sign up later from your anonymous session without losing work.
     </div>
   );
 }
-
-

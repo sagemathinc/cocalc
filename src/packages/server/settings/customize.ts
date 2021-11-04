@@ -71,10 +71,15 @@ export default async function getCustomize(): Promise<Customize> {
 
     googleAnalytics: settings.google_analytics,
 
-    // can be used for links to edit share document in main site; needed if main site
-    // on different domain than share server, e.g., share.cocalc.com vs cocalc.com.
+    // Can be used for links to edit share document in main site; needed if main site
+    // on different domain than share server, e.g., share.cocalc.com vs cocalc.com,
+    // and is also important for invite emails (e.g., so we can construct a url to our site).
+    // This *can* start with http:// to explicitly use http instead of https, and can end
+    // in something like :3594 to indicate a port.
     dns: settings.dns,
-    // site url combines the dns, https:// and the basePath.  It never ends in a slash!
+    // siteURL is derived from settings.dns and the basePath -- it combines the dns, https://
+    // and the basePath.  It never ends in a slash.  This is used in practice for
+    // things like invite emails, password reset, etc.
     siteURL: await siteURL(settings.dns),
 
     zendesk:

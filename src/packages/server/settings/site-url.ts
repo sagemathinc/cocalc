@@ -6,10 +6,13 @@ import basePath from "@cocalc/backend/base-path";
 // setting of site settings.  This URL does NOT end in a /
 export default async function siteURL(dns?: string): Promise<string> {
   if (!dns) {
-    dns = (await getServerSettings()).dns;
+    dns = (await getServerSettings()).dns?.toLowerCase();
   }
   if (!dns) {
     dns = "localhost";
   }
-  return `https://${dns}${basePath == "/" ? "" : basePath}`;
+  if (!dns.startsWith("http")) {
+    dns = "https://" + dns;
+  }
+  return `${dns}${basePath == "/" ? "" : basePath}`;
 }
