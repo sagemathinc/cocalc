@@ -8,21 +8,23 @@ import { LOGIN_STYLE } from "./shared";
 import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Contact from "components/landing/contact";
-import { useRouter } from "next/router";
+
+interface Props {
+  strategies: Strategy[];
+  minimal?: boolean;
+  onSuccess?: () => void; // if given, call after sign in *succeeds*.
+}
 
 export default function SignIn({
   strategies,
   minimal,
-}: {
-  strategies: Strategy[];
-  minimal?: boolean;
-}) {
+  onSuccess,
+}: Props) {
   const { anonymousSignup, siteName } = useCustomize();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [signingIn, setSigningIn] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const router = useRouter();
 
   async function signIn() {
     if (signingIn) return;
@@ -33,7 +35,7 @@ export default function SignIn({
       if (result.error) {
         setError(`${result.error}`);
       } else {
-        router.push("/");
+        onSuccess?.();
       }
     } catch (err) {
       setError(`${err}`);

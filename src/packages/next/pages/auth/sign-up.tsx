@@ -8,16 +8,22 @@ import basePath from "lib/base-path";
 import SignUp from "components/auth/sign-up";
 import getStrategies from "@cocalc/server/auth/sso/get-strategies";
 import getRequiresToken from "@cocalc/server/auth/tokens/get-requires-token";
+import { useRouter } from "next/router";
 
 export default function Home({ customize, strategies, requiresToken }) {
   const { siteName } = customize;
+  const router = useRouter();
   return (
     <Customize value={customize}>
       <Head title={`Sign in to ${siteName}`} />
       <Layout>
         <Header page="sign-up" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <SignUp strategies={strategies} requiresToken={requiresToken} />
+          <SignUp
+            strategies={strategies}
+            requiresToken={requiresToken}
+            onSuccess={() => router.push("/")}
+          />
           <Footer />
         </Layout.Content>
       </Layout>

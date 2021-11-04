@@ -25,6 +25,7 @@ import A from "components/misc/A";
 import editURL from "lib/share/edit-url";
 import SignInAuth from "components/auth/sign-in";
 import SignUpAuth from "components/auth/sign-up";
+import { useRouter } from "next/router";
 
 interface Props {
   id: string;
@@ -34,7 +35,8 @@ interface Props {
 }
 
 export default function Edit({ id, path, relativePath, project_id }: Props) {
-  const [expanded, setExpanded] = useState<boolean>(false);
+  const router = useRouter();
+  const [expanded, setExpanded] = useState<boolean>(!!router.query.edit);
 
   return (
     <span>
@@ -42,7 +44,7 @@ export default function Edit({ id, path, relativePath, project_id }: Props) {
         disabled={expanded}
         onClick={(e) => {
           e.preventDefault();
-          setExpanded(!expanded);
+          setExpanded(true);
         }}
         key="edit"
         size="small"
@@ -177,6 +179,7 @@ function NotSignedInOptions({ id, path, relativePath }) {
 // and also requiresToken for SignUp!
 
 function SignIn() {
+  const router = useRouter();
   const [show, setShow] = useState<"sign-in" | "sign-up" | "">("");
   return (
     <div>
@@ -188,8 +191,30 @@ function SignIn() {
       projects.
       <br />
       <br />
-      {show == "sign-in" && <SignInAuth strategies={[]} minimal />}
-      {show == "sign-up" && <SignUpAuth strategies={[]} minimal />}
+      {show == "sign-in" && (
+        <SignInAuth
+          strategies={[]}
+          minimal
+          onSuccess={() =>
+            router.push({
+              pathname: router.asPath.split("?")[0],
+              query: { edit: "true" },
+            })
+          }
+        />
+      )}
+      {show == "sign-up" && (
+        <SignUpAuth
+          strategies={[]}
+          minimal
+          onSuccess={() =>
+            router.push({
+              pathname: router.asPath.split("?")[0],
+              query: { edit: "true" },
+            })
+          }
+        />
+      )}
     </div>
   );
 }

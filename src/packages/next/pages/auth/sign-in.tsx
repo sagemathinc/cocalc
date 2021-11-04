@@ -7,16 +7,18 @@ import Head from "components/landing/head";
 import basePath from "lib/base-path";
 import SignIn from "components/auth/sign-in";
 import getStrategies from "@cocalc/server/auth/sso/get-strategies";
+import { useRouter } from "next/router";
 
 export default function Home({ customize, strategies }) {
   const { siteName } = customize;
+  const router = useRouter();
   return (
     <Customize value={customize}>
       <Head title={`Sign in to ${siteName}`} />
       <Layout>
         <Header page="sign-in" subPage="sign-in" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <SignIn strategies={strategies} />
+          <SignIn strategies={strategies} onSuccess={() => router.push("/")} />
           <Footer />
         </Layout.Content>
       </Layout>

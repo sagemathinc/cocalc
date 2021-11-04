@@ -10,20 +10,22 @@ import {
 import apiPost from "lib/api/post";
 import SSO, { Strategy } from "./sso";
 import { LOGIN_STYLE } from "./shared";
-import { useRouter } from "next/router";
 
 const LINE = { margin: "15px 0" } as CSSProperties;
+
+interface Props {
+  strategies: Strategy[];
+  minimal?: boolean;
+  requiresToken?: boolean;
+  onSuccess?: () => void; // if given, call after sign up *succeeds*.
+}
 
 export default function SignUp({
   strategies,
   requiresToken,
   minimal,
-}: {
-  strategies: Strategy[];
-  minimal?: boolean;
-  requiresToken?: boolean;
-}) {
-  const router = useRouter();
+  onSuccess,
+}: Props) {
   const {
     anonymousSignup,
     siteName,
@@ -74,7 +76,7 @@ export default function SignUp({
       if (result.issues && len(result.issues) > 0) {
         setIssues(result.issues);
       } else {
-        router.push("/");
+        onSuccess?.();
       }
     } catch (err) {
       setIssues({ error: `${err}` });
