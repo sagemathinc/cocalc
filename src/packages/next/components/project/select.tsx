@@ -9,7 +9,7 @@ import { field_cmp } from "@cocalc/util/cmp";
 interface Props {
   label?: string;
   project_id?: string;
-  onChange: (project_id: string) => void;
+  onChange: (project: { project_id: string; title: string }) => void;
 }
 
 export default function SelectProject({ label, project_id, onChange }: Props) {
@@ -24,7 +24,10 @@ export default function SelectProject({ label, project_id, onChange }: Props) {
     value.projects.sort((a, b) => cmp(b, a)); // so newest first
     const v: { label: string; value: string }[] = [];
     for (const x of value.projects) {
-      v.push({ label: x.title, value: x.project_id });
+      v.push({
+        label: x.title,
+        value: JSON.stringify({ project_id: x.project_id, title: x.title }),
+      });
     }
     return v;
   }, [loading]);
@@ -34,15 +37,17 @@ export default function SelectProject({ label, project_id, onChange }: Props) {
       <Space direction="vertical" style={{ width: "100%" }}>
         {error && <Alert type="error" message={error} showIcon />}
         {loading && <Loading />}
-        {!loading && !error && value && (
+        {!loading && !error && value && projects.length > 0 ? (
           <Select
             showSearch
             style={{ width: "100%" }}
             placeholder={"Select a project..."}
             optionFilterProp="label"
             options={projects}
-            onChange={onChange}
+            onChange={(x) => (x ? onChange(JSON.parse(`${x}`)) : undefined)}
           />
+        ) : (
+          <div>You do not have any projects yet.</div>
         )}
       </Space>
     </div>

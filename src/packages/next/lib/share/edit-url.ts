@@ -17,20 +17,19 @@ interface CollaboratorOptions {
   project_id: string;
   path?: string; // no path means link to project
   relativePath?: string;
-  type: "collaborator";
+  type?: "collaborator";
 }
 
 type Options = AnonymousOptions | CollaboratorOptions;
 
 export default function editURL(options: Options): string {
-  const type = options['type'];
+  const type = options["type"];
   switch (type) {
     case "anonymous":
       return anonymousURL(options);
     case "collaborator":
-      return collaboratorURL(options);
     default:
-      throw Error(`unknown type ${type}`);
+      return collaboratorURL(options);
   }
 }
 
@@ -50,12 +49,18 @@ function anonymousURL({ id, path, relativePath }): string {
   );
 }
 
-function collaboratorURL({ project_id, path, relativePath } : {project_id:string; path?:string; relativePath?:string}): string {
+function collaboratorURL({
+  project_id,
+  path,
+  relativePath,
+}: {
+  project_id: string;
+  path?: string;
+  relativePath?: string;
+}): string {
   const projectURL = join("/projects", project_id);
-  if (!path ) {
+  if (!path) {
     return projectURL;
   }
-  return withBasePath(
-    join(projectURL, "files", path, relativePath ?? "")
-  );
+  return withBasePath(join(projectURL, "files", path, relativePath ?? ""));
 }

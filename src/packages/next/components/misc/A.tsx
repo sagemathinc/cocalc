@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function A(props: any) {
   const { href } = props;
   if (href == null) {
-    return <a {...props} />;
+    return <a {...copyWithout(props, "external")} />;
   }
   if (props.external || href.includes("://") || href.startsWith("mailto:")) {
     return (

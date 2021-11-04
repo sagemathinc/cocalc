@@ -17,8 +17,9 @@ When you want to edit an existing public share, here's the flow of what happens.
 
 */
 
+import { join } from "path";
 import { useState } from "react";
-import { Button, Card, Divider } from "antd";
+import { Button, Card, Divider, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
@@ -28,6 +29,7 @@ import SignUpAuth from "components/auth/sign-up";
 import { useRouter } from "next/router";
 import SelectProject from "components/project/select";
 import CreateProject from "components/project/create";
+import ProjectListing from "components/project/listing";
 
 interface Props {
   id: string;
@@ -87,7 +89,7 @@ function EditOptions({
             <Icon name="times-circle" />
           </div>
           <Icon style={{ marginRight: "10px" }} name="pencil" /> Where to edit{" "}
-          {path}?
+          {join(path, relativePath)}?
         </>
       }
     >
@@ -155,23 +157,56 @@ function OpenDirectly({
 function CopyToProject({ id, path, relativePath }) {
   console.log("CopyToProject", { id, path, relativePath });
   return (
+    <ChooseProject
+      path={path}
+      relativePath={relativePath}
+      onSelect={({ project_id, title }) => {
+        console.log("chose ", title);
+      }}
+    />
+  );
+}
+
+function ChooseProject({ onSelect, path, relativePath }) {
+  const [project, setProject] = useState<
+    { project_id: string; title: string } | undefined
+  >(undefined);
+  if (project) {
+    return (
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <Button>
+          <Icon name="copy" /> Copy {join(path, relativePath)} to the following project...
+        </Button>
+        <ProjectListing
+          project_id={project.project_id}
+          title={project.title}
+          path=""
+        />
+      </Space>
+    );
+  }
+  return (
     <div>
       <SelectProject
         label="In one of your existing projects"
-        onChange={(project_id) => {
-          console.log("got ", project_id);
+        onChange={({ project_id, title }) => {
+          console.log("got ", project_id, title);
+          setProject({ project_id, title });
         }}
       />
       <br />
       <CreateProject
         label="In a new project"
-        onCreate={(project_id) => {
-          console.log("created ", project_id);
+        onCreate={(project) => {
+          console.log("created ", project);
+          setProject(project);
         }}
       />
     </div>
   );
 }
+
+function CopyToProjectAndOpen({ project_id }) {}
 
 function NotSignedInOptions({ id, path, relativePath }) {
   return (

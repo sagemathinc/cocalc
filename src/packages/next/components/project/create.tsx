@@ -6,7 +6,7 @@ import { Alert, Button, Divider, Input, Space } from "antd";
 
 interface Props {
   label?: string;
-  onCreate: (project_id: string) => void;
+  onCreate: (project:{project_id: string; title:string}) => void;
 }
 
 export default function CreateProject({ label, onCreate }: Props) {
