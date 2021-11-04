@@ -4,7 +4,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import basePath from "lib/base-path";
 import { join } from "path";
 
-interface Strategy {
+export interface Strategy {
   name: string;
   display: string;
   icon: string;

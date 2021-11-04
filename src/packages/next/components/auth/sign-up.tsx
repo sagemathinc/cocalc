@@ -8,13 +8,21 @@ import {
   is_valid_email_address as isValidEmailAddress,
 } from "@cocalc/util/misc";
 import apiPost from "lib/api/post";
-import SSO from "./sso";
+import SSO, { Strategy } from "./sso";
 import { LOGIN_STYLE } from "./shared";
 import { useRouter } from "next/router";
 
 const LINE = { margin: "15px 0" } as CSSProperties;
 
-export default function SignUp({ strategies, requiresToken }) {
+export default function SignUp({
+  strategies,
+  requiresToken,
+  minimal,
+}: {
+  strategies: Strategy[];
+  minimal?: boolean;
+  requiresToken?: boolean;
+}) {
   const router = useRouter();
   const {
     anonymousSignup,
@@ -105,13 +113,15 @@ export default function SignUp({ strategies, requiresToken }) {
 
   return (
     <div style={{ padding: "0 15px" }}>
-      <div style={{ textAlign: "center", marginBottom: "15px" }}>
-        <SquareLogo
-          style={{ width: "100px", height: "100px", marginBottom: "15px" }}
-        />
-        <h1>Create a {siteName} Account</h1>
-        {accountCreationInstructions}
-      </div>
+      {!minimal && (
+        <div style={{ textAlign: "center", marginBottom: "15px" }}>
+          <SquareLogo
+            style={{ width: "100px", height: "100px", marginBottom: "15px" }}
+          />
+          <h1>Create a {siteName} Account</h1>
+          {accountCreationInstructions}
+        </div>
+      )}
 
       <div style={LOGIN_STYLE}>
         <Checkbox
@@ -250,23 +260,27 @@ export default function SignUp({ strategies, requiresToken }) {
         )}
       </div>
 
-      <div
-        style={{
-          ...LOGIN_STYLE,
-          backgroundColor: "white",
-          margin: "30px auto",
-          padding: "15px",
-        }}
-      >
-        Already have an account? <A href="/auth/sign-in">Sign In</A>
-        {anonymousSignup && (
-          <div style={{ marginTop: "15px" }}>
-            Don't want to provide any information?
-            <br />
-            <A href="/auth/try">Try {siteName} without creating an account.</A>
-          </div>
-        )}
-      </div>
+      {!minimal && (
+        <div
+          style={{
+            ...LOGIN_STYLE,
+            backgroundColor: "white",
+            margin: "30px auto",
+            padding: "15px",
+          }}
+        >
+          Already have an account? <A href="/auth/sign-in">Sign In</A>
+          {anonymousSignup && (
+            <div style={{ marginTop: "15px" }}>
+              Don't want to provide any information?
+              <br />
+              <A href="/auth/try">
+                Try {siteName} without creating an account.
+              </A>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

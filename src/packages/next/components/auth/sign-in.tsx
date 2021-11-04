@@ -3,14 +3,20 @@ import { useState } from "react";
 import SquareLogo from "components/logo-square";
 import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
-import SSO from "./sso";
+import SSO, { Strategy } from "./sso";
 import { LOGIN_STYLE } from "./shared";
 import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Contact from "components/landing/contact";
 import { useRouter } from "next/router";
 
-export default function SignIn({ strategies }) {
+export default function SignIn({
+  strategies,
+  minimal,
+}: {
+  strategies: Strategy[];
+  minimal?: boolean;
+}) {
   const { anonymousSignup, siteName } = useCustomize();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -38,12 +44,14 @@ export default function SignIn({ strategies }) {
 
   return (
     <div style={{ padding: "0 15px" }}>
-      <div style={{ textAlign: "center", marginBottom: "15px" }}>
-        <SquareLogo
-          style={{ width: "100px", height: "100px", marginBottom: "15px" }}
-        />
-        <h1>Sign In to {siteName}</h1>
-      </div>
+      {!minimal && (
+        <div style={{ textAlign: "center", marginBottom: "15px" }}>
+          <SquareLogo
+            style={{ width: "100px", height: "100px", marginBottom: "15px" }}
+          />
+          <h1>Sign In to {siteName}</h1>
+        </div>
+      )}
 
       <div style={LOGIN_STYLE}>
         <div style={{ margin: "10px 0" }}>
@@ -132,23 +140,27 @@ export default function SignIn({ strategies }) {
         )}
       </div>
 
-      <div
-        style={{
-          ...LOGIN_STYLE,
-          backgroundColor: "white",
-          margin: "30px auto",
-          padding: "15px",
-        }}
-      >
-        New to {siteName}? <A href="/auth/sign-up">Sign Up</A>
-        {anonymousSignup && (
-          <div style={{ marginTop: "15px" }}>
-            Don't want to provide any information?
-            <br />
-            <A href="/auth/try">Try {siteName} without creating an account.</A>
-          </div>
-        )}
-      </div>
+      {!minimal && (
+        <div
+          style={{
+            ...LOGIN_STYLE,
+            backgroundColor: "white",
+            margin: "30px auto",
+            padding: "15px",
+          }}
+        >
+          New to {siteName}? <A href="/auth/sign-up">Sign Up</A>
+          {anonymousSignup && (
+            <div style={{ marginTop: "15px" }}>
+              Don't want to provide any information?
+              <br />
+              <A href="/auth/try">
+                Try {siteName} without creating an account.
+              </A>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

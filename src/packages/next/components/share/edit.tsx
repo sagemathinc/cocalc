@@ -23,6 +23,8 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
 import editURL from "lib/share/edit-url";
+import SignInAuth from "components/auth/sign-in";
+import SignUpAuth from "components/auth/sign-up";
 
 interface Props {
   id: string;
@@ -146,8 +148,8 @@ function OpenDirectly({
   );
 }
 
-function CopyToProject({ id, path, relativePath}) {
-  console.log({id,path,relativePath});
+function CopyToProject({ id, path, relativePath }) {
+  console.log({ id, path, relativePath });
   return (
     <div>
       Create New Project...
@@ -171,13 +173,23 @@ function NotSignedInOptions({ id, path, relativePath }) {
   );
 }
 
+// TODO: below we need to get the strategies!
+// and also requiresToken for SignUp!
+
 function SignIn() {
+  const [show, setShow] = useState<"sign-in" | "sign-up" | "">("");
   return (
     <div>
       <Divider>
         <Icon name="sign-in" style={{ marginRight: "10px" }} /> Choose Project
       </Divider>
-      <A>Sign In</A> or <A>Sign Up</A> to edit in one of your projects.
+      <a onClick={() => setShow("sign-in")}>Sign In</a> or{" "}
+      <a onClick={() => setShow("sign-up")}>Sign Up</a> to edit in one of your
+      projects.
+      <br />
+      <br />
+      {show == "sign-in" && <SignInAuth strategies={[]} minimal />}
+      {show == "sign-up" && <SignUpAuth strategies={[]} minimal />}
     </div>
   );
 }
@@ -189,7 +201,7 @@ function OpenAnonymously({ id, path, relativePath }) {
         <Icon name="mask" style={{ marginRight: "10px" }} /> Anonymously
       </Divider>
       Alternatively, with{" "}
-      <A href={editURL({ id, path, relativePath, type: "anonymous" })}>
+      <A href={editURL({ id, path, relativePath, type: "anonymous" })} external>
         one click you can edit anonymously without signing up
       </A>
       ! Sign up later from your anonymous session without losing work.
