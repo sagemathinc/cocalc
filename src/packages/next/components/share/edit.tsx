@@ -18,11 +18,11 @@ When you want to edit an existing public share, here's the flow of what happens.
 */
 
 import { useState } from "react";
-import { Button } from "antd";
+import { Button, Card, Checkbox, Divider } from "antd";
+import { Icon } from "@cocalc/frontend/components/icon";
 import useCustomize from "lib/use-customize";
-//import editURL from "lib/share/edit-url";
-// import ExternalLink from "./external-link";
-// href={editURL({ id, path, dns })}
+import A from "components/misc/A";
+import editURL from "lib/share/edit-url";
 
 interface Props {
   id: string;
@@ -31,11 +31,10 @@ interface Props {
 }
 
 export default function Edit({ id, path, project_id }: Props) {
-  //const { dns } = useCustomize();
   const [expanded, setExpanded] = useState<boolean>(false);
 
   return (
-    <div>
+    <span>
       <Button
         disabled={expanded}
         onClick={(e) => {
@@ -43,8 +42,9 @@ export default function Edit({ id, path, project_id }: Props) {
           setExpanded(!expanded);
         }}
         key="edit"
+        size="small"
       >
-        Edit...
+        <Icon name="pencil" /> Edit...
       </Button>
       {expanded && (
         <EditOptions
@@ -54,7 +54,7 @@ export default function Edit({ id, path, project_id }: Props) {
           onClose={() => setExpanded(false)}
         />
       )}
-    </div>
+    </span>
   );
 }
 
@@ -65,27 +65,111 @@ interface EditProps extends Props {
 function EditOptions({ id, path, project_id, onClose }: EditProps) {
   const { account } = useCustomize();
   return (
-    <div>
+    <Card
+      style={{ margin: "30px 10%" }}
+      title={
+        <>
+          <div style={{ float: "right", cursor: "pointer" }} onClick={onClose}>
+            <Icon name="times-circle" />
+          </div>
+          <Icon style={{ marginRight: "10px" }} name="pencil" /> Where to edit{" "}
+          {path}?
+        </>
+      }
+    >
       {account?.account_id != null && (
-        <SignedInOptions
-          account_id={account.account_id}
-          id={id}
-          path={path}
-          project_id={project_id}
-        />
+        <SignedInOptions id={id} path={path} project_id={project_id} />
       )}
-      {account?.account_id == null && <AnonymousOptions id={id} path={path} />}
+      {account?.account_id == null && (
+        <NotSignedInOptions id={id} path={path} />
+      )}
       <br />
-      <Button onClick={onClose}>Close</Button>
+    </Card>
+  );
+}
+
+function SignedInOptions({ id, path, project_id }) {
+  const { isCollaborator } = useCustomize();
+  return isCollaborator ? (
+    <OpenDirectly project_id={project_id} path={path} />
+  ) : (
+    <CopyToProject id={id} path={path} />
+  );
+}
+
+function OpenDirectly({
+  project_id,
+  path,
+}: {
+  project_id: string;
+  path: string;
+}) {
+  const { dns } = useCustomize();
+  const url = dns + project_id + "/" + path;
+  return (
+    <div>
+      You are signed in as a collaborator on{" "}
+      <A href={"bar"} external>
+        the project
+      </A>{" "}
+      that contains{" "}
+      <A href={"foo"} external>
+        this document
+      </A>
+      .
     </div>
   );
 }
 
-function SignedInOptions({ account_id, id, path, project_id }) {
-  const { isCollaborator } = useCustomize();
-  return <>{isCollaborator ? "collaborator" : "noncollab"}</>;
+function CopyToProject({ id, path }) {
+  return (
+    <div>
+      Create New Project...
+      <br />
+      Project1
+      <br />
+      Project2
+      <br />
+      Project3
+      <br />
+    </div>
+  );
 }
 
-function AnonymousOptions({ id, path }) {
-  return <>Anonymous</>;
+function NotSignedInOptions({ id, path }) {
+  return (
+    <div>
+      <SignIn />
+      <OpenAnonymously id={id} path={path} />
+    </div>
+  );
 }
+
+function SignIn() {
+  return (
+    <div>
+      <Divider>
+        <Icon name="sign-in" style={{ marginRight: "10px" }} /> Your Project
+      </Divider>
+      <A>Sign In</A> or <A>Sign Up</A> to edit this in one of your projects.
+    </div>
+  );
+}
+
+function OpenAnonymously({ id, path }) {
+  const { dns } = useCustomize();
+  return (
+    <div>
+      <Divider>
+        <Icon name="mask" style={{ marginRight: "10px" }} /> Anonymously
+      </Divider>
+      Alternatively, with{" "}
+      <A href={editURL({ id, path, dns })}>
+        one click you can edit anonymously without signing up
+      </A>
+      ! Sign up later from your anonymous session without losing work.
+    </div>
+  );
+}
+
+

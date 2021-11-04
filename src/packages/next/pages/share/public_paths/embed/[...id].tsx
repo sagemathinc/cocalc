@@ -47,6 +47,7 @@ export default function PublicPath({
             display: "inline-block",
             padding: "0 5px",
             margin: "5px",
+            width: "100%",
           }}
         >
           <PathActions
