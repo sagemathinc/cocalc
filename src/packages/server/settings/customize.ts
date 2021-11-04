@@ -71,9 +71,7 @@ export default async function getCustomize(): Promise<Customize> {
 
     googleAnalytics: settings.google_analytics,
 
-    // Can be used for links to edit share document in main site; needed if main site
-    // on different domain than share server, e.g., share.cocalc.com vs cocalc.com,
-    // and is also important for invite emails (e.g., so we can construct a url to our site).
+    // Is important for invite emails, password reset, etc. (e.g., so we can construct a url to our site).
     // This *can* start with http:// to explicitly use http instead of https, and can end
     // in something like :3594 to indicate a port.
     dns: settings.dns,

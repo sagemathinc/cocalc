@@ -18,7 +18,7 @@ When you want to edit an existing public share, here's the flow of what happens.
 */
 
 import { useState } from "react";
-import { Button, Card, Checkbox, Divider } from "antd";
+import { Button, Card, Divider } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
@@ -123,11 +123,10 @@ function OpenDirectly({
   path: string;
   relativePath: string;
 }) {
-  const { siteURL } = useCustomize();
   return (
     <div>
       You are signed in as a collaborator on{" "}
-      <A href={editURL({ type: "collaborator", project_id, siteURL })} external>
+      <A href={editURL({ type: "collaborator", project_id })} external>
         the project
       </A>{" "}
       that contains{" "}
@@ -137,7 +136,6 @@ function OpenDirectly({
           project_id,
           path,
           relativePath,
-          siteURL,
         })}
         external
       >
@@ -148,7 +146,8 @@ function OpenDirectly({
   );
 }
 
-function CopyToProject({ id, path }) {
+function CopyToProject({ id, path, relativePath}) {
+  console.log({id,path,relativePath});
   return (
     <div>
       Create New Project...
@@ -163,11 +162,11 @@ function CopyToProject({ id, path }) {
   );
 }
 
-function NotSignedInOptions({ id, path }) {
+function NotSignedInOptions({ id, path, relativePath }) {
   return (
     <div>
       <SignIn />
-      <OpenAnonymously id={id} path={path} />
+      <OpenAnonymously id={id} path={path} relativePath={relativePath} />
     </div>
   );
 }
@@ -183,15 +182,14 @@ function SignIn() {
   );
 }
 
-function OpenAnonymously({ id, path }) {
-  const { siteURL } = useCustomize();
+function OpenAnonymously({ id, path, relativePath }) {
   return (
     <div>
       <Divider>
         <Icon name="mask" style={{ marginRight: "10px" }} /> Anonymously
       </Divider>
       Alternatively, with{" "}
-      <A href={editURL({ id, path, relativePath, siteURL, type: "anonymous" })}>
+      <A href={editURL({ id, path, relativePath, type: "anonymous" })}>
         one click you can edit anonymously without signing up
       </A>
       ! Sign up later from your anonymous session without losing work.
