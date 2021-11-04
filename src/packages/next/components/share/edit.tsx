@@ -26,6 +26,8 @@ import editURL from "lib/share/edit-url";
 import SignInAuth from "components/auth/sign-in";
 import SignUpAuth from "components/auth/sign-up";
 import { useRouter } from "next/router";
+import SelectProject from "components/project/select";
+import CreateProject from "components/project/create";
 
 interface Props {
   id: string;
@@ -151,17 +153,22 @@ function OpenDirectly({
 }
 
 function CopyToProject({ id, path, relativePath }) {
-  console.log({ id, path, relativePath });
+  console.log("CopyToProject", { id, path, relativePath });
   return (
     <div>
-      Create New Project...
+      <SelectProject
+        label="In one of your existing projects"
+        onChange={(project_id) => {
+          console.log("got ", project_id);
+        }}
+      />
       <br />
-      Project1
-      <br />
-      Project2
-      <br />
-      Project3
-      <br />
+      <CreateProject
+        label="In a new project"
+        onCreate={(project_id) => {
+          console.log("created ", project_id);
+        }}
+      />
     </div>
   );
 }
