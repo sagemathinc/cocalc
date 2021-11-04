@@ -4,7 +4,6 @@ import rawURL from "lib/share/raw-url";
 import downloadURL from "lib/share/download-url";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import SiteName from "./site-name";
-import useCustomize from "lib/use-customize";
 import Edit from "./edit";
 
 interface Props {
@@ -13,6 +12,7 @@ interface Props {
   relativePath: string;
   isDir?: boolean;
   exclude?: Set<string>;
+  project_id: string;
 }
 
 export default function PathActions({
@@ -21,6 +21,7 @@ export default function PathActions({
   relativePath,
   isDir,
   exclude,
+  project_id,
 }: Props) {
   const include = (action: string) => !exclude?.has(action);
   const v: JSX.Element[] = [];
@@ -60,7 +61,7 @@ export default function PathActions({
     );
   }
   if (include("edit")) {
-    v.push(<Edit key="edit" id={id} path={path} />);
+    v.push(<Edit key="edit" id={id} path={path} project_id={project_id} />);
   }
 
   return r_join(v, " | ");

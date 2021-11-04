@@ -79,6 +79,7 @@ export default function PublicPath({
           relativePath={relativePath}
           isDir={contents?.isdir}
           exclude={new Set(["hosted"])}
+          project_id={project_id}
         />
         <hr />
         {contents != null && (

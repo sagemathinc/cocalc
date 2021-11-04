@@ -1,6 +1,7 @@
 import getCustomize from "@cocalc/server/settings/customize";
 import getAccountId from "lib/account/get-account";
 import { getName } from "lib/share/get-account-info";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 const revalidate = 30;
 
@@ -33,6 +34,18 @@ export default async function withCustomize(
         account_id,
         ...(options.name ? await getName(account_id) : undefined),
       };
+
+      // Also, if a project id is in the props and account_id is set, it's very
+      // useful to know if the user is a collaborator on the project, since that
+      // can impact a lot about how we display things.  This is typically used
+      // for the share pages.
+      const project_id = obj.props?.project_id;
+      if (project_id) {
+        customize.isCollaborator = await isCollaborator({
+          account_id,
+          project_id,
+        });
+      }
     }
   }
 

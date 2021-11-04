@@ -16,6 +16,7 @@ import { getTitle } from "lib/share/util";
 
 export default function PublicPath({
   id,
+  project_id,
   path,
   relativePath,
   contents,
@@ -51,6 +52,7 @@ export default function PublicPath({
           <PathActions
             id={id}
             path={path}
+            project_id={project_id}
             relativePath={relativePath}
             isDir={!!contents?.isdir}
             exclude={new Set(["embed"])}
@@ -69,11 +71,7 @@ export default function PublicPath({
   );
 }
 
-export async function getStaticPaths() {
-  return { paths: [], fallback: true };
-}
-
-export async function getStaticProps(context) {
+export async function getServerSideProps(context) {
   const id = context.params.id[0];
   const relativePath = context.params.id.slice(1).join("/");
   try {
@@ -81,7 +79,6 @@ export async function getStaticProps(context) {
     return await withCustomize({
       context,
       props: { ...props, layout: "embed" },
-      revalidate: 15,
     });
   } catch (_err) {
     console.log(_err);

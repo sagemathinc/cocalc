@@ -9,6 +9,7 @@ interface Customize extends ServerCustomize {
     email_address?: string;
     name?: string;
   };
+  isCollaborator?: boolean; // if account_id and project_id are in the props then this gets filled in
 }
 
 const CustomizeContext = createContext<Partial<Customize>>({});
