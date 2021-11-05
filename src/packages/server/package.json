@@ -8,6 +8,7 @@
     "./accounts/*": "./dist/accounts/*.js",
     "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",
+    "./projects/control": "./dist/projects/control/index.js",
     "./projects/*": "./dist/projects/*.js",
     "./projects/control/*": "./dist/projects/control/*.js",
     "./settings": "./dist/settings/index.js",

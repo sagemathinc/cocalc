@@ -1,12 +1,12 @@
-import { database } from "./database";
-import { getLogger } from "../logger";
-const { connect_to_project } = require("../local_hub_connection");
+import { db } from "@cocalc/database";
+import getLogger from "@cocalc/backend/logger";
+//const { connect_to_project } = require("../local_hub_connection");
 
-import { BaseProject } from "@cocalc/hub/project-control/base";
-import singleUser from "@cocalc/hub/project-control/single-user";
-import multiUser from "@cocalc/hub/project-control/multi-user";
-import kucalc from "@cocalc/hub/project-control/kucalc";
-import kubernetes from "@cocalc/hub/project-control/kubernetes";
+import { BaseProject } from "./base";
+import singleUser from "./single-user";
+import multiUser from "./multi-user";
+import kucalc from "./kucalc";
+import kubernetes from "./kubernetes";
 
 export const COCALC_MODES = [
   "single-user",
@@ -39,6 +39,7 @@ export default function init(program): ProjectControlFunction {
       throw Error(`invalid mode "${program.mode}"`);
   }
   winston.info(`project controller created with mode ${program.mode}`);
+  const database = db();
   database.compute_server = getProject;
 
   // This is used by the database when handling certain writes to make sure
@@ -46,12 +47,13 @@ export default function init(program): ProjectControlFunction {
   // the project can respond.  // TODO: obviously, this is ugly!
   database.ensure_connection_to_project = (
     project_id: string,
-    cb: Function
+    cb?: Function
   ): void => {
     winston.debug(
       `database.ensure_connection_to_project -- project_id=${project_id}`
     );
-    connect_to_project(project_id, database, getProject, cb);
+    cb?.("not implemented");
+    //connect_to_project(project_id, database, getProject, cb);
   };
 
   return getProject;
