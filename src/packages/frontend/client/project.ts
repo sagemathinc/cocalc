@@ -102,7 +102,7 @@ export class ProjectClient {
   }
 
   public async copy_path_between_projects(opts: {
-    public?: boolean; // TODO: should get deprecated because of share server.
+    public?: boolean; // used e.g., by share server landing page action.
     src_project_id: string; // id of source project
     src_path: string; // relative path of director or file in the source project
     target_project_id: string; // if of target project
