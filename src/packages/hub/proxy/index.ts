@@ -3,7 +3,7 @@ import getLogger from "../logger";
 import initProxy from "./handle-request";
 import initUpgrade from "./handle-upgrade";
 import base_path from "@cocalc/backend/base-path";
-import { ProjectControlFunction } from "@cocalc/hub/servers/project-control";
+import { ProjectControlFunction } from "@cocalc/server/projects/control";
 
 const winston = getLogger("proxy");
 

@@ -38,7 +38,7 @@ import {
   ProjectStatus,
   ProjectState,
 } from "./base";
-import getLogger from "@cocalc/hub/logger";
+import getLogger from "@cocalc/backend/logger";
 import { getUid } from "@cocalc/backend/misc";
 
 const winston = getLogger("project-control:single-user");

@@ -7,9 +7,9 @@ this is not used.  It would be better to use the database and a server
 setting for this, but an env variable is very fast to implement.
 */
 
-import getLogger from "@cocalc/hub/logger";
+import getLogger from "@cocalc/backend/logger";
 import { callback2 } from "@cocalc/util/async-utils";
-import { database } from "@cocalc/hub/servers/database";
+import { db } from "@cocalc/database";
 import { DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
 import { BaseProject as Project } from "./base";
 
@@ -20,7 +20,7 @@ async function stopIdleProjects(stopProject: (string) => Promise<void>) {
 
   logger.debug("query database for all running projects");
   const runningProjects = (
-    await callback2(database._query, {
+    await callback2(db()._query, {
       query:
         "SELECT project_id, EXTRACT(EPOCH FROM NOW() - last_edited) as idle_time, settings FROM projects WHERE state ->> 'state' = 'running'",
     })

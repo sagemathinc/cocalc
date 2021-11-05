@@ -3,7 +3,7 @@
   "compilerOptions": {
     "target": "es5",
     "types": ["node"],
-    "lib": ["es7"],
+    "lib": ["ESNext"],
     "rootDir": "./",
     "outDir": "dist"
   },

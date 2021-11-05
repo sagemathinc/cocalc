@@ -17,13 +17,13 @@ environments.
 */
 
 import { callback2 } from "@cocalc/util/async-utils";
-import { database } from "@cocalc/hub/servers/database";
+import { db } from "@cocalc/database";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
 import { ProjectState, ProjectStatus } from "@cocalc/util/db-schema/projects";
 import { quota } from "@cocalc/util/upgrades/quota";
 import { delay } from "awaiting";
-import getLogger from "@cocalc/hub/logger";
+import getLogger from "@cocalc/backend/logger";
 import { site_license_hook } from "@cocalc/database/postgres/site-license/hook";
 
 export type { ProjectState, ProjectStatus };
@@ -59,18 +59,18 @@ export abstract class BaseProject extends EventEmitter {
   }
 
   protected async siteLicenseHook(): Promise<void> {
-    await site_license_hook(database, this.project_id);
+    await site_license_hook(db(), this.project_id);
   }
 
   protected async saveStateToDatabase(state: ProjectState): Promise<void> {
-    await callback2(database.set_project_state, {
+    await callback2(db().set_project_state, {
       ...state,
       project_id: this.project_id,
     });
   }
 
   protected async saveStatusToDatabase(status: ProjectStatus): Promise<void> {
-    await callback2(database.set_project_status, {
+    await callback2(db().set_project_status, {
       project_id: this.project_id,
       status,
     });
@@ -168,7 +168,7 @@ export abstract class BaseProject extends EventEmitter {
     //     - is project currently running (if not, nothing to do)
     //     - if running, what quotas it was started with and what its quotas are now
     // 2. If quotas differ *AND* project is running, restarts project.
-    const x = await callback2(database.get_project, {
+    const x = await callback2(db().get_project, {
       project_id: this.project_id,
       columns: ["state", "users", "settings", "run_quota"],
     });

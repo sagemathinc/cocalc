@@ -7,7 +7,7 @@ import { versionCheckFails } from "./version";
 import { getTarget, invalidateTargetCache } from "./target";
 import getLogger from "../logger";
 import { stripBasePath } from "./util";
-import { ProjectControlFunction } from "@cocalc/hub/servers/project-control";
+import { ProjectControlFunction } from "@cocalc/server/projects/control";
 
 const winston = getLogger("proxy: handle-request");
 

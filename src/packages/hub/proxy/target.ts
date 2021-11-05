@@ -12,7 +12,7 @@ import getLogger from "../logger";
 import hasAccess from "./check-for-access-to-project";
 const hub_projects = require("../projects");
 import { database } from "../servers/database";
-import { ProjectControlFunction } from "@cocalc/hub/servers/project-control";
+import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import { reuseInFlight } from "async-await-utils/hof";
 
 const winston = getLogger("proxy: target");
@@ -149,7 +149,7 @@ async function _namedServerPort(
     return p;
   }
   const project = hub_projects.new_project(
-    // NOT project-control like above...
+    // NOT @cocalc/server/projects/control like above...
     project_id,
     database,
     projectControl

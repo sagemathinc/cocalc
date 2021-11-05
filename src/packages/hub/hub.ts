@@ -8,7 +8,7 @@
 // many Sage sessions, and PostgreSQL database.
 
 import { spawn } from "child_process";
-import { COCALC_MODES } from "./servers/project-control";
+import { COCALC_MODES } from "@cocalc/server/projects/control";
 import blocked from "blocked";
 import { program as commander, Option } from "commander";
 import { callback2 } from "@cocalc/util/async-utils";
@@ -33,8 +33,8 @@ import { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
 import initHttpRedirect from "./servers/http-redirect";
 import initDatabase from "./servers/database";
-import initProjectControl from "./servers/project-control";
-import initIdleTimeout from "./project-control/stop-idle-projects";
+import initProjectControl from "@cocalc/server/projects/control";
+import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
 import initVersionServer from "./servers/version";
 import initPrimus from "./servers/primus";
 

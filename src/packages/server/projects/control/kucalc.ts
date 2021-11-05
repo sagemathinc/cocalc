@@ -12,11 +12,11 @@ import {
   ProjectState,
   getProject,
 } from "./base";
-import { database } from "@cocalc/hub/servers/database";
+import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
 import { is_valid_uuid_string, uuid } from "@cocalc/util/misc";
 
-import getLogger from "@cocalc/hub/logger";
+import getLogger from "@cocalc/backend/logger";
 const winston = getLogger("project-control-kucalc");
 
 class Project extends BaseProject {
@@ -25,7 +25,7 @@ class Project extends BaseProject {
   }
 
   private async get(columns: string[]): Promise<{ [field: string]: any }> {
-    return await callback2(database.get_project, {
+    return await callback2(db().get_project, {
       project_id: this.project_id,
       columns,
     });
@@ -119,7 +119,7 @@ class Project extends BaseProject {
     }
 
     dbg("write query requesting the copy to happen to the database");
-    await callback2(database._query, {
+    await callback2(db()._query, {
       query: "INSERT INTO copy_paths",
       values: {
         "id                ::UUID": copyID,
@@ -151,7 +151,7 @@ class Project extends BaseProject {
 
   private getProjectSynctable(): any {
     // this is all in coffeescript, hence the any type above.
-    return database.synctable({
+    return db().synctable({
       table: "projects",
       columns: ["state", "action_request"],
       where: { "project_id = $::UUID": this.project_id },
@@ -161,7 +161,7 @@ class Project extends BaseProject {
   }
 
   private async actionRequest(action: "start" | "stop"): Promise<void> {
-    await callback2(database._query, {
+    await callback2(db()._query, {
       query: "UPDATE projects",
       where: { "project_id  = $::UUID": this.project_id },
       jsonb_set: {
@@ -192,7 +192,7 @@ class Project extends BaseProject {
   }
 
   private getCopySynctable(copyID: string): any {
-    return database.synctable({
+    return db().synctable({
       table: "copy_paths",
       columns: ["started", "error", "finished"],
       where: { "id = $::UUID": copyID },

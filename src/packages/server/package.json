@@ -9,34 +9,29 @@
     "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",
     "./projects/*": "./dist/projects/*.js",
+    "./projects/control/*": "./dist/projects/control/*.js",
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "build": "npx tsc",
     "tsc": "npx tsc --watch"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
-  "workspaces": [
-    ".",
-    "../backend",
-    "../database",
-    "../util"
-  ],
+  "workspaces": [".", "../backend", "../database", "../util"],
   "dependencies": {
     "@cocalc/backend": "^1.6.1",
     "@cocalc/database": "^0.5.2",
     "@cocalc/util": "^1.13.3",
     "@sendgrid/mail": "^7.5.0",
+    "@types/lodash": "^4.14.176",
     "@types/lru-cache": "^5.1.1",
     "@types/node-zendesk": "^2.0.4",
     "@types/nodemailer": "^6.4.4",
     "awaiting": "^3.0.0",
+    "lodash": "^4.17.21",
     "lru-cache": "^6.0.0",
     "node-zendesk": "^2.1.0",
     "nodemailer": "^6.7.0",

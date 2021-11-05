@@ -6,11 +6,11 @@ import * as fs from "fs";
 import { projects, root } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
-import getLogger from "@cocalc/hub/logger";
+import getLogger from "@cocalc/backend/logger";
 import { CopyOptions, ProjectState, ProjectStatus } from "./base";
 import { getUid } from "@cocalc/backend/misc";
 import base_path from "@cocalc/backend/base-path";
-import { database } from "@cocalc/hub/servers/database";
+import { db } from "@cocalc/database";
 
 const winston = getLogger("project-control:util");
 
@@ -164,7 +164,7 @@ export async function getEnvironment(
   project_id: string
 ): Promise<{ [key: string]: any }> {
   const extra: { [key: string]: any } = await callback2(
-    database.get_project_extra_env,
+    db().get_project_extra_env,
     { project_id }
   );
   const extra_env: string = Buffer.from(JSON.stringify(extra ?? {})).toString(
