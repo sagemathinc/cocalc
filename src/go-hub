@@ -5,6 +5,7 @@ set -ev
 export COCALC_ROOT=$HOME/cocalc/src/
 cd $COCALC_ROOT/packages/hub
 
+export LOGS=$HOME/cocalc/src/data/logs/
 export DATA=/Users/wstein/build/cocalc/src/data
 export PORT=8000
 export BASE_PATH=/

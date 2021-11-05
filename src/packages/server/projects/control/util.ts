@@ -1,6 +1,7 @@
 import { promisify } from "util";
 import { join, resolve } from "path";
 import { exec as exec0, spawn } from "child_process";
+import spawnAsync from "await-spawn";
 import * as fs from "fs";
 
 import { projects, root } from "@cocalc/backend/data";
@@ -273,7 +274,7 @@ export async function ensureConfFilesExists(
 // on the local filesystem. (TODO) When running as root,
 // we can also specify the user to change the target
 // ownership of the files to.
-// NOTE: the wait_until_done and scheduled CopyOptions
+// NOTE: the scheduled CopyOptions
 // are not implemented at all here.
 export async function copyPath(
   opts: CopyOptions,
@@ -327,7 +328,13 @@ export async function copyPath(
   // saxz = compressed, archive mode (so leave symlinks, etc.), don't cross filesystem boundaries
   // However, omit-link-times -- see http://forums.whirlpool.net.au/archive/2317650 and
   //                                 https://github.com/sagemathinc/cocalc/issues/2713
-  const args: string[] = ["-zaxs", "--omit-link-times"];
+  const args: string[] = [];
+  if (process.platform == "darwin") {
+    // MacOS rsync is pretty cripled, so we omit some very helpful options.
+    args.push("-zax");
+  } else {
+    args.push(...["-zaxs", "--omit-link-times"]);
+  }
   if (!overwrite_newer) {
     args.push("--update");
   }
@@ -354,6 +361,16 @@ export async function copyPath(
   args.push(target_abspath + (isDir ? "/" : ""));
 
   // do the copy!
-  winston.info(`rsync ${args.join(" ")}`);
-  await spawn("rsync", args);
+  winston.info(`doing rsync ${args.join(" ")}`);
+  if (opts.wait_until_done) {
+    try {
+      const stdout = await spawnAsync("rsync", args, { timeout: opts.timeout });
+      winston.info(`finished rsync ${stdout}`);
+    } catch (err) {
+      throw Error(`WARNING: copy exited with an error -- ${err.stderr}`);
+    }
+  } else {
+    // TODO/NOTE: this will silently not report any errors.
+    spawn("rsync", args, { timeout: opts.timeout });
+  }
 }
