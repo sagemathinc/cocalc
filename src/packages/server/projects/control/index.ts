@@ -15,14 +15,28 @@ export const COCALC_MODES = [
   "kubernetes",
 ];
 
+type ValueOf<T> = T[keyof T]; // https://stackoverflow.com/questions/49285864/is-there-a-valueof-similar-to-keyof-in-typescript
+export type CocalcMode = ValueOf<typeof COCALC_MODES>;
+
 export type ProjectControlFunction = (project_id: string) => BaseProject;
 
-export default function init(program): ProjectControlFunction {
+let cached: ProjectControlFunction | undefined = undefined;
+
+export default function init(mode?: CocalcMode): ProjectControlFunction {
   const winston = getLogger("project-control");
+  if (cached !== undefined) {
+    winston.info("using cached project control client");
+    return cached;
+  }
+  if (mode === undefined) {
+    throw Error(
+      "you can only call projects/control with no mode argument AFTER it has been initialized by the hub"
+    );
+  }
   winston.info("creating project control client");
 
   let getProject;
-  switch (program.mode) {
+  switch (mode) {
     case "single-user":
       getProject = singleUser;
       break;
@@ -36,9 +50,9 @@ export default function init(program): ProjectControlFunction {
       getProject = kubernetes;
       break;
     default:
-      throw Error(`invalid mode "${program.mode}"`);
+      throw Error(`invalid mode "${mode}"`);
   }
-  winston.info(`project controller created with mode ${program.mode}`);
+  winston.info(`project controller created with mode ${mode}`);
   const database = db();
   database.compute_server = getProject;
 
@@ -56,5 +70,13 @@ export default function init(program): ProjectControlFunction {
     //connect_to_project(project_id, database, getProject, cb);
   };
 
+  cached = getProject;
   return getProject;
 }
+
+export const getProject: ProjectControlFunction = (project_id: string) => {
+  if (cached == null) {
+    throw Error("must call init first");
+  }
+  return cached(project_id);
+};

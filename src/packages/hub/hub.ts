@@ -151,7 +151,7 @@ async function startServer(): Promise<void> {
 
   // Project control
   winston.info("initializing project control...");
-  const projectControl = initProjectControl(program);
+  const projectControl = initProjectControl(program.mode);
 
   if (program.mode != "kucalc" && program.websocketServer) {
     // We handle idle timeout of projects.

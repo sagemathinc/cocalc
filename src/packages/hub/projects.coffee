@@ -93,13 +93,6 @@ class Project
         @dbg("named_server_port #{resp.port}")
         return resp.port
 
-    move_project: (opts) =>
-        opts = defaults opts,
-            target : undefined   # optional prefered target
-            cb : undefined
-        @dbg("move_project")
-        @local_hub.move(opts)
-
     read_file: (opts) =>
         @dbg("read_file")
         @_fixpath(opts)
