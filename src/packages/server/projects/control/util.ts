@@ -150,6 +150,7 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
     "BASE_PATH",
     "PORT",
     "DATA",
+    "LOGS",
   ]) {
     delete env2[key];
   }
@@ -174,13 +175,15 @@ export async function getEnvironment(
 
   const USER = getUsername(project_id);
   const HOME = homePath(project_id);
+  const DATA = dataPath(HOME);
 
   return {
     ...sanitizedEnv(process.env),
     ...{
       HOME,
       BASE_PATH: base_path,
-      DATA: dataPath(HOME),
+      DATA,
+      LOGS: join(DATA, "logs"),
       // important to reset the COCALC_ vars since server env has own in a project
       COCALC_PROJECT_ID: project_id,
       COCALC_USERNAME: USER,

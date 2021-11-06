@@ -55,7 +55,9 @@ function query({ project_id, mesg, sendResponse }: Options) {
         err = "close";
       }
       if (err) {
-        logger.debug("query error", err);
+        if (err != "close") {
+          logger.debug("query: err=", err);
+        }
         if (changefeeds[project_id]?.has(id)) {
           changefeeds[project_id]?.delete(id);
         }

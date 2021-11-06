@@ -10,6 +10,7 @@ import { getProject } from "@cocalc/server/projects/control";
 import getLogger from "@cocalc/backend/logger";
 import { callback2 } from "@cocalc/util/async-utils";
 import initialize from "./initialize";
+import { cancelAll } from "./handle-query";
 
 // misc_node is still in coffeescript :-(
 //import { connect_to_locked_socket } from "@cocalc/backend/misc_node";
@@ -19,6 +20,8 @@ const logger = getLogger("project-connection:connect");
 type Connection = any;
 
 const CACHE: { [project_id: string]: Connection } = {};
+
+const EndEvents = ["end", "close", "error"];
 
 async function connect(project_id: string): Promise<Connection> {
   logger.info("connect to ", project_id);
@@ -33,12 +36,32 @@ async function connect(project_id: string): Promise<Connection> {
   // Calling address starts the project running, then returns
   // information about where it is running and how to connection.
   dbg("getting address of ", project_id);
-  const address = await project.address();
-  dbg("got ", address.host, address.port); // address itself contains secret_token, which we should not log
+  const { host, port, secret_token: token } = await project.address();
+  dbg("got ", host, port);
 
-  const socket = await callback2(connect_to_locked_socket, address);
+  const socket = await callback2(connect_to_locked_socket, {
+    host,
+    port,
+    token,
+  });
 
   initialize(project_id, socket);
+
+  function free() {
+    // don't want free to be triggered more than once.
+    for (const evt of EndEvents) {
+      socket.removeListener(evt, free);
+    }
+    delete CACHE[project_id];
+    try {
+      socket.end();
+    } catch (_) {}
+    cancelAll(project_id);
+  }
+  for (const evt of EndEvents) {
+    socket.on(evt, free);
+  }
+
   CACHE[project_id] = socket;
   return socket;
 }

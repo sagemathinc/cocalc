@@ -58,16 +58,19 @@ export default function init(mode?: CocalcMode): ProjectControlFunction {
 
   // This is used by the database when handling certain writes to make sure
   // that the there is a connection to the corresponding project, so that
-  // the project can respond.  // TODO: obviously, this is ugly!
-  database.ensure_connection_to_project = (
+  // the project can respond.
+  database.ensure_connection_to_project = async (
     project_id: string,
     cb?: Function
-  ): void => {
-    winston.debug(
-      `database.ensure_connection_to_project -- project_id=${project_id}`
-    );
-    cb?.("not implemented");
-    connectToProject(project_id);
+  ): Promise<void> => {
+    winston.debug("ensure_connection_to_project --", project_id);
+    try {
+      await connectToProject(project_id);
+      cb?.();
+    } catch (err) {
+      winston.debug("WARNING: unable to make a connection to", project_id, err);
+      cb?.(err);
+    }
   };
 
   cached = getProject;

@@ -134,7 +134,7 @@ export abstract class BaseProject extends EventEmitter {
     dbg("it is running");
     const status = await this.status();
     if (!status["hub-server.port"]) {
-      throw Error("unable to determine hub-server port");
+      throw Error("unable to determine project port");
     }
     if (!status["secret_token"]) {
       throw Error("unable to determine secret_token");

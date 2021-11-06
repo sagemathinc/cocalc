@@ -8,7 +8,6 @@ message over it.
 import initHeartbeat from "./heartbeat";
 import handleBlob from "./handle-blob";
 import handleMessage from "./handle-message";
-import { cancelAll } from "./handle-query";
 import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("project-connection:initialize");
 
@@ -32,17 +31,6 @@ export default function initialize(project_id: string, socket): void {
         logger.warn("WARNING: unknown message type", type);
     }
   });
-
-  function free() {
-    cancelAll(project_id);
-    try {
-      socket.end();
-    } catch (_) {}
-  }
-
-  socket.on("end", free);
-  socket.on("close", free);
-  socket.on("error", free);
 
   // Send a hello message to the project.  I'm not sure if this is used for anything at all,
   // but it is nice to see in the logs.
