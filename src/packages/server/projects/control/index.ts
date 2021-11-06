@@ -1,6 +1,6 @@
 import { db } from "@cocalc/database";
 import getLogger from "@cocalc/backend/logger";
-//const { connect_to_project } = require("../local_hub_connection");
+import connectToProject from "@cocalc/server/projects/connection";
 
 import { BaseProject } from "./base";
 import singleUser from "./single-user";
@@ -67,7 +67,7 @@ export default function init(mode?: CocalcMode): ProjectControlFunction {
       `database.ensure_connection_to_project -- project_id=${project_id}`
     );
     cb?.("not implemented");
-    //connect_to_project(project_id, database, getProject, cb);
+    connectToProject(project_id);
   };
 
   cached = getProject;

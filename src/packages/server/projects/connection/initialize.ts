@@ -6,39 +6,43 @@ message over it.
 */
 
 import initHeartbeat from "./heartbeat";
+import handleBlob from "./handle-blob";
+import handleMessage from "./handle-message";
+import { cancelAll } from "./handle-query";
 import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("project-connection:initialize");
 
 // misc_node is still in coffeescript :-(
 //import { ... } from "@cocalc/backend/misc_node";
-const {
-  enable_mesg,
-  keep_portforward_alive,
-} = require("@cocalc/backend/misc_node");
+const { enable_mesg } = require("@cocalc/backend/misc_node");
 
 export default function initialize(project_id: string, socket): void {
   logger.info("initializing socket");
   enable_mesg(socket, "connection_to_a_local_hub");
-  socket.on("data", () => {
-    keep_portforward_alive(address.port);
-  });
 
   socket.on("mesg", (type, mesg) => {
     switch (type) {
       case "blob":
-        handleBlob(project_id, mesg);
+        handleBlob({ socket, project_id, uuid: mesg.uuid, blob: mesg.blob });
         return;
       case "json":
-        handleMesg(project_id, mesg, socket);
+        handleMessage({ socket, project_id, mesg });
         return;
       default:
         logger.warn("WARNING: unknown message type", type);
     }
   });
 
-  socket.on("end", () => freeResources(project_id));
-  socket.on("close", () => freeResources(project_id));
-  socket.on("error", () => freeResources(project_id));
+  function free() {
+    cancelAll(project_id);
+    try {
+      socket.end();
+    } catch (_) {}
+  }
+
+  socket.on("end", free);
+  socket.on("close", free);
+  socket.on("error", free);
 
   // Send a hello message to the project.  I'm not sure if this is used for anything at all,
   // but it is nice to see in the logs.

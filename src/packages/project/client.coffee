@@ -524,7 +524,7 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             blob : required   # Buffer of data
             sha1 : undefined
-            uuid : undefined  # if given is uuid derived from sha1
+            uuid : undefined  # if given then uuid must be derived from sha1 hash
             cb   : undefined  # (err, resp)
         if opts.uuid?
             uuid = opts.uuid

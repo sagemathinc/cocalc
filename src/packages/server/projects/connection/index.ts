@@ -9,6 +9,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { getProject } from "@cocalc/server/projects/control";
 import getLogger from "@cocalc/backend/logger";
 import { callback2 } from "@cocalc/util/async-utils";
+import initialize from "./initialize";
 
 // misc_node is still in coffeescript :-(
 //import { connect_to_locked_socket } from "@cocalc/backend/misc_node";
@@ -37,7 +38,7 @@ async function connect(project_id: string): Promise<Connection> {
 
   const socket = await callback2(connect_to_locked_socket, address);
 
-  initialize(socket);
+  initialize(project_id, socket);
   CACHE[project_id] = socket;
   return socket;
 }

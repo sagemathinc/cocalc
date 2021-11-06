@@ -7,7 +7,7 @@ export default function initHeartbeat(socket) {
   socket.on("end", stop);
   socket.on("close", stop);
   socket.on("error", stop);
-  sendHeartbeat = () => {
+  const sendHeartbeat = () => {
     if (!alive) return;
     socket.write_mesg("json", heartbeat());
     setTimeout(sendHeartbeat, PROJECT_HUB_HEARTBEAT_INTERVAL_S * 1000);
