@@ -3,12 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 import { Icon } from "@cocalc/frontend/components/icon";
-import { CSSProperties, useEffect, useState } from "react";
+import { CSSProperties, ReactNode, useEffect, useState } from "react";
 import useIsMounted from "lib/hooks/mounted";
 
 interface Props {
   delay?: number;
   style?: CSSProperties;
+  children?: ReactNode;
 }
 
 export default function Loading({ delay, style, children }: Props) {

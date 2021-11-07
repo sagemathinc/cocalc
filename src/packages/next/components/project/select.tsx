@@ -8,11 +8,10 @@ import { field_cmp } from "@cocalc/util/cmp";
 
 interface Props {
   label?: string;
-  project_id?: string;
   onChange: (project: { project_id: string; title: string }) => void;
 }
 
-export default function SelectProject({ label, project_id, onChange }: Props) {
+export default function SelectProject({ label, onChange }: Props) {
   const { error, value, loading } = useDatabase({
     projects: [{ title: null, project_id: null, last_edited: null }],
   });

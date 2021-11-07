@@ -14,13 +14,14 @@ import A from "components/misc/A";
 import { join } from "path";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { human_readable_size } from "@cocalc/util/misc";
+import { human_readable_size, plural } from "@cocalc/util/misc";
 
 interface Props {
   project_id: string;
   path: string;
   title?: string; // optional title of the project to show at top
   update?: any; // change to force an update of the listing.
+  sort?: "time" | "size" | "name";
 }
 
 function getQuery(project_id, path) {
@@ -29,7 +30,13 @@ function getQuery(project_id, path) {
   };
 }
 
-export default function Listing({ project_id, path, title, update }: Props) {
+export default function Listing({
+  project_id,
+  path,
+  title,
+  update,
+  sort,
+}: Props) {
   const { error, value, loading, query } = useDatabase(
     getQuery(project_id, path)
   );
@@ -47,6 +54,7 @@ export default function Listing({ project_id, path, title, update }: Props) {
           project_id={project_id}
           path={path}
           title={title}
+          sort={sort}
         />
       )}
     </div>
@@ -65,12 +73,21 @@ interface FileListProps {
   path: string;
   title?: string;
   listing: Entry[];
+  sort?: "time" | "size" | "name";
 }
 
-function FileList({ listing, project_id, path, title }: FileListProps) {
+function FileList({ listing, project_id, path, title, sort }: FileListProps) {
+  let c;
+  if (sort == "time") {
+    c = (a, b) => cmp(b.mtime, a.mtime);
+  } else if (sort == "size") {
+    c = (a, b) => cmp(a.size, b.size);
+  } else {
+    c = (a, b) => cmp(a.name.toLowerCase(), b.name.toLowerCase());
+  }
   const dataSource = listing
     .filter((entry) => !entry.name.startsWith("."))
-    .sort((a, b) => cmp(a.name.toLowerCase(), b.name.toLowerCase()));
+    .sort(c);
 
   const columns = [
     {
@@ -105,7 +122,7 @@ function FileList({ listing, project_id, path, title }: FileListProps) {
       ),
     },
     {
-      title: "Date Last Edited",
+      title: "Date Modified",
       dataIndex: "mtime",
       key: "mtime",
       render: (mtime) => <>{new Date(mtime * 1000).toLocaleString()}</>,
@@ -114,7 +131,8 @@ function FileList({ listing, project_id, path, title }: FileListProps) {
       title: "Size",
       dataIndex: "size",
       key: "size",
-      render: (size) => human_readable_size(size),
+      render: (size, { isdir }) =>
+        isdir ? `${size} ${plural(size, "item")}` : human_readable_size(size),
     },
   ];
 
@@ -146,6 +164,7 @@ function FileList({ listing, project_id, path, title }: FileListProps) {
         columns={columns}
         style={{ width: "100%" }}
         pagination={{ hideOnSinglePage: true }}
+        rowKey="name"
       />
     </Card>
   );

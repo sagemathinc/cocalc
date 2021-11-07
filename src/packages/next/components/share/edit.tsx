@@ -189,86 +189,89 @@ function ChooseProject({ id, src_project_id, path, relativePath }) {
     }
   }
 
-  if (project) {
-    return (
-      <Space direction="vertical" style={{ width: "100%" }}>
-        <div style={{ textAlign: "center", marginBottom: "10px" }}>
-          {copying == "before" && (
-            <>
-              <Button onClick={doCopy} size="large" type="primary">
-                <Icon name="copy" /> Copy {join(path, relativePath)} to
-                <b style={{ marginLeft: "5px" }}>{project.title}</b>
-              </Button>
-              <Button
-                onClick={() => setProject(undefined)}
-                size="large"
-                style={{ marginLeft: "15px" }}
-              >
-                Cancel
-              </Button>
-            </>
-          )}
-          {copying == "during" && (
-            <>
-              <Loading style={{ fontSize: "24px" }}>Copying...</Loading>
-            </>
-          )}
-          {copying == "after" && (
-            <>
-              <Icon
-                name="check"
-                style={{ color: "darkgreen", fontSize: "16pt" }}
-              />{" "}
-              Finished copying {join(path, relativePath)} to{" "}
-              <A
-                href={editURL({
-                  type: "collaborator",
-                  project_id: project.project_id,
-                  path: targetPath,
-                })}
-                external
-              >
-                {targetPath}
-              </A>{" "}
-              in your project{" "}
-              <A
-                href={editURL({
-                  type: "collaborator",
-                  project_id: project.project_id,
-                })}
-                external
-              >
-                {project.title}
-              </A>
-              .
-            </>
-          )}
-        </div>
-        {errorCopying && <Alert type="error" message={errorCopying} showIcon />}
-        <ProjectListing
-          project_id={project.project_id}
-          title={project.title}
-          path=""
-          update={copying}
-        />
-      </Space>
-    );
-  }
   return (
     <div>
-      <SelectProject
-        label="In one of your existing projects"
-        onChange={({ project_id, title }) => {
-          setProject({ project_id, title });
-        }}
-      />
-      <br />
-      <CreateProject
-        label="In a new project"
-        onCreate={(project) => {
-          setProject(project);
-        }}
-      />
+      {project && (
+        <Space direction="vertical" style={{ width: "100%" }}>
+          <div style={{ textAlign: "center", marginBottom: "10px" }}>
+            {copying == "before" && (
+              <>
+                <Button onClick={doCopy} size="large" type="primary">
+                  <Icon name="copy" /> Copy {join(path, relativePath)} to
+                  <b style={{ marginLeft: "5px" }}>{project.title}</b>
+                </Button>
+                <Button
+                  onClick={() => setProject(undefined)}
+                  size="large"
+                  style={{ marginLeft: "15px" }}
+                >
+                  Cancel
+                </Button>
+              </>
+            )}
+            {copying == "during" && (
+              <>
+                <Loading style={{ fontSize: "24px" }}>Copying...</Loading>
+              </>
+            )}
+            {copying == "after" && (
+              <>
+                <Icon
+                  name="check"
+                  style={{ color: "darkgreen", fontSize: "16pt" }}
+                />{" "}
+                Finished copying {join(path, relativePath)} to{" "}
+                <A
+                  href={editURL({
+                    type: "collaborator",
+                    project_id: project.project_id,
+                    path: targetPath,
+                  })}
+                  external
+                >
+                  {targetPath}
+                </A>{" "}
+                in your project{" "}
+                <A
+                  href={editURL({
+                    type: "collaborator",
+                    project_id: project.project_id,
+                  })}
+                  external
+                >
+                  {project.title}
+                </A>
+                .
+              </>
+            )}
+          </div>
+          {errorCopying && (
+            <Alert type="error" message={errorCopying} showIcon />
+          )}
+          <ProjectListing
+            project_id={project.project_id}
+            title={project.title}
+            path=""
+            update={copying}
+            sort="time"
+          />
+        </Space>
+      )}
+      <div>
+        <SelectProject
+          label="In one of your existing projects"
+          onChange={({ project_id, title }) => {
+            setProject({ project_id, title });
+          }}
+        />
+        <br />
+        <CreateProject
+          label="In a new project"
+          onCreate={(project) => {
+            setProject(project);
+          }}
+        />
+      </div>
     </div>
   );
 }

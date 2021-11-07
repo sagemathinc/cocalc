@@ -75,7 +75,7 @@ function columns(id, relativePath) {
       },
     },
     {
-      title: "Last modified",
+      title: "Date Modified",
       dataIndex: "mtime",
       key: "mtime",
       render: (mtime) => `${new Date(mtime).toLocaleString()}`,

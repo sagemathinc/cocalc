@@ -20,7 +20,7 @@ function Description({ description }: { description: string }) {
 }
 
 function LastEdited({ last_edited }: { last_edited: Date }) {
-  return <>{`${new Date(last_edited).toLocaleString()}`}</>;
+  return <>{`${new Date(parseFloat(last_edited)).toLocaleString()}`}</>;
 }
 
 function Title({ id, title }: { id: string; title: string }) {
@@ -42,7 +42,7 @@ const COLUMNS = [
     responsive: ["sm"] as any,
   },
   {
-    title: "Last Edited",
+    title: "Date Modified",
     dataIndex: "last_edited",
     key: "last_edited",
     render: (last_edited) => <LastEdited last_edited={last_edited} />,
