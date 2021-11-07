@@ -21,15 +21,11 @@ export default function RedeemVerifyEmail({ token, email_address }: Props) {
     setError("");
     setSuccess("");
     try {
-      const result = await apiPost("/auth/redeem-verify-email", {
+      await apiPost("/auth/redeem-verify-email", {
         email_address,
         token,
       });
-      if (result.error) {
-        setError(result.error);
-      } else {
-        setSuccess("Successfully verified your email address. Thanks!");
-      }
+      setSuccess("Successfully verified your email address. Thanks!");
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -58,7 +54,9 @@ export default function RedeemVerifyEmail({ token, email_address }: Props) {
             message="Error"
             description={
               <div style={{ fontSize: "12pt" }}>
-                <b>{error}</b><br/>If you are stuck <Contact lower />.
+                <b>{error}</b>
+                <br />
+                If you are stuck <Contact lower />.
               </div>
             }
             type="error"

@@ -15,11 +15,7 @@ interface Props {
   onSuccess?: () => void; // if given, call after sign in *succeeds*.
 }
 
-export default function SignIn({
-  strategies,
-  minimal,
-  onSuccess,
-}: Props) {
+export default function SignIn({ strategies, minimal, onSuccess }: Props) {
   const { anonymousSignup, siteName } = useCustomize();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -31,12 +27,8 @@ export default function SignIn({
     setError("");
     try {
       setSigningIn(true);
-      const result = await apiPost("/auth/sign-in", { email, password });
-      if (result.error) {
-        setError(`${result.error}`);
-      } else {
-        onSuccess?.();
-      }
+      await apiPost("/auth/sign-in", { email, password });
+      onSuccess?.();
     } catch (err) {
       setError(`${err}`);
     } finally {

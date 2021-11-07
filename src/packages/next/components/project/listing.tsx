@@ -43,7 +43,7 @@ export default function Listing({
   useEffect(() => {
     // update the listing whenever "update" changes.
     query(getQuery(project_id, path));
-  }, [update]);
+  }, [update, project_id, path]);
   return (
     <div>
       {loading && <Loading />}

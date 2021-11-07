@@ -30,8 +30,9 @@ import { useRouter } from "next/router";
 import SelectProject from "components/project/select";
 import CreateProject from "components/project/create";
 import ProjectListing from "components/project/listing";
-import apiPost from "lib/api/post";
+import api from "lib/api/post";
 import Loading from "./loading";
+import useIsMounted from "lib/hooks/mounted";
 
 interface Props {
   id: string;
@@ -162,19 +163,23 @@ function OpenDirectly({
 }
 
 function ChooseProject({ id, src_project_id, path, relativePath }) {
+  const isMounted = useIsMounted();
   const [project, setProject] = useState<
     { project_id: string; title: string } | undefined
   >(undefined);
-  const [copying, setCopying] = useState<"before" | "during" | "after">(
-    "before"
-  );
+  const [copying, setCopying] = useState<
+    "before" | "starting" | "during" | "after"
+  >("before");
   const [errorCopying, setErrorCopying] = useState<string>("");
   const targetPath = join(path, relativePath);
 
   async function doCopy() {
-    setCopying("during");
     try {
       if (project == null) throw Error("no target specified");
+      setCopying("starting");
+      await api("/projects/start", { project_id: src_project_id });
+      if (!isMounted.current) return;
+      setCopying("during");
       await copyPublicPath({
         id,
         src_project_id,
@@ -183,8 +188,10 @@ function ChooseProject({ id, src_project_id, path, relativePath }) {
         target_project_id: project.project_id,
       });
     } catch (err) {
+      if (!isMounted.current) return;
       setErrorCopying(`${err}`);
     } finally {
+      if (!isMounted.current) return;
       setCopying("after");
     }
   }
@@ -209,9 +216,18 @@ function ChooseProject({ id, src_project_id, path, relativePath }) {
                 </Button>
               </>
             )}
+            {copying == "starting" && (
+              <>
+                <Loading style={{ fontSize: "24px" }}>
+                  Starting {project.title}...
+                </Loading>
+              </>
+            )}
             {copying == "during" && (
               <>
-                <Loading style={{ fontSize: "24px" }}>Copying...</Loading>
+                <Loading style={{ fontSize: "24px" }}>
+                  Copying files to {project.title}...
+                </Loading>
               </>
             )}
             {copying == "after" && (
@@ -351,14 +367,11 @@ async function copyPublicPath({
   src_project_id,
   target_project_id,
 }): Promise<void> {
-  const { error } = await apiPost("/projects/copy-path", {
+  await api("/projects/copy-path", {
     src_project_id,
     target_project_id,
     path: join(path, relativePath),
     public_id: id,
     timeout: 15, // if big we do NOT want to allow copying something ridiculuos
   });
-  if (error) {
-    throw Error(error);
-  }
 }

@@ -23,17 +23,12 @@ export default function PasswordReset({ passwordResetId }) {
       setError("");
       setSuccess("");
       setResetting(true);
-      const result = await apiPost("/auth/redeem-password-reset", {
+      await apiPost("/auth/redeem-password-reset", {
         password,
         passwordResetId,
       });
-      if (result.error) {
-        setError(`${result.error}`);
-      } else {
-        // if no error got signed in, so do a page refresh to see this
-        router.reload();
-        return;
-      }
+      // if no error got signed in, so do a page refresh to see this
+      router.reload();
     } catch (err) {
       setError(`${err}`);
     } finally {

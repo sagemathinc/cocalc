@@ -23,9 +23,7 @@ export default function PasswordReset() {
       setSuccess("");
       setResetting(true);
       const result = await apiPost("/auth/password-reset", { email });
-      if (result.error) {
-        setError(`${result.error}`);
-      } else if (result.success) {
+      if (result.success) {
         setEmail("");
         setSuccess(result.success);
       }

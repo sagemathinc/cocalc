@@ -26,6 +26,10 @@ export default async function apiPost(
   let result;
   try {
     result = await response.json();
+    if (result.error) {
+      // if error is set in response, then just through exception (this greatly simplifies client code).
+      throw Error(result.error);
+    }
   } catch (err) {
     console.log(response);
     if (response.statusText == "Not Found") {

@@ -286,6 +286,7 @@ export function is_valid_uuid_string(uuid: string): boolean {
     typeof uuid === "string" && uuid.length === 36 && uuid_regexp.test(uuid)
   );
 }
+export const isValidUUID = is_valid_uuid_string;
 
 export function assert_uuid(uuid: string): void {
   if (!is_valid_uuid_string(uuid)) {

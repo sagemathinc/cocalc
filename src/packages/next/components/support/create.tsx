@@ -73,25 +73,22 @@ export default function Create() {
       setSubmitting(true);
       result = await apiPost("/support/create-ticket", { options });
     } catch (err) {
-      result = { error: `${err}` };
+      setSubmitError(err.message);
+      return;
     } finally {
       setSubmitting(false);
     }
-    if (result.error) {
-      setSubmitError(result.error);
-    } else {
-      setSuccess(
-        <div>
-          <p>
-            Please save this URL: <A href={result.url}>{result.url}</A>
-          </p>
-          <p>
-            You can also see the{" "}
-            <A href="/support/tickets">status of your support tickets</A>.
-          </p>
-        </div>
-      );
-    }
+    setSuccess(
+      <div>
+        <p>
+          Please save this URL: <A href={result.url}>{result.url}</A>
+        </p>
+        <p>
+          You can also see the{" "}
+          <A href="/support/tickets">status of your support tickets</A>.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -173,8 +170,8 @@ export default function Create() {
                   think it should work.
                 </Radio>
                 <Radio value={"question"}>
-                  <Type type="question" /> I have a question about
-                  billing, functionality, teaching, something not working, etc.
+                  <Type type="question" /> I have a question about billing,
+                  functionality, teaching, something not working, etc.
                 </Radio>
                 <Radio value={"task"}>
                   <Type type="task" /> Is it possible for you to install some
