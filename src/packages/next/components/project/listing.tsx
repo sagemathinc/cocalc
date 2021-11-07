@@ -50,7 +50,7 @@ export default function Listing({
       {error && <Alert type="error" message={error} showIcon />}
       {!loading && !error && (
         <FileList
-          listing={value.listings.listing}
+          listing={value.listings?.listing ?? []}
           project_id={project_id}
           path={path}
           title={title}

@@ -19,7 +19,7 @@ function Description({ description }: { description: string }) {
   );
 }
 
-function LastEdited({ last_edited }: { last_edited: Date }) {
+function LastEdited({ last_edited }: { last_edited: string  }) {
   return <>{`${new Date(parseFloat(last_edited)).toLocaleString()}`}</>;
 }
 

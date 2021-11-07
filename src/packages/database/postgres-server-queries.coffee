@@ -64,6 +64,8 @@ passwordHash = require("@cocalc/backend/auth/password-hash").default;
 
 stripe_name = require('@cocalc/util/stripe/name').default;
 
+create_project = require("@cocalc/server/projects/create").default;
+
 # log events, which contain personal information (email, account_id, ...)
 PII_EVENTS = ['create_account',
               'change_password',
@@ -1828,31 +1830,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             license     : undefined   # string -- "license_id1,license_id2,..."
             cb          : required    # cb(err, project_id)
         if not @_validate_opts(opts) then return
-        project_id = misc.uuid()
-        now = new Date()
-
-        if opts.license
-            site_license = {}
-            for x in opts.license.split(',')
-                site_license[x] = {}
-        else
-            site_license = undefined
-
-        @_query
-            query  : "INSERT INTO projects"
-            values :
-                project_id    : project_id
-                title         : opts.title
-                description   : opts.description
-                compute_image : opts.image
-                lti_id        : opts.lti_id
-                site_license  : site_license
-                created       : now
-                last_edited   : now
-                users         : {"#{opts.account_id}":{group:'owner'}}
-            cb : (err, result) =>
-                opts.cb(err, if not err then project_id)
-
+        try
+            opts.cb(undefined, await create_project(opts))
+        catch err
+            opts.cb(err)
+    
     ###
     File editing activity -- users modifying files in any way
       - one single table called file_activity

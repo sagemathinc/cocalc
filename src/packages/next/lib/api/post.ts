@@ -28,6 +28,9 @@ export default async function apiPost(
     result = await response.json();
   } catch (err) {
     console.log(response);
+    if (response.statusText == "Not Found") {
+      throw Error(`The API endpoint ${path} does not exist`);
+    }
     throw err;
   }
   if (cache_s) {
