@@ -20,17 +20,22 @@ export type CocalcMode = ValueOf<typeof COCALC_MODES>;
 
 export type ProjectControlFunction = (project_id: string) => BaseProject;
 
+// NOTE: you can't *change* the mode -- caching just caches what you first set.
 let cached: ProjectControlFunction | undefined = undefined;
 
 export default function init(mode?: CocalcMode): ProjectControlFunction {
   const winston = getLogger("project-control");
+  winston.debug("init", mode);
+  if (!mode) {
+    mode = process.env.COCALC_MODE;
+  }
   if (cached !== undefined) {
     winston.info("using cached project control client");
     return cached;
   }
-  if (mode === undefined) {
+  if (!mode) {
     throw Error(
-      "you can only call projects/control with no mode argument AFTER it has been initialized by the hub"
+      "you can only call projects/control with no mode argument AFTER it has been initialized by the hub or if you set the COCALC_MODE env var"
     );
   }
   winston.info("creating project control client");
@@ -79,7 +84,12 @@ export default function init(mode?: CocalcMode): ProjectControlFunction {
 
 export const getProject: ProjectControlFunction = (project_id: string) => {
   if (cached == null) {
-    throw Error("must call init first");
+    if (process.env["COCALC_MODE"]) {
+      return init(process.env["COCALC_MODE"])(project_id);
+    }
+    throw Error(
+      "must call init first or set the environment variable COCALC_MODE"
+    );
   }
   return cached(project_id);
 };

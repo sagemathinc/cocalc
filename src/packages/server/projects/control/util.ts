@@ -1,5 +1,5 @@
 import { promisify } from "util";
-import { join, resolve } from "path";
+import { dirname, join, resolve } from "path";
 import { exec as exec0, spawn } from "child_process";
 import spawnAsync from "await-spawn";
 import * as fs from "fs";
@@ -285,7 +285,7 @@ export async function copyPath(
   target_uid?: number
 ): Promise<void> {
   winston.info(
-    `copyPath(target="${project_id}"): opts=${JSON.stringify(opts)}`
+    `copyPath(source="${project_id}"): opts=${JSON.stringify(opts)}`
   );
   const { path, overwrite_newer, delete_missing, backup, timeout, bwlimit } =
     opts;
@@ -358,19 +358,28 @@ export async function copyPath(
     // change target ownership on copy; only do this if explicitly requested and needed.
     args.push(`--chown=${target_uid}:${target_uid}`);
   }
-  args.push("--ignore-errors");
 
   args.push(source_abspath + (isDir ? "/" : ""));
   args.push(target_abspath + (isDir ? "/" : ""));
 
+  if (isDir) {
+    await spawnAsync("mkdir", ["-p", target_abspath]);
+  } else {
+    await spawnAsync("mkdir", ["-p", dirname(target_abspath)]);
+  }
+
   // do the copy!
   winston.info(`doing rsync ${args.join(" ")}`);
-  if (opts.wait_until_done) {
+  if (opts.wait_until_done ?? true) {
     try {
       const stdout = await spawnAsync("rsync", args, { timeout: opts.timeout });
       winston.info(`finished rsync ${stdout}`);
     } catch (err) {
-      throw Error(`WARNING: copy exited with an error -- ${err.stderr}`);
+      throw Error(
+        `WARNING: copy exited with an error -- ${
+          err.stderr
+        } -- "rsync ${args.join(" ")}"`
+      );
     }
   } else {
     // TODO/NOTE: this will silently not report any errors.

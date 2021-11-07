@@ -11,7 +11,7 @@ interface Props {
   style?: CSSProperties;
 }
 
-export default function Loading({ delay, style }: Props) {
+export default function Loading({ delay, style, children }: Props) {
   const [show, setShow] = useState<boolean>(false);
   const isMounted = useIsMounted();
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function Loading({ delay, style }: Props) {
   }
   return (
     <div style={{ color: "#666", ...style }}>
-      <Icon name="spinner" spin /> Loading...
+      <Icon name="spinner" spin /> {children ?? <>Loading...</>}
     </div>
   );
 }

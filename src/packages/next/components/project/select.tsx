@@ -36,19 +36,20 @@ export default function SelectProject({ label, project_id, onChange }: Props) {
       <Divider style={{ color: "#666" }}>{label ?? "Select a Project"}</Divider>
       <Space direction="vertical" style={{ width: "100%" }}>
         {error && <Alert type="error" message={error} showIcon />}
-        {loading && <Loading />}
-        {!loading && !error && value && projects.length > 0 ? (
-          <Select
-            showSearch
-            style={{ width: "100%" }}
-            placeholder={"Select a project..."}
-            optionFilterProp="label"
-            options={projects}
-            onChange={(x) => (x ? onChange(JSON.parse(`${x}`)) : undefined)}
-          />
-        ) : (
-          <div>You do not have any projects yet.</div>
-        )}
+        {loading && <Loading style={{ fontSize: "24pt" }} />}
+        {!loading &&
+          (!error && value && projects.length > 0 ? (
+            <Select
+              showSearch
+              style={{ width: "100%" }}
+              placeholder={"Select a project..."}
+              optionFilterProp="label"
+              options={projects}
+              onChange={(x) => (x ? onChange(JSON.parse(`${x}`)) : undefined)}
+            />
+          ) : (
+            <div>You do not have any projects yet.</div>
+          ))}
       </Space>
     </div>
   );

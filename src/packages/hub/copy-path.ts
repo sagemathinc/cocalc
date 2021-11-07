@@ -148,7 +148,7 @@ export class CopyPath {
         delete_missing: mesg.delete_missing,
         backup: mesg.backup,
         timeout: mesg.timeout,
-        wait_until_done: mesg.wait_until_done,
+        wait_until_done: mesg.wait_until_done ?? true, // default to true or we do not see the error
         scheduled: mesg.scheduled,
       });
 
@@ -346,7 +346,7 @@ export class CopyPath {
       if (copy_op == null) {
         this.client.error_to_client({
           id: mesg.id,
-          error: `opy op '${mesg.copy_path_id}' cannot be deleted.`,
+          error: `copy op '${mesg.copy_path_id}' cannot be deleted.`,
         });
       } else {
         await callback2(this.client.database._query, {

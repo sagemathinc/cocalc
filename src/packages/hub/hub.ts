@@ -152,6 +152,8 @@ async function startServer(): Promise<void> {
   // Project control
   winston.info("initializing project control...");
   const projectControl = initProjectControl(program.mode);
+  // used for nextjs hot module reloading dev server
+  process.env["COCALC_MODE"] = program.mode;
 
   if (program.mode != "kucalc" && program.websocketServer) {
     // We handle idle timeout of projects.
@@ -304,7 +306,9 @@ async function main(): Promise<void> {
     .addOption(
       new Option(
         "--mode [string]",
-        `REQUIRED mode in which to run CoCalc (${COCALC_MODES.join(", ")})`
+        `REQUIRED mode in which to run CoCalc (${COCALC_MODES.join(
+          ", "
+        )}) - or set COCALC_MODE env var`
       ).choices(COCALC_MODES)
     )
     .option(
@@ -390,8 +394,15 @@ async function main(): Promise<void> {
     program[name] = opts[name];
   }
   if (!program.mode) {
-    throw Error("the --mode option must be specified");
-    process.exit(1);
+    program.mode = process.env.COCALC_MODE;
+    if (!program.mode) {
+      throw Error(
+        `the --mode option must be specified or the COCALC_MODE env var set to one of ${COCALC_MODES.join(
+          ", "
+        )}`
+      );
+      process.exit(1);
+    }
   }
   if (program.all) {
     program.websocketServer =

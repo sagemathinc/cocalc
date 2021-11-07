@@ -2,7 +2,7 @@
  */
 
 import { useState } from "react";
-import { Alert, Button, Divider, Input, Space } from "antd";
+import { Button, Divider, Input, Space } from "antd";
 
 interface Props {
   label?: string;

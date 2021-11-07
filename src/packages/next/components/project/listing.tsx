@@ -3,6 +3,7 @@ Show directory in a project based on cached information
 in the database.
 */
 
+import { useEffect } from "react";
 import useDatabase from "lib/hooks/database";
 import { Alert, Card, Table } from "antd";
 import Loading from "components/share/loading";
@@ -13,17 +14,29 @@ import A from "components/misc/A";
 import { join } from "path";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { human_readable_size } from "@cocalc/util/misc";
 
 interface Props {
   project_id: string;
   path: string;
   title?: string; // optional title of the project to show at top
+  update?: any; // change to force an update of the listing.
 }
 
-export default function Listing({ project_id, path, title }: Props) {
-  const { error, value, loading } = useDatabase({
+function getQuery(project_id, path) {
+  return {
     listings: { project_id, path, listing: null },
-  });
+  };
+}
+
+export default function Listing({ project_id, path, title, update }: Props) {
+  const { error, value, loading, query } = useDatabase(
+    getQuery(project_id, path)
+  );
+  useEffect(() => {
+    // update the listing whenever "update" changes.
+    query(getQuery(project_id, path));
+  }, [update]);
   return (
     <div>
       {loading && <Loading />}
@@ -101,6 +114,7 @@ function FileList({ listing, project_id, path, title }: FileListProps) {
       title: "Size",
       dataIndex: "size",
       key: "size",
+      render: (size) => human_readable_size(size),
     },
   ];
 

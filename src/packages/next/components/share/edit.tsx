@@ -19,7 +19,7 @@ When you want to edit an existing public share, here's the flow of what happens.
 
 import { join } from "path";
 import { useState } from "react";
-import { Button, Card, Divider, Space } from "antd";
+import { Alert, Button, Card, Divider, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
@@ -30,6 +30,8 @@ import { useRouter } from "next/router";
 import SelectProject from "components/project/select";
 import CreateProject from "components/project/create";
 import ProjectListing from "components/project/listing";
+import apiPost from "lib/api/post";
+import Loading from "./loading";
 
 interface Props {
   id: string;
@@ -89,7 +91,7 @@ function EditOptions({
             <Icon name="times-circle" />
           </div>
           <Icon style={{ marginRight: "10px" }} name="pencil" /> Where to edit{" "}
-          {join(path, relativePath)}?
+          <b>{join(path, relativePath)}</b>?
         </>
       }
     >
@@ -118,7 +120,12 @@ function SignedInOptions({ id, path, relativePath, project_id }) {
       relativePath={relativePath}
     />
   ) : (
-    <CopyToProject id={id} path={path} relativePath={relativePath} />
+    <ChooseProject
+      id={id}
+      src_project_id={project_id}
+      path={path}
+      relativePath={relativePath}
+    />
   );
 }
 
@@ -154,33 +161,95 @@ function OpenDirectly({
   );
 }
 
-function CopyToProject({ id, path, relativePath }) {
-  console.log("CopyToProject", { id, path, relativePath });
-  return (
-    <ChooseProject
-      path={path}
-      relativePath={relativePath}
-      onSelect={({ project_id, title }) => {
-        console.log("chose ", title);
-      }}
-    />
-  );
-}
-
-function ChooseProject({ onSelect, path, relativePath }) {
+function ChooseProject({ id, src_project_id, path, relativePath }) {
   const [project, setProject] = useState<
     { project_id: string; title: string } | undefined
   >(undefined);
+  const [copying, setCopying] = useState<"before" | "during" | "after">(
+    "before"
+  );
+  const [errorCopying, setErrorCopying] = useState<string>("");
+  const targetPath = join(path, relativePath);
+
+  async function doCopy() {
+    setCopying("during");
+    try {
+      if (project == null) throw Error("no target specified");
+      await copyPublicPath({
+        id,
+        src_project_id,
+        path,
+        relativePath,
+        target_project_id: project.project_id,
+      });
+    } catch (err) {
+      setErrorCopying(`${err}`);
+    } finally {
+      setCopying("after");
+    }
+  }
+
   if (project) {
     return (
       <Space direction="vertical" style={{ width: "100%" }}>
-        <Button>
-          <Icon name="copy" /> Copy {join(path, relativePath)} to the following project...
-        </Button>
+        <div style={{ textAlign: "center", marginBottom: "10px" }}>
+          {copying == "before" && (
+            <>
+              <Button onClick={doCopy} size="large" type="primary">
+                <Icon name="copy" /> Copy {join(path, relativePath)} to
+                <b style={{ marginLeft: "5px" }}>{project.title}</b>
+              </Button>
+              <Button
+                onClick={() => setProject(undefined)}
+                size="large"
+                style={{ marginLeft: "15px" }}
+              >
+                Cancel
+              </Button>
+            </>
+          )}
+          {copying == "during" && (
+            <>
+              <Loading style={{ fontSize: "24px" }}>Copying...</Loading>
+            </>
+          )}
+          {copying == "after" && (
+            <>
+              <Icon
+                name="check"
+                style={{ color: "darkgreen", fontSize: "16pt" }}
+              />{" "}
+              Finished copying {join(path, relativePath)} to{" "}
+              <A
+                href={editURL({
+                  type: "collaborator",
+                  project_id: project.project_id,
+                  path: targetPath,
+                })}
+                external
+              >
+                {targetPath}
+              </A>{" "}
+              in your project{" "}
+              <A
+                href={editURL({
+                  type: "collaborator",
+                  project_id: project.project_id,
+                })}
+                external
+              >
+                {project.title}
+              </A>
+              .
+            </>
+          )}
+        </div>
+        {errorCopying && <Alert type="error" message={errorCopying} showIcon />}
         <ProjectListing
           project_id={project.project_id}
           title={project.title}
           path=""
+          update={copying}
         />
       </Space>
     );
@@ -190,7 +259,6 @@ function ChooseProject({ onSelect, path, relativePath }) {
       <SelectProject
         label="In one of your existing projects"
         onChange={({ project_id, title }) => {
-          console.log("got ", project_id, title);
           setProject({ project_id, title });
         }}
       />
@@ -198,15 +266,12 @@ function ChooseProject({ onSelect, path, relativePath }) {
       <CreateProject
         label="In a new project"
         onCreate={(project) => {
-          console.log("created ", project);
           setProject(project);
         }}
       />
     </div>
   );
 }
-
-function CopyToProjectAndOpen({ project_id }) {}
 
 function NotSignedInOptions({ id, path, relativePath }) {
   return (
@@ -274,4 +339,23 @@ function OpenAnonymously({ id, path, relativePath }) {
       ! Sign up later from your anonymous session without losing work.
     </div>
   );
+}
+
+async function copyPublicPath({
+  id,
+  path,
+  relativePath,
+  src_project_id,
+  target_project_id,
+}): Promise<void> {
+  const { error } = await apiPost("/projects/copy-path", {
+    src_project_id,
+    target_project_id,
+    path: join(path, relativePath),
+    public_id: id,
+    timeout: 15, // if big we do NOT want to allow copying something ridiculuos
+  });
+  if (error) {
+    throw Error(error);
+  }
 }
