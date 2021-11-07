@@ -26,6 +26,7 @@ import A from "components/misc/A";
 import editURL from "lib/share/edit-url";
 import SignInAuth from "components/auth/sign-in";
 import SignUpAuth from "components/auth/sign-up";
+import Anonymous from "components/auth/try";
 import { useRouter } from "next/router";
 import SelectProject from "components/project/select";
 import CreateProject from "components/project/create";
@@ -104,9 +105,7 @@ function EditOptions({
           project_id={project_id}
         />
       )}
-      {account?.account_id == null && (
-        <NotSignedInOptions id={id} path={path} relativePath={relativePath} />
-      )}
+      {account?.account_id == null && <NotSignedInOptions />}
       <br />
     </Card>
   );
@@ -292,11 +291,12 @@ function ChooseProject({ id, src_project_id, path, relativePath }) {
   );
 }
 
-function NotSignedInOptions({ id, path, relativePath }) {
+function NotSignedInOptions() {
+  const { anonymousSignup } = useCustomize();
   return (
     <div>
       <SignIn />
-      <OpenAnonymously id={id} path={path} relativePath={relativePath} />
+      {anonymousSignup && <OpenAnonymously />}
     </div>
   );
 }
@@ -308,7 +308,7 @@ function SignIn() {
   const router = useRouter();
   const [show, setShow] = useState<"sign-in" | "sign-up" | "">("");
   return (
-    <div>
+    <div style={{ textAlign: "center" }}>
       <Divider>
         <Icon name="sign-in" style={{ marginRight: "10px" }} /> Choose Project
       </Divider>
@@ -345,17 +345,22 @@ function SignIn() {
   );
 }
 
-function OpenAnonymously({ id, path, relativePath }) {
+function OpenAnonymously() {
+  const router = useRouter();
   return (
     <div>
       <Divider>
         <Icon name="mask" style={{ marginRight: "10px" }} /> Anonymously
       </Divider>
-      Alternatively, with{" "}
-      <A href={editURL({ id, path, relativePath, type: "anonymous" })} external>
-        one click you can edit anonymously without signing up
-      </A>
-      ! Sign up later from your anonymous session without losing work.
+      <Anonymous
+        minimal
+        onSuccess={() =>
+          router.push({
+            pathname: router.asPath.split("?")[0],
+            query: { edit: "true" },
+          })
+        }
+      />
     </div>
   );
 }

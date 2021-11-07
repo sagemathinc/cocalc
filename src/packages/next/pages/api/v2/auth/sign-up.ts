@@ -43,61 +43,77 @@ export default async function signUp(req, res) {
   let { terms, email, password, firstName, lastName, registrationToken } =
     req.body;
 
-  // email and password are assumed to be strings below.
-  if (!email) {
-    email = "";
-  }
-  if (!password) {
-    password = "";
-  }
-  password = password.trim();
-  email = email.toLowerCase().trim();
-  firstName = firstName.trim();
-  lastName = lastName.trim();
-  registrationToken = registrationToken.trim();
+  password = (password ?? "").trim();
+  email = (email ?? "").toLowerCase().trim();
+  firstName = (firstName ? firstName : "Anonymous").trim();
+  lastName = (
+    lastName ? lastName : `User-${Math.round(new Date().valueOf() / 1000)}`
+  ).trim();
+  registrationToken = (registrationToken ?? "").trim();
 
-  try {
-    const account_id = await getAccount(email, password);
-    await signUserIn(req, res, account_id);
-    return;
-  } catch (_err) {
-    // fine -- just means they don't already have an account.
+  // if email is empty, then trying to create an anonymous account,
+  // which may be allowed, depending on server settings.
+  const isAnonymous = !email;
+
+  if (!isAnonymous && email && password) {
+    // Maybe there is already an account with this email and password?
+    try {
+      const account_id = await getAccount(email, password);
+      await signUserIn(req, res, account_id);
+      return;
+    } catch (_err) {
+      // fine -- just means they don't already have an account.
+    }
   }
 
-  const issues = checkObviousConditions({ terms, email, password });
-  if (len(issues) > 0) {
-    res.json({ issues });
-    return;
+  if (!isAnonymous) {
+    const issues = checkObviousConditions({ terms, email, password });
+    if (len(issues) > 0) {
+      res.json({ issues });
+      return;
+    }
   }
 
   // The UI doesn't let users try to make an account via signUp if
   // email isn't enabled.  However, they might try to directly POST
   // to the API, so we check here as well.
-  const { email_signup } = await getServerSettings();
-  if (!email_signup) {
-    res.json({
-      issues: {
-        email: "Email account creation is disabled.",
-      },
-    });
-    return;
-  }
+  const { email_signup, anonymous_signup } = await getServerSettings();
+  if (isAnonymous) {
+    // Check anonymous sign up conditions.
+    if (!anonymous_signup) {
+      res.json({
+        issues: {
+          email: "Anonymous account creation is disabled.",
+        },
+      });
+      return;
+    }
+  } else {
+    // Check the email sign up conditions.
+    if (!email_signup) {
+      res.json({
+        issues: {
+          email: "Email account creation is disabled.",
+        },
+      });
+      return;
+    }
+    const exclusive = await isDomainExclusiveSSO(email);
+    if (exclusive) {
+      res.json({
+        issues: {
+          email: `To sign up with "@${exclusive}", you have to use the corresponding single sign on mechanism.  Delete your email address above, then click the SSO icon.`,
+        },
+      });
+      return;
+    }
 
-  const exclusive = await isDomainExclusiveSSO(email);
-  if (exclusive) {
-    res.json({
-      issues: {
-        email: `To sign up with "@${exclusive}", you have to use the corresponding single sign on mechanism.  Delete your email address above, then click the SSO icon.`,
-      },
-    });
-    return;
-  }
-
-  if (!(await isAccountAvailable(email))) {
-    res.json({
-      issues: { email: `Email address "${email}" already in use.` },
-    });
-    return;
+    if (!(await isAccountAvailable(email))) {
+      res.json({
+        issues: { email: `Email address "${email}" already in use.` },
+      });
+      return;
+    }
   }
 
   try {
@@ -111,27 +127,31 @@ export default async function signUp(req, res) {
     return;
   }
 
-  const account_id = v4();
-  await createAccount({
-    email,
-    password,
-    firstName,
-    lastName,
-    account_id,
-  });
+  try {
+    const account_id = v4();
+    await createAccount({
+      email,
+      password,
+      firstName,
+      lastName,
+      account_id,
+    });
 
-  if (email) {
-    try {
-      await sendWelcomeEmail(email, account_id);
-    } catch (err) {
-      // Expected to fail, e.g., when sendgrid or smtp not configured yet.
-      // TODO: should log using debug instead of console?
-      console.log(`WARNING: failed to send welcome email to ${email}`, err);
+    if (email) {
+      try {
+        await sendWelcomeEmail(email, account_id);
+      } catch (err) {
+        // Expected to fail, e.g., when sendgrid or smtp not configured yet.
+        // TODO: should log using debug instead of console?
+        console.log(`WARNING: failed to send welcome email to ${email}`, err);
+      }
     }
-  }
 
-  await signUserIn(req, res, account_id);
-  return;
+    await signUserIn(req, res, account_id); // sets a cookie
+    res.json({ account_id });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
 }
 
 function checkObviousConditions({ terms, email, password }): Issues {

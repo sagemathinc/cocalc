@@ -15,7 +15,7 @@ export default function Home({ customize, strategies, requiresToken }) {
   const router = useRouter();
   return (
     <Customize value={customize}>
-      <Head title={`Sign in to ${siteName}`} />
+      <Head title={`Sign up for ${siteName}`} />
       <Layout>
         <Header page="sign-up" />
         <Layout.Content style={{ backgroundColor: "white" }}>

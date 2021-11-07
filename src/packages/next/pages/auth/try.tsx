@@ -6,16 +6,18 @@ import { Customize } from "lib/customize";
 import Head from "components/landing/head";
 import basePath from "lib/base-path";
 import Try from "components/auth/try";
+import { useRouter } from "next/router";
 
 export default function Home({ customize }) {
   const { siteName } = customize;
+  const router = useRouter();
   return (
     <Customize value={customize}>
       <Head title={`Try ${siteName} Now!`} />
       <Layout>
         <Header page="try" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <Try />
+          <Try onSuccess={() => router.push("/")} />
           <Footer />
         </Layout.Content>
       </Layout>

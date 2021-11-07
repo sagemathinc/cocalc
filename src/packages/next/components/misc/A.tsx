@@ -3,12 +3,12 @@ import Link from "next/link";
 export default function A(props: any) {
   const { href } = props;
   if (href == null) {
-    return <a {...copyWithout(props, "external")} />;
+    return <a {...copyWithout(props, new Set(["external"]))} />;
   }
   if (props.external || href.includes("://") || href.startsWith("mailto:")) {
     return (
       <a
-        {...copyWithout(props, "external")}
+        {...copyWithout(props, new Set(["external"]))}
         target={"_blank"}
         rel={"noopener"}
       />
@@ -16,15 +16,15 @@ export default function A(props: any) {
   }
   return (
     <Link href={href}>
-      <a {...copyWithout(props, "href")} />
+      <a {...copyWithout(props, new Set(["external", "href"]))} />
     </Link>
   );
 }
 
-function copyWithout(props, without: string) {
+function copyWithout(props, without: Set<string>) {
   const props2 = {};
   for (const key in props) {
-    if (key != without) {
+    if (!without.has(key)) {
       props2[key] = props[key];
     }
   }
