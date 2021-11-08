@@ -14,6 +14,7 @@ interface Props {
   exclude?: Set<string>;
   project_id: string;
   image?: string;
+  description?: string;
 }
 
 export default function PathActions({
@@ -24,6 +25,7 @@ export default function PathActions({
   exclude,
   project_id,
   image,
+  description,
 }: Props) {
   const include = (action: string) => !exclude?.has(action);
   const v: JSX.Element[] = [];
@@ -71,6 +73,7 @@ export default function PathActions({
         relativePath={relativePath}
         image={image}
         project_id={project_id}
+        description={description}
       />
     );
   }

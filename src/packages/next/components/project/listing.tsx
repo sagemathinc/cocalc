@@ -138,10 +138,11 @@ function FileList({ listing, project_id, path, title, sort }: FileListProps) {
 
   return (
     <Card
+      style={{ boxShadow:"4px 4px 2px #ddd" }}
       title={
         title ? (
           <div>
-            <A
+            Title: <A
               external
               href={editURL({
                 type: "collaborator",

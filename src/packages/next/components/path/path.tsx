@@ -81,6 +81,7 @@ export default function PublicPath({
           exclude={new Set(["hosted"])}
           project_id={project_id}
           image={compute_image}
+          description={description}
         />
         <hr />
         {contents != null && (

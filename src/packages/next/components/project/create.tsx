@@ -11,15 +11,23 @@ import apiPost from "lib/api/post";
 interface Props {
   label?: string;
   image?: string; // optional compute image
+  defaultTitle?: string;
+  start?: boolean; // start as soon as it is created.
   onCreate: (project: { project_id: string; title: string }) => void;
 }
 
-export default function CreateProject({ label, image, onCreate }: Props) {
-  const [title, setTitle] = useState<string>("");
+export default function CreateProject({
+  label,
+  image,
+  defaultTitle,
+  start,
+  onCreate,
+}: Props) {
+  const [title, setTitle] = useState<string>(defaultTitle ?? "");
   const [error, setError] = useState<string>("");
-  const [state, setState] = useState<"config" | "creating" | "created">(
-    "config"
-  );
+  const [state, setState] = useState<
+    "config" | "creating" | "starting" | "created"
+  >("config");
 
   async function create(title: string) {
     setError("");
@@ -28,6 +36,10 @@ export default function CreateProject({ label, image, onCreate }: Props) {
       const response = await apiPost("/projects/create", { title, image });
       if (response.error) {
         throw Error(response.error);
+      }
+      if (start) {
+        setState("starting");
+        await apiPost("/projects/start", { project_id: response.project_id });
       }
       setState("created");
       onCreate({ project_id: response.project_id, title });
@@ -44,7 +56,12 @@ export default function CreateProject({ label, image, onCreate }: Props) {
         {error && <Alert type="error" message={error} showIcon />}
         {state == "creating" && (
           <div style={{ textAlign: "center" }}>
-            <Loading style={{ fontSize: "16pt" }}>Creating {title}...</Loading>
+            <Loading style={{ fontSize: "16pt" }}>Creating project "{title}"...</Loading>
+          </div>
+        )}
+        {state == "starting" && (
+          <div style={{ textAlign: "center" }}>
+            <Loading style={{ fontSize: "16pt" }}>Starting project "{title}"...</Loading>
           </div>
         )}
         {state == "created" && (
@@ -53,10 +70,12 @@ export default function CreateProject({ label, image, onCreate }: Props) {
               name="check"
               style={{ color: "darkgreen", fontSize: "16pt" }}
             />{" "}
-            Successfully created your project <A>{title}</A>
+            Created project <A>{title}</A>.
           </div>
         )}
         <Input
+          allowClear
+          defaultValue={defaultTitle}
           disabled={state != "config"}
           placeholder="Project title (easily change this at any time)"
           onChange={(e) => setTitle(e.target.value)}
@@ -65,13 +84,15 @@ export default function CreateProject({ label, image, onCreate }: Props) {
             create(title);
           }}
         />
-        <Button
-          disabled={!title || state != "config"}
-          type={title ? "primary" : undefined}
-          onClick={() => create(title)}
-        >
-          Create Project
-        </Button>
+        {state == "config" && (
+          <Button
+            disabled={!title || state != "config"}
+            type={title ? "primary" : undefined}
+            onClick={() => create(title)}
+          >
+            Create Project
+          </Button>
+        )}
       </Space>
     </div>
   );

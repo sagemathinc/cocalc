@@ -69,7 +69,7 @@ class Project extends BaseProject {
   }
 
   async start(): Promise<void> {
-    winston.info(`start ${this.project_id}`);
+    winston.debug("start", this.project_id);
     if (this.stateChanging != null) return;
 
     // Home directory
@@ -119,7 +119,7 @@ class Project extends BaseProject {
 
   async stop(): Promise<void> {
     if (this.stateChanging != null) return;
-    winston.info("stop ", this.project_id);
+    winston.debug("stop ", this.project_id);
     if (!(await isProjectRunning(this.HOME))) {
       await this.saveStateToDatabase({ state: "opened" });
       return;

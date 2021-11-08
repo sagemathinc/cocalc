@@ -19,7 +19,7 @@ When you want to edit an existing public share, here's the flow of what happens.
 
 import { join } from "path";
 import { useState } from "react";
-import { Alert, Button, Card, Divider, Space } from "antd";
+import { Alert, Button, Card, Checkbox, Divider, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
@@ -35,6 +35,7 @@ import api from "lib/api/post";
 import Loading from "./loading";
 import useIsMounted from "lib/hooks/mounted";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
+import { trunc } from "@cocalc/util/misc";
 
 interface Props {
   id: string;
@@ -42,6 +43,7 @@ interface Props {
   relativePath: string;
   project_id: string;
   image?: string;
+  description?: string;
 }
 
 export default function Edit({
@@ -50,8 +52,8 @@ export default function Edit({
   relativePath,
   project_id,
   image,
+  description,
 }: Props) {
-  console.log("image = ", image);
   const router = useRouter();
   const [expanded, setExpanded] = useState<boolean>(!!router.query.edit);
 
@@ -75,6 +77,7 @@ export default function Edit({
           relativePath={relativePath}
           project_id={project_id}
           image={image}
+          description={description}
           onClose={() => setExpanded(false)}
         />
       )}
@@ -93,11 +96,12 @@ function EditOptions({
   project_id,
   image,
   onClose,
+  description,
 }: EditProps) {
   const { account } = useCustomize();
   return (
     <Card
-      style={{ margin: "30px 10%" }}
+      style={{ margin: "30px 0" }}
       title={
         <>
           <div style={{ float: "right", cursor: "pointer" }} onClick={onClose}>
@@ -115,6 +119,7 @@ function EditOptions({
           relativePath={relativePath}
           project_id={project_id}
           image={image}
+          description={description}
         />
       )}
       {account?.account_id == null && <NotSignedInOptions />}
@@ -123,7 +128,14 @@ function EditOptions({
   );
 }
 
-function SignedInOptions({ id, path, relativePath, project_id, image }) {
+function SignedInOptions({
+  id,
+  path,
+  relativePath,
+  project_id,
+  image,
+  description,
+}) {
   const { isCollaborator } = useCustomize();
   return isCollaborator ? (
     <OpenDirectly
@@ -138,6 +150,7 @@ function SignedInOptions({ id, path, relativePath, project_id, image }) {
       path={path}
       relativePath={relativePath}
       image={image}
+      description={description}
     />
   );
 }
@@ -174,7 +187,14 @@ function OpenDirectly({
   );
 }
 
-function ChooseProject({ id, src_project_id, path, relativePath, image }) {
+function ChooseProject({
+  id,
+  src_project_id,
+  path,
+  relativePath,
+  image,
+  description,
+}) {
   const isMounted = useIsMounted();
   const [project, setProject] = useState<
     { project_id: string; title: string } | undefined
@@ -183,13 +203,17 @@ function ChooseProject({ id, src_project_id, path, relativePath, image }) {
     "before" | "starting" | "during" | "after"
   >("before");
   const [errorCopying, setErrorCopying] = useState<string>("");
+  const [showListing, setShowListing] = useState<boolean>(false);
+  const [hideSelect, setHideSelect] = useState<boolean>(false);
+  const [hideCreate, setHideCreate] = useState<boolean>(false);
   const targetPath = join(path, relativePath);
 
   async function doCopy() {
     try {
       if (project == null) throw Error("no target specified");
+      // Start the *target* project!
       setCopying("starting");
-      await api("/projects/start", { project_id: src_project_id });
+      await api("/projects/start", { project_id: project.project_id });
       if (!isMounted.current) return;
       setCopying("during");
       await copyPublicPath({
@@ -210,22 +234,76 @@ function ChooseProject({ id, src_project_id, path, relativePath, image }) {
 
   return (
     <div>
+      <div>
+        {image && image != DEFAULT_COMPUTE_IMAGE && (
+          <div>
+            We recommend that you create a new project, since this public path
+            uses the non-default image "{image}".
+          </div>
+        )}
+        {!hideCreate && (
+          <CreateProject
+            image={image}
+            label="In a new project"
+            start={true}
+            defaultTitle={description}
+            onCreate={(project) => {
+              setProject(project);
+              setHideSelect(true);
+            }}
+          />
+        )}
+        {!hideSelect && (
+          <SelectProject
+            label="In one of your existing projects"
+            onChange={({ project_id, title }) => {
+              setProject({ project_id, title });
+              setHideCreate(true);
+            }}
+          />
+        )}
+      </div>{" "}
       {project && (
-        <Space direction="vertical" style={{ width: "100%" }}>
-          <div style={{ textAlign: "center", marginBottom: "10px" }}>
+        <Space
+          direction="vertical"
+          style={{ width: "100%", marginTop: "15px" }}
+        >
+          <div style={{ textAlign: "center" }}>
             {copying == "before" && (
               <>
-                <Button onClick={doCopy} size="large" type="primary">
+                <Button
+                  onClick={doCopy}
+                  size="large"
+                  type="primary"
+                  style={{ maxWidth: "100%", overflow: "hidden" }}
+                  shape="round"
+                >
                   <Icon name="copy" /> Copy {join(path, relativePath)} to
                   <b style={{ marginLeft: "5px" }}>{project.title}</b>
                 </Button>
-                <Button
-                  onClick={() => setProject(undefined)}
-                  size="large"
-                  style={{ marginLeft: "15px" }}
-                >
-                  Cancel
-                </Button>
+                {!hideSelect && (
+                  <Checkbox
+                    disabled={!project}
+                    style={{
+                      float: "right",
+                      marginTop: "15px",
+                      fontSize: "10pt",
+                      color: "#666",
+                    }}
+                    onChange={(e) => setShowListing(e.target.checked)}
+                  >
+                    Show contents of{" "}
+                    <A
+                      href={editURL({
+                        type: "collaborator",
+                        project_id: project.project_id,
+                      })}
+                      external
+                    >
+                      {trunc(project.title, 30)}
+                    </A>
+                  </Checkbox>
+                )}
               </>
             )}
             {copying == "starting" && (
@@ -276,37 +354,19 @@ function ChooseProject({ id, src_project_id, path, relativePath, image }) {
           {errorCopying && (
             <Alert type="error" message={errorCopying} showIcon />
           )}
-          <ProjectListing
-            project_id={project.project_id}
-            title={project.title}
-            path=""
-            update={copying}
-            sort="time"
-          />
+          {showListing && (
+            <div style={{ marginTop: "10px" }}>
+              <ProjectListing
+                project_id={project.project_id}
+                title={project.title}
+                path=""
+                update={copying}
+                sort="time"
+              />
+            </div>
+          )}
         </Space>
       )}
-      <div>
-        {image && image != DEFAULT_COMPUTE_IMAGE && (
-          <div>
-            We recommend that you create a new project, since this public path
-            uses the non-default image "{image}".
-          </div>
-        )}
-        <CreateProject
-          image={image}
-          label="In a new project"
-          onCreate={(project) => {
-            setProject(project);
-          }}
-        />
-        <br />
-        <SelectProject
-          label="In one of your existing projects"
-          onChange={({ project_id, title }) => {
-            setProject({ project_id, title });
-          }}
-        />
-      </div>
     </div>
   );
 }
