@@ -10,10 +10,11 @@ import apiPost from "lib/api/post";
 
 interface Props {
   label?: string;
+  image?: string; // optional compute image
   onCreate: (project: { project_id: string; title: string }) => void;
 }
 
-export default function CreateProject({ label, onCreate }: Props) {
+export default function CreateProject({ label, image, onCreate }: Props) {
   const [title, setTitle] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [state, setState] = useState<"config" | "creating" | "created">(
@@ -24,7 +25,7 @@ export default function CreateProject({ label, onCreate }: Props) {
     setError("");
     setState("creating");
     try {
-      const response = await apiPost("/projects/create", { title });
+      const response = await apiPost("/projects/create", { title, image });
       if (response.error) {
         throw Error(response.error);
       }

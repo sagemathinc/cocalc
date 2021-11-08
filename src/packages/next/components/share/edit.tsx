@@ -34,15 +34,24 @@ import ProjectListing from "components/project/listing";
 import api from "lib/api/post";
 import Loading from "./loading";
 import useIsMounted from "lib/hooks/mounted";
+import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 
 interface Props {
   id: string;
   path: string;
   relativePath: string;
   project_id: string;
+  image?: string;
 }
 
-export default function Edit({ id, path, relativePath, project_id }: Props) {
+export default function Edit({
+  id,
+  path,
+  relativePath,
+  project_id,
+  image,
+}: Props) {
+  console.log("image = ", image);
   const router = useRouter();
   const [expanded, setExpanded] = useState<boolean>(!!router.query.edit);
 
@@ -65,6 +74,7 @@ export default function Edit({ id, path, relativePath, project_id }: Props) {
           path={path}
           relativePath={relativePath}
           project_id={project_id}
+          image={image}
           onClose={() => setExpanded(false)}
         />
       )}
@@ -81,6 +91,7 @@ function EditOptions({
   path,
   relativePath,
   project_id,
+  image,
   onClose,
 }: EditProps) {
   const { account } = useCustomize();
@@ -103,6 +114,7 @@ function EditOptions({
           path={path}
           relativePath={relativePath}
           project_id={project_id}
+          image={image}
         />
       )}
       {account?.account_id == null && <NotSignedInOptions />}
@@ -111,7 +123,7 @@ function EditOptions({
   );
 }
 
-function SignedInOptions({ id, path, relativePath, project_id }) {
+function SignedInOptions({ id, path, relativePath, project_id, image }) {
   const { isCollaborator } = useCustomize();
   return isCollaborator ? (
     <OpenDirectly
@@ -125,6 +137,7 @@ function SignedInOptions({ id, path, relativePath, project_id }) {
       src_project_id={project_id}
       path={path}
       relativePath={relativePath}
+      image={image}
     />
   );
 }
@@ -161,7 +174,7 @@ function OpenDirectly({
   );
 }
 
-function ChooseProject({ id, src_project_id, path, relativePath }) {
+function ChooseProject({ id, src_project_id, path, relativePath, image }) {
   const isMounted = useIsMounted();
   const [project, setProject] = useState<
     { project_id: string; title: string } | undefined
@@ -273,17 +286,24 @@ function ChooseProject({ id, src_project_id, path, relativePath }) {
         </Space>
       )}
       <div>
+        {image && image != DEFAULT_COMPUTE_IMAGE && (
+          <div>
+            We recommend that you create a new project, since this public path
+            uses the non-default image "{image}".
+          </div>
+        )}
+        <CreateProject
+          image={image}
+          label="In a new project"
+          onCreate={(project) => {
+            setProject(project);
+          }}
+        />
+        <br />
         <SelectProject
           label="In one of your existing projects"
           onChange={({ project_id, title }) => {
             setProject({ project_id, title });
-          }}
-        />
-        <br />
-        <CreateProject
-          label="In a new project"
-          onCreate={(project) => {
-            setProject(project);
           }}
         />
       </div>

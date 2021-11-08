@@ -80,6 +80,7 @@ export default function PublicPath({
           isDir={contents?.isdir}
           exclude={new Set(["hosted"])}
           project_id={project_id}
+          image={compute_image}
         />
         <hr />
         {contents != null && (

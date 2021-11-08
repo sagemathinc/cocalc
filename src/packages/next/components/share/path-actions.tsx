@@ -13,6 +13,7 @@ interface Props {
   isDir?: boolean;
   exclude?: Set<string>;
   project_id: string;
+  image?: string;
 }
 
 export default function PathActions({
@@ -22,6 +23,7 @@ export default function PathActions({
   isDir,
   exclude,
   project_id,
+  image,
 }: Props) {
   const include = (action: string) => !exclude?.has(action);
   const v: JSX.Element[] = [];
@@ -61,7 +63,16 @@ export default function PathActions({
     );
   }
   if (include("edit")) {
-    v.push(<Edit key="edit" id={id} path={path} relativePath={relativePath} project_id={project_id} />);
+    v.push(
+      <Edit
+        key="edit"
+        id={id}
+        path={path}
+        relativePath={relativePath}
+        image={image}
+        project_id={project_id}
+      />
+    );
   }
 
   return r_join(v, " | ");
