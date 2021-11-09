@@ -60,7 +60,7 @@ function collaboratorURL({
 }): string {
   const projectURL = join("/projects", project_id);
   if (!path) {
-    return projectURL;
+    return withBasePath(projectURL);
   }
   return withBasePath(join(projectURL, "files", path, relativePath ?? ""));
 }
