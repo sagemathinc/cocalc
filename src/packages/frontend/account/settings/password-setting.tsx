@@ -3,16 +3,23 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ErrorDisplay, LabeledRow, Saving } from "../../components";
-import { Component, Rendered, ReactDOM } from "../../app-framework";
-import { webapp_client } from "../../webapp-client";
+import {
+  A,
+  ErrorDisplay,
+  LabeledRow,
+  Saving,
+} from "@cocalc/frontend/components";
+import { Component, Rendered, ReactDOM } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   Button,
   ButtonToolbar,
   FormControl,
   FormGroup,
   Well,
-} from "../../antd-bootstrap";
+} from "@cocalc/frontend/antd-bootstrap";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
 
 interface State {
   state: "view" | "edit" | "saving"; // view --> edit --> saving --> view
@@ -107,11 +114,16 @@ export class PasswordSetting extends Component<{}, State> {
   private render_error(): Rendered {
     if (this.state.error) {
       return (
-        <ErrorDisplay
-          error={this.state.error}
-          onClose={() => this.setState({ error: "" })}
-          style={{ marginTop: "15px" }}
-        />
+        <>
+          <ErrorDisplay
+            error={this.state.error}
+            onClose={() => this.setState({ error: "" })}
+            style={{ marginTop: "15px" }}
+          />
+          <A href={join(appBasePath, "auth/password-reset")}>
+            Forgot Password?
+          </A>
+        </>
       );
     }
   }
