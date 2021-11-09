@@ -7,6 +7,7 @@ import Loading from "components/share/loading";
 import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import apiPost from "lib/api/post";
+import editURL from "lib/share/edit-url";
 
 interface Props {
   label?: string;
@@ -24,6 +25,7 @@ export default function CreateProject({
   onCreate,
 }: Props) {
   const [title, setTitle] = useState<string>(defaultTitle ?? "");
+  const [project_id, setProjectID] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [state, setState] = useState<
     "config" | "creating" | "starting" | "created"
@@ -41,6 +43,7 @@ export default function CreateProject({
         setState("starting");
         await apiPost("/projects/start", { project_id: response.project_id });
       }
+      setProjectID(response.project_id);
       setState("created");
       onCreate({ project_id: response.project_id, title });
     } catch (err) {
@@ -56,12 +59,16 @@ export default function CreateProject({
         {error && <Alert type="error" message={error} showIcon />}
         {state == "creating" && (
           <div style={{ textAlign: "center" }}>
-            <Loading style={{ fontSize: "16pt" }}>Creating project "{title}"...</Loading>
+            <Loading style={{ fontSize: "16pt" }}>
+              Creating project "{title}"...
+            </Loading>
           </div>
         )}
         {state == "starting" && (
           <div style={{ textAlign: "center" }}>
-            <Loading style={{ fontSize: "16pt" }}>Starting project "{title}"...</Loading>
+            <Loading style={{ fontSize: "16pt" }}>
+              Starting project "{title}"...
+            </Loading>
           </div>
         )}
         {state == "created" && (
@@ -70,7 +77,21 @@ export default function CreateProject({
               name="check"
               style={{ color: "darkgreen", fontSize: "16pt" }}
             />{" "}
-            Created project <A>{title}</A>.
+            Created project{" "}
+            {project_id && title ? (
+              <A
+                href={editURL({
+                  type: "collaborator",
+                  project_id,
+                })}
+                external
+              >
+                {title}
+              </A>
+            ) : (
+              ""
+            )}
+            .
           </div>
         )}
         <Input
