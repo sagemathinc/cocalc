@@ -150,7 +150,7 @@ function SignedInOptions({
       path={path}
       relativePath={relativePath}
       image={image}
-      description={description}
+      description={description ? description : path ? path : relativePath}
     />
   );
 }
@@ -225,7 +225,7 @@ function ChooseProject({
       });
     } catch (err) {
       if (!isMounted.current) return;
-      setErrorCopying(`${err}`);
+      setErrorCopying(err.message);
     } finally {
       if (!isMounted.current) return;
       setCopying("after");
@@ -347,12 +347,17 @@ function ChooseProject({
                 >
                   {project.title}
                 </A>
-                . {errorCopying ? " The copy may have failed." : ""}
+                .{" "}
+                {errorCopying ? (
+                  <div>There might have been an issue copying files.</div>
+                ) : (
+                  ""
+                )}
               </>
             )}
           </div>
           {errorCopying && (
-            <Alert type="error" message={errorCopying} showIcon />
+            <Alert type="warning" message={errorCopying} showIcon />
           )}
           {showListing && (
             <div style={{ marginTop: "10px" }}>
