@@ -12,7 +12,11 @@ import {
   Rendered,
   project_redux_name,
 } from "../../app-framework";
-import { ErrorDisplay, Loading, LoadingEstimate } from "@cocalc/frontend/components";
+import {
+  ErrorDisplay,
+  Loading,
+  LoadingEstimate,
+} from "@cocalc/frontend/components";
 import { FormatBar } from "./format-bar";
 import { StatusBar } from "./status-bar";
 //TODO: import { FrameTree } from "./frame-tree";
@@ -249,7 +253,12 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     if (!this.props.status) {
       return;
     }
-    return <StatusBar status={this.props.status} />;
+    return (
+      <StatusBar
+        status={this.props.status}
+        onClear={() => this.props.actions.set_status("")}
+      />
+    );
   }
 
   render_loading(): Rendered {

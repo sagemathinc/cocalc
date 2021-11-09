@@ -10,10 +10,11 @@ Very simple for now.  We should obviously add more later, e.g., number of lines 
 */
 
 import { Component, Rendered } from "../../app-framework";
-import { Space } from "@cocalc/frontend/components";
+import { Icon, Space } from "@cocalc/frontend/components";
 
 interface Props {
   status: string;
+  onClear: () => {};
 }
 
 export class StatusBar extends Component<Props, {}> {
@@ -28,6 +29,7 @@ export class StatusBar extends Component<Props, {}> {
           opacity: 0.85,
           position: "fixed",
           bottom: "0px",
+          right: "0px",
           minWidth: "30%",
           zIndex: 100,
           border: "0.5px solid lightgray",
@@ -36,8 +38,14 @@ export class StatusBar extends Component<Props, {}> {
           padding: "0 5px",
           fontSize: "9pt",
           background: "#fff",
+          boxShadow: "-2px -2px 2px #ccc",
         }}
       >
+        <Icon
+          name="times"
+          onClick={this.props.onClear}
+          style={{ float: "right", marginTop:'2.5px' }}
+        />
         {this.props.status}
         <Space />
       </div>
