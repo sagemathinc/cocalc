@@ -46,7 +46,7 @@ export default function SignIn({ startup, hideFree }: Props) {
           title={"Try now without creating an account!"}
           onClick={() => router.push("/auth/try")}
         >
-          Try {startup ?? siteName} Now
+          Try&nbsp;{startup ?? siteName}&nbsp;Now
         </Button>
       )}
       <Button
