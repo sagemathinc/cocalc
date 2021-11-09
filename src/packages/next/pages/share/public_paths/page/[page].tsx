@@ -63,7 +63,7 @@ export default function All({ page, publicPaths, customize }) {
       <Layout title={`Page ${page} of public files`}>
         <div>
           <h1>
-            Browse Public Documents on <SiteName />
+            Browse Publicly Shared Documents on <SiteName />
             <div style={{ float: "right", width: "200px" }}>
               <GoogleSearch />
             </div>

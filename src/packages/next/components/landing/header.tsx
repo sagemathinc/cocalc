@@ -89,7 +89,7 @@ export default function Header({ page, subPage }: Props) {
               href="/features/"
               style={page == "features" ? SelectedStyle : LinkStyle}
             >
-              Why?
+              Features
             </A>
             <A
               href="/software"
@@ -135,7 +135,7 @@ export default function Header({ page, subPage }: Props) {
               style={page == "share" ? SelectedStyle : LinkStyle}
               title="View files that people have published."
             >
-              Explore
+              Share
             </a>
           </Link>
         )}
