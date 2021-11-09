@@ -323,7 +323,7 @@ function ChooseProject({
             {copying == "after" && (
               <>
                 <Icon
-                  name="check"
+                  name={errorCopying ? "times-circle" : "check"}
                   style={{ color: "darkgreen", fontSize: "16pt" }}
                 />{" "}
                 Finished copying {join(path, relativePath)} to{" "}
@@ -347,7 +347,7 @@ function ChooseProject({
                 >
                   {project.title}
                 </A>
-                .
+                . {errorCopying ? " The copy may have failed." : ""}
               </>
             )}
           </div>
