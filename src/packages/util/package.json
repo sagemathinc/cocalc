@@ -52,7 +52,7 @@
   "devDependencies": {
     "@types/jest": "^26.0.23",
     "@types/json-stable-stringify": "^1.0.32",
-    "@types/lodash": "^4.14.175",
+    "@types/lodash": "^4.14.176",
     "@types/node": "^14.17.32",
     "coffee-cache": "^1.0.2",
     "coffee-coverage": "^3.0.1",
