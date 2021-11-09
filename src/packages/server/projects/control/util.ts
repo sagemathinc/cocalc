@@ -373,9 +373,9 @@ export async function copyPath(
   if (opts.wait_until_done ?? true) {
     try {
       const stdout = await spawnAsync("rsync", args, {
-        timeout:
-          1000 *
-          opts.timeout /* spawnAsync has ms units, but rsync has second units */,
+        timeout: opts.timeout
+          ? 1000 * opts.timeout
+          : undefined /* spawnAsync has ms units, but rsync has second units */,
       });
       winston.info(`finished rsync ${stdout}`);
     } catch (err) {
