@@ -353,6 +353,20 @@ function ChooseProject({
                 ) : (
                   ""
                 )}
+                <Button
+                  href={editURL({
+                    type: "collaborator",
+                    project_id: project.project_id,
+                    path: targetPath,
+                  })}
+                  target="_blank"
+                  size="large"
+                  type="primary"
+                  style={{ maxWidth: "100%", overflow: "hidden", margin:'15px 0' }}
+                  shape="round"
+                >
+                  <Icon name="paper-plane" /> Open {join(path, relativePath)}
+                </Button>
               </>
             )}
           </div>
