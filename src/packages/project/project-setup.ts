@@ -10,6 +10,7 @@ This configures the project hub based on an environment variable or other data.
 import debug from "debug";
 const L = debug("project:project-setup");
 import { setPriority } from "os";
+import { existsSync } from "fs";
 // const { callback2: cb2 } = require("@cocalc/util/async-utils");
 // const { execute_code } = require("@cocalc/backend/misc_node");
 
@@ -57,6 +58,8 @@ export function configure() {
 
 // Contains additional environment variables. Base 64 encoded JSON of {[key:string]:string}.
 export function set_extra_env(): void {
+  sage_aarch64_hack();
+
   if (!process.env.COCALC_EXTRA_ENV) {
     L("set_extra_env: nothing provided");
     return;
@@ -113,5 +116,17 @@ export function cleanup(): void {
   // is started. This is mainly an issue with cocalc-docker.
   for (const key in process.env) {
     if (key.startsWith("npm_")) delete process.env[key];
+  }
+}
+
+// See https://github.com/opencv/opencv/issues/14884
+// Importing Sage in various situations, e.g., as is done for sage server,
+// is fundamentally broken on aarch64 linux due to this issue. Yes, I explained
+// this on sage-devel, but nobody understood.
+// It's also important to NOT do this hack if you're not on aarch64!
+function sage_aarch64_hack(): void {
+  const LD_PRELOAD = "/usr/lib/aarch64-linux-gnu/libgomp.so.1";
+  if (process.arch == "arm64" && existsSync(LD_PRELOAD)) {
+    process.env.LD_PRELOAD = LD_PRELOAD;
   }
 }
