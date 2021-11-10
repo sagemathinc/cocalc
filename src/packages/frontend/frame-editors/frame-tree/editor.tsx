@@ -18,9 +18,8 @@ import {
   LoadingEstimate,
 } from "@cocalc/frontend/components";
 import { FormatBar } from "./format-bar";
-import { StatusBar } from "./status-bar";
-//TODO: import { FrameTree } from "./frame-tree";
-const { FrameTree } = require("./frame-tree");
+import StatusBar from "./status-bar";
+import { FrameTree } from "./frame-tree";
 import { EditorSpec, ErrorStyles } from "./types";
 import { is_different, filename_extension } from "@cocalc/util/misc";
 import { SetMap } from "./types";
