@@ -58,7 +58,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         super()
         opts = defaults opts,
             host            : data.pghost       # or 'hostname:port' or 'host1,host2,...' (multiple hosts) -- TODO -- :port only works for one host.
-            database        : process.env['SMC_DB'] ? 'smc'
+            database        : data.pgdatabase
             user            : data.pguser
             debug           : exports.DEBUG
             connect         : true
