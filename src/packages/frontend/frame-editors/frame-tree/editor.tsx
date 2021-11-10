@@ -24,6 +24,7 @@ import { EditorSpec, ErrorStyles } from "./types";
 import { is_different, filename_extension } from "@cocalc/util/misc";
 import { SetMap } from "./types";
 import { AvailableFeatures } from "../../project_configuration";
+import { Map, Set } from "immutable";
 
 interface FrameTreeEditorReactProps {
   name: string;
@@ -55,7 +56,6 @@ interface FrameTreeEditorReduxProps {
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
   misspelled_words: Set<string>;
   is_saving: boolean;
-  gutter_markers: Map<string, any>;
   settings: Map<string, any>;
   complete: Map<string, any>;
   derived_file_types: Set<string>;
@@ -210,7 +210,6 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           has_unsaved_changes={this.props.has_unsaved_changes}
           has_uncommitted_changes={this.props.has_uncommitted_changes}
           is_saving={this.props.is_saving}
-          gutter_markers={this.props.gutter_markers}
           editor_settings={this.props.editor_settings}
           terminal={this.props.terminal}
           settings={this.props.settings}

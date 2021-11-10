@@ -93,8 +93,8 @@ interface FrameTreeProps {
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
   is_saving: boolean;
-  editor_settings: Map<string, any>;
-  terminal: Map<string, any>; // terminal settings from account
+  editor_settings?: Map<string, any>;
+  terminal?: Map<string, any>; // terminal settings from account
   status: string;
   settings: Map<string, any>;
   complete: Map<string, any>;

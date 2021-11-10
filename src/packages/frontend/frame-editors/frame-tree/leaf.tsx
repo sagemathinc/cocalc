@@ -20,8 +20,8 @@ interface Props {
   font_size: number;
   editor_state: EditorState;
   active_id: string;
-  editor_settings: Map<string, any>;
-  terminal: Map<string, any>;
+  editor_settings?: Map<string, any>;
+  terminal?: Map<string, any>;
   settings: Map<string, any>;
   status: string;
   derived_file_types: Set<string>;
