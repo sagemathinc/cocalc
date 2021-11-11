@@ -43,7 +43,7 @@ export function checkAccountName(name: string) {
   }
   // Check for reserved names.
   if (isReserved(name)) {
-    throw Error(`name is reserved -- not available`);
+    throw Error(`name "${name}" is reserved -- not available`);
   }
 }
 
@@ -102,7 +102,7 @@ export function checkPublicPathName(name: string) {
   //    https://cocalc.com/sagemathinc/myproject/files -- browse all files directly
   //    snapshots, timetravel, new, search, etc...
   if (isReserved(name)) {
-    throw Error(`name is reserved -- not available`);
+    throw Error(`name "${name}" is reserved -- not available`);
   }
 }
 

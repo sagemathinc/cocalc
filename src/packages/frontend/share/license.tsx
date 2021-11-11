@@ -12,7 +12,7 @@ between them.  I think this is acceptable, since it is unlikely
 for people to do that.
 */
 
-import { React } from "@cocalc/frontend/app-framework";
+import { FC, memo, useState } from "react";
 import { MenuItem, DropdownMenu } from "@cocalc/frontend/components";
 
 import { LICENSES } from "./licenses";
@@ -23,10 +23,10 @@ interface Props {
   disabled?: boolean;
 }
 
-export const License: React.FC<Props> = React.memo((props: Props) => {
+export const License: FC<Props> = memo((props: Props) => {
   const { license, set_license, disabled = false } = props;
 
-  const [sel_license, set_sel_license] = React.useState(license);
+  const [sel_license, set_sel_license] = useState(license);
 
   function select(license: string): void {
     set_sel_license(license);
