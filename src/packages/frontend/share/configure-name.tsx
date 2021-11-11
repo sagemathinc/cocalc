@@ -40,7 +40,7 @@ export default function ConfigureName({ project_id, path }: Props) {
       <h4>Name{name ? `: ${name}` : ""}</h4>
       <span>
         {name
-          ? "This name will be used to provid a nicer URL."
+          ? "This name will be used to provide a nicer URL."
           : "Name this public path so that it has a much nicer memorable URL."}
       </span>
       {!name && !choosingName ? (

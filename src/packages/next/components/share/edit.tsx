@@ -24,6 +24,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
 import editURL from "lib/share/edit-url";
+import shareURL from "lib/share/share-url";
 import SignInAuth from "components/auth/sign-in";
 import SignUpAuth from "components/auth/sign-up";
 import Anonymous from "components/auth/try";
@@ -36,6 +37,7 @@ import Loading from "./loading";
 import useIsMounted from "lib/hooks/mounted";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { trunc } from "@cocalc/util/misc";
+import ConfigurePublicPath from "./configure-public-path";
 
 interface Props {
   id: string;
@@ -139,6 +141,7 @@ function SignedInOptions({
   const { isCollaborator } = useCustomize();
   return isCollaborator ? (
     <OpenDirectly
+      id={id}
       project_id={project_id}
       path={path}
       relativePath={relativePath}
@@ -158,12 +161,20 @@ function SignedInOptions({
 function OpenDirectly({
   project_id,
   path,
+  id,
   relativePath,
 }: {
+  id: string;
   project_id: string;
   path: string;
   relativePath: string;
 }) {
+  const url = editURL({
+    type: "collaborator",
+    project_id,
+    path,
+    relativePath,
+  });
   return (
     <div>
       You are signed in as a collaborator on{" "}
@@ -171,18 +182,30 @@ function OpenDirectly({
         the project
       </A>{" "}
       that contains{" "}
-      <A
-        href={editURL({
-          type: "collaborator",
-          project_id,
-          path,
-          relativePath,
-        })}
-        external
-      >
-        this shared document
+      <A href={url} external>
+        this shared document,
+      </A>{" "}
+      so you can easily{" "}
+      <A href={url} external>
+        open it directly.
       </A>
-      .
+      <br />
+      {!relativePath ? (
+        <>
+          <br />
+          You can adjust how this is shared below, or turn off sharing.
+          <ConfigurePublicPath id={id} project_id={project_id} path={path} />
+        </>
+      ) : (
+        <>
+          <br />
+          Go to the{" "}
+          <A href={shareURL(id)}>
+            containing directory that was shared
+          </A>{" "}
+          to configure how this is shared or unshare it.
+        </>
+      )}
     </div>
   );
 }
@@ -362,7 +385,11 @@ function ChooseProject({
                   target="_blank"
                   size="large"
                   type="primary"
-                  style={{ maxWidth: "100%", overflow: "hidden", margin:'15px 0' }}
+                  style={{
+                    maxWidth: "100%",
+                    overflow: "hidden",
+                    margin: "15px 0",
+                  }}
                   shape="round"
                 >
                   <Icon name="paper-plane" /> Open {join(path, relativePath)}

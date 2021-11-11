@@ -4,7 +4,7 @@
  */
 
 export const LICENSES = {
-  "": "I will make a choice later",
+  "": "Choose later",
   apache: "Apache License 2.0",
   gpl3: "GNU General Public License v3.0",
   mit: "MIT License",
