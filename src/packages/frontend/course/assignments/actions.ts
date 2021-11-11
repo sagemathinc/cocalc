@@ -1445,6 +1445,30 @@ ${details}
     }
   }
 
+  public set_nbgrader_scores_for_all_students({
+    assignment_id,
+    force,
+    commit,
+  }: {
+    assignment_id: string;
+    force?: boolean;
+    commit?: boolean;
+  }): void {
+    for (const student_id of this.get_store().get_student_ids({
+      deleted: false,
+    })) {
+      this.set_grade_using_nbgrader_if_possible(
+        assignment_id,
+        student_id,
+        false,
+        force
+      );
+    }
+    if (commit) {
+      this.course_actions.syncdb.commit();
+    }
+  }
+
   public set_nbgrader_scores_for_one_student(
     assignment_id: string,
     student_id: string,
@@ -1535,7 +1559,8 @@ ${details}
   public set_grade_using_nbgrader_if_possible(
     assignment_id: string,
     student_id: string,
-    commit: boolean = true
+    commit: boolean = true,
+    force: boolean = false
   ): void {
     // Check if nbgrader scores are all available.
     const store = this.get_store();
@@ -1545,7 +1570,7 @@ ${details}
       return;
     }
     const { score, points, error, manual_needed } = get_nbgrader_score(scores);
-    if (error || manual_needed) {
+    if (!force && (error || manual_needed)) {
       // more work must be done before we can use this.
       return;
     }
@@ -1553,7 +1578,7 @@ ${details}
     // Fill in the overall grade if either it is currently unset, blank,
     // or of the form [number]/[number].
     const grade = store.get_grade(assignment_id, student_id).trim();
-    if (grade == "" || grade.match(/\d+\/\d+/g)) {
+    if (force || grade == "" || grade.match(/\d+\/\d+/g)) {
       this.set_grade(assignment_id, student_id, `${score}/${points}`, commit);
     }
   }

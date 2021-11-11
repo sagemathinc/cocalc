@@ -127,7 +127,10 @@ export const NbgraderButton: React.FC<Props> = React.memo(
                   >
                     <Button
                       danger
-                      style={{ marginTop: "5px" }}
+                      style={{
+                        width: "100%",
+                        overflow: "hidden",
+                      }}
                       disabled={running}
                     >
                       Autograde all {total} {plural(total, "assignment")}...
@@ -136,6 +139,13 @@ export const NbgraderButton: React.FC<Props> = React.memo(
                 </span>
               )}
               {render_parallel()}
+              {actions && (
+                <SyncGrades
+                  actions={actions}
+                  assignment_id={assignment_id}
+                  running={running}
+                />
+              )}
             </div>
           }
         />
@@ -165,3 +175,36 @@ export const NbgraderButton: React.FC<Props> = React.memo(
     );
   }
 );
+
+interface SyncGradesProps {
+  actions: CourseActions;
+  assignment_id: string;
+  running: boolean;
+}
+
+function SyncGrades({ actions, assignment_id, running }: SyncGradesProps) {
+  return (
+    <Popconfirm
+      title={`Copy the nbgrader grades to be the assigned grades for all students, even if there are ungraded manual problems, errors or other issues?  You probably don't need to do this.`}
+      onConfirm={() => {
+        actions.assignments.set_nbgrader_scores_for_all_students({
+          assignment_id,
+          force: true,
+          commit: true,
+        });
+      }}
+      overlayStyle={{ maxWidth: "500px" }}
+    >
+      <Button
+        style={{
+          marginTop: "10px",
+          width: "100%",
+          overflow: "hidden",
+        }}
+        disabled={running}
+      >
+        Sync grades...
+      </Button>
+    </Popconfirm>
+  );
+}
