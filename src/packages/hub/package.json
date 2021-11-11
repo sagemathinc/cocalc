@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/hub",
-  "version": "1.19.0",
+  "version": "1.19.1",
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",
@@ -20,14 +20,14 @@
   ],
   "dependencies": {
     "@cocalc/assets": "^1.5.0",
-    "@cocalc/backend": "^1.7.0",
+    "@cocalc/backend": "^1.7.1",
     "@cocalc/cdn": "^1.8.1",
-    "@cocalc/database": "^0.6.0",
+    "@cocalc/database": "^0.6.1",
     "@cocalc/frontend": "^1.14.0",
     "@cocalc/next": "^0.16.0",
     "@cocalc/server": "^0.1.0",
-    "@cocalc/static": "^1.44.0",
-    "@cocalc/util": "^1.14.0",
+    "@cocalc/static": "^1.44.1",
+    "@cocalc/util": "^1.14.1",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.1",
     "@sendgrid/client": "^7.4.6",
