@@ -4,6 +4,7 @@ import useDatabase from "lib/hooks/database";
 import Loading from "./loading";
 import { LICENSES } from "@cocalc/frontend/share/licenses";
 import Save from "components/misc/save-button";
+import EditRow from "components/misc/edit-row";
 
 const { Option } = Select;
 
@@ -63,7 +64,7 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
       />
       <b>How you are sharing {path}</b>
       <Space direction="vertical" style={{ width: "100%" }}>
-        <Row label="Description">
+        <EditRow label="Description">
           <Input.TextArea
             style={{ width: "100%" }}
             value={edited.description}
@@ -72,15 +73,15 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
             }
             autoSize
           />
-        </Row>
-        <Row label="Name (may provide a nicer URL)">
+        </EditRow>
+        <EditRow label="Name (may provide a nicer URL)">
           <Input
             style={{ width: "100%" }}
             value={edited.name}
             onChange={(e) => setEdited({ ...edited, name: e.target.value })}
           />
-        </Row>
-        <Row label="Visibility">
+        </EditRow>
+        <EditRow label="Visibility">
           <Checkbox
             style={{ width: "50%" }}
             checked={edited.unlisted}
@@ -102,13 +103,13 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
             Check this to completely disable this share and make it so you must
             open the project.
           </Checkbox>
-        </Row>
-        <Row label="License">
+        </EditRow>
+        <EditRow label="License">
           <License
             license={edited.license}
             onChange={(license) => setEdited({ ...edited, license })}
           />
-        </Row>
+        </EditRow>
         {/*TODO  Image: {edited.compute_image} */}
       </Space>
     </div>
@@ -138,26 +139,5 @@ function License({ license, onChange }) {
     >
       {options}
     </Select>
-  );
-}
-
-function Row({ label, children }) {
-  return (
-    <div style={{ display: "flex", marginTop: "15px" }}>
-      <div
-        style={{
-          width: "20%",
-          minWidth: "12ex",
-          color: "#555",
-          paddingRight: "15px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-        }}
-      >
-        {label}
-      </div>
-      {children}
-    </div>
   );
 }

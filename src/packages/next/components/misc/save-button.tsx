@@ -1,6 +1,6 @@
 import { CSSProperties, useState } from "react";
 import { isEqual } from "lodash";
-import { Button } from "antd";
+import { Button, Space } from "antd";
 import useIsMounted from "lib/hooks/mounted";
 import Loading from "components/share/loading";
 import api from "lib/api/post";
@@ -41,29 +41,33 @@ export default function Save({ edited, defaultOriginal, table, style }: Props) {
     }
   }
 
+  const same = isEqual(edited, original);
+
   return (
     <>
       <Button
         style={style}
         type="primary"
-        disabled={saving || isEqual(edited, original)}
+        disabled={saving || same}
         onClick={() => save(table, edited)}
       >
-        <Icon name="save" />
-        {saving ? <Loading>Saving...</Loading> : "Save"}
-        {error && (
-          <div
-            style={{
-              display: "inline-block",
-              color: "white",
-              backgroundColor: "darkred",
-              padding: "0px 15px",
-              margin: "0px 5px",
-            }}
-          >
-            {error}
-          </div>
-        )}
+        <Space>
+          <Icon name="save" />
+          {saving ? <Loading>Saving...</Loading> : "Save"}
+          {!same && error && (
+            <div
+              style={{
+                display: "inline-block",
+                color: "white",
+                backgroundColor: "darkred",
+                padding: "0px 15px",
+                margin: "0px 5px",
+              }}
+            >
+              {error}
+            </div>
+          )}
+        </Space>
       </Button>
     </>
   );

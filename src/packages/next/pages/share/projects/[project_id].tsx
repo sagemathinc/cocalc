@@ -32,20 +32,23 @@ export async function getServerSideProps(context) {
   }
   let props;
   try {
-    const { name, title } = await getProject(project_id);
-    if (name) {
+    const project = await getProject(project_id);
+    if (project.name) {
       // This project probably has a nice vanity name. Possibly redirect to that instead.
       const owner_id = await getProjectOwner(project_id);
       const owner = await getOwnerName(owner_id);
       if (owner) {
         const { res } = context;
-        res.writeHead(302, { location: join(basePath, owner, name) });
+        res.writeHead(302, { location: join(basePath, owner, project.name) });
         res.end();
         return { props: {} };
       }
     }
-    props = await getProjectInfo(project_id);
-    props.projectTitle = title;
+    props = {
+      project_id,
+      ...(await getProjectInfo(project_id)),
+      ...project,
+    };
   } catch (_err) {
     // console.warn(_err)
     return { notFound: true };
