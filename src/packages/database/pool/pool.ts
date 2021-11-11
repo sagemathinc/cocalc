@@ -1,4 +1,4 @@
-import { pghost as host, pguser as user } from "@cocalc/backend/data";
+import { pghost as host, pguser as user, pgdatabase as database } from "@cocalc/backend/data";
 import dbPassword from "./password";
 export * from "./util";
 import getCachedPool, { Length } from "./cached";
@@ -11,7 +11,7 @@ export default function getPool(cacheLength?: Length): Pool {
     return getCachedPool(cacheLength);
   }
   if (pool == null) {
-    pool = new Pool({ password: dbPassword(), user, host });
+    pool = new Pool({ password: dbPassword(), user, host, database });
   }
   return pool;
 }
