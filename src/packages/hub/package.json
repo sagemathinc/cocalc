@@ -20,9 +20,9 @@
   ],
   "dependencies": {
     "@cocalc/assets": "^1.5.0",
-    "@cocalc/backend": "^1.7.0",
+    "@cocalc/backend": "^2.0.0",
     "@cocalc/cdn": "^1.8.1",
-    "@cocalc/database": "^0.6.0",
+    "@cocalc/database": "^1.0.0",
     "@cocalc/frontend": "^1.14.0",
     "@cocalc/next": "^0.16.0",
     "@cocalc/server": "^0.1.0",
