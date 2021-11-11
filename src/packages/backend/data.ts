@@ -38,6 +38,8 @@ export const data: string = process.env.DATA ?? join(root, "data");
 export const pguser: string = process.env.PGUSER ?? "smc";
 export const pgdata: string = process.env.PGDATA ?? join(data, "postgres");
 export const pghost: string = process.env.PGHOST ?? join(pgdata, "socket");
+export const pgdatabase: string =
+  process.env.SMC_DB ?? process.env.PGDATABASE ?? "smc";
 export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
