@@ -26,7 +26,7 @@ export function log(..._args): void {
   const [msg, ...args] = Array.from(Array.prototype.slice.call(arguments));
   let prompt = `[${t} Δ ${dt} - ${new Date().toISOString()}]`;
   if (typeof msg == "string") {
-    prompt = `${prompt} ${msg} ${new Date()}`;
+    prompt = `${prompt} ${msg}`;
     (console as any).log_original(prompt, ...Array.from(args));
   } else {
     (console as any).log_original(prompt, msg, ...Array.from(args));
