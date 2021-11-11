@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/database",
-  "version": "1.0.0",
+  "version": "0.6.0",
   "description": "CoCalc: code for working with our PostgreSQL database",
   "exports": {
     ".": "./dist/index.js",
@@ -18,9 +18,9 @@
     "../util"
   ],
   "dependencies": {
-    "@cocalc/backend": "^2.0.0",
+    "@cocalc/backend": "^1.7.0",
     "@cocalc/server": "^0.1.0",
-    "@cocalc/util": "^1.14.1",
+    "@cocalc/util": "^1.14.0",
     "@types/lodash": "^4.14.176",
     "@types/lru-cache": "^5.1.1",
     "@types/pg": "^8.6.1",
