@@ -45,6 +45,7 @@
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"
   },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
   "devDependencies": {
     "coffee-cache": "^1.0.2",
     "coffeescript": "^2.5.1",

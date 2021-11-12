@@ -101,7 +101,7 @@
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/cocalc",
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/project",
   "repository": {
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"

@@ -46,7 +46,7 @@
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/cocalc",
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/static",
   "devDependencies": {
     "@cocalc/assets": "^1.5.0",
     "@cocalc/backend": "^1.7.1",

@@ -56,6 +56,7 @@
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"
   },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/database",
   "keywords": [
     "postgresql",
     "cocalc"

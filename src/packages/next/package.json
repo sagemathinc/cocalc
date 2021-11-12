@@ -46,7 +46,7 @@
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/cocalc#readme",
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/next",
   "private": false,
   "workspaces": [
     "../backend",

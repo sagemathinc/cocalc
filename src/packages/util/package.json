@@ -47,6 +47,7 @@
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"
   },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/util",
   "devDependencies": {
     "@types/jest": "^26.0.23",
     "@types/json-stable-stringify": "^1.0.32",
