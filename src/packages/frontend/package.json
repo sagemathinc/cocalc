@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/frontend",
-  "version": "1.15.0",
+  "version": "1.15.1",
   "description": "CoCalc: Collaborative Calculation",
   "exports": {
     "./*": "./dist/*.js",
@@ -41,12 +41,12 @@
   ],
   "dependencies": {
     "@ant-design/icons": "^4.3.0",
-    "@cocalc/assets": "^1.5.0",
-    "@cocalc/cdn": "^1.8.1",
-    "@cocalc/hub": "^1.21.0",
-    "@cocalc/project": "^1.12.0",
-    "@cocalc/sync": "^0.2.0",
-    "@cocalc/util": "^1.15.0",
+    "@cocalc/assets": "^1.5.1",
+    "@cocalc/cdn": "^1.8.2",
+    "@cocalc/hub": "^1.21.1",
+    "@cocalc/project": "^1.12.1",
+    "@cocalc/sync": "^0.2.3",
+    "@cocalc/util": "^1.15.1",
     "@jupyter-widgets/base": "^1.2.3",
     "@jupyter-widgets/controls": "^1.4.3",
     "@jupyter-widgets/output": "^1.1.2",
@@ -187,7 +187,7 @@
     "build": "NODE_OPTIONS=--max-old-space-size=8192 tsc && coffee  -m -c -o dist/ .",
     "tsc": "npx tsc -w  --pretty "
   },
-  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/frontend",
+  "homepage": "https://github.com/sagemathinc/cocalc",
   "repository": {
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"
@@ -203,6 +203,5 @@
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
-  },
-  "homepage": "https://github.com/sagemathinc/cocalc"
+  }
 }
