@@ -20,7 +20,7 @@ import { debounce } from "lodash";
 import { List } from "immutable";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension, keys, path_split, meta_file } from "@cocalc/util/misc";
-import { SyncDoc } from "@cocalc/util/sync/editor/generic/sync-doc";
+import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { webapp_client } from "../../webapp-client";
 import {
   Actions as CodeEditorActions,

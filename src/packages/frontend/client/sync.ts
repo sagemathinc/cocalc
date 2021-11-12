@@ -10,23 +10,23 @@ Functionality related to Sync.
 import { callback2 } from "@cocalc/util/async-utils";
 import { once } from "@cocalc/util/async-utils";
 import { defaults, is_valid_uuid_string, merge, required } from "@cocalc/util/misc";
-import { SyncDoc, SyncOpts0 } from "@cocalc/util/sync/editor/generic/sync-doc";
+import { SyncDoc, SyncOpts0 } from "@cocalc/sync/editor/generic/sync-doc";
 
 interface SyncOpts extends Omit<SyncOpts0, "client"> {}
 
-import { SyncDB, SyncDBOpts0 } from "@cocalc/util/sync/editor/db";
+import { SyncDB, SyncDBOpts0 } from "@cocalc/sync/editor/db";
 interface SyncDBOpts extends Omit<SyncDBOpts0, "client" | "string_cols"> {
   string_cols?: string[];
 }
 
-import { SyncString } from "@cocalc/util/sync/editor/string/sync";
+import { SyncString } from "@cocalc/sync/editor/string/sync";
 import {
   synctable,
   SyncTable,
   Query,
   QueryOptions,
   synctable_no_changefeed,
-} from "@cocalc/util/sync/table";
+} from "@cocalc/sync/table";
 
 import { synctable_project } from "../project/websocket/synctable";
 import { Channel } from "../project/websocket/types";

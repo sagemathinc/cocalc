@@ -9,7 +9,7 @@ All SyncTables that are currently open and being managed in this project.
 */
 
 import { callback } from "awaiting";
-import { SyncTable } from "@cocalc/util/sync/table";
+import { SyncTable } from "@cocalc/sync/table";
 import { is_array } from "@cocalc/util/misc";
 
 const open_synctables: { [key: string]: SyncTable } = {};

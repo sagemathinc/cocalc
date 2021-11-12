@@ -14,7 +14,7 @@ Use this via
 
 import { EventEmitter } from "events";
 import { fromJS, Map } from "immutable";
-import { SyncTable } from "@cocalc/util/sync/table";
+import { SyncTable } from "@cocalc/sync/table";
 import { delay } from "awaiting";
 import { close } from "@cocalc/util/misc";
 import { WebappClient } from "../../webapp-client";

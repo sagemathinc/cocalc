@@ -15,7 +15,7 @@ import { redux } from "../../app-framework";
 import { callback2 } from "@cocalc/util/async-utils";
 import { FakeSyncstring } from "./syncstring-fake";
 import { Map } from "immutable";
-import { CompressedPatch } from "@cocalc/util/sync/editor/generic/types";
+import { CompressedPatch } from "@cocalc/sync/editor/generic/types";
 import { ExecOpts, ExecOutput } from "../../client/project";
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
 export { ExecOpts, ExecOutput };
@@ -164,9 +164,9 @@ export function syncstring(opts: SyncstringOpts): any {
   return webapp_client.sync_string(opts1);
 }
 
-import { DataServer } from "@cocalc/util/sync/editor/generic/sync-doc";
+import { DataServer } from "@cocalc/sync/editor/generic/sync-doc";
 
-import { SyncString } from "@cocalc/util/sync/editor/string/sync";
+import { SyncString } from "@cocalc/sync/editor/string/sync";
 
 interface SyncstringOpts2 {
   project_id: string;
@@ -203,7 +203,7 @@ export function syncdb(opts: SyncDBOpts): any {
   return webapp_client.sync_db(opts1);
 }
 
-import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
+import { SyncDB } from "@cocalc/sync/editor/db/sync";
 
 export function syncdb2(opts: SyncDBOpts): SyncDB {
   if (opts.primary_keys.length <= 0) {

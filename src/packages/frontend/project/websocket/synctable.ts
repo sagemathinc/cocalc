@@ -9,7 +9,7 @@ Synctable that uses the project websocket rather than the database.
 
 import { delay } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
-import { synctable_no_database, SyncTable } from "@cocalc/util/sync/table";
+import { synctable_no_database, SyncTable } from "@cocalc/sync/table";
 import { once, retry_until_success } from "@cocalc/util/async-utils";
 import { WebappClient } from "../../webapp-client";
 import { assertDefined } from "@cocalc/util/misc";

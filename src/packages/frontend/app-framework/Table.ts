@@ -66,7 +66,7 @@ export abstract class Table {
 
   async set(
     changes: object,
-    merge?: "deep" | "shallow" | "none", // The actual default is "deep" (see @cocalc/util/sync/table/synctable.ts)
+    merge?: "deep" | "shallow" | "none", // The actual default is "deep" (see @cocalc/sync/table/synctable.ts)
     cb?: (error?: string) => void
   ): Promise<void> {
     if (cb == null) {

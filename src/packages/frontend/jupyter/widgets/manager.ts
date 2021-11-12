@@ -8,7 +8,7 @@ import * as phosphor_controls from "@jupyter-widgets/controls";
 import {
   IpywidgetsState,
   ModelState,
-} from "@cocalc/util/sync/editor/generic/ipywidgets-state";
+} from "@cocalc/sync/editor/generic/ipywidgets-state";
 import { once } from "@cocalc/util/async-utils";
 import { Comm } from "./comm";
 import { copy, is_array, len, uuid } from "@cocalc/util/misc";

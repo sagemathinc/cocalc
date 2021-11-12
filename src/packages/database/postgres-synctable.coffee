@@ -397,7 +397,7 @@ class SyncTable extends EventEmitter
         if not key? or not @_value?
             return @_value
         if is_array(key)
-            # for consistency with @cocalc/util/sync/synctable
+            # for consistency with @cocalc/sync/synctable
             r = immutable.Map()
             for k in key
                 v = @_value.get(k)
