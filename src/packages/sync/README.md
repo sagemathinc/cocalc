@@ -1,6 +1,6 @@
-# Generic Realtime Sync Support Code
+# cocalc-sync:  Realtime Sync Support Code
 
-This is an implementation of realtime synchronization. It has been used heavily in production on https://CoCalc.com for over 5 years.
+This is an implementation of realtime synchronization. It has been used heavily in production on https://CoCalc.com for over 5 years.  This is a Javascript library that helps provide collaborative multiuser editing for text files, Jupyter notebooks, and much more.
 
 All code is in Typescript.
 
@@ -21,12 +21,14 @@ All code is in Typescript.
     - string
     - database table with queries inspired by Cassandra
 
-## How can I use this in my product
+## How can I use this in my product?
 
-As of November 2021, you shouldn't and probably can't for the following reasons:
+As of November 2021, you shouldn't and probably can't for the following _**minor**_ reasons:
 
 - In addition to the core sync library, **you also need a way to transmit data** between all the parties involved in sync.  This is equally important and difficult, and how to best do this often depends on your application.   There's no documentation at all for @cocalc/sync, except what's in the comments, and no examples (except cocalc itself), so this would be difficult.
 - **The license is currently AGPL3 + common clause non-commercial only**, which is obviously very unfriendly in terms of product integration.  I'm seriously considering relicensing @cocalc/sync and @cocalc/util as MIT -- if you want to encourage me to do so, email [wstein@gmail.com](mailto:wstein@gmail.com).
+
+Note that bugs or bad code are not in the above list.  I don't know of any bugs at all in this sync implementation, and thousands of people use it every day in production on https://cocalc.com.   Also, it's nice Typescript code with a test suite. 
 
 ## How does this work?
 
