@@ -8,7 +8,7 @@ Minimal client class that we use for testing.
 */
 
 import { EventEmitter } from "events";
-import { bind_methods, keys } from "../../../misc";
+import { bind_methods, keys } from "@cocalc/util/misc";
 
 export class ClientTest extends EventEmitter {
   private initial_get_query: any[];

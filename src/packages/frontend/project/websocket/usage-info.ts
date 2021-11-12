@@ -5,7 +5,7 @@
 
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
-import { SyncTable } from "@cocalc/util/sync/table";
+import { SyncTable } from "@cocalc/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { once } from "@cocalc/util/async-utils";
 import { merge } from "@cocalc/util/misc";

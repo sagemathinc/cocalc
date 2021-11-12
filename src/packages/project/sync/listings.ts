@@ -5,7 +5,7 @@
 
 import { delay } from "awaiting";
 import { once } from "@cocalc/util/async-utils";
-import { SyncTable, SyncTableState } from "@cocalc/util/sync/table";
+import { SyncTable, SyncTableState } from "@cocalc/sync/table";
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import {
   close,
@@ -170,7 +170,7 @@ class ListingsTable {
     if (x == null) return x;
     return (x as unknown) as ImmutableListing;
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
-    // of the get method in @cocalc/util/sync/table/synctable.ts
+    // of the get method in @cocalc/sync/table/synctable.ts
     // that could probably be relatively easily fixed.
   }
 

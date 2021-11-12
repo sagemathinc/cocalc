@@ -5,9 +5,9 @@
 
 import { EventEmitter } from "events";
 import { Map as iMap } from "immutable";
-import { close, delete_null_fields, len } from "../../../misc";
+import { close, delete_null_fields, len } from "@cocalc/util/misc";
 import { SyncDoc } from "./sync-doc";
-import { SyncTable } from "../../table/synctable";
+import { SyncTable } from "@cocalc/sync/table/synctable";
 import { Client } from "./types";
 
 type State = "init" | "ready" | "closed";

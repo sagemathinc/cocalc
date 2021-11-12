@@ -43,7 +43,7 @@ import {
   SyncTable,
   VersionedChange,
   set_debug,
-} from "@cocalc/util/sync/table";
+} from "@cocalc/sync/table";
 
 // Only uncomment this for an intense level of debugging.
 // set_debug(true);
@@ -85,7 +85,7 @@ interface Channel {
   destroy: Function;
 }
 
-import { Client } from "@cocalc/util/sync/editor/generic/types";
+import { Client } from "@cocalc/sync/editor/generic/types";
 
 interface Primus {
   channel: (str: string) => Channel;

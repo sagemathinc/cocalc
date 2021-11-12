@@ -96,6 +96,7 @@ def all_packages() -> List[str]:
     v = [
         'packages/cdn',  # packages/hub assumes this is built
         'packages/util',
+        'packages/sync',
         'packages/backend',
         'packages/hub',
         'packages/frontend',

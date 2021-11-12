@@ -5,7 +5,7 @@
 
 import { reuseInFlight } from "async-await-utils/hof";
 import { close } from "@cocalc/util/misc";
-import { SyncTable } from "@cocalc/util/sync/table";
+import { SyncTable } from "@cocalc/sync/table";
 import {
   get_ProjectStatusServer,
   ProjectStatusServer,

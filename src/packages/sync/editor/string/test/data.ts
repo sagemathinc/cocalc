@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { client_db } from "../../../../schema";
+import { client_db } from "@cocalc/util/schema";
 
 export function a_txt() {
   const project_id = "ae1d6165-1310-4949-b266-e0448fdd065f";

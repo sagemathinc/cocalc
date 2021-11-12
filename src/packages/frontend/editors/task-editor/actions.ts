@@ -38,7 +38,7 @@ import {
   TaskState,
 } from "./types";
 import { TaskStore } from "./store";
-import { SyncDB } from "@cocalc/util/sync/editor/db";
+import { SyncDB } from "@cocalc/sync/editor/db";
 import { webapp_client } from "../../webapp-client";
 
 export class TaskActions extends Actions<TaskState> {

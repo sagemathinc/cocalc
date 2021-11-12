@@ -12,7 +12,7 @@ work, the look and feel is too different, and you can't copy
 out a range.
 */
 
-import { SyncDoc } from "@cocalc/util/sync/editor/generic/sync-doc";
+import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import Worksheet from "../../sagews/worksheet";
 import { parse_sagews } from "../../sagews/parse-sagews";
 import { Rendered, Component } from "../../app-framework";

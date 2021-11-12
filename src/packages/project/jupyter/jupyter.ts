@@ -45,7 +45,7 @@ const {
   is_array,
 } = require("@cocalc/util/misc");
 
-import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
+import { SyncDB } from "@cocalc/sync/editor/db/sync";
 
 const { key_value_store } = require("@cocalc/util/key-value-store");
 

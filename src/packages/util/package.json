@@ -14,22 +14,13 @@
   "scripts": {
     "build": "npx tsc",
     "tsc": "npx tsc --watch",
-    "testsync": "cd sync && npx jest",
     "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee; cd test && npx jest",
     "testquota": "cd test && npx jest quota.test.ts"
   },
   "author": "SageMath, Inc.",
-  "keywords": [
-    "utilities",
-    "mathjax",
-    "markdown",
-    "cocalc",
-    "realtime synchronization"
-  ],
+  "keywords": ["utilities", "mathjax", "markdown", "cocalc"],
   "license": "SEE LICENSE.md",
-  "workspaces": [
-    "."
-  ],
+  "workspaces": ["."],
   "dependencies": {
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",

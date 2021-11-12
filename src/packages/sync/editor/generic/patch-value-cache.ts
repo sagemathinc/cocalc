@@ -11,7 +11,7 @@ few keystrokes, which would make CoCalc unusable.  Also, the
 history browser is very painful to use without caching.
 */
 
-import { cmp_Date, keys, cmp, len } from "../../../misc";
+import { cmp_Date, keys, cmp, len } from "@cocalc/util/misc";
 import { Document } from "./types";
 
 export interface Entry {

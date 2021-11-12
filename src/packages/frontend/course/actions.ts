@@ -9,7 +9,7 @@
 export const EMAIL_REINVITE_DAYS = 6;
 
 // CoCalc libraries
-import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
+import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { SyncDBRecord } from "./types";
 // Course Library
 import {

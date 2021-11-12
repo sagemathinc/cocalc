@@ -9,7 +9,7 @@
 import debug from "debug";
 const L = debug("project:sync:usage-info");
 import { once } from "@cocalc/util/async-utils";
-import { SyncTable, SyncTableState } from "@cocalc/util/sync/table";
+import { SyncTable, SyncTableState } from "@cocalc/sync/table";
 import { close, merge } from "@cocalc/util/misc";
 import { UsageInfoServer } from "../usage-info";
 import { UsageInfo, ImmutableUsageInfo } from "../usage-info/types";
@@ -94,7 +94,7 @@ class UsageInfoTable {
     if (x == null) return x;
     return (x as unknown) as ImmutableUsageInfo;
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
-    // of the get method in @cocalc/util/sync/table/synctable.ts
+    // of the get method in @cocalc/sync/table/synctable.ts
     // that could probably be relatively easily fixed.
   }
 

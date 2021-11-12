@@ -4,7 +4,7 @@
  */
 
 import { SyncTable } from "../synctable";
-import { once } from "../../../async-utils";
+import { once } from "@cocalc/util/async-utils";
 import { ClientTest } from "./client-test";
 
 describe("tests public API of a system_notifications SyncTable", () => {

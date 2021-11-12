@@ -49,8 +49,8 @@ import {
   once,
   retry_until_success,
   reuse_in_flight_methods,
-} from "../../../async-utils";
-import { wait } from "../../../async-wait";
+} from "@cocalc/util/async-utils";
+import { wait } from "@cocalc/util/async-wait";
 import {
   assertDefined,
   close,
@@ -64,11 +64,11 @@ import {
   ISO_to_Date,
   minutes_ago,
   server_minutes_ago,
-} from "../../../misc";
+} from "@cocalc/util/misc";
 import { Evaluator } from "./evaluator";
 import { IpywidgetsState } from "./ipywidgets-state";
-import * as schema from "../../../schema";
-import { SyncTable } from "../../table/synctable";
+import * as schema from "@cocalc/util/schema";
+import { SyncTable } from "@cocalc/sync/table/synctable";
 import {
   Client,
   CompressedPatch,
@@ -2050,7 +2050,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     const data = this.syncstring_table_get_one();
-    const x : any = data != null ? data.toJS() : undefined;
+    const x: any = data != null ? data.toJS() : undefined;
 
     if (x != null && x.save != null) {
       this.handle_syncstring_save_state(x.save.state, x.save.time);

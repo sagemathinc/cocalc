@@ -21,7 +21,7 @@ Returned object is not cached in any way.
 
 import { EventEmitter } from "events";
 import { SyncTable, Client } from "./synctable";
-import { bind_methods } from "../../misc";
+import { bind_methods } from "@cocalc/util/misc";
 
 export function synctable_no_changefeed(
   query,

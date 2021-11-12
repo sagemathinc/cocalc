@@ -24,7 +24,7 @@ import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 const { close, required, defaults } = misc;
 import * as awaiting from "awaiting";
-import { three_way_merge } from "@cocalc/util/sync/editor/generic/util";
+import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { Cell, KernelInfo } from "./types";
 import { Syntax } from "@cocalc/util/code-formatter";
 
@@ -56,7 +56,7 @@ import {
 
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
 
-import { SyncDB } from "@cocalc/util/sync/editor/db/sync";
+import { SyncDB } from "@cocalc/sync/editor/db/sync";
 
 /*
 The actions -- what you can do with a jupyter notebook, and also the

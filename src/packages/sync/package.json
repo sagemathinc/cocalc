@@ -1,0 +1,44 @@
+{
+  "name": "@cocalc/sync",
+  "version": "0.1.0",
+  "description": "CoCalc realtime synchronization framework",
+  "exports": {
+    "./*": "./dist/*.js",
+    "./table": "./dist/table/index.js",
+    "./editor/db": "./dist/editor/db/index.js"
+  },
+  "scripts": {
+    "build": "npx tsc",
+    "tsc": "npx tsc --watch",
+    "test": "npx jest"
+  },
+  "author": "SageMath, Inc.",
+  "keywords": [
+    "cocalc",
+    "realtime synchronization"
+  ],
+  "license": "SEE LICENSE.md",
+  "workspaces": [
+    ".",
+    "../util"
+  ],
+  "dependencies": {
+    "@cocalc/util": "^1.14.1",
+    "async": "^1.5.2",
+    "async-await-utils": "^3.0.1",
+    "awaiting": "^3.0.0",
+    "immutable": "^3.8.2",
+    "json-stable-stringify": "^1.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.23",
+    "@types/node": "^14.17.32",
+    "jest": "^27.3.1",
+    "ts-jest": "^26.5.6",
+    "typescript": "^4.4.4"
+  }
+}
