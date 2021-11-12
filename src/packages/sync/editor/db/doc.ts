@@ -5,8 +5,8 @@
 
 import { CompressedPatch, Document } from "../generic/types";
 import * as immutable from "immutable";
-import { isEqual } from "underscore";
-import { is_array, is_object, copy_without, len } from "../../../misc";
+import { isEqual } from "lodash";
+import { is_array, is_object, copy_without, len } from "@cocalc/util/misc";
 import {
   make_patch as string_make_patch,
   apply_patch as string_apply_patch,

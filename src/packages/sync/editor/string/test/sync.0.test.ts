@@ -5,7 +5,7 @@
 
 import { Client } from "./client-test";
 import { SyncString } from "../sync";
-import { once } from "../../../../async-utils";
+import { once } from "@cocalc/util/async-utils";
 import { a_txt } from "./data";
 
 // This mostly tests the trivial minimal edge cases.

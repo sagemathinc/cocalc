@@ -6,7 +6,7 @@
 // Well-defined JSON.stringify...
 const json_stable = require("json-stable-stringify");
 import * as immutable from "immutable";
-import { isEqual } from "underscore";
+import { isEqual } from "lodash";
 
 export function to_key(s: any): string {
   if (immutable.Map.isMap(s)) {

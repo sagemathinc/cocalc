@@ -18,7 +18,7 @@ SyncTables.  It's also obviously useful for unit testing.
 
 import { EventEmitter } from "events";
 import { SyncTable, Client } from "./synctable";
-import { bind_methods, keys } from "../../misc";
+import { bind_methods, keys } from "@cocalc/util/misc";
 
 export function synctable_no_database(
   query,

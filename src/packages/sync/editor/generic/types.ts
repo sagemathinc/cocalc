@@ -9,7 +9,7 @@
 
 // A Patch is an entry in the patches table, as represented in memory locally here.
 
-import { SyncTable } from "../../table/synctable";
+import { SyncTable } from "@cocalc/sync/table/synctable";
 
 export interface Patch {
   time: Date; // timestamp of when patch made

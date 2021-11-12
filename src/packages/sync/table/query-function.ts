@@ -12,8 +12,8 @@ const DISABLE_STANDBY: boolean = true; // if true, never use standby server at a
 const async = require("async");
 
 import { delay } from "awaiting";
-import { SCHEMA } from "../../schema";
-import { copy } from "../../misc";
+import { SCHEMA } from "@cocalc/util/schema";
+import { copy } from "@cocalc/util/misc";
 
 export function query_function(
   client_query: Function,

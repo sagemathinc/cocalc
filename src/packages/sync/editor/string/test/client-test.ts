@@ -8,13 +8,13 @@ Minimal client class that we use for testing.
 */
 
 import { EventEmitter } from "events";
-import { bind_methods, keys } from "../../../../misc";
-import { once } from "../../../../async-utils";
+import { bind_methods, keys } from "@cocalc/util/misc";
+import { once } from "@cocalc/util/async-utils";
 import {
   Client as Client0,
   FileWatcher as FileWatcher0,
 } from "../../generic/types";
-import { SyncTable } from "../../../table/synctable";
+import { SyncTable } from "@cocalc/sync/table/synctable";
 
 export class FileWatcher extends EventEmitter implements FileWatcher0 {
   private path: string;

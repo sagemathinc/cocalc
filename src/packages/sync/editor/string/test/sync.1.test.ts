@@ -5,7 +5,7 @@
 
 import { Client } from "./client-test";
 import { SyncString } from "../sync";
-import { once } from "../../../../async-utils";
+import { once } from "@cocalc/util/async-utils";
 import { a_txt } from "./data";
 
 describe("create syncstring and test doing some edits", () => {

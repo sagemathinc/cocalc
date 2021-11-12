@@ -21,17 +21,17 @@ const stringify = require("json-stable-stringify");
 
 import { callback } from "awaiting";
 import { SyncDoc } from "./sync-doc";
-import { SyncTable } from "../../table/synctable";
-import { to_key } from "../../table/util";
+import { SyncTable } from "@cocalc/sync/table/synctable";
+import { to_key } from "@cocalc/sync/table/util";
 import { Client } from "./types";
-import { sagews, MARKERS, FLAGS } from "../../../sagews";
+import { sagews, MARKERS, FLAGS } from "@cocalc/util/sagews";
 import {
   close,
   from_json,
   to_json,
   copy_without,
   copy_with,
-} from "../../../misc";
+} from "@cocalc/util/misc";
 
 type State = "init" | "ready" | "closed";
 

@@ -5,7 +5,7 @@
 
 import { EventEmitter } from "events";
 import { callback, delay } from "awaiting";
-import { close } from "../../misc";
+import { close } from "@cocalc/util/misc";
 
 type State = "closed" | "disconnected" | "connecting" | "connected";
 

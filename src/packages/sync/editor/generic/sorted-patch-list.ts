@@ -8,10 +8,10 @@ Sorted list of patches applied to a starting string/object.
 */
 
 import { EventEmitter } from "events";
-import { isEqual } from "underscore";
+import { isEqual } from "lodash";
 import { Document, Patch } from "./types";
 import { patch_cmp } from "./util";
-import { close, cmp_Date, deep_copy, trunc_middle } from "../../../misc";
+import { close, cmp_Date, deep_copy, trunc_middle } from "@cocalc/util/misc";
 import { Entry, PatchValueCache } from "./patch-value-cache";
 
 // Make this bigger to make things faster... at the

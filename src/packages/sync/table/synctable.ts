@@ -32,12 +32,12 @@ import { delay } from "awaiting";
 import { global_cache_decref } from "./global-cache";
 import { EventEmitter } from "events";
 import { Map, fromJS, List } from "immutable";
-import { keys, throttle } from "underscore";
-import { callback2, cancel_scheduled, once } from "../../async-utils";
-import { wait } from "../../async-wait";
+import { keys, throttle } from "lodash";
+import { callback2, cancel_scheduled, once } from "@cocalc/util/async-utils";
+import { wait } from "@cocalc/util/async-wait";
 import { query_function } from "./query-function";
-import { assert_uuid, copy, is_array, is_object, len } from "../../misc";
-import * as schema from "../../schema";
+import { assert_uuid, copy, is_array, is_object, len } from "@cocalc/util/misc";
+import * as schema from "@cocalc/util/schema";
 
 export type Query = any; // todo
 export type QueryOptions = any[]; // todo

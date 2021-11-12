@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { copy, keys, is_array, deep_copy } from "../../misc";
-import { SCHEMA } from "../../schema";
+import { copy, keys, is_array, deep_copy } from "@cocalc/util/misc";
+import { SCHEMA } from "@cocalc/util/schema";
 
 // Parse query description to allow for some convenient shortcuts
 // TODO: document them here!
