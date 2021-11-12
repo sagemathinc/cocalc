@@ -36,6 +36,7 @@
     "../cdn",
     "../hub",
     "../project",
+    "../sync",
     "../util"
   ],
   "dependencies": {
@@ -44,6 +45,7 @@
     "@cocalc/cdn": "^1.8.1",
     "@cocalc/hub": "^1.19.0",
     "@cocalc/project": "^1.11.0",
+    "@cocalc/sync": "file:../sync",
     "@cocalc/util": "^1.14.0",
     "@jupyter-widgets/base": "^1.2.3",
     "@jupyter-widgets/controls": "^1.4.3",
