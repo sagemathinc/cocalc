@@ -82,7 +82,7 @@ describe("Test empty sorted patch list -- call all public methods", () => {
 
   it("close it, and check that it is seriously broken", () => {
     patches.close();
-    expect(() => patches.versions()).toThrow("Cannot read property");
+    expect(() => patches.versions()).toThrow("Cannot read properties of undefined (reading 'map')");
   });
 });
 

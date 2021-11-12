@@ -7,8 +7,8 @@ module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
   moduleNameMapper: {
-    "@cocalc/util/dmp": "<rootDir>/../dmp",
-    "@cocalc/util/misc": "<rootDir>/../misc",
+    "@cocalc/util/dmp": "<rootDir>/../util/dist/dmp",
+    "@cocalc/util/misc": "<rootDir>/../util/dist/misc",
   },
   testMatch: ["**/__tests__/**/*.[tj]s?(x)", "**/?(*.)+(spec|test).[tj]s?(x)"],
   testPathIgnorePatterns: ["/node_modules/"],
