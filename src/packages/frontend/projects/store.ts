@@ -24,7 +24,7 @@ import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import {
   DedicatedDisk,
   DedicatedVM,
-} from "@cocalc/util//db-schema/site-licenses";
+} from "@cocalc/util/types/dedicated";
 import { fromPairs } from "lodash";
 const ZERO_QUOTAS = fromPairs(
   Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0])

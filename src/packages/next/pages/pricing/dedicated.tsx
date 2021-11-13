@@ -13,13 +13,14 @@ import A from "components/misc/A";
 import { List } from "antd";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import PricingItem, { Line } from "components/landing/pricing-item";
+import { DISKS } from "@cocalc/util/consts/dedicated";
 
 interface Item {
   title: string;
   icon: IconName;
-  disk: number;
-  ram: number;
-  cores: number;
+  disk?: number;
+  ram?: number;
+  cores?: number;
   price: number;
 }
 
@@ -45,9 +46,33 @@ const VM_CONFIGS: Item[] = [
     cores: 16,
     price: 999,
   },
-] as const;
+];
 
-const DISK_CONFIGS: Item[] = [] as const;
+const d1 = DISKS["64-standard"];
+
+const DISK_CONFIGS: Item[] = [
+  {
+    title: d1.name,
+    icon: "battery-quarter",
+    ram: 15,
+    cores: 4,
+    price: 199,
+  },
+  {
+    title: "...",
+    icon: "battery-half",
+    ram: 52,
+    cores: 8,
+    price: 499,
+  },
+  {
+    title: "...",
+    icon: "battery-full",
+    ram: 104,
+    cores: 16,
+    price: 999,
+  },
+];
 
 export default function Products({ customize }) {
   return (
@@ -74,7 +99,9 @@ export default function Products({ customize }) {
             </h1>
           </div>
           <div style={{ fontSize: "12pt" }}>
-            <h2><strong>Dedicated VMs</strong></h2>
+            <h2>
+              <strong>Dedicated VMs</strong>
+            </h2>
             <p>
               Upgrade one of your projects to run on a <b>Dedicated VM</b>. This
               is an additional node in CoCalc's cluster, where no resources are
@@ -101,7 +128,6 @@ export default function Products({ customize }) {
               dataSource={VM_CONFIGS}
               renderItem={(item) => (
                 <PricingItem title={item.title} icon={item.icon}>
-                  <Line amount={item.disk} desc="Disk space" />
                   <Line amount={item.ram} desc="Dedicated RAM" />
                   <Line amount={item.cores} desc="Dedicated CPU" />
                   <br />
@@ -119,9 +145,12 @@ export default function Products({ customize }) {
               )}
             />
             <br />
-            <h2><strong>Dedicated Disks</strong></h2>
+            <h2>
+              <strong>Dedicated Disks</strong>
+            </h2>
             <p>
-              A <strong>Dedicated Disk</strong> is an additional storage device mounted into your project.
+              A <strong>Dedicated Disk</strong> is an additional storage device
+              mounted into your project.
             </p>
             <p>
               Up to <strong>64TB disk space</strong>.

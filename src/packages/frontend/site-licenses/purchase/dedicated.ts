@@ -11,8 +11,8 @@ import {
   ONE_DAY_MS,
   AVG_MONTH_DAYS,
   AVG_YEAR_DAYS,
-} from "@cocalc/util/db-schema/site-licenses";
-import { PRICES } from "@cocalc/util/upgrades/dedicated";
+} from "@cocalc/util/consts/billing";
+import { PRICES } from "@cocalc/util/consts/dedicated";
 
 export function dedicatedPrice({
   dedicated_vm,

@@ -22,9 +22,9 @@ import { is_zero_map } from "@cocalc/util/misc";
 import {
   DedicatedDisk,
   DedicatedVM,
-  dedicated_disk_display,
-} from "@cocalc/util/db-schema/site-licenses";
-import { PRICES } from "@cocalc/util/upgrades/dedicated";
+} from "@cocalc/util/types/dedicated";
+import { dedicated_disk_display } from "@cocalc/util/db-schema/site-licenses";
+import { PRICES } from "@cocalc/util/consts/dedicated";
 import { plural } from "@cocalc/util/misc";
 import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 

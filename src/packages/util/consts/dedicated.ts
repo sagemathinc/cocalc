@@ -3,13 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import {
-  DedicatedDiskTypes,
   DISK_NAMES,
+  DedicatedDiskTypes,
   VMsType,
   DiskType,
-  AVG_MONTH_DAYS,
-} from "@cocalc/util/db-schema/site-licenses";
+} from "@cocalc/util/types/dedicated";
 
 // derive price to charge per day from the base monthly price
 function rawPrice2Retail(p: number): number {
@@ -19,7 +19,7 @@ function rawPrice2Retail(p: number): number {
 
 const VMS_DATA: VMsType[string][] = [
   {
-    price_day: rawPrice2Retail(70.90),
+    price_day: rawPrice2Retail(70.9),
     spec: { mem: 7, cpu: 2 },
     quota: { dedicated_vm: "n2-standard-2" },
   },
@@ -57,7 +57,7 @@ for (const vmtype of VMS_DATA) {
   VMS[vmtype.quota.dedicated_vm] = vmtype;
 }
 
-const DISKS: DiskType = {};
+export const DISKS: DiskType = {};
 
 // we add a bit for snapshot storage
 const SNAPSHOT_FACTOR = 0.25;

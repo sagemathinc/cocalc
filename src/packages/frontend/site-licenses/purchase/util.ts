@@ -4,11 +4,8 @@
  */
 
 import { isEqual } from "lodash";
-import {
-  DedicatedDisk,
-  DedicatedVM,
-  ONE_MONTH_MS,
-} from "@cocalc/util/db-schema/site-licenses";
+import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import { ONE_MONTH_MS } from "@cocalc/util/consts/billing";
 import { dedicatedPrice } from "./dedicated";
 
 export type User = "academic" | "business";
