@@ -33,6 +33,7 @@ export default function editURL(options: Options): string {
   }
 }
 
+// needed since we're making a link outside of the nextjs server.
 function withBasePath(url: string): string {
   return join(basePath, url);
 }

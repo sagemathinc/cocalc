@@ -44,6 +44,7 @@ import {
   Icon,
   VisibleMDLG,
   Space,
+  A,
 } from "@cocalc/frontend/components";
 import { publicShareUrl, shareServerUrl } from "./util";
 import { License } from "./license";
@@ -166,10 +167,7 @@ class Configure extends Component<Props, State> {
           <Icon name="eye" />
           <Space />
           <i>Public (listed)</i> - on the{" "}
-          <a href={shareServerUrl()} target="_blank">
-            public Google-indexed server
-          </a>
-          .
+          <A href={shareServerUrl()}>public Google-indexed server</A>.
         </Radio>
       );
     } else {
@@ -185,10 +183,7 @@ class Configure extends Component<Props, State> {
           <Space />
           <del>
             <i>Public (listed)</i> - This will appear on the{" "}
-            <a href={shareServerUrl()} target="_blank">
-              share server
-            </a>
-            .
+            <A href={shareServerUrl()}>share server</A>.
           </del>{" "}
           Public (listed) is only available for projects with network enabled.
         </Radio>
@@ -308,9 +303,9 @@ class Configure extends Component<Props, State> {
     return (
       <>
         <h4>
-          <a href="https://choosealicense.com/" target="_blank" rel="noopener">
+          <A href="https://choosealicense.com/">
             Choose a license {this.get_license() ? "" : " (optional)"}
-          </a>
+          </A>
         </h4>
         <License
           disabled={parent_is_public}
@@ -372,15 +367,12 @@ class Configure extends Component<Props, State> {
     const server = shareServerUrl();
     return (
       <div style={{ color: "#555", fontSize: "12pt" }}>
-        <a href={SHARE_HELP_URL} target="_blank" rel="noopener">
-          You make
-        </a>{" "}
-        files or directories{" "}
-        <a href={server} target="_blank" rel="noopener">
+        <A href={SHARE_HELP_URL}>You make</A> files or directories{" "}
+        <A href={server}>
           <b>
             <i>public to the world</i>,
           </b>
-        </a>{" "}
+        </A>{" "}
         either indexed by search engines (listed), or only visible with the link
         (unlisted). Files are automatically copied to the public server within
         about 30 seconds after you explicitly edit them.
@@ -392,13 +384,30 @@ class Configure extends Component<Props, State> {
     return <Button onClick={this.props.close}>Close</Button>;
   }
 
-  private render_needs_network_access(): Rendered {
+  private render_needs_network_access(parent_is_public: boolean): Rendered {
+    const url =
+      this.props.public == null || this.props.public.disabled
+        ? undefined
+        : publicShareUrl(
+            this.props.project_id,
+            parent_is_public && this.props.public != null
+              ? this.props.public.path
+              : this.props.path,
+            this.props.path
+          ) + "?edit=true";
     return (
-      <Alert bsStyle={"danger"} style={{ padding: "30px", margin: "30px" }}>
+      <Alert bsStyle={"warning"} style={{ padding: "30px", margin: "30px" }}>
         <h3>Publicly sharing files requires internet access</h3>
         <div style={{ fontSize: "12pt" }}>
           You <b>must</b> first enable the 'Internet access' upgrade in project
           settings in order to publicly share files from this project.
+          {url && (
+            <div>
+              <br />
+              This file was shared when internet access was enabled, so you can{" "}
+              <A href={url}>edit how this file is shared here</A>.
+            </div>
+          )}
         </div>
       </Alert>
     );
@@ -417,18 +426,18 @@ class Configure extends Component<Props, State> {
   }
 
   public render(): Rendered {
-    if (!this.props.share_server) {
-      return this.render_share_server_disabled();
-    }
-    if (this.props.is_commercial && !this.props.has_network_access) {
-      return this.render_needs_network_access();
-    }
-
     // This path is public because some parent folder is public.
     const parent_is_public: boolean =
       !!this.props.is_public &&
       this.props.public != null &&
       this.props.public.path != this.props.path;
+
+    if (!this.props.share_server) {
+      return this.render_share_server_disabled();
+    }
+    if (this.props.is_commercial && !this.props.has_network_access) {
+      return this.render_needs_network_access(parent_is_public);
+    }
 
     return (
       <div>

@@ -193,17 +193,16 @@ function OpenDirectly({
       {!relativePath ? (
         <>
           <br />
-          You can adjust how this is shared below, or turn off sharing.
+          You can adjust how this is shared below, or turn off sharing by
+          checking "Disabled".
           <ConfigurePublicPath id={id} project_id={project_id} path={path} />
         </>
       ) : (
         <>
           <br />
           Go to the{" "}
-          <A href={shareURL(id)}>
-            containing directory that was shared
-          </A>{" "}
-          to configure how this is shared or unshare it.
+          <A href={shareURL(id)}>containing directory that was shared</A> to
+          configure how this is shared or unshare it.
         </>
       )}
     </div>
