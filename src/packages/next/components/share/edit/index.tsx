@@ -33,11 +33,12 @@ import SelectProject from "components/project/select";
 import CreateProject from "components/project/create";
 import ProjectListing from "components/project/listing";
 import api from "lib/api/post";
-import Loading from "./loading";
+import Loading from "components/share/loading";
 import useIsMounted from "lib/hooks/mounted";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { trunc } from "@cocalc/util/misc";
-import ConfigurePublicPath from "./configure-public-path";
+import ConfigurePublicPath from "components/share/configure-public-path";
+import copyPublicPath from "lib/share/copy-public-path";
 
 interface Props {
   id: string;
@@ -490,18 +491,3 @@ function OpenAnonymously() {
   );
 }
 
-async function copyPublicPath({
-  id,
-  path,
-  relativePath,
-  src_project_id,
-  target_project_id,
-}): Promise<void> {
-  await api("/projects/copy-path", {
-    src_project_id,
-    target_project_id,
-    path: join(path, relativePath),
-    public_id: id,
-    timeout: 15, // if big we do NOT want to allow copying something ridiculuos
-  });
-}
