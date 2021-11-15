@@ -4,7 +4,6 @@
  */
 
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
-
 import {
   DISK_NAMES,
   DedicatedDiskTypes,
@@ -61,11 +60,11 @@ for (const vmtype of VMS_DATA) {
 const DISKS: DiskType = {};
 
 // we add a bit for snapshot storage
-const SNAPSHOT_FACTOR = 0.25;
+const SNAPSHOT_FACTOR = 1.25;
 
 // price numbers are for 1 month and 1024 gb (more significant digits) and zonal storage
 const DISK_MONTHLY_1GB: { [id in DedicatedDiskTypes]: number } = {
-  standard: (SNAPSHOT_FACTOR * 30.96) / 1024,
+  standard: (SNAPSHOT_FACTOR * 40.96) / 1024,
   balanced: (SNAPSHOT_FACTOR * 102.4) / 1024,
   ssd: (SNAPSHOT_FACTOR * 174.08) / 1024,
 };
@@ -76,7 +75,7 @@ for (const size_gb of [64, 128, 256]) {
       dedicated_disk: { size_gb, type },
     };
     const title = `${size_gb} GB ${DISK_NAMES[type]}`;
-    const price_day = DISK_MONTHLY_1GB[type] * size_gb;
+    const price_day = rawPrice2Retail(DISK_MONTHLY_1GB[type] * size_gb);
     DISKS[`${size_gb}-${type}`] = { title, price_day, quota };
   }
 }
@@ -84,4 +83,5 @@ for (const size_gb of [64, 128, 256]) {
 export const PRICES = {
   vms: VMS,
   disks: DISKS,
+  disks_monthly: DISK_MONTHLY_1GB,
 } as const;

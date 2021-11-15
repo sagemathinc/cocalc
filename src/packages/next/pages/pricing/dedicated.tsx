@@ -13,8 +13,10 @@ import A from "components/misc/A";
 import { List } from "antd";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import PricingItem, { Line } from "components/landing/pricing-item";
-import { DISKS } from "@cocalc/util/consts/dedicated";
+import {  PRICES } from "@cocalc/util/upgrades/dedicated";
 import { dedicated_disk_display } from "@cocalc/util/types/dedicated";
+import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Item {
   title: string;
@@ -49,28 +51,21 @@ const VM_CONFIGS: Item[] = [
   },
 ];
 
-const d1 = DISKS["64-standard"];
-
-const DISK_CONFIGS: Item[] = [
-  {
-    title: dedicated_disk_display(d1.quota.dedicated_disk),
-    icon: "battery-quarter",
-    disk: d1.quota.dedicated_disk.size_gb,
-    price: 199,
-  },
-  {
-    title: "...",
-    icon: "battery-half",
-    disk: 128,
-    price: 499,
-  },
-  {
-    title: "...",
-    icon: "battery-full",
-    disk: 128,
-    price: 999,
-  },
+const disk_configs = [
+  PRICES.disks["64-standard"],
+  PRICES.disks["128-balanced"],
+  PRICES.disks["128-ssd"],
 ];
+
+const ICONS: IconName[] = ["battery-quarter", "battery-half", "battery-full"];
+const DISK_CONFIGS: Item[] = ICONS.map((battery, idx) => {
+  return {
+    title: dedicated_disk_display(disk_configs[idx].quota.dedicated_disk),
+    icon: battery,
+    disk: disk_configs[idx].quota.dedicated_disk.size_gb,
+    price: Math.round(AVG_MONTH_DAYS * disk_configs[idx].price_day),
+  };
+});
 
 export default function Products({ customize }) {
   return (
@@ -134,7 +129,7 @@ export default function Products({ customize }) {
                     style={{
                       fontWeight: "bold",
                       fontSize: "18pt",
-                      color: "#666",
+                      color: COLORS.GRAY_D,
                     }}
                   >
                     ${item.price}/month
@@ -148,10 +143,17 @@ export default function Products({ customize }) {
             </h2>
             <p>
               A <strong>Dedicated Disk</strong> is an additional storage device
-              mounted into your project.
+              mounted into your project. The speed ranges from traditional
+              spinning disks with a rather slow number of operations per second
+              up to fast SSD disks.
             </p>
             <p>
-              Up to <strong>64TB disk space</strong>.
+              The list of dedicated disk options below are just exmples; we can
+              provide disks{" "}
+              <A href="https://cloud.google.com/compute/docs/disks/performance">
+                that GCP offers
+              </A>{" "}
+              with up to <strong>64TB disk space</strong>.
             </p>
             <List
               grid={{ gutter: 16, column: 3, xs: 1, sm: 1 }}
@@ -159,13 +161,14 @@ export default function Products({ customize }) {
               renderItem={(item) => (
                 <PricingItem title={item.title} icon={item.icon}>
                   <Line amount={item.disk} desc="Disk space" />
+                  <Line amount={"regular"} desc="Snapshots" />
                   <br />
                   <br />
                   <span
                     style={{
                       fontWeight: "bold",
                       fontSize: "18pt",
-                      color: "#666",
+                      color: COLORS.GRAY_D,
                     }}
                   >
                     ${item.price}/month
