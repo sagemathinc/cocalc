@@ -4,6 +4,7 @@
  */
 
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
+
 import {
   DISK_NAMES,
   DedicatedDiskTypes,
@@ -57,7 +58,7 @@ for (const vmtype of VMS_DATA) {
   VMS[vmtype.quota.dedicated_vm] = vmtype;
 }
 
-export const DISKS: DiskType = {};
+const DISKS: DiskType = {};
 
 // we add a bit for snapshot storage
 const SNAPSHOT_FACTOR = 0.25;

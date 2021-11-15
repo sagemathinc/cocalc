@@ -23,13 +23,8 @@ import { SCHEMA } from "./index";
 import {
   DedicatedDisk,
   DedicatedVM,
-  DISK_NAMES,
+  dedicated_disk_display,
 } from "@cocalc/util/types/dedicated";
-
-export function dedicated_disk_display(disk: DedicatedDisk): string {
-  if (typeof disk === "boolean") return "";
-  return `${disk.size_gb} GiB, ${DISK_NAMES[disk.type] ?? disk.type} speed`;
-}
 
 export interface Quota {
   ram?: number;

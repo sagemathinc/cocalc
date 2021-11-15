@@ -14,6 +14,7 @@ import { List } from "antd";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import PricingItem, { Line } from "components/landing/pricing-item";
 import { DISKS } from "@cocalc/util/consts/dedicated";
+import { dedicated_disk_display } from "@cocalc/util/types/dedicated";
 
 interface Item {
   title: string;
@@ -52,24 +53,21 @@ const d1 = DISKS["64-standard"];
 
 const DISK_CONFIGS: Item[] = [
   {
-    title: d1.name,
+    title: dedicated_disk_display(d1.quota.dedicated_disk),
     icon: "battery-quarter",
-    ram: 15,
-    cores: 4,
+    disk: d1.quota.dedicated_disk.size_gb,
     price: 199,
   },
   {
     title: "...",
     icon: "battery-half",
-    ram: 52,
-    cores: 8,
+    disk: 128,
     price: 499,
   },
   {
     title: "...",
     icon: "battery-full",
-    ram: 104,
-    cores: 16,
+    disk: 128,
     price: 999,
   },
 ];

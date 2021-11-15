@@ -5,7 +5,7 @@
 
 export interface VMsType {
   [id: string]: {
-    name?: string;
+    title?: string;
     price_day: number;
     spec: { mem: number; cpu: number };
     quota: { dedicated_vm: string }; // only those defined in VMS below
@@ -14,12 +14,17 @@ export interface VMsType {
 
 export interface DiskType {
   [id: string]: {
-    name: string;
+    title: string;
     price_day: number;
-    quota: { dedicated_disk: { size_gb: number; type: DedicatedDiskTypes } };
+    quota: {
+      dedicated_disk: {
+        size_gb: number;
+        type: DedicatedDiskTypes;
+        name?: string;
+      };
+    };
   };
 }
-
 
 export type DedicatedDiskTypes = "ssd" | "standard" | "balanced";
 
@@ -27,7 +32,7 @@ export type DedicatedDisk =
   | {
       size_gb: number;
       type: DedicatedDiskTypes;
-      name: string; // the ID of the disk, globally unique, derived from the license-ID, generated upon license creation or maybe manually.
+      name?: string; // the ID of the disk, globally unique, derived from the license-ID, generated upon license creation or maybe manually.
     }
   | false;
 
@@ -48,4 +53,9 @@ export function isDedicatedDisk(d): d is DedicatedDisk {
     typeof d.size_gb === "number" &&
     ["ssd", "standard", "balanced"].includes(d.type)
   );
+}
+
+export function dedicated_disk_display(disk: DedicatedDisk): string {
+  if (typeof disk === "boolean") return "";
+  return `${disk.size_gb} GiB, ${DISK_NAMES[disk.type] ?? disk.type} speed`;
 }
