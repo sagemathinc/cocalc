@@ -135,6 +135,7 @@ class Project extends BaseProject {
         "bwlimit           ::TEXT": opts.bwlimit,
         "timeout           ::NUMERIC": opts.timeout,
         "scheduled         ::TIMESTAMP": opts.scheduled,
+        "exclude           ::TEXT[]": opts.exclude,
       },
     });
 

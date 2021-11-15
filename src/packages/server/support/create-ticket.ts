@@ -48,6 +48,10 @@ export default async function createTicket(options: Options): Promise<string> {
     body += `\n\n- browser="${info.browser}"`;
   }
 
+  body += "\n\n\nUSER:\n\n";
+  body += `\n\n- account_id="${account_id}"`;
+  body += `\n\n- email="${email}"`;
+
   // It's very helpful to look https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/node-zendesk/index.d.ts
   // and
   // https://github.com/blakmatrix/node-zendesk/tree/master/examples

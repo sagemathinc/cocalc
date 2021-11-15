@@ -1,4 +1,12 @@
-export default function EditRow({ label, children }) {
+import { ReactNode } from "react";
+
+interface Props {
+  label: ReactNode;
+  description?: ReactNode;
+  children: ReactNode;
+}
+
+export default function EditRow({ label, description, children }: Props) {
   return (
     <div style={{ display: "flex", marginTop: "15px" }}>
       <div
@@ -12,9 +20,17 @@ export default function EditRow({ label, children }) {
           justifyContent: "center",
         }}
       >
-        {label}
+        <b>{label}</b>
       </div>
-      {children}
+      {description == null ? (
+        children
+      ) : (
+        <div style={{ width: "100%" }}>
+          {" "}
+          <div style={{ color: "#666", fontSize: "10pt" }}>{description}</div>
+          {children}
+        </div>
+      )}
     </div>
   );
 }

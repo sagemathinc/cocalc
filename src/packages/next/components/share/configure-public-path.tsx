@@ -5,6 +5,7 @@ import Loading from "./loading";
 import { LICENSES } from "@cocalc/frontend/share/licenses";
 import Save from "components/misc/save-button";
 import EditRow from "components/misc/edit-row";
+import A from "components/misc/A";
 
 const { Option } = Select;
 
@@ -74,7 +75,10 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
             autoSize
           />
         </EditRow>
-        <EditRow label="Name (may provide a nicer URL)">
+        <EditRow
+          label="Name"
+          description="Optional name that may be used to provide a nicer URL:"
+        >
           <Input
             style={{ width: "100%" }}
             value={edited.name}
@@ -104,7 +108,16 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
             open the project.
           </Checkbox>
         </EditRow>
-        <EditRow label="License">
+        <EditRow
+          label="License"
+          description={
+            <>
+              Optional{" "}
+              <A href="https://opensource.org/licenses">open source license</A>{" "}
+              which tells people how they may use your code:
+            </>
+          }
+        >
           <License
             license={edited.license}
             onChange={(license) => setEdited({ ...edited, license })}

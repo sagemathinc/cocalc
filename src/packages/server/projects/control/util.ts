@@ -338,6 +338,12 @@ export async function copyPath(
   } else {
     args.push(...["-zaxs", "--omit-link-times"]);
   }
+  if (opts.exclude) {
+    for (const pattern of opts.exclude) {
+      args.push("--exclude");
+      args.push(pattern);
+    }
+  }
   if (!overwrite_newer) {
     args.push("--update");
   }

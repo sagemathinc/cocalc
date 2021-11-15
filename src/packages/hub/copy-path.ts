@@ -29,6 +29,7 @@ interface CopyOp {
   finished: any;
   scheduled: any;
   error: any;
+  exclude: any;
 }
 
 // this is specific to queries built here
@@ -78,6 +79,7 @@ function row_to_copy_op(copy_op): CopyOp {
     finished: copy_op.finished,
     scheduled: copy_op.scheduled,
     error: copy_op.error,
+    exclude: copy_op.exclude,
   };
 }
 
@@ -150,6 +152,7 @@ export class CopyPath {
         timeout: mesg.timeout,
         wait_until_done: mesg.wait_until_done ?? true, // default to true or we do not see the error
         scheduled: mesg.scheduled,
+        exclude: mesg.exclude,
       });
 
       // if we're still here, the copy was ok!

@@ -1788,6 +1788,10 @@ API(
         init: undefined,
         desc: "if set, the copy operation runs earliest after the given time and wait_until_done is automatically set to false. Must be a `new Date(...)` parseable string.  (Only implemented for https://cocalc.com.)",
       },
+      exclude: {
+        init: undefined,
+        desc: "array of rsync patterns to exclude; each item in this string[] array is passed as a --exclude option to rsync",
+      },
     },
     desc: `\
 Copy a file or directory from one project to another.
@@ -2056,6 +2060,10 @@ API(
       timeout: {
         init: undefined,
         desc: "how long to wait for the copy to complete before reporting error (though it could still succeed)",
+      },
+      exclude: {
+        init: undefined,
+        desc: "array of rsync patterns to exclude; each item in this string[] array is passed as a --exclude option to rsync",
       },
     },
     desc: `\

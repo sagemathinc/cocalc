@@ -514,17 +514,8 @@ ${details}
         overwrite_newer: true,
         backup: true,
         delete_missing: false,
+        exclude: peer_graded ? ["*GRADER*.txt"] : undefined,
       });
-      if (peer_graded) {
-        // Delete GRADER file
-        await webapp_client.project_client.exec({
-          project_id: student_project_id,
-          command: "rm ./*/GRADER*.txt",
-          timeout: 60,
-          bash: true,
-          path: assignment.get("graded_path"),
-        });
-      }
       finish("");
     } catch (err) {
       finish(err);
@@ -1064,22 +1055,9 @@ ${details}
       if (this.course_actions.is_closed()) return;
       const src_path = assignment.get("collect_path") + "/" + peer_student_id;
       const target_path = target_base_path + "/" + peer_student_id;
-      // delete the student's name so that grading is anonymous; also, remove original
+      // In the copy below, we exclude the student's name so that
+      // peer grading is anonymous; also, remove original
       // due date to avoid confusion.
-      const name = store.get_student_name_extra(peer_student_id);
-      await webapp_client.project_client.exec({
-        project_id: store.get("course_project_id"),
-        command: "rm",
-        args: [
-          "-f",
-          src_path + `/STUDENT - ${name.simple}.txt`,
-          src_path + "/DUE_DATE.txt",
-          src_path + `/STUDENT - ${name.simple}.txt~`,
-          src_path + "/DUE_DATE.txt~",
-        ],
-      });
-      if (this.course_actions.is_closed()) return;
-
       // copy the files to be peer graded into place for this student
       await webapp_client.project_client.copy_path_between_projects({
         src_project_id: store.get("course_project_id"),
@@ -1088,6 +1066,7 @@ ${details}
         target_path,
         overwrite_newer: false,
         delete_missing: false,
+        exclude: ["*STUDENT*.txt", "*DUE_DATE.txt*"],
       });
     };
 
