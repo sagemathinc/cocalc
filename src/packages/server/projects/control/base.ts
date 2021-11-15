@@ -211,5 +211,6 @@ export interface CopyOptions {
   wait_until_done?: boolean; // by default, wait until done. false only gives the ID to query the status later
   scheduled?: string | Date; // kucalc only: string (parseable by new Date()), or a Date
   public?: boolean; // kucalc only: if true, may use the share server files rather than start the source project running
+  exclude?: string[]; // options passed to rsync via --exclude
 }
 

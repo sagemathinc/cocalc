@@ -111,6 +111,7 @@ export class ProjectClient {
     delete_missing?: boolean; // delete files in dest that are missing from source (destructive)
     backup?: boolean; // make ~ backup files instead of overwriting changed files
     timeout?: number; // how long to wait for the copy to complete before reporting "error" (though it could still succeed)
+    exclude?: string[]; // list of patterns to exclude; this uses exactly the (confusing) rsync patterns
   }): Promise<void> {
     const is_public = opts.public;
     delete opts.public;
