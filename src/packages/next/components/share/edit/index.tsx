@@ -37,8 +37,10 @@ import Loading from "components/share/loading";
 import useIsMounted from "lib/hooks/mounted";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { trunc } from "@cocalc/util/misc";
-import ConfigurePublicPath from "components/share/configure-public-path";
 import copyPublicPath from "lib/share/copy-public-path";
+
+import OpenDirectly from "./open-directly";
+
 
 interface Props {
   id: string;
@@ -88,7 +90,7 @@ export default function Edit({
   );
 }
 
-interface EditProps extends Props {
+interface EditOptionsProps extends Props {
   onClose: () => void;
 }
 
@@ -100,7 +102,7 @@ function EditOptions({
   image,
   onClose,
   description,
-}: EditProps) {
+}: EditOptionsProps) {
   const { account } = useCustomize();
   return (
     <Card
@@ -159,56 +161,6 @@ function SignedInOptions({
   );
 }
 
-function OpenDirectly({
-  project_id,
-  path,
-  id,
-  relativePath,
-}: {
-  id: string;
-  project_id: string;
-  path: string;
-  relativePath: string;
-}) {
-  const url = editURL({
-    type: "collaborator",
-    project_id,
-    path,
-    relativePath,
-  });
-  return (
-    <div>
-      You are signed in as a collaborator on{" "}
-      <A href={editURL({ type: "collaborator", project_id })} external>
-        the project
-      </A>{" "}
-      that contains{" "}
-      <A href={url} external>
-        this shared document,
-      </A>{" "}
-      so you can easily{" "}
-      <A href={url} external>
-        open it directly.
-      </A>
-      <br />
-      {!relativePath ? (
-        <>
-          <br />
-          You can adjust how this is shared below, or turn off sharing by
-          checking "Disabled".
-          <ConfigurePublicPath id={id} project_id={project_id} path={path} />
-        </>
-      ) : (
-        <>
-          <br />
-          Go to the{" "}
-          <A href={shareURL(id)}>containing directory that was shared</A> to
-          configure how this is shared or unshare it.
-        </>
-      )}
-    </div>
-  );
-}
 
 function ChooseProject({
   id,
