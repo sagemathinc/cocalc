@@ -69,6 +69,20 @@ const DISK_MONTHLY_1GB: { [id in DedicatedDiskTypes]: number } = {
   ssd: (SNAPSHOT_FACTOR * 174.08) / 1024,
 };
 
+// https://cloud.google.com/compute/docs/disks/performance#performance_by_disk_size
+const IOPS: { [id in DedicatedDiskTypes]: { read: number; write: number } } = {
+  standard: { read: 0.75, write: 1.5 },
+  balanced: { read: 6, write: 6 },
+  ssd: { read: 30, write: 30 },
+};
+
+// sustained throughput
+const MBPS: { [id in DedicatedDiskTypes]: { read: number; write: number } } = {
+  standard: { read: 0.12, write: 0.12 },
+  balanced: { read: 0.28, write: 0.28 },
+  ssd: { read: 0.48, write: 0.48 },
+};
+
 for (const size_gb of [64, 128, 256]) {
   for (const type of ["standard", "balanced", "ssd"] as DedicatedDiskTypes[]) {
     const quota = {
@@ -76,7 +90,11 @@ for (const size_gb of [64, 128, 256]) {
     };
     const title = `${size_gb} GB ${DISK_NAMES[type]}`;
     const price_day = rawPrice2Retail(DISK_MONTHLY_1GB[type] * size_gb);
-    DISKS[`${size_gb}-${type}`] = { title, price_day, quota };
+    const iops = `${size_gb * IOPS[type].read}/${size_gb * IOPS[type].write}`;
+    const mbps =
+      `${Math.round(size_gb * MBPS[type].read)}/` +
+      `${Math.round(size_gb * MBPS[type].write)}`;
+    DISKS[`${size_gb}-${type}`] = { title, price_day, quota, iops, mbps };
   }
 }
 

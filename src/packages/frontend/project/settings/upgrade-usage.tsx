@@ -24,7 +24,7 @@ import {
   DedicatedVM,
   dedicated_disk_display,
 } from "@cocalc/util/types/dedicated";
-import { PRICES } from "@cocalc/util/consts/dedicated";
+import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { plural } from "@cocalc/util/misc";
 import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 

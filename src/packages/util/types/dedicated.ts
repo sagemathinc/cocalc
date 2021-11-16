@@ -16,6 +16,8 @@ export interface DiskType {
   [id: string]: {
     title: string;
     price_day: number;
+    iops?: string;
+    mbps?: string;
     quota: {
       dedicated_disk: {
         size_gb: number;

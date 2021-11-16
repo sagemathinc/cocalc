@@ -12,7 +12,7 @@ import {
   AVG_MONTH_DAYS,
   AVG_YEAR_DAYS,
 } from "@cocalc/util/consts/billing";
-import { PRICES } from "@cocalc/util/consts/dedicated";
+import { PRICES } from "@cocalc/util/upgrades/dedicated";
 
 export function dedicatedPrice({
   dedicated_vm,

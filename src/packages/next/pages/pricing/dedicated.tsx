@@ -6,14 +6,15 @@
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
-import { Layout } from "antd";
+import { Layout, Typography } from "antd";
+const { Text } = Typography;
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import A from "components/misc/A";
 import { List } from "antd";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import PricingItem, { Line } from "components/landing/pricing-item";
-import {  PRICES } from "@cocalc/util/upgrades/dedicated";
+import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { dedicated_disk_display } from "@cocalc/util/types/dedicated";
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import { COLORS } from "@cocalc/util/theme";
@@ -25,6 +26,8 @@ interface Item {
   ram?: number;
   cores?: number;
   price: number;
+  iops?: string;
+  mbps?: string;
 }
 
 const VM_CONFIGS: Item[] = [
@@ -52,7 +55,7 @@ const VM_CONFIGS: Item[] = [
 ];
 
 const disk_configs = [
-  PRICES.disks["64-standard"],
+  PRICES.disks["128-standard"],
   PRICES.disks["128-balanced"],
   PRICES.disks["128-ssd"],
 ];
@@ -64,13 +67,15 @@ const DISK_CONFIGS: Item[] = ICONS.map((battery, idx) => {
     icon: battery,
     disk: disk_configs[idx].quota.dedicated_disk.size_gb,
     price: Math.round(AVG_MONTH_DAYS * disk_configs[idx].price_day),
+    iops: disk_configs[idx].iops,
+    mbps: disk_configs[idx].mbps,
   };
 });
 
 export default function Products({ customize }) {
   return (
     <Customize value={customize}>
-      <Head title="Dedicated Resources" />
+      <Head title={"Dedicated Resources"} />
       <Header page="pricing" subPage="dedicated" />
       <Layout.Content
         style={{
@@ -125,15 +130,9 @@ export default function Products({ customize }) {
                   <Line amount={item.cores} desc="Dedicated CPU" />
                   <br />
                   <br />
-                  <span
-                    style={{
-                      fontWeight: "bold",
-                      fontSize: "18pt",
-                      color: COLORS.GRAY_D,
-                    }}
-                  >
+                  <Text strong style={{ fontSize: "18pt" }}>
                     ${item.price}/month
-                  </span>
+                  </Text>
                 </PricingItem>
               )}
             />
@@ -143,17 +142,21 @@ export default function Products({ customize }) {
             </h2>
             <p>
               A <strong>Dedicated Disk</strong> is an additional storage device
-              mounted into your project. The speed ranges from traditional
-              spinning disks with a rather slow number of operations per second
-              up to fast SSD disks.
+              mounted into your project. Their{" "}
+              <A href="https://cloud.google.com/compute/docs/disks/performance">
+                speed
+              </A>{" "}
+              ranges from traditional spinning disks with a rather slow number
+              of operations per second up to fast SSD disks.
             </p>
             <p>
-              The list of dedicated disk options below are just exmples; we can
+              The list of dedicated disk options below are just exmples. Usual
+              disk sizes are <strong>64, 128 and 256 GB</strong>, but we could
               provide disks{" "}
               <A href="https://cloud.google.com/compute/docs/disks/performance">
                 that GCP offers
               </A>{" "}
-              with up to <strong>64TB disk space</strong>.
+              with up to 64TB of disk space.
             </p>
             <List
               grid={{ gutter: 16, column: 3, xs: 1, sm: 1 }}
@@ -162,17 +165,13 @@ export default function Products({ customize }) {
                 <PricingItem title={item.title} icon={item.icon}>
                   <Line amount={item.disk} desc="Disk space" />
                   <Line amount={"regular"} desc="Snapshots" />
+                  <Line amount={item.iops} desc="IOPS r/w" />
+                  <Line amount={item.mbps} desc="MBps r/w" />
                   <br />
                   <br />
-                  <span
-                    style={{
-                      fontWeight: "bold",
-                      fontSize: "18pt",
-                      color: COLORS.GRAY_D,
-                    }}
-                  >
+                  <Text strong style={{ fontSize: "18pt" }}>
                     ${item.price}/month
-                  </span>
+                  </Text>
                 </PricingItem>
               )}
             />
