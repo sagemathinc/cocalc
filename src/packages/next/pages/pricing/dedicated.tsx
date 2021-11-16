@@ -15,9 +15,7 @@ import { List } from "antd";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import PricingItem, { Line } from "components/landing/pricing-item";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
-import { dedicated_disk_display } from "@cocalc/util/types/dedicated";
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
-import { COLORS } from "@cocalc/util/theme";
 
 interface Item {
   title: string;
@@ -30,29 +28,30 @@ interface Item {
   mbps?: string;
 }
 
-const VM_CONFIGS: Item[] = [
-  {
-    title: "Dedicated VM (small)",
-    icon: "battery-quarter",
-    ram: 15,
-    cores: 4,
-    price: 199,
-  },
-  {
-    title: "Dedicated VM (medium)",
-    icon: "battery-half",
-    ram: 52,
-    cores: 8,
-    price: 499,
-  },
-  {
-    title: "Dedicated VM (large)",
-    icon: "battery-full",
-    ram: 104,
-    cores: 16,
-    price: 999,
-  },
+const ICONS: IconName[] = [
+  "battery-empty",
+  "battery-quarter",
+  "battery-half",
+  "battery-full",
 ];
+
+const VMS = [
+  PRICES.vms["n2-highmem-2"],
+  PRICES.vms["n2-standard-4"],
+  PRICES.vms["n2-standard-8"],
+  PRICES.vms["n2-standard-16"],
+];
+
+const VM_CONFIGS: Item[] = ICONS.map((battery, idx) => {
+  const vm = VMS[idx];
+  return {
+    title: `Example ${idx + 1}`,
+    icon: battery,
+    ram: vm.spec.mem,
+    cores: vm.spec.cpu,
+    price: Math.round(vm.price_day * AVG_MONTH_DAYS),
+  };
+});
 
 const disk_configs = [
   PRICES.disks["128-standard"],
@@ -60,15 +59,15 @@ const disk_configs = [
   PRICES.disks["128-ssd"],
 ];
 
-const ICONS: IconName[] = ["battery-quarter", "battery-half", "battery-full"];
-const DISK_CONFIGS: Item[] = ICONS.map((battery, idx) => {
+const DISK_CONFIGS: Item[] = ICONS.slice(1).map((battery, idx) => {
+  const dc = disk_configs[idx];
   return {
-    title: dedicated_disk_display(disk_configs[idx].quota.dedicated_disk),
+    title: dc.title,
     icon: battery,
-    disk: disk_configs[idx].quota.dedicated_disk.size_gb,
-    price: Math.round(AVG_MONTH_DAYS * disk_configs[idx].price_day),
-    iops: disk_configs[idx].iops,
-    mbps: disk_configs[idx].mbps,
+    disk: dc.quota.dedicated_disk.size_gb,
+    price: Math.round(AVG_MONTH_DAYS * dc.price_day),
+    iops: dc.iops,
+    mbps: dc.mbps,
   };
 });
 
@@ -92,8 +91,8 @@ export default function Products({ customize }) {
         >
           <div style={{ textAlign: "center", color: "#444" }}>
             <h1 style={{ fontSize: "28pt" }}>
-              <Icon name="server" style={{ marginRight: "30px" }} /> CoCalc -
-              Dedicated Resources
+              <Icon name="server" style={{ marginRight: "30px" }} /> Dedicated
+              Resources
             </h1>
           </div>
           <div style={{ fontSize: "12pt" }}>
@@ -122,12 +121,12 @@ export default function Products({ customize }) {
             </p>
             <br />
             <List
-              grid={{ gutter: 16, column: 3, xs: 1, sm: 1 }}
+              grid={{ gutter: 16, column: 4, xs: 1, sm: 1 }}
               dataSource={VM_CONFIGS}
               renderItem={(item) => (
                 <PricingItem title={item.title} icon={item.icon}>
-                  <Line amount={item.ram} desc="Dedicated RAM" />
-                  <Line amount={item.cores} desc="Dedicated CPU" />
+                  <Line amount={item.cores} desc="CPU" />
+                  <Line amount={item.ram} desc="RAM" />
                   <br />
                   <br />
                   <Text strong style={{ fontSize: "18pt" }}>
@@ -147,7 +146,8 @@ export default function Products({ customize }) {
                 speed
               </A>{" "}
               ranges from traditional spinning disks with a rather slow number
-              of operations per second up to fast SSD disks.
+              of operations per second up to fast SSD disks. You do not need to
+              rent a Dedicated VM in order to subscribe to a Dedicated Disk.
             </p>
             <p>
               The list of dedicated disk options below are just exmples. Usual
@@ -157,6 +157,10 @@ export default function Products({ customize }) {
                 that GCP offers
               </A>{" "}
               with up to 64TB of disk space.
+            </p>
+            <p>
+              <Text strong>Note:</Text> When the subscription ends, all data
+              stored on such a disk will be deleted!
             </p>
             <List
               grid={{ gutter: 16, column: 3, xs: 1, sm: 1 }}
@@ -175,6 +179,14 @@ export default function Products({ customize }) {
                 </PricingItem>
               )}
             />
+            <p>
+              <Icon name="info-circle" /> To ease data transfer, make sure to
+              check out how to mount{" "}
+              <A href="https://doc.cocalc.com/project-settings.html#cloud-storage-remote-file-systems">
+                cloud storage or remote file-systems
+              </A>{" "}
+              into your project as well.
+            </p>
           </div>
         </div>
         <Footer />

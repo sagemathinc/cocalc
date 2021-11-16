@@ -59,5 +59,5 @@ export function isDedicatedDisk(d): d is DedicatedDisk {
 
 export function dedicated_disk_display(disk: DedicatedDisk): string {
   if (typeof disk === "boolean") return "";
-  return `${disk.size_gb} GiB, ${DISK_NAMES[disk.type] ?? disk.type} speed`;
+  return `${disk.size_gb} GB, ${DISK_NAMES[disk.type] ?? disk.type} speed`;
 }

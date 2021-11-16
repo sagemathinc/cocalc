@@ -163,7 +163,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     if (dedicated_resources == null) return <div>Dedicated VM not defined</div>;
     if (dedicated_resources.vm === false) throw new Error("AssertionError");
     const vm = dedicated_resources.vm;
-    const human_readable = PRICES.vms[vm.machine]?.name;
+    const human_readable = PRICES.vms[vm.machine]?.title;
     const name = vm.name;
 
     return (

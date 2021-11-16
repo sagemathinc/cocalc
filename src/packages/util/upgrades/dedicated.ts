@@ -5,48 +5,60 @@
 
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import {
-  DISK_NAMES,
   DedicatedDiskTypes,
   VMsType,
   DiskType,
+  dedicated_disk_display,
 } from "@cocalc/util/types/dedicated";
 
 // derive price to charge per day from the base monthly price
-function rawPrice2Retail(p: number): number {
+function rawPrice2Retail(p: number, discount = false): number {
   // factor of 2 and an average month
-  return (2 * p) / AVG_MONTH_DAYS;
+  // discount factor: for VMs, we pass it on a little bit
+  const df = discount ? 90 / 100 : 1;
+  return (2 * p * df) / AVG_MONTH_DAYS;
 }
 
 const VMS_DATA: VMsType[string][] = [
   {
-    price_day: rawPrice2Retail(70.9),
+    price_day: rawPrice2Retail(70.9, true),
     spec: { mem: 7, cpu: 2 },
     quota: { dedicated_vm: "n2-standard-2" },
   },
   {
-    price_day: rawPrice2Retail(95.64),
+    price_day: rawPrice2Retail(95.64, true),
     spec: { mem: 15, cpu: 2 },
     quota: { dedicated_vm: "n2-highmem-2" },
   },
   {
-    price_day: rawPrice2Retail(141.79),
+    price_day: rawPrice2Retail(141.79, true),
     spec: { mem: 15, cpu: 4 },
     quota: { dedicated_vm: "n2-standard-4" },
   },
   {
-    price_day: rawPrice2Retail(191.28),
+    price_day: rawPrice2Retail(191.28, true),
     spec: { mem: 31, cpu: 4 },
     quota: { dedicated_vm: "n2-highmem-4" },
   },
   {
-    price_day: rawPrice2Retail(283.58),
+    price_day: rawPrice2Retail(283.58, true),
     spec: { mem: 31, cpu: 8 },
     quota: { dedicated_vm: "n2-standard-8" },
   },
   {
-    price_day: rawPrice2Retail(382.56),
+    price_day: rawPrice2Retail(382.56, true),
     spec: { mem: 62, cpu: 8 },
     quota: { dedicated_vm: "n2-highmem-8" },
+  },
+  {
+    price_day: rawPrice2Retail(567.17, true),
+    spec: { mem: 62, cpu: 16 },
+    quota: { dedicated_vm: "n2-standard-16" },
+  },
+  {
+    price_day: rawPrice2Retail(765.12, true),
+    spec: { mem: 126, cpu: 16 },
+    quota: { dedicated_vm: "n2-highmem-16" },
   },
 ];
 
@@ -88,7 +100,7 @@ for (const size_gb of [64, 128, 256]) {
     const quota = {
       dedicated_disk: { size_gb, type },
     };
-    const title = `${size_gb} GB ${DISK_NAMES[type]}`;
+    const title = dedicated_disk_display(quota.dedicated_disk);
     const price_day = rawPrice2Retail(DISK_MONTHLY_1GB[type] * size_gb);
     const iops = `${size_gb * IOPS[type].read}/${size_gb * IOPS[type].write}`;
     const mbps =
