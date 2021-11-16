@@ -63,7 +63,7 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
         table="public_paths"
         style={{ float: "right" }}
       />
-      <b>How you are sharing {path}</b>
+      <b>How you are sharing "{path}"</b>
       <Space direction="vertical" style={{ width: "100%" }}>
         <EditRow label="Description">
           <Input.TextArea
