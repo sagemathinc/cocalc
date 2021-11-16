@@ -27,7 +27,7 @@ export default function EditRow({ label, description, children }: Props) {
       ) : (
         <div style={{ width: "100%" }}>
           {" "}
-          <div style={{ color: "#666", fontSize: "10pt" }}>{description}</div>
+          <div style={{ color: "#666", fontSize: "10pt", marginBottom:'5px' }}>{description}</div>
           {children}
         </div>
       )}
