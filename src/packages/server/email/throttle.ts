@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Enforce limits on the number of that a user can cause to be sent.
 
 For now starting with a simple limit: at most XXX messages per day.
@@ -6,7 +11,9 @@ For now starting with a simple limit: at most XXX messages per day.
 
 const DAILY_LIMIT = 1000;
 
+import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import getPool from "@cocalc/database/pool";
+import { getServerSettings } from "@cocalc/server/settings";
 
 // Call this function whenever an email will be sent on behalf of the given account.
 // It will increment a counter for each day, and if it goes too high it throws
@@ -35,11 +42,13 @@ export default async function sendEmailThrottle(
       [id, day]
     );
   } else {
+    const settings = await getServerSettings();
+    const expire = pii_retention_to_future(settings.pii_retention ?? false);
     // It's possible another server created email_counter in the meantime,
     // hence the "ON CONFLICT".
     await pool.query(
-      "INSERT INTO email_counter (id,time,count) VALUES($1,$2,1) ON CONFLICT (id, time) DO UPDATE SET count = excluded.count + 1",
-      [id, day]
+      "INSERT INTO email_counter (id,time,count,expire) VALUES($1,$2,1,$3) ON CONFLICT (id, time) DO UPDATE SET count = excluded.count + 1",
+      [id, day, expire]
     );
   }
 }

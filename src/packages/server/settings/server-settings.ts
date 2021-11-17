@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import LRU from "lru-cache";
 import { AllSiteSettingsCached as ServerSettings } from "@cocalc/util/db-schema/types";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
