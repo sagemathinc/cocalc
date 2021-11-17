@@ -72,9 +72,10 @@ const DISK_CONFIGS: Item[] = ICONS.slice(1).map((battery, idx) => {
 });
 
 export default function Products({ customize }) {
+  const { siteName } = customize;
   return (
     <Customize value={customize}>
-      <Head title={"Dedicated Resources"} />
+      <Head title={"Dedicated virtual machines and disks"} />
       <Header page="pricing" subPage="dedicated" />
       <Layout.Content
         style={{
@@ -92,21 +93,21 @@ export default function Products({ customize }) {
           <div style={{ textAlign: "center", color: "#444" }}>
             <h1 style={{ fontSize: "28pt" }}>
               <Icon name="server" style={{ marginRight: "30px" }} /> Dedicated
-              Resources
+              VMs and Disks
             </h1>
           </div>
           <div style={{ fontSize: "12pt" }}>
             <h2>
-              <strong>Dedicated VMs</strong>
+              <strong>Dedicated Virtual Machines</strong>
             </h2>
             <p>
               Upgrade one of your projects to run on a <b>Dedicated VM</b>. This
-              is an additional node in CoCalc's cluster, where no resources are
-              shared with other projects. That machine can be <b>much</b> larger
-              than any of our generic machines as well. This allows you to run
-              much more intensive workloads with consistent performance, because
-              the usual quota limitations do not apply. You can also rent
-              additional disk space for faster additional storage.
+              is an additional node in {siteName}'s cluster, where no resources
+              are shared with other projects. That machine can be <b>much</b>{" "}
+              larger than any of our generic machines as well. This allows you
+              to run much more intensive workloads with consistent performance,
+              because the usual quota limitations do not apply. You can also
+              rent additional disk space for faster additional storage.
             </p>
             <p>
               To get started, please contact us at{" "}
