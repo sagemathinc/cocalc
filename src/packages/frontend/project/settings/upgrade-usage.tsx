@@ -23,7 +23,7 @@ import {
   DedicatedDisk,
   DedicatedVM,
   dedicated_disk_display,
-} from "@cocalc/util/db-schema/site-licenses";
+} from "@cocalc/util/types/dedicated";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { plural } from "@cocalc/util/misc";
 import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
@@ -163,7 +163,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo((props: Props) => {
     if (dedicated_resources == null) return <div>Dedicated VM not defined</div>;
     if (dedicated_resources.vm === false) throw new Error("AssertionError");
     const vm = dedicated_resources.vm;
-    const human_readable = PRICES.vms[vm.machine]?.name;
+    const human_readable = PRICES.vms[vm.machine]?.title;
     const name = vm.name;
 
     return (

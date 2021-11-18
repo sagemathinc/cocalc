@@ -44,13 +44,13 @@ const dataSource = [
   },
   {
     link: "/pricing/dedicated",
-    title: "Dedicated Virtual Machines",
+    title: "Dedicated Resources",
     logo: "server",
     description: (
       <>
         How to{" "}
         <A href="/pricing/dedicated">
-          rent a dedicated powerful virtual machine or large disk
+          rent a dedicated powerful virtual machine or large dedicated disk
         </A>
         , which can greatly improve collaboration and scalability in your
         research group.
