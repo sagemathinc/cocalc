@@ -67,7 +67,6 @@ export class SiteLicense extends Component<Props, State> {
           }}
           onCancel={() => this.setState({ show_site_license: false })}
         />
-        <br />
       </div>
     );
   }

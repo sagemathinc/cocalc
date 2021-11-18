@@ -47,6 +47,13 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
   if (loading || !value) {
     return <Loading delay={0.2} />;
   }
+
+  // cheap to compute, so we compute every time.
+  const visibility = edited.disabled
+    ? "private"
+    : edited.unlisted
+    ? "unlisted"
+    : "listed";
   return (
     <div
       style={{
@@ -87,13 +94,7 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
         </EditRow>
         <EditRow label="Visibility">
           <Radio.Group
-            value={
-              edited.disabled
-                ? "private"
-                : edited.unlisted
-                ? "unlisted"
-                : "listed"
-            }
+            value={visibility}
             onChange={(e) => {
               switch (e.target.value) {
                 case "listed":
@@ -129,7 +130,7 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
             <>
               Optional{" "}
               <A href="https://opensource.org/licenses">open source license</A>{" "}
-              which tells people how they may use your code:
+              which tells people how they may use what you are sharing:
             </>
           }
         >
@@ -158,7 +159,7 @@ function License({ license, onChange }) {
       showSearch
       value={license}
       style={{ width: "100%" }}
-      placeholder="Select a license"
+      placeholder="Select an open source license"
       optionFilterProp="children"
       onChange={onChange}
       filterOption={(input, option) =>
@@ -168,4 +169,7 @@ function License({ license, onChange }) {
       {options}
     </Select>
   );
+}
+
+function SiteLicenses({siteLicense, onChange}) {
 }
