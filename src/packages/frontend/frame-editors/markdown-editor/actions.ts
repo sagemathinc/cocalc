@@ -65,7 +65,6 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     if (this.is_public) {
       return { type: "markdown" };
     } else {
-      // We will switch to this when slate is more mature...
       return {
         direction: "col",
         type: "node",
@@ -73,21 +72,9 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
           type: "cm",
         },
         second: {
-          type: "markdown",
+          type: "slate", // if hit issues, switch to "markdown"
         },
       };
-      /*
-      return {
-        direction: "col",
-        type: "node",
-        first: {
-          type: "cm",
-        },
-        second: {
-          type: "slate",
-        },
-      };
-      */
     }
   }
 
