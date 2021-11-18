@@ -11,7 +11,6 @@ export default function EditRow({ label, description, children }: Props) {
     <div style={{ display: "flex", marginTop: "15px" }}>
       <div
         style={{
-          width: "20%",
           minWidth: "12ex",
           color: "#555",
           paddingRight: "15px",
