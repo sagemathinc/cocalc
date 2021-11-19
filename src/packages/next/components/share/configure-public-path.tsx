@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Checkbox, Input, Select, Space } from "antd";
+import { Alert, Radio, Input, Select, Space } from "antd";
 import useDatabase from "lib/hooks/database";
 import Loading from "./loading";
 import { LICENSES } from "@cocalc/frontend/share/licenses";
@@ -86,27 +86,42 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
           />
         </EditRow>
         <EditRow label="Visibility">
-          <Checkbox
-            style={{ width: "50%" }}
-            checked={edited.unlisted}
-            onChange={(e) =>
-              setEdited({ ...edited, unlisted: e.target.checked })
+          <Radio.Group
+            value={
+              edited.disabled
+                ? "private"
+                : edited.unlisted
+                ? "unlisted"
+                : "listed"
             }
+            onChange={(e) => {
+              switch (e.target.value) {
+                case "listed":
+                  setEdited({ ...edited, unlisted: false, disabled: false });
+                  break;
+                case "unlisted":
+                  setEdited({ ...edited, unlisted: true, disabled: false });
+                  break;
+                case "private":
+                  setEdited({ ...edited, unlisted: true, disabled: true });
+                  break;
+              }
+            }}
           >
-            <b>Unlisted:</b> only people with the link can view this. Check this
-            to keep the share publicly visible, but not discoverable via search.
-          </Checkbox>{" "}
-          <Checkbox
-            style={{ width: "50%" }}
-            checked={edited.disabled}
-            onChange={(e) =>
-              setEdited({ ...edited, disabled: e.target.checked })
-            }
-          >
-            <b>Disabled:</b> only collaborators on the project can see this.
-            Check this to completely disable this share and make it so you must
-            open the project.
-          </Checkbox>
+            <Space direction="vertical">
+              <Radio value={"listed"}>
+                <em>Public (listed): </em> anybody can find this via search.
+              </Radio>
+              <Radio value={"unlisted"}>
+                <em>Public (unlisted):</em> only people with the link can view
+                this.
+              </Radio>
+              <Radio value={"private"}>
+                <em>Private:</em> only collaborators on the project can view
+                this.
+              </Radio>
+            </Space>
+          </Radio.Group>
         </EditRow>
         <EditRow
           label="License"
