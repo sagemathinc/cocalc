@@ -61,6 +61,7 @@ collab = require('./postgres/collab')
 {getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/server/settings/server-settings');
 {pii_expire} = require("./postgres/pii")
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
+registrationTokens = require('./postgres/registration-tokens').default;
 
 stripe_name = require('@cocalc/util/stripe/name').default;
 
@@ -1834,7 +1835,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             opts.cb(undefined, await create_project(opts))
         catch err
             opts.cb(err)
-    
+
     ###
     File editing activity -- users modifying files in any way
       - one single table called file_activity
@@ -3190,3 +3191,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             return result.rows[0].organization_id
         return undefined
 
+    # async
+    registrationTokens: (options, query) =>
+        return await registrationTokens(@, options, query)

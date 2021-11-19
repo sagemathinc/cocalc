@@ -13,61 +13,12 @@ import {
   RegistrationTokenSetFields,
   RegistrationTokenGetFields,
 } from "./types";
-import { callback2 as cb2 } from "../async-utils";
-
-function is_delete(options: Array<{ delete?: boolean }>) {
-  return options.some((v) => v?.delete === true);
-}
 
 // this covers 3 cases: selecting all, updating one, and deleting one
-async function instead_of_query(
-  db,
-  opts: any,
-  cb: Function
-): Promise<void> {
+async function instead_of_query(db, opts: any, cb: Function): Promise<void> {
   const { options, query } = opts;
   try {
-    if (is_delete(options) && query.token) {
-      // delete if option is set and there is a token which is defined and not an empty string
-      await cb2(db._query, {
-        query: "DELETE FROM registration_tokens WHERE token = $1",
-        params: [query.token],
-      });
-      cb(null);
-    } else {
-      // either we want to get all tokens or insert/edit one
-
-      if (query.token == "*") {
-        // select all tokens
-        const data = await cb2(db._query, {
-          query: "SELECT * FROM registration_tokens",
-        });
-        cb(null, data.rows);
-      } else if (query.token != null && query.token != "") {
-        // upsert an existing one
-        const { token, descr, expires, limit, disabled } = query;
-        await cb2(db._query, {
-          query: `INSERT INTO registration_tokens ("token","descr","expires","limit","disabled")
-                  VALUES ($1, $2, $3, $4, $5) ON CONFLICT (token)
-                  DO UPDATE SET
-                    "token"    = EXCLUDED.token,
-                    "descr"    = EXCLUDED.descr,
-                    "expires"  = EXCLUDED.expires,
-                    "limit"    = EXCLUDED.limit,
-                    "disabled" = EXCLUDED.disabled`,
-          params: [
-            token,
-            descr ? descr : null,
-            expires ? expires : null,
-            limit >= 0 ? limit : null,
-            disabled != null ? disabled : false,
-          ],
-        });
-        cb(null);
-      } else {
-        throw new Error("don't know what to do with this query");
-      }
-    }
+    cb(undefined, await db.registrationTokens(options, query));
   } catch (err) {
     cb(err);
   }
