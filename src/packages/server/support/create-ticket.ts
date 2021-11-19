@@ -84,7 +84,7 @@ async function toURL({
 }) {
   let s = (await siteURL()) + "/" + encodeURI(`projects/${project_id}`);
   if (!path) return s;
-  return s + `/files/${path}`;
+  return s + encodeURI(`/files/${path}`);
 }
 
 async function getUser(
