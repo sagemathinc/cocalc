@@ -73,19 +73,22 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
       />
       <b>How you are sharing "{path}"</b>
       <Space direction="vertical" style={{ width: "100%" }}>
-        <EditRow label="Description">
+        <EditRow
+          label="Describe what you are sharing"
+          description="Use relevant keywords, inspire curiosity by providing just enough information to explain what this is about, and keep your description to about two lines.  You can change this at any time."
+        >
           <Input.TextArea
             style={{ width: "100%" }}
             value={edited.description}
             onChange={(e) =>
               setEdited({ ...edited, description: e.target.value })
             }
-            autoSize
+            autoSize={{ minRows: 2, maxRows: 6 }}
           />
         </EditRow>
         <EditRow
-          label="Name"
-          description="Optional name that may be used to provide a nicer URL:"
+          label="Choose a name for a nicer URL"
+          description="An optional name can provide a much nicer and more memorable URL.  You must also name your project (in project settings) and the owner of the project to get a nice URL."
         >
           <Input
             style={{ width: "100%" }}
@@ -93,7 +96,13 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
             onChange={(e) => setEdited({ ...edited, name: e.target.value })}
           />
         </EditRow>
-        <EditRow label="Visibility">
+        <EditRow
+          label="Listed, Unlisted or Private?"
+          description="You make files or directories public to the world, either indexed by
+      search engines (listed), or only visible with the link (unlisted). Files
+      are automatically copied to the public server within about 30 seconds
+      after you explicitly edit them."
+        >
           <Space direction="vertical">
             <Radio.Group
               value={visibility}
@@ -125,22 +134,35 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
                 </Radio>
               </Space>
             </Radio.Group>
-            {visibility == "unlisted" && (
-              <SelectSiteLicense
-                onChange={(licenseId) => {
-                  console.log("select ", licenseId);
-                }}
-              />
-            )}
           </Space>
         </EditRow>
+        {visibility == "unlisted" && (
+          <EditRow
+            label="Upgrade your users with a site license?"
+            description={
+              <>
+                For unlisted shares, you can select a site license that you
+                manage, and anybody who edits a copy of this share will have
+                this license applied to their project. You can track and remove
+                such license usage in the <A>license management page</A> (coming
+                soon).
+              </>
+            }
+          >
+            <SelectSiteLicense
+              onChange={(licenseId) => {
+                console.log("select ", licenseId);
+              }}
+            />
+          </EditRow>
+        )}
         <EditRow
-          label="License"
+          label="Permission"
           description={
             <>
-              Optional{" "}
+              An optional{" "}
               <A href="https://opensource.org/licenses">open source license</A>{" "}
-              which tells people how they may use what you are sharing:
+              tells people how they may use what you are sharing.
             </>
           }
         >

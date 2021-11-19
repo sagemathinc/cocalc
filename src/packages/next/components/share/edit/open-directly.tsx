@@ -39,7 +39,7 @@ export default function OpenDirectly({
         <>
           <br />
           You can adjust how this is shared below, or turn off sharing by
-          checking "Disabled".
+          selecting <em>Private</em> below.
           <ConfigurePublicPath id={id} project_id={project_id} path={path} />
         </>
       ) : (

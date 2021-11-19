@@ -6,7 +6,7 @@ Component takes as input data that describes a licens.
 IMPORTANT: this component must work in *both* from nextjs and static.
 */
 
-import { useRef, useMemo, useState } from "react";
+import { ReactNode, useRef, useMemo, useState } from "react";
 import { Alert, Button, Checkbox, Select, Space } from "antd";
 const { Option } = Select;
 import { isValidUUID, days_ago as daysAgo, len } from "@cocalc/util/misc";
@@ -26,6 +26,7 @@ interface Props {
   exclude?: string[];
   managedLicenses: { [id: string]: License };
   defaultLicenseId?: string;
+  confirmLabel?: ReactNode;
 }
 
 export default function SelectLicense({
@@ -34,6 +35,7 @@ export default function SelectLicense({
   onCancel,
   exclude,
   managedLicenses,
+  confirmLabel,
 }: Props) {
   const isBlurredRef = useRef<boolean>(true);
   const [licenseId, setLicenseId] = useState<string>(defaultLicenseId ?? "");
@@ -89,76 +91,70 @@ export default function SelectLicense({
 
   return (
     <div>
-      <Select
-        style={{ width: "80%", margin: "5px 0" }}
-        placeholder={
-          "Enter license code " +
-          (options.length > 0
-            ? `or select from the ${options.length} licenses you manage`
-            : "")
-        }
-        value={licenseId ? licenseId : undefined}
-        onBlur={() => {
-          isBlurredRef.current = true;
-        }}
-        onFocus={() => {
-          isBlurredRef.current = false;
-        }}
-        onChange={(value) => {
-          setLicenseId(value);
-        }}
-        onSearch={(value) => {
-          // we **abuse** search to let user enter any license key they want!
-          if (isBlurredRef.current) return; // hack since blur when text is not in list clears things.
-          setLicenseId(value);
-        }}
-        notFoundContent={null}
-        showSearch
-        allowClear
-      >
-        {options}
-      </Select>
-
-      {(showAll || licenseIds.length < len(managedLicenses)) && (
-        <Checkbox
-          style={{ marginLeft: "15px", fontWeight: 450 }}
-          checked={showAll}
-          onChange={() => setShowAll(!showAll)}
-        >
-          Show all
-        </Checkbox>
-      )}
-
-      <br />
-      <Space>
-        <Button
-          disabled={!valid}
-          type="primary"
-          onClick={() => {
-            onSave(licenseId);
+      <div style={{ width: "100%", display: "flex" }}>
+        <Select
+          style={{ margin: "5px 15px 10px 0", flex: 1 }}
+          placeholder={
+            "Enter license code " +
+            (options.length > 0
+              ? `or select from the ${options.length} licenses you manage`
+              : "")
+          }
+          value={licenseId ? licenseId : undefined}
+          onBlur={() => {
+            isBlurredRef.current = true;
           }}
-        >
-          <Icon name="check"/> Apply License
-        </Button>
-        <Button
-          onClick={() => {
-            if (onCancel != null) {
-              onCancel();
-            } else {
-              setLicenseId("");
-            }
+          onFocus={() => {
+            isBlurredRef.current = false;
           }}
+          onChange={(value) => {
+            setLicenseId(value);
+          }}
+          onSearch={(value) => {
+            // we **abuse** search to let user enter any license key they want!
+            if (isBlurredRef.current) return; // hack since blur when text is not in list clears things.
+            setLicenseId(value);
+          }}
+          notFoundContent={null}
+          showSearch
+          allowClear
         >
-          Cancel
-        </Button>
-        {!valid && licenseId && (
-          <Alert
-            style={{ margin: "15px" }}
-            type="error"
-            message="Valid license keys are 36 characters long."
-          />
+          {options}
+        </Select>
+
+        {(showAll || licenseIds.length < len(managedLicenses)) && (
+          <Checkbox
+            style={{ marginTop: "10px" }}
+            checked={showAll}
+            onChange={() => setShowAll(!showAll)}
+          >
+            Show expired
+          </Checkbox>
         )}
-      </Space>
+      </div>
+      {(onSave || onCancel) && (
+        <Space>
+          {onSave && (
+            <Button
+              disabled={!valid}
+              type="primary"
+              onClick={() => {
+                onSave(licenseId);
+              }}
+            >
+              <Icon name="check" /> {confirmLabel ?? "Apply License"}
+            </Button>
+          )}
+          {onCancel && <Button onClick={onCancel}>Cancel</Button>}
+        </Space>
+      )}
+      {!valid && licenseId && (
+        <Alert
+          style={{ margin: "15px" }}
+          type="error"
+          message="Valid license keys are 36 characters long."
+        />
+      )}
     </div>
   );
 }

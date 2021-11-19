@@ -38,9 +38,10 @@ export default function SelectSiteLicense({
   }
   return (
     <SelectLicense
-      onSave={onChange}
+      onChange={onChange}
       defaultLicenseId={defaultLicenseId}
       managedLicenses={managedLicenses}
+      confirmLabel={"Use This Site License"}
     />
   );
 }

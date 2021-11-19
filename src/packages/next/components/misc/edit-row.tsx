@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { Divider } from "antd";
 
 interface Props {
   label: ReactNode;
@@ -8,26 +9,16 @@ interface Props {
 
 export default function EditRow({ label, description, children }: Props) {
   return (
-    <div style={{ display: "flex", marginTop: "15px" }}>
-      <div
-        style={{
-          minWidth: "12ex",
-          color: "#555",
-          paddingRight: "15px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-        }}
-      >
-        <b>{label}</b>
-      </div>
+    <div>
+      <Divider orientation="left">{label}</Divider>
       {description == null ? (
         children
       ) : (
         <div style={{ width: "100%" }}>
-          {" "}
-          <div style={{ color: "#666", fontSize: "10pt", marginBottom:'5px' }}>{description}</div>
           {children}
+          <div style={{ color: "#666", fontSize: "10pt", marginTop: "10px" }}>
+            {description}
+          </div>
         </div>
       )}
     </div>

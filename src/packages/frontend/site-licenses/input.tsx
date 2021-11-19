@@ -29,6 +29,7 @@ export function SiteLicenseInput({ onSave, onCancel, exclude }: Props) {
       onCancel={onCancel}
       exclude={exclude}
       managedLicenses={managedLicenses.toJS() as { [id: string]: License }}
+      confirmLabel={"Apply License"}
     />
   );
 }
