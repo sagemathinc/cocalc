@@ -10,11 +10,22 @@ A table of a list of public paths.
 import { Table } from "antd";
 import { PublicPath } from "lib/share/types";
 import A from "components/misc/A";
+import SanitizedMarkdown from "components/misc/sanitized-markdown";
 
 function Description({ description }: { description: string }) {
+  if (!description?.trim()) return null;
   return (
-    <div style={{ maxWidth: "50ex", maxHeight: "5em", overflow: "auto" }}>
-      {`${description}`}
+    <div
+      style={{
+        maxWidth: "50ex",
+        maxHeight: "4em",
+        overflow: "auto",
+        border: "1px solid #eee",
+        borderRadius: "3px",
+        padding: "5px",
+      }}
+    >
+      <SanitizedMarkdown value={description} />
     </div>
   );
 }

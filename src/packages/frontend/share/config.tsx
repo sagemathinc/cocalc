@@ -106,7 +106,7 @@ class Configure extends Component<Props, State> {
 
   private render_how_shared_heading(): Rendered {
     return (
-      <div style={{ color: "#444", fontSize: "15pt" }}>Public or Private?</div>
+      <div style={{ color: "#444", fontSize: "15pt" }}>Listed, Unlisted or Private?</div>
     );
   }
 
@@ -277,7 +277,7 @@ class Configure extends Component<Props, State> {
         <h4>Description{this.get_description() ? "" : " (optional)"}</h4>
         Use relevant keywords, inspire curiosity by providing just enough
         information to explain what this is about, and keep your description to
-        about two lines.
+        about two lines.  Use Markdown and LaTeX.
         <FormGroup style={{ paddingTop: "5px" }}>
           <FormControl
             autoFocus={true}

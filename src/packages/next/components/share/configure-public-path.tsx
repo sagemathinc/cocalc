@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Radio, Input, Select, Space } from "antd";
+import { Alert, Divider, Radio, Input, Select, Space } from "antd";
 import useDatabase from "lib/hooks/database";
 import Loading from "./loading";
 import { LICENSES } from "@cocalc/frontend/share/licenses";
@@ -7,6 +7,8 @@ import Save from "components/misc/save-button";
 import EditRow from "components/misc/edit-row";
 import A from "components/misc/A";
 import SelectSiteLicense from "components/misc/select-site-license";
+import { Icon } from "@cocalc/frontend/components/icon";
+import LaTeX from "components/landing/latex";
 
 const { Option } = Select;
 
@@ -69,13 +71,19 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
         edited={edited}
         defaultOriginal={value.public_paths}
         table="public_paths"
-        style={{ float: "right" }}
       />
-      <b>How you are sharing "{path}"</b>
+      <Divider>How you are sharing "{path}"</Divider>
       <Space direction="vertical" style={{ width: "100%" }}>
         <EditRow
           label="Describe what you are sharing"
-          description="Use relevant keywords, inspire curiosity by providing just enough information to explain what this is about, and keep your description to about two lines.  You can change this at any time."
+          description={
+            <>
+              Use relevant keywords, inspire curiosity by providing just enough
+              information to explain what this is about, and keep your
+              description to about two lines. Use Markdown and <LaTeX />. You
+              can change this at any time.
+            </>
+          }
         >
           <Input.TextArea
             style={{ width: "100%" }}
@@ -88,10 +96,10 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
         </EditRow>
         <EditRow
           label="Choose a name for a nicer URL"
-          description="An optional name can provide a much nicer and more memorable URL.  You must also name your project (in project settings) and the owner of the project to get a nice URL."
+          description="An optional name can provide a much nicer and more memorable URL.  You must also name your project (in project settings) and the owner of the project to get a nice URL.  (WARNING: Changing this once it is set can break links, since automatic redirection is not implemented.)"
         >
           <Input
-            style={{ width: "100%" }}
+            style={{ maxWidth: "100%", width: "30em" }}
             value={edited.name}
             onChange={(e) => setEdited({ ...edited, name: e.target.value })}
           />
@@ -99,9 +107,9 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
         <EditRow
           label="Listed, Unlisted or Private?"
           description="You make files or directories public to the world, either indexed by
-      search engines (listed), or only visible with the link (unlisted). Files
+      search engines (listed), or only visible with the link (unlisted). Public files
       are automatically copied to the public server within about 30 seconds
-      after you explicitly edit them."
+      after you explicitly edit them.  You can also set a site license for unlisted public shares."
         >
           <Space direction="vertical">
             <Radio.Group
@@ -122,15 +130,16 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
             >
               <Space direction="vertical">
                 <Radio value={"listed"}>
-                  <em>Public (listed): </em> anybody can find this via search.
+                  <Icon name="eye" /> <em>Public (listed): </em> anybody can
+                  find this via search.
                 </Radio>
                 <Radio value={"unlisted"}>
-                  <em>Public (unlisted):</em> only people with the link can view
-                  this.
+                  <Icon name="eye-slash" /> <em>Public (unlisted):</em> only
+                  people with the link can view this.
                 </Radio>
                 <Radio value={"private"}>
-                  <em>Private:</em> only collaborators on the project can view
-                  this.
+                  <Icon name="lock" /> <em>Private:</em> only collaborators on
+                  the project can view this.
                 </Radio>
               </Space>
             </Radio.Group>
@@ -138,14 +147,14 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
         </EditRow>
         {visibility == "unlisted" && (
           <EditRow
-            label="Upgrade your users with a site license?"
+            label="Upgrade with a site license?"
             description={
               <>
                 For unlisted shares, you can select a site license that you
                 manage, and anybody who edits a copy of this share will have
-                this license applied to their project. You can track and remove
-                such license usage in the <A>license management page</A> (coming
-                soon).
+                this site license applied to their project. You can track and
+                remove usage of this license in the{" "}
+                <A>license management page</A> (coming soon).
               </>
             }
           >

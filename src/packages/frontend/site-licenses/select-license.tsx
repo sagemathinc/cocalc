@@ -124,7 +124,7 @@ export default function SelectLicense({
 
         {(showAll || licenseIds.length < len(managedLicenses)) && (
           <Checkbox
-            style={{ marginTop: "10px" }}
+            style={{ marginTop: "10px", color: "#666" }}
             checked={showAll}
             onChange={() => setShowAll(!showAll)}
           >

@@ -9,6 +9,7 @@ import useCounter from "lib/share/counter";
 import { Layout } from "components/share/layout";
 import { Customize } from "lib/share/customize";
 import { getTitle } from "lib/share/util";
+import SanitizedMarkdown from "components/misc/sanitized-markdown";
 
 export default function PublicPath({
   id,
@@ -49,19 +50,18 @@ export default function PublicPath({
           id={id}
           isDir={contents?.isdir}
         />
-        {description && (
+        <br />
+        {description?.trim() && (
           <>
-            <br />
-            <b>Description:</b> {description}
+            <b>Description:</b> <SanitizedMarkdown value={description} />
           </>
         )}
         {counter && (
           <>
-            <br />
             <b>Views:</b> {counter}
+            <br />
           </>
         )}
-        <br />
         <b>License:</b> <License license={license} />
         <br />
         {compute_image && (
