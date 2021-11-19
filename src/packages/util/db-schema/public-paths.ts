@@ -24,6 +24,7 @@ export interface PublicPath {
   vhost?: string;
   auth?: string;
   compute_image?: string;
+  site_license_id?: string;
 }
 
 // Get publicly available information about a project.
@@ -121,6 +122,10 @@ Table({
       type: "string",
       desc: "The underlying compute image, which defines the associated software stack. e.g. 'default', 'custom/some-id/latest', ...",
     },
+    site_license_id: {
+      type: "string",
+      desc: "Site license to apply to projects editing a copy of this.",
+    },
   },
   rules: {
     primary_key: "id",
@@ -152,6 +157,7 @@ Table({
           counter: null,
           // don't use DEFAULT_COMPUTE_IMAGE, because old shares without that val set will always be "default"!
           compute_image: "default",
+          // do NOT allow to read the site_license_id.
         },
       },
       set: {
@@ -169,6 +175,7 @@ Table({
           last_edited: true,
           created: true,
           compute_image: true,
+          site_license_id: true, // user with write access to project can set this.
         },
         required_fields: {
           id: true,
@@ -258,7 +265,6 @@ Table({
 Table({
   name: "all_public_paths",
   rules: {
-    anonymous: true,
     virtual: "public_paths",
     user_query: {
       get: {
@@ -283,6 +289,28 @@ Table({
           last_saved: null,
           counter: null,
           compute_image: null,
+        },
+      },
+    },
+  },
+});
+
+// This is the only way to get the site_license_id for a given public path.
+// Requester must have write access to the project.  This is just like the
+// public_paths table, but NOT anonymous, and only provides a get query
+// with access to the site_license_id.
+Table({
+  name: "public_paths_site_license_id",
+  rules: {
+    virtual: "public_paths",
+    user_query: {
+      get: {
+        pg_where: [{ "project_id = $::UUID": "project_id" }],
+        fields: {
+          id: null,
+          project_id: null,
+          path: null,
+          site_license_id: null,
         },
       },
     },

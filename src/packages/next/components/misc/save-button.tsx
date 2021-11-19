@@ -52,7 +52,7 @@ export default function Save({ edited, defaultOriginal, table, style }: Props) {
         onClick={() => save(table, edited)}
       >
         <Space>
-          <Icon name="save" />
+          <Icon name={same ? "check" : "save"} />
           {saving ? <Loading>Saving...</Loading> : "Save"}
           {!same && error && (
             <div

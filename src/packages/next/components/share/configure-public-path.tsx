@@ -34,20 +34,45 @@ interface Info {
   unlisted?: boolean;
   license?: string;
   compute_image?: string;
+  site_license_id?: string;
 }
 
 export default function ConfigurePublicPath({ id, project_id, path }: Props) {
-  const { error, loading, value } = useDatabase({
+  const publicPaths = useDatabase({
     public_paths: { ...QUERY, id, project_id, path },
   });
-  const [edited, setEdited] = useState<Info>({});
-  useEffect(() => {
-    if (!loading && value) {
-      setEdited(value.public_paths);
-    }
-  }, [loading]);
+  const siteLicense = useDatabase({
+    public_paths_site_license_id: {
+      site_license_id: null,
+      id,
+      project_id,
+      path,
+    },
+  });
 
-  if (loading || !value) {
+  const [edited, setEdited] = useState<Info>({});
+  const [original, setOriginal] = useState<Info>({});
+  const [error, setError] = useState<string>("");
+
+  // After loading finishes, either editor or error is set.
+  useEffect(() => {
+    if (publicPaths.loading || siteLicense.loading) return;
+    if (publicPaths.error) {
+      setError(publicPaths.error);
+      return;
+    }
+    if (siteLicense.error) {
+      setError(siteLicense.error);
+      return;
+    }
+    const { site_license_id } = siteLicense.value.public_paths_site_license_id;
+    const { public_paths } = publicPaths.value;
+    const x = { ...public_paths, site_license_id };
+    setEdited(x);
+    setOriginal(x);
+  }, [publicPaths.loading, siteLicense.loading]);
+
+  if (publicPaths.loading || siteLicense.loading) {
     return <Loading delay={0.2} />;
   }
 
@@ -67,11 +92,7 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
       }}
     >
       {error && <Alert type="error" message={error} showIcon />}
-      <Save
-        edited={edited}
-        defaultOriginal={value.public_paths}
-        table="public_paths"
-      />
+      <Save edited={edited} defaultOriginal={original} table="public_paths" />
       <Divider>How you are sharing "{path}"</Divider>
       <Space direction="vertical" style={{ width: "100%" }}>
         <EditRow
@@ -159,8 +180,10 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
             }
           >
             <SelectSiteLicense
-              onChange={(licenseId) => {
-                console.log("select ", licenseId);
+              defaultLicenseId={original.site_license_id}
+              onChange={(site_license_id) => {
+                console.log("select ", site_license_id);
+                setEdited({ ...edited, site_license_id });
               }}
             />
           </EditRow>

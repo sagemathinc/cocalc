@@ -172,8 +172,6 @@ Table({
       type: "integer",
       desc: "The maximum number of projects that may simultaneously have this license applied to them.  When this is exceeded, older projects have the license automatically removed.  If this changes how the projects are upgraded, then those projects are stopped.",
     },
-    // todo: add a subscription field in case this license is paid for by a subscription. We periodically check
-    // that the subscription is still valid, otherwise we expire the license.
   },
   rules: {
     desc: "Site Licenses",

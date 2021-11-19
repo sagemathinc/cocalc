@@ -21,7 +21,8 @@ export interface License {
 }
 
 interface Props {
-  onSave: (licenseId: string) => void;
+  onSave?: (licenseId: string) => void;
+  onChange?: (licenseId: string | undefined) => void; // called with licensed id or undefined when cleared.
   onCancel?: () => void;
   exclude?: string[];
   managedLicenses: { [id: string]: License };
@@ -32,6 +33,7 @@ interface Props {
 export default function SelectLicense({
   defaultLicenseId,
   onSave,
+  onChange,
   onCancel,
   exclude,
   managedLicenses,
@@ -108,11 +110,13 @@ export default function SelectLicense({
             isBlurredRef.current = false;
           }}
           onChange={(value) => {
+            onChange?.(value);
             setLicenseId(value);
           }}
           onSearch={(value) => {
             // we **abuse** search to let user enter any license key they want!
             if (isBlurredRef.current) return; // hack since blur when text is not in list clears things.
+            onChange?.(value);
             setLicenseId(value);
           }}
           notFoundContent={null}
