@@ -7,7 +7,7 @@
 
 import { redux, useTypedRedux, useEffect } from "../app-framework";
 import { Loading } from "../components";
-import SelectLicense from "./select-license";
+import SelectLicense, { License } from "./select-license";
 
 interface Props {
   onSave: (licenseId: string) => void;
@@ -28,7 +28,7 @@ export function SiteLicenseInput({ onSave, onCancel, exclude }: Props) {
       onSave={onSave}
       onCancel={onCancel}
       exclude={exclude}
-      managedLicenses={managedLicenses.toJS() as any[]}
+      managedLicenses={managedLicenses.toJS() as { [id: string]: License }}
     />
   );
 }

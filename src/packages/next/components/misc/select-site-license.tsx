@@ -32,7 +32,8 @@ export default function SelectSiteLicense({
     return <Alert type="error" message={error} />;
   }
   const managedLicenses: { [id: string]: License } = {};
-  for (const license of value) {
+  console.log("value = ", value);
+  for (const license of value.manager_site_licenses) {
     managedLicenses[license.id] = license;
   }
   return (

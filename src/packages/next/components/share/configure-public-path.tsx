@@ -6,6 +6,7 @@ import { LICENSES } from "@cocalc/frontend/share/licenses";
 import Save from "components/misc/save-button";
 import EditRow from "components/misc/edit-row";
 import A from "components/misc/A";
+import SelectSiteLicense from "components/misc/select-site-license";
 
 const { Option } = Select;
 
@@ -93,36 +94,45 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
           />
         </EditRow>
         <EditRow label="Visibility">
-          <Radio.Group
-            value={visibility}
-            onChange={(e) => {
-              switch (e.target.value) {
-                case "listed":
-                  setEdited({ ...edited, unlisted: false, disabled: false });
-                  break;
-                case "unlisted":
-                  setEdited({ ...edited, unlisted: true, disabled: false });
-                  break;
-                case "private":
-                  setEdited({ ...edited, unlisted: true, disabled: true });
-                  break;
-              }
-            }}
-          >
-            <Space direction="vertical">
-              <Radio value={"listed"}>
-                <em>Public (listed): </em> anybody can find this via search.
-              </Radio>
-              <Radio value={"unlisted"}>
-                <em>Public (unlisted):</em> only people with the link can view
-                this.
-              </Radio>
-              <Radio value={"private"}>
-                <em>Private:</em> only collaborators on the project can view
-                this.
-              </Radio>
-            </Space>
-          </Radio.Group>
+          <Space direction="vertical">
+            <Radio.Group
+              value={visibility}
+              onChange={(e) => {
+                switch (e.target.value) {
+                  case "listed":
+                    setEdited({ ...edited, unlisted: false, disabled: false });
+                    break;
+                  case "unlisted":
+                    setEdited({ ...edited, unlisted: true, disabled: false });
+                    break;
+                  case "private":
+                    setEdited({ ...edited, unlisted: true, disabled: true });
+                    break;
+                }
+              }}
+            >
+              <Space direction="vertical">
+                <Radio value={"listed"}>
+                  <em>Public (listed): </em> anybody can find this via search.
+                </Radio>
+                <Radio value={"unlisted"}>
+                  <em>Public (unlisted):</em> only people with the link can view
+                  this.
+                </Radio>
+                <Radio value={"private"}>
+                  <em>Private:</em> only collaborators on the project can view
+                  this.
+                </Radio>
+              </Space>
+            </Radio.Group>
+            {visibility == "unlisted" && (
+              <SelectSiteLicense
+                onChange={(licenseId) => {
+                  console.log("select ", licenseId);
+                }}
+              />
+            )}
+          </Space>
         </EditRow>
         <EditRow
           label="License"
@@ -169,7 +179,4 @@ function License({ license, onChange }) {
       {options}
     </Select>
   );
-}
-
-function SiteLicenses({siteLicense, onChange}) {
 }

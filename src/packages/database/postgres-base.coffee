@@ -57,7 +57,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
         super()
         opts = defaults opts,
-            host            : data.pghost       # or 'hostname:port' or 'host1,host2,...' (multiple hosts) -- TODO -- :port only works for one host.
+            host            : data.pghost       # DEPRECATED: or 'hostname:port' or 'host1,host2,...' (multiple hosts) -- TODO -- :port only works for one host.
             database        : data.pgdatabase
             user            : data.pguser
             debug           : exports.DEBUG

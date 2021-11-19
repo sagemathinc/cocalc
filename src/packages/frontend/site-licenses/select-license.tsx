@@ -12,8 +12,9 @@ const { Option } = Select;
 import { isValidUUID, days_ago as daysAgo, len } from "@cocalc/util/misc";
 import { describe_quota as describeQuota } from "@cocalc/util/db-schema/site-licenses";
 import { keys } from "lodash";
+import { Icon } from "@cocalc/frontend/components/icon";
 
-interface License {
+export interface License {
   expires?: Date;
   title?: string;
   quota?: object;
@@ -21,19 +22,21 @@ interface License {
 
 interface Props {
   onSave: (licenseId: string) => void;
-  onCancel: () => void;
+  onCancel?: () => void;
   exclude?: string[];
   managedLicenses: { [id: string]: License };
+  defaultLicenseId?: string;
 }
 
 export default function SelectLicense({
+  defaultLicenseId,
   onSave,
   onCancel,
   exclude,
   managedLicenses,
 }: Props) {
   const isBlurredRef = useRef<boolean>(true);
-  const [licenseId, setLicenseId] = useState<string>("");
+  const [licenseId, setLicenseId] = useState<string>(defaultLicenseId ?? "");
   const [showAll, setShowAll] = useState<boolean>(false);
   const licenseIds: string[] = useMemo(() => {
     if (showAll) {
@@ -128,7 +131,6 @@ export default function SelectLicense({
 
       <br />
       <Space>
-        <Button onClick={onCancel}>Cancel</Button>
         <Button
           disabled={!valid}
           type="primary"
@@ -136,7 +138,18 @@ export default function SelectLicense({
             onSave(licenseId);
           }}
         >
-          Save
+          <Icon name="check"/> Apply License
+        </Button>
+        <Button
+          onClick={() => {
+            if (onCancel != null) {
+              onCancel();
+            } else {
+              setLicenseId("");
+            }
+          }}
+        >
+          Cancel
         </Button>
         {!valid && licenseId && (
           <Alert
