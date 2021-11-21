@@ -9,6 +9,7 @@ import A from "components/misc/A";
 import SelectSiteLicense from "components/misc/select-site-license";
 import { Icon } from "@cocalc/frontend/components/icon";
 import LaTeX from "components/landing/latex";
+import { useRouter } from "next/router";
 
 const { Option } = Select;
 
@@ -38,6 +39,7 @@ interface Info {
 }
 
 export default function ConfigurePublicPath({ id, project_id, path }: Props) {
+  const router = useRouter();
   const publicPaths = useDatabase({
     public_paths: { ...QUERY, id, project_id, path },
   });
@@ -50,6 +52,7 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
     },
   });
 
+  const [loaded, setLoaded] = useState<boolean>(false);
   const [edited, setEdited] = useState<Info>({});
   const [original, setOriginal] = useState<Info>({});
   const [error, setError] = useState<string>("");
@@ -70,9 +73,10 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
     const x = { ...public_paths, site_license_id };
     setEdited(x);
     setOriginal(x);
+    setLoaded(true);
   }, [publicPaths.loading, siteLicense.loading]);
 
-  if (publicPaths.loading || siteLicense.loading) {
+  if (!loaded) {
     return <Loading delay={0.2} />;
   }
 
@@ -82,6 +86,16 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
     : edited.unlisted
     ? "unlisted"
     : "listed";
+
+  const save = (
+    <Save
+      edited={edited}
+      defaultOriginal={original}
+      table="public_paths"
+      onSave={() => router.reload()}
+    />
+  );
+
   return (
     <div
       style={{
@@ -92,7 +106,7 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
       }}
     >
       {error && <Alert type="error" message={error} showIcon />}
-      <Save edited={edited} defaultOriginal={original} table="public_paths" />
+      {save}
       <Divider>How you are sharing "{path}"</Divider>
       <Space direction="vertical" style={{ width: "100%" }}>
         <EditRow
@@ -205,6 +219,7 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
         </EditRow>
         {/*TODO  Image: {edited.compute_image} */}
       </Space>
+      {save}
     </div>
   );
 }

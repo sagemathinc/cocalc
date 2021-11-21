@@ -11,9 +11,16 @@ interface Props {
   defaultOriginal: object;
   table: string;
   style?: CSSProperties;
+  onSave?: (object) => void;
 }
 
-export default function Save({ edited, defaultOriginal, table, style }: Props) {
+export default function Save({
+  edited,
+  defaultOriginal,
+  table,
+  style,
+  onSave,
+}: Props) {
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [original, setOriginal] = useState<object>(defaultOriginal);
@@ -49,7 +56,12 @@ export default function Save({ edited, defaultOriginal, table, style }: Props) {
         style={style}
         type="primary"
         disabled={saving || same}
-        onClick={() => save(table, edited)}
+        onClick={() => {
+          if (table) {
+            save(table, edited);
+          }
+          onSave?.(edited);
+        }}
       >
         <Space>
           <Icon name={same ? "check" : "save"} />
