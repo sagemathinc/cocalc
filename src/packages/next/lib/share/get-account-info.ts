@@ -57,24 +57,15 @@ export async function getPublicPaths(
   }
   const pool = getPool("medium");
 
-  // Returns public paths for which account_id is a collaborator on the project that has
-  // actively used the project.
-  // It might be more useful to additionally filter using the syncstrings
-  // table for documents that account_id actually edited, but that's a lot harder.
+  // Returns public paths for which account_id is a collaborator on the project and they have
+  // actively used the project at some point.
   // We sort from most recently edited.
-  const query = `SELECT public_paths.id as id, public_paths.path as path, public_paths.description as description, ${timeInSeconds(
+  const query = `SELECT public_paths.id as id, public_paths.path as path, public_paths.description as description,
+  public_paths.disabled as disabled, public_paths.unlisted as unlisted, public_paths.vhost as vhost,
+  ${timeInSeconds(
     "public_paths.last_edited",
     "last_edited"
-  )} FROM public_paths, projects WHERE public_paths.project_id = projects.project_id AND projects.last_active ? '${account_id}' AND projects.users ? '${account_id}' AND (public_paths.unlisted is null OR public_paths.unlisted = false) AND (public_paths.disabled is null OR public_paths.disabled = false) AND (public_paths.vhost is null OR public_paths.vhost = '') ORDER BY public_paths.last_edited DESC`;
+  )} FROM public_paths, projects WHERE public_paths.project_id = projects.project_id AND projects.last_active ? '${account_id}' AND projects.users ? '${account_id}'  ORDER BY public_paths.last_edited DESC`;
   const { rows } = await pool.query(query);
-  const publicPaths: PublicPath[] = [];
-  for (const x of rows) {
-    publicPaths.push({
-      id: x.id,
-      path: x.path,
-      description: x.description,
-      last_edited: x.last_edited,
-    });
-  }
-  return publicPaths;
+  return rows;
 }

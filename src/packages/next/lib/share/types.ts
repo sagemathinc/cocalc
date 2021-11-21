@@ -14,6 +14,9 @@ export interface PublicPath {
   path?: string;
   description?: string;
   last_edited?: number;
+  disabled?: boolean;
+  unlisted?: boolean;
+  vhost?: string;
 }
 
 // This is because of Type error: 'types.ts' cannot be compiled under '--isolatedModules' because it is considered a

@@ -35,8 +35,8 @@ export default function Account({
           />{" "}
           {name}
         </h1>
-        {name} is a collaborator on projects that contain the following public
-        documents:
+        {name} is an active collaborator on projects that contain the following
+        public documents:
         <br />
         <br />
         <PublicPaths publicPaths={publicPaths} />
