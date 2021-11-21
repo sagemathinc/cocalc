@@ -38,6 +38,11 @@ export default function ChooseProject({
   async function doCopy() {
     try {
       if (project == null) throw Error("no target specified");
+      // Possibly upgrade the project using a public_path license
+      await api("/projects/public-path-license", {
+        public_path_id: id,
+        project_id: project.project_id,
+      });
       // Start the *target* project!
       setCopying("starting");
       await api("/projects/start", { project_id: project.project_id });
@@ -180,6 +185,7 @@ export default function ChooseProject({
                 ) : (
                   ""
                 )}
+                <br />
                 <Button
                   href={editURL({
                     type: "collaborator",
@@ -196,7 +202,7 @@ export default function ChooseProject({
                   }}
                   shape="round"
                 >
-                  <Icon name="paper-plane" /> Open {join(path, relativePath)}
+                  <Icon name="paper-plane" /> Open your copy of "{join(path, relativePath)}"...
                 </Button>
               </>
             )}
