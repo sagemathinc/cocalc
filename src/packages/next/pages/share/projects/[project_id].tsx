@@ -46,7 +46,7 @@ export async function getServerSideProps(context) {
     }
     props = {
       project_id,
-      ...(await getProjectInfo(project_id)),
+      ...(await getProjectInfo(project_id, context.req)),
       ...project,
     };
   } catch (_err) {

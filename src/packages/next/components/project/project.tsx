@@ -61,6 +61,12 @@ export default function Project({
           </>
         )}
         <h2>Public Paths</h2>
+        {collab && (
+          <div style={{marginBottom:'15px'}}>
+            You are a collaborator on this project, so unlisted and disabled
+            public paths are also listed here, so you can more easily edit them.
+          </div>
+        )}
         {publicPaths != null && publicPaths.length == 0 ? (
           <div>No public paths.</div>
         ) : (

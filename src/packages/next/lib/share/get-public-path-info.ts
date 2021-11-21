@@ -14,7 +14,7 @@ import getAccountId from "lib/account/get-account";
 export default async function getPublicPathInfo(
   id: string,
   relativePath: string,
-  req? // if given, use to get account_id if necessary
+  req // use to get account_id if necessary
 ) {
   if (
     typeof id != "string" ||

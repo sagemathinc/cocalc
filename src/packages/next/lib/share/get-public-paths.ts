@@ -10,20 +10,54 @@ Get the public paths associated to a given project.  Unlisted paths are NOT incl
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
 import { PublicPath } from "./types";
 import { isUUID } from "./util";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import getAccountId from "lib/account/get-account";
 
 export default async function getPublicPaths(
-  project_id: string
+  project_id: string,
+  req //  use to get account_id if necessary
 ): Promise<PublicPath[]> {
   if (!isUUID(project_id)) {
     throw Error("project_id must be a uuid");
   }
   // short: user might create a new public path then want to look at it shortly thereafter
-  const pool = getPool('short');
+  const pool = getPool("short");
   const result = await pool.query(
     `SELECT id, path, description, ${timeInSeconds(
       "last_edited"
-    )} FROM public_paths WHERE disabled IS NOT TRUE AND unlisted IS NOT TRUE AND project_id=$1 ORDER BY last_edited DESC`,
+    )}, disabled, unlisted FROM public_paths WHERE project_id=$1 ORDER BY last_edited DESC`,
     [project_id]
   );
-  return result.rows;
+
+  return await filterNonPublic(result.rows, project_id, req);
+}
+
+async function filterNonPublic(
+  rows: PublicPath[],
+  project_id,
+  req
+): Promise<PublicPath[]> {
+  const v: any[] = [];
+  let isCollab: boolean | undefined = undefined;
+  for (const row of rows) {
+    if (!row.disabled && !row.unlisted) {
+      v.push(row);
+      continue;
+    }
+    if (isCollab == null) {
+      const account_id = await getAccountId(req);
+      if (account_id) {
+        isCollab = await isCollaborator({
+          account_id,
+          project_id,
+        });
+      } else {
+        isCollab = false;
+      }
+    }
+    if (isCollab) {
+      v.push(row);
+    }
+  }
+  return v;
 }
