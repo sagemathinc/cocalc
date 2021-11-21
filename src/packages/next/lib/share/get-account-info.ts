@@ -1,8 +1,9 @@
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
 import { isUUID } from "./util";
 import { PublicPath } from "./types";
+import getAccountId from "lib/account/get-account";
 
-export interface AccountInfo {
+interface AccountInfo {
   account_id: string;
   first_name: string;
   last_name: string;
@@ -11,12 +12,13 @@ export interface AccountInfo {
 }
 
 export default async function getAccountInfo(
-  account_id: string
+  account_id: string,
+  req
 ): Promise<AccountInfo> {
   return {
     account_id,
     ...(await getName(account_id)),
-    publicPaths: await getPublicPaths(account_id),
+    publicPaths: await getPublicPaths(account_id, req),
   };
 }
 
@@ -47,8 +49,9 @@ export async function getName(account_id: string): Promise<{
   };
 }
 
-export async function getPublicPaths(
-  account_id: string
+async function getPublicPaths(
+  account_id: string,
+  req // used to get account_id of requester to see if we should include unlisted and disabled public_paths
 ): Promise<PublicPath[]> {
   if (!isUUID(account_id)) {
     // VERY important to check this because we substitute the account_id
@@ -67,5 +70,28 @@ export async function getPublicPaths(
     "last_edited"
   )} FROM public_paths, projects WHERE public_paths.project_id = projects.project_id AND projects.last_active ? '${account_id}' AND projects.users ? '${account_id}'  ORDER BY public_paths.last_edited DESC`;
   const { rows } = await pool.query(query);
-  return rows;
+  // If there are any disabled or unlisted public_paths, we also get the id of the requestor so we can filter them out.
+  return await filterNonPublic(rows, account_id, req);
+}
+
+async function filterNonPublic(
+  rows: PublicPath[],
+  account_id: string,
+  req
+): Promise<PublicPath[]> {
+  const v: any[] = [];
+  let client_id: string | undefined = undefined;
+  for (const row of rows) {
+    if (!row.disabled && !row.unlisted) {
+      v.push(row);
+      continue;
+    }
+    if (client_id == null) {
+      client_id = (await getAccountId(req)) ?? "";
+    }
+    if (client_id == account_id) {
+      v.push(row);
+    }
+  }
+  return v;
 }

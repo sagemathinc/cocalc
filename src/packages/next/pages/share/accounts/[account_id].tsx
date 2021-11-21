@@ -23,7 +23,7 @@ export default Account;
 export async function getServerSideProps(context) {
   const { account_id } = context.params;
   try {
-    const accountInfo = await getAccountInfo(account_id);
+    const accountInfo = await getAccountInfo(account_id, context.req);
     if (accountInfo.name) {
       // This account has a nice username. Redirect to that instead
       // of rendering here.

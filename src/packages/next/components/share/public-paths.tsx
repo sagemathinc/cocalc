@@ -11,13 +11,13 @@ import { Space, Table } from "antd";
 import { PublicPath } from "lib/share/types";
 import A from "components/misc/A";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 function Description({ description }: { description: string }) {
   if (!description?.trim()) return null;
   return (
     <div
       style={{
-        maxWidth: "50ex",
         maxHeight: "4em",
         overflow: "auto",
         border: "1px solid #eee",
@@ -38,21 +38,31 @@ function Title({ id, title }: { id: string; title: string }) {
   return <A href={`/share/public_paths/${id}`}>{title}</A>;
 }
 
-function Visibility({ id, disabled, unlisted, vhost }) {
+function Visibility({ disabled, unlisted, vhost }) {
   if (disabled) {
     return (
-      <b>
-        <A href={`/share/public_paths/${id}`}>Private</A>
-      </b>
+      <>
+        <Icon name="lock" /> Private
+      </>
     );
   }
   if (unlisted) {
-    return <>Unlisted</>;
+    return (
+      <>
+        {" "}
+        <Icon name="eye-slash" /> Unlisted
+      </>
+    );
   }
   if (vhost) {
     return <>Virtual Host: {vhost}</>;
   }
-  return <>Listed</>;
+  return (
+    <>
+      {" "}
+      <Icon name="eye" /> Listed
+    </>
+  );
 }
 
 // I'm using any[]'s below since it's too much of a pain dealing with TS for this.
@@ -89,7 +99,7 @@ const COLUMNS: any[] = COLUMNS0.concat([
     render: (_, record) => {
       const { path, last_edited, id, description } = record;
       return (
-        <Space direction="vertical">
+        <Space direction="vertical" style={{ width: "100%" }}>
           <Title title={path} id={id} />
           <Description description={description} />
           <LastEdited last_edited={last_edited} />
@@ -99,14 +109,13 @@ const COLUMNS: any[] = COLUMNS0.concat([
   },
 ]);
 
-const COLUMNS_WITH_VISIBILITY: any[] = COLUMNS.concat([
+const COLUMNS_WITH_VISIBILITY: any[] = COLUMNS0.concat([
   {
     title: "Visibility",
     dataIndex: "disabled",
     key: "disabled",
     render: (_, record) => (
       <Visibility
-        id={record.id}
         disabled={record.disabled}
         unlisted={record.unlisted}
         vhost={record.vhost}
@@ -121,12 +130,11 @@ const COLUMNS_WITH_VISIBILITY: any[] = COLUMNS.concat([
     render: (_, record) => {
       const { path, last_edited, id, description } = record;
       return (
-        <Space direction="vertical">
+        <Space direction="vertical" style={{ width: "100%" }}>
           <Title title={path} id={id} />
           <Description description={description} />
           <LastEdited last_edited={last_edited} />
           <Visibility
-            id={record.id}
             disabled={record.disabled}
             unlisted={record.unlisted}
             vhost={record.vhost}

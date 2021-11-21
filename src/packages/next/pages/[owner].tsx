@@ -28,7 +28,7 @@ export async function getServerSideProps(context) {
     return { notFound: true };
   }
   if (info.type == "account") {
-    const accountInfo = await getAccountInfo(info.owner_id);
+    const accountInfo = await getAccountInfo(info.owner_id, context.req);
     return await withCustomize({ context, props: { ...info, ...accountInfo } });
   }
 

@@ -24,6 +24,7 @@ export default function Account({
     return <Loading style={{ fontSize: "30px" }} />;
   }
   const name = trunc(`${first_name} ${last_name}`, 150);
+  const client_id = customize.account?.account_id;
   return (
     <Customize value={customize}>
       <Layout title={name}>
@@ -35,8 +36,19 @@ export default function Account({
           />{" "}
           {name}
         </h1>
-        {name} is an active collaborator on projects that contain the following
-        public documents:
+        {client_id == account_id ? (
+          <>
+            You are an active collaborator on projects that contain the
+            published documents listed below. We include any unlisted or
+            disabled published documents so that you can browse or edit them
+            from here. This list is only visible to you.
+          </>
+        ) : (
+          <>
+            {name} is an active collaborator on projects that contain the
+            following public documents:
+          </>
+        )}
         <br />
         <br />
         <PublicPaths publicPaths={publicPaths} />
