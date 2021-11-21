@@ -29,6 +29,10 @@ export default function SelectSiteLicense({
     const x: { [id: string]: License } = {};
     if (!value) return x;
     for (const license of value.manager_site_licenses) {
+      if (license.expires) {
+        // comes back from database as ISO string.
+        license.expires = new Date(license.expires);
+      }
       x[license.id] = license;
     }
     return x;

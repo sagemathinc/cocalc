@@ -78,7 +78,7 @@ export default function SelectLicense({
                   {title ? " - " + title : ""}
                   <br />
                   {quota && describeQuota(quota, true)}
-                  {expires && <span>Expires {expires.toLocaleString()}</span>}
+                  {expires && <span>, Expires {expires.toLocaleString()}</span>}
                 </span>
               </>
             }
