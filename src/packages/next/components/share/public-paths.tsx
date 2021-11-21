@@ -12,12 +12,20 @@ import { PublicPath } from "lib/share/types";
 import A from "components/misc/A";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { trunc_middle } from "@cocalc/util/misc";
 
-function Description({ description }: { description: string }) {
+function Description({
+  description,
+  maxWidth,
+}: {
+  description: string;
+  maxWidth?: string;
+}) {
   if (!description?.trim()) return null;
   return (
     <div
       style={{
+        maxWidth,
         maxHeight: "4em",
         overflow: "auto",
         border: "1px solid #eee",
@@ -35,7 +43,7 @@ function LastEdited({ last_edited }: { last_edited: string }) {
 }
 
 function Title({ id, title }: { id: string; title: string }) {
-  return <A href={`/share/public_paths/${id}`}>{title}</A>;
+  return <A href={`/share/public_paths/${id}`}>{trunc_middle(title, 48)}</A>;
 }
 
 function Visibility({ disabled, unlisted, vhost }) {
@@ -79,7 +87,9 @@ const COLUMNS0: any[] = [
     title: "Description",
     dataIndex: "description",
     key: "description",
-    render: (description) => <Description description={description} />,
+    render: (description) => (
+      <Description description={description} maxWidth="300px" />
+    ),
     responsive: ["sm"] as any,
   },
   {
