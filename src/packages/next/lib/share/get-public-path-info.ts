@@ -25,7 +25,9 @@ export default async function getPublicPathInfo(
     throw Error("invalid id or relativePath");
   }
 
-  const pool = getPool("short");
+  // TODO: currently not using any cacheing because when editing and saving, we want info to update.
+  // However, we should implement this by using a query param to prevent using cache?
+  const pool = getPool();
 
   // Get the database entry that describes the public path
   const { rows } = await pool.query(
