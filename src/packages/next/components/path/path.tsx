@@ -1,3 +1,4 @@
+import { Divider } from "antd";
 import Link from "next/link";
 import PathContents from "components/share/path-contents";
 import PathActions from "components/share/path-actions";
@@ -10,6 +11,7 @@ import { Layout } from "components/share/layout";
 import { Customize } from "lib/share/customize";
 import { getTitle } from "lib/share/util";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 export default function PublicPath({
   id,
@@ -24,6 +26,8 @@ export default function PublicPath({
   contents,
   error,
   customize,
+  disabled,
+  unlisted,
 }) {
   useCounter(id);
   if (id == null) return <Loading style={{ fontSize: "30px" }} />;
@@ -64,6 +68,25 @@ export default function PublicPath({
         )}
         <b>License:</b> <License license={license} />
         <br />
+        {(unlisted || disabled) && (
+          <div>
+            <b>Visibility:</b>{" "}
+            {disabled ? (
+              <>
+                {" "}
+                <Icon name="lock" /> Private (only visible to collaborators on
+                the project)
+              </>
+            ) : unlisted ? (
+              <>
+                <Icon name="eye-slash" /> Unlisted (only visible to those who
+                know the link)
+              </>
+            ) : (
+              ""
+            )}
+          </div>
+        )}
         {compute_image && (
           <>
             <b>Image:</b> {compute_image}
@@ -83,7 +106,7 @@ export default function PublicPath({
           image={compute_image}
           description={description}
         />
-        <hr />
+        <Divider />
         {contents != null && (
           <PathContents
             id={id}

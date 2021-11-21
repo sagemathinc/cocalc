@@ -21,7 +21,7 @@ export async function getServerSideProps(context) {
       // only files/ implemented right now; we will add other things like edit/ later.
       relativePath = public_path.slice(2).join("/");
     }
-    const props = await getPublicPathInfo(public_path_id, relativePath);
+    const props = await getPublicPathInfo(public_path_id, relativePath, context.req);
     return await withCustomize({ context, props });
   } catch (_err) {
     // console.log(_err);

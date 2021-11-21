@@ -76,7 +76,7 @@ export async function getServerSideProps(context) {
   const id = context.params.id[0];
   const relativePath = context.params.id.slice(1).join("/");
   try {
-    const props = await getPublicPathInfo(id, relativePath);
+    const props = await getPublicPathInfo(id, relativePath, context.req);
     return await withCustomize({
       context,
       props: { ...props, layout: "embed" },
