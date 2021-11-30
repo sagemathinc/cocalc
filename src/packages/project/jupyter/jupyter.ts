@@ -62,7 +62,7 @@ import { retry_until_success } from "@cocalc/util/async-utils";
 import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 
-import { nbconvert } from "./nbconvert";
+import { nbconvert } from "./convert";
 
 import {
   ExecOpts,

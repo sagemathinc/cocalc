@@ -9,26 +9,21 @@ Node.js interface to nbconvert.
 
 const { execute_code } = require("@cocalc/backend/misc_node");
 import { callback_opts } from "@cocalc/util/async-utils";
-
-interface nbconvertParams {
-  args: string[];
-  directory?: string;
-  timeout?: number;
-}
+import ipynbToHtml from "./react";
+import htmlToPdf from "./chrome";
+import { nbconvertParams, parseTo } from "./util";
 
 export async function nbconvert(opts: nbconvertParams): Promise<void> {
   if (!opts.timeout) {
     opts.timeout = 30;
   }
-  let j: number = 0;
-  let to: string = "";
-  for (let i = 0; i < opts.args.length; i++) {
-    if (opts.args[i] === "--to") {
-      j = i;
-      to = opts.args[i + 1];
-      break;
-    }
+
+  if (opts.args.includes("--react")) {
+    return await nbconvertReact(opts);
   }
+
+  const { j, to } = parseTo(opts.args);
+
   let command: string;
   let args: string[];
   if (to === "sagews") {
