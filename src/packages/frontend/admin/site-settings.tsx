@@ -492,6 +492,7 @@ class SiteSettingsComponent extends Component<
       Object.assign(style, {
         borderLeft: `2px solid ${COLORS.GRAY}`,
         marginLeft: "0px",
+        paddingLeft: "5px",
         marginTop: "0px",
       } as React.CSSProperties);
     }
