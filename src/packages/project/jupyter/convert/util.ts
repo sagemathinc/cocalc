@@ -1,10 +1,8 @@
-
 export interface nbconvertParams {
   args: string[];
   directory?: string;
-  timeout?: number;
+  timeout?: number; // in seconds!
 }
-
 
 export function parseTo(args: string[]): { to: string; j: number } {
   let j: number = 0;
@@ -17,4 +15,19 @@ export function parseTo(args: string[]): { to: string; j: number } {
     }
   }
   return { to, j };
+}
+
+export function parseSource(args: string[]): string {
+  for (let i = 0; i < args.length; i++) {
+    if (args[i].startsWith("--")) {
+      if (!args[i].includes("=")) {
+        // skip argument to --
+        i += 1;
+      }
+      continue;
+    }
+    // doesn't start with -- or wasn't next arg skipped due to starting with --
+    return args[i];
+  }
+  throw Error("no source");
 }

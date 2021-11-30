@@ -9,20 +9,31 @@ Node.js interface to nbconvert.
 
 const { execute_code } = require("@cocalc/backend/misc_node");
 import { callback_opts } from "@cocalc/util/async-utils";
-import ipynbToHtml from "./react";
-import htmlToPdf from "./chrome";
-import { nbconvertParams, parseTo } from "./util";
+import ipynbToHtml from "./ipynb-to-html";
+import htmlToPDF from "./html-to-pdf";
+import { nbconvertParams, parseSource, parseTo } from "./util";
+import { join } from "path";
 
 export async function nbconvert(opts: nbconvertParams): Promise<void> {
   if (!opts.timeout) {
     opts.timeout = 30;
   }
 
-  if (opts.args.includes("--react")) {
-    return await nbconvertReact(opts);
-  }
-
   const { j, to } = parseTo(opts.args);
+
+  if (opts.args.includes("--cocalc")) {
+    // our own internal cocalc conversion
+    const ipynb = join(opts.directory ?? "", parseSource(opts.args)); // make relative to home directory
+    const html = await ipynbToHtml(ipynb);
+    if (to == "html") {
+      return;
+    }
+    if (to == "pdf") {
+      await htmlToPDF(html, opts.timeout);
+      return;
+    }
+    throw Error(`--cocalc: conversion to "${to}" not implemented`);
+  }
 
   let command: string;
   let args: string[];
