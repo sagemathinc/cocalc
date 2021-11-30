@@ -23,8 +23,6 @@ export interface HtmlBlock extends SlateElement {
 
 const StaticElement = ({ attributes, element }) => {
   const html = ((element.html as string) ?? "").trim();
-  // TODO: we need to process links somehow...
-  // And to what extent do we need to sanitize this html?
   if (element.type == "html_inline") {
     return (
       <div {...attributes} style={{ display: "inline" }}>

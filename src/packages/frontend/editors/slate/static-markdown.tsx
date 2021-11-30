@@ -31,6 +31,7 @@ import React from "react";
 import "./elements/init-ssr";
 import { getStaticRender } from "./elements/register";
 import { markdown_to_slate as markdownToSlate } from "./markdown-to-slate";
+import Leaf from "./leaf";
 
 interface Props {
   value: string;
@@ -64,5 +65,9 @@ function RenderElement({ element }) {
     return <C children={children} element={element} attributes={{} as any} />;
   }
   // It's text
-  return <span>{element["text"]}</span>;
+  return (
+    <Leaf leaf={element} text={{} as any} attributes={{} as any}>
+      {element["text"]}
+    </Leaf>
+  );
 }
