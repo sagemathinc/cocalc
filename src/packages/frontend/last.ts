@@ -6,20 +6,13 @@
 // This should be the last code run on client application startup.
 
 declare var $: any;
-declare var MathJax: any;
-
-declare var CDN_VERSIONS: any; // set by webpack
 
 declare var COCALC_GIT_REVISION: string;
 
 import { webapp_client } from "./webapp-client";
 import { wrap_log } from "@cocalc/util/misc";
 import { get_browser, IS_MOBILE, IS_TOUCH } from "./feature";
-import { mathjax_finish_startup } from "./misc";
 import * as prom_client from "./prom-client";
-import { MathJaxConfig } from "@cocalc/util/mathjax-config";
-import { join } from "path";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export function init() {
   // see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
@@ -50,34 +43,10 @@ export function init() {
     }
   }
 
-  // load the mathjax configuration before mathjax starts up
-  (window as any).MathJax = MathJaxConfig;
-
   try {
-    $(parent).trigger("initialize:frame");
-  } catch (error) {}
-
-  if (!CDN_VERSIONS) {
-    // Should be set by Webpack.
-    console.log(
-      "WARNING: MathJax rendering fallback is NOT enabled.  Only katex rendering is available for math formulas!"
-    );
-  } else {
-    // mathjax startup. config is set above, now we dynamically insert the mathjax script URL
-    const src = join(
-      appBasePath,
-      `cdn/mathjax-${CDN_VERSIONS.mathjax}/MathJax.js`
-    );
-
-    const mjscript = document.createElement("script");
-    mjscript.type = "text/javascript";
-    mjscript.src = src;
-    mjscript.onload = function () {
-      // once loaded, we finalize the configuration and process pending rendering requests
-      MathJax.Hub?.Queue([mathjax_finish_startup]);
-    };
-    document.getElementsByTagName("head")[0].appendChild(mjscript);
-  }
+    // window.parent is a reference to the parent of the current window or subframe.
+    $(window.parent).trigger("initialize:frame");
+  } catch (_err) {}
 
   // enable logging
   wrap_log();

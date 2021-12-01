@@ -7,15 +7,16 @@
 // ATTN: do not call MathJax directly, but always use this .mathjax() plugin.
 // from React.js, the canonical way to call it is $(ReactDOM.findDOMNode(@)).mathjax() (e.g. Markdown in components)
 
+import loadMathJax from "@cocalc/frontend/misc/load-mathjax";
 import { defaults } from "@cocalc/util/misc";
 
-declare var MathJax: any;
 export const jQuery = $;
 declare var $: any;
 
 // this queue is used, when starting up or when it isn't configured (yet)
 const mathjax_queue: any[] = [];
 function mathjax_enqueue(x: any): void {
+  const MathJax = loadMathJax();
   if (MathJax?.Hub != null) {
     if (x[0] === "Typeset") {
       // insert MathJax.Hub as 2nd entry
