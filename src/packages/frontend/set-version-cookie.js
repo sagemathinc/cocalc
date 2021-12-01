@@ -27,6 +27,10 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 // any form of authentication.
 const days = 300;
 const future = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-const opts = { expires: future, path: "/", sameSite: "none" };
+const https = location.protocol === "https:";
+// sameSite+secure must come in tandem, but secure doesn't work if loaded via http
+// sameSite needed if embedded in an iFrame
+const secure = { secure: true, sameSite: "none" };
+const opts = { expires: future, path: "/", ...(https ? secure : null) };
 const NAME = versionCookieName(appBasePath);
 cookies.set(NAME, version, opts);
