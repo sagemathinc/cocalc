@@ -450,9 +450,25 @@ export function commands(
       f: () => jupyter_actions.show_nbconvert_dialog("python"),
     },
 
-    "nbconvert html": {
+    "nbconvert classic html": {
+      m: "HTML via Classic nbconvert (.html)...",
+      f: () => jupyter_actions.show_nbconvert_dialog("classic-html"),
+    },
+
+    "nbconvert lab html": {
+      m: "HTML via JupyterLab nbconvert (.html)...",
+      f: () => jupyter_actions.show_nbconvert_dialog("lab-html"),
+    },
+
+    "nbconvert lab pdf": {
+      // this really sucks unless maybe if you have a suitable chromium installed...
+      m: "PDF via webpdf nbconvert (.pdf)...",
+      f: () => jupyter_actions.show_nbconvert_dialog("webpdf"),
+    },
+
+    "nbconvert cocalc html": {
       m: "HTML (.html)...",
-      f: () => jupyter_actions.show_nbconvert_dialog("html"),
+      f: () => jupyter_actions.show_nbconvert_dialog("cocalc-html"),
     },
 
     "nbconvert markdown": {
@@ -485,9 +501,9 @@ export function commands(
       f: () => jupyter_actions.show_nbconvert_dialog("latex"),
     },
 
-    "nbconvert chromium pdf": {
+    "nbconvert cocalc pdf": {
       m: "PDF (.pdf)...",
-      f: () => jupyter_actions.show_nbconvert_dialog("chromium-pdf"),
+      f: () => jupyter_actions.show_nbconvert_dialog("cocalc-pdf"),
     },
 
     "nbconvert latex pdf": {

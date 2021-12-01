@@ -4,7 +4,7 @@ interface Props {
   cellList: string[];
   cells: { [id: string]: object };
   cmOptions: { [field: string]: any };
-  fontSize: number;
+  fontSize?: number;
   project_id?: string;
   directory?: string;
 }

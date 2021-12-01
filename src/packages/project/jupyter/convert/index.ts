@@ -21,18 +21,19 @@ export async function nbconvert(opts: nbconvertParams): Promise<void> {
 
   const { j, to } = parseTo(opts.args);
 
-  if (opts.args.includes("--cocalc")) {
-    // our own internal cocalc conversion
+  if (to == "cocalc-html" || to == "cocalc-pdf") {
+    // We use our own internal cocalc conversion, since I'm tired of weird subtle issues
+    // with upstream nbconvert...
     const ipynb = join(opts.directory ?? "", parseSource(opts.args)); // make relative to home directory
     const html = await ipynbToHtml(ipynb);
-    if (to == "html") {
+    if (to == "cocalc-html") {
       return;
     }
-    if (to == "pdf") {
+    if (to == "cocalc-pdf") {
       await htmlToPDF(html, opts.timeout);
       return;
     }
-    throw Error(`--cocalc: conversion to "${to}" not implemented`);
+    throw Error("impossible");
   }
 
   let command: string;

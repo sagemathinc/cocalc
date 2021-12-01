@@ -14,11 +14,12 @@ const TimeAgo = require("react-timeago").default;
 const { Button, ButtonGroup, Modal } = require("react-bootstrap");
 import * as misc from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
-import { IPYNB2PDF } from "../misc/commands";
 
 const NAMES = {
   python: { ext: "py", display: "Python", internal: true },
-  html: { ext: "html", display: "HTML" },
+  "cocalc-html": { ext: "html", display: "HTML", no_run_button: true },
+  "classic-html": { ext: "html", display: "HTML (Classic template)" },
+  "lab-html": { ext: "html", display: "HTML (JupyterLab template)" },
   markdown: { ext: "md", display: "Markdown", internal: true },
   rst: { ext: "rst", display: "reST", internal: true },
   asciidoc: { ext: "asciidoc", display: "AsciiDoc" },
@@ -30,9 +31,10 @@ const NAMES = {
     internal: true,
     nolink: true,
   },
-  pdf: { ext: "pdf", display: "PDF" },
+  pdf: { ext: "pdf", display: "PDF via nbconvert and LaTeX" },
+  webpdf: { ext: "pdf", display: "PDF via nbconvert webpdf" },
   script: { ext: "txt", display: "Executable Script", internal: true },
-  "chromium-pdf": { ext: "pdf", display: "PDF", no_run_button: true },
+  "cocalc-pdf": { ext: "pdf", display: "PDF", no_run_button: true },
 } as const;
 
 interface ErrorProps {
@@ -220,15 +222,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       // change on the backend, as other code generates the cmd there. If this bugs you, refactor it!
       let cmd: any;
       const { tail = "" } = misc.path_split(path) || {};
-      if (
-        nbconvert_dialog != null &&
-        nbconvert_dialog.get("to") === "chromium-pdf"
-      ) {
-        cmd = shell_escape([IPYNB2PDF, tail]);
-      } else if (
-        nbconvert_dialog != null &&
-        nbconvert_dialog.get("to") === "sagews"
-      ) {
+      if (nbconvert_dialog != null && nbconvert_dialog.get("to") === "sagews") {
         cmd = shell_escape(["smc-ipynb2sagews", tail]);
       } else {
         const v = ["jupyter", "nbconvert"].concat(args());
@@ -281,9 +275,15 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
         return []; // broken case -- shouldn't happen
       }
       const to = nbconvert_dialog.get("to");
-      const v = ["--to", to];
-      if (to == "html") {
-        v.push(...["--template", "classic"]);
+      let v: string[];
+      if (to == "classic-html") {
+        v = ["--to", "html", "--template", "classic"];
+      } else if (to == "lab-html") {
+        v = ["--to", "html"]; // lab is the default
+      } else if (to == "webpdf") {
+        v = ["--to", "webpdf", "--allow-chromium-download"];
+      } else {
+        v = ["--to", to];
       }
       return v;
     }

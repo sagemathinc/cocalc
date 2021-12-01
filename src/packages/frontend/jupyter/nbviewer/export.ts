@@ -14,17 +14,19 @@ backend is impossible in a project without network access.
 
 import NBViewer from "./nbviewer";
 import { renderToString } from "react-dom/server";
-import { createElement } from "react";
+import { createElement, CSSProperties } from "react";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 
 export default function exportToHTML({
   content,
   fontSize,
+  style,
 }: {
   content: string;
   fontSize?: number;
+  style?: CSSProperties;
 }): string {
-  const notebook = createElement(NBViewer, { content, fontSize });
+  const notebook = createElement(NBViewer, { content, fontSize, style });
   const element = createElement(
     FileContext.Provider,
     { value: { noSanitize: true } },

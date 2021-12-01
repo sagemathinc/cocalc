@@ -14,7 +14,7 @@ const { readFile, writeFile } = fs.promises;
 
 export default async function ipynbToHtml(path: string): Promise<string> {
   const content = (await readFile(path)).toString();
-  const html = toHtml({ content });
+  const html = toHtml({ content, style: { margin: "30px 30px 0 0" } });
   const { dir, name } = parse(path);
   const outfile = join(dir, name + ".html");
   await writeFile(outfile, html);

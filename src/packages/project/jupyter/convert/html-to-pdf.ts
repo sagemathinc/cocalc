@@ -27,11 +27,9 @@ export default async function htmlToPDF(
     "--headless",
     "--disable-gpu",
     "--no-sandbox",
-    "--print-to-pdf",
-    outfile,
+    `--print-to-pdf=${outfile}`,
     "--run-all-compositor-stages-before-draw",
-    "--virtual-time-budget",
-    `${timeout * 1000}`,
+    `--virtual-time-budget=${timeout * 1000}`,
     path,
   ];
   const output = await callback_opts(execute_code)({

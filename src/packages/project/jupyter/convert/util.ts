@@ -20,7 +20,7 @@ export function parseTo(args: string[]): { to: string; j: number } {
 export function parseSource(args: string[]): string {
   for (let i = 0; i < args.length; i++) {
     if (args[i].startsWith("--")) {
-      if (!args[i].includes("=")) {
+      if (args[i] != "--" && !args[i].includes("=")) {
         // skip argument to --
         i += 1;
       }

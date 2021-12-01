@@ -7,7 +7,7 @@
 Viewer for public ipynb files.
 */
 
-import React from "react";
+import { CSSProperties, useMemo } from "react";
 import { Alert } from "antd";
 import CellList from "./cell-list";
 import { path_split } from "@cocalc/util/misc";
@@ -20,6 +20,7 @@ interface Props {
   project_id?: string;
   path?: string;
   fontSize?: number;
+  style?: CSSProperties;
 }
 
 export default function NBViewer({
@@ -27,8 +28,9 @@ export default function NBViewer({
   project_id,
   path,
   fontSize,
+  style,
 }: Props) {
-  const x = React.useMemo(() => {
+  const x = useMemo(() => {
     try {
       return parse(content);
     } catch (error) {
@@ -51,18 +53,11 @@ export default function NBViewer({
   const { cellList, cells, cmOptions } = x;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        overflowY: "hidden",
-      }}
-    >
+    <div style={style}>
       <CellList
         cellList={cellList}
         cells={cells}
-        fontSize={fontSize ?? 14}
+        fontSize={fontSize}
         cmOptions={cmOptions}
         project_id={project_id}
         directory={path ? path_split(path).head : undefined}
