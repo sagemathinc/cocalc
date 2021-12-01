@@ -143,10 +143,11 @@ interface TimeAgoProps {
   live?: boolean; // whether or not to auto-update
   style?: CSS;
   date: string | Date | number | undefined;
+  minPeriod?: number;
 }
 
 export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
-  ({ popover, placement, tip, live, style, date }) => {
+  ({ popover, placement, tip, live, style, date, minPeriod }) => {
     const other_settings = useTypedRedux("account", "other_settings");
     if (date == null) return <></>;
 
@@ -159,6 +160,7 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
         live={live}
         time_ago_absolute={other_settings.get("time_ago_absolute") ?? false}
         style={style}
+        minPeriod={minPeriod}
       />
     );
   },

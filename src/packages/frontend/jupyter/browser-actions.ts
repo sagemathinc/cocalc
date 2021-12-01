@@ -414,20 +414,13 @@ export class JupyterActions extends JupyterActions0 {
     }
   }
 
-  private nbconvert_has_started(): boolean {
+  public nbconvert_has_started(): boolean {
     const state = this.store.getIn(["nbconvert", "state"]);
     return state === "start" || state === "run";
   }
 
   public show_nbconvert_dialog(to: string): void {
     this.setState({ nbconvert_dialog: { to } });
-    if (!this.nbconvert_has_started()) {
-      const v = ["--to", to];
-      if (to == "html") {
-        v.push(...["--template", "classic"]);
-      }
-      this.nbconvert(v); // start it
-    }
   }
 
   public nbconvert(args: string[]): void {

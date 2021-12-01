@@ -6,12 +6,10 @@
 /*
 NBConvert dialog -- for running nbconvert
 */
-import { React, useRef } from "../app-framework";
+import React, { useEffect, useRef } from "react";
 import * as immutable from "immutable";
-const shell_escape = require("shell-escape");
-import { Icon, Loading, A } from "../components";
-const TimeAgo = require("react-timeago").default;
-const { Button, ButtonGroup, Modal } = require("react-bootstrap");
+import { Icon, Loading, A, TimeAgo } from "../components";
+import { Button, Modal } from "antd";
 import * as misc from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 
@@ -46,14 +44,14 @@ const Error: React.FC<ErrorProps> = (props: ErrorProps) => {
   const { actions, nbconvert } = props;
   const preNode = useRef<HTMLPreElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const t = setTimeout(() => scroll(), 10);
     return () => {
       clearTimeout(t);
     };
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (nbconvert != null && misc.is_string(nbconvert.get("error"))) {
       const t = setTimeout(() => scroll(), 10);
       return () => {
@@ -75,7 +73,7 @@ const Error: React.FC<ErrorProps> = (props: ErrorProps) => {
     }
     return (
       <b>
-        <TimeAgo title="" date={new Date(time)} minPeriod={5} />
+        <TimeAgo date={new Date(time)} minPeriod={1} />
       </b>
     );
   }
@@ -122,6 +120,26 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       backend_kernel_info,
     } = props;
 
+    // on show of dialog, start running, if not already running.
+    useEffect(() => {
+      if (nbconvert_dialog == null || nbconvert == null) return;
+      const state = nbconvert?.get("state");
+      if (state != "start" && state != "run") {
+        run();
+      }
+    }, [nbconvert_dialog]);
+
+    // When state changes from run to done, cause download to
+    // happen automatically.
+    const lastState = useRef<string | undefined>(nbconvert?.get("state"));
+    useEffect(() => {
+      const state = nbconvert?.get("state");
+      if (state == "done" && lastState.current != "done") {
+        console.log("do a download");
+      }
+      lastState.current = state;
+    }, [nbconvert]);
+
     function close(): void {
       actions.setState({ nbconvert_dialog: undefined });
       actions.focus(true);
@@ -143,7 +161,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       );
     }
 
-    function render_download() {
+    function renderDownload() {
       if (
         nbconvert == null ||
         nbconvert.get("error") ||
@@ -173,20 +191,21 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       const url = actions.store.get_raw_link(target_path);
       return (
         <div style={{ fontSize: "14pt" }}>
-          {!info.nolink ? <A href={url}>{target_path}</A> : undefined}
-          {info.internal ? render_edit(target_path) : undefined}
+          Successfully exported Jupyter notebook to{" "}
+          {!info.nolink && <A href={url}>{target_path}</A>}
+          {info.internal && render_edit(target_path)}.
         </div>
       );
     }
 
-    function render_result() {
-      if (nbconvert != null ? nbconvert.get("error") : undefined) {
+    function renderError() {
+      if (nbconvert?.get("error")) {
         return <Error actions={actions} nbconvert={nbconvert} />;
       }
     }
 
     function render_recent_run() {
-      let time = nbconvert != null ? nbconvert.get("time") : undefined;
+      let time = nbconvert?.get("time");
       if (time == null) {
         return;
       }
@@ -194,43 +213,21 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
         // only show if recent
         return;
       }
-      if (
-        !(nbconvert != null && nbconvert.has("args")
-          ? nbconvert.get("args").equals(immutable.fromJS(args()))
-          : undefined)
-      ) {
+      if (!nbconvert?.get("args")?.equals(immutable.fromJS(args()))) {
         // Only show if same args.
         return;
       }
       time = (
         <b>
-          <TimeAgo title="" date={new Date(time)} minPeriod={5} />
+          <TimeAgo date={new Date(time)} minPeriod={1} />
         </b>
       );
       return (
         <div style={{ marginTop: "15px" }}>
-          Last exported {time}. {render_cmd()}
-          {render_result()}
-          <ButtonGroup>{render_download()}</ButtonGroup>
+          {renderError()}
+          <div>{renderDownload()}</div>
         </div>
       );
-    }
-
-    function render_cmd() {
-      // WARNING: this is just for looks; cmd is not what is literally run on the backend, though
-      // it **should** be in theory.  But if you were to just change this, don't expect it to magically
-      // change on the backend, as other code generates the cmd there. If this bugs you, refactor it!
-      let cmd: any;
-      const { tail = "" } = misc.path_split(path) || {};
-      if (nbconvert_dialog != null && nbconvert_dialog.get("to") === "sagews") {
-        cmd = shell_escape(["smc-ipynb2sagews", tail]);
-      } else {
-        const v = ["jupyter", "nbconvert"].concat(args());
-        v.push("--");
-        v.push(tail);
-        cmd = shell_escape(v);
-      }
-      return <pre style={{ margin: "15px 0px", overflowX: "auto" }}>{cmd}</pre>;
     }
 
     function render_started() {
@@ -240,7 +237,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       }
       return (
         <span>
-          (started <TimeAgo title="" date={new Date(start)} minPeriod={1} />)
+          (started <TimeAgo date={new Date(start)} minPeriod={1} />)
         </span>
       );
     }
@@ -253,16 +250,12 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       switch (state) {
         case "start":
           return (
-            <div style={{ marginTop: "15px" }}>
-              Requesting to run
-              {render_cmd()}
-            </div>
+            <div style={{ marginTop: "15px" }}>Requesting to convert...</div>
           );
         case "run":
           return (
             <div style={{ marginTop: "15px" }}>
-              Running... {render_started()}
-              {render_cmd()}
+              <Loading text="Exporting..." /> {render_started()}
             </div>
           );
         case "done":
@@ -301,24 +294,9 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       if (info.no_run_button) return;
       const state = nbconvert != null ? nbconvert.get("state") : undefined;
       return (
-        <div>
-          <Button
-            onClick={run}
-            bsStyle="success"
-            bsSize="large"
-            disabled={["start", "run"].includes(state)}
-          >
-            Export to {target_name()}...
-          </Button>
-        </div>
-      );
-    }
-
-    function nbconvert_docs() {
-      return (
-        <A href="http://nbconvert.readthedocs.io/en/latest/usage.html">
-          <Icon name="external-link" /> nbconvert documentation
-        </A>
+        <Button onClick={run} disabled={["start", "run"].includes(state)}>
+          Export to {target_name()}...
+        </Button>
       );
     }
 
@@ -347,30 +325,29 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
     function render_slides_workaround() {
       // workaround until #2569 is fixed.
       return (
-        <Modal show={nbconvert_dialog != null} bsSize="large" onHide={close}>
-          <Modal.Header closeButton>
-            <Modal.Title>
+        <Modal
+          visible={nbconvert_dialog != null}
+          onOk={close}
+          onCancel={close}
+          title={
+            <>
               <Icon name="FundProjectionScreenOutlined" /> Jupyter Notebook
               Slideshow
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            Use View &rarr; Slideshow to turn your Jupyter notebook into a
-            slideshow. One click display of slideshows is{" "}
-            <A href="https://github.com/sagemathinc/cocalc/issues/2569#issuecomment-350940928">
-              not yet implemented
-            </A>
-            . However, you can start a slideshow by copying and pasting the
-            following command in a terminal in CoCalc (+New &rarr; Terminal):
-            <pre>{slides_command()}</pre>
-            Then view your slides at
-            <div style={{ textAlign: "center" }}>
-              <A href={slides_url()}>{slides_url()}</A>
-            </div>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button onClick={close}>Close</Button>
-          </Modal.Footer>
+            </>
+          }
+        >
+          Use View &rarr; Slideshow to turn your Jupyter notebook into a
+          slideshow. One click display of slideshows is{" "}
+          <A href="https://github.com/sagemathinc/cocalc/issues/2569#issuecomment-350940928">
+            not yet implemented
+          </A>
+          . However, you can start a slideshow by copying and pasting the
+          following command in a terminal in CoCalc (+New &rarr; Terminal):
+          <pre>{slides_command()}</pre>
+          Then view your slides at
+          <div style={{ textAlign: "center" }}>
+            <A href={slides_url()}>{slides_url()}</A>
+          </div>
         </Modal>
       );
     }
@@ -383,19 +360,14 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       return render_slides_workaround();
     }
     return (
-      <Modal show={nbconvert_dialog != null} bsSize="large" onHide={close}>
-        <Modal.Header closeButton>
-          <Modal.Title>Download</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {nbconvert_docs()}
-          {render_run_button()}
-          {render_current()}
-        </Modal.Body>
-
-        <Modal.Footer>
-          <Button onClick={close}>Close</Button>
-        </Modal.Footer>
+      <Modal
+        visible={nbconvert_dialog != null}
+        onOk={close}
+        onCancel={close}
+        title={"Save and Download as..."}
+      >
+        {render_run_button()}
+        {render_current()}
       </Modal>
     );
   }
