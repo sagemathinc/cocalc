@@ -249,7 +249,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       if (nbconvert_dialog == null) {
         return;
       }
-      const state = nbconvert != null ? nbconvert.get("state") : undefined;
+      const state = nbconvert?.get("state");
       switch (state) {
         case "start":
           return (

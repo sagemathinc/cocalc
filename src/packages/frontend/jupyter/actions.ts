@@ -72,12 +72,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   protected path: string;
   protected project_id: string;
   private _last_start?: number;
-  protected jupyter_kernel?: JupyterKernelInterface;
+  public jupyter_kernel?: JupyterKernelInterface;
   private last_cursor_move_time: Date = new Date(0);
 
   public _account_id: string; // Note: this is used in test
 
-  // TODO: type these
   private _cursor_locs?: any;
   private _introspect_request?: any;
   protected set_save_status: any;
@@ -93,7 +92,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public initialize_manager: any;
   public manager_on_cell_change: any;
   public manager_run_cell_process_queue: any;
-  public nbconvert_change: any;
   public store: any;
   public syncdb: SyncDB;
 
@@ -198,16 +196,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  init_project_conn = reuseInFlight(
-    async (): Promise<any> => {
-      // this cannot (and does not need to be) be imported from within the project.
-      // TODO: move to browser-actions.ts
-      const { connection_to_project } = require("../project/websocket/connect");
-      return (this.project_conn = await connection_to_project(
-        this.store.get("project_id")
-      ));
-    }
-  );
+  init_project_conn = reuseInFlight(async (): Promise<any> => {
+    // this cannot (and does not need to be) be imported from within the project.
+    // TODO: move to browser-actions.ts
+    const { connection_to_project } = require("../project/websocket/connect");
+    return (this.project_conn = await connection_to_project(
+      this.store.get("project_id")
+    ));
+  });
 
   protected async api_call(
     endpoint: string,
@@ -217,12 +213,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this._state === "closed") {
       throw Error("closed");
     }
-    return await (await this.init_project_conn()).api.jupyter(
-      this.path,
-      endpoint,
-      query,
-      timeout_ms
-    );
+    return await (
+      await this.init_project_conn()
+    ).api.jupyter(this.path, endpoint, query, timeout_ms);
   }
 
   public dbg(f: string): (...args) => void {
@@ -628,8 +621,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             break;
           case "nbconvert":
             if (this.is_project) {
-              // before setting in store, let backend react to change
-              this.nbconvert_change(this.store.get("nbconvert"), record);
+              // before setting in store, let backend start reacting to change
+              this.handle_nbconvert_change(this.store.get("nbconvert"), record);
             }
             // Now set in our store.
             this.setState({ nbconvert: record });
@@ -1777,39 +1770,33 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  halt = reuseInFlight(
-    async (): Promise<void> => {
-      await this.signal("SIGKILL");
-      // Wait a little, since SIGKILL has to really happen on backend,
-      // and server has to respond and change state.
-      const not_running = (s): boolean => {
-        if (this._state === "closed") return true;
-        const t = s.get_one({ type: "settings" });
-        return t != null && t.get("backend_state") != "running";
-      };
-      await this.syncdb.wait(not_running, 30);
-    }
-  );
+  halt = reuseInFlight(async (): Promise<void> => {
+    await this.signal("SIGKILL");
+    // Wait a little, since SIGKILL has to really happen on backend,
+    // and server has to respond and change state.
+    const not_running = (s): boolean => {
+      if (this._state === "closed") return true;
+      const t = s.get_one({ type: "settings" });
+      return t != null && t.get("backend_state") != "running";
+    };
+    await this.syncdb.wait(not_running, 30);
+  });
 
-  restart = reuseInFlight(
-    async (): Promise<void> => {
-      await this.halt();
-      if (this._state === "closed") return;
-      // Actually start it running again (rather than waiting for
-      // user to do something), since this is called "restart".
-      await this.set_backend_kernel_info(); // causes kernel to start
-    }
-  );
+  restart = reuseInFlight(async (): Promise<void> => {
+    await this.halt();
+    if (this._state === "closed") return;
+    // Actually start it running again (rather than waiting for
+    // user to do something), since this is called "restart".
+    await this.set_backend_kernel_info(); // causes kernel to start
+  });
 
-  public shutdown = reuseInFlight(
-    async (): Promise<void> => {
-      if (this._state === "closed") return;
-      await this.signal("SIGKILL");
-      if (this._state === "closed") return;
-      this.clear_all_cell_run_state();
-      await this.save_asap();
-    }
-  );
+  public shutdown = reuseInFlight(async (): Promise<void> => {
+    if (this._state === "closed") return;
+    await this.signal("SIGKILL");
+    if (this._state === "closed") return;
+    this.clear_all_cell_run_state();
+    await this.save_asap();
+  });
 
   set_backend_kernel_info = async (): Promise<void> => {
     if (this._state === "closed" || this.syncdb.is_read_only()) {
@@ -1841,17 +1828,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  _set_backend_kernel_info_client = reuseInFlight(
-    async (): Promise<void> => {
-      await retry_until_success({
-        max_time: 120000,
-        start_delay: 1000,
-        max_delay: 10000,
-        f: this._fetch_backend_kernel_info_from_server,
-        desc: "jupyter:_set_backend_kernel_info_client",
-      });
-    }
-  );
+  _set_backend_kernel_info_client = reuseInFlight(async (): Promise<void> => {
+    await retry_until_success({
+      max_time: 120000,
+      start_delay: 1000,
+      max_delay: 10000,
+      f: this._fetch_backend_kernel_info_from_server,
+      desc: "jupyter:_set_backend_kernel_info_client",
+    });
+  });
 
   _fetch_backend_kernel_info_from_server = async (): Promise<void> => {
     const f = async () => {
@@ -2371,19 +2356,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     merge?: boolean; // defaults to false if not given, in which case sets metadata, rather than merge.  If true, does a SHALLOW merge.
     bypass_edit_protection?: boolean;
   }): void {
-    let {
-      id,
-      metadata,
-      save,
-      merge,
-      bypass_edit_protection,
-    } = (opts = defaults(opts, {
-      id: required,
-      metadata: required,
-      save: true,
-      merge: false,
-      bypass_edit_protection: false,
-    }));
+    let { id, metadata, save, merge, bypass_edit_protection } = (opts =
+      defaults(opts, {
+        id: required,
+        metadata: required,
+        save: true,
+        merge: false,
+        bypass_edit_protection: false,
+      }));
 
     if (
       !bypass_edit_protection &&
@@ -2472,11 +2452,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this._state === "closed") {
       throw Error("closed");
     }
-    return await (await this.init_project_conn()).api.formatter_string(
-      str,
-      config,
-      timeout_ms
-    );
+    return await (
+      await this.init_project_conn()
+    ).api.formatter_string(str, config, timeout_ms);
   }
 
   private async format_cell(id: string): Promise<void> {
@@ -2580,10 +2558,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
     if (kernels == null) return;
     const kernel_selection = this.store.get_kernel_selection(kernels);
-    const [
-      kernels_by_name,
-      kernels_by_language,
-    ] = this.store.get_kernels_by_name_or_language(kernels);
+    const [kernels_by_name, kernels_by_language] =
+      this.store.get_kernels_by_name_or_language(kernels);
     const default_kernel = this.store.get_default_kernel();
     // do we have a similar kernel?
     let closestKernel: Kernel | undefined = undefined;
@@ -2680,6 +2656,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (cell_list == null) return;
     const contents = immutable.fromJS(parse_headings(cells, cell_list));
     this.setState({ contents });
+  }
+
+  handle_nbconvert_change(_oldVal, _newVal): void {
+    throw Error("define this in derived class");
   }
 }
 

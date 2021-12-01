@@ -18,23 +18,22 @@ import { JupyterActions as JupyterActions0 } from "./actions";
 import { callback2, once } from "@cocalc/util/async-utils";
 //import { reuseInFlight } from "async-await-utils/hof";
 
-import * as async from "async";
 import * as underscore from "underscore";
 import * as misc from "@cocalc/util/misc";
 import json_stable from "json-stable-stringify";
 import { OutputHandler } from "./output-handler";
 import { RunAllLoop } from "./run-all-loop";
 
+import nbconvertChange from "./convert/handle-change";
+
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
 export class JupyterActions extends JupyterActions0 {
-  // TODO: type
   private _backend_state: BackendState = "init";
   private _initialize_manager_already_done: any;
   private _kernel_state: any;
   private _last_save_ipynb_file: any;
   private _manager_run_cell_queue: any;
-  private _run_nbconvert_lock: any;
   private _running_cells: { [id: string]: string };
   private _throttled_ensure_positions_are_unique: any;
   private run_all_loop?: RunAllLoop;
@@ -238,9 +237,6 @@ export class JupyterActions extends JupyterActions0 {
               }
             }
             break;
-          case "nbconvert":
-            this.nbconvert_change();
-            break;
         }
       });
     }
@@ -442,7 +438,7 @@ export class JupyterActions extends JupyterActions0 {
         if (
           state != null &&
           state != "done" &&
-          state != "start" &&  // regarding "start", see https://github.com/sagemathinc/cocalc/issues/5467
+          state != "start" && // regarding "start", see https://github.com/sagemathinc/cocalc/issues/5467
           !this._running_cells?.[id]
         ) {
           dbg(`set cell ${id} with state "${state}" to done`);
@@ -1087,122 +1083,6 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  nbconvert_change = (old_val?: any, new_val?: any) => {
-    /*
-        Client sets this:
-            {type:'nbconvert', args:[...], state:'start'}
-
-        Then:
-         1. All clients show status bar that export is happening.
-         2. Commands to export are disabled during export.
-         3. Unless timeout (say 3 min?) exceeded.
-
-        - Project sees export entry in table.  If currently exporting, does nothing.
-        If not exporting, starts exporting and sets:
-
-             {type:'nbconvert', args:[...], state:'run', start:[time in ms]}
-
-        - When done, project sets
-
-             {type:'nbconvert', args:[...], state:'done'}
-
-        - If error, project stores the error in the key:value store and sets:
-
-             {type:'nbconvert', args:[...], state:'done', error:'message' or {key:'xlkjdf'}}
-        */
-    const dbg = this.dbg("run_nbconvert");
-    dbg(
-      `${misc.to_json(
-        old_val != null ? old_val.toJS() : undefined
-      )} --> ${misc.to_json(new_val != null ? new_val.toJS() : undefined)}`
-    );
-    // TODO - e.g. clear key:value store
-    if (new_val == null) {
-      dbg("delete nbconvert, so stop");
-      return;
-    }
-    if (new_val.get("state") === "start") {
-      if (this._run_nbconvert_lock) {
-        dbg("ignoring state change to start, since already running.");
-        // this could only happen with a malicious client (or bug, of course)?
-        return;
-      }
-      let args = new_val.get("args");
-      // TODO: is this guard necessary?
-      if (args != null && typeof args.toJS === "function") {
-        args = args.toJS();
-      }
-      if (!misc.is_array(args)) {
-        dbg("invalid args");
-        this.syncdb.set({
-          type: "nbconvert",
-          state: "done",
-          error: "args must be an array",
-        });
-        return;
-      }
-      dbg("starting running");
-      this.syncdb.set({
-        type: "nbconvert",
-        state: "run",
-        start: new Date().getTime(),
-        error: null,
-      });
-      this.ensure_backend_kernel_setup();
-      this._run_nbconvert_lock = true;
-      return async.series(
-        [
-          async (cb) => {
-            dbg("saving file to disk first");
-            try {
-              await this.save_ipynb_file();
-              cb();
-            } catch (err) {
-              cb(err);
-            }
-          },
-          (cb) => {
-            dbg("now actually running nbconvert");
-            if (this.jupyter_kernel == null) {
-              cb("jupyter kernel not defined");
-            } else {
-              this.jupyter_kernel
-                .nbconvert(args)
-                .then((data) => cb(undefined, data))
-                .catch((err) => cb(err));
-            }
-          },
-        ],
-        (err) => {
-          dbg("finished running; removing lock");
-          this._run_nbconvert_lock = false;
-          if (!err) {
-            err = null;
-          }
-          if (err) {
-            dbg("error running");
-            if (!misc.is_string(err)) {
-              err = `${err}`;
-            }
-            if (err.length >= 50) {
-              // save in key:value store.
-              if (this.jupyter_kernel && this.jupyter_kernel.store) {
-                this.jupyter_kernel.store.set("nbconvert_error", err);
-              }
-              err = { key: "nbconvert_error" };
-            }
-          }
-          return this.syncdb.set({
-            type: "nbconvert",
-            state: "done",
-            error: err,
-            time: new Date().getTime(),
-          });
-        }
-      );
-    }
-  };
-
   handle_all_cell_attachments = () => {
     // Check if any cell attachments need to be loaded.
     const cells = this.store.get("cells");
@@ -1317,5 +1197,9 @@ export class JupyterActions extends JupyterActions0 {
   // not actually async...
   public async signal(signal = "SIGINT"): Promise<void> {
     this.jupyter_kernel?.signal(signal);
+  }
+
+  public handle_nbconvert_change(oldVal, newVal): void {
+    nbconvertChange(this, oldVal?.toJS(), newVal?.toJS());
   }
 }
