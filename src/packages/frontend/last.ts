@@ -43,11 +43,6 @@ export function init() {
     }
   }
 
-  try {
-    // window.parent is a reference to the parent of the current window or subframe.
-    $(window.parent).trigger("initialize:frame");
-  } catch (_err) {}
-
   // enable logging
   wrap_log();
 
