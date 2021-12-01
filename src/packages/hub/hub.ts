@@ -37,6 +37,7 @@ import initProjectControl from "@cocalc/server/projects/control";
 import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
 import initVersionServer from "./servers/version";
 import initPrimus from "./servers/primus";
+import { load_server_settings_from_env } from "@cocalc/server/settings/server-settings";
 
 // Logger tagged with 'hub' for this file.
 const winston = getLogger("hub");
@@ -136,6 +137,13 @@ async function startServer(): Promise<void> {
   if (program.updateDatabaseSchema) {
     winston.info("Update database schema");
     await callback2(database.update_schema);
+
+    // in those cases where we initialize the database upon startup
+    // (essentially only relevant for kucalc's hub-websocket)
+    // set server settings based on environment variables
+    if (program.mode === "kucalc") {
+      await load_server_settings_from_env(database);
+    }
   }
 
   if (program.agentPort) {

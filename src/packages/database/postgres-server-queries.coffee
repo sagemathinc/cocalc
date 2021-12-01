@@ -237,7 +237,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             value : required
             cb    : required
         async.series([
-            (cb) ->
+            (cb) =>
                 @_query
                     query  : 'INSERT INTO server_settings'
                     values :
@@ -246,7 +246,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     conflict : 'name'
                     cb     : cb
             # also set a timestamp
-            (cb) ->
+            (cb) =>
                 @_query
                     query  : 'INSERT INTO server_settings'
                     values :
@@ -254,7 +254,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         'value::TEXT' : (new Date()).toISOString()
                     conflict : 'name'
                     cb     : cb
-        ], (err) ->
+        ], (err) =>
             # clear the cache no matter what (e.g., server_settings might have partly changed then errored)
             @reset_server_settings_cache()
             opts.cb(err)
