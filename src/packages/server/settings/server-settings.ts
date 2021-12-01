@@ -8,6 +8,10 @@ import { AllSiteSettingsCached as ServerSettings } from "@cocalc/util/db-schema/
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { site_settings_conf as CONF } from "@cocalc/util/schema";
 import getPool from "@cocalc/database/pool";
+import { callback2 as cb2 } from "@cocalc/util/async-utils";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import getLogger from "@cocalc/backend/logger";
+const L = getLogger("server:server-settings");
 
 // We're just using this to cache this result for a **few seconds**.
 const CACHE_TIME_SECONDS = process.env.NODE_ENV == "development" ? 3 : 15;
@@ -59,4 +63,25 @@ export async function getServerSettings(): Promise<ServerSettings> {
 
   cache.set(KEY, settings);
   return settings;
+}
+
+/*
+This stores environment variables for server settings in the DB to make the life of an admin easier.
+e.g. COCALC_SETTING_DNS, COCALC_SETTING_EMAIL_SMTP_SERVER, COCALC_SETTING_EMAIL_SMTP_PASSWORD, ...
+Loaded once at startup, right after configuring the db schema, see hub/hub.ts.
+*/
+export async function load_server_settings_from_env(
+  db: PostgreSQL
+): Promise<void> {
+  const PREFIX = "COCALC_SETTING";
+  for (const config of [EXTRAS, CONF]) {
+    for (const key in config) {
+      const envvar = `${PREFIX}_${key.toUpperCase()}`;
+      const envval = process.env[envvar];
+      if (envval == null) continue;
+      // ATTN do not expose the value, could be a password
+      L.debug(`picking up $${envvar} and saving it in the database`);
+      await cb2(db.set_server_setting, { name: key, value: envval });
+    }
+  }
 }

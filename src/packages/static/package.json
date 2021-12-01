@@ -7,7 +7,7 @@
     "../frontend",
     "../util"
   ],
-  "version": "1.50.0",
+  "version": "1.50.2",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
@@ -51,8 +51,8 @@
     "@cocalc/assets": "^1.5.1",
     "@cocalc/backend": "^1.7.2",
     "@cocalc/cdn": "^1.8.2",
-    "@cocalc/frontend": "^1.17.0",
-    "@cocalc/util": "^1.18.0",
+    "@cocalc/frontend": "^1.17.2",
+    "@cocalc/util": "^1.18.1",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^26.0.23",
     "@types/jquery": "^3.5.5",
@@ -115,7 +115,7 @@
     "ts-jest": "^26.5.6",
     "ts-loader": "^9.2.1",
     "tsd": "^0.15.1",
-    "typescript": "^4.4.4",
+    "typescript": "^4.5.2",
     "uglify-js": "^3.14.1",
     "url-loader": "^4.1.1",
     "util": "^0.12.3",

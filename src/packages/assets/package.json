@@ -19,6 +19,7 @@
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
+    "typescript": "^4.5.2",
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
