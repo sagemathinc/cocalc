@@ -455,15 +455,19 @@ export function commands(
       f: () => jupyter_actions.show_nbconvert_dialog("classic-html"),
     },
 
+    "nbconvert classic pdf": {
+      m: "PDF via Classic nbconvert and Chrome (.pdf)...",
+      f: () => jupyter_actions.show_nbconvert_dialog("classic-pdf"),
+    },
+
     "nbconvert lab html": {
       m: "HTML via JupyterLab nbconvert (.html)...",
       f: () => jupyter_actions.show_nbconvert_dialog("lab-html"),
     },
 
     "nbconvert lab pdf": {
-      // this really sucks unless maybe if you have a suitable chromium installed...
-      m: "PDF via webpdf nbconvert (.pdf)...",
-      f: () => jupyter_actions.show_nbconvert_dialog("webpdf"),
+      m: "PDF via JupyterLab nbconvert and Chrome (.pdf)...",
+      f: () => jupyter_actions.show_nbconvert_dialog("lab-pdf"),
     },
 
     "nbconvert cocalc html": {

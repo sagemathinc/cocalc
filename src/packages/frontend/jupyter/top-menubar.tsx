@@ -163,7 +163,9 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         ">nbconvert sagews",
         ">nbconvert asciidoc",
         ">nbconvert classic html",
+        ">nbconvert classic pdf",
         ">nbconvert lab html",
+        ">nbconvert lab pdf",
         "",
         trust,
       ];

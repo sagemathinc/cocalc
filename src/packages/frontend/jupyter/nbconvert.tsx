@@ -19,6 +19,8 @@ const NAMES = {
   "cocalc-html": { ext: "html", display: "HTML", no_run_button: true },
   "classic-html": { ext: "html", display: "HTML (Classic template)" },
   "lab-html": { ext: "html", display: "HTML (JupyterLab template)" },
+  "classic-pdf": { ext: "pdf", display: "PDF (Classic template)" },
+  "lab-pdf": { ext: "pdf", display: "PDF (JupyterLab template)" },
   markdown: { ext: "md", display: "Markdown", internal: true },
   rst: { ext: "rst", display: "reST", internal: true },
   asciidoc: { ext: "asciidoc", display: "AsciiDoc" },
@@ -91,9 +93,22 @@ const Error: React.FC<ErrorProps> = (props: ErrorProps) => {
     return (
       <span>
         <h3>Error</h3>
-        Running nbconvert failed with an error {render_time()}. Read the error
-        log below, update your Jupyter notebook, then try again.
-        <pre ref={preNode} style={{ maxHeight: "40vh", margin: "5px 30px" }}>
+        Running nbconvert failed with an error {render_time()}.{" "}
+        {error.toLowerCase().includes("exporter") ? (
+          <>
+            You probably need to <b>restart your project</b> in project
+            settings.
+          </>
+        ) : (
+          <>
+            Read the error log below, update your Jupyter notebook, then try
+            again.
+          </>
+        )}
+        <pre
+          ref={preNode}
+          style={{ maxHeight: "40vh", margin: "5px 20px", fontSize: "10px" }}
+        >
           {error}
         </pre>
       </span>
@@ -300,7 +315,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
     }
 
     function run(): void {
-      const to = nbconvert_dialog.get("to");
+      const to = nbconvert_dialog?.get("to");
       if (to == "script") {
         // ensure kernel info is initialized, which is used for
         // determining the target file extension in case of exporting

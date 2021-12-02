@@ -9,7 +9,7 @@ Node.js interface to nbconvert.
 
 const { execute_code } = require("@cocalc/backend/misc_node");
 import { callback_opts } from "@cocalc/util/async-utils";
-import ipynbToHtml from "./ipynb-to-html";
+import ipynbToHtml, { htmlPath } from "./ipynb-to-html";
 import htmlToPDF from "./html-to-pdf";
 import { nbconvertParams, parseSource, parseTo } from "./util";
 import { join } from "path";
@@ -24,7 +24,7 @@ export async function nbconvert(opts: nbconvertParams): Promise<void> {
       opts.timeout = 30;
     }
 
-    const { j, to } = parseTo(opts.args);
+    let { j, to } = parseTo(opts.args);
 
     if (to == "cocalc-html" || to == "cocalc-pdf") {
       // We use our own internal cocalc conversion, since I'm tired of weird subtle issues
@@ -41,6 +41,28 @@ export async function nbconvert(opts: nbconvertParams): Promise<void> {
       throw Error("impossible");
     }
 
+    let convertToPDF = false;
+    if (to == "lab-pdf") {
+      for (let i = 0; i < opts.args.length; i++) {
+        if (opts.args[i] == "lab-pdf") {
+          opts.args[i] = "html";
+          break;
+        }
+      }
+      to = "html";
+      convertToPDF = true;
+    } else if (to == "classic-pdf") {
+      for (let i = 0; i < opts.args.length; i++) {
+        if (opts.args[i] == "classic-pdf") {
+          opts.args[i] = "html";
+          break;
+        }
+      }
+      to = "html";
+      convertToPDF = true;
+      opts.args = ["--template", "classic"].concat(opts.args);
+    }
+
     let command: string;
     let args: string[];
     if (to === "sagews") {
@@ -52,6 +74,7 @@ export async function nbconvert(opts: nbconvertParams): Promise<void> {
       command = "jupyter";
       args = ["nbconvert"].concat(opts.args);
     }
+    log.debug("running ", { command, args });
     // Note about bash/ulimit_timeout below.  This is critical since nbconvert
     // could launch things like pdflatex that might run forever and without
     // ulimit they do not get killed properly; this has happened in production!
@@ -66,6 +89,12 @@ export async function nbconvert(opts: nbconvertParams): Promise<void> {
     });
     if (output.exit_code != 0) {
       throw Error(output.stderr);
+    }
+
+    if (convertToPDF) {
+      await htmlToPDF(
+        htmlPath(join(opts.directory ?? "", parseSource(opts.args)))
+      );
     }
   } finally {
     log.debug("finished");
