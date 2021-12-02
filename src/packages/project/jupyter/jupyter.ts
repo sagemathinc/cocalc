@@ -32,7 +32,6 @@ import { EventEmitter } from "events";
 import { exists, unlink } from "./async-utils-node";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { Channels, MessageType } from "@nteract/messaging";
-import { sanitize_nbconvert_path } from "@cocalc/util/sanitize-nbconvert";
 
 const {
   merge,
@@ -851,7 +850,7 @@ export class JupyterKernel
     }
     args = copy(args);
     args.push("--");
-    args.push(sanitize_nbconvert_path(this._filename));
+    args.push(this._filename);
     await nbconvert({
       args,
       timeout,

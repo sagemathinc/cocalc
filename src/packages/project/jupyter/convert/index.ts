@@ -14,6 +14,7 @@ import htmlToPDF from "./html-to-pdf";
 import { nbconvertParams, parseSource, parseTo } from "./util";
 import { join } from "path";
 import { getLogger } from "@cocalc/project/logger";
+import { sanitize_nbconvert_path } from "@cocalc/util/sanitize-nbconvert";
 
 const log = getLogger("jupyter-nbconvert");
 
@@ -42,6 +43,7 @@ export async function nbconvert(opts: nbconvertParams): Promise<void> {
     }
 
     let convertToPDF = false;
+    const originalSource = parseSource(opts.args); // before any mangling for the benefit of nbconvert.
     if (to == "lab-pdf") {
       for (let i = 0; i < opts.args.length; i++) {
         if (opts.args[i] == "lab-pdf") {
@@ -60,6 +62,7 @@ export async function nbconvert(opts: nbconvertParams): Promise<void> {
       }
       to = "html";
       convertToPDF = true;
+      // Put --template argument at beginning -- path must be at the end.
       opts.args = ["--template", "classic"].concat(opts.args);
     }
 
@@ -73,7 +76,11 @@ export async function nbconvert(opts: nbconvertParams): Promise<void> {
     } else {
       command = "jupyter";
       args = ["nbconvert"].concat(opts.args);
+      // This is the **one and only case** where we sanitize the input filename.  Doing so when not calling
+      // nbconvert would actually break everything.
+      args[args.length - 1] = sanitize_nbconvert_path(args[args.length - 1]);
     }
+
     log.debug("running ", { command, args });
     // Note about bash/ulimit_timeout below.  This is critical since nbconvert
     // could launch things like pdflatex that might run forever and without
@@ -92,9 +99,8 @@ export async function nbconvert(opts: nbconvertParams): Promise<void> {
     }
 
     if (convertToPDF) {
-      await htmlToPDF(
-        htmlPath(join(opts.directory ?? "", parseSource(opts.args)))
-      );
+      // Important to use *unmangled* source here!
+      await htmlToPDF(htmlPath(join(opts.directory ?? "", originalSource)));
     }
   } finally {
     log.debug("finished");
