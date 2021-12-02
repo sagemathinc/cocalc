@@ -6,6 +6,12 @@
 import { throttle, isEqual } from "lodash";
 import { AccountStore } from "./store";
 
+if (require("darkreader/package").version != "4.9.35") {
+  throw Error(
+    "Do NOT upgrade darkreader beyond 4.9.35 until https://github.com/sagemathinc/cocalc/issues/5591 is resolved!  Doing so breaks MathJax v2."
+  );
+}
+
 export const dark_mode_mins = {
   brightness: 20,
   contrast: 20,
