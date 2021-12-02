@@ -5,5 +5,4 @@
 
 // collecting all commands calling smc_pyutil
 
-export const IPYNB2PDF = "cc-ipynb-to-pdf";
 export const JUPYTER_CLASSIC_OPEN = "cc-jupyter-classic-open";

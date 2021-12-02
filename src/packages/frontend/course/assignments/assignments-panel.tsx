@@ -615,7 +615,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             }
           >
             Export collected student files to single directory, converting
-            notebooks to pdf
+            Jupyter notebooks to pdf and html for easy offline grading.
           </Button>
         </Col>
       </Row>

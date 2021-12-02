@@ -26,6 +26,7 @@ import { lean, lean_channel } from "../lean/server";
 import { nbgrader } from "../nbgrader/api";
 import { jupyter_strip_notebook } from "../nbgrader/jupyter-parse";
 import { jupyter_run_notebook } from "../nbgrader/jupyter-run";
+import { nbconvert as jupyter_nbconvert } from "../jupyter/convert";
 import { x11_channel } from "../x11/server";
 import { synctable_channel } from "../sync/server";
 import { syncdoc_call } from "../sync/sync-doc";
@@ -113,6 +114,8 @@ async function handle_api_call(data: Mesg, primus: any): Promise<any> {
       return await nbgrader(client, winston, data.opts);
     case "jupyter_strip_notebook":
       return await jupyter_strip_notebook(data.ipynb_path);
+    case "jupyter_nbconvert":
+      return await jupyter_nbconvert(data.opts);
     case "jupyter_run_notebook":
       return await jupyter_run_notebook(client, winston, data.opts);
     case "lean_channel":

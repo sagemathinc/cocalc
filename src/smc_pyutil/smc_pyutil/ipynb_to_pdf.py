@@ -18,6 +18,11 @@ depending on your tastes.  It also has a dependency on chromium.
 #   https://github.com/sagemathinc/cocalc/pull/5583
 #
 # which implements much better and more efficient functionality.
+# In particular, there is now a project api call jupyter_nbconvert
+# e.g., used in packages/frontend/course/export/export-assignment.ts
+# that converts notebooks to other formats.  It's much more
+# efficient than upstream nbconvert for html and pdf, and doesn't waste
+# time importing code each time it is run.
 ###
 
 from __future__ import absolute_import, print_function

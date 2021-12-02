@@ -14,7 +14,6 @@ the student name.
 */
 
 import { endswith, len, startswith } from "@cocalc/util/misc";
-import { IPYNB2PDF } from "../../misc/commands";
 import { exec, project_api } from "../../frame-editors/generic/client";
 import { StudentsMap } from "../store";
 
@@ -89,15 +88,26 @@ async function export_one_directory(
     if (startswith(name, ".")) continue;
     log(name);
     if (endswith(name, ".ipynb")) {
-      // convert, then move pdf
+      // convert, then move html and pdf
       const pdf = name.slice(0, name.length - "ipynb".length) + "pdf";
       const html = name.slice(0, name.length - "ipynb".length) + "html";
       try {
+        try {
+          // See packages/frontend/project/websocket/api.ts for jupyter_nbconvert:
+          await api.jupyter_nbconvert({
+            args: ["--to", "cocalc-pdf", name],
+            directory: source,
+            timeout,
+          });
+        } catch (err) {
+          // even if this fails, html might have been created fine as part of the
+          // conversion process.
+          log(`WARNING: conversion to PDF may have failed ${err}`);
+        }
         await exec({
-          command: IPYNB2PDF,
-          args: [source + "/" + name],
+          command: "mv",
+          args: [source + "/" + html, target + "/" + prefix + "-" + html],
           project_id,
-          timeout,
         });
         await exec({
           command: "mv",
@@ -105,24 +115,7 @@ async function export_one_directory(
           project_id,
         });
       } catch (err) {
-        try {
-          log(
-            "Conversion using the ipynb to PDF script failed, so try converting to html"
-          );
-          await exec({
-            command: "jupyter",
-            args: ["nbconvert", source + "/" + name, "--to", "html", "--template", "classic"],
-            project_id,
-            timeout,
-          });
-          await exec({
-            command: "mv",
-            args: [source + "/" + html, target + "/" + prefix + "-" + html],
-            project_id,
-          });
-        } catch (err) {
-          log("convert to html failed too");
-        }
+        log(`WARNING: Conversion ipynb to PDF failed. ${err}`);
       }
     } else if (endswith(name, ".sagews")) {
       try {
