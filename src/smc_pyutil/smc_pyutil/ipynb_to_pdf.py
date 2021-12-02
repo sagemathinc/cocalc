@@ -12,6 +12,14 @@ depending on your tastes.  It also has a dependency on chromium.
 
 # ATTN: make sure to keep dependencies of this in sync with projects/project/configuration.ts
 
+### **
+# This script is deprecated as of
+#
+#   https://github.com/sagemathinc/cocalc/pull/5583
+#
+# which implements much better and more efficient functionality.
+###
+
 from __future__ import absolute_import, print_function
 from shutil import which
 import os, sys, time, glob
