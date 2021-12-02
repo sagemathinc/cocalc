@@ -236,4 +236,15 @@ export interface PostgreSQL extends EventEmitter {
     ttl: number;
     cb: CB;
   }): void;
+
+  synctable(opts: {
+    table: string;
+    columns?: string[];
+    where?: { [key: string]: string | string[] } | string;
+    limit?: number;
+    order_by?: any;
+    where_function?: Function;
+    idle_timeout_s?: number;
+    cb: CB;
+  });
 }
