@@ -7,6 +7,7 @@
 NBConvert dialog -- for running nbconvert
 */
 import React, { useEffect, useRef } from "react";
+import { redux } from "../app-framework";
 import * as immutable from "immutable";
 import { Icon, Loading, A, TimeAgo } from "../components";
 import { Button, Modal } from "antd";
@@ -31,7 +32,7 @@ const NAMES = {
   },
   pdf: { ext: "pdf", display: "PDF via nbconvert and LaTeX" },
   webpdf: { ext: "pdf", display: "PDF via nbconvert webpdf" },
-  script: { ext: "txt", display: "Executable Script", internal: true },
+  script: { ext: "", display: "Executable Script", internal: true },
   "cocalc-pdf": { ext: "pdf", display: "PDF", no_run_button: true },
 } as const;
 
@@ -120,9 +121,40 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       backend_kernel_info,
     } = props;
 
+    function target(): { targetPath?: string; url?: string; info? } {
+      if (
+        nbconvert == null ||
+        nbconvert.get("error") ||
+        nbconvert_dialog == null
+      ) {
+        return {};
+      }
+      const to = nbconvert_dialog.get("to");
+      const info = NAMES[to];
+      if (info == null) {
+        return {};
+      }
+      let ext: string;
+      // --to script converts to probably a .py file
+      if (to === "script" && backend_kernel_info != null) {
+        // special case where extension may be different
+        ext = backend_kernel_info
+          .getIn(["language_info", "file_extension"], "")
+          .slice(1);
+        if (ext === "") {
+          ext = "py";
+        }
+      } else {
+        ext = info.ext;
+      }
+      const targetPath = misc.change_filename_extension(path, ext);
+      const url = actions.store.get_raw_link(targetPath);
+      return { targetPath, url, info };
+    }
+
     // on show of dialog, start running, if not already running.
     useEffect(() => {
-      if (nbconvert_dialog == null || nbconvert == null) return;
+      if (nbconvert_dialog == null) return;
       const state = nbconvert?.get("state");
       if (state != "start" && state != "run") {
         run();
@@ -135,7 +167,12 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
     useEffect(() => {
       const state = nbconvert?.get("state");
       if (state == "done" && lastState.current != "done") {
-        console.log("do a download");
+        const { targetPath } = target();
+        if (targetPath) {
+          redux
+            .getProjectActions(actions.project_id)
+            ?.download_file({ path: targetPath });
+        }
       }
       lastState.current = state;
     }, [nbconvert]);
@@ -145,7 +182,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       actions.focus(true);
     }
 
-    function render_edit(target_path: any) {
+    function renderEdit(target_path: any) {
       return (
         <div>
           <br />
@@ -162,38 +199,17 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
     }
 
     function renderDownload() {
-      if (
-        nbconvert == null ||
-        nbconvert.get("error") ||
-        nbconvert_dialog == null
-      ) {
-        return;
-      }
-      const to = nbconvert_dialog.get("to");
-      const info = NAMES[to];
-      if (info == null) {
-        return;
-      }
-      let ext: string;
-      // --to script converts to a .py file
-      if (to === "script" && backend_kernel_info != null) {
-        // special case where extension may be different
-        ext = backend_kernel_info
-          .getIn(["language_info", "file_extension"], "")
-          .slice(1);
-        if (ext === "") {
-          ext = "py";
-        }
-      } else {
-        ext = info.ext;
-      }
-      const target_path = misc.change_filename_extension(path, ext);
-      const url = actions.store.get_raw_link(target_path);
+      const { targetPath, url, info } = target();
+      if (!targetPath || !url || !info) return;
       return (
-        <div style={{ fontSize: "14pt" }}>
+        <div>
           Successfully exported Jupyter notebook to{" "}
-          {!info.nolink && <A href={url}>{target_path}</A>}
-          {info.internal && render_edit(target_path)}.
+          {!info.nolink && (
+            <>
+              <A href={url}>{targetPath}</A>.
+            </>
+          )}
+          {info.internal && renderEdit(targetPath)}
         </div>
       );
     }
@@ -223,7 +239,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
         </b>
       );
       return (
-        <div style={{ marginTop: "15px" }}>
+        <div>
           {renderError()}
           <div>{renderDownload()}</div>
         </div>
@@ -249,13 +265,15 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       const state = nbconvert?.get("state");
       switch (state) {
         case "start":
-          return (
-            <div style={{ marginTop: "15px" }}>Requesting to convert...</div>
-          );
+          return <div>Requesting to convert...</div>;
         case "run":
           return (
-            <div style={{ marginTop: "15px" }}>
-              <Loading text="Exporting..." /> {render_started()}
+            <div>
+              <Loading
+                style={{ fontSize: "20px", color: "#666" }}
+                text="Exporting..."
+              />{" "}
+              {render_started()}
             </div>
           );
         case "done":
@@ -282,32 +300,19 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
     }
 
     function run(): void {
+      const to = nbconvert_dialog.get("to");
+      if (to == "script") {
+        // ensure kernel info is initialized, which is used for
+        // determining the target file extension in case of exporting
+        // to an executable script.  This makes backend_kernel_info get set.
+        actions.set_backend_kernel_info();
+      }
+      // start it going
       actions.nbconvert(args());
     }
 
-    function render_run_button() {
-      if (nbconvert_dialog == null) {
-        return;
-      }
-      const to = nbconvert_dialog.get("to");
-      const info = NAMES[to];
-      if (info.no_run_button) return;
-      const state = nbconvert != null ? nbconvert.get("state") : undefined;
-      return (
-        <Button onClick={run} disabled={["start", "run"].includes(state)}>
-          Export to {target_name()}...
-        </Button>
-      );
-    }
-
-    function target_name(): string | undefined {
-      const to =
-        nbconvert_dialog != null ? nbconvert_dialog.get("to") : undefined;
-      if (to != null) {
-        return NAMES[to] != null ? NAMES[to].display : undefined;
-      } else {
-        return "";
-      }
+    function targetDescription(): string {
+      return NAMES[nbconvert_dialog?.get("to")]?.display ?? "";
     }
 
     function slides_command(): string {
@@ -329,6 +334,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
           visible={nbconvert_dialog != null}
           onOk={close}
           onCancel={close}
+          footer={null}
           title={
             <>
               <Icon name="FundProjectionScreenOutlined" /> Jupyter Notebook
@@ -364,9 +370,17 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
         visible={nbconvert_dialog != null}
         onOk={close}
         onCancel={close}
-        title={"Save and Download as..."}
+        title={
+          <>
+            <Icon
+              name="cloud-download"
+              style={{ fontSize: "20px", marginRight: "5px" }}
+            />{" "}
+            Save and Download as {targetDescription()}
+          </>
+        }
+        footer={null}
       >
-        {render_run_button()}
         {render_current()}
       </Modal>
     );

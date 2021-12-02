@@ -70,7 +70,7 @@ const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 export class JupyterActions extends Actions<JupyterStoreState> {
   private is_project: boolean;
   protected path: string;
-  protected project_id: string;
+  public project_id: string;
   private _last_start?: number;
   public jupyter_kernel?: JupyterKernelInterface;
   private last_cursor_move_time: Date = new Date(0);
@@ -1895,6 +1895,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     if (action_name === "open_file") {
       a.open_file({ path });
+      return;
+    }
+    if (action_name == "download") {
+      a.download_file({ path });
       return;
     }
     const { head, tail } = misc.path_split(path);

@@ -512,7 +512,7 @@ export function commands(
     },
 
     "nbconvert script": {
-      m: "Executable script (.txt)...",
+      m: "Executable script...",
       f: () => jupyter_actions.show_nbconvert_dialog("script"),
     },
 
