@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
 import { Alert } from "../../antd-bootstrap";
 import { plural } from "@cocalc/util/misc";
 import { A, Icon, Space } from "../../components";
@@ -32,21 +31,17 @@ export const NoNetworkProjectWarning: React.FC<Options> = (props) => {
         <span>
           Your {total} internet access {plural(total, "upgrade")} are already in
           use on other projects. You can{" "}
-          <A href={url} style={{ cursor: "pointer" }}>
-            purchase further upgrades{" "}
-          </A>{" "}
-          by adding a subscription (you can add the same subscription multiple
-          times), or disable an internet access upgrade for another project to
-          free a spot up for this one.
+          <A href={url}>purchase further upgrades </A> by adding a subscription
+          (you can add the same subscription multiple times), or disable an
+          internet access upgrade for another project to free a spot up for this
+          one.
         </span>
       );
     } else {
       suggestion = (
         <span>
           <Space />
-          <A href={url} style={{ cursor: "pointer" }}>
-            Licenses start at about $3/month...
-          </A>
+          <A href={url}>Licenses start at about $3/month...</A>
         </span>
       );
     }

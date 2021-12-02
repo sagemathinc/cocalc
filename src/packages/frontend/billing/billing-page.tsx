@@ -109,7 +109,7 @@ export const BillingPage = rclass<ReactProps>(
         <p>
           <b>Commercial on Premises:</b> Contact us at <HelpEmailLink /> for{" "}
           questions about our{" "}
-          <A href="https://github.com/sagemathinc/cocalc-docker/blob/master/README.md">
+          <A href={PolicyPricingPageUrl + "/onprem"}>
             commercial on premises offering.
           </A>
         </p>

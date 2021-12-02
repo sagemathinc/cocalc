@@ -486,7 +486,7 @@ export function Footer() {
 // then consolidate this with the existing site-settings database (e.g. TOS above is one fixed HTML string with an anchor)
 
 export const PolicyIndexPageUrl = join(appBasePath, "policies");
-export const PolicyPricingPageUrl = join(appBasePath, "policies/pricing");
+export const PolicyPricingPageUrl = join(appBasePath, "pricing");
 export const PolicyPrivacyPageUrl = join(appBasePath, "policies/privacy");
 export const PolicyCopyrightPageUrl = join(appBasePath, "policies/copyright");
 export const PolicyTOSPageUrl = join(appBasePath, "policies/terms");

@@ -77,13 +77,7 @@ export const ExplainResources: React.FC<Props> = (props: Props) => {
                 <span>
                   {" "}
                   click the Help button above or read our{" "}
-                  <a
-                    target="_blank"
-                    href={`${PolicyPricingPageUrl}#faq`}
-                    rel="noopener"
-                  >
-                    pricing FAQ
-                  </a>{" "}
+                  <A href={PolicyPricingPageUrl}>pricing FAQ</A>{" "}
                 </span>
               ) : undefined}
               if anything is unclear to you, you just have a quick question and
@@ -154,10 +148,8 @@ export const ExplainResources: React.FC<Props> = (props: Props) => {
 
             <h4>License Keys</h4>
             <div>
-              <A href={DOC_LICENSE_URL}>
-                License Keys
-              </A>{" "}
-              are applied to projects. One key upgrades up to certain number of{" "}
+              <A href={DOC_LICENSE_URL}>License Keys</A> are applied to
+              projects. One key upgrades up to certain number of{" "}
               <em>simultaneously running projects</em> with the given upgrade
               schema.
             </div>
