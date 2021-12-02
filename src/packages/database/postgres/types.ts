@@ -247,4 +247,8 @@ export interface PostgreSQL extends EventEmitter {
     idle_timeout_s?: number;
     cb: CB;
   });
+
+  projects_that_need_to_be_started(): Promise<string[]>;
+
+  is_connected(): boolean;
 }
