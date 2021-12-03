@@ -24,28 +24,27 @@ import {
 } from "@cocalc/server/auth/remember-me";
 import { signInCheck, recordFail } from "@cocalc/server/auth/throttle";
 import Cookies from "cookies";
+import isPost from "lib/api/is-post";
 
 export default async function signIn(req, res) {
-  if (req.method === "POST") {
-    let { email, password } = req.body;
-    email = email.toLowerCase().trim();
-    const check = signInCheck(email, req.ip);
-    if (check) {
-      res.json({ error: check });
-      return;
-    }
-    let account_id: string;
-    try {
-      account_id = await getAccount(email, password);
-    } catch (err) {
-      res.json({ error: `Problem signing into account -- ${err}.` });
-      recordFail(email, req.ip);
-      return;
-    }
-    await signUserIn(req, res, account_id);
-  } else {
-    res.status(404).json({ message: "Sign In must use a POST request." });
+  if (!isPost(req, res)) return;
+
+  let { email, password } = req.body;
+  email = email.toLowerCase().trim();
+  const check = signInCheck(email, req.ip);
+  if (check) {
+    res.json({ error: check });
+    return;
   }
+  let account_id: string;
+  try {
+    account_id = await getAccount(email, password);
+  } catch (err) {
+    res.json({ error: `Problem signing into account -- ${err}.` });
+    recordFail(email, req.ip);
+    return;
+  }
+  await signUserIn(req, res, account_id);
 }
 
 export async function getAccount(

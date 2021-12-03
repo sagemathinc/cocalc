@@ -1,5 +1,5 @@
 import { join } from "path";
-import { Card, Divider } from "antd";
+import { Card } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import useCustomize from "lib/use-customize";
 import OpenDirectly from "./open-directly";

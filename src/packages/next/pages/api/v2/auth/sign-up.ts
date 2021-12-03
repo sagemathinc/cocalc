@@ -27,6 +27,7 @@ import { getAccount, signUserIn } from "./sign-in";
 import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
 import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import isPost from "lib/api/is-post";
 
 interface Issues {
   terms?: string;
@@ -35,10 +36,7 @@ interface Issues {
 }
 
 export default async function signUp(req, res) {
-  if (req.method != "POST") {
-    res.status(404).json({ message: "Sign Up must use a POST request." });
-    return;
-  }
+  if (!isPost(req, res)) return;
 
   let { terms, email, password, firstName, lastName, registrationToken } =
     req.body;

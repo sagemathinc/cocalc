@@ -4,12 +4,10 @@ Create a support ticket.
 
 import createSupportTicket from "@cocalc/server/support/create-ticket";
 import getAccountId from "lib/account/get-account";
+import isPost from "lib/api/is-post";
 
 export default async function handle(req, res) {
-  if (req.method !== "POST") {
-    res.status(404).json({ message: "must use a POST request." });
-    return;
-  }
+  if (!isPost(req, res)) return;
 
   const { options } = req.body;
 

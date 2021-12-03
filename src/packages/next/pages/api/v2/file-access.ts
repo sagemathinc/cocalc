@@ -5,12 +5,10 @@ better find things.
 
 import getAccountId from "lib/account/get-account";
 import getPool from "@cocalc/database/pool";
+import isPost from "lib/api/is-post";
 
 export default async function handle(req, res) {
-  if (req.method !== "POST") {
-    res.status(404).json({ message: "must use a POST request" });
-    return;
-  }
+  if (!isPost(req, res)) return;
 
   const account_id = await getAccountId(req);
   if (account_id == null) {

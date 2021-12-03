@@ -21,14 +21,10 @@ import {
   createReset,
 } from "@cocalc/server/auth/password-reset";
 import sendPasswordResetEmail from "@cocalc/server/email/password-reset";
+import isPost from "lib/api/is-post";
 
 export default async function passwordReset(req, res) {
-  if (req.method !== "POST") {
-    res
-      .status(404)
-      .json({ message: "password reset must use a POST request." });
-    return;
-  }
+  if (!isPost(req, res)) return;
 
   const { email } = req.body;
   const result = await handle(email, req.ip);

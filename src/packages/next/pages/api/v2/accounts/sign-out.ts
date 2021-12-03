@@ -10,12 +10,11 @@ import {
   deleteRememberMe,
   deleteAllRememberMe,
 } from "@cocalc/server/auth/remember-me";
+import isPost from "lib/api/is-post";
 
 export default async function handle(req, res) {
-  if (req.method !== "POST") {
-    res.status(404).json({ message: "must use a POST request" });
-    return;
-  }
+  if (!isPost(req, res)) return;
+
   try {
     await signOut(req);
     res.json({});

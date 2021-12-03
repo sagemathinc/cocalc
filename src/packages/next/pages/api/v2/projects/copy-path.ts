@@ -11,12 +11,10 @@ import { getProject } from "@cocalc/server/projects/control";
 import { isValidUUID } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import isPost from "lib/api/is-post";
 
 export default async function handle(req, res) {
-  if (req.method !== "POST") {
-    res.status(404).json({ message: "must use a POST request" });
-    return;
-  }
+  if (!isPost(req, res)) return;
 
   const {
     path,

@@ -4,12 +4,10 @@
  */
 
 import redeemVerifyEmail from "@cocalc/server/auth/redeem-verify-email";
+import isPost from "lib/api/is-post";
 
 export default async function redeemVerifyEmailAPICall(req, res) {
-  if (req.method !== "POST") {
-    res.status(404).json({ message: "verify email must use a POST request." });
-    return;
-  }
+  if (!isPost(req, res)) return;
 
   const { email_address, token } = req.body;
   try {

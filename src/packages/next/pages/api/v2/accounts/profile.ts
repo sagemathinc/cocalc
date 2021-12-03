@@ -6,12 +6,10 @@ the image.
 */
 
 import getProfile from "@cocalc/server/accounts/profile/get";
+import isPost from "lib/api/is-post";
 
 export default async function handle(req, res) {
-  if (req.method !== "POST") {
-    res.status(404).json({ message: "must use a POST request" });
-    return;
-  }
+  if (!isPost(req, res)) return;
 
   const { account_id } = req.body;
   try {

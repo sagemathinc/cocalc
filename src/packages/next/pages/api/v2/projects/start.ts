@@ -7,12 +7,11 @@ import getAccountId from "lib/account/get-account";
 import { getProject } from "@cocalc/server/projects/control";
 import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import isPost from "lib/api/is-post";
 
 export default async function handle(req, res) {
-  if (req.method !== "POST") {
-    res.status(404).json({ message: "must use a POST request" });
-    return;
-  }
+  if (!isPost(req, res)) return;
+
   const account_id = await getAccountId(req);
   const { project_id } = req.body;
 

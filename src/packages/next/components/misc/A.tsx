@@ -19,6 +19,7 @@ export default function A(props: any) {
   if (props.external) {
     const props2 = copyWithout(props, new Set(["external"]));
     if (!href.startsWith(basePath)) {
+      // @ts-ignore
       props2.href = join(basePath, href);
     }
     return <a {...props2} target={"_blank"} rel={"noopener"} />;

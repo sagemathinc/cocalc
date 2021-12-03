@@ -592,6 +592,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # referred to by many other things (projects, logs, etc.).
     # However, the deleted field is set to true, so the account
     # is excluded from user search.
+    # TODO: rewritten in packages/server/accounts/delete.ts
     mark_account_deleted: (opts) =>
         opts = defaults opts,
             account_id    : undefined

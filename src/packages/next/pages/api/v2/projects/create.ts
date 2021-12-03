@@ -5,12 +5,10 @@ This requires the user to be signed in so they are allowed to create a project.
 */
 import getAccountId from "lib/account/get-account";
 import create from "@cocalc/server/projects/create";
+import isPost from "lib/api/is-post";
 
 export default async function handle(req, res) {
-  if (req.method !== "POST") {
-    res.status(404).json({ message: "must use a POST request" });
-    return;
-  }
+  if (!isPost(req, res)) return;
 
   const { title, description, image, license } = req.body;
   const account_id = await getAccountId(req);
