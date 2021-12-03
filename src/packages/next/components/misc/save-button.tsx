@@ -1,6 +1,6 @@
 import { CSSProperties, useState } from "react";
 import { isEqual } from "lodash";
-import { Button, Space } from "antd";
+import { Alert, Button, Space } from "antd";
 import useIsMounted from "lib/hooks/mounted";
 import Loading from "components/share/loading";
 import api from "lib/api/post";
@@ -14,7 +14,7 @@ interface Props {
   onSave?: (object) => void;
 }
 
-export default function Save({
+export default function SaveButton({
   edited,
   defaultOriginal,
   table,
@@ -65,22 +65,12 @@ export default function Save({
       >
         <Space>
           <Icon name={same ? "check" : "save"} />
-          {saving ? <Loading>Saving...</Loading> : "Save"}
-          {!same && error && (
-            <div
-              style={{
-                display: "inline-block",
-                color: "white",
-                backgroundColor: "darkred",
-                padding: "0px 15px",
-                margin: "0px 5px",
-              }}
-            >
-              {error}
-            </div>
-          )}
+          {saving ? <Loading delay={0}>Saving...</Loading> : "Save"}
         </Space>
       </Button>
+      {!same && error && (
+        <Alert type="error" message={error} style={{ marginTop: "15px" }} />
+      )}
     </>
   );
 }

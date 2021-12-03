@@ -41,7 +41,8 @@ export default function Account({
             You are an active collaborator on projects that contain the
             published documents listed below. We include any unlisted or
             disabled published documents so that you can browse or edit them
-            from here. This list is only visible to you.
+            from here. This full list is only visible to you (other people only
+            see public documents).
           </>
         ) : (
           <>

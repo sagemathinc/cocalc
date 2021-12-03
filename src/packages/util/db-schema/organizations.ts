@@ -118,7 +118,7 @@ Table({
             return;
           }
 
-          if (obj["name"]) {
+          if (obj["name"] != null) {
             try {
               checkOrganizationName(obj["name"]);
             } catch (err) {
@@ -126,11 +126,14 @@ Table({
               return;
             }
             const id = await db.nameToAccountOrOrganization(obj["name"]);
-            if (id != null && id != obj["organization_id"]) {
-              cb("name is already taken by another organization or account");
+            if (id != null && id != account_id) {
+              cb(
+                `name "${obj["name"]}" is already taken by another organization or account`
+              );
               return;
             }
           }
+
           // Hook to truncate some text fields to at most 254 characters, to avoid
           // further trouble down the line.
           for (const field of ["title", "description", "email_address"]) {

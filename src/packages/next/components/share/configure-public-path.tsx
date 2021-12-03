@@ -3,7 +3,7 @@ import { Alert, Divider, Radio, Input, Select, Space } from "antd";
 import useDatabase from "lib/hooks/database";
 import Loading from "./loading";
 import { LICENSES } from "@cocalc/frontend/share/licenses";
-import Save from "components/misc/save-button";
+import SaveButton from "components/misc/save-button";
 import EditRow from "components/misc/edit-row";
 import A from "components/misc/A";
 import SelectSiteLicense from "components/misc/select-site-license";
@@ -88,7 +88,7 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
     : "listed";
 
   const save = (
-    <Save
+    <SaveButton
       edited={edited}
       defaultOriginal={original}
       table="public_paths"

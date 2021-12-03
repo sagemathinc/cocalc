@@ -282,7 +282,8 @@ Table({
           unlisted: true,
         },
         async check_hook(db, obj, account_id, _project_id, cb) {
-          if (obj["name"]) {
+          if (obj["name"] != null) {
+            // NOTE: there is no way to unset/remove a username after one is set...
             try {
               checkAccountName(obj["name"]);
             } catch (err) {
@@ -291,7 +292,9 @@ Table({
             }
             const id = await db.nameToAccountOrOrganization(obj["name"]);
             if (id != null && id != account_id) {
-              cb("name is already taken by another organization or account");
+              cb(
+                `name "${obj["name"]}" is already taken by another organization or account`
+              );
               return;
             }
           }

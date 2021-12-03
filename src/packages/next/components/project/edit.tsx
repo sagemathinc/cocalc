@@ -8,7 +8,7 @@ import { useRouter } from "next/router";
 import { Button, Input, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import EditRow from "components/misc/edit-row";
-import Save from "components/misc/save-button";
+import SaveButton from "components/misc/save-button";
 
 interface Props {
   title: string;
@@ -74,7 +74,7 @@ function EditFields({
     >
       <div>
         <Space style={{ float: "right" }}>
-          <Save edited={edited} defaultOriginal={original} table="projects" />
+          <SaveButton edited={edited} defaultOriginal={original} table="projects" />
           <Button style={{ float: "right" }} onClick={onClose}>
             Close
           </Button>
