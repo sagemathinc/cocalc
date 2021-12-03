@@ -30,10 +30,12 @@ export async function stripe_sales_tax(
     return 0;
   }
   let zip = undefined;
-  for (const x of customer.sources.data) {
-    if (x.id == customer.default_source) {
-      zip = (x as any).address_zip?.slice(0, 5);  // as any due to bug in Stripe's types
-      break;
+  if (customer.sources != null) {
+    for (const x of customer.sources.data) {
+      if (x.id == customer.default_source) {
+        zip = (x as any).address_zip?.slice(0, 5); // as any due to bug in Stripe's types
+        break;
+      }
     }
   }
   if (zip == null) {

@@ -246,14 +246,14 @@ async function stripe_purchase_product(
 
   // TODO: tax_percent is DEPRECATED but not gone (see stripe_create_subscription below).
   const tax_percent = await stripe.sales_tax(customer);
-  const options: Stripe.InvoiceCreateParams = {
+  const options = {
     customer,
     auto_advance: true,
     collection_method: "charge_automatically",
     tax_percent: tax_percent
       ? Math.round(tax_percent * 100 * 100) / 100
       : undefined,
-  } as const;
+  } as Stripe.InvoiceCreateParams;
 
   dbg("stripe_purchase_product options=", JSON.stringify(options));
   await stripe.conn.customers.update(customer, { coupon });

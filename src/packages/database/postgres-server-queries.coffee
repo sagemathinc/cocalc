@@ -67,6 +67,8 @@ stripe_name = require('@cocalc/util/stripe/name').default;
 
 create_project = require("@cocalc/server/projects/create").default;
 
+{Stripe} = require("@cocalc/server/stripe/client")
+
 # log events, which contain personal information (email, account_id, ...)
 PII_EVENTS = ['create_account',
               'change_password',
@@ -936,7 +938,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             else if not secret
                                 cb("stripe must be configured")
                             else
-                                opts.stripe = require("stripe")(secret)
+                                opts.stripe = Stripe(secret)
                                 cb()
                 else
                     cb()

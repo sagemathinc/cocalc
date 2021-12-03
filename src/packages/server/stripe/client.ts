@@ -13,7 +13,7 @@ import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import stripeName from "@cocalc/util/stripe/name";
 
 import Stripe from "stripe";
-export type { Stripe };
+export { Stripe };
 
 import { get_stripe } from "./connection";
 import { stripe_sales_tax } from "./sales-tax";

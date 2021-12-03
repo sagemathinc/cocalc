@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import type Stripe from "@cocalc/server/stripe/client";
+import type { Stripe } from "@cocalc/server/stripe/client";
 import { EventEmitter } from "events";
 import { Changes } from "./changefeed";
 import { Client } from "pg";

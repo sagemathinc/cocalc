@@ -8,9 +8,11 @@
     "./accounts/*": "./dist/accounts/*.js",
     "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",
+    "./stripe": "./dist/stripe/index.js",
+    "./stripe/*": "./dist/stripe/*.js",
     "./projects/control": "./dist/projects/control/index.js",
-    "./projects/connection": "./dist/projects/connection/index.js",
     "./projects/control/*": "./dist/projects/control/*.js",
+    "./projects/connection": "./dist/projects/connection/index.js",
     "./projects/*": "./dist/projects/*.js",
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
@@ -49,7 +51,7 @@
     "nodemailer": "^6.7.0",
     "parse-domain": "^4.1.0",
     "random-key": "^0.3.2",
-    "stripe": "^8.191.0"
+    "stripe": "^8.78.0"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/server",
   "repository": {
