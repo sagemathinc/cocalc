@@ -37,7 +37,6 @@
     "random-key": "^0.3.2",
     "read": "^1.0.7",
     "sql-string-escape": "^1.1.6",
-    "stripe": "^8.78.0",
     "uuid": "^8.3.2",
     "validator": "^13.6.0"
   },

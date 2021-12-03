@@ -21,7 +21,7 @@ import {
 } from "@cocalc/frontend/site-licenses/purchase/util";
 import { charge_user_for_license, set_purchase_metadata } from "./charge";
 import { create_license } from "./create-license";
-import { StripeClient } from "../../stripe/client";
+import { StripeClient } from "@cocalc/server/stripe/client";
 import { callback2 } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 

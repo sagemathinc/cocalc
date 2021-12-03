@@ -89,7 +89,6 @@
     "sanitize-html": "^2.3.2",
     "serve-index": "^1.9.1",
     "sql-string-escape": "^1.1.6",
-    "stripe": "^8.78.0",
     "temp": "^0.9.4",
     "uglify-js": "^3.14.1",
     "underscore": "^1.12.1",

@@ -8,14 +8,12 @@ import { callback } from "awaiting";
 // STOPGAP FIX: relative dirs necessary for manage service
 import { callback2 } from "@cocalc/util/async-utils";
 import * as message from "@cocalc/util/message";
-import {
-  available_upgrades,
-  get_total_upgrades,
-} from "@cocalc/util/upgrades";
+import { available_upgrades, get_total_upgrades } from "@cocalc/util/upgrades";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import stripeName from "@cocalc/util/stripe/name";
 
 import Stripe from "stripe";
+export type { Stripe };
 
 import { get_stripe } from "./connection";
 import { stripe_sales_tax } from "./sales-tax";

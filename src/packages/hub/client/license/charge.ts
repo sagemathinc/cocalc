@@ -3,10 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { COSTS, PurchaseInfo } from "@cocalc/frontend/site-licenses/purchase/util";
-import { StripeClient } from "../../stripe/client";
+import {
+  COSTS,
+  PurchaseInfo,
+} from "@cocalc/frontend/site-licenses/purchase/util";
+import { StripeClient, Stripe } from "@cocalc/server/stripe/client";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-import Stripe from "stripe";
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };
 

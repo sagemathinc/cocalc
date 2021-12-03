@@ -48,7 +48,8 @@
     "node-zendesk": "^2.1.0",
     "nodemailer": "^6.7.0",
     "parse-domain": "^4.1.0",
-    "random-key": "^0.3.2"
+    "random-key": "^0.3.2",
+    "stripe": "^8.191.0"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/server",
   "repository": {

@@ -17,7 +17,7 @@ This is run as a singleton deployment on some preemptible.
 
 const ms = require("ms");
 const postgres = require("@cocalc/database");
-const { stripe_sync } = require("@cocalc/hub/stripe/sync");
+const { stripe_sync } = require("@cocalc/server/stripe/sync");
 const { callback2 } = require("@cocalc/util/async-utils");
 
 const db = postgres.db({ ensure_exists: false });
