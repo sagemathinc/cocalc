@@ -5,6 +5,8 @@ import { join } from "path";
 import basePath from "lib/base-path";
 import ConfigMenu from "./menu";
 import useIsBrowser from "lib/hooks/is-browser";
+import useCustomize from "lib/use-customize";
+import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 
 const { Content, Sider } = Layout;
 
@@ -14,6 +16,17 @@ interface Props {
 
 export default function ConfigLayout({ page }: Props) {
   const isBrowser = useIsBrowser();
+  const { account } = useCustomize();
+
+  if (!account) {
+    return (
+      <Alert
+        style={{ margin: "15px auto" }}
+        type="warning"
+        message={<InPlaceSignInOrUp title="Account Configuration" why="to edit your account configuration"/>}
+      />
+    );
+  }
 
   const [main, sub] = page;
   return (

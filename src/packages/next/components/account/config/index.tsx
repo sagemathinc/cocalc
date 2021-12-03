@@ -22,7 +22,6 @@ const Components = {
     api: APIKey,
     delete: DeleteAccount,
     "sign-out": SignOut,
-    delete: DeleteAccount,
   },
 };
 

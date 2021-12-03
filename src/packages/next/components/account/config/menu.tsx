@@ -28,14 +28,14 @@ export default function ConfigMenu({ main, sub }) {
         </Menu.Item>
       </SubMenu>
       <SubMenu key="account" icon={<Icon name="user" />} title="Account">
-        <Menu.Item key="name">Name</Menu.Item>
-        <Menu.Item key="email">Email Address</Menu.Item>
-        <Menu.Item key="avatar">Avatar Image</Menu.Item>
-        <Menu.Item key="link">Link Account</Menu.Item>
-        <Menu.Item key="ssh">SSH Keys</Menu.Item>
-        <Menu.Item key="api">API Key</Menu.Item>
-        <Menu.Item key="delete">Delete Account</Menu.Item>
-        <Menu.Item key="sign-out">Sign Out</Menu.Item>
+        <Menu.Item key="name"><Icon name="user-times"/> Name</Menu.Item>
+        <Menu.Item key="email"><Icon name="paper-plane"/> Email Address</Menu.Item>
+        <Menu.Item key="avatar"><Icon name="user"/> Avatar Image</Menu.Item>
+        <Menu.Item key="link"><Icon name="external-link"/> Link Account</Menu.Item>
+        <Menu.Item key="ssh"><Icon name="key"/> SSH Keys</Menu.Item>
+        <Menu.Item key="api"><Icon name="key"/> API Key</Menu.Item>
+        <Menu.Item key="delete"><Icon name="trash"/> Delete Account</Menu.Item>
+        <Menu.Item key="sign-out"><Icon name="sign-out-alt"/> Sign Out</Menu.Item>
       </SubMenu>
       <SubMenu key="editor" icon={<Icon name="edit" />} title="Editor">
         <Menu.Item key="appearance">Appearance</Menu.Item>

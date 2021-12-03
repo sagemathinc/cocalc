@@ -11,13 +11,9 @@ export default async function getAccountId(req): Promise<string | undefined> {
   // caching a bit --  We thus want the query below to happen rarely.  We also
   // get expire field as well (since it is usually there) so that the result isn't empty
   // (hence not cached) when a cookie has expired.
+  const hash = getRememberMeHash(req);
+  if (!hash) return; // not signed in.
   const pool = getPool("short");
-  const cookies = new Cookies(req);
-  const rememberMe = cookies.get(REMEMBER_ME_COOKIE_NAME);
-  if (!rememberMe) {
-    return;
-  }
-  const hash = getHash(rememberMe);
   // important to use CHAR(127) instead of TEXT for 100x performance gain.
   const result = await pool.query(
     "SELECT account_id, expire FROM remember_me WHERE hash = $1::CHAR(127)",
@@ -34,8 +30,13 @@ export default async function getAccountId(req): Promise<string | undefined> {
   return account_id;
 }
 
-function getHash(cookie: string): string {
-  const x: string[] = cookie.split("$");
+export function getRememberMeHash(req): string | undefined {
+  const cookies = new Cookies(req);
+  const rememberMe = cookies.get(REMEMBER_ME_COOKIE_NAME);
+  if (!rememberMe) {
+    return;
+  }
+  const x: string[] = rememberMe.split("$");
   if (x.length !== 4) {
     throw Error("badly formatted remember_me cookie");
   }

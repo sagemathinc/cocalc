@@ -38,3 +38,19 @@ export async function createRememberMeCookie(account_id: string): Promise<{
 
   return { value, ttl_s };
 }
+
+// delete the remember me database entry for the given hash
+export async function deleteRememberMe(hash: string): Promise<void> {
+  const pool = getPool();
+  await pool.query("DELETE FROM remember_me WHERE hash=$1::TEXT", [
+    hash.slice(0, 127),
+  ]);
+}
+
+// delete all remember me cookies for the account
+export async function deleteAllRememberMe(account_id: string): Promise<void> {
+  const pool = getPool();
+  await pool.query("DELETE FROM remember_me WHERE account_id=$1::UUID", [
+    account_id,
+  ]);
+}
