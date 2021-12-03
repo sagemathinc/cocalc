@@ -5,23 +5,25 @@
 
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
-// STOPGAP FIX: relative dirs necessary for manage service
 import { callback2 } from "@cocalc/util/async-utils";
 import * as message from "@cocalc/util/message";
 import { available_upgrades, get_total_upgrades } from "@cocalc/util/upgrades";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import stripeName from "@cocalc/util/stripe/name";
-
+import { db } from "@cocalc/database";
 import Stripe from "stripe";
 export { Stripe };
 
-import { get_stripe } from "./connection";
+import getConn from "./connection";
 import { stripe_sales_tax } from "./sales-tax";
+
+import getLogger from "@cocalc/backend/logger";
+const logger = getLogger("stripe-client");
 
 interface HubClient {
   account_id: string;
-  dbg: (f: string) => Function;
   database: PostgreSQL;
+  dbg: (f: string) => Function;
   push_to_client: Function;
   error_to_client: Function;
   assert_user_is_in_group: Function;
@@ -48,14 +50,37 @@ function get_nonnull_field(mesg: Message, name: string): any {
 
 export class StripeClient {
   private client: HubClient;
-  public conn: Stripe;
   private stripe_customer_id?: string;
 
-  constructor(client: HubClient) {
-    this.client = client;
-    const conn = get_stripe();
-    if (conn == null) throw Error("stripe billing not configured");
-    this.conn = conn;
+  constructor(client: Partial<HubClient>) {
+    if (!client.account_id) {
+      throw Error("account_id must be specified");
+    }
+    if (!client.database) {
+      // TODO: Importing this at the top level doesn't work with
+      // next.js right now for some reason.   I'm sure this problem
+      // will vanish when @cocalc/database melts away or is rewritten
+      // in typescript...
+      client.database = db();
+    }
+    // Set defaults for some attributes of client, in case not specified
+    if (client.dbg == null) {
+      client.dbg = (f: string) => {
+        return (...args) =>
+          logger.debug(`Stripe(account_id=${client.account_id})`, f, ...args);
+      };
+    }
+    if (client.push_to_client == null) {
+      client.push_to_client = () => {}; // no op
+    }
+    if (client.error_to_client == null) {
+      client.error_to_client = () => {}; // no op
+    }
+    if (client.assert_user_is_in_group == null) {
+      client.assert_user_is_in_group = () => {}; // no op
+    }
+
+    this.client = client as HubClient;
 
     this.get_customer_id = reuseInFlight(this.get_customer_id.bind(this));
   }
@@ -119,7 +144,7 @@ export class StripeClient {
       customer_id = await this.need_customer_id();
     }
     dbg("now getting stripe customer object");
-    return await this.conn.customers.retrieve(customer_id);
+    return await (await getConn()).customers.retrieve(customer_id);
   }
 
   public async handle_mesg(mesg: Message): Promise<void> {
@@ -155,7 +180,7 @@ export class StripeClient {
     dbg("get information from stripe: subscriptions, payment methods, etc.");
     // note -- we explicitly put the "publishable_key" property there...
     return message.stripe_customer({
-      stripe_publishable_key: (this.conn as any).publishable_key,
+      stripe_publishable_key: (await getConn()).publishable_key,
       customer: await this.update_database(),
     });
   }
@@ -199,7 +224,8 @@ export class StripeClient {
       },
     };
 
-    const customer_id: string = (await this.conn.customers.create(x)).id;
+    const customer_id: string = (await (await getConn()).customers.create(x))
+      .id;
 
     dbg("success; now save customer_id to database");
     await callback2(this.client.database.set_stripe_customer_id, {
@@ -216,7 +242,9 @@ export class StripeClient {
     const dbg = this.dbg("add_card_to_existing_stripe_customer");
     dbg("add card to existing stripe customer");
     const customer_id = await this.need_customer_id();
-    await this.conn.customers.createSource(customer_id, { source: token });
+    await (
+      await getConn()
+    ).customers.createSource(customer_id, { source: token });
 
     await this.update_database();
   }
@@ -230,7 +258,7 @@ export class StripeClient {
     if (customer_id == null)
       throw Error("no customer information so can't delete source");
 
-    await this.conn.customers.deleteSource(customer_id, card_id);
+    await (await getConn()).customers.deleteSource(customer_id, card_id);
     await this.update_database();
   }
 
@@ -240,7 +268,9 @@ export class StripeClient {
     const card_id: string = get_string_field(mesg, "card_id");
     const customer_id: string = await this.need_customer_id();
     dbg("now setting the default source in stripe");
-    await this.conn.customers.update(customer_id, {
+    await (
+      await getConn()
+    ).customers.update(customer_id, {
       default_source: card_id,
     });
     await this.update_database();
@@ -255,7 +285,7 @@ export class StripeClient {
     if (customer_id == null) return;
     return await callback2(this.client.database.stripe_update_customer, {
       account_id: this.client.account_id,
-      stripe: this.conn,
+      stripe: await getConn(),
       customer_id,
     });
   }
@@ -265,7 +295,7 @@ export class StripeClient {
     dbg("modify a payment method");
     const card_id: string = get_string_field(mesg, "card_id");
     const info: any = get_nonnull_field(mesg, "info");
-    await this.conn.sources.update(card_id, info);
+    await (await getConn()).sources.update(card_id, info);
     await this.update_database();
   }
 
@@ -306,7 +336,7 @@ export class StripeClient {
     };
 
     dbg("add customer subscription to stripe");
-    await this.conn.subscriptions.create(options);
+    await (await getConn()).subscriptions.create(options);
 
     dbg("added subscription; now save info in our database about it...");
     await this.update_database();
@@ -341,7 +371,9 @@ export class StripeClient {
     dbg("cancel the subscription at stripe");
     // This also returns the subscription, which lets
     // us easily get the metadata of all projects associated to this subscription.
-    await this.conn.subscriptions.update(subscription_id, {
+    await (
+      await getConn()
+    ).subscriptions.update(subscription_id, {
       cancel_at_period_end: mesg.at_period_end,
     });
 
@@ -359,7 +391,7 @@ export class StripeClient {
       plan: mesg.plan,
       coupon: mesg.coupon_id,
     };
-    await this.conn.subscriptions.update(subscription_id, changes);
+    await (await getConn()).subscriptions.update(subscription_id, changes);
     await this.update_database();
     if (mesg.coupon_id != null) {
       const { coupon, coupon_history } = await this.validate_coupon(
@@ -382,7 +414,7 @@ export class StripeClient {
     const options = await this.stripe_api_pager_options(mesg);
     options.status = "all";
     options.customer = customer_id;
-    const subscriptions = await this.conn.subscriptions.list(options);
+    const subscriptions = await (await getConn()).subscriptions.list(options);
     return message.stripe_subscriptions({ subscriptions });
   }
 
@@ -405,7 +437,7 @@ export class StripeClient {
   ): Promise<{ coupon: Coupon; coupon_history: CouponHistory }> {
     const dbg = this.dbg("validate_coupon");
     dbg("retrieve the coupon");
-    const coupon: Coupon = await this.conn.coupons.retrieve(coupon_id);
+    const coupon: Coupon = await (await getConn()).coupons.retrieve(coupon_id);
 
     dbg("check account coupon_history");
     let coupon_history: CouponHistory = await callback2(
@@ -441,7 +473,7 @@ export class StripeClient {
     dbg("get a list of charges for this customer");
 
     const options = await this.stripe_api_pager_options(mesg);
-    const charges = await this.conn.charges.list(options);
+    const charges = await (await getConn()).charges.list(options);
     return message.stripe_charges({ charges });
   }
 
@@ -449,7 +481,7 @@ export class StripeClient {
     const dbg = this.dbg("mesg_get_invoices");
     dbg("get a list of invoices for this customer");
     const options = await this.stripe_api_pager_options(mesg);
-    const invoices = await this.conn.invoices.list(options);
+    const invoices = await (await getConn()).invoices.list(options);
     return message.stripe_invoices({ invoices });
   }
 
@@ -477,13 +509,14 @@ export class StripeClient {
     const email = r.email_address;
     const description = stripeName(r.first_name, r.last_name);
     mesg.account_id = r.account_id;
+    const conn = await getConn();
     if (customer_id != null) {
       dbg(
         "already signed up for stripe -- sync local user account with stripe"
       );
       await callback2(this.client.database.stripe_update_customer, {
         account_id: mesg.account_id,
-        stripe: this.conn,
+        stripe: conn,
         customer_id,
       });
     } else {
@@ -495,7 +528,7 @@ export class StripeClient {
           account_id: mesg.account_id,
         },
       };
-      const customer = await this.conn.customers.create(x);
+      const customer = await conn.customers.create(x);
       customer_id = customer.id;
       dbg("store customer id in our database");
       await callback2(this.client.database.set_stripe_customer_id, {
@@ -509,7 +542,7 @@ export class StripeClient {
     }
 
     dbg("now create the invoice item");
-    await this.conn.invoiceItems.create({
+    await conn.invoiceItems.create({
       customer: customer_id,
       amount: mesg.amount * 100,
       currency: "usd",
@@ -565,5 +598,35 @@ export class StripeClient {
     await this.client.database.sync_site_license_subscriptions(
       this.client.account_id
     );
+  }
+
+  public async cancelEverything(): Promise<void> {
+    const dbg = this.dbg("cancelEverything");
+    const customer_id = await this.get_customer_id();
+    dbg("customer_id = ", customer_id);
+    if (customer_id == null) {
+      // nothing to do, since no stripe info about this user.
+      return;
+    }
+    const conn = await getConn();
+    dbg("Cancel the credit cards");
+    const customer = await this.get_customer(customer_id);
+    const payment_methods = customer.sources?.data;
+    if (payment_methods != null) {
+      for (const { id } of payment_methods) {
+        await conn.customers.deleteSource(customer_id, id);
+      }
+    }
+    dbg("Cancel the subscriptions (at period end)");
+    const subscriptions = customer.subscriptions?.data;
+    if (subscriptions != null) {
+      for (const { id } of subscriptions) {
+        await conn.subscriptions.update(id, {
+          cancel_at_period_end: true,
+        });
+      }
+    }
+    dbg("Sync the database to indicate that everything is canceled.");
+    await this.update_database();
   }
 }

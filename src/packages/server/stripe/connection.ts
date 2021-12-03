@@ -7,54 +7,48 @@
 The stripe connection object, which communicates with the remote stripe server.
 
 Configure via the admin panel in account settings of an admin user.
+
+Throws an error if stripe is not configured.
+
+Double checks with database once per minute to see if the keys have changed,
+and if so will return new stripe object.
 */
 
 import Stripe from "stripe";
-// STOPGAP FIX: relative dirs necessary for manage service
-import { callback2 } from "@cocalc/util/async-utils";
+import { getServerSettings } from "@cocalc/server/settings";
 
 // See https://stripe.com/docs/api/versioning
 const apiVersion = "2020-03-02";
 
-// Return the stripe api object if it has been initialized (via init_stripe below), or
-// undefined if it has not yet been initialized.
-let stripe: Stripe | undefined = undefined;
-export function get_stripe(): Stripe | undefined {
-  return stripe;
+interface StripeWithPublishableKey extends Stripe {
+  publishable_key: string;
 }
-
-// init_stripe: call this to ensure that the stripe library
-// and key, etc., is available to other functions.  Additional
-// calls after initialization are ignored.
-//
-// TODO: this could listen to a changefeed on the database
-// for changes to the server_settings table... but maybe that is overkill.
-export async function init_stripe(database, logger?: any): Promise<Stripe> {
-  if (database == null) {
-    throw Error("init_stripe: first arg must be a database");
-  }
-  const dbg = (m) => {
-    logger?.debug(`init_stripe: ${m}`); // Codemirror Javascript mode is broken :-(   --> `
-  };
-  if (stripe != null) {
-    dbg("already done");
+let stripe: StripeWithPublishableKey | undefined = undefined;
+let key: string = "";
+let last: number = 0;
+export default async function getConn(): Promise<StripeWithPublishableKey> {
+  if (stripe != null && new Date().valueOf() - last <= 1000 * 60) {
     return stripe;
   }
-
-  const secret_key = await callback2(database.get_server_setting, {
-    name: "stripe_secret_key",
-  });
-  if (secret_key) {
-    dbg("got stripe secret_key");
-  } else {
-    dbg("WARNING: empty secret_key -- things won't work");
+  const { stripe_publishable_key, stripe_secret_key } =
+    await getServerSettings();
+  if (!stripe_publishable_key) {
+    throw Error(
+      "stripe publishable key is not set -- billing functionality not available"
+    );
   }
-  stripe = new Stripe(secret_key, { apiVersion });
-
-  const value = await callback2(database.get_server_setting, {
-    name: "stripe_publishable_key",
-  });
-  dbg(`stripe_publishable_key: ${value}`);
-  (stripe as any).publishable_key = value;
+  if (!stripe_secret_key) {
+    throw Error(
+      "stripe secret key is not set -- billing functionality not available"
+    );
+  }
+  if (stripe == null || key != stripe_publishable_key + stripe_secret_key) {
+    key = stripe_publishable_key + stripe_secret_key;
+    stripe = new Stripe(stripe_secret_key, {
+      apiVersion,
+    }) as StripeWithPublishableKey;
+    stripe.publishable_key = stripe_publishable_key;
+    last = new Date().valueOf();
+  }
   return stripe;
 }

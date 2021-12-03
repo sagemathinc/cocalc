@@ -27,7 +27,6 @@ const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRec
 import { start as startHubRegister } from "./hub_register";
 import { getClients } from "./clients";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
-import { init_stripe } from "@cocalc/server/stripe";
 import port from "@cocalc/backend/port";
 import { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
@@ -175,10 +174,6 @@ async function startServer(): Promise<void> {
     // Initialize the version server -- must happen after updating schema
     // (for first ever run).
     await initVersionServer();
-
-    // Stripe
-    winston.info("initializing stripe support...");
-    await init_stripe(database, winston);
 
     if (program.mode == "single-user" && process.env.USER == "user") {
       // Definitely in dev mode, probably on cocalc.com in a project, so we kill

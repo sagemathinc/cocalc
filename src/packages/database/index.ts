@@ -27,21 +27,22 @@ export const {
 // Each of the following calls composes the PostgreSQL class with further important functionality.
 // Order matters.
 
-let PostgreSQL = base.PostgreSQL;
-
-for (const module of [
-  "server-queries",
-  "blobs",
-  "synctable",
-  "user-queries",
-  "ops",
-]) {
-  PostgreSQL = require(`./postgres-${module}`).extend_PostgreSQL(PostgreSQL);
-}
-
 let theDB: any = undefined;
-export function db(opts={}) {
+export function db(opts = {}) {
   if (theDB === undefined) {
+    let PostgreSQL = base.PostgreSQL;
+
+    for (const module of [
+      "server-queries",
+      "blobs",
+      "synctable",
+      "user-queries",
+      "ops",
+    ]) {
+      PostgreSQL = require(`./postgres-${module}`).extend_PostgreSQL(
+        PostgreSQL
+      );
+    }
     theDB = new PostgreSQL(opts);
   }
   return theDB;

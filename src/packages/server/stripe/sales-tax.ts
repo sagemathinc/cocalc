@@ -8,18 +8,14 @@ Compute sales tax for a given customer in WA state.
 */
 
 const { sales_tax } = require("@cocalc/backend/misc_node");
-import { get_stripe } from "./connection";
+import getConn from "./connection";
 
 export async function stripe_sales_tax(
   customer_id: string,
   dbg: Function
 ): Promise<number> {
-  const stripe = get_stripe();
-  if (stripe == null) {
-    dbg("not initialized");
-    throw Error("stripe not initialized -- please try again");
-  }
-  const customer = await stripe.customers.retrieve(customer_id);
+  const conn = await getConn();
+  const customer = await conn.customers.retrieve(customer_id);
   if (customer.deleted) {
     // mainly have this check so Typescript is happy
     dbg("customer was deleted");

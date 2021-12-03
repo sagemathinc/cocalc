@@ -16,6 +16,7 @@ export default function DeleteAccount() {
   const [name, setName] = useState<string>("");
   const [fullName, setFullName] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [deleting, setDeleting] = useState<boolean>(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function DeleteAccount() {
         <br />
         <Input
           style={{ marginTop: "15px", maxWidth: `${2 * fullName.length}ex` }}
-          placeholder={fullName}
+          placeholder={"Type your full name here..."}
           onChange={(e) => setName(e.target.value)}
           onPaste={(e) => {
             e.preventDefault();
@@ -63,20 +64,29 @@ export default function DeleteAccount() {
         />
       </p>
       <Button
-        disabled={name != fullName}
+        disabled={name != fullName || deleting}
         type="primary"
         danger
         onClick={async () => {
           try {
+            setError("");
+            setDeleting(true);
             await apiPost("/accounts/delete");
             router.push("/");
           } catch (err) {
             setError(err.message);
+          } finally {
+            setDeleting(false);
           }
         }}
       >
-        <Icon name="trash" /> Permenantly Delete My {siteName} Account
-        {name != fullName && <>&nbsp;(type your full name above)</>}
+        {deleting && <Loading>Deleting Your Account...</Loading>}
+        {!deleting && (
+          <>
+            <Icon name="trash" /> Permenantly Delete My {siteName} Account
+            {name != fullName && <>&nbsp;(type your full name above)</>}
+          </>
+        )}
       </Button>
       <br />
       {error && <Alert type="error" message={error} showIcon />}

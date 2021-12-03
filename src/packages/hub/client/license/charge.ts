@@ -8,6 +8,7 @@ import {
   PurchaseInfo,
 } from "@cocalc/frontend/site-licenses/purchase/util";
 import { StripeClient, Stripe } from "@cocalc/server/stripe/client";
+import getConn from "@cocalc/server/stripe/connection";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };
@@ -18,7 +19,7 @@ export async function charge_user_for_license(
   dbg: (...args) => void
 ): Promise<Purchase> {
   dbg("getting product_id");
-  const product_id = await stripe_get_product(stripe, info);
+  const product_id = await stripe_get_product(info);
   dbg("got product_id", product_id);
   if (info.subscription == "no") {
     return await stripe_purchase_product(stripe, product_id, info, dbg);
@@ -112,10 +113,7 @@ function get_product_metadata(info): object {
   };
 }
 
-async function stripe_create_price(
-  stripe: StripeClient,
-  info: PurchaseInfo
-): Promise<void> {
+async function stripe_create_price(info: PurchaseInfo): Promise<void> {
   const product = get_product_id(info);
   // Add the pricing info:
   //  - if sub then we set the price for monthly and yearly
@@ -123,9 +121,10 @@ async function stripe_create_price(
   //    self-service by default.
   //  - if number of days, we set price for that many days.
   if (info.cost == null) throw Error("cost must be defined");
+  const conn = await getConn();
   if (info.subscription == "no") {
     // create the one-time cost
-    await stripe.conn.prices.create({
+    await conn.prices.create({
       currency: "usd",
       unit_amount: Math.round((info.cost.cost / info.quantity) * 100),
       product,
@@ -134,7 +133,7 @@ async function stripe_create_price(
     // create the two recurring subscription costs. Build
     // in the self-service discount, which is:
     //    COSTS.online_discount
-    await stripe.conn.prices.create({
+    await conn.prices.create({
       currency: "usd",
       unit_amount: Math.round(
         COSTS.online_discount * info.cost.cost_sub_month * 100
@@ -142,7 +141,7 @@ async function stripe_create_price(
       product,
       recurring: { interval: "month" },
     });
-    await stripe.conn.prices.create({
+    await conn.prices.create({
       currency: "usd",
       unit_amount: Math.round(
         COSTS.online_discount * info.cost.cost_sub_year * 100
@@ -154,12 +153,11 @@ async function stripe_create_price(
 }
 
 async function stripe_get_product(
-  stripe: StripeClient,
   info: PurchaseInfo
 ): Promise<string> {
   const product_id = get_product_id(info);
   // check to see if the product has already been created; if not, create it.
-  if (!(await stripe_product_exists(stripe, product_id))) {
+  if (!(await stripe_product_exists(product_id))) {
     // now we have to create the product.
     const metadata = get_product_metadata(info) as any; // avoid dealing with TS typings for metadata for now.
     const name = get_product_name(info);
@@ -171,23 +169,22 @@ async function stripe_get_product(
       // n<100 logic to fit in 22 characters
       statement_descriptor += `${n}${n < 100 ? " " : ""}DAYS`;
     }
-    await stripe.conn.products.create({
+    const conn = await getConn();
+    await conn.products.create({
       id: product_id,
       name,
       metadata,
       statement_descriptor,
     });
-    stripe_create_price(stripe, info);
+    stripe_create_price(info);
   }
   return product_id;
 }
 
-async function stripe_product_exists(
-  stripe: StripeClient,
-  product_id: string
-): Promise<boolean> {
+async function stripe_product_exists(product_id: string): Promise<boolean> {
   try {
-    await stripe.conn.products.retrieve(product_id);
+    const conn = await getConn();
+    await conn.products.retrieve(product_id);
     return true;
   } catch (_) {
     return false;
@@ -203,11 +200,12 @@ async function stripe_purchase_product(
   const { quantity } = info;
   dbg("stripe_purchase_product", product_id, quantity);
   const customer: string = await stripe.need_customer_id();
+  const conn = await getConn();
 
-  const coupon = await get_self_service_discount_coupon(stripe.conn);
+  const coupon = await get_self_service_discount_coupon(conn);
 
   dbg("stripe_purchase_product: get price");
-  const prices = await stripe.conn.prices.list({
+  const prices = await conn.prices.list({
     product: product_id,
     type: "one_time",
     active: true,
@@ -215,8 +213,8 @@ async function stripe_purchase_product(
   let price: string | undefined = prices.data[0]?.id;
   if (price == null) {
     dbg("stripe_purchase_product: missing -- try to create it");
-    await stripe_create_price(stripe, info);
-    const prices = await stripe.conn.prices.list({
+    await stripe_create_price(info);
+    const prices = await conn.prices.list({
       product: product_id,
       type: "one_time",
       active: true,
@@ -240,7 +238,7 @@ async function stripe_purchase_product(
   };
 
   // gets automatically put on the invoice created below.
-  await stripe.conn.invoiceItems.create({ customer, price, quantity, period });
+  await conn.invoiceItems.create({ customer, price, quantity, period });
 
   // TODO: improve later to handle case of *multiple* items on one invoice
 
@@ -256,22 +254,22 @@ async function stripe_purchase_product(
   } as Stripe.InvoiceCreateParams;
 
   dbg("stripe_purchase_product options=", JSON.stringify(options));
-  await stripe.conn.customers.update(customer, { coupon });
-  const invoice_id = (await stripe.conn.invoices.create(options)).id;
-  await stripe.conn.invoices.finalizeInvoice(invoice_id, {
+  await conn.customers.update(customer, { coupon });
+  const invoice_id = (await conn.invoices.create(options)).id;
+  await conn.invoices.finalizeInvoice(invoice_id, {
     auto_advance: true,
   });
-  const invoice = await stripe.conn.invoices.pay(invoice_id, {
+  const invoice = await conn.invoices.pay(invoice_id, {
     payment_method: info.payment_method,
   });
   // remove coupon so it isn't automatically applied
-  await stripe.conn.customers.deleteDiscount(customer);
+  await conn.customers.deleteDiscount(customer);
   await stripe.update_database();
   if (!invoice.paid) {
     // We void it so user doesn't get charged later.  Of course,
     // we plan to rewrite this to keep trying and once they pay it
     // somehow, then they get their license.  But that's a TODO!
-    await stripe.conn.invoices.voidInvoice(invoice_id);
+    await conn.invoices.voidInvoice(invoice_id);
     throw Error(
       "created invoice but not able to pay it -- invoice has been voided; please try again when you have a valid payment method on file"
     );
@@ -287,8 +285,9 @@ async function stripe_create_subscription(
 ): Promise<Purchase> {
   const { quantity, subscription } = info;
   const customer: string = await stripe.need_customer_id();
+  const conn = await getConn();
 
-  const prices = await stripe.conn.prices.list({
+  const prices = await conn.prices.list({
     product: product_id,
     type: "recurring",
     active: true,
@@ -301,8 +300,8 @@ async function stripe_create_subscription(
     }
   }
   if (price == null) {
-    await stripe_create_price(stripe, info);
-    const prices = await stripe.conn.prices.list({
+    await stripe_create_price(info);
+    const prices = await conn.prices.list({
       product: product_id,
       type: "recurring",
       active: true,
@@ -341,7 +340,7 @@ async function stripe_create_subscription(
       : undefined,
   };
 
-  const { id } = await stripe.conn.subscriptions.create(options);
+  const { id } = await conn.subscriptions.create(options);
   await stripe.update_database();
   return { type: "subscription", id };
 }
@@ -370,13 +369,13 @@ async function get_self_service_discount_coupon(conn: Stripe): Promise<string> {
 }
 
 export async function set_purchase_metadata(
-  stripe: StripeClient,
   purchase: Purchase,
   metadata
 ): Promise<void> {
+  const conn = await getConn();
   if (purchase.type == "subscription") {
-    stripe.conn.subscriptions.update(purchase.id, { metadata });
+    await conn.subscriptions.update(purchase.id, { metadata });
   } else if (purchase.type == "invoice") {
-    stripe.conn.invoices.update(purchase.id, { metadata });
+    await conn.invoices.update(purchase.id, { metadata });
   }
 }

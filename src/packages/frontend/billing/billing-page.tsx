@@ -140,7 +140,7 @@ export const BillingPage = rclass<ReactProps>(
     private counts(): { cards: number; subs: number; invoices: number } {
       const cards = this.props.customer?.sources?.total_count ?? 0;
       const subs = this.props.customer?.subscriptions?.total_count ?? 0;
-      const invoices = this.props.invoices?.invoices?.get("total_count") ?? 0;
+      const invoices = this.props.invoices?.get("total_count") ?? 0;
       return { cards, subs, invoices };
     }
 

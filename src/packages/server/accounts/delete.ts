@@ -1,6 +1,7 @@
 import { is_valid_uuid_string as isValidUUID } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import { deleteAllRememberMe } from "@cocalc/server/auth/remember-me";
+import { StripeClient } from "@cocalc/server/stripe/client";
 
 export default async function deleteAccount(account_id: string): Promise<void> {
   if (!isValidUUID(account_id)) {
@@ -8,12 +9,13 @@ export default async function deleteAccount(account_id: string): Promise<void> {
   }
 
   // Cancel any subscriptions
-  await cancelSubscriptions(account_id);
+  await cancelStripeEverything(account_id);
 
   // Invalidate all sign ins (without this user can delete account, but could still be signed in).
   await deleteAllRememberMe(account_id);
 
-  // Mark the account as deleted
+  // Mark the account as deleted -- do this last since once done, user is locked out.
+  // Any step above could fail, and user could just try again in that case.
   await markAccountDeleted(account_id);
 }
 
@@ -47,6 +49,10 @@ export async function markAccountDeleted(account_id: string): Promise<void> {
   );
 }
 
-export async function cancelSubscriptions(account_id: string): Promise<void> {
+export async function cancelStripeEverything(
+  account_id: string
+): Promise<void> {
   // TODO
+  const stripe = new StripeClient({ account_id });
+  await stripe.cancelEverything();
 }

@@ -70,7 +70,7 @@ export async function purchase_license(
   );
 
   dbg("purchase_license: set metadata on purchase...");
-  await set_purchase_metadata(stripe, purchase, { license_id, account_id });
+  await set_purchase_metadata(purchase, { license_id, account_id });
 
   // We have to try a few times, since the metadata sometimes doesn't appear
   // when querying stripe for the customer, even after it was written in the
