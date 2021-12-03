@@ -38,7 +38,7 @@ export default function ConfigLayout({ page }: Props) {
         style={{
           padding: "0 24px 24px",
           backgroundColor: "white",
-          color: "#666",
+          color: "#555",
         }}
       >
         <Content

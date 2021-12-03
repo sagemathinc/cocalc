@@ -1,11 +1,13 @@
 import Link from "next/link";
+import basePath from "lib/base-path";
+import { join } from "path";
 
 export default function A(props: any) {
   const { href } = props;
   if (href == null) {
     return <a {...copyWithout(props, new Set(["external"]))} />;
   }
-  if (props.external || href.includes("://") || href.startsWith("mailto:")) {
+  if (href.includes("://") || href.startsWith("mailto:")) {
     return (
       <a
         {...copyWithout(props, new Set(["external"]))}
@@ -13,6 +15,13 @@ export default function A(props: any) {
         rel={"noopener"}
       />
     );
+  }
+  if (props.external) {
+    const props2 = copyWithout(props, new Set(["external"]));
+    if (!href.startsWith(basePath)) {
+      props2.href = join(basePath, href);
+    }
+    return <a {...props2} target={"_blank"} rel={"noopener"} />;
   }
   return (
     <Link href={href}>
