@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/database",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "CoCalc: code for working with our PostgreSQL database",
   "exports": {
     ".": "./dist/index.js",
