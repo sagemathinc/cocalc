@@ -337,7 +337,7 @@ export class HubClient {
       message: required,
       timeout: undefined,
       error_event: false, // if true, turn error events into just a normal err
-      allow_post: undefined, // TODO: deprecated
+      allow_post: undefined, // TODO: deprecated -- completely ignored and not used in any way.
       cb: undefined,
     });
     if (!this.is_connected()) {

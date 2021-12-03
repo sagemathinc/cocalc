@@ -6,7 +6,6 @@ This is extremely preliminary and just for experimentation.
 import { useEffect, useState } from "react";
 import { Alert, Input, Space } from "antd";
 import Loading from "components/share/loading";
-import Saving from "components/share/saving";
 import useDatabase from "lib/hooks/database";
 import SaveButton from "components/misc/save-button";
 import A from "components/misc/A";
@@ -16,12 +15,11 @@ interface Data {
   last_name?: string;
   name?: string;
 }
+
 export default function AccountName() {
   const get = useDatabase({
     accounts: { first_name: null, last_name: null, name: null },
   });
-  const set = useDatabase();
-
   const [original, setOriginal] = useState<Data | undefined>(undefined);
   const [edited, setEdited] = useState<Data | undefined>(undefined);
 
@@ -33,9 +31,7 @@ export default function AccountName() {
   }, [get.loading]);
 
   function onChange(field: string) {
-    return (e) => {
-      setEdited({ ...edited, [field]: e.target.value });
-    };
+    return (e) => setEdited({ ...edited, [field]: e.target.value });
   }
 
   if (original == null || edited == null) {
@@ -44,15 +40,6 @@ export default function AccountName() {
 
   return (
     <div>
-      {set.error && (
-        <Alert
-          style={{ marginTop: "20px" }}
-          message="Error saving data"
-          description={set.error}
-          type="error"
-          showIcon
-        />
-      )}{" "}
       {get.error && (
         <Alert
           style={{ marginTop: "20px" }}
@@ -62,7 +49,6 @@ export default function AccountName() {
           showIcon
         />
       )}{" "}
-      {set.loading && <Saving />}
       {get.loading ? (
         <Loading />
       ) : (

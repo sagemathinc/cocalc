@@ -9,9 +9,10 @@ import { Icon } from "@cocalc/frontend/components/icon";
 interface Props {
   edited: object;
   defaultOriginal: object;
-  table: string;
+  table?: string;
   style?: CSSProperties;
-  onSave?: (object) => void;
+  onSave?: (object) => Promise<void> | void; // if onSave is async then awaits and if there is an error shows that; if not, updates state to what was saved.
+  isValid?: (object) => boolean; // if given, only allow saving if edited != original and isValid(edited) is true.
 }
 
 export default function SaveButton({
@@ -20,6 +21,7 @@ export default function SaveButton({
   table,
   style,
   onSave,
+  isValid,
 }: Props) {
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -55,12 +57,18 @@ export default function SaveButton({
       <Button
         style={style}
         type="primary"
-        disabled={saving || same}
-        onClick={() => {
+        disabled={saving || same || (isValid != null && !isValid(edited))}
+        onClick={async () => {
           if (table) {
             save(table, edited);
           }
-          onSave?.(edited);
+          try {
+            await onSave?.(edited);
+            setOriginal(edited);
+            setError('');
+          } catch (err) {
+            setError(err.toString());
+          }
         }}
       >
         <Space>

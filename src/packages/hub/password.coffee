@@ -274,6 +274,9 @@ exports.change_password = (opts) ->
                 cb            : cb
     ], opts.cb)
 
+# DEPRECATED -- see packages/server/accounts/set-email-address.ts
+# except this is still used by client.coffee, etc.  It's just that
+# I've also rewritten it.
 exports.change_email_address = (opts) ->
     opts = defaults opts,
         mesg       : required
