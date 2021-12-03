@@ -1,5 +1,11 @@
 import AccountName from "./account/name";
 import Email from "./account/email";
+import Avatar from "./account/avatar";
+import Link from "./account/link";
+import SSHKeys from "./account/ssh";
+import APIKey from "./account/api";
+import DeleteAccount from "./account/delete-account";
+import SignOut from "./account/sign-out";
 
 interface Props {
   main: string;
@@ -10,6 +16,13 @@ const Components = {
   account: {
     name: AccountName,
     email: Email,
+    avatar: Avatar,
+    link: Link,
+    ssh: SSHKeys,
+    api: APIKey,
+    delete: DeleteAccount,
+    "sign-out": SignOut,
+    delete: DeleteAccount,
   },
 };
 
