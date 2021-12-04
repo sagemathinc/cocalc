@@ -1,4 +1,4 @@
-import { Input, Menu } from "antd";
+import { Menu } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useRouter } from "next/router";
 const { SubMenu } = Menu;
@@ -20,11 +20,7 @@ export default function ConfigMenu({ main, sub }) {
     >
       <SubMenu key="search" icon={<Icon name="search" />} title="Search">
         <Menu.Item key="input">
-          <Input.Search
-            placeholder="Search config..."
-            onSearch={(x) => console.log(x)}
-            style={{ width: "100%" }}
-          />
+          <Icon name="list"/> Input...
         </Menu.Item>
       </SubMenu>
       <SubMenu key="account" icon={<Icon name="user" />} title="Account">
