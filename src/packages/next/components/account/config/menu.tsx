@@ -1,15 +1,31 @@
 import { Menu } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+
 const { SubMenu } = Menu;
 
 export default function ConfigMenu({ main, sub }) {
   const router = useRouter();
+  const [openKeys, setOpenKeys] = useState<string[]>([main]);
+
+  // This useEffect is to ensure that the selected section (main)
+  // is always expanded, e.g., when you get there by clicking on
+  // a search result:
+  useEffect(() => {
+    if (openKeys.indexOf(main) == -1) {
+      setOpenKeys(openKeys.concat([main]));
+    }
+  }, [main]);
+
   return (
     <Menu
       mode="inline"
-      defaultOpenKeys={[main]}
-      defaultSelectedKeys={[sub]}
+      openKeys={openKeys}
+      onOpenChange={(keys) => {
+        setOpenKeys(keys);
+      }}
+      selectedKeys={[sub]}
       style={{ height: "100%", borderRight: 0 }}
       onSelect={(e) => {
         const [sub, main] = e.keyPath;
@@ -20,18 +36,34 @@ export default function ConfigMenu({ main, sub }) {
     >
       <SubMenu key="search" icon={<Icon name="search" />} title="Search">
         <Menu.Item key="input">
-          <Icon name="list"/> Input...
+          <Icon name="list" /> Input...
         </Menu.Item>
       </SubMenu>
       <SubMenu key="account" icon={<Icon name="user" />} title="Account">
-        <Menu.Item key="name"><Icon name="user-times"/> Name</Menu.Item>
-        <Menu.Item key="email"><Icon name="paper-plane"/> Email Address</Menu.Item>
-        <Menu.Item key="avatar"><Icon name="user"/> Avatar Image</Menu.Item>
-        <Menu.Item key="link"><Icon name="external-link"/> Link Account</Menu.Item>
-        <Menu.Item key="ssh"><Icon name="key"/> SSH Keys</Menu.Item>
-        <Menu.Item key="api"><Icon name="key"/> API Key</Menu.Item>
-        <Menu.Item key="delete"><Icon name="trash"/> Delete Account</Menu.Item>
-        <Menu.Item key="sign-out"><Icon name="sign-out-alt"/> Sign Out</Menu.Item>
+        <Menu.Item key="name">
+          <Icon name="user-times" /> Name
+        </Menu.Item>
+        <Menu.Item key="email">
+          <Icon name="paper-plane" /> Email Address
+        </Menu.Item>
+        <Menu.Item key="avatar">
+          <Icon name="user" /> Avatar Image
+        </Menu.Item>
+        <Menu.Item key="link">
+          <Icon name="external-link" /> Link Account
+        </Menu.Item>
+        <Menu.Item key="ssh">
+          <Icon name="key" /> SSH Keys
+        </Menu.Item>
+        <Menu.Item key="api">
+          <Icon name="key" /> API Key
+        </Menu.Item>
+        <Menu.Item key="delete" danger>
+          <Icon name="trash" /> Delete Account
+        </Menu.Item>
+        <Menu.Item key="sign-out">
+          <Icon name="sign-out-alt" /> Sign Out
+        </Menu.Item>
       </SubMenu>
       <SubMenu key="editor" icon={<Icon name="edit" />} title="Editor">
         <Menu.Item key="appearance">Appearance</Menu.Item>

@@ -6,6 +6,8 @@ import { search } from "../search/entries";
 import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
+import { useRouter } from "next/router";
+import { join } from "path";
 
 register({
   path: "search/input",
@@ -37,6 +39,7 @@ register({
 });
 
 function SearchResults({ results }: { results: Info[] }) {
+  const router = useRouter();
   return (
     <List
       bordered
@@ -45,13 +48,19 @@ function SearchResults({ results }: { results: Info[] }) {
       renderItem={(item) => {
         const top = item.path.split("/")[0];
         return (
-          <A href={item.path} title={item.title}>
+          <A
+            title={item.title}
+            onClick={() => {
+              router.push(join("/config", item.path));
+            }}
+          >
             <List.Item style={{ borderBottom: "1px solid lightgrey" }}>
               <List.Item.Meta
                 avatar={<Icon name={item.icon} style={{ fontSize: "16pt" }} />}
                 title={
                   <>
-                    {capitalize(top)} <Icon name="arrow-right" /> <span style={{color:"darkblue"}}>{item.title}</span>
+                    {capitalize(top)} <Icon name="arrow-right" />{" "}
+                    <span style={{ color: "darkblue" }}>{item.title}</span>
                   </>
                 }
                 description={item.desc}
