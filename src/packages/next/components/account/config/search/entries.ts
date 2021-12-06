@@ -11,8 +11,18 @@ export interface Info {
 const searchInfo: { [path: string]: Info } = {};
 
 export function register(info: Info) {
-  const search = info.desc.toLowerCase() + " " + info.path + " " + info.title;
+  const search =
+    info.desc.toLowerCase() +
+    " " +
+    info.path +
+    " " +
+    info.title +
+    " " +
+    (info.search ?? "");
   searchInfo[info.path] = { ...info, search };
+  if (info.search) {
+    console.log(searchInfo[info.path]);
+  }
 }
 
 export function search(s: string): Info[] {

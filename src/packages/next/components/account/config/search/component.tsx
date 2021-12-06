@@ -9,36 +9,60 @@ import { capitalize } from "@cocalc/util/misc";
 import { useRouter } from "next/router";
 import { join } from "path";
 
+export default function Search() {
+  const [results, setResults] = useState<Info[] | undefined>(undefined);
+  const [value, setValue] = useState<string>("");
+  const router = useRouter();
+
+  function onSearch(value: string) {
+    setResults(search(value));
+  }
+
+  return (
+    <div>
+      <Input.Search
+        style={{ maxWidth: "60ex" }}
+        placeholder="Search..."
+        onSearch={onSearch}
+        enterButton
+        allowClear
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value);
+          onSearch(e.target.value);
+        }}
+        onPressEnter={() => {
+          if (results.length > 0) {
+            // visit first search result.
+            router.push(join("/config", results[0].path));
+            setValue('');
+          }
+        }}
+      />
+      <br />
+      <br />
+      {results != null && results.length > 0 && value && (
+        <SearchResults results={results} onClick={() => setValue("")} />
+      )}
+    </div>
+  );
+}
+
 register({
   path: "search/input",
   title: "Search",
   desc: "",
   icon: "search",
-  Component: () => {
-    const [results, setResults] = useState<Info[] | undefined>(undefined);
-
-    function onSearch(value: string) {
-      setResults(search(value));
-    }
-
-    return (
-      <div>
-        <Input.Search
-          style={{ maxWidth: "60ex" }}
-          placeholder="Search configuration..."
-          onSearch={onSearch}
-          enterButton
-          allowClear
-        />
-        <br />
-        <br />
-        {results != null && <SearchResults results={results} />}
-      </div>
-    );
-  },
+  Component: Search,
 });
 
-function SearchResults({ results }: { results: Info[] }) {
+function SearchResults({
+  results,
+  onClick,
+}: {
+  results: Info[];
+  onClick: Function;
+}) {
   const router = useRouter();
   return (
     <List
@@ -51,6 +75,7 @@ function SearchResults({ results }: { results: Info[] }) {
           <A
             title={item.title}
             onClick={() => {
+              onClick();
               router.push(join("/config", item.path));
             }}
           >

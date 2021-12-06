@@ -10,6 +10,7 @@ interface Options {
   desc: string;
   Component: Function;
   danger?: boolean;
+  search?: string;
 }
 
 export const menu: {
@@ -24,15 +25,18 @@ export const menu: {
 } = {};
 
 export default function register(opts: Options) {
-  const { path, title, icon, desc, Component, danger } = opts;
+  const { path, title, icon, desc, Component, danger, search } = opts;
   const [main, sub] = path.split("/");
   if (components[main] == null) {
     components[main] = { [sub]: Component };
   } else {
     components[main][sub] = Component;
   }
-  if (desc) {
-    registerSearch({ path, title, desc, icon });
+  if (path == "account/name") {
+    console.log(opts);
+  }
+  if (desc || search) {
+    registerSearch({ path, title, desc, icon, search });
   }
   if (menu[main] == null) {
     menu[main] = {};

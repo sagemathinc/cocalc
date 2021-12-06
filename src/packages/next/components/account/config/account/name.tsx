@@ -17,11 +17,23 @@ interface Data {
   name?: string;
 }
 
+const firstNameDesc = `Your name is used for interacting with
+other users in chat, your cursor when editing, etc. The first
+letter of your first name is used for your avatar if you do not
+upload an image.`;
+
+const lastNameDesc = `Your full name is used to label your cursor
+when you edit collaboratively with other poeple.`;
+
 register({
   path: "account/name",
   title: "Your Name",
   icon: "user-times",
   desc: "Configure your first name, last name, and username.",
+  search:
+    firstNameDesc +
+    lastNameDesc +
+    "Your username provides a nice URL for content you share publicly.",
   Component: () => {
     const get = useDatabase({
       accounts: { first_name: null, last_name: null, name: null },
@@ -73,18 +85,14 @@ register({
                 table="accounts"
               />
               <br />
-              <b>Your first name</b> Your name is used for interacting with
-              other users in chat, your cursor when editing, etc. The first
-              letter of your first name is used for your avatar if you do not
-              upload an image.
+              <b>Your first name</b> {firstNameDesc}
               <Input
                 addonBefore={"First name"}
                 defaultValue={get.value.accounts.first_name}
                 onChange={onChange("first_name")}
               />
               <br />
-              <b>Your last name</b> Your full name is used to label your cursor
-              when you edit collaboratively with other poeple.
+              <b>Your last name</b> {lastNameDesc}
               <Input
                 addonBefore={"Last name"}
                 defaultValue={get.value.accounts.last_name}

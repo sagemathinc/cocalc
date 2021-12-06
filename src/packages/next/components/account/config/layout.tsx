@@ -1,4 +1,4 @@
-import { Alert, Layout } from "antd";
+import { Alert, Divider, Layout } from "antd";
 import Config from "components/account/config";
 import A from "components/misc/A";
 import { join } from "path";
@@ -9,6 +9,7 @@ import useCustomize from "lib/use-customize";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import { menu } from "./register";
 import { Icon } from "@cocalc/frontend/components/icon";
+import Search from "./search/component";
 
 const { Content, Sider } = Layout;
 
@@ -37,7 +38,6 @@ export default function ConfigLayout({ page }: Props) {
 
   const [main, sub] = page;
   const info = menu[main]?.[sub];
-  console.log("info = ", info);
   return (
     <Layout>
       <Sider width={200}>
@@ -55,14 +55,26 @@ export default function ConfigLayout({ page }: Props) {
             padding: 24,
             margin: 0,
             minHeight: 280,
+            ...(info.danger
+              ? { color: "#ff4d4f", backgroundColor: "#fff1f0" }
+              : undefined),
           }}
         >
-          {info && (
-            <h2>
-              <Icon name={info.icon} /> {info.title}
-            </h2>
+          {main != "search" && (
+            <div style={{ float: "right", width: "40%", marginBottom:'10px' }}>
+              <Search />
+            </div>
           )}
-          {(!info?.desc || info.desc.toLowerCase().includes("todo")) && (
+          {info && (
+            <>
+              <h2>
+                <Icon name={info.icon} /> {info.title}
+              </h2>
+              {info.desc}
+              <Divider />
+            </>
+          )}
+          {info?.desc?.toLowerCase().includes("todo") && (
             <Alert
               style={{ margin: "15px auto", maxWidth: "600px" }}
               message={<b>Under Constructions</b>}

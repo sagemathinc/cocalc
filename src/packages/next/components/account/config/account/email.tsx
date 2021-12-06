@@ -10,11 +10,16 @@ interface Data {
   email_address?: string;
 }
 
+const emailDesc = `If you set a password you can sign in using this email
+address and use this address to reset your password. You also receive
+email notifications about chats and other activity.`;
+
 register({
   path: "account/email",
   title: "Email Address",
   icon: "paper-plane",
   desc: "Change your email address.",
+  search: emailDesc,
   Component: () => {
     const { loading, value } = useDatabase({
       accounts: { email_address: null },
@@ -54,10 +59,7 @@ register({
               isValid={() => password.length >= 6}
             />
             <br />
-            <b>Your email address</b> If you set a password you can sign in
-            using this email address and use this address to reset your
-            password. You also receive email notifications about chats and other
-            activity.
+            <b>Your email address</b> {emailDesc}
             <Input
               addonBefore={"Email address"}
               defaultValue={original.email_address}
