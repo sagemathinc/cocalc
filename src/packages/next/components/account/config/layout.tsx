@@ -68,7 +68,7 @@ export default function ConfigLayout({ page }: Props) {
           {info && (
             <>
               <h2>
-                <Icon name={info.icon} /> {info.title}
+                <Icon name={info.icon} style={{marginRight:'5px'}}/> {info.title}
               </h2>
               {info.desc}
               <Divider />

@@ -4,9 +4,13 @@ import "./search/component";
 
 import "./account/name";
 import "./account/email";
+import "./account/password";
 import "./account/avatar";
 import "./account/link";
-import "./account/ssh";
+
+// Maybe ssh doesn't belong here.
+// import "./account/ssh";
+
 import "./account/api";
 import "./account/delete-account";
 import "./account/sign-out";
@@ -20,13 +24,15 @@ import "./system/appearance";
 import "./system/behavior";
 import "./system/listings";
 
-import "./licenses/buy";
-import "./licenses/licensed";
-import "./licenses/manage";
+// This maybe doesn't belong here.
 
-import "./purchases/payment";
-import "./purchases/invoices-and-receipts";
-import "./purchases/subscriptions";
+// import "./licenses/buy";
+// import "./licenses/licensed";
+// import "./licenses/manage";
+
+// import "./purchases/payment";
+// import "./purchases/invoices-and-receipts";
+// import "./purchases/subscriptions";
 
 interface Props {
   main: string;
