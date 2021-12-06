@@ -7,6 +7,8 @@ import ConfigMenu from "./menu";
 import useIsBrowser from "lib/hooks/is-browser";
 import useCustomize from "lib/use-customize";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
+import { menu } from "./register";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 const { Content, Sider } = Layout;
 
@@ -23,12 +25,19 @@ export default function ConfigLayout({ page }: Props) {
       <Alert
         style={{ margin: "15px auto" }}
         type="warning"
-        message={<InPlaceSignInOrUp title="Account Configuration" why="to edit your account configuration"/>}
+        message={
+          <InPlaceSignInOrUp
+            title="Account Configuration"
+            why="to edit your account configuration"
+          />
+        }
       />
     );
   }
 
   const [main, sub] = page;
+  const info = menu[main]?.[sub];
+  console.log("info = ", info);
   return (
     <Layout>
       <Sider width={200}>
@@ -48,22 +57,29 @@ export default function ConfigLayout({ page }: Props) {
             minHeight: 280,
           }}
         >
-          <Alert
-            style={{ margin: "15px auto", maxWidth: "600px" }}
-            message={<b>Under Constructions</b>}
-            description={
-              <>
-                This page is under construction. To configure your CoCalc
-                account, visit{" "}
-                <A href={join(basePath, "settings")} external>
-                  Account Preferences
-                </A>
-                .
-              </>
-            }
-            type="warning"
-            showIcon
-          />
+          {info && (
+            <h2>
+              <Icon name={info.icon} /> {info.title}
+            </h2>
+          )}
+          {(!info?.desc || info.desc.toLowerCase().includes("todo")) && (
+            <Alert
+              style={{ margin: "15px auto", maxWidth: "600px" }}
+              message={<b>Under Constructions</b>}
+              description={
+                <>
+                  This page is under construction. To configure your CoCalc
+                  account, visit{" "}
+                  <A href={join(basePath, "settings")} external>
+                    Account Preferences
+                  </A>
+                  .
+                </>
+              }
+              type="warning"
+              showIcon
+            />
+          )}
           <Config main={main} sub={sub} />
         </Content>
       </Layout>

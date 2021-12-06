@@ -14,6 +14,7 @@ register({
   title: "Delete Account",
   icon: "trash",
   desc: "Delete your account.",
+  danger: true,
   Component: () => {
     const { loading, value } = useDatabase({
       accounts: { first_name: null, last_name: null },

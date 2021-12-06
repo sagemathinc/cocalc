@@ -11,6 +11,23 @@ import "./account/api";
 import "./account/delete-account";
 import "./account/sign-out";
 
+import "./editor/appearance";
+import "./editor/options";
+import "./editor/keyboard";
+
+import "./system/announcements";
+import "./system/appearance";
+import "./system/behavior";
+import "./system/listings";
+
+import "./licenses/buy";
+import "./licenses/licensed";
+import "./licenses/manage";
+
+import "./purchases/payment";
+import "./purchases/invoices-and-receipts";
+import "./purchases/subscriptions";
+
 interface Props {
   main: string;
   sub: string;

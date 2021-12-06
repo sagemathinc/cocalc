@@ -1,9 +1,34 @@
 import { Menu } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { menu, topIcons } from "./register";
+import { capitalize } from "@cocalc/util/misc";
 
 const { SubMenu } = Menu;
+
+function menuBody() {
+  const v: ReactNode[] = [];
+  for (const main in menu) {
+    const title = capitalize(main);
+    const icon = topIcons[main] ?? "gear";
+    const w: ReactNode[] = [];
+    for (const sub in menu[main]) {
+      const { title, icon, danger } = menu[main][sub];
+      w.push(
+        <Menu.Item key={sub} danger={danger}>
+          <Icon name={icon} style={{ marginRight: "5px" }} /> {title}
+        </Menu.Item>
+      );
+    }
+    v.push(
+      <SubMenu key={main} icon={<Icon name={icon} />} title={title}>
+        {w}
+      </SubMenu>
+    );
+  }
+  return v;
+}
 
 export default function ConfigMenu({ main, sub }) {
   const router = useRouter();
@@ -26,7 +51,7 @@ export default function ConfigMenu({ main, sub }) {
         setOpenKeys(keys);
       }}
       selectedKeys={[sub]}
-      style={{ height: "100%", borderRight: 0 }}
+      style={{ height: "100%" }}
       onSelect={(e) => {
         const [sub, main] = e.keyPath;
         router.push(`/config/${main}/${sub}`, undefined, {
@@ -34,68 +59,7 @@ export default function ConfigMenu({ main, sub }) {
         });
       }}
     >
-      <SubMenu key="search" icon={<Icon name="search" />} title="Search">
-        <Menu.Item key="input">
-          <Icon name="list" /> Input...
-        </Menu.Item>
-      </SubMenu>
-      <SubMenu key="account" icon={<Icon name="user" />} title="Account">
-        <Menu.Item key="name">
-          <Icon name="user-times" /> Name
-        </Menu.Item>
-        <Menu.Item key="email">
-          <Icon name="paper-plane" /> Email Address
-        </Menu.Item>
-        <Menu.Item key="avatar">
-          <Icon name="user" /> Avatar Image
-        </Menu.Item>
-        <Menu.Item key="link">
-          <Icon name="external-link" /> Link Account
-        </Menu.Item>
-        <Menu.Item key="ssh">
-          <Icon name="key" /> SSH Keys
-        </Menu.Item>
-        <Menu.Item key="api">
-          <Icon name="key" /> API Key
-        </Menu.Item>
-        <Menu.Item key="delete" danger>
-          <Icon name="trash" /> Delete Account
-        </Menu.Item>
-        <Menu.Item key="sign-out">
-          <Icon name="sign-out-alt" /> Sign Out
-        </Menu.Item>
-      </SubMenu>
-      <SubMenu key="editor" icon={<Icon name="edit" />} title="Editor">
-        <Menu.Item key="appearance">Appearance</Menu.Item>
-        <Menu.Item key="autosave">Autosave</Menu.Item>
-        <Menu.Item key="keyboard">Keyboard</Menu.Item>
-        <Menu.Item key="options">Options</Menu.Item>
-      </SubMenu>
-      <SubMenu key="system" icon={<Icon name="gear" />} title="System">
-        <Menu.Item key="dark">Dark Mode</Menu.Item>
-        <Menu.Item key="exit">Confirm Exit</Menu.Item>
-        <Menu.Item key="standby">Standby Timeout</Menu.Item>
-        <Menu.Item key="timestamps">Timestamps</Menu.Item>
-        <Menu.Item key="announcements">Announcements</Menu.Item>
-        <Menu.Item key="listings">Directory Listings</Menu.Item>
-      </SubMenu>
-      <SubMenu key="licenses" icon={<Icon name="key" />} title="Licenses">
-        <Menu.Item key="buy">Buy a License</Menu.Item>
-        <Menu.Item key="manage">Managed Licenses</Menu.Item>
-        <Menu.Item key="projects">Licensed Projects</Menu.Item>
-      </SubMenu>
-      <SubMenu
-        key="purchases"
-        icon={<Icon name="credit-card" />}
-        title="Purchases"
-      >
-        <Menu.Item key="payment">Payment Methods</Menu.Item>
-        <Menu.Item key="subscriptions">Subscriptions</Menu.Item>
-        <Menu.Item key="receipts">Invoices/Receipts</Menu.Item>
-      </SubMenu>
-      <SubMenu key="support" icon={<Icon name="medkit" />} title="Support">
-        <Menu.Item key="tickets">Tickets</Menu.Item>
-      </SubMenu>
+      {menuBody()}
     </Menu>
   );
 }

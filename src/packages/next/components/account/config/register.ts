@@ -9,12 +9,22 @@ interface Options {
   icon: IconName;
   desc: string;
   Component: Function;
+  danger?: boolean;
 }
 
-export const menu: { path: string; title: string; icon: IconName }[] = [];
+export const menu: {
+  [main: string]: {
+    [sub: string]: {
+      title: string;
+      icon: IconName;
+      desc: string;
+      danger?: boolean;
+    };
+  };
+} = {};
 
 export default function register(opts: Options) {
-  const { path, title, icon, desc, Component } = opts;
+  const { path, title, icon, desc, Component, danger } = opts;
   const [main, sub] = path.split("/");
   if (components[main] == null) {
     components[main] = { [sub]: Component };
@@ -24,5 +34,18 @@ export default function register(opts: Options) {
   if (desc) {
     registerSearch({ path, title, desc, icon });
   }
-  menu.push({ path, title, icon });
+  if (menu[main] == null) {
+    menu[main] = {};
+  }
+  menu[main][sub] = { title, icon, desc, danger };
 }
+
+export const topIcons: { [key: string]: IconName } = {
+  search: "search",
+  account: "user",
+  editor: "edit",
+  system: "gear",
+  licenses: "key",
+  purchases: "credit-card",
+  support: "support",
+};

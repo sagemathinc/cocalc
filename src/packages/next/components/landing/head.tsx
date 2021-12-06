@@ -14,7 +14,7 @@ export default function Head({ title }: Props) {
   return (
     <NextHead>
       <title>
-        {siteName} – {title}
+        {siteName} {siteName ? "–" : ""} {title}
       </title>
       <meta
         name="description"
