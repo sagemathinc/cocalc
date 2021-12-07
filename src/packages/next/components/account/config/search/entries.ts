@@ -20,9 +20,6 @@ export function register(info: Info) {
     " " +
     (info.search ?? "");
   searchInfo[info.path] = { ...info, search };
-  if (info.search) {
-    console.log(searchInfo[info.path]);
-  }
 }
 
 export function search(s: string): Info[] {

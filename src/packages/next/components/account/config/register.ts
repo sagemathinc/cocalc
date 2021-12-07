@@ -32,9 +32,6 @@ export default function register(opts: Options) {
   } else {
     components[main][sub] = Component;
   }
-  if (path == "account/name") {
-    console.log(opts);
-  }
   if (desc || search) {
     registerSearch({ path, title, desc, icon, search });
   }
