@@ -35,13 +35,13 @@ export default function Search() {
           if (results != null && results.length > 0) {
             // visit first search result.
             router.push(join("/config", results[0].path));
-            setValue('');
+            setValue("");
           }
         }}
       />
       <br />
       <br />
-      {results != null && results.length > 0 && value && (
+      {results != null && value.trim() && (
         <SearchResults results={results} onClick={() => setValue("")} />
       )}
     </div>
@@ -66,6 +66,7 @@ function SearchResults({
   const router = useRouter();
   return (
     <List
+      style={{ marginBottom: "15px" }}
       bordered
       itemLayout="horizontal"
       dataSource={results}
