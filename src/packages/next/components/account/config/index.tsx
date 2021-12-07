@@ -20,10 +20,10 @@ import "./editor/terminal";
 import "./editor/options";
 import "./editor/keyboard";
 
-import "./system/announcements";
 import "./system/appearance";
 import "./system/behavior";
 import "./system/listings";
+import "./system/announcements";
 
 // This maybe doesn't belong here.
 

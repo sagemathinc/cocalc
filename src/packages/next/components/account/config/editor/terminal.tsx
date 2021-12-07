@@ -1,23 +1,26 @@
-import { useEffect, useState } from "react";
-import { Input, Space } from "antd";
+import { Space } from "antd";
 import Loading from "components/share/loading";
-import useDatabase from "lib/hooks/database";
-import SaveButton from "components/misc/save-button";
 import register from "../register";
 import IntegerSlider from "components/misc/integer-slider";
 import useEditTable from "lib/hooks/edit-table";
 
 interface Data {
-  font_size?: number;
+  terminal: {
+    font_size: number;
+  };
 }
+
+const descFontSize = `New terminals will use this font size by default. You can change this
+for a particular terminal at any time.`;
 
 register({
   path: "editor/terminal",
   title: "Terminal",
   icon: "terminal",
   desc: "Terminal default font size, color theme, etc.",
+  search: descFontSize,
   Component: () => {
-    const { edited, setEdited, original, Save } = useEditTable({
+    const { edited, setEdited, original, Save } = useEditTable<Data>({
       accounts: { terminal: null },
     });
 
@@ -30,8 +33,7 @@ register({
         {Save}
         <h2>Font Size</h2>
         <b>Terminal font size:</b>
-        New terminals will use this font size by default. You can change this
-        for a particular terminal at any time.
+        {descFontSize}
         <IntegerSlider
           value={edited.terminal.font_size}
           onChange={(font_size) => {

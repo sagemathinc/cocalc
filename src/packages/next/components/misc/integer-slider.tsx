@@ -1,5 +1,4 @@
 import { Slider, InputNumber, Row, Col } from "antd";
-import { ReactNode } from "react";
 
 interface Props {
   min: number;

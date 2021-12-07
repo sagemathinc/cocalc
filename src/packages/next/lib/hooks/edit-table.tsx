@@ -15,13 +15,16 @@ export default function useEditTable<T>(query) {
     }
   }, [loading]);
 
-  const Save = (
-    <SaveButton
-      edited={edited}
-      defaultOriginal={original}
-      table={keys(query)[0]}
-    />
-  );
+  const Save =
+    edited != null && original != null ? (
+      <SaveButton
+        edited={edited as unknown as object}
+        defaultOriginal={original as unknown as object}
+        table={keys(query)[0]}
+      />
+    ) : (
+      <></>
+    );
 
   return { edited, setEdited: (x) => setEdited(cloneDeep(x)), original, Save };
 }

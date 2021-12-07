@@ -22,7 +22,7 @@ interface Props {
 export default function ConfigLayout({ page }: Props) {
   const isBrowser = useIsBrowser();
   const { account } = useCustomize();
-  const profile = useProfile(account.account_id);
+  const profile = useProfile(account?.account_id);
 
   if (!account) {
     return (

@@ -10,12 +10,15 @@ const DEFAULT_CACHE_S = 30;
 // checking if there is a new one.
 const cache = new LRU<string, Profile>({ max: 300 });
 
-export default function useProfile(account_id: string): Profile | undefined {
+export default function useProfile(account_id?: string): Profile | undefined {
   const [profile, setProfile] = useState<Profile | undefined>(
-    cache.get(account_id)
+    account_id != null ? cache.get(account_id) : undefined
   );
 
   async function getProfile(): Promise<void> {
+    if (account_id == null) {
+      setProfile(undefined);
+    }
     try {
       const { profile } = await apiPost(
         "/accounts/profile",
@@ -31,7 +34,7 @@ export default function useProfile(account_id: string): Profile | undefined {
 
   useEffect(() => {
     getProfile();
-  }, []);
+  }, [account_id]);
 
   return profile;
 }
