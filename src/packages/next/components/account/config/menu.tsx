@@ -16,7 +16,7 @@ function menuBody() {
     for (const sub in menu[main]) {
       const { title, icon, danger } = menu[main][sub];
       w.push(
-        <Menu.Item key={`${main}/${sub}`} danger={danger}>
+        <Menu.Item key={main + "/" + sub} danger={danger}>
           <Icon name={icon} style={{ marginRight: "5px" }} /> {title}
         </Menu.Item>
       );
@@ -50,7 +50,7 @@ export default function ConfigMenu({ main, sub }) {
       onOpenChange={(keys) => {
         setOpenKeys(keys);
       }}
-      selectedKeys={[sub]}
+      selectedKeys={[main + "/" + sub]}
       style={{ height: "100%" }}
       onSelect={(e) => {
         router.push(`/config/${e.keyPath[0]}`, undefined, {

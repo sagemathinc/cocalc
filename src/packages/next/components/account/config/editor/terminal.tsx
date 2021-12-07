@@ -1,5 +1,8 @@
+import { useEffect, useState } from "react";
 import { Input, Space } from "antd";
 import Loading from "components/share/loading";
+import useDatabase from "lib/hooks/database";
+import SaveButton from "components/misc/save-button";
 import register from "../register";
 import IntegerSlider from "components/misc/integer-slider";
 import useEditTable from "lib/hooks/edit-table";
@@ -9,13 +12,13 @@ interface Data {
 }
 
 register({
-  path: "editor/appearance",
-  title: "Appearance",
-  icon: "font",
-  desc: "Editor default font size, color theme, etc.",
+  path: "editor/terminal",
+  title: "Terminal",
+  icon: "terminal",
+  desc: "Terminal default font size, color theme, etc.",
   Component: () => {
     const { edited, setEdited, original, Save } = useEditTable({
-      accounts: { font_size: null },
+      accounts: { terminal: null },
     });
 
     if (original == null || edited == null) {
@@ -26,14 +29,13 @@ register({
       <Space direction="vertical" style={{ width: "100%" }}>
         {Save}
         <h2>Font Size</h2>
-        <b>Editor font size:</b>
-        Newly opened files will open with this font size by default. You can
-        change the font size for a particular file (or even frame) at any time,
-        and the setting is saved in your browser.
+        <b>Terminal font size:</b>
+        New terminals will use this font size by default. You can change this
+        for a particular terminal at any time.
         <IntegerSlider
-          value={edited.font_size}
+          value={edited.terminal.font_size}
           onChange={(font_size) => {
-            edited.font_size = font_size;
+            edited.terminal.font_size = font_size;
             setEdited(edited);
           }}
           min={5}

@@ -16,6 +16,7 @@ import "./account/delete-account";
 import "./account/sign-out";
 
 import "./editor/appearance";
+import "./editor/terminal";
 import "./editor/options";
 import "./editor/keyboard";
 
