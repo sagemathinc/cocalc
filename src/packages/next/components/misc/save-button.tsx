@@ -7,8 +7,8 @@ import api from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
-  edited: object;
-  defaultOriginal: object;
+  edited: any;
+  defaultOriginal: any;
   table?: string;
   style?: CSSProperties;
   onSave?: (object) => Promise<void> | void; // if onSave is async then awaits and if there is an error shows that; if not, updates state to what was saved.
@@ -25,7 +25,7 @@ export default function SaveButton({
 }: Props) {
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [original, setOriginal] = useState<object>(defaultOriginal);
+  const [original, setOriginal] = useState<any>(defaultOriginal);
   const isMounted = useIsMounted();
 
   async function save(table, edited) {
@@ -34,6 +34,7 @@ export default function SaveButton({
     setError("");
     let result;
     try {
+      console.log("/user-query", query);
       result = await api("/user-query", { query });
     } catch (err) {
       if (!isMounted.current) return;
@@ -65,7 +66,7 @@ export default function SaveButton({
           try {
             await onSave?.(edited);
             setOriginal(edited);
-            setError('');
+            setError("");
           } catch (err) {
             setError(err.toString());
           }
@@ -84,10 +85,13 @@ export default function SaveButton({
 }
 
 function removeNulls(obj) {
+  if (typeof obj != "object") {
+    return obj;
+  }
   const obj2: any = {};
   for (const field in obj) {
     if (obj[field] != null) {
-      obj2[field] = obj[field];
+      obj2[field] = removeNulls(obj[field]);
     }
   }
   return obj2;

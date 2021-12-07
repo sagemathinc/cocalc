@@ -18,8 +18,8 @@ export default function useEditTable<T>(query) {
   const Save =
     edited != null && original != null ? (
       <SaveButton
-        edited={edited as unknown as object}
-        defaultOriginal={original as unknown as object}
+        edited={edited}
+        defaultOriginal={original}
         table={keys(query)[0]}
       />
     ) : (

@@ -1,9 +1,10 @@
-import { Slider, InputNumber, Row, Col } from "antd";
+import { Button, Slider, InputNumber, Row, Col } from "antd";
 
 interface Props {
   min: number;
   max: number;
   value: number;
+  defaultValue?: number;
   onChange: (number) => void;
 }
 
@@ -12,6 +13,7 @@ export default function IntegerSlider({
   onChange,
   min,
   max,
+  defaultValue,
 }: Props) {
   function toNumber(x) {
     return typeof x === "number" ? x : min;
@@ -32,12 +34,22 @@ export default function IntegerSlider({
         <InputNumber
           min={min}
           max={max}
-          style={{ marginLeft: "16px", minWidth:'8ex' }}
+          style={{ marginLeft: "16px", minWidth: "8ex" }}
           value={value}
           onChange={(value) => {
             onChange(toNumber(value));
           }}
         />
+        {defaultValue != null && (
+          <Button
+            type='text'
+            disabled={value == defaultValue}
+            style={{ marginLeft: "5px" }}
+            onClick={() => onChange(defaultValue)}
+          >
+            Default: {defaultValue}
+          </Button>
+        )}
       </Col>
     </Row>
   );
