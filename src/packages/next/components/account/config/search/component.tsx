@@ -32,7 +32,7 @@ export default function Search() {
           onSearch(e.target.value);
         }}
         onPressEnter={() => {
-          if (results.length > 0) {
+          if (results != null && results.length > 0) {
             // visit first search result.
             router.push(join("/config", results[0].path));
             setValue('');

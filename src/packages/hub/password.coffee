@@ -213,6 +213,8 @@ exports.reset_forgot_password = (opts) ->
                             cb : cb
     ], opts.cb)
 
+# DEPRECATED -- see packages/server/accounts/set-password.ts
+# except this is still used by client.coffee, etc.
 exports.change_password = (opts) ->
     opts = defaults opts,
         mesg       : required
