@@ -19,46 +19,78 @@ function rawPrice2Retail(p: number, discount = false): number {
   return (2 * p * df) / AVG_MONTH_DAYS;
 }
 
+// the "per core" unit of memory you get for n2 machine families
+function deriveMemBase(size): number {
+  switch (size) {
+    case "standard":
+      return 4;
+    case "highmem":
+      return 8;
+    default:
+      throw new Error(`deriveMemBase size "${size}" unknown`);
+  }
+}
+
+// string is like n2-standard-2 or n2-highmem-4
+function deriveQuotas(spec: string): { cpu: number; mem: number } {
+  const [family, size, cores_str] = spec.split("-");
+  if (family != "n2")
+    throw new Error(
+      `machine families beside "n2" are not supported -- implement it!`
+    );
+  const cores = parseInt(cores_str);
+  if (typeof cores !== "number" || cores <= 0)
+    throw new Error(`core must be 2, 4, 8, ...`);
+
+  const mem_base = deriveMemBase(size);
+  const mem = cores * mem_base - 2; // 2 GB for services running on that node
+  const cpu = cores; // we can safely give all cores to the project
+  return { mem, cpu };
+}
+
+// this is used below to avoid wrong values and easier adjustments
+function getSpecAndQuota(spec: string): {
+  spec: { mem: number; cpu: number };
+  quota: { dedicated_vm: string };
+} {
+  return {
+    spec: deriveQuotas(spec),
+    quota: { dedicated_vm: spec },
+  };
+}
+
 const VMS_DATA: VMsType[string][] = [
   {
     price_day: rawPrice2Retail(70.9, true),
-    spec: { mem: 7, cpu: 2 },
-    quota: { dedicated_vm: "n2-standard-2" },
+    ...getSpecAndQuota("n2-standard-2"),
   },
   {
     price_day: rawPrice2Retail(95.64, true),
-    spec: { mem: 15, cpu: 2 },
-    quota: { dedicated_vm: "n2-highmem-2" },
+    ...getSpecAndQuota("n2-highmem-2"),
   },
   {
     price_day: rawPrice2Retail(141.79, true),
-    spec: { mem: 15, cpu: 4 },
-    quota: { dedicated_vm: "n2-standard-4" },
+    ...getSpecAndQuota("n2-standard-4"),
   },
   {
     price_day: rawPrice2Retail(191.28, true),
-    spec: { mem: 31, cpu: 4 },
-    quota: { dedicated_vm: "n2-highmem-4" },
+    ...getSpecAndQuota("n2-highmem-4"),
   },
   {
     price_day: rawPrice2Retail(283.58, true),
-    spec: { mem: 31, cpu: 8 },
-    quota: { dedicated_vm: "n2-standard-8" },
+    ...getSpecAndQuota("n2-standard-8"),
   },
   {
     price_day: rawPrice2Retail(382.56, true),
-    spec: { mem: 62, cpu: 8 },
-    quota: { dedicated_vm: "n2-highmem-8" },
+    ...getSpecAndQuota("n2-highmem-8"),
   },
   {
     price_day: rawPrice2Retail(567.17, true),
-    spec: { mem: 62, cpu: 16 },
-    quota: { dedicated_vm: "n2-standard-16" },
+    ...getSpecAndQuota("n2-standard-16"),
   },
   {
     price_day: rawPrice2Retail(765.12, true),
-    spec: { mem: 126, cpu: 16 },
-    quota: { dedicated_vm: "n2-highmem-16" },
+    ...getSpecAndQuota("n2-highmem-16"),
   },
 ];
 
