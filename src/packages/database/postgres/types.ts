@@ -25,6 +25,7 @@ export interface QueryOptions {
   set?: { [key: string]: any };
   params?: any[];
   values?: { [key: string]: any };
+  order_by?: string;
   jsonb_set?: object;
   jsonb_merge?: object;
   cache?: boolean;
