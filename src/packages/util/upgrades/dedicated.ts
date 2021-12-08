@@ -11,6 +11,8 @@ import {
   dedicated_disk_display,
 } from "@cocalc/util/types/dedicated";
 
+type VMFamily = "n2";
+
 // derive price to charge per day from the base monthly price
 function rawPrice2Retail(p: number, discount = false): number {
   // factor of 2 and an average month
@@ -19,52 +21,86 @@ function rawPrice2Retail(p: number, discount = false): number {
   return (2 * p * df) / AVG_MONTH_DAYS;
 }
 
-const VMS_DATA: VMsType[string][] = [
-  {
-    price_day: rawPrice2Retail(70.9, true),
-    spec: { mem: 7, cpu: 2 },
-    quota: { dedicated_vm: "n2-standard-2" },
-  },
-  {
-    price_day: rawPrice2Retail(95.64, true),
-    spec: { mem: 15, cpu: 2 },
-    quota: { dedicated_vm: "n2-highmem-2" },
-  },
-  {
-    price_day: rawPrice2Retail(141.79, true),
-    spec: { mem: 15, cpu: 4 },
-    quota: { dedicated_vm: "n2-standard-4" },
-  },
-  {
-    price_day: rawPrice2Retail(191.28, true),
-    spec: { mem: 31, cpu: 4 },
-    quota: { dedicated_vm: "n2-highmem-4" },
-  },
-  {
-    price_day: rawPrice2Retail(283.58, true),
-    spec: { mem: 31, cpu: 8 },
-    quota: { dedicated_vm: "n2-standard-8" },
-  },
-  {
-    price_day: rawPrice2Retail(382.56, true),
-    spec: { mem: 62, cpu: 8 },
-    quota: { dedicated_vm: "n2-highmem-8" },
-  },
-  {
-    price_day: rawPrice2Retail(567.17, true),
-    spec: { mem: 62, cpu: 16 },
-    quota: { dedicated_vm: "n2-standard-16" },
-  },
-  {
-    price_day: rawPrice2Retail(765.12, true),
-    spec: { mem: 126, cpu: 16 },
-    quota: { dedicated_vm: "n2-highmem-16" },
-  },
-];
+// the "per core" unit of memory you get for n2 machine families
+function deriveMemBase(size): number {
+  switch (size) {
+    case "standard":
+      return 4;
+    case "highmem":
+      return 8;
+    default:
+      throw new Error(`deriveMemBase size "${size}" unknown`);
+  }
+}
+
+function deriveVMSpecs(spec: string): {
+  cpu: number;
+  mem: number;
+  family: VMFamily;
+} {
+  const [family, size, cpu_str] = spec.split("-");
+  if (family != "n2")
+    throw new Error(
+      `machine families beside "n2" are not supported -- implement it!`
+    );
+  const cpu = parseInt(cpu_str);
+  if (typeof cpu !== "number" || cpu <= 0)
+    throw new Error(`core must be 2, 4, 8, ...`);
+  const mem_base = deriveMemBase(size);
+  const mem = cpu * mem_base;
+  return { family, mem, cpu };
+}
+
+// string is like n2-standard-2 or n2-highmem-4
+function deriveQuotas({ mem, cpu }): {
+  cpu: number;
+  mem: number;
+} {
+  return {
+    mem: mem - 2, // 2 GB headroom for services running on that node
+    cpu: cpu, // we can safely give all cores to the project
+  };
+}
+
+// calculate the price proportional to cpu and memory
+function getDedicatedVMPrice({ mem, cpu, family }): number {
+  switch (family) {
+    case "n2":
+      // https://cloud.google.com/compute/vm-instance-pricing#general-purpose_machine_type_family
+      // N2 machine types: us-east1 and monthly on-demand
+      // ATTN: that's with 20% usage discount – we factor it out and discount on our own
+      const cpu_montly = 18.46 / 0.8;
+      const mem_montly = 2.47 / 0.8;
+      const gcp_price = cpu * cpu_montly + mem * mem_montly;
+      return rawPrice2Retail(gcp_price, true);
+    default:
+      throw new Error(`family ${family} not supported`);
+  }
+}
+
+// this is used below to avoid wrong values and easier adjustments
+function getSpecAndQuota(spec: string): VMsType[string] {
+  const data = deriveVMSpecs(spec);
+  const quotas = deriveQuotas(data);
+  return {
+    price_day: getDedicatedVMPrice(data),
+    spec: quotas, // the spec for actually setting up the container and communicated publicly
+    quota: { dedicated_vm: spec },
+  };
+}
+
+// generate all dedicated VM specs we want to offer
+function* getVMData() {
+  const family = "n2";
+  for (const size of ["standard", "highmem"]) {
+    for (const cpus of [2, 4, 8, 16]) {
+      yield getSpecAndQuota(`${family}-${size}-${cpus}`);
+    }
+  }
+}
 
 export const VMS: VMsType = {};
-
-for (const vmtype of VMS_DATA) {
+for (const vmtype of getVMData()) {
   vmtype.title = `${vmtype.spec.cpu} CPU cores, ${vmtype.spec.mem} GiB RAM`;
   VMS[vmtype.quota.dedicated_vm] = vmtype;
 }

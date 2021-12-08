@@ -38,7 +38,7 @@ const ICONS: IconName[] = [
 const VMS = [
   PRICES.vms["n2-highmem-2"],
   PRICES.vms["n2-standard-4"],
-  PRICES.vms["n2-standard-8"],
+  PRICES.vms["n2-highmem-8"],
   PRICES.vms["n2-standard-16"],
 ];
 
