@@ -29,12 +29,11 @@ export default function SaveButton({
   const isMounted = useIsMounted();
 
   async function save(table, edited) {
-    const query = { [table]: removeNulls(edited) };
+    const query = { [table]: edited };
     setSaving(true);
     setError("");
     let result;
     try {
-      console.log("/user-query", query);
       result = await api("/user-query", { query });
     } catch (err) {
       if (!isMounted.current) return;
@@ -52,7 +51,6 @@ export default function SaveButton({
   }
 
   const same = isEqual(edited, original);
-
   return (
     <>
       <Button
@@ -82,17 +80,4 @@ export default function SaveButton({
       )}
     </>
   );
-}
-
-function removeNulls(obj) {
-  if (typeof obj != "object") {
-    return obj;
-  }
-  const obj2: any = {};
-  for (const field in obj) {
-    if (obj[field] != null) {
-      obj2[field] = removeNulls(obj[field]);
-    }
-  }
-  return obj2;
 }

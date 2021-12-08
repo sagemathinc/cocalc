@@ -10,8 +10,8 @@ export default function useEditTable<T>(query) {
 
   useEffect(() => {
     if (!loading) {
-      setOriginal(value.accounts);
-      setEdited(value.accounts);
+      setOriginal(cloneDeep(value[keys(value)[0]]));
+      setEdited(value[keys(value)[0]]);
     }
   }, [loading]);
 
