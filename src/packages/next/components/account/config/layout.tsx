@@ -12,6 +12,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import Search from "./search/component";
 import Avatar from "components/account/avatar";
 import useProfile from "lib/hooks/profile";
+import { capitalize } from "@cocalc/util/misc";
 
 const { Content, Sider } = Layout;
 
@@ -69,7 +70,7 @@ export default function ConfigLayout({ page }: Props) {
         <>
           <h2>
             <Icon name={info.icon} style={{ marginRight: "5px" }} />{" "}
-            {info.title}
+            {capitalize(main)} - {info.title}
           </h2>
           {info.desc}
           <Divider />

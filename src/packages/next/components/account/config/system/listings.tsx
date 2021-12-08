@@ -39,6 +39,7 @@ register({
         {descNumFiles}
         <IntegerSlider
           value={edited.other_settings.page_size}
+          units={"files"}
           onChange={(page_size) => {
             edited.other_settings.page_size = page_size;
             setEdited(edited);

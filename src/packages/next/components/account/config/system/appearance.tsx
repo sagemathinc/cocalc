@@ -26,7 +26,7 @@ register({
     return (
       <Space direction="vertical">
         {Save}
-        <h2>Timestamp Display</h2>
+        <h3>Timestamp Display</h3>
         <div>{timestampDesc}</div>
         <Checkbox
           defaultValue={

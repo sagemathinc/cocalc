@@ -6,6 +6,7 @@ interface Props {
   value: number;
   defaultValue?: number;
   onChange: (number) => void;
+  units?: string;
 }
 
 export default function IntegerSlider({
@@ -14,6 +15,7 @@ export default function IntegerSlider({
   min,
   max,
   defaultValue,
+  units,
 }: Props) {
   function toNumber(x) {
     return typeof x === "number" ? x : min;
@@ -34,15 +36,16 @@ export default function IntegerSlider({
         <InputNumber
           min={min}
           max={max}
-          style={{ marginLeft: "16px", minWidth: "8ex" }}
+          style={{ marginLeft: "16px", minWidth: "8ex", width:'20ex' }}
           value={value}
           onChange={(value) => {
             onChange(toNumber(value));
           }}
+          addonAfter={units}
         />
         {defaultValue != null && (
           <Button
-            type='text'
+            type="text"
             disabled={value == defaultValue}
             style={{ marginLeft: "5px" }}
             onClick={() => onChange(defaultValue)}
