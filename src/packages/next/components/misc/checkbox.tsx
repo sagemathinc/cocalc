@@ -26,7 +26,7 @@ export default function Checkbox({
     <Space>
       {check}{" "}
       <Button
-        type="text"
+        type="dashed"
         disabled={checked == defaultValue}
         style={{ marginLeft: "5px" }}
         onClick={() => onChange(defaultValue)}

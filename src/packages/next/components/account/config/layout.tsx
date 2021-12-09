@@ -99,7 +99,7 @@ export default function ConfigLayout({ page }: Props) {
   );
   return (
     <Layout>
-      <Sider width={200} breakpoint="sm" collapsedWidth="0">
+      <Sider width={"25%"} breakpoint="sm" collapsedWidth="0">
         {isBrowser && <ConfigMenu main={main} sub={sub} />}
       </Sider>
       <Layout

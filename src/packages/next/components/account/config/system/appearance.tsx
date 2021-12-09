@@ -5,42 +5,41 @@ import useEditTable from "lib/hooks/edit-table";
 import Checkbox from "components/misc/checkbox";
 import { SCHEMA } from "@cocalc/util/schema";
 
-const timestampDesc = `
+const desc = {
+  time_ago_absolute: `
 You can display timestamps either as absolute points in time or relative to
-the current time.`;
+the current time.`,
+};
+
+interface Data {
+  other_settings: { time_ago_absolute: boolean };
+}
 
 register({
   path: "system/appearance",
   title: "Appearance",
   icon: "calendar-week",
   desc: "Configure dark mode and how times are displayed.",
-  search: "timestamp display " + timestampDesc,
+  search: "timestamp display " + desc,
   Component: () => {
-    const { edited, setEdited, original, Save } = useEditTable<Data>({
-      accounts: { other_settings: null },
-    });
+    const { edited, setEdited, original, Save, EditBoolean } =
+      useEditTable<Data>({
+        accounts: { other_settings: null },
+      });
     if (original == null || edited == null) {
       return <Loading />;
     }
 
     return (
       <Space direction="vertical">
-        {Save}
-        <h3>Timestamp Display</h3>
-        <div>{timestampDesc}</div>
-        <Checkbox
-          defaultValue={
-            SCHEMA.accounts.user_query?.get?.fields.other_settings
-              .time_ago_absolute
-          }
-          checked={edited.other_settings.time_ago_absolute}
-          onChange={(checked) => {
-            edited.other_settings.time_ago_absolute = checked;
-            setEdited(edited);
-          }}
-        >
-          Display timestamps as absolute points in time.
-        </Checkbox>
+        <Save />
+        <EditBoolean
+          path="other_settings.time_ago_absolute"
+          icon="clock"
+          title="Timestamp Display"
+          desc={desc.time_ago_absolute}
+          label="Display timestamps as absolute points in time"
+        />
       </Space>
     );
   },

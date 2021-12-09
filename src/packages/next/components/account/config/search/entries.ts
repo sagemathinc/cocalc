@@ -5,7 +5,7 @@ export interface Info {
   desc: string;
   title: string;
   icon: IconName;
-  search?: string;
+  search?: string | object;
 }
 
 const searchInfo: { [path: string]: Info } = {};
@@ -18,7 +18,7 @@ export function register(info: Info) {
     " " +
     info.title +
     " " +
-    (info.search ?? "")
+    JSON.stringify(info.search ?? "")
   ).toLowerCase();
   searchInfo[info.path] = { ...info, search };
 }

@@ -1,5 +1,5 @@
 import { CSSProperties, useState } from "react";
-import { isEqual } from "lodash";
+import { cloneDeep, isEqual } from "lodash";
 import { Alert, Button, Space } from "antd";
 import useIsMounted from "lib/hooks/mounted";
 import Loading from "components/share/loading";
@@ -17,7 +17,8 @@ interface Props {
 
 export default function SaveButton({
   edited,
-  defaultOriginal,
+  original,
+  setOriginal,
   table,
   style,
   onSave,
@@ -25,11 +26,11 @@ export default function SaveButton({
 }: Props) {
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [original, setOriginal] = useState<any>(defaultOriginal);
   const isMounted = useIsMounted();
 
   async function save(table, edited) {
-    const query = { [table]: edited };
+    const e = cloneDeep(edited);
+    const query = { [table]: e };
     setSaving(true);
     setError("");
     let result;
@@ -46,7 +47,7 @@ export default function SaveButton({
     if (result.error) {
       setError(result.error);
     } else {
-      setOriginal(edited);
+      setOriginal(e);
     }
   }
 
@@ -59,7 +60,8 @@ export default function SaveButton({
         disabled={saving || same || (isValid != null && !isValid(edited))}
         onClick={async () => {
           if (table) {
-            save(table, edited);
+            await save(table, edited);
+            return;
           }
           try {
             await onSave?.(edited);
