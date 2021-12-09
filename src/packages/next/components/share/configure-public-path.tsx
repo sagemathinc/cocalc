@@ -90,7 +90,8 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
   const save = (
     <SaveButton
       edited={edited}
-      defaultOriginal={original}
+      original={original}
+      setOriginal={setOriginal}
       table="public_paths"
       onSave={() => router.reload()}
     />

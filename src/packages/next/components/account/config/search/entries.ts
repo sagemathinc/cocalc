@@ -1,16 +1,23 @@
 import { IconName } from "@cocalc/frontend/components/icon";
 
-export interface Info {
+interface Info0 {
   path: string;
   desc: string;
   title: string;
-  icon: IconName;
+  icon?: IconName;
+}
+
+export interface Info extends Info0 {
+  search: string;
+}
+
+interface Info1 extends Info0 {
   search?: string | object;
 }
 
 const searchInfo: { [path: string]: Info } = {};
 
-export function register(info: Info) {
+export function register(info: Info1) {
   const search = (
     info.desc +
     " " +

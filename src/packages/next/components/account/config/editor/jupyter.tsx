@@ -15,16 +15,21 @@ the classical Jupyter notebook in an iframe and installs a plugin to enable real
 However, collaboration does not work as well as in the default Jupyter editor.`,
 };
 
+interface Data {
+  editor_settings: {
+    jupyter_line_numbers: boolean;
+  };
+}
+
 register({
   path: "editor/jupyter",
   title: "Jupyter Notebooks",
   icon: "ipynb",
   search: desc,
   Component: () => {
-    const { edited, setEdited, original, Save, EditBoolean } =
-      useEditTable<Data>({
-        accounts: { editor_settings: null },
-      });
+    const { edited, original, Save, EditBoolean } = useEditTable<Data>({
+      accounts: { editor_settings: null },
+    });
 
     if (original == null || edited == null) {
       return <Loading />;

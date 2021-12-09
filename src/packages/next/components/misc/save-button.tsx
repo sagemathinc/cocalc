@@ -8,7 +8,8 @@ import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   edited: any;
-  defaultOriginal: any;
+  original: any;
+  setOriginal: Function;
   table?: string;
   style?: CSSProperties;
   onSave?: (object) => Promise<void> | void; // if onSave is async then awaits and if there is an error shows that; if not, updates state to what was saved.

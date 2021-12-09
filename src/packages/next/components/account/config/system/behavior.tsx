@@ -2,9 +2,6 @@ import { Space } from "antd";
 import Loading from "components/share/loading";
 import register from "../register";
 import useEditTable from "lib/hooks/edit-table";
-import Checkbox from "components/misc/checkbox";
-import { SCHEMA } from "@cocalc/util/schema";
-import IntegerSlider from "components/misc/integer-slider";
 
 const desc = {
   confirm_close: `You can make CoCalc always ask for confirmation before closing a browser tab viewing a project.
@@ -46,7 +43,7 @@ register({
   desc: "Configure general behavior of CoCalc, including idle timeout, math rendering, and whether to ask for confirmation before closing the browser window.",
   search: desc,
   Component: () => {
-    const { edited, setEdited, original, Save, EditBoolean, EditNumber } =
+    const { edited, original, Save, EditBoolean, EditNumber } =
       useEditTable<Data>({
         accounts: { other_settings: null },
       });

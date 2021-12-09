@@ -82,7 +82,11 @@ function SearchResults({
           >
             <List.Item style={{ borderBottom: "1px solid lightgrey" }}>
               <List.Item.Meta
-                avatar={<Icon name={item.icon} style={{ fontSize: "16pt" }} />}
+                avatar={
+                  item.icon ? (
+                    <Icon name={item.icon} style={{ fontSize: "16pt" }} />
+                  ) : undefined
+                }
                 title={
                   <>
                     {capitalize(top)} <Icon name="arrow-right" />{" "}

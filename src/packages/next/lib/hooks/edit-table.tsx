@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import useDatabase from "lib/hooks/database";
 import SaveButton from "components/misc/save-button";
 import { get, set, cloneDeep, keys } from "lodash";
@@ -6,7 +6,8 @@ import { Space } from "antd";
 import { SCHEMA } from "@cocalc/util/schema";
 import Checkbox from "components/misc/checkbox";
 import IntegerSlider from "components/misc/integer-slider";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { capitalize } from "@cocalc/util/misc";
 
 export default function useEditTable<T>(query) {
   const { loading, value } = useDatabase(query);
@@ -35,14 +36,26 @@ export default function useEditTable<T>(query) {
     );
   }
 
-  function EditBoolean({ path, title, desc, label, icon }) {
+  function EditBoolean({
+    path,
+    title,
+    desc,
+    label,
+    icon,
+  }: {
+    path: string;
+    title?: string;
+    desc?: ReactNode;
+    label?: string;
+    icon?: IconName;
+  }) {
     return (
       <Space direction="vertical" style={{ marginTop: "15px" }}>
         <h3>
           {icon && <Icon name={icon} style={{ marginRight: "10px" }} />}
-          {title}
+          {getTitle(path, title)}
         </h3>
-        <div>{desc}</div>
+        {desc && <div>{desc}</div>}
         <Checkbox
           defaultValue={get(
             SCHEMA[keys(query)[0]].user_query?.get?.fields,
@@ -54,7 +67,7 @@ export default function useEditTable<T>(query) {
             setEdited(cloneDeep(edited));
           }}
         >
-          {label}
+          {getLabel(path, title, label)}
         </Checkbox>
       </Space>
     );
@@ -66,14 +79,30 @@ export default function useEditTable<T>(query) {
   // a controlled component, since otherwise edited has to
   // be passed in externally, which is very awkward.
   const EditNumber = useMemo(() => {
-    if (edited == null || original == null) return null;
-    return ({ path, title, desc, units, min, max, icon }) => (
+    if (edited == null || original == null) return () => null;
+    return ({
+      path,
+      title,
+      desc,
+      units,
+      min,
+      max,
+      icon,
+    }: {
+      path: string;
+      title?: string;
+      desc?: ReactNode;
+      units?: string;
+      min: number;
+      max: number;
+      icon?: IconName;
+    }) => (
       <Space direction="vertical">
         <h3>
           {icon && <Icon name={icon} style={{ marginRight: "10px" }} />}
-          {title}
+          {getTitle(path, title)}
         </h3>
-        <div>{desc}</div>
+        {desc && <div>{desc}</div>}
         <IntegerSlider
           defaultValue={get(
             SCHEMA[keys(query)[0]].user_query?.get?.fields,
@@ -100,4 +129,15 @@ export default function useEditTable<T>(query) {
     EditBoolean,
     EditNumber,
   };
+}
+
+function getTitle(path: string, title?: string): string {
+  if (title) return title;
+  if (!path) return "";
+  const v = path.split(".");
+  return v[v.length - 1].split("_").map(capitalize).join(" ");
+}
+
+function getLabel(path: string, title?: string, label?: string): string {
+  return label ?? capitalize(getTitle(path, title).toLowerCase());
 }

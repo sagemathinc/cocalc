@@ -2,6 +2,7 @@ import register from "../register";
 import { Space } from "antd";
 import Loading from "components/share/loading";
 import useEditTable from "lib/hooks/edit-table";
+import A from "components/misc/A";
 
 const desc = {
   line_wrapping: `Enable line wrapping so that when I line is longer than the width of the editor,
@@ -16,28 +17,35 @@ on the editor's understanding of your code.`,
   electric_chars: `When electric characters is enabled, typing certain characters, such
 as { and } in C-like languages, cause the current line to be reindented.`,
   match_brackets: "Highlight matching brackets near cursor",
-  auto_close_brackets: "Automatically close brackets",
+  auto_close_brackets:
+    "When you type a bracket character, for example ( or [, CoCalc will automatically insert the corresponding close character.  Some people love how this saves them time, and other people find this extremely annoying; if this annoys you, disable it.",
   match_xml_tags: "Automatically match XML tags",
-  auto_close_xml_tags: "Automatically close XML tags.  For example, if you are editing HTML and type <a> then </a> is automatically inserted.",
-  auto_close_latex: "Automatically close LaTeX environments. For example, if you type \\begin{verbatim} and hit enter, then \\end{verbatim} is automatically inserted.",
-  strip_trailing_whitespace: "remove whenever file is saved",
-  show_trailing_whitespace: "show spaces at ends of lines",
-  spaces_instead_of_tabs: "send spaces when the tab key is pressed",
-  extra_button_bar: "more editing functions (mainly in Sage worksheets)",
-  build_on_save: "build LaTex/Rmd files whenever they are saved to disk",
-  show_exec_warning: "warn that certain files are not directly executable",
+  auto_close_xml_tags:
+    "Automatically close XML tags.  For example, if you are editing HTML and type <a> then </a> is automatically inserted.",
+  auto_close_latex:
+    "Automatically close LaTeX environments. For example, if you type \\begin{verbatim} and hit enter, then \\end{verbatim} is automatically inserted.",
+  strip_trailing_whitespace: `This open makes it so that whenever a file in the editor is saved to disk, whitespace from the ends of lines is removed, since it usually serves no purpose and can get accidentally inserted when editing.  Note that markdown files are always exempt, since trailing whitespace is meaningful for them.`,
+  show_trailing_whitespace:
+    "Visibly display any trailing whitespace at the ends of lines.  This is useful so that such whitespace isn't invisible.",
+  spaces_instead_of_tabs:
+    "Send spaces instead of a tab character when the tab key is pressed.  Use this if you prefer, e.g., 4 spaces instead of a tab in your code.  The number of spaces depends on the type of code you are editing.",
+  extra_button_bar:
+    "Show additional editing functionality  (mainly in Sage worksheets)",
+  build_on_save: `Trigger a build of LaTex, Rmd, etc. files whenever they are saved to disk, instead of only building when you click the Build button. This is fine for small documents, but can be annoying for large documents, especially if you are a "compulsive saver".`,
+  show_exec_warning:
+    "Show a warning if you hit shift+enter (or other keys) when editing certain files, e.g., Python code, that is not directly executable.  This is just to avoid confusion if you create a .py file and think it is a Jupyter notebook.",
 };
 
 register({
   path: "editor/options",
   title: "Options",
   icon: "check-square",
+  desc: "Configure general behavior of the editors in CoCalc.",
   search: desc,
   Component: () => {
-    const { edited, setEdited, original, Save, EditBoolean } =
-      useEditTable<Data>({
-        accounts: { editor_settings: null },
-      });
+    const { edited, original, Save, EditBoolean } = useEditTable({
+      accounts: { editor_settings: null },
+    });
 
     if (original == null || edited == null) {
       return <Loading />;
@@ -49,114 +57,107 @@ register({
         <EditBoolean
           icon="align-left"
           path="editor_settings.line_wrapping"
-          title="Line Wrapping"
           desc={desc.line_wrapping}
-          label="Wrap long lines"
         />
         <EditBoolean
           icon="list-ol"
           path="editor_settings.line_numbers"
-          title="Line Numbers when editing code files"
           desc={desc.line_numbers}
-          label="Line numbers"
         />
         <EditBoolean
           icon="caret-down"
           path="editor_settings.code_folding"
-          title="Code Folding"
           desc={desc.code_folding}
-          label="Code folding"
         />
         <EditBoolean
           icon="indent"
           path="editor_settings.smart_indent"
-          title="Smart Indentation"
           desc={desc.smart_indent}
-          label="Smart code indentation"
         />
         <EditBoolean
           icon="indent"
           path="editor_settings.electric_chars"
-          title="Electric Character Indentation"
+          title={`"Electric" Character Indentation`}
           desc={desc.electric_chars}
-          label="Electric character indentation"
         />
         <EditBoolean
-          icon="indent"
+          icon="tab"
           path="editor_settings.match_brackets"
-          title="Match Brackets"
           desc={desc.match_brackets}
-          label="Match brackets"
         />
         <EditBoolean
-          icon="indent"
+          icon="code"
           path="editor_settings.auto_close_brackets"
-          title="Automatically Close Brackets"
           desc={desc.auto_close_brackets}
-          label="Automatically close brackets"
         />
         <EditBoolean
-          icon="indent"
+          icon="code"
           path="editor_settings.match_xml_tags"
           title="Match XML tags"
           desc={desc.match_xml_tags}
           label="Match XML tags"
         />
         <EditBoolean
-          icon="indent"
+          icon="code"
           path="editor_settings.auto_close_xml_tags"
           title="Automatically Close XML Tags"
           desc={desc.auto_close_xml_tags}
           label="Autoclose XML tags"
         />
         <EditBoolean
-          icon="indent"
+          icon="tex"
           path="editor_settings.auto_close_latex"
           title="Automatically close LaTeX environments"
           desc={desc.auto_close_latex}
-          label="Autoclose LaTeX"
+          label="Autoclose LaTeX environments"
         />
         <EditBoolean
-          icon="indent"
+          icon="align-left"
           path="editor_settings.strip_trailing_whitespace"
-          title="Electric Character Indentation"
-          desc={desc.strip_trailing_whitespace}
-          label="Electric character indentation"
+          desc={
+            <>
+              {desc.strip_trailing_whitespace}{" "}
+              <A href="https://www.python.org/dev/peps/pep-0008/#other-recommendations">
+                Stripping trailing whitespace is officially recommended for
+                Python code.
+              </A>
+            </>
+          }
         />
         <EditBoolean
-          icon="indent"
+          icon="align-left"
           path="editor_settings.show_trailing_whitespace"
-          title="Electric Character Indentation"
           desc={desc.show_trailing_whitespace}
-          label="Electric character indentation"
         />
         <EditBoolean
-          icon="indent"
+          icon="tab"
           path="editor_settings.spaces_instead_of_tabs"
-          title="Electric Character Indentation"
-          desc={desc.spaces_instead_of_tabs}
-          label="Electric character indentation"
+          title="Spaces Instead of Tabs"
+          desc={
+            <>
+              {desc.spaces_instead_of_tabs}{" "}
+              <A href="https://www.python.org/dev/peps/pep-0008/#tabs-or-spaces">
+                Spaces instead of tabs are officially recommended for Python
+                code.
+              </A>
+            </>
+          }
         />
         <EditBoolean
-          icon="indent"
+          icon="bars"
           path="editor_settings.extra_button_bar"
-          title="Electric Character Indentation"
           desc={desc.extra_button_bar}
-          label="Electric character indentation"
         />
         <EditBoolean
-          icon="indent"
+          icon="play-circle"
           path="editor_settings.build_on_save"
-          title="Electric Character Indentation"
           desc={desc.build_on_save}
-          label="Electric character indentation"
         />
         <EditBoolean
-          icon="indent"
+          icon="step-forward"
+          title="Show Execution Warning"
           path="editor_settings.show_exec_warning"
-          title="Electric Character Indentation"
           desc={desc.show_exec_warning}
-          label="Electric character indentation"
         />
       </Space>
     );

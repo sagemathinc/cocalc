@@ -49,7 +49,8 @@ register({
           >
             <SaveButton
               edited={edited}
-              defaultOriginal={original}
+              original={original}
+              setOriginal={setOriginal}
               onSave={async ({ email_address }) => {
                 await apiPost("/accounts/set-email-address", {
                   email_address,

@@ -7,7 +7,7 @@ export default function Index() {
 
 export async function getServerSideProps(context) {
   const { res } = context;
-  res.writeHead(302, { location: join(basePath, "config/account/name") });
+  res.writeHead(302, { location: join(basePath, "config/search/input") });
   res.end();
   return { props: {} };
 }

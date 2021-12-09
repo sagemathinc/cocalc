@@ -2,8 +2,6 @@ import { Space } from "antd";
 import Loading from "components/share/loading";
 import register from "../register";
 import useEditTable from "lib/hooks/edit-table";
-import Checkbox from "components/misc/checkbox";
-import { SCHEMA } from "@cocalc/util/schema";
 
 const desc = {
   time_ago_absolute: `
@@ -22,7 +20,7 @@ register({
   desc: "Configure dark mode and how times are displayed.",
   search: "timestamp display " + desc,
   Component: () => {
-    const { edited, setEdited, original, Save, EditBoolean } =
+    const { edited, original, Save, EditBoolean } =
       useEditTable<Data>({
         accounts: { other_settings: null },
       });

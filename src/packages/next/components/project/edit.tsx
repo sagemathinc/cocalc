@@ -36,7 +36,7 @@ export default function Edit(props: Props) {
       </Button>
       {expanded && (
         <EditFields
-          original={props}
+          info={props}
           onClose={() => {
             setExpanded(false);
             // This reloads the page, but with no flicker, so user sees new information reflected.
@@ -56,13 +56,14 @@ interface Info {
 }
 
 function EditFields({
-  original,
+  info,
   onClose,
 }: {
-  original: Info;
+  info: Info;
   onClose: () => void;
 }) {
-  const [edited, setEdited] = useState<Info>(original);
+  const [edited, setEdited] = useState<Info>(info);
+  const [original, setOriginal] = useState<Info>(info);
   return (
     <div
       style={{
@@ -74,7 +75,7 @@ function EditFields({
     >
       <div>
         <Space style={{ float: "right" }}>
-          <SaveButton edited={edited} defaultOriginal={original} table="projects" />
+          <SaveButton edited={edited} original={original} setOriginal={setOriginal} table="projects" />
           <Button style={{ float: "right" }} onClick={onClose}>
             Close
           </Button>

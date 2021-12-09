@@ -90,7 +90,8 @@ register({
             >
               <SaveButton
                 edited={edited}
-                defaultOriginal={original}
+                original={original}
+                setOriginal={setOriginal}
                 table="accounts"
               />
               <br />

@@ -21,7 +21,7 @@ register({
   desc: "Terminal default font size, color theme, etc.",
   search: desc,
   Component: () => {
-    const { edited, setEdited, original, Save, EditNumber } =
+    const { edited, original, Save, EditNumber } =
       useEditTable<Data>({
         accounts: { terminal: null },
       });
@@ -41,7 +41,6 @@ register({
           min={5}
           max={32}
           units="px"
-          edited={edited}
         />
       </Space>
     );

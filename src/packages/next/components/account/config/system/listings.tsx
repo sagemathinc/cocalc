@@ -1,9 +1,7 @@
 import { Space } from "antd";
 import Loading from "components/share/loading";
 import register from "../register";
-import IntegerSlider from "components/misc/integer-slider";
 import useEditTable from "lib/hooks/edit-table";
-import { SCHEMA } from "@cocalc/util/schema";
 
 interface Data {
   other_settings: {
@@ -33,7 +31,7 @@ register({
   desc: "Directory listings",
   search: desc,
   Component: () => {
-    const { edited, setEdited, original, Save, EditBoolean, EditNumber } =
+    const { edited, original, Save, EditBoolean, EditNumber } =
       useEditTable<Data>({
         accounts: { other_settings: null },
       });

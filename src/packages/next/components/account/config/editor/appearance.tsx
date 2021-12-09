@@ -20,9 +20,9 @@ register({
   title: "Appearance",
   icon: "font",
   desc: "Editor default font size, color theme, etc.",
-  search: desc,
+  search: desc.font_size,
   Component: () => {
-    const { edited, setEdited, original, Save, EditNumber } =
+    const { edited, original, Save, EditNumber } =
       useEditTable<Data>({
         accounts: { font_size: null },
       });
@@ -37,7 +37,6 @@ register({
         <EditNumber
           path="font_size"
           icon="text-height"
-          title="Editor Font Size"
           desc={desc.font_size}
           min={5}
           max={32}
