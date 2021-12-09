@@ -5,11 +5,6 @@ import useEditTable from "lib/hooks/edit-table";
 import A from "components/misc/A";
 
 const desc = {
-  line_wrapping: `Enable line wrapping so that when I line is longer than the width of the editor,
-the line will get wrapped so it stays visible, and there is no horizontal scroll bar.  Enabling
-this can make it difficult to view the structure of some text involving longer lines, but avoids having
-to scroll horizontally.`,
-  line_numbers: `Display line numbers to the left of the editor content.`,
   code_folding: `Enable the code folding plugin.  When enabled, you can fold or unfold all
 selected code by typing control+Q, or by clicking the triangle to the left of code.`,
   smart_indent: `When you are editing code, smart indent automatically indents new lines based
@@ -54,16 +49,6 @@ register({
     return (
       <Space direction="vertical" style={{ width: "100%" }}>
         <Save />
-        <EditBoolean
-          icon="align-left"
-          path="editor_settings.line_wrapping"
-          desc={desc.line_wrapping}
-        />
-        <EditBoolean
-          icon="list-ol"
-          path="editor_settings.line_numbers"
-          desc={desc.line_numbers}
-        />
         <EditBoolean
           icon="caret-down"
           path="editor_settings.code_folding"

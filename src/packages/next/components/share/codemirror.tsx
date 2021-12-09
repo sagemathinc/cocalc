@@ -16,14 +16,21 @@ interface Props {
   content: string;
   filename: string;
   options?: Options;
+  fontSize?: number;
 }
 
-export default function CodeMirror({ content, filename, options }: Props) {
+export default function CodeMirror({
+  content,
+  filename,
+  options,
+  fontSize,
+}: Props) {
   const ext = getExtension(filename);
   const mode = codemirrorMode(ext);
   return (
     <CodeMirrorStatic
       value={content}
+      font_size={fontSize}
       options={{ lineNumbers: true, mode, ...options }}
     />
   );

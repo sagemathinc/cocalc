@@ -1,5 +1,5 @@
 import { Button, Select, Space } from "antd";
-import { ReactNode, useState } from "react";
+import { CSSProperties, ReactNode, useState } from "react";
 import { keys } from "lodash";
 
 const { Option } = Select;
@@ -10,6 +10,7 @@ interface Props {
   initialValue?: string;
   onChange: (string) => void;
   options: { [value: string]: ReactNode };
+  style?: CSSProperties;
 }
 
 export default function SelectWithDefault({
@@ -18,6 +19,7 @@ export default function SelectWithDefault({
   initialValue,
   onChange,
   options,
+  style,
 }: Props) {
   const [val, setVal] = useState<string>(
     value ?? initialValue ?? defaultValue ?? keys(options)[0] ?? ""
@@ -37,7 +39,7 @@ export default function SelectWithDefault({
           onChange(value);
           setVal(value);
         }}
-        style={{ width: "40ex", maxWidth: "100%" }}
+        style={{ width: "40ex", maxWidth: "100%", ...style }}
       >
         {v}
       </Select>

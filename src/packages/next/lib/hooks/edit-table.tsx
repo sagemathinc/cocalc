@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { CSSProperties, ReactNode, useEffect, useMemo, useState } from "react";
 import useDatabase from "lib/hooks/database";
 import SaveButton from "components/misc/save-button";
 import { get, set, cloneDeep, keys } from "lodash";
@@ -130,12 +130,14 @@ export default function useEditTable<T>(query) {
       desc,
       icon,
       options,
+      style,
     }: {
       path: string;
       title?: string;
       desc?: ReactNode;
       icon?: IconName;
       options: { [value: string]: ReactNode };
+      style?: CSSProperties;
     }) => (
       <Space direction="vertical">
         <h3>
@@ -144,6 +146,7 @@ export default function useEditTable<T>(query) {
         </h3>
         {desc && <div>{desc}</div>}
         <SelectWithDefault
+          style={style}
           defaultValue={get(
             SCHEMA[keys(query)[0]].user_query?.get?.fields,
             path
