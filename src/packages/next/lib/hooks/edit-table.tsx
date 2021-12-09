@@ -1,4 +1,11 @@
-import { CSSProperties, ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  CSSProperties,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import useDatabase from "lib/hooks/database";
 import SaveButton from "components/misc/save-button";
 import { get, set, cloneDeep, keys } from "lodash";
@@ -10,10 +17,35 @@ import SelectWithDefault from "components/misc/select-with-default";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
 
+/*
+WARNING: the code below is some pretty complicated use of React hooks,
+in order to make the API it exports simple and easy to use with minimal
+replication of code.
+
+For example, we have to inroduce editRef and a complicated setEdited
+below so that users don't have to explicitly pass setEdited into
+components like EditNumber, which would be annoying, tedious and silly.
+The code is complicated due to how hooks work, when components get created
+and updated, etc.  Say to yourself: "I still know closure fu."
+*/
+
 export default function useEditTable<T>(query) {
   const { loading, value } = useDatabase(query);
   const [original, setOriginal] = useState<T | undefined>(undefined);
-  const [edited, setEdited] = useState<T | undefined>(undefined);
+  const [edited, setEdited0] = useState<T | undefined>(undefined);
+  const editedRef = useRef<T | undefined>(edited);
+  editedRef.current = edited;
+
+  function setEdited(update, path?: string) {
+    if (!path) {
+      // usual setEdited
+      setEdited0(update);
+      return;
+    }
+    // just edit part of object.
+    set(editedRef.current, path, update);
+    setEdited0({ ...editedRef.current } as T);
+  }
 
   useEffect(() => {
     if (!loading) {
@@ -64,8 +96,7 @@ export default function useEditTable<T>(query) {
           )}
           checked={get(edited, path)}
           onChange={(checked) => {
-            set(edited, path, checked);
-            setEdited(cloneDeep(edited));
+            setEdited(checked, path);
           }}
         >
           {getLabel(path, title, label)}
@@ -111,8 +142,7 @@ export default function useEditTable<T>(query) {
           )}
           initialValue={get(edited, path)}
           onChange={(value) => {
-            set(edited, path, value);
-            setEdited(cloneDeep(edited));
+            setEdited(value, path);
           }}
           min={min}
           max={max}
@@ -153,8 +183,7 @@ export default function useEditTable<T>(query) {
           )}
           initialValue={get(edited, path)}
           onChange={(value) => {
-            set(edited, path, value);
-            setEdited(cloneDeep(edited));
+            setEdited(value, path);
           }}
           options={options}
         />
@@ -164,7 +193,6 @@ export default function useEditTable<T>(query) {
 
   return {
     edited,
-    setEdited: (x) => setEdited(cloneDeep(x)),
     original,
     Save,
     EditBoolean,

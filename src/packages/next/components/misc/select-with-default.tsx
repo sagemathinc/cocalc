@@ -27,7 +27,7 @@ export default function SelectWithDefault({
 
   const v: ReactNode[] = [];
   for (const value in options) {
-    v.push(<Option value={value}>{options[value]}</Option>);
+    v.push(<Option key={value} value={value}>{options[value]}</Option>);
   }
 
   return (

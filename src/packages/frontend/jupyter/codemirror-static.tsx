@@ -126,7 +126,7 @@ export function CodeMirrorStatic(props: Props) {
         // nobody better do this...?
         width = 69;
       }
-      style = { paddingLeft: `${width + 4}px`, ...BLURRED_STYLE };
+      style = { ...BLURRED_STYLE, padding: `4px 4px 4px ${width + 4}px` };
     } else {
       width = 0;
       style = BLURRED_STYLE;
