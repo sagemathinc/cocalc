@@ -22,7 +22,7 @@ export default function Search() {
     <div>
       <Input.Search
         style={{ maxWidth: "60ex" }}
-        placeholder="Search configuration options..."
+        placeholder="Search all configuration options..."
         onSearch={onSearch}
         enterButton
         allowClear

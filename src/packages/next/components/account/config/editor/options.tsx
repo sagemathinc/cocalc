@@ -159,6 +159,8 @@ register({
           path="editor_settings.show_exec_warning"
           desc={desc.show_exec_warning}
         />
+        <br/>
+        <Save />
       </Space>
     );
   },

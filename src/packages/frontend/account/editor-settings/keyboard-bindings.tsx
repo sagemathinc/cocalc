@@ -5,13 +5,7 @@
 
 
 import { LabeledRow, SelectorInput } from "../../components";
-
-const EDITOR_BINDINGS = {
-  standard: "Standard",
-  sublime: "Sublime",
-  vim: "Vim",
-  emacs: "Emacs",
-};
+import { EDITOR_BINDINGS } from "@cocalc/util/db-schema/accounts";
 
 interface Props {
   bindings: string;

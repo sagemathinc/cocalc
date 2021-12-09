@@ -6,6 +6,7 @@ import { Space } from "antd";
 import { SCHEMA } from "@cocalc/util/schema";
 import Checkbox from "components/misc/checkbox";
 import IntegerSlider from "components/misc/integer-slider";
+import SelectWithDefault from "components/misc/select-with-default";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
 
@@ -121,6 +122,43 @@ export default function useEditTable<T>(query) {
     );
   }, [edited == null, original == null]);
 
+  const EditSelect = useMemo(() => {
+    if (edited == null || original == null) return () => null;
+    return ({
+      path,
+      title,
+      desc,
+      icon,
+      options,
+    }: {
+      path: string;
+      title?: string;
+      desc?: ReactNode;
+      icon?: IconName;
+      options: { [value: string]: ReactNode };
+    }) => (
+      <Space direction="vertical">
+        <h3>
+          {icon && <Icon name={icon} style={{ marginRight: "10px" }} />}
+          {getTitle(path, title)}
+        </h3>
+        {desc && <div>{desc}</div>}
+        <SelectWithDefault
+          defaultValue={get(
+            SCHEMA[keys(query)[0]].user_query?.get?.fields,
+            path
+          )}
+          initialValue={get(edited, path)}
+          onChange={(value) => {
+            set(edited, path, value);
+            setEdited(cloneDeep(edited));
+          }}
+          options={options}
+        />
+      </Space>
+    );
+  }, [edited == null, original == null]);
+
   return {
     edited,
     setEdited: (x) => setEdited(cloneDeep(x)),
@@ -128,6 +166,7 @@ export default function useEditTable<T>(query) {
     Save,
     EditBoolean,
     EditNumber,
+    EditSelect,
   };
 }
 

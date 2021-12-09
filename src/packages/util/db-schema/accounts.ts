@@ -12,6 +12,13 @@ import {
   DEFAULT_NEW_FILENAMES,
 } from "./defaults";
 
+export const EDITOR_BINDINGS = {
+  standard: "Standard",
+  sublime: "Sublime",
+  vim: "Vim",
+  emacs: "Emacs",
+};
+
 Table({
   name: "accounts",
   fields: {
