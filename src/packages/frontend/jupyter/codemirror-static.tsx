@@ -19,7 +19,7 @@ import CodeMirror from "@cocalc/frontend/codemirror/static";
 
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
-  overflowX: "hidden",
+  overflowX: "auto",
   lineHeight: "normal",
   height: "auto",
   fontSize: "inherit",
@@ -133,6 +133,9 @@ export function CodeMirrorStatic(props: Props) {
     }
     if (theme == "default") {
       style.background = "white";
+    }
+    if (!props.options.lineWrapping) {
+      style = { ...style, whiteSpace: "pre" };
     }
 
     const v = theme.split(" ");

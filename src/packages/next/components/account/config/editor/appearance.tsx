@@ -30,7 +30,8 @@ to scroll horizontally.`,
 
 const EXAMPLE = `def is_prime_lucas_lehmer(p):
     """
-    Test primality of Mersenne number 2**p - 1.
+    Test primality of Mersenne number 2**p - 1.  This is a long line hopefully illustrating line wrapping.
+
     >>> is_prime_lucas_lehmer(107)
     True
     """
