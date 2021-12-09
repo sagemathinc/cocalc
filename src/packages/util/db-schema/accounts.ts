@@ -12,12 +12,6 @@ import {
   DEFAULT_NEW_FILENAMES,
 } from "./defaults";
 
-export const EDITOR_BINDINGS = {
-  standard: "Standard",
-  sublime: "Sublime",
-  vim: "Vim",
-  emacs: "Emacs",
-};
 
 Table({
   name: "accounts",
@@ -318,3 +312,74 @@ Table({
     },
   },
 });
+
+
+
+export const EDITOR_BINDINGS = {
+  standard: "Standard",
+  sublime: "Sublime",
+  vim: "Vim",
+  emacs: "Emacs",
+};
+
+
+export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
+  default: "Default",
+  "3024-day": "3024 day",
+  "3024-night": "3024 night",
+  abcdef: "abcdef",
+  //'ambiance-mobile'         : 'Ambiance mobile'  # doesn't highlight python, confusing
+  ambiance: "Ambiance",
+  "base16-dark": "Base 16 dark",
+  "base16-light": "Base 16 light",
+  bespin: "Bespin",
+  blackboard: "Blackboard",
+  cobalt: "Cobalt",
+  colorforth: "Colorforth",
+  darcula: "Darcula",
+  dracula: "Dracula",
+  "duotone-dark": "Duotone Dark",
+  "duotone-light": "Duotone Light",
+  eclipse: "Eclipse",
+  elegant: "Elegant",
+  "erlang-dark": "Erlang dark",
+  "gruvbox-dark": "Gruvbox-Dark",
+  hopscotch: "Hopscotch",
+  icecoder: "Icecoder",
+  idea: "Idea", // this messes with the global hinter CSS!
+  isotope: "Isotope",
+  "lesser-dark": "Lesser dark",
+  liquibyte: "Liquibyte",
+  lucario: "Lucario",
+  material: "Material",
+  mbo: "mbo",
+  "mdn-like": "MDN like",
+  midnight: "Midnight",
+  monokai: "Monokai",
+  neat: "Neat",
+  neo: "Neo",
+  night: "Night",
+  "oceanic-next": "Oceanic next",
+  "panda-syntax": "Panda syntax",
+  "paraiso-dark": "Paraiso dark",
+  "paraiso-light": "Paraiso light",
+  "pastel-on-dark": "Pastel on dark",
+  railscasts: "Railscasts",
+  rubyblue: "Rubyblue",
+  seti: "Seti",
+  shadowfox: "Shadowfox",
+  "solarized dark": "Solarized dark",
+  "solarized light": "Solarized light",
+  ssms: "ssms",
+  "the-matrix": "The Matrix",
+  "tomorrow-night-bright": "Tomorrow Night - Bright",
+  "tomorrow-night-eighties": "Tomorrow Night - Eighties",
+  ttcn: "ttcn",
+  twilight: "Twilight",
+  "vibrant-ink": "Vibrant ink",
+  "xq-dark": "Xq dark",
+  "xq-light": "Xq light",
+  yeti: "Yeti",
+  zenburn: "Zenburn",
+};
+

@@ -31,15 +31,17 @@ const BLURRED_STYLE: React.CSSProperties = {
   border: 0,
 };
 
+export interface Options {
+  mode?: string | { name?: string };
+  theme?: string;
+  lineNumbers?: boolean;
+  lineWrapping?: boolean; // not supported yet!
+}
+
 interface Props {
   value: string;
   id?: string;
-  options?: {
-    mode?: string | { name?: string };
-    theme?: string;
-    lineNumbers?: boolean;
-    lineWrapping?: boolean; // not supported yet!
-  };
+  options?: Options;
   font_size?: number;
   set_click_coords?: (pos: { left: number; top: number }) => void;
   style?: React.CSSProperties; // optional style that is merged into BLURRED_STYLE

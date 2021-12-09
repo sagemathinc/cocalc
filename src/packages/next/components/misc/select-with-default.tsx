@@ -51,7 +51,11 @@ export default function SelectWithDefault({
             setVal(defaultValue);
           }}
         >
-          Default: {options[defaultValue]}
+          {(value ?? val) == defaultValue ? (
+            "Default"
+          ) : (
+            <>Changed from {options[defaultValue]}</>
+          )}
         </Button>
       )}
     </Space>

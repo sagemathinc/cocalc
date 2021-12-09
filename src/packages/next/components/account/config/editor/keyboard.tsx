@@ -6,7 +6,7 @@ import { EDITOR_BINDINGS } from "@cocalc/util/db-schema/accounts";
 
 interface Data {
   editor_settings: {
-    bindings: keyof EDITOR_BINDINGS;
+    bindings: keyof typeof EDITOR_BINDINGS;
   };
 }
 
