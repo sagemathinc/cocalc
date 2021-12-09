@@ -16,7 +16,7 @@ for a particular terminal at any time.`,
 
 register({
   path: "editor/terminal",
-  title: "Terminal",
+  title: "Terminals",
   icon: "terminal",
   desc: "Terminal default font size, color theme, etc.",
   search: desc,
