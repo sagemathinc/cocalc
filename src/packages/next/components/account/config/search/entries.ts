@@ -1,4 +1,5 @@
 import { IconName } from "@cocalc/frontend/components/icon";
+import { search_split, search_match } from "@cocalc/util/misc";
 
 interface Info0 {
   path: string;
@@ -31,17 +32,13 @@ export function register(info: Info1) {
 }
 
 export function search(s: string): Info[] {
-  s = s.toLowerCase().trim();
+  const v = search_split(s.toLowerCase().trim());
   if (!s) return [];
   const result: Info[] = [];
   for (const path in searchInfo) {
-    if (matches(s, searchInfo[path].search ?? "")) {
+    if (searchInfo[path].search && search_match(searchInfo[path].search, v)) {
       result.push(searchInfo[path]);
     }
   }
   return result;
-}
-
-function matches(s, search: string): boolean {
-  return search.includes(s);
 }

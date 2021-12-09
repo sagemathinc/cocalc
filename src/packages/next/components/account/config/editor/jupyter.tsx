@@ -25,6 +25,7 @@ register({
   path: "editor/jupyter",
   title: "Jupyter Notebooks",
   icon: "ipynb",
+  desc: "Configuration options specific to Jupyter notebooks, e.g., line numbers for input cells or asking for the kernel for new notebooks.",
   search: desc,
   Component: () => {
     const { edited, original, Save, EditBoolean } = useEditTable<Data>({
