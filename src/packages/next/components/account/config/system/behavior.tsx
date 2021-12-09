@@ -24,6 +24,11 @@ and your browser will minimize resource usage.  The time until the splash screen
 standby timeout, which you can adjust below.  We use it to conserve resources, mainly network
 bandwidth and browser CPU cycles. Execution of your code is NOT paused during standby.
 `,
+  show_global_info2: `
+Sometimes there are important announcements about CoCalc, e.g., if there is a major
+update available.  You can hide these if you do not want to see them at the top of
+the screen for some reason.
+`,
 };
 
 interface Data {

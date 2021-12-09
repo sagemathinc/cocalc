@@ -23,7 +23,6 @@ import "./editor/keyboard";
 import "./system/appearance";
 import "./system/behavior";
 import "./system/listings";
-import "./system/announcements";
 
 // This maybe doesn't belong here.
 
