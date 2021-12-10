@@ -1093,6 +1093,7 @@ export class PassportManager {
     locals: PassportLoginLocals
   ): Promise<void> {
     if (!locals.get_api_key) return;
+    if (!locals.account_id) return; // typescript cares about this.
 
     // Just handle getting api key here.
     if (locals.new_account_created) {
@@ -1103,17 +1104,14 @@ export class PassportManager {
 
     locals.api_key = await apiKeyAction({
       account_id: locals.account_id,
-      passport: true,
       action: locals.action,
     });
 
     // if there is no key
     if (!locals.api_key) {
       logger.debug("must generate key, since don't already have it");
-      locals.api_key = await cb2(api_key_action, {
-        database: this.database,
+      locals.api_key = await apiKeyAction({
         account_id: locals.account_id,
-        passport: true,
         action: "regenerate",
       });
     }

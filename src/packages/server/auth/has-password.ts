@@ -7,7 +7,6 @@ Otherwise, return false... since auth is only doing via a passport.
 */
 
 import getPool from "@cocalc/database/pool";
-import { isValidUUID } from "@cocalc/util/misc";
 
 export default async function hasPassword(
   account_id: string
@@ -20,5 +19,5 @@ export default async function hasPassword(
   if (rows.length == 0) {
     throw Error("no such account");
   }
-  return !!rows.password_hash;
+  return !!rows[0].password_hash;
 }

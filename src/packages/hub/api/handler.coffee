@@ -11,7 +11,7 @@ AGPLv3, (c) 2017, SageMath, Inc.
 
 async = require('async')
 
-{getAccountWithApiKey} = require("@cocalc/server/api/key/manage");
+{getAccountWithApiKey} = require("@cocalc/server/api/manage");
 
 Cache = require('lru-cache')
 auth_cache = new Cache(max:100, maxAge:60000)

@@ -33,6 +33,9 @@ export default async function manage({
 
   // Check if the user has a password
   if (await hasPassword(account_id)) {
+    if(!password) {
+      throw Error("password must be provided");
+    }
     // verify password is correct
     if (!(await isPasswordCorrect({ account_id, password }))) {
       throw Error("invalid password");
@@ -43,7 +46,7 @@ export default async function manage({
   switch (action) {
     case "get":
       const { rows } = await pool.query(
-        "SELECT api_key FROM accounts WHERE account_id=$::UUID",
+        "SELECT api_key FROM accounts WHERE account_id=$1::UUID",
         [account_id]
       );
       if (rows.length == 0) {

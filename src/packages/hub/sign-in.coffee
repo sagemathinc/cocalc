@@ -25,7 +25,7 @@ auth                 = require('./auth')
 {process_env_int}    = require("@cocalc/backend/misc")
 throttle             = require("@cocalc/server/auth/throttle")
 Bottleneck           = require("bottleneck")
-apiKeyAction = require("@cocalc/server/api/key/manage").default;
+apiKeyAction = require("@cocalc/server/api/manage").default;
 
 # these parameters are per group and per hub!
 bottleneck_opts      =
