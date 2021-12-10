@@ -1,36 +1,40 @@
 /*
-User management of the API key associated to an account.
+User management of the v1 API key associated to an account.
 This supports three actions:
 
 - get: get the existing key associated to an account; return undefined if there is no api key set.
 - delete: delete the existing key associated to an account
 - regenerate: delete the existing key and replace it by a new random key.
+
+If the user has a password, then it must be provided and be correct. If they have no password,
+then the provided one is ignored.
 */
 
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 import isPasswordCorrect from "@cocalc/server/auth/is-password-correct";
+import hasPassword from "@cocalc/server/auth/has-password";
 import { generate } from "random-key";
 
 interface Options {
   account_id: string;
   password?: string;
-  passport?: boolean; // set to true if user is already authenticated using a passport.
   action: "get" | "delete" | "regenerate";
 }
 
 export default async function manage({
   account_id,
   password,
-  passport,
   action,
 }: Options): Promise<string | undefined> {
   if (!isValidUUID) {
     throw Error("account_id is not a valid uuid");
   }
-  if (!passport) {
-    // verify password-based authentication
-    if (!password || !(await isPasswordCorrect({ account_id, password }))) {
+
+  // Check if the user has a password
+  if (await hasPassword(account_id)) {
+    // verify password is correct
+    if (!(await isPasswordCorrect({ account_id, password }))) {
       throw Error("invalid password");
     }
   }
@@ -48,7 +52,7 @@ export default async function manage({
       return rows[0].api_key;
     case "delete":
       await pool.query(
-        "UPDATE accounts SET api_key=NULL WHERE account_id=$::UUID",
+        "UPDATE accounts SET api_key=NULL WHERE account_id=$1::UUID",
         [account_id]
       );
       return;
