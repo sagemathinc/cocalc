@@ -12,7 +12,6 @@ import {
   DEFAULT_NEW_FILENAMES,
 } from "./defaults";
 
-
 Table({
   name: "accounts",
   fields: {
@@ -239,6 +238,11 @@ Table({
             // if true, do not show warning when using non-member projects
             no_free_warnings: false,
             allow_mentions: true,
+            dark_mode: false,
+            dark_mode_brightness: 100,
+            dark_mode_contrast: 90,
+            dark_mode_sepia: 0,
+            dark_mode_grayscale: 0,
           },
           name: null,
           first_name: "",
@@ -313,15 +317,12 @@ Table({
   },
 });
 
-
-
 export const EDITOR_BINDINGS = {
   standard: "Standard",
   sublime: "Sublime",
   vim: "Vim",
   emacs: "Emacs",
 };
-
 
 export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   default: "Default",
@@ -382,4 +383,3 @@ export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   yeti: "Yeti",
   zenburn: "Zenburn",
 };
-

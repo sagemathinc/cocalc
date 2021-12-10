@@ -129,7 +129,7 @@ export default function useEditTable<T>(query) {
       max: number;
       icon?: IconName;
     }) => (
-      <Space direction="vertical">
+      <Space direction="vertical" style={{width:'100%'}}>
         <h3>
           {icon && <Icon name={icon} style={{ marginRight: "10px" }} />}
           {getTitle(path, title)}

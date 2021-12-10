@@ -59,7 +59,7 @@ register({
     return (
       <Space direction="vertical" style={{ width: "100%" }}>
         <Row>
-          <Col md={14} sm={24}>
+          <Col md={14} sm={24} style={{paddingRight:'15px'}}>
             <Save />
             <EditNumber
               path="font_size"

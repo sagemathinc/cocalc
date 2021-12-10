@@ -9,6 +9,7 @@ import {
 
 interface Data {
   terminal: {
+    color_scheme: keyof typeof theme_desc;
     font_size: number;
   };
 }
@@ -16,8 +17,8 @@ interface Data {
 const desc = {
   font_size: `New terminals will use this font size by default. You can change this
 for a particular terminal at any time.`,
-  color_scheme: `TODO`,
-  font: `The CoCalc terminal uses your browsers default fixed-width monospace font, which you can change in browser preferences.`,
+  color_scheme: `The color scheme used for terminals.`,
+  font: `The CoCalc terminal uses your browser's fixed-width font, which you can change in your browser's preferences.`,
 };
 
 register({
@@ -39,7 +40,7 @@ register({
     return (
       <Space direction="vertical" style={{ width: "100%" }}>
         <Row>
-          <Col md={14} sm={24}>
+          <Col md={14} sm={24} style={{paddingRight:'15px'}}>
             <Save />
             <EditNumber
               path="terminal.font_size"
@@ -57,7 +58,7 @@ register({
               options={theme_desc}
               style={{ width: "30ex" }}
             />
-            <h3>Font</h3>
+            <h3 style={{ marginTop: "15px" }}>Font</h3>
             {desc.font}
           </Col>
           <Col md={10} sm={24}>
