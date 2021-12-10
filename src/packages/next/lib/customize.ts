@@ -10,6 +10,7 @@ interface Customize extends ServerCustomize {
     name?: string;
   };
   isCollaborator?: boolean; // if account_id and project_id are in the props then this gets filled in
+  isAuthenticated: boolean; // if true, the user has a valid authentication cookie
 }
 
 const CustomizeContext = createContext<Partial<Customize>>({});

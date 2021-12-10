@@ -12,7 +12,8 @@ is shared.
 - Public
 - Public, but need a predictable link
 - Public, but needs a secret random token link
-- Private
+- Authenticated, only someone who is signed in can access
+- Private, not shared at all
 
 NOTE: Our approach to state regarding how shared means that two people can't
 simultaneously edit this and have it be synced properly
@@ -50,6 +51,7 @@ import { publicShareUrl, shareServerUrl } from "./util";
 import { License } from "./license";
 import { trunc_middle } from "@cocalc/util/misc";
 import ConfigureName from "./configure-name";
+import { unreachable } from "@cocalc/util/misc";
 
 interface PublicInfo {
   created: Date;
@@ -77,6 +79,7 @@ interface Props {
     unlisted?: boolean;
     license?: string;
     disabled?: boolean;
+    authenticated?: boolean;
   }) => void;
   has_network_access?: boolean;
 
@@ -85,8 +88,10 @@ interface Props {
   share_server?: boolean;
 }
 
+type States = "private" | "public_listed" | "public_unlisted" | "authenticated";
+
 interface State {
-  sharing_options_state: string;
+  sharing_options_state: States;
 }
 
 class Configure extends Component<Props, State> {
@@ -105,9 +110,7 @@ class Configure extends Component<Props, State> {
   }
 
   private render_how_shared_heading(): Rendered {
-    return (
-      <div style={{ color: "#444", fontSize: "15pt" }}>Listed, Unlisted or Private?</div>
-    );
+    return <div style={{ color: "#444", fontSize: "15pt" }}>Access level</div>;
   }
 
   private render_how_shared(parent_is_public: boolean): Rendered {
@@ -120,21 +123,36 @@ class Configure extends Component<Props, State> {
   }
 
   private handle_sharing_options_change(e): void {
-    const state = e.target.value;
+    const state: States = e.target.value;
     this.setState({ sharing_options_state: state });
-    if (state === "private") {
-      this.props.set_public_path({ disabled: true });
-    } else if (state === "public_listed") {
-      // this.props.public is suppose to work in this state
-      this.props.set_public_path({
-        unlisted: false,
-        disabled: false,
-      });
-    } else if (state === "public_unlisted") {
-      this.props.set_public_path({
-        unlisted: true,
-        disabled: false,
-      });
+    switch (state) {
+      case "private":
+        this.props.set_public_path({ disabled: true });
+        break;
+      case "public_listed":
+        // this.props.public is suppose to work in this state
+        this.props.set_public_path({
+          unlisted: false,
+          disabled: false,
+          authenticated: false,
+        });
+        break;
+      case "public_unlisted":
+        this.props.set_public_path({
+          unlisted: true,
+          disabled: false,
+          authenticated: false,
+        });
+        break;
+      case "authenticated":
+        this.props.set_public_path({
+          unlisted: true,
+          disabled: false,
+          authenticated: true,
+        });
+        break;
+      default:
+        unreachable(state);
     }
   }
 
@@ -207,6 +225,22 @@ class Configure extends Component<Props, State> {
     );
   }
 
+  private render_authenticated_option(state: string): Rendered {
+    return (
+      <Radio
+        name="sharing_options"
+        value="authenticated"
+        checked={state === "authenticated"}
+        onChange={this.handle_sharing_options_change.bind(this)}
+        inline
+      >
+        <Icon name="key" />
+        <Space />
+        <i>Authenticated</i> - only signed-in users can view this.
+      </Radio>
+    );
+  }
+
   private render_private_option(state: string): Rendered {
     return (
       <Radio
@@ -230,6 +264,8 @@ class Configure extends Component<Props, State> {
         {this.render_public_listed_option(state)}
         <br />
         {this.render_public_unlisted_option(state)}
+        <br />
+        {this.render_authenticated_option(state)}
         <br />
         {this.render_private_option(state)}
       </FormGroup>
@@ -277,7 +313,7 @@ class Configure extends Component<Props, State> {
         <h4>Description{this.get_description() ? "" : " (optional)"}</h4>
         Use relevant keywords, inspire curiosity by providing just enough
         information to explain what this is about, and keep your description to
-        about two lines.  Use Markdown and LaTeX.
+        about two lines. Use Markdown and LaTeX.
         <FormGroup style={{ paddingTop: "5px" }}>
           <FormControl
             autoFocus={true}

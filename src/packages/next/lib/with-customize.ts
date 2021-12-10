@@ -29,6 +29,7 @@ export default async function withCustomize(
 
   if (obj.context?.req != null) {
     const account_id = await getAccountId(obj.context.req);
+    customize.isAuthenticated = !!account_id;
     if (account_id) {
       customize.account = {
         account_id,
@@ -47,6 +48,8 @@ export default async function withCustomize(
         });
       }
     }
+  } else {
+    customize.isAuthenticated = false;
   }
 
   if (obj == null) {
