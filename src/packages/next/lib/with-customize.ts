@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import getCustomize from "@cocalc/server/settings/customize";
 import getAccountId from "lib/account/get-account";
 import { getName } from "lib/share/get-account-info";
@@ -48,6 +53,8 @@ export default async function withCustomize(
       }
     }
   }
+
+  customize.noindex = obj.props.unlisted ?? false;
 
   if (obj == null) {
     return { props: { customize } };
