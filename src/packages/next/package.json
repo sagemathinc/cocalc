@@ -49,6 +49,7 @@
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/next",
   "private": false,
   "workspaces": [
+    "../assets",
     "../backend",
     "../cdn",
     "../database",

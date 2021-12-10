@@ -35,7 +35,7 @@ export interface Options {
   mode?: string | { name?: string };
   theme?: string;
   lineNumbers?: boolean;
-  lineWrapping?: boolean; // not supported yet!
+  lineWrapping?: boolean; // defaults to true.
 }
 
 interface Props {
@@ -134,7 +134,7 @@ export function CodeMirrorStatic(props: Props) {
     if (theme == "default") {
       style.background = "white";
     }
-    if (!props.options.lineWrapping) {
+    if (props.options?.lineWrapping != null && !props.options?.lineWrapping) {
       style = { ...style, whiteSpace: "pre" };
     }
 
