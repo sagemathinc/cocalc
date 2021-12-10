@@ -142,6 +142,7 @@ Table({
     api_key: {
       type: "string",
       desc: "Optional API key that grants full API access to anything this account can access. Key is of the form 'sk_9QabcrqJFy7JIhvAGih5c6Nb', where the random part is 24 characters (base 62).",
+      unique: true,
     },
     sign_up_usage_intent: {
       type: "string",
@@ -170,12 +171,12 @@ Table({
       "(lower(last_name)  text_pattern_ops)",
       "created_by",
       "created",
-      "api_key",
       "last_active DESC NULLS LAST",
       "lti_id",
       "unlisted",
     ],
     pg_unique_indexes: [
+      "api_key", // we use the map api_key --> account_id, so it better be unique
       "LOWER(name)", // ensure user-assigned name is case sensitive globally unique
     ], // note that we actually require uniqueness across accounts and organizations
     // and this index is just a step in that direction; full uniquness must be

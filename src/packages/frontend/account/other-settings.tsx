@@ -94,8 +94,8 @@ export class OtherSettings extends Component<Props> {
         checked={!!this.props.other_settings.get("katex")}
         onChange={(e) => this.on_change("katex", e.target.checked)}
       >
-        KaTeX: attempt to render formulas with KaTeX if possible (much faster, but
-        missing context menu options)
+        KaTeX: attempt to render formulas with KaTeX if possible (much faster,
+        but missing context menu options)
       </Checkbox>
     );
   }
@@ -193,7 +193,7 @@ export class OtherSettings extends Component<Props> {
 
   private render_dark_mode(): Rendered {
     const checked = !!this.props.other_settings.get("dark_mode");
-    const config = get_dark_mode_config(this.props.other_settings);
+    const config = get_dark_mode_config(this.props.other_settings.toJS());
     const label_style = { width: "100px", display: "inline-block" } as const;
     return (
       <div>

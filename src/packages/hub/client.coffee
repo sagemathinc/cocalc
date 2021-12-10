@@ -29,7 +29,7 @@ sign_in              = require('./sign-in')
 hub_projects         = require('./projects')
 {StripeClient}       = require('@cocalc/server/stripe/client')
 {send_email, send_invite_email} = require('./email')
-{api_key_action}     = require('./api/manage')
+apiKeyAction = require("@cocalc/server/api/key/manage").default;
 {create_account, delete_account} = require('./client/create-account')
 {purchase_license}   = require('./client/license')
 db_schema            = require('@cocalc/util/db-schema')
@@ -1856,19 +1856,17 @@ class exports.Client extends EventEmitter
     #  END stripe-related functionality
 
     mesg_api_key: (mesg) =>
-        api_key_action
-            database   : @database
-            account_id : @account_id
-            password   : mesg.password
-            action     : mesg.action
-            cb       : (err, api_key) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    if api_key?
-                        @push_to_client(message.api_key_info(id:mesg.id, api_key:api_key))
-                    else
-                        @success_to_client(id:mesg.id)
+        try
+            api_key = await apiKeyAction
+                account_id : @account_id
+                password   : mesg.password
+                action     : mesg.action
+            if api_key
+                @push_to_client(message.api_key_info(id:mesg.id, api_key:api_key))
+            else
+                @success_to_client(id:mesg.id)
+        catch err
+            @error_to_client(id:mesg.id, error:err)
 
     mesg_user_auth: (mesg) =>
         auth_token.get_user_auth_token
