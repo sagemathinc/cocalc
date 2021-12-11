@@ -151,6 +151,7 @@ export type PublicPathEvent = {
   path: string;
   unlisted?: boolean;
   disabled?: boolean;
+  authenticated?: boolean;
 };
 
 export type SystemEvent = { event: ""; by: string };

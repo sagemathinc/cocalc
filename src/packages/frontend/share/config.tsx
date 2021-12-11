@@ -52,6 +52,7 @@ import { License } from "./license";
 import { trunc_middle } from "@cocalc/util/misc";
 import ConfigureName from "./configure-name";
 import { unreachable } from "@cocalc/util/misc";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 interface PublicInfo {
   created: Date;
@@ -60,6 +61,7 @@ interface PublicInfo {
   last_edited: Date;
   path: string;
   unlisted: boolean;
+  authenticated?: boolean;
   license?: string;
   name?: string;
 }
@@ -86,6 +88,7 @@ interface Props {
   // redux props
   is_commercial?: boolean;
   share_server?: boolean;
+  kucalc?: boolean;
 }
 
 type States = "private" | "public_listed" | "public_unlisted" | "authenticated";
@@ -105,6 +108,7 @@ class Configure extends Component<Props, State> {
       customize: {
         is_commercial: rtypes.bool,
         share_server: rtypes.bool,
+        kucalc: rtypes.string,
       },
     };
   }
@@ -156,12 +160,15 @@ class Configure extends Component<Props, State> {
     }
   }
 
-  private get_sharing_options_state(): string {
+  private get_sharing_options_state(): States {
     if (
       this.props.is_public &&
       (this.props.public != null ? this.props.public.unlisted : undefined)
     ) {
       return "public_unlisted";
+    }
+    if (this.props.is_public && this.props.public?.authenticated === true) {
+      return "authenticated";
     }
     if (
       this.props.is_public &&
@@ -226,6 +233,8 @@ class Configure extends Component<Props, State> {
   }
 
   private render_authenticated_option(state: string): Rendered {
+    // auth-only sharing only for private instances like on-prem and docker
+    if (this.props.kucalc === KUCALC_COCALC_COM) return null;
     return (
       <Radio
         name="sharing_options"
