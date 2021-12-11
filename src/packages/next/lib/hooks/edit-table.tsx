@@ -29,7 +29,7 @@ The code is complicated due to how hooks work, when components get created
 and updated, etc.  Say to yourself: "I still know closure fu."
 */
 
-export default function useEditTable<T>(query) {
+export default function useEditTable<T>(query: object, onSave?: Function) {
   const { loading, value } = useDatabase(query);
   const [original, setOriginal] = useState<T | undefined>(undefined);
   const [edited, setEdited0] = useState<T | undefined>(undefined);
@@ -64,6 +64,7 @@ export default function useEditTable<T>(query) {
           original={original}
           setOriginal={setOriginal}
           table={keys(query)[0]}
+          onSave={onSave}
         />
       </div>
     );
@@ -129,7 +130,7 @@ export default function useEditTable<T>(query) {
       max: number;
       icon?: IconName;
     }) => (
-      <Space direction="vertical" style={{width:'100%'}}>
+      <Space direction="vertical" style={{ width: "100%" }}>
         <h3>
           {icon && <Icon name={icon} style={{ marginRight: "10px" }} />}
           {getTitle(path, title)}
@@ -195,6 +196,7 @@ export default function useEditTable<T>(query) {
     edited,
     original,
     Save,
+    setEdited,
     EditBoolean,
     EditNumber,
     EditSelect,

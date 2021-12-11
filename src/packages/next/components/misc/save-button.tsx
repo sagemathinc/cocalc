@@ -30,7 +30,12 @@ export default function SaveButton({
   const isMounted = useIsMounted();
 
   async function save(table, edited) {
-    const e = cloneDeep(edited);
+    const e: any = {};
+    for (const field in edited) {
+      if (!isEqual(original[field], edited[field])) {
+        e[field] = cloneDeep(edited[field]);
+      }
+    }
     const query = { [table]: e };
     setSaving(true);
     setError("");
@@ -48,7 +53,7 @@ export default function SaveButton({
     if (result.error) {
       setError(result.error);
     } else {
-      setOriginal(e);
+      setOriginal(edited);
     }
   }
 
@@ -62,6 +67,7 @@ export default function SaveButton({
         onClick={async () => {
           if (table) {
             await save(table, edited);
+            await onSave?.(edited);
             return;
           }
           try {

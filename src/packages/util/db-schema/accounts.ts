@@ -263,7 +263,7 @@ Table({
           coupon_history: null,
           profile: {
             image: undefined,
-            color: undefined,
+            color: "rgb(170,170,170)",
           },
           ssh_keys: {},
           created: null,

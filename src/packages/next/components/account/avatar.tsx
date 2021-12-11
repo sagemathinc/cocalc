@@ -22,6 +22,37 @@ export default function Avatar({ account_id, size, style }: Props) {
 
   if (!profile) {
     // not loaded yet
+    return <DisplayAvatar style={style} size={size} />;
+  }
+
+  if (profile.image) {
+    return <DisplayAvatar style={style} size={size} image={profile.image} />;
+  }
+
+  return (
+    <DisplayAvatar
+      style={style}
+      size={size}
+      color={profile.color}
+      letter={profile.first_name?.[0]}
+    />
+  );
+}
+
+interface DisplayProps extends Props {
+  image?: string;
+  color?: string;
+  letter?: string;
+}
+
+export function DisplayAvatar({
+  style,
+  size,
+  image,
+  color,
+  letter,
+}: DisplayProps) {
+  if (!image && !color && !letter) {
     return (
       <AntdAvatar
         style={{
@@ -33,7 +64,7 @@ export default function Avatar({ account_id, size, style }: Props) {
     );
   }
 
-  if (profile.image) {
+  if (image) {
     return (
       <AntdAvatar
         style={{
@@ -41,7 +72,7 @@ export default function Avatar({ account_id, size, style }: Props) {
           ...style,
         }}
         size={size}
-        src={<img src={profile.image} />}
+        src={<img src={image} />}
       />
     );
   }
@@ -58,15 +89,15 @@ export default function Avatar({ account_id, size, style }: Props) {
   return (
     <AntdAvatar
       style={{
-        backgroundColor: profile.color,
+        backgroundColor: color,
         verticalAlign: "middle",
         fontSize,
-        color: avatar_fontcolor(profile.color),
+        color: avatar_fontcolor(color),
         ...style,
       }}
       size={size}
     >
-      {profile.first_name?.[0]}
+      {letter ? letter : "?"}
     </AntdAvatar>
   );
 }
