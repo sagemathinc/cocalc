@@ -10,6 +10,7 @@ interface Props {
   edited: any;
   original: any;
   setOriginal: Function;
+  setEdited?: Function;
   table?: string;
   style?: CSSProperties;
   onSave?: (object) => Promise<void> | void; // if onSave is async then awaits and if there is an error shows that; if not, updates state to what was saved.
@@ -20,6 +21,7 @@ export default function SaveButton({
   edited,
   original,
   setOriginal,
+  setEdited,
   table,
   style,
   onSave,
@@ -58,35 +60,47 @@ export default function SaveButton({
   }
 
   const same = isEqual(edited, original);
+  const disabled = saving || same || (isValid != null && !isValid(edited));
   return (
-    <>
-      <Button
-        style={style}
-        type="primary"
-        disabled={saving || same || (isValid != null && !isValid(edited))}
-        onClick={async () => {
-          if (table) {
-            await save(table, edited);
-            await onSave?.(edited);
-            return;
-          }
-          try {
-            await onSave?.(edited);
-            setOriginal(edited);
-            setError("");
-          } catch (err) {
-            setError(err.toString());
-          }
-        }}
-      >
-        <Space>
-          <Icon name={same ? "check" : "save"} />
-          {saving ? <Loading delay={0}>Saving...</Loading> : "Save"}
-        </Space>
-      </Button>
+    <div style={style}>
+      <Space>
+        <Button
+          type="primary"
+          disabled={disabled}
+          onClick={async () => {
+            if (table) {
+              await save(table, edited);
+              await onSave?.(edited);
+              return;
+            }
+            try {
+              await onSave?.(edited);
+              setOriginal(edited);
+              setError("");
+            } catch (err) {
+              setError(err.toString());
+            }
+          }}
+        >
+          <Space>
+            <Icon name={same ? "check" : "save"} />
+            {saving ? <Loading delay={0}>Saving...</Loading> : "Save"}
+          </Space>
+        </Button>
+        {setEdited != null && (
+          <Button
+            disabled={disabled}
+            onClick={() => {
+              setEdited(cloneDeep(original));
+            }}
+          >
+            Cancel
+          </Button>
+        )}
+      </Space>
       {!same && error && (
         <Alert type="error" message={error} style={{ marginTop: "15px" }} />
       )}
-    </>
+    </div>
   );
 }

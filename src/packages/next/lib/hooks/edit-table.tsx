@@ -63,6 +63,7 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
           edited={edited}
           original={original}
           setOriginal={setOriginal}
+          setEdited={setEdited0}
           table={keys(query)[0]}
           onSave={onSave}
         />

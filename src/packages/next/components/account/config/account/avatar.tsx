@@ -12,6 +12,7 @@ import useCustomize from "lib/use-customize";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import gravatarUrl from "@cocalc/frontend/account/gravatar-url";
 import ImgCrop from "antd-img-crop";
+import { InboxOutlined } from "@ant-design/icons";
 
 interface Data {
   profile: {
@@ -93,7 +94,7 @@ register({
               <br />
               <br />
               <div style={{ fontSize: "10px", color: "#666" }}>
-                (It will take a while for you avatar to update at the top of the
+                (It will take a while for your avatar to update at the top of the
                 page, even after you save it.)
               </div>
             </div>
@@ -132,7 +133,7 @@ register({
               {useImage && (
                 <EditImage
                   email_address={original.email_address}
-                  defaultValue={
+                  value={
                     original.email_address &&
                     edited.profile.image?.includes("gravatar")
                       ? "gravatar"
@@ -146,6 +147,7 @@ register({
             </Space>
           </Col>
         </Row>
+        <Save />
       </Space>
     );
   },
@@ -156,15 +158,13 @@ register({
 // per image.
 const AVATAR_SIZE: number = 160;
 
-function EditImage({ defaultValue, email_address, onChange }) {
-  const [value, setValue] = useState<"image" | "gravatar">(defaultValue);
+function EditImage({ value, email_address, onChange }) {
   return (
     <div style={{ marginLeft: "30px" }}>
       <Radio.Group
         style={{ marginBottom: "20px" }}
         value={value}
         onChange={(e) => {
-          setValue(e.target.value);
           if (e.target.value == "gravatar") {
             onChange(gravatarUrl(email_address));
           } else {
@@ -173,10 +173,10 @@ function EditImage({ defaultValue, email_address, onChange }) {
         }}
       >
         <Space direction="vertical">
-          <Radio value={"image"}>Upload an Image</Radio>
           <Radio value={"gravatar"} disabled={!email_address}>
             Use the Gravatar associated to <tt>{email_address}</tt>
           </Radio>
+          <Radio value={"image"}>Upload an Image</Radio>
         </Space>
       </Radio.Group>
       {value == "gravatar" && (
@@ -194,46 +194,44 @@ function EditImage({ defaultValue, email_address, onChange }) {
         />
       )}
       {value == "image" && (
-        <Alert
-          style={{ maxWidth: "500px" }}
-          message={
-            <Space direction="vertical">
-              <ImgCrop
-                modalTitle={"Edit Profile Image"}
-                shape="round"
-                rotate
-                maxZoom={5}
-                onModalOk={(file) => {
-                  const reader = new FileReader();
-                  reader.addEventListener(
-                    "load",
-                    (e) => {
-                      const img = new Image();
-                      img.src = e.target.result;
-                      img.onload = () => {
-                        img.width = AVATAR_SIZE;
-                        img.height = AVATAR_SIZE;
-                        const canvas = document.createElement("canvas");
-                        const ctx = canvas.getContext("2d");
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        ctx.drawImage(img, 0, 0, img.width, img.height);
-                        onChange(canvas.toDataURL("image/png"));
-                      };
-                    },
-                    false
-                  );
-                  reader.readAsDataURL(file);
-                }}
-              >
-                <Upload name="file">
-                  <Button>Click to Upload</Button>
-                </Upload>
-              </ImgCrop>
-            </Space>
-          }
-        />
+        <ImgCrop
+          modalTitle={"Edit Profile Image"}
+          shape="round"
+          rotate
+          maxZoom={5}
+          onModalOk={(file) => {
+            const reader = new FileReader();
+            reader.addEventListener(
+              "load",
+              (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                  img.width = AVATAR_SIZE;
+                  img.height = AVATAR_SIZE;
+                  const canvas = document.createElement("canvas");
+                  const ctx = canvas.getContext("2d");
+                  ctx.clearRect(0, 0, canvas.width, canvas.height);
+                  canvas.width = img.width;
+                  canvas.height = img.height;
+                  ctx.drawImage(img, 0, 0, img.width, img.height);
+                  onChange(canvas.toDataURL("image/png"));
+                };
+              },
+              false
+            );
+            reader.readAsDataURL(file);
+          }}
+        >
+          <Upload.Dragger name="file">
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined />
+            </p>
+            <p className="ant-upload-text">
+              Click or drag image to this area to upload
+            </p>
+          </Upload.Dragger>
+        </ImgCrop>
       )}
     </div>
   );
