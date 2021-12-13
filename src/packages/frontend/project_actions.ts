@@ -84,6 +84,7 @@ export const QUERIES = {
       description: null,
       disabled: null,
       unlisted: null,
+      authenticated: null,
       created: null,
       license: null,
       last_edited: null,
