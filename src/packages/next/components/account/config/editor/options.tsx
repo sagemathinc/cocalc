@@ -63,6 +63,7 @@ register({
           icon="indent"
           path="editor_settings.electric_chars"
           title={`"Electric" Character Indentation`}
+          label={"Electric characters"}
           desc={desc.electric_chars}
         />
         <EditBoolean

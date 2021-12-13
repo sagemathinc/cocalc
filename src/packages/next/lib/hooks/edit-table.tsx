@@ -33,6 +33,7 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
   const { loading, value } = useDatabase(query);
   const [original, setOriginal] = useState<T | undefined>(undefined);
   const [edited, setEdited0] = useState<T | undefined>(undefined);
+  const [counter, setCounter] = useState<number>(0);
   const editedRef = useRef<T | undefined>(edited);
   editedRef.current = edited;
 
@@ -40,6 +41,8 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
     if (!path) {
       // usual setEdited
       setEdited0(update);
+      // force a full update
+      setCounter(counter + 1);
       return;
     }
     // just edit part of object.
@@ -63,7 +66,7 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
           edited={edited}
           original={original}
           setOriginal={setOriginal}
-          setEdited={setEdited0}
+          setEdited={setEdited}
           table={keys(query)[0]}
           onSave={onSave}
         />
@@ -77,12 +80,14 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
     desc,
     label,
     icon,
+    _counter,
   }: {
     path: string;
     title?: string;
     desc?: ReactNode;
     label?: string;
     icon?: IconName;
+    _counter: boolean;
   }) {
     return (
       <Space direction="vertical" style={{ marginTop: "15px" }}>
@@ -152,7 +157,7 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
         />
       </Space>
     );
-  }, [edited == null, original == null]);
+  }, [edited == null, original == null, counter]);
 
   const EditSelect = useMemo(() => {
     if (edited == null || original == null) return () => null;
@@ -191,7 +196,7 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
         />
       </Space>
     );
-  }, [edited == null, original == null]);
+  }, [edited == null, original == null, counter]);
 
   return {
     edited,

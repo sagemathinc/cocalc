@@ -55,7 +55,7 @@ export default function SaveButton({
     if (result.error) {
       setError(result.error);
     } else {
-      setOriginal(edited);
+      setOriginal(cloneDeep(edited));
     }
   }
 
