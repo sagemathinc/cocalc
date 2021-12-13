@@ -31,19 +31,19 @@ export default async function getPublicPathInfo(
 
   // Get the database entry that describes the public path
   const { rows } = await pool.query(
-    "SELECT project_id, path, description, counter, compute_image, license, disabled, unlisted FROM public_paths WHERE vhost IS NULL AND id=$1",
+    "SELECT project_id, path, description, counter, compute_image, license, disabled, unlisted, authenticated FROM public_paths WHERE vhost IS NULL AND id=$1",
     [id]
   );
   if (rows.length == 0 || rows[0].project_id == null || rows[0].path == null) {
     throw Error("not found");
   }
 
-  if (rows[0].disabled) {
+  const { disabled, authenticated } = rows[0];
+  const account_id =
+    disabled || authenticated ? await getAccountId(req) : undefined;
+
+  if (disabled) {
     // Share is disabled, so account_id must be a collaborator on the project.
-    if (!req) {
-      throw Error("not found");
-    }
-    const account_id = await getAccountId(req);
     if (
       !account_id ||
       !(await isCollaborator({
@@ -51,6 +51,13 @@ export default async function getPublicPathInfo(
         project_id: rows[0].project_id,
       }))
     ) {
+      throw Error("not found");
+    }
+  }
+
+  if (authenticated) {
+    // Only authenticated users are allowed to access
+    if (account_id == null) {
       throw Error("not found");
     }
   }

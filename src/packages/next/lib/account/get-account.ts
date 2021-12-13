@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import getPool from "@cocalc/database/pool";
 import generateHash from "@cocalc/server/auth/hash";
 import { COOKIE_NAME as REMEMBER_ME_COOKIE_NAME } from "@cocalc/server/auth/remember-me";
@@ -7,7 +12,8 @@ import Cookies from "cookies";
 // If not, returns undefined.
 // This is determined by looking in their cookie and checking
 // who it identifies in the database.
-export default async function getAccountId(req): Promise<string | undefined> {
+export default async function getAccountId(req?): Promise<string | undefined> {
+  if (req == null) return;
   // caching a bit --  We thus want the query below to happen rarely.  We also
   // get expire field as well (since it is usually there) so that the result isn't empty
   // (hence not cached) when a cookie has expired.

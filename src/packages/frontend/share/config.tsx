@@ -88,7 +88,7 @@ interface Props {
   // redux props
   is_commercial?: boolean;
   share_server?: boolean;
-  kucalc?: boolean;
+  kucalc?: string;
 }
 
 type States = "private" | "public_listed" | "public_unlisted" | "authenticated";
@@ -234,7 +234,7 @@ class Configure extends Component<Props, State> {
 
   private render_authenticated_option(state: string): Rendered {
     // auth-only sharing only for private instances like on-prem and docker
-    if (this.props.kucalc === KUCALC_COCALC_COM) return null;
+    if (this.props.kucalc === KUCALC_COCALC_COM) return;
     return (
       <Radio
         name="sharing_options"
