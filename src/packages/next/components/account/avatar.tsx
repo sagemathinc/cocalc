@@ -39,7 +39,7 @@ export default function Avatar({ account_id, size, style }: Props) {
   );
 }
 
-interface DisplayProps extends Props {
+interface DisplayProps extends Partial<Props> {
   image?: string;
   color?: string;
   letter?: string;

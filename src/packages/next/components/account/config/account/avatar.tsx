@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import register from "../register";
-import { Alert, Button, Checkbox, Col, Row, Radio, Space, Upload } from "antd";
+import { Alert, Checkbox, Col, Row, Radio, Space, Upload } from "antd";
 import Loading from "components/share/loading";
 import useEditTable from "lib/hooks/edit-table";
 import { ColorPicker } from "@cocalc/frontend/colorpicker";
@@ -13,8 +13,10 @@ import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import gravatarUrl from "@cocalc/frontend/account/gravatar-url";
 import ImgCrop from "antd-img-crop";
 import { InboxOutlined } from "@ant-design/icons";
+import Code from "components/landing/code";
 
 interface Data {
+  email_address?: string;
   profile: {
     color?: string;
     image?: string;
@@ -94,8 +96,8 @@ register({
               <br />
               <br />
               <div style={{ fontSize: "10px", color: "#666" }}>
-                (It will take a while for your avatar to update at the top of the
-                page, even after you save it.)
+                (It will take a while for your avatar to update at the top of
+                the page, even after you save it.)
               </div>
             </div>
           </Col>
@@ -174,7 +176,7 @@ function EditImage({ value, email_address, onChange }) {
       >
         <Space direction="vertical">
           <Radio value={"gravatar"} disabled={!email_address}>
-            Use the Gravatar associated to <tt>{email_address}</tt>
+            Use the Gravatar associated to <Code>{email_address}</Code>
           </Radio>
           <Radio value={"image"}>Upload an Image</Radio>
         </Space>
@@ -188,7 +190,7 @@ function EditImage({ value, email_address, onChange }) {
               Gravatar is a service for using a common avatar across websites.
               Go to the{" "}
               <A href="https://gravatar.com">Wordpress Gravatar site</A> and
-              sign in (or create an account) using <tt>{email_address}</tt>.
+              sign in (or create an account) using <Code>{email_address}</Code>.
             </>
           }
         />
@@ -204,13 +206,17 @@ function EditImage({ value, email_address, onChange }) {
             reader.addEventListener(
               "load",
               (e) => {
+                if (!e.target?.result) return; // typescript
                 const img = new Image();
-                img.src = e.target.result;
+                img.src = e.target.result as string;
                 img.onload = () => {
                   img.width = AVATAR_SIZE;
                   img.height = AVATAR_SIZE;
                   const canvas = document.createElement("canvas");
                   const ctx = canvas.getContext("2d");
+                  if (ctx == null) {
+                    return;
+                  }
                   ctx.clearRect(0, 0, canvas.width, canvas.height);
                   canvas.width = img.width;
                   canvas.height = img.height;

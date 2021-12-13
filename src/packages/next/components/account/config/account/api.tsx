@@ -107,7 +107,7 @@ register({
       body = (
         <Space direction="vertical">
           API Key:
-          <Input value={apiKey} readonly style={{ width: "60ex" }} />
+          <Input value={apiKey} readOnly style={{ width: "60ex" }} />
           <br />
           <A href="https://doc.cocalc.com/api/">Learn about the API...</A>
           <br />

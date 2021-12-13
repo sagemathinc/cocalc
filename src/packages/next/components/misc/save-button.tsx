@@ -13,7 +13,7 @@ interface Props {
   setEdited?: Function;
   table?: string;
   style?: CSSProperties;
-  onSave?: (object) => Promise<void> | void; // if onSave is async then awaits and if there is an error shows that; if not, updates state to what was saved.
+  onSave?: Function; // if onSave is async then awaits and if there is an error shows that; if not, updates state to what was saved.
   isValid?: (object) => boolean; // if given, only allow saving if edited != original and isValid(edited) is true.
 }
 
