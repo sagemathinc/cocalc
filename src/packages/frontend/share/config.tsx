@@ -136,22 +136,22 @@ class Configure extends Component<Props, State> {
       case "public_listed":
         // this.props.public is suppose to work in this state
         this.props.set_public_path({
-          unlisted: false,
           disabled: false,
+          unlisted: false,
           authenticated: false,
         });
         break;
       case "public_unlisted":
         this.props.set_public_path({
-          unlisted: true,
           disabled: false,
+          unlisted: true,
           authenticated: false,
         });
         break;
       case "authenticated":
         this.props.set_public_path({
-          unlisted: true,
           disabled: false,
+          unlisted: false,
           authenticated: true,
         });
         break;
