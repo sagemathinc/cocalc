@@ -66,7 +66,6 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
           edited={edited}
           original={original}
           setOriginal={setOriginal}
-          setEdited={setEdited}
           table={keys(query)[0]}
           onSave={onSave}
         />
@@ -80,14 +79,12 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
     desc,
     label,
     icon,
-    _counter,
   }: {
     path: string;
     title?: string;
     desc?: ReactNode;
     label?: string;
     icon?: IconName;
-    _counter: boolean;
   }) {
     return (
       <Space direction="vertical" style={{ marginTop: "15px" }}>

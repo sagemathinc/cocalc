@@ -149,7 +149,6 @@ register({
             </Space>
           </Col>
         </Row>
-        <Save />
       </Space>
     );
   },

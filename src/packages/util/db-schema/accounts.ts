@@ -309,6 +309,11 @@ Table({
           for (const field of ["first_name", "last_name", "email_address"]) {
             if (obj[field] != null) {
               obj[field] = obj[field].slice(0, 254);
+              if (field != "email_address" && !obj[field]) {
+                // name fields can't be empty
+                cb(`${field} must be nonempty`);
+                return;
+              }
             }
           }
           cb();
