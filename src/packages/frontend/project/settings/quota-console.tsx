@@ -13,9 +13,10 @@ import { LabeledRow, Tip, Icon, Space, Loading } from "../../components";
 import { alert_message } from "../../alerts";
 import { ProjectSettings, ProjectStatus } from "./types";
 import * as misc from "@cocalc/util/misc";
-const { User } = require("../../users");
+import { User } from "../../users";
 import { webapp_client } from "../../webapp-client";
-const { PROJECT_UPGRADES } = require("@cocalc/util/schema");
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 const {
   Checkbox,
   Row,
@@ -63,6 +64,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     is_commercial,
     project_state,
     project_status,
+    kucalc,
     all_upgrades_to_this_project = {},
   } = props;
 
@@ -111,7 +113,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     site_license: number
   ): Rendered {
     if (
-      // kucalc == KUCALC_COCALC_COM &&
+      kucalc == KUCALC_DISABLED &&
       name != "mintime" &&
       name != "always_running"
     ) {
