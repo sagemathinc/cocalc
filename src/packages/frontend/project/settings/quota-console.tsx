@@ -5,9 +5,9 @@
 
 // TODO: Remove `as any`s in this file.
 // Refer to https://github.com/microsoft/TypeScript/issues/13948
-import React from "react";
+import React, { useEffect, useState } from "react";
 import * as immutable from "immutable";
-import { Rendered } from "../../app-framework";
+import { Rendered, usePrevious } from "../../app-framework";
 import { Assign } from "utility-types";
 import { LabeledRow, Tip, Icon, Space, Loading } from "../../components";
 import { alert_message } from "../../alerts";
@@ -51,53 +51,53 @@ interface QuotaParams {
   always_running?: number;
 }
 
-type State = Assign<
-  {
-    editing: boolean;
-    upgrading: boolean;
-  },
-  QuotaParams
->;
+export const QuotaConsole: React.FC<Props> = (props: Props) => {
+  const {
+    project_settings,
+    account_groups,
+    quota_params,
+    project_id,
+    site_license_upgrades,
+    total_project_quotas,
+    user_map,
+    is_commercial,
+    project_state,
+    project_status,
+    all_upgrades_to_this_project = {},
+  } = props;
 
-export class QuotaConsole extends React.Component<Props, State> {
-  static defaultProps = { all_upgrades_to_this_project: {} };
+  const [editing, setEditing] = useState<boolean>(false);
 
-  constructor(props) {
-    super(props);
+  // const initQuota: QuotaParams = {}
+  //     if (project_settings != undefined) {
+  //       for (const name in quota_params) {
+  //         const data = quota_params[name];
+  //         const factor = data.display_factor;
+  //         const base_value = project_settings.get(name) || 0;
+  //         initQuota[name] = misc.round2(base_value * factor);
+  //       }
+  //     }
+  const [quota_state, setQuotaState] = useState<QuotaParams>();
 
-    const state = {
-      editing: false, // admin is currently editing
-      upgrading: false, // user is currently upgrading
-    };
-    const settings = this.props.project_settings;
-    if (settings != undefined) {
-      for (const name in this.props.quota_params) {
-        const data = this.props.quota_params[name];
-        const factor = data.display_factor;
-        const base_value = settings.get(name) || 0;
-        state[name] = misc.round2(base_value * factor);
-      }
-    }
-    this.state = state as any;
-  }
+  const previous_project_settings = usePrevious(project_settings);
 
-  public componentWillReceiveProps(next_props: Props): void {
-    const settings = next_props.project_settings;
-    if (!immutable.is(this.props.project_settings, settings)) {
+  useEffect(() => {
+    if (!immutable.is(project_settings, previous_project_settings)) {
+      const settings = project_settings;
       if (settings != undefined) {
-        const new_state = {};
-        for (const name in this.props.quota_params) {
-          const data = this.props.quota_params[name];
+        const new_state: any = {};
+        for (const name in quota_params) {
+          const data = quota_params[name];
           new_state[name] = misc.round2(
-            settings.get(name) * data.display_factor
+            (settings.get(name) ?? 0) * data.display_factor
           );
         }
-        this.setState(new_state);
+        setQuotaState(new_state);
       }
     }
-  }
+  }, [project_settings]);
 
-  private render_quota_row(
+  function render_quota_row(
     name: keyof QuotaParams,
     quota: { edit: string; view: string },
     base_value: number,
@@ -111,7 +111,7 @@ export class QuotaConsole extends React.Component<Props, State> {
     site_license: number
   ): Rendered {
     if (
-      this.props.kucalc == "no" &&
+      // kucalc == KUCALC_COCALC_COM &&
       name != "mintime" &&
       name != "always_running"
     ) {
@@ -122,8 +122,8 @@ export class QuotaConsole extends React.Component<Props, State> {
     // if always_running is true, don't show idle timeout row, since not relevant
     if (
       name == "mintime" &&
-      ((this.state["always_running"] && this.state["editing"]) ||
-        this.props.total_project_quotas?.["always_running"])
+      ((quota["always_running"] && quota["editing"]) ||
+        total_project_quotas?.["always_running"])
     )
       return;
 
@@ -148,15 +148,14 @@ export class QuotaConsole extends React.Component<Props, State> {
         const val = upgrades[id];
         const li = (
           <li key={id}>
-            {text(val)} given by{" "}
-            <User account_id={id} user_map={this.props.user_map} />
+            {text(val)} given by <User account_id={id} user_map={user_map} />
           </li>
         );
         upgrade_list.push(li);
       }
     }
 
-    if (base_value && this.props.is_commercial) {
+    if (base_value && is_commercial) {
       // amount given by free project
       upgrade_list.unshift(
         <li key="free">{text(base_value)} included for free</li>
@@ -182,29 +181,30 @@ export class QuotaConsole extends React.Component<Props, State> {
         key={params_data.display}
         style={{ borderBottom: "1px solid #ccc" }}
       >
-        {this.state.editing ? quota.edit : quota.view}
+        {editing ? quota.edit : quota.view}
         <ul style={{ color: "#666" }}>{upgrade_list}</ul>
       </LabeledRow>
     );
   }
 
-  private start_admin_editing(): void {
-    this.setState({ editing: true });
+  function start_admin_editing(): void {
+    setEditing(true);
   }
 
-  private async save_admin_editing(): Promise<void> {
+  async function save_admin_editing(): Promise<void> {
+    if (quota_state == null) return;
     try {
       await webapp_client.project_client.set_quotas({
-        project_id: this.props.project_id,
-        cores: this.state.cores,
-        cpu_shares: Math.round(this.state.cpu_shares * 256),
-        disk_quota: this.state.disk_quota,
-        memory: this.state.memory,
-        memory_request: this.state.memory_request,
-        mintime: Math.floor(this.state.mintime * 3600),
-        network: this.state.network,
-        member_host: this.state.member_host,
-        always_running: this.state.always_running,
+        project_id: project_id,
+        cores: quota_state.cores,
+        cpu_shares: Math.round(quota_state.cpu_shares * 256),
+        disk_quota: quota_state.disk_quota,
+        memory: quota_state.memory,
+        memory_request: quota_state.memory_request,
+        mintime: Math.floor(quota_state.mintime * 3600),
+        network: quota_state.network,
+        member_host: quota_state.member_host,
+        always_running: quota_state.always_running,
       });
       alert_message({
         type: "success",
@@ -213,45 +213,46 @@ export class QuotaConsole extends React.Component<Props, State> {
     } catch (err) {
       alert_message({ type: "error", message: err.message });
     } finally {
-      this.setState({ editing: false });
+      setEditing(false);
     }
   }
 
-  private cancel_admin_editing(): void {
-    const settings = this.props.project_settings;
+  function cancel_admin_editing(): void {
+    const settings = project_settings;
     if (settings != undefined) {
       // reset user input states
-      const state = {};
-      for (const name in this.props.quota_params) {
-        const data = this.props.quota_params[name];
+      const state: any = {};
+      for (const name in quota_params) {
+        const data = quota_params[name];
         const factor = data.display_factor;
         const base_value = settings.get(name) || 0;
         state[name] = misc.round2(base_value * factor);
       }
-      this.setState(state);
+      setQuotaState(state);
     }
-    this.setState({ editing: false });
+    setEditing(false);
   }
 
   // Returns true if the admin inputs are valid, i.e.
   //    - at least one has changed
   //    - none are negative
   //    - none are empty
-  private valid_admin_inputs(): boolean {
+  function valid_admin_inputs(): boolean {
     let changed;
-    const settings = this.props.project_settings;
+    const settings = project_settings;
     if (settings == undefined) {
       return false;
     }
+    if (quota_state == null) return false;
 
-    for (const name in this.props.quota_params) {
-      if (this.props.quota_params[name] == null) {
+    for (const name in quota_params) {
+      if (quota_params[name] == null) {
         throw Error("bug -- invalid quota schema");
       }
-      const data = this.props.quota_params[name];
+      const data = quota_params[name];
       const factor = data.display_factor ?? 1;
       const cur_val = (settings.get(name) ?? 0) * factor;
-      const new_val = misc.parse_number_input(this.state[name]);
+      const new_val = misc.parse_number_input(quota_state[name]);
       if (new_val == null) {
         continue;
       }
@@ -262,23 +263,21 @@ export class QuotaConsole extends React.Component<Props, State> {
     return changed;
   }
 
-  private render_admin_edit_buttons(): Rendered {
-    if (this.props.account_groups.includes("admin")) {
-      if (this.state.editing) {
+  function render_admin_edit_buttons(): Rendered {
+    if (account_groups.includes("admin")) {
+      if (editing) {
         return (
           <Row>
             <Col sm={6} smOffset={6}>
               <ButtonToolbar style={{ float: "right", marginTop: "15px" }}>
                 <Button
-                  onClick={this.save_admin_editing.bind(this)}
+                  onClick={save_admin_editing}
                   bsStyle="warning"
-                  disabled={!this.valid_admin_inputs()}
+                  disabled={!valid_admin_inputs()}
                 >
                   <Icon name="thumbs-up" /> Done
                 </Button>
-                <Button onClick={this.cancel_admin_editing.bind(this)}>
-                  Cancel
-                </Button>
+                <Button onClick={cancel_admin_editing}>Cancel</Button>
               </ButtonToolbar>
             </Col>
           </Row>
@@ -288,7 +287,7 @@ export class QuotaConsole extends React.Component<Props, State> {
           <Row>
             <Col sm={6} smOffset={6}>
               <Button
-                onClick={this.start_admin_editing.bind(this)}
+                onClick={start_admin_editing}
                 bsStyle="warning"
                 style={{ float: "right", marginTop: "15px" }}
               >
@@ -301,10 +300,10 @@ export class QuotaConsole extends React.Component<Props, State> {
     }
   }
 
-  private admin_input_validation_styles(
+  function admin_input_validation_styles(
     input: number
   ): React.CSSProperties | undefined {
-    if (misc.parse_number_input(input) == undefined) {
+    if (misc.parse_number_input(input) == null) {
       return {
         outline: "none",
         borderColor: "red",
@@ -319,7 +318,8 @@ export class QuotaConsole extends React.Component<Props, State> {
     }
   }
 
-  private render_input(label: keyof QuotaParams): Rendered {
+  function render_input(label: keyof QuotaParams): Rendered {
+    if (quota_state == null) return;
     if (
       label === "network" ||
       label === "member_host" ||
@@ -328,13 +328,17 @@ export class QuotaConsole extends React.Component<Props, State> {
       return (
         <Checkbox
           ref={label}
-          checked={this.state[label]}
+          checked={quota_state[label]}
           style={{ marginLeft: 0 }}
           onChange={(e) =>
-            this.setState({ [label]: e.target.checked ? 1 : 0 } as any)
+            setQuotaState((state) => {
+              if (state == null) return;
+              state[label] = e.target.checked ? 1 : 0;
+              return state;
+            })
           }
         >
-          {this.state[label] ? "Enabled" : "Disabled"}
+          {quota_state[label] ? "Enabled" : "Disabled"}
         </Checkbox>
       );
     } else {
@@ -344,15 +348,21 @@ export class QuotaConsole extends React.Component<Props, State> {
           size={5}
           type="text"
           ref={label}
-          value={this.state[label]}
-          style={this.admin_input_validation_styles(this.state[label])}
-          onChange={(e) => this.setState({ [label]: e.target.value } as any)}
+          value={quota_state[label]}
+          style={admin_input_validation_styles(quota_state[label])}
+          onChange={(e) =>
+            setQuotaState((state) => {
+              if (state == null || typeof e.target.value === "string") return;
+              state[label] = e.target.value;
+              return state;
+            })
+          }
         />
       );
     }
   }
 
-  private render_disk_used(disk: number | string): Rendered {
+  function render_disk_used(disk: number | string): Rendered {
     if (!disk) {
       return;
     }
@@ -363,8 +373,8 @@ export class QuotaConsole extends React.Component<Props, State> {
     );
   }
 
-  private render_memory_used(memory: number | string): Rendered {
-    if (!["running", "saving"].includes(this.props.project_state || "")) {
+  function render_memory_used(memory: number | string): Rendered {
+    if (!["running", "saving"].includes(project_state ?? "")) {
       return;
     }
     return (
@@ -374,208 +384,199 @@ export class QuotaConsole extends React.Component<Props, State> {
     );
   }
 
-  public render(): Rendered {
-    let name;
-    const settings = this.props.project_settings;
-    if (settings == undefined) {
-      return <Loading />;
+  const settings = project_settings;
+  if (settings == undefined) {
+    return <Loading />;
+  }
+  const status = project_status;
+  let total_quotas = total_project_quotas;
+  if (total_quotas == undefined) {
+    // this happens for the admin -- just ignore any upgrades from the users
+    total_quotas = {};
+    for (const name in quota_params) {
+      // Unused?? Found while typescripting. Could be a bug.
+      // const data = quota_params[name];
+      total_quotas[name] = settings.get(name);
     }
-    const status = this.props.project_status;
-    let total_quotas = this.props.total_project_quotas;
-    if (total_quotas == undefined) {
-      // this happens for the admin -- just ignore any upgrades from the users
-      total_quotas = {};
-      for (name in this.props.quota_params) {
-        // Unused?? Found while typescripting. Could be a bug.
-        // const data = this.props.quota_params[name];
-        total_quotas[name] = settings.get(name);
-      }
-    }
-    // Unused?? Found while typescripting. Could be a bug.
-    // const disk_quota = <b>{settings.get("disk_quota")}</b>;
-    let memory: string | number = "?";
-    let disk: string | number = "?";
-    const { quota_params } = this.props;
+  }
+  // Unused?? Found while typescripting. Could be a bug.
+  // const disk_quota = <b>{settings.get("disk_quota")}</b>;
+  let memory: string | number = "?";
+  let disk: string | number = "?";
 
-    if (status != undefined) {
-      const rss = status.getIn(["memory", "rss"]);
-      if (rss != undefined) {
-        memory = Math.round(rss / 1000);
-      }
-      disk = status.get("disk_MB");
-      if (typeof disk == "number") {
-        disk = Math.ceil(disk);
-      }
+  if (status != undefined) {
+    const rss = status.getIn(["memory", "rss"]);
+    if (rss != undefined) {
+      memory = Math.round(rss / 1000);
     }
+    disk = status.get("disk_MB");
+    if (typeof disk == "number") {
+      disk = Math.ceil(disk);
+    }
+  }
 
-    const round = misc.round2;
-    // the keys in quotas have to match those in PROJECT_UPGRADES.field_order
-    const quotas = {
-      disk_quota: {
-        view: (
-          <span>
-            <b>
-              {round(
-                total_quotas["disk_quota"] *
-                  quota_params["disk_quota"].display_factor
-              )}{" "}
-              MB
-            </b>{" "}
-            disk usage limit {this.render_disk_used(disk)}
-          </span>
-        ),
-        edit: (
-          <span>
-            <b>{this.render_input("disk_quota")} MB</b> disk space limit{" "}
-            <Space /> {this.render_disk_used(disk)}
-          </span>
-        ),
-      },
-      memory: {
-        view: (
-          <span>
-            <b>
-              {round(
-                total_quotas["memory"] * quota_params["memory"].display_factor
-              )}{" "}
-              MB
-            </b>{" "}
-            shared RAM memory limit {this.render_memory_used(memory)}
-          </span>
-        ),
-        edit: (
-          <span>
-            <b>{this.render_input("memory")} MB</b> RAM memory limit{" "}
-            {this.render_memory_used(memory)}{" "}
-          </span>
-        ),
-      },
-      memory_request: {
-        view: (
-          <span>
-            <b>
-              {round(
-                total_quotas["memory_request"] *
-                  quota_params["memory_request"].display_factor
-              )}{" "}
-              MB
-            </b>{" "}
-            dedicated RAM
-          </span>
-        ),
-        edit: (
-          <span>
-            <b>{this.render_input("memory_request")} MB</b> dedicated RAM memory
-          </span>
-        ),
-      },
-      cores: {
-        view: (
-          <span>
-            <b>
-              {round(
-                total_quotas["cores"] * quota_params["cores"].display_factor
-              )}{" "}
-              {misc.plural(
-                total_quotas["cores"] * quota_params["cores"].display_factor,
-                "core"
-              )}
-            </b>
-          </span>
-        ),
-        edit: <b>{this.render_input("cores")} cores</b>,
-      },
-      cpu_shares: {
-        view: (
+  const round = misc.round2;
+  // the keys in quotas have to match those in PROJECT_UPGRADES.field_order
+  const quotas_edit_config = {
+    disk_quota: {
+      view: (
+        <span>
           <b>
             {round(
-              total_quotas["cpu_shares"] *
-                quota_params["cpu_shares"].display_factor
+              total_quotas["disk_quota"] *
+                quota_params["disk_quota"].display_factor
+            )}{" "}
+            MB
+          </b>{" "}
+          disk usage limit {render_disk_used(disk)}
+        </span>
+      ),
+      edit: (
+        <span>
+          <b>{render_input("disk_quota")} MB</b> disk space limit <Space />{" "}
+          {render_disk_used(disk)}
+        </span>
+      ),
+    },
+    memory: {
+      view: (
+        <span>
+          <b>
+            {round(
+              total_quotas["memory"] * quota_params["memory"].display_factor
+            )}{" "}
+            MB
+          </b>{" "}
+          shared RAM memory limit {render_memory_used(memory)}
+        </span>
+      ),
+      edit: (
+        <span>
+          <b>{render_input("memory")} MB</b> RAM memory limit{" "}
+          {render_memory_used(memory)}{" "}
+        </span>
+      ),
+    },
+    memory_request: {
+      view: (
+        <span>
+          <b>
+            {round(
+              total_quotas["memory_request"] *
+                quota_params["memory_request"].display_factor
+            )}{" "}
+            MB
+          </b>{" "}
+          dedicated RAM
+        </span>
+      ),
+      edit: (
+        <span>
+          <b>{render_input("memory_request")} MB</b> dedicated RAM memory
+        </span>
+      ),
+    },
+    cores: {
+      view: (
+        <span>
+          <b>
+            {round(
+              total_quotas["cores"] * quota_params["cores"].display_factor
             )}{" "}
             {misc.plural(
-              total_quotas["cpu_shares"] *
-                quota_params["cpu_shares"].display_factor,
+              total_quotas["cores"] * quota_params["cores"].display_factor,
               "core"
             )}
           </b>
-        ),
-        edit: (
-          <b>
-            {this.render_input("cpu_shares")}{" "}
-            {misc.plural(total_quotas["cpu_shares"], "core")}
-          </b>
-        ),
-      },
-      mintime: {
-        // no display factor multiplication, because mintime is in seconds
-        view: (
-          <span>
-            <b>{misc.seconds2hm(total_quotas["mintime"], true)}</b> of
-            non-interactive use before project stops
-          </span>
-        ),
-        edit: (
-          <span>
-            <b>{this.render_input("mintime")} hours</b> of non-interactive use
-            before project stops
-          </span>
-        ),
-      },
-      network: {
-        view: (
-          <b>
-            {this.props.project_settings.get("network") ||
-            total_quotas["network"]
-              ? "Yes"
-              : "Blocked"}
-          </b>
-        ),
-        edit: this.render_input("network"),
-      },
-      member_host: {
-        view: (
-          <b>
-            {this.props.project_settings.get("member_host") ||
-            total_quotas["member_host"]
-              ? "Yes"
-              : "No"}
-          </b>
-        ),
-        edit: this.render_input("member_host"),
-      },
-      always_running: {
-        view: (
-          <b>
-            {this.props.project_settings.get("always_running") ||
-            total_quotas["always_running"]
-              ? "Yes"
-              : "No"}
-          </b>
-        ),
-        edit: this.render_input("always_running"),
-      },
-    };
+        </span>
+      ),
+      edit: <b>{render_input("cores")} cores</b>,
+    },
+    cpu_shares: {
+      view: (
+        <b>
+          {round(
+            total_quotas["cpu_shares"] *
+              quota_params["cpu_shares"].display_factor
+          )}{" "}
+          {misc.plural(
+            total_quotas["cpu_shares"] *
+              quota_params["cpu_shares"].display_factor,
+            "core"
+          )}
+        </b>
+      ),
+      edit: (
+        <b>
+          {render_input("cpu_shares")}{" "}
+          {misc.plural(total_quotas["cpu_shares"], "core")}
+        </b>
+      ),
+    },
+    mintime: {
+      // no display factor multiplication, because mintime is in seconds
+      view: (
+        <span>
+          <b>{misc.seconds2hm(total_quotas["mintime"], true)}</b> of
+          non-interactive use before project stops
+        </span>
+      ),
+      edit: (
+        <span>
+          <b>{render_input("mintime")} hours</b> of non-interactive use before
+          project stops
+        </span>
+      ),
+    },
+    network: {
+      view: (
+        <b>
+          {project_settings.get("network") || total_quotas["network"]
+            ? "Yes"
+            : "Blocked"}
+        </b>
+      ),
+      edit: render_input("network"),
+    },
+    member_host: {
+      view: (
+        <b>
+          {project_settings.get("member_host") || total_quotas["member_host"]
+            ? "Yes"
+            : "No"}
+        </b>
+      ),
+      edit: render_input("member_host"),
+    },
+    always_running: {
+      view: (
+        <b>
+          {project_settings.get("always_running") ||
+          total_quotas["always_running"]
+            ? "Yes"
+            : "No"}
+        </b>
+      ),
+      edit: render_input("always_running"),
+    },
+  };
 
-    const upgrades = this.props.all_upgrades_to_this_project;
-    const site_license =
-      this.props.site_license_upgrades != null
-        ? this.props.site_license_upgrades
-        : {};
+  const upgrades = all_upgrades_to_this_project;
+  const site_license = site_license_upgrades ?? {};
 
-    return (
-      <div>
-        {this.render_admin_edit_buttons()}
-        {PROJECT_UPGRADES.field_order.map((name) => {
-          return this.render_quota_row(
-            name,
-            quotas[name],
-            settings.get(name),
-            upgrades[name],
-            quota_params[name],
-            site_license[name]
-          );
-        })}
-      </div>
-    );
-  }
-}
+  return (
+    <div>
+      {render_admin_edit_buttons()}
+      {PROJECT_UPGRADES.field_order.map((name) => {
+        return render_quota_row(
+          name,
+          quotas_edit_config[name],
+          settings.get(name),
+          upgrades[name],
+          quota_params[name],
+          site_license[name]
+        );
+      })}
+    </div>
+  );
+};
