@@ -8,12 +8,11 @@
 import React, { useEffect, useState } from "react";
 import * as immutable from "immutable";
 import { Rendered, usePrevious } from "../../app-framework";
-import { Assign } from "utility-types";
 import { LabeledRow, Tip, Icon, Space, Loading } from "../../components";
 import { alert_message } from "../../alerts";
 import { ProjectSettings, ProjectStatus } from "./types";
 import * as misc from "@cocalc/util/misc";
-import { User } from "../../users";
+const { User } = require("../../users"); // TODO fix typing error when importing properly
 import { webapp_client } from "../../webapp-client";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
@@ -35,11 +34,13 @@ interface Props {
   account_groups: any[];
   total_project_quotas?: object; // undefined if viewing as admin
   site_license_upgrades?: object;
-  all_upgrades_to_this_project: object;
+  all_upgrades_to_this_project?: object;
   is_commercial?: boolean;
   kucalc?: string;
 }
 
+// the typing is very sloppy. parts of the UI use 0/1 for boolean, other parts
+// a string like "1000" as a number 1000.
 interface QuotaParams {
   cores: number;
   cpu_shares: number;
@@ -204,9 +205,9 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
         memory: quota_state.memory,
         memory_request: quota_state.memory_request,
         mintime: Math.floor(quota_state.mintime * 3600),
-        network: quota_state.network,
-        member_host: quota_state.member_host,
-        always_running: quota_state.always_running,
+        network: quota_state.network ? 1 : 0,
+        member_host: quota_state.member_host ? 1 : 0,
+        always_running: quota_state.always_running ? 1 : 0,
       });
       alert_message({
         type: "success",
@@ -329,15 +330,11 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     ) {
       return (
         <Checkbox
-          ref={label}
+          key={label}
           checked={quota_state[label]}
           style={{ marginLeft: 0 }}
           onChange={(e) =>
-            setQuotaState((state) => {
-              if (state == null) return;
-              state[label] = e.target.checked ? 1 : 0;
-              return state;
-            })
+            setQuotaState({ ...quota_state, [label]: e.target.checked ? 1 : 0 })
           }
         >
           {quota_state[label] ? "Enabled" : "Disabled"}
@@ -349,16 +346,12 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
         <input
           size={5}
           type="text"
-          ref={label}
+          key={label}
           value={quota_state[label]}
           style={admin_input_validation_styles(quota_state[label])}
-          onChange={(e) =>
-            setQuotaState((state) => {
-              if (state == null || typeof e.target.value === "string") return;
-              state[label] = e.target.value;
-              return state;
-            })
-          }
+          onChange={(e) => {
+            setQuotaState({ ...quota_state, [label]: e.target.value });
+          }}
         />
       );
     }
