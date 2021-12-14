@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { useRouter } from "next/router";
 import { Divider } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";

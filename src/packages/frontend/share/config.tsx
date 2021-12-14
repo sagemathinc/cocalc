@@ -53,6 +53,11 @@ import { trunc_middle } from "@cocalc/util/misc";
 import ConfigureName from "./configure-name";
 import { unreachable } from "@cocalc/util/misc";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import {
+  SHARE_AUTHENTICATED_ICON,
+  SHARE_AUTHENTICATED_EXPLANATION,
+  SHARE_FLAGS,
+} from "@cocalc/util/consts/ui";
 
 interface PublicInfo {
   created: Date;
@@ -131,29 +136,17 @@ class Configure extends Component<Props, State> {
     this.setState({ sharing_options_state: state });
     switch (state) {
       case "private":
-        this.props.set_public_path({ disabled: true });
+        this.props.set_public_path(SHARE_FLAGS.PRIVATE);
         break;
       case "public_listed":
         // this.props.public is suppose to work in this state
-        this.props.set_public_path({
-          disabled: false,
-          unlisted: false,
-          authenticated: false,
-        });
+        this.props.set_public_path(SHARE_FLAGS.LISTED);
         break;
       case "public_unlisted":
-        this.props.set_public_path({
-          disabled: false,
-          unlisted: true,
-          authenticated: false,
-        });
+        this.props.set_public_path(SHARE_FLAGS.UNLISTED);
         break;
       case "authenticated":
-        this.props.set_public_path({
-          disabled: false,
-          unlisted: false,
-          authenticated: true,
-        });
+        this.props.set_public_path(SHARE_FLAGS.AUTHENTICATED);
         break;
       default:
         unreachable(state);
@@ -243,9 +236,9 @@ class Configure extends Component<Props, State> {
         onChange={this.handle_sharing_options_change.bind(this)}
         inline
       >
-        <Icon name="key" />
+        <Icon name={SHARE_AUTHENTICATED_ICON} />
         <Space />
-        <i>Authenticated</i> - only signed-in users can view this.
+        <i>Authenticated</i> - {SHARE_AUTHENTICATED_EXPLANATION}.
       </Radio>
     );
   }

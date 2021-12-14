@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Divider } from "antd";
 import Link from "next/link";
 import PathContents from "components/share/path-contents";
@@ -12,6 +17,15 @@ import { Customize } from "lib/share/customize";
 import { getTitle } from "lib/share/util";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { Icon } from "@cocalc/frontend/components/icon";
+import {
+  SHARE_AUTHENTICATED_ICON,
+  SHARE_AUTHENTICATED_EXPLANATION,
+} from "@cocalc/util/consts/ui";
+
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 
 export default function PublicPath({
   id,
@@ -28,6 +42,7 @@ export default function PublicPath({
   customize,
   disabled,
   unlisted,
+  authenticated,
 }) {
   useCounter(id);
   if (id == null) return <Loading style={{ fontSize: "30px" }} />;
@@ -44,6 +59,44 @@ export default function PublicPath({
       </div>
     );
   }
+
+  function visibility_explanation() {
+    if (disabled) {
+      return (
+        <>
+          <Icon name="lock" /> Private (only visible to collaborators on the
+          project)
+        </>
+      );
+    }
+    if (unlisted) {
+      return (
+        <>
+          <Icon name="eye-slash" /> Unlisted (only visible to those who know the
+          link)
+        </>
+      );
+    }
+    if (authenticated) {
+      return (
+        <>
+          <Icon name={SHARE_AUTHENTICATED_ICON} /> Authenticated (
+          {SHARE_AUTHENTICATED_EXPLANATION})
+        </>
+      );
+    }
+  }
+
+  function visibility() {
+    if (unlisted || disabled || authenticated) {
+      return (
+        <div>
+          <b>Visibility:</b> {visibility_explanation()}
+        </div>
+      );
+    }
+  }
+
   return (
     <Customize value={customize}>
       <Layout title={getTitle({ path, relativePath })}>
@@ -54,6 +107,8 @@ export default function PublicPath({
           id={id}
           isDir={contents?.isdir}
         />
+        <br />
+        {JSON.stringify({ unlisted, disabled, authenticated })}
         <br />
         {description?.trim() && (
           <>
@@ -68,25 +123,7 @@ export default function PublicPath({
         )}
         <b>License:</b> <License license={license} />
         <br />
-        {(unlisted || disabled) && (
-          <div>
-            <b>Visibility:</b>{" "}
-            {disabled ? (
-              <>
-                {" "}
-                <Icon name="lock" /> Private (only visible to collaborators on
-                the project)
-              </>
-            ) : unlisted ? (
-              <>
-                <Icon name="eye-slash" /> Unlisted (only visible to those who
-                know the link)
-              </>
-            ) : (
-              ""
-            )}
-          </div>
-        )}
+        {visibility()}
         {compute_image && (
           <>
             <b>Image:</b> {compute_image}
