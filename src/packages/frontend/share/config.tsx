@@ -136,7 +136,7 @@ class Configure extends Component<Props, State> {
     this.setState({ sharing_options_state: state });
     switch (state) {
       case "private":
-        this.props.set_public_path(SHARE_FLAGS.PRIVATE);
+        this.props.set_public_path(SHARE_FLAGS.DISABLED);
         break;
       case "public_listed":
         // this.props.public is suppose to work in this state

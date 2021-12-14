@@ -1,5 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { getServerSettings } from "./server-settings";
 import siteURL from "./site-url";
+import { KucalcValues } from "@cocalc/util/db-schema/site-defaults";
 
 export interface Customize {
   siteName?: string;
@@ -11,6 +17,7 @@ export interface Customize {
   helpEmail?: string;
   contactEmail?: string;
   isCommercial?: boolean;
+  kucalc?: KucalcValues;
   logoSquareURL?: string;
   logoRectangularURL?: string;
   splashImage?: string;
@@ -54,6 +61,8 @@ export default async function getCustomize(): Promise<Customize> {
     contactEmail: fallback(settings.organization_email, settings.help_email),
 
     isCommercial: settings.commercial,
+
+    kucalc: settings.kucalc,
 
     anonymousSignup: settings.anonymous_signup,
     emailSignup: settings.email_signup,

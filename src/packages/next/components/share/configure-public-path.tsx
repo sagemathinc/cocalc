@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Divider, Radio, Input, Select, Space } from "antd";
 import useDatabase from "lib/hooks/database";
+import useCustomize from "lib/use-customize";
 import Loading from "./loading";
 import { LICENSES } from "@cocalc/frontend/share/licenses";
 import SaveButton from "components/misc/save-button";
@@ -70,7 +71,7 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
       path,
     },
   });
-
+  const { onCoCalcCom } = useCustomize();
   const [loaded, setLoaded] = useState<boolean>(false);
   const [edited, setEdited] = useState<Info>({});
   const [original, setOriginal] = useState<Info>({});
@@ -101,6 +102,8 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
 
   // cheap to compute, so we compute every time.
   const visibility = get_visibility(edited);
+  // we don't show "authenticated" on cocalc.com, unless it is set to it
+  const showAuthenticated = !onCoCalcCom || edited.authenticated;
 
   const save = (
     <SaveButton
@@ -190,10 +193,12 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
                   <Icon name="eye-slash" /> <em>Public (unlisted):</em> only
                   people with the link can view this.
                 </Radio>
-                <Radio value={"authenticated"}>
-                  <Icon name={SHARE_AUTHENTICATED_ICON} />{" "}
-                  <em>Authenticated:</em> {SHARE_AUTHENTICATED_EXPLANATION}.
-                </Radio>
+                {showAuthenticated && (
+                  <Radio value={"authenticated"}>
+                    <Icon name={SHARE_AUTHENTICATED_ICON} />{" "}
+                    <em>Authenticated:</em> {SHARE_AUTHENTICATED_EXPLANATION}.
+                  </Radio>
+                )}
                 <Radio value={"private"}>
                   <Icon name="lock" /> <em>Private:</em> only collaborators on
                   the project can view this.

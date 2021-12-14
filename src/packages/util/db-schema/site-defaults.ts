@@ -120,7 +120,8 @@ const KUCALC_VALID_VALS = [
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
   KUCALC_DISABLED,
-];
+] as const;
+export type KucalcValues = typeof KUCALC_VALID_VALS[number];
 
 const help_email_name = "Help email";
 const organization_email_desc = `How to contact your organization (fallback: '${help_email_name}').`;

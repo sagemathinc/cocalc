@@ -108,8 +108,6 @@ export default function PublicPath({
           isDir={contents?.isdir}
         />
         <br />
-        {JSON.stringify({ unlisted, disabled, authenticated })}
-        <br />
         {description?.trim() && (
           <>
             <b>Description:</b> <SanitizedMarkdown value={description} />

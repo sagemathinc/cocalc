@@ -1,7 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import getCustomize from "@cocalc/server/settings/customize";
 import getAccountId from "lib/account/get-account";
 import { getName } from "lib/share/get-account-info";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 const revalidate = 30;
 
@@ -51,6 +57,8 @@ export default async function withCustomize(
   } else {
     customize.isAuthenticated = false;
   }
+
+  customize.onCoCalcCom = customize.kucalc === KUCALC_COCALC_COM;
 
   if (obj == null) {
     return { props: { customize } };
