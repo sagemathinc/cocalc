@@ -27,7 +27,7 @@ import { TERM_MODE_CHAR } from "./utils";
 import { MainConfiguration } from "../../../project_configuration";
 import { TypedMap } from "../../../app-framework";
 
-const misc = require("@cocalc/util/misc");
+import * as misc from "@cocalc/util/misc";
 const { Col, Row } = require("react-bootstrap");
 
 interface Props {
