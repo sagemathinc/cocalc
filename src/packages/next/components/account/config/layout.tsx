@@ -53,6 +53,10 @@ export default function ConfigLayout({ page }: Props) {
           : undefined),
       }}
     >
+      <div style={{ float: "right", marginBottom:'15px' }}>
+        This is the new config page.{" "}
+        <A href={join(basePath, "settings")} external>Use the old page...</A>
+      </div>
       <Space style={{ marginBottom: "15px" }}>
         <Avatar
           account_id={account.account_id}

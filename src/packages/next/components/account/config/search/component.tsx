@@ -21,6 +21,7 @@ export default function Search() {
   return (
     <div>
       <Input.Search
+        autoFocus
         style={{ maxWidth: "60ex" }}
         placeholder="Search all configuration options..."
         onSearch={onSearch}
