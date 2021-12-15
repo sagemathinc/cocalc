@@ -161,7 +161,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
     }
 
     function render_available(): Rendered {
-      const avail = available_features;
+      const avail = available_features?.toJS();
       if (avail == undefined) {
         return (
           <div>
@@ -173,9 +173,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
       }
 
       const [features, non_avail_1] = render_features(avail);
-      const [formatter, non_avail_2] = render_formatter(
-        avail.get("formatting")
-      );
+      const [formatter, non_avail_2] = render_formatter(avail.formatting);
 
       return (
         <>
