@@ -30,7 +30,7 @@ function handle_window_error(msg, url, lineNo, columnNo, error) {
     return;
   }
   console.warn("handle_window_error", { msg, url, lineNo, columnNo, error });
-  if (isWhitelisted({ msg, url, error })) {
+  if (isWhitelisted({ error })) {
     console.warn("handle_window_error -- whitelisted");
     return;
   }
@@ -82,7 +82,7 @@ export function startedUp() {
   }
 }
 
-function isWhitelisted({ msg, url, error }): boolean {
+function isWhitelisted({ error }): boolean {
   try {
     if (error?.stack?.includes("modifySheet")) {
       // darkreader causes errors sometimes when editing PDF files previewed using PDFjs, and often when
