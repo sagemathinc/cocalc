@@ -4,17 +4,17 @@
  */
 
 import React from "react";
-import { Rendered } from "../../../app-framework";
-import { Icon } from "../../../components/icon";
-import { ProjectActions } from "../../../project_actions";
+import { CSS, Rendered } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { ProjectActions } from "@cocalc/frontend/project_actions";
 
 import { HelpAlert } from "./help-alert";
 import { full_path_text } from "./utils";
 
-import { FileTypeSelector } from "../../new";
+import { FileTypeSelector } from "@cocalc/frontend/project/new";
 import { Button, Row, Col } from "react-bootstrap";
 
-import { MainConfiguration } from "../../../project_configuration";
+import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 
 interface Props {
   name: string;
@@ -28,38 +28,45 @@ interface Props {
   configuration_main?: MainConfiguration;
 }
 
-const row_style: React.CSSProperties = {
+const row_style: CSS = {
   textAlign: "left",
   color: "#888",
   marginTop: "20px",
   wordWrap: "break-word",
-};
+} as const;
 
-const create_button_style = {
+const create_button_style: CSS = {
   fontSize: "40px",
   color: "#888",
   maxWidth: "100%",
-};
+} as const;
 
-export class NoFiles extends React.PureComponent<Props> {
-  static defaultProps = { file_search: "" };
+export const NoFiles: React.FC<Props> = (props: Props) => {
+  const {
+    actions,
+    create_folder,
+    create_file,
+    public_view,
+    file_search = "",
+    // current_path,
+    project_id,
+    configuration_main,
+  } = props;
 
-  handle_click = () => {
-    if (this.props.file_search.length === 0) {
-      this.props.actions.set_active_tab('new');
-    } else if (
-      this.props.file_search[this.props.file_search.length - 1] === "/"
-    ) {
-      this.props.create_folder();
+  function handle_click() {
+    if (file_search.length === 0) {
+      actions.set_active_tab("new");
+    } else if (file_search[file_search.length - 1] === "/") {
+      create_folder();
     } else {
-      this.props.create_file();
+      create_file();
     }
-  };
+  }
 
-  render_create_button(actual_new_filename: string): Rendered {
+  function render_create_button(actual_new_filename: string): Rendered {
     let button_text: string;
 
-    if (this.props.file_search.length === 0) {
+    if (file_search.length === 0) {
       button_text = "Create or Upload Files...";
     } else {
       button_text = `Create ${actual_new_filename}`;
@@ -69,7 +76,7 @@ export class NoFiles extends React.PureComponent<Props> {
       <Button
         style={create_button_style}
         onClick={(): void => {
-          this.handle_click();
+          handle_click();
         }}
       >
         <Icon name="plus-circle" /> {button_text}
@@ -77,45 +84,36 @@ export class NoFiles extends React.PureComponent<Props> {
     );
   }
 
-  render_file_type_selection() {
+  function render_file_type_selection() {
     return (
       <div style={{ marginTop: "15px" }}>
         <h4 style={{ color: "#666" }}>Or select a file type</h4>
         <FileTypeSelector
-          project_id={this.props.project_id}
-          create_file={this.props.create_file}
-          create_folder={this.props.create_folder}
+          project_id={project_id}
+          create_file={create_file}
+          create_folder={create_folder}
         />
       </div>
     );
   }
 
-  render() {
-    if (this.props.configuration_main == null) return null;
-    const actual_new_filename =
-      this.props.file_search.length === 0
-        ? ""
-        : full_path_text(
-            this.props.file_search,
-            this.props.configuration_main.disabled_ext
-          );
-    return (
-      <Row style={row_style}>
-        <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
-          <span style={{ fontSize: "20px" }}>No files found</span>
-          <hr />
-          {!this.props.public_view
-            ? this.render_create_button(actual_new_filename)
-            : undefined}
-          <HelpAlert
-            file_search={this.props.file_search}
-            actual_new_filename={actual_new_filename}
-          />
-          {this.props.file_search.length > 0
-            ? this.render_file_type_selection()
-            : undefined}
-        </Col>
-      </Row>
-    );
-  }
-}
+  if (configuration_main == null) return null;
+  const actual_new_filename =
+    file_search.length === 0
+      ? ""
+      : full_path_text(file_search, configuration_main.disabled_ext);
+  return (
+    <Row style={row_style}>
+      <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
+        <span style={{ fontSize: "20px" }}>No files found</span>
+        <hr />
+        {!public_view ? render_create_button(actual_new_filename) : undefined}
+        <HelpAlert
+          file_search={file_search}
+          actual_new_filename={actual_new_filename}
+        />
+        {file_search.length > 0 ? render_file_type_selection() : undefined}
+      </Col>
+    </Row>
+  );
+};
