@@ -11,7 +11,7 @@ import useProfile from "lib/hooks/profile";
 
 export default function AccountNavTab() {
   const { account, siteName } = useCustomize();
-  const profile = useProfile(account.account_id);
+  const profile = useProfile(account?.account_id);
   if (!account) return null;
 
   const profile_url = profile?.name
@@ -84,12 +84,8 @@ export default function AccountNavTab() {
   );
 
   return (
-    <Dropdown overlay={menu} trigger={"click" as "click"}>
-      <div
-        style={{ ...LinkStyle, cursor: "pointer" }}
-        href={join(basePath, "settings")}
-        title={"View your Account Settings"}
-      >
+    <Dropdown overlay={menu} trigger={"click" as any}>
+      <div style={{ ...LinkStyle, cursor: "pointer" }}>
         {/* The negative margin fixes some weird behavior that stretches header. */}
         {account.account_id && (
           <>
