@@ -7,11 +7,11 @@ import { useCustomize } from "lib/customize";
 import basePath from "lib/base-path";
 import SubNav, { Page, SubPage } from "./sub-nav";
 import Analytics from "components/analytics";
-import Avatar from "components/account/avatar";
+import AccountNavTab from "components/account/navtab";
 
 const GAP = "4%";
 
-const LinkStyle = {
+export const LinkStyle = {
   color: "white",
   marginRight: GAP,
   display: "inline-block",
@@ -156,23 +156,7 @@ export default function Header({ page, subPage }: Props) {
           </A>
         )}{" "}
         {account ? (
-          <a
-            style={LinkStyle}
-            href={join(basePath, "settings")}
-            title={"View your Account Settings"}
-          >
-            {/* The negative margin fixes some weird behavior that stretches header. */}
-            {account.account_id && (
-              <>
-                <Avatar
-                  account_id={account.account_id}
-                  style={{ margin: "-10px 0" }}
-                />
-                &nbsp;&nbsp;
-              </>
-            )}
-            Account
-          </a>
+          <AccountNavTab />
         ) : (
           <>
             <A
