@@ -1,6 +1,7 @@
 export const desc = `These are mostly CoCalc specific keyboard shortcuts
 for editing code.   Many of these are not standard functions provided
-by editor keyboarding.
+by editor keyboarding.   Keyboard shortcuts are unfortunately not currently
+customizable.
 `;
 
 export default function keyboardShortcuts(isMacOS: boolean): {

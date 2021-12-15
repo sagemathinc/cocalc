@@ -184,7 +184,7 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
       title?: string;
       desc?: ReactNode;
       icon?: IconName;
-      options: { [value: string]: ReactNode };
+      options: { [value: string]: ReactNode } | string[];
       style?: CSSProperties;
     }) => (
       <Space direction="vertical">

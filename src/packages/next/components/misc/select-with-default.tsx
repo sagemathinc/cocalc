@@ -1,6 +1,7 @@
 import { Button, Select } from "antd";
 import { CSSProperties, ReactNode, useState } from "react";
 import { keys } from "lodash";
+import { is_array } from "@cocalc/util/misc";
 
 const { Option } = Select;
 
@@ -9,7 +10,7 @@ interface Props {
   defaultValue?: string;
   initialValue?: string;
   onChange: (string) => void;
-  options: { [value: string]: ReactNode };
+  options: { [value: string]: ReactNode } | string[];
   style?: CSSProperties;
 }
 
@@ -26,12 +27,23 @@ export default function SelectWithDefault({
   );
 
   const v: ReactNode[] = [];
-  for (const value in options) {
-    v.push(
-      <Option key={value} value={value}>
-        {options[value]}
-      </Option>
-    );
+  if (is_array(options)) {
+    // @ts-ignore
+    for (const value of options) {
+      v.push(
+        <Option key={value} value={value}>
+          {value}
+        </Option>
+      );
+    }
+  } else {
+    for (const value in options) {
+      v.push(
+        <Option key={value} value={value}>
+          {options[value]}
+        </Option>
+      );
+    }
   }
 
   return (
@@ -60,7 +72,7 @@ export default function SelectWithDefault({
           {(value ?? val) == defaultValue ? (
             "Default"
           ) : (
-            <>Changed from {options[defaultValue]}</>
+            <>Changed from {is_array(options) ? defaultValue : options[defaultValue]}</>
           )}
         </Button>
       )}

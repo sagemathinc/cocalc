@@ -11,12 +11,15 @@ import { IS_MACOS } from "@cocalc/frontend/feature";
 interface Data {
   editor_settings: {
     bindings: keyof typeof EDITOR_BINDINGS;
+    evaluate_key: "Shift-Enter" | "Enter";
   };
 }
 
 const desc = {
   bindings: `Keyboard bindings: standard, sublime, vim and emacs.`,
   shortcuts: shortcutsDesc,
+  evaluate_key:
+    "You can use either Shift-Enter or plain Enter to evaluate code in Sage worksheets. If you use Enter for evaluation, use Shift-Enter to enter a new line.  This setting does not impact Jupyter notebooks.",
 };
 
 register({
@@ -46,6 +49,12 @@ register({
         <br />
         <Heading title="Editor Keyboard Shortcuts" desc={desc.shortcuts} />
         <KeyboardShortcuts />
+        <EditSelect
+          title="Sage Worksheet Evaluate Key"
+          path="evaluate_key"
+          desc={desc.evaluate_key}
+          options={["Shift-Enter", "Enter"]}
+        />
       </Space>
     );
   },
