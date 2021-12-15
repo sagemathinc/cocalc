@@ -15,6 +15,6 @@ export const SHARE_AUTHENTICATED_EXPLANATION =
 export const SHARE_FLAGS = {
   LISTED: { unlisted: false, disabled: false, authenticated: false }, // aka PUBLIC
   UNLISTED: { unlisted: true, disabled: false, authenticated: false },
-  DISABLED: { unlisted: false, disabled: true, authenticated: false },
-  AUTHENTICATED: { unlisted: false, disabled: false, authenticated: true }, // aka PRIVATE
+  DISABLED: { unlisted: false, disabled: true, authenticated: false }, // aka PRIVATE
+  AUTHENTICATED: { unlisted: false, disabled: false, authenticated: true },
 } as const;
