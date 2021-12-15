@@ -14,6 +14,9 @@ import { wrap_log } from "@cocalc/util/misc";
 import { get_browser, IS_MOBILE, IS_TOUCH } from "./feature";
 import * as prom_client from "./prom-client";
 
+// import this specifically to cause th
+import checkFeaturesEnabled from "@cocalc/frontend/misc/check-features-enabled";
+
 export function init() {
   // see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
   // I have some concern about performance.
@@ -65,4 +68,7 @@ export function init() {
       (new Date().getTime() - (window as any).webapp_initial_start_time) / 1000
     );
   }
+
+  // check for localStorage, etc.
+  checkFeaturesEnabled();
 }

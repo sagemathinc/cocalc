@@ -73,6 +73,28 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
     );
   }
 
+  function Heading({
+    path,
+    title,
+    icon,
+    desc,
+  }: {
+    path?: string;
+    title?: string;
+    desc?: ReactNode;
+    icon?: IconName;
+  }) {
+    return (
+      <>
+        <h3>
+          {icon && <Icon name={icon} style={{ marginRight: "10px" }} />}
+          {getTitle(path, title)}
+        </h3>
+        {desc && <div>{desc}</div>}
+      </>
+    );
+  }
+
   function EditBoolean({
     path,
     title,
@@ -88,11 +110,7 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
   }) {
     return (
       <Space direction="vertical" style={{ marginTop: "15px" }}>
-        <h3>
-          {icon && <Icon name={icon} style={{ marginRight: "10px" }} />}
-          {getTitle(path, title)}
-        </h3>
-        {desc && <div>{desc}</div>}
+        <Heading path={path} title={title} icon={icon} desc={desc} />
         <Checkbox
           defaultValue={get(
             SCHEMA[keys(query)[0]].user_query?.get?.fields,
@@ -134,11 +152,7 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
       icon?: IconName;
     }) => (
       <Space direction="vertical" style={{ width: "100%" }}>
-        <h3>
-          {icon && <Icon name={icon} style={{ marginRight: "10px" }} />}
-          {getTitle(path, title)}
-        </h3>
-        {desc && <div>{desc}</div>}
+        <Heading path={path} title={title} icon={icon} desc={desc} />
         <IntegerSlider
           defaultValue={get(
             SCHEMA[keys(query)[0]].user_query?.get?.fields,
@@ -174,11 +188,7 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
       style?: CSSProperties;
     }) => (
       <Space direction="vertical">
-        <h3>
-          {icon && <Icon name={icon} style={{ marginRight: "10px" }} />}
-          {getTitle(path, title)}
-        </h3>
-        {desc && <div>{desc}</div>}
+        <Heading path={path} title={title} icon={icon} desc={desc} />
         <SelectWithDefault
           style={style}
           defaultValue={get(
@@ -203,10 +213,11 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
     EditBoolean,
     EditNumber,
     EditSelect,
+    Heading,
   };
 }
 
-function getTitle(path: string, title?: string): string {
+function getTitle(path?: string, title?: string): string {
   if (title) return title;
   if (!path) return "";
   const v = path.split(".");

@@ -25,10 +25,15 @@ letter of your first name is used for your avatar if you do not
 upload an image.`;
 
 const lastNameDesc = `Your full name is used to label your cursor
-when you edit collaboratively with other people.  We do NOT have
-a policy that you must user your real name.`;
+when you edit collaboratively with other people, and to identify
+you when you are @mentioned.   CoCalc does NOT have
+a policy that you must user your real name, and you can change your
+name at any time.`;
 
-const unlistedDesc = `If you choose to be unlisted, then you can
+const unlistedDesc = `By deafult both your name and exact email address are
+used when people search to add users as collaborators to projects.  There is
+no way to do a search for partial email addresses, and your email address
+is never revealed to other users.   If you choose to be unlisted, then you can
 only be added as a collaborator to a project by an exact email
 address match.`;
 

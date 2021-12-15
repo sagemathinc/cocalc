@@ -8,47 +8,16 @@ import { Icon, LabeledRow, Loading, SelectorInput } from "../components";
 import { Panel } from "../antd-bootstrap";
 import { set_account_table } from "./util";
 import { IS_MACOS } from "../feature";
+import keyboardShortcuts from "./keyboard-shortcuts";
 
-const KEYBOARD_SHORTCUTS = {
-  //'Next file tab'                : 'control+]'  # temporarily disabled since broken in many ways
-  //'Previous file tab'            : 'control+['
-  "Build project / run code": IS_MACOS
-    ? "shift+enter; option+T"
-    : "shift+enter; alt+T",
-  "Force build project": IS_MACOS
-    ? "shift+option+enter; shift+option+T"
-    : "shift+alt+enter; shift+alt+T",
-  "LaTeX and markdown forward and inverse search": IS_MACOS
-    ? "⌘+enter"
-    : "alt+enter",
-  "Smaller text": "control+<",
-  "Bigger text": "control+>",
-  "Toggle comment": "control+/",
-  "Go to line": IS_MACOS ? "⌘+L" : "control+L",
-  Find: IS_MACOS ? "⌘+F" : "control+F",
-  "Find next": IS_MACOS ? "⌘+G" : "control+G",
-  Replace: IS_MACOS ? "⌘+H" : "control+H",
-  "Fold/unfold selected code": "control+Q",
-  "Fill paragraph (like in Emacs)": IS_MACOS ? "option+Q" : "alt+Q",
-  "Shift selected text right": "tab",
-  "Shift selected text left": "shift+tab",
-  "Split view in Sage worksheet": "shift+control+I",
-  "Autoindent selection": "control+'",
-  "Format code (use Prettier, etc)": IS_MACOS ? "⌘+shift+F" : "control+shift+F",
-  "Multiple cursors": IS_MACOS ? "⌘+click" : "control+click",
-  "LaTeX (etc) simple autocomplete": IS_MACOS
-    ? "option+space"
-    : "control+space",
-  "Sage autocomplete": "tab",
-  "Split cell in Sage worksheet": "control+;",
-};
+const KEYBOARD_SHORTCUTS = keyboardShortcuts(IS_MACOS);
 
 const EVALUATE_KEYS = {
   "Shift-Enter": "shift+enter",
   Enter: "enter (shift+enter for newline)",
 };
 
-const LABEL_COLS=8;
+const LABEL_COLS = 8;
 
 export const KeyboardSettings: React.FC = () => {
   const evaluate_key = useTypedRedux("account", "evaluate_key");
@@ -58,7 +27,7 @@ export const KeyboardSettings: React.FC = () => {
     for (const desc in KEYBOARD_SHORTCUTS) {
       const shortcut = KEYBOARD_SHORTCUTS[desc];
       v.push(
-        <LabeledRow key={desc} label={desc} label_cols = {LABEL_COLS}>
+        <LabeledRow key={desc} label={desc} label_cols={LABEL_COLS}>
           {shortcut}
         </LabeledRow>
       );
@@ -75,7 +44,7 @@ export const KeyboardSettings: React.FC = () => {
       return <Loading />;
     }
     return (
-      <LabeledRow label="Sage Worksheet evaluate key"  label_cols = {LABEL_COLS}>
+      <LabeledRow label="Sage Worksheet evaluate key" label_cols={LABEL_COLS}>
         <SelectorInput
           options={EVALUATE_KEYS}
           selected={evaluate_key}

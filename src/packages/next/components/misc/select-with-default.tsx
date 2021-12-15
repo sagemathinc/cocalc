@@ -1,4 +1,4 @@
-import { Button, Select, Space } from "antd";
+import { Button, Select } from "antd";
 import { CSSProperties, ReactNode, useState } from "react";
 import { keys } from "lodash";
 
@@ -27,11 +27,15 @@ export default function SelectWithDefault({
 
   const v: ReactNode[] = [];
   for (const value in options) {
-    v.push(<Option key={value} value={value}>{options[value]}</Option>);
+    v.push(
+      <Option key={value} value={value}>
+        {options[value]}
+      </Option>
+    );
   }
 
   return (
-    <Space style={{ width: "100%" }}>
+    <div style={{ width: "100%" }}>
       <Select
         showSearch
         value={val}
@@ -39,7 +43,7 @@ export default function SelectWithDefault({
           onChange(value);
           setVal(value);
         }}
-        style={{ width: "40ex", maxWidth: "100%", ...style }}
+        style={{ width: "30ex", maxWidth: "100%", ...style }}
       >
         {v}
       </Select>
@@ -60,6 +64,6 @@ export default function SelectWithDefault({
           )}
         </Button>
       )}
-    </Space>
+    </div>
   );
 }

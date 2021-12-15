@@ -12,7 +12,10 @@ interface Data {
 
 const emailDesc = `If you set a password you can sign in using this email
 address and use this address to reset your password. You also receive
-email notifications about chats and other activity.`;
+email notifications about chats and other activity.   People can add you
+as collaborators to projects by searching for your exact email address.
+There is no way to do a search for partial email addresses, and your email
+address is never revealed to other users. `;
 
 register({
   path: "account/email",
