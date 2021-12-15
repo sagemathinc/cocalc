@@ -25,6 +25,7 @@ export default function useProfile(account_id?: string): Profile | undefined {
         { account_id },
         DEFAULT_CACHE_S
       );
+      console.log("profile = ", profile);
       setProfile(profile);
       cache.set(account_id, profile);
     } catch (err) {

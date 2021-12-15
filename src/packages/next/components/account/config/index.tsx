@@ -45,5 +45,5 @@ export default function Config({ main, sub }: Props) {
   if (C != null) {
     return <C />;
   }
-  return <>TODO: Configure not yet implemented.</>;
+  return null;
 }

@@ -4,4 +4,5 @@ export interface Profile {
   last_name: string;
   color?: string;
   image?: string;
+  name?: string;
 }

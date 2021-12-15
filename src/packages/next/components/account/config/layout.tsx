@@ -48,7 +48,7 @@ export default function ConfigLayout({ page }: Props) {
         padding: 24,
         margin: 0,
         minHeight: 280,
-        ...(info.danger
+        ...(info?.danger
           ? { color: "#ff4d4f", backgroundColor: "#fff1f0" }
           : undefined),
       }}
