@@ -10,7 +10,7 @@ import {
   Rendered,
   useEffect,
   useState,
-} from "../../app-framework";
+} from "@cocalc/frontend/app-framework";
 import {
   A,
   CopyToClipBoard,
@@ -21,7 +21,7 @@ import {
   TimeElapsed,
   Icon,
   SettingBox,
-} from "../../components";
+} from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { Space } from "antd";
 import {
@@ -29,7 +29,7 @@ import {
   compute_image2name,
   compute_image2basename,
   CUSTOM_IMG_PREFIX,
-} from "../../custom-software/util";
+} from "@cocalc/frontend/custom-software/util";
 import { ButtonToolbar, Button, Alert } from "react-bootstrap";
 import { alert_message } from "../../alerts";
 import { Project } from "./types";

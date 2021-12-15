@@ -6,13 +6,13 @@
 import React from "react";
 import { sortBy, keys } from "lodash";
 import { SettingBox, A, Icon, Loading } from "@cocalc/frontend/components";
-import { redux, Rendered, useTypedRedux } from "../../app-framework";
+import { redux, Rendered, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Project } from "./types";
 import * as misc from "@cocalc/util/misc";
 import { Button } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
 
-import { CUSTOM_SOFTWARE_HELP_URL } from "../../custom-software/util";
+import { CUSTOM_SOFTWARE_HELP_URL } from "@cocalc/frontend/custom-software/util";
 import { COLORS } from "@cocalc/util/theme";
 
 declare let DEBUG;
