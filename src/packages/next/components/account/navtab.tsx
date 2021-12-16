@@ -40,7 +40,7 @@ export default function AccountNavTab() {
         </A>
       </Menu.Item>
       <Menu.Item icon={<Icon name="user" />}>
-        <A href="/config/search/input">Settings</A>
+        <A href="/config/search/input">Configuration</A>
       </Menu.Item>
       <Menu.Divider />
 

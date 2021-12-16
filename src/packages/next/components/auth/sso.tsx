@@ -1,8 +1,9 @@
 import { Avatar, Tooltip } from "antd";
-import { CSSProperties } from "react";
+import { CSSProperties, ReactNode } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import basePath from "lib/base-path";
 import { join } from "path";
+import { useRouter } from 'next/router'
 
 export interface Strategy {
   name: string;
@@ -16,8 +17,12 @@ interface Props {
   size?: number;
 }
 
-export function getLink(strategy: string): string {
-  return join(basePath, "auth", strategy);
+export function getLink(strategy: string, target?: string): string {
+  // TODO: the target is ignored by the server right now -- it's not implemented
+  // and I don't know how... yet.  Code is currently in src/packages/hub/auth.ts
+  return `${join(basePath, "auth", strategy)}${
+    target ? "?target=" + encodeURIComponent(target) : ""
+  }`;
 }
 
 export default function SSO({ strategies, size }: Props) {
@@ -25,19 +30,29 @@ export default function SSO({ strategies, size }: Props) {
   return (
     <div>
       {strategies.map((strategy) => (
-        <StrategyAvatar key={strategy.name} strategy={strategy} size={size ?? 60} />
+        <StrategyAvatar
+          key={strategy.name}
+          strategy={strategy}
+          size={size ?? 60}
+        />
       ))}
     </div>
   );
 }
 
-function StrategyAvatar({
+export function StrategyAvatar({
   strategy,
   size,
+  noLink,
+  toolTip,
 }: {
   strategy: Strategy;
   size: number;
+  noLink?: boolean;
+  toolTip?: ReactNode;
 }) {
+  const router = useRouter();
+
   const STYLE = {
     fontSize: `${size - 2}px`,
     color: "white",
@@ -59,6 +74,8 @@ function StrategyAvatar({
   } else {
     src = <Icon name={icon as any} style={{ ...STYLE, backgroundColor }} />;
   }
+  const avatar = <Avatar shape="square" size={size} src={src} gap={1} />;
+
   return (
     <Tooltip
       title={
@@ -71,14 +88,21 @@ function StrategyAvatar({
               style={{ fontSize: "14pt", marginRight: "10px" }}
             />
           )}{" "}
-          Use your {display} account.
+          {toolTip ?? <>Use your {display} account.</>}
         </>
       }
       color={backgroundColor}
     >
-      <a href={getLink(name)} style={{ margin: "0 2.5px" }}>
-        <Avatar shape="square" size={size} src={src} gap={1} />
-      </a>
+      {noLink ? (
+        avatar
+      ) : (
+        <a
+          href={getLink(name, join(router.basePath, router.pathname))}
+          style={{ margin: "0 2.5px", cursor: "pointer" }}
+        >
+          {avatar}
+        </a>
+      )}
     </Tooltip>
   );
 }

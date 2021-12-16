@@ -772,7 +772,7 @@ export class PassportManager {
       has_valid_remember_me: false,
       account_id: undefined,
       email_address: undefined,
-      target: path_join(base_path + "app#login"),
+      target: base_path,
       remember_me_cookie: cookies.get(REMEMBER_ME_COOKIE_NAME),
       get_api_key: cookies.get(API_KEY_COOKIE_NAME),
       action: undefined,

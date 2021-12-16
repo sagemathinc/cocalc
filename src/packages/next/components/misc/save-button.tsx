@@ -14,6 +14,7 @@ interface Props {
   style?: CSSProperties;
   onSave?: Function; // if onSave is async then awaits and if there is an error shows that; if not, updates state to what was saved.
   isValid?: (object) => boolean; // if given, only allow saving if edited != original and isValid(edited) is true.
+  debounce_ms?: number; // default is DEBOUNCE_MS
 }
 
 const DEBOUNCE_MS = 1500;
@@ -26,7 +27,9 @@ export default function SaveButton({
   style,
   onSave,
   isValid,
+  debounce_ms,
 }: Props) {
+  if (debounce_ms == null) debounce_ms = DEBOUNCE_MS;
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
@@ -55,8 +58,10 @@ export default function SaveButton({
         return;
       }
       const query = { [table]: e };
-      setSaving(true);
-      setError("");
+      if (isMounted.current) {
+        setSaving(true);
+        setError("");
+      }
       let result;
       try {
         // Note -- we definitely do want to do the save
@@ -85,11 +90,13 @@ export default function SaveButton({
     const e = cloneDeep(saveRef.current.edited);
     if (table) {
       await save();
+      if (!isMounted.current) return;
       await onSave?.(e);
       return;
     }
     try {
       await onSave?.(e);
+      if (!isMounted.current) return;
       setOriginal(e);
       setError("");
     } catch (err) {
@@ -98,7 +105,7 @@ export default function SaveButton({
   }
 
   const doSaveDebounced = useMemo(
-    () => debounce(doSave, DEBOUNCE_MS),
+    () => debounce(doSave, debounce_ms),
     [onSave]
   );
 

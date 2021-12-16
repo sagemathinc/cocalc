@@ -6,10 +6,7 @@ import "./account/name";
 import "./account/email";
 import "./account/password";
 import "./account/avatar";
-import "./account/link";
-
-// Maybe ssh doesn't belong here.
-// import "./account/ssh";
+import "./account/sso";
 
 import "./account/api";
 import "./account/delete-account";
@@ -24,16 +21,6 @@ import "./editor/keyboard";
 import "./system/appearance";
 import "./system/behavior";
 import "./system/listings";
-
-// This maybe doesn't belong here.
-
-// import "./licenses/buy";
-// import "./licenses/licensed";
-// import "./licenses/manage";
-
-// import "./purchases/payment";
-// import "./purchases/invoices-and-receipts";
-// import "./purchases/subscriptions";
 
 interface Props {
   main: string;

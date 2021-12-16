@@ -29,7 +29,12 @@ The code is complicated due to how hooks work, when components get created
 and updated, etc.  Say to yourself: "I still know closure fu."
 */
 
-export default function useEditTable<T>(query: object, onSave?: Function) {
+interface Options {
+  onSave?: Function;
+  noSave?: boolean;
+}
+
+export default function useEditTable<T>(query: object, options?: Options) {
   const { loading, value } = useDatabase(query);
   const [original, setOriginal] = useState<T | undefined>(undefined);
   const [edited, setEdited0] = useState<T | undefined>(undefined);
@@ -58,7 +63,7 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
   }, [loading]);
 
   function Save() {
-    if (edited == null || original == null) return null;
+    if (edited == null || original == null || options?.noSave) return null;
     return (
       <div>
         <SaveButton
@@ -67,7 +72,7 @@ export default function useEditTable<T>(query: object, onSave?: Function) {
           original={original}
           setOriginal={setOriginal}
           table={keys(query)[0]}
-          onSave={onSave}
+          onSave={options?.onSave}
         />
       </div>
     );
