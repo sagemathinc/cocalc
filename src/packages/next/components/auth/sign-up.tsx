@@ -1,5 +1,5 @@
 import { Alert, Button, Checkbox, Input } from "antd";
-import { CSSProperties, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import SquareLogo from "components/logo-square";
 import useCustomize from "lib/use-customize";
 import A from "components/misc/A";
@@ -10,13 +10,14 @@ import {
 import apiPost from "lib/api/post";
 import SSO, { Strategy } from "./sso";
 import { LOGIN_STYLE } from "./shared";
+import Loading from "components/share/loading";
 
 const LINE = { margin: "15px 0" } as CSSProperties;
 
 interface Props {
-  strategies: Strategy[];
-  minimal?: boolean;
-  requiresToken?: boolean;
+  strategies?: Strategy[];
+  minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
+  requiresToken?: boolean; // will be determined by API call if not given.
   onSuccess?: () => void; // if given, call after sign up *succeeds*.
 }
 
@@ -49,9 +50,41 @@ export default function SignUp({
 
   const submittable = useRef<boolean>(false);
 
+  // Sometimes the user if this component knows requiresToken and sometimes they don't.
+  // If they don't, we have to make an API call to figure it out.
+  const [requiresToken2, setRequiresToken2] = useState<boolean | undefined>(
+    requiresToken
+  );
+  useEffect(() => {
+    if (requiresToken2 === undefined) {
+      (async () => {
+        try {
+          setRequiresToken2(await apiPost("/auth/requires-token"));
+        } catch (err) {}
+      })();
+    }
+  }, []);
+
+  const [strategies2, setStrategies2] = useState<Strategy[] | undefined>(
+    strategies
+  );
+  useEffect(() => {
+    if (strategies2 === undefined) {
+      (async () => {
+        try {
+          setStrategies2(await apiPost("/auth/sso-strategies"));
+        } catch (err) {}
+      })();
+    }
+  }, []);
+
+  if (requiresToken2 === undefined || strategies2 === undefined) {
+    return <Loading />;
+  }
+
   submittable.current = !!(
     terms &&
-    (!requiresToken || registrationToken) &&
+    (!requiresToken2 || registrationToken) &&
     email &&
     isValidEmailAddress(email) &&
     password &&
@@ -85,7 +118,7 @@ export default function SignUp({
     }
   }
 
-  if (!emailSignup && strategies.length == 0) {
+  if (!emailSignup && strategies2.length == 0) {
     return (
       <Alert
         style={{ margin: "30px 15%" }}
@@ -156,7 +189,7 @@ export default function SignUp({
               }
             />
           )}
-          {terms && requiresToken && (
+          {terms && requiresToken2 && (
             <div style={LINE}>
               <p>Registration Token</p>
               <Input
@@ -172,7 +205,7 @@ export default function SignUp({
               email={email}
               setEmail={setEmail}
               signUp={signUp}
-              strategies={strategies}
+              strategies={strategies2}
             />
           )}
           {issues.email && (
@@ -242,7 +275,7 @@ export default function SignUp({
           >
             {!terms
               ? "Agree to the terms"
-              : requiresToken && !registrationToken
+              : requiresToken2 && !registrationToken
               ? "Enter the secret registration token"
               : !email
               ? "How will you sign in?"

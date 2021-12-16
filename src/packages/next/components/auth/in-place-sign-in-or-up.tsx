@@ -15,6 +15,7 @@ interface Props {
 export default function InPlaceSignInOrUp({ title, why }: Props) {
   const router = useRouter();
   const [show, setShow] = useState<"sign-in" | "sign-up" | "">("");
+
   return (
     <div style={{ textAlign: "center" }}>
       <Divider>
@@ -26,7 +27,6 @@ export default function InPlaceSignInOrUp({ title, why }: Props) {
       <br />
       {show == "sign-in" && (
         <SignInAuth
-          strategies={[]}
           minimal
           onSuccess={() =>
             router.push({
@@ -38,7 +38,6 @@ export default function InPlaceSignInOrUp({ title, why }: Props) {
       )}
       {show == "sign-up" && (
         <SignUpAuth
-          strategies={[]}
           minimal
           onSuccess={() =>
             router.push({
