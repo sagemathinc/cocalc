@@ -20,7 +20,8 @@ Newly opened files will open with this font size in pixels by default. You can
 change the font size for a particular file (or editor frame) at any time,
 and the setting is saved in your browser.
 `,
-  theme: `TODO -- theme`,
+  theme: `The editor theme determines the color scheme used by CodeMirror.
+This impacts editing files and input cells of Jupyter notebooks.`,
   line_wrapping: `Enable line wrapping so that when I line is longer than the width of the editor,
 the line will get wrapped so it stays visible, and there is no horizontal scroll bar.  Enabling
 this can make it difficult to view the structure of some text involving longer lines, but avoids having
@@ -59,7 +60,7 @@ register({
     return (
       <Space direction="vertical" style={{ width: "100%" }}>
         <Row>
-          <Col md={14} sm={24} style={{paddingRight:'15px'}}>
+          <Col md={14} sm={24} style={{ paddingRight: "15px" }}>
             <Save />
             <EditNumber
               path="font_size"
@@ -75,7 +76,7 @@ register({
               icon="colors"
               desc={desc.theme}
               options={EDITOR_COLOR_SCHEMES}
-              style={{width:'30ex'}}
+              style={{ width: "30ex" }}
             />
             <EditBoolean
               icon="align-left"
