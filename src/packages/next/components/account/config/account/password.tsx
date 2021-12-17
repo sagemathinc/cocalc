@@ -49,13 +49,6 @@ register({
             showIcon
           />
         )}
-        {changed && changed == newPassword && (
-          <Alert
-            type="info"
-            message={"Password successfully changed!"}
-            showIcon
-          />
-        )}
         <b>Current password:</b>
         <Input.Password
           disabled={changing}
@@ -91,6 +84,13 @@ register({
             "Change Password"
           )}
         </Button>
+        {changed && changed == newPassword && (
+          <Alert
+            type="success"
+            message={"Password successfully changed!"}
+            showIcon
+          />
+        )}
         <br />
         <h2>Reset Password</h2>
         <div>

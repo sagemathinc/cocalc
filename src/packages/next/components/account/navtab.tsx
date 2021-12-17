@@ -24,12 +24,17 @@ export default function AccountNavTab() {
       {profile && (
         <>
           <Menu.Item>
-            <A href={profile_url}>
+            <A href={is_anonymous ? "/config/search/input" : profile_url}>
               Signed into {siteName} as
               <br />
               <b>
-                {first_name} {last_name}
-                {name ? ` (@${name})` : ""}
+                {is_anonymous && <>Anonymous User</>}
+                {!is_anonymous && (
+                  <>
+                    {first_name} {last_name}
+                    {name ? ` (@${name})` : ""}
+                  </>
+                )}
               </b>
             </A>
           </Menu.Item>
@@ -50,7 +55,7 @@ export default function AccountNavTab() {
         }
       >
         <A href="/config/search/input">
-          {is_anonymous ? <b>Sign Up (save your work)!</b> : "Account Configuration"}
+          {is_anonymous ? <b>Sign Up (save your work)!</b> : "Configuration"}
         </A>
       </Menu.Item>
       <Menu.Divider />

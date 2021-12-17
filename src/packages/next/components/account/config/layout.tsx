@@ -13,8 +13,8 @@ import Avatar from "components/account/avatar";
 import useProfile from "lib/hooks/profile";
 import { capitalize } from "@cocalc/util/misc";
 import Loading from "components/share/loading";
-import { delay } from "awaiting";
 import { useRouter } from "next/router";
+import Anonymous from "./anonymous";
 
 const { Content, Sider } = Layout;
 
@@ -47,6 +47,10 @@ export default function ConfigLayout({ page }: Props) {
         }
       />
     );
+  }
+
+  if (is_anonymous) {
+    return <Anonymous />;
   }
 
   const [main, sub] = page;

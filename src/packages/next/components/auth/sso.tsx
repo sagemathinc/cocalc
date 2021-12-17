@@ -1,9 +1,11 @@
 import { Avatar, Tooltip } from "antd";
-import { CSSProperties, ReactNode } from "react";
+import { CSSProperties, ReactNode, useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import basePath from "lib/base-path";
 import { join } from "path";
-import { useRouter } from 'next/router'
+import { useRouter } from "next/router";
+import apiPost from "lib/api/post";
+import Loading from "components/share/loading";
 
 export interface Strategy {
   name: string;
@@ -15,6 +17,8 @@ export interface Strategy {
 interface Props {
   strategies?: Strategy[];
   size?: number;
+  style?: CSSProperties;
+  header?: ReactNode;
 }
 
 export function getLink(strategy: string, target?: string): string {
@@ -25,17 +29,41 @@ export function getLink(strategy: string, target?: string): string {
   }`;
 }
 
-export default function SSO({ strategies, size }: Props) {
-  if (!strategies) return <></>;
+export default function SSO({ strategies, size, style, header }: Props) {
+  const [strategies2, setStrategies2] = useState<Strategy[] | undefined>(
+    strategies
+  );
+
+  useEffect(() => {
+    if (strategies2 === undefined) {
+      (async () => {
+        try {
+          setStrategies2(await apiPost("/auth/sso-strategies"));
+        } catch (_err) {}
+      })();
+    }
+  }, []);
+
+  if (strategies2 === undefined) {
+    return <Loading style={{ fontSize: "16pt" }} />;
+  }
+
+  if (strategies2.length == 0) return <></>;
+
+  // The -5px is to offset the initial avatar image, since they
+  // all have a left margin.
   return (
-    <div>
-      {strategies.map((strategy) => (
-        <StrategyAvatar
-          key={strategy.name}
-          strategy={strategy}
-          size={size ?? 60}
-        />
-      ))}
+    <div style={{ ...style }}>
+      {header}
+      <div style={{ marginLeft: "-5px" }}>
+        {strategies2.map((strategy) => (
+          <StrategyAvatar
+            key={strategy.name}
+            strategy={strategy}
+            size={size ?? 60}
+          />
+        ))}
+      </div>
     </div>
   );
 }

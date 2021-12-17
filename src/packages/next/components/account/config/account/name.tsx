@@ -43,115 +43,113 @@ register({
   icon: "user-times",
   desc: "Configure your first name, last name, username and whether or not your account is unlisted.",
   search: `{firstNameDesc} {lastNameDesc} Your username provides a nice URL for content you share publicly. unlisted {unlistedDesc}"`,
-  Component: () => {
-    const get = useDatabase({
-      accounts: {
-        first_name: null,
-        last_name: null,
-        name: null,
-        unlisted: null,
-      },
-    });
-    const [original, setOriginal] = useState<Data | undefined>(undefined);
-    const [edited, setEdited] = useState<Data | undefined>(undefined);
-
-    useEffect(() => {
-      if (
-        !get.loading &&
-        original === undefined &&
-        get.value.accounts != null
-      ) {
-        setOriginal(get.value.accounts);
-        setEdited(get.value.accounts);
-      }
-    }, [get.loading]);
-
-    function onChange(field: string, value: string = "value") {
-      return (e) => setEdited({ ...edited, [field]: e.target[value] });
-    }
-
-    if (original == null || edited == null) {
-      return <Loading />;
-    }
-
-    return (
-      <div>
-        {get.error && (
-          <Alert
-            style={{ marginTop: "20px" }}
-            message="Error loading data"
-            description={get.error}
-            type="error"
-            showIcon
-          />
-        )}{" "}
-        {get.loading ? (
-          <Loading />
-        ) : (
-          <form>
-            <Space
-              direction="vertical"
-              style={{ width: "100%", maxWidth: "500px" }}
-            >
-              <SaveButton
-                edited={edited}
-                original={original}
-                setOriginal={setOriginal}
-                table="accounts"
-              />
-              <br />
-              <b>First Name</b> {firstNameDesc}
-              <Input
-                addonBefore={"First name"}
-                defaultValue={get.value.accounts.first_name}
-                onChange={onChange("first_name")}
-              />
-              <br />
-              <b>Last Name</b> {lastNameDesc}
-              <Input
-                addonBefore={"Last name"}
-                defaultValue={get.value.accounts.last_name}
-                onChange={onChange("last_name")}
-              />
-              <br />
-              <b>Username</b>
-              <div>
-                Your username provides a{" "}
-                {edited.name ? (
-                  <A external href={`/${edited.name}`}>
-                    nice URL
-                  </A>
-                ) : (
-                  "nice URL"
-                )}{" "}
-                for content you share publicly.
-                {original.name && (
-                  <>
-                    {" "}
-                    (Changing your name could break links that you have shared.)
-                  </>
-                )}
-              </div>
-              <Input
-                addonBefore={"Name"}
-                defaultValue={get.value.accounts.name}
-                onChange={onChange("name")}
-              />
-              <br />
-              <b>
-                <Icon name="user-secret" /> Unlisted
-              </b>
-              <div>{unlistedDesc}</div>
-              <Checkbox
-                defaultChecked={get.value.accounts.unlisted}
-                onChange={onChange("unlisted", "checked")}
-              >
-                Unlisted
-              </Checkbox>
-            </Space>
-          </form>
-        )}
-      </div>
-    );
-  },
+  Component: ConfigureName,
 });
+
+function ConfigureName() {
+  const get = useDatabase({
+    accounts: {
+      first_name: null,
+      last_name: null,
+      name: null,
+      unlisted: null,
+    },
+  });
+  const [original, setOriginal] = useState<Data | undefined>(undefined);
+  const [edited, setEdited] = useState<Data | undefined>(undefined);
+
+  useEffect(() => {
+    if (!get.loading && original === undefined && get.value.accounts != null) {
+      setOriginal(get.value.accounts);
+      setEdited(get.value.accounts);
+    }
+  }, [get.loading]);
+
+  function onChange(field: string, value: string = "value") {
+    return (e) => setEdited({ ...edited, [field]: e.target[value] });
+  }
+
+  if (original == null || edited == null) {
+    return <Loading />;
+  }
+
+  return (
+    <div>
+      {get.error && (
+        <Alert
+          style={{ marginTop: "20px" }}
+          message="Error loading data"
+          description={get.error}
+          type="error"
+          showIcon
+        />
+      )}{" "}
+      {get.loading ? (
+        <Loading />
+      ) : (
+        <form>
+          <Space
+            direction="vertical"
+            style={{ width: "100%", maxWidth: "500px" }}
+          >
+            <SaveButton
+              edited={edited}
+              original={original}
+              setOriginal={setOriginal}
+              table="accounts"
+            />
+            <br />
+            <b>First Name</b> {firstNameDesc}
+            <Input
+              addonBefore={"First name"}
+              defaultValue={get.value.accounts.first_name}
+              onChange={onChange("first_name")}
+            />
+            <br />
+            <b>Last Name</b> {lastNameDesc}
+            <Input
+              addonBefore={"Last name"}
+              defaultValue={get.value.accounts.last_name}
+              onChange={onChange("last_name")}
+            />
+            <br />
+            <b>Username</b>
+            <div>
+              Your username provides a{" "}
+              {edited.name ? (
+                <A external href={`/${edited.name}`}>
+                  nice URL
+                </A>
+              ) : (
+                "nice URL"
+              )}{" "}
+              for content you share publicly.
+              {original.name && (
+                <>
+                  {" "}
+                  (Changing your name could break links that you have shared.)
+                </>
+              )}
+            </div>
+            <Input
+              addonBefore={"Name"}
+              defaultValue={get.value.accounts.name}
+              onChange={onChange("name")}
+            />
+            <br />
+            <b>
+              <Icon name="user-secret" /> Unlisted
+            </b>
+            <div>{unlistedDesc}</div>
+            <Checkbox
+              defaultChecked={get.value.accounts.unlisted}
+              onChange={onChange("unlisted", "checked")}
+            >
+              Unlisted
+            </Checkbox>
+          </Space>
+        </form>
+      )}
+    </div>
+  );
+}

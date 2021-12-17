@@ -37,8 +37,16 @@ export default function Home({ customize }) {
               }}
             >
               Signed in as{" "}
-              <A href={join(basePath, "settings")} external>
-                {customize.account.first_name} {customize.account.last_name}
+              <A href="/config">
+                {customize.account.is_anonymous
+                  ? "Anonymous User"
+                  : `${customize.account.first_name} ${
+                      customize.account.last_name
+                    } ${
+                      customize.account.name
+                        ? "(@" + customize.account.name + ")"
+                        : ""
+                    }`}
               </A>
             </div>
           )}

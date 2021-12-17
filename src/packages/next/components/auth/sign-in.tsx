@@ -8,7 +8,6 @@ import { LOGIN_STYLE } from "./shared";
 import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Contact from "components/landing/contact";
-import Loading from "components/share/loading";
 
 interface Props {
   strategies?: Strategy[];
@@ -22,22 +21,6 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
   const [password, setPassword] = useState<string>("");
   const [signingIn, setSigningIn] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [strategies2, setStrategies2] = useState<Strategy[] | undefined>(
-    strategies
-  );
-
-  useEffect(() => {
-    if (strategies2 === undefined) {
-      (async () => {
-        try {
-          setStrategies2(await apiPost("/auth/sso-strategies"));
-        } catch (_err) {}
-      })();
-    }
-  }, []);
-  if (strategies2 === undefined) {
-    return <Loading />;
-  }
 
   async function signIn() {
     if (signingIn) return;
@@ -66,9 +49,11 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
 
       <div style={LOGIN_STYLE}>
         <div style={{ margin: "10px 0" }}>
-          {strategies2.length > 0
-            ? "Sign in using your email address or a single sign on provider."
-            : "Sign in using your email address."}
+          {strategies != null
+            ? strategies.length > 0
+              ? "Sign in using your email address or a single sign on provider."
+              : "Sign in using your email address."
+            : "Sign in"}
         </div>
         <form>
           <Input
@@ -78,11 +63,13 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
             autoComplete="username"
             onChange={(e) => setEmail(e.target.value)}
           />
-          {!email && (
-            <div style={{ textAlign: "center", marginTop: "20px" }}>
-              <SSO strategies={strategies2} />
-            </div>
-          )}
+          <div style={{ textAlign: "center", marginTop: "20px" }}>
+            <SSO
+              strategies={strategies}
+              size={email ? 24 : undefined}
+              style={email ? { float: "right" } : undefined}
+            />
+          </div>
           {/* Don't ever hide password input, since that messes up autofill */}
           <div style={{ marginTop: "30px" }}>
             <p>Password </p>

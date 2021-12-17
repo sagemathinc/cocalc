@@ -14,14 +14,16 @@ export default async function getPrivateProfile(
 ): Promise<Profile> {
   const pool = getPool(noCache ? undefined : "medium");
   const { rows } = await pool.query(
-    "SELECT first_name, last_name, profile, name, groups, password_hash, passports FROM accounts WHERE account_id=$1",
+    "SELECT first_name, last_name, profile, name, groups, email_address, passports FROM accounts WHERE account_id=$1",
     [account_id]
   );
   if (rows.length == 0) {
     throw Error(`no account with id ${account_id}`);
   }
   const is_admin = !!rows[0].groups?.includes("admin");
-  const is_anonymous = !rows[0].password_hash && !rows[0].passports;
+  // anonymous means "no email and no passport", because if you have an email address somehow,
+  // then you can set/reset a password... and of course we consider you "known" by having an email.
+  const is_anonymous = !rows[0].email_address && !rows[0].passports;
   return {
     account_id,
     first_name: rows[0].first_name ?? "Anonymous",

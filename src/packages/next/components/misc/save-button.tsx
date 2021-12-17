@@ -15,11 +15,13 @@ interface Props {
   onSave?: Function; // if onSave is async then awaits and if there is an error shows that; if not, updates state to what was saved.
   isValid?: (object) => boolean; // if given, only allow saving if edited != original and isValid(edited) is true.
   debounce_ms?: number; // default is DEBOUNCE_MS
+  disabled?: boolean; // if given, overrides internaal logic.
 }
 
 const DEBOUNCE_MS = 1500;
 
 export default function SaveButton({
+  disabled,
   edited,
   original,
   setOriginal,
@@ -115,10 +117,15 @@ export default function SaveButton({
   }, [edited]);
 
   const same = isEqual(edited, original);
-  const disabled = saving || same || (isValid != null && !isValid(edited));
   return (
     <div style={style}>
-      <Button type="primary" disabled={disabled} onClick={doSave}>
+      <Button
+        type="primary"
+        disabled={
+          disabled ?? (saving || same || (isValid != null && !isValid(edited)))
+        }
+        onClick={doSave}
+      >
         <Space>
           <Icon name={"save"} />
           {saving ? (

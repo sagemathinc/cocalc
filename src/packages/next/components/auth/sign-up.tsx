@@ -159,21 +159,15 @@ export default function SignUp({
       )}
 
       <div style={LOGIN_STYLE}>
-        <Checkbox
+        <TermsCheckbox
+          onChange={setTerms}
           style={{
             marginTop: "10px",
             marginBottom: terms ? "10px" : undefined,
             fontSize: "12pt",
             color: "#666",
           }}
-          onChange={(e) => setTerms(e.target.checked)}
-        >
-          I agree to the{" "}
-          <A external={true} href="/policies/terms">
-            Terms of Service
-          </A>{" "}
-          and to receive support emails from CoCalc.
-        </Checkbox>
+        />
         <form>
           {issues.registrationToken && (
             <Alert
@@ -346,11 +340,37 @@ function EmailOrSSO({ email, setEmail, signUp, strategies }) {
           />
         </p>
       )}
-      {!email && (
-        <div style={{ textAlign: "center" }}>
-          <SSO strategies={strategies} />
-        </div>
-      )}
+      <div style={{ textAlign: "center" }}>
+        <SSO
+          strategies={strategies}
+          size={email ? 24 : undefined}
+          style={email ? { float: "right" } : undefined}
+        />
+      </div>
     </div>
+  );
+}
+
+export function TermsCheckbox({
+  checked,
+  onChange,
+  style,
+}: {
+  checked?: bool;
+  onChange?: (bool) => void;
+  style?: CSSProperties;
+}) {
+  return (
+    <Checkbox
+      checked={checked}
+      style={style}
+      onChange={(e) => onChange?.(e.target.checked)}
+    >
+      I agree to the{" "}
+      <A external={true} href="/policies/terms">
+        Terms of Service
+      </A>
+      .
+    </Checkbox>
   );
 }
