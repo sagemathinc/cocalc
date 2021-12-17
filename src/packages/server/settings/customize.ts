@@ -16,6 +16,7 @@ export interface Customize {
   helpEmail?: string;
   contactEmail?: string;
   isCommercial?: boolean;
+  sshGateway?: boolean;
   logoSquareURL?: string;
   logoRectangularURL?: string;
   splashImage?: string;
@@ -59,6 +60,8 @@ export default async function getCustomize(): Promise<Customize> {
     contactEmail: fallback(settings.organization_email, settings.help_email),
 
     isCommercial: settings.commercial,
+
+    sshGateway: settings.ssh_gateway,
 
     anonymousSignup: settings.anonymous_signup,
     emailSignup: settings.email_signup,

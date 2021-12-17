@@ -10,7 +10,7 @@ import A from "components/misc/A";
 import useProfile from "lib/hooks/profile";
 
 export default function AccountNavTab() {
-  const { siteName } = useCustomize();
+  const { isCommercial, siteName, sshGateway } = useCustomize();
   const profile = useProfile();
   if (!profile) return null;
 
@@ -40,9 +40,7 @@ export default function AccountNavTab() {
           </Menu.Item>
 
           {is_anonymous && (
-            <Menu.Item
-              icon={<Icon name="user" />}
-            >
+            <Menu.Item icon={<Icon name="user" />}>
               <A href="/config/search/input">
                 <b>Sign Up (save your work)!</b>
               </A>
@@ -96,21 +94,21 @@ export default function AccountNavTab() {
             {is_anonymous ? "Project" : "Projects"}
           </A>
         </Menu.Item>
-        {!is_anonymous && (
+        {!is_anonymous && isCommercial && (
           <Menu.Item icon={<Icon name="key" />}>
             <A href={join(basePath, "settings", "licenses")} external>
               Licenses
             </A>
           </Menu.Item>
         )}
-        {!is_anonymous && (
+        {!is_anonymous && isCommercial && (
           <Menu.Item icon={<Icon name="credit-card" />}>
             <A href={join(basePath, "settings", "billing")} external>
               Purchases
             </A>
           </Menu.Item>
         )}
-        {!is_anonymous && (
+        {!is_anonymous && sshGateway && (
           <Menu.Item icon={<Icon name="key" />}>
             <A href={join(basePath, "settings", "ssh-keys")} external>
               SSH keys
