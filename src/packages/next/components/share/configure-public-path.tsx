@@ -9,7 +9,6 @@ import A from "components/misc/A";
 import SelectSiteLicense from "components/misc/select-site-license";
 import { Icon } from "@cocalc/frontend/components/icon";
 import LaTeX from "components/landing/latex";
-import { useRouter } from "next/router";
 
 const { Option } = Select;
 
@@ -39,7 +38,6 @@ interface Info {
 }
 
 export default function ConfigurePublicPath({ id, project_id, path }: Props) {
-  const router = useRouter();
   const publicPaths = useDatabase({
     public_paths: { ...QUERY, id, project_id, path },
   });
@@ -87,15 +85,16 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
     ? "unlisted"
     : "listed";
 
-  const save = (
-    <SaveButton
-      edited={edited}
-      original={original}
-      setOriginal={setOriginal}
-      table="public_paths"
-      onSave={() => router.reload()}
-    />
-  );
+  const save =
+    edited == null || original == null ? null : (
+      <SaveButton
+        edited={edited}
+        original={original}
+        setOriginal={setOriginal}
+        table="public_paths"
+        preserveFields={["project_id", "path", "id"]}
+      />
+    );
 
   return (
     <div

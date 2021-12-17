@@ -16,6 +16,7 @@ interface Props {
   isValid?: (object) => boolean; // if given, only allow saving if edited != original and isValid(edited) is true.
   debounce_ms?: number; // default is DEBOUNCE_MS
   disabled?: boolean; // if given, overrides internaal logic.
+  preserveFields?: string[];
 }
 
 const DEBOUNCE_MS = 1500;
@@ -30,6 +31,7 @@ export default function SaveButton({
   onSave,
   isValid,
   debounce_ms,
+  preserveFields,
 }: Props) {
   if (debounce_ms == null) debounce_ms = DEBOUNCE_MS;
   const [saving, setSaving] = useState<boolean>(false);
@@ -57,9 +59,15 @@ export default function SaveButton({
       }
       if (!changes) {
         // no changes to save.
-        return;
+        return false;
+      }
+      if (preserveFields) {
+        for (const field of preserveFields) {
+          e[field] = cloneDeep(edited[field]);
+        }
       }
       const query = { [table]: e };
+      console.log("query = ", query);
       if (isMounted.current) {
         setSaving(true);
         setError("");
@@ -73,7 +81,7 @@ export default function SaveButton({
       } catch (err) {
         if (!isMounted.current) return;
         setError(err.message);
-        return { error };
+        return false;
       } finally {
         if (isMounted.current) {
           setSaving(false);
@@ -85,15 +93,18 @@ export default function SaveButton({
       } else {
         setOriginal(cloneDeep(edited));
       }
+      return true; // successful save
     };
   }, []);
 
   async function doSave() {
     const e = cloneDeep(saveRef.current.edited);
     if (table) {
-      await save();
+      const didSave = await save();
       if (!isMounted.current) return;
-      await onSave?.(e);
+      if (didSave) {
+        await onSave?.(e);
+      }
       return;
     }
     try {

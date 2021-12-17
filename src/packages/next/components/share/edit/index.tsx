@@ -64,10 +64,11 @@ export default function Edit({
           project_id={project_id}
           image={image}
           description={description}
-          onClose={() => setExpanded(false)}
+          onClose={() => {
+            setExpanded(false);
+          }}
         />
       )}
     </span>
   );
 }
-
