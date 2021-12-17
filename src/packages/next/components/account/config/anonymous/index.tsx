@@ -7,7 +7,6 @@ is an email address or SSO sign on link.
 Non-anonymous users get the layout page.
 */
 import SiteName from "components/share/site-name";
-import A from "components/misc/A";
 import { Button, Popconfirm } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import apiPost from "lib/api/post";
@@ -20,7 +19,7 @@ export default function Anonymous() {
     <div
       style={{
         margin: "auto",
-        padding: "30px",
+        padding: "50px 30px",
         maxWidth: "800px",
         background: "white",
       }}
@@ -28,8 +27,8 @@ export default function Anonymous() {
       <Popconfirm
         title={
           <div style={{ maxWidth: "50ex" }}>
-            Are you sure you want to sign out <b>losing everything</b> you just did
-            anonymously?
+            Are you sure you want to sign out <b>losing everything</b> you just
+            did anonymously?
           </div>
         }
         onConfirm={async () => {
@@ -39,24 +38,15 @@ export default function Anonymous() {
         okText={"Yes, discard everything"}
         cancelText={"Cancel"}
       >
-        <Button danger style={{ float: "right" }} size="large">
+        <Button danger style={{ float: "right" }}>
           <Icon name="sign-out-alt" /> Sign Out
         </Button>
       </Popconfirm>
       <h2>
-        Thank you for trying <SiteName />!
+        Thank you for trying <SiteName /> anonymously!
       </h2>
-      <h3>
-        Ensure you can sign in later instead of <b>losing all of your work</b>
-      </h3>
-      Getting a normal account is free and easy, prevents losing your work,
-      and{" "}
-      <A href="https://doc.cocalc.com" external>
-        <b>
-          <i>unlocks many additional features</i>
-        </b>
-      </A>
-      .
+      Signing up for an account will prevent losing your work, and unlock
+      additional features.
       <Upgrade style={{ margin: "15px 0px" }} />
     </div>
   );

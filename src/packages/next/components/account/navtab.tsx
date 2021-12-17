@@ -42,7 +42,6 @@ export default function AccountNavTab() {
           {is_anonymous && (
             <Menu.Item
               icon={<Icon name="user" />}
-              style={{ background: "#fffbe6", border: "1px solid orange" }}
             >
               <A href="/config/search/input">
                 <b>Sign Up (save your work)!</b>
