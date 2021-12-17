@@ -31,12 +31,15 @@ export function register(info: Info1) {
   searchInfo[info.path] = { ...info, search };
 }
 
-export function search(s: string): Info[] {
+export function search(s: string, allowEmpty?: boolean): Info[] {
   const v = search_split(s.toLowerCase().trim());
-  if (!s) return [];
   const result: Info[] = [];
+  if (v.length == 0 && !allowEmpty) return result;
   for (const path in searchInfo) {
-    if (searchInfo[path].search && search_match(searchInfo[path].search, v)) {
+    if (
+      v.length == 0 ||
+      (searchInfo[path].search && search_match(searchInfo[path].search, v))
+    ) {
       result.push(searchInfo[path]);
     }
   }

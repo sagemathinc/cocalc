@@ -20,7 +20,7 @@ export default function AccountNavTab() {
   const profile_url = name ? `/${name}` : `/share/accounts/${account_id}`;
 
   const menu = (
-    <Menu>
+    <Menu mode="horizontal" theme="dark">
       {profile && (
         <>
           <Menu.Item>
@@ -38,70 +38,104 @@ export default function AccountNavTab() {
               </b>
             </A>
           </Menu.Item>
+
+          {is_anonymous && (
+            <Menu.Item
+              icon={<Icon name="user" />}
+              style={{ background: "#fffbe6", border: "1px solid orange" }}
+            >
+              <A href="/config/search/input">
+                <b>Sign Up (save your work)!</b>
+              </A>
+            </Menu.Item>
+          )}
+          <Menu.Item icon={<Icon name="book" />}>
+            <A href="https://doc.cocalc.com" external>
+              Documentation
+            </A>
+          </Menu.Item>
+          <Menu.Divider />
+
+          {!is_anonymous /* color due to a theme bug */ && (
+            <Menu.ItemGroup
+              key="configuration"
+              title={
+                <A href="/config/search/input">
+                  <span style={{ color: "#a4acb3" }}>
+                    <Icon name="wrench" /> Configuration
+                  </span>
+                </A>
+              }
+            >
+              <Menu.Item icon={<Icon name="user" />}>
+                <A href="/config/account/name">Account</A>
+              </Menu.Item>
+              <Menu.Item icon={<Icon name="edit" />}>
+                <A href="/config/editor/appearance">Editor</A>
+              </Menu.Item>
+              <Menu.Item icon={<Icon name="gear" />}>
+                <A href="/config/system/appearance">System</A>
+              </Menu.Item>
+            </Menu.ItemGroup>
+          )}
+
           <Menu.Divider />
         </>
       )}
-      <Menu.Item icon={<Icon name="book" />}>
-        <A href="https://doc.cocalc.com" external>
-          Documentation...
-        </A>
-      </Menu.Item>
-      <Menu.Item
-        icon={<Icon name="user" />}
-        style={
-          is_anonymous
-            ? { background: "#fffbe6", border: "1px solid orange" }
-            : undefined
+      <Menu.ItemGroup
+        key="configuration"
+        title={
+          <A href={join(basePath, "app")} external>
+            <span style={{ color: "#a4acb3" }}>
+              <Icon name="user" /> Your...
+            </span>
+          </A>
         }
       >
-        <A href="/config/search/input">
-          {is_anonymous ? <b>Sign Up (save your work)!</b> : "Configuration"}
-        </A>
-      </Menu.Item>
-      <Menu.Divider />
-
-      {!is_anonymous && (
         <Menu.Item icon={<Icon name="key" />}>
-          <A href={join(basePath, "settings", "licenses")} external>
-            Your Licenses...
+          <A href={join(basePath, "projects")} external>
+            {is_anonymous ? "Project" : "Projects"}
           </A>
         </Menu.Item>
-      )}
-      {!is_anonymous && (
-        <Menu.Item icon={<Icon name="credit-card" />}>
-          <A href={join(basePath, "settings", "billing")} external>
-            Your Purchases...
-          </A>
-        </Menu.Item>
-      )}
-      {!is_anonymous && (
-        <Menu.Item icon={<Icon name="key" />}>
-          <A href={join(basePath, "settings", "ssh-keys")} external>
-            Your SSH keys...
-          </A>
-        </Menu.Item>
-      )}
-      <Menu.Item icon={<Icon name="key" />}>
-        <A href={join(basePath, "projects")} external>
-          {is_anonymous ? "Your Project..." : "Your Projects..."}
-        </A>
-      </Menu.Item>
-      {!is_anonymous && (
-        <Menu.Item icon={<Icon name="bullhorn" />}>
-          <A
-            href={profile?.name ? `/${name}` : `/share/accounts/${account_id}`}
-          >
-            Your Shared Files
-          </A>
-        </Menu.Item>
-      )}
-
+        {!is_anonymous && (
+          <Menu.Item icon={<Icon name="key" />}>
+            <A href={join(basePath, "settings", "licenses")} external>
+              Licenses
+            </A>
+          </Menu.Item>
+        )}
+        {!is_anonymous && (
+          <Menu.Item icon={<Icon name="credit-card" />}>
+            <A href={join(basePath, "settings", "billing")} external>
+              Purchases
+            </A>
+          </Menu.Item>
+        )}
+        {!is_anonymous && (
+          <Menu.Item icon={<Icon name="key" />}>
+            <A href={join(basePath, "settings", "ssh-keys")} external>
+              SSH keys
+            </A>
+          </Menu.Item>
+        )}
+        {!is_anonymous && (
+          <Menu.Item icon={<Icon name="bullhorn" />}>
+            <A
+              href={
+                profile?.name ? `/${name}` : `/share/accounts/${account_id}`
+              }
+            >
+              Shared Files
+            </A>
+          </Menu.Item>
+        )}
+      </Menu.ItemGroup>
       {is_admin && (
         <>
           <Menu.Divider />
           <Menu.Item icon={<Icon name="users" />}>
             <A href={join(basePath, "admin")} external>
-              Administration...
+              Site Administration
             </A>
           </Menu.Item>
         </>

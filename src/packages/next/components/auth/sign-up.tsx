@@ -356,8 +356,8 @@ export function TermsCheckbox({
   onChange,
   style,
 }: {
-  checked?: bool;
-  onChange?: (bool) => void;
+  checked?: boolean;
+  onChange?: (boolean) => void;
   style?: CSSProperties;
 }) {
   return (

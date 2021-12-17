@@ -355,7 +355,7 @@ export const site_settings_conf: SiteSettings = {
   },
   anonymous_signup: {
     name: "Allow anonymous signup",
-    desc: "Users can create an account with no email or password.  This won't work if you have any registration tokens set below.",
+    desc: "Users can create a temporary account with no email, password or single sign on.  This won't work if you have any registration tokens set below.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

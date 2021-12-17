@@ -71,8 +71,8 @@ register({
             <SaveButton
               disabled={
                 password.length < 6 ||
-                !isValidEmailAddress(edited.email_address) ||
-                lastSuccess == password + edited.email_address
+                !isValidEmailAddress(edited.email_address ?? "") ||
+                lastSuccess == password + (edited.email_address ?? "")
               }
               edited={edited}
               original={original}

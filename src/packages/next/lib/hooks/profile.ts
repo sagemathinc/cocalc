@@ -34,7 +34,6 @@ export default function useProfile({ account_id, noCache }: Options = {}):
   );
 
   async function getProfile(): Promise<void> {
-    console.log("getProfile");
     try {
       const { profile } = await apiPost(
         "/accounts/profile",
@@ -46,14 +45,12 @@ export default function useProfile({ account_id, noCache }: Options = {}):
         // only cache if got actual information.
         cache.set(account_id ?? "", profile);
       }
-      console.log("got ", profile);
     } catch (err) {
       console.warn("Unable to fetch a profile -- ", err);
     }
   }
 
   useEffect(() => {
-    console.log("useProfile -- use effect");
     getProfile();
   }, [account_id, noCache]);
 

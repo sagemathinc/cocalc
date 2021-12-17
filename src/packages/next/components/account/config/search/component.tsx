@@ -2,16 +2,20 @@ import { Input, List } from "antd";
 import { useState } from "react";
 import { Info } from "./entries";
 import register from "../register";
-import { search } from "../search/entries";
+import { search } from "./entries";
 import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
 import { useRouter } from "next/router";
 import { join } from "path";
 
-export default function Search() {
-  const [results, setResults] = useState<Info[] | undefined>(undefined);
+interface Props {
+  allowEmpty?: boolean; // if true allow empty search
+}
+
+export default function Search({ allowEmpty }: Props) {
   const [value, setValue] = useState<string>("");
+  const [results, setResults] = useState<Info[]>(search(value, allowEmpty));
   const router = useRouter();
 
   function onSearch(value: string) {
@@ -21,7 +25,7 @@ export default function Search() {
   return (
     <div>
       <Input.Search
-        autoFocus
+        autoFocus={allowEmpty}
         style={{ maxWidth: "60ex" }}
         placeholder="Search all configuration options..."
         onSearch={onSearch}
@@ -42,7 +46,7 @@ export default function Search() {
       />
       <br />
       <br />
-      {results != null && value.trim() && (
+      {results != null && (allowEmpty || value.trim()) && (
         <SearchResults results={results} onClick={() => setValue("")} />
       )}
     </div>
@@ -54,7 +58,7 @@ register({
   title: "Search",
   desc: "",
   icon: "search",
-  Component: Search,
+  Component: () => <Search allowEmpty />,
 });
 
 function SearchResults({

@@ -1,5 +1,5 @@
 import { Alert, Button, Input } from "antd";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import SquareLogo from "components/logo-square";
 import useCustomize from "lib/use-customize";
 import A from "components/misc/A";

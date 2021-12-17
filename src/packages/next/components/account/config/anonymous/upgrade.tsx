@@ -36,7 +36,7 @@ export default function Upgrade({ style }: Props) {
 
 function EmailPassword() {
   const router = useRouter();
-  const [success, setSuccess] = useState<bool>(false);
+  const [success, setSuccess] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [email_address, setEmailAddress] = useState<string>("");
   const [password, setPassword] = useState<string>("");

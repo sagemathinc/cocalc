@@ -7,8 +7,6 @@ import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import Head from "components/landing/head";
-import { join } from "path";
-import basePath from "lib/base-path";
 
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
 
