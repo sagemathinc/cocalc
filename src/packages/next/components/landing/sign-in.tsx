@@ -26,7 +26,7 @@ export default function SignIn({ startup, hideFree }: Props) {
           className="ant-btn"
           href={join(basePath, "projects")}
           external={true}
-          style={{ margin: "15px" }}
+          style={{ margin: "15px", fontSize: "14pt" }}
           title={`Open the ${siteName} app and view your projects`}
         >
           View Your {siteName} Projects...

@@ -12,7 +12,8 @@ const revalidate = 30;
 
 interface Options {
   name?: boolean; // if true and user is signed in, also puts their first_name,
-  // last_name, name(=username), email_address in the account field. This is one more db query.
+  // last_name, name(=username), email_address, and is_anonymous in the account field.
+  // This is one more db query.
 }
 
 export default async function withCustomize(

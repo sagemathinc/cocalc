@@ -4,29 +4,23 @@ import "./search/component";
 
 import "./account/name";
 import "./account/email";
+import "./account/password";
 import "./account/avatar";
-import "./account/link";
-import "./account/ssh";
+import "./account/sso";
+
 import "./account/api";
 import "./account/delete-account";
 import "./account/sign-out";
 
 import "./editor/appearance";
+import "./editor/jupyter";
+import "./editor/terminal";
 import "./editor/options";
 import "./editor/keyboard";
 
-import "./system/announcements";
 import "./system/appearance";
 import "./system/behavior";
 import "./system/listings";
-
-import "./licenses/buy";
-import "./licenses/licensed";
-import "./licenses/manage";
-
-import "./purchases/payment";
-import "./purchases/invoices-and-receipts";
-import "./purchases/subscriptions";
 
 interface Props {
   main: string;
@@ -38,5 +32,5 @@ export default function Config({ main, sub }: Props) {
   if (C != null) {
     return <C />;
   }
-  return <>TODO: Configure not yet implemented.</>;
+  return null;
 }

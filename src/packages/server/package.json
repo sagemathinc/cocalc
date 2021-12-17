@@ -5,6 +5,7 @@
   "exports": {
     "./*": "./dist/*.js",
     "./auth/*": "./dist/auth/*.js",
+    "./api/*": "./dist/api/*.js",
     "./accounts/*": "./dist/accounts/*.js",
     "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",

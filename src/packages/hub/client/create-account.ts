@@ -25,7 +25,7 @@ import {
 import { delay } from "awaiting";
 import { callback2 } from "@cocalc/util/async-utils";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-const { api_key_action } = require("../api/manage");
+import apiKeyAction from "@cocalc/server/api/manage";
 import { have_active_registration_tokens, get_passports } from "../utils";
 import { get_server_settings } from "@cocalc/database/postgres/server-settings";
 import { getLogger } from "@cocalc/hub/logger";
@@ -399,8 +399,7 @@ export async function create_account(
 
     if (opts.mesg.get_api_key) {
       dbg("get_api_key -- generate key and include in response message");
-      mesg1.api_key = await callback2(api_key_action, {
-        database: opts.database,
+      mesg1.api_key = await apiKeyAction({
         account_id,
         password: opts.mesg.password,
         action: "regenerate",

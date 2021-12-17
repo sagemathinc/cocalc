@@ -107,7 +107,7 @@ const WARNING_STYLE: React.CSSProperties = {
 export const CookieWarning: React.FC = React.memo(() => {
   return (
     <div style={WARNING_STYLE}>
-      <Icon name="warning" /> You <em>must</em> enable cookies to sign into
+      <Icon name="warning" /> You <em>must</em> enable cookies to use{" "}
       <SiteName />.
     </div>
   );

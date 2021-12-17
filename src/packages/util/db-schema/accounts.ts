@@ -142,6 +142,7 @@ Table({
     api_key: {
       type: "string",
       desc: "Optional API key that grants full API access to anything this account can access. Key is of the form 'sk_9QabcrqJFy7JIhvAGih5c6Nb', where the random part is 24 characters (base 62).",
+      unique: true,
     },
     sign_up_usage_intent: {
       type: "string",
@@ -170,12 +171,12 @@ Table({
       "(lower(last_name)  text_pattern_ops)",
       "created_by",
       "created",
-      "api_key",
       "last_active DESC NULLS LAST",
       "lti_id",
       "unlisted",
     ],
     pg_unique_indexes: [
+      "api_key", // we use the map api_key --> account_id, so it better be unique
       "LOWER(name)", // ensure user-assigned name is case sensitive globally unique
     ], // note that we actually require uniqueness across accounts and organizations
     // and this index is just a step in that direction; full uniquness must be
@@ -238,6 +239,11 @@ Table({
             // if true, do not show warning when using non-member projects
             no_free_warnings: false,
             allow_mentions: true,
+            dark_mode: false,
+            dark_mode_brightness: 100,
+            dark_mode_contrast: 90,
+            dark_mode_sepia: 0,
+            dark_mode_grayscale: 0,
           },
           name: null,
           first_name: "",
@@ -257,7 +263,7 @@ Table({
           coupon_history: null,
           profile: {
             image: undefined,
-            color: undefined,
+            color: "rgb(170,170,170)",
           },
           ssh_keys: {},
           created: null,
@@ -303,6 +309,11 @@ Table({
           for (const field of ["first_name", "last_name", "email_address"]) {
             if (obj[field] != null) {
               obj[field] = obj[field].slice(0, 254);
+              if (field != "email_address" && !obj[field]) {
+                // name fields can't be empty
+                cb(`${field} must be nonempty`);
+                return;
+              }
             }
           }
           cb();
@@ -311,3 +322,70 @@ Table({
     },
   },
 });
+
+export const EDITOR_BINDINGS = {
+  standard: "Standard",
+  sublime: "Sublime",
+  vim: "Vim",
+  emacs: "Emacs",
+};
+
+export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
+  default: "Default",
+  "3024-day": "3024 day",
+  "3024-night": "3024 night",
+  abcdef: "abcdef",
+  //'ambiance-mobile'         : 'Ambiance mobile'  # doesn't highlight python, confusing
+  ambiance: "Ambiance",
+  "base16-dark": "Base 16 dark",
+  "base16-light": "Base 16 light",
+  bespin: "Bespin",
+  blackboard: "Blackboard",
+  cobalt: "Cobalt",
+  colorforth: "Colorforth",
+  darcula: "Darcula",
+  dracula: "Dracula",
+  "duotone-dark": "Duotone Dark",
+  "duotone-light": "Duotone Light",
+  eclipse: "Eclipse",
+  elegant: "Elegant",
+  "erlang-dark": "Erlang dark",
+  "gruvbox-dark": "Gruvbox-Dark",
+  hopscotch: "Hopscotch",
+  icecoder: "Icecoder",
+  idea: "Idea", // this messes with the global hinter CSS!
+  isotope: "Isotope",
+  "lesser-dark": "Lesser dark",
+  liquibyte: "Liquibyte",
+  lucario: "Lucario",
+  material: "Material",
+  mbo: "mbo",
+  "mdn-like": "MDN like",
+  midnight: "Midnight",
+  monokai: "Monokai",
+  neat: "Neat",
+  neo: "Neo",
+  night: "Night",
+  "oceanic-next": "Oceanic next",
+  "panda-syntax": "Panda syntax",
+  "paraiso-dark": "Paraiso dark",
+  "paraiso-light": "Paraiso light",
+  "pastel-on-dark": "Pastel on dark",
+  railscasts: "Railscasts",
+  rubyblue: "Rubyblue",
+  seti: "Seti",
+  shadowfox: "Shadowfox",
+  "solarized dark": "Solarized dark",
+  "solarized light": "Solarized light",
+  ssms: "ssms",
+  "the-matrix": "The Matrix",
+  "tomorrow-night-bright": "Tomorrow Night - Bright",
+  "tomorrow-night-eighties": "Tomorrow Night - Eighties",
+  ttcn: "ttcn",
+  twilight: "Twilight",
+  "vibrant-ink": "Vibrant ink",
+  "xq-dark": "Xq dark",
+  "xq-light": "Xq light",
+  yeti: "Yeti",
+  zenburn: "Zenburn",
+};

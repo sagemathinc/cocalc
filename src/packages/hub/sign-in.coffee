@@ -25,6 +25,7 @@ auth                 = require('./auth')
 {process_env_int}    = require("@cocalc/backend/misc")
 throttle             = require("@cocalc/server/auth/throttle")
 Bottleneck           = require("bottleneck")
+apiKeyAction = require("@cocalc/server/api/manage").default;
 
 # these parameters are per group and per hub!
 bottleneck_opts      =
@@ -104,7 +105,6 @@ _sign_in = (opts, done) ->
 
     signed_in_mesg = undefined
     account = undefined
-    {api_key_action} = require('./api/manage')   # here, rather than at beginning of file, due to some circular references...
 
     async.series([
         (cb) ->
@@ -164,26 +164,20 @@ _sign_in = (opts, done) ->
             if not mesg.get_api_key
                 cb(); return
             dbg("get_api_key -- also get_api_key")
-            api_key_action
-                database   : opts.database
-                account_id : account.account_id
-                password   : mesg.password
-                action     : 'get'
-                cb       : (err, api_key) =>
-                    signed_in_mesg.api_key = api_key
-                    cb(err)
+            try
+                signed_in_mesg.api_key = await apiKeyAction({account_id:account.account_id, password:mesg.password, action:'get'})
+                cb()
+            catch err
+                cb(err)
         (cb) ->
             if not mesg.get_api_key or signed_in_mesg.api_key
                 cb(); return
             dbg("get_api_key -- must generate key since don't already have it")
-            api_key_action
-                database   : opts.database
-                account_id : account.account_id
-                password   : mesg.password
-                action     : 'regenerate'
-                cb       : (err, api_key) =>
-                    signed_in_mesg.api_key = api_key
-                    cb(err)
+            try
+                signed_in_mesg.api_key = await apiKeyAction({account_id:account.account_id, password:mesg.password, action:'regenerate'})
+                cb()
+            catch err
+                cb(err)
     ], (err) ->
         if err
             dbg("send error to user (in #{misc.walltime(tm)}seconds) -- #{err}")

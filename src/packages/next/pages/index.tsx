@@ -7,8 +7,6 @@ import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import Head from "components/landing/head";
-import { join } from "path";
-import basePath from "lib/base-path";
 
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
 
@@ -37,8 +35,16 @@ export default function Home({ customize }) {
               }}
             >
               Signed in as{" "}
-              <A href={join(basePath, "settings")} external>
-                {customize.account.first_name} {customize.account.last_name}
+              <A href="/config">
+                {customize.account.is_anonymous
+                  ? "Anonymous User"
+                  : `${customize.account.first_name} ${
+                      customize.account.last_name
+                    } ${
+                      customize.account.name
+                        ? "(@" + customize.account.name + ")"
+                        : ""
+                    }`}
               </A>
             </div>
           )}

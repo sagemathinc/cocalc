@@ -8,7 +8,7 @@ export default async function apiPost(
   path: string,
   data?: object,
   cache_s: number = 0 // if given, cache results for this many seconds to avoid overfetching
-): Promise<{ [key: string]: any }> {
+): Promise<any> {
   let cache, key;
   if (cache_s) {
     cache = getCache(cache_s);

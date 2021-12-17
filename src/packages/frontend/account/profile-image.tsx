@@ -7,8 +7,8 @@ import { Map as ImmutableMap } from "immutable";
 import { Button, ButtonToolbar, FormControl, Well } from "../antd-bootstrap";
 import { Component, Rendered, redux } from "../app-framework";
 import { ErrorDisplay, Loading, ProfileIcon } from "../components";
-import md5 from "md5";
 import Pica from "pica";
+import gravatarUrl from "./gravatar-url";
 
 import ReactCropComponent from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -79,11 +79,7 @@ export class ProfileImageSelector extends Component<
       // Should not be necessary, but to make typescript happy.
       return;
     }
-    this.set_image(
-      `https://www.gravatar.com/avatar/${md5(
-        this.props.email_address.toLowerCase()
-      )}?d=identicon&s=30`
-    );
+    this.set_image(gravatarUrl(this.props.email_address));
   };
 
   handle_default_click = () => this.set_image("");

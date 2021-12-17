@@ -90,7 +90,8 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
   const save = (
     <SaveButton
       edited={edited}
-      defaultOriginal={original}
+      original={original}
+      setOriginal={setOriginal}
       table="public_paths"
       onSave={() => router.reload()}
     />
@@ -196,7 +197,6 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
             <SelectSiteLicense
               defaultLicenseId={original.site_license_id}
               onChange={(site_license_id) => {
-                console.log("select ", site_license_id);
                 setEdited({ ...edited, site_license_id });
               }}
             />

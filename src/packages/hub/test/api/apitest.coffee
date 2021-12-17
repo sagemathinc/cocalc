@@ -79,12 +79,6 @@ exports.setup = (cb) ->
                 cb            : (err, account_id) ->
                     exports.account_id = account_id
                     cb(err)
-        (cb) ->
-            exports.db.regenerate_api_key
-                account_id : exports.account_id
-                cb         : (err, api_key) ->
-                    exports.api_key = api_key
-                    cb(err)
     ], cb)
 
 exports.teardown = (cb) ->

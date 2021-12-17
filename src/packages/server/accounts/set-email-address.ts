@@ -48,7 +48,7 @@ export default async function setEmailAddress(
   }
   const { password_hash } = rows[0];
   if (!password_hash) {
-    // setting the email_address and password.
+    // setting both the email_address *and* password at once.
     await pool.query(
       "UPDATE accounts SET password_hash=$1, email_address=$2 WHERE account_id=$3",
       [passwordHash(password), email_address, account_id]

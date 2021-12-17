@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import apiPost from "lib/api/post";
 import useIsMounted from "./mounted";
+import { removeNulls } from "@cocalc/util/misc";
 
 export default function useQuery(initialQuery?): {
   error: string;
@@ -29,7 +30,7 @@ export default function useQuery(initialQuery?): {
     if (result.error) {
       setError(result.error);
     } else {
-      setValue(result.query);
+      setValue(removeNulls(result.query));
     }
     setLoading(false);
     return result;

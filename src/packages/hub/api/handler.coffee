@@ -11,6 +11,8 @@ AGPLv3, (c) 2017, SageMath, Inc.
 
 async = require('async')
 
+{getAccountWithApiKey} = require("@cocalc/server/api/manage");
+
 Cache = require('lru-cache')
 auth_cache = new Cache(max:100, maxAge:60000)
 
@@ -101,27 +103,20 @@ get_client = (opts) ->
 
     async.series([
         (cb) ->
-            if account_id?
+            if account_id
                 cb()
             else
-                opts.database.get_account_with_api_key
-                    api_key : opts.api_key
-                    cb      : (err, a) ->
-                        if err
-                            cb(err)
-                            return
-
-                        if not a?
-                            cb("No account found. Is your API key wrong?")
-                            return
-
-                        # we got an account id associated with the given api key
-                        account_id = a
-
-                        # briefly cache api key. see "expire" time in ms above.
-                        auth_cache.set(opts.api_key, account_id)
-                        cb()
-
+                try
+                    account_id = await getAccountWithApiKey(opts.api_key)
+                    if not account_id?
+                        cb("No account found. Is your API key wrong?")
+                        return
+                    # briefly cache api key. see "expire" time in ms above.
+                    auth_cache.set(opts.api_key, account_id)
+                    cb()
+                catch err
+                    cb(err)
+                    return
         (cb) ->
             # check if user is banned:
             opts.database.is_banned_user
