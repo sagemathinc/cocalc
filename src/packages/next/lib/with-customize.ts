@@ -55,7 +55,7 @@ export default async function withCustomize(
     }
   }
 
-  customize.noindex = obj.props.unlisted ?? false;
+  customize.noindex = obj.props?.unlisted ?? false;
 
   if (obj == null) {
     return { props: { customize } };
