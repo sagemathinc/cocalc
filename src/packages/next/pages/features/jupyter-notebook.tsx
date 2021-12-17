@@ -86,8 +86,8 @@ export default function JupyterNotebook({ customize }) {
                     distributing and collecting files as well as grading.
                   </li>
                   <li>
-                    CoCalc's Jupyter Notebooks fully support{" "}
-                    <strong>automatic grading</strong>! The teacher's notebook
+                    CoCalc{"'"}s Jupyter Notebooks fully support{" "}
+                    <strong>automatic grading</strong>! The teacher{"'"}s notebook
                     contains exercise cells for students and test cells, some of
                     which students can also run to get immediate feedback. Once
                     collected, you tell CoCalc to automatically run the full
