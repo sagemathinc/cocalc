@@ -5,6 +5,8 @@ import useIsMounted from "lib/hooks/mounted";
 import Loading from "components/share/loading";
 import api from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { SCHEMA } from "@cocalc/util/schema";
+import { keys } from "@cocalc/util/misc";
 
 interface Props {
   edited: any;
@@ -16,7 +18,6 @@ interface Props {
   isValid?: (object) => boolean; // if given, only allow saving if edited != original and isValid(edited) is true.
   debounce_ms?: number; // default is DEBOUNCE_MS
   disabled?: boolean; // if given, overrides internaal logic.
-  preserveFields?: string[];
 }
 
 const DEBOUNCE_MS = 1500;
@@ -31,7 +32,6 @@ export default function SaveButton({
   onSave,
   isValid,
   debounce_ms,
-  preserveFields,
 }: Props) {
   if (debounce_ms == null) debounce_ms = DEBOUNCE_MS;
   const [saving, setSaving] = useState<boolean>(false);
@@ -61,13 +61,11 @@ export default function SaveButton({
         // no changes to save.
         return false;
       }
-      if (preserveFields) {
-        for (const field of preserveFields) {
-          e[field] = cloneDeep(edited[field]);
-        }
+
+      for (const field of preserveFields(table)) {
+        e[field] = cloneDeep(edited[field]);
       }
       const query = { [table]: e };
-      console.log("query = ", query);
       if (isMounted.current) {
         setSaving(true);
         setError("");
@@ -153,4 +151,8 @@ export default function SaveButton({
       )}
     </div>
   );
+}
+
+function preserveFields(table: string): string[] {
+  return keys(SCHEMA[table].user_query?.set?.required_fields ?? {});
 }

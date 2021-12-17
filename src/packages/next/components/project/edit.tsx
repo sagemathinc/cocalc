@@ -75,7 +75,8 @@ function EditFields({
     >
       <div>
         <Space style={{ float: "right" }}>
-          <SaveButton edited={edited} original={original} setOriginal={setOriginal} table="projects" />
+          <SaveButton edited={edited} original={original} setOriginal={setOriginal} table="projects" 
+            />
           <Button style={{ float: "right" }} onClick={onClose}>
             Close
           </Button>

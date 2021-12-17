@@ -82,7 +82,9 @@ Table({
           site_license: true,
           env: true,
         },
-
+        required_fields: {
+          project_id: true,
+        },
         before_change(database, old_val, new_val, account_id, cb) {
           database._user_set_query_project_change_before(
             old_val,

@@ -92,7 +92,6 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
         original={original}
         setOriginal={setOriginal}
         table="public_paths"
-        preserveFields={["project_id", "path", "id"]}
       />
     );
 
