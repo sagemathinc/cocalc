@@ -5,4 +5,6 @@ export interface Profile {
   color?: string;
   image?: string;
   name?: string;
+  is_admin?: boolean;
+  is_anonymous?: boolean;
 }

@@ -10,9 +10,10 @@ import { Icon } from "@cocalc/frontend/components/icon";
 interface Props {
   title: ReactNode;
   why: ReactNode;
+  onSuccess?: ()=>void;
 }
 
-export default function InPlaceSignInOrUp({ title, why }: Props) {
+export default function InPlaceSignInOrUp({ title, why, onSuccess }: Props) {
   const router = useRouter();
   const [show, setShow] = useState<"sign-in" | "sign-up" | "">("");
 
@@ -28,22 +29,26 @@ export default function InPlaceSignInOrUp({ title, why }: Props) {
       {show == "sign-in" && (
         <SignInAuth
           minimal
-          onSuccess={() =>
-            router.push({
-              pathname: router.asPath.split("?")[0],
-              query: { edit: "true" },
-            })
+          onSuccess={
+            onSuccess ??
+            (() =>
+              router.push({
+                pathname: router.asPath.split("?")[0],
+                query: { edit: "true" },
+              }))
           }
         />
       )}
       {show == "sign-up" && (
         <SignUpAuth
           minimal
-          onSuccess={() =>
-            router.push({
-              pathname: router.asPath.split("?")[0],
-              query: { edit: "true" },
-            })
+          onSuccess={
+            onSuccess ??
+            (() =>
+              router.push({
+                pathname: router.asPath.split("?")[0],
+                query: { edit: "true" },
+              }))
           }
         />
       )}

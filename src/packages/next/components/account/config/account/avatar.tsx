@@ -40,7 +40,7 @@ register({
   search: desc,
   Component: () => {
     const { account } = useCustomize();
-    const profile = useProfile(account?.account_id);
+    const profile = useProfile({ account_id: account?.account_id });
     const { edited, original, setEdited, Save } = useEditTable<Data>({
       accounts: { profile: null, email_address: null },
     });

@@ -3,9 +3,9 @@ import { Profile } from "./types";
 
 export default async function getProfile(
   account_id: string,
-  cache = true
+  noCache: boolean = false
 ): Promise<Profile> {
-  const pool = cache ? getPool("long") : getPool();
+  const pool = getPool(noCache ? undefined : "long");
   const { rows } = await pool.query(
     "SELECT first_name, last_name, profile, name FROM accounts WHERE account_id=$1",
     [account_id]

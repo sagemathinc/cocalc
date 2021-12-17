@@ -10,13 +10,15 @@ import A from "components/misc/A";
 import useProfile from "lib/hooks/profile";
 
 export default function AccountNavTab() {
-  const { account, siteName } = useCustomize();
-  const profile = useProfile(account?.account_id);
-  if (!account) return null;
+  const { siteName } = useCustomize();
+  const profile = useProfile();
+  if (!profile) return null;
 
-  const profile_url = profile?.name
-    ? `/${profile.name}`
-    : `/share/accounts/${account?.account_id}`;
+  const { first_name, last_name, name, account_id, is_admin, is_anonymous } =
+    profile;
+
+  const profile_url = name ? `/${name}` : `/share/accounts/${account_id}`;
+
   const menu = (
     <Menu>
       {profile && (
@@ -26,8 +28,8 @@ export default function AccountNavTab() {
               Signed into {siteName} as
               <br />
               <b>
-                {profile.first_name} {profile.last_name}
-                {profile.name ? ` (@${profile.name})` : ""}
+                {first_name} {last_name}
+                {name ? ` (@${name})` : ""}
               </b>
             </A>
           </Menu.Item>
@@ -39,42 +41,67 @@ export default function AccountNavTab() {
           Documentation...
         </A>
       </Menu.Item>
-      <Menu.Item icon={<Icon name="user" />}>
-        <A href="/config/search/input">Configuration</A>
+      <Menu.Item
+        icon={<Icon name="user" />}
+        style={
+          is_anonymous
+            ? { background: "#fffbe6", border: "1px solid orange" }
+            : undefined
+        }
+      >
+        <A href="/config/search/input">
+          {is_anonymous ? <b>Sign Up (save your work)!</b> : "Account Configuration"}
+        </A>
       </Menu.Item>
       <Menu.Divider />
 
-      <Menu.Item icon={<Icon name="key" />}>
-        <A href={join(basePath, "settings", "licenses")} external>
-          Your Licenses...
-        </A>
-      </Menu.Item>
-      <Menu.Item icon={<Icon name="credit-card" />}>
-        <A href={join(basePath, "settings", "billing")} external>
-          Your Purchases...
-        </A>
-      </Menu.Item>
-      <Menu.Item icon={<Icon name="key" />}>
-        <A href={join(basePath, "settings", "ssh-keys")} external>
-          Your SSH keys...
-        </A>
-      </Menu.Item>
+      {!is_anonymous && (
+        <Menu.Item icon={<Icon name="key" />}>
+          <A href={join(basePath, "settings", "licenses")} external>
+            Your Licenses...
+          </A>
+        </Menu.Item>
+      )}
+      {!is_anonymous && (
+        <Menu.Item icon={<Icon name="credit-card" />}>
+          <A href={join(basePath, "settings", "billing")} external>
+            Your Purchases...
+          </A>
+        </Menu.Item>
+      )}
+      {!is_anonymous && (
+        <Menu.Item icon={<Icon name="key" />}>
+          <A href={join(basePath, "settings", "ssh-keys")} external>
+            Your SSH keys...
+          </A>
+        </Menu.Item>
+      )}
       <Menu.Item icon={<Icon name="key" />}>
         <A href={join(basePath, "projects")} external>
-          Your Projects...
+          {is_anonymous ? "Your Project..." : "Your Projects..."}
         </A>
       </Menu.Item>
-      <Menu.Item icon={<Icon name="bullhorn" />}>
-        <A
-          href={
-            profile?.name
-              ? `/${profile.name}`
-              : `/share/accounts/${account?.account_id}`
-          }
-        >
-          Your Shared Files
-        </A>
-      </Menu.Item>
+      {!is_anonymous && (
+        <Menu.Item icon={<Icon name="bullhorn" />}>
+          <A
+            href={profile?.name ? `/${name}` : `/share/accounts/${account_id}`}
+          >
+            Your Shared Files
+          </A>
+        </Menu.Item>
+      )}
+
+      {is_admin && (
+        <>
+          <Menu.Divider />
+          <Menu.Item icon={<Icon name="users" />}>
+            <A href={join(basePath, "admin")} external>
+              Administration...
+            </A>
+          </Menu.Item>
+        </>
+      )}
+
       <Menu.Divider />
 
       <Menu.Item icon={<Icon name="sign-out-alt" />}>
@@ -87,12 +114,9 @@ export default function AccountNavTab() {
     <Dropdown overlay={menu} trigger={"click" as any}>
       <div style={{ ...LinkStyle, cursor: "pointer" }}>
         {/* The negative margin fixes some weird behavior that stretches header. */}
-        {account.account_id && (
+        {account_id && (
           <>
-            <Avatar
-              account_id={account.account_id}
-              style={{ margin: "-10px 0" }}
-            />
+            <Avatar account_id={account_id} style={{ margin: "-10px 0" }} />
             &nbsp;&nbsp;
           </>
         )}

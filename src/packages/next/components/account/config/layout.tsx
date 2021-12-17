@@ -5,7 +5,6 @@ import { join } from "path";
 import basePath from "lib/base-path";
 import ConfigMenu from "./menu";
 import useIsBrowser from "lib/hooks/is-browser";
-import useCustomize from "lib/use-customize";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import { menu } from "./register";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -13,6 +12,9 @@ import Search from "./search/component";
 import Avatar from "components/account/avatar";
 import useProfile from "lib/hooks/profile";
 import { capitalize } from "@cocalc/util/misc";
+import Loading from "components/share/loading";
+import { delay } from "awaiting";
+import { useRouter } from "next/router";
 
 const { Content, Sider } = Layout;
 
@@ -21,11 +23,15 @@ interface Props {
 }
 
 export default function ConfigLayout({ page }: Props) {
+  const router = useRouter();
   const isBrowser = useIsBrowser();
-  const { account } = useCustomize();
-  const profile = useProfile(account?.account_id);
+  const profile = useProfile({ noCache: true });
+  if (!profile) {
+    return <Loading />;
+  }
+  const { account_id, is_anonymous } = profile;
 
-  if (!account) {
+  if (!account_id) {
     return (
       <Alert
         style={{ margin: "15px auto" }}
@@ -34,6 +40,9 @@ export default function ConfigLayout({ page }: Props) {
           <InPlaceSignInOrUp
             title="Account Configuration"
             why="to edit your account configuration"
+            onSuccess={() => {
+              router.reload();
+            }}
           />
         }
       />
@@ -68,10 +77,7 @@ export default function ConfigLayout({ page }: Props) {
         />
       </div>
       <Space style={{ marginBottom: "15px" }}>
-        <Avatar
-          account_id={account.account_id}
-          style={{ marginRight: "15px" }}
-        />
+        <Avatar account_id={account_id} style={{ marginRight: "15px" }} />
         <div style={{ color: "#666" }}>
           <b style={{ fontSize: "13pt" }}>
             {profile?.first_name} {profile?.last_name}

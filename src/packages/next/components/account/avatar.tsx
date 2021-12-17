@@ -18,7 +18,7 @@ export default function Avatar({ account_id, size, style }: Props) {
     // Default size=40 to match the cocalc logo.
     size = 40;
   }
-  const profile = useProfile(account_id);
+  const profile = useProfile({ account_id });
 
   if (!profile) {
     // not loaded yet
