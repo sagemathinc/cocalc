@@ -86,6 +86,8 @@ exports.http_message_api_v1 = (opts) ->
                 cb     : (err, r) ->
                     resp = r; cb(err)
     ], (err) ->
+        if err
+            dbg("#{err} - #{JSON.stringify(resp)}")
         opts.cb(err, resp)
     )
 
@@ -98,6 +100,7 @@ get_client = (opts) ->
         ip_address     : required
         cb             : required
     dbg = log('get_client', opts.logger)
+    dbg()
 
     account_id = auth_cache.get(opts.api_key)
 

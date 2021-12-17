@@ -83,7 +83,7 @@ export async function getAccountWithApiKey(
 ): Promise<string | undefined> {
   const pool = getPool("medium");
   const { rows } = await pool.query(
-    "SELECT account_id FROM accounts WHERE api_key = $::TEXT",
+    "SELECT account_id FROM accounts WHERE api_key = $1::TEXT",
     [api_key]
   );
   return rows[0]?.account_id;
