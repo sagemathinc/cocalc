@@ -9,25 +9,27 @@
 //
 //  - TODO: If we want to preserve the scroll position let's just not unmount this component (like we do with editors).
 
-import { WATCH_THROTTLE_MS } from "../../websocket/listings";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import * as immutable from "immutable";
-import { WindowedList } from "../../../components/windowed-list";
-
-import { VisibleMDLG } from "../../../components";
-
-import { ProjectActions } from "../../../project_actions";
-import { AppRedux, Rendered } from "../../../app-framework";
-
+import { useInterval } from "react-interval-hook";
+import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
+import { WindowedList } from "@cocalc/frontend/components/windowed-list";
+import { VisibleMDLG } from "@cocalc/frontend/components";
+import { ProjectActions } from "@cocalc/frontend/project_actions";
+import {
+  AppRedux,
+  Rendered,
+  TypedMap,
+  usePrevious,
+} from "@cocalc/frontend/app-framework";
+import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import { NoFiles } from "./no-files";
 import { TerminalModeDisplay } from "./terminal-mode-display";
 import { ListingHeader } from "./listing-header";
 import { FileRow } from "./file-row";
 import { TERM_MODE_CHAR } from "./utils";
-import { MainConfiguration } from "../../../project_configuration";
-import { TypedMap } from "../../../app-framework";
 
-const misc = require("@cocalc/util/misc");
+import * as misc from "@cocalc/util/misc";
 const { Col, Row } = require("react-bootstrap");
 
 interface Props {
@@ -55,44 +57,49 @@ interface Props {
   configuration_main?: MainConfiguration;
 }
 
-export class FileListing extends React.Component<Props> {
-  static defaultProps = { file_search: "" };
-  private list_ref = React.createRef<WindowedList>();
-  private timer;
+export const FileListing: React.FC<Props> = (props: Props) => {
+  const {
+    actions,
+    name,
+    active_file_sort,
+    listing,
+    file_map,
+    checked_files,
+    current_path,
+    public_view,
+    create_folder,
+    create_file,
+    selected_file_index,
+    project_id,
+    shift_is_down,
+    sort_by,
+    configuration_main,
+    file_search = "",
+  } = props;
 
-  constructor(props) {
-    super(props);
-  }
+  const list_ref = useRef<WindowedList>(null);
+  const prev_current_path = usePrevious(current_path);
 
-  componentDidMount(): void {
-    this.watch();
-    this.timer = setInterval(this.watch.bind(this), WATCH_THROTTLE_MS);
-  }
+  // once after mounting, when changing paths, and in regular intervals call watch()
+  useEffect(() => {
+    watch();
+  }, []);
+  useEffect(() => {
+    if (current_path != prev_current_path) watch();
+  }, [current_path, prev_current_path]);
+  useInterval(watch, WATCH_THROTTLE_MS);
 
-  componentWillUnmount(): void {
-    if (this.timer != null) {
-      clearInterval(this.timer);
-      delete this.timer;
-    }
-  }
-
-  componentDidUpdate(prevProps) {
-    if (this.props.current_path != prevProps.current_path) {
-      this.watch();
-    }
-  }
-
-  private watch(): void {
-    const store = this.props.actions.get_store();
+  function watch(): void {
+    const store = actions.get_store();
     if (store == null) return;
     try {
-      store.get_listings().watch(this.props.current_path);
+      store.get_listings().watch(current_path);
     } catch (err) {
       console.warn("ERROR watching directory", err);
     }
   }
 
-  private render_row(
+  function render_row(
     name,
     size,
     time,
@@ -105,10 +112,8 @@ export class FileListing extends React.Component<Props> {
     link_target?: string // if given, is a known symlink to this file
   ): Rendered {
     let color;
-    const checked = this.props.checked_files.has(
-      misc.path_to_file(this.props.current_path, name)
-    );
-    const { is_public } = this.props.file_map[name];
+    const checked = checked_files.has(misc.path_to_file(current_path, name));
+    const { is_public } = file_map[name];
     if (checked) {
       if (index % 2 === 0) {
         color = "#a3d4ff";
@@ -121,8 +126,7 @@ export class FileListing extends React.Component<Props> {
       color = "white";
     }
     const apply_border =
-      index === this.props.selected_file_index &&
-      this.props.file_search[0] !== TERM_MODE_CHAR;
+      index === selected_file_index && file_search[0] !== TERM_MODE_CHAR;
     return (
       <FileRow
         isdir={isdir}
@@ -138,19 +142,19 @@ export class FileListing extends React.Component<Props> {
         is_public={is_public}
         checked={checked}
         key={index}
-        current_path={this.props.current_path}
-        actions={this.props.actions}
-        no_select={this.props.shift_is_down}
-        public_view={this.props.public_view}
+        current_path={current_path}
+        actions={actions}
+        no_select={shift_is_down}
+        public_view={public_view}
         link_target={link_target}
       />
     );
   }
 
-  private windowed_list_render_row({ index }): Rendered {
-    const a = this.props.listing[index];
+  function windowed_list_render_row({ index }): Rendered {
+    const a = listing[index];
     if (a == null) return;
-    return this.render_row(
+    return render_row(
       a.name,
       a.size,
       a.mtime,
@@ -164,117 +168,113 @@ export class FileListing extends React.Component<Props> {
     );
   }
 
-  private windowed_list_row_key(index: number): string | undefined {
-    const a = this.props.listing[index];
+  function windowed_list_row_key(index: number): string | undefined {
+    const a = listing[index];
     if (a == null) return;
     return a.name;
   }
 
-  private render_rows(): Rendered {
+  function render_rows(): Rendered {
     return (
       <WindowedList
-        ref={this.list_ref}
+        ref={list_ref}
         overscan_row_count={20}
         estimated_row_size={30}
-        row_count={this.props.listing.length}
-        row_renderer={this.windowed_list_render_row.bind(this)}
-        row_key={this.windowed_list_row_key.bind(this)}
-        scroll_to_index={this.props.selected_file_index}
-        cache_id={this.props.name + this.props.current_path}
+        row_count={listing.length}
+        row_renderer={windowed_list_render_row}
+        row_key={windowed_list_row_key}
+        scroll_to_index={selected_file_index}
+        cache_id={name + current_path}
       />
     );
   }
 
-  render_no_files() {
-    if (this.props.listing.length !== 0) {
+  function render_no_files() {
+    if (listing.length !== 0) {
       return;
     }
-    if (this.props.file_search[0] === TERM_MODE_CHAR) {
+    if (file_search[0] === TERM_MODE_CHAR) {
       return;
     }
 
     return (
       <NoFiles
-        name={this.props.name}
-        current_path={this.props.current_path}
-        actions={this.props.actions}
-        public_view={this.props.public_view}
-        file_search={this.props.file_search}
-        create_folder={this.props.create_folder}
-        create_file={this.props.create_file}
-        project_id={this.props.project_id}
-        configuration_main={this.props.configuration_main}
+        name={name}
+        current_path={current_path}
+        actions={actions}
+        public_view={public_view}
+        file_search={file_search}
+        create_folder={create_folder}
+        create_file={create_file}
+        project_id={project_id}
+        configuration_main={configuration_main}
       />
     );
   }
 
-  private render_first_steps(): Rendered {
+  function render_first_steps(): Rendered {
     return; // See https://github.com/sagemathinc/cocalc/issues/3138
     /*
     const name = "first_steps";
-    if (this.props.public_view) {
+    if (public_view) {
       return;
     }
-    if (!this.props.library[name]) {
+    if (!library[name]) {
       return;
     }
     let setting: string | undefined;
-    if (this.props.other_settings !== undefined) {
-      setting = (this.props.other_settings as any).get(name)
+    if (other_settings !== undefined) {
+      setting = (other_settings as any).get(name)
     }
     if (!setting) {
       return;
     }
-    if (this.props.current_path !== "") {
+    if (current_path !== "") {
       return;
     } // only show in $HOME
     if (
-      this.props.file_map[name] != null
-        ? this.props.file_map[name].isdir
+      file_map[name] != null
+        ? file_map[name].isdir
         : undefined
     ) {
       return;
     } // don't show if we have it ...
-    if (this.props.file_search[0] === TERM_MODE_CHAR) {
+    if (file_search[0] === TERM_MODE_CHAR) {
       return;
     }
 
-    return <FirstSteps actions={this.props.actions} redux={this.props.redux} />;
+    return <FirstSteps actions={actions} redux={redux} />;
     */
   }
 
-  private render_terminal_mode(): Rendered {
-    if (this.props.file_search[0] === TERM_MODE_CHAR) {
+  function render_terminal_mode(): Rendered {
+    if (file_search[0] === TERM_MODE_CHAR) {
       return <TerminalModeDisplay />;
     }
   }
 
-  public render(): Rendered {
-    return (
-      <>
-        <Col
-          sm={12}
-          style={{
-            flex: "1 0 auto",
-            zIndex: 1,
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          {!this.props.public_view && this.render_terminal_mode()}
-          {this.props.listing.length > 0 && (
-            <ListingHeader
-              active_file_sort={this.props.active_file_sort}
-              sort_by={this.props.sort_by}
-            />
-          )}
-          {this.props.listing.length > 0 && (
-            <Row className="smc-vfill">{this.render_rows()}</Row>
-          )}
-          {this.render_no_files()}
-        </Col>
-        <VisibleMDLG>{this.render_first_steps()}</VisibleMDLG>
-      </>
-    );
-  }
-}
+  return (
+    <>
+      <Col
+        sm={12}
+        style={{
+          flex: "1 0 auto",
+          zIndex: 1,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {!public_view && render_terminal_mode()}
+        {listing.length > 0 && (
+          <ListingHeader
+            active_file_sort={active_file_sort}
+            sort_by={sort_by}
+          />
+        )}
+        {listing.length > 0 && <Row className="smc-vfill">{render_rows()}</Row>}
+        {render_no_files()}
+      </Col>
+      <VisibleMDLG>{render_first_steps()}</VisibleMDLG>
+    </>
+  );
+};

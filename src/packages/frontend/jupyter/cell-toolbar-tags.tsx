@@ -11,7 +11,7 @@ import { Button, FormControl } from "react-bootstrap";
 import { React, useState } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 import { Icon } from "../components";
-const misc = require("@cocalc/util/misc");
+import * as misc from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 
 const TAG_STYLE: React.CSSProperties = {

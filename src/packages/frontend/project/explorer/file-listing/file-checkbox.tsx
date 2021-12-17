@@ -5,45 +5,38 @@
 
 import React from "react";
 
-import { ProjectActions } from "../../../project_actions";
-import { Icon } from "../../../components";
-
-const misc = require("@cocalc/util/misc");
+import { ProjectActions } from "@cocalc/frontend/project_actions";
+import { Icon } from "@cocalc/frontend/components";
+import { path_to_file } from "@cocalc/util/misc";
 
 interface Props {
-  name?: string;
-  checked?: boolean;
+  name: string;
+  checked: boolean;
   actions: ProjectActions;
-  current_path?: string;
+  current_path: string;
   style?: React.CSSProperties;
 }
 
-export class FileCheckbox extends React.PureComponent<Props> {
-  handle_click = (e) => {
-    e.stopPropagation(); // so we don't open the file
-    const full_name = misc.path_to_file(
-      this.props.current_path,
-      this.props.name
-    );
-    if (e.shiftKey) {
-      this.props.actions.set_selected_file_range(
-        full_name,
-        !this.props.checked
-      );
-    } else {
-      this.props.actions.set_file_checked(full_name, !this.props.checked);
-    }
-    this.props.actions.set_most_recent_file_click(full_name);
-  };
+export const FileCheckbox: React.FC<Props> = React.memo((props: Props) => {
+  const { name, checked, actions, current_path, style } = props;
 
-  render() {
-    return (
-      <span onClick={this.handle_click} style={this.props.style}>
-        <Icon
-          name={this.props.checked ? "check-square-o" : "square-o"}
-          style={{ fontSize: "14pt", width: "1.125em" }}
-        />
-      </span>
-    );
+  function handle_click(e) {
+    e.stopPropagation(); // so we don't open the file
+    const full_name = path_to_file(current_path, name);
+    if (e.shiftKey) {
+      actions.set_selected_file_range(full_name, !checked);
+    } else {
+      actions.set_file_checked(full_name, !checked);
+    }
+    actions.set_most_recent_file_click(full_name);
   }
-}
+
+  return (
+    <span onClick={handle_click} style={style}>
+      <Icon
+        name={checked ? "check-square-o" : "square-o"}
+        style={{ fontSize: "14pt", width: "1.125em" }}
+      />
+    </span>
+  );
+});

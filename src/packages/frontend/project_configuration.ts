@@ -217,11 +217,12 @@ export async function get_configuration(
   no_cache = false
 ): Promise<ProjectConfiguration | undefined> {
   // the actual API call, returning an object
-  const config: Configuration = await webapp_client.project_client.configuration(
-    project_id,
-    aspect,
-    no_cache
-  );
+  const config: Configuration =
+    await webapp_client.project_client.configuration(
+      project_id,
+      aspect,
+      no_cache
+    );
   if (config == null) return prev;
   // console.log("project_actions::init_configuration", aspect, config);
 
