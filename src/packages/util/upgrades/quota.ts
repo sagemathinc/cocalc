@@ -680,21 +680,6 @@ export function quota(
   return total_quota;
 }
 
-// this is used by webapp, not part of this quota calculation, and also not tested
-export function max_quota(quota: Quota, license_quota: SiteLicenseQuota): void {
-  for (const field in license_quota) {
-    if (license_quota[field] == null) continue;
-    if (typeof license_quota[field] == "boolean") {
-      quota[field] = !!license_quota[field] || !!quota[field];
-    } else if (typeof license_quota[field] === "number") {
-      quota[field] = Math.max(license_quota[field] ?? 0, quota[field] ?? 0);
-    } else if (["dedicated_disks", "dedicated_vm"].includes(field)) {
-      // this is a special case, just for the frontend code – not a general "max" function
-      quota[field] = license_quota[field];
-    }
-  }
-}
-
 // Compute the contribution to quota coming from the quota field of the site licenses.
 // This is max'd with the quota computed using settings, the rest of the licenses, etc.
 // The given licenses might be a subset of all, because e.g. it's sort of cheating
