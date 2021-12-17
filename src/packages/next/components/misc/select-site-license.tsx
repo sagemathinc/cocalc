@@ -27,7 +27,7 @@ export default function SelectSiteLicense({
   });
   const managedLicenses: { [id: string]: License } = useMemo(() => {
     const x: { [id: string]: License } = {};
-    if (!value) return x;
+    if (!value?.manager_site_licenses) return x;
     for (const license of value.manager_site_licenses) {
       if (license.expires) {
         // comes back from database as ISO string.
