@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/next",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "description": "CoCalc's nextjs server",
   "main": "lib/init.js",
   "exports": {
@@ -61,10 +61,10 @@
   "dependencies": {
     "@cocalc/backend": "^1.7.2",
     "@cocalc/cdn": "^1.8.2",
-    "@cocalc/database": "^0.8.0",
-    "@cocalc/frontend": "^1.19.0",
-    "@cocalc/server": "^0.6.0",
-    "@cocalc/util": "^1.18.1",
+    "@cocalc/database": "^0.9.0",
+    "@cocalc/frontend": "^1.20.0",
+    "@cocalc/server": "^0.7.0",
+    "@cocalc/util": "^1.19.0",
     "@types/express": "^4.17.13",
     "@types/react": "^17.0.33",
     "antd": "^4.17.2",
@@ -83,7 +83,8 @@
     "sharp": "^0.29.1",
     "tslib": "^2.3.1",
     "typescript": "^4.5.2",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "@cocalc/assets": "^1.5.1"
   },
   "devDependencies": {
     "eslint": "^7.31.0",
