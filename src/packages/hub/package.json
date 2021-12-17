@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/hub",
-  "version": "1.30.0",
+  "version": "1.30.1",
   "description": "CoCalc: Backend webserver component",
   "exports": {
     "./*": "./dist/*.js",
@@ -24,7 +24,7 @@
     "@cocalc/cdn": "^1.8.2",
     "@cocalc/database": "^0.9.0",
     "@cocalc/frontend": "^1.20.0",
-    "@cocalc/next": "^0.25.0",
+    "@cocalc/next": "^0.25.1",
     "@cocalc/server": "^0.7.0",
     "@cocalc/static": "^1.53.0",
     "@cocalc/util": "^1.19.0",
