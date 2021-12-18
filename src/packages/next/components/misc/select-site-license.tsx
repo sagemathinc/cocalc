@@ -10,7 +10,6 @@ import SelectLicense, {
 } from "@cocalc/frontend/site-licenses/select-license";
 import useQuery from "lib/hooks/database";
 import Loading from "components/share/loading";
-import { len } from "@cocalc/util/misc";
 
 interface Props {
   onChange: (licenseId: string | undefined) => void; // called with undefined if user doesn't want to select a license
@@ -28,8 +27,9 @@ export default function SelectSiteLicense({
   });
   const managedLicenses: { [id: string]: License } = useMemo(() => {
     const x: { [id: string]: License } = {};
-    if (len(value?.manager_site_licenses) == 0) return x;
-    for (const license of value.manager_site_licenses) {
+    if (!value) return x;
+    const { manager_site_licenses } = value;
+    for (const license of manager_site_licenses) {
       if (license.expires) {
         // comes back from database as ISO string.
         license.expires = new Date(license.expires);
