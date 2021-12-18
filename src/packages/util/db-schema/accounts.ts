@@ -192,6 +192,7 @@ Table({
           email_address_verified: null,
           email_address_problem: null,
           editor_settings: {
+            /* NOTE: there is a editor_settings.jupyter = { kernel...} that isn't documented here. */
             strip_trailing_whitespace: false,
             show_trailing_whitespace: true,
             line_wrapping: true,
