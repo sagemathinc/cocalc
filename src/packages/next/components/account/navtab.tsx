@@ -20,10 +20,10 @@ export default function AccountNavTab() {
   const profile_url = name ? `/${name}` : `/share/accounts/${account_id}`;
 
   const menu = (
-    <Menu mode="horizontal" theme="dark">
+    <Menu theme="dark">
       {profile && (
         <>
-          <Menu.Item>
+          <Menu.Item key="signed-in">
             <A href={is_anonymous ? "/config/search/input" : profile_url}>
               Signed into {siteName} as
               <br />
@@ -40,13 +40,13 @@ export default function AccountNavTab() {
           </Menu.Item>
 
           {is_anonymous && (
-            <Menu.Item icon={<Icon name="user" />}>
+            <Menu.Item key="sign-up" icon={<Icon name="user" />}>
               <A href="/config/search/input">
                 <b>Sign Up (save your work)!</b>
               </A>
             </Menu.Item>
           )}
-          <Menu.Item icon={<Icon name="book" />}>
+          <Menu.Item key="docs" icon={<Icon name="book" />}>
             <A href="https://doc.cocalc.com" external>
               Documentation
             </A>
@@ -64,13 +64,13 @@ export default function AccountNavTab() {
                 </A>
               }
             >
-              <Menu.Item icon={<Icon name="user" />}>
+              <Menu.Item key="account" icon={<Icon name="user" />}>
                 <A href="/config/account/name">Account</A>
               </Menu.Item>
-              <Menu.Item icon={<Icon name="edit" />}>
+              <Menu.Item key="editor" icon={<Icon name="edit" />}>
                 <A href="/config/editor/appearance">Editor</A>
               </Menu.Item>
-              <Menu.Item icon={<Icon name="gear" />}>
+              <Menu.Item key="system" icon={<Icon name="gear" />}>
                 <A href="/config/system/appearance">System</A>
               </Menu.Item>
             </Menu.ItemGroup>
@@ -80,7 +80,7 @@ export default function AccountNavTab() {
         </>
       )}
       <Menu.ItemGroup
-        key="configuration"
+        key="your"
         title={
           <A href={join(basePath, "app")} external>
             <span style={{ color: "#a4acb3" }}>
@@ -89,34 +89,34 @@ export default function AccountNavTab() {
           </A>
         }
       >
-        <Menu.Item icon={<Icon name="key" />}>
+        <Menu.Item key="projects" icon={<Icon name="key" />}>
           <A href={join(basePath, "projects")} external>
             {is_anonymous ? "Project" : "Projects"}
           </A>
         </Menu.Item>
         {!is_anonymous && isCommercial && (
-          <Menu.Item icon={<Icon name="key" />}>
+          <Menu.Item key="licenses" icon={<Icon name="key" />}>
             <A href={join(basePath, "settings", "licenses")} external>
               Licenses
             </A>
           </Menu.Item>
         )}
         {!is_anonymous && isCommercial && (
-          <Menu.Item icon={<Icon name="credit-card" />}>
+          <Menu.Item key="billing" icon={<Icon name="credit-card" />}>
             <A href={join(basePath, "settings", "billing")} external>
               Purchases
             </A>
           </Menu.Item>
         )}
         {!is_anonymous && sshGateway && (
-          <Menu.Item icon={<Icon name="key" />}>
+          <Menu.Item key="ssh" icon={<Icon name="key" />}>
             <A href={join(basePath, "settings", "ssh-keys")} external>
               SSH keys
             </A>
           </Menu.Item>
         )}
         {!is_anonymous && (
-          <Menu.Item icon={<Icon name="bullhorn" />}>
+          <Menu.Item key="shared" icon={<Icon name="bullhorn" />}>
             <A
               href={
                 profile?.name ? `/${name}` : `/share/accounts/${account_id}`
@@ -130,7 +130,7 @@ export default function AccountNavTab() {
       {is_admin && (
         <>
           <Menu.Divider />
-          <Menu.Item icon={<Icon name="users" />}>
+          <Menu.Item key="admin" icon={<Icon name="users" />}>
             <A href={join(basePath, "admin")} external>
               Site Administration
             </A>
@@ -140,7 +140,7 @@ export default function AccountNavTab() {
 
       <Menu.Divider />
 
-      <Menu.Item icon={<Icon name="sign-out-alt" />}>
+      <Menu.Item key="sign-out" icon={<Icon name="sign-out-alt" />}>
         <A href="/config/account/sign-out">Sign Out</A>
       </Menu.Item>
     </Menu>
