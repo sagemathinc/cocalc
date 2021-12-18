@@ -18,7 +18,7 @@ silently swallowed in persistent mode...
 // Making it longer reduces the potential time to open a file, e.g., if you
 // disconnect then reconnect.  Also, it should be at least as long as the
 // time it takes to save unsaved changes to the database.
-const CLOSE_DELAY_MS = 60 * 1000;
+const CLOSE_DELAY_MS = 7 * 1000;
 
 // This is a hard upper bound on the number of browser sessions that could
 // have the same file open at once.  We put some limit on it, to at least
