@@ -89,14 +89,14 @@ export default function AccountNavTab() {
           </A>
         }
       >
-        <Menu.Item key="projects" icon={<Icon name="key" />}>
+        <Menu.Item key="projects" icon={<Icon name="edit" />}>
           <A href={join(basePath, "projects")} external>
             {is_anonymous ? "Project" : "Projects"}
           </A>
         </Menu.Item>
         {!is_anonymous && isCommercial && (
           <Menu.Item key="licenses" icon={<Icon name="key" />}>
-            <A href={join(basePath, "settings", "licenses")} external>
+            <A href="/licenses">
               Licenses
             </A>
           </Menu.Item>
