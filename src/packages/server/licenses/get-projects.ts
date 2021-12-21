@@ -1,0 +1,42 @@
+/*
+Returns array of such projects, with the following fields:
+
+- project_id
+- title
+- map from license_id to what is being used right now
+- last_edited
+- if project is hidden
+*/
+
+import getPool from "@cocalc/database/pool";
+import { isValidUUID } from "@cocalc/util/misc";
+
+export interface Project {
+  project_id: string;
+  title: string;
+  site_license: object;
+  hidden?: boolean;
+  last_edited: number; // ms since epoch
+}
+
+export default async function getProjects(
+  account_id: string
+): Promise<Project[]> {
+  if (!isValidUUID(account_id)) {
+    throw Error("invalid account_id -- must be a uuid");
+  }
+
+  const pool = getPool();
+  // This excludes anything with site_license null or {}.
+
+  const { rows } = await pool.query(
+    `SELECT project_id, title, site_license,
+    users#>'{${account_id},hide}' as hidden,
+    extract(epoch from last_edited)*1000 as last_edited
+    FROM projects
+    WHERE users ? '${account_id}' AND site_license != '{}'
+    ORDER BY last_edited DESC`,
+    []
+  );
+  return rows;
+}
