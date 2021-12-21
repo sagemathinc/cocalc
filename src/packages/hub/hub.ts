@@ -19,7 +19,6 @@ import basePath from "@cocalc/backend/base-path";
 import { retry_until_success } from "@cocalc/util/async-utils";
 const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
 import { init_passport } from "./auth";
-import base_path from "@cocalc/backend/base-path";
 import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
 import { set_agent_endpoint } from "./health-checks";
 import initHandleMentions from "@cocalc/server/mentions/handle";
@@ -106,7 +105,7 @@ async function startServer(): Promise<void> {
     throw Error("client cookie options are not secure");
   }
 
-  winston.info(`base_path='${base_path}'`);
+  winston.info(`basePath='${basePath}'`);
   winston.info(
     `using database "${program.keyspace}" and database-nodes="${program.databaseNodes}"`
   );
