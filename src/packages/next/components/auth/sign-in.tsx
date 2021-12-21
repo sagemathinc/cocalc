@@ -10,7 +10,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import Contact from "components/landing/contact";
 
 interface Props {
-  strategies: Strategy[];
+  strategies?: Strategy[];
   minimal?: boolean;
   onSuccess?: () => void; // if given, call after sign in *succeeds*.
 }
@@ -49,9 +49,11 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
 
       <div style={LOGIN_STYLE}>
         <div style={{ margin: "10px 0" }}>
-          {strategies.length > 0
-            ? "Sign in using your email address or a single sign on provider."
-            : "Sign in using your email address."}
+          {strategies != null
+            ? strategies.length > 0
+              ? "Sign in using your email address or a single sign on provider."
+              : "Sign in using your email address."
+            : "Sign in"}
         </div>
         <form>
           <Input
@@ -61,11 +63,13 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
             autoComplete="username"
             onChange={(e) => setEmail(e.target.value)}
           />
-          {!email && (
-            <div style={{ textAlign: "center", marginTop: "20px" }}>
-              <SSO strategies={strategies} />
-            </div>
-          )}
+          <div style={{ textAlign: "center", marginTop: "20px" }}>
+            <SSO
+              strategies={strategies}
+              size={email ? 24 : undefined}
+              style={email ? { float: "right" } : undefined}
+            />
+          </div>
           {/* Don't ever hide password input, since that messes up autofill */}
           <div style={{ marginTop: "30px" }}>
             <p>Password </p>

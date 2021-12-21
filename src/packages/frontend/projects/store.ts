@@ -4,6 +4,7 @@
  */
 
 import { List, Map, Set } from "immutable";
+import { isEmpty } from "lodash";
 import { redux, Store, TypedMap } from "../app-framework";
 import { webapp_client } from "../webapp-client";
 import {
@@ -19,12 +20,10 @@ import {
 } from "@cocalc/util/misc";
 import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { CUSTOM_IMG_PREFIX } from "../custom-software/util";
-import { max_quota, site_license_quota } from "@cocalc/util/upgrades/quota";
+import { site_license_quota } from "@cocalc/util/upgrades/quota";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import {
-  DedicatedDisk,
-  DedicatedVM,
-} from "@cocalc/util/types/dedicated";
+import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import { Quota as SiteLicenseQuota } from "@cocalc/util/db-schema/site-licenses";
 import { fromPairs } from "lodash";
 const ZERO_QUOTAS = fromPairs(
   Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0])
@@ -538,7 +537,8 @@ export class ProjectsStore extends Store<ProjectsState> {
       project_id,
       "site_license",
     ])?.toJS();
-    if (site_license != null) {
+    // make sure to never iterate over licenses, if there aren't any
+    if (!isEmpty(site_license)) {
       // TS: using "any" since we add some fields below
       const license_quota: any = site_license_quota(site_license);
       // Some different names/units are used for the frontend quota_console.
@@ -552,7 +552,21 @@ export class ProjectsStore extends Store<ProjectsState> {
       delete license_quota["memory_limit"];
       license_quota.cpu_shares = 1024 * (license_quota.cpu_request ?? 0);
       delete license_quota["cpu_request"];
-      max_quota(quota, license_quota);
+      this.max_quota(quota, license_quota);
+    }
+  }
+
+  private max_quota(quota, license_quota: SiteLicenseQuota): void {
+    for (const field in license_quota) {
+      if (license_quota[field] == null) continue;
+      if (typeof license_quota[field] == "boolean") {
+        quota[field] = !!license_quota[field] || !!quota[field];
+      } else if (typeof license_quota[field] === "number") {
+        quota[field] = Math.max(license_quota[field] ?? 0, quota[field] ?? 0);
+      } else if (["dedicated_disks", "dedicated_vm"].includes(field)) {
+        // this is a special case, just for the frontend code – not a general "max" function
+        quota[field] = license_quota[field];
+      }
     }
   }
 

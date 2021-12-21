@@ -17,6 +17,7 @@ interface Customize extends ServerCustomize {
   isCollaborator?: boolean; // if account_id and project_id are in the props then this gets filled in
   isAuthenticated?: boolean; // if true, the user has a valid authentication cookie
   onCoCalcCom?: boolean; // true, if kucalc server settings flag is set to yes (i.e. for cocalc.com only!)
+  noindex?: boolean; // tell search engines to not index that page
 }
 
 const CustomizeContext = createContext<Partial<Customize>>({});

@@ -53,7 +53,7 @@ export default function LatexEditor({ customize }) {
                   No software install required: <small>100% online</small>
                 </h2>
                 <p>
-                  CoCalc's{" "}
+                  CoCalc{"'"}s{" "}
                   <A href="https://doc.cocalc.com/latex.html">
                     <LaTeX /> editor
                   </A>{" "}

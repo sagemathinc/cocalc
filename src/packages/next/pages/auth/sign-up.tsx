@@ -10,7 +10,7 @@ import getStrategies from "@cocalc/server/auth/sso/get-strategies";
 import getRequiresToken from "@cocalc/server/auth/tokens/get-requires-token";
 import { useRouter } from "next/router";
 
-export default function Home({ customize, strategies, requiresToken }) {
+export default function SignUpPage({ customize, strategies, requiresToken }) {
   const { siteName } = customize;
   const router = useRouter();
   return (

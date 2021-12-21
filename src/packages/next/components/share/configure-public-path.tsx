@@ -59,7 +59,6 @@ function get_visibility(edited) {
 }
 
 export default function ConfigurePublicPath({ id, project_id, path }: Props) {
-  const router = useRouter();
   const publicPaths = useDatabase({
     public_paths: { ...QUERY, id, project_id, path },
   });
@@ -105,14 +104,15 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
   // we don't show "authenticated" on cocalc.com, unless it is set to it
   const showAuthenticated = !onCoCalcCom || edited.authenticated;
 
-  const save = (
-    <SaveButton
-      edited={edited}
-      defaultOriginal={original}
-      table="public_paths"
-      onSave={() => router.reload()}
-    />
-  );
+  const save =
+    edited == null || original == null ? null : (
+      <SaveButton
+        edited={edited}
+        original={original}
+        setOriginal={setOriginal}
+        table="public_paths"
+      />
+    );
 
   return (
     <div
@@ -223,7 +223,6 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
             <SelectSiteLicense
               defaultLicenseId={original.site_license_id}
               onChange={(site_license_id) => {
-                console.log("select ", site_license_id);
                 setEdited({ ...edited, site_license_id });
               }}
             />

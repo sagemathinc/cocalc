@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function Name({ account_id, style }: Props) {
-  const profile = useProfile(account_id);
+  const profile = useProfile({ account_id });
   if (profile == null) {
     return <></>;
   }

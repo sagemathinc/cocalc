@@ -32,6 +32,7 @@ export async function getName(account_id: string): Promise<{
   last_name: string;
   name: string;
   email_address: string;
+  is_anonymous: boolean;
 }> {
   if (!isUUID(account_id)) {
     throw Error("invalid UUID");
@@ -40,17 +41,19 @@ export async function getName(account_id: string): Promise<{
 
   // Get the database entry
   const { rows } = await pool.query(
-    "SELECT name, first_name, last_name, email_address FROM accounts WHERE account_id=$1",
+    "SELECT name, first_name, last_name, email_address, passports FROM accounts WHERE account_id=$1",
     [account_id]
   );
   if (rows.length == 0) {
     throw Error("no such user");
   }
+  const is_anonymous = !rows[0].email_address && !rows[0].passports;
   return {
     first_name: rows[0].first_name,
     last_name: rows[0].last_name,
     name: rows[0].name,
     email_address: rows[0].email_address,
+    is_anonymous,
   };
 }
 

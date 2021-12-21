@@ -19,7 +19,7 @@ import CodeMirror from "@cocalc/frontend/codemirror/static";
 
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
-  overflowX: "hidden",
+  overflowX: "auto",
   lineHeight: "normal",
   height: "auto",
   fontSize: "inherit",
@@ -31,15 +31,17 @@ const BLURRED_STYLE: React.CSSProperties = {
   border: 0,
 };
 
+export interface Options {
+  mode?: string | { name?: string };
+  theme?: string;
+  lineNumbers?: boolean;
+  lineWrapping?: boolean; // defaults to true.
+}
+
 interface Props {
   value: string;
   id?: string;
-  options?: {
-    mode?: string | { name?: string };
-    theme?: string;
-    lineNumbers?: boolean;
-    lineWrapping?: boolean; // not supported yet!
-  };
+  options?: Options;
   font_size?: number;
   set_click_coords?: (pos: { left: number; top: number }) => void;
   style?: React.CSSProperties; // optional style that is merged into BLURRED_STYLE
@@ -124,13 +126,16 @@ export function CodeMirrorStatic(props: Props) {
         // nobody better do this...?
         width = 69;
       }
-      style = { paddingLeft: `${width + 4}px`, ...BLURRED_STYLE };
+      style = { ...BLURRED_STYLE, padding: `4px 4px 4px ${width + 4}px` };
     } else {
       width = 0;
       style = BLURRED_STYLE;
     }
     if (theme == "default") {
       style.background = "white";
+    }
+    if (props.options?.lineWrapping != null && !props.options?.lineWrapping) {
+      style = { ...style, whiteSpace: "pre" };
     }
 
     const v = theme.split(" ");

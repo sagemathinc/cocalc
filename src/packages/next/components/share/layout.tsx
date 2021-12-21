@@ -22,7 +22,7 @@ interface Props {
 }
 
 export function Layout({ title, children }: Props) {
-  const { siteName } = useCustomize();
+  const { siteName, noindex } = useCustomize();
   return (
     <>
       <Head>
@@ -30,6 +30,7 @@ export function Layout({ title, children }: Props) {
           {siteName} -- {title}
         </title>
         <meta name="description" content="CoCalc Share Server" />
+        {noindex && <meta name="robots" content="noindex,nofollow" />}
         <link rel="icon" href={favicon} />
       </Head>
       <AntdLayout>

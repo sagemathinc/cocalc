@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ProjectActions } from "../../../project_actions";
-import { file_actions } from "../../../project_store";
+import { ProjectActions } from "@cocalc/frontend/project_actions";
+import { file_actions } from "@cocalc/frontend/project_store";
 
 export const TERM_MODE_CHAR = "/";
 

@@ -18,6 +18,7 @@ export interface Customize {
   contactEmail?: string;
   isCommercial?: boolean;
   kucalc?: KucalcValues;
+  sshGateway?: boolean;
   logoSquareURL?: string;
   logoRectangularURL?: string;
   splashImage?: string;
@@ -63,6 +64,7 @@ export default async function getCustomize(): Promise<Customize> {
     isCommercial: settings.commercial,
 
     kucalc: settings.kucalc,
+    sshGateway: settings.ssh_gateway,
 
     anonymousSignup: settings.anonymous_signup,
     emailSignup: settings.email_signup,

@@ -12,8 +12,10 @@ import { Row, Col } from "../antd-bootstrap";
 import { Footer } from "@cocalc/frontend/customize";
 import { OtherSettings } from "./other-settings";
 import { EditorSettings } from "./editor-settings/editor-settings";
-import { Loading } from "../components";
+import { A, Loading } from "../components";
 import TableError from "./table-error";
+import { join } from "path";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export const AccountPreferences: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
@@ -76,6 +78,11 @@ export const AccountPreferences: React.FC = () => {
   function render_all_settings(): JSX.Element {
     return (
       <>
+        <div style={{ marginBottom: "15px" }}>
+          This is the old config page.{" "}
+          <A href={join(appBasePath, "config")}>Try the new page...</A>
+        </div>
+
         <Row>
           <Col xs={12} md={6}>
             {render_account_settings()}

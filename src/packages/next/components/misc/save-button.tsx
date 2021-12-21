@@ -1,94 +1,158 @@
-import { CSSProperties, useState } from "react";
-import { isEqual } from "lodash";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { cloneDeep, debounce, isEqual } from "lodash";
 import { Alert, Button, Space } from "antd";
 import useIsMounted from "lib/hooks/mounted";
 import Loading from "components/share/loading";
 import api from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { SCHEMA } from "@cocalc/util/schema";
+import { keys } from "@cocalc/util/misc";
 
 interface Props {
-  edited: object;
-  defaultOriginal: object;
+  edited: any;
+  original: any;
+  setOriginal: Function;
   table?: string;
   style?: CSSProperties;
-  onSave?: (object) => Promise<void> | void; // if onSave is async then awaits and if there is an error shows that; if not, updates state to what was saved.
+  onSave?: Function; // if onSave is async then awaits and if there is an error shows that; if not, updates state to what was saved.
   isValid?: (object) => boolean; // if given, only allow saving if edited != original and isValid(edited) is true.
+  debounce_ms?: number; // default is DEBOUNCE_MS
+  disabled?: boolean; // if given, overrides internaal logic.
 }
 
+const DEBOUNCE_MS = 1500;
+
 export default function SaveButton({
+  disabled,
   edited,
-  defaultOriginal,
+  original,
+  setOriginal,
   table,
   style,
   onSave,
   isValid,
+  debounce_ms,
 }: Props) {
+  if (debounce_ms == null) debounce_ms = DEBOUNCE_MS;
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [original, setOriginal] = useState<object>(defaultOriginal);
+
+  // Tricky hooks: We have to store the state in a ref as well so that
+  // we can use it in the save function, since that function
+  // is memoized and called from a debounced function.
+  const saveRef = useRef<any>({ edited, original, table });
+  saveRef.current = { edited, original, table };
+
   const isMounted = useIsMounted();
 
-  async function save(table, edited) {
-    const query = { [table]: removeNulls(edited) };
-    setSaving(true);
-    setError("");
-    let result;
-    try {
-      result = await api("/user-query", { query });
-    } catch (err) {
+  const save = useMemo(() => {
+    return async () => {
+      const { edited, original, table } = saveRef.current;
+
+      let changes: boolean = false;
+      const e: any = {};
+      for (const field in edited) {
+        if (!isEqual(original[field], edited[field])) {
+          e[field] = cloneDeep(edited[field]);
+          changes = true;
+        }
+      }
+      if (!changes) {
+        // no changes to save.
+        return false;
+      }
+
+      for (const field of preserveFields(table)) {
+        e[field] = cloneDeep(edited[field]);
+      }
+      const query = { [table]: e };
+      if (isMounted.current) {
+        setSaving(true);
+        setError("");
+      }
+      let result;
+      try {
+        // Note -- we definitely do want to do the save
+        // itself, even if the component is already unmounted,
+        // so we don't loose changes.
+        result = await api("/user-query", { query });
+      } catch (err) {
+        if (!isMounted.current) return;
+        setError(err.message);
+        return false;
+      } finally {
+        if (isMounted.current) {
+          setSaving(false);
+        }
+      }
       if (!isMounted.current) return;
-      setError(err.message);
-      return { error };
-    } finally {
-      if (isMounted.current) setSaving(false);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setOriginal(cloneDeep(edited));
+      }
+      return true; // successful save
+    };
+  }, []);
+
+  async function doSave() {
+    const e = cloneDeep(saveRef.current.edited);
+    if (table) {
+      const didSave = await save();
+      if (!isMounted.current) return;
+      if (didSave) {
+        await onSave?.(e);
+      }
+      return;
     }
-    if (!isMounted.current) return;
-    if (result.error) {
-      setError(result.error);
-    } else {
-      setOriginal(edited);
+    try {
+      await onSave?.(e);
+      if (!isMounted.current) return;
+      setOriginal(e);
+      setError("");
+    } catch (err) {
+      setError(err.toString());
     }
   }
 
-  const same = isEqual(edited, original);
+  const doSaveDebounced = useMemo(
+    () => debounce(doSave, debounce_ms),
+    [onSave]
+  );
 
+  useEffect(() => {
+    doSaveDebounced();
+    return doSaveDebounced;
+  }, [edited]);
+
+  const same = isEqual(edited, original);
   return (
-    <>
+    <div style={style}>
       <Button
-        style={style}
         type="primary"
-        disabled={saving || same || (isValid != null && !isValid(edited))}
-        onClick={async () => {
-          if (table) {
-            save(table, edited);
-          }
-          try {
-            await onSave?.(edited);
-            setOriginal(edited);
-            setError('');
-          } catch (err) {
-            setError(err.toString());
-          }
-        }}
+        disabled={
+          disabled ?? (saving || same || (isValid != null && !isValid(edited)))
+        }
+        onClick={doSave}
       >
         <Space>
-          <Icon name={same ? "check" : "save"} />
-          {saving ? <Loading delay={0}>Saving...</Loading> : "Save"}
+          <Icon name={"save"} />
+          {saving ? (
+            <Loading delay={250} before="Save">
+              Saving...
+            </Loading>
+          ) : (
+            "Save"
+          )}
         </Space>
       </Button>
       {!same && error && (
         <Alert type="error" message={error} style={{ marginTop: "15px" }} />
       )}
-    </>
+    </div>
   );
 }
 
-function removeNulls(obj) {
-  const obj2: any = {};
-  for (const field in obj) {
-    if (obj[field] != null) {
-      obj2[field] = obj[field];
-    }
-  }
-  return obj2;
+function preserveFields(table: string): string[] {
+  return keys(SCHEMA[table].user_query?.set?.required_fields ?? {});
 }

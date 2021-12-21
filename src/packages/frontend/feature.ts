@@ -7,8 +7,6 @@
 
 declare var window;
 
-import { has_local_storage } from "@cocalc/util/misc";
-
 let IS_MOBILE,
   IS_TOUCH,
   IS_CHROME,
@@ -85,10 +83,6 @@ if (typeof window != "undefined" && typeof navigator != "undefined") {
 
   $.browser.chrome = /chrom(e|ium)/.test(user_agent);
 
-  if ($.browser.chrome) {
-    $(".webapp-chrome-only").show();
-  }
-
   $.browser.opera =
     (!!window.opr && !!window.opr.addons) ||
     !!window.opera ||
@@ -156,35 +150,6 @@ if (typeof window != "undefined" && typeof navigator != "undefined") {
   // is mostly *only* touch, so not something like a Chromebook with a touch screen.
   IS_TOUCH = isMobile.tablet() || IS_MOBILE || isMobile.any() || IS_IPAD;
 
-  const cookies_and_local_storage = function () {
-    if (navigator == undefined) {
-      return;
-    }
-    const app = require("./app-framework");
-    let page: any = undefined;
-    if (app) {
-      // How is this possibly undefined?
-      page = app.redux ? app.redux.getActions("page") : undefined;
-    }
-    if (page == undefined) {
-      // It's fine to wait until page has loaded and then some before showing a warning
-      // to the user.  This is also necessary to ensure the page actions/store have been defined.
-      setTimeout(cookies_and_local_storage, 2000);
-      return;
-    }
-
-    // Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
-    if (!navigator.cookieEnabled) {
-      page.show_cookie_warning();
-    }
-
-    // Check for local storage
-    if (!has_local_storage()) {
-      page.show_local_storage_warning();
-    }
-  };
-
-  setTimeout(cookies_and_local_storage, 2000);
 } else {
   // Backend.
 

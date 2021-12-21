@@ -1,13 +1,25 @@
-import { join } from "path";
-import basePath from "lib/base-path";
+import { Layout } from "antd";
+import Header from "components/landing/header";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
+import Redirect from "components/misc/redirect";
 
-export default function Index() {
-  return <>Testing.</>;
+// just redirect
+export default function Preferences({ customize }) {
+  return (
+    <Customize value={customize}>
+      <Head title="Configuration" />
+      <Layout>
+        <Header />
+        <Redirect target={"/config/search/input"} />
+        <Footer />
+      </Layout>
+    </Customize>
+  );
 }
 
 export async function getServerSideProps(context) {
-  const { res } = context;
-  res.writeHead(302, { location: join(basePath, "config/account/name") });
-  res.end();
-  return { props: {} };
+  return await withCustomize({ context });
 }

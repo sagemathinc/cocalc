@@ -2353,6 +2353,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ edit_cell_metadata: { id, metadata } });
   };
 
+  public set_global_metadata(metadata: object, save: boolean = true): void {
+    const cur = this.syncdb.get_one({ type: "settings" })?.toJS()?.metadata;
+    if (cur) {
+      metadata = {
+        ...cur,
+        ...metadata,
+      };
+    }
+    this.syncdb.set({ type: "settings", metadata });
+    if (save) {
+      this.syncdb.commit();
+    }
+  }
+
   public set_cell_metadata(opts: {
     id: string;
     metadata?: object; // not given = delete it

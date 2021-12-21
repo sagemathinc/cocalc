@@ -233,6 +233,7 @@ export const Body = rclass<ReactProps>(
                 name={this.props.name}
                 key={"capabilities"}
                 project={this.props.project}
+                project_id={this.props.project_id}
               />
             </Col>
             <Col sm={6}>

@@ -120,6 +120,14 @@ The command `npm run build`, when run from the src directory, caches the fact th
 
 This is very useful if you pull in a git branch or switch to a different git branch, and have no idea which packages have changed.
 
+Sometime when you pull in a branch, you need to make sure exactly the right packages are installed and everything is built before doing `npm run static` and `npm run hub` .   The simplest way to do this is
+
+```sh
+~/cocalc/src/$ npm run make-dev
+```
+
+which installs exactly the right packages (via `npm ci` in all package dirs), and building the code except in the static and next packages, which will takes a long time and would get done when you do `npm run static` anyways. 
+
 ### Other
 
 #### Environment Variables
@@ -135,7 +143,7 @@ There are two types of filesystem build caching. These greatly improve the time 
 
 #### Creating an admin user
 
-It is handy to have a user with admin rights in your dev cocalc server.  With the database running you can make a `user@example.com` an admin as follows: 
+It is handy to have a user with admin rights in your dev cocalc server.  With the database running you can make a `user@example.com` an admin as follows:
 
 ```sh
 ~/cocalc/src$ npm run c

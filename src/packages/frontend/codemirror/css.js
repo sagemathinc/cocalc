@@ -1,3 +1,7 @@
+// IMPORTANT: if you add/remove anything here, you have to do the same in packages/next/pages/_app.tsx
+// There is a rule that CSS can only be loaded in _app.tsx directly in next apps, so we must explicitly
+// list all of these there as well.
+
 // CSS
 require("codemirror/lib/codemirror.css");
 require("codemirror/theme/3024-day.css");

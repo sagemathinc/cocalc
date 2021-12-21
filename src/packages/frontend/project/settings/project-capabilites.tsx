@@ -6,51 +6,47 @@
 import React from "react";
 import { sortBy, keys } from "lodash";
 import { SettingBox, A, Icon, Loading } from "@cocalc/frontend/components";
-import { rclass, rtypes, redux, Rendered } from "../../app-framework";
+import { redux, Rendered, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Project } from "./types";
-import { Map } from "immutable";
 import * as misc from "@cocalc/util/misc";
 import { Button } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
 
-const { CUSTOM_SOFTWARE_HELP_URL } = require("../../custom-software/util");
-const { COLORS } = require("@cocalc/util/theme");
+import { CUSTOM_SOFTWARE_HELP_URL } from "@cocalc/frontend/custom-software/util";
+import { COLORS } from "@cocalc/util/theme";
 
 declare let DEBUG;
 
 interface ReactProps {
   name: string;
   project: Project;
+  project_id: string;
 }
 
-interface ReduxProps {
-  configuration: Map<string, any>;
-  configuration_loading: boolean;
-  available_features: { formatting: string };
+function dont_render(prev, next) {
+  return !misc.is_different(prev, next, [
+    "project",
+    "configuration",
+    "configuration_loading",
+    "available_features",
+  ]);
 }
 
-export const ProjectCapabilities = rclass<ReactProps>(
-  class ProjectCapabilities extends React.Component<ReactProps & ReduxProps> {
-    public static reduxProps({ name }) {
-      return {
-        [name]: {
-          configuration: rtypes.immutable,
-          configuration_loading: rtypes.bool,
-          available_features: rtypes.object,
-        },
-      };
-    }
+export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
+  (props: ReactProps) => {
+    const { project, project_id } = props;
 
-    shouldComponentUpdate(props) {
-      return misc.is_different(this.props, props, [
-        "project",
-        "configuration",
-        "configuration_loading",
-        "available_features",
-      ]);
-    }
+    const available_features = useTypedRedux(
+      { project_id },
+      "available_features"
+    );
+    const configuration_loading = useTypedRedux(
+      { project_id },
+      "configuration_loading"
+    );
+    const configuration = useTypedRedux({ project_id }, "configuration");
 
-    private render_features(avail): [Rendered, boolean] {
+    function render_features(avail): [Rendered, boolean] {
       const feature_map = [
         ["spellcheck", "Spellchecking"],
         ["rmd", "RMarkdown"],
@@ -74,9 +70,9 @@ export const ProjectCapabilities = rclass<ReactProps>(
         const icon = available ? "check-square" : "minus-square";
         let extra = "";
         if (key == "sage") {
-          const main = this.props.configuration.get("main");
-          const sage_version = main.capabilities?.sage_version;
-          if (sage_version != null) {
+          const main = configuration?.get("main");
+          const sage_version = main?.capabilities?.sage_version;
+          if (sage_version != null && Array.isArray(sage_version)) {
             extra = `(version ${sage_version.join(".")})`;
           }
         }
@@ -102,7 +98,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       return [component, any_nonavail];
     }
 
-    private render_formatter(formatter): [Rendered, boolean] {
+    function render_formatter(formatter): [Rendered, boolean] {
       if (formatter === false) {
         return [<div>No code formatters are available</div>, true];
       }
@@ -141,7 +137,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
 
       const component = (
         <>
-          {this.render_debug_info(formatter)}
+          {render_debug_info(formatter)}
           <dl className={"dl-horizontal cc-project-settings-features"}>
             {r_formatters}
           </dl>
@@ -150,7 +146,7 @@ export const ProjectCapabilities = rclass<ReactProps>(
       return [component, any_nonavail];
     }
 
-    private render_noavail_info(): Rendered {
+    function render_noavail_info(): Rendered {
       return (
         <>
           <hr />
@@ -164,20 +160,20 @@ export const ProjectCapabilities = rclass<ReactProps>(
       );
     }
 
-    private render_available(): Rendered {
-      const avail = this.props.available_features;
+    function render_available(): Rendered {
+      const avail = available_features?.toJS();
       if (avail == undefined) {
         return (
           <div>
             Information about available features will show up here.
             <br />
-            {this.props.configuration_loading ? <Loading /> : undefined}
+            {configuration_loading ? <Loading /> : undefined}
           </div>
         );
       }
 
-      const [features, non_avail_1] = this.render_features(avail);
-      const [formatter, non_avail_2] = this.render_formatter(avail.formatting);
+      const [features, non_avail_1] = render_features(avail);
+      const [formatter, non_avail_2] = render_formatter(avail.formatting);
 
       return (
         <>
@@ -185,12 +181,12 @@ export const ProjectCapabilities = rclass<ReactProps>(
           {features}
           <h3>Available formatter</h3>
           {formatter}
-          {non_avail_1 || non_avail_2 ? this.render_noavail_info() : undefined}
+          {non_avail_1 || non_avail_2 ? render_noavail_info() : undefined}
         </>
       );
     }
 
-    private render_debug_info(conf): Rendered {
+    function render_debug_info(conf): Rendered {
       if (conf != null && DEBUG) {
         return (
           <pre style={{ fontSize: "9px", color: "black" }}>
@@ -200,18 +196,18 @@ export const ProjectCapabilities = rclass<ReactProps>(
       }
     }
 
-    private reload(): void {
-      const project_id = this.props.project.get("project_id");
+    function reload(): void {
+      const project_id = project.get("project_id");
       const pa = redux.getProjectActions(project_id);
       pa.reload_configuration();
     }
 
-    private render_reload(): Rendered {
+    function render_reload(): Rendered {
       return (
         <Button
-          onClick={() => this.reload()}
+          onClick={() => reload()}
           icon={<ReloadOutlined />}
-          disabled={this.props.configuration_loading}
+          disabled={configuration_loading}
           style={{ float: "right", marginTop: "-7.5px" }} // that compensates for bootstrap's 15px's all over the place...
         >
           Refresh
@@ -219,19 +215,18 @@ export const ProjectCapabilities = rclass<ReactProps>(
       );
     }
 
-    private render_title(): Rendered {
-      return <span>{this.render_reload()}Features and configuration</span>;
+    function render_title(): Rendered {
+      return <span>{render_reload()}Features and configuration</span>;
     }
 
-    render() {
-      const conf = this.props.configuration;
+    const conf = configuration;
 
-      return (
-        <SettingBox title={this.render_title()} icon={"clipboard-check"}>
-          {this.render_debug_info(conf)}
-          {this.render_available()}
-        </SettingBox>
-      );
-    }
-  }
+    return (
+      <SettingBox title={render_title()} icon={"clipboard-check"}>
+        {render_debug_info(conf)}
+        {render_available()}
+      </SettingBox>
+    );
+  },
+  dont_render
 );

@@ -2238,3 +2238,24 @@ export function rpad_html(num: number, width: number, round_fn?: Function) {
   const pad = Math.max(0, width - str.length);
   return lodash.repeat(s, pad) + str;
 }
+
+// Remove key:value's from objects in obj
+// recursively, where value is undefined or null.
+export function removeNulls(obj) {
+  if (typeof obj != "object") {
+    return obj;
+  }
+  if (is_array(obj)) {
+    for (const x of obj) {
+      removeNulls(x);
+    }
+    return obj;
+  }
+  const obj2: any = {};
+  for (const field in obj) {
+    if (obj[field] != null) {
+      obj2[field] = removeNulls(obj[field]);
+    }
+  }
+  return obj2;
+}

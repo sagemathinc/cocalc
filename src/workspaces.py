@@ -102,7 +102,8 @@ def all_packages() -> List[str]:
         'packages/frontend',
         'packages/project',
         'packages/assets',
-        'packages/server', # packages/next assumes this is built
+        'packages/server',  # packages/next assumes this is built
+        'packages/database',  # packages/next also assumes this is built
     ]
     for x in os.listdir('packages'):
         path = os.path.join("packages", x)

@@ -67,6 +67,7 @@ import {
   createRememberMeCookie,
   COOKIE_NAME as REMEMBER_ME_COOKIE_NAME,
 } from "@cocalc/server/auth/remember-me";
+import apiKeyAction from "@cocalc/server/api/manage";
 
 const logger = getLogger("auth");
 
@@ -771,7 +772,7 @@ export class PassportManager {
       has_valid_remember_me: false,
       account_id: undefined,
       email_address: undefined,
-      target: path_join(base_path + "app#login"),
+      target: base_path,
       remember_me_cookie: cookies.get(REMEMBER_ME_COOKIE_NAME),
       get_api_key: cookies.get(API_KEY_COOKIE_NAME),
       action: undefined,
@@ -1092,29 +1093,25 @@ export class PassportManager {
     locals: PassportLoginLocals
   ): Promise<void> {
     if (!locals.get_api_key) return;
+    if (!locals.account_id) return; // typescript cares about this.
 
     // Just handle getting api key here.
-    const { api_key_action } = require("./api/manage"); // here, rather than at beginnig of file, due to some circular references...
     if (locals.new_account_created) {
       locals.action = "regenerate"; // obvious
     } else {
       locals.action = "get";
     }
 
-    locals.api_key = await cb2(api_key_action, {
-      database: this.database,
+    locals.api_key = await apiKeyAction({
       account_id: locals.account_id,
-      passport: true,
       action: locals.action,
     });
 
     // if there is no key
     if (!locals.api_key) {
       logger.debug("must generate key, since don't already have it");
-      locals.api_key = await cb2(api_key_action, {
-        database: this.database,
+      locals.api_key = await apiKeyAction({
         account_id: locals.account_id,
-        passport: true,
         action: "regenerate",
       });
     }
@@ -1170,6 +1167,8 @@ interface IsPasswordCorrect {
   cb: (err?, correct?: boolean) => void;
 }
 
+// NOTE: simpler clean replacement for this is in packages/server/auth/is-password-correct.ts
+//
 // Password checking.  opts.cb(undefined, true) if the
 // password is correct, opts.cb(error) on error (e.g., loading from
 // database), and opts.cb(undefined, false) if password is wrong.  You must

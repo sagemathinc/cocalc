@@ -10,9 +10,10 @@ interface Props {
   delay?: number;
   style?: CSSProperties;
   children?: ReactNode;
+  before?: ReactNode;
 }
 
-export default function Loading({ delay, style, children }: Props) {
+export default function Loading({ delay, style, children, before }: Props) {
   const [show, setShow] = useState<boolean>(false);
   const isMounted = useIsMounted();
   useEffect(() => {
@@ -23,7 +24,7 @@ export default function Loading({ delay, style, children }: Props) {
   }, []);
 
   if (!show) {
-    return <></>;
+    return <>{before}</>;
   }
   return (
     <div style={{ color: "#666", ...style }}>

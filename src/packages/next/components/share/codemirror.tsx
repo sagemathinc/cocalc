@@ -5,19 +5,33 @@
 
 /* Static codemirror-based renderer. */
 
-import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+import {
+  CodeMirrorStatic,
+  Options,
+} from "@cocalc/frontend/jupyter/codemirror-static";
 import { getExtension } from "lib/share/util";
 import { codemirrorMode } from "@cocalc/frontend/file-extensions";
 
 interface Props {
   content: string;
   filename: string;
+  options?: Options;
+  fontSize?: number;
 }
 
-export default function CodeMirror({ content, filename }: Props) {
+export default function CodeMirror({
+  content,
+  filename,
+  options,
+  fontSize,
+}: Props) {
   const ext = getExtension(filename);
   const mode = codemirrorMode(ext);
   return (
-    <CodeMirrorStatic value={content} options={{ lineNumbers: true, mode }} />
+    <CodeMirrorStatic
+      value={content}
+      font_size={fontSize}
+      options={{ lineNumbers: true, mode, ...options }}
+    />
   );
 }
