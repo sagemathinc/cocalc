@@ -74,6 +74,12 @@ export async function load_server_settings_from_env(
   db: PostgreSQL
 ): Promise<void> {
   const PREFIX = "COCALC_SETTING";
+  // reset all readonly values
+  await db.async_query({
+    query: "UPDATE server_settings",
+    set: { readonly: false },
+  });
+  // now, check if there are any we know of
   for (const config of [EXTRAS, CONF]) {
     for (const key in config) {
       const envvar = `${PREFIX}_${key.toUpperCase()}`;
@@ -81,7 +87,11 @@ export async function load_server_settings_from_env(
       if (envval == null) continue;
       // ATTN do not expose the value, could be a password
       L.debug(`picking up $${envvar} and saving it in the database`);
-      await cb2(db.set_server_setting, { name: key, value: envval });
+      await cb2(db.set_server_setting, {
+        name: key,
+        value: envval,
+        readonly: true,
+      });
     }
   }
 }
