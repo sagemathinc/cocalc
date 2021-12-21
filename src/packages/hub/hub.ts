@@ -36,6 +36,11 @@ import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects"
 import initVersionServer from "./servers/version";
 import initPrimus from "./servers/primus";
 import { load_server_settings_from_env } from "@cocalc/server/settings/server-settings";
+import {
+  pguser as DEFAULT_DB_USER,
+  pghost as DEFAULT_DB_HOST,
+  pgdatabase as DEFAULT_DB_NAME,
+} from "@cocalc/backend/data";
 
 // Logger tagged with 'hub' for this file.
 const winston = getLogger("hub");
@@ -107,7 +112,7 @@ async function startServer(): Promise<void> {
 
   winston.info(`basePath='${basePath}'`);
   winston.info(
-    `using database "${program.keyspace}" and database-nodes="${program.databaseNodes}"`
+    `database: name="${program.databaseName}" nodes="${program.databaseNodes}" user="${program.databaseUser}"`
   );
 
   const { metric_blocked, uncaught_exception_total } = await initMetrics();
@@ -301,7 +306,6 @@ function addErrorListeners(uncaught_exception_total) {
 // Process command line arguments
 //############################################
 async function main(): Promise<void> {
-  const default_db = process.env.PGHOST ?? "localhost";
   commander
     .name("cocalc-hub-server")
     .usage("options")
@@ -345,13 +349,18 @@ async function main(): Promise<void> {
     )
     .option(
       "--database-nodes <string,string,...>",
-      `database address (default: '${default_db}')`,
-      default_db
+      `database address (default: '${DEFAULT_DB_HOST}')`,
+      DEFAULT_DB_HOST
     )
     .option(
-      "--keyspace [string]",
-      'Database name to use (default: "smc")',
-      "smc"
+      "--database-name [string]",
+      `Database name to use (default: "${DEFAULT_DB_NAME}")`,
+      DEFAULT_DB_NAME
+    )
+    .option(
+      "--database-user [string]",
+      `Database username to use (default: "${DEFAULT_DB_USER}")`,
+      DEFAULT_DB_USER
     )
     .option("--passwd [email_address]", "Reset password of given user", "")
     .option(
@@ -424,7 +433,8 @@ async function main(): Promise<void> {
     // instance that can be used.
     initDatabase({
       host: program.databaseNodes,
-      database: program.keyspace,
+      database: program.databaseName,
+      user: program.databaseUser,
       concurrent_warn: program.dbConcurrentWarn,
     });
 
