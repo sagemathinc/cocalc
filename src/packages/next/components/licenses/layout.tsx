@@ -9,6 +9,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import useProfile from "lib/hooks/profile";
 import Loading from "components/share/loading";
 import { useRouter } from "next/router";
+import LicensedProjects from "./licensed-projects";
 
 const { Content, Sider } = Layout;
 
@@ -48,6 +49,15 @@ export default function ConfigLayout({ page }: Props) {
   }
 
   const [main] = page;
+
+  function body() {
+    switch (main) {
+      case "projects":
+        return <LicensedProjects />;
+    }
+    return <div>TODO {main}</div>;
+  }
+
   const content = (
     <Content
       style={{
@@ -70,8 +80,10 @@ export default function ConfigLayout({ page }: Props) {
           }
         />
       </div>
-      <h2><Icon name="key"/> Licenses</h2>
-      BODY of {main}
+      <h2>
+        <Icon name="key" /> Licenses
+      </h2>
+      {body()}
     </Content>
   );
   return (

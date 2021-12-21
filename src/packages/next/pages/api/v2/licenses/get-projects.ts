@@ -4,7 +4,8 @@ that have at least one license applied to them.
 
 See docs in @cocalc/server/licenses/get-projects.ts
 
-Returns {projects:[...]} on success or {error:'a message'} on failure.
+Returns [Project1, Project2, ...] on success or {error:'a message'} on failure.
+For the fields in the projects, see @cocalc/server/licenses/get-projects.ts
 */
 
 import getLicensedProjects, {
@@ -14,8 +15,7 @@ import getAccountId from "lib/account/get-account";
 
 export default async function handle(req, res) {
   try {
-    const projects = await get(req);
-    res.json({ projects });
+    res.json(await get(req));
   } catch (err) {
     res.json({ error: `${err}` });
     return;
