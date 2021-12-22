@@ -15,7 +15,6 @@ import A from "components/misc/A";
 import SelectSiteLicense from "components/misc/select-site-license";
 import { Icon } from "@cocalc/frontend/components/icon";
 import LaTeX from "components/landing/latex";
-import { useRouter } from "next/router";
 import {
   SHARE_AUTHENTICATED_EXPLANATION,
   SHARE_AUTHENTICATED_ICON,
