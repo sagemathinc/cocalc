@@ -49,8 +49,8 @@ export default function LicensedProjects() {
   }
   return (
     <div>
-      <Table columns={columns} dataSource={result} />
-      <pre>{JSON.stringify(result, 0, 2)}</pre>
+      <h3>Licensed Projects You Collaborate On</h3>
+      <Table columns={columns} dataSource={result} rowKey={"project_id"} />
     </div>
   );
 }

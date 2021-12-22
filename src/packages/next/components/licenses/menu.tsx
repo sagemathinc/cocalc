@@ -20,7 +20,7 @@ export default function ConfigMenu({ main }) {
         <Icon name={"credit-card"} style={{ marginRight: "5px" }} /> Buy a
         License
       </Menu.Item>
-      <Menu.Item key={"manage"}>
+      <Menu.Item key={"managed"}>
         <Icon name={"key"} style={{ marginRight: "5px" }} /> Your Licenses
       </Menu.Item>
       <Menu.Item key={"analytics"}>

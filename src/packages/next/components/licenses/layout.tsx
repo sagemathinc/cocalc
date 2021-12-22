@@ -3,13 +3,14 @@ import A from "components/misc/A";
 import { join } from "path";
 import basePath from "lib/base-path";
 import Menu from "./menu";
-import useIsBrowser from "lib/hooks/is-browser";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import { Icon } from "@cocalc/frontend/components/icon";
 import useProfile from "lib/hooks/profile";
 import Loading from "components/share/loading";
 import { useRouter } from "next/router";
+
 import LicensedProjects from "./licensed-projects";
+import ManagedLicenses from "./managed";
 
 const { Content, Sider } = Layout;
 
@@ -19,7 +20,6 @@ interface Props {
 
 export default function ConfigLayout({ page }: Props) {
   const router = useRouter();
-  const isBrowser = useIsBrowser();
   const profile = useProfile({ noCache: true });
   if (!profile) {
     return <Loading />;
@@ -54,6 +54,8 @@ export default function ConfigLayout({ page }: Props) {
     switch (main) {
       case "projects":
         return <LicensedProjects />;
+      case "managed":
+        return <ManagedLicenses />;
     }
     return <div>TODO {main}</div>;
   }
@@ -89,7 +91,7 @@ export default function ConfigLayout({ page }: Props) {
   return (
     <Layout>
       <Sider width={"30ex"} breakpoint="sm" collapsedWidth="0">
-        {isBrowser && <Menu main={main} />}
+        <Menu main={main} />
       </Sider>
       <Layout
         style={{
