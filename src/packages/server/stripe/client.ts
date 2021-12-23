@@ -409,11 +409,8 @@ export class StripeClient {
     const dbg = this.dbg("mesg_get_subscriptions");
     dbg("get a list of all the subscriptions that this customer has");
 
-    const customer_id: string = await this.need_customer_id();
-
     const options = await this.stripe_api_pager_options(mesg);
     options.status = "all";
-    options.customer = customer_id;
     const subscriptions = await (await getConn()).subscriptions.list(options);
     return message.stripe_subscriptions({ subscriptions });
   }
@@ -628,5 +625,14 @@ export class StripeClient {
     }
     dbg("Sync the database to indicate that everything is canceled.");
     await this.update_database();
+  }
+
+  public async getPaymentMethods(): Promise<Message> {
+    const dbg = this.dbg("get_sources");
+    dbg("get a list of all the payment sources that this customer has");
+    const customer = await this.need_customer_id();
+    return await (
+      await getConn()
+    ).paymentMethods.list({ customer, type: "card" });
   }
 }

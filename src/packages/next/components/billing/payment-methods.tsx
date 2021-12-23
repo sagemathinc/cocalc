@@ -21,7 +21,6 @@ const columns = [
         }}
       >
         <b>{title}</b>
-        {record.description.trim() && <div>{record.description}</div>}
       </div>
     ),
   },
@@ -95,7 +94,7 @@ export default function PaymentMethods() {
       credit card numbers (they are instead stored securely by stripe).
       <Table
         columns={columns}
-        dataSource={result}
+        dataSource={result.data}
         rowKey={"id"}
         style={{ marginTop: "15px" }}
       />

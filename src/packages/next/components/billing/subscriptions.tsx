@@ -4,9 +4,9 @@ import { Alert, Table } from "antd";
 
 const columns = [
   {
-    title: "Name",
-    dataIndex: "title",
-    key: "title",
+    title: "Type",
+    dataIndex: "object",
+    key: "type",
     width: "30%",
     render: (title) => (
       <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
@@ -50,7 +50,8 @@ export default function Subscriptions() {
   return (
     <div>
       <h3>Your Subscriptions</h3>
-      <Table columns={columns} dataSource={result} rowKey={"project_id"} />
+      <Table columns={columns} dataSource={result.data} rowKey={"id"} />
+      <pre>{JSON.stringify(result, undefined, 2)}</pre>
     </div>
   );
 }

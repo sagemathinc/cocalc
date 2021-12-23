@@ -1,3 +1,4 @@
+import { StripeClient } from "@cocalc/server/stripe/client";
 import { isValidUUID } from "@cocalc/util/misc";
 
 export default async function getSubscriptions(
@@ -6,5 +7,7 @@ export default async function getSubscriptions(
   if (!isValidUUID(account_id)) {
     throw Error("invalid uuid");
   }
-  return [];
+  const stripe = new StripeClient({ account_id });
+  const mesg = await stripe.mesg_get_subscriptions({});
+  return mesg.subscriptions;
 }

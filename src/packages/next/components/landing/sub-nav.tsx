@@ -80,7 +80,7 @@ const PAGES = {
   support,
 };
 
-export type Page = keyof typeof PAGES;
+export type Page = keyof typeof PAGES | "account";
 export type SubPage =
   | keyof typeof software
   | keyof typeof features

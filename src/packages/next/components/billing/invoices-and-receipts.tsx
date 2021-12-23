@@ -93,7 +93,7 @@ export default function InvoicesAndReceipts() {
       These are...
       <Table
         columns={columns}
-        dataSource={result}
+        dataSource={result.data}
         rowKey={"id"}
         style={{ marginTop: "15px" }}
       />
