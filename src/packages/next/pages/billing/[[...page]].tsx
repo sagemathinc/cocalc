@@ -2,17 +2,17 @@ import { Layout } from "antd";
 import Header from "components/landing/header";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
-import Licenses from "components/licenses/layout";
+import Billing from "components/billing/layout";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
 export default function Preferences({ customize, page }) {
   return (
     <Customize value={customize}>
-      <Head title="Licenses" />
+      <Head title="Billing" />
       <Layout>
         <Header/>
-        <Licenses page={page} />
+        <Billing page={page} />
         <Footer />
       </Layout>
     </Customize>

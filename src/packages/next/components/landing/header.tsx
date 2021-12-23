@@ -156,7 +156,9 @@ export default function Header({ page, subPage }: Props) {
           </A>
         )}{" "}
         {account ? (
-          <AccountNavTab />
+          <AccountNavTab
+            style={page == "account" ? SelectedStyle : LinkStyle}
+          />
         ) : (
           <>
             <A

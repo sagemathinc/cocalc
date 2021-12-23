@@ -9,8 +9,9 @@ import useProfile from "lib/hooks/profile";
 import Loading from "components/share/loading";
 import { useRouter } from "next/router";
 
-import LicensedProjects from "./licensed-projects";
-import ManagedLicenses from "./managed";
+import PaymentMethods from "./payment-methods";
+import Subscriptions from "./subscriptions";
+import InvoicesAndReceipts from "./invoices-and-receipts";
 
 const { Content, Sider } = Layout;
 
@@ -52,10 +53,12 @@ export default function ConfigLayout({ page }: Props) {
 
   function body() {
     switch (main) {
-      case "projects":
-        return <LicensedProjects />;
-      case "managed":
-        return <ManagedLicenses />;
+      case "cards":
+        return <PaymentMethods />;
+      case "subscriptions":
+        return <Subscriptions />;
+      case "receipts":
+        return <InvoicesAndReceipts />;
     }
     return <div>TODO {main}</div>;
   }
@@ -74,8 +77,8 @@ export default function ConfigLayout({ page }: Props) {
           type="warning"
           message={
             <>
-              This is the new licenses page.{" "}
-              <A href={join(basePath, "settings", "licenses")} external>
+              This is the new billing page.{" "}
+              <A href={join(basePath, "settings", "billing")} external>
                 You can still access the old page...
               </A>
             </>
@@ -83,7 +86,7 @@ export default function ConfigLayout({ page }: Props) {
         />
       </div>
       <h2>
-        <Icon name="key" /> Licenses
+        <Icon name="credit-card" /> Billing
       </h2>
       {body()}
     </Content>

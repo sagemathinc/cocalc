@@ -16,29 +16,22 @@ export default function ConfigMenu({ main }) {
         });
       }}
     >
-      <Menu.Item key={"buy"}>
-        <Icon name={"credit-card"} style={{ marginRight: "5px" }} /> Buy a
+      <Menu.Item key={""}>
+        <b style={{ fontSize: "16pt", color:"#666" }}>Licenses</b>
+      </Menu.Item>
+
+      <Menu.Item key={"create"}>
+        <Icon name={"credit-card"} style={{ marginRight: "5px" }} /> Create a
         License
       </Menu.Item>
       <Menu.Item key={"managed"}>
         <Icon name={"key"} style={{ marginRight: "5px" }} /> Your Licenses
       </Menu.Item>
-      <Menu.Item key={"analytics"}>
-        <Icon name={"key"} style={{ marginRight: "5px" }} /> Analytics
-      </Menu.Item>
       <Menu.Item key={"projects"}>
         <Icon name={"edit"} style={{ marginRight: "5px" }} /> Licensed Projects
       </Menu.Item>
-      <Menu.Item key={"cards"}>
-        <Icon name={"credit-card"} style={{ marginRight: "5px" }} /> Payment
-        Methods
-      </Menu.Item>
-      <Menu.Item key={"subscriptions"}>
-        <Icon name={"calendar"} style={{ marginRight: "5px" }} /> Subscriptions
-      </Menu.Item>
-      <Menu.Item key={"receipts"}>
-        <Icon name={"list"} style={{ marginRight: "5px" }} /> Invoices and
-        Receipts
+      <Menu.Item key={"analytics"}>
+        <Icon name={"key"} style={{ marginRight: "5px" }} /> Analytics
       </Menu.Item>
     </Menu>
   );

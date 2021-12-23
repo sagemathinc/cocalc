@@ -33,7 +33,7 @@ export default async function getProjects(
   const { rows } = await pool.query(
     `SELECT project_id, title, site_license,
     users#>'{${account_id},hide}' as hidden,
-    last_edited,
+    last_edited
     FROM projects
     WHERE users ? '${account_id}' AND site_license != '{}'
     ORDER BY last_edited DESC`,
