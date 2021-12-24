@@ -1,6 +1,8 @@
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
 import { Alert, Table } from "antd";
+import editURL from "lib/share/edit-url";
+import A from "components/misc/A";
 
 const columns = [
   {
@@ -8,9 +10,11 @@ const columns = [
     dataIndex: "title",
     key: "title",
     width: "30%",
-    render: (title) => (
+    render: (title, { project_id }) => (
       <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
-        {title}
+        <A href={editURL({ project_id, type: "collaborator" })} external>
+          {title}
+        </A>
       </div>
     ),
   },
