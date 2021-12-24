@@ -3,6 +3,7 @@ import Loading from "components/share/loading";
 import { Alert, Popover, Table } from "antd";
 import { Quota as LicenseQuota } from "./license";
 import Avatar from "components/account/avatar";
+import { EditableDescription, EditableTitle } from "./editable-license";
 
 function renderTimestamp(x) {
   return x ? new Date(x).toLocaleString() : "-";
@@ -26,8 +27,8 @@ const columns = [
         <div style={{ fontFace: "monospace", fontSize: "10px" }}>
           {record.id}
         </div>
-        <b>{title}</b>
-        {record.description.trim() && <div>{record.description}</div>}
+        <EditableTitle license_id={record.id} title={title} />
+        <EditableDescription license_id={record.id} description={record.description} />
       </div>
     ),
   },
@@ -38,7 +39,7 @@ const columns = [
     render: (managers) => (
       <>
         {managers.map((account_id) => (
-          <Avatar account_id={account_id} />
+          <Avatar key={account_id} account_id={account_id} />
         ))}
       </>
     ),
