@@ -70,14 +70,17 @@ export default function ConfigLayout({ page }: Props) {
     >
       <div style={{ float: "right", marginBottom: "15px" }}>
         <Alert
-          showIcon
           type="warning"
           message={
             <>
               This is the new licenses page.{" "}
               <A href={join(basePath, "settings", "licenses")} external>
-                You can still access the old page...
-              </A>
+                The old page
+              </A>{" "}
+              is still available.
+              <br />
+              You can also browse the{" "}
+              <A href="https://doc.cocalc.com/licenses.html">CoCalc Manual</A>.
             </>
           }
         />

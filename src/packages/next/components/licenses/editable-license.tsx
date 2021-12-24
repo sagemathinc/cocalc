@@ -6,21 +6,30 @@ import { capitalize } from "@cocalc/util/misc";
 export function EditableTitle({
   license_id,
   title,
+  onChange,
 }: {
   license_id: string;
   title: string;
+  onChange?: () => void;
 }) {
   return (
-    <EditableTextField license_id={license_id} field="title" value={title} />
+    <EditableTextField
+      license_id={license_id}
+      field="title"
+      value={title}
+      onChange={onChange}
+    />
   );
 }
 
 export function EditableDescription({
   license_id,
   description,
+  onChange,
 }: {
   license_id: string;
   description: string;
+  onChange?: () => void;
 }) {
   return (
     <EditableTextField
@@ -28,6 +37,7 @@ export function EditableDescription({
       field="description"
       value={description}
       rows={3}
+      onChange={onChange}
     />
   );
 }
@@ -37,11 +47,13 @@ function EditableTextField({
   field,
   value,
   rows,
+  onChange,
 }: {
   license_id: string;
   field: "title" | "description";
   value: string;
   rows?: number;
+  onChange?: () => void;
 }) {
   const [edit, setEdit] = useState<boolean>(false);
   const [value2, setValue] = useState<string>(value);
@@ -53,6 +65,7 @@ function EditableTextField({
     const query = { manager_site_licenses: { id: license_id, [field]: value } };
     try {
       await apiPost("/user-query", { query });
+      onChange?.();
     } catch (err) {
       setError(err.message);
     }

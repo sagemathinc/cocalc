@@ -109,7 +109,7 @@ function doSearch(data: object[], search: string): object[] {
   const w: object[] = [];
   for (const x of data) {
     if (x["search"] == null) {
-      x["search"] = `${x['title']}${JSON.stringify(keys(x['site_license']))}`;
+      x["search"] = `${x['title']}${JSON.stringify(keys(x['site_license']))}`.toLowerCase();
     }
     if (search_match(x["search"], v)) {
       w.push(x);
