@@ -281,7 +281,7 @@ export const uuid: () => string = v4uuid;
 const uuid_regexp = new RegExp(
   /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i
 );
-export function is_valid_uuid_string(uuid: string): boolean {
+export function is_valid_uuid_string(uuid?: any): boolean {
   return (
     typeof uuid === "string" && uuid.length === 36 && uuid_regexp.test(uuid)
   );

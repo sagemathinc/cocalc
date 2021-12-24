@@ -4,20 +4,21 @@ import { CSSProperties, ReactNode } from "react";
 import Loading from "components/share/loading";
 import { capitalize, plural } from "@cocalc/util/misc";
 import { r_join } from "@cocalc/frontend/components/r_join";
+import { EditableDescription, EditableTitle } from "./editable-license";
 
 interface Props {
   license_id: string;
   contrib?: { [project_id: string]: object };
 }
 
-export default function License({ license_id, contrib }: Props) {
-  _ = contrib;
+export default function License({ license_id }: Props) {
+  // TODO: do something with contrib
   return (
     <Popover
       content={() => <Details license_id={license_id} />}
       title={license_id}
     >
-      <span style={{ fontFace: "monospace" }}>{license_id}</span>
+      <span style={{ fontFamily: "monospace" }}>{license_id}</span>
     </Popover>
   );
 }
@@ -50,7 +51,6 @@ export default function License({ license_id, contrib }: Props) {
 
 export function Details({
   license_id,
-  style,
 }: {
   license_id: string;
   style?: CSSProperties;
@@ -64,8 +64,27 @@ export function Details({
   }
   return (
     <div>
-      {result.title && <h3>Title: {result.title}</h3>}
-      {result.description && <div>Description: {result.description}</div>}
+      {result.title && (
+        <h3>
+          {result.is_manager ? (
+            <EditableTitle license_id={license_id} title={result.title} />
+          ) : (
+            "Title: " + result.title
+          )}
+        </h3>
+      )}
+      {result.description && (
+        <div>
+          {result.is_manager ? (
+            <EditableDescription
+              license_id={license_id}
+              description={result.description}
+            />
+          ) : (
+            "Description: " + result.description
+          )}
+        </div>
+      )}
       {result.managers != null && <div>You are a manager of this license.</div>}
       {result.expires != null && (
         <div>Expires: {new Date(result.expires).toLocaleString()}</div>

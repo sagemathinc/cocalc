@@ -27,9 +27,10 @@ export async function isManager(
 export default async function getLicense(
   license_id: string,
   account_id?: string
-): Promise<License | undefined> {
+): Promise<License> {
   const pool = getPool();
-  const query = (await isManager(license_id, account_id))
+  const is_manager = await isManager(license_id, account_id);
+  const query = is_manager
     ? `SELECT id, title, description,
     expires, activates, last_used,
     managers, upgrades, quota, run_limit
@@ -41,5 +42,6 @@ export default async function getLicense(
     throw Error(`no license with id ${license_id}`);
   }
   toEpoch(rows, ["expires", "activates", "last_used"]);
+  rows[0].is_manager = is_manager;
   return rows[0];
 }

@@ -15,6 +15,7 @@ export interface License {
   created: number;
   last_used: number;
   managers: string[];
+  is_manager?: boolean;
   upgrades?: {
     cores: number;
     cpu_shares: number;
@@ -51,5 +52,8 @@ export default async function getManagedLicenses(
     [account_id]
   );
   toEpoch(rows, ["expires", "activates", "last_used", "created"]);
+  for (const row of rows) {
+    row.is_manager = true;
+  }
   return rows;
 }

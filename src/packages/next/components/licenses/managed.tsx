@@ -24,7 +24,7 @@ const columns = [
           fontSize: "12px",
         }}
       >
-        <div style={{ fontFace: "monospace", fontSize: "10px" }}>
+        <div style={{ fontFamily: "monospace", fontSize: "10px" }}>
           {record.id}
         </div>
         <EditableTitle license_id={record.id} title={title} />

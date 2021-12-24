@@ -82,7 +82,7 @@ function EditableTextField({
             onPressEnter={() => save(value2)}
           />
         ))}
-      {!edit && <b>{value2.trim() ? value2 : `(set ${field}...)`}</b>}
+      {!edit && <>{value2.trim() ? value2 : `(set ${field}...)`}</>}
     </div>
   );
 }

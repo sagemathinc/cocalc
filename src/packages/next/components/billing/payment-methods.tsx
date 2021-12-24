@@ -12,7 +12,7 @@ const columns = [
     dataIndex: "title",
     key: "title",
     width: "30%",
-    render: (title, record) => (
+    render: (title) => (
       <div
         style={{
           wordWrap: "break-word",
