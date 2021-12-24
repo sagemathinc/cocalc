@@ -45,11 +45,11 @@ export default async function getManagedLicenses(
 
   const { rows } = await pool.query(
     `SELECT id, title, description,
-    expires, activates, last_used,
+    expires, activates, last_used, created,
     managers, upgrades, quota, run_limit
     FROM site_licenses WHERE $1=ANY(managers)`,
     [account_id]
   );
-  toEpoch(rows, ["expires", "activates", "last_used"]);
+  toEpoch(rows, ["expires", "activates", "last_used", "created"]);
   return rows;
 }

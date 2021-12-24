@@ -48,7 +48,7 @@ export default function License({ license_id, contrib }: Props) {
 }
 */
 
-function Details({
+export function Details({
   license_id,
   style,
 }: {
@@ -85,7 +85,7 @@ function Details({
   );
 }
 
-function Quota({ quota }) {
+export function Quota({ quota }) {
   const v: ReactNode[] = [];
   if (quota.user) {
     v.push(capitalize(quota.user));

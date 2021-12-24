@@ -2,7 +2,7 @@
 Show an avatar for a given user account.
 */
 
-import { Avatar as AntdAvatar } from "antd";
+import { Avatar as AntdAvatar, Popover } from "antd";
 import { CSSProperties } from "react";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import useProfile from "lib/hooks/profile";
@@ -11,9 +11,10 @@ interface Props {
   account_id: string;
   size?: number;
   style?: CSSProperties;
+  showName?: boolean;
 }
 
-export default function Avatar({ account_id, size, style }: Props) {
+export default function Avatar({ account_id, size, style, showName }: Props) {
   if (size == null) {
     // Default size=40 to match the cocalc logo.
     size = 40;
@@ -30,12 +31,32 @@ export default function Avatar({ account_id, size, style }: Props) {
   }
 
   return (
-    <DisplayAvatar
-      style={style}
-      size={size}
-      color={profile.color}
-      letter={profile.first_name?.[0]}
-    />
+    <Popover
+      title={`${profile.first_name} ${profile.last_name}`}
+      content={
+        <div style={{ textAlign: "center" }}>
+          <DisplayAvatar
+            style={style}
+            size={size * 2}
+            color={profile.color}
+            letter={profile.first_name?.[0]}
+          />
+        </div>
+      }
+    >
+      <DisplayAvatar
+        style={style}
+        size={size}
+        color={profile.color}
+        letter={profile.first_name?.[0]}
+      />
+      {showName && (
+        <>
+          <br />
+          {profile.first_name} {profile.last_name}
+        </>
+      )}
+    </Popover>
   );
 }
 

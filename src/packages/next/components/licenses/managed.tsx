@@ -1,6 +1,8 @@
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
-import { Alert, Table } from "antd";
+import { Alert, Popover, Table } from "antd";
+import { Quota as LicenseQuota } from "./license";
+import Avatar from "components/account/avatar";
 
 function renderTimestamp(x) {
   return x ? new Date(x).toLocaleString() : "-";
@@ -8,22 +10,80 @@ function renderTimestamp(x) {
 
 const columns = [
   {
-    title: "Title",
+    title: "License",
     dataIndex: "title",
     key: "title",
-    width: "30%",
+    width: "40%",
     render: (title, record) => (
       <div
         style={{
           wordWrap: "break-word",
           wordBreak: "break-word",
           color: "#666",
+          fontSize: "12px",
         }}
       >
+        <div style={{ fontFace: "monospace", fontSize: "10px" }}>
+          {record.id}
+        </div>
         <b>{title}</b>
         {record.description.trim() && <div>{record.description}</div>}
       </div>
     ),
+  },
+  {
+    title: "Managers",
+    dataIndex: "managers",
+    key: "managers",
+    render: (managers) => (
+      <>
+        {managers.map((account_id) => (
+          <Avatar account_id={account_id} />
+        ))}
+      </>
+    ),
+  },
+  {
+    title: (
+      <Popover
+        title="Run Limit"
+        content={
+          <div style={{ maxWidth: "75ex" }}>
+            The maximum number of simultaneous running projects that this
+            license can upgrade. You can apply the license to any number of
+            projects, but it only impacts this many projects at once.
+          </div>
+        }
+      >
+        Limit
+      </Popover>
+    ),
+    dataIndex: "run_limit",
+    key: "run_limit",
+    render: (run_limit) => (
+      <div style={{ textAlign: "center" }}>{run_limit}</div>
+    ),
+  },
+  {
+    title: "Quota",
+    width: "30%",
+    dataIndex: "quota",
+    key: "quota",
+    render: (quota, record) => {
+      return (
+        <div
+          style={{
+            wordWrap: "break-word",
+            wordBreak: "break-word",
+            color: "#666",
+          }}
+        >
+          <LicenseQuota quota={quota} />
+          {/* upgrades is deprecated, but in case we encounter it, do not ignore it */}
+          {record.upgrades && <pre>{JSON.stringify(record.upgrades)}</pre>}
+        </div>
+      );
+    },
   },
   {
     title: "Last Used",
@@ -49,34 +109,6 @@ const columns = [
     key: "created",
     render: renderTimestamp,
   },
-  {
-    title: "Managers",
-    dataIndex: "managers",
-    key: "managers",
-  },
-  {
-    title: "Limit",
-    dataIndex: "run_limit",
-    key: "run_limit",
-  },
-  {
-    title: "Quota",
-    dataIndex: "quota",
-    key: "quota",
-    render: (quota) => {
-      return (
-        <div
-          style={{
-            wordWrap: "break-word",
-            wordBreak: "break-word",
-            color: "#666",
-          }}
-        >
-          {JSON.stringify(quota)}
-        </div>
-      );
-    },
-  },
 ];
 
 export default function ManagedLicenses() {
@@ -88,7 +120,7 @@ export default function ManagedLicenses() {
     return <Loading />;
   }
   return (
-    <div>
+    <div style={{ width: "100%", overflowX: "scroll" }}>
       <h3>Licenses that you Manage</h3>
       These are the licenses that you purchased or manage.
       <Table
@@ -96,8 +128,9 @@ export default function ManagedLicenses() {
         dataSource={result}
         rowKey={"id"}
         style={{ marginTop: "15px" }}
+        pagination={{ hideOnSinglePage: true, pageSize: 100 }}
       />
-      <pre>{JSON.stringify(result, undefined, 2)}</pre>
+      {/* <pre>{JSON.stringify(result, undefined, 2)}</pre> */}
     </div>
   );
 }
