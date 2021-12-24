@@ -3,6 +3,9 @@ import Loading from "components/share/loading";
 import { Alert, Table } from "antd";
 import editURL from "lib/share/edit-url";
 import A from "components/misc/A";
+import { keys } from "@cocalc/util/misc";
+import License from "./license";
+import { r_join } from "@cocalc/frontend/components/r_join";
 
 const columns = [
   {
@@ -22,9 +25,17 @@ const columns = [
     title: "Licenses",
     dataIndex: "site_license",
     key: "site_license",
-    render: (site_licenses) => (
+    render: (site_licenses, { project_id }) => (
       <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
-        {JSON.stringify(site_licenses)}
+        {r_join(
+          keys(site_licenses).map((license_id) => (
+            <License
+              key={license_id}
+              license_id={license_id}
+              contrib={{ [project_id]: site_licenses[license_id] }}
+            />
+          ))
+        )}
       </div>
     ),
   },
