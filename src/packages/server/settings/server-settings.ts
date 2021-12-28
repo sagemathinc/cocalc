@@ -7,6 +7,7 @@ import LRU from "lru-cache";
 import { AllSiteSettingsCached as ServerSettings } from "@cocalc/util/db-schema/types";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { site_settings_conf as CONF } from "@cocalc/util/schema";
+import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
 import getPool from "@cocalc/database/pool";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
@@ -73,7 +74,7 @@ Loaded once at startup, right after configuring the db schema, see hub/hub.ts.
 export async function load_server_settings_from_env(
   db: PostgreSQL
 ): Promise<void> {
-  const PREFIX = "COCALC_SETTING";
+  const PREFIX = SERVER_SETTINGS_ENV_PREFIX;
   // reset all readonly values
   await db.async_query({
     query: "UPDATE server_settings",
