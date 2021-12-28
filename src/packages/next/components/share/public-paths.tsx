@@ -74,7 +74,6 @@ function Visibility({ disabled, unlisted, vhost, authenticated }) {
   }
   return (
     <>
-      {" "}
       <Icon name="eye" /> Listed
     </>
   );
