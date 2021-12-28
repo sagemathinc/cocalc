@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
-import { Alert, Input, Popover, Table } from "antd";
+import { Alert, Checkbox, Input, Popover, Table } from "antd";
 import { Quota as LicenseQuota } from "./license";
 import Avatar from "components/account/avatar";
 import { EditableDescription, EditableTitle } from "./editable-license";
 import { search_split, search_match } from "@cocalc/util/misc";
 import { cmp } from "@cocalc/util/misc";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 function renderTimestamp(x) {
   return x ? new Date(x).toLocaleString() : "-";
@@ -83,7 +84,7 @@ function columns(onChange) {
       render: (managers) => (
         <>
           {managers.map((account_id) => (
-            <Avatar key={account_id} account_id={account_id} />
+            <Avatar key={account_id} account_id={account_id} size={32} />
           ))}
         </>
       ),
@@ -206,7 +207,22 @@ function columns(onChange) {
       ),
       dataIndex: "expires",
       key: "expires",
-      render: renderTimestamp,
+      render: (expires) => (
+        <div>
+          {renderTimestamp(expires)}
+          {expires && expires <= new Date().valueOf() && (
+            <div
+              style={{
+                backgroundColor: "#d00",
+                color: "white",
+                padding: "0 5px",
+              }}
+            >
+              <Icon name="ban" /> Expired
+            </div>
+          )}
+        </div>
+      ),
       sorter: { compare: (a, b) => cmp(a.expires, b.expires) },
     },
     {
@@ -234,16 +250,32 @@ function columns(onChange) {
 export default function ManagedLicenses() {
   let { result, error, call } = useAPI("licenses/get-managed");
   const [search, setSearch] = useState<string>("");
-
-  if (search) {
-    result = doSearch(result, search);
-  }
+  const [showExpired, setShowExpired] = useState<boolean>(false);
+  const numExpired: number = useMemo(() => {
+    if (!result) return 0;
+    let n = 0;
+    const t = new Date().valueOf();
+    for (const x of result) {
+      if (x.expires && x.expires <= t) {
+        n += 1;
+      }
+    }
+    return n;
+  }, [result]);
 
   if (error) {
     return <Alert type="error" message={error} />;
   }
   if (!result) {
-    return <Loading />;
+    return <Loading style={{ fontSize: "16pt", margin: "auto" }} />;
+  }
+
+  if (search) {
+    result = doSearch(result, search);
+  }
+  if (!showExpired) {
+    // filter out anything that is expired
+    result = removeExpired(result);
   }
 
   function onChange() {
@@ -255,6 +287,14 @@ export default function ManagedLicenses() {
       <h3>Licenses that you Manage</h3>
       These are the licenses that you purchased or manage.
       <div style={{ margin: "15px 0" }}>
+        <Checkbox
+          disabled={numExpired == 0}
+          style={{ float: "right" }}
+          checked={showExpired}
+          onChange={(e) => setShowExpired(e.target.checked)}
+        >
+          Show Expired ({numExpired})
+        </Checkbox>
         <Input.Search
           placeholder="Search..."
           allowClear
@@ -288,4 +328,15 @@ function doSearch(data: object[], search: string): object[] {
     }
   }
   return w;
+}
+
+function removeExpired(data: { expires?: number }[]): { expires?: number }[] {
+  const data1: { expires?: number }[] = [];
+  const now = new Date().valueOf();
+  for (const x of data) {
+    if (!(x.expires != null && x.expires <= now)) {
+      data1.push(x);
+    }
+  }
+  return data1;
 }

@@ -51,12 +51,12 @@ function EditableTextField({
 }: {
   license_id: string;
   field: "title" | "description";
-  value: string;
+  value?: string;
   rows?: number;
   onChange?: () => void;
 }) {
   const [edit, setEdit] = useState<boolean>(false);
-  const [value2, setValue] = useState<string>(value);
+  const [value2, setValue] = useState<string>(value ?? "");
   const [error, setError] = useState<string>("");
 
   async function save(value: string): Promise<void> {
