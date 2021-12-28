@@ -9,7 +9,6 @@
 import { site_settings_conf } from "./site-defaults";
 import { EXTRAS as site_settings_extras } from "./site-settings-extras";
 import { keys } from "../misc";
-import { callback2 as cb2 } from "@cocalc/util/async-utils";
 
 const site_settings_fields = keys(site_settings_conf).concat(
   keys(site_settings_extras)
@@ -36,18 +35,29 @@ Table({
       set: {
         admin: true,
         fields: {
-          name: async (obj, db) => {
-            console.log(obj)
-            if (!site_settings_fields.includes(obj.name)) {
-              throw Error(`setting name='${obj.name}': does not exist`);
-            }
-            const val = await cb2(db.get_server_setting, { name: obj.name });
-            if (val.readonly ?? false) {
-              throw Error(`setting name='${obj.name}': readonly`);
-            }
-            return obj.name;
-          },
+          name: null,
           value: null,
+        },
+        check_hook(db, obj, _account_id, _project_id, cb) {
+          if (!site_settings_fields.includes(obj.name)) {
+            cb(`setting name='${obj.name}' not allowed`);
+            return;
+          }
+          db._query({
+            query: "SELECT readonly FROM server_settings",
+            where: { "name = $::TEXT": obj.name },
+            cb: (err, result) => {
+              if (err) {
+                cb(err);
+                return;
+              }
+              if (result.rows[0]?.readonly === true) {
+                cb(`setting name='${obj.name}' is readonly`);
+                return;
+              }
+              cb();
+            },
+          });
         },
       },
     },
