@@ -85,6 +85,12 @@ export function Details({
           )}
         </div>
       )}
+      {result.is_manager && (
+        <div>
+          License id:{" "}
+          <span style={{ fontFace: "monospace" }}>{license_id}</span>
+        </div>
+      )}
       {result.managers != null && <div>You are a manager of this license.</div>}
       {result.expires != null && (
         <div>Expires: {new Date(result.expires).toLocaleString()}</div>

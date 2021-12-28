@@ -15,7 +15,12 @@ interface Props {
   disabled?: boolean;
 }
 
-export default function SelectLicense({ onSelect, license, style, disabled }: Props) {
+export default function SelectLicense({
+  onSelect,
+  license,
+  style,
+  disabled,
+}: Props) {
   let { result, error } = useAPI("licenses/get-managed");
   if (error) {
     return <Alert type="error" message={error} />;
@@ -34,7 +39,7 @@ export default function SelectLicense({ onSelect, license, style, disabled }: Pr
           x.quota
         )}`.toLowerCase()}
       >
-        {x.title}
+        {x.title} - <span style={{ fontFace: "monospace" }}>{x.id}</span>
         <br />
         <Quota quota={x.quota} />
       </Option>

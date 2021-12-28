@@ -9,6 +9,7 @@ import Timestamp from "components/misc/timestamp";
 import apiPost from "lib/api/post";
 import { cmp } from "@cocalc/util/misc";
 import editURL from "lib/share/edit-url";
+import { Details as License } from "./license";
 
 const columns = [
   {
@@ -50,16 +51,6 @@ export default function HowLicenseUsed() {
       analytics about how the license has been used over time to better inform
       your decision making.
       <div style={{ margin: "15px 0", width: "100%" }}>
-        {license && (
-          <div style={{ marginLeft: "15px", float: "right" }}>
-            <Input.Search
-              placeholder="Search..."
-              allowClear
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ width: "100%" }}
-            />
-          </div>
-        )}
         <SelectLicense
           disabled={loading}
           onSelect={async (license_id) => {
@@ -88,6 +79,30 @@ export default function HowLicenseUsed() {
       {license && error && <Alert type="error" message={error} />}
       {license && loading && (
         <Loading style={{ fontSize: "16pt", margin: "auto" }} />
+      )}
+      {license && (
+        <div
+          style={{
+            border: "1px solid lightgrey",
+            borderRadius: "5px",
+            padding: "15px",
+            backgroundColor: "#f8f8f8",
+            width: "100%",
+            maxWidth: "90ex",
+          }}
+        >
+          <License license_id={license} />
+        </div>
+      )}
+      {license && !loading && projects.length > 1 && (
+        <div style={{ margin: "15px 0", maxWidth: "50ex" }}>
+          <Input.Search
+            placeholder="Search project titles..."
+            allowClear
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: "100%" }}
+          />
+        </div>
       )}
       {license && !loading && (
         <Table
