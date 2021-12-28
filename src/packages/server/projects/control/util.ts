@@ -277,9 +277,7 @@ export async function ensureConfFilesExists(
 }
 
 // Copy a path using rsync and the specified options
-// on the local filesystem. (TODO) When running as root,
-// we can also specify the user to change the target
-// ownership of the files to.
+// on the local filesystem.
 // NOTE: the scheduled CopyOptions
 // are not implemented at all here.
 export async function copyPath(
@@ -371,10 +369,21 @@ export async function copyPath(
   args.push(source_abspath + (isDir ? "/" : ""));
   args.push(target_abspath + (isDir ? "/" : ""));
 
+  // For making the target directory, we need to use setuid and be the target
+  // user, since otherwise the permissions are wrong on the containing directory,
+  // as explained here: https://github.com/sagemathinc/cocalc-docker/issues/146
+  // Note that if target_uid is not specified (an allowed option), then
+  // uid and gid are undefined, so get ignored.
   if (isDir) {
-    await spawnAsync("mkdir", ["-p", target_abspath]);
+    await spawnAsync("mkdir", ["-p", target_abspath], {
+      uid: target_uid,
+      gid: target_uid,
+    });
   } else {
-    await spawnAsync("mkdir", ["-p", dirname(target_abspath)]);
+    await spawnAsync("mkdir", ["-p", dirname(target_abspath)], {
+      uid: target_uid,
+      gid: target_uid,
+    });
   }
 
   // do the copy!
