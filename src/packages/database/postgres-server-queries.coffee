@@ -245,7 +245,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     'name::TEXT'  : opts.name
                     'value::TEXT' : opts.value
                 if opts.readonly?
-                    values.readonly = !!values.readonly
+                    values.readonly = !!opts.readonly
                 @_query
                     query    : 'INSERT INTO server_settings'
                     values   : values

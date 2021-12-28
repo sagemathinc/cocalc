@@ -36,7 +36,7 @@ Table({
       set: {
         admin: true,
         fields: {
-          name(obj, db) {
+          name: async function (obj, db) {
             if (!site_settings_fields.includes(obj.name)) {
               throw Error(`setting name='${obj.name}': does not exist`);
             }

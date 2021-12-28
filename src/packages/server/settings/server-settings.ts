@@ -78,6 +78,7 @@ export async function load_server_settings_from_env(
   await db.async_query({
     query: "UPDATE server_settings",
     set: { readonly: false },
+    where: ["1=1"], // otherwise there is an exception about not restricting the query
   });
   // now, check if there are any we know of
   for (const config of [EXTRAS, CONF]) {
