@@ -229,17 +229,20 @@ class Configure extends Component<Props, State> {
     // auth-only sharing only for private instances like on-prem and docker
     if (this.props.kucalc === KUCALC_COCALC_COM) return;
     return (
-      <Radio
-        name="sharing_options"
-        value="authenticated"
-        checked={state === "authenticated"}
-        onChange={this.handle_sharing_options_change.bind(this)}
-        inline
-      >
-        <Icon name={SHARE_AUTHENTICATED_ICON} />
-        <Space />
-        <i>Authenticated</i> - {SHARE_AUTHENTICATED_EXPLANATION}.
-      </Radio>
+      <>
+        <br />
+        <Radio
+          name="sharing_options"
+          value="authenticated"
+          checked={state === "authenticated"}
+          onChange={this.handle_sharing_options_change.bind(this)}
+          inline
+        >
+          <Icon name={SHARE_AUTHENTICATED_ICON} />
+          <Space />
+          <i>Authenticated</i> - {SHARE_AUTHENTICATED_EXPLANATION}.
+        </Radio>
+      </>
     );
   }
 
@@ -266,7 +269,6 @@ class Configure extends Component<Props, State> {
         {this.render_public_listed_option(state)}
         <br />
         {this.render_public_unlisted_option(state)}
-        <br />
         {this.render_authenticated_option(state)}
         <br />
         {this.render_private_option(state)}
