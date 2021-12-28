@@ -17,7 +17,7 @@ export default function ConfigMenu({ main }) {
       }}
     >
       <Menu.Item key={""}>
-        <b style={{ fontSize: "16pt", color:"#666" }}>Licenses</b>
+        <b style={{ fontSize: "16pt", color: "#666" }}>Licenses</b>
       </Menu.Item>
 
       <Menu.Item key={"create"}>
@@ -28,10 +28,11 @@ export default function ConfigMenu({ main }) {
         <Icon name={"key"} style={{ marginRight: "5px" }} /> Your Licenses
       </Menu.Item>
       <Menu.Item key={"projects"}>
-        <Icon name={"edit"} style={{ marginRight: "5px" }} /> Licensed Projects
+        <Icon name={"edit"} style={{ marginRight: "5px" }} /> Your Licensed
+        Projects
       </Menu.Item>
-      <Menu.Item key={"analytics"}>
-        <Icon name={"key"} style={{ marginRight: "5px" }} /> Analytics
+      <Menu.Item key={"how-license-used"}>
+        <Icon name={"key"} style={{ marginRight: "5px" }} /> How a License is Used
       </Menu.Item>
     </Menu>
   );

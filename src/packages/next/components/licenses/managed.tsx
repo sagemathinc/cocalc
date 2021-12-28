@@ -8,10 +8,9 @@ import { EditableDescription, EditableTitle } from "./editable-license";
 import { search_split, search_match } from "@cocalc/util/misc";
 import { cmp } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components/icon";
+import Timestamp from "components/misc/timestamp";
 
-function renderTimestamp(x) {
-  return x ? new Date(x).toLocaleString() : "-";
-}
+const renderTimestamp = (epoch) => <Timestamp epoch={epoch} />;
 
 function columns(onChange) {
   return [

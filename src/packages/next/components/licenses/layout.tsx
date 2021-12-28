@@ -11,6 +11,7 @@ import { useRouter } from "next/router";
 
 import LicensedProjects from "./licensed-projects";
 import ManagedLicenses from "./managed";
+import HowLicenseUsed from "./how-license-used";
 
 const { Content, Sider } = Layout;
 
@@ -56,6 +57,8 @@ export default function ConfigLayout({ page }: Props) {
         return <LicensedProjects />;
       case "managed":
         return <ManagedLicenses />;
+      case "how-license-used":
+        return <HowLicenseUsed />;
     }
     return <div>TODO {main}</div>;
   }
