@@ -81,7 +81,7 @@ export default function All({ page, publicPaths, customize }) {
 }
 
 export async function getServerSideProps(context) {
-  const is_authenticated = (await getAccountId(context.req)) != null;
+  const isAuthenticated = (await getAccountId(context.req)) != null;
   const page = getPage(context.params);
   const pool = getPool("medium");
   const { rows } = await pool.query(
@@ -90,7 +90,7 @@ export async function getServerSideProps(context) {
     WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE AND
     ((authenticated IS TRUE AND $1 IS TRUE) OR (authenticated IS NOT TRUE))
     ORDER BY last_edited DESC LIMIT $2 OFFSET $3`,
-    [is_authenticated, PAGE_SIZE, PAGE_SIZE * (page - 1)]
+    [isAuthenticated, PAGE_SIZE, PAGE_SIZE * (page - 1)]
   );
 
   return await withCustomize({ context, props: { page, publicPaths: rows } });

@@ -39,7 +39,7 @@ async function filterNonPublicAndNotAuthenticated(
 ): Promise<PublicPath[]> {
   const v: any[] = [];
   let isCollab: boolean | undefined = undefined;
-  let is_authenticated: boolean | undefined = undefined;
+  let isAuthenticated: boolean | undefined = undefined;
   for (const row of rows) {
     if (!row.disabled && !row.unlisted && !row.authenticated) {
       v.push(row);
@@ -47,7 +47,7 @@ async function filterNonPublicAndNotAuthenticated(
     }
     if (isCollab == null) {
       const account_id = await getAccountId(req);
-      is_authenticated = account_id != null;
+      isAuthenticated = account_id != null;
       if (account_id) {
         isCollab = await isCollaborator({
           account_id,
@@ -59,7 +59,7 @@ async function filterNonPublicAndNotAuthenticated(
     }
     if (isCollab) {
       v.push(row);
-    } else if (row.authenticated && is_authenticated) {
+    } else if (row.authenticated && isAuthenticated) {
       v.push(row);
     }
   }
