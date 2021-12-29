@@ -16,6 +16,7 @@ export interface PublicPath {
   description?: string;
   disabled?: boolean;
   unlisted?: boolean;
+  authenticated?: boolean; // if true, only authenticated users are allowed to access
   created?: Date;
   license?: string;
   last_edited?: Date;
@@ -76,6 +77,10 @@ Table({
     unlisted: {
       type: "boolean",
       desc: "if true then unlisted, so does not appear in /share listing page.",
+    },
+    authenticated: {
+      type: "boolean",
+      desc: "if true, then only authenticated users have access",
     },
     license: {
       type: "string",
@@ -150,6 +155,7 @@ Table({
           description: null,
           disabled: null, // if true then disabled
           unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
+          authenticated: null, // if true, only authenticated users can have access
           license: null,
           last_edited: null,
           created: null,
@@ -171,6 +177,7 @@ Table({
           description: true,
           disabled: true,
           unlisted: true,
+          authenticated: true,
           license: true,
           last_edited: true,
           created: true,
@@ -249,6 +256,7 @@ Table({
           description: null,
           disabled: null, // if true then disabled
           unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
+          authenticated: null, // if true, only authenticated users can have access
           license: null,
           last_edited: null,
           created: null,
@@ -283,6 +291,7 @@ Table({
           description: null,
           disabled: null, // if true then disabled
           unlisted: null, // if true then do not show in main listing (so doesn't get google indexed)
+          authenticated: null, // if true, only authenticated users can have access
           license: null,
           last_edited: null,
           created: null,

@@ -17,6 +17,7 @@ import { Layout } from "components/share/layout";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/share/customize";
 import GoogleSearch from "components/share/google-search";
+import getAccountId from "lib/account/get-account";
 
 const PAGE_SIZE = 15;
 
@@ -80,11 +81,16 @@ export default function All({ page, publicPaths, customize }) {
 }
 
 export async function getServerSideProps(context) {
+  const isAuthenticated = (await getAccountId(context.req)) != null;
   const page = getPage(context.params);
   const pool = getPool("medium");
   const { rows } = await pool.query(
-    "SELECT id, path, description, EXTRACT(EPOCH FROM last_edited)*1000 AS last_edited FROM public_paths WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE ORDER BY last_edited DESC LIMIT $1 OFFSET $2",
-    [PAGE_SIZE, PAGE_SIZE * (page - 1)]
+    `SELECT id, path, description, EXTRACT(EPOCH FROM last_edited)*1000 AS last_edited
+    FROM public_paths
+    WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE AND
+    ((authenticated IS TRUE AND $1 IS TRUE) OR (authenticated IS NOT TRUE))
+    ORDER BY last_edited DESC LIMIT $2 OFFSET $3`,
+    [isAuthenticated, PAGE_SIZE, PAGE_SIZE * (page - 1)]
   );
 
   return await withCustomize({ context, props: { page, publicPaths: rows } });

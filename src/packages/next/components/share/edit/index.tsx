@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 When you want to edit an existing public share, here's the flow of what happens.
 
 - If you are a collaborator on the project with the shared document it shows a button to "Open the file in my project" (or something).

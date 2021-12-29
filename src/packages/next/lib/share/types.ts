@@ -16,6 +16,7 @@ export interface PublicPath {
   last_edited?: number;
   disabled?: boolean;
   unlisted?: boolean;
+  authenticated?: boolean;
   vhost?: string;
 }
 

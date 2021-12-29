@@ -27,21 +27,27 @@ import {
 import { UnpublishEverything } from "./unpublish-everything";
 import { LICENSES } from "@cocalc/frontend/share/licenses";
 import { Footer } from "@cocalc/frontend/customize";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 interface PublicPath extends PublicPath0 {
   status?: string;
 }
 
-type filters = "Listed" | "Unlisted" | "Unpublished";
-const DEFAULT_CHECKED: filters[] = ["Listed", "Unlisted"];
+type filters = "Listed" | "Unlisted" | "Unpublished" | "Authenticated";
+const DEFAULT_CHECKED: filters[] = ["Listed", "Unlisted", "Authenticated"];
 
 export const PublicPaths: React.FC = () => {
+  const customize_kucalc = useTypedRedux("customize", "kucalc");
+  const showAuthenticatedOption = customize_kucalc !== KUCALC_COCALC_COM;
   const [data, set_data] = useState<PublicPath[] | undefined>(undefined);
   const [error, set_error] = useState<string>("");
   const [loading, set_loading] = useState<boolean>(false);
 
   const [show_listed, set_show_listed] = useState<boolean>(
     DEFAULT_CHECKED.indexOf("Listed") != -1
+  );
+  const [show_authenticated, set_show_authenticated] = useState<boolean>(
+    showAuthenticatedOption && DEFAULT_CHECKED.indexOf("Authenticated") != -1
   );
   const [show_unlisted, set_show_unlisted] = useState<boolean>(
     DEFAULT_CHECKED.indexOf("Unlisted") != -1
@@ -72,6 +78,13 @@ export const PublicPaths: React.FC = () => {
           }
           continue;
         }
+        if (path.authenticated) {
+          if (show_authenticated) {
+            path.status = "Authenticated";
+            v.push(path);
+          }
+          continue;
+        }
         if (show_listed) {
           path.status = "Listed";
           v.push(path);
@@ -79,7 +92,7 @@ export const PublicPaths: React.FC = () => {
       }
     }
     return v;
-  }, [data, show_listed, show_unlisted, show_unpublished]);
+  }, [data, show_listed, show_unlisted, show_unpublished, show_authenticated]);
 
   const COLUMNS = [
     {
@@ -162,6 +175,7 @@ export const PublicPaths: React.FC = () => {
               description: null,
               disabled: null,
               unlisted: null,
+              authenticated: null,
               license: null,
               last_edited: null,
               created: null,
@@ -191,6 +205,26 @@ export const PublicPaths: React.FC = () => {
     fetch();
   }, []);
 
+  function render_checkboxes() {
+    if (loading) return;
+    const options = ["Listed", "Unlisted", "Unpublished"];
+    if (showAuthenticatedOption) {
+      options.splice(2, 0, "Authenticated");
+    }
+    return (
+      <Checkbox.Group
+        options={options}
+        defaultValue={DEFAULT_CHECKED}
+        onChange={(v) => {
+          set_show_listed(v.indexOf("Listed") != -1);
+          set_show_unlisted(v.indexOf("Unlisted") != -1);
+          set_show_unpublished(v.indexOf("Unpublished") != -1);
+          set_show_authenticated(v.indexOf("Authenticated") != -1);
+        }}
+      />
+    );
+  }
+
   return (
     <div style={{ marginBottom: "64px" }}>
       <Button onClick={fetch} disabled={loading} style={{ float: "right" }}>
@@ -202,17 +236,7 @@ export const PublicPaths: React.FC = () => {
       <br />
       <br />
       {loading && <Loading />}
-      {!loading && (
-        <Checkbox.Group
-          options={["Listed", "Unlisted", "Unpublished"]}
-          defaultValue={DEFAULT_CHECKED}
-          onChange={(v) => {
-            set_show_listed(v.indexOf("Listed") != -1);
-            set_show_unlisted(v.indexOf("Unlisted") != -1);
-            set_show_unpublished(v.indexOf("Unpublished") != -1);
-          }}
-        />
-      )}
+      {render_checkboxes()}
       <br />
       {error != "" && (
         <ErrorDisplay style={{ marginTop: "32px" }} error={error} />

@@ -1,6 +1,12 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { useEffect, useState } from "react";
 import { Alert, Divider, Radio, Input, Select, Space } from "antd";
 import useDatabase from "lib/hooks/database";
+import useCustomize from "lib/use-customize";
 import Loading from "./loading";
 import { LICENSES } from "@cocalc/frontend/share/licenses";
 import SaveButton from "components/misc/save-button";
@@ -9,6 +15,11 @@ import A from "components/misc/A";
 import SelectSiteLicense from "components/misc/select-site-license";
 import { Icon } from "@cocalc/frontend/components/icon";
 import LaTeX from "components/landing/latex";
+import {
+  SHARE_AUTHENTICATED_EXPLANATION,
+  SHARE_AUTHENTICATED_ICON,
+  SHARE_FLAGS,
+} from "@cocalc/util/consts/ui";
 
 const { Option } = Select;
 
@@ -23,6 +34,7 @@ const QUERY = {
   description: null,
   disabled: null,
   unlisted: null,
+  authenticated: null,
   license: null,
   compute_image: null,
 };
@@ -32,9 +44,17 @@ interface Info {
   description?: string;
   disabled?: boolean;
   unlisted?: boolean;
+  authenticated?: boolean;
   license?: string;
   compute_image?: string;
   site_license_id?: string;
+}
+
+function get_visibility(edited) {
+  if (edited.disabled) return "private";
+  if (edited.unlisted) return "unlisted";
+  if (edited.authenticated) return "authenticated";
+  return "listed";
 }
 
 export default function ConfigurePublicPath({ id, project_id, path }: Props) {
@@ -49,7 +69,7 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
       path,
     },
   });
-
+  const { onCoCalcCom } = useCustomize();
   const [loaded, setLoaded] = useState<boolean>(false);
   const [edited, setEdited] = useState<Info>({});
   const [original, setOriginal] = useState<Info>({});
@@ -79,11 +99,9 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
   }
 
   // cheap to compute, so we compute every time.
-  const visibility = edited.disabled
-    ? "private"
-    : edited.unlisted
-    ? "unlisted"
-    : "listed";
+  const visibility = get_visibility(edited);
+  // we don't show "authenticated" on cocalc.com, unless it is set to it
+  const showAuthenticated = !onCoCalcCom || edited.authenticated;
 
   const save =
     edited == null || original == null ? null : (
@@ -139,10 +157,10 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
           />
         </EditRow>
         <EditRow
-          label="Listed, Unlisted or Private?"
+          label="Listed, Unlisted, Authenticated or Private?"
           description="You make files or directories public to the world, either indexed by
-      search engines (listed), or only visible with the link (unlisted). Public files
-      are automatically copied to the public server within about 30 seconds
+      search engines (listed), only visible with the link (unlisted), or only those who are authenticated.
+      Public files are automatically copied to the public server within about 30 seconds
       after you explicitly edit them.  You can also set a site license for unlisted public shares."
         >
           <Space direction="vertical">
@@ -151,13 +169,16 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
               onChange={(e) => {
                 switch (e.target.value) {
                   case "listed":
-                    setEdited({ ...edited, unlisted: false, disabled: false });
+                    setEdited({ ...edited, ...SHARE_FLAGS.LISTED });
                     break;
                   case "unlisted":
-                    setEdited({ ...edited, unlisted: true, disabled: false });
+                    setEdited({ ...edited, ...SHARE_FLAGS.UNLISTED });
+                    break;
+                  case "authenticated":
+                    setEdited({ ...edited, ...SHARE_FLAGS.AUTHENTICATED });
                     break;
                   case "private":
-                    setEdited({ ...edited, unlisted: true, disabled: true });
+                    setEdited({ ...edited, ...SHARE_FLAGS.DISABLED });
                     break;
                 }
               }}
@@ -171,6 +192,12 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
                   <Icon name="eye-slash" /> <em>Public (unlisted):</em> only
                   people with the link can view this.
                 </Radio>
+                {showAuthenticated && (
+                  <Radio value={"authenticated"}>
+                    <Icon name={SHARE_AUTHENTICATED_ICON} />{" "}
+                    <em>Authenticated:</em> {SHARE_AUTHENTICATED_EXPLANATION}.
+                  </Radio>
+                )}
                 <Radio value={"private"}>
                   <Icon name="lock" /> <em>Private:</em> only collaborators on
                   the project can view this.

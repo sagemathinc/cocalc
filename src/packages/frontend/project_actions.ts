@@ -84,6 +84,7 @@ export const QUERIES = {
       description: null,
       disabled: null,
       unlisted: null,
+      authenticated: null,
       created: null,
       license: null,
       last_edited: null,
@@ -2379,6 +2380,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       unlisted?: boolean;
       license?: string;
       disabled?: boolean;
+      authenticated?: boolean;
     }
   ) {
     const store = this.get_store();
@@ -2419,12 +2421,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     for (const k in opts) {
       if (opts[k] != null) {
+        const will_change = opts[k] != obj.get(k);
         if (!log) {
-          if (k == "disabled" && opts[k] != obj.get(k)) {
+          if (k === "disabled" && will_change) {
             // changing disabled state
             log = true;
-          } else if (k == "unlisted" && opts[k] != obj.get(k)) {
+          } else if (k === "unlisted" && will_change) {
             // changing unlisted state
+            log = true;
+          } else if (k === "authenticated" && will_change) {
             log = true;
           }
         }
@@ -2439,6 +2444,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         path: path + ((await this.isdir(path)) ? "/" : ""),
         disabled: !!obj.get("disabled"),
         unlisted: !!obj.get("unlisted"),
+        authenticated: !!obj.get("authenticated"),
       });
     }
   }
@@ -2451,7 +2457,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // the name.
   public async setPublicPathName(path: string, name: string): Promise<void> {
     const id = client_db.sha1(this.project_id, path);
-    const query = { public_paths: { project_id: this.project_id, path, name, id } };
+    const query = {
+      public_paths: { project_id: this.project_id, path, name, id },
+    };
     await webapp_client.async_query({ query });
   }
 
