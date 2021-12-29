@@ -89,20 +89,24 @@ export default function HowLicenseUsed() {
       {license && loading && (
         <Loading style={{ fontSize: "16pt", margin: "auto" }} />
       )}
-      {license && (
-        <div
-          style={{
-            border: "1px solid lightgrey",
-            borderRadius: "5px",
-            padding: "15px",
-            backgroundColor: "#f8f8f8",
-            width: "100%",
-            maxWidth: "90ex",
-          }}
-        >
+      <div
+        style={{
+          border: "1px solid lightgrey",
+          borderRadius: "5px",
+          padding: "15px",
+          backgroundColor: "#f8f8f8",
+          width: "100%",
+          maxWidth: "90ex",
+        }}
+      >
+        {license ? (
           <License license_id={license} />
-        </div>
-      )}
+        ) : (
+          <div style={{ textAlign: "center", fontSize: "13pt" }}>
+            Select a license above.
+          </div>
+        )}
+      </div>
       {license && !loading && projects.length > 1 && (
         <div style={{ margin: "15px 0", maxWidth: "50ex" }}>
           <Input.Search

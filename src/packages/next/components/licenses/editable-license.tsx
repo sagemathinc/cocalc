@@ -87,7 +87,6 @@ function EditableTextField({
         (rows ? (
           <Input.TextArea
             autoFocus
-            style={{ fontSize: "11px" }}
             value={value2}
             onChange={(e) => setValue(e.target.value)}
             onBlur={() => save(value2)}
@@ -96,7 +95,6 @@ function EditableTextField({
         ) : (
           <Input
             autoFocus
-            style={{ fontSize: "11px" }}
             value={value2}
             onChange={(e) => setValue(e.target.value)}
             onBlur={() => save(value2)}

@@ -65,13 +65,13 @@ export function Details({
   return (
     <div>
       {(result.title || result.is_manager) && (
-        <h3>
+        <div style={{ fontWeight: "bold", fontSize: "13pt" }}>
           {result.is_manager ? (
             <EditableTitle license_id={license_id} title={result.title} />
           ) : (
             "Title: " + result.title
           )}
-        </h3>
+        </div>
       )}
       {(result.description || result.is_manager) && (
         <div>
