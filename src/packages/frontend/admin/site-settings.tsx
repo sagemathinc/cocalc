@@ -19,6 +19,7 @@ import {
 
 import { query } from "../frame-editors/generic/client";
 import { copy, deep_copy, keys, unreachable } from "@cocalc/util/misc";
+import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
 
 import { site_settings_conf } from "@cocalc/util/schema";
 import { ON_PREM_DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
@@ -68,7 +69,8 @@ interface SiteSettingsState {
   state: State; // view --> load --> edit --> save --> view
   error?: string;
   edited?: any;
-  data?: any;
+  data?: { [name: string]: string };
+  isReadonly?: { [name: string]: boolean };
   disable_tests: boolean;
 }
 
@@ -108,21 +110,24 @@ class SiteSettingsComponent extends Component<
     try {
       result = await query({
         query: {
-          site_settings: [{ name: null, value: null }],
+          site_settings: [{ name: null, value: null, readonly: null }],
         },
       });
     } catch (err) {
       this.setState({ state: "error", error: err });
       return;
     }
-    const data = {};
+    const data: { [name: string]: string } = {};
+    const isReadonly: { [name: string]: boolean } = {};
     for (const x of result.query.site_settings) {
       data[x.name] = x.value;
+      isReadonly[x.name] = !!x.readonly;
     }
     this.setState({
       state: "edit" as State,
       error: undefined,
       data,
+      isReadonly,
       edited: deep_copy(data),
       disable_tests: false,
     });
@@ -327,6 +332,8 @@ class SiteSettingsComponent extends Component<
     clearable,
     multiline
   ): Rendered {
+    const disabled = this.state.isReadonly[name] === true;
+
     if (Array.isArray(valid)) {
       /* This antd code below is broken because something about
          antd is broken.  Maybe it is a bug in antd.
@@ -351,6 +358,7 @@ class SiteSettingsComponent extends Component<
       return (
         <select
           defaultValue={value}
+          disabled={disabled}
           onChange={(event) => this.on_change_entry(name, event.target.value)}
           style={{ width: "100%" }}
         >
@@ -368,6 +376,7 @@ class SiteSettingsComponent extends Component<
             style={this.row_entry_style(value, valid)}
             value={value}
             visibilityToggle={true}
+            disabled={disabled}
             onChange={(e) => this.on_change_entry(name, e.target.value)}
           />
         );
@@ -383,6 +392,7 @@ class SiteSettingsComponent extends Component<
               ref={name}
               style={style}
               value={value}
+              disabled={disabled}
               onChange={() => this.on_change_entry(name)}
             />
           );
@@ -392,6 +402,7 @@ class SiteSettingsComponent extends Component<
               ref={name}
               style={this.row_entry_style(value, valid)}
               value={value}
+              disabled={disabled}
               onChange={() => this.on_change_entry(name)}
               // clearable disabled, otherwise it's not possible to edit the value
               allowClear={clearable && false}
@@ -434,6 +445,15 @@ class SiteSettingsComponent extends Component<
               <div style={{ fontSize: "90%", display: "inlineBlock" }}>
                 {this.render_row_version_hint(name, value)}
                 {hint}
+                {this.state.isReadonly[name] && (
+                  <>
+                    Value controlled via{" "}
+                    <code>
+                      ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
+                    </code>
+                    .
+                  </>
+                )}
                 {this.render_row_entry_parsed(displayed_val)}
                 {this.render_row_entry_valid(valid)}
               </div>

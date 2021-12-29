@@ -29,18 +29,35 @@ Table({
         fields: {
           name: null,
           value: null,
+          readonly: null,
         },
       },
       set: {
         admin: true,
         fields: {
-          name(obj, _db) {
-            if (site_settings_fields.includes(obj.name)) {
-              return obj.name;
-            }
-            throw Error(`setting name='${obj.name}' not allowed`);
-          },
+          name: null,
           value: null,
+        },
+        check_hook(db, obj, _account_id, _project_id, cb) {
+          if (!site_settings_fields.includes(obj.name)) {
+            cb(`setting name='${obj.name}' not allowed`);
+            return;
+          }
+          db._query({
+            query: "SELECT readonly FROM server_settings",
+            where: { "name = $::TEXT": obj.name },
+            cb: (err, result) => {
+              if (err) {
+                cb(err);
+                return;
+              }
+              if (result.rows[0]?.readonly === true) {
+                cb(`setting name='${obj.name}' is readonly`);
+                return;
+              }
+              cb();
+            },
+          });
         },
       },
     },
