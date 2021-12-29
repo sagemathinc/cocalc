@@ -7,7 +7,7 @@ interface Props {
   text: string;
   label?: ReactNode;
   style?: CSSProperties;
-  size?: "large" | "medium" | "small";
+  size?: "large" | "middle" | "small";
 }
 
 export default function Copyable({ text, style, size, label }: Props) {

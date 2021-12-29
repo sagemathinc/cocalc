@@ -222,7 +222,7 @@ function doSearch(
   const v = search_split(search.toLowerCase().trim());
   const w: object[] = [];
   for (const x of data) {
-    if (excludeMe && x.collaborators?.includes(account_id)) continue;
+    if (excludeMe && x["collaborators"]?.includes(account_id)) continue;
     if (x["search"] == null) {
       x["search"] = `${x["title"] ?? ""} ${x["id"]}`.toLowerCase();
     }

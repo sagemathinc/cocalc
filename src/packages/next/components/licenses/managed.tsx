@@ -10,6 +10,7 @@ import { cmp } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Timestamp from "components/misc/timestamp";
 import License from "./license";
+import SelectUsers from "components/account/select-users";
 
 const renderTimestamp = (epoch) => <Timestamp epoch={epoch} />;
 
@@ -124,6 +125,9 @@ function columns(onChange) {
           {managers.map((account_id) => (
             <Avatar key={account_id} account_id={account_id} size={32} />
           ))}
+          <div style={{width:'160px', marginTop:'15px'}}>
+          <SelectUsers />
+          </div>
         </>
       ),
     },
