@@ -157,7 +157,11 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
           />
         </EditRow>
         <EditRow
-          label="Listed, Unlisted, Authenticated or Private?"
+          label={
+            showAuthenticated
+              ? "Listed, Unlisted, Authenticated or Private?"
+              : "Listed, Unlisted or Private?"
+          }
           description="You make files or directories public to the world, either indexed by
       search engines (listed), only visible with the link (unlisted), or only those who are authenticated.
       Public files are automatically copied to the public server within about 30 seconds
