@@ -1,5 +1,5 @@
 import { Alert, Input } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import apiPost from "lib/api/post";
 import { capitalize } from "@cocalc/util/misc";
 
@@ -59,6 +59,12 @@ function EditableTextField({
   const [value2, setValue] = useState<string>(value ?? "");
   const [error, setError] = useState<string>("");
 
+  useEffect(() => {
+    setValue(value ?? "");
+    setEdit(false);
+    setError("");
+  }, [value]);
+
   async function save(value: string): Promise<void> {
     setEdit(false);
     setError("");
@@ -80,6 +86,7 @@ function EditableTextField({
       {edit &&
         (rows ? (
           <Input.TextArea
+            autoFocus
             style={{ fontSize: "11px" }}
             value={value2}
             onChange={(e) => setValue(e.target.value)}
@@ -88,6 +95,7 @@ function EditableTextField({
           />
         ) : (
           <Input
+            autoFocus
             style={{ fontSize: "11px" }}
             value={value2}
             onChange={(e) => setValue(e.target.value)}

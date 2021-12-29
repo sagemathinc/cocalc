@@ -55,7 +55,7 @@ export function Details({
   license_id: string;
   style?: CSSProperties;
 }) {
-  const { result, error } = useAPI("licenses/get-license", { license_id }, 15); // 15s cache
+  const { result, error } = useAPI("licenses/get-license", { license_id }, 3); // 3s cache
   if (error) {
     return <Alert type="error" message={error} />;
   }
@@ -64,7 +64,7 @@ export function Details({
   }
   return (
     <div>
-      {result.title && (
+      {(result.title || result.is_manager) && (
         <h3>
           {result.is_manager ? (
             <EditableTitle license_id={license_id} title={result.title} />
@@ -73,7 +73,7 @@ export function Details({
           )}
         </h3>
       )}
-      {result.description && (
+      {(result.description || result.is_manager) && (
         <div>
           {result.is_manager ? (
             <EditableDescription
@@ -88,7 +88,7 @@ export function Details({
       {result.is_manager && (
         <div>
           License id:{" "}
-          <span style={{ fontFace: "monospace" }}>{license_id}</span>
+          <span style={{ fontFamily: "monospace" }}>{license_id}</span>
         </div>
       )}
       {result.managers != null && <div>You are a manager of this license.</div>}

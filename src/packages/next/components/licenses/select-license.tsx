@@ -39,7 +39,7 @@ export default function SelectLicense({
           x.quota
         )}`.toLowerCase()}
       >
-        {x.title} - <span style={{ fontFace: "monospace" }}>{x.id}</span>
+        {x.title} - <span style={{ fontFamily: "monospace" }}>{x.id}</span>
         <br />
         <Quota quota={x.quota} />
       </Option>

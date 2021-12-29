@@ -27,7 +27,7 @@ export default function useAPI(
   ): Promise<any> {
     if (endpoint1 == undefined) return;
     if (calling) {
-      queue.current.push({ endpoint:endpoint1, params:params1, cache_s });
+      queue.current.push({ endpoint: endpoint1, params: params1, cache_s });
       return;
     }
     setCalling(true);
@@ -59,7 +59,7 @@ export default function useAPI(
     if (endpoint) {
       call(endpoint, params, cache_s);
     }
-  }, []);
+  }, [endpoint + JSON.stringify(params)]);
 
   return { error, result, calling, call };
 }

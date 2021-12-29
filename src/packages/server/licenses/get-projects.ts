@@ -6,11 +6,13 @@ Returns array of such projects, with the following fields:
 - map from license_id to what is being used right now
 - last_edited
 - if project is hidden
+- project state, e.g., 'running'
 */
 
 import getPool from "@cocalc/database/pool";
 import { toEpoch } from "@cocalc/database/postgres/util";
 import { isValidUUID } from "@cocalc/util/misc";
+import { State } from "@cocalc/util/compute-states";
 
 export interface Project {
   project_id: string;
@@ -18,6 +20,7 @@ export interface Project {
   site_license: object;
   hidden?: boolean;
   last_edited: number; // ms since epoch
+  state?: State;
 }
 
 export default async function getProjects(
@@ -33,6 +36,7 @@ export default async function getProjects(
   const { rows } = await pool.query(
     `SELECT project_id, title, site_license,
     users#>'{${account_id},hide}' as hidden,
+    state#>'{state}' as state,
     last_edited
     FROM projects
     WHERE users ? '${account_id}' AND site_license != '{}'

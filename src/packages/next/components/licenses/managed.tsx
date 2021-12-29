@@ -32,7 +32,9 @@ export const quotaColumn = {
   dataIndex: "quota",
   key: "quota",
   render: (quota, record) => {
-    return (
+    return (record.state != null && record.state != "running") ? (
+      <div style={{ color: "#666", textAlign: "center" }}>—</div>
+    ) : (
       <div
         style={{
           wordWrap: "break-word",
@@ -40,7 +42,7 @@ export const quotaColumn = {
           color: "#666",
         }}
       >
-        <LicenseQuota quota={quota} />
+        {quota && <LicenseQuota quota={quota} />}
         {/* upgrades is deprecated, but in case we encounter it, do not ignore it */}
         {record.upgrades && <pre>{JSON.stringify(record.upgrades)}</pre>}
       </div>

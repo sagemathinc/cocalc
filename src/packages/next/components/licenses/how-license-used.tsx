@@ -51,8 +51,6 @@ export default function HowLicenseUsed() {
   let [projects, setProjects] = useState<object[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  console.log(projects);
-
   return (
     <div style={{ width: "100%", overflowX: "scroll" }}>
       <h3>How a License You Manage is Being Used</h3>
