@@ -26,36 +26,50 @@ export default function Avatar({ account_id, size, style, showName }: Props) {
     return <DisplayAvatar style={style} size={size} />;
   }
 
-  if (profile.image) {
-    return <DisplayAvatar style={style} size={size} image={profile.image} />;
-  }
-
   return (
     <Popover
-      title={`${profile.first_name} ${profile.last_name}`}
+      title={
+        <div style={{ textAlign: "center", fontSize: "13pt" }}>
+          {profile.first_name} {profile.last_name}
+        </div>
+      }
       content={
         <div style={{ textAlign: "center" }}>
-          <DisplayAvatar
-            style={style}
-            size={size * 2}
-            color={profile.color}
-            letter={profile.first_name?.[0]}
-          />
+          {profile.image ? (
+            <DisplayAvatar
+              style={style}
+              size={size * 3}
+              image={profile.image}
+            />
+          ) : (
+            <DisplayAvatar
+              style={style}
+              size={size * 3}
+              color={profile.color}
+              letter={profile.first_name?.[0]}
+            />
+          )}
         </div>
       }
     >
-      <DisplayAvatar
-        style={style}
-        size={size}
-        color={profile.color}
-        letter={profile.first_name?.[0]}
-      />
-      {showName && (
-        <>
-          <br />
-          {profile.first_name} {profile.last_name}
-        </>
-      )}
+      <span style={{ cursor: "pointer" }}>
+        {profile.image ? (
+          <DisplayAvatar style={style} size={size} image={profile.image} />
+        ) : (
+          <DisplayAvatar
+            style={style}
+            size={size}
+            color={profile.color}
+            letter={profile.first_name?.[0]}
+          />
+        )}
+        {showName && (
+          <>
+            <br />
+            {profile.first_name} {profile.last_name}
+          </>
+        )}
+      </span>
     </Popover>
   );
 }

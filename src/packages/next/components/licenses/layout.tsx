@@ -58,7 +58,7 @@ export default function ConfigLayout({ page }: Props) {
       case "managed":
         return <ManagedLicenses />;
       case "how-license-used":
-        return <HowLicenseUsed />;
+        return <HowLicenseUsed account_id={account_id} />;
     }
     return <div>TODO {main}</div>;
   }

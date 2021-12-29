@@ -34,7 +34,7 @@ export default async function getProjectsWithLicense(
 
   const { rows } = await pool.query(
     `SELECT project_id, title, site_license#>'{${license_id},quota}' as quota,
-    jsonb_object_keys(users) as collaborators,
+    ARRAY(SELECT jsonb_object_keys(users)) as collaborators,
     state#>'{state}' as state,
     last_edited
     FROM projects

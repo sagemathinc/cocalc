@@ -1,8 +1,8 @@
 import { useState } from "react";
 import Loading from "components/share/loading";
-import { Alert, Input, Table } from "antd";
+import { Alert, Input, Popover, Table } from "antd";
 import SelectLicense from "./select-license";
-//import Avatar from "components/account/avatar";
+import Avatar from "components/account/avatar";
 import { search_split, search_match } from "@cocalc/util/misc";
 import A from "components/misc/A";
 import Timestamp from "components/misc/timestamp";
@@ -12,39 +12,90 @@ import editURL from "lib/share/edit-url";
 import { Details as License } from "./license";
 import { quotaColumn } from "./managed";
 
-const columns = [
-  {
-    title: "Project Title",
-    dataIndex: "title",
-    key: "title",
-    width: "30%",
-    render: (title, { project_id }) => (
-      <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
-        <A href={editURL({ project_id, type: "collaborator" })} external>
-          {title}
-        </A>
-      </div>
-    ),
-    sorter: { compare: (a, b) => cmp(a.title, b.title) },
-  },
-  {
-    title: "Project Last Edited",
-    dataIndex: "last_edited",
-    key: "last_edited",
-    render: (last_edited) => <Timestamp epoch={last_edited} />,
-    sorter: { compare: (a, b) => cmp(a.last_edited, b.last_edited) },
-  },
-  {
-    title: "State",
-    dataIndex: "state",
-    key: "state",
-    sorter: { compare: (a, b) => cmp(a.state, b.state) },
-    render: (state) => capitalize(state),
-  },
-  quotaColumn,
-];
+function columns(account_id) {
+  return [
+    {
+      title: (
+        <Popover
+          placement="bottom"
+          title="Project"
+          content={
+            <div style={{ maxWidth: "75ex" }}>
+              This is the title and id of the project. If you are a collaborator
+              on this project, then you can click the title to open the project.
+            </div>
+          }
+        >
+          Project
+        </Popover>
+      ),
+      dataIndex: "title",
+      key: "title",
+      width: "30%",
+      render: (title, { project_id, collaborators }) => (
+        <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
+          {collaborators.includes(account_id) ? (
+            <A href={editURL({ project_id, type: "collaborator" })} external>
+              {title}
+            </A>
+          ) : (
+            title
+          )}
+          <div style={{fontFamily:'monospace', fontSize:'9pt'}}>{project_id}</div>
+        </div>
+      ),
+      sorter: { compare: (a, b) => cmp(a.title, b.title) },
+    },
+    {
+      title: "Last Edited",
+      dataIndex: "last_edited",
+      key: "last_edited",
+      render: (last_edited) => <Timestamp epoch={last_edited} />,
+      sorter: { compare: (a, b) => cmp(a.last_edited, b.last_edited) },
+    },
+    {
+      title: (
+        <Popover
+          title="Collaborators"
+          content={
+            <div style={{ maxWidth: "75ex" }}>
+              These are the collaborators on this project. You are not
+              necessarily included in this list, since this license can be
+              applied to any project by somebody who knows the license code.
+            </div>
+          }
+        >
+          Collaborators
+        </Popover>
+      ),
+      dataIndex: "collaborators",
+      key: "collaborators",
+      render: (collaborators) => (
+        <>
+          {collaborators.map((account_id) => (
+            <Avatar
+              key={account_id}
+              account_id={account_id}
+              size={24}
+              style={{ marginRight: "2.5px" }}
+            />
+          ))}
+        </>
+      ),
+    },
 
-export default function HowLicenseUsed() {
+    {
+      title: "State",
+      dataIndex: "state",
+      key: "state",
+      sorter: { compare: (a, b) => cmp(a.state, b.state) },
+      render: (state) => capitalize(state),
+    },
+    quotaColumn,
+  ];
+}
+
+export default function HowLicenseUsed({ account_id }) {
   const [license, setLicense] = useState<string>("");
   const [search, setSearch] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -119,7 +170,7 @@ export default function HowLicenseUsed() {
       )}
       {license && !loading && (
         <Table
-          columns={columns}
+          columns={columns(account_id)}
           dataSource={doSearch(projects, search)}
           rowKey={"project_id"}
           style={{ marginTop: "15px" }}
