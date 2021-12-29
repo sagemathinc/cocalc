@@ -122,7 +122,7 @@ export async function createUser(project_id: string): Promise<void> {
   await exec(`/usr/sbin/groupadd -g ${uid} -o ${username}`, true);
   winston.debug("createUser: adding user");
   await exec(
-    `/usr/sbin/useradd -u ${uid} -g ${uid} -o ${username} -d ${homePath(
+    `/usr/sbin/useradd -u ${uid} -g ${uid} -o ${username} -m -d ${homePath(
       project_id
     )} -s /bin/bash`,
     true
@@ -132,7 +132,7 @@ export async function createUser(project_id: string): Promise<void> {
 export async function deleteUser(project_id: string): Promise<void> {
   const username = getUsername(project_id);
   const uid = `${getUid(project_id)}`;
-  await exec(`pkill -9 -u ${uid}`);
+  await exec(`pkill -9 -u ${uid} | true`); // | true since pkill exit 1 if nothing killed.
   try {
     await exec(`/usr/sbin/userdel ${username}`); // this also deletes the group
   } catch (_) {
@@ -369,21 +369,38 @@ export async function copyPath(
   args.push(source_abspath + (isDir ? "/" : ""));
   args.push(target_abspath + (isDir ? "/" : ""));
 
-  // For making the target directory, we need to use setuid and be the target
-  // user, since otherwise the permissions are wrong on the containing directory,
+  async function make_target_path() {
+    // note -- uid/gid ignored if target_uid not set.
+    if (isDir) {
+      await spawnAsync("mkdir", ["-p", target_abspath], {
+        uid: target_uid,
+        gid: target_uid,
+      });
+    } else {
+      await spawnAsync("mkdir", ["-p", dirname(target_abspath)], {
+        uid: target_uid,
+        gid: target_uid,
+      });
+    }
+  }
+
+  // For making the target directory when target_uid is specified,
+  // we need to use setuid and be the target user, since otherwise
+  // the permissions are wrong on the containing directory,
   // as explained here: https://github.com/sagemathinc/cocalc-docker/issues/146
-  // Note that if target_uid is not specified (an allowed option), then
-  // uid and gid are undefined, so get ignored.
-  if (isDir) {
-    await spawnAsync("mkdir", ["-p", target_abspath], {
-      uid: target_uid,
-      gid: target_uid,
-    });
-  } else {
-    await spawnAsync("mkdir", ["-p", dirname(target_abspath)], {
-      uid: target_uid,
-      gid: target_uid,
-    });
+  // However, this will fail if the user hasn't been created, hence
+  // this code is extra complicated.
+  try {
+    await make_target_path();
+  } catch (_err) {
+    // The above probably failed due to the uid/gid not existing.
+    // In that case, we create the user, then try again.
+    await createUser(target_project_id);
+    await make_target_path();
+    // Assuming the above did work, it's very likely the original
+    // failing was due to the user not existing, so now we delete
+    // it again.
+    await deleteUser(target_project_id);
   }
 
   // do the copy!
