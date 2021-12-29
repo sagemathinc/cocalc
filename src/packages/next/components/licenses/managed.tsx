@@ -12,6 +12,42 @@ import Timestamp from "components/misc/timestamp";
 
 const renderTimestamp = (epoch) => <Timestamp epoch={epoch} />;
 
+export const quotaColumn = {
+  title: (
+    <Popover
+      title="Quota"
+      content={
+        <div style={{ maxWidth: "75ex" }}>
+          This is the license quota. If the license is active on a project, its
+          quotas will be set to at least the values listed here. If multiple
+          licenses are used on the same project, the maximum of the quotas are
+          used.
+        </div>
+      }
+    >
+      Quota{" "}
+    </Popover>
+  ),
+  width: "25%",
+  dataIndex: "quota",
+  key: "quota",
+  render: (quota, record) => {
+    return (
+      <div
+        style={{
+          wordWrap: "break-word",
+          wordBreak: "break-word",
+          color: "#666",
+        }}
+      >
+        <LicenseQuota quota={quota} />
+        {/* upgrades is deprecated, but in case we encounter it, do not ignore it */}
+        {record.upgrades && <pre>{JSON.stringify(record.upgrades)}</pre>}
+      </div>
+    );
+  },
+};
+
 function columns(onChange) {
   return [
     {
@@ -111,41 +147,7 @@ function columns(onChange) {
       ),
       sorter: { compare: (a, b) => cmp(a.run_limit, b.run_limit) },
     },
-    {
-      title: (
-        <Popover
-          title="Quota"
-          content={
-            <div style={{ maxWidth: "75ex" }}>
-              This is the license quota. If the license is active on a project,
-              its quotas will be set to at least the values listed here. If
-              multiple licenses are used on the same project, the maximum of the
-              quotas are used.
-            </div>
-          }
-        >
-          Quota{" "}
-        </Popover>
-      ),
-      width: "30%",
-      dataIndex: "quota",
-      key: "quota",
-      render: (quota, record) => {
-        return (
-          <div
-            style={{
-              wordWrap: "break-word",
-              wordBreak: "break-word",
-              color: "#666",
-            }}
-          >
-            <LicenseQuota quota={quota} />
-            {/* upgrades is deprecated, but in case we encounter it, do not ignore it */}
-            {record.upgrades && <pre>{JSON.stringify(record.upgrades)}</pre>}
-          </div>
-        );
-      },
-    },
+    quotaColumn,
     {
       title: (
         <Popover

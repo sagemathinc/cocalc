@@ -7,9 +7,10 @@ import { search_split, search_match } from "@cocalc/util/misc";
 import A from "components/misc/A";
 import Timestamp from "components/misc/timestamp";
 import apiPost from "lib/api/post";
-import { cmp } from "@cocalc/util/misc";
+import { capitalize, cmp } from "@cocalc/util/misc";
 import editURL from "lib/share/edit-url";
 import { Details as License } from "./license";
+import { quotaColumn } from "./managed";
 
 const columns = [
   {
@@ -33,6 +34,14 @@ const columns = [
     render: (last_edited) => <Timestamp epoch={last_edited} />,
     sorter: { compare: (a, b) => cmp(a.last_edited, b.last_edited) },
   },
+  {
+    title: "State",
+    dataIndex: "state",
+    key: "state",
+    sorter: { compare: (a, b) => cmp(a.state, b.state) },
+    render: (state) => capitalize(state),
+  },
+  quotaColumn,
 ];
 
 export default function HowLicenseUsed() {
@@ -41,6 +50,8 @@ export default function HowLicenseUsed() {
   const [error, setError] = useState<string>("");
   let [projects, setProjects] = useState<object[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+
+  console.log(projects);
 
   return (
     <div style={{ width: "100%", overflowX: "scroll" }}>
