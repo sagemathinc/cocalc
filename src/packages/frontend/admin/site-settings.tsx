@@ -151,6 +151,7 @@ class SiteSettingsComponent extends Component<
   }
 
   private async store(): Promise<void> {
+    if (this.state.data == null || this.state.edited == null) return;
     for (const name in this.state.edited) {
       const value = this.state.edited[name];
       if (this.is_header[name]) continue;
@@ -180,6 +181,7 @@ class SiteSettingsComponent extends Component<
   }
 
   render_save_button(): Rendered {
+    if (this.state.data == null || this.state.edited == null) return;
     let disabled: boolean = true;
     for (const name in this.state.edited) {
       const value = this.state.edited[name];
@@ -332,6 +334,7 @@ class SiteSettingsComponent extends Component<
     clearable,
     multiline
   ): Rendered {
+    if (this.state.isReadonly == null) return; // typescript
     const disabled = this.state.isReadonly[name] === true;
 
     if (Array.isArray(valid)) {
@@ -424,6 +427,7 @@ class SiteSettingsComponent extends Component<
     clearable?: boolean,
     multiline?: number
   ) {
+    if (this.state.isReadonly == null) return; // typescript
     if (row_type == ("header" as RowType)) {
       return <div />;
     } else {
