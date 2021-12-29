@@ -89,6 +89,21 @@ export async function load_server_settings_from_env(
       if (envval == null) continue;
       // ATTN do not expose the value, could be a password
       L.debug(`picking up $${envvar} and saving it in the database`);
+
+      // check validity
+      const valid = (CONF[key] ?? EXTRAS[key])?.valid;
+      if (valid != null) {
+        if (Array.isArray(valid) && !valid.includes(envval)) {
+          throw new Error(
+            `The value of $${envvar} is invalid. allowed are ${valid}.`
+          );
+        } else if (typeof valid == "function" && !valid(envval)) {
+          throw new Error(
+            `The validation function rejected the value of $${envvar}.`
+          );
+        }
+      }
+
       await cb2(db.set_server_setting, {
         name: key,
         value: envval,
