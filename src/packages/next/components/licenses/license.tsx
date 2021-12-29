@@ -6,20 +6,28 @@ import { capitalize, plural } from "@cocalc/util/misc";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import { EditableDescription, EditableTitle } from "./editable-license";
 import Timestamp from "components/misc/timestamp";
+import A from "components/misc/A";
 
 interface Props {
   license_id: string;
   contrib?: { [project_id: string]: object };
+  style: CSSProperties;
 }
 
-export default function License({ license_id }: Props) {
+export default function License({ license_id, style }: Props) {
   // TODO: do something with contrib
   return (
     <Popover
       content={() => <Details license_id={license_id} />}
       title={license_id}
+      mouseEnterDelay={0.5}
     >
-      <span style={{ fontFamily: "monospace" }}>{license_id}</span>
+      <A
+        style={{ cursor: "pointer", fontFamily: "monospace", ...style }}
+        href={`/licenses/how-license-used?license_id=${license_id}`}
+      >
+        {license_id}
+      </A>
     </Popover>
   );
 }

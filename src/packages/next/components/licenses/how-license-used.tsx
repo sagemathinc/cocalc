@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Loading from "components/share/loading";
 import { Alert, Input, Popover, Table } from "antd";
 import SelectLicense from "./select-license";
@@ -11,6 +11,7 @@ import { capitalize, cmp } from "@cocalc/util/misc";
 import editURL from "lib/share/edit-url";
 import { Details as License } from "./license";
 import { quotaColumn } from "./managed";
+import { useRouter } from "next/router";
 
 function columns(account_id) {
   return [
@@ -41,7 +42,9 @@ function columns(account_id) {
           ) : (
             title
           )}
-          <div style={{fontFamily:'monospace', fontSize:'9pt'}}>{project_id}</div>
+          <div style={{ fontFamily: "monospace", fontSize: "9pt" }}>
+            {project_id}
+          </div>
         </div>
       ),
       sorter: { compare: (a, b) => cmp(a.title, b.title) },
@@ -96,11 +99,39 @@ function columns(account_id) {
 }
 
 export default function HowLicenseUsed({ account_id }) {
-  const [license, setLicense] = useState<string>("");
+  const router = useRouter();
+  const [license, setLicense] = useState<string>(router.query.license_id ?? "");
   const [search, setSearch] = useState<string>("");
   const [error, setError] = useState<string>("");
   let [projects, setProjects] = useState<object[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+
+  async function load(license_id) {
+    setLicense(license_id);
+    setError("");
+    if (license_id) {
+      setLoading(true);
+      setProjects([]);
+      try {
+        setProjects(
+          await apiPost("/licenses/get-projects-with-license", {
+            license_id,
+          })
+        );
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+  }
+
+  useEffect(() => {
+    // initial license load (e.g., from query param)
+    if (license) {
+      load(license);
+    }
+  }, []);
 
   return (
     <div style={{ width: "100%", overflowX: "scroll" }}>
@@ -113,24 +144,12 @@ export default function HowLicenseUsed({ account_id }) {
       <div style={{ margin: "15px 0", width: "100%" }}>
         <SelectLicense
           disabled={loading}
-          onSelect={async (license_id) => {
-            setLicense(license_id);
-            setError("");
-            if (license_id) {
-              setLoading(true);
-              setProjects([]);
-              try {
-                setProjects(
-                  await apiPost("/licenses/get-projects-with-license", {
-                    license_id,
-                  })
-                );
-              } catch (err) {
-                setError(err.message);
-              } finally {
-                setLoading(false);
-              }
-            }
+          onSelect={(license_id) => {
+            router.push({
+              pathname: router.asPath.split("?")[0],
+              query: { license_id },
+            });
+            load(license_id);
           }}
           license={license}
           style={{ width: "100%", maxWidth: "90ex" }}

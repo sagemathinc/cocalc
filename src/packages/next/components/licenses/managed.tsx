@@ -84,7 +84,7 @@ function columns(onChange) {
             fontSize: "9pt",
           }}
         >
-          <div style={{ fontFamily: "monospace", fontSize: "10px" }}>
+          <div style={{ fontFamily: "monospace", fontSize: "9pt" }}>
             <License license_id={record.id} />
           </div>
           <EditableTitle
