@@ -332,6 +332,8 @@ class SiteSettingsComponent extends Component<
     clearable,
     multiline
   ): Rendered {
+    const disabled = this.state.isReadonly[name] === true;
+
     if (Array.isArray(valid)) {
       /* This antd code below is broken because something about
          antd is broken.  Maybe it is a bug in antd.
@@ -356,6 +358,7 @@ class SiteSettingsComponent extends Component<
       return (
         <select
           defaultValue={value}
+          disabled={disabled}
           onChange={(event) => this.on_change_entry(name, event.target.value)}
           style={{ width: "100%" }}
         >
@@ -373,6 +376,7 @@ class SiteSettingsComponent extends Component<
             style={this.row_entry_style(value, valid)}
             value={value}
             visibilityToggle={true}
+            disabled={disabled}
             onChange={(e) => this.on_change_entry(name, e.target.value)}
           />
         );
@@ -388,6 +392,7 @@ class SiteSettingsComponent extends Component<
               ref={name}
               style={style}
               value={value}
+              disabled={disabled}
               onChange={() => this.on_change_entry(name)}
             />
           );
@@ -397,6 +402,7 @@ class SiteSettingsComponent extends Component<
               ref={name}
               style={this.row_entry_style(value, valid)}
               value={value}
+              disabled={disabled}
               onChange={() => this.on_change_entry(name)}
               // clearable disabled, otherwise it's not possible to edit the value
               allowClear={clearable && false}
@@ -439,9 +445,15 @@ class SiteSettingsComponent extends Component<
               <div style={{ fontSize: "90%", display: "inlineBlock" }}>
                 {this.render_row_version_hint(name, value)}
                 {hint}
-                {`readonly $${SERVER_SETTINGS_ENV_PREFIX}_${name.toUpperCase()}: ${
-                  this.state.isReadonly[name]
-                }`}
+                {this.state.isReadonly[name] && (
+                  <>
+                    Value controlled via{" "}
+                    <code>
+                      ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
+                    </code>
+                    .
+                  </>
+                )}
                 {this.render_row_entry_parsed(displayed_val)}
                 {this.render_row_entry_valid(valid)}
               </div>
