@@ -59,6 +59,7 @@
   ],
   "dependencies-comment": "IMPORTANT: we install typescript as a normal dependency since it may be needed at runtime due to server settings changing!!",
   "dependencies": {
+    "@cocalc/assets": "^1.5.1",
     "@cocalc/backend": "^1.7.2",
     "@cocalc/cdn": "^1.8.2",
     "@cocalc/database": "^0.9.0",
@@ -78,13 +79,13 @@
     "password-hash": "^1.2.2",
     "pg": "^8.7.1",
     "react": "^17.0.2",
+    "react-copy-to-clipboard": "^5.0.4",
     "react-dom": "^17.0.2",
     "serve-index": "^1.9.1",
     "sharp": "^0.29.1",
     "tslib": "^2.3.1",
     "typescript": "^4.5.2",
-    "uuid": "^8.3.2",
-    "@cocalc/assets": "^1.5.1"
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "eslint": "^7.31.0",

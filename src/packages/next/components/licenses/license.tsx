@@ -1,17 +1,18 @@
 import useAPI from "lib/hooks/api";
-import { Alert, Popover, Progress, Space } from "antd";
+import { Alert, Popover, Progress } from "antd";
 import { CSSProperties, ReactNode } from "react";
 import Loading from "components/share/loading";
 import { capitalize, plural } from "@cocalc/util/misc";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import { EditableDescription, EditableTitle } from "./editable-license";
 import Timestamp from "components/misc/timestamp";
+import Copyable from "components/misc/copyable";
 import A from "components/misc/A";
 
 interface Props {
   license_id: string;
   contrib?: { [project_id: string]: object };
-  style: CSSProperties;
+  style?: CSSProperties;
 }
 
 export default function License({ license_id, style }: Props) {
@@ -96,12 +97,6 @@ export function Details({
           )}
         </div>
       )}
-      {result.is_manager && (
-        <div>
-          License id:{" "}
-          <span style={{ fontFamily: "monospace" }}>{license_id}</span>
-        </div>
-      )}
       {result.managers != null && <div>You are a manager of this license.</div>}
       {result.expires != null && (
         <div>
@@ -143,6 +138,7 @@ export function Details({
           )}
         </div>
       )}
+      {result.is_manager && <Copyable label="ID:" text={license_id} style={{marginTop:'5px'}}/>}
     </div>
   );
 }

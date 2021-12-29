@@ -12,6 +12,7 @@ import editURL from "lib/share/edit-url";
 import { Details as License } from "./license";
 import { quotaColumn } from "./managed";
 import { useRouter } from "next/router";
+import Copyable from "components/misc/copyable";
 
 function columns(account_id) {
   return [
@@ -42,9 +43,7 @@ function columns(account_id) {
           ) : (
             title
           )}
-          <div style={{ fontFamily: "monospace", fontSize: "9pt" }}>
-            {project_id}
-          </div>
+          <Copyable text={project_id} size='small' />
         </div>
       ),
       sorter: { compare: (a, b) => cmp(a.title, b.title) },
@@ -100,7 +99,9 @@ function columns(account_id) {
 
 export default function HowLicenseUsed({ account_id }) {
   const router = useRouter();
-  const [license, setLicense] = useState<string>(router.query.license_id ?? "");
+  const [license, setLicense] = useState<string>(
+    `${router.query.license_id ?? ""}`
+  );
   const [search, setSearch] = useState<string>("");
   const [error, setError] = useState<string>("");
   let [projects, setProjects] = useState<object[]>([]);
