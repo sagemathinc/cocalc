@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Loading from "components/share/loading";
-import { Alert, Input, Popover, Table } from "antd";
+import { Alert, Checkbox, Input, Popover, Table } from "antd";
 import SelectLicense from "./select-license";
 import Avatar from "components/account/avatar";
 import { search_split, search_match } from "@cocalc/util/misc";
@@ -14,89 +14,6 @@ import { quotaColumn } from "./managed";
 import { useRouter } from "next/router";
 import Copyable from "components/misc/copyable";
 
-function columns(account_id) {
-  return [
-    {
-      title: (
-        <Popover
-          placement="bottom"
-          title="Project"
-          content={
-            <div style={{ maxWidth: "75ex" }}>
-              This is the title and id of the project. If you are a collaborator
-              on this project, then you can click the title to open the project.
-            </div>
-          }
-        >
-          Project
-        </Popover>
-      ),
-      dataIndex: "title",
-      key: "title",
-      width: "30%",
-      render: (title, { project_id, collaborators }) => (
-        <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
-          {collaborators.includes(account_id) ? (
-            <A href={editURL({ project_id, type: "collaborator" })} external>
-              {title}
-            </A>
-          ) : (
-            title
-          )}
-          <Copyable text={project_id} size='small' />
-        </div>
-      ),
-      sorter: { compare: (a, b) => cmp(a.title, b.title) },
-    },
-    {
-      title: "Last Edited",
-      dataIndex: "last_edited",
-      key: "last_edited",
-      render: (last_edited) => <Timestamp epoch={last_edited} />,
-      sorter: { compare: (a, b) => cmp(a.last_edited, b.last_edited) },
-    },
-    {
-      title: (
-        <Popover
-          title="Collaborators"
-          content={
-            <div style={{ maxWidth: "75ex" }}>
-              These are the collaborators on this project. You are not
-              necessarily included in this list, since this license can be
-              applied to any project by somebody who knows the license code.
-            </div>
-          }
-        >
-          Collaborators
-        </Popover>
-      ),
-      dataIndex: "collaborators",
-      key: "collaborators",
-      render: (collaborators) => (
-        <>
-          {collaborators.map((account_id) => (
-            <Avatar
-              key={account_id}
-              account_id={account_id}
-              size={24}
-              style={{ marginRight: "2.5px" }}
-            />
-          ))}
-        </>
-      ),
-    },
-
-    {
-      title: "State",
-      dataIndex: "state",
-      key: "state",
-      sorter: { compare: (a, b) => cmp(a.state, b.state) },
-      render: (state) => capitalize(state),
-    },
-    quotaColumn,
-  ];
-}
-
 export default function HowLicenseUsed({ account_id }) {
   const router = useRouter();
   const [license, setLicense] = useState<string>(
@@ -106,6 +23,101 @@ export default function HowLicenseUsed({ account_id }) {
   const [error, setError] = useState<string>("");
   let [projects, setProjects] = useState<object[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [excludeMe, setExcludeMe] = useState<boolean>(false);
+
+  const columns = useMemo(() => {
+    return [
+      {
+        title: (
+          <Popover
+            placement="bottom"
+            title="Project"
+            content={
+              <div style={{ maxWidth: "75ex" }}>
+                This is the title and id of the project. If you are a
+                collaborator on this project, then you can click the title to
+                open the project.
+              </div>
+            }
+          >
+            Project
+          </Popover>
+        ),
+        dataIndex: "title",
+        key: "title",
+        width: "30%",
+        render: (title, { project_id, collaborators }) => (
+          <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
+            {collaborators.includes(account_id) ? (
+              <A href={editURL({ project_id, type: "collaborator" })} external>
+                {title}
+              </A>
+            ) : (
+              title
+            )}
+            <Copyable text={project_id} size="small" />
+          </div>
+        ),
+        sorter: { compare: (a, b) => cmp(a.title, b.title) },
+      },
+      {
+        title: "Last Edited",
+        dataIndex: "last_edited",
+        key: "last_edited",
+        render: (last_edited) => <Timestamp epoch={last_edited} />,
+        sorter: { compare: (a, b) => cmp(a.last_edited, b.last_edited) },
+      },
+      {
+        title: (
+          <Popover
+            title="Collaborators"
+            content={
+              <div style={{ maxWidth: "75ex" }}>
+                These are the collaborators on this project. You are not
+                necessarily included in this list, since this license can be
+                applied to any project by somebody who knows the license code.
+                Click the "Exclude me" checkbox to see only projects that you
+                are <b>not</b> a collaborator on.
+              </div>
+            }
+          >
+            Collaborators
+            <div style={{ fontWeight: 300 }}>
+              <Checkbox
+                onChange={(e) => setExcludeMe(e.target.checked)}
+                checked={excludeMe}
+              >
+                Exclude me
+              </Checkbox>
+            </div>
+          </Popover>
+        ),
+        dataIndex: "collaborators",
+        key: "collaborators",
+        render: (collaborators) => (
+          <>
+            {collaborators.map((account_id) => (
+              <Avatar
+                key={account_id}
+                account_id={account_id}
+                size={24}
+                style={{ marginRight: "2.5px" }}
+              />
+            ))}
+          </>
+        ),
+      },
+
+      {
+        title: "State",
+        dataIndex: "state",
+        key: "state",
+        sorter: { compare: (a, b) => cmp(a.state, b.state) },
+        render: (state) => capitalize(state),
+      },
+      quotaColumn,
+    ];
+  }, [account_id, excludeMe]);
 
   async function load(license_id) {
     setLicense(license_id);
@@ -190,8 +202,8 @@ export default function HowLicenseUsed({ account_id }) {
       )}
       {license && !loading && (
         <Table
-          columns={columns(account_id)}
-          dataSource={doSearch(projects, search)}
+          columns={columns}
+          dataSource={doSearch(projects, search, excludeMe, account_id)}
           rowKey={"project_id"}
           style={{ marginTop: "15px" }}
           pagination={{ hideOnSinglePage: true, pageSize: 100 }}
@@ -201,10 +213,16 @@ export default function HowLicenseUsed({ account_id }) {
   );
 }
 
-function doSearch(data: object[], search: string): object[] {
+function doSearch(
+  data: object[],
+  search: string,
+  excludeMe: boolean,
+  account_id: string
+): object[] {
   const v = search_split(search.toLowerCase().trim());
   const w: object[] = [];
   for (const x of data) {
+    if (excludeMe && x.collaborators?.includes(account_id)) continue;
     if (x["search"] == null) {
       x["search"] = `${x["title"] ?? ""} ${x["id"]}`.toLowerCase();
     }
