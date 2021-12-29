@@ -6,11 +6,13 @@ const basePath = BASE_PATH == "/" ? "" : BASE_PATH;
 
 const { join, resolve } = require("path");
 
-// Important!  We include basePath in tmp dir because if you build with a different
-// basePath, then the cache may "corrupt everything".
+// Important!  We include resolve('.') and basePath to avoid
+// any possibility of multiple cocalc installs or different base
+// paths conflicting with each other and causing corruption.
 const cacheDirectory = join(
   `/tmp/nextjs-${require("os").userInfo().username}`,
-  basePath
+  basePath,
+  resolve(".")
 );
 
 module.exports = {
