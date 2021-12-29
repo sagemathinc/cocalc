@@ -13,6 +13,7 @@ import A from "components/misc/A";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { trunc_middle } from "@cocalc/util/misc";
+import { SHARE_AUTHENTICATED_ICON } from "@cocalc/util/consts/ui";
 
 function Description({
   description,
@@ -46,7 +47,7 @@ function Title({ id, title }: { id: string; title: string }) {
   return <A href={`/share/public_paths/${id}`}>{trunc_middle(title, 48)}</A>;
 }
 
-function Visibility({ disabled, unlisted, vhost }) {
+function Visibility({ disabled, unlisted, vhost, authenticated }) {
   if (disabled) {
     return (
       <>
@@ -54,10 +55,16 @@ function Visibility({ disabled, unlisted, vhost }) {
       </>
     );
   }
+  if (authenticated) {
+    return (
+      <>
+        <Icon name={SHARE_AUTHENTICATED_ICON} /> Authenticated
+      </>
+    );
+  }
   if (unlisted) {
     return (
       <>
-        {" "}
         <Icon name="eye-slash" /> Unlisted
       </>
     );
@@ -67,7 +74,6 @@ function Visibility({ disabled, unlisted, vhost }) {
   }
   return (
     <>
-      {" "}
       <Icon name="eye" /> Listed
     </>
   );
@@ -128,6 +134,7 @@ const COLUMNS_WITH_VISIBILITY: any[] = COLUMNS0.concat([
       <Visibility
         disabled={record.disabled}
         unlisted={record.unlisted}
+        authenticated={record.authenticated}
         vhost={record.vhost}
       />
     ),
@@ -147,6 +154,7 @@ const COLUMNS_WITH_VISIBILITY: any[] = COLUMNS0.concat([
           <Visibility
             disabled={record.disabled}
             unlisted={record.unlisted}
+            authenticated={record.authenticated}
             vhost={record.vhost}
           />
         </Space>
@@ -163,8 +171,8 @@ export default function PublicPaths({ publicPaths }: Props): JSX.Element {
   let showVisibility = false;
   if (publicPaths) {
     for (const path of publicPaths) {
-      const { disabled, unlisted } = path;
-      if (disabled || unlisted) {
+      const { disabled, unlisted, authenticated } = path;
+      if (disabled || unlisted || authenticated) {
         showVisibility = true;
         break;
       }

@@ -7,6 +7,7 @@ import LRU from "lru-cache";
 import { AllSiteSettingsCached as ServerSettings } from "@cocalc/util/db-schema/types";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { site_settings_conf as CONF } from "@cocalc/util/schema";
+import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
 import getPool from "@cocalc/database/pool";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
@@ -73,7 +74,14 @@ Loaded once at startup, right after configuring the db schema, see hub/hub.ts.
 export async function load_server_settings_from_env(
   db: PostgreSQL
 ): Promise<void> {
-  const PREFIX = "COCALC_SETTING";
+  const PREFIX = SERVER_SETTINGS_ENV_PREFIX;
+  // reset all readonly values
+  await db.async_query({
+    query: "UPDATE server_settings",
+    set: { readonly: false },
+    where: ["1=1"], // otherwise there is an exception about not restricting the query
+  });
+  // now, check if there are any we know of
   for (const config of [EXTRAS, CONF]) {
     for (const key in config) {
       const envvar = `${PREFIX}_${key.toUpperCase()}`;
@@ -81,7 +89,26 @@ export async function load_server_settings_from_env(
       if (envval == null) continue;
       // ATTN do not expose the value, could be a password
       L.debug(`picking up $${envvar} and saving it in the database`);
-      await cb2(db.set_server_setting, { name: key, value: envval });
+
+      // check validity
+      const valid = (CONF[key] ?? EXTRAS[key])?.valid;
+      if (valid != null) {
+        if (Array.isArray(valid) && !valid.includes(envval)) {
+          throw new Error(
+            `The value of $${envvar} is invalid. allowed are ${valid}.`
+          );
+        } else if (typeof valid == "function" && !valid(envval)) {
+          throw new Error(
+            `The validation function rejected the value of $${envvar}.`
+          );
+        }
+      }
+
+      await cb2(db.set_server_setting, {
+        name: key,
+        value: envval,
+        readonly: true,
+      });
     }
   }
 }

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
@@ -15,6 +15,8 @@ interface Customize extends ServerCustomize {
     name?: string;
   };
   isCollaborator?: boolean; // if account_id and project_id are in the props then this gets filled in
+  isAuthenticated?: boolean; // if true, the user has a valid authentication cookie
+  onCoCalcCom?: boolean; // true, if kucalc server settings flag is set to yes (i.e. for cocalc.com only!)
   noindex?: boolean; // tell search engines to not index that page
 }
 

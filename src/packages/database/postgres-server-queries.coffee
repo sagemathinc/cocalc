@@ -235,18 +235,22 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     set_server_setting: (opts) =>
         opts = defaults opts,
-            name  : required
-            value : required
-            cb    : required
+            name     : required
+            value    : required
+            readonly : undefined  # boolean. if yes, that value is not controlled via any UI
+            cb       : required
         async.series([
             (cb) =>
+                values =
+                    'name::TEXT'  : opts.name
+                    'value::TEXT' : opts.value
+                if opts.readonly?
+                    values.readonly = !!opts.readonly
                 @_query
-                    query  : 'INSERT INTO server_settings'
-                    values :
-                        'name::TEXT'  : opts.name
-                        'value::TEXT' : opts.value
+                    query    : 'INSERT INTO server_settings'
+                    values   : values
                     conflict : 'name'
-                    cb     : cb
+                    cb       : cb
             # also set a timestamp
             (cb) =>
                 @_query

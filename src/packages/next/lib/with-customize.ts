@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
@@ -7,6 +7,7 @@ import getCustomize from "@cocalc/server/settings/customize";
 import getAccountId from "lib/account/get-account";
 import { getName } from "lib/share/get-account-info";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 const revalidate = 30;
 
@@ -35,6 +36,7 @@ export default async function withCustomize(
 
   if (obj.context?.req != null) {
     const account_id = await getAccountId(obj.context.req);
+    customize.isAuthenticated = !!account_id;
     if (account_id) {
       customize.account = {
         account_id,
@@ -53,8 +55,11 @@ export default async function withCustomize(
         });
       }
     }
+  } else {
+    customize.isAuthenticated = false;
   }
 
+  customize.onCoCalcCom = customize.kucalc === KUCALC_COCALC_COM;
   customize.noindex = obj.props?.unlisted ?? false;
 
   if (obj == null) {

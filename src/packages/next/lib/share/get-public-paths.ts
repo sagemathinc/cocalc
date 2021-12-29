@@ -25,27 +25,29 @@ export default async function getPublicPaths(
   const result = await pool.query(
     `SELECT id, path, description, ${timeInSeconds(
       "last_edited"
-    )}, disabled, unlisted FROM public_paths WHERE project_id=$1 ORDER BY last_edited DESC`,
+    )}, disabled, unlisted, authenticated FROM public_paths WHERE project_id=$1 ORDER BY last_edited DESC`,
     [project_id]
   );
 
-  return await filterNonPublic(result.rows, project_id, req);
+  return await filterNonPublicAndNotAuthenticated(result.rows, project_id, req);
 }
 
-async function filterNonPublic(
+async function filterNonPublicAndNotAuthenticated(
   rows: PublicPath[],
   project_id,
   req
 ): Promise<PublicPath[]> {
   const v: any[] = [];
   let isCollab: boolean | undefined = undefined;
+  let isAuthenticated: boolean | undefined = undefined;
   for (const row of rows) {
-    if (!row.disabled && !row.unlisted) {
+    if (!row.disabled && !row.unlisted && !row.authenticated) {
       v.push(row);
       continue;
     }
     if (isCollab == null) {
       const account_id = await getAccountId(req);
+      isAuthenticated = account_id != null;
       if (account_id) {
         isCollab = await isCollaborator({
           account_id,
@@ -56,6 +58,8 @@ async function filterNonPublic(
       }
     }
     if (isCollab) {
+      v.push(row);
+    } else if (row.authenticated && isAuthenticated) {
       v.push(row);
     }
   }

@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Page for a given project
 
 Show all the public paths in a given project, and maybe other information about the project?

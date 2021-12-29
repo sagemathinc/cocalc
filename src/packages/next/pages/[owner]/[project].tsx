@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 // Page for a project that is owned by a named account
 // or organization.
 

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { join } from "path";
 import { useState } from "react";
 import { Alert, Button, Checkbox, Space } from "antd";
@@ -202,7 +207,8 @@ export default function ChooseProject({
                   }}
                   shape="round"
                 >
-                  <Icon name="paper-plane" /> Open your copy of "{join(path, relativePath)}"...
+                  <Icon name="paper-plane" /> Open your copy of "
+                  {join(path, relativePath)}"...
                 </Button>
               </>
             )}

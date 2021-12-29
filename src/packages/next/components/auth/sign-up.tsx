@@ -161,6 +161,7 @@ export default function SignUp({
       <div style={LOGIN_STYLE}>
         <TermsCheckbox
           onChange={setTerms}
+          checked={terms}
           style={{
             marginTop: "10px",
             marginBottom: terms ? "10px" : undefined,

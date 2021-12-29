@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import editURL from "lib/share/edit-url";
 import shareURL from "lib/share/share-url";
 import A from "components/misc/A";

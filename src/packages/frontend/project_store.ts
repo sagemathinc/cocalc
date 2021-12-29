@@ -67,7 +67,14 @@ export interface ProjectStoreState {
   history_path: string;
   open_files: immutable.Map<string, immutable.Map<string, any>>;
   open_files_order: immutable.List<string>;
-  public_paths?: immutable.List<TypedMap<{ disabled?: boolean; path: string }>>;
+  public_paths?: immutable.List<
+    TypedMap<{
+      disabled?: boolean;
+      path: string;
+      unlisted?: boolean;
+      authenticated?: boolean;
+    }>
+  >;
   directory_listings: immutable.Map<string, any>; // immutable,
   show_upload: boolean;
   create_file_alert: boolean;

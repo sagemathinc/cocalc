@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
 import { isUUID } from "./util";
 import { PublicPath } from "./types";
@@ -67,17 +72,17 @@ async function getPublicPaths(
   // actively used the project at some point.
   // We sort from most recently edited.
   const query = `SELECT public_paths.id as id, public_paths.path as path, public_paths.description as description,
-  public_paths.disabled as disabled, public_paths.unlisted as unlisted, public_paths.vhost as vhost,
+  public_paths.disabled as disabled, public_paths.unlisted as unlisted, public_paths.vhost as vhost, public_paths.authenticated as authenticated,
   ${timeInSeconds(
     "public_paths.last_edited",
     "last_edited"
   )} FROM public_paths, projects WHERE public_paths.project_id = projects.project_id AND projects.last_active ? '${account_id}' AND projects.users ? '${account_id}'  ORDER BY public_paths.last_edited DESC`;
   const { rows } = await pool.query(query);
   // If there are any disabled or unlisted public_paths, we also get the id of the requestor so we can filter them out.
-  return await filterNonPublic(rows, account_id, req);
+  return await filterNonPublicAndNotAuthenticated(rows, account_id, req);
 }
 
-async function filterNonPublic(
+async function filterNonPublicAndNotAuthenticated(
   rows: PublicPath[],
   account_id: string,
   req
@@ -85,7 +90,7 @@ async function filterNonPublic(
   const v: any[] = [];
   let client_id: string | undefined = undefined;
   for (const row of rows) {
-    if (!row.disabled && !row.unlisted) {
+    if (!row.disabled && !row.unlisted && !row.authenticated) {
       v.push(row);
       continue;
     }
@@ -93,6 +98,8 @@ async function filterNonPublic(
       client_id = (await getAccountId(req)) ?? "";
     }
     if (client_id == account_id) {
+      v.push(row);
+    } else if (row.authenticated === true && client_id !== "") {
       v.push(row);
     }
   }
