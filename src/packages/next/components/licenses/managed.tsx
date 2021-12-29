@@ -9,6 +9,7 @@ import { search_split, search_match } from "@cocalc/util/misc";
 import { cmp } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Timestamp from "components/misc/timestamp";
+import License from "./license";
 
 const renderTimestamp = (epoch) => <Timestamp epoch={epoch} />;
 
@@ -32,7 +33,7 @@ export const quotaColumn = {
   dataIndex: "quota",
   key: "quota",
   render: (quota, record) => {
-    return (record.state != null && record.state != "running") ? (
+    return record.state != null && record.state != "running" ? (
       <div style={{ color: "#666", textAlign: "center" }}>—</div>
     ) : (
       <div
@@ -79,12 +80,12 @@ function columns(onChange) {
           style={{
             wordWrap: "break-word",
             wordBreak: "break-word",
-            color: "#666",
-            fontSize: "12px",
+            color: "#333",
+            fontSize: "9pt",
           }}
         >
           <div style={{ fontFamily: "monospace", fontSize: "10px" }}>
-            {record.id}
+            <License license_id={record.id} />
           </div>
           <EditableTitle
             license_id={record.id}
@@ -139,7 +140,7 @@ function columns(onChange) {
             </div>
           }
         >
-          Limit
+          Run Limit
         </Popover>
       ),
       dataIndex: "run_limit",

@@ -5,9 +5,9 @@ the user with the given account is *allowed* to get.
 
 import getPool from "@cocalc/database/pool";
 import { toEpoch } from "@cocalc/database/postgres/util";
+import { numberRunningQuery } from "@cocalc/database/postgres/site-license/analytics";
 import { isValidUUID } from "@cocalc/util/misc";
 import { License as FullLicense } from "./get-managed";
-export type License = Partial<FullLicense>;
 
 export async function isManager(
   license_id: string,
@@ -22,6 +22,11 @@ export async function isManager(
     [license_id, account_id]
   );
   return rows[0].count > 0;
+}
+
+export interface License extends Partial<FullLicense> {
+  number_running?: number; // in some cases this can be filled in.
+  is_manager: boolean;
 }
 
 export default async function getLicense(
@@ -43,5 +48,9 @@ export default async function getLicense(
   }
   toEpoch(rows, ["expires", "activates", "last_used"]);
   rows[0].is_manager = is_manager;
+  if (is_manager) {
+    const nr = await pool.query(numberRunningQuery(license_id));
+    rows[0].number_running = nr.rows[0].count;
+  }
   return rows[0];
 }

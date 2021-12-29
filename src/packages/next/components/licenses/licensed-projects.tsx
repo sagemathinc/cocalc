@@ -9,6 +9,7 @@ import License from "./license";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { search_split, search_match } from "@cocalc/util/misc";
+import Timestamp from "components/misc/timestamp";
 
 const columns = [
   {
@@ -51,7 +52,7 @@ const columns = [
     title: "Project Last Edited",
     dataIndex: "last_edited",
     key: "last_edited",
-    render: (last_edited) => new Date(parseFloat(last_edited)).toLocaleString(),
+    render: (last_edited) => <Timestamp epoch={last_edited} />,
     sorter: { compare: (a, b) => cmp(a.last_edited, b.last_edited) },
   },
   {
@@ -109,7 +110,9 @@ function doSearch(data: object[], search: string): object[] {
   const w: object[] = [];
   for (const x of data) {
     if (x["search"] == null) {
-      x["search"] = `${x['title']}${JSON.stringify(keys(x['site_license']))}`.toLowerCase();
+      x["search"] = `${x["title"]}${JSON.stringify(
+        keys(x["site_license"])
+      )}`.toLowerCase();
     }
     if (search_match(x["search"], v)) {
       w.push(x);

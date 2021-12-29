@@ -145,7 +145,7 @@ export default function HowLicenseUsed({ account_id }) {
           border: "1px solid lightgrey",
           borderRadius: "5px",
           padding: "15px",
-          backgroundColor: "#f8f8f8",
+          backgroundColor: "#fafafa",
           width: "100%",
           maxWidth: "90ex",
         }}

@@ -1,10 +1,11 @@
 import useAPI from "lib/hooks/api";
-import { Alert, Popover } from "antd";
+import { Alert, Popover, Progress, Space } from "antd";
 import { CSSProperties, ReactNode } from "react";
 import Loading from "components/share/loading";
 import { capitalize, plural } from "@cocalc/util/misc";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import { EditableDescription, EditableTitle } from "./editable-license";
+import Timestamp from "components/misc/timestamp";
 
 interface Props {
   license_id: string;
@@ -45,7 +46,9 @@ export default function License({ license_id }: Props) {
     "dedicated_ram": 0,
     "always_running": true
   },
-  "run_limit": 3
+  "run_limit": 3,
+  is_manager:true,
+  number_running:2
 }
 */
 
@@ -93,17 +96,43 @@ export function Details({
       )}
       {result.managers != null && <div>You are a manager of this license.</div>}
       {result.expires != null && (
-        <div>Expires: {new Date(result.expires).toLocaleString()}</div>
+        <div>
+          Expires:
+          <Timestamp epoch={result.expires} />
+        </div>
       )}
       {result.activates != null && (
-        <div>Activates: {new Date(result.activates).toLocaleString()}</div>
+        <div>
+          Activates: <Timestamp epoch={result.activates} />
+        </div>
       )}
       {result.last_used != null && (
-        <div>Last used: {new Date(result.last_used).toLocaleString()}</div>
+        <div>
+          Last used: <Timestamp epoch={result.last_used} />
+        </div>
       )}
       {result.quota != null && (
         <div>
-          <Quota quota={result.quota} />
+          Quota: <Quota quota={result.quota} />
+        </div>
+      )}
+      {result.run_limit != null && (
+        <div style={{ width: "100%", display: "flex" }}>
+          Run limit: {result.run_limit}
+          {result.number_running != null
+            ? `; Currently running: ${result.number_running}`
+            : ""}
+          {result.run_limit && result.number_running != null && (
+            <Progress
+              style={{
+                marginLeft: "15px",
+                flex: 1,
+              }}
+              percent={Math.round(
+                (result.number_running / result.run_limit) * 100
+              )}
+            />
+          )}
         </div>
       )}
     </div>
