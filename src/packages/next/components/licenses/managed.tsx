@@ -125,8 +125,8 @@ function columns(onChange) {
           {managers.map((account_id) => (
             <Avatar key={account_id} account_id={account_id} size={32} />
           ))}
-          <div style={{width:'160px', marginTop:'15px'}}>
-          <SelectUsers />
+          <div style={{ width: "300px", marginTop: "15px" }}>
+            <SelectUsers />
           </div>
         </>
       ),

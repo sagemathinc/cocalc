@@ -16,24 +16,7 @@ import { getLogger } from "@cocalc/backend/logger";
 
 const logger = getLogger("accounts/search");
 
-interface Options {
-  // query: comma separated list of email addresses or strings such as
-  //        'foo bar' (find everything where foo and bar are in the name)
-  query: string;
-  // limit on string queries; email query always returns 0 or 1 result per email address
-  // the default is 20.  Ordered by last_active, starting with most recently active first.
-  limit?: number;
-  // If account is given, we do a first phase of search on current collaborators of this user,
-  // and only then do a general search (up to the limit).
-  //account_id?: string;
-  // admins get to do full substring query on *email addresses*, whereas normal
-  // users can only find a user by exact email address match (or substring query on name).
-  // Also, admins get unlisted users, whereas non-admins never find them except by
-  // exact email address search.
-  admin?: boolean;
-}
-
-interface User {
+export interface User {
   account_id: string;
   first_name?: string;
   last_name?: string;
@@ -56,6 +39,23 @@ interface DBUser {
   banned?: boolean;
   email_address_verified?: object;
   email_address?: string;
+}
+
+interface Options {
+  // query: comma separated list of email addresses or strings such as
+  //        'foo bar' (find everything where foo and bar are in the name)
+  query: string;
+  // limit on string queries; email query always returns 0 or 1 result per email address
+  // the default is 20.  Ordered by last_active, starting with most recently active first.
+  limit?: number;
+  // If account is given, we do a first phase of search on current collaborators of this user,
+  // and only then do a general search (up to the limit).
+  //account_id?: string;
+  // admins get to do full substring query on *email addresses*, whereas normal
+  // users can only find a user by exact email address match (or substring query on name).
+  // Also, admins get unlisted users, whereas non-admins never find them except by
+  // exact email address search.
+  admin?: boolean;
 }
 
 export default async function search({
@@ -139,8 +139,8 @@ function process(
   return x;
 }
 
-const FIELDS = `account_id, first_name, last_name, email_address,
-  last_active, created, banned, email_address_verified`;
+const FIELDS =
+  " account_id, first_name, last_name, email_address, last_active, created, banned, email_address_verified ";
 
 async function getUserByEmailAddress(
   email_address: string
@@ -221,7 +221,7 @@ async function getUsersByStringQueries(
   }
   // recently active users are much more relevant than old ones -- #2991
   query += " ORDER BY last_active DESC NULLS LAST";
-  query += " LIMIT $#{i}::INTEGER ";
+  query += ` LIMIT $${i}::INTEGER `;
   i += 1;
   params.push(limit);
 

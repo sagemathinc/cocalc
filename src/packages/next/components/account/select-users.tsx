@@ -5,22 +5,27 @@ Based on the example "Search and Select Users":
 https://ant.design/components/select/#components-select-demo-select-users
 */
 
-import {  useState, useRef, useMemo } from "react";
-import { Select, Spin } from "antd";
+import { ReactNode, useState, useRef, useMemo } from "react";
+import { Alert, Select, Spin } from "antd";
 import { SelectProps } from "antd/es/select";
 import debounce from "lodash/debounce";
 import useCustomize from "lib/use-customize";
+import apiPost from "lib/api/post";
+import type { User } from "@cocalc/server/accounts/search";
+import Timestamp from "components/misc/timestamp";
+import Avatar from "components/account/avatar";
 
 interface Props {
   placeholder?: string;
 }
 
 export default function SelectUsers({ placeholder }: Props) {
-  const { siteName } = useCustomize();
+  const { siteName, account } = useCustomize();
   const [value, setValue] = useState<UserValue[]>([]);
 
   return (
     <DebounceSelect
+      account_id={account?.account_id}
       mode="multiple"
       value={value}
       placeholder={placeholder ?? `Select ${siteName} users`}
@@ -35,71 +40,108 @@ export default function SelectUsers({ placeholder }: Props) {
 
 interface DebounceSelectProps
   extends Omit<SelectProps<any>, "options" | "children"> {
-  fetchOptions: (search: string) => Promise<any[]>;
+  fetchOptions: (search: string, account_id?: string) => Promise<any[]>;
   debounceTimeout?: number;
+  account_id?: string;
 }
 
 function DebounceSelect({
+  account_id,
   fetchOptions,
   debounceTimeout = 800,
   ...props
 }: DebounceSelectProps) {
   const [fetching, setFetching] = useState(false);
+  const [error, setError] = useState<string>("");
   const [options, setOptions] = useState<any[]>([]);
   const fetchRef = useRef(0);
 
   const debounceFetcher = useMemo(() => {
-    const loadOptions = (value: string) => {
+    const loadOptions = async (value: string) => {
       fetchRef.current += 1;
       const fetchId = fetchRef.current;
+      setError("");
       setOptions([]);
       setFetching(true);
 
-      fetchOptions(value).then((newOptions) => {
-        if (fetchId !== fetchRef.current) {
-          // for fetch callback order
-          return;
+      try {
+        const newOptions = await fetchOptions(value, account_id);
+        if (fetchId == fetchRef.current) {
+          setOptions(newOptions);
         }
-
-        setOptions(newOptions);
+      } catch (err) {
+        setError(err.message);
+      } finally {
         setFetching(false);
-      });
+      }
     };
 
     return debounce(loadOptions, debounceTimeout);
   }, [fetchOptions, debounceTimeout]);
 
   return (
-    <Select
-      labelInValue
-      filterOption={false}
-      onSearch={debounceFetcher}
-      notFoundContent={fetching ? <Spin size="small" /> : null}
-      {...props}
-      options={options}
-    />
+    <>
+      {error && (
+        <Alert type="error" message={error} style={{ marginBottom: "15px" }} />
+      )}
+      <Select
+        labelInValue
+        filterOption={false}
+        onSearch={debounceFetcher}
+        notFoundContent={fetching ? <Spin size="small" /> : null}
+        {...props}
+        options={options}
+      />
+    </>
   );
 }
 
 interface UserValue {
-  label: string;
+  label: ReactNode;
   value: string;
 }
 
-async function fetchUserList(username: string): Promise<UserValue[]> {
-  console.log("fetching user", username);
+async function fetchUserList(
+  query: string,
+  account_id?: string
+): Promise<UserValue[]> {
+  const v: User[] = await apiPost("/accounts/search", { query });
+  const list: UserValue[] = [];
+  for (const user of v) {
+    if (user.account_id == account_id) continue; // don't include self.
+    list.push({
+      label: <Label {...user} />,
+      value: user.account_id,
+    });
+  }
+  return list;
+}
 
-  return fetch("https://randomuser.me/api/?results=5")
-    .then((response) => response.json())
-    .then((body) =>
-      body.results.map(
-        (user: {
-          name: { first: string; last: string };
-          login: { username: string };
-        }) => ({
-          label: `${user.name.first} ${user.name.last}`,
-          value: user.login.username,
-        })
-      )
-    );
+function Label({
+  account_id,
+  first_name,
+  last_name,
+  last_active,
+  created,
+}: User) {
+  return (
+    <div style={{ borderBottom: "1px solid lightgrey", paddingBottom: "5px" }}>
+      <Avatar
+        account_id={account_id}
+        size={18}
+        style={{ marginRight: "5px" }}
+      />
+      {first_name} {last_name}
+      {last_active && (
+        <div>
+          Last Active: <Timestamp epoch={last_active} />
+        </div>
+      )}
+      {created && (
+        <div>
+          Created: <Timestamp epoch={created} />
+        </div>
+      )}
+    </div>
+  );
 }

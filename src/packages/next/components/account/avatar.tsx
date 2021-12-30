@@ -28,6 +28,7 @@ export default function Avatar({ account_id, size, style, showName }: Props) {
 
   return (
     <Popover
+      zIndex={10000 /* since otherwise is behind select in user search */}
       title={
         <div style={{ textAlign: "center", fontSize: "13pt" }}>
           {profile.first_name} {profile.last_name}
@@ -38,13 +39,13 @@ export default function Avatar({ account_id, size, style, showName }: Props) {
           {profile.image ? (
             <DisplayAvatar
               style={style}
-              size={size * 3}
+              size={size * 4}
               image={profile.image}
             />
           ) : (
             <DisplayAvatar
               style={style}
-              size={size * 3}
+              size={size * 4}
               color={profile.color}
               letter={profile.first_name?.[0]}
             />
