@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
-import { Alert, Checkbox, Input, Popover, Table } from "antd";
+import { Alert, Button, Checkbox, Input, Popover, Table } from "antd";
 import { Quota as LicenseQuota } from "./license";
 import Avatar from "components/account/avatar";
 import { EditableDescription, EditableTitle } from "./editable-license";
@@ -11,6 +11,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import Timestamp from "components/misc/timestamp";
 import License from "./license";
 import SelectUsers from "components/account/select-users";
+import useCustomize from "lib/use-customize";
 
 const renderTimestamp = (epoch) => <Timestamp epoch={epoch} />;
 
@@ -120,14 +121,12 @@ function columns(onChange) {
       ),
       dataIndex: "managers",
       key: "managers",
-      render: (managers) => (
+      render: (managers, record) => (
         <>
           {managers.map((account_id) => (
             <Avatar key={account_id} account_id={account_id} size={32} />
           ))}
-          <div style={{ width: "300px", marginTop: "15px" }}>
-            <SelectUsers />
-          </div>
+          <AddManagers license_id={record.id} managers={managers} />
         </>
       ),
     },
@@ -347,4 +346,45 @@ function removeExpired(data: { expires?: number }[]): { expires?: number }[] {
     }
   }
   return data1;
+}
+
+interface AddManagersProps {
+  license_id: string;
+  managers: string[];
+}
+function AddManagers({ license_id, managers }: AddManagersProps) {
+  const [adding, setAdding] = useState<boolean>(false);
+  const [accountIds, setAccountIds] = useState<string[]>([]);
+  const { account } = useCustomize();
+  return (
+    <div>
+      {adding && (
+        <Button
+          size="small"
+          style={{ float: "right" }}
+          onClick={() => setAdding(false)}
+        >
+          Close
+        </Button>
+      )}
+      <Button
+        disabled={adding}
+        style={{ marginTop: "5px" }}
+        size="small"
+        onClick={() => setAdding(!adding)}
+      >
+        <Icon name="plus-circle" /> Add
+      </Button>
+      {adding && (
+        <div style={{ width: "300px", marginTop: "5px" }}>
+          <SelectUsers
+            onChange={setAccountIds}
+            exclude={managers.concat(
+              account?.account_id ? [account.account_id] : []
+            )}
+          />
+        </div>
+      )}
+    </div>
+  );
 }

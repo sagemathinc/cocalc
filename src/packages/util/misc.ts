@@ -1232,8 +1232,8 @@ export function parse_user_search(query: string): {
   const email_re = /<(.*)>/;
   for (const x of queries) {
     if (x) {
-      if (x.indexOf("@") === -1) {
-        // Is obviously not an email:
+      if (x.indexOf("@") === -1 || x.startsWith("@")) {
+        // Is obviously not an email, e.g., no @ or starts with @ = username, e.g., @wstein.
         r.string_queries.push(x.split(/\s+/g));
       } else {
         // Might be an email address:

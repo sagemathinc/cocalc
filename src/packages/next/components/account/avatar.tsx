@@ -5,7 +5,9 @@ Show an avatar for a given user account.
 import { Avatar as AntdAvatar, Popover } from "antd";
 import { CSSProperties } from "react";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+import A from "components/misc/A";
 import useProfile from "lib/hooks/profile";
+import useCustomize from "lib/use-customize";
 
 interface Props {
   account_id: string;
@@ -15,6 +17,7 @@ interface Props {
 }
 
 export default function Avatar({ account_id, size, style, showName }: Props) {
+  const { account } = useCustomize();
   if (size == null) {
     // Default size=40 to match the cocalc logo.
     size = 40;
@@ -28,10 +31,24 @@ export default function Avatar({ account_id, size, style, showName }: Props) {
 
   return (
     <Popover
+      mouseLeaveDelay={0.3}
       zIndex={10000 /* since otherwise is behind select in user search */}
       title={
         <div style={{ textAlign: "center", fontSize: "13pt" }}>
-          {profile.first_name} {profile.last_name}
+          {profile.first_name} {profile.last_name}{" "}
+          {profile.name ? `(@${profile.name})` : ""}
+          {account_id == account?.account_id && (
+            <A
+              href="/config/account/name"
+              style={{
+                fontSize: "11px",
+                marginLeft: "10px",
+                float: "right",
+              }}
+            >
+              edit
+            </A>
+          )}
         </div>
       }
       content={
@@ -49,6 +66,18 @@ export default function Avatar({ account_id, size, style, showName }: Props) {
               color={profile.color}
               letter={profile.first_name?.[0]}
             />
+          )}
+          {account_id == account?.account_id && (
+            <div style={{ marginTop: "10px" }}>
+              <A
+                href="/config/account/avatar"
+                style={{
+                  fontSize: "11px",
+                }}
+              >
+                edit
+              </A>
+            </div>
           )}
         </div>
       }

@@ -1,15 +1,13 @@
 /*
 SelectUsers of this Cocalc server.
 
-Based on the example "Search and Select Users":
-https://ant.design/components/select/#components-select-demo-select-users
+Inspired by https://ant.design/components/select/#components-select-demo-select-users
 */
 
 import { ReactNode, useState, useRef, useMemo } from "react";
 import { Alert, Select, Spin } from "antd";
 import { SelectProps } from "antd/es/select";
 import debounce from "lodash/debounce";
-import useCustomize from "lib/use-customize";
 import apiPost from "lib/api/post";
 import type { User } from "@cocalc/server/accounts/search";
 import Timestamp from "components/misc/timestamp";
@@ -17,21 +15,23 @@ import Avatar from "components/account/avatar";
 
 interface Props {
   placeholder?: string;
+  exclude?: string[]; // account_ids to exclude from search
+  onChange?: (account_ids: string[]) => void;
 }
 
-export default function SelectUsers({ placeholder }: Props) {
-  const { siteName, account } = useCustomize();
+export default function SelectUsers({ exclude, placeholder, onChange }: Props) {
   const [value, setValue] = useState<UserValue[]>([]);
 
   return (
     <DebounceSelect
-      account_id={account?.account_id}
+      exclude={new Set(exclude)}
       mode="multiple"
       value={value}
-      placeholder={placeholder ?? `Select ${siteName} users`}
+      placeholder={placeholder ?? `Email address or name or @username`}
       fetchOptions={fetchUserList}
       onChange={(newValue) => {
         setValue(newValue);
+        onChange?.(newValue.map((x) => x.value));
       }}
       style={{ width: "100%" }}
     />
@@ -40,13 +40,13 @@ export default function SelectUsers({ placeholder }: Props) {
 
 interface DebounceSelectProps
   extends Omit<SelectProps<any>, "options" | "children"> {
-  fetchOptions: (search: string, account_id?: string) => Promise<any[]>;
+  fetchOptions: (search: string, exclude?: Set<string>) => Promise<any[]>;
   debounceTimeout?: number;
-  account_id?: string;
+  exclude?: Set<string>;
 }
 
 function DebounceSelect({
-  account_id,
+  exclude,
   fetchOptions,
   debounceTimeout = 800,
   ...props
@@ -61,11 +61,10 @@ function DebounceSelect({
       fetchRef.current += 1;
       const fetchId = fetchRef.current;
       setError("");
-      setOptions([]);
       setFetching(true);
 
       try {
-        const newOptions = await fetchOptions(value, account_id);
+        const newOptions = await fetchOptions(value, exclude);
         if (fetchId == fetchRef.current) {
           setOptions(newOptions);
         }
@@ -103,12 +102,12 @@ interface UserValue {
 
 async function fetchUserList(
   query: string,
-  account_id?: string
+  exclude?: Set<string>
 ): Promise<UserValue[]> {
   const v: User[] = await apiPost("/accounts/search", { query });
   const list: UserValue[] = [];
   for (const user of v) {
-    if (user.account_id == account_id) continue; // don't include self.
+    if (exclude?.has(user.account_id)) continue;
     list.push({
       label: <Label {...user} />,
       value: user.account_id,
@@ -123,6 +122,7 @@ function Label({
   last_name,
   last_active,
   created,
+  name,
 }: User) {
   return (
     <div style={{ borderBottom: "1px solid lightgrey", paddingBottom: "5px" }}>
@@ -132,6 +132,7 @@ function Label({
         style={{ marginRight: "5px" }}
       />
       {first_name} {last_name}
+      {name ? ` (@${name})` : ""}
       {last_active && (
         <div>
           Last Active: <Timestamp epoch={last_active} />
