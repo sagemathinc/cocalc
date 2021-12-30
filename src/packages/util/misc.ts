@@ -1215,7 +1215,10 @@ export function lower_email_address(email_address: any): string {
 //    string_queries: [["firstname", "lastname"], ["somestring"]]
 //    email_queries: ["email@something.com", "justanemail@mail.com"]
 // }
-export function parse_user_search(query: string) {
+export function parse_user_search(query: string): {
+  string_queries: string[][];
+  email_queries: string[];
+} {
   const r = { string_queries: [] as string[][], email_queries: [] as string[] };
   if (typeof query !== "string") {
     // robustness against bad input from non-TS client.
