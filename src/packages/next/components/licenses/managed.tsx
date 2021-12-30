@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import useAPI from "lib/hooks/api";
+import apiPost from "lib/api/post";
 import Loading from "components/share/loading";
 import { Alert, Button, Checkbox, Input, Popover, Table } from "antd";
 import { Quota as LicenseQuota } from "./license";
 import Avatar from "components/account/avatar";
 import { EditableDescription, EditableTitle } from "./editable-license";
 import { search_split, search_match } from "@cocalc/util/misc";
-import { cmp } from "@cocalc/util/misc";
+import { cmp, plural } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Timestamp from "components/misc/timestamp";
 import License from "./license";
@@ -103,6 +104,7 @@ function columns(onChange) {
       ),
     },
     {
+      width: "15%",
       title: (
         <Popover
           title="Managers"
@@ -123,10 +125,21 @@ function columns(onChange) {
       key: "managers",
       render: (managers, record) => (
         <>
-          {managers.map((account_id) => (
-            <Avatar key={account_id} account_id={account_id} size={32} />
-          ))}
-          <AddManagers license_id={record.id} managers={managers} />
+          <div style={{ maxHeight: "65px", overflowY: "scroll" }}>
+            {managers.map((account_id) => (
+              <Avatar
+                style={{ margin: "0 5px 5px 0" }}
+                key={account_id}
+                account_id={account_id}
+                size={32}
+              />
+            ))}
+          </div>
+          <AddManagers
+            license_id={record.id}
+            managers={managers}
+            onChange={onChange}
+          />
         </>
       ),
     },
@@ -316,7 +329,6 @@ export default function ManagedLicenses() {
         style={{ marginTop: "15px" }}
         pagination={{ hideOnSinglePage: true, pageSize: 100 }}
       />
-      {/* <pre>{JSON.stringify(result, undefined, 2)}</pre> */}
     </div>
   );
 }
@@ -351,10 +363,12 @@ function removeExpired(data: { expires?: number }[]): { expires?: number }[] {
 interface AddManagersProps {
   license_id: string;
   managers: string[];
+  onChange?: () => void;
 }
-function AddManagers({ license_id, managers }: AddManagersProps) {
+function AddManagers({ license_id, managers, onChange }: AddManagersProps) {
   const [adding, setAdding] = useState<boolean>(false);
   const [accountIds, setAccountIds] = useState<string[]>([]);
+  const [error, setError] = useState<string>("");
   const { account } = useCustomize();
   return (
     <div>
@@ -362,22 +376,58 @@ function AddManagers({ license_id, managers }: AddManagersProps) {
         <Button
           size="small"
           style={{ float: "right" }}
-          onClick={() => setAdding(false)}
+          onClick={() => {
+            setAdding(false);
+            setError("");
+            setAccountIds([]);
+          }}
         >
-          Close
+          Cancel
         </Button>
       )}
       <Button
         disabled={adding}
         style={{ marginTop: "5px" }}
         size="small"
-        onClick={() => setAdding(!adding)}
+        onClick={() => {
+          setAdding(true);
+          setAccountIds([]);
+          setError("");
+        }}
       >
         <Icon name="plus-circle" /> Add
       </Button>
       {adding && (
         <div style={{ width: "300px", marginTop: "5px" }}>
+          {error && <Alert type="error" message={error} />}
+          <Button
+            disabled={accountIds.length == 0}
+            onClick={async () => {
+              setError("");
+              const query = {
+                manager_site_licenses: {
+                  id: license_id,
+                  managers: managers.concat(accountIds),
+                },
+              };
+              try {
+                await apiPost("/user-query", { query });
+                setAdding(false);
+                onChange?.();
+              } catch (err) {
+                setError(err.message);
+              }
+            }}
+            style={{ marginBottom: "5px", width: "100%" }}
+            type="primary"
+          >
+            <Icon name="check" /> Make {accountIds.length}{" "}
+            {plural(accountIds.length, "user")}{" "}
+            {accountIds.length == 1 ? " a " : ""} license{" "}
+            {plural(accountIds.length, "manager")}
+          </Button>
           <SelectUsers
+            autoFocus
             onChange={setAccountIds}
             exclude={managers.concat(
               account?.account_id ? [account.account_id] : []

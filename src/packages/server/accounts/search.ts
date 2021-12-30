@@ -113,18 +113,14 @@ export default async function search({
     }
   }
 
-  return results.sort((a, b) => {
-    const a0 = (a.first_name + " " + a.last_name).toLowerCase();
-    const b0 = (b.first_name + " " + b.last_name).toLowerCase();
-    const c = cmp(a0, b0);
-    if (c) {
-      return c;
-    }
-    return -cmp(
-      a.last_active ?? a.created ?? 0,
-      b.last_active ?? b.created ?? 0
-    );
-  });
+  results.sort(
+    (a, b) =>
+      -cmp(
+        Math.max(a.last_active ?? 0, a.created ?? 0),
+        Math.max(b.last_active ?? 0, b.created ?? 0)
+      )
+  );
+  return results;
 }
 
 function process(
@@ -133,13 +129,15 @@ function process(
 ): User | undefined {
   if (user == null) return undefined;
   const x: any = { ...user };
-  //TODO
+  if (x.email_address && x.email_address_verified) {
+    x.email_address_verified =
+      x.email_address_verified[x.email_address] != null;
+  }
   if (!admin) {
     delete x.email_address;
     delete x.banned;
   }
   toEpoch(x, ["last_active", "created"]);
-  // TODO: do something with email_address_verified
   return x;
 }
 
@@ -224,7 +222,7 @@ async function getUsersByStringQueries(
     query += " AND unlisted IS NOT true ";
   }
   // recently active users are much more relevant than old ones -- #2991
-  query += " ORDER BY last_active DESC NULLS LAST";
+  query += " ORDER BY COALESCE(last_active, created) DESC NULLS LAST";
   query += ` LIMIT $${i}::INTEGER `;
   i += 1;
   params.push(limit);

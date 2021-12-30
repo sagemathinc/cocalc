@@ -12,22 +12,24 @@ import apiPost from "lib/api/post";
 import type { User } from "@cocalc/server/accounts/search";
 import Timestamp from "components/misc/timestamp";
 import Avatar from "components/account/avatar";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
-  placeholder?: string;
   exclude?: string[]; // account_ids to exclude from search
   onChange?: (account_ids: string[]) => void;
+  autoFocus?: boolean;
 }
 
-export default function SelectUsers({ exclude, placeholder, onChange }: Props) {
+export default function SelectUsers({ autoFocus, exclude, onChange }: Props) {
   const [value, setValue] = useState<UserValue[]>([]);
 
   return (
     <DebounceSelect
+      autoFocus={autoFocus}
       exclude={new Set(exclude)}
       mode="multiple"
       value={value}
-      placeholder={placeholder ?? `Email address or name or @username`}
+      placeholder={"Email address, name or @username"}
       fetchOptions={fetchUserList}
       onChange={(newValue) => {
         setValue(newValue);
@@ -123,6 +125,7 @@ function Label({
   last_active,
   created,
   name,
+  email_address_verified,
 }: User) {
   return (
     <div style={{ borderBottom: "1px solid lightgrey", paddingBottom: "5px" }}>
@@ -135,12 +138,18 @@ function Label({
       {name ? ` (@${name})` : ""}
       {last_active && (
         <div>
-          Last Active: <Timestamp epoch={last_active} />
+          Last Active: <Timestamp epoch={last_active} dateOnly />
         </div>
       )}
       {created && (
         <div>
-          Created: <Timestamp epoch={created} />
+          Created: <Timestamp epoch={created} dateOnly />
+        </div>
+      )}
+      {email_address_verified && (
+        <div>
+          <Icon name="check" style={{ color: "darkgreen" }} /> Email address is
+          verified
         </div>
       )}
     </div>
