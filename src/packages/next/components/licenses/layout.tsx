@@ -12,6 +12,8 @@ import { useRouter } from "next/router";
 import LicensedProjects from "./licensed-projects";
 import ManagedLicenses from "./managed";
 import HowLicenseUsed from "./how-license-used";
+import Create from "./create";
+import Overview from "./overview";
 
 const { Content, Sider } = Layout;
 
@@ -59,8 +61,10 @@ export default function ConfigLayout({ page }: Props) {
         return <ManagedLicenses />;
       case "how-license-used":
         return <HowLicenseUsed account_id={account_id} />;
+      case "create":
+        return <Create />;
     }
-    return <div>TODO {main}</div>;
+    return <Overview/>;
   }
 
   const content = (
@@ -82,8 +86,11 @@ export default function ConfigLayout({ page }: Props) {
               </A>{" "}
               is still available.
               <br />
-              You can also browse the{" "}
-              <A href="https://doc.cocalc.com/licenses.html">CoCalc Manual</A>.
+              You can also read{" "}
+              <A href="https://doc.cocalc.com/licenses.html">
+                the license documentation
+              </A>
+              .
             </>
           }
         />

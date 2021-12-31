@@ -1,80 +1,50 @@
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
+import A from "components/misc/A";
+import Timestamp from "components/misc/timestamp";
 import { Alert, Table } from "antd";
+import { capitalize } from "@cocalc/util/misc";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 function renderTimestamp(x) {
-  return x ? new Date(x).toLocaleString() : "-";
+  return <Timestamp epoch={x} />;
 }
 
 const columns = [
   {
-    title: "Title",
-    dataIndex: "title",
-    key: "title",
-    width: "30%",
-    render: (title) => (
-      <div
-        style={{
-          wordWrap: "break-word",
-          wordBreak: "break-word",
-          color: "#666",
-        }}
-      >
-        <b>{title}</b>
-      </div>
+    title: "Type",
+    render: (_, { card }) => (
+      <>
+        {" "}
+        <Icon name={`cc-${card.brand}`} /> {capitalize(card.brand)}
+      </>
     ),
   },
   {
-    title: "Last Used",
-    dataIndex: "last_used",
-    key: "last_used",
-    render: renderTimestamp,
+    title: "Number",
+    render: (_, { card }) => `...${card.last4}`,
   },
   {
-    title: "Activates",
-    dataIndex: "activates",
-    key: "activates",
-    render: renderTimestamp,
+    title: "Expiration Date",
+    align: "center",
+    render: (_, { card }) => `${card.exp_month}/${card.exp_year}`,
   },
   {
-    title: "Expires",
-    dataIndex: "expires",
-    key: "expires",
-    render: renderTimestamp,
+    title: "Country",
+    align: "center",
+    render: (_, { card }) =>
+      card.country ?? "",
   },
   {
-    title: "Created",
+    title: "Postal Code",
+    align: "center",
+    render: (_, { billing_details }) =>
+      billing_details.address.postal_code ?? "",
+  },
+  {
+    title: "Added",
     dataIndex: "created",
-    key: "created",
-    render: renderTimestamp,
-  },
-  {
-    title: "Managers",
-    dataIndex: "managers",
-    key: "managers",
-  },
-  {
-    title: "Limit",
-    dataIndex: "run_limit",
-    key: "run_limit",
-  },
-  {
-    title: "Quota",
-    dataIndex: "quota",
-    key: "quota",
-    render: (quota) => {
-      return (
-        <div
-          style={{
-            wordWrap: "break-word",
-            wordBreak: "break-word",
-            color: "#666",
-          }}
-        >
-          {JSON.stringify(quota)}
-        </div>
-      );
-    },
+    render: (x) => <Timestamp epoch={x * 1000} />,
   },
 ];
 
@@ -91,14 +61,25 @@ export default function PaymentMethods() {
       <h3>Payment Methods</h3>
       These are the credit cards and other payment methods that you have
       currently setup. Note that CoCalc does not directly store the actual
-      credit card numbers (they are instead stored securely by stripe).
+      credit card numbers (they are instead stored securely by{" "}
+      <A href="https://stripe.com/" external>
+        Stripe
+      </A>
+      ).
       <Table
         columns={columns}
         dataSource={result.data}
         rowKey={"id"}
         style={{ marginTop: "15px" }}
+        pagination={{ hideOnSinglePage: true, pageSize: 100 }}
       />
-      <pre>{JSON.stringify(result, undefined, 2)}</pre>
+      {result.data.has_more && (
+        <Alert
+          type="warning"
+          showIcon
+          message="WARNING: Some of your cards are not displayed above, since there are so many."
+        />
+      )}
     </div>
   );
 }
