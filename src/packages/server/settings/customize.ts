@@ -32,6 +32,7 @@ export interface Customize {
   emailSignup?: boolean;
   accountCreationInstructions?: string;
   zendesk?: boolean; // true if zendesk support is configured.
+  stripePublishableKey?: string;
 }
 
 const fallback = (a?: string, b?: string): string =>
@@ -95,5 +96,7 @@ export default async function getCustomize(): Promise<Customize> {
       settings.zendesk_token &&
       settings.zendesk_username &&
       settings.zendesk_uri,
+
+    stripePublishableKey: settings.stripe_publishable_key,
   } as Customize;
 }

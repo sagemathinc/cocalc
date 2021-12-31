@@ -648,4 +648,8 @@ export class StripeClient {
     await conn.customers.deleteSource(await this.need_customer_id(), id);
     await this.update_database();
   }
+
+  public async createPaymentMethod(token: string): Promise<void> {
+    await this.mesg_create_source({ token });
+  }
 }

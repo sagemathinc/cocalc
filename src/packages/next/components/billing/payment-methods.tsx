@@ -1,11 +1,18 @@
-import { useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
+import ReactDOM from "react-dom";
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
+import HelpEmail from "components/misc/help-email";
 import A from "components/misc/A";
 import { Alert, Button, Popconfirm, Table } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import apiPost from "lib/api/post";
 import { cmp } from "@cocalc/util/misc";
+import useCustomize from "lib/use-customize";
+import Script from "next/script";
+import useIsMounted from "lib/hooks/mounted";
+
+const STRIPE_CLIENT_LIBRARY = "https://js.stripe.com/v3/";
 
 const columns = (onChange) => [
   {
@@ -13,7 +20,12 @@ const columns = (onChange) => [
     dataIndex: "brand",
     render: (brand) => (
       <>
-        <Icon name={`cc-${brand.toLowerCase()}` as any} /> {brand}
+        {brand.includes(" ") ? (
+          ""
+        ) : (
+          <Icon name={`cc-${brand.toLowerCase()}` as any} />
+        )}{" "}
+        {brand}
       </>
     ),
   },
@@ -163,11 +175,15 @@ export default function PaymentMethods() {
         Stripe
       </A>
       ).
+      <AddPaymentMethod
+        onChange={call}
+        style={{ marginTop: "15px", marginBottom: "5px" }}
+      />
       <Table
         columns={columns(call) as any}
         dataSource={result.sources.data}
         rowKey={"id"}
-        style={{ marginTop: "15px" }}
+        style={{ marginTop: "15px", overflowX: "scroll" }}
         pagination={{ hideOnSinglePage: true, pageSize: 100 }}
       />
       {result.sources.has_more && (
@@ -176,6 +192,136 @@ export default function PaymentMethods() {
           showIcon
           message="WARNING: Some of your cards are not displayed above, since there are so many."
         />
+      )}
+    </div>
+  );
+}
+
+interface AddPaymentMethodProps {
+  onChange?: () => void;
+  style?: CSSProperties;
+}
+
+function AddPaymentMethod({ onChange, style }: AddPaymentMethodProps) {
+  const [error, setError] = useState<string>("");
+  const [adding, setAdding] = useState<boolean>(false);
+  const [creating, setCreating] = useState<boolean>(false);
+  const [stripe, setStripe] = useState<null | { stripe: any; card: any }>(null);
+  const cardRef = useRef<any>();
+  const { stripePublishableKey } = useCustomize();
+  const isMounted = useIsMounted();
+
+  useEffect(() => {
+    if (!adding || !stripe || !cardRef.current) return;
+    stripe.card.mount(ReactDOM.findDOMNode(cardRef.current));
+  }, [adding, stripe]);
+
+  return (
+    <div style={style}>
+      <Button disabled={adding} onClick={() => setAdding(true)}>
+        <Icon name="plus-circle" /> Add Payment Method
+      </Button>
+      {adding && (
+        <div
+          style={{
+            border: "1px solid #ddd",
+            padding: "15px",
+            borderRadius: "5px",
+            maxWidth: "600px",
+            margin: "15px auto",
+          }}
+        >
+          <Script
+            src={STRIPE_CLIENT_LIBRARY}
+            onLoad={() => {
+              const stripe = window.Stripe(stripePublishableKey);
+              const card = stripe.elements().create("card");
+              if (card == null) throw Error("bug -- card cannot be null");
+              setStripe({ stripe, card });
+            }}
+            onError={() => {
+              setError(
+                `Stripe script failed to load. Make sure your browser is not blocking ${STRIPE_CLIENT_LIBRARY}, then refresh this page.`
+              );
+            }}
+          />
+          {error && (
+            <Alert
+              type="error"
+              showIcon
+              message={error}
+              style={{ margin: "15px 0" }}
+            />
+          )}
+          <div style={{ textAlign: "center" }}>
+            <div
+              ref={cardRef}
+              style={{
+                border: "1px solid lightgray",
+                borderRadius: "5px",
+                margin: "5px auto 20px auto",
+                maxWidth: "400px",
+                padding: "15px 10px",
+                boxShadow: "5px 5px 5px lightgray",
+              }}
+            >
+              {/* a Stripe Element will be inserted here. */}
+            </div>
+
+            <Button
+              style={{ marginRight: "5px" }}
+              onClick={() => setAdding(false)}
+              disabled={creating}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={creating}
+              type="primary"
+              onClick={async () => {
+                setCreating(true);
+                try {
+                  let token;
+                  try {
+                    const result = await stripe?.stripe.createToken(
+                      stripe.card
+                    );
+                    if (!isMounted.current) return;
+                    if (result.error) {
+                      throw Error(result.error.message);
+                    }
+                    ({ token } = result);
+                  } catch (err) {
+                    setError(err.message);
+                    return;
+                  }
+                  try {
+                    await apiPost("/billing/create-payment-method", {
+                      id: token.id,
+                    });
+                    if (!isMounted.current) return;
+                    onChange?.();
+                    setAdding(false);
+                  } catch (err) {
+                    setError(err.message);
+                  }
+                } finally {
+                  setCreating(false);
+                }
+              }}
+            >
+              {creating ? (
+                <Loading delay={0}>Adding Card...</Loading>
+              ) : (
+                "Add Card"
+              )}
+            </Button>
+          </div>
+          <div style={{ color: "#666", marginTop: "15px" }}>
+            PayPal or wire transfers for non-recurring purchases above $100 are
+            also possible. <HelpEmail />.
+          </div>
+        </div>
       )}
     </div>
   );
