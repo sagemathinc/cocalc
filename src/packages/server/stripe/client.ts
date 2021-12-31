@@ -137,7 +137,7 @@ export class StripeClient {
     };
   }
 
-  private async get_customer(customer_id?: string): Promise<StripeCustomer> {
+  async get_customer(customer_id?: string): Promise<StripeCustomer> {
     const dbg = this.dbg("get_customer");
     if (customer_id == null) {
       dbg("getting customer id");
@@ -634,5 +634,10 @@ export class StripeClient {
     return await (
       await getConn()
     ).paymentMethods.list({ customer, type: "card" });
+  }
+  public async setDefaultSource(default_source: string): Promise<void> {
+    const customer_id: string = await this.need_customer_id();
+    await (await getConn()).customers.update(customer_id, { default_source });
+    await this.update_database();
   }
 }
