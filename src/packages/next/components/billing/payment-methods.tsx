@@ -38,11 +38,11 @@ const columns = (onChange) => [
     align: "center" as "center",
   },
   {
-    title: "Default",
+    title: "",
     render: (_, { default_source, brand, last4, id }) => {
       const [error, setError] = useState<string>("");
       return (
-        <>
+        <div>
           {error && (
             <Alert
               type="error"
@@ -98,7 +98,35 @@ const columns = (onChange) => [
               <Button type={"dashed"}>Default</Button>
             </Popconfirm>
           )}
-        </>
+          <Popconfirm
+            placement="topLeft"
+            title={
+              <div style={{ width: "400px" }}>
+                Do you want to delete the{" "}
+                <b>
+                  {brand} card ending in ...{last4}
+                </b>
+                ? It will no longer be used for subscriptions and you will have
+                to enter it again to use it to make a purchase.
+              </div>
+            }
+            onConfirm={async () => {
+              try {
+                setError("");
+                await apiPost("/billing/delete-payment-method", { id });
+                onChange?.();
+              } catch (err) {
+                setError(err.message);
+              }
+            }}
+            okText="Yes, delete this card"
+            cancelText="Cancel"
+          >
+            <Button type="dashed" style={{ marginLeft: "5px" }}>
+              <Icon name="trash" /> Delete
+            </Button>
+          </Popconfirm>
+        </div>
       );
     },
   },
