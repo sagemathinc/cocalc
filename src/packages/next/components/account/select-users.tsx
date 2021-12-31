@@ -133,6 +133,7 @@ function Label({
         account_id={account_id}
         size={18}
         style={{ marginRight: "5px" }}
+        zIndex={10000}
       />
       {first_name} {last_name}
       {name ? ` (@${name})` : ""}

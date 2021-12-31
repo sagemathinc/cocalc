@@ -25,14 +25,15 @@ export default function ConfigMenu({ main }) {
         License
       </Menu.Item>
       <Menu.Item key={"managed"}>
-        <Icon name={"key"} style={{ marginRight: "5px" }} /> Your Licenses
+        <Icon name={"key"} style={{ marginRight: "5px" }} /> Licenses You Manage
       </Menu.Item>
       <Menu.Item key={"projects"}>
         <Icon name={"edit"} style={{ marginRight: "5px" }} /> Your Licensed
         Projects
       </Menu.Item>
       <Menu.Item key={"how-license-used"}>
-        <Icon name={"key"} style={{ marginRight: "5px" }} /> How a License is Used
+        <Icon name={"key"} style={{ marginRight: "5px" }} /> How a License is
+        Used
       </Menu.Item>
     </Menu>
   );

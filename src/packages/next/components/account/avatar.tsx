@@ -3,7 +3,7 @@ Show an avatar for a given user account.
 */
 
 import { Avatar as AntdAvatar, Popover } from "antd";
-import { CSSProperties } from "react";
+import { CSSProperties, ReactNode } from "react";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import A from "components/misc/A";
 import useProfile from "lib/hooks/profile";
@@ -14,9 +14,18 @@ interface Props {
   size?: number;
   style?: CSSProperties;
   showName?: boolean;
+  extra?: ReactNode; // extra component that gets rendered below avatar when hoving, e.g., could be a "remove" action...
+  zIndex?: number;
 }
 
-export default function Avatar({ account_id, size, style, showName }: Props) {
+export default function Avatar({
+  account_id,
+  size,
+  style,
+  showName,
+  extra,
+  zIndex,
+}: Props) {
   const { account } = useCustomize();
   if (size == null) {
     // Default size=40 to match the cocalc logo.
@@ -32,7 +41,7 @@ export default function Avatar({ account_id, size, style, showName }: Props) {
   return (
     <Popover
       mouseLeaveDelay={0.3}
-      zIndex={10000 /* since otherwise is behind select in user search */}
+      zIndex={zIndex}
       title={
         <div style={{ textAlign: "center", fontSize: "13pt" }}>
           {profile.first_name} {profile.last_name}{" "}
@@ -79,6 +88,7 @@ export default function Avatar({ account_id, size, style, showName }: Props) {
               </A>
             </div>
           )}
+          {extra}
         </div>
       }
     >
