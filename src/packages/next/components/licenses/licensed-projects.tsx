@@ -1,7 +1,7 @@
 import { useState } from "react";
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
-import { Alert, Input, Table } from "antd";
+import { Alert, Input, Popover, Table } from "antd";
 import editURL from "lib/share/edit-url";
 import A from "components/misc/A";
 import { cmp, keys } from "@cocalc/util/misc";
@@ -27,7 +27,21 @@ const columns = [
     sorter: { compare: (a, b) => cmp(a.title, b.title) },
   },
   {
-    title: "Licenses",
+    title: (
+      <Popover
+        placement="bottom"
+        title="Licenses"
+        content={
+          <div style={{ maxWidth: "75ex" }}>
+            These licenses are all applied to the project. They may or may not
+            contribute any upgrades, depending on how the license is being used
+            across all projects.
+          </div>
+        }
+      >
+        Licenses
+      </Popover>
+    ),
     dataIndex: "site_license",
     key: "site_license",
     render: (site_licenses, { project_id }) => (
@@ -39,7 +53,8 @@ const columns = [
               license_id={license_id}
               contrib={{ [project_id]: site_licenses[license_id] }}
             />
-          ))
+          )),
+          <br />
         )}
       </div>
     ),
@@ -49,14 +64,41 @@ const columns = [
     },
   },
   {
-    title: "Project Last Edited",
+    title: (
+      <Popover
+        placement="bottom"
+        title="Project Last Edited"
+        content={
+          <div style={{ maxWidth: "75ex" }}>
+            When the project was last edited.
+          </div>
+        }
+      >
+        Project Last Edited
+      </Popover>
+    ),
     dataIndex: "last_edited",
     key: "last_edited",
     render: (last_edited) => <Timestamp epoch={last_edited} />,
     sorter: { compare: (a, b) => cmp(a.last_edited, b.last_edited) },
   },
   {
-    title: "Project Hidden?",
+    title: (
+      <Popover
+        placement="bottom"
+        title="Project Hidden"
+        content={
+          <div style={{ maxWidth: "75ex" }}>
+            Whether or not the project is "hidden" from you, so it doesn't
+            appear in your default list of projects. Typically all student
+            projects in a course you teach are hidden. There is a checkmark
+            below for hidden projects.
+          </div>
+        }
+      >
+        Project Hidden
+      </Popover>
+    ),
     dataIndex: "hidden",
     key: "hidden",
     width: "10%",

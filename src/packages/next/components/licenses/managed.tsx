@@ -41,7 +41,7 @@ export const quotaColumn = {
       Quota{" "}
     </Popover>
   ),
-  width: "25%",
+  width: "35%",
   dataIndex: "quota",
   key: "quota",
   render: (quota, record) => {
