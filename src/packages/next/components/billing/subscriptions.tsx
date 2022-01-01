@@ -1,3 +1,4 @@
+import { useState } from "react";
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
 import A from "components/misc/A";
@@ -7,8 +8,10 @@ import { capitalize, stripeAmount, planInterval } from "@cocalc/util/misc";
 import HelpEmail from "components/misc/help-email";
 import { Icon } from "@cocalc/frontend/components/icon";
 import License from "components/licenses/license";
+import useIsMounted from "lib/hooks/mounted";
+import apiPost from "lib/api/post";
 
-function columns(invoices) {
+function columns(invoices, onChange) {
   return [
     {
       title: "Description",
@@ -75,32 +78,62 @@ function columns(invoices) {
       title: "Cancel",
       align: "center" as "center",
       dataIndex: "cancel_at_period_end",
-      render: (cancel_at_period_end) => (
-        <div>
-          <Popconfirm
-            placement="bottomLeft"
-            title={
-              <div style={{ maxWidth: "500px" }}>
-                Cancel? Are you sure you want to{" "}
-                <b>cancel this subscription at period end</b>? If you cancel
-                your subscription, it will run to the end of the subscription
-                period, but will not be renewed when the current (already paid
-                for) period ends. If you need further clarification or need a
-                refund, <HelpEmail lower />.
-              </div>
-            }
-            onConfirm={async () => {
-              console.log("do cancellation");
-            }}
-            okText="Yes, cancel at period end (do not auto-renew)"
-            cancelText="Make no change"
-          >
-            <Button disabled={cancel_at_period_end} type="dashed">
-              Cancel{cancel_at_period_end ? "led" : ""}
-            </Button>
-          </Popconfirm>
-        </div>
-      ),
+      render: (cancel_at_period_end, sub) => {
+        const [error, setError] = useState<string>("");
+        const [cancelling, setCancelling] = useState<boolean>(false);
+        const isMounted = useIsMounted();
+        return (
+          <div>
+            <Popconfirm
+              placement="bottomLeft"
+              title={
+                <div style={{ maxWidth: "500px" }}>
+                  Cancel? Are you sure you want to{" "}
+                  <b>cancel this subscription at period end</b>? If you cancel
+                  your subscription, it will run to the end of the subscription
+                  period, but will not be renewed when the current (already paid
+                  for) period ends. If you need further clarification or need a
+                  refund, <HelpEmail lower />.
+                </div>
+              }
+              onConfirm={async () => {
+                setCancelling(true);
+                setError("");
+                try {
+                  await apiPost("billing/cancel-subscription", { id: sub.id });
+                } catch (err) {
+                  if (!isMounted.current) return;
+                  setError(err.message);
+                } finally {
+                  if (!isMounted.current) return;
+                  setCancelling(false);
+                  onChange();
+                }
+              }}
+              okText="Yes, cancel at period end (do not auto-renew)"
+              cancelText="Make no change"
+            >
+              <Button
+                disabled={cancel_at_period_end || cancelling}
+                type="dashed"
+              >
+                {cancelling ? (
+                  <Loading delay={0}>Cancelling...</Loading>
+                ) : (
+                  `Cancel${cancel_at_period_end ? "led" : ""}`
+                )}
+              </Button>
+              {error && (
+                <Alert
+                  style={{ marginTop: "15px" }}
+                  type="error"
+                  message={`Error: ${error}`}
+                />
+              )}
+            </Popconfirm>
+          </div>
+        );
+      },
     },
   ];
 }
@@ -120,11 +153,17 @@ export default function Subscriptions() {
   if (!invoices.result) {
     return <Loading />;
   }
+
+  function onChange() {
+    subscriptions.call();
+    invoices.call();
+  }
+
   return (
     <div>
       <h3>Your Subscriptions ({subscriptions.result.data.length})</h3>
       <Table
-        columns={columns(invoices.result)}
+        columns={columns(invoices.result, onChange)}
         dataSource={subscriptions.result.data}
         rowKey={"id"}
         pagination={{ hideOnSinglePage: true, pageSize: 100 }}

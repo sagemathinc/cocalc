@@ -369,8 +369,6 @@ export class StripeClient {
     // else's subscription!
 
     dbg("cancel the subscription at stripe");
-    // This also returns the subscription, which lets
-    // us easily get the metadata of all projects associated to this subscription.
     await (
       await getConn()
     ).subscriptions.update(subscription_id, {
@@ -651,5 +649,12 @@ export class StripeClient {
 
   public async createPaymentMethod(token: string): Promise<void> {
     await this.mesg_create_source({ token });
+  }
+
+  public async cancelSubscription(id: string): Promise<void> {
+    // TODO/SECURITY: see comment in mesg_cancel_subscription
+    const conn = await getConn();
+    await conn.subscriptions.update(id, { cancel_at_period_end: true });
+    await this.update_database();
   }
 }
