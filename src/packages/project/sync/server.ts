@@ -17,12 +17,9 @@ silently swallowed in persistent mode...
 // Making this short can save some memory and cpu.
 // Making it longer reduces the potential time to open a file, e.g., if you
 // disconnect then reconnect.
-// NOTE: setting this to zero, since saving memory and cpu is good, and speed
-// to open files is fine.  Also, delaying closing may be the root cause of this
-// file doubling (when serving from laptop) bug, and maybe also the "won't
-// save" bug.
-//    https://github.com/sagemathinc/cocalc/issues/5627
-const CLOSE_DELAY_MS = 0 * 1000;
+// Related to https://github.com/sagemathinc/cocalc/issues/5627
+// I tried 0 and that made "won't save" much works.
+const CLOSE_DELAY_MS = 5 * 60 * 1000;
 
 // This is a hard upper bound on the number of browser sessions that could
 // have the same file open at once.  We put some limit on it, to at least
