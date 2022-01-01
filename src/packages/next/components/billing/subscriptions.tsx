@@ -162,6 +162,13 @@ export default function Subscriptions() {
   return (
     <div>
       <h3>Your Subscriptions ({subscriptions.result.data.length})</h3>
+      <div style={{ maxWidth: "800px", margin: "15px 0" }}>
+        Your subscriptions are listed below. You can view invoices, get
+        information about the license or plan corresponding to a subscription,
+        and cancel a subscription at period end. You can also{" "}
+        <A href="/licenses/create">create a new subscription</A>.
+        If you have any questions <HelpEmail lower/>.
+      </div>
       <Table
         columns={columns(invoices.result, onChange)}
         dataSource={subscriptions.result.data}
