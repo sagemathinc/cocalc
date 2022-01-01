@@ -1,3 +1,5 @@
+/* Show payment methods.*/
+
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import useAPI from "lib/hooks/api";

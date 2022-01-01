@@ -1633,9 +1633,9 @@ export function stripeAmount(units: number, currency: string): string {
     throw Error(`not-implemented currency ${currency}`);
   }
   let s = `$${to_money(units / 100)}`;
-  if (s.slice(s.length - 3) === ".00") {
-    s = s.slice(0, s.length - 3);
-  }
+//   if (s.slice(s.length - 3) === ".00") {
+//     s = s.slice(0, s.length - 3);
+//   }
   return s;
 }
 

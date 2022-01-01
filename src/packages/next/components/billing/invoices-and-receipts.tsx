@@ -1,81 +1,58 @@
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
 import { Alert, Table } from "antd";
-
-function renderTimestamp(x) {
-  return x ? new Date(x).toLocaleString() : "-";
-}
+import { capitalize, cmp, stripeAmount } from "@cocalc/util/misc";
+import License from "components/licenses/license";
+import A from "components/misc/A";
+import { Icon } from "@cocalc/frontend/components/icon";
+import Timestamp from "components/misc/timestamp";
 
 const columns = [
   {
-    title: "Title",
-    dataIndex: "title",
-    key: "title",
-    width: "30%",
-    render: (title, record) => (
-      <div
-        style={{
-          wordWrap: "break-word",
-          wordBreak: "break-word",
-          color: "#666",
-        }}
-      >
-        <b>{title}</b>
-        {record.description.trim() && <div>{record.description}</div>}
+    title: "Description",
+    width: "50%",
+    dataIndex: "hosted_invoice_url",
+    render: (hosted_invoice_url, { lines }) => (
+      <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
+        {lines.data[0].description}
+        {(lines?.total_count ?? 1) > 1 && ", etc."}
+        {hosted_invoice_url && (
+          <div>
+            <A href={hosted_invoice_url}>
+              <Icon name="external-link" /> Invoice
+            </A>
+          </div>
+        )}
+        {lines.data[0].metadata?.license_id && (
+          <div>
+            License: <License license_id={lines.data[0].metadata?.license_id} />
+          </div>
+        )}
       </div>
     ),
   },
   {
-    title: "Last Used",
-    dataIndex: "last_used",
-    key: "last_used",
-    render: renderTimestamp,
+    title: "Status",
+    align: "center" as "center",
+    dataIndex: "status",
+    render: capitalize,
+    sorter: { compare: (a, b) => cmp(a.status, b.status) },
   },
   {
-    title: "Activates",
-    dataIndex: "activates",
-    key: "activates",
-    render: renderTimestamp,
-  },
-  {
-    title: "Expires",
-    dataIndex: "expires",
-    key: "expires",
-    render: renderTimestamp,
-  },
-  {
-    title: "Created",
+    title: "Date",
+    align: "center" as "center",
     dataIndex: "created",
-    key: "created",
-    render: renderTimestamp,
+    render: (created) => <Timestamp epoch={1000 * created} dateOnly />,
+    sorter: { compare: (a, b) => -cmp(a.created, b.created) },
   },
   {
-    title: "Managers",
-    dataIndex: "managers",
-    key: "managers",
-  },
-  {
-    title: "Limit",
-    dataIndex: "run_limit",
-    key: "run_limit",
-  },
-  {
-    title: "Quota",
-    dataIndex: "quota",
-    key: "quota",
-    render: (quota) => {
-      return (
-        <div
-          style={{
-            wordWrap: "break-word",
-            wordBreak: "break-word",
-            color: "#666",
-          }}
-        >
-          {JSON.stringify(quota)}
-        </div>
-      );
-    },
+    title: "Amount",
+    align: "right",
+    dataIndex: "amount_paid",
+    render: (amount_paid, { currency }) => (
+      <>{stripeAmount(amount_paid, currency)}</>
+    ),
+    sorter: { compare: (a, b) => cmp(a.amount_paid ?? 0, b.amount_paid ?? 0) },
   },
 ];
 
@@ -90,14 +67,15 @@ export default function InvoicesAndReceipts() {
   return (
     <div>
       <h3>Invoices and Receipts</h3>
-      These are...
+      Your invoices and receipts are listed below. Click on the "Invoice" link
+      to get a printable invoice or receipt version.
       <Table
-        columns={columns}
+        columns={columns as any}
         dataSource={result.data}
         rowKey={"id"}
         style={{ marginTop: "15px" }}
+        pagination={{ hideOnSinglePage: true, pageSize: 100 }}
       />
-      <pre>{JSON.stringify(result, undefined, 2)}</pre>
     </div>
   );
 }

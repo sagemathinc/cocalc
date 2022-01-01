@@ -4,7 +4,6 @@ import { join } from "path";
 import basePath from "lib/base-path";
 import Menu from "./menu";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
-import { Icon } from "@cocalc/frontend/components/icon";
 import useProfile from "lib/hooks/profile";
 import Loading from "components/share/loading";
 import { useRouter } from "next/router";
@@ -15,7 +14,7 @@ import HowLicenseUsed from "./how-license-used";
 import Create from "./create";
 import Overview from "./overview";
 
-const { Content, Sider } = Layout;
+const { Content } = Layout;
 
 interface Props {
   page: string;
@@ -64,57 +63,41 @@ export default function ConfigLayout({ page }: Props) {
       case "create":
         return <Create />;
     }
-    return <Overview/>;
+    return <Overview />;
   }
 
-  const content = (
-    <Content
+  return (
+    <Layout
       style={{
-        padding: 24,
-        margin: 0,
-        minHeight: 280,
+        padding: "0 24px 24px",
+        backgroundColor: "white",
+        color: "#555",
       }}
     >
-      <div style={{ float: "right", marginBottom: "15px" }}>
-        <Alert
-          type="warning"
-          message={
-            <>
-              This is the new licenses page.{" "}
-              <A href={join(basePath, "settings", "licenses")} external>
-                The old page
-              </A>{" "}
-              is still available.
-              <br />
-              You can also read{" "}
-              <A href="https://doc.cocalc.com/licenses.html">
-                the license documentation
-              </A>
-              .
-            </>
-          }
-        />
-      </div>
-      <h2>
-        <Icon name="key" /> Licenses
-      </h2>
-      {body()}
-    </Content>
-  );
-  return (
-    <Layout>
-      <Sider width={"150px"} breakpoint="md" collapsedWidth="0">
-        <Menu main={main} />
-      </Sider>
-      <Layout
+      <Menu main={main} />
+      <Content
         style={{
-          padding: "0 24px 24px",
-          backgroundColor: "white",
-          color: "#555",
+          padding: 24,
+          margin: 0,
+          minHeight: 280,
         }}
       >
-        {content}
-      </Layout>
+        <div style={{ float: "right", marginBottom: "0 0 15px 15px" }}>
+          <Alert
+            type="warning"
+            message={
+              <>
+                This is the new licenses page (
+                <A href={join(basePath, "settings", "licenses")} external>
+                  the old page
+                </A>
+                ).
+              </>
+            }
+          />
+        </div>
+        {body()}
+      </Content>
     </Layout>
   );
 }

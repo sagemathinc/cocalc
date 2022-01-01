@@ -7,7 +7,7 @@ export default function ConfigMenu({ main }) {
 
   return (
     <Menu
-      mode="inline"
+      mode="horizontal"
       selectedKeys={[main]}
       style={{ height: "100%" }}
       onSelect={(e) => {
@@ -17,9 +17,8 @@ export default function ConfigMenu({ main }) {
       }}
     >
       <Menu.Item key={""}>
-        <b style={{ fontSize: "16pt", color: "#666" }}>Licenses</b>
+        <b style={{ color: "#666" }}>Licenses</b>
       </Menu.Item>
-
       <Menu.Item key={"create"}>
         <Icon name={"credit-card"} style={{ marginRight: "5px" }} /> Create
       </Menu.Item>

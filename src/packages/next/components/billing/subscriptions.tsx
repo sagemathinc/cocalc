@@ -11,6 +11,7 @@ import License from "components/licenses/license";
 import useIsMounted from "lib/hooks/mounted";
 import apiPost from "lib/api/post";
 
+
 function columns(invoices, onChange) {
   return [
     {
@@ -166,14 +167,15 @@ export default function Subscriptions() {
         Your subscriptions are listed below. You can view invoices, get
         information about the license or plan corresponding to a subscription,
         and cancel a subscription at period end. You can also{" "}
-        <A href="/licenses/create">create a new subscription</A>.
-        If you have any questions <HelpEmail lower/>.
+        <A href="/licenses/create">create a new subscription</A>. If you have
+        any questions <HelpEmail lower />.
       </div>
       <Table
         columns={columns(invoices.result, onChange)}
         dataSource={subscriptions.result.data}
         rowKey={"id"}
         pagination={{ hideOnSinglePage: true, pageSize: 100 }}
+        style={{ overflowX: "scroll" }}
       />
       {subscriptions.result.has_more && (
         <Alert

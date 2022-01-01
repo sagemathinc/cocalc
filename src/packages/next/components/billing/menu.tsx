@@ -7,7 +7,7 @@ export default function ConfigMenu({ main }) {
 
   return (
     <Menu
-      mode="inline"
+      mode="horizontal"
       selectedKeys={[main]}
       style={{ height: "100%" }}
       onSelect={(e) => {
@@ -16,8 +16,9 @@ export default function ConfigMenu({ main }) {
         });
       }}
     >
-      <Menu.Item key={""}> <b style={{ fontSize: "16pt", color:"#666" }}>Billing</b></Menu.Item>
-
+      <Menu.Item key={""}>
+        <b style={{ color: "#666" }}>Billing</b>
+      </Menu.Item>
       <Menu.Item key={"cards"}>
         <Icon name={"credit-card"} style={{ marginRight: "5px" }} /> Payment
         Methods
