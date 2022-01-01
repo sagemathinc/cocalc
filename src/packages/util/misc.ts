@@ -1611,7 +1611,7 @@ export function date_to_snapshot_format(
   return s.slice(0, i);
 }
 
-export function stripe_date(d: number): string {
+export function stripeDate(d: number): string {
   // https://github.com/sagemathinc/cocalc/issues/3254
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl#Locale_negotiation
   return new Date(d * 1000).toLocaleDateString(undefined, {
@@ -1627,7 +1627,7 @@ export function to_money(n: number): string {
   return n.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
 }
 
-export function stripe_amount(units: number, currency: string): string {
+export function stripeAmount(units: number, currency: string): string {
   // input is in pennies
   if (currency !== "usd") {
     throw Error(`not-implemented currency ${currency}`);
@@ -1637,6 +1637,13 @@ export function stripe_amount(units: number, currency: string): string {
     s = s.slice(0, s.length - 3);
   }
   return s;
+}
+
+export function planInterval(
+  interval: string,
+  interval_count: number = 1
+): string {
+  return `${interval_count} ${plural(interval_count, interval)}`;
 }
 
 // get a subarray of all values between the two given values inclusive,

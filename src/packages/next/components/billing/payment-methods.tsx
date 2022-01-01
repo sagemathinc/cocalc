@@ -167,7 +167,7 @@ export default function PaymentMethods() {
 
   return (
     <div>
-      <h3>Payment Methods</h3>
+      <h3>Payment Methods ({result.sources.data.length})</h3>
       These are the credit cards and other payment methods that you have
       currently setup. Note that CoCalc does not directly store the actual
       credit card numbers (they are instead stored securely by{" "}

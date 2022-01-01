@@ -321,7 +321,7 @@ export default function ManagedLicenses() {
 
   return (
     <div style={{ width: "100%", overflowX: "scroll" }}>
-      <h3>Licenses that you Manage</h3>
+      <h3>Licenses that you Manage ({result.length})</h3>
       These are the licenses that you purchased or manage.
       <div style={{ margin: "15px 0" }}>
         <Checkbox

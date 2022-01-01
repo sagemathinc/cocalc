@@ -128,7 +128,7 @@ export default function LicensedProjects() {
   }
   return (
     <div>
-      <h3>Licensed Projects On Which You Collaborate</h3>
+      <h3>Licensed Projects On Which You Collaborate ({result.length})</h3>
       <div style={{ marginBottom: "15px" }}>
         <Input.Search
           placeholder="Search..."
