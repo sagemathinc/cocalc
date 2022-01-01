@@ -29,7 +29,7 @@ export default function ConfigMenu({ main }) {
         <Icon name={"edit"} style={{ marginRight: "5px" }} />
         Projects
       </Menu.Item>
-      <Menu.Item key={"how-license-used"}>
+      <Menu.Item key={"how-used"}>
         <Icon name={"key"} style={{ marginRight: "5px" }} /> How Used
       </Menu.Item>
     </Menu>

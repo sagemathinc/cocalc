@@ -10,7 +10,7 @@ import { useRouter } from "next/router";
 
 import LicensedProjects from "./licensed-projects";
 import ManagedLicenses from "./managed";
-import HowLicenseUsed from "./how-license-used";
+import HowUsed from "./how-used";
 import Create from "./create";
 import Overview from "./overview";
 
@@ -58,8 +58,8 @@ export default function ConfigLayout({ page }: Props) {
         return <LicensedProjects />;
       case "managed":
         return <ManagedLicenses />;
-      case "how-license-used":
-        return <HowLicenseUsed account_id={account_id} />;
+      case "how-used":
+        return <HowUsed account_id={account_id} />;
       case "create":
         return <Create />;
     }
