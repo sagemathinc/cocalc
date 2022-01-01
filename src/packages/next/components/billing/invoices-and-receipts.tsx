@@ -1,7 +1,7 @@
 import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
 import { Alert, Table } from "antd";
-import { capitalize, cmp, stripeAmount } from "@cocalc/util/misc";
+import { cmp, stripeAmount } from "@cocalc/util/misc";
 import License from "components/licenses/license";
 import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -35,11 +35,20 @@ const columns = [
     title: "Status",
     align: "center" as "center",
     dataIndex: "status",
-    render: capitalize,
+    render: (status, { due_date, hosted_invoice_url }) => {
+      if (status == "paid") {
+        return "Paid";
+      }
+      return (
+        <A style={{ color: "red" }} href={hosted_invoice_url}>
+          <Icon name="external-link" /> Due <Timestamp epoch={1000 * due_date} dateOnly />
+        </A>
+      );
+    },
     sorter: { compare: (a, b) => cmp(a.status, b.status) },
   },
   {
-    title: "Date",
+    title: "Created",
     align: "center" as "center",
     dataIndex: "created",
     render: (created) => <Timestamp epoch={1000 * created} dateOnly />,
@@ -48,10 +57,8 @@ const columns = [
   {
     title: "Amount",
     align: "right",
-    dataIndex: "amount_paid",
-    render: (amount_paid, { currency }) => (
-      <>{stripeAmount(amount_paid, currency)}</>
-    ),
+    dataIndex: "total",
+    render: (total, { currency }) => <>{stripeAmount(total, currency)}</>,
     sorter: { compare: (a, b) => cmp(a.amount_paid ?? 0, b.amount_paid ?? 0) },
   },
 ];
@@ -64,6 +71,7 @@ export default function InvoicesAndReceipts() {
   if (!result) {
     return <Loading />;
   }
+  console.log(result);
   return (
     <div>
       <h3>Invoices and Receipts</h3>

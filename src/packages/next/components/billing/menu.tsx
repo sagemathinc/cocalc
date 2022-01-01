@@ -20,8 +20,7 @@ export default function ConfigMenu({ main }) {
         <b style={{ color: "#666" }}>Billing</b>
       </Menu.Item>
       <Menu.Item key={"cards"}>
-        <Icon name={"credit-card"} style={{ marginRight: "5px" }} /> Payment
-        Methods
+        <Icon name={"credit-card"} style={{ marginRight: "5px" }} /> Credit Cards
       </Menu.Item>
       <Menu.Item key={"subscriptions"}>
         <Icon name={"calendar"} style={{ marginRight: "5px" }} /> Subscriptions

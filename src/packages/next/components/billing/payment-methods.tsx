@@ -1,4 +1,10 @@
-/* Show payment methods.*/
+/* Show payment methods.
+
+TODO: we are only showing the credit card payment sources at present.
+There are other types of sources, e.g., "ACH credit transfer".
+
+In the *near* future we will support more payment methods!
+*/
 
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
@@ -22,10 +28,10 @@ const columns = (onChange) => [
     dataIndex: "brand",
     render: (brand) => (
       <>
-        {brand.includes(" ") ? (
+        {brand?.includes(" ") ? (
           ""
         ) : (
-          <Icon name={`cc-${brand.toLowerCase()}` as any} />
+          <Icon name={`cc-${brand?.toLowerCase()}` as any} />
         )}{" "}
         {brand}
       </>
@@ -154,25 +160,27 @@ export default function PaymentMethods() {
   if (!result) {
     return <Loading />;
   }
-
   // set default so can use in table
   const { default_source } = result;
+  const cards: any[] = [];
   for (const row of result.sources.data) {
     if (row.id == default_source) {
       row.default_source = true;
-      break;
+    }
+    if (row.id.startsWith("card_")) {
+      cards.push(row);
     }
   }
   // sort by data rather than what comes back, so changing
   // default stays stable (since moving is confusing).
-  result.sources.data.sort((x, y) => cmp(x.id, y.id));
+  cards.sort((x, y) => cmp(x.id, y.id));
 
   return (
     <div>
-      <h3>Payment Methods ({result.sources.data.length})</h3>
-      These are the credit cards and other payment methods that you have
-      currently setup. Note that CoCalc does not directly store the actual
-      credit card numbers (they are instead stored securely by{" "}
+      <h3>Credit Cards ({cards.length})</h3>
+      These are the credit cards that you have currently setup. Note that CoCalc
+      does not directly store the actual credit card numbers (they are instead
+      stored securely by{" "}
       <A href="https://stripe.com/" external>
         Stripe
       </A>
@@ -183,7 +191,7 @@ export default function PaymentMethods() {
       />
       <Table
         columns={columns(call) as any}
-        dataSource={result.sources.data}
+        dataSource={cards}
         rowKey={"id"}
         style={{ marginTop: "15px", overflowX: "scroll" }}
         pagination={{ hideOnSinglePage: true, pageSize: 100 }}
@@ -192,7 +200,7 @@ export default function PaymentMethods() {
         <Alert
           type="warning"
           showIcon
-          message="WARNING: Some of your cards are not displayed above, since there are so many."
+          message="WARNING: Some of your cards may not be displayed above, since there are so many."
         />
       )}
     </div>
@@ -221,7 +229,7 @@ function AddPaymentMethod({ onChange, style }: AddPaymentMethodProps) {
   return (
     <div style={style}>
       <Button disabled={adding} onClick={() => setAdding(true)}>
-        <Icon name="plus-circle" /> Add Payment Method
+        <Icon name="plus-circle" /> Add Credit Card
       </Button>
       {adding && (
         <div
