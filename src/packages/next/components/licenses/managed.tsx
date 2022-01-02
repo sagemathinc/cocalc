@@ -23,7 +23,7 @@ import License from "./license";
 import SelectUsers from "components/account/select-users";
 import useCustomize from "lib/use-customize";
 
-const renderTimestamp = (epoch) => <Timestamp epoch={epoch} />;
+const renderTimestamp = (epoch) => <Timestamp epoch={epoch} dateOnly />;
 
 export const quotaColumn = {
   title: (
@@ -44,28 +44,138 @@ export const quotaColumn = {
   width: "35%",
   dataIndex: "quota",
   key: "quota",
-  render: (quota, record) => {
-    return record.state != null && record.state != "running" ? (
-      <div style={{ color: "#666", textAlign: "center" }}>—</div>
-    ) : (
-      <div
-        style={{
-          wordWrap: "break-word",
-          wordBreak: "break-word",
-          color: "#666",
-        }}
-      >
-        {quota && <LicenseQuota quota={quota} />}
-        {/* upgrades is deprecated, but in case we encounter it, do not ignore it */}
-        {record.upgrades && <pre>{JSON.stringify(record.upgrades)}</pre>}
-      </div>
-    );
-  },
+  responsive: ["sm"],
+  render: (_, license) => <Quota {...license} />,
 };
+
+function Quota({ quota, state, upgrades }) {
+  return state != null && state != "running" ? (
+    <span>—</span>
+  ) : (
+    <span
+      style={{
+        wordWrap: "break-word",
+        wordBreak: "break-word",
+      }}
+    >
+      {quota && <LicenseQuota quota={quota} />}
+      {/* upgrades is deprecated, but in case we encounter it, do not ignore it */}
+      {upgrades && <pre>{JSON.stringify(upgrades)}</pre>}
+    </span>
+  );
+}
+
+function TitleDescId({ title, description, id, onChange }) {
+  return (
+    <div
+      style={{
+        wordWrap: "break-word",
+        wordBreak: "break-word",
+        color: "#333",
+      }}
+    >
+      <div style={{ fontFamily: "monospace", fontSize: "9pt" }}>
+        <License license_id={id} />
+      </div>
+      <EditableTitle license_id={id} title={title} onChange={onChange} />
+      <EditableDescription
+        license_id={id}
+        description={description}
+        onChange={onChange}
+      />
+    </div>
+  );
+}
+
+function Managers({ managers, id, onChange }) {
+  return (
+    <>
+      <div style={{ maxHeight: "65px", overflowY: "scroll" }}>
+        {managers.map((account_id) => (
+          <Avatar
+            style={{ margin: "0 5px 5px 0" }}
+            key={account_id}
+            account_id={account_id}
+            size={24}
+            extra={
+              <RemoveManager
+                license_id={id}
+                managers={managers}
+                account_id={account_id}
+                onChange={onChange}
+              />
+            }
+          />
+        ))}
+      </div>
+      <AddManagers license_id={id} managers={managers} onChange={onChange} />
+    </>
+  );
+}
+
+function RunLimit({ run_limit }) {
+  return <>{run_limit}</>;
+}
+
+function LastUsed({ last_used }) {
+  return renderTimestamp(last_used);
+}
+
+function Activates({ activates }) {
+  return renderTimestamp(activates);
+}
+
+function Expires({ expires }) {
+  return (
+    <>
+      {" "}
+      {renderTimestamp(expires)}
+      {expires && expires <= new Date().valueOf() && (
+        <div
+          style={{
+            backgroundColor: "#d00",
+            color: "white",
+            padding: "0 5px",
+          }}
+        >
+          <Icon name="ban" /> Expired
+        </div>
+      )}
+    </>
+  );
+}
+
+function Created({ created }) {
+  return renderTimestamp(created);
+}
 
 function columns(onChange) {
   return [
     {
+      responsive: ["xs"],
+      title: "Managed Licenses",
+      render: (_, license) => (
+        <div>
+          <TitleDescId {...license} onChange={onChange} />
+          Run Limit: <RunLimit {...license} />
+          <div>
+            Quota: <Quota {...license} />
+          </div>
+          Last Used: <LastUsed {...license} />
+          <br />
+          Activates: <Activates {...license} />
+          <br />
+          Expires: <Expires {...license} />
+          <br />
+          Created: <Created {...license} />
+          <div style={{ border: "1px solid lightgrey", padding: "5px 15px" }}>
+            Managers <Managers {...license} onChange={onChange} />
+          </div>
+        </div>
+      ),
+    },
+    {
+      responsive: ["sm"],
       title: (
         <Popover
           placement="bottom"
@@ -83,36 +193,13 @@ function columns(onChange) {
           License
         </Popover>
       ),
-      dataIndex: "title",
       key: "title",
       width: "40%",
       sorter: { compare: (a, b) => cmp(a.title, b.title) },
-      render: (title, record) => (
-        <div
-          style={{
-            wordWrap: "break-word",
-            wordBreak: "break-word",
-            color: "#333",
-            fontSize: "9pt",
-          }}
-        >
-          <div style={{ fontFamily: "monospace", fontSize: "9pt" }}>
-            <License license_id={record.id} />
-          </div>
-          <EditableTitle
-            license_id={record.id}
-            title={title}
-            onChange={onChange}
-          />
-          <EditableDescription
-            license_id={record.id}
-            description={record.description}
-            onChange={onChange}
-          />
-        </div>
-      ),
+      render: (_, license) => <TitleDescId {...license} onChange={onChange} />,
     },
     {
+      responsive: ["sm"],
       width: "15%",
       title: (
         <Popover
@@ -130,37 +217,11 @@ function columns(onChange) {
           Managers
         </Popover>
       ),
-      dataIndex: "managers",
       key: "managers",
-      render: (managers, record) => (
-        <>
-          <div style={{ maxHeight: "65px", overflowY: "scroll" }}>
-            {managers.map((account_id) => (
-              <Avatar
-                style={{ margin: "0 5px 5px 0" }}
-                key={account_id}
-                account_id={account_id}
-                size={24}
-                extra={
-                  <RemoveManager
-                    license_id={record.id}
-                    managers={managers}
-                    account_id={account_id}
-                    onChange={onChange}
-                  />
-                }
-              />
-            ))}
-          </div>
-          <AddManagers
-            license_id={record.id}
-            managers={managers}
-            onChange={onChange}
-          />
-        </>
-      ),
+      render: (_, license) => <Managers {...license} onChange={onChange} />,
     },
     {
+      responsive: ["sm"],
       title: (
         <Popover
           placement="bottom"
@@ -176,15 +237,13 @@ function columns(onChange) {
           Run Limit
         </Popover>
       ),
-      dataIndex: "run_limit",
-      key: "run_limit",
-      render: (run_limit) => (
-        <div style={{ textAlign: "center" }}>{run_limit}</div>
-      ),
+      align: "center",
+      render: (_, license) => <RunLimit {...license} />,
       sorter: { compare: (a, b) => cmp(a.run_limit, b.run_limit) },
     },
     quotaColumn,
     {
+      responsive: ["sm"],
       title: (
         <Popover
           placement="bottom"
@@ -200,12 +259,11 @@ function columns(onChange) {
           Last Used{" "}
         </Popover>
       ),
-      dataIndex: "last_used",
-      key: "last_used",
-      render: renderTimestamp,
+      render: (_, license) => <LastUsed {...license} />,
       sorter: { compare: (a, b) => cmp(a.last_used, b.last_used) },
     },
     {
+      responsive: ["sm"],
       title: (
         <Popover
           placement="bottom"
@@ -221,12 +279,11 @@ function columns(onChange) {
           Activates{" "}
         </Popover>
       ),
-      dataIndex: "activates",
-      key: "activates",
-      render: renderTimestamp,
+      render: (_, license) => <Activates {...license} />,
       sorter: { compare: (a, b) => cmp(a.activates, b.activates) },
     },
     {
+      responsive: ["sm"],
       title: (
         <Popover
           placement="bottom"
@@ -242,27 +299,11 @@ function columns(onChange) {
           Expires{" "}
         </Popover>
       ),
-      dataIndex: "expires",
-      key: "expires",
-      render: (expires) => (
-        <div>
-          {renderTimestamp(expires)}
-          {expires && expires <= new Date().valueOf() && (
-            <div
-              style={{
-                backgroundColor: "#d00",
-                color: "white",
-                padding: "0 5px",
-              }}
-            >
-              <Icon name="ban" /> Expired
-            </div>
-          )}
-        </div>
-      ),
+      render: (_, license) => <Expires {...license} />,
       sorter: { compare: (a, b) => cmp(a.expires, b.expires) },
     },
     {
+      responsive: ["sm"],
       title: (
         <Popover
           placement="bottom"
@@ -276,9 +317,7 @@ function columns(onChange) {
           Created{" "}
         </Popover>
       ),
-      dataIndex: "created",
-      key: "created",
-      render: renderTimestamp,
+      render: (_, license) => <Created {...license} />,
       sorter: { compare: (a, b) => cmp(a.created, b.created) },
     },
   ];
@@ -340,7 +379,7 @@ export default function ManagedLicenses() {
         />
       </div>
       <Table
-        columns={columns(onChange)}
+        columns={columns(onChange) as any}
         dataSource={result}
         rowKey={"id"}
         style={{ marginTop: "15px" }}

@@ -202,7 +202,7 @@ export default function HowLicenseUsed({ account_id }) {
       )}
       {license && !loading && (
         <Table
-          columns={columns}
+          columns={columns as any}
           dataSource={doSearch(projects, search, excludeMe, account_id)}
           rowKey={"project_id"}
           style={{ marginTop: "15px" }}
