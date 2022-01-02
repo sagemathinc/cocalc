@@ -27,8 +27,11 @@ export default function Create() {
 }
 
 interface CreateLicenseProps {
-  style: CSSProperties;
+  style?: CSSProperties;
 }
+
+// Note -- the back and forth between moment and Date below
+// is a *workaround* because of some sort of bug in moment/antd/react.
 
 function CreateLicense({ style }: CreateLicenseProps) {
   const [creating, setCreating] = useState<boolean>(true);
@@ -37,12 +40,11 @@ function CreateLicense({ style }: CreateLicenseProps) {
   const [subscription, setSubscription] = useState<boolean>(false);
   const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
   const [runLimit, setRunLimit] = useState<number>(1);
-  const [dateRange, setDateRange] = useState([
-    moment(),
-    moment().add(1, "month"),
-  ]);
+  const [dateRange, setDateRange] = useState<
+    [Date | undefined, Date | undefined]
+  >([new Date(), moment(new Date()).add(1, "month").toDate()]);
   return (
-    <div style={{ style }}>
+    <div style={style}>
       <Button
         disabled={creating}
         type="primary"
@@ -56,68 +58,100 @@ function CreateLicense({ style }: CreateLicenseProps) {
           style={{ width: "100%", marginTop: "15px" }}
         >
           Title
-          <Input
-            placeholder="Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
+          <div style={{ marginLeft: "30px" }}>
+            <Input
+              placeholder="Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
           Description
-          <Input.TextArea
-            placeholder="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-          />
-          <Checkbox
-            checked={subscription}
-            onChange={(e) => setSubscription(e.target.checked)}
-          >
-            Subscription
-          </Checkbox>
-          {subscription && (
-            <Radio.Group
-              style={{ marginLeft: "40px" }}
-              value={period}
-              onChange={(e) => {
-                setPeriod(e.target.value);
-              }}
+          <div style={{ marginLeft: "30px" }}>
+            <Input.TextArea
+              placeholder="Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+            />
+          </div>
+          Period of Time
+          <Space direction="vertical" style={{ marginLeft: "30px" }}>
+            <Checkbox
+              checked={subscription}
+              onChange={(e) => setSubscription(e.target.checked)}
             >
+              Subscription
+            </Checkbox>
+            {subscription && (
+              <Radio.Group
+                style={{ marginLeft: "40px" }}
+                value={period}
+                onChange={(e) => {
+                  setPeriod(e.target.value);
+                }}
+              >
+                <Space direction="vertical">
+                  <Radio value={"monthly"}>Monthly</Radio>
+                  <Radio value={"yearly"}>Yearly</Radio>
+                </Space>
+              </Radio.Group>
+            )}
+            {!subscription && (
               <Space direction="vertical">
-                <Radio value={"monthly"}>Monthly</Radio>
-                <Radio value={"yearly"}>Yearly</Radio>
+                Start and End Dates
+                <DatePicker.RangePicker
+                  allowEmpty={[true, true]}
+                  style={{ marginLeft: "30px" }}
+                  ranges={{
+                    Week: [moment(), moment().add(1, "week")],
+                    Month: [moment(), moment().add(1, "month")],
+                    Year: [moment(), moment().add(1, "year")],
+                    "+ Week": [
+                      moment(dateRange[0]),
+                      moment(dateRange[0]).add(1, "week"),
+                    ],
+                    "+ Month": [
+                      moment(dateRange[0]),
+                      moment(dateRange[0]).add(1, "month"),
+                    ],
+                    "+ Three Months": [
+                      moment(dateRange[0]),
+                      moment(dateRange[0]).add(3, "months"),
+                    ],
+                    "+ Four Months": [
+                      moment(dateRange[0]),
+                      moment(dateRange[0]).add(4, "months"),
+                    ],
+                  }}
+                  value={[
+                    dateRange[0] ? moment(dateRange[0]) : undefined,
+                    dateRange[1] ? moment(dateRange[1]) : undefined,
+                  ] as any}
+                  onChange={(value) => {
+                    setDateRange([value?.[0]?.toDate(), value?.[1]?.toDate()]);
+                  }}
+                />
               </Space>
-            </Radio.Group>
-          )}
-          {!subscription && (
-            <Space direction="vertical">
-              Start and End Dates
-              <DatePicker.RangePicker
-                style={{ marginLeft: "30px" }}
-                ranges={{
-                  "This Week": [moment(), moment().add(1, "week")],
-                  Week: [dateRange[0], dateRange[0].add(1, "week")],
-                  Month: [dateRange[0], dateRange[0].add(1, "month")],
-                  "Three Months": [dateRange[0], dateRange[0].add(3, "months")],
-                  "Four Months": [dateRange[0], dateRange[0].add(4, "months")],
-                  Year: [dateRange[0], dateRange[0].add(1, "year")],
-                }}
-                value={dateRange}
-                onChange={(value) => {
-                  console.log("value = ", value);
-                  if (value == null || value[0] == null || value[1] == null)
-                    return;
-                  setDateRange(value);
-                }}
-              />
-            </Space>
-          )}
+            )}
+          </Space>
           Run Limit
-          <IntegerSlider
-            min={1}
-            max={2000}
-            onChange={setRunLimit}
-            units={"projects"}
-          />
+          <div
+            style={{
+              marginLeft: "30px",
+              border: "1px solid #eee",
+              padding: "10px",
+              borderRadius: "5px",
+            }}
+          >
+            <IntegerSlider
+              min={1}
+              max={2000}
+              value={runLimit}
+              onChange={setRunLimit}
+              units={"projects"}
+              presets={[1, 2, 10, 50, 100, 250]}
+            />
+          </div>
         </Space>
       )}
     </div>
