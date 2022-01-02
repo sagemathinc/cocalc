@@ -126,16 +126,27 @@ function CreateLicense({ style }: CreateLicenseProps) {
           onFinishFailed={onFinishFailed}
           autoComplete="off"
         >
-          <Form.Item label="Title" name="title" required>
-            <Input placeholder="Title" />
+          <Form.Item label="Title" name="title">
+            <Input placeholder="Enter the title of your license" />
           </Form.Item>
           <Form.Item label="Description" name="description">
-            <Input.TextArea placeholder="Description" rows={2} />
+            <Input.TextArea placeholder="Describe your license" rows={2} />
           </Form.Item>
           <Form.Item name="period" hidden={true} initialValue={"monthly"}>
             <Input />
           </Form.Item>
-          <Form.Item label="Period">
+          <Form.Item
+            label="Period"
+            extra={
+              <>
+                You get a discount if you pay for the license monthly or yearly
+                via a recurring subscription. You can also pay once for a
+                specific period of time. Licenses start at midnight in your
+                local timezone on the start date and end at 23:59 your local
+                time zone on the ending date.
+              </>
+            }
+          >
             <Radio.Group
               defaultValue={"monthly"}
               onChange={(e) => {
@@ -170,7 +181,23 @@ function CreateLicense({ style }: CreateLicenseProps) {
               ) : null
             }
           </Form.Item>
-          <Form.Item label="Run Limit" name="runLimit" initialValue={1}>
+          <Form.Item
+            label="Run Limit"
+            name="runLimit"
+            initialValue={1}
+            extra={
+              <div style={{ marginTop: "5px" }}>
+                Simultaneously run this many projects using this license. You,
+                and anyone you share the license code with, can apply the
+                license to an unlimited number of projects, but it will only be
+                used up to the run limit. When{" "}
+                <A href="https://doc.cocalc.com/teaching-instructors.html">
+                  teaching a course
+                </A>
+                , the run limit is typically 2 more than the number of students.
+              </div>
+            }
+          >
             <div
               style={{
                 border: "1px solid #ddd",
@@ -189,13 +216,50 @@ function CreateLicense({ style }: CreateLicenseProps) {
               />
             </div>
           </Form.Item>
-          <Form.Item label="Shared CPUs" name="sharedCores" initialValue={1}>
+          <Form.Item
+            label="Shared CPUs"
+            name="sharedCores"
+            initialValue={1}
+            extra={
+              <>
+                <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
+                  Google cloud vCPU's
+                </A>{" "}
+                shared with other projects. Member hosting significantly reduces
+                competition for CPUs.
+              </>
+            }
+          >
             <Slider marks={rangeMarks(1, 3)} min={1} max={3} />
           </Form.Item>
-          <Form.Item label="Shared GB RAM" name="sharedRam" initialValue={1}>
+          <Form.Item
+            label="Shared GB RAM"
+            name="sharedRam"
+            initialValue={1}
+            extra={
+              <>
+                Each project using this license can use up to this many GB's of
+                RAM. Note that RAM may be limited if many other users are using
+                the same host, though member hosting significantly reduces
+                competition for RAM.
+              </>
+            }
+          >
             <Slider marks={rangeMarks(1, 16)} min={1} max={16} />
           </Form.Item>
-          <Form.Item label="GB disk space" name="disk" initialValue={1}>
+          <Form.Item
+            label="GB disk space"
+            name="disk"
+            initialValue={1}
+            extra={
+              <>
+                Extra disk space lets you store a larger number of files.
+                Snapshots and file edit history is included at no additional
+                charge. Each licensed project receives this amount of extra
+                storage space.
+              </>
+            }
+          >
             <Slider marks={rangeMarks(1, 20)} min={1} max={20} />
           </Form.Item>
           <Form.Item
@@ -203,6 +267,18 @@ function CreateLicense({ style }: CreateLicenseProps) {
             label="Member hosting"
             name="member"
             valuePropName="checked"
+            extra={
+              <>
+                Member hosting enables network access, so licensed projects can
+                connect to the Internet to clone git repositories, download data
+                files, send emails, etc. It also significanlty reduces
+                competition for resources, and we prioritize{" "}
+                <A href="support/new" external>
+                  support requests
+                </A>{" "}
+                much higher.
+              </>
+            }
           >
             <Checkbox />
           </Form.Item>
@@ -211,6 +287,19 @@ function CreateLicense({ style }: CreateLicenseProps) {
             label="Always running"
             name="alwaysRunning"
             valuePropName="checked"
+            extra={
+              <>
+                Once started your project stays running, so you can run very
+                long computations and also never have to wait for your project
+                to start. Without this, your project will stop if it is not
+                actively being used. See{" "}
+                <A href="https://doc.cocalc.com/project-init.html">
+                  project init scripts
+                </A>
+                . (Note: this is NOT guaranteed 100% uptime, since projects may
+                sometimes restart for security and maintenance reasons.)
+              </>
+            }
           >
             <Checkbox />
           </Form.Item>
