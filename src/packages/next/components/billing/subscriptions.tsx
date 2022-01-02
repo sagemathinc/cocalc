@@ -53,7 +53,7 @@ function Period({
 }
 
 function Status({ status }) {
-  return capitalize(status);
+  return <>{capitalize(status)}</>;
 }
 
 function Cost({ plan }) {
@@ -203,7 +203,7 @@ export default function Subscriptions() {
         any questions <HelpEmail lower />.
       </div>
       <Table
-        columns={columns(invoices.result, onChange)}
+        columns={columns(invoices.result, onChange) as any}
         dataSource={subscriptions.result.data}
         rowKey={"id"}
         pagination={{ hideOnSinglePage: true, pageSize: 100 }}

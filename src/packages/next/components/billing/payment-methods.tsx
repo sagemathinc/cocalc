@@ -36,11 +36,11 @@ function Brand({ brand }) {
 }
 
 function Number({ last4 }) {
-  return `**** **** **** ${last4}`;
+  return <>{`**** **** **** ${last4}`}</>;
 }
 
 function ExpirationDate({ exp_month, exp_year }) {
-  return `${exp_month}/${exp_year}`;
+  return <>{`${exp_month}/${exp_year}`}</>;
 }
 
 function PaymentSourceActions({ onChange, default_source, brand, last4, id }) {

@@ -7,58 +7,87 @@ import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Timestamp from "components/misc/timestamp";
 
+function Description({ hosted_invoice_url, lines }) {
+  return (
+    <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
+      {lines.data[0].description}
+      {(lines?.total_count ?? 1) > 1 && ", etc."}
+      {hosted_invoice_url && (
+        <div>
+          <A href={hosted_invoice_url}>
+            <Icon name="external-link" /> Invoice
+          </A>
+        </div>
+      )}
+      {lines.data[0].metadata?.license_id && (
+        <div>
+          License: <License license_id={lines.data[0].metadata?.license_id} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Status({ status, due_date, hosted_invoice_url }) {
+  if (status == "paid") {
+    return <>Paid</>;
+  }
+  return (
+    <A style={{ color: "red" }} href={hosted_invoice_url}>
+      <Icon name="external-link" /> Due{" "}
+      <Timestamp epoch={1000 * due_date} dateOnly />
+    </A>
+  );
+}
+
+function Created({ created }) {
+  return <Timestamp epoch={1000 * created} dateOnly />;
+}
+
+function Amount({ total, currency }) {
+  return <>{stripeAmount(total, currency)}</>;
+}
+
 const columns = [
   {
-    title: "Description",
-    width: "50%",
-    dataIndex: "hosted_invoice_url",
-    render: (hosted_invoice_url, { lines }) => (
-      <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
-        {lines.data[0].description}
-        {(lines?.total_count ?? 1) > 1 && ", etc."}
-        {hosted_invoice_url && (
-          <div>
-            <A href={hosted_invoice_url}>
-              <Icon name="external-link" /> Invoice
-            </A>
-          </div>
-        )}
-        {lines.data[0].metadata?.license_id && (
-          <div>
-            License: <License license_id={lines.data[0].metadata?.license_id} />
-          </div>
-        )}
+    responsive: ["xs"],
+    title: "Invoices and Receipts",
+    render: (_, invoice) => (
+      <div>
+        <Description {...invoice} />
+        Created: <Created {...invoice} />
+        <br />
+        <Amount {...invoice} />
+        <br />
+        <Status {...invoice} />
       </div>
     ),
   },
   {
+    responsive: ["sm"],
+    title: "Description",
+    width: "50%",
+    render: (_, invoice) => <Description {...invoice} />,
+  },
+  {
+    responsive: ["sm"],
     title: "Status",
     align: "center" as "center",
-    dataIndex: "status",
-    render: (status, { due_date, hosted_invoice_url }) => {
-      if (status == "paid") {
-        return "Paid";
-      }
-      return (
-        <A style={{ color: "red" }} href={hosted_invoice_url}>
-          <Icon name="external-link" /> Due <Timestamp epoch={1000 * due_date} dateOnly />
-        </A>
-      );
-    },
+    render: (_, invoice) => <Status {...invoice} />,
     sorter: { compare: (a, b) => cmp(a.status, b.status) },
   },
   {
+    responsive: ["sm"],
     title: "Created",
     align: "center" as "center",
-    dataIndex: "created",
-    render: (created) => <Timestamp epoch={1000 * created} dateOnly />,
+    render: (_, invoice) => <Created {...invoice} />,
     sorter: { compare: (a, b) => -cmp(a.created, b.created) },
   },
   {
+    responsive: ["sm"],
     title: "Amount",
     align: "right",
-    dataIndex: "total",
-    render: (total, { currency }) => <>{stripeAmount(total, currency)}</>,
+    render: (_, invoice) => <Amount {...invoice} />,
     sorter: { compare: (a, b) => cmp(a.amount_paid ?? 0, b.amount_paid ?? 0) },
   },
 ];
