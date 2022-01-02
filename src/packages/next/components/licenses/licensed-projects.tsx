@@ -11,22 +11,82 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { search_split, search_match } from "@cocalc/util/misc";
 import Timestamp from "components/misc/timestamp";
 
+function Title({ title, project_id }) {
+  return (
+    <span style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
+      <A href={editURL({ project_id, type: "collaborator" })} external>
+        {title}
+      </A>
+    </span>
+  );
+}
+
+function Licenses({ site_license, project_id }) {
+  return (
+    <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
+      {r_join(
+        keys(site_license).map((license_id) => (
+          <License
+            key={license_id}
+            license_id={license_id}
+            contrib={{ [project_id]: site_license[license_id] }}
+          />
+        )),
+        <br />
+      )}
+    </div>
+  );
+}
+
+function LastEdited({ last_edited }) {
+  return <Timestamp epoch={last_edited} />;
+}
+
+function IsHidden({ hidden }) {
+  if (hidden) {
+    return (
+      <div style={{ textAlign: "center" }}>
+        <Icon name="check" />
+      </div>
+    );
+  } else {
+    return null;
+  }
+}
+
 const columns = [
   {
-    title: "Project Title",
-    dataIndex: "title",
-    key: "title",
-    width: "30%",
-    render: (title, { project_id }) => (
-      <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
-        <A href={editURL({ project_id, type: "collaborator" })} external>
-          {title}
-        </A>
+    responsive: ["xs"] as any,
+    title: "Invoices and Receipts",
+    render: (_, project) => (
+      <div>
+        Project: <Title {...project} />
+        <div>
+          Last Edited: <LastEdited {...project} />
+        </div>
+        Licenses:
+        <div
+          style={{
+            margin: "5px 0 0 30px",
+            border: "1px solid #eee",
+            padding: "5px",
+            borderRadius: "5px",
+          }}
+        >
+          <Licenses {...project} />
+        </div>
       </div>
     ),
+  },
+  {
+    responsive: ["sm"] as any,
+    title: "Project",
+    width: "30%",
+    render: (_, project) => <Title {...project} />,
     sorter: { compare: (a, b) => cmp(a.title, b.title) },
   },
   {
+    responsive: ["sm"] as any,
     title: (
       <Popover
         placement="bottom"
@@ -42,32 +102,18 @@ const columns = [
         Licenses
       </Popover>
     ),
-    dataIndex: "site_license",
-    key: "site_license",
-    render: (site_licenses, { project_id }) => (
-      <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
-        {r_join(
-          keys(site_licenses).map((license_id) => (
-            <License
-              key={license_id}
-              license_id={license_id}
-              contrib={{ [project_id]: site_licenses[license_id] }}
-            />
-          )),
-          <br />
-        )}
-      </div>
-    ),
+    render: (_, project) => <Licenses {...project} />,
     sorter: {
       compare: (a, b) =>
         cmp(`${keys(a.site_licenses)}`, `${keys(b.site_licenses)}`),
     },
   },
   {
+    responsive: ["sm"] as any,
     title: (
       <Popover
         placement="bottom"
-        title="Project Last Edited"
+        title="Last Edited"
         content={
           <div style={{ maxWidth: "75ex" }}>
             When the project was last edited.
@@ -77,12 +123,11 @@ const columns = [
         Project Last Edited
       </Popover>
     ),
-    dataIndex: "last_edited",
-    key: "last_edited",
-    render: (last_edited) => <Timestamp epoch={last_edited} />,
+    render: (_, project) => <LastEdited {...project} />,
     sorter: { compare: (a, b) => cmp(a.last_edited, b.last_edited) },
   },
   {
+    responsive: ["sm"] as any,
     title: (
       <Popover
         placement="bottom"
@@ -99,17 +144,8 @@ const columns = [
         Project Hidden
       </Popover>
     ),
-    dataIndex: "hidden",
-    key: "hidden",
     width: "10%",
-    render: (hidden) =>
-      hidden ? (
-        <div style={{ textAlign: "center" }}>
-          <Icon name="check" />
-        </div>
-      ) : (
-        ""
-      ),
+    render: (_, project) => <IsHidden {...project} />,
     sorter: { compare: (a, b) => cmp(a.hidden, b.hidden) },
   },
 ];

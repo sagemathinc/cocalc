@@ -25,7 +25,7 @@ export default function License({ license_id, style }: Props) {
     >
       <A
         style={{ cursor: "pointer", fontFamily: "monospace", ...style }}
-        href={`/licenses/how-license-used?license_id=${license_id}`}
+        href={`/licenses/how-used?license_id=${license_id}`}
       >
         {license_id}
       </A>
