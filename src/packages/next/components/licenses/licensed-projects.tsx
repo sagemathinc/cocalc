@@ -164,8 +164,12 @@ export default function LicensedProjects() {
   }
   return (
     <div>
-      <h3>Licensed Projects On Which You Collaborate ({result.length})</h3>
-      <div style={{ marginBottom: "15px" }}>
+      <h3>Your Licensed Projects ({result.length})</h3>
+      These are the licensed projects that you are a collaborator on. You might
+      not be a manager of some of the licenses listed below. If you're teaching
+      a course, the student projects are likely hidden from your normal project
+      list, but are included below.
+      <div style={{ margin: "15px 0" }}>
         <Input.Search
           placeholder="Search..."
           allowClear

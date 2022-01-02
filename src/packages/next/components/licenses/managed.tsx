@@ -357,7 +357,9 @@ export default function ManagedLicenses() {
   return (
     <div style={{ width: "100%", overflowX: "scroll" }}>
       <h3>Licenses that you Manage ({result.length})</h3>
-      These are the licenses that you purchased or manage.
+      These are the licenses that you have purchased or been added to manage.
+      You can add other people as managers of any of these licenses, if they
+      need to be able to use these licenses to upgrade projects.
       <div style={{ margin: "15px 0" }}>
         <Checkbox
           disabled={numExpired == 0}
