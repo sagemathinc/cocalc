@@ -77,9 +77,13 @@ export default function IntegerSlider({
         <div>
           {presets.map((number) => (
             <Tag
+              key={number}
               color="blue"
               style={{ cursor: "pointer" }}
-              onClick={() => onChange(number)}
+              onClick={() => {
+                onChange(number);
+                setVal(number);
+              }}
             >
               {number}
             </Tag>
