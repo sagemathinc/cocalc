@@ -1793,6 +1793,7 @@ class exports.Client extends EventEmitter
             await @_stripe_client ?= new StripeClient(@)
         catch err
             @error_to_client(id:mesg.id, error:"${err}")
+            return
         @_stripe_client.handle_mesg(mesg)
 
     mesg_stripe_get_customer: (mesg) =>
