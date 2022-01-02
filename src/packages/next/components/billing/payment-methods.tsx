@@ -22,133 +22,185 @@ import useIsMounted from "lib/hooks/mounted";
 
 const STRIPE_CLIENT_LIBRARY = "https://js.stripe.com/v3/";
 
+function Brand({ brand }) {
+  return (
+    <>
+      {brand?.includes(" ") ? (
+        ""
+      ) : (
+        <Icon name={`cc-${brand?.toLowerCase()}` as any} />
+      )}{" "}
+      {brand}
+    </>
+  );
+}
+
+function Number({ last4 }) {
+  return `**** **** **** ${last4}`;
+}
+
+function ExpirationDate({ exp_month, exp_year }) {
+  return `${exp_month}/${exp_year}`;
+}
+
+function PaymentSourceActions({ onChange, default_source, brand, last4, id }) {
+  const [error, setError] = useState<string>("");
+  return (
+    <div>
+      {error && (
+        <Alert type="error" message={error} style={{ marginBottom: "5px" }} />
+      )}
+      {default_source ? (
+        <Popconfirm
+          placement="topLeft"
+          showCancel={false}
+          title={
+            <div style={{ width: "400px" }}>
+              The default payment method is the{" "}
+              <b>
+                {brand} card ending in ...
+                {last4}
+              </b>
+              . It will be used by default for subscriptions and new purchases.
+            </div>
+          }
+          okText="OK"
+        >
+          <Button
+            type={"primary"}
+            style={{ marginRight: "5px", marginBottom: "5px" }}
+          >
+            Default
+          </Button>
+        </Popconfirm>
+      ) : (
+        <Popconfirm
+          placement="topLeft"
+          title={
+            <div style={{ width: "400px" }}>
+              Do you want to set the{" "}
+              <b>
+                {brand} card ending in ...{last4}
+              </b>{" "}
+              to be the default for subscriptions and new purchases?
+            </div>
+          }
+          onConfirm={async () => {
+            try {
+              setError("");
+              await apiPost("/billing/set-default-source", {
+                default_source: id,
+              });
+              onChange?.();
+            } catch (err) {
+              setError(err.message);
+            }
+          }}
+          okText="Yes"
+          cancelText="No"
+        >
+          <Button
+            type={"dashed"}
+            style={{ marginRight: "5px", marginBottom: "5px" }}
+          >
+            Default
+          </Button>
+        </Popconfirm>
+      )}
+      <Popconfirm
+        placement="topLeft"
+        title={
+          <div style={{ width: "400px" }}>
+            Do you want to delete the{" "}
+            <b>
+              {brand} card ending in ...{last4}
+            </b>
+            ? It will no longer be used for subscriptions and you will have to
+            enter it again to use it to make a purchase.
+          </div>
+        }
+        onConfirm={async () => {
+          try {
+            setError("");
+            await apiPost("/billing/delete-payment-method", { id });
+            onChange?.();
+          } catch (err) {
+            setError(err.message);
+          }
+        }}
+        okText="Yes, delete this card"
+        cancelText="Cancel"
+      >
+        <Button type="dashed">
+          <Icon name="trash" /> Delete
+        </Button>
+      </Popconfirm>
+    </div>
+  );
+}
+
 const columns = (onChange) => [
   {
-    title: "Type",
-    dataIndex: "brand",
-    render: (brand) => (
-      <>
-        {brand?.includes(" ") ? (
-          ""
-        ) : (
-          <Icon name={`cc-${brand?.toLowerCase()}` as any} />
-        )}{" "}
-        {brand}
-      </>
+    responsive: ["xs"],
+    title: "Card",
+    render: (_, card) => (
+      <div>
+        <div
+          style={{
+            backgroundColor: "#f8f8f8",
+            border: "1px solid lightgrey",
+            margin: "15px 0",
+            padding: "10px",
+            borderRadius: "5px",
+          }}
+        >
+          <Brand {...card} />
+          <br />
+          <Number {...card} />
+          <br />
+          <ExpirationDate {...card} />
+          <br />
+          {card.country} {card.address_zip}
+          <br />
+        </div>
+        <PaymentSourceActions {...card} onChange={onChange} />
+      </div>
     ),
   },
   {
+    responsive: ["sm"],
+    title: "Type",
+    dataIndex: "brand",
+    render: (_, card) => <Brand {...card} />,
+  },
+  {
+    responsive: ["sm"],
     title: "Number",
     dataIndex: "last4",
-    render: (last4) => `...${last4}`,
+    render: (_, card) => <Number {...card} />,
   },
   {
+    responsive: ["sm"],
     title: "Expiration Date",
     align: "center" as "center",
-    render: (_, { exp_month, exp_year }) => `${exp_month}/${exp_year}`,
+    render: (_, card) => <ExpirationDate {...card} />,
   },
   {
+    responsive: ["sm"],
     title: "Country",
     dataIndex: "country",
     align: "center" as "center",
   },
   {
+    responsive: ["sm"],
     title: "Postal Code",
     dataIndex: "address_zip",
     align: "center" as "center",
   },
   {
+    responsive: ["sm"],
     title: "",
-    render: (_, { default_source, brand, last4, id }) => {
-      const [error, setError] = useState<string>("");
-      return (
-        <div>
-          {error && (
-            <Alert
-              type="error"
-              message={error}
-              style={{ marginBottom: "5px" }}
-            />
-          )}
-          {default_source ? (
-            <Popconfirm
-              placement="topLeft"
-              showCancel={false}
-              title={
-                <div style={{ width: "400px" }}>
-                  The default payment method is the{" "}
-                  <b>
-                    {brand} card ending in ...
-                    {last4}
-                  </b>
-                  . It will be used by default for subscriptions and new
-                  purchases.
-                </div>
-              }
-              okText="OK"
-            >
-              <Button type={"primary"}>Default</Button>
-            </Popconfirm>
-          ) : (
-            <Popconfirm
-              placement="topLeft"
-              title={
-                <div style={{ width: "400px" }}>
-                  Do you want to set the{" "}
-                  <b>
-                    {brand} card ending in ...{last4}
-                  </b>{" "}
-                  to be the default for subscriptions and new purchases?
-                </div>
-              }
-              onConfirm={async () => {
-                try {
-                  setError("");
-                  await apiPost("/billing/set-default-source", {
-                    default_source: id,
-                  });
-                  onChange?.();
-                } catch (err) {
-                  setError(err.message);
-                }
-              }}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Button type={"dashed"}>Default</Button>
-            </Popconfirm>
-          )}
-          <Popconfirm
-            placement="topLeft"
-            title={
-              <div style={{ width: "400px" }}>
-                Do you want to delete the{" "}
-                <b>
-                  {brand} card ending in ...{last4}
-                </b>
-                ? It will no longer be used for subscriptions and you will have
-                to enter it again to use it to make a purchase.
-              </div>
-            }
-            onConfirm={async () => {
-              try {
-                setError("");
-                await apiPost("/billing/delete-payment-method", { id });
-                onChange?.();
-              } catch (err) {
-                setError(err.message);
-              }
-            }}
-            okText="Yes, delete this card"
-            cancelText="Cancel"
-          >
-            <Button type="dashed" style={{ marginLeft: "5px" }}>
-              <Icon name="trash" /> Delete
-            </Button>
-          </Popconfirm>
-        </div>
-      );
-    },
+    render: (_, card) => <PaymentSourceActions {...card} onChange={onChange} />,
   },
 ];
 
