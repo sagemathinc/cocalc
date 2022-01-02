@@ -38,7 +38,7 @@ function Licenses({ site_license, project_id }) {
   );
 }
 
-function LastEdited({ last_edited }) {
+export function LastEdited({ last_edited }) {
   return <Timestamp epoch={last_edited} />;
 }
 

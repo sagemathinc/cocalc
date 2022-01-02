@@ -5,14 +5,54 @@ import SelectLicense from "./select-license";
 import Avatar from "components/account/avatar";
 import { search_split, search_match } from "@cocalc/util/misc";
 import A from "components/misc/A";
-import Timestamp from "components/misc/timestamp";
 import apiPost from "lib/api/post";
 import { capitalize, cmp } from "@cocalc/util/misc";
 import editURL from "lib/share/edit-url";
 import { Details as License } from "./license";
-import { quotaColumn } from "./managed";
+import { quotaColumn, Quota } from "./managed";
 import { useRouter } from "next/router";
 import Copyable from "components/misc/copyable";
+import { LastEdited } from "./licensed-projects";
+
+function TitleId({ title, project_id, collaborators, account_id, label }) {
+  return (
+    <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
+      {collaborators.includes(account_id) ? (
+        <A href={editURL({ project_id, type: "collaborator" })} external>
+          {title}
+        </A>
+      ) : (
+        title
+      )}
+      {label && (
+        <>
+          <br />
+          Project Id:
+        </>
+      )}
+      <Copyable text={project_id} size="small" />
+    </div>
+  );
+}
+
+function Collaborators({ collaborators }) {
+  return (
+    <>
+      {collaborators.map((account_id) => (
+        <Avatar
+          key={account_id}
+          account_id={account_id}
+          size={24}
+          style={{ marginRight: "2.5px" }}
+        />
+      ))}
+    </>
+  );
+}
+
+function State({ state }) {
+  return <>{capitalize(state)}</>;
+}
 
 export default function HowLicenseUsed({ account_id }) {
   const router = useRouter();
@@ -28,6 +68,28 @@ export default function HowLicenseUsed({ account_id }) {
   const columns = useMemo(() => {
     return [
       {
+        responsive: ["xs"],
+        render: (_, project) => (
+          <div>
+            <TitleId {...project} account_id={account_id} label />
+            <div>
+              Last Edited: <LastEdited {...project} />
+            </div>
+            <div>
+              State: <State {...project} />
+            </div>
+            <div>
+              Collaborators: <Collaborators {...project} />
+            </div>
+            <div>
+              {"Quota in use: "}
+              <Quota {...project} />
+            </div>
+          </div>
+        ),
+      },
+      {
+        responsive: ["sm"],
         title: (
           <Popover
             placement="bottom"
@@ -43,31 +105,20 @@ export default function HowLicenseUsed({ account_id }) {
             Project
           </Popover>
         ),
-        dataIndex: "title",
-        key: "title",
         width: "30%",
-        render: (title, { project_id, collaborators }) => (
-          <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
-            {collaborators.includes(account_id) ? (
-              <A href={editURL({ project_id, type: "collaborator" })} external>
-                {title}
-              </A>
-            ) : (
-              title
-            )}
-            <Copyable text={project_id} size="small" />
-          </div>
+        render: (_, project) => (
+          <TitleId {...project} account_id={account_id} />
         ),
         sorter: { compare: (a, b) => cmp(a.title, b.title) },
       },
       {
+        responsive: ["sm"],
         title: "Last Edited",
-        dataIndex: "last_edited",
-        key: "last_edited",
-        render: (last_edited) => <Timestamp epoch={last_edited} />,
+        render: (_, project) => <LastEdited {...project} />,
         sorter: { compare: (a, b) => cmp(a.last_edited, b.last_edited) },
       },
       {
+        responsive: ["sm"],
         title: (
           <Popover
             title="Collaborators"
@@ -92,28 +143,15 @@ export default function HowLicenseUsed({ account_id }) {
             </div>
           </Popover>
         ),
-        dataIndex: "collaborators",
-        key: "collaborators",
-        render: (collaborators) => (
-          <>
-            {collaborators.map((account_id) => (
-              <Avatar
-                key={account_id}
-                account_id={account_id}
-                size={24}
-                style={{ marginRight: "2.5px" }}
-              />
-            ))}
-          </>
-        ),
+        render: (_, project) => <Collaborators {...project} />,
       },
-
       {
+        responsive: ["sm"],
         title: "State",
         dataIndex: "state",
         key: "state",
         sorter: { compare: (a, b) => cmp(a.state, b.state) },
-        render: (state) => capitalize(state),
+        render: (_, project) => <State {...project} />,
       },
       quotaColumn,
     ];

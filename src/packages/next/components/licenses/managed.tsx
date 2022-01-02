@@ -32,9 +32,7 @@ export const quotaColumn = {
       content={
         <div style={{ maxWidth: "75ex" }}>
           This is the license quota. If the license is active on a project, its
-          quotas will be set to at least the values listed here. If multiple
-          licenses are used on the same project, the maximum of the quotas are
-          used.
+          quotas will be set to at least the values listed here.
         </div>
       }
     >
@@ -42,13 +40,11 @@ export const quotaColumn = {
     </Popover>
   ),
   width: "35%",
-  dataIndex: "quota",
-  key: "quota",
   responsive: ["sm"],
   render: (_, license) => <Quota {...license} />,
 };
 
-function Quota({ quota, state, upgrades }) {
+export function Quota({ quota, state, upgrades }) {
   return state != null && state != "running" ? (
     <span>—</span>
   ) : (
