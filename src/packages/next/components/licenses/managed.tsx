@@ -23,7 +23,7 @@ import License from "./license";
 import SelectUsers from "components/account/select-users";
 import useCustomize from "lib/use-customize";
 
-const renderTimestamp = (epoch) => <Timestamp epoch={epoch} dateOnly />;
+const renderTimestamp = (epoch) => <Timestamp epoch={epoch} />;
 
 export const quotaColumn = {
   title: (

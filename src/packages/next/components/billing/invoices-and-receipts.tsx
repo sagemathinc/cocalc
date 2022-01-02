@@ -100,7 +100,6 @@ export default function InvoicesAndReceipts() {
   if (!result) {
     return <Loading />;
   }
-  console.log(result);
   return (
     <div>
       <h3>Invoices and Receipts</h3>

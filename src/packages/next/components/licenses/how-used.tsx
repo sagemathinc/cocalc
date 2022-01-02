@@ -192,7 +192,7 @@ export default function HowLicenseUsed({ account_id }) {
       are not a collaborator on them!), remove licenses from projects, and view
       analytics about how the license has been used over time to better inform
       your decision making.
-      <div style={{ margin: "15px 0", width: "100%" }}>
+      <div style={{ margin: "15px 0", width: "100%", textAlign:'center' }}>
         <SelectLicense
           disabled={loading}
           onSelect={(license_id) => {
@@ -218,6 +218,7 @@ export default function HowLicenseUsed({ account_id }) {
           backgroundColor: "#fafafa",
           width: "100%",
           maxWidth: "90ex",
+          margin: "auto",
         }}
       >
         {license ? (

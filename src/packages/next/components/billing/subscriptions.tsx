@@ -45,9 +45,14 @@ function Period({
 }) {
   return (
     <>
-      <Timestamp epoch={1000 * current_period_start} dateOnly /> –{" "}
-      <Timestamp epoch={1000 * current_period_end} dateOnly />
-      {cancel_at_period_end && <span><br/>(will cancel at period end)</span>}
+      <Timestamp epoch={1000 * current_period_start} dateOnly absolute /> –{" "}
+      <Timestamp epoch={1000 * current_period_end} dateOnly absolute />
+      {cancel_at_period_end && (
+        <span>
+          <br />
+          (will cancel at period end)
+        </span>
+      )}
     </>
   );
 }
