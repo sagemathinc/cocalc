@@ -22,6 +22,7 @@ export default function Home({ customize }) {
     organizationName,
     organizationURL,
     splashImage,
+    indexInfoHtml,
   } = customize;
   return (
     <Customize value={customize}>
@@ -69,6 +70,7 @@ export default function Home({ customize }) {
             }
             image={splashImage ? splashImage : screenshot}
             alt={"Screenshot showing CoCalc in action!"}
+            extraHTML={indexInfoHtml}
           />
           <Footer />
         </Layout.Content>

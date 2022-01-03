@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Row, Col } from "antd";
 import { ReactNode } from "react";
 import SignIn from "components/landing/sign-in";
@@ -12,6 +17,7 @@ interface Props {
   alt?: string;
   startup?: ReactNode;
   caption?: string;
+  extraHTML?: string;
 }
 
 function Logo({ logo, title }) {
@@ -33,7 +39,28 @@ export default function Content({
   alt,
   startup,
   caption,
+  extraHTML,
 }: Props) {
+  function renderExtraHTML() {
+    if (!extraHTML) return;
+
+    return (
+      <>
+        <Col
+          xs={24}
+          style={{
+            borderTop: "1px solid lightgrey",
+            marginTop: "20px",
+            marginBottom: "20px",
+          }}
+        ></Col>
+        <Col sm={{ span: 12, offset: 6 }} xs={{ span: 24, offset: 0 }}>
+          <div dangerouslySetInnerHTML={{ __html: extraHTML }} />
+        </Col>
+      </>
+    );
+  }
+
   return (
     <div style={{ padding: "30px 0" }}>
       <Row>
@@ -74,6 +101,7 @@ export default function Content({
             </>
           )}
         </Col>
+        {renderExtraHTML()}
       </Row>
       <SignIn startup={startup ?? title} hideFree={true} />
     </div>
