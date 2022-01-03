@@ -28,6 +28,7 @@ export default function Footer() {
   const {
     siteName,
     organizationName,
+    organizationURL,
     termsOfServiceURL,
     contactEmail,
     landingPages,
@@ -35,6 +36,21 @@ export default function Footer() {
     imprintHTML,
     policiesHTML,
   } = useCustomize();
+
+  function organization() {
+    if (organizationURL) {
+      return <A href={organizationURL}>{organizationName}</A>;
+    } else {
+      organizationName;
+    }
+  }
+
+  function renderOrganization() {
+    if (organizationName) {
+      return <Item>{organization()}</Item>;
+    }
+  }
+
   return (
     <Layout.Footer
       style={{
@@ -48,7 +64,7 @@ export default function Footer() {
         <Item>
           <A href="https://cocalc.com">CoCalc</A>
         </Item>
-        {organizationName && <Item>{organizationName}</Item>}
+        {renderOrganization()}
         {!landingPages && termsOfServiceURL && (
           <Item>
             <A href={termsOfServiceURL}>Terms of Service</A>
