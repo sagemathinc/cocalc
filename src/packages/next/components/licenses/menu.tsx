@@ -23,7 +23,7 @@ export default function ConfigMenu({ main }) {
         <Icon name={"credit-card"} style={{ marginRight: "5px" }} /> Create
       </Menu.Item>
       <Menu.Item key={"managed"}>
-        <Icon name={"key"} style={{ marginRight: "5px" }} /> Managed
+        <Icon name={"key"} style={{ marginRight: "5px" }} /> Manage
       </Menu.Item>
       <Menu.Item key={"projects"}>
         <Icon name={"edit"} style={{ marginRight: "5px" }} />
