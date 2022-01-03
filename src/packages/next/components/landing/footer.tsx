@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import A from "components/misc/A";
 import Logo from "components/logo-rectangular";
 import { Layout } from "antd";
@@ -27,6 +32,8 @@ export default function Footer() {
     contactEmail,
     landingPages,
     zendesk,
+    imprintHTML,
+    policiesHTML,
   } = useCustomize();
   return (
     <Layout.Footer
@@ -49,12 +56,22 @@ export default function Footer() {
         )}
         {contactEmail && (
           <Item>
-            <Contact />
+            <Contact showEmail={false} />
           </Item>
         )}
         {zendesk && (
           <Item>
             <A href="/support/new">Support Ticket</A>
+          </Item>
+        )}
+        {imprintHTML && (
+          <Item>
+            <A href="/policies/imprint">Imprint</A>
+          </Item>
+        )}
+        {policiesHTML && (
+          <Item>
+            <A href="/policies/policies">Policies</A>
           </Item>
         )}
         <Item>

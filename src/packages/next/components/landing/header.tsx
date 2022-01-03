@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import Link from "next/link";
 import SquareLogo from "components/logo-square";
 import A from "components/misc/A";
@@ -37,6 +42,9 @@ export default function Header({ page, subPage }: Props) {
     shareServer,
     landingPages,
     account,
+    imprintHTML,
+    policiesHTML,
+    imprintOrPoliciesHTML,
   } = useCustomize();
   if (basePath == null) return null;
 
@@ -121,7 +129,7 @@ export default function Header({ page, subPage }: Props) {
         >
           Info
         </A>
-        {landingPages && (
+        {(landingPages || imprintOrPoliciesHTML) && (
           <A
             href="/policies"
             style={page == "policies" ? SelectedStyle : LinkStyle}
@@ -176,7 +184,9 @@ export default function Header({ page, subPage }: Props) {
           </>
         )}
       </Layout.Header>
-      {landingPages && page && <SubNav page={page} subPage={subPage} />}
+      {(landingPages || imprintOrPoliciesHTML) && page && (
+        <SubNav page={page} subPage={subPage} />
+      )}
     </>
   );
 }
