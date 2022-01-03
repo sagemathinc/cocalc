@@ -32,6 +32,9 @@ export interface Customize {
   emailSignup?: boolean;
   accountCreationInstructions?: string;
   zendesk?: boolean; // true if zendesk support is configured.
+  index_info_html?: string;
+  imprint_html?: string;
+  policies_html?: string;
 }
 
 const fallback = (a?: string, b?: string): string =>
@@ -81,6 +84,10 @@ export default async function getCustomize(): Promise<Customize> {
     landingPages: !!settings.landing_pages,
 
     googleAnalytics: settings.google_analytics,
+
+    indexInfoHtml: settings.index_info_html,
+    imprintHtml: settings.imprint_html,
+    policiesHtml: settings.policies_html,
 
     // Is important for invite emails, password reset, etc. (e.g., so we can construct a url to our site).
     // This *can* start with http:// to explicitly use http instead of https, and can end

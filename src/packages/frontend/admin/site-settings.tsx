@@ -396,7 +396,7 @@ class SiteSettingsComponent extends Component<
               style={style}
               value={value}
               disabled={disabled}
-              onChange={() => this.on_change_entry(name)}
+              onChange={(e) => this.on_change_entry(name, e.target.value)}
             />
           );
         } else {
