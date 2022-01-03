@@ -11,6 +11,7 @@ import {
   Radio,
   Slider,
   Space,
+  Switch,
 } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import SiteName from "components/share/site-name";
@@ -99,6 +100,8 @@ function CreateLicense({ style }: CreateLicenseProps) {
   const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
   const [runLimit, setRunLimit] = useState<number>(1);
 
+  const [showExplanations, setShowExplanations] = useState<boolean>(true);
+
   const [form] = Form.useForm();
 
   function onFinish(...args) {
@@ -112,13 +115,20 @@ function CreateLicense({ style }: CreateLicenseProps) {
         disabled={creating}
         type="primary"
         onClick={() => setCreating(true)}
+        style={{marginBottom:'15px'}}
       >
         <Icon name="plus-circle" /> Create New License...
       </Button>
       {creating && (
+        <div style={{ float: "right" }}>
+          <Switch checked={showExplanations} onChange={setShowExplanations} />{" "}
+          Show explanations
+        </div>
+      )}
+      {creating && (
         <Form
           form={form}
-          style={{ marginTop: "30px" }}
+          style={{ marginTop: "15px" }}
           name="basic"
           labelCol={{ span: 5 }}
           wrapperCol={{ span: 19 }}
@@ -126,10 +136,34 @@ function CreateLicense({ style }: CreateLicenseProps) {
           onFinishFailed={onFinishFailed}
           autoComplete="off"
         >
-          <Form.Item label="Title" name="title">
+          <Form.Item
+            label="Title"
+            name="title"
+            style={{width:'100%'}}
+            extra={
+              showExplanations ? (
+                <>
+                  Given your license a title makes it easier to keep track of.
+                  You can change it at any time.
+                </>
+              ) : undefined
+            }
+          >
             <Input placeholder="Enter the title of your license" />
           </Form.Item>
-          <Form.Item label="Description" name="description">
+          <Form.Item
+            label="Description"
+            name="description"
+            extra={
+              showExplanations ? (
+                <>
+                  Given your license a longer description to record extra
+                  information that isn't always shown with the license. You can
+                  change this at any time.
+                </>
+              ) : undefined
+            }
+          >
             <Input.TextArea placeholder="Describe your license" rows={2} />
           </Form.Item>
           <Form.Item name="period" hidden={true} initialValue={"monthly"}>
@@ -138,13 +172,15 @@ function CreateLicense({ style }: CreateLicenseProps) {
           <Form.Item
             label="Period"
             extra={
-              <>
-                You get a discount if you pay for the license monthly or yearly
-                via a recurring subscription. You can also pay once for a
-                specific period of time. Licenses start at midnight in your
-                local timezone on the start date and end at 23:59 your local
-                time zone on the ending date.
-              </>
+              showExplanations ? (
+                <>
+                  You receive a discount if you pay for the license monthly or
+                  yearly via a recurring subscription. You can also pay once for
+                  a specific period of time. Licenses start at midnight in your
+                  local timezone on the start date and end at 23:59 your local
+                  time zone on the ending date.
+                </>
+              ) : undefined
             }
           >
             <Radio.Group
@@ -186,16 +222,19 @@ function CreateLicense({ style }: CreateLicenseProps) {
             name="runLimit"
             initialValue={1}
             extra={
-              <div style={{ marginTop: "5px" }}>
-                Simultaneously run this many projects using this license. You,
-                and anyone you share the license code with, can apply the
-                license to an unlimited number of projects, but it will only be
-                used up to the run limit. When{" "}
-                <A href="https://doc.cocalc.com/teaching-instructors.html">
-                  teaching a course
-                </A>
-                , the run limit is typically 2 more than the number of students.
-              </div>
+              showExplanations ? (
+                <div style={{ marginTop: "5px" }}>
+                  Simultaneously run this many projects using this license. You,
+                  and anyone you share the license code with, can apply the
+                  license to an unlimited number of projects, but it will only
+                  be used up to the run limit. When{" "}
+                  <A href="https://doc.cocalc.com/teaching-instructors.html">
+                    teaching a course
+                  </A>
+                  , the run limit is typically 2 more than the number of
+                  students.
+                </div>
+              ) : undefined
             }
           >
             <div
@@ -207,12 +246,13 @@ function CreateLicense({ style }: CreateLicenseProps) {
             >
               <IntegerSlider
                 min={1}
-                max={1000}
+                max={300}
+                maxText={10000}
                 onChange={(runLimit) => {
                   form.setFieldsValue({ runLimit });
                 }}
                 units={"projects"}
-                presets={[1, 2, 10, 50, 100, 250]}
+                presets={[1, 2, 10, 50, 100, 250, 500]}
               />
             </div>
           </Form.Item>
@@ -221,28 +261,41 @@ function CreateLicense({ style }: CreateLicenseProps) {
             name="sharedCores"
             initialValue={1}
             extra={
-              <>
-                <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
-                  Google cloud vCPU's
-                </A>{" "}
-                shared with other projects. Member hosting significantly reduces
-                competition for CPUs.
-              </>
+              showExplanations ? (
+                <>
+                  <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
+                    Google cloud vCPU's.
+                  </A>{" "}
+                  Note that to keep prices low, these vCPU's may be shared with
+                  other projects, though member hosting very significantly
+                  reduces competition for CPUs. We also offer{" "}
+                  <A external href="https://cocalc.com/pricing/dedicated">
+                    dedicated virtual machines
+                  </A>{" "}
+                  with more CPU options.
+                </>
+              ) : undefined
             }
           >
             <Slider marks={rangeMarks(1, 3)} min={1} max={3} />
           </Form.Item>
           <Form.Item
-            label="Shared GB RAM"
+            label="GB shared RAM"
             name="sharedRam"
             initialValue={1}
             extra={
-              <>
-                Each project using this license can use up to this many GB's of
-                RAM. Note that RAM may be limited if many other users are using
-                the same host, though member hosting significantly reduces
-                competition for RAM.
-              </>
+              showExplanations ? (
+                <>
+                  Each project using this license can use up to this many GB's
+                  of RAM. Note that RAM may be limited if many other users are
+                  using the same host, though member hosting significantly
+                  reduces competition for RAM. We also offer{" "}
+                  <A external href="https://cocalc.com/pricing/dedicated">
+                    dedicated virtual machines
+                  </A>{" "}
+                  with larger memory options.
+                </>
+              ) : undefined
             }
           >
             <Slider marks={rangeMarks(1, 16)} min={1} max={16} />
@@ -251,13 +304,20 @@ function CreateLicense({ style }: CreateLicenseProps) {
             label="GB disk space"
             name="disk"
             initialValue={1}
+            trackStyle={{ color: "red" }}
             extra={
-              <>
-                Extra disk space lets you store a larger number of files.
-                Snapshots and file edit history is included at no additional
-                charge. Each licensed project receives this amount of extra
-                storage space.
-              </>
+              showExplanations ? (
+                <>
+                  Extra disk space lets you store a larger number of files.
+                  Snapshots and file edit history is included at no additional
+                  charge. Each licensed project receives this amount of extra
+                  storage space. We also offer much larger{" "}
+                  <A external href="https://cocalc.com/pricing/dedicated">
+                    dedicated disks and SSD's
+                  </A>
+                  .
+                </>
+              ) : undefined
             }
           >
             <Slider marks={rangeMarks(1, 20)} min={1} max={20} />
@@ -268,19 +328,23 @@ function CreateLicense({ style }: CreateLicenseProps) {
             name="member"
             valuePropName="checked"
             extra={
-              <>
-                Member hosting enables network access, so licensed projects can
-                connect to the Internet to clone git repositories, download data
-                files, send emails, etc. It also significanlty reduces
-                competition for resources, and we prioritize{" "}
-                <A href="support/new" external>
-                  support requests
-                </A>{" "}
-                much higher.
-              </>
+              showExplanations ? (
+                <>
+                  Member hosting enables network access, so licensed projects
+                  can connect to the Internet to clone git repositories,
+                  download data files, send emails, etc. It also significanlty
+                  reduces competition for resources, and we prioritize{" "}
+                  <A href="support/new" external>
+                    support requests
+                  </A>{" "}
+                  much higher.
+                </>
+              ) : undefined
             }
           >
-            <Checkbox />
+            <Checkbox>
+              Run project on a much better host with network access
+            </Checkbox>
           </Form.Item>
           <Form.Item
             initialValue={false}
@@ -288,20 +352,22 @@ function CreateLicense({ style }: CreateLicenseProps) {
             name="alwaysRunning"
             valuePropName="checked"
             extra={
-              <>
-                Once started your project stays running, so you can run very
-                long computations and also never have to wait for your project
-                to start. Without this, your project will stop if it is not
-                actively being used. See{" "}
-                <A href="https://doc.cocalc.com/project-init.html">
-                  project init scripts
-                </A>
-                . (Note: this is NOT guaranteed 100% uptime, since projects may
-                sometimes restart for security and maintenance reasons.)
-              </>
+              showExplanations ? (
+                <>
+                  Once started your project stays running, so you can run very
+                  long computations and also never have to wait for your project
+                  to start. Without this, your project will stop if it is not
+                  actively being used. See{" "}
+                  <A href="https://doc.cocalc.com/project-init.html">
+                    project init scripts
+                  </A>
+                  . (Note: this is NOT guaranteed 100% uptime, since projects
+                  may sometimes restart for security and maintenance reasons.)
+                </>
+              ) : undefined
             }
           >
-            <Checkbox />
+            <Checkbox>Keep project running</Checkbox>
           </Form.Item>
           <Form.Item
             wrapperCol={{ offset: 4, span: 20 }}

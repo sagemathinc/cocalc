@@ -4,6 +4,7 @@ import { useState } from "react";
 interface Props {
   min: number;
   max: number;
+  maxText?: number;
   value?: number;
   defaultValue?: number;
   initialValue?: number;
@@ -17,6 +18,7 @@ export default function IntegerSlider({
   onChange,
   min,
   max,
+  maxText,
   defaultValue,
   initialValue,
   units,
@@ -48,7 +50,7 @@ export default function IntegerSlider({
         <Col span={12}>
           <InputNumber
             min={min}
-            max={max}
+            max={maxText ?? max}
             style={{ marginLeft: "16px", minWidth: "8ex", width: "20ex" }}
             defaultValue={initialValue}
             value={value ?? val}
