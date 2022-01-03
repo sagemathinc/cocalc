@@ -7,10 +7,10 @@ import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import useProfile from "lib/hooks/profile";
 import Loading from "components/share/loading";
 import { useRouter } from "next/router";
+import SiteName from "components/share/site-name";
 
-import LicensedProjects from "./licensed-projects";
-import ManagedLicenses from "./managed";
-import HowUsed from "./how-used";
+import Cart from "./cart";
+import SiteLicense from "./site-license";
 import Overview from "./overview";
 
 const { Content } = Layout;
@@ -35,7 +35,7 @@ export default function ConfigLayout({ page }: Props) {
         message={
           <InPlaceSignInOrUp
             title="Account Configuration"
-            why="to see information about your licenses"
+            why="to shop in the store"
             onSuccess={() => {
               router.reload();
             }}
@@ -53,12 +53,10 @@ export default function ConfigLayout({ page }: Props) {
 
   function body() {
     switch (main) {
-      case "projects":
-        return <LicensedProjects />;
-      case "managed":
-        return <ManagedLicenses />;
-      case "how-used":
-        return <HowUsed account_id={account_id} />;
+      case "site-license":
+        return <SiteLicense />;
+      case "cart":
+        return <Cart />;
     }
     return <Overview />;
   }
@@ -84,7 +82,7 @@ export default function ConfigLayout({ page }: Props) {
             type="warning"
             message={
               <>
-                This is the new licenses page (
+                This is the new <SiteName /> store (visit{" "}
                 <A href={join(basePath, "settings", "licenses")} external>
                   the old page
                 </A>

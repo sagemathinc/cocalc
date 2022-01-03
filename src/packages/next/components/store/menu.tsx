@@ -11,23 +11,19 @@ export default function ConfigMenu({ main }) {
       selectedKeys={[main]}
       style={{ height: "100%" }}
       onSelect={(e) => {
-        router.push(`/licenses/${e.keyPath[0]}`, undefined, {
+        router.push(`/store/${e.keyPath[0]}`, undefined, {
           scroll: false,
         });
       }}
     >
       <Menu.Item key={""}>
-        <b style={{ color: "#666" }}>Licenses</b>
+        <b style={{ color: "#666" }}>Store</b>
       </Menu.Item>
-      <Menu.Item key={"managed"}>
-        <Icon name={"key"} style={{ marginRight: "5px" }} /> Manage
+      <Menu.Item key={"site-license"}>
+        <Icon name={"key"} style={{ marginRight: "5px" }} /> Site License
       </Menu.Item>
-      <Menu.Item key={"projects"}>
-        <Icon name={"edit"} style={{ marginRight: "5px" }} />
-        Projects
-      </Menu.Item>
-      <Menu.Item key={"how-used"}>
-        <Icon name={"key"} style={{ marginRight: "5px" }} /> How Used
+      <Menu.Item key={"cart"}>
+        <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} /> Cart
       </Menu.Item>
     </Menu>
   );

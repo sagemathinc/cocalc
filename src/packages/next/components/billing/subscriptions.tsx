@@ -204,8 +204,8 @@ export default function Subscriptions() {
         Your subscriptions are listed below. You can view invoices, get
         information about the license or plan corresponding to a subscription,
         and cancel a subscription at period end. You can also{" "}
-        <A href="/licenses/create">create a new subscription</A>. If you have
-        any questions <HelpEmail lower />.
+        <A href="/store/site-license">create a new site license subscription</A>
+        . If you have any questions <HelpEmail lower />.
       </div>
       <Table
         columns={columns(invoices.result, onChange) as any}

@@ -56,6 +56,11 @@ export default function AccountNavTab({ style }: Props) {
               Documentation
             </A>
           </Menu.Item>
+          {isCommercial && (
+            <Menu.Item key="store" icon={<Icon name="shopping-cart" />}>
+              <A href="/store">{siteName} Store</A>
+            </Menu.Item>
+          )}
           <Menu.Divider />
 
           {!is_anonymous /* color due to a theme bug */ && (
