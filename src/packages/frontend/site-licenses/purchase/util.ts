@@ -60,14 +60,17 @@ export function sanity_checks(info: PurchaseInfo) {
   if (info.start == null) {
     throw Error("must have start date set");
   }
+  const start = info.start ? new Date(info.start) : undefined;
+  const end = info.end ? new Date(info.end) : undefined;
   if (info.subscription == "no") {
-    if (info.start == null || info.end == null) {
+    if (start == null || end == null) {
       throw Error(
         "start and end dates must both be given if not a subscription"
       );
     }
+
     const days = Math.round(
-      (info.end.valueOf() - info.start.valueOf()) / (24 * 60 * 60 * 1000)
+      (end.valueOf() - start.valueOf()) / (24 * 60 * 60 * 1000)
     );
     if (days <= 0) {
       throw Error("end date must be at least one day after start date");
@@ -216,8 +219,6 @@ export function compute_cost(info: PurchaseInfo): Cost {
     user,
     upgrade,
     subscription,
-    start,
-    end,
     custom_ram,
     custom_cpu,
     custom_dedicated_ram,
@@ -228,12 +229,8 @@ export function compute_cost(info: PurchaseInfo): Cost {
     dedicated_disk,
     dedicated_vm,
   } = info;
-  if (start) {
-    start = new Date(start);
-  }
-  if (end) {
-    end = new Date(end);
-  }
+  const start = new Date(info.start);
+  const end = info.end ? new Date(info.end) : undefined;
   if (!!dedicated_disk || !!dedicated_vm) {
     const cost = dedicatedPrice({
       start,

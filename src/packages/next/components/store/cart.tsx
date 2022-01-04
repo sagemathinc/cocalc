@@ -1,4 +1,12 @@
-import { useMemo, useState } from "react";
+/*
+Shopping cart.
+
+The UX is similar to Amazon.com, since that's probably the single most popular
+shopping cart experience, so most likely to feel familiar to users and easy
+to use.
+*/
+
+import { useMemo } from "react";
 import useAPI from "lib/hooks/api";
 import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -9,18 +17,14 @@ import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { money } from "@cocalc/frontend/site-licenses/purchase/util";
 
 export default function ShoppingCart() {
-  const [selected, setSelected] = useState<Set<number>>(new Set());
   const cart = useAPI("/shopping/cart/get");
   const items = useMemo(() => {
     if (!cart.result) return undefined;
     const x: any[] = [];
-    const v: number[] = [];
     for (const item of cart.result) {
       item.cost = computeCost(item.description);
       x.push(item);
-      v.push(item.id);
     }
-    setSelected(new Set(v));
     return x;
   }, [cart.result]);
 
@@ -34,18 +38,15 @@ export default function ShoppingCart() {
   const columns = [
     {
       title: "",
-      dataIndex: "id",
-      render: (id) => (
+      render: (_, { id, checked }) => (
         <Checkbox
-          checked={selected.has(id)}
-          onChange={(e) => {
-            const x = new Set(selected);
-            if (e.target.checked) {
-              x.add(id);
-            } else {
-              x.delete(id);
-            }
-            setSelected(x);
+          checked={checked}
+          onChange={async (e) => {
+            await apiPost("/shopping/cart/checked", {
+              id,
+              checked: e.target.checked,
+            });
+            await cart.call();
           }}
         />
       ),
@@ -55,8 +56,8 @@ export default function ShoppingCart() {
       align: "center" as "center",
       render: () => (
         <div>
-          <Icon name="key" style={{ fontSize: "48px" }} />
-          <div style={{ fontSize: "14pt" }}>Site License</div>
+          <Icon name="key" style={{ fontSize: "24px" }} />
+          <div style={{ fontSize: "10pt" }}>Site License</div>
         </div>
       ),
     },
@@ -101,6 +102,12 @@ export default function ShoppingCart() {
         <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} /> Shopping
         Cart
       </h3>
+      <div style={{ marginTop: "-10px", marginBottom: "5px" }}>
+        <SelectAllItems
+          items={items}
+          onChange={async () => await cart.call()}
+        />
+      </div>
       <Table
         columns={columns}
         dataSource={items}
@@ -111,7 +118,7 @@ export default function ShoppingCart() {
         style={{ float: "right", fontSize: "12pt", margin: "15px 15px 0 0" }}
       >
         <div style={{ float: "right" }}>
-          <TotalCost items={cart.result} selected={selected} />
+          <TotalCost items={cart.result} />
         </div>
         <br />
         Includes a 25% self-service discount.
@@ -120,11 +127,11 @@ export default function ShoppingCart() {
   );
 }
 
-function TotalCost({ items, selected }) {
+function TotalCost({ items }) {
   let discounted_cost = 0;
   let n = 0;
-  for (const { cost, id } of items) {
-    if (selected.has(id)) {
+  for (const { cost, checked } of items) {
+    if (checked) {
       discounted_cost += cost.discounted_cost;
       n += 1;
     }
@@ -134,4 +141,34 @@ function TotalCost({ items, selected }) {
       Subtotal ({n} items): <b>{money(discounted_cost)}</b>
     </>
   );
+}
+
+function SelectAllItems({ items, onChange }) {
+  const numSelected = useMemo(() => {
+    let n = 0;
+    if (items == null) return n;
+    for (const item of items) {
+      if (item.checked) n += 1;
+    }
+    return n;
+  }, [items]);
+  if (items == null) return null;
+
+  async function doSelectAll(checked: boolean) {
+    await apiPost("/shopping/cart/checked", { checked });
+    onChange();
+  }
+
+  if (numSelected == 0) {
+    return (
+      <>
+        No items selected.{" "}
+        <a onClick={() => doSelectAll(true)}>Select all items</a>
+      </>
+    );
+  }
+  if (numSelected < items.length) {
+    return <a onClick={() => doSelectAll(true)}>Select all items</a>;
+  }
+  return <a onClick={() => doSelectAll(false)}>Deselect all items</a>;
 }

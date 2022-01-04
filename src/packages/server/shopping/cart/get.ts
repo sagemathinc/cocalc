@@ -27,7 +27,7 @@ export default async function getCart({
   const { rows } = await pool.query(
     `SELECT * FROM shopping_cart_items WHERE account_id=$1 AND purchased IS ${
       purchased ? " NOT " : ""
-    } NULL AND removed IS ${removed ? " NOT " : ""} NULL`,
+    } NULL AND removed IS ${removed ? " NOT " : ""} NULL ORDER BY id DESC`,
     [account_id]
   );
   return rows;
