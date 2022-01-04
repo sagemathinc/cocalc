@@ -34,7 +34,13 @@ const UTM_KEYS: ReadonlyArray<string> = Object.freeze([
   "content",
 ]);
 
-const response: any = {};
+type Response = Partial<{
+  utm: { [key: string]: string };
+  referrer: string;
+  landing: string;
+}>;
+
+const response: Response = {};
 
 const UTM = {};
 const params = href.slice(href.indexOf("?") + 1).split("&");
@@ -81,4 +87,4 @@ window
   .catch((error) => console.error("Error:", error));
 
 // so it is a module.
-export {}
+export {};
