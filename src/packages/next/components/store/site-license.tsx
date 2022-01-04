@@ -1,34 +1,32 @@
 /*
-Create a new license.
+Create a new site license.
 */
+import { Icon } from "@cocalc/frontend/components/icon";
 
-import {
-  Button,
-  Checkbox,
-  Form,
-  Input,
-  Popconfirm,
-  Radio,
-  Switch,
-} from "antd";
+import { Button, Checkbox, Form, Input, Popconfirm, Radio, Switch } from "antd";
 import SiteName from "components/share/site-name";
 import A from "components/misc/A";
-import { CSSProperties, useState } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 import IntegerSlider from "components/misc/integer-slider";
 import DateRange from "components/misc/date-range";
+import { computeCost, DisplayCost } from "./site-license-cost";
 
 export default function Create() {
   return (
     <div>
-      <h3>Create a license</h3>
+      <h3>
+        <Icon name={"key"} style={{ marginRight: "5px" }} /> Site Licenses
+      </h3>
       <p>
         <A href="https://doc.cocalc.com/licenses.html">
-          <SiteName /> licenses
+          <SiteName /> site licenses
         </A>{" "}
         allow you to upgrade any number of projects to run more quickly, have
         network access, more disk space, memory, or run on a dedicated computer.
-        You can easily create a license now then pay for it later (or have your
-        administrator pay for it).
+        Site licenses can be a wide range of sizes, ranging from a single
+        hobbyist to thousands of simultaneous users across an entire department
+        of school. You can create a license now via the form below, add it to
+        your shopping cart, and check out later.
       </p>
       <CreateLicense />
     </div>
@@ -51,20 +49,68 @@ interface CreateLicenseProps {
 // is a *workaround* because of some sort of bug in moment/antd/react.
 
 function CreateLicense({ style }: CreateLicenseProps) {
+  const [cost, setCost] = useState<Cost | undefined>(undefined);
   const [showExplanations, setShowExplanations] = useState<boolean>(true);
   const [form] = Form.useForm();
 
   function onFinish(...args) {
     console.log("onFinish", ...args);
   }
-  function onFinishFailed() {}
+  function onFinishFailed(...args) {
+    console.log("onFinishFail", ...args);
+  }
+
+  function onChange() {
+    setCost(computeCost(form.getFieldsValue(true)));
+  }
+
+  useEffect(() => {
+    onChange();
+  }, []);
 
   return (
     <div style={style}>
-      <div style={{ float: "right", marginBottom: "15px" }}>
+      <div>
         <Switch checked={showExplanations} onChange={setShowExplanations} />{" "}
         Show explanations
       </div>
+      <br />
+      {cost && (
+        <div
+          style={{
+            position: "fixed",
+            top: 5,
+            right: 5,
+            maxWidth: "400px",
+            background: "white",
+            zIndex: 1,
+            border: "1px solid #ccc",
+            boxShadow: "4px 4px 2px #ddd",
+            padding: "10px 20px",
+            borderRadius: "5px",
+          }}
+        >
+          <Icon
+            name={"times"}
+            style={{ float: "right", cursor: "pointer" }}
+            onClick={() => setCost(undefined)}
+          />
+
+          <b>Edit license below</b>
+          <br />
+          <DisplayCost cost={cost} />
+          <div style={{ textAlign: "center" }}>
+            <Button
+              size="large"
+              type="primary"
+              htmlType="submit"
+              style={{ marginTop: "5px" }}
+            >
+              Add to Cart
+            </Button>
+          </div>
+        </div>
+      )}
       <Form
         form={form}
         style={{ marginTop: "15px", maxWidth: "900px", margin: "auto" }}
@@ -74,36 +120,36 @@ function CreateLicense({ style }: CreateLicenseProps) {
         onFinish={onFinish}
         onFinishFailed={onFinishFailed}
         autoComplete="off"
+        onChange={onChange}
       >
-        <Form.Item
-          label="Title"
-          name="title"
-          style={{ width: "100%" }}
-          extra={
-            showExplanations ? (
-              <>
-                Given your license a title makes it easier to keep track of. You
-                can change it at any time.
-              </>
-            ) : undefined
-          }
-        >
-          <Input placeholder="Enter the title of your license" />
+        <Form.Item name="user" hidden={true} initialValue={"academic"}>
+          <Input />
         </Form.Item>
         <Form.Item
-          label="Description"
-          name="description"
+          label="Type of Usage"
           extra={
             showExplanations ? (
               <>
-                Given your license a longer description to record extra
-                information that isn't always shown with the license. You can
-                change this at any time.
+                Will this license be used for academic or commercial purposes?
+                Academic users receive a 40% discount off the standard price.
               </>
             ) : undefined
           }
         >
-          <Input.TextArea placeholder="Describe your license" rows={2} />
+          <Radio.Group
+            defaultValue={"academic"}
+            onChange={(e) => {
+              form.setFieldsValue({ user: e.target.value });
+            }}
+          >
+            <Radio value={"academic"}>
+              Academic - students, teachers, academic researchers, non-profit
+              organizations and hobbyists (40% discount)
+            </Radio>
+            <Radio value={"business"}>
+              Business - for commercial business purposes
+            </Radio>
+          </Radio.Group>
         </Form.Item>
         <Form.Item name="period" hidden={true} initialValue={"monthly"}>
           <Input />
@@ -135,7 +181,7 @@ function CreateLicense({ style }: CreateLicenseProps) {
               Recurring Yearly Subscription (15% discount)
             </Radio>
             <Radio value={"range"}>Specific Start and End Dates</Radio>
-          </Radio.Group>{" "}
+          </Radio.Group>
         </Form.Item>
         <Form.Item name="range" hidden={true}>
           <Input />
@@ -152,6 +198,7 @@ function CreateLicense({ style }: CreateLicenseProps) {
                 style={{ margin: "5px 0 30px", textAlign: "center" }}
                 onChange={(range) => {
                   form.setFieldsValue({ range });
+                  onChange();
                 }}
               />
             ) : null
@@ -189,6 +236,7 @@ function CreateLicense({ style }: CreateLicenseProps) {
               maxText={10000}
               onChange={(runLimit) => {
                 form.setFieldsValue({ runLimit });
+                onChange();
               }}
               units={"projects"}
               presets={[1, 2, 10, 50, 100, 250, 500]}
@@ -222,6 +270,7 @@ function CreateLicense({ style }: CreateLicenseProps) {
             max={3}
             onChange={(sharedCores) => {
               form.setFieldsValue({ sharedCores });
+              onChange();
             }}
             units={"vCPU"}
             presets={[1, 2, 3]}
@@ -252,6 +301,7 @@ function CreateLicense({ style }: CreateLicenseProps) {
             max={16}
             onChange={(sharedRam) => {
               form.setFieldsValue({ sharedRam });
+              onChange();
             }}
             units={"GB RAM"}
             presets={[1, 2, 8, 16]}
@@ -282,6 +332,7 @@ function CreateLicense({ style }: CreateLicenseProps) {
             max={20}
             onChange={(disk) => {
               form.setFieldsValue({ disk });
+              onChange();
             }}
             units={"GB Disk"}
             presets={[1, 4, 8, 16, 20]}
@@ -295,14 +346,15 @@ function CreateLicense({ style }: CreateLicenseProps) {
           extra={
             showExplanations ? (
               <>
-                Member hosting enables network access, so licensed projects can
-                connect to the Internet to clone git repositories, download data
-                files, send emails, etc. It also significanlty reduces
-                competition for resources, and we prioritize{" "}
+                Member hosting significanlty reduces competition for resources,
+                and we prioritize{" "}
                 <A href="support/new" external>
                   support requests
                 </A>{" "}
-                much higher.
+                much higher. All licensed projects, with or without member
+                hosting, have network access, so they can connect to the network
+                to clone git repositories, download data files and install
+                software.
               </>
             ) : undefined
           }
@@ -332,39 +384,48 @@ function CreateLicense({ style }: CreateLicenseProps) {
             ) : undefined
           }
         >
-          <Checkbox>Keep project running</Checkbox>
+          <Checkbox>Keep projects running</Checkbox>
         </Form.Item>
         <Form.Item
-          wrapperCol={{ offset: 4, span: 20 }}
-          style={{ marginTop: "50px" }}
+          label="Title (optional)"
+          name="title"
+          style={{ width: "100%" }}
+          extra={
+            showExplanations ? (
+              <>
+                Given your license a title makes it easier to keep track of. You
+                can change it at any time.
+              </>
+            ) : undefined
+          }
         >
+          <Input placeholder="Enter the title of your license" />
+        </Form.Item>
+        <Form.Item
+          label="Description (optional)"
+          name="description"
+          extra={
+            showExplanations ? (
+              <>
+                Given your license a longer description to record extra
+                information that isn't always shown with the license. You can
+                change this at any time.
+              </>
+            ) : undefined
+          }
+        >
+          <Input.TextArea placeholder="Describe your license" rows={2} />
+        </Form.Item>{" "}
+        <Form.Item wrapperCol={{ offset: 4, span: 20 }}>
           <Popconfirm
             title="Reset all values to their default?"
-            onConfirm={() => form.resetFields()}
+            onConfirm={() => {
+              form.resetFields();
+              onChange();
+            }}
           >
             <Button style={{ marginRight: "5px" }} type="dashed">
               Reset Form
-            </Button>
-          </Popconfirm>
-          <Popconfirm
-            title={
-              <div style={{ maxWidth: "500px" }}>
-                Create this license? Note that payment will be required in order
-                for this license to actually work. You will{" "}
-                <b>not be charged now</b>, even if you have a payment method on
-                file.
-              </div>
-            }
-            onConfirm={() => {
-              console.log("making the license");
-            }}
-          >
-            <Button
-              type="primary"
-              htmlType="submit"
-              style={{ marginBottom: "5px" }}
-            >
-              Create License...
             </Button>
           </Popconfirm>
         </Form.Item>

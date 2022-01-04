@@ -20,7 +20,7 @@ export default function ConfigMenu({ main }) {
         <b style={{ color: "#666" }}>Store</b>
       </Menu.Item>
       <Menu.Item key={"site-license"}>
-        <Icon name={"key"} style={{ marginRight: "5px" }} /> Site License
+        <Icon name={"key"} style={{ marginRight: "5px" }} /> Site Licenses
       </Menu.Item>
       <Menu.Item key={"cart"}>
         <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} /> Cart
