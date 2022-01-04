@@ -37,18 +37,17 @@ export default function Footer() {
     policies,
   } = useCustomize();
 
-  function organization() {
+  function organization(): JSX.Element {
     if (organizationURL) {
       return <A href={organizationURL}>{organizationName}</A>;
     } else {
-      organizationName;
+      return <>{organizationName}</>;
     }
   }
 
   function renderOrganization() {
-    if (organizationName) {
-      return <Item>{organization()}</Item>;
-    }
+    if (!organizationName) return null;
+    return <Item>{organization()}</Item>;
   }
 
   return (

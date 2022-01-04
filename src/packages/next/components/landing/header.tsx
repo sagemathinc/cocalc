@@ -42,8 +42,6 @@ export default function Header({ page, subPage }: Props) {
     shareServer,
     landingPages,
     account,
-    imprint,
-    policies,
     imprintOrPolicies,
   } = useCustomize();
   if (basePath == null) return null;
