@@ -77,12 +77,12 @@ export default function ConfigLayout({ page }: Props) {
           minHeight: 280,
         }}
       >
-        <div style={{ float: "right", marginBottom: "0 0 15px 15px" }}>
+        <div style={{ float: "right", margin: "0 0 15px 15px" }}>
           <Alert
             type="warning"
             message={
               <>
-                This is the new <SiteName /> store (visit{" "}
+                This is the new <SiteName /> store (
                 <A href={join(basePath, "settings", "licenses")} external>
                   the old page
                 </A>

@@ -65,11 +65,12 @@ export function computeCost({
 
 interface Props {
   cost: Cost;
+  simple?: boolean;
 }
 
-export function DisplayCost({ cost }: Props) {
+export function DisplayCost({ cost, simple }: Props) {
   let desc;
-  if (cost.discounted_cost < cost.cost) {
+  if (!simple && cost.discounted_cost < cost.cost) {
     desc = (
       <>
         <span style={{ textDecoration: "line-through" }}>
@@ -86,6 +87,7 @@ export function DisplayCost({ cost }: Props) {
   } else {
     desc = `${money(cost.cost)} ${cost.period != "range" ? cost.period : ""}`;
   }
+  if (simple) return <>{desc}</>;
 
   return (
     <span>

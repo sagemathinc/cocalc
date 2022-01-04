@@ -33,8 +33,8 @@ export interface PurchaseInfo {
   upgrade: Upgrade;
   quantity: number;
   subscription: Subscription;
-  start: Date;
-  end?: Date;
+  start: Date | string;
+  end?: Date | string;
   quote?: boolean;
   quote_info?: string;
   payment_method?: string;
@@ -228,6 +228,12 @@ export function compute_cost(info: PurchaseInfo): Cost {
     dedicated_disk,
     dedicated_vm,
   } = info;
+  if (start) {
+    start = new Date(start);
+  }
+  if (end) {
+    end = new Date(end);
+  }
   if (!!dedicated_disk || !!dedicated_vm) {
     const cost = dedicatedPrice({
       start,

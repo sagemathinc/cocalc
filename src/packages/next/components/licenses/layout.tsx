@@ -79,7 +79,7 @@ export default function ConfigLayout({ page }: Props) {
           minHeight: 280,
         }}
       >
-        <div style={{ float: "right", marginBottom: "0 0 15px 15px" }}>
+        <div style={{ float: "right", margin: "0 0 15px 15px" }}>
           <Alert
             type="warning"
             message={
