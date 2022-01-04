@@ -60,6 +60,22 @@ export default function Home({ customize }) {
                     hosted by <A href={organizationURL}>{organizationName}</A>
                   </>
                 )}
+                {customize.onCoCalcCom && (
+                  <>
+                    {" "}
+                    <br />
+                    <br />{" "}
+                    <iframe
+                      width="210"
+                      height="315"
+                      src="https://www.youtube.com/embed/PQ5p92DN0bs"
+                      title="YouTube video player"
+                      frameBorder={0}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  </>
+                )}
               </div>
             }
             image={splashImage ? splashImage : screenshot}
