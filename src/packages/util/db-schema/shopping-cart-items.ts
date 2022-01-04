@@ -1,0 +1,65 @@
+/*
+Table of shopping activity.
+
+with columns:
+
+how to use:
+query for everything with bought and cancelled both null for a given user is exactly their shopping cart
+query for everything for account with bought set is everything they have bought and when.
+query for everything for account with cancelled if everything they decided not to buy.
+
+*/
+
+import { Table } from "./types";
+import { Quota } from "./site-licenses";
+
+export type Product = "site-license";
+export interface Item {
+  id: number;
+  account_id: string;
+  added: Date;
+  purchased?: Date;
+  removed?: Date;
+  type: "site_license";
+  product: Quota;
+}
+
+Table({
+  name: "shopping_cart_items",
+  fields: {
+    id: {
+      type: "integer",
+      desc: "Automatically generated sequential id that uniquely determines this item.",
+      pg_type: "SERIAL UNIQUE",
+    },
+    account_id: {
+      type: "uuid",
+      desc: "account_id of the user whose shopping cart this item is being placed into.",
+    },
+    added: {
+      type: "timestamp",
+      desc: "When this item was added to account_id's shopping cart.",
+    },
+    removed: {
+      type: "timestamp",
+      desc: "Date when this item was removed from account_id's shopping cart.",
+    },
+    purchase: {
+      type: "map",
+      desc: "Object that describes the purchase once it is made.  account_id of who made the purchase?  Pointer to stripe invoice?  license_id.",
+    },
+    type: {
+      type: "string",
+      desc: "General class of product, e.g., 'site-license'.",
+    },
+    product: {
+      type: "map",
+      desc: "Object that describes the product that was placed in the shopping cart.",
+    },
+  },
+
+  rules: {
+    desc: "Shopping Cart Items",
+    primary_key: "id",
+  },
+});
