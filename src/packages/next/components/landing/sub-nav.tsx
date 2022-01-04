@@ -51,8 +51,8 @@ const policies = {
   thirdparties: { label: "Third Parties", hide: (c) => !c.onCoCalcCom },
   ferpa: { label: "FERPA", hide: (c) => !c.onCoCalcCom },
   accessibility: { label: "Accessibility", hide: (c) => !c.onCoCalcCom },
-  imprint: { label: "Imprint", hide: (c) => !c.imprintHTML },
-  policies: { label: "Policies", hide: (c) => !c.policiesHTML },
+  imprint: { label: "Imprint", hide: (c) => !c.imprint },
+  policies: { label: "Policies", hide: (c) => !c.policies },
 };
 
 const info = {

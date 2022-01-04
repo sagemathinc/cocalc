@@ -78,8 +78,6 @@ export default async function getCustomize(): Promise<Customize> {
     logoRectangularURL: settings.logo_rectangular,
     splashImage: settings.splash_image,
 
-    indexInfo: settings.index_info_html,
-
     shareServer: !!settings.share_server,
 
     // additionally restrict showing landing pages only in cocalc.com-mode
@@ -88,9 +86,9 @@ export default async function getCustomize(): Promise<Customize> {
 
     googleAnalytics: settings.google_analytics,
 
-    indexInfoHtml: settings.index_info_html,
-    imprintHTML: settings.imprint_html,
-    policiesHTML: settings.policies_html,
+    indexInfo: settings.index_info_html,
+    imprint: settings.imprint,
+    policies: settings.policies,
 
     // Is important for invite emails, password reset, etc. (e.g., so we can construct a url to our site).
     // This *can* start with http:// to explicitly use http instead of https, and can end

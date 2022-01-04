@@ -8,10 +8,11 @@ import withCustomize from "lib/with-customize";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
 import Footer from "components/landing/footer";
+import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { Customize } from "lib/customize";
 
 export default function Policies({ customize }) {
-  const { policiesHTML } = customize;
+  const { policies } = customize;
   return (
     <Customize value={customize}>
       <Head title="Policies" />
@@ -21,7 +22,7 @@ export default function Policies({ customize }) {
           xs={{ span: 12, offset: 6 }}
           style={{ marginTop: "30px", marginBottom: "30px" }}
         >
-          <div dangerouslySetInnerHTML={{ __html: policiesHTML }} />
+          {policies && <SanitizedMarkdown value={policies} />}
         </Col>
       </Row>
       <Footer />

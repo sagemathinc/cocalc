@@ -42,9 +42,9 @@ export default function Header({ page, subPage }: Props) {
     shareServer,
     landingPages,
     account,
-    imprintHTML,
-    policiesHTML,
-    imprintOrPoliciesHTML,
+    imprint,
+    policies,
+    imprintOrPolicies,
   } = useCustomize();
   if (basePath == null) return null;
 
@@ -129,7 +129,7 @@ export default function Header({ page, subPage }: Props) {
         >
           Info
         </A>
-        {(landingPages || imprintOrPoliciesHTML) && (
+        {(landingPages || imprintOrPolicies) && (
           <A
             href="/policies"
             style={page == "policies" ? SelectedStyle : LinkStyle}
@@ -184,7 +184,7 @@ export default function Header({ page, subPage }: Props) {
           </>
         )}
       </Layout.Header>
-      {(landingPages || imprintOrPoliciesHTML) && page && (
+      {(landingPages || imprintOrPolicies) && page && (
         <SubNav page={page} subPage={subPage} />
       )}
     </>

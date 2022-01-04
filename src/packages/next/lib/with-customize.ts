@@ -61,8 +61,8 @@ export default async function withCustomize(
 
   customize.onCoCalcCom = customize.kucalc === KUCALC_COCALC_COM;
   customize.noindex = obj.props?.unlisted ?? false;
-  customize.imprintOrPoliciesHTML =
-    (customize.imprintHTML ?? "" + settings.policiesHTML ?? "") != "";
+  customize.imprintOrPolicies =
+    (customize.imprint ?? "" + customize.policies ?? "") != "";
 
   if (obj == null) {
     return { props: { customize } };

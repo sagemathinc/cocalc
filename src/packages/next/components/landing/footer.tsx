@@ -33,8 +33,8 @@ export default function Footer() {
     contactEmail,
     landingPages,
     zendesk,
-    imprintHTML,
-    policiesHTML,
+    imprint,
+    policies,
   } = useCustomize();
 
   function organization() {
@@ -80,12 +80,12 @@ export default function Footer() {
             <A href="/support/new">Support Ticket</A>
           </Item>
         )}
-        {imprintHTML && (
+        {imprint && (
           <Item>
             <A href="/policies/imprint">Imprint</A>
           </Item>
         )}
-        {policiesHTML && (
+        {policies && (
           <Item>
             <A href="/policies/policies">Policies</A>
           </Item>

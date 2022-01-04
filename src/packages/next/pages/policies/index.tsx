@@ -87,7 +87,7 @@ const dataSourceCoCalcCom = [
 export default function Policies({ customize }) {
   function dataSourceOnPrem(): DataSource {
     const ret: DataSource = [];
-    if (customize.imprintHTML) {
+    if (customize.imprint) {
       ret.push({
         link: "/policies/imprint",
         title: "Imprint",
@@ -95,7 +95,7 @@ export default function Policies({ customize }) {
         description: <></>,
       });
     }
-    if (customize.policiesHTML) {
+    if (customize.policies) {
       ret.push({
         link: "/policies/policies",
         title: "Policies",

@@ -21,8 +21,8 @@ export type SiteSettingsKeys =
   | "logo_rectangular"
   | "splash_image"
   | "index_info_html"
-  | "imprint_html"
-  | "policies_html"
+  | "imprint"
+  | "policies"
   | "organization_name"
   | "organization_email"
   | "organization_url"
@@ -231,23 +231,23 @@ export const site_settings_conf: SiteSettings = {
   },
   index_info_html: {
     name: "Index page info",
-    desc: "An HTML string displayed on the index page.",
+    desc: "An HTML/Markdown string displayed on the index page.",
     default: "",
     clearable: true,
     show: show_theming_vars,
     multiline: 5,
   },
-  imprint_html: {
+  imprint: {
     name: "Imprint page",
-    desc: "Imprint information on optional dedicated page.",
+    desc: "Imprint information on optional dedicated page – HTML/Markdown.",
     default: "",
     clearable: true,
     show: show_theming_vars,
     multiline: 5,
   },
-  policies_html: {
+  policies: {
     name: "Policies page",
-    desc: "Policies information on optional dedicated page.",
+    desc: "Policies information on optional dedicated page – HTML/Markdown.",
     default: "",
     clearable: true,
     show: show_theming_vars,

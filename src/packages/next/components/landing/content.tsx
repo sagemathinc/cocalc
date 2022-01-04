@@ -6,6 +6,7 @@
 import { Row, Col } from "antd";
 import { ReactNode } from "react";
 import SignIn from "components/landing/sign-in";
+import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import Image from "./image";
 
 interface Props {
@@ -17,7 +18,7 @@ interface Props {
   alt?: string;
   startup?: ReactNode;
   caption?: string;
-  extraHTML?: string;
+  indexInfo?: string;
 }
 
 function Logo({ logo, title }) {
@@ -39,10 +40,10 @@ export default function Content({
   alt,
   startup,
   caption,
-  extraHTML,
+  indexInfo,
 }: Props) {
-  function renderExtraHTML() {
-    if (!extraHTML) return;
+  function renderIndexInfo() {
+    if (!indexInfo) return;
 
     return (
       <>
@@ -55,7 +56,7 @@ export default function Content({
           }}
         ></Col>
         <Col sm={{ span: 12, offset: 6 }} xs={{ span: 24, offset: 0 }}>
-          <div dangerouslySetInnerHTML={{ __html: extraHTML }} />
+          <SanitizedMarkdown value={indexInfo} />
         </Col>
       </>
     );
@@ -101,7 +102,7 @@ export default function Content({
             </>
           )}
         </Col>
-        {renderExtraHTML()}
+        {renderIndexInfo()}
       </Row>
       <SignIn startup={startup ?? title} hideFree={true} />
     </div>
