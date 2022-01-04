@@ -37,7 +37,7 @@ export async function putBackInCart(
   }
   const pool = getPool();
   const { rowCount } = await pool.query(
-    "UPDATE shopping_cart_items SET removed=NULL WHERE account_id=$1 AND id=$2 AND removed IS NOT NULL AND purchased IS NULL",
+    "UPDATE shopping_cart_items SET removed=NULL, checked=TRUE WHERE account_id=$1 AND id=$2 AND removed IS NOT NULL AND purchased IS NULL",
     [account_id, id]
   );
   return rowCount;
