@@ -3,13 +3,23 @@ Create a new site license.
 */
 import { Icon } from "@cocalc/frontend/components/icon";
 
-import { Button, Checkbox, Form, Input, Popconfirm, Radio, Switch } from "antd";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Form,
+  Input,
+  Popconfirm,
+  Radio,
+  Switch,
+} from "antd";
 import SiteName from "components/share/site-name";
 import A from "components/misc/A";
 import { CSSProperties, useEffect, useState } from "react";
 import IntegerSlider from "components/misc/integer-slider";
 import DateRange from "components/misc/date-range";
-import { computeCost, DisplayCost } from "./site-license-cost";
+import { computeCost, Cost, DisplayCost } from "./site-license-cost";
+import apiPost from "lib/api/post";
 
 export default function Create() {
   return (
@@ -50,6 +60,7 @@ interface CreateLicenseProps {
 
 function CreateLicense({ style }: CreateLicenseProps) {
   const [cost, setCost] = useState<Cost | undefined>(undefined);
+  const [cartError, setCartError] = useState<string>("");
   const [showExplanations, setShowExplanations] = useState<boolean>(true);
   const [form] = Form.useForm();
 
@@ -67,6 +78,19 @@ function CreateLicense({ style }: CreateLicenseProps) {
   useEffect(() => {
     onChange();
   }, []);
+
+  async function addToCart() {
+    const description = form.getFieldsValue(true);
+    try {
+      setCartError("");
+      await apiPost("/shopping/cart/add", {
+        product: "site-license",
+        description,
+      });
+    } catch (err) {
+      setCartError(err.message);
+    }
+  }
 
   return (
     <div style={style}>
@@ -105,9 +129,11 @@ function CreateLicense({ style }: CreateLicenseProps) {
               type="primary"
               htmlType="submit"
               style={{ marginTop: "5px" }}
+              onClick={() => addToCart()}
             >
               Add to Cart
             </Button>
+            {cartError && <Alert type="error" message={cartError} />}
           </div>
         </div>
       )}

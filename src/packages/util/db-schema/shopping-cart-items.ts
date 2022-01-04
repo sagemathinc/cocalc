@@ -13,15 +13,21 @@ query for everything for account with cancelled if everything they decided not t
 import { Table } from "./types";
 import { Quota } from "./site-licenses";
 
-export type Product = "site-license";
+export type ProductType = "site-license";
+export type ProductDescription = Quota; // just for now.
+
+interface PurchaseInfo {
+  // maybe a stripe invoice id or a new database record?
+}
+
 export interface Item {
   id: number;
   account_id: string;
   added: Date;
-  purchased?: Date;
+  purchased?: PurchaseInfo;
   removed?: Date;
-  type: "site_license";
-  product: Quota;
+  product: ProductType;
+  description: ProductDescription;
 }
 
 Table({
@@ -44,15 +50,15 @@ Table({
       type: "timestamp",
       desc: "Date when this item was removed from account_id's shopping cart.",
     },
-    purchase: {
+    purchased: {
       type: "map",
       desc: "Object that describes the purchase once it is made.  account_id of who made the purchase?  Pointer to stripe invoice?  license_id.",
     },
-    type: {
+    product: {
       type: "string",
       desc: "General class of product, e.g., 'site-license'.",
     },
-    product: {
+    description: {
       type: "map",
       desc: "Object that describes the product that was placed in the shopping cart.",
     },

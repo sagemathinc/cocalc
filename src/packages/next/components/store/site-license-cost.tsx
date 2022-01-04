@@ -7,10 +7,11 @@ import {
 import { Icon } from "@cocalc/frontend/components/icon";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 
-type Period = "range" | "monthly" | "yearly";
+export type Period = "range" | "monthly" | "yearly";
 
-interface Cost extends Cost0 {
+export interface Cost extends Cost0 {
   input: any;
+  period: Period;
 }
 
 export function computeCost({
@@ -23,15 +24,28 @@ export function computeCost({
   disk,
   alwaysRunning,
   member,
-}): number | undefined {
+}: {
+  user: "academic" | "business";
+  runLimit: number;
+  period: Period;
+  range: [Date | undefined, Date | undefined];
+  sharedRam: number;
+  sharedCores: number;
+  disk: number;
+  alwaysRunning: boolean;
+  member: boolean;
+}): Cost | undefined {
   if (period == "range" && range?.[1] == null) {
     return undefined;
   }
   const input = {
     user,
-    upgrade: "custom",
+    upgrade: "custom" as "custom",
     quantity: runLimit,
-    subscription: period == "range" ? "no" : period,
+    subscription: (period == "range" ? "no" : period) as
+      | "no"
+      | "monthly"
+      | "yearly",
     start: range?.[0] ?? new Date(),
     end: range?.[1],
     custom_ram: sharedRam,
@@ -45,6 +59,7 @@ export function computeCost({
   return {
     ...compute_cost(input),
     input,
+    period,
   };
 }
 
