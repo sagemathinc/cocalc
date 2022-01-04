@@ -24,6 +24,7 @@ export interface Item {
   id: number;
   account_id: string;
   added: Date;
+  checked?: boolean;
   purchased?: PurchaseInfo;
   removed?: Date;
   product: ProductType;
@@ -45,6 +46,10 @@ Table({
     added: {
       type: "timestamp",
       desc: "When this item was added to account_id's shopping cart.",
+    },
+    checked: {
+      type: "boolean",
+      desc: "Whether or not this item is selected for inclusion during checkout.",
     },
     removed: {
       type: "timestamp",

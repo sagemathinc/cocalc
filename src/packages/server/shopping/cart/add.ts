@@ -19,7 +19,7 @@ export default async function addToCart(
   }
   const pool = getPool();
   const { rowCount } = await pool.query(
-    "INSERT INTO shopping_cart_items (account_id, added, product, description) VALUES($1,NOW(),$2,$3)",
+    "INSERT INTO shopping_cart_items (account_id, added, product, description, checked) VALUES($1,NOW(),$2,$3,true)",
     [account_id, product, description]
   );
   return rowCount;

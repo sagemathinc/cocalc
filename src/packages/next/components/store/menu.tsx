@@ -25,6 +25,9 @@ export default function ConfigMenu({ main }) {
       <Menu.Item key={"cart"}>
         <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} /> Cart
       </Menu.Item>
+      <Menu.Item key={"checkout"}>
+        <Icon name={"list"} style={{ marginRight: "5px" }} /> Checkout
+      </Menu.Item>
     </Menu>
   );
 }
