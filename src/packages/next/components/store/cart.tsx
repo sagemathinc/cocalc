@@ -83,7 +83,7 @@ export default function ShoppingCart() {
       title: "Product",
       align: "center" as "center",
       render: () => (
-        <div style={{ color: "purple" }}>
+        <div style={{ color: "darkblue" }}>
           <Icon name="key" style={{ fontSize: "24px" }} />
           <div style={{ fontSize: "10pt" }}>Site License</div>
         </div>
@@ -169,7 +169,7 @@ export default function ShoppingCart() {
   const forLater = (
     <div
       style={{
-        marginTop: "45px",
+        marginTop: "60px",
         borderTop: "1px solid lightgrey",
         paddingTop: "15px",
       }}
@@ -191,7 +191,7 @@ export default function ShoppingCart() {
   }
 
   return (
-    <div>
+    <div style={{ maxWidth: "900px", margin: "auto" }}>
       <div style={{ float: "right", marginBottom: "15px" }}>
         <span style={{ fontSize: "13pt" }}>
           <TotalCost items={items} />
@@ -334,7 +334,7 @@ function SavedForLater({ onChange, cart }) {
       title: "Product",
       align: "center" as "center",
       render: () => (
-        <div style={{ color: "purple" }}>
+        <div style={{ color: "darkblue" }}>
           <Icon name="key" style={{ fontSize: "24px" }} />
           <div style={{ fontSize: "10pt" }}>Site License</div>
         </div>

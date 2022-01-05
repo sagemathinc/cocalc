@@ -20,10 +20,11 @@ import IntegerSlider from "components/misc/integer-slider";
 import DateRange from "components/misc/date-range";
 import { computeCost, Cost, DisplayCost } from "./site-license-cost";
 import apiPost from "lib/api/post";
+import { useRouter } from "next/router";
 
 export default function Create() {
   return (
-    <div>
+    <div style={{ maxWidth: "900px", margin: "auto" }}>
       <h3>
         <Icon name={"key"} style={{ marginRight: "5px" }} /> Site Licenses
       </h3>
@@ -63,6 +64,7 @@ function CreateLicense({ style }: CreateLicenseProps) {
   const [cartError, setCartError] = useState<string>("");
   const [showExplanations, setShowExplanations] = useState<boolean>(true);
   const [form] = Form.useForm();
+  const router = useRouter();
 
   function onFinish(...args) {
     console.log("onFinish", ...args);
@@ -87,6 +89,7 @@ function CreateLicense({ style }: CreateLicenseProps) {
         product: "site-license",
         description,
       });
+      router.push("/store/cart");
     } catch (err) {
       setCartError(err.message);
     }

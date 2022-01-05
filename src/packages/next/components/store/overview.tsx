@@ -8,9 +8,9 @@ export default function Overview() {
         Welcome to the <SiteName /> Store!
       </h3>
       <p>
-        You can{" "}
-        <A href="/store/license">purchase a license to upgrade projects</A> or
-        view your <A href="/store/cart">shopping cart</A>.
+        You can <A href="/store/license">purchase a site license</A>, view your{" "}
+        <A href="/store/cart">shopping cart</A>, or{" "}
+        <A href="/store/checkout">checkout</A>.
       </p>
 
       <p>
