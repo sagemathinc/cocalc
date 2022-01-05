@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
 import Footer from "components/landing/footer";
 import A from "components/misc/A";
@@ -17,6 +22,7 @@ export default function Home({ customize }) {
     organizationName,
     organizationURL,
     splashImage,
+    indexInfo,
   } = customize;
   return (
     <Customize value={customize}>
@@ -80,6 +86,7 @@ export default function Home({ customize }) {
             }
             image={splashImage ? splashImage : screenshot}
             alt={"Screenshot showing CoCalc in action!"}
+            indexInfo={indexInfo}
           />
           <Footer />
         </Layout.Content>

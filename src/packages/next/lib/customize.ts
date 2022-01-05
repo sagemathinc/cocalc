@@ -18,6 +18,9 @@ interface Customize extends ServerCustomize {
   isAuthenticated?: boolean; // if true, the user has a valid authentication cookie
   onCoCalcCom?: boolean; // true, if kucalc server settings flag is set to yes (i.e. for cocalc.com only!)
   noindex?: boolean; // tell search engines to not index that page
+  imprint?: string; // HTML/MD for an imprint page
+  policies?: string; // HTML/MD for a policy page
+  imprintOrPolicies?: boolean; // is true if either of the above is more than an empty string
 }
 
 const CustomizeContext = createContext<Partial<Customize>>({});
