@@ -118,12 +118,12 @@ export default function Checkout() {
   }
 
   return (
-    <div style={{ maxWidth: "900px", margin: "auto" }}>
+    <div>
       <div
         style={{
           float: "right",
           margin: "0 0 15px 15px",
-          maxWidth: "300px",
+          maxWidth: "350px",
           textAlign: "center",
           border: "1px solid #ddd",
           padding: "15px",
@@ -144,39 +144,48 @@ export default function Checkout() {
         </Button>
         <Terms />
       </div>
-      <h3 style={{ fontSize: "16pt" }}>
-        <Icon name={"list"} style={{ marginRight: "5px" }} />
-        Checkout (<A href="/store/cart">{items.length} items</A>)
-      </h3>
-      <h4 style={{ fontSize: "13pt" }}>1. Payment Method</h4>
-      <p>
-        The default payment method shown below will be used for this purchase.
-      </p>
-      <PaymentMethods startMinimized />
-      <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>2. Review Items ({items.length})</h4>
-      <Table
-        columns={columns}
-        dataSource={items}
-        rowKey={"id"}
-        pagination={{ hideOnSinglePage: true }}
-      />
-      <div style={{ fontSize: "12pt", margin: "15px 0", display: "flex" }}>
-        <Button
-          disabled={subTotal == 0 || updating}
-          style={{ marginLeft: "15px", marginTop: "7px" }}
-          size="large"
-          type="primary"
-          href="/store/checkout"
-        >
-          Place Your Order
-        </Button>
-
-        <div style={{ fontSize: "15pt", marginLeft: "30px" }}>
-          <TotalCost items={cart.result} />
-          <br />
-          <Terms />
-        </div>
+      <div style={{ maxWidth: "900px", margin: "auto" }}>
+        <h3 style={{ fontSize: "16pt" }}>
+          <Icon name={"list"} style={{ marginRight: "5px" }} />
+          Checkout (<A href="/store/cart">{items.length} items</A>)
+        </h3>
         <br />
+        <br />
+        <h4 style={{ fontSize: "13pt" }}>1. Payment Method</h4>
+        <p>
+          The default payment method shown below will be used for this purchase.
+        </p>
+        <PaymentMethods startMinimized />
+        <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
+          2. Review Items ({items.length})
+        </h4>
+        <Table
+          columns={columns}
+          dataSource={items}
+          rowKey={"id"}
+          pagination={{ hideOnSinglePage: true }}
+        />
+        <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
+          3. Place Your Order
+        </h4>
+        <div style={{ fontSize: "12pt", margin: "15px 0", display: "flex" }}>
+          <Button
+            disabled={subTotal == 0 || updating}
+            style={{ marginLeft: "15px", marginTop: "7px" }}
+            size="large"
+            type="primary"
+            href="/store/checkout"
+          >
+            Place Your Order
+          </Button>
+
+          <div style={{ fontSize: "15pt", marginLeft: "30px" }}>
+            <TotalCost items={cart.result} />
+            <br />
+            <Terms />
+          </div>
+          <br />
+        </div>
       </div>
     </div>
   );

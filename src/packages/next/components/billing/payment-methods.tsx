@@ -241,12 +241,16 @@ export default function PaymentMethods({ startMinimized }) {
           </A>
         </div>
       )}
-      <h3>Credit Cards ({cards.length})</h3>
-      {cards.length > 0 ? (
-        <>These are the credit cards that you have currently setup.</>
-      ) : (
-        <>Please enter your credit card below.</>
-      )}{" "}
+      {!startMinimized && (
+        <>
+          <h3>Credit Cards ({cards.length})</h3>
+          {cards.length > 0 ? (
+            <>These are the credit cards that you have currently setup.</>
+          ) : (
+            <>Please enter your credit card below.</>
+          )}{" "}
+        </>
+      )}
       <AddPaymentMethod
         defaultAdding={cards.length == 0}
         onChange={call}
@@ -432,7 +436,7 @@ export function CreditCard({
   return (
     <div
       style={{
-        backgroundColor: "#f8f8f8",
+        backgroundColor: "#f0f0ff",
         border: "1px solid lightgrey",
         margin: "15px 0",
         padding: "10px",
