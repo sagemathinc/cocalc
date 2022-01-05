@@ -6,7 +6,7 @@ shopping cart experience, so most likely to feel familiar to users and easy
 to use.
 */
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useAPI from "lib/hooks/api";
 import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -16,8 +16,11 @@ import { computeCost, DisplayCost } from "./site-license-cost";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { money } from "@cocalc/frontend/site-licenses/purchase/util";
 import SiteName from "components/share/site-name";
+import useIsMounted from "lib/hooks/mounted";
 
 export default function ShoppingCart() {
+  const isMounted = useIsMounted();
+  const [updating, setUpdating] = useState<boolean>(false);
   const cart = useAPI("/shopping/cart/get");
   const items = useMemo(() => {
     if (!cart.result) return undefined;
@@ -40,18 +43,38 @@ export default function ShoppingCart() {
     return <Loading />;
   }
 
+  async function reload() {
+    if (!isMounted.current) return;
+    setUpdating(true);
+    try {
+      await cart.call();
+    } finally {
+      if (isMounted.current) {
+        setUpdating(false);
+      }
+    }
+  }
+
   const columns = [
     {
       title: "",
       render: (_, { id, checked }) => (
         <Checkbox
+          disabled={updating}
           checked={checked}
           onChange={async (e) => {
-            await apiPost("/shopping/cart/checked", {
-              id,
-              checked: e.target.checked,
-            });
-            await cart.call();
+            setUpdating(true);
+            try {
+              await apiPost("/shopping/cart/checked", {
+                id,
+                checked: e.target.checked,
+              });
+              if (!isMounted.current) return;
+              await reload();
+            } finally {
+              if (!isMounted.current) return;
+              setUpdating(false);
+            }
           }}
         />
       ),
@@ -68,11 +91,17 @@ export default function ShoppingCart() {
     },
     {
       width: "60%",
-      render: (_, { id, cost, description }) => {
+      render: (x, { id, cost, description }) => {
         const { input } = cost;
         return (
           <>
             <div style={{ fontSize: "12pt" }}>
+              {description.title && (
+                <div>
+                  <b>{description.title}</b>
+                </div>
+              )}
+              {description.description && <div>{description.description}</div>}
               {describe_quota({
                 ram: input.custom_ram,
                 cpu: input.custom_cpu,
@@ -83,24 +112,40 @@ export default function ShoppingCart() {
               })}
             </div>
             <div>
-              <Button>
+              <Button disabled={updating}>
                 <Icon name="users" /> Quantity: {description.runLimit}{" "}
                 simultaneous running projects
               </Button>
               <Button
+                disabled={updating}
                 type="dashed"
                 style={{ margin: "0 5px" }}
                 onClick={async () => {
-                  await apiPost("/shopping/cart/delete", { id });
-                  await cart.call();
+                  setUpdating(true);
+                  try {
+                    await apiPost("/shopping/cart/delete", { id });
+                    if (!isMounted.current) return;
+                    await reload();
+                  } finally {
+                    if (!isMounted.current) return;
+                    setUpdating(false);
+                  }
                 }}
               >
                 <Icon name="trash" /> Delete
               </Button>
               <Button
+                disabled={updating}
                 onClick={async () => {
-                  await apiPost("/shopping/cart/remove", { id });
-                  await cart.call();
+                  setUpdating(true);
+                  try {
+                    await apiPost("/shopping/cart/remove", { id });
+                    if (!isMounted.current) return;
+                    await reload();
+                  } finally {
+                    if (!isMounted.current) return;
+                    setUpdating(false);
+                  }
                 }}
               >
                 <Icon name="save" /> Save for later
@@ -129,7 +174,7 @@ export default function ShoppingCart() {
         paddingTop: "15px",
       }}
     >
-      <SavedForLater onChange={() => cart.call()} cart={cart} />
+      <SavedForLater onChange={reload} cart={cart} />
     </div>
   );
 
@@ -152,7 +197,7 @@ export default function ShoppingCart() {
           <TotalCost items={items} />
         </span>
         <Button
-          disabled={items.subTotal == 0}
+          disabled={items.subTotal == 0 || updating}
           style={{ marginLeft: "15px" }}
           size="large"
           type="primary"
@@ -166,10 +211,7 @@ export default function ShoppingCart() {
         Cart
       </h3>
       <div style={{ marginTop: "-10px", marginBottom: "5px" }}>
-        <SelectAllItems
-          items={items}
-          onChange={async () => await cart.call()}
-        />
+        <SelectAllItems items={items} onChange={reload} />
       </div>
       <Table
         columns={columns}
@@ -240,6 +282,8 @@ function SelectAllItems({ items, onChange }) {
 }
 
 function SavedForLater({ onChange, cart }) {
+  const isMounted = useIsMounted();
+  const [updating, setUpdating] = useState<boolean>(false);
   const saved = useAPI("/shopping/cart/get", { removed: true });
   const items = useMemo(() => {
     if (!saved.result) return undefined;
@@ -260,6 +304,18 @@ function SavedForLater({ onChange, cart }) {
   }
   if (saved.result == null) {
     return <Loading />;
+  }
+
+  async function reload() {
+    if (!isMounted.current) return;
+    setUpdating(true);
+    try {
+      await saved.call();
+    } finally {
+      if (isMounted.current) {
+        setUpdating(false);
+      }
+    }
   }
 
   if (items.length == 0) {
@@ -291,6 +347,12 @@ function SavedForLater({ onChange, cart }) {
         return (
           <>
             <div style={{ fontSize: "12pt" }}>
+              {description.title && (
+                <div>
+                  <b>{description.title}</b>
+                </div>
+              )}
+              {description.description && <div>{description.description}</div>}
               {describe_quota({
                 ram: input.custom_ram,
                 cpu: input.custom_cpu,
@@ -299,24 +361,41 @@ function SavedForLater({ onChange, cart }) {
                 member: input.custom_member,
                 user: input.user,
               })}
+              <div>Quantity: {description.runLimit}</div>
             </div>
             <div>
               <Button
+                disabled={updating}
                 type="primary"
                 onClick={async () => {
-                  await apiPost("/shopping/cart/add", { id });
-                  onChange();
-                  await saved.call();
+                  setUpdating(true);
+                  try {
+                    await apiPost("/shopping/cart/add", { id });
+                    if (!isMounted.current) return;
+                    onChange();
+                    await reload();
+                  } finally {
+                    if (!isMounted.current) return;
+                    setUpdating(false);
+                  }
                 }}
               >
                 <Icon name="shopping-cart" /> Move to Cart
               </Button>
               <Button
+                disabled={updating}
                 type="dashed"
                 style={{ margin: "0 5px" }}
                 onClick={async () => {
-                  await apiPost("/shopping/cart/delete", { id });
-                  await saved.call();
+                  setUpdating(true);
+                  try {
+                    await apiPost("/shopping/cart/delete", { id });
+                    if (!isMounted.current) return;
+                    await reload();
+                  } finally {
+                    if (!isMounted.current) return;
+                    setUpdating(false);
+                  }
                 }}
               >
                 <Icon name="trash" /> Delete
