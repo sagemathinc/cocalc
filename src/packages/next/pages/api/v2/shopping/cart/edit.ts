@@ -9,7 +9,7 @@ export default async function handle(req, res) {
   try {
     res.json(await edit(req));
   } catch (err) {
-    res.json({ error: `${err}` });
+    res.json({ error: `${err.message}` });
     return;
   }
 }

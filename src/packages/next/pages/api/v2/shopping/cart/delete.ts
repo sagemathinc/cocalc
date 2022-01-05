@@ -12,7 +12,7 @@ export default async function handle(req, res) {
   try {
     res.json(await del(req));
   } catch (err) {
-    res.json({ error: `${err}` });
+    res.json({ error: `${err.message}` });
     return;
   }
 }

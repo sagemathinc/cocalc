@@ -16,7 +16,7 @@ export default async function handle(req, res) {
     const account_id = await getAccountId(req);
     url = await createSupportTicket({ ...options, account_id });
   } catch (err) {
-    res.json({ error: `${err}` });
+    res.json({ error: `${err.message}` });
     return;
   }
   res.json({ url });

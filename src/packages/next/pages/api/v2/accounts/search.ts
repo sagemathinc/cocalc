@@ -14,7 +14,7 @@ export default async function handle(req, res) {
   try {
     return res.json(await doUserSearch(req));
   } catch (err) {
-    res.json({ error: `${err}` });
+    res.json({ error: err.message });
   }
 }
 

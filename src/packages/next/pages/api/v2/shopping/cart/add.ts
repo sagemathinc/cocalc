@@ -15,7 +15,7 @@ export default async function handle(req, res) {
   try {
     res.json(await add(req));
   } catch (err) {
-    res.json({ error: `${err}` });
+    res.json({ error: `${err.message}` });
     return;
   }
 }
