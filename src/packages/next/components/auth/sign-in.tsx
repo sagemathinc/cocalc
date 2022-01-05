@@ -56,7 +56,7 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
             : "Sign in"}
         </div>
         <form>
-          {strategies.length > 0 && (
+          {strategies != null && strategies.length > 0 && (
             <div style={{ textAlign: "center", margin: "20px 0" }}>
               <SSO
                 strategies={strategies}

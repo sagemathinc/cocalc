@@ -93,7 +93,7 @@ export class StripeClient {
   // or undefined if there is no known stripe customer id.
   // Throws an error if something goes wrong.
   // If called multiple times simultaneously, only does one DB query.
-  private async get_customer_id(): Promise<string | undefined> {
+  public async get_customer_id(): Promise<string | undefined> {
     //  If no customer info yet with stripe, then NOT an error; instead,
     //  customer_id is undefined (but will check every time in this case).
     const dbg = this.dbg("get_customer_id");
