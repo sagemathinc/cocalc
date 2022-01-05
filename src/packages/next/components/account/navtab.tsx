@@ -9,12 +9,15 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import A from "components/misc/A";
 import useProfile from "lib/hooks/profile";
 import { CSSProperties } from "react";
+import apiPost from "lib/api/post";
+import { useRouter } from "next/router";
 
 interface Props {
   style: CSSProperties;
 }
 
 export default function AccountNavTab({ style }: Props) {
+  const router = useRouter();
   const { isCommercial, siteName, sshGateway } = useCustomize();
   const profile = useProfile();
   if (!profile) return null;
@@ -147,7 +150,14 @@ export default function AccountNavTab({ style }: Props) {
       <Menu.Divider />
 
       <Menu.Item key="sign-out" icon={<Icon name="sign-out-alt" />}>
-        <A href="/config/account/sign-out">Sign Out</A>
+        <A
+          onClick={async () => {
+            await apiPost("/accounts/sign-out", { all: false });
+            router.push("/");
+          }}
+        >
+          Sign Out
+        </A>
       </Menu.Item>
     </Menu>
   );
