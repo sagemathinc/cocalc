@@ -56,15 +56,17 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
             : "Sign in"}
         </div>
         <form>
-          <div style={{ textAlign: "center", margin: "20px 0" }}>
-            <SSO
-              strategies={strategies}
-              size={email ? 24 : undefined}
-              style={
-                email ? { float: "right", marginBottom: "20px" } : undefined
-              }
-            />
-          </div>
+          {strategies.length > 0 && (
+            <div style={{ textAlign: "center", margin: "20px 0" }}>
+              <SSO
+                strategies={strategies}
+                size={email ? 24 : undefined}
+                style={
+                  email ? { float: "right", marginBottom: "20px" } : undefined
+                }
+              />
+            </div>
+          )}
           <Input
             autoFocus
             style={{ fontSize: "12pt" }}
