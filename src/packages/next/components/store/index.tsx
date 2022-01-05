@@ -12,6 +12,7 @@ import SiteName from "components/share/site-name";
 import Cart from "./cart";
 import SiteLicense from "./site-license";
 import Overview from "./overview";
+import Checkout from "./checkout";
 
 const { Content } = Layout;
 
@@ -57,6 +58,8 @@ export default function ConfigLayout({ page }: Props) {
         return <SiteLicense />;
       case "cart":
         return <Cart />;
+      case "checkout":
+        return <Checkout />;
     }
     return <Overview />;
   }

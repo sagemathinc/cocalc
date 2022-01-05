@@ -19,6 +19,7 @@ import { cmp } from "@cocalc/util/misc";
 import useCustomize from "lib/use-customize";
 import Script from "next/script";
 import useIsMounted from "lib/hooks/mounted";
+import SiteName from "components/share/site-name";
 
 const STRIPE_CLIENT_LIBRARY = "https://js.stripe.com/v3/";
 
@@ -145,24 +146,7 @@ const columns = (onChange) => [
     title: "Card",
     render: (_, card) => (
       <div>
-        <div
-          style={{
-            backgroundColor: "#f8f8f8",
-            border: "1px solid lightgrey",
-            margin: "15px 0",
-            padding: "10px",
-            borderRadius: "5px",
-          }}
-        >
-          <Brand {...card} />
-          <br />
-          <Number {...card} />
-          <br />
-          <ExpirationDate {...card} />
-          <br />
-          {card.country} {card.address_zip}
-          <br />
-        </div>
+        <CreditCard {...card} />
         <PaymentSourceActions {...card} onChange={onChange} />
       </div>
     ),
@@ -204,7 +188,8 @@ const columns = (onChange) => [
   },
 ];
 
-export default function PaymentMethods() {
+export default function PaymentMethods({ startMinimized }) {
+  const [minimized, setMinimized] = useState<boolean>(!!startMinimized);
   const { result, error, call } = useAPI("billing/get-customer");
   if (error) {
     return <Alert type="error" message={error} />;
@@ -229,27 +214,53 @@ export default function PaymentMethods() {
   // default stays stable (since moving is confusing).
   cards.sort((x, y) => cmp(x.id, y.id));
 
+  if (minimized) {
+    let defaultCard = undefined;
+    for (const card of cards) {
+      if (card.default_source) {
+        defaultCard = card;
+        break;
+      }
+    }
+    if (defaultCard) {
+      return (
+        <div>
+          <A onClick={() => setMinimized(false)}>Change</A>
+          <CreditCard {...defaultCard} />
+        </div>
+      );
+    }
+  }
+
   return (
     <div>
+      {startMinimized && cards.length > 0 && (
+        <div style={{ float: "right", marginRight: "15px" }}>
+          <A onClick={() => setMinimized(true)}>
+            Close <Icon name="times" />
+          </A>
+        </div>
+      )}
       <h3>Credit Cards ({cards.length})</h3>
-      These are the credit cards that you have currently setup. Note that CoCalc
-      does not directly store the actual credit card numbers (they are instead
-      stored securely by{" "}
-      <A href="https://stripe.com/" external>
-        Stripe
-      </A>
-      ).
+      {cards.length > 0 ? (
+        <>These are the credit cards that you have currently setup.</>
+      ) : (
+        <>Please enter your credit card below.</>
+      )}{" "}
       <AddPaymentMethod
+        defaultAdding={cards.length == 0}
         onChange={call}
         style={{ marginTop: "15px", marginBottom: "5px" }}
       />
-      <Table
-        columns={columns(call) as any}
-        dataSource={cards}
-        rowKey={"id"}
-        style={{ marginTop: "15px", overflowX: "scroll" }}
-        pagination={{ hideOnSinglePage: true, pageSize: 100 }}
-      />
+      {cards.length > 0 && (
+        <Table
+          columns={columns(call) as any}
+          dataSource={cards}
+          rowKey={"id"}
+          style={{ marginTop: "15px", overflowX: "scroll" }}
+          pagination={{ hideOnSinglePage: true, pageSize: 100 }}
+        />
+      )}
       {result.sources?.has_more && (
         <Alert
           type="warning"
@@ -264,11 +275,16 @@ export default function PaymentMethods() {
 interface AddPaymentMethodProps {
   onChange?: () => void;
   style?: CSSProperties;
+  defaultAdding?: boolean; // starts initially in creating mode
 }
 
-function AddPaymentMethod({ onChange, style }: AddPaymentMethodProps) {
+function AddPaymentMethod({
+  onChange,
+  style,
+  defaultAdding,
+}: AddPaymentMethodProps) {
   const [error, setError] = useState<string>("");
-  const [adding, setAdding] = useState<boolean>(false);
+  const [adding, setAdding] = useState<boolean>(!!defaultAdding);
   const [creating, setCreating] = useState<boolean>(false);
   const [stripe, setStripe] = useState<null | { stripe: any; card: any }>(null);
   const cardRef = useRef<any>();
@@ -276,8 +292,17 @@ function AddPaymentMethod({ onChange, style }: AddPaymentMethodProps) {
   const isMounted = useIsMounted();
 
   useEffect(() => {
-    if (!adding || !stripe || !cardRef.current) return;
-    stripe.card.mount(ReactDOM.findDOMNode(cardRef.current));
+    if (!adding || !cardRef.current) return;
+    if (stripe != null) {
+      stripe.card.mount(ReactDOM.findDOMNode(cardRef.current));
+    } else {
+      if (window.Stripe == null) return;
+      const stripe = window.Stripe(stripePublishableKey);
+      const card = stripe.elements().create("card");
+      if (card == null) throw Error("bug -- card cannot be null");
+      setStripe({ stripe, card });
+      card.mount(ReactDOM.findDOMNode(cardRef.current));
+    }
   }, [adding, stripe]);
 
   return (
@@ -382,11 +407,47 @@ function AddPaymentMethod({ onChange, style }: AddPaymentMethodProps) {
             </Button>
           </div>
           <div style={{ color: "#666", marginTop: "15px" }}>
-            PayPal or wire transfers for non-recurring purchases above $100 are
-            also possible. <HelpEmail />.
+            <SiteName /> does not directly store any credit card numbers;
+            instead they are stored securely by{" "}
+            <A href="https://stripe.com/" external>
+              Stripe
+            </A>
+            . PayPal or wire transfers for non-recurring purchases above $100
+            are also possible. <HelpEmail />.
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+export function CreditCard({
+  brand,
+  last4,
+  exp_month,
+  exp_year,
+  country,
+  address_zip,
+}) {
+  return (
+    <div
+      style={{
+        backgroundColor: "#f8f8f8",
+        border: "1px solid lightgrey",
+        margin: "15px 0",
+        padding: "10px",
+        borderRadius: "5px",
+        maxWidth: "300px",
+      }}
+    >
+      <Brand brand={brand} />
+      <br />
+      <Number last4={last4} />
+      <br />
+      <ExpirationDate exp_month={exp_month} exp_year={exp_year} />
+      <br />
+      {country} {address_zip}
+      <br />
     </div>
   );
 }
