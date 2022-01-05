@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { r_join } from "@cocalc/frontend/components/r_join";
 import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -40,12 +45,14 @@ const pricing = {
 
 const policies = {
   index: {},
-  terms: { label: "Terms of Service" },
-  copyright: { label: "Copyright" },
-  privacy: { label: "Privacy" },
-  thirdparties: { label: "Third Parties" },
-  ferpa: { label: "FERPA" },
-  accessibility: { label: "Accessibility" },
+  terms: { label: "Terms of Service", hide: (c) => !c.onCoCalcCom },
+  copyright: { label: "Copyright", hide: (c) => !c.onCoCalcCom },
+  privacy: { label: "Privacy", hide: (c) => !c.onCoCalcCom },
+  thirdparties: { label: "Third Parties", hide: (c) => !c.onCoCalcCom },
+  ferpa: { label: "FERPA", hide: (c) => !c.onCoCalcCom },
+  accessibility: { label: "Accessibility", hide: (c) => !c.onCoCalcCom },
+  imprint: { label: "Imprint", hide: (c) => !c.imprint },
+  policies: { label: "Policies", hide: (c) => !c.policies },
 };
 
 const info = {

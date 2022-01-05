@@ -112,14 +112,14 @@ export default function ShoppingCart() {
               })}
             </div>
             <div>
-              <Button disabled={updating}>
+              <Button disabled={updating} style={{ marginBottom: "5px" }}>
                 <Icon name="users" /> Quantity: {description.runLimit}{" "}
                 simultaneous running projects
               </Button>
               <Button
                 disabled={updating}
                 type="dashed"
-                style={{ margin: "0 5px" }}
+                style={{ margin: "0 5px 5px" }}
                 onClick={async () => {
                   setUpdating(true);
                   try {
@@ -135,6 +135,7 @@ export default function ShoppingCart() {
                 <Icon name="trash" /> Delete
               </Button>
               <Button
+                style={{ marginBottom: "5px" }}
                 disabled={updating}
                 onClick={async () => {
                   setUpdating(true);

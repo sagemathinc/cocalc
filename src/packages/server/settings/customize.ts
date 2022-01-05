@@ -6,6 +6,7 @@
 import { getServerSettings } from "./server-settings";
 import siteURL from "./site-url";
 import { KucalcValues } from "@cocalc/util/db-schema/site-defaults";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 export interface Customize {
   siteName?: string;
@@ -33,6 +34,9 @@ export interface Customize {
   accountCreationInstructions?: string;
   zendesk?: boolean; // true if zendesk support is configured.
   stripePublishableKey?: string;
+  index_info_html?: string;
+  imprint_html?: string;
+  policies_html?: string;
 }
 
 const fallback = (a?: string, b?: string): string =>
@@ -75,13 +79,17 @@ export default async function getCustomize(): Promise<Customize> {
     logoRectangularURL: settings.logo_rectangular,
     splashImage: settings.splash_image,
 
-    indexInfo: settings.index_info_html,
-
     shareServer: !!settings.share_server,
 
-    landingPages: !!settings.landing_pages,
+    // additionally restrict showing landing pages only in cocalc.com-mode
+    landingPages:
+      !!settings.landing_pages && settings.kucalc === KUCALC_COCALC_COM,
 
     googleAnalytics: settings.google_analytics,
+
+    indexInfo: settings.index_info_html,
+    imprint: settings.imprint,
+    policies: settings.policies,
 
     // Is important for invite emails, password reset, etc. (e.g., so we can construct a url to our site).
     // This *can* start with http:// to explicitly use http instead of https, and can end
