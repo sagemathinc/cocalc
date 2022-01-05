@@ -199,7 +199,7 @@ export default function Subscriptions() {
 
   return (
     <div>
-      <h3>Your Subscriptions ({subscriptions.result.data.length})</h3>
+      <h3>Your Subscriptions ({subscriptions.result?.data?.length ?? 0})</h3>
       <div style={{ maxWidth: "800px", margin: "15px 0" }}>
         Your subscriptions are listed below. You can view invoices, get
         information about the license or plan corresponding to a subscription,
@@ -209,12 +209,12 @@ export default function Subscriptions() {
       </div>
       <Table
         columns={columns(invoices.result, onChange) as any}
-        dataSource={subscriptions.result.data}
+        dataSource={subscriptions.result?.data ?? []}
         rowKey={"id"}
         pagination={{ hideOnSinglePage: true, pageSize: 100 }}
         style={{ overflowX: "scroll" }}
       />
-      {subscriptions.result.has_more && (
+      {subscriptions.result?.has_more && (
         <Alert
           style={{ margin: "15px" }}
           type="warning"

@@ -215,12 +215,14 @@ export default function PaymentMethods() {
   // set default so can use in table
   const { default_source } = result;
   const cards: any[] = [];
-  for (const row of result.sources.data) {
-    if (row.id == default_source) {
-      row.default_source = true;
-    }
-    if (row.id.startsWith("card_")) {
-      cards.push(row);
+  if (result.sources != null) {
+    for (const row of result.sources.data) {
+      if (row.id == default_source) {
+        row.default_source = true;
+      }
+      if (row.id.startsWith("card_")) {
+        cards.push(row);
+      }
     }
   }
   // sort by data rather than what comes back, so changing
@@ -248,7 +250,7 @@ export default function PaymentMethods() {
         style={{ marginTop: "15px", overflowX: "scroll" }}
         pagination={{ hideOnSinglePage: true, pageSize: 100 }}
       />
-      {result.sources.has_more && (
+      {result.sources?.has_more && (
         <Alert
           type="warning"
           showIcon

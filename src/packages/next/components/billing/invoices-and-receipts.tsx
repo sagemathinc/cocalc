@@ -107,7 +107,7 @@ export default function InvoicesAndReceipts() {
       to get a printable invoice or receipt version.
       <Table
         columns={columns as any}
-        dataSource={result.data}
+        dataSource={result.data ?? []}
         rowKey={"id"}
         style={{ marginTop: "15px" }}
         pagination={{ hideOnSinglePage: true, pageSize: 100 }}

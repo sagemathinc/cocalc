@@ -14,10 +14,10 @@ export default async function handle(req, res) {
   }
 }
 
-async function get(req): Promise<object[]> {
+async function get(req): Promise<object> {
   const account_id = await getAccountId(req);
   if (account_id == null) {
-    return [];
+    return {};
   }
   return await getInvoicesAndReceipts(account_id);
 }

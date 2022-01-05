@@ -14,7 +14,7 @@ export default async function handle(req, res) {
   }
 }
 
-async function get(req): Promise<object[]> {
+async function get(req): Promise<object> {
   const account_id = await getAccountId(req);
   if (account_id == null) {
     throw Error("must be signed in to get stripe customer information");
