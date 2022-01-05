@@ -148,6 +148,12 @@ export interface PostgreSQL extends EventEmitter {
     cb: CB;
   }): void;
 
+  make_user_admin(opts: {
+    account_id?: string;
+    email_address?: string;
+    cb: CB;
+  });
+
   log(opts: { event: string; value: any; cb?: Function }): void;
 
   user_is_in_group(opts: { account_id: string; group: string; cb: CB }): void;
