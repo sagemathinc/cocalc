@@ -21,13 +21,13 @@ export default async function editCart({
   id,
   product,
   description,
-}): Promise<number> {
+}: Options): Promise<number> {
   if (!isValidUUID(account_id)) {
     throw Error("account_id is invalid");
   }
   const pool = getPool();
   let query;
-  const params = [account_id, id];
+  const params: (ProductDescription | string | number)[] = [account_id, id];
   if (product && description) {
     query =
       "UPDATE shopping_cart_iems SET product=$3, description=$4 WHERE account_id=$1 AND id=$2";

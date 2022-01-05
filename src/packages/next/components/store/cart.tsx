@@ -21,18 +21,20 @@ import useIsMounted from "lib/hooks/mounted";
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
   const [updating, setUpdating] = useState<boolean>(false);
+  const [subTotal, setSubTotal] = useState<number>(0);
   const cart = useAPI("/shopping/cart/get");
   const items = useMemo(() => {
     if (!cart.result) return undefined;
     const x: any[] = [];
-    x.subTotal = 0; // abusize...
+    let subTotal = 0;
     for (const item of cart.result) {
       item.cost = computeCost(item.description);
       if (item.checked) {
-        x.subTotal += item.cost.discounted_cost;
+        subTotal += item.cost.discounted_cost;
       }
       x.push(item);
     }
+    setSubTotal(subTotal);
     return x;
   }, [cart.result]);
 
@@ -91,7 +93,7 @@ export default function ShoppingCart() {
     },
     {
       width: "60%",
-      render: (x, { id, cost, description }) => {
+      render: (_, { id, cost, description }) => {
         const { input } = cost;
         return (
           <>
@@ -198,7 +200,7 @@ export default function ShoppingCart() {
           <TotalCost items={items} />
         </span>
         <Button
-          disabled={items.subTotal == 0 || updating}
+          disabled={subTotal == 0 || updating}
           style={{ marginLeft: "15px" }}
           size="large"
           type="primary"
@@ -303,7 +305,7 @@ function SavedForLater({ onChange, cart }) {
   if (saved.error) {
     return <Alert type="error" message={saved.error} />;
   }
-  if (saved.result == null) {
+  if (saved.result == null || items == null) {
     return <Loading />;
   }
 

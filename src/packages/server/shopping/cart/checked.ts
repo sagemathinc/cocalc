@@ -21,7 +21,7 @@ export default async function setCheck(
 
   let query =
     "UPDATE shopping_cart_items SET checked=$1 WHERE account_id=$2 AND removed IS NULL AND purchased IS NULL";
-  const params = [checked, account_id];
+  const params: (string | boolean | number)[] = [checked, account_id];
   if (id != null) {
     query += " AND id=$3 ";
     params.push(id);
