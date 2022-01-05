@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Caches queries for a certain amount of time.
 Also, if there are multiple queries coming in
 at the same time for the same thing, only

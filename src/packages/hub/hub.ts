@@ -36,6 +36,7 @@ import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects"
 import initVersionServer from "./servers/version";
 import initPrimus from "./servers/primus";
 import { load_server_settings_from_env } from "@cocalc/server/settings/server-settings";
+import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
 import {
   pguser as DEFAULT_DB_USER,
   pghost as DEFAULT_DB_HOST,
@@ -143,9 +144,11 @@ async function startServer(): Promise<void> {
 
     // in those cases where we initialize the database upon startup
     // (essentially only relevant for kucalc's hub-websocket)
-    // set server settings based on environment variables
     if (program.mode === "kucalc") {
+      // set server settings based on environment variables
       await load_server_settings_from_env(database);
+      // and for on-prem setups, also initialize the admin account, set a registration token, etc.
+      await initialOnPremSetup(database);
     }
   }
 
