@@ -22,7 +22,7 @@ and the setting is saved in your browser.
 `,
   theme: `The editor theme determines the color scheme used by CodeMirror.
 This impacts editing files and input cells of Jupyter notebooks.`,
-  line_wrapping: `Enable line wrapping so that when I line is longer than the width of the editor,
+  line_wrapping: `Enable line or word wrapping so that when I line is longer than the width of the editor,
 the line will get wrapped so it stays visible, and there is no horizontal scroll bar.  Enabling
 this can make it difficult to view the structure of some text involving longer lines, but avoids having
 to scroll horizontally.`,
@@ -46,7 +46,7 @@ register({
   title: "Appearance",
   icon: "font",
   desc: "Editor default font size, color theme, etc.",
-  search: desc.font_size,
+  search: desc,
   Component: () => {
     const { edited, original, Save, EditBoolean, EditNumber, EditSelect } =
       useEditTable<Data>({
