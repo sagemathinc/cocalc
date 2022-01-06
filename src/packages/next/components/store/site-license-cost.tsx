@@ -66,9 +66,10 @@ export function computeCost({
 interface Props {
   cost: Cost;
   simple?: boolean;
+  taxRate?: number;
 }
 
-export function DisplayCost({ cost, simple }: Props) {
+export function DisplayCost({ cost, simple, taxRate }: Props) {
   if (simple) {
     return (
       <>

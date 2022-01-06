@@ -15,7 +15,7 @@ import {
 } from "antd";
 import SiteName from "components/share/site-name";
 import A from "components/misc/A";
-import { CSSProperties, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import IntegerSlider from "components/misc/integer-slider";
 import DateRange from "components/misc/date-range";
 import { computeCost, Cost, DisplayCost } from "./site-license-cost";

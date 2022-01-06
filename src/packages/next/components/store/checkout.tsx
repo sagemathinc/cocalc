@@ -19,6 +19,7 @@ export default function Checkout() {
   const isMounted = useIsMounted();
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
   const [subTotal, setSubTotal] = useState<number>(0);
+  const [taxRate, setTaxRate] = useState<number>(0);
   const cart = useAPI("/shopping/cart/get");
   const items = useMemo(() => {
     if (!cart.result) return undefined;
@@ -44,7 +45,6 @@ export default function Checkout() {
   async function placeOrder() {
     try {
       setPlacingOrder(true);
-      await delay(5000);
     } finally {
       if (!isMounted.current) return;
       setPlacingOrder(false);
@@ -97,7 +97,7 @@ export default function Checkout() {
       align: "right" as "right",
       render: (_, { cost }) => (
         <b style={{ fontSize: "13pt" }}>
-          <DisplayCost cost={cost} simple />
+          <DisplayCost cost={cost} simple taxRate={taxRate} />
         </b>
       ),
     },
@@ -127,45 +127,59 @@ export default function Checkout() {
       )}
       {items.length > 0 && (
         <div>
-          <div
-            style={{
-              float: "right",
-              margin: "0 0 15px 15px",
-              maxWidth: "350px",
-              textAlign: "center",
-              border: "1px solid #ddd",
-              padding: "15px",
-              borderRadius: "5px",
-            }}
-          >
-            <span style={{ fontSize: "13pt" }}>
-              <TotalCost items={items} />
-            </span>
-            <Button
-              disabled={subTotal == 0 || placingOrder}
-              style={{ margin: "15px 0" }}
-              size="large"
-              type="primary"
-              href="/store/checkout"
-              onClick={placeOrder}
-            >
-              Place Your Order
-            </Button>
-            <Terms />
-          </div>
           <div style={{ maxWidth: "900px", margin: "auto" }}>
-            <h3 style={{ fontSize: "16pt" }}>
-              <Icon name={"list"} style={{ marginRight: "5px" }} />
-              Checkout (<A href="/store/cart">{items.length} items</A>)
-            </h3>
-            <br />
-            <br />
-            <h4 style={{ fontSize: "13pt" }}>1. Payment Method</h4>
-            <p>
-              The default payment method shown below will be used for this
-              purchase.
-            </p>
-            <PaymentMethods startMinimized />
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                }}
+              >
+                <div>
+                  <h3 style={{ fontSize: "16pt" }}>
+                    <Icon name={"list"} style={{ marginRight: "5px" }} />
+                    Checkout (<A href="/store/cart">{items.length} items</A>)
+                  </h3>
+                  <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+                    1. Payment Method
+                  </h4>
+                  <p>
+                    The default payment method shown below will be used for this
+                    purchase.
+                  </p>
+                  <PaymentMethods startMinimized setTaxRate={setTaxRate} />
+                </div>
+                <div style={{ flex: 1 }}></div>
+                <div style={{ width: "350px" }}>
+                  <div
+                    style={{
+                      width: "350px",
+                      margin: "0 0 15px 15px",
+                      textAlign: "center",
+                      border: "1px solid #ddd",
+                      padding: "15px",
+                      borderRadius: "5px",
+                    }}
+                  >
+                    <Button
+                      disabled={subTotal == 0 || placingOrder}
+                      style={{ margin: "15px 0" }}
+                      size="large"
+                      type="primary"
+                      href="/store/checkout"
+                      onClick={placeOrder}
+                    >
+                      Place Your Order
+                    </Button>
+                    <Terms />
+                    <OrderSummary items={items} taxRate={taxRate} />
+                    <span style={{ fontSize: "13pt" }}>
+                      <TotalCost items={items} taxRate={taxRate} />
+                    </span>
+                  </div>
+                </div>
+              </div>{" "}
+            </div>
+
             <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
               2. Review Items ({items.length})
             </h4>
@@ -193,7 +207,7 @@ export default function Checkout() {
               </Button>
 
               <div style={{ fontSize: "15pt", marginLeft: "30px" }}>
-                <TotalCost items={cart.result} />
+                <TotalCost items={cart.result} taxRate={taxRate} />
                 <br />
                 <Terms />
               </div>
@@ -206,17 +220,41 @@ export default function Checkout() {
   );
 }
 
-function TotalCost({ items }) {
+function discountedCost(items) {
   let discounted_cost = 0;
   for (const { cost, checked } of items) {
     if (checked) {
       discounted_cost += cost.discounted_cost;
     }
   }
+  return discounted_cost;
+}
+
+function TotalCost({ items, taxRate }) {
+  const cost = discountedCost(items) * (1 + taxRate);
   return (
     <>
-      Order total: <b style={{ color: "darkred" }}>{money(discounted_cost)}</b>
+      Order total:{" "}
+      <b style={{ float: "right", color: "darkred" }}>{money(cost)}</b>
     </>
+  );
+}
+
+function OrderSummary({ items, taxRate }) {
+  const cost = discountedCost(items);
+  const tax = cost * taxRate;
+  return (
+    <div style={{ textAlign: "left" }}>
+      <b style={{ fontSize: "14pt" }}>Order Summary</b>
+      <div>
+        Items ({items.length}):{" "}
+        <span style={{ float: "right" }}>{money(cost)}</span>
+      </div>
+      <div>
+        Estimated tax to be collected:{" "}
+        <span style={{ float: "right" }}>{money(tax)}</span>
+      </div>
+    </div>
   );
 }
 

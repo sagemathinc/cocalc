@@ -20,6 +20,7 @@ import useCustomize from "lib/use-customize";
 import Script from "next/script";
 import useIsMounted from "lib/hooks/mounted";
 import SiteName from "components/share/site-name";
+import salesTax from "@cocalc/util/stripe/sales-tax";
 
 const STRIPE_CLIENT_LIBRARY = "https://js.stripe.com/v3/";
 
@@ -188,11 +189,12 @@ const columns = (onChange) => [
   },
 ];
 
-export default function PaymentMethods({
-  startMinimized,
-}: {
+interface Props {
   startMinimized?: boolean;
-}) {
+  setTaxRate?: (rate: number) => void; // use to find out the sales tax rate for default billing method
+}
+
+export default function PaymentMethods({ startMinimized, setTaxRate }: Props) {
   const [minimized, setMinimized] = useState<boolean>(!!startMinimized);
   const { result, error, call } = useAPI("billing/get-customer");
   if (error) {
@@ -208,6 +210,9 @@ export default function PaymentMethods({
     for (const row of result.sources.data) {
       if (row.id == default_source) {
         row.default_source = true;
+        if (setTaxRate != null) {
+          setTaxRate(salesTax(row.address_zip));
+        }
       }
       if (row.id.startsWith("card_")) {
         cards.push(row);
