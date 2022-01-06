@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
@@ -6,7 +11,7 @@ import { Customize } from "lib/customize";
 import IndexList, { DataSource } from "components/landing/index-list";
 import A from "components/misc/A";
 
-const dataSource = [
+const dataSourceCoCalcCom = [
   {
     link: "/policies/terms",
     title: "Terms of service",
@@ -80,13 +85,40 @@ const dataSource = [
 ] as DataSource;
 
 export default function Policies({ customize }) {
+  function dataSourceOnPrem(): DataSource {
+    const ret: DataSource = [];
+    if (customize.imprint) {
+      ret.push({
+        link: "/policies/imprint",
+        title: "Imprint",
+        logo: "dot-circle",
+        description: <></>,
+      });
+    }
+    if (customize.policies) {
+      ret.push({
+        link: "/policies/policies",
+        title: "Policies",
+        logo: "thumbs-up",
+        description: <></>,
+      });
+    }
+    return ret;
+  }
+
+  const dataSource = customize.onCoCalcCom
+    ? dataSourceCoCalcCom
+    : dataSourceOnPrem();
+  const description = customize.onCoCalcCom
+    ? "SageMath, Inc.'s terms of service, copyright, privacy and other policies."
+    : "";
   return (
     <Customize value={customize}>
       <Head title="Policies" />
       <Header page="policies" />
       <IndexList
-        title="CoCalc Policies"
-        description="SageMath, Inc.'s terms of service, copyright, privacy and other policies."
+        title={`${customize.siteName} Policies`}
+        description={description}
         dataSource={dataSource}
       />
       <Footer />

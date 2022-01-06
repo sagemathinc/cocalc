@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import A from "components/misc/A";
 import Logo from "components/logo-rectangular";
 import { Layout } from "antd";
@@ -23,11 +28,28 @@ export default function Footer() {
   const {
     siteName,
     organizationName,
+    organizationURL,
     termsOfServiceURL,
     contactEmail,
     landingPages,
     zendesk,
+    imprint,
+    policies,
   } = useCustomize();
+
+  function organization(): JSX.Element {
+    if (organizationURL) {
+      return <A href={organizationURL}>{organizationName}</A>;
+    } else {
+      return <>{organizationName}</>;
+    }
+  }
+
+  function renderOrganization() {
+    if (!organizationName) return null;
+    return <Item>{organization()}</Item>;
+  }
+
   return (
     <Layout.Footer
       style={{
@@ -41,7 +63,7 @@ export default function Footer() {
         <Item>
           <A href="https://cocalc.com">CoCalc</A>
         </Item>
-        {organizationName && <Item>{organizationName}</Item>}
+        {renderOrganization()}
         {!landingPages && termsOfServiceURL && (
           <Item>
             <A href={termsOfServiceURL}>Terms of Service</A>
@@ -49,12 +71,22 @@ export default function Footer() {
         )}
         {contactEmail && (
           <Item>
-            <Contact />
+            <Contact showEmail={false} />
           </Item>
         )}
         {zendesk && (
           <Item>
             <A href="/support/new">Support Ticket</A>
+          </Item>
+        )}
+        {imprint && (
+          <Item>
+            <A href="/policies/imprint">Imprint</A>
+          </Item>
+        )}
+        {policies && (
+          <Item>
+            <A href="/policies/policies">Policies</A>
           </Item>
         )}
         <Item>
