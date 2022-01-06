@@ -15,8 +15,6 @@ import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-i
 import { SiteLicenseInput } from "../../site-licenses/input";
 import { PurchaseOneLicenseLink } from "../../site-licenses/purchase";
 
-const { ShowSupportLink } = require("../../support");
-
 interface Props {
   project_id: string;
   site_license?: Map<string, Map<string, number>>;
@@ -77,6 +75,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
           license_id={license_id}
           project_id={project_id}
           upgrades={upgrades}
+          restartAfterRemove={true}
         />
       );
     }
