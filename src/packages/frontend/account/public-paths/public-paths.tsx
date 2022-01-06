@@ -23,11 +23,15 @@ import {
   Loading,
   Space,
   TimeAgo,
+  A,
 } from "@cocalc/frontend/components";
 import { UnpublishEverything } from "./unpublish-everything";
 import { LICENSES } from "@cocalc/frontend/share/licenses";
 import { Footer } from "@cocalc/frontend/customize";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { Alert } from "antd";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
 
 interface PublicPath extends PublicPath0 {
   status?: string;
@@ -37,6 +41,7 @@ type filters = "Listed" | "Unlisted" | "Unpublished" | "Authenticated";
 const DEFAULT_CHECKED: filters[] = ["Listed", "Unlisted", "Authenticated"];
 
 export const PublicPaths: React.FC = () => {
+  const account_id = useTypedRedux("account", "account_id");
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const showAuthenticatedOption = customize_kucalc !== KUCALC_COCALC_COM;
   const [data, set_data] = useState<PublicPath[] | undefined>(undefined);
@@ -227,6 +232,19 @@ export const PublicPaths: React.FC = () => {
 
   return (
     <div style={{ marginBottom: "64px" }}>
+      <Alert
+        showIcon
+        style={{ maxWidth: "600px", margin: "30px auto" }}
+        type="warning"
+        message={
+          <>
+            This is the old public files page (which still works).{" "}
+            <A href={join(appBasePath, "share", "accounts", account_id)}>
+              Try the new page...
+            </A>
+          </>
+        }
+      />
       <Button onClick={fetch} disabled={loading} style={{ float: "right" }}>
         <Icon name="redo" />
         <Space /> <Space /> {loading ? "Loading..." : "Refresh"}

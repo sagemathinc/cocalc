@@ -18,7 +18,6 @@ import {
 } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-
 import moment from "moment";
 import { webapp_client } from "../../webapp-client";
 import { CSS, React, redux, useMemo, useState } from "../../app-framework";
@@ -40,6 +39,8 @@ import { QuotaEditor } from "./quota-editor";
 import { DOC_LICENSE_URL } from "../../billing/data";
 import { COLORS } from "@cocalc/util/theme";
 import { supportURL } from "@cocalc/frontend/support/url";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
 
 const LENGTH_PRESETS = [
   { label: "2 Days", desc: { n: 2, key: "days" } },
@@ -723,7 +724,11 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           value={purchase_resp}
           style={{ maxWidth: "60ex", marginLeft: "30px" }}
         />
-        You should see it listed under "Licenses that you manage".
+        You should see it listed under{" "}
+        <A href={join(appBasePath, "/licenses/managed")}>
+          Licenses that you manage
+        </A>
+        .
       </div>
     );
   }
@@ -743,8 +748,10 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
     return (
       <div style={{ marginBottom: "15px", fontSize: "12pt" }}>
         Buy licenses or request a quote below, as{" "}
-        <A href={DOC_LICENSE_URL}>explained here</A>. If you are planning on
-        making a significant purchase, but need to test things out first,{" "}
+        <A href={DOC_LICENSE_URL}>explained here</A>, or{" "}
+        <A href={join(appBasePath, "store")}>visit the new store</A>. If you are
+        planning on making a significant purchase, but need to test things out
+        first,{" "}
         <A href={supportURL}>
           create a support ticket and request more details or a free trial
         </A>

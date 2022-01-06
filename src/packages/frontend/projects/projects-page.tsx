@@ -20,7 +20,6 @@ import { Icon, Loading, LoginLink, VisibleMDLG } from "../components";
 import { Row, Col } from "../antd-bootstrap";
 
 import { UsersViewing } from "../account/avatar/users-viewing";
-import { UpgradeStatus } from "../upgrades/status";
 
 import { NewProjectCreator } from "./create-project";
 import { ProjectsFilterButtons } from "./projects-filter-buttons";
@@ -47,9 +46,8 @@ const LOADING_STYLE: React.CSSProperties = {
 
 export const ProjectsPage: React.FC = () => {
   const actions = useActions("projects");
-  const [clear_and_focus_search, set_clear_and_focus_search] = useState<number>(
-    0
-  );
+  const [clear_and_focus_search, set_clear_and_focus_search] =
+    useState<number>(0);
 
   const all_projects_have_been_loaded = useTypedRedux(
     "projects",
@@ -110,10 +108,12 @@ export const ProjectsPage: React.FC = () => {
       return;
     }
     return (
-      <NewProjectCreator
-        start_in_edit_mode={n === 0}
-        default_value={search ?? "Untitled"}
-      />
+      <div style={{ margin: "15px auto", maxWidth: "900px" }}>
+        <NewProjectCreator
+          start_in_edit_mode={n === 0}
+          default_value={search ?? "Untitled"}
+        />
+      </div>
     );
   }
 
@@ -174,13 +174,6 @@ export const ProjectsPage: React.FC = () => {
       </Row>
       <Row>
         <Col sm={12} style={{ marginTop: "1ex" }}>
-          <VisibleMDLG>
-            <div
-              style={{ maxWidth: "50%", float: "right", paddingLeft: "30px" }}
-            >
-              <UpgradeStatus />
-            </div>
-          </VisibleMDLG>
           {render_new_project_creator()}
         </Col>
       </Row>
@@ -197,7 +190,7 @@ export const ProjectsPage: React.FC = () => {
           <ProjectList visible_projects={visible_projects} />
         </Col>
       </Row>
-      <Footer/>
+      <Footer />
     </Col>
   );
 };
