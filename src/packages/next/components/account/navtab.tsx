@@ -61,7 +61,7 @@ export default function AccountNavTab({ style }: Props) {
           </Menu.Item>
           {isCommercial && (
             <Menu.Item key="store" icon={<Icon name="shopping-cart" />}>
-              <A href="/store">{siteName} Store</A>
+              <A href="/store">Store</A>
             </Menu.Item>
           )}
           <Menu.Divider />

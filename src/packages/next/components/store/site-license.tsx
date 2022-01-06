@@ -27,7 +27,8 @@ export default function Create() {
     <div>
       <div style={{ maxWidth: "900px", margin: "auto" }}>
         <h3>
-          <Icon name={"key"} style={{ marginRight: "5px" }} /> Site Licenses
+          <Icon name={"key"} style={{ marginRight: "5px" }} /> Buy a Site
+          License
         </h3>
         <p>
           <A href="https://doc.cocalc.com/licenses.html">
@@ -35,10 +36,10 @@ export default function Create() {
           </A>{" "}
           allow you to upgrade any number of projects to run more quickly, have
           network access, more disk space, memory, or run on a dedicated
-          computer. Site licenses can be a wide range of sizes, ranging from a
-          single hobbyist to thousands of simultaneous users across an entire
-          department of school. You can create a license now via the form below,
-          add it to your shopping cart, and check out later.
+          computer. Site licenses can be for a wide range of sizes, ranging from
+          a single hobbyist project to thousands of simultaneous users across an
+          entire department of school. Create a license using the form below
+          then add it to your <A href="/store/cart">shopping cart</A>.
         </p>
         <CreateLicense />
       </div>
@@ -95,7 +96,7 @@ function CreateLicense() {
           border: "1px solid #ccc",
           padding: "10px 20px",
           borderRadius: "5px",
-          marginBottom: "15px",
+          margin: "15px 0",
           fontSize: "12pt",
         }}
       >
@@ -120,7 +121,13 @@ function CreateLicense() {
     <div>
       <Form
         form={form}
-        style={{ marginTop: "15px", maxWidth: "900px", margin: "auto" }}
+        style={{
+          marginTop: "15px",
+          maxWidth: "900px",
+          margin: "auto",
+          border: "1px solid #ddd",
+          padding: "15px",
+        }}
         name="basic"
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 18 }}
@@ -174,10 +181,13 @@ function CreateLicense() {
             showExplanations ? (
               <>
                 You receive a discount if you pay for the license monthly or
-                yearly via a recurring subscription. You can also pay once for a
-                specific period of time. Licenses start at midnight in your
-                local timezone on the start date and end at 23:59 your local
-                time zone on the ending date.
+                yearly via a{" "}
+                <A href="/pricing/subscriptions" external>
+                  recurring subscription
+                </A>
+                . You can also pay once for a specific period of time. Licenses
+                start at midnight in your local timezone on the start date and
+                end at 23:59 your local time zone on the ending date.
               </>
             ) : undefined
           }
