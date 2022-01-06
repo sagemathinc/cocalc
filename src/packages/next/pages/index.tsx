@@ -74,9 +74,11 @@ export default function Home({ customize }) {
                     <A href="/software" style={topLinkStyle}>
                       Software
                     </A>
-                    <A href="/pricing" style={topLinkStyle}>
-                      Pricing
-                    </A>
+                    {customize.isCommercial && (
+                      <A href="/pricing" style={topLinkStyle}>
+                        Pricing
+                      </A>
+                    )}
                   </>
                 )}
                 {customize.account != null && (

@@ -107,7 +107,7 @@ export default function AccountNavTab({ style }: Props) {
             {is_anonymous ? "Project" : "Projects"}
           </A>
         </Menu.Item>
-        {!is_anonymous && isCommercial && (
+        {!is_anonymous && (
           <Menu.Item key="licenses" icon={<Icon name="key" />}>
             <A href="/licenses">Licenses</A>
           </Menu.Item>

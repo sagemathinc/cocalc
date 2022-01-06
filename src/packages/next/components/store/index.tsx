@@ -8,7 +8,7 @@ import useProfile from "lib/hooks/profile";
 import Loading from "components/share/loading";
 import { useRouter } from "next/router";
 import SiteName from "components/share/site-name";
-
+import useCustomize from "lib/use-customize";
 import Cart from "./cart";
 import SiteLicense from "./site-license";
 import Overview from "./overview";
@@ -21,8 +21,29 @@ interface Props {
 }
 
 export default function ConfigLayout({ page }: Props) {
+  const { isCommercial } = useCustomize();
   const router = useRouter();
   const profile = useProfile({ noCache: true });
+
+  if (!isCommercial) {
+    return (
+      <Alert
+        showIcon
+        style={{
+          margin: "30px auto",
+          maxWidth: "400px",
+          fontSize: "12pt",
+          padding: "15px 30px",
+        }}
+        type="warning"
+        message={
+          <>
+            The <SiteName /> store is not enabled.
+          </>
+        }
+      />
+    );
+  }
   if (!profile) {
     return <Loading large center />;
   }

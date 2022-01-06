@@ -7,7 +7,7 @@ import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import useProfile from "lib/hooks/profile";
 import Loading from "components/share/loading";
 import { useRouter } from "next/router";
-
+import useCustomize from "lib/use-customize";
 import PaymentMethods from "./payment-methods";
 import Subscriptions from "./subscriptions";
 import InvoicesAndReceipts from "./invoices-and-receipts";
@@ -20,8 +20,19 @@ interface Props {
 }
 
 export default function ConfigLayout({ page }: Props) {
+  const { isCommercial } = useCustomize();
   const router = useRouter();
   const profile = useProfile({ noCache: true });
+  if (!isCommercial) {
+    return (
+      <Alert
+        showIcon
+        style={{ margin: "30px auto", maxWidth: "400px", fontSize: "12pt",padding:'15px 30px' }}
+        type="warning"
+        message="Billing is not enabled for this server."
+      />
+    );
+  }
   if (!profile) {
     return <Loading large center />;
   }
