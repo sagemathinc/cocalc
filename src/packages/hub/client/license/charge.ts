@@ -152,9 +152,7 @@ async function stripe_create_price(info: PurchaseInfo): Promise<void> {
   }
 }
 
-async function stripe_get_product(
-  info: PurchaseInfo
-): Promise<string> {
+async function stripe_get_product(info: PurchaseInfo): Promise<string> {
   const product_id = get_product_id(info);
   // check to see if the product has already been created; if not, create it.
   if (!(await stripe_product_exists(product_id))) {
@@ -233,8 +231,8 @@ async function stripe_purchase_product(
     throw Error("start and end must be defined");
   }
   const period = {
-    start: Math.round(info.start.valueOf() / 1000),
-    end: Math.round(info.end.valueOf() / 1000),
+    start: Math.round(new Date(info.start).valueOf() / 1000),
+    end: Math.round(new Date(info.end).valueOf() / 1000),
   };
 
   // gets automatically put on the invoice created below.

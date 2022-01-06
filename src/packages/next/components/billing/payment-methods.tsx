@@ -188,14 +188,18 @@ const columns = (onChange) => [
   },
 ];
 
-export default function PaymentMethods({ startMinimized }) {
+export default function PaymentMethods({
+  startMinimized,
+}: {
+  startMinimized?: boolean;
+}) {
   const [minimized, setMinimized] = useState<boolean>(!!startMinimized);
   const { result, error, call } = useAPI("billing/get-customer");
   if (error) {
     return <Alert type="error" message={error} />;
   }
   if (!result) {
-    return <Loading />;
+    return <Loading center />;
   }
   // set default so can use in table
   const { default_source } = result;
@@ -404,7 +408,9 @@ function AddPaymentMethod({
               }}
             >
               {creating ? (
-                <Loading delay={0}>Adding Card...</Loading>
+                <Loading center delay={0}>
+                  Adding Card...
+                </Loading>
               ) : (
                 "Add Card"
               )}

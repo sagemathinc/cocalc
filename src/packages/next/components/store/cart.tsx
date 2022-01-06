@@ -11,6 +11,7 @@ import useAPI from "lib/hooks/api";
 import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Loading from "components/share/loading";
+import A from "components/misc/A";
 import { Alert, Button, Checkbox, Table } from "antd";
 import { computeCost, DisplayCost } from "./site-license-cost";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
@@ -42,7 +43,7 @@ export default function ShoppingCart() {
     return <Alert type="error" message={cart.error} />;
   }
   if (!items) {
-    return <Loading />;
+    return <Loading center />;
   }
 
   async function reload() {
@@ -169,68 +170,71 @@ export default function ShoppingCart() {
     },
   ];
 
-  const forLater = (
-    <div
-      style={{
-        marginTop: "60px",
-        borderTop: "1px solid lightgrey",
-        paddingTop: "15px",
-      }}
-    >
-      <SavedForLater onChange={reload} cart={cart} />
-    </div>
-  );
-
-  if (items.length == 0) {
-    return (
-      <div>
-        <h3>
-          <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} /> Your{" "}
-          <SiteName /> Shopping Cart is Empty
-        </h3>
-        {forLater}
-      </div>
-    );
-  }
-
   return (
     <div style={{ maxWidth: "900px", margin: "auto" }}>
-      <div style={{ float: "right", marginBottom: "15px" }}>
-        <span style={{ fontSize: "13pt" }}>
-          <TotalCost items={items} />
-        </span>
-        <Button
-          disabled={subTotal == 0 || updating}
-          style={{ marginLeft: "15px" }}
-          size="large"
-          type="primary"
-          href="/store/checkout"
-        >
-          Proceed to Checkout
-        </Button>
-      </div>
-      <h3>
-        <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} /> Shopping
-        Cart
-      </h3>
-      <div style={{ marginTop: "-10px", marginBottom: "5px" }}>
-        <SelectAllItems items={items} onChange={reload} />
-      </div>
-      <Table
-        columns={columns}
-        dataSource={items}
-        rowKey={"id"}
-        pagination={{ hideOnSinglePage: true }}
-      />
+      {items.length == 0 && (
+        <>
+          <h3>
+            <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} /> Your{" "}
+            <SiteName /> Shopping Cart is Empty
+          </h3>
+          <A href="/store/site-license">Buy a License</A>
+        </>
+      )}
+      {items.length > 0 && (
+        <>
+          {" "}
+          <div style={{ float: "right", marginBottom: "15px" }}>
+            <span style={{ fontSize: "13pt" }}>
+              <TotalCost items={items} />
+            </span>
+            <Button
+              disabled={subTotal == 0 || updating}
+              style={{ marginLeft: "15px" }}
+              size="large"
+              type="primary"
+              href="/store/checkout"
+            >
+              Proceed to Checkout
+            </Button>
+          </div>
+          <h3>
+            <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />{" "}
+            Shopping Cart
+          </h3>
+          <div style={{ marginTop: "-10px", marginBottom: "5px" }}>
+            <SelectAllItems items={items} onChange={reload} />
+          </div>
+          <Table
+            columns={columns}
+            dataSource={items}
+            rowKey={"id"}
+            pagination={{ hideOnSinglePage: true }}
+          />
+          <div
+            style={{
+              float: "right",
+              fontSize: "12pt",
+              margin: "15px 15px 0 0",
+            }}
+          >
+            <div style={{ float: "right" }}>
+              <TotalCost items={cart.result} />
+            </div>
+            <br />
+          </div>
+        </>
+      )}
+
       <div
-        style={{ float: "right", fontSize: "12pt", margin: "15px 15px 0 0" }}
+        style={{
+          marginTop: "60px",
+          borderTop: "1px solid lightgrey",
+          paddingTop: "15px",
+        }}
       >
-        <div style={{ float: "right" }}>
-          <TotalCost items={cart.result} />
-        </div>
-        <br />
+        <SavedForLater onChange={reload} cart={cart} />
       </div>
-      {forLater}
     </div>
   );
 }
@@ -306,7 +310,7 @@ function SavedForLater({ onChange, cart }) {
     return <Alert type="error" message={saved.error} />;
   }
   if (saved.result == null || items == null) {
-    return <Loading />;
+    return <Loading center />;
   }
 
   async function reload() {

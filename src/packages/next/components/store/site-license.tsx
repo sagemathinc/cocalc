@@ -24,42 +24,32 @@ import { useRouter } from "next/router";
 
 export default function Create() {
   return (
-    <div style={{ maxWidth: "900px", margin: "auto" }}>
-      <h3>
-        <Icon name={"key"} style={{ marginRight: "5px" }} /> Site Licenses
-      </h3>
-      <p>
-        <A href="https://doc.cocalc.com/licenses.html">
-          <SiteName /> site licenses
-        </A>{" "}
-        allow you to upgrade any number of projects to run more quickly, have
-        network access, more disk space, memory, or run on a dedicated computer.
-        Site licenses can be a wide range of sizes, ranging from a single
-        hobbyist to thousands of simultaneous users across an entire department
-        of school. You can create a license now via the form below, add it to
-        your shopping cart, and check out later.
-      </p>
-      <CreateLicense />
+    <div>
+      <div style={{ maxWidth: "900px", margin: "auto" }}>
+        <h3>
+          <Icon name={"key"} style={{ marginRight: "5px" }} /> Site Licenses
+        </h3>
+        <p>
+          <A href="https://doc.cocalc.com/licenses.html">
+            <SiteName /> site licenses
+          </A>{" "}
+          allow you to upgrade any number of projects to run more quickly, have
+          network access, more disk space, memory, or run on a dedicated
+          computer. Site licenses can be a wide range of sizes, ranging from a
+          single hobbyist to thousands of simultaneous users across an entire
+          department of school. You can create a license now via the form below,
+          add it to your shopping cart, and check out later.
+        </p>
+        <CreateLicense />
+      </div>
     </div>
   );
-}
-
-// function rangeMarks(min, max) {
-//   const marks: { [i: number]: string } = {};
-//   for (let i = min; i <= max; i++) {
-//     marks[i] = `${i}`;
-//   }
-//   return marks;
-// }
-
-interface CreateLicenseProps {
-  style?: CSSProperties;
 }
 
 // Note -- the back and forth between moment and Date below
 // is a *workaround* because of some sort of bug in moment/antd/react.
 
-function CreateLicense({ style }: CreateLicenseProps) {
+function CreateLicense() {
   const [cost, setCost] = useState<Cost | undefined>(undefined);
   const [cartError, setCartError] = useState<string>("");
   const [showExplanations, setShowExplanations] = useState<boolean>(true);
@@ -95,62 +85,57 @@ function CreateLicense({ style }: CreateLicenseProps) {
     }
   }
 
-  return (
-    <div style={style}>
-      <div>
-        <Switch checked={showExplanations} onChange={setShowExplanations} />{" "}
-        Show explanations
-      </div>
-      <br />
-      {cost && (
-        <div
-          style={{
-            position: "fixed",
-            top: 5,
-            right: 5,
-            maxWidth: "400px",
-            background: "white",
-            zIndex: 1,
-            border: "1px solid #ccc",
-            boxShadow: "4px 4px 2px #ddd",
-            padding: "10px 20px",
-            borderRadius: "5px",
-          }}
-        >
-          <Icon
-            name={"times"}
-            style={{ float: "right", cursor: "pointer" }}
-            onClick={() => setCost(undefined)}
-          />
-
-          <b>Edit license below</b>
-          <br />
-          <DisplayCost cost={cost} />
-          <div style={{ textAlign: "center" }}>
-            <Button
-              size="large"
-              type="primary"
-              htmlType="submit"
-              style={{ marginTop: "5px" }}
-              onClick={() => addToCart()}
-            >
-              Add to Cart
-            </Button>
-            {cartError && <Alert type="error" message={cartError} />}
-          </div>
+  const addBox = cost ? (
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          display: "inline-block",
+          maxWidth: "400px",
+          background: "white",
+          border: "1px solid #ccc",
+          padding: "10px 20px",
+          borderRadius: "5px",
+          marginBottom: "15px",
+          fontSize: "12pt",
+        }}
+      >
+        <DisplayCost cost={cost} />
+        <div style={{ textAlign: "center" }}>
+          <Button
+            size="large"
+            type="primary"
+            htmlType="submit"
+            style={{ marginTop: "5px" }}
+            onClick={() => addToCart()}
+          >
+            Add to Cart
+          </Button>
+          {cartError && <Alert type="error" message={cartError} />}
         </div>
-      )}
+      </div>
+    </div>
+  ) : null;
+
+  return (
+    <div>
       <Form
         form={form}
         style={{ marginTop: "15px", maxWidth: "900px", margin: "auto" }}
         name="basic"
-        labelCol={{ span: 4 }}
-        wrapperCol={{ span: 20 }}
+        labelCol={{ span: 6 }}
+        wrapperCol={{ span: 18 }}
         onFinish={onFinish}
         onFinishFailed={onFinishFailed}
         autoComplete="off"
         onChange={onChange}
       >
+        <Form.Item wrapperCol={{ offset: 0, span: 24 }}>{addBox}</Form.Item>
+        <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
+          <div style={{ float: "right" }}>
+            <Switch checked={showExplanations} onChange={setShowExplanations} />{" "}
+            Show explanations
+          </div>
+        </Form.Item>
         <Form.Item name="user" hidden={true} initialValue={"academic"}>
           <Input />
         </Form.Item>
@@ -293,7 +278,6 @@ function CreateLicense({ style }: CreateLicenseProps) {
             ) : undefined
           }
         >
-          {/*<Slider marks={rangeMarks(1, 3)} min={1} max={3} /> */}
           <IntegerSlider
             min={1}
             max={3}
@@ -324,7 +308,6 @@ function CreateLicense({ style }: CreateLicenseProps) {
             ) : undefined
           }
         >
-          {/*<Slider marks={rangeMarks(1, 16)} min={1} max={16} /> */}
           <IntegerSlider
             min={1}
             max={16}
@@ -355,7 +338,6 @@ function CreateLicense({ style }: CreateLicenseProps) {
             ) : undefined
           }
         >
-          {/*<Slider marks={rangeMarks(1, 20)} min={1} max={20} />*/}
           <IntegerSlider
             min={1}
             max={20}
@@ -416,7 +398,7 @@ function CreateLicense({ style }: CreateLicenseProps) {
           <Checkbox>Keep projects running</Checkbox>
         </Form.Item>
         <Form.Item
-          label="Title (optional)"
+          label="Title"
           name="title"
           style={{ width: "100%" }}
           extra={
@@ -428,10 +410,10 @@ function CreateLicense({ style }: CreateLicenseProps) {
             ) : undefined
           }
         >
-          <Input placeholder="Enter the title of your license" />
+          <Input placeholder="Enter the title of your license (optional)" />
         </Form.Item>
         <Form.Item
-          label="Description (optional)"
+          label="Description"
           name="description"
           extra={
             showExplanations ? (
@@ -443,9 +425,13 @@ function CreateLicense({ style }: CreateLicenseProps) {
             ) : undefined
           }
         >
-          <Input.TextArea placeholder="Describe your license" rows={2} />
+          <Input.TextArea
+            placeholder="Describe your license (optional)"
+            rows={2}
+          />
         </Form.Item>{" "}
-        <Form.Item wrapperCol={{ offset: 4, span: 20 }}>
+        <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
+          {addBox}
           <Popconfirm
             title="Reset all values to their default?"
             onConfirm={() => {
@@ -453,9 +439,7 @@ function CreateLicense({ style }: CreateLicenseProps) {
               onChange();
             }}
           >
-            <Button style={{ marginRight: "5px" }} type="dashed">
-              Reset Form
-            </Button>
+            <Button style={{ float: "right" }}>Reset Form</Button>
           </Popconfirm>
         </Form.Item>
       </Form>

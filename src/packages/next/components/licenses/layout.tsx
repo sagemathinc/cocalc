@@ -23,7 +23,7 @@ export default function ConfigLayout({ page }: Props) {
   const router = useRouter();
   const profile = useProfile({ noCache: true });
   if (!profile) {
-    return <Loading />;
+    return <Loading large center />;
   }
   const { account_id, is_anonymous } = profile;
 
