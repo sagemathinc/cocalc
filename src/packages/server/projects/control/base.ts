@@ -176,6 +176,8 @@ export abstract class BaseProject extends EventEmitter {
       dbg("project not active so nothing to do");
       return;
     }
+    // FIX: this quota call misses site_licenses and server_settings
+    // https://github.com/sagemathinc/cocalc/issues/5633
     const cur = quota(x.settings, x.users);
     if (isEqual(x.run_quota, cur)) {
       dbg("running, but no quotas changed");
