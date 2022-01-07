@@ -54,6 +54,22 @@ export default function Checkout() {
 
   const columns = [
     {
+      responsive: ["xs" as "xs"],
+      render: ({ id, cost, description }) => {
+        return (
+          <div>
+            <DescriptionColumn cost={cost} description={description} />
+            <div>
+              <b style={{ fontSize: "11pt" }}>
+                <DisplayCost cost={cost} simple oneLine />
+              </b>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      responsive: ["sm" as "sm"],
       title: "Product",
       align: "center" as "center",
       render: () => (
@@ -64,41 +80,18 @@ export default function Checkout() {
       ),
     },
     {
+      responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { cost, description }) => {
-        const { input } = cost;
-        return (
-          <>
-            <div style={{ fontSize: "12pt" }}>
-              {description.title && (
-                <div>
-                  <b>{description.title}</b>
-                </div>
-              )}
-              {description.description && <div>{description.description}</div>}
-              {describe_quota({
-                ram: input.custom_ram,
-                cpu: input.custom_cpu,
-                disk: input.custom_disk,
-                always_running: input.custom_always_running,
-                member: input.custom_member,
-                user: input.user,
-              })}
-              <span>
-                {" "}
-                to up to {description.runLimit} simultaneous running{" "}
-                {plural(description.runLimit, "project")}
-              </span>
-            </div>
-          </>
-        );
-      },
+      render: (_, { cost, description }) => (
+        <DescriptionColumn cost={cost} description={description} />
+      ),
     },
     {
+      responsive: ["sm" as "sm"],
       title: "Price",
       align: "right" as "right",
       render: (_, { cost }) => (
-        <b style={{ fontSize: "13pt" }}>
+        <b style={{ fontSize: "11pt" }}>
           <DisplayCost cost={cost} simple />
         </b>
       ),
@@ -152,14 +145,13 @@ export default function Checkout() {
                   <div
                     style={{
                       float: "right",
-                      margin: "0 0 15px 15px",
                       textAlign: "center",
                       border: "1px solid #ddd",
                       padding: "15px",
                       borderRadius: "5px",
                     }}
                   >
-                    {/*                    <Button
+                    <Button
                       disabled={subTotal == 0 || placingOrder}
                       style={{ margin: "15px 0" }}
                       size="large"
@@ -169,7 +161,7 @@ export default function Checkout() {
                     >
                       Place Your Order
                     </Button>
-                    */}
+
                     <Terms />
                     <OrderSummary items={items} taxRate={taxRate} />
                     <span style={{ fontSize: "13pt" }}>
@@ -195,26 +187,28 @@ export default function Checkout() {
             <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
               3. Place Your Order
             </h4>
-            <div
-              style={{ fontSize: "12pt", margin: "15px 0", display: "flex" }}
-            >
-              <Button
-                disabled={subTotal == 0 || placingOrder}
-                style={{ marginLeft: "15px", marginTop: "7px" }}
-                size="large"
-                type="primary"
-                href="/store/checkout"
-                onClick={placeOrder}
-              >
-                Place Your Order
-              </Button>
-
-              <div style={{ flex: 1, fontSize: "15pt", marginLeft: "30px" }}>
-                <TotalCost items={cart.result} taxRate={taxRate} />
-                <br />
-                <Terms />
-              </div>
-              <br />
+            <div style={{ fontSize: "12pt" }}>
+              <Row>
+                <Col sm={12}>
+                  <Button
+                    disabled={subTotal == 0 || placingOrder}
+                    style={{ marginTop: "7px", marginBottom: "15px" }}
+                    size="large"
+                    type="primary"
+                    href="/store/checkout"
+                    onClick={placeOrder}
+                  >
+                    Place Your Order
+                  </Button>
+                </Col>
+                <Col sm={12}>
+                  <div style={{ fontSize: "15pt" }}>
+                    <TotalCost items={cart.result} taxRate={taxRate} />
+                    <br />
+                    <Terms />
+                  </div>
+                </Col>
+              </Row>
             </div>
           </div>
         </div>
@@ -270,5 +264,34 @@ function Terms() {
       </A>{" "}
       regarding refunds and subscriptions.
     </div>
+  );
+}
+
+function DescriptionColumn({ cost, description }) {
+  const { input } = cost;
+  return (
+    <>
+      <div style={{ fontSize: "12pt" }}>
+        {description.title && (
+          <div>
+            <b>{description.title}</b>
+          </div>
+        )}
+        {description.description && <div>{description.description}</div>}
+        {describe_quota({
+          ram: input.custom_ram,
+          cpu: input.custom_cpu,
+          disk: input.custom_disk,
+          always_running: input.custom_always_running,
+          member: input.custom_member,
+          user: input.user,
+        })}
+        <span>
+          {" "}
+          to up to {description.runLimit} simultaneous running{" "}
+          {plural(description.runLimit, "project")}
+        </span>
+      </div>
+    </>
   );
 }
