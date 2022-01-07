@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import useAPI from "lib/hooks/api";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Loading from "components/share/loading";
-import { Alert, Button, Table } from "antd";
+import { Alert, Button, Row, Col, Table } from "antd";
 import { computeCost, DisplayCost } from "./site-license-cost";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { money } from "@cocalc/frontend/site-licenses/purchase/util";
@@ -128,12 +128,8 @@ export default function Checkout() {
       {items.length > 0 && (
         <div>
           <div style={{ maxWidth: "900px", margin: "auto" }}>
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                }}
-              >
+            <Row>
+              <Col md={16} sm={24}>
                 <div>
                   <h3 style={{ fontSize: "16pt" }}>
                     <Icon name={"list"} style={{ marginRight: "5px" }} />
@@ -148,11 +144,12 @@ export default function Checkout() {
                   </p>
                   <PaymentMethods startMinimized setTaxRate={setTaxRate} />
                 </div>
-                <div style={{ flex: 1 }}></div>
-                <div style={{ width: "350px" }}>
+              </Col>
+              <Col md={8} sm={24}>
+                <div>
                   <div
                     style={{
-                      width: "350px",
+                      float: "right",
                       margin: "0 0 15px 15px",
                       textAlign: "center",
                       border: "1px solid #ddd",
@@ -160,7 +157,7 @@ export default function Checkout() {
                       borderRadius: "5px",
                     }}
                   >
-                    <Button
+                    {/*                    <Button
                       disabled={subTotal == 0 || placingOrder}
                       style={{ margin: "15px 0" }}
                       size="large"
@@ -170,6 +167,7 @@ export default function Checkout() {
                     >
                       Place Your Order
                     </Button>
+                    */}
                     <Terms />
                     <OrderSummary items={items} taxRate={taxRate} />
                     <span style={{ fontSize: "13pt" }}>
@@ -177,8 +175,8 @@ export default function Checkout() {
                     </span>
                   </div>
                 </div>
-              </div>{" "}
-            </div>
+              </Col>
+            </Row>
 
             <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
               2. Review Items ({items.length})
@@ -206,7 +204,7 @@ export default function Checkout() {
                 Place Your Order
               </Button>
 
-              <div style={{ fontSize: "15pt", marginLeft: "30px" }}>
+              <div style={{ flex: 1, fontSize: "15pt", marginLeft: "30px" }}>
                 <TotalCost items={cart.result} taxRate={taxRate} />
                 <br />
                 <Terms />
