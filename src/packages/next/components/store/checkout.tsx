@@ -97,7 +97,7 @@ export default function Checkout() {
       align: "right" as "right",
       render: (_, { cost }) => (
         <b style={{ fontSize: "13pt" }}>
-          <DisplayCost cost={cost} simple taxRate={taxRate} />
+          <DisplayCost cost={cost} simple />
         </b>
       ),
     },

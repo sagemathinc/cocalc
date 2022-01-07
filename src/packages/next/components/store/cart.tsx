@@ -19,7 +19,6 @@ import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { money } from "@cocalc/frontend/site-licenses/purchase/util";
 import SiteName from "components/share/site-name";
 import useIsMounted from "lib/hooks/mounted";
-import IntegerSlider from "components/misc/integer-slider";
 import { plural } from "@cocalc/util/misc";
 import { useRouter } from "next/router";
 

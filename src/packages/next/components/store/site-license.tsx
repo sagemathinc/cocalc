@@ -244,12 +244,8 @@ function CreateLicense() {
               form.setFieldsValue({ period: e.target.value });
             }}
           >
-            <Radio value={"monthly"}>
-              Recurring Monthly Subscription (10% discount)
-            </Radio>
-            <Radio value={"yearly"}>
-              Recurring Yearly Subscription (15% discount)
-            </Radio>
+            <Radio value={"monthly"}>Monthly Subscription (10% discount)</Radio>
+            <Radio value={"yearly"}>Yearly Subscription (15% discount)</Radio>
             <Radio value={"range"}>Specific Start and End Dates</Radio>
           </Radio.Group>
         </Form.Item>
@@ -492,7 +488,7 @@ function CreateLicense() {
   );
 }
 
-export function EditRunLimit({ value, onChange }) {
+export function EditRunLimit({ value, onChange }: { value?; onChange? }) {
   return (
     <IntegerSlider
       value={value}
