@@ -6,12 +6,13 @@ import { useEffect, useMemo, useState } from "react";
 import useAPI from "lib/hooks/api";
 import apiPost from "lib/api/post";
 import useIsMounted from "lib/hooks/mounted";
-import { Alert, Button, Menu, Table } from "antd";
+import { Alert, Button, Input, Menu, Row, Col, Space, Table } from "antd";
 import { computeCost, DisplayCost } from "./site-license-cost";
 import Loading from "components/share/loading";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { plural } from "@cocalc/util/misc";
+import { search_split, search_match } from "@cocalc/util/misc";
 
 type Tab = "saved-for-later" | "buy-it-again";
 
@@ -22,53 +23,88 @@ interface Props {
 
 export default function OtherItems({ onChange, cart }) {
   const [tab, setTab] = useState<Tab>("saved-for-later");
+  const [search, setSearch] = useState<string>("");
   return (
     <div>
-      <Menu
-        selectedKeys={[tab]}
-        mode="horizontal"
-        onSelect={(e) => {
-          setTab(e.keyPath[0] as Tab);
-        }}
-      >
-        <Menu.Item key={"saved-for-later" as Tab}>Saved For Later</Menu.Item>
-        <Menu.Item key={"buy-it-again" as Tab}>Buy It Again</Menu.Item>
-      </Menu>
-      <div style={{ marginBottom: "15px" }} />
-      <Items onChange={onChange} cart={cart} tab={tab} />
+      <Row>
+        <Col sm={18} xs={24}>
+          <Menu
+            selectedKeys={[tab]}
+            mode="horizontal"
+            onSelect={(e) => {
+              setTab(e.keyPath[0] as Tab);
+            }}
+          >
+            <Menu.Item key={"saved-for-later" as Tab}>
+              Saved For Later
+            </Menu.Item>
+            <Menu.Item key={"buy-it-again" as Tab}>Buy It Again</Menu.Item>
+          </Menu>
+        </Col>
+        <Col sm={6}>
+          <div
+            style={{
+              height: "100%",
+              borderBottom: "1px solid #eee" /* hack to match menu */,
+              display: "flex",
+              flexDirection: "column",
+              alignContent: "center",
+              justifyContent: "center",
+              paddingRight: "5px",
+            }}
+          >
+            <Input.Search
+              style={{ width: "100%" }}
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </Col>
+      </Row>
+      <Items
+        onChange={onChange}
+        cart={cart}
+        tab={tab}
+        search={search.toLowerCase()}
+      />
     </div>
   );
 }
 
 interface ItemsProps extends Props {
   tab: Tab;
+  search: string;
 }
 
-function Items({ onChange, cart, tab }: ItemsProps) {
+function Items({ onChange, cart, tab, search }: ItemsProps) {
   const isMounted = useIsMounted();
   const [updating, setUpdating] = useState<boolean>(false);
-  const saved = useAPI(
+  const get = useAPI(
     "/shopping/cart/get",
     tab == "buy-it-again" ? { purchased: true } : { removed: true }
   );
   const items = useMemo(() => {
-    if (!saved.result) return undefined;
+    if (!get.result) return undefined;
     const x: any[] = [];
-    for (const item of saved.result) {
+    const v = search_split(search);
+    for (const item of get.result) {
+      if (search && !search_match(JSON.stringify(item).toLowerCase(), v))
+        continue;
       item.cost = computeCost(item.description);
       x.push(item);
     }
     return x;
-  }, [saved.result]);
+  }, [get.result, search]);
 
   useEffect(() => {
-    saved.call();
+    get.call();
   }, [cart.result]);
 
-  if (saved.error) {
-    return <Alert type="error" message={saved.error} />;
+  if (get.error) {
+    return <Alert type="error" message={get.error} />;
   }
-  if (saved.result == null || items == null) {
+  if (get.result == null || items == null) {
     return <Loading center />;
   }
 
@@ -76,7 +112,7 @@ function Items({ onChange, cart, tab }: ItemsProps) {
     if (!isMounted.current) return;
     setUpdating(true);
     try {
-      await saved.call();
+      await get.call();
     } finally {
       if (isMounted.current) {
         setUpdating(false);
@@ -88,8 +124,8 @@ function Items({ onChange, cart, tab }: ItemsProps) {
     return (
       <div style={{ padding: "15px", textAlign: "center", fontSize: "10pt" }}>
         {tab == "buy-it-again"
-          ? "No previously purchased items."
-          : "No items saved for later."}
+          ? `No ${search ? "matching" : ""} previously purchased items.`
+          : `No ${search ? "matching" : ""} items saved for later.`}
       </div>
     );
   }
