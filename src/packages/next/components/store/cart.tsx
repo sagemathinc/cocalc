@@ -13,11 +13,14 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import Loading from "components/share/loading";
 import A from "components/misc/A";
 import { Alert, Button, Checkbox, Table } from "antd";
+import { EditRunLimit } from "./site-license";
 import { computeCost, DisplayCost } from "./site-license-cost";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { money } from "@cocalc/frontend/site-licenses/purchase/util";
 import SiteName from "components/share/site-name";
 import useIsMounted from "lib/hooks/mounted";
+import IntegerSlider from "components/misc/integer-slider";
+import { plural } from "@cocalc/util/misc";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
@@ -96,6 +99,8 @@ export default function ShoppingCart() {
       width: "60%",
       render: (_, { id, cost, description }) => {
         const { input } = cost;
+        const [editRunLimit, setEditRunLimit] = useState<boolean>(false);
+        const [runLimit, setRunLimit] = useState<number>(description.runLimit);
         return (
           <>
             <div style={{ fontSize: "12pt" }}>
@@ -113,16 +118,59 @@ export default function ShoppingCart() {
                 member: input.custom_member,
                 user: input.user,
               })}
+              {!editRunLimit && (
+                <>
+                  {" "}
+                  to up to{" "}
+                  <Button
+                    onClick={() => setEditRunLimit(true)}
+                    disabled={updating}
+                    style={{ margin: "0 0 5px 5px" }}
+                  >
+                    {runLimit} simultaneous running{" "}
+                    {plural(runLimit, "project")}
+                  </Button>
+                </>
+              )}
             </div>
             <div>
-              <Button disabled={updating} style={{ marginBottom: "5px" }}>
-                <Icon name="users" /> Quantity: {description.runLimit}{" "}
-                simultaneous running projects
-              </Button>
+              {editRunLimit && (
+                <div
+                  style={{
+                    border: "1px solid #eee",
+                    padding: "15px",
+                    margin: "15px 0",
+                    background: "white",
+                  }}
+                >
+                  <Icon
+                    name="times"
+                    style={{ float: "right" }}
+                    onClick={() => {
+                      setEditRunLimit(false);
+                    }}
+                  />
+                  <EditRunLimit value={runLimit} onChange={setRunLimit} />
+                  <Button
+                    type="primary"
+                    style={{ marginTop: "15px" }}
+                    onClick={async () => {
+                      setEditRunLimit(false);
+                      await apiPost("/shopping/cart/edit", {
+                        id,
+                        description: { ...description, runLimit },
+                      });
+                      await reload();
+                    }}
+                  >
+                    Save
+                  </Button>
+                </div>
+              )}
               <Button
                 disabled={updating}
                 type="dashed"
-                style={{ margin: "0 5px 5px" }}
+                style={{ margin: "0 5px 5px 0" }}
                 onClick={async () => {
                   setUpdating(true);
                   try {
@@ -368,7 +416,11 @@ function SavedForLater({ onChange, cart }) {
                 member: input.custom_member,
                 user: input.user,
               })}
-              <div>Quantity: {description.runLimit}</div>
+              <span>
+                {" "}
+                to up to {description.runLimit} simultaneous running{" "}
+                {plural(description.runLimit, "project")}
+              </span>
             </div>
             <div>
               <Button

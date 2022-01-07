@@ -6,6 +6,7 @@ import {
 } from "@cocalc/frontend/site-licenses/purchase/util";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import { plural } from "@cocalc/util/misc";
 
 export type Period = "range" | "monthly" | "yearly";
 
@@ -106,7 +107,9 @@ export function DisplayCost({ cost, simple, taxRate }: Props) {
         always_running: cost.input.custom_always_running,
         member: cost.input.custom_member,
         user: cost.input.user,
-      })}
+      })}{" "}
+      for up to {cost.input.quantity} simultaneous running{" "}
+      {plural(cost.input.quantity, "project")}
       <hr />
       <Icon name="money-check" /> Cost: {desc}
     </span>

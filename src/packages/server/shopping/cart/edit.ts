@@ -30,16 +30,16 @@ export default async function editCart({
   const params: (ProductDescription | string | number)[] = [account_id, id];
   if (product && description) {
     query =
-      "UPDATE shopping_cart_iems SET product=$3, description=$4 WHERE account_id=$1 AND id=$2";
+      "UPDATE shopping_cart_items SET product=$3, description=$4 WHERE account_id=$1 AND id=$2";
     params.push(product);
     params.push(description);
   } else if (product) {
     query =
-      "UPDATE shopping_cart_iems SET product=$3 WHERE account_id=$1 AND id=$2";
+      "UPDATE shopping_cart_items SET product=$3 WHERE account_id=$1 AND id=$2";
     params.push(product);
   } else if (description) {
     query =
-      "UPDATE shopping_cart_iems SET description=$3 WHERE account_id=$1 AND id=$2";
+      "UPDATE shopping_cart_items SET description=$3 WHERE account_id=$1 AND id=$2";
     params.push(description);
   } else {
     return 0; //nothing to change

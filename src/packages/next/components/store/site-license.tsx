@@ -247,25 +247,12 @@ function CreateLicense() {
             ) : undefined
           }
         >
-          <div
-            style={{
-              border: "1px solid #ddd",
-              padding: "10px",
-              borderRadius: "3px",
+          <EditRunLimit
+            onChange={(runLimit) => {
+              form.setFieldsValue({ runLimit });
+              onChange();
             }}
-          >
-            <IntegerSlider
-              min={1}
-              max={300}
-              maxText={10000}
-              onChange={(runLimit) => {
-                form.setFieldsValue({ runLimit });
-                onChange();
-              }}
-              units={"projects"}
-              presets={[1, 2, 10, 50, 100, 250, 500]}
-            />
-          </div>
+          />
         </Form.Item>
         <Form.Item
           label="Shared CPUs"
@@ -454,5 +441,19 @@ function CreateLicense() {
         </Form.Item>
       </Form>
     </div>
+  );
+}
+
+export function EditRunLimit({ value, onChange }) {
+  return (
+    <IntegerSlider
+      value={value}
+      min={1}
+      max={300}
+      maxText={10000}
+      onChange={onChange}
+      units={"projects"}
+      presets={[1, 2, 10, 50, 100, 250, 500]}
+    />
   );
 }
