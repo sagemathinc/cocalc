@@ -13,30 +13,17 @@ interface Options {
   account_id: string;
   purchased?: boolean;
   removed?: boolean;
-  id?: number; // if given, return item with this id
 }
 
 export default async function getCart({
   account_id,
   purchased,
   removed,
-  id,
 }: Options): Promise<Item[] | Item> {
   if (!isValidUUID(account_id)) {
     throw Error("account_id is invalid");
   }
   const pool = getPool();
-  if (id != null) {
-    const { rows } = await pool.query(
-      "SELECT * FROM shopping_cart_items WHERE account_id=$1 AND id=$2 AND purchased IS NULL",
-      [account_id, id]
-    );
-    if (rows.length == 0) {
-      throw Error(`no item with id ${id} in cart`);
-    }
-    return rows[0];
-  }
-
   const { rows } = await pool.query(
     `SELECT * FROM shopping_cart_items WHERE account_id=$1 AND purchased IS ${
       purchased ? " NOT " : ""
@@ -44,4 +31,25 @@ export default async function getCart({
     [account_id]
   );
   return rows;
+}
+
+export async function getItem({
+  account_id,
+  id,
+}: {
+  account_id: string;
+  id: number;
+}): Promise<Item> {
+  if (!isValidUUID(account_id)) {
+    throw Error("account_id is invalid");
+  }
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT * FROM shopping_cart_items WHERE account_id=$1 AND id=$2",
+    [account_id, id]
+  );
+  if (rows.length == 0) {
+    throw Error(`no item with id ${id}`);
+  }
+  return rows[0];
 }

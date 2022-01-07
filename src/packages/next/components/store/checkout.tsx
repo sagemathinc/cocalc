@@ -14,6 +14,7 @@ import SiteName from "components/share/site-name";
 import A from "components/misc/A";
 import useIsMounted from "lib/hooks/mounted";
 import PaymentMethods from "components/billing/payment-methods";
+import { plural } from "@cocalc/util/misc";
 
 export default function Checkout() {
   const isMounted = useIsMounted();
@@ -83,10 +84,11 @@ export default function Checkout() {
                 member: input.custom_member,
                 user: input.user,
               })}
-            </div>
-            <div>
-              <Icon name="users" /> Quantity: {description.runLimit}{" "}
-              simultaneous running projects
+              <span>
+                {" "}
+                to up to {description.runLimit} simultaneous running{" "}
+                {plural(description.runLimit, "project")}
+              </span>
             </div>
           </>
         );
@@ -181,12 +183,15 @@ export default function Checkout() {
             <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
               2. Review Items ({items.length})
             </h4>
-            <Table
-              columns={columns}
-              dataSource={items}
-              rowKey={"id"}
-              pagination={{ hideOnSinglePage: true }}
-            />
+            <div style={{ border: "1px solid #eee" }}>
+              <Table
+                showHeader={false}
+                columns={columns}
+                dataSource={items}
+                rowKey={"id"}
+                pagination={{ hideOnSinglePage: true }}
+              />
+            </div>
             <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
               3. Place Your Order
             </h4>

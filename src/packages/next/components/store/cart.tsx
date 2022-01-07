@@ -6,7 +6,7 @@ shopping cart experience, so most likely to feel familiar to users and easy
 to use.
 */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import useAPI from "lib/hooks/api";
 import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -21,6 +21,7 @@ import SiteName from "components/share/site-name";
 import useIsMounted from "lib/hooks/mounted";
 import { plural } from "@cocalc/util/misc";
 import { useRouter } from "next/router";
+import OtherItems from "./other-items";
 
 export default function ShoppingCart() {
   const router = useRouter();
@@ -169,24 +170,6 @@ export default function ShoppingCart() {
                 </div>
               )}
               <Button
-                disabled={updating}
-                type="dashed"
-                style={{ margin: "0 5px 5px 0" }}
-                onClick={async () => {
-                  setUpdating(true);
-                  try {
-                    await apiPost("/shopping/cart/delete", { id });
-                    if (!isMounted.current) return;
-                    await reload();
-                  } finally {
-                    if (!isMounted.current) return;
-                    setUpdating(false);
-                  }
-                }}
-              >
-                <Icon name="trash" /> Delete
-              </Button>
-              <Button
                 style={{ marginRight: "5px" }}
                 onClick={() => router.push(`/store/site-license?id=${id}`)}
               >
@@ -208,6 +191,24 @@ export default function ShoppingCart() {
                 }}
               >
                 <Icon name="save" /> Save for later
+              </Button>
+              <Button
+                disabled={updating}
+                type="dashed"
+                style={{ margin: "0 5px 5px 5px" }}
+                onClick={async () => {
+                  setUpdating(true);
+                  try {
+                    await apiPost("/shopping/cart/delete", { id });
+                    if (!isMounted.current) return;
+                    await reload();
+                  } finally {
+                    if (!isMounted.current) return;
+                    setUpdating(false);
+                  }
+                }}
+              >
+                <Icon name="trash" /> Delete
               </Button>
             </div>
           </>
@@ -260,12 +261,15 @@ export default function ShoppingCart() {
           <div style={{ marginTop: "-10px", marginBottom: "5px" }}>
             <SelectAllItems items={items} onChange={reload} />
           </div>
-          <Table
-            columns={columns}
-            dataSource={items}
-            rowKey={"id"}
-            pagination={{ hideOnSinglePage: true }}
-          />
+          <div style={{ border: "1px solid #eee" }}>
+            <Table
+              showHeader={false}
+              columns={columns}
+              dataSource={items}
+              rowKey={"id"}
+              pagination={{ hideOnSinglePage: true }}
+            />
+          </div>
           <div
             style={{
               float: "right",
@@ -284,11 +288,10 @@ export default function ShoppingCart() {
       <div
         style={{
           marginTop: "60px",
-          borderTop: "1px solid lightgrey",
-          paddingTop: "15px",
+          border: "1px solid #eee",
         }}
       >
-        <SavedForLater onChange={reload} cart={cart} />
+        <OtherItems onChange={reload} cart={cart} />
       </div>
     </div>
   );
@@ -341,164 +344,4 @@ function SelectAllItems({ items, onChange }) {
     return <a onClick={() => doSelectAll(true)}>Select all items</a>;
   }
   return <a onClick={() => doSelectAll(false)}>Deselect all items</a>;
-}
-
-function SavedForLater({ onChange, cart }) {
-  const router = useRouter();
-  const isMounted = useIsMounted();
-  const [updating, setUpdating] = useState<boolean>(false);
-  const saved = useAPI("/shopping/cart/get", { removed: true });
-  const items = useMemo(() => {
-    if (!saved.result) return undefined;
-    const x: any[] = [];
-    for (const item of saved.result) {
-      item.cost = computeCost(item.description);
-      x.push(item);
-    }
-    return x;
-  }, [saved.result]);
-
-  useEffect(() => {
-    saved.call();
-  }, [cart.result]);
-
-  if (saved.error) {
-    return <Alert type="error" message={saved.error} />;
-  }
-  if (saved.result == null || items == null) {
-    return <Loading center />;
-  }
-
-  async function reload() {
-    if (!isMounted.current) return;
-    setUpdating(true);
-    try {
-      await saved.call();
-    } finally {
-      if (isMounted.current) {
-        setUpdating(false);
-      }
-    }
-  }
-
-  if (items.length == 0) {
-    return (
-      <div>
-        <h3>
-          <Icon name="save" style={{ marginRight: "5px" }} /> No Items Saved For
-          Later
-        </h3>
-      </div>
-    );
-  }
-
-  const columns = [
-    {
-      title: "Product",
-      align: "center" as "center",
-      render: () => (
-        <div style={{ color: "darkblue" }}>
-          <Icon name="key" style={{ fontSize: "24px" }} />
-          <div style={{ fontSize: "10pt" }}>Site License</div>
-        </div>
-      ),
-    },
-    {
-      width: "60%",
-      render: (_, { id, cost, description }) => {
-        const { input } = cost;
-        return (
-          <>
-            <div style={{ fontSize: "12pt" }}>
-              {description.title && (
-                <div>
-                  <b>{description.title}</b>
-                </div>
-              )}
-              {description.description && <div>{description.description}</div>}
-              {describe_quota({
-                ram: input.custom_ram,
-                cpu: input.custom_cpu,
-                disk: input.custom_disk,
-                always_running: input.custom_always_running,
-                member: input.custom_member,
-                user: input.user,
-              })}
-              <span>
-                {" "}
-                to up to {description.runLimit} simultaneous running{" "}
-                {plural(description.runLimit, "project")}
-              </span>
-            </div>
-            <div style={{marginTop:'5px'}}>
-              <Button
-                disabled={updating}
-                onClick={async () => {
-                  setUpdating(true);
-                  try {
-                    await apiPost("/shopping/cart/add", { id });
-                    if (!isMounted.current) return;
-                    onChange();
-                    await reload();
-                  } finally {
-                    if (!isMounted.current) return;
-                    setUpdating(false);
-                  }
-                }}
-              >
-                <Icon name="shopping-cart" /> Move to Cart
-              </Button>
-              <Button
-                style={{ marginLeft: "5px" }}
-                onClick={() => router.push(`/store/site-license?id=${id}`)}
-              >
-                <Icon name="pencil" /> Edit
-              </Button>
-              <Button
-                disabled={updating}
-                type="dashed"
-                style={{ margin: "0 5px" }}
-                onClick={async () => {
-                  setUpdating(true);
-                  try {
-                    await apiPost("/shopping/cart/delete", { id });
-                    if (!isMounted.current) return;
-                    await reload();
-                  } finally {
-                    if (!isMounted.current) return;
-                    setUpdating(false);
-                  }
-                }}
-              >
-                <Icon name="trash" /> Delete
-              </Button>
-            </div>
-          </>
-        );
-      },
-    },
-    {
-      title: "Price",
-      align: "right" as "right",
-      render: (_, { cost }) => (
-        <b style={{ fontSize: "13pt" }}>
-          <DisplayCost cost={cost} simple />
-        </b>
-      ),
-    },
-  ];
-
-  return (
-    <div>
-      <h3>
-        <Icon name="save" style={{ marginRight: "5px" }} /> Saved For Later
-      </h3>
-      <Table
-        columns={columns}
-        dataSource={items}
-        rowKey={"id"}
-        pagination={{ hideOnSinglePage: true }}
-      />
-    </div>
-  );
 }

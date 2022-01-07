@@ -46,6 +46,7 @@ function ExpirationDate({ exp_month, exp_year }) {
 }
 
 function PaymentSourceActions({ onChange, default_source, brand, last4, id }) {
+  const isMounted = useIsMounted();
   const [error, setError] = useState<string>("");
   return (
     <div>
@@ -93,8 +94,10 @@ function PaymentSourceActions({ onChange, default_source, brand, last4, id }) {
               await apiPost("/billing/set-default-source", {
                 default_source: id,
               });
+              if (!isMounted.current) return;
               onChange?.();
             } catch (err) {
+              if (!isMounted.current) return;
               setError(err.message);
             }
           }}
@@ -394,6 +397,7 @@ function AddPaymentMethod({
                     }
                     ({ token } = result);
                   } catch (err) {
+                    if (!isMounted.current) return;
                     setError(err.message);
                     return;
                   }
@@ -408,6 +412,7 @@ function AddPaymentMethod({
                     setError(err.message);
                   }
                 } finally {
+                  if (!isMounted.current) return;
                   setCreating(false);
                 }
               }}
