@@ -15,11 +15,11 @@ export default async function handle(req, res) {
   }
 }
 
-async function get(req): Promise<Item[]> {
+async function get(req): Promise<Item[] | Item> {
   const account_id = await getAccountId(req);
   if (account_id == null) {
     throw Error("must be signed in to get shopping cart information");
   }
-  const { purchased, removed } = req.body;
-  return await getCart({ account_id, purchased, removed });
+  const { purchased, removed, id } = req.body;
+  return await getCart({ account_id, purchased, removed, id });
 }

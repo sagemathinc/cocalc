@@ -44,7 +44,7 @@ export default async function editCart({
   } else {
     return 0; //nothing to change
   }
-  query += " AND removed IS NULL AND purchased IS NULL";
+  query += " AND purchased IS NULL";
 
   const { rowCount } = await pool.query(query, params);
   return rowCount;

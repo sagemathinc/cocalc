@@ -21,8 +21,10 @@ import SiteName from "components/share/site-name";
 import useIsMounted from "lib/hooks/mounted";
 import IntegerSlider from "components/misc/integer-slider";
 import { plural } from "@cocalc/util/misc";
+import { useRouter } from "next/router";
 
 export default function ShoppingCart() {
+  const router = useRouter();
   const isMounted = useIsMounted();
   const [updating, setUpdating] = useState<boolean>(false);
   const [subTotal, setSubTotal] = useState<number>(0);
@@ -186,6 +188,12 @@ export default function ShoppingCart() {
                 <Icon name="trash" /> Delete
               </Button>
               <Button
+                style={{ marginRight: "5px" }}
+                onClick={() => router.push(`/store/site-license?id=${id}`)}
+              >
+                <Icon name="pencil" /> Edit
+              </Button>
+              <Button
                 style={{ marginBottom: "5px" }}
                 disabled={updating}
                 onClick={async () => {
@@ -337,6 +345,7 @@ function SelectAllItems({ items, onChange }) {
 }
 
 function SavedForLater({ onChange, cart }) {
+  const router = useRouter();
   const isMounted = useIsMounted();
   const [updating, setUpdating] = useState<boolean>(false);
   const saved = useAPI("/shopping/cart/get", { removed: true });
@@ -422,10 +431,9 @@ function SavedForLater({ onChange, cart }) {
                 {plural(description.runLimit, "project")}
               </span>
             </div>
-            <div>
+            <div style={{marginTop:'5px'}}>
               <Button
                 disabled={updating}
-                type="primary"
                 onClick={async () => {
                   setUpdating(true);
                   try {
@@ -440,6 +448,12 @@ function SavedForLater({ onChange, cart }) {
                 }}
               >
                 <Icon name="shopping-cart" /> Move to Cart
+              </Button>
+              <Button
+                style={{ marginLeft: "5px" }}
+                onClick={() => router.push(`/store/site-license?id=${id}`)}
+              >
+                <Icon name="pencil" /> Edit
               </Button>
               <Button
                 disabled={updating}

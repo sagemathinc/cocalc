@@ -21,26 +21,33 @@ import DateRange from "components/misc/date-range";
 import { computeCost, Cost, DisplayCost } from "./site-license-cost";
 import apiPost from "lib/api/post";
 import { useRouter } from "next/router";
+import Loading from "components/share/loading";
 
 export default function Create() {
+  const router = useRouter();
   return (
     <div>
       <div style={{ maxWidth: "900px", margin: "auto" }}>
         <h3>
-          <Icon name={"key"} style={{ marginRight: "5px" }} /> Buy a Site
-          License
+          <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
+          {router.query.id != null
+            ? "Edit Site License in Shopping Cart"
+            : "Buy a Site License"}
         </h3>
-        <p>
-          <A href="https://doc.cocalc.com/licenses.html">
-            <SiteName /> site licenses
-          </A>{" "}
-          allow you to upgrade any number of projects to run more quickly, have
-          network access, more disk space, memory, or run on a dedicated
-          computer. Site licenses can be for a wide range of sizes, ranging from
-          a single hobbyist project to thousands of simultaneous users across an
-          entire department of school. Create a license using the form below
-          then add it to your <A href="/store/cart">shopping cart</A>.
-        </p>
+        {router.query.id == null && (
+          <p>
+            <A href="https://doc.cocalc.com/licenses.html">
+              <SiteName /> site licenses
+            </A>{" "}
+            allow you to upgrade any number of projects to run more quickly,
+            have network access, more disk space, memory, or run on a dedicated
+            computer. Site licenses can be for a wide range of sizes, ranging
+            from a single hobbyist project to thousands of simultaneous users
+            across an entire department of school. Create a license using the
+            form below then add it to your{" "}
+            <A href="/store/cart">shopping cart</A>.
+          </p>
+        )}
         <CreateLicense />
       </div>
     </div>
@@ -52,34 +59,63 @@ export default function Create() {
 
 function CreateLicense() {
   const [cost, setCost] = useState<Cost | undefined>(undefined);
+  const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
   const [showExplanations, setShowExplanations] = useState<boolean>(true);
   const [form] = Form.useForm();
   const router = useRouter();
-
-  function onFinish(...args) {
-    console.log("onFinish", ...args);
-  }
-  function onFinishFailed(...args) {
-    console.log("onFinishFail", ...args);
-  }
 
   function onChange() {
     setCost(computeCost(form.getFieldsValue(true)));
   }
 
   useEffect(() => {
+    if (window.localStorage.store_site_license_show_explanations != null) {
+      setShowExplanations(
+        !!window.localStorage.store_site_license_show_explanations
+      );
+    }
+    const { id } = router.query;
+    if (id != null) {
+      // editing something in the shopping cart
+      (async () => {
+        let item;
+        try {
+          setLoading(true);
+          item = await apiPost("/shopping/cart/get", { id });
+        } catch (err) {
+          setCartError(err.message);
+        } finally {
+          setLoading(false);
+        }
+        if (item.product == "site-license") {
+          form.setFieldsValue(item.description);
+        }
+        onChange();
+      })();
+    }
     onChange();
   }, []);
+
+  if (loading) {
+    return <Loading large center />;
+  }
 
   async function addToCart() {
     const description = form.getFieldsValue(true);
     try {
       setCartError("");
-      await apiPost("/shopping/cart/add", {
-        product: "site-license",
-        description,
-      });
+      if (router.query.id != null) {
+        await apiPost("/shopping/cart/edit", {
+          id: router.query.id,
+          description,
+        });
+      } else {
+        await apiPost("/shopping/cart/add", {
+          product: "site-license",
+          description,
+        });
+      }
       router.push("/store/cart");
     } catch (err) {
       setCartError(err.message);
@@ -102,6 +138,15 @@ function CreateLicense() {
       >
         <DisplayCost cost={cost} />
         <div style={{ textAlign: "center" }}>
+          {router.query.id != null && (
+            <Button
+              size="large"
+              style={{ marginRight: "5px" }}
+              onClick={() => router.push("/store/cart")}
+            >
+              Cancel
+            </Button>
+          )}
           <Button
             size="large"
             type="primary"
@@ -109,7 +154,7 @@ function CreateLicense() {
             style={{ marginTop: "5px" }}
             onClick={() => addToCart()}
           >
-            Add to Cart
+            {router.query.id != null ? "Save Changes" : "Add to Cart"}
           </Button>
           {cartError && <Alert type="error" message={cartError} />}
         </div>
@@ -131,22 +176,28 @@ function CreateLicense() {
         name="basic"
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 18 }}
-        onFinish={onFinish}
-        onFinishFailed={onFinishFailed}
         autoComplete="off"
         onChange={onChange}
       >
         <Form.Item wrapperCol={{ offset: 0, span: 24 }}>{addBox}</Form.Item>
         <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
           <div style={{ float: "right" }}>
-            <Switch checked={showExplanations} onChange={setShowExplanations} />{" "}
+            <Switch
+              checked={showExplanations}
+              onChange={(show) => {
+                setShowExplanations(show);
+                // ugly and ignores basePath -- change later:
+                window.localStorage.store_site_license_show_explanations = show
+                  ? "t"
+                  : "";
+              }}
+            />{" "}
             Show explanations
           </div>
         </Form.Item>
-        <Form.Item name="user" hidden={true} initialValue={"academic"}>
-          <Input />
-        </Form.Item>
         <Form.Item
+          name="user"
+          initialValue="academic"
           label="Type of Usage"
           extra={
             showExplanations ? (
@@ -157,12 +208,7 @@ function CreateLicense() {
             ) : undefined
           }
         >
-          <Radio.Group
-            defaultValue={"academic"}
-            onChange={(e) => {
-              form.setFieldsValue({ user: e.target.value });
-            }}
-          >
+          <Radio.Group>
             <Radio value={"academic"}>
               Academic - students, teachers, academic researchers, non-profit
               organizations and hobbyists (40% discount)
@@ -229,31 +275,35 @@ function CreateLicense() {
           }
         </Form.Item>
         <Form.Item
-          label="Run Limit"
-          name="runLimit"
+          label="GB shared RAM"
+          name="sharedRam"
           initialValue={1}
           extra={
             showExplanations ? (
-              <div style={{ marginTop: "5px" }}>
-                Simultaneously run this many projects using this license. You,
-                and anyone you share the license code with, can apply the
-                license to an unlimited number of projects, but it will only be
-                used up to the run limit. When{" "}
-                <A href="https://doc.cocalc.com/teaching-instructors.html">
-                  teaching a course
-                </A>
-                , the run limit is typically 2 more than the number of students.
-              </div>
+              <>
+                Each project using this license can use up to this many GB's of
+                RAM. Note that RAM may be limited if many other users are using
+                the same host, though member hosting significantly reduces
+                competition for RAM. We also offer{" "}
+                <A external href="https://cocalc.com/pricing/dedicated">
+                  dedicated virtual machines
+                </A>{" "}
+                with larger memory options.
+              </>
             ) : undefined
           }
         >
-          <EditRunLimit
-            onChange={(runLimit) => {
-              form.setFieldsValue({ runLimit });
+          <IntegerSlider
+            min={1}
+            max={16}
+            onChange={(sharedRam) => {
+              form.setFieldsValue({ sharedRam });
               onChange();
             }}
+            units={"GB RAM"}
+            presets={[1, 2, 8, 16]}
           />
-        </Form.Item>
+        </Form.Item>{" "}
         <Form.Item
           label="Shared CPUs"
           name="sharedCores"
@@ -287,36 +337,6 @@ function CreateLicense() {
           />
         </Form.Item>
         <Form.Item
-          label="GB shared RAM"
-          name="sharedRam"
-          initialValue={1}
-          extra={
-            showExplanations ? (
-              <>
-                Each project using this license can use up to this many GB's of
-                RAM. Note that RAM may be limited if many other users are using
-                the same host, though member hosting significantly reduces
-                competition for RAM. We also offer{" "}
-                <A external href="https://cocalc.com/pricing/dedicated">
-                  dedicated virtual machines
-                </A>{" "}
-                with larger memory options.
-              </>
-            ) : undefined
-          }
-        >
-          <IntegerSlider
-            min={1}
-            max={16}
-            onChange={(sharedRam) => {
-              form.setFieldsValue({ sharedRam });
-              onChange();
-            }}
-            units={"GB RAM"}
-            presets={[1, 2, 8, 16]}
-          />
-        </Form.Item>
-        <Form.Item
           label="GB disk space"
           name="disk"
           initialValue={1}
@@ -344,6 +364,32 @@ function CreateLicense() {
             }}
             units={"GB Disk"}
             presets={[1, 4, 8, 16, 20]}
+          />
+        </Form.Item>
+        <Form.Item
+          label="Run Limit"
+          name="runLimit"
+          initialValue={1}
+          extra={
+            showExplanations ? (
+              <div style={{ marginTop: "5px" }}>
+                Simultaneously run this many projects using this license. You,
+                and anyone you share the license code with, can apply the
+                license to an unlimited number of projects, but it will only be
+                used up to the run limit. When{" "}
+                <A href="https://doc.cocalc.com/teaching-instructors.html">
+                  teaching a course
+                </A>
+                , the run limit is typically 2 more than the number of students.
+              </div>
+            ) : undefined
+          }
+        >
+          <EditRunLimit
+            onChange={(runLimit) => {
+              form.setFieldsValue({ runLimit });
+              onChange();
+            }}
           />
         </Form.Item>
         <Form.Item
@@ -429,15 +475,17 @@ function CreateLicense() {
         </Form.Item>{" "}
         <Form.Item wrapperCol={{ offset: 0, span: 24 }}>
           {addBox}
-          <Popconfirm
-            title="Reset all values to their default?"
-            onConfirm={() => {
-              form.resetFields();
-              onChange();
-            }}
-          >
-            <Button style={{ float: "right" }}>Reset Form</Button>
-          </Popconfirm>
+          {router.query.id == null && (
+            <Popconfirm
+              title="Reset all values to their default?"
+              onConfirm={() => {
+                form.resetFields();
+                onChange();
+              }}
+            >
+              <Button style={{ float: "right" }}>Reset Form</Button>
+            </Popconfirm>
+          )}
         </Form.Item>
       </Form>
     </div>
