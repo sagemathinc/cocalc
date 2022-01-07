@@ -353,13 +353,13 @@ function CreateLicense() {
         >
           <IntegerSlider
             min={1}
-            max={20}
+            max={15}
             onChange={(disk) => {
               form.setFieldsValue({ disk });
               onChange();
             }}
             units={"GB Disk"}
-            presets={[1, 4, 8, 16, 20]}
+            presets={[1, 4, 8, 10, 15]}
           />
         </Form.Item>
         <Form.Item

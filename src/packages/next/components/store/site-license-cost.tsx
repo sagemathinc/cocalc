@@ -67,13 +67,14 @@ export function computeCost({
 interface Props {
   cost: Cost;
   simple?: boolean;
+  oneLine?: boolean;
 }
 
-export function DisplayCost({ cost, simple }: Props) {
+export function DisplayCost({ cost, simple, oneLine }: Props) {
   if (simple) {
     return (
       <>
-        {money(cost.discounted_cost)} <br />
+        {money(cost.discounted_cost)} {oneLine ? null : <br />}
         {cost.period != "range" ? cost.period : ""}
       </>
     );

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import useAPI from "lib/hooks/api";
 import apiPost from "lib/api/post";
 import useIsMounted from "lib/hooks/mounted";
-import { Alert, Button, Input, Menu, Row, Col, Space, Table } from "antd";
+import { Alert, Button, Input, Menu, Row, Col, Table } from "antd";
 import { computeCost, DisplayCost } from "./site-license-cost";
 import Loading from "components/share/loading";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -132,6 +132,34 @@ function Items({ onChange, cart, tab, search }: ItemsProps) {
 
   const columns = [
     {
+      responsive: ["xs" as "xs"],
+      render: ({ id, cost, description }) => {
+        return (
+          <div>
+            <DescriptionColumn
+              {...{
+                id,
+                cost,
+                description,
+                updating,
+                setUpdating,
+                isMounted,
+                reload,
+                onChange,
+                tab,
+              }}
+            />
+            <div>
+              <b style={{ fontSize: "11pt" }}>
+                <DisplayCost cost={cost} simple oneLine />
+              </b>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      responsive: ["sm" as "sm"],
       title: "Product",
       align: "center" as "center",
       render: () => (
@@ -142,84 +170,30 @@ function Items({ onChange, cart, tab, search }: ItemsProps) {
       ),
     },
     {
+      responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { id, cost, description }) => {
-        const { input } = cost;
-        return (
-          <>
-            <div style={{ fontSize: "12pt" }}>
-              {description.title && (
-                <div>
-                  <b>{description.title}</b>
-                </div>
-              )}
-              {description.description && <div>{description.description}</div>}
-              {describe_quota({
-                ram: input.custom_ram,
-                cpu: input.custom_cpu,
-                disk: input.custom_disk,
-                always_running: input.custom_always_running,
-                member: input.custom_member,
-                user: input.user,
-              })}
-              <span>
-                {" "}
-                to up to {description.runLimit} simultaneous running{" "}
-                {plural(description.runLimit, "project")}
-              </span>
-            </div>
-            <div style={{ marginTop: "5px" }}>
-              <Button
-                disabled={updating}
-                onClick={async () => {
-                  setUpdating(true);
-                  try {
-                    await apiPost("/shopping/cart/add", {
-                      id,
-                      purchased: tab == "buy-it-again",
-                    });
-                    if (!isMounted.current) return;
-                    onChange();
-                    await reload();
-                  } finally {
-                    if (!isMounted.current) return;
-                    setUpdating(false);
-                  }
-                }}
-              >
-                <Icon name="shopping-cart" />{" "}
-                {tab == "buy-it-again" ? "Add to Cart" : "Move to Cart"}
-              </Button>
-              {tab == "saved-for-later" && (
-                <Button
-                  disabled={updating}
-                  type="dashed"
-                  style={{ margin: "0 5px" }}
-                  onClick={async () => {
-                    setUpdating(true);
-                    try {
-                      await apiPost("/shopping/cart/delete", { id });
-                      if (!isMounted.current) return;
-                      await reload();
-                    } finally {
-                      if (!isMounted.current) return;
-                      setUpdating(false);
-                    }
-                  }}
-                >
-                  <Icon name="trash" /> Delete
-                </Button>
-              )}
-            </div>
-          </>
-        );
-      },
+      render: (_, { id, cost, description }) => (
+        <DescriptionColumn
+          {...{
+            id,
+            cost,
+            description,
+            updating,
+            setUpdating,
+            isMounted,
+            onChange,
+            reload,
+            tab,
+          }}
+        />
+      ),
     },
     {
+      responsive: ["sm" as "sm"],
       title: "Price",
       align: "right" as "right",
       render: (_, { cost }) => (
-        <b style={{ fontSize: "13pt" }}>
+        <b style={{ fontSize: "11pt" }}>
           <DisplayCost cost={cost} simple />
         </b>
       ),
@@ -234,5 +208,87 @@ function Items({ onChange, cart, tab, search }: ItemsProps) {
       rowKey={"id"}
       pagination={{ hideOnSinglePage: true }}
     />
+  );
+}
+
+function DescriptionColumn({
+  id,
+  cost,
+  description,
+  updating,
+  setUpdating,
+  isMounted,
+  onChange,
+  reload,
+  tab,
+}) {
+  const { input } = cost;
+  return (
+    <>
+      <div style={{ fontSize: "12pt" }}>
+        {description.title && (
+          <div>
+            <b>{description.title}</b>
+          </div>
+        )}
+        {description.description && <div>{description.description}</div>}
+        {describe_quota({
+          ram: input.custom_ram,
+          cpu: input.custom_cpu,
+          disk: input.custom_disk,
+          always_running: input.custom_always_running,
+          member: input.custom_member,
+          user: input.user,
+        })}
+        <span>
+          {" "}
+          to up to {description.runLimit} simultaneous running{" "}
+          {plural(description.runLimit, "project")}
+        </span>
+      </div>
+      <div style={{ marginTop: "5px" }}>
+        <Button
+          disabled={updating}
+          onClick={async () => {
+            setUpdating(true);
+            try {
+              await apiPost("/shopping/cart/add", {
+                id,
+                purchased: tab == "buy-it-again",
+              });
+              if (!isMounted.current) return;
+              onChange();
+              await reload();
+            } finally {
+              if (!isMounted.current) return;
+              setUpdating(false);
+            }
+          }}
+        >
+          <Icon name="shopping-cart" />{" "}
+          {tab == "buy-it-again" ? "Add to Cart" : "Move to Cart"}
+        </Button>
+        {tab == "saved-for-later" && (
+          <Button
+            disabled={updating}
+            type="dashed"
+            style={{ margin: "0 5px" }}
+            onClick={async () => {
+              setUpdating(true);
+              try {
+                await apiPost("/shopping/cart/delete", { id });
+                if (!isMounted.current) return;
+                await reload();
+              } finally {
+                if (!isMounted.current) return;
+                setUpdating(false);
+              }
+            }}
+          >
+            <Icon name="trash" /> Delete
+          </Button>
+        )}
+      </div>
+    </>
   );
 }

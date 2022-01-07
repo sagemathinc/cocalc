@@ -24,7 +24,6 @@ import { useRouter } from "next/router";
 import OtherItems from "./other-items";
 
 export default function ShoppingCart() {
-  const router = useRouter();
   const isMounted = useIsMounted();
   const [updating, setUpdating] = useState<boolean>(false);
   const [subTotal, setSubTotal] = useState<number>(0);
@@ -65,29 +64,45 @@ export default function ShoppingCart() {
 
   const columns = [
     {
+      responsive: ["xs" as "xs"],
+      render: ({ id, checked, cost, description }) => {
+        return (
+          <div>
+            <CheckboxColumn
+              {...{ id, checked, updating, setUpdating, isMounted, reload }}
+            />
+            <DescriptionColumn
+              {...{
+                id,
+                cost,
+                description,
+                updating,
+                setUpdating,
+                isMounted,
+                reload,
+              }}
+              compact
+            />
+            <div>
+              <b style={{ fontSize: "11pt" }}>
+                <DisplayCost cost={cost} simple oneLine />
+              </b>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      responsive: ["sm" as "sm"],
       title: "",
       render: (_, { id, checked }) => (
-        <Checkbox
-          disabled={updating}
-          checked={checked}
-          onChange={async (e) => {
-            setUpdating(true);
-            try {
-              await apiPost("/shopping/cart/checked", {
-                id,
-                checked: e.target.checked,
-              });
-              if (!isMounted.current) return;
-              await reload();
-            } finally {
-              if (!isMounted.current) return;
-              setUpdating(false);
-            }
-          }}
+        <CheckboxColumn
+          {...{ id, checked, updating, setUpdating, isMounted, reload }}
         />
       ),
     },
     {
+      responsive: ["sm" as "sm"],
       title: "Product",
       align: "center" as "center",
       render: () => (
@@ -98,128 +113,29 @@ export default function ShoppingCart() {
       ),
     },
     {
+      responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { id, cost, description }) => {
-        const { input } = cost;
-        const [editRunLimit, setEditRunLimit] = useState<boolean>(false);
-        const [runLimit, setRunLimit] = useState<number>(description.runLimit);
-        return (
-          <>
-            <div style={{ fontSize: "12pt" }}>
-              {description.title && (
-                <div>
-                  <b>{description.title}</b>
-                </div>
-              )}
-              {description.description && <div>{description.description}</div>}
-              {describe_quota({
-                ram: input.custom_ram,
-                cpu: input.custom_cpu,
-                disk: input.custom_disk,
-                always_running: input.custom_always_running,
-                member: input.custom_member,
-                user: input.user,
-              })}
-              {!editRunLimit && (
-                <>
-                  {" "}
-                  to up to{" "}
-                  <Button
-                    onClick={() => setEditRunLimit(true)}
-                    disabled={updating}
-                    style={{ margin: "0 0 5px 5px" }}
-                  >
-                    {runLimit} simultaneous running{" "}
-                    {plural(runLimit, "project")}
-                  </Button>
-                </>
-              )}
-            </div>
-            <div>
-              {editRunLimit && (
-                <div
-                  style={{
-                    border: "1px solid #eee",
-                    padding: "15px",
-                    margin: "15px 0",
-                    background: "white",
-                  }}
-                >
-                  <Icon
-                    name="times"
-                    style={{ float: "right" }}
-                    onClick={() => {
-                      setEditRunLimit(false);
-                    }}
-                  />
-                  <EditRunLimit value={runLimit} onChange={setRunLimit} />
-                  <Button
-                    type="primary"
-                    style={{ marginTop: "15px" }}
-                    onClick={async () => {
-                      setEditRunLimit(false);
-                      await apiPost("/shopping/cart/edit", {
-                        id,
-                        description: { ...description, runLimit },
-                      });
-                      await reload();
-                    }}
-                  >
-                    Save
-                  </Button>
-                </div>
-              )}
-              <Button
-                style={{ marginRight: "5px" }}
-                onClick={() => router.push(`/store/site-license?id=${id}`)}
-              >
-                <Icon name="pencil" /> Edit
-              </Button>
-              <Button
-                style={{ marginBottom: "5px" }}
-                disabled={updating}
-                onClick={async () => {
-                  setUpdating(true);
-                  try {
-                    await apiPost("/shopping/cart/remove", { id });
-                    if (!isMounted.current) return;
-                    await reload();
-                  } finally {
-                    if (!isMounted.current) return;
-                    setUpdating(false);
-                  }
-                }}
-              >
-                <Icon name="save" /> Save for later
-              </Button>
-              <Button
-                disabled={updating}
-                type="dashed"
-                style={{ margin: "0 5px 5px 5px" }}
-                onClick={async () => {
-                  setUpdating(true);
-                  try {
-                    await apiPost("/shopping/cart/delete", { id });
-                    if (!isMounted.current) return;
-                    await reload();
-                  } finally {
-                    if (!isMounted.current) return;
-                    setUpdating(false);
-                  }
-                }}
-              >
-                <Icon name="trash" /> Delete
-              </Button>
-            </div>
-          </>
-        );
-      },
+      render: (_, { id, cost, description }) => (
+        <DescriptionColumn
+          {...{
+            id,
+            cost,
+            description,
+            updating,
+            setUpdating,
+            isMounted,
+            reload,
+          }}
+          compact={false}
+        />
+      ),
     },
     {
+      responsive: ["sm" as "sm"],
       title: "Price",
       align: "right" as "right",
       render: (_, { cost }) => (
-        <b style={{ fontSize: "13pt" }}>
+        <b style={{ fontSize: "11pt" }}>
           <DisplayCost cost={cost} simple />
         </b>
       ),
@@ -344,4 +260,165 @@ function SelectAllItems({ items, onChange }) {
     return <a onClick={() => doSelectAll(true)}>Select all items</a>;
   }
   return <a onClick={() => doSelectAll(false)}>Deselect all items</a>;
+}
+
+function CheckboxColumn({
+  id,
+  checked,
+  updating,
+  setUpdating,
+  isMounted,
+  reload,
+}) {
+  return (
+    <Checkbox
+      disabled={updating}
+      checked={checked}
+      onChange={async (e) => {
+        setUpdating(true);
+        try {
+          await apiPost("/shopping/cart/checked", {
+            id,
+            checked: e.target.checked,
+          });
+          if (!isMounted.current) return;
+          await reload();
+        } finally {
+          if (!isMounted.current) return;
+          setUpdating(false);
+        }
+      }}
+    />
+  );
+}
+
+function DescriptionColumn({
+  id,
+  cost,
+  description,
+  updating,
+  setUpdating,
+  isMounted,
+  reload,
+  compact,
+}) {
+  const router = useRouter();
+  const { input } = cost;
+  const [editRunLimit, setEditRunLimit] = useState<boolean>(false);
+  const [runLimit, setRunLimit] = useState<number>(description.runLimit);
+  return (
+    <>
+      <div style={{ fontSize: "12pt" }}>
+        {description.title && (
+          <div>
+            <b>{description.title}</b>
+          </div>
+        )}
+        {description.description && <div>{description.description}</div>}
+        {describe_quota({
+          ram: input.custom_ram,
+          cpu: input.custom_cpu,
+          disk: input.custom_disk,
+          always_running: input.custom_always_running,
+          member: input.custom_member,
+          user: input.user,
+        })}
+        {!editRunLimit && !compact && (
+          <>
+            {" "}
+            to up to{" "}
+            <Button
+              onClick={() => setEditRunLimit(true)}
+              disabled={updating}
+              style={{ marginBottom: "5px" }}
+            >
+              {runLimit} simultaneous running {plural(runLimit, "project")}
+            </Button>
+          </>
+        )}
+        {compact && (
+          <>
+            {" "}
+            to up to {runLimit} simultaneous running{" "}
+            {plural(runLimit, "project")}
+          </>
+        )}
+      </div>
+      <div>
+        {editRunLimit && !compact && (
+          <div
+            style={{
+              border: "1px solid #eee",
+              padding: "15px",
+              margin: "15px 0",
+              background: "white",
+            }}
+          >
+            <Icon
+              name="times"
+              style={{ float: "right" }}
+              onClick={() => {
+                setEditRunLimit(false);
+              }}
+            />
+            <EditRunLimit value={runLimit} onChange={setRunLimit} />
+            <Button
+              type="primary"
+              style={{ marginTop: "15px" }}
+              onClick={async () => {
+                setEditRunLimit(false);
+                await apiPost("/shopping/cart/edit", {
+                  id,
+                  description: { ...description, runLimit },
+                });
+                await reload();
+              }}
+            >
+              Save
+            </Button>
+          </div>
+        )}
+        <Button
+          style={{ marginRight: "5px" }}
+          onClick={() => router.push(`/store/site-license?id=${id}`)}
+        >
+          <Icon name="pencil" /> Edit
+        </Button>
+        <Button
+          style={{ margin: "0 5px 5px 0" }}
+          disabled={updating}
+          onClick={async () => {
+            setUpdating(true);
+            try {
+              await apiPost("/shopping/cart/remove", { id });
+              if (!isMounted.current) return;
+              await reload();
+            } finally {
+              if (!isMounted.current) return;
+              setUpdating(false);
+            }
+          }}
+        >
+          <Icon name="save" /> Save for later
+        </Button>
+        <Button
+          disabled={updating}
+          type="dashed"
+          onClick={async () => {
+            setUpdating(true);
+            try {
+              await apiPost("/shopping/cart/delete", { id });
+              if (!isMounted.current) return;
+              await reload();
+            } finally {
+              if (!isMounted.current) return;
+              setUpdating(false);
+            }
+          }}
+        >
+          <Icon name="trash" /> Delete
+        </Button>
+      </div>
+    </>
+  );
 }
