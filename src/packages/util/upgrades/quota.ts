@@ -157,7 +157,7 @@ export interface SiteLicenseQuotaSetting {
 }
 
 // it could be null in the moment when a license is removed via the UI
-export type QuotaSetting = Upgrades | SiteLicenseQuotaSetting | null;
+export type QuotaSetting = Upgrades | SiteLicenseQuotaSetting | {} | null;
 
 export type SiteLicenses = {
   [license_id: string]: QuotaSetting;
@@ -339,11 +339,11 @@ function select_site_licenses(site_licenses?: SiteLicenses): {
 
     const is_ar = isSiteLicenseQuotaSetting(val)
       ? val.quota.always_running === true
-      : (val.always_running ?? 0) >= 1;
+      : ((val as Upgrades).always_running ?? 0) >= 1;
 
     const is_member = isSiteLicenseQuotaSetting(val)
       ? val.quota.member === true
-      : (val.member_host ?? 0) >= 1;
+      : ((val as Upgrades).member_host ?? 0) >= 1;
 
     groups[`${is_member ? "1" : "0"}-${is_ar ? "1" : "0"}`].push(key);
   }

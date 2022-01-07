@@ -207,7 +207,7 @@ class SiteLicenseHook {
         newLicense[license_id] = null;
       } else {
         // in all other cases we keep the license around, but not providing any upgrades
-        newLicense[license_id] = { quota: {} };
+        newLicense[license_id] = {};
       }
     }
     return newLicense;
