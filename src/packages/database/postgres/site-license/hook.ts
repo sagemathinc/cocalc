@@ -72,6 +72,9 @@ class SiteLicenseHook {
   private db: PostgreSQL;
   private project_id: string;
   private dbg: Function;
+  private currentSiteLicense: SiteLicenses = {};
+  private nextSiteLicense: SiteLicenses = {};
+  private project: { site_license: any; settings: any; users: any };
 
   constructor(db: PostgreSQL, project_id: string) {
     this.db = db;
@@ -102,8 +105,25 @@ class SiteLicenseHook {
   }
 
   async process() {
-    this.dbg("checking for site license");
+    this.dbg("checking for site licenses");
+    this.project = await this.getProject();
 
+    if (
+      this.project.site_license == null ||
+      typeof this.project.site_license != "object"
+    ) {
+      this.dbg("no site licenses set for this project.");
+      return;
+    }
+
+    // just to make sure we don't touch it
+    this.currentSiteLicense = Object.freeze(this.project.site_license);
+    this.nextSiteLicense = await this.computeNextSiteLicense();
+    await this.setProjectSiteLicense();
+    await this.updateLastUsed();
+  }
+
+  private async getProject() {
     const project = await query({
       db: this.db,
       select: ["site_license", "settings", "users"],
@@ -112,44 +132,31 @@ class SiteLicenseHook {
       one: true,
     });
     this.dbg(`project=${JSON.stringify(project)}`);
+    return project;
+  }
 
-    if (
-      project.site_license == null ||
-      typeof project.site_license != "object"
-    ) {
-      this.dbg("no site licenses set for this project.");
-      return;
-    }
-
-    // just to make sure we don't touch it:
-    project.site_license = Object.freeze(project.site_license);
-    const new_site_license = this.getNewSiteLicense(project);
-
-    if (!isEqual(project.site_license, new_site_license)) {
+  private async setProjectSiteLicense() {
+    if (!isEqual(this.currentSiteLicense, this.nextSiteLicense)) {
       // Now set the site license since something changed.
-      this.dbg(`setup site license=${JSON.stringify(new_site_license)}`);
+      this.dbg(`setup site license=${JSON.stringify(this.nextSiteLicense)}`);
       await query({
         db: this.db,
         query: "UPDATE projects",
         where: { project_id: this.project_id },
-        jsonb_set: { site_license: new_site_license },
+        jsonb_set: { site_license: this.nextSiteLicense },
       });
     } else {
       this.dbg("no change");
     }
-    for (const license_id in new_site_license) {
-      if (len(new_site_license[license_id]) > 0) {
-        await this.update_last_used(license_id);
-      }
-    }
   }
 
-  private async getNewSiteLicense(project): Promise<SiteLicenses> {
-    const site_license = project.site_license;
+  private async computeNextSiteLicense(): Promise<SiteLicenses> {
     // Next we check the keys of site_license to see what they contribute,
     // and fill that in.
     const newLicense: SiteLicenses = {};
-    for (const license_id in site_license) {
+    const validLicenses = await this.getValidLicenses();
+
+    for (const license_id in this.currentSiteLicense) {
       if (!is_valid_uuid_string(license_id)) {
         // The site_license is supposed to be a map from uuid's to settings...
         // We could put some sort of error here in case, though I don't know what
@@ -157,22 +164,21 @@ class SiteLicenseHook {
         this.dbg(`skipping invalid license ${license_id}`);
         continue;
       }
-      const licenses = await this.getValidLicenses();
-      const license = licenses.get(license_id);
+      const license = validLicenses.get(license_id);
       const state = await this.checkLicense({ license, license_id });
 
-      if (state === "is_valid") {
+      if (state === "valid") {
         const upgrades: QuotaSetting = this.extractUpgrades(license);
 
         this.dbg("computing run quotas...");
         const run_quota = compute_total_quota(
-          project.settings,
-          project.users,
+          this.project.settings,
+          this.project.users,
           newLicense
         );
         const run_quota_with_license = compute_total_quota(
-          project.settings,
-          project.users,
+          this.project.settings,
+          this.project.users,
           {
             ...newLicense,
             ...{ [license_id]: upgrades },
@@ -194,11 +200,14 @@ class SiteLicenseHook {
             `Found a valid license "${license_id}", but it provides nothing new so not using it.`
           );
         }
-      } else {
-        this.dbg(`Not currently valid license -- "${license_id}".`);
+      } else if (state === "expired") {
+        this.dbg(`Removing expired license "${license_id}".`);
         // due to how jsonb_set works, we have to set this to null,
         // because otherwise an existing license entry continues to exist.
         newLicense[license_id] = null;
+      } else {
+        // in all other cases we keep the license around, but not providing any upgrades
+        newLicense[license_id] = { quota: {} };
       }
     }
     return newLicense;
@@ -230,7 +239,7 @@ class SiteLicenseHook {
   private async checkLicense({
     license,
     license_id,
-  }): Promise<"expired" | "exhausted" | "is_valid" | "future"> {
+  }): Promise<"expired" | "exhausted" | "valid" | "future"> {
     this.dbg(
       `considering license ${license_id}: ${JSON.stringify(license?.toJS())}`
     );
@@ -256,7 +265,7 @@ class SiteLicenseHook {
         return "exhausted";
       } else {
         this.dbg(`license ${license_id} is valid`);
-        return "is_valid";
+        return "valid";
       }
     }
   }
@@ -268,9 +277,17 @@ class SiteLicenseHook {
     );
   }
 
-  private async update_last_used(license_id: string): Promise<void> {
+  private async updateLastUsed() {
+    for (const license_id in this.nextSiteLicense) {
+      if (len(this.nextSiteLicense[license_id]) > 0) {
+        await this._updateLastUsed(license_id);
+      }
+    }
+  }
+
+  private async _updateLastUsed(license_id: string): Promise<void> {
     this.dbg(`update_last_used("${license_id}")`);
-    const now = new Date().valueOf();
+    const now = Date.now();
     if (
       LAST_USED[license_id] != null &&
       now - LAST_USED[license_id] <= 60 * 1000
