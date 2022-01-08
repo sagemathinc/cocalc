@@ -20,6 +20,9 @@ import {
   SiteLicenses,
 } from "@cocalc/util/upgrades/quota";
 
+import getLogger from "@cocalc/backend/logger";
+const LOGGER_NAME = "site-license-hook";
+
 // this will hold a synctable for all valid licenses
 let LICENSES: any = undefined;
 
@@ -63,7 +66,8 @@ export async function site_license_hook(
     const slh = new SiteLicenseHook(db, project_id);
     await slh.process();
   } catch (err) {
-    db._dbg("site_license_hook")(`ERROR -- ${err}`);
+    const L = getLogger(LOGGER_NAME);
+    L.warn(`ERROR -- ${err}`);
     throw err;
   }
 }
@@ -71,7 +75,7 @@ export async function site_license_hook(
 class SiteLicenseHook {
   private db: PostgreSQL;
   private project_id: string;
-  private dbg: Function;
+  private dbg: ReturnType<typeof getLogger>;
   private currentSiteLicense: SiteLicenses = {};
   private nextSiteLicense: SiteLicenses = {};
   private project: { site_license: any; settings: any; users: any };
@@ -79,7 +83,7 @@ class SiteLicenseHook {
   constructor(db: PostgreSQL, project_id: string) {
     this.db = db;
     this.project_id = project_id;
-    this.dbg = db._dbg(`siteLicenseHook("${project_id}")`);
+    this.dbg = getLogger(`${LOGGER_NAME}:${project_id}`);
   }
 
   private async getValidLicenses(): Promise<Map<string, LicenseMap>> {
@@ -105,14 +109,14 @@ class SiteLicenseHook {
   }
 
   async process() {
-    this.dbg("checking for site licenses");
+    this.dbg.verbose("checking for site licenses");
     this.project = await this.getProject();
 
     if (
       this.project.site_license == null ||
       typeof this.project.site_license != "object"
     ) {
-      this.dbg("no site licenses set for this project.");
+      this.dbg.verbose("no site licenses set for this project.");
       return;
     }
 
@@ -131,14 +135,15 @@ class SiteLicenseHook {
       where: { project_id: this.project_id },
       one: true,
     });
-    this.dbg(`project=${JSON.stringify(project)}`);
+    this.dbg.verbose(`project=${JSON.stringify(project)}`);
     return project;
   }
 
   private async setProjectSiteLicense() {
+    const dbg = this.dbg.extend("setProjectSiteLicense");
     if (!isEqual(this.currentSiteLicense, this.nextSiteLicense)) {
       // Now set the site license since something changed.
-      this.dbg(`setup site license=${JSON.stringify(this.nextSiteLicense)}`);
+      dbg.info(`setup site license=${JSON.stringify(this.nextSiteLicense)}`);
       await query({
         db: this.db,
         query: "UPDATE projects",
@@ -146,7 +151,7 @@ class SiteLicenseHook {
         jsonb_set: { site_license: this.nextSiteLicense },
       });
     } else {
-      this.dbg("no change");
+      dbg.info("no change");
     }
   }
 
@@ -161,7 +166,7 @@ class SiteLicenseHook {
         // The site_license is supposed to be a map from uuid's to settings...
         // We could put some sort of error here in case, though I don't know what
         // we would do with it.
-        this.dbg(`skipping invalid license ${license_id}`);
+        this.dbg.info(`skipping invalid license ${license_id}`);
         continue;
       }
       const license = validLicenses.get(license_id);
@@ -170,7 +175,7 @@ class SiteLicenseHook {
       if (state === "valid") {
         const upgrades: QuotaSetting = this.extractUpgrades(license);
 
-        this.dbg("computing run quotas...");
+        this.dbg.verbose("computing run quotas...");
         const run_quota = compute_total_quota(
           this.project.settings,
           this.project.users,
@@ -184,29 +189,30 @@ class SiteLicenseHook {
             ...{ [license_id]: upgrades },
           }
         );
-        this.dbg(`run_quota=${JSON.stringify(run_quota)}`);
-        this.dbg(
+        this.dbg.silly(`run_quota=${JSON.stringify(run_quota)}`);
+        this.dbg.silly(
           `run_quota_with_license=${JSON.stringify(run_quota_with_license)}`
         );
         if (!isEqual(run_quota, run_quota_with_license)) {
-          this.dbg(
-            `Found a valid license "${license_id}".  Upgrade using it to ${JSON.stringify(
+          this.dbg.info(
+            `License "${license_id}" provides an effective upgrade ${JSON.stringify(
               upgrades
             )}.`
           );
           newLicense[license_id] = upgrades;
         } else {
-          this.dbg(
+          this.dbg.info(
             `Found a valid license "${license_id}", but it provides nothing new so not using it.`
           );
         }
       } else if (state === "expired") {
-        this.dbg(`Removing expired license "${license_id}".`);
+        this.dbg.info(`Removing expired license "${license_id}".`);
         // due to how jsonb_set works, we have to set this to null,
         // because otherwise an existing license entry continues to exist.
         newLicense[license_id] = null;
       } else {
         // in all other cases we keep the license around, but not providing any upgrades
+        this.dbg.info(`Disabling license "${license_id}" -- state=${state}`);
         newLicense[license_id] = {};
       }
     }
@@ -240,41 +246,44 @@ class SiteLicenseHook {
     license,
     license_id,
   }): Promise<"expired" | "exhausted" | "valid" | "future"> {
-    this.dbg(
+    this.dbg.info(
       `considering license ${license_id}: ${JSON.stringify(license?.toJS())}`
     );
     if (license == null) {
-      this.dbg(`License "${license_id}" does not exist.`);
+      this.dbg.info(`License "${license_id}" does not exist.`);
       return "expired";
     } else {
       const expires = license.get("expires");
       const activates = license.get("activates");
       const run_limit = license.get("run_limit");
       if (expires != null && expires <= new Date()) {
-        this.dbg(`License "${license_id}" expired ${expires}.`);
+        this.dbg.info(`License "${license_id}" expired ${expires}.`);
         return "expired";
       } else if (activates == null || activates > new Date()) {
-        this.dbg(
+        this.dbg.info(
           `License "${license_id}" has not been explicitly activated yet ${activates}.`
         );
         return "future";
-      } else if (run_limit && this.aboveRunLimit(run_limit, license_id)) {
-        this.dbg(
+      } else if (await this.aboveRunLimit(run_limit, license_id)) {
+        this.dbg.info(
           `License "${license_id}" won't be applied since it would exceed the run limit ${run_limit}.`
         );
         return "exhausted";
       } else {
-        this.dbg(`license ${license_id} is valid`);
+        this.dbg.info(`license ${license_id} is valid`);
         return "valid";
       }
     }
   }
 
   private async aboveRunLimit(run_limit, license_id): Promise<boolean> {
-    return (
-      (await number_of_running_projects_using_license(this.db, license_id)) >=
-      run_limit
+    if (typeof run_limit !== "number") return false;
+    const usage = await number_of_running_projects_using_license(
+      this.db,
+      license_id
     );
+    this.dbg.verbose(`run_limit=${run_limit}  usage=${usage}`);
+    return usage >= run_limit;
   }
 
   private async updateLastUsed() {
@@ -286,18 +295,18 @@ class SiteLicenseHook {
   }
 
   private async _updateLastUsed(license_id: string): Promise<void> {
-    this.dbg(`update_last_used("${license_id}")`);
+    const dbg = this.dbg.extend(`_updateLastUsed("${license_id}")`);
     const now = Date.now();
     if (
       LAST_USED[license_id] != null &&
       now - LAST_USED[license_id] <= 60 * 1000
     ) {
-      this.dbg("recently updated so waiting");
+      dbg.info("recently updated so waiting");
       // If we updated this entry in the database already within a minute, don't again.
       return;
     }
     LAST_USED[license_id] = now;
-    this.dbg("did NOT recently update, so updating in database");
+    dbg.info("did NOT recently update, so updating in database");
 
     await callback2(this.db._query.bind(this.db), {
       query: "UPDATE site_licenses",
