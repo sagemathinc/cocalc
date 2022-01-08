@@ -137,6 +137,10 @@ class Logger {
     }
   }
 
+  public extend(name: string) {
+    return new Logger(`${this.name}:${name}`);
+  }
+
   private counter(level: string): void {
     if (counter == null) return;
     counter.labels(this.name, level).inc(1);
@@ -151,6 +155,7 @@ interface WinstonLogger {
   verbose: Function;
   debug: Function;
   silly: Function;
+  extend: (name: string) => WinstonLogger;
 }
 
 const cache: { [name: string]: WinstonLogger } = {};
