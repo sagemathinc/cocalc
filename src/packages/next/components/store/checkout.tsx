@@ -14,7 +14,8 @@ import SiteName from "components/share/site-name";
 import A from "components/misc/A";
 import useIsMounted from "lib/hooks/mounted";
 import PaymentMethods from "components/billing/payment-methods";
-import { plural } from "@cocalc/util/misc";
+import { copy_without as copyWithout, plural } from "@cocalc/util/misc";
+import { useRouter } from "next/router";
 
 export default function Checkout() {
   const isMounted = useIsMounted();
@@ -124,7 +125,7 @@ export default function Checkout() {
         <div>
           <div style={{ maxWidth: "900px", margin: "auto" }}>
             <Row>
-              <Col md={16} sm={24}>
+              <Col md={15} sm={24}>
                 <div>
                   <h3 style={{ fontSize: "16pt" }}>
                     <Icon name={"list"} style={{ marginRight: "5px" }} />
@@ -140,11 +141,10 @@ export default function Checkout() {
                   <PaymentMethods startMinimized setTaxRate={setTaxRate} />
                 </div>
               </Col>
-              <Col md={8} sm={24}>
+              <Col md={{ offset: 1, span: 8 }} sm={{ span: 24, offset: 0 }}>
                 <div>
                   <div
                     style={{
-                      float: "right",
                       textAlign: "center",
                       border: "1px solid #ddd",
                       padding: "15px",
@@ -168,11 +168,12 @@ export default function Checkout() {
                       <TotalCost items={items} taxRate={taxRate} />
                     </span>
                   </div>
+                  <GetAQuote items={items} />
                 </div>
               </Col>
             </Row>
 
-            <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
+            <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
               2. Review Items ({items.length})
             </h4>
             <div style={{ border: "1px solid #eee" }}>
@@ -231,8 +232,7 @@ function TotalCost({ items, taxRate }) {
   const cost = discountedCost(items) * (1 + taxRate);
   return (
     <>
-      Order total:{" "}
-      <b style={{ float: "right", color: "darkred" }}>{money(cost)}</b>
+      Total: <b style={{ float: "right", color: "darkred" }}>{money(cost)}</b>
     </>
   );
 }
@@ -248,8 +248,7 @@ function OrderSummary({ items, taxRate }) {
         <span style={{ float: "right" }}>{money(cost)}</span>
       </div>
       <div>
-        Estimated tax to be collected:{" "}
-        <span style={{ float: "right" }}>{money(tax)}</span>
+        Estimated tax: <span style={{ float: "right" }}>{money(tax)}</span>
       </div>
     </div>
   );
@@ -293,5 +292,84 @@ function DescriptionColumn({ cost, description }) {
         </span>
       </div>
     </>
+  );
+}
+
+const MIN_AMOUNT = 100;
+
+function GetAQuote({ items }) {
+  const router = useRouter();
+  const [more, setMore] = useState<boolean>(false);
+  const cost = discountedCost(items);
+  let isSub;
+  for (const item of items) {
+    if (item.description.period != "range") {
+      isSub = true;
+      break;
+    }
+  }
+
+  function createSupportRequest() {
+    const x = [];
+    for (const item of items) {
+      x.push({
+        cost: money(item.cost.cost),
+        ...copyWithout(item, [
+          "account_id",
+          "added",
+          "removed",
+          "purchased",
+          "checked",
+          "cost",
+        ]),
+      });
+    }
+    const body = `Hello,\n\nI would like to request a quote.  I filled out the online form with the\ndetails listed below:\n\n\`\`\`\n${JSON.stringify(
+      x,
+      undefined,
+      2
+    )}\n\`\`\``;
+    router.push({
+      pathname: "/support/new",
+      query: {
+        hideExtra: true,
+        subject: "Request for a quote",
+        body,
+        type: "question",
+      },
+    });
+  }
+
+  return (
+    <div style={{ paddingTop: "15px" }}>
+      <A onClick={() => setMore(true)}>
+        Need to obtain a quote, invoice, modified terms, a purchase order, to
+        use PayPal or pay via wire transfer, etc.?
+      </A>
+      {more && (
+        <div>
+          {cost < MIN_AMOUNT || isSub ? (
+            <i>
+              Customized payment is not available for{" "}
+              <b>purchases under ${MIN_AMOUNT} or subscription</b>; make sure
+              pre-tax total is at least ${MIN_AMOUNT} and convert any
+              subscriptions in your cart to explicit date ranges, then try
+              again.
+            </i>
+          ) : (
+            <>
+              Click the button below to copy your shopping cart contents to a
+              support request. Note that the 25% self-service discount included
+              in the total here is not available with quotes.
+              <div style={{ textAlign: "center", marginTop: "5px" }}>
+                <Button onClick={createSupportRequest}>
+                  <Icon name="medkit" /> Copy cart to support request
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
