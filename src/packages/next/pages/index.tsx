@@ -63,7 +63,7 @@ export default function Home({ customize }) {
                     external
                     style={topLinkStyle}
                   >
-                    Your Projects
+                    Projects
                   </A>
                 )}
                 {customize.landingPages && (
@@ -83,7 +83,7 @@ export default function Home({ customize }) {
                 )}
                 {customize.account != null && (
                   <A href={"/config"} style={topLinkStyle}>
-                    Account Config
+                    Config
                   </A>
                 )}
                 {customize.isCommercial &&
@@ -110,7 +110,7 @@ export default function Home({ customize }) {
                   Support
                 </A>
                 <A style={topLinkStyle} href="/info/status">
-                  System Status
+                  Status
                 </A>
                 <A style={topLinkStyle} href="https://doc.cocalc.com">
                   Docs

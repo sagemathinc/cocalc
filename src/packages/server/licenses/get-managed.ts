@@ -48,7 +48,7 @@ export default async function getManagedLicenses(
     `SELECT id, title, description,
     expires, activates, last_used, created,
     managers, upgrades, quota, run_limit
-    FROM site_licenses WHERE $1=ANY(managers)`,
+    FROM site_licenses WHERE $1=ANY(managers) ORDER BY created DESC`,
     [account_id]
   );
   toEpoch(rows, ["expires", "activates", "last_used", "created"]);

@@ -19,11 +19,13 @@ import {
   PurchaseInfo,
   sanity_checks,
 } from "@cocalc/util/licenses/purchase/util";
-import { charge_user_for_license, set_purchase_metadata } from "./charge";
-import { create_license } from "./create-license";
+import { chargeUserForLicense, setPurchaseMetadata } from "./charge";
+import createLicense from "./create-license";
 import { StripeClient } from "@cocalc/server/stripe/client";
 import { callback2 } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
+import { getLogger } from "@cocalc/backend/logger";
+const logger = getLogger("purchase-license");
 
 // Does what should be done, and returns the license_id of the license that was created
 // and has user added to as a manager.
@@ -34,14 +36,13 @@ import { delay } from "awaiting";
 const THROTTLE_S = 15;
 const last_attempt: { [account_id: string]: number } = {};
 
-export async function purchase_license(
+export default async function purchaseLicense(
   database: PostgreSQL,
   stripe: StripeClient,
   account_id: string,
-  info: PurchaseInfo,
-  dbg: (...args) => void
+  info: PurchaseInfo
 ): Promise<string> {
-  dbg(`purchase_license: got info=${JSON.stringify(info)} for ${account_id}`);
+  logger.debug("purchase_license: info", info, ", account_id=", account_id);
 
   const now = new Date().valueOf();
   if (now - (last_attempt[account_id] ?? 0) <= THROTTLE_S * 1000) {
@@ -53,24 +54,17 @@ export async function purchase_license(
   }
   last_attempt[account_id] = now;
 
-  dbg("purchase_license: running sanity checks...");
+  logger.debug("purchase_license: running sanity checks...");
   sanity_checks(info);
 
-  dbg("purchase_license: charging user for license...");
-  const purchase = await charge_user_for_license(stripe, info, (...args) =>
-    dbg("charge_user_for_license", ...args)
-  );
+  logger.debug("purchase_license: charging user for license...");
+  const purchase = await chargeUserForLicense(stripe, info);
 
-  dbg("purchase_license: creating the license...");
-  const license_id = await create_license(
-    database,
-    account_id,
-    info,
-    (...args) => dbg("create_license", ...args)
-  );
+  logger.debug("purchase_license: creating the license...");
+  const license_id = await createLicense(database, account_id, info);
 
-  dbg("purchase_license: set metadata on purchase...");
-  await set_purchase_metadata(purchase, { license_id, account_id });
+  logger.debug("purchase_license: set metadata on purchase...");
+  await setPurchaseMetadata(purchase, { license_id, account_id });
 
   // We have to try a few times, since the metadata sometimes doesn't appear
   // when querying stripe for the customer, even after it was written in the
@@ -91,7 +85,8 @@ export async function purchase_license(
     await delay(2000);
   }
 
-  // Sets the license expire date if the subscription is NOT active at this point (e.g., due to credit card failure).
+  // Sets the license expire date if the subscription is NOT
+  // active at this point (e.g., due to credit card failure).
   await database.sync_site_license_subscriptions(account_id);
 
   return license_id;

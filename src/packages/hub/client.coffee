@@ -31,7 +31,7 @@ hub_projects         = require('./projects')
 {send_email, send_invite_email} = require('./email')
 apiKeyAction = require("@cocalc/server/api/manage").default;
 {create_account, delete_account} = require('./client/create-account')
-{purchase_license}   = require('./client/license')
+purchase_license  = require('@cocalc/server/licenses/purchase').default
 db_schema            = require('@cocalc/util/db-schema')
 { escapeHtml }       = require("escape-html")
 {CopyPath}           = require('./copy-path')
@@ -1849,7 +1849,7 @@ class exports.Client extends EventEmitter
     mesg_purchase_license: (mesg) =>
         try
             await @_stripe_client ?= new StripeClient(@)
-            resp = await purchase_license(@database, @_stripe_client, @account_id, mesg.info, @dbg("purchase_license"))
+            resp = await purchase_license(@database, @_stripe_client, @account_id, mesg.info)
             @push_to_client(message.purchase_license_resp(id:mesg.id, resp:resp))
         catch err
             @error_to_client(id:mesg.id, error:err.toString())

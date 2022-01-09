@@ -6,15 +6,16 @@
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
 import { v4 as uuid } from "uuid";
+import { getLogger } from "@cocalc/backend/logger";
+const logger = getLogger("createLicense");
 
-export async function create_license(
+export default async function createLicense(
   database: PostgreSQL,
   account_id: string,
-  info: PurchaseInfo,
-  dbg: (...args) => void
+  info: PurchaseInfo
 ): Promise<string> {
-  dbg(`creating a license... info=${JSON.stringify(info)}`);
   const license_id = uuid();
+  logger.debug("creating a license...", license_id, info);
   const values: { [key: string]: any } = {
     "id::UUID": license_id,
     "info::JSONB": {
