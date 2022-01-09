@@ -10,6 +10,7 @@
     "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",
     "./stripe/*": "./dist/stripe/*.js",
+    "./licenses/purchase/*": "./dist/licenses/purchase/*.js",
     "./projects/control": "./dist/projects/control/index.js",
     "./projects/control/*": "./dist/projects/control/*.js",
     "./projects/connection": "./dist/projects/connection/index.js",
@@ -17,22 +18,14 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "build": "npx tsc",
     "tsc": "npx tsc --watch"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
-  "workspaces": [
-    ".",
-    "../backend",
-    "../database",
-    "../util"
-  ],
+  "workspaces": [".", "../backend", "../database", "../util"],
   "dependencies": {
     "@cocalc/backend": "^1.8.0",
     "@cocalc/database": "^0.11.0",
