@@ -14,7 +14,7 @@ What this does:
 - if the request is to make a purchase, makes that purchase and creates the license
 */
 
-import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import { db } from "@cocalc/database";
 import {
   PurchaseInfo,
   sanity_checks,
@@ -37,30 +37,33 @@ const THROTTLE_S = 15;
 const last_attempt: { [account_id: string]: number } = {};
 
 export default async function purchaseLicense(
-  database: PostgreSQL,
-  stripe: StripeClient,
   account_id: string,
-  info: PurchaseInfo
+  info: PurchaseInfo,
+  noThrottle?: boolean
 ): Promise<string> {
   logger.debug("purchase_license: info", info, ", account_id=", account_id);
 
-  const now = new Date().valueOf();
-  if (now - (last_attempt[account_id] ?? 0) <= THROTTLE_S * 1000) {
-    throw Error(
-      "You must wait at least " +
-        THROTTLE_S.toString() +
-        " seconds between license purchases."
-    );
+  if (!noThrottle) {
+    const now = new Date().valueOf();
+    if (now - (last_attempt[account_id] ?? 0) <= THROTTLE_S * 1000) {
+      throw Error(
+        "You must wait at least " +
+          THROTTLE_S.toString() +
+          " seconds between license purchases."
+      );
+    }
+    last_attempt[account_id] = now;
   }
-  last_attempt[account_id] = now;
 
   logger.debug("purchase_license: running sanity checks...");
   sanity_checks(info);
 
   logger.debug("purchase_license: charging user for license...");
+  const stripe = new StripeClient({ account_id });
   const purchase = await chargeUserForLicense(stripe, info);
 
   logger.debug("purchase_license: creating the license...");
+  const database = db();
   const license_id = await createLicense(database, account_id, info);
 
   logger.debug("purchase_license: set metadata on purchase...");

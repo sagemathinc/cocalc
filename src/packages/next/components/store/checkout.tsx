@@ -4,6 +4,7 @@ Checkout -- finalize purchase and pay.
 
 import { useMemo, useState } from "react";
 import useAPI from "lib/hooks/api";
+import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Loading from "components/share/loading";
 import { Alert, Button, Row, Col, Table } from "antd";
@@ -20,6 +21,7 @@ import { useRouter } from "next/router";
 export default function Checkout() {
   const isMounted = useIsMounted();
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
+  const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
   const cart = useAPI("/shopping/cart/get");
@@ -46,7 +48,13 @@ export default function Checkout() {
 
   async function placeOrder() {
     try {
+      setOrderError("");
       setPlacingOrder(true);
+      await apiPost("/shopping/cart/checkout");
+      if (!isMounted.current) return;
+      await cart.call();
+    } catch (err) {
+      setOrderError(err.message);
     } finally {
       if (!isMounted.current) return;
       setPlacingOrder(false);
@@ -124,6 +132,17 @@ export default function Checkout() {
       {items.length > 0 && (
         <div>
           <div style={{ maxWidth: "900px", margin: "auto" }}>
+            {orderError && (
+              <Alert
+                type="error"
+                message={
+                  <>
+                    <b>Error placing order:</b> {orderError}
+                  </>
+                }
+                style={{ margin: "30px 0" }}
+              />
+            )}
             <Row>
               <Col md={15} sm={24}>
                 <div>
@@ -156,10 +175,13 @@ export default function Checkout() {
                       style={{ margin: "15px 0" }}
                       size="large"
                       type="primary"
-                      href="/store/checkout"
                       onClick={placeOrder}
                     >
-                      Place Your Order
+                      {placingOrder ? (
+                        <Loading delay={0}>Placing Order...</Loading>
+                      ) : (
+                        "Place Your Order"
+                      )}
                     </Button>
 
                     <Terms />
@@ -199,7 +221,11 @@ export default function Checkout() {
                     href="/store/checkout"
                     onClick={placeOrder}
                   >
-                    Place Your Order
+                    {placingOrder ? (
+                      <Loading delay={0}>Placing Order...</Loading>
+                    ) : (
+                      "Place Your Order"
+                    )}
                   </Button>
                 </Col>
                 <Col sm={12}>
@@ -213,6 +239,17 @@ export default function Checkout() {
             </div>
           </div>
         </div>
+      )}
+      {orderError && (
+        <Alert
+          type="error"
+          message={
+            <>
+              <b>Error placing order:</b> {orderError}
+            </>
+          }
+          style={{ margin: "30px 0" }}
+        />
       )}
     </div>
   );
@@ -310,7 +347,7 @@ function GetAQuote({ items }) {
   }
 
   function createSupportRequest() {
-    const x : any[] = [];
+    const x: any[] = [];
     for (const item of items) {
       x.push({
         cost: money(item.cost.cost),

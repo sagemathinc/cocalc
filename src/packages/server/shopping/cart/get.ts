@@ -19,7 +19,7 @@ export default async function getCart({
   account_id,
   purchased,
   removed,
-}: Options): Promise<Item[] | Item> {
+}: Options): Promise<Item[]> {
   if (!isValidUUID(account_id)) {
     throw Error("account_id is invalid");
   }

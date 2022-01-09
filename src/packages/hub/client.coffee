@@ -1849,7 +1849,7 @@ class exports.Client extends EventEmitter
     mesg_purchase_license: (mesg) =>
         try
             await @_stripe_client ?= new StripeClient(@)
-            resp = await purchase_license(@database, @_stripe_client, @account_id, mesg.info)
+            resp = await purchase_license(@account_id, mesg.info)
             @push_to_client(message.purchase_license_resp(id:mesg.id, resp:resp))
         catch err
             @error_to_client(id:mesg.id, error:err.toString())
