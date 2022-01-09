@@ -16,10 +16,10 @@ import Avatar from "components/account/avatar";
 import UserName from "components/account/name";
 import { EditableDescription, EditableTitle } from "./editable-license";
 import { search_split, search_match } from "@cocalc/util/misc";
-import { cmp, plural } from "@cocalc/util/misc";
+import { capitalize, cmp, plural } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Timestamp from "components/misc/timestamp";
-import License from "./license";
+import License, {DateRange} from "./license";
 import SelectUsers from "components/account/select-users";
 import useCustomize from "lib/use-customize";
 
@@ -82,6 +82,7 @@ function TitleDescId({ title, description, id, onChange }) {
     </div>
   );
 }
+
 
 function Managers({ managers, id, onChange }) {
   return (
@@ -153,15 +154,14 @@ function columns(onChange) {
       render: (_, license) => (
         <div>
           <TitleDescId {...license} onChange={onChange} />
+          <div>
+            <DateRange {...license} />
+          </div>{" "}
           Run Limit: <RunLimit {...license} />
           <div>
             Quota: <Quota {...license} />
           </div>
           Last Used: <LastUsed {...license} />
-          <br />
-          Activates: <Activates {...license} />
-          <br />
-          Expires: <Expires {...license} />
           <br />
           Created: <Created {...license} />
           <div style={{ border: "1px solid lightgrey", padding: "5px 15px" }}>
@@ -174,7 +174,7 @@ function columns(onChange) {
       responsive: ["sm"],
       title: (
         <Popover
-          placement="bottom"
+          placement="top"
           title="Id, Title and Description of the License"
           content={
             <div style={{ maxWidth: "75ex" }}>
@@ -192,7 +192,14 @@ function columns(onChange) {
       key: "title",
       width: "40%",
       sorter: { compare: (a, b) => cmp(a.title, b.title) },
-      render: (_, license) => <TitleDescId {...license} onChange={onChange} />,
+      render: (_, license) => (
+        <div>
+          <TitleDescId {...license} onChange={onChange} />
+          <div>
+            <DateRange {...license} />
+          </div>
+        </div>
+      ),
     },
     {
       responsive: ["sm"],
@@ -220,7 +227,7 @@ function columns(onChange) {
       responsive: ["sm"],
       title: (
         <Popover
-          placement="bottom"
+          placement="top"
           title="Run Limit"
           content={
             <div style={{ maxWidth: "75ex" }}>
@@ -242,7 +249,7 @@ function columns(onChange) {
       responsive: ["sm"],
       title: (
         <Popover
-          placement="bottom"
+          placement="top"
           title="When License was Last Used"
           content={
             <div style={{ maxWidth: "75ex" }}>
@@ -258,11 +265,11 @@ function columns(onChange) {
       render: (_, license) => <LastUsed {...license} />,
       sorter: { compare: (a, b) => cmp(a.last_used, b.last_used) },
     },
-    {
+    /*   {
       responsive: ["sm"],
       title: (
         <Popover
-          placement="bottom"
+          placement="top"
           title="When License Becomes Activate"
           content={
             <div style={{ maxWidth: "75ex" }}>
@@ -282,7 +289,7 @@ function columns(onChange) {
       responsive: ["sm"],
       title: (
         <Popover
-          placement="bottom"
+          placement="top"
           title="When License Expires"
           content={
             <div style={{ maxWidth: "75ex" }}>
@@ -297,12 +304,12 @@ function columns(onChange) {
       ),
       render: (_, license) => <Expires {...license} />,
       sorter: { compare: (a, b) => cmp(a.expires, b.expires) },
-    },
+    },*/
     {
       responsive: ["sm"],
       title: (
         <Popover
-          placement="bottom"
+          placement="top"
           title="When License was Created"
           content={
             <div style={{ maxWidth: "75ex" }}>
@@ -394,7 +401,7 @@ function doSearch(data: object[], search: string): object[] {
     if (x["search"] == null) {
       x["search"] = `${x["title"] ?? ""} ${x["description"] ?? ""} ${
         x["id"]
-      }`.toLowerCase();
+      } ${x['info']?.purchased?.subscription}`.toLowerCase();
     }
     if (search_match(x["search"], v)) {
       w.push(x);

@@ -47,7 +47,7 @@ export default async function getManagedLicenses(
   const { rows } = await pool.query(
     `SELECT id, title, description,
     expires, activates, last_used, created,
-    managers, upgrades, quota, run_limit
+    managers, upgrades, quota, run_limit, info
     FROM site_licenses WHERE $1=ANY(managers) ORDER BY created DESC`,
     [account_id]
   );

@@ -98,17 +98,9 @@ export function Details({
         </div>
       )}
       {result.managers != null && <div>You are a manager of this license.</div>}
-      {result.expires != null && (
-        <div>
-          Expires:
-          <Timestamp epoch={result.expires} />
-        </div>
-      )}
-      {result.activates != null && (
-        <div>
-          Activates: <Timestamp epoch={result.activates} />
-        </div>
-      )}
+      <div>
+        <DateRange {...result} />
+      </div>
       {result.last_used != null && (
         <div>
           Last used: <Timestamp epoch={result.last_used} />
@@ -138,7 +130,9 @@ export function Details({
           )}
         </div>
       )}
-      {result.is_manager && <Copyable label="ID:" text={license_id} style={{marginTop:'5px'}}/>}
+      {result.is_manager && (
+        <Copyable label="ID:" text={license_id} style={{ marginTop: "5px" }} />
+      )}
     </div>
   );
 }
@@ -177,4 +171,38 @@ export function Quota({ quota }) {
     v.push("always running");
   }
   return <span>{r_join(v)}</span>;
+}
+
+export function DateRange({ activates, expires, info }) {
+  const isExpired = expires && expires < new Date().valueOf();
+  const sub = info?.purchased?.subscription;
+  if (sub && sub != "no") {
+    return (
+      <span>
+        {capitalize(sub)} subscription
+        {isExpired && (
+          <>
+            <b> Expired </b> <Timestamp epoch={expires} absolute dateOnly />
+          </>
+        )}
+      </span>
+    );
+  }
+  const dates = (
+    <>
+      <Timestamp epoch={activates} absolute dateOnly /> &ndash;{" "}
+      <Timestamp epoch={expires} absolute dateOnly />
+    </>
+  );
+  return (
+    <span>
+      {isExpired ? (
+        <>
+          <b>Expired </b>(was valid {dates})
+        </>
+      ) : (
+        <>Valid: {dates}</>
+      )}
+    </span>
+  );
 }
