@@ -14,12 +14,17 @@ import Loading from "components/share/loading";
 import A from "components/misc/A";
 import { Alert, Button, Checkbox, Table } from "antd";
 import { EditRunLimit } from "./site-license";
-import { computeCost, DisplayCost } from "./site-license-cost";
+import {
+  computeCost,
+  DisplayCost,
+  describeItem,
+  describePeriod,
+} from "./site-license-cost";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { money } from "@cocalc/util/licenses/purchase/util";
 import SiteName from "components/share/site-name";
 import useIsMounted from "lib/hooks/mounted";
-import { plural } from "@cocalc/util/misc";
+import { capitalize, plural } from "@cocalc/util/misc";
 import { useRouter } from "next/router";
 import OtherItems from "./other-items";
 
@@ -306,6 +311,71 @@ function DescriptionColumn({
   const { input } = cost;
   const [editRunLimit, setEditRunLimit] = useState<boolean>(false);
   const [runLimit, setRunLimit] = useState<number>(description.runLimit);
+
+  function editableQuota() {
+    return (
+      <div>
+        <div>
+          {describe_quota({
+            ram: input.custom_ram,
+            cpu: input.custom_cpu,
+            disk: input.custom_disk,
+            always_running: input.custom_always_running,
+            member: input.custom_member,
+            user: input.user,
+          })}
+          {!editRunLimit && (
+            <>
+              {" "}
+              <Button
+                onClick={() => setEditRunLimit(true)}
+                disabled={updating}
+                style={{ marginBottom: "5px" }}
+              >
+                {runLimit} simultaneous running {plural(runLimit, "project")}
+              </Button>
+            </>
+          )}
+        </div>
+        <div>
+          {editRunLimit && (
+            <div
+              style={{
+                border: "1px solid #eee",
+                padding: "15px",
+                margin: "15px 0",
+                background: "white",
+              }}
+            >
+              <Icon
+                name="times"
+                style={{ float: "right" }}
+                onClick={() => {
+                  setEditRunLimit(false);
+                }}
+              />
+              <EditRunLimit value={runLimit} onChange={setRunLimit} />
+              <Button
+                type="primary"
+                style={{ marginTop: "15px" }}
+                onClick={async () => {
+                  setEditRunLimit(false);
+                  await apiPost("/shopping/cart/edit", {
+                    id,
+                    description: { ...description, runLimit },
+                  });
+                  await reload();
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div style={{ fontSize: "12pt" }}>
@@ -315,69 +385,24 @@ function DescriptionColumn({
           </div>
         )}
         {description.description && <div>{description.description}</div>}
-        {describe_quota({
-          ram: input.custom_ram,
-          cpu: input.custom_cpu,
-          disk: input.custom_disk,
-          always_running: input.custom_always_running,
-          member: input.custom_member,
-          user: input.user,
-        })}
-        {!editRunLimit && !compact && (
-          <>
-            {" "}
-            to up to{" "}
-            <Button
-              onClick={() => setEditRunLimit(true)}
-              disabled={updating}
-              style={{ marginBottom: "5px" }}
-            >
-              {runLimit} simultaneous running {plural(runLimit, "project")}
-            </Button>
-          </>
-        )}
-        {compact && (
-          <>
-            {" "}
-            to up to {runLimit} simultaneous running{" "}
-            {plural(runLimit, "project")}
-          </>
-        )}
-      </div>
-      <div>
-        {editRunLimit && !compact && (
-          <div
-            style={{
-              border: "1px solid #eee",
-              padding: "15px",
-              margin: "15px 0",
-              background: "white",
-            }}
-          >
-            <Icon
-              name="times"
-              style={{ float: "right" }}
-              onClick={() => {
-                setEditRunLimit(false);
-              }}
-            />
-            <EditRunLimit value={runLimit} onChange={setRunLimit} />
-            <Button
-              type="primary"
-              style={{ marginTop: "15px" }}
-              onClick={async () => {
-                setEditRunLimit(false);
-                await apiPost("/shopping/cart/edit", {
-                  id,
-                  description: { ...description, runLimit },
-                });
-                await reload();
-              }}
-            >
-              Save
-            </Button>
-          </div>
-        )}
+        <div>
+          <b>
+            {input.subscription == "no"
+              ? describePeriod(input)
+              : capitalize(input.subscription) + " subscription"}
+          </b>
+        </div>
+        <div
+          style={{
+            border: "1px solid lightblue",
+            background: "white",
+            padding: "15px 15px 5px 15px",
+            margin: "5px 0 10px 0",
+            borderRadius: "5px",
+          }}
+        >
+          {compact ? describeItem(input) : editableQuota()}{" "}
+        </div>
         <Button
           style={{ marginRight: "5px" }}
           onClick={() => router.push(`/store/site-license?id=${id}`)}

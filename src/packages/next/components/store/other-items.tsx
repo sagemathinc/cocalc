@@ -7,11 +7,9 @@ import useAPI from "lib/hooks/api";
 import apiPost from "lib/api/post";
 import useIsMounted from "lib/hooks/mounted";
 import { Alert, Button, Input, Menu, Row, Col, Table } from "antd";
-import { computeCost, DisplayCost } from "./site-license-cost";
+import { computeCost, DisplayCost, describeItem } from "./site-license-cost";
 import Loading from "components/share/loading";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-import { plural } from "@cocalc/util/misc";
 import { search_split, search_match } from "@cocalc/util/misc";
 
 type Tab = "saved-for-later" | "buy-it-again";
@@ -232,19 +230,7 @@ function DescriptionColumn({
           </div>
         )}
         {description.description && <div>{description.description}</div>}
-        {describe_quota({
-          ram: input.custom_ram,
-          cpu: input.custom_cpu,
-          disk: input.custom_disk,
-          always_running: input.custom_always_running,
-          member: input.custom_member,
-          user: input.user,
-        })}
-        <span>
-          {" "}
-          to up to {description.runLimit} simultaneous running{" "}
-          {plural(description.runLimit, "project")}
-        </span>
+        {describeItem(input)}
       </div>
       <div style={{ marginTop: "5px" }}>
         <Button

@@ -8,14 +8,13 @@ import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Loading from "components/share/loading";
 import { Alert, Button, Row, Col, Table } from "antd";
-import { computeCost, DisplayCost } from "./site-license-cost";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import { computeCost, DisplayCost, describeItem } from "./site-license-cost";
 import { money } from "@cocalc/util/licenses/purchase/util";
 import SiteName from "components/share/site-name";
 import A from "components/misc/A";
 import useIsMounted from "lib/hooks/mounted";
 import PaymentMethods from "components/billing/payment-methods";
-import { copy_without as copyWithout, plural } from "@cocalc/util/misc";
+import { copy_without as copyWithout } from "@cocalc/util/misc";
 import { useRouter } from "next/router";
 
 export default function Checkout() {
@@ -331,19 +330,7 @@ function DescriptionColumn({ cost, description }) {
           </div>
         )}
         {description.description && <div>{description.description}</div>}
-        {describe_quota({
-          ram: input.custom_ram,
-          cpu: input.custom_cpu,
-          disk: input.custom_disk,
-          always_running: input.custom_always_running,
-          member: input.custom_member,
-          user: input.user,
-        })}
-        <span>
-          {" "}
-          to up to {description.runLimit} simultaneous running{" "}
-          {plural(description.runLimit, "project")}
-        </span>
+        {describeItem(input)}
       </div>
     </>
   );

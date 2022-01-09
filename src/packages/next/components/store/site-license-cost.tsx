@@ -3,10 +3,14 @@ import {
   percent_discount,
   money,
   Cost as Cost0,
+  Subscription,
+  PurchaseInfo,
 } from "@cocalc/util/licenses/purchase/util";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { plural } from "@cocalc/util/misc";
+import { ReactNode } from "react";
+import Timestamp from "components/misc/timestamp";
 
 export type Period = "range" | "monthly" | "yearly";
 
@@ -35,6 +39,7 @@ export function computeCost({
   disk: number;
   alwaysRunning: boolean;
   member: boolean;
+  input: PurchaseInfo;
 }): Cost | undefined {
   if (period == "range" && range?.[1] == null) {
     return undefined;
@@ -77,7 +82,7 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
         {money(cost.discounted_cost)}
         {cost.period != "range" ? (
           <>
-            {oneLine ? null : <br />}
+            {oneLine ? " " : <br />}
             {cost.period}
           </>
         ) : (
@@ -109,18 +114,50 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
 
   return (
     <span>
-      {describe_quota({
-        ram: cost.input.custom_ram,
-        cpu: cost.input.custom_cpu,
-        disk: cost.input.custom_disk,
-        always_running: cost.input.custom_always_running,
-        member: cost.input.custom_member,
-        user: cost.input.user,
-      })}{" "}
-      for up to {cost.input.quantity} simultaneous running{" "}
-      {plural(cost.input.quantity, "project")}
+      {describeItem(cost.input)}
       <hr />
       <Icon name="money-check" /> Cost: {desc}
     </span>
   );
+}
+
+export function describeItem(info: PurchaseInfo): ReactNode {
+  return (
+    <>
+      {describe_quota({
+        ram: info.custom_ram,
+        cpu: info.custom_cpu,
+        disk: info.custom_disk,
+        always_running: info.custom_always_running,
+        member: info.custom_member,
+        user: info.user,
+      })}{" "}
+      {describeQuantity(info)} ({describePeriod(info)})
+    </>
+  );
+}
+
+function describeQuantity({ quantity }: { quantity: number }): ReactNode {
+  return `for ${quantity} running ${plural(quantity, "project")}`;
+}
+
+export function describePeriod({
+  subscription,
+  start,
+  end,
+}: {
+  subscription: Subscription;
+  start: Date | string;
+  end?: Date | string;
+}): ReactNode {
+  if (subscription == "no") {
+    return (
+      <>
+        <Timestamp dateOnly datetime={start} absolute /> -{" "}
+        <Timestamp dateOnly datetime={end} absolute />
+      </>
+    );
+  } else {
+    return `${subscription} subscription`;
+  }
 }
