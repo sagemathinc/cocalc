@@ -18,7 +18,7 @@ import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import {
   PurchaseInfo,
   sanity_checks,
-} from "@cocalc/frontend/site-licenses/purchase/util";
+} from "@cocalc/util/licenses/purchase/util";
 import { charge_user_for_license, set_purchase_metadata } from "./charge";
 import { create_license } from "./create-license";
 import { StripeClient } from "@cocalc/server/stripe/client";

@@ -3,7 +3,7 @@ import {
   percent_discount,
   money,
   Cost as Cost0,
-} from "@cocalc/frontend/site-licenses/purchase/util";
+} from "@cocalc/util/licenses/purchase/util";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { plural } from "@cocalc/util/misc";

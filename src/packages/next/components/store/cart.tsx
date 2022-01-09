@@ -16,7 +16,7 @@ import { Alert, Button, Checkbox, Table } from "antd";
 import { EditRunLimit } from "./site-license";
 import { computeCost, DisplayCost } from "./site-license-cost";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-import { money } from "@cocalc/frontend/site-licenses/purchase/util";
+import { money } from "@cocalc/util/licenses/purchase/util";
 import SiteName from "components/share/site-name";
 import useIsMounted from "lib/hooks/mounted";
 import { plural } from "@cocalc/util/misc";

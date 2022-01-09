@@ -9,7 +9,7 @@ import Loading from "components/share/loading";
 import { Alert, Button, Row, Col, Table } from "antd";
 import { computeCost, DisplayCost } from "./site-license-cost";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-import { money } from "@cocalc/frontend/site-licenses/purchase/util";
+import { money } from "@cocalc/util/licenses/purchase/util";
 import SiteName from "components/share/site-name";
 import A from "components/misc/A";
 import useIsMounted from "lib/hooks/mounted";
@@ -56,7 +56,7 @@ export default function Checkout() {
   const columns = [
     {
       responsive: ["xs" as "xs"],
-      render: ({ id, cost, description }) => {
+      render: ({ cost, description }) => {
         return (
           <div>
             <DescriptionColumn cost={cost} description={description} />
@@ -310,7 +310,7 @@ function GetAQuote({ items }) {
   }
 
   function createSupportRequest() {
-    const x = [];
+    const x : any[] = [];
     for (const item of items) {
       x.push({
         cost: money(item.cost.cost),

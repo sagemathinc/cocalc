@@ -4,7 +4,7 @@
  */
 
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { PurchaseInfo } from "@cocalc/frontend/site-licenses/purchase/util";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
 import { v4 as uuid } from "uuid";
 
 export async function create_license(

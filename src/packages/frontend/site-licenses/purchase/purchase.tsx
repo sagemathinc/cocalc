@@ -78,7 +78,7 @@ import {
   discount_pct,
   discount_monthly_pct,
   discount_yearly_pct,
-} from "./util";
+} from "@cocalc/util/licenses/purchase/util";
 
 interface Props {
   onClose: () => void;

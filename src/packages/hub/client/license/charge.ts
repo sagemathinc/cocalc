@@ -6,7 +6,7 @@
 import {
   COSTS,
   PurchaseInfo,
-} from "@cocalc/frontend/site-licenses/purchase/util";
+} from "@cocalc/util/licenses/purchase/util";
 import { StripeClient, Stripe } from "@cocalc/server/stripe/client";
 import getConn from "@cocalc/server/stripe/connection";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";

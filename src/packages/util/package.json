@@ -9,7 +9,8 @@
     "./types": "./dist/types/index.js",
     "./consts": "./dist/consts/index.js",
     "./sync/table": "./dist/sync/table/index.js",
-    "./sync/editor/db": "./dist/sync/editor/db/index.js"
+    "./sync/editor/db": "./dist/sync/editor/db/index.js",
+    "./licenses/purchase/*": "./dist/licenses/purchase/*.js"
   },
   "scripts": {
     "build": "npx tsc",
@@ -18,16 +19,9 @@
     "testquota": "cd test && npx jest quota.test.ts"
   },
   "author": "SageMath, Inc.",
-  "keywords": [
-    "utilities",
-    "mathjax",
-    "markdown",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "mathjax", "markdown", "cocalc"],
   "license": "SEE LICENSE.md",
-  "workspaces": [
-    "."
-  ],
+  "workspaces": ["."],
   "dependencies": {
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
