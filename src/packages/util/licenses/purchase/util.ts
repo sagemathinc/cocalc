@@ -349,7 +349,7 @@ export function percent_discount({
   return Math.round(100 * (1 - discounted_cost / cost));
 }
 
-export function money(n: number): string {
+export function money(n: number, hideCurrency: boolean = false): string {
   let s = new Intl.NumberFormat(undefined, {
     style: "currency",
     currency: "USD",
@@ -359,7 +359,7 @@ export function money(n: number): string {
   if (i == s.length - 2) {
     s += "0";
   }
-  return "USD " + s;
+  return (hideCurrency ? "" : "USD ") + s;
 }
 
 export const discount_pct = Math.round(

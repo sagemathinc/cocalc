@@ -74,8 +74,16 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
   if (simple) {
     return (
       <>
-        {money(cost.discounted_cost)} {oneLine ? null : <br />}
-        {cost.period != "range" ? cost.period : ""}
+        {money(cost.discounted_cost)}
+        {cost.period != "range" ? (
+          <>
+            {oneLine ? null : <br />}
+            {cost.period}
+          </>
+        ) : (
+          ""
+        )}
+        {oneLine ? null : <br />} (includes 25% self-service discount)
       </>
     );
   }
@@ -91,7 +99,8 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
           {money(cost.discounted_cost)}
           {cost.input.subscription != "no" ? " " + cost.input.subscription : ""}
         </b>
-        , if you purchase online ({percent_discount(cost)}% online discount).
+        , if you purchase here ({percent_discount(cost)}% self-service
+        discount).
       </>
     );
   } else {

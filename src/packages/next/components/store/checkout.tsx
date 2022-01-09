@@ -144,7 +144,7 @@ export default function Checkout() {
               />
             )}
             <Row>
-              <Col md={15} sm={24}>
+              <Col md={14} sm={24}>
                 <div>
                   <h3 style={{ fontSize: "16pt" }}>
                     <Icon name={"list"} style={{ marginRight: "5px" }} />
@@ -160,7 +160,7 @@ export default function Checkout() {
                   <PaymentMethods startMinimized setTaxRate={setTaxRate} />
                 </div>
               </Col>
-              <Col md={{ offset: 1, span: 8 }} sm={{ span: 24, offset: 0 }}>
+              <Col md={{ offset: 1, span: 9 }} sm={{ span: 24, offset: 0 }}>
                 <div>
                   <div
                     style={{
@@ -168,6 +168,7 @@ export default function Checkout() {
                       border: "1px solid #ddd",
                       padding: "15px",
                       borderRadius: "5px",
+                      minWidth: "300px",
                     }}
                   >
                     <Button
@@ -255,6 +256,16 @@ export default function Checkout() {
   );
 }
 
+function fullCost(items) {
+  let full_cost = 0;
+  for (const { cost, checked } of items) {
+    if (checked) {
+      full_cost += cost.cost;
+    }
+  }
+  return full_cost;
+}
+
 function discountedCost(items) {
   let discounted_cost = 0;
   for (const { cost, checked } of items) {
@@ -276,16 +287,22 @@ function TotalCost({ items, taxRate }) {
 
 function OrderSummary({ items, taxRate }) {
   const cost = discountedCost(items);
+  const full = fullCost(items);
   const tax = cost * taxRate;
   return (
     <div style={{ textAlign: "left" }}>
       <b style={{ fontSize: "14pt" }}>Order Summary</b>
       <div>
         Items ({items.length}):{" "}
-        <span style={{ float: "right" }}>{money(cost)}</span>
+        <span style={{ float: "right" }}>{money(full, true)}</span>
       </div>
       <div>
-        Estimated tax: <span style={{ float: "right" }}>{money(tax)}</span>
+        Self-service discount (25%):{" "}
+        <span style={{ float: "right" }}>-{money(full - cost, true)}</span>
+      </div>
+      <div>
+        Estimated tax:{" "}
+        <span style={{ float: "right" }}>{money(tax, true)}</span>
       </div>
     </div>
   );
@@ -337,7 +354,6 @@ const MIN_AMOUNT = 100;
 function GetAQuote({ items }) {
   const router = useRouter();
   const [more, setMore] = useState<boolean>(false);
-  const cost = discountedCost(items);
   let isSub;
   for (const item of items) {
     if (item.description.period != "range") {
@@ -379,31 +395,55 @@ function GetAQuote({ items }) {
 
   return (
     <div style={{ paddingTop: "15px" }}>
-      <A onClick={() => setMore(true)}>
+      <A onClick={() => setMore(!more)}>
         Need to obtain a quote, invoice, modified terms, a purchase order, to
         use PayPal or pay via wire transfer, etc.?
       </A>
       {more && (
         <div>
-          {cost < MIN_AMOUNT || isSub ? (
-            <i>
-              Customized payment is not available for{" "}
-              <b>purchases under ${MIN_AMOUNT} or subscription</b>; make sure
-              pre-tax total is at least ${MIN_AMOUNT} and convert any
-              subscriptions in your cart to explicit date ranges, then try
-              again.
-            </i>
+          {fullCost(items) <= MIN_AMOUNT || isSub ? (
+            <Alert
+              showIcon
+              style={{
+                margin: "15px 0",
+                fontSize: "12pt",
+                borderRadius: "5px",
+              }}
+              type="warning"
+              message={
+                <>
+                  Customized payment is available only for{" "}
+                  <b>non-subscription purchases over ${MIN_AMOUNT}</b>. Make
+                  sure your cost before tax and discounts is over ${MIN_AMOUNT}{" "}
+                  and <A href="/store/cart">convert</A> any subscriptions in
+                  your cart to explicit date ranges, then try again. If this is
+                  confusing, <A href="/support/new">make a support request</A>.
+                </>
+              }
+            />
           ) : (
-            <>
-              Click the button below to copy your shopping cart contents to a
-              support request. Note that the 25% self-service discount included
-              in the total here is not available with quotes.
-              <div style={{ textAlign: "center", marginTop: "5px" }}>
-                <Button onClick={createSupportRequest}>
-                  <Icon name="medkit" /> Copy cart to support request
-                </Button>
-              </div>
-            </>
+            <Alert
+              showIcon
+              style={{
+                margin: "15px 0",
+                fontSize: "12pt",
+                borderRadius: "5px",
+              }}
+              type="info"
+              message={
+                <>
+                  Click the button below to copy your shopping cart contents to
+                  a support request, and we will take if from there. Note that
+                  the 25% self-service discount is <b>only available</b> when
+                  you purchase from this page.
+                  <div style={{ textAlign: "center", marginTop: "5px" }}>
+                    <Button onClick={createSupportRequest}>
+                      <Icon name="medkit" /> Copy cart to support request
+                    </Button>
+                  </div>
+                </>
+              }
+            />
           )}
         </div>
       )}
