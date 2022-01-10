@@ -218,10 +218,9 @@ function CreateLicense() {
             </Radio>
           </Radio.Group>
         </Form.Item>
-        <Form.Item name="period" hidden={true} initialValue={"monthly"}>
-          <Input />
-        </Form.Item>
         <Form.Item
+          name="period"
+          initialValue={"monthly"}
           label="Period"
           extra={
             showExplanations ? (
@@ -239,7 +238,6 @@ function CreateLicense() {
           }
         >
           <Radio.Group
-            defaultValue={"monthly"}
             onChange={(e) => {
               form.setFieldsValue({ period: e.target.value });
             }}
