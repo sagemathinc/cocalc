@@ -182,7 +182,7 @@ class SiteLicenseHook {
         // The site_license is supposed to be a map from uuid's to settings...
         // We could put some sort of error here in case, though I don't know what
         // we would do with it.
-        this.dbg.info(`skipping invalid license ${license_id}`);
+        this.dbg.info(`skipping invalid license ${license_id} -- invalid UUID`);
         continue;
       }
       const license = validLicenses.get(license_id);
