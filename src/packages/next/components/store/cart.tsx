@@ -165,15 +165,16 @@ export default function ShoppingCart() {
             <span style={{ fontSize: "13pt" }}>
               <TotalCost items={items} />
             </span>
-            <Button
-              disabled={subTotal == 0 || updating}
-              style={{ marginLeft: "15px" }}
-              size="large"
-              type="primary"
-              href="/store/checkout"
-            >
-              Proceed to Checkout
-            </Button>
+            <A href="/store/checkout">
+              <Button
+                disabled={subTotal == 0 || updating}
+                style={{ marginLeft: "15px" }}
+                size="large"
+                type="primary"
+              >
+                Proceed to Checkout
+              </Button>
+            </A>
           </div>
           <h3>
             <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />{" "}
