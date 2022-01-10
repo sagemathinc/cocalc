@@ -16,10 +16,10 @@ import Avatar from "components/account/avatar";
 import UserName from "components/account/name";
 import { EditableDescription, EditableTitle } from "./editable-license";
 import { search_split, search_match } from "@cocalc/util/misc";
-import { capitalize, cmp, plural } from "@cocalc/util/misc";
+import { cmp, plural } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Timestamp from "components/misc/timestamp";
-import License, {DateRange} from "./license";
+import License, { DateRange } from "./license";
 import SelectUsers from "components/account/select-users";
 import useCustomize from "lib/use-customize";
 
@@ -83,7 +83,6 @@ function TitleDescId({ title, description, id, onChange }) {
   );
 }
 
-
 function Managers({ managers, id, onChange }) {
   return (
     <>
@@ -116,30 +115,6 @@ function RunLimit({ run_limit }) {
 
 function LastUsed({ last_used }) {
   return renderTimestamp(last_used);
-}
-
-function Activates({ activates }) {
-  return renderTimestamp(activates);
-}
-
-function Expires({ expires }) {
-  return (
-    <>
-      {" "}
-      {renderTimestamp(expires)}
-      {expires && expires <= new Date().valueOf() && (
-        <div
-          style={{
-            backgroundColor: "#d00",
-            color: "white",
-            padding: "0 5px",
-          }}
-        >
-          <Icon name="ban" /> Expired
-        </div>
-      )}
-    </>
-  );
 }
 
 function Created({ created }) {
@@ -399,9 +374,9 @@ function doSearch(data: object[], search: string): object[] {
   const w: object[] = [];
   for (const x of data) {
     if (x["search"] == null) {
-      x["search"] = `${x["title"] ?? ""} ${x["description"] ?? ""} ${
-        x["id"]
-      } ${x['info']?.purchased?.subscription}`.toLowerCase();
+      x["search"] = `${x["title"] ?? ""} ${x["description"] ?? ""} ${x["id"]} ${
+        x["info"]?.purchased?.subscription
+      }`.toLowerCase();
     }
     if (search_match(x["search"], v)) {
       w.push(x);
