@@ -7,9 +7,10 @@ type Date0 = Date | undefined;
 interface Props {
   onChange?: (x: [Date0, Date0]) => void;
   style?: CSSProperties;
+  noPast?: boolean; // if true, don't allow dates in the past
 }
 
-export default function DateRange({ onChange, style }: Props) {
+export default function DateRange({ onChange, style, noPast }: Props) {
   const [dateRange, setDateRange] = useState<[Date0, Date0]>([
     undefined,
     undefined,
@@ -50,6 +51,9 @@ export default function DateRange({ onChange, style }: Props) {
           setDateRange(x);
           onChange?.(x);
         }}
+        disabledDate={
+          noPast && ((date) => date && date <= moment().subtract(1, "days"))
+        }
       />
     </div>
   );

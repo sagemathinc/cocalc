@@ -259,6 +259,7 @@ function CreateLicense() {
           {({ getFieldValue }) =>
             getFieldValue("period") == "range" ? (
               <DateRange
+                noPast
                 style={{ margin: "5px 0 30px", textAlign: "center" }}
                 onChange={(range) => {
                   form.setFieldsValue({ range });
