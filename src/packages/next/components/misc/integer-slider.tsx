@@ -51,7 +51,12 @@ export default function IntegerSlider({
           <InputNumber
             min={min}
             max={maxText ?? max}
-            style={{ marginLeft: "16px", marginBottom:'5px', minWidth: "8ex", width: "20ex" }}
+            style={{
+              marginLeft: "16px",
+              marginBottom: "5px",
+              minWidth: "8ex",
+              width: "20ex",
+            }}
             defaultValue={initialValue}
             value={value ?? val}
             onChange={(value) => {

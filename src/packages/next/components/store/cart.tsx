@@ -294,7 +294,9 @@ function CheckboxColumn({
           setUpdating(false);
         }
       }}
-    />
+    >
+      <span className="sr-only">Select</span>
+    </Checkbox>
   );
 }
 

@@ -375,7 +375,14 @@ function CreateLicense() {
                 <A href="https://doc.cocalc.com/teaching-instructors.html">
                   teaching a course
                 </A>
-                , the run limit is typically 2 more than the number of students.
+                ,{" "}
+                <b>
+                  <i>
+                    the run limit is typically 2 more than the number of
+                    students
+                  </i>
+                </b>
+                .
               </div>
             ) : undefined
           }

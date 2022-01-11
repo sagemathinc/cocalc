@@ -52,7 +52,9 @@ export default function DateRange({ onChange, style, noPast }: Props) {
           onChange?.(x);
         }}
         disabledDate={
-          noPast && ((date) => date && date <= moment().subtract(1, "days"))
+          noPast
+            ? (date) => date && date <= moment().subtract(1, "days")
+            : undefined
         }
       />
     </div>

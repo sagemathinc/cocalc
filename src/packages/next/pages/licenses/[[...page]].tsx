@@ -11,7 +11,7 @@ export default function Preferences({ customize, page }) {
     <Customize value={customize}>
       <Head title="Licenses" />
       <Layout>
-        <Header/>
+        <Header />
         <Licenses page={page} />
         <Footer />
       </Layout>
