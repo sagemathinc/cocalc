@@ -56,6 +56,11 @@ import { apply_patch } from "@cocalc/sync/editor/generic/util";
 import { default_opts } from "../codemirror/cm-options";
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
 import { open_new_tab } from "../../misc";
+import {
+  set_local_storage,
+  get_local_storage,
+  delete_local_storage,
+} from "@cocalc/util/misc";
 
 import {
   ext2syntax,
@@ -503,14 +508,15 @@ export class Actions<
 
   private __save_local_view_state(): void {
     if (!this.store?.get("local_view_state")) return;
-    localStorage[this.name] = JSON.stringify(
-      this.store.get("local_view_state")
+    set_local_storage(
+      this.name,
+      JSON.stringify(this.store.get("local_view_state"))
     );
   }
 
   _load_local_view_state(): LocalViewState {
     let local_view_state;
-    const x = localStorage[this.name];
+    const x = get_local_storage(this.name);
     if (x != null) {
       local_view_state = fromJS(JSON.parse(x));
     }
@@ -555,7 +561,7 @@ export class Actions<
   }
 
   reset_local_view_state(): void {
-    delete localStorage[this.name];
+    delete_local_storage(this.name);
     this.setState({ local_view_state: this._load_local_view_state() });
     this.reset_frame_tree();
   }
