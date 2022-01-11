@@ -18,6 +18,7 @@ import {
   SiteLicenseQuotaSetting,
   QuotaSetting,
   SiteLicenses,
+  LicenseStatus,
 } from "@cocalc/util/upgrades/quota";
 
 import getLogger from "@cocalc/backend/logger";
@@ -155,7 +156,9 @@ class SiteLicenseHook {
     const dbg = this.dbg.extend("setProjectSiteLicense");
     if (!isEqual(this.currentSiteLicense, this.nextSiteLicense)) {
       // Now set the site license since something changed.
-      dbg.info(`setup site license=${JSON.stringify(this.nextSiteLicense)}`);
+      dbg.info(
+        `setup a modified site license=${JSON.stringify(this.nextSiteLicense)}`
+      );
       await query({
         db: this.db,
         query: "UPDATE projects",
@@ -186,9 +189,9 @@ class SiteLicenseHook {
         continue;
       }
       const license = validLicenses.get(license_id);
-      const state = await this.checkLicense({ license, license_id });
+      const status = await this.checkLicense({ license, license_id });
 
-      if (state === "valid") {
+      if (status === "valid") {
         const upgrades: QuotaSetting = this.extractUpgrades(license);
 
         this.dbg.verbose("computing run quotas...");
@@ -215,21 +218,19 @@ class SiteLicenseHook {
               upgrades
             )}.`
           );
-          nextLicense[license_id] = upgrades;
+          nextLicense[license_id] = { ...upgrades, status: "valid" };
         } else {
           this.dbg.info(
             `Found a valid license "${license_id}", but it provides nothing new so not using it.`
           );
+          nextLicense[license_id] = { status: "ineffective" };
         }
-      } else if (state === "expired") {
-        this.dbg.info(`Removing expired license "${license_id}".`);
-        // due to how jsonb_set works, we have to set this to null,
-        // because otherwise an existing license entry continues to exist.
-        nextLicense[license_id] = null;
       } else {
-        // in all other cases we keep the license around, but not providing any upgrades
-        this.dbg.info(`Disabling license "${license_id}" -- state=${state}`);
-        nextLicense[license_id] = {};
+        // license is not valid, all other cases:
+        // Note: in an earlier version we did delete an expired license. We don't do this any more,
+        // but instead record that it is expired and tell the user about it.
+        this.dbg.info(`Disabling license "${license_id}" -- status=${status}`);
+        nextLicense[license_id] = { status }; // no upgrades or quotas!
       }
     }
     return nextLicense;
@@ -268,10 +269,7 @@ class SiteLicenseHook {
    * - disabled: the license is disabled and should not provide any upgrades
    * - future: the license is valid but not yet and should not provide any upgrades as well
    */
-  private async checkLicense({
-    license,
-    license_id,
-  }): Promise<"expired" | "exhausted" | "valid" | "future"> {
+  private async checkLicense({ license, license_id }): Promise<LicenseStatus> {
     this.dbg.info(
       `considering license ${license_id}: ${JSON.stringify(license?.toJS())}`
     );
