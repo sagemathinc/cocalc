@@ -22,6 +22,7 @@ import { computeCost, Cost, DisplayCost } from "./site-license-cost";
 import apiPost from "lib/api/post";
 import { useRouter } from "next/router";
 import Loading from "components/share/loading";
+import { money } from "@cocalc/util/licenses/purchase/util";
 
 export default function Create() {
   const router = useRouter();
@@ -137,6 +138,7 @@ function CreateLicense() {
         }}
       >
         <DisplayCost cost={cost} />
+        <div>{money(cost.discounted_cost / cost.input.quantity)} per project</div>
         <div style={{ textAlign: "center" }}>
           {router.query.id != null && (
             <Button
