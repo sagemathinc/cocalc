@@ -7,26 +7,24 @@ import { List, Map, Set } from "immutable";
 import { TypedMap } from "../../app-framework";
 import { Quota } from "@cocalc/util/db-schema/site-licenses";
 
-export type upgrade_fields_type =
-  | "disk_quota"
-  | "memory"
-  | "memory_request"
-  | "cores"
-  | "network"
-  | "cpu_shares"
-  | "mintime"
-  | "member_host";
-
-export const upgrade_fields: upgrade_fields_type[] = [
-  "member_host",
-  "network",
-  "mintime",
-  "disk_quota",
-  "memory",
-  "memory_request",
+export const upgrade_fields = [
   "cores",
   "cpu_shares",
-];
+  "disk_quota",
+  "member_host",
+  "memory_request",
+  "memory",
+  "mintime",
+  "network",
+] as const;
+
+export type upgrade_fields_type = typeof upgrade_fields[number];
+
+export function isUpgradFieldsType(
+  field: string
+): field is upgrade_fields_type {
+  return (upgrade_fields as unknown as string[]).indexOf(field) >= 0;
+}
 
 export type Upgrades = { [field in upgrade_fields_type]: number };
 
