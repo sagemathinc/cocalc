@@ -21,23 +21,23 @@ export interface Cost extends Cost0 {
 
 export function computeCost({
   user,
-  runLimit,
+  run_limit,
   period,
   range,
-  sharedRam,
-  sharedCores,
+  ram,
+  cpu,
   disk,
-  alwaysRunning,
+  always_running,
   member,
 }: {
   user: "academic" | "business";
-  runLimit: number;
+  run_limit: number;
   period: Period;
   range: [Date | undefined, Date | undefined];
-  sharedRam: number;
-  sharedCores: number;
+  ram: number;
+  cpu: number;
   disk: number;
-  alwaysRunning: boolean;
+  always_running: boolean;
   member: boolean;
   input: PurchaseInfo;
 }): Cost | undefined {
@@ -47,19 +47,19 @@ export function computeCost({
   const input = {
     user,
     upgrade: "custom" as "custom",
-    quantity: runLimit,
+    quantity: run_limit,
     subscription: (period == "range" ? "no" : period) as
       | "no"
       | "monthly"
       | "yearly",
     start: range?.[0] ?? new Date(),
     end: range?.[1],
-    custom_ram: sharedRam,
+    custom_ram: ram,
     custom_dedicated_ram: 0,
-    custom_cpu: sharedCores,
+    custom_cpu: cpu,
     custom_dedicated_cpu: 0,
     custom_disk: disk,
-    custom_always_running: alwaysRunning,
+    custom_always_running: always_running,
     custom_member: member,
   };
   return {
@@ -76,6 +76,9 @@ interface Props {
 }
 
 export function DisplayCost({ cost, simple, oneLine }: Props) {
+  if (isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
+    return <>&ndash;</>;
+  }
   if (simple) {
     return (
       <>

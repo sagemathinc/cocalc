@@ -271,7 +271,7 @@ function CreateLicense() {
         </Form.Item>
         <Form.Item
           label="GB shared RAM"
-          name="sharedRam"
+          name="ram"
           initialValue={1}
           extra={
             showExplanations ? (
@@ -291,8 +291,8 @@ function CreateLicense() {
           <IntegerSlider
             min={1}
             max={16}
-            onChange={(sharedRam) => {
-              form.setFieldsValue({ sharedRam });
+            onChange={(ram) => {
+              form.setFieldsValue({ ram });
               onChange();
             }}
             units={"GB RAM"}
@@ -301,7 +301,7 @@ function CreateLicense() {
         </Form.Item>{" "}
         <Form.Item
           label="Shared CPUs"
-          name="sharedCores"
+          name="cpu"
           initialValue={1}
           extra={
             showExplanations ? (
@@ -323,8 +323,8 @@ function CreateLicense() {
           <IntegerSlider
             min={1}
             max={3}
-            onChange={(sharedCores) => {
-              form.setFieldsValue({ sharedCores });
+            onChange={(cpu) => {
+              form.setFieldsValue({ cpu });
               onChange();
             }}
             units={"vCPU"}
@@ -363,7 +363,7 @@ function CreateLicense() {
         </Form.Item>
         <Form.Item
           label="Run Limit"
-          name="runLimit"
+          name="run_limit"
           initialValue={1}
           extra={
             showExplanations ? (
@@ -388,8 +388,8 @@ function CreateLicense() {
           }
         >
           <EditRunLimit
-            onChange={(runLimit) => {
-              form.setFieldsValue({ runLimit });
+            onChange={(run_limit) => {
+              form.setFieldsValue({ run_limit });
               onChange();
             }}
           />
@@ -422,7 +422,7 @@ function CreateLicense() {
         <Form.Item
           initialValue={false}
           label="Always running"
-          name="alwaysRunning"
+          name="always_running"
           valuePropName="checked"
           extra={
             showExplanations ? (

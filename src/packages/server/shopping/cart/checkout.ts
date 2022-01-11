@@ -32,58 +32,58 @@ export default async function checkout(account_id: string): Promise<void> {
   // at once.  However, we haven't implemented that yet!  **We will soon.**
   const pool = getPool();
   for (const item of cart) {
-    await purchaseItem(item);
+    const license_id = await purchaseItem(item);
     await pool.query(
       "UPDATE shopping_cart_items SET purchased=$3 WHERE account_id=$1 AND id=$2",
-      [account_id, item.id, { success: true, time: new Date() }]
+      [account_id, item.id, { success: true, time: new Date(), license_id }]
     );
   }
 }
 
-async function purchaseItem(item): Promise<void> {
+async function purchaseItem(item): Promise<string> {
   const { product } = item;
   if (product != "site-license") {
     // This *ONLY* implements purchasing the site-license product, which is the only
     // one we have right now.
     throw Error("only the 'site-license' product is currently implemented");
   }
-  await purchaseSiteLicense(item);
+  return await purchaseSiteLicense(item);
 }
 
-async function purchaseSiteLicense(item): Promise<void> {
+async function purchaseSiteLicense(item): Promise<string> {
   const {
     title,
     description,
     user,
-    runLimit,
+    run_limit,
     period,
     range,
-    sharedRam,
-    sharedCores,
+    ram,
+    cpu,
     disk,
-    alwaysRunning,
+    always_running,
     member,
   } = item.description;
   const info: PurchaseInfo = {
     user,
     upgrade: "custom" as "custom",
-    quantity: runLimit,
+    quantity: run_limit,
     subscription: (period == "range" ? "no" : period) as
       | "no"
       | "monthly"
       | "yearly",
     start: range?.[0] ? new Date(range?.[0]) : new Date(),
     end: range?.[1] ? new Date(range?.[1]) : undefined,
-    custom_ram: sharedRam,
+    custom_ram: ram,
     custom_dedicated_ram: 0,
-    custom_cpu: sharedCores,
+    custom_cpu: cpu,
     custom_dedicated_cpu: 0,
     custom_disk: disk,
-    custom_always_running: alwaysRunning,
+    custom_always_running: always_running,
     custom_member: member,
     title,
     description,
   };
   info.cost = compute_cost(info);
-  await purchaseLicense(item.account_id, info, true); // true = no throttle; otherwise, only first item would get bought.
+  return await purchaseLicense(item.account_id, info, true); // true = no throttle; otherwise, only first item would get bought.
 }
