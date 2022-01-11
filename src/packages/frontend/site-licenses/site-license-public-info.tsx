@@ -22,6 +22,7 @@ import { plural, trunc_left } from "@cocalc/util/misc";
 import { DebounceInput } from "react-debounce-input";
 import { webapp_client } from "../webapp-client";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import { LicenseStatus, isLicenseStatus } from "@cocalc/util/upgrades/quota";
 import { LicensePurchaseInfo } from "./purchase-info-about-license";
 import { query, user_search } from "../frame-editors/generic/client";
 import { User } from "../users";
@@ -67,7 +68,18 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
   >(false);
   const user_map = useTypedRedux("users", "user_map");
 
-  const provides_upgrades = upgrades != null && upgrades.size > 0;
+  function getLicenseStatus(): LicenseStatus {
+    const status = upgrades?.get("status");
+    if (isLicenseStatus(status)) {
+      return status;
+    } else {
+      return "valid";
+    }
+  }
+
+  // in doubt, we assume the best and the license is valid
+  const license_status = getLicenseStatus();
+  const provides_upgrades = license_status === "valid";
 
   useEffect(() => {
     // Optimization: check in redux store for first approximation of
@@ -173,15 +185,22 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
   }
 
   function render_expires(): JSX.Element | undefined {
-    if (!info?.expires) return;
-    const expired = new Date() >= info.expires;
-    let word = expired ? "EXPIRED" : "will expire";
+    const expired = license_status === "expired";
+    const word = expired ? "EXPIRED" : "Will expire";
+    const when =
+      info?.expires != null ? (
+        <TimeAgo date={info.expires} />
+      ) : expired ? (
+        "in the past"
+      ) : (
+        "in the future"
+      );
     return (
-      <div
-        style={expired ? { fontSize: "14pt", fontWeight: "bold" } : undefined}
+      <li
+        style={expired ? { fontSize: "110%", fontWeight: "bold" } : undefined}
       >
-        ({word} <TimeAgo date={info.expires} />)
-      </div>
+        {word} {when}.
+      </li>
     );
   }
 
@@ -211,11 +230,22 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
       <li>
         {info?.is_manager ? (
           <CopyToClipBoard
-            style={{ display: "inline-block", width: "50ex", margin: 0 }}
+            style={{
+              display: "inline-block",
+              width: "50ex",
+              margin: 0,
+              verticalAlign: "middle",
+            }}
             value={license_id}
           />
         ) : (
-          <span style={{ fontFamily: "monospace", whiteSpace: "nowrap" }}>
+          <span
+            style={{
+              fontFamily: "monospace",
+              whiteSpace: "nowrap",
+              verticalAlign: "middle",
+            }}
+          >
             {trunc_left(license_id, 14)}
           </span>
         )}
@@ -230,12 +260,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
       }
       return;
     }
-    return (
-      <span>
-        {render_title()}
-        {render_expires()}
-      </span>
-    );
+    return <span>{render_title()}</span>;
   }
 
   function render_run_limit(): JSX.Element | undefined {
@@ -363,6 +388,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
       return (
         <div>
           {render_id()}
+          {render_expires()}
           {render_what_license_provides_overall()}
           {render_applied()}
           {render_run_limit()}
@@ -389,7 +415,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
       // expired?
       // it is expired, so no point in explaining what upgrades it would
       // provide or telling you to restart your project.
-      provides = <li>License is expired.</li>;
+      provides = <></>;
       show_run = false; // no point in showing these
     } else if (!provides_upgrades) {
       // not providing any upgrades -- tell them why
@@ -453,6 +479,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     return (
       <ul>
         {render_id()}
+        {render_expires()}
         {provides}
         {show_run && render_applied()}
         {show_run && render_run_limit()}

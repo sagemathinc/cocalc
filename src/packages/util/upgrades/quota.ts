@@ -156,12 +156,20 @@ export interface SiteLicenseQuotaSetting {
   quota: SiteLicenseQuota;
 }
 
-export type LicenseStatus =
-  | "valid" // valid license providing upgrades
-  | "expired" // license expired
-  | "exhausted" // run_limit reached
-  | "future" // will be valid in the future
-  | "ineffective"; // valid, but does not provide any upgrades
+const LicenseStatusOptions = {
+  valid: "valid license providing upgrades",
+  expired: "license expired",
+  exhausted: "run_limit reached",
+  future: "will be valid in the future",
+  ineffective: "valid, but does not provide any upgrades",
+} as const;
+
+export type LicenseStatus = keyof typeof LicenseStatusOptions;
+
+export function isLicenseStatus(status?: unknown): status is LicenseStatus {
+  if (typeof status !== "string") return false;
+  return LicenseStatusOptions[status] != null;
+}
 
 // it could be null in the moment when a license is removed via the UI
 export type QuotaSetting =
