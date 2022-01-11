@@ -72,7 +72,9 @@ export default async function purchaseLicense(
   // We have to try a few times, since the metadata sometimes doesn't appear
   // when querying stripe for the customer, even after it was written in the
   // above line.  Also, this gives the credit card a first chance to work.
-  for (let i = 0; i < 3; i++) {
+  let done = false;
+  let delay_s = 1;
+  for (let i = 0; i < 20; i++) {
     const customer = await callback2(database.stripe_update_customer, {
       account_id,
     });
@@ -81,11 +83,23 @@ export default async function purchaseLicense(
       for (const sub of data) {
         if (sub.metadata?.license_id == license_id && sub.status == "active") {
           // metadata is set and status is active -- yes
+          done = true;
           break;
         }
       }
     }
-    await delay(2000);
+    if (done) {
+      logger.debug(
+        "purchase_license: successfully verified metadata properly set and sub is active..."
+      );
+      break;
+    } else {
+      logger.debug(
+        "purchase_license: trying again to verify metadata properly set and sub is active..."
+      );
+    }
+    await delay(delay_s * 1000);
+    delay_s *= 1.1;
   }
 
   // Sets the license expire date if the subscription is NOT
