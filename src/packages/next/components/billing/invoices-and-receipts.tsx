@@ -7,7 +7,8 @@ import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Timestamp from "components/misc/timestamp";
 
-function Description({ hosted_invoice_url, lines }) {
+function Description({ hosted_invoice_url, lines, metadata }) {
+  const license_id = metadata?.license_id ?? lines.data[0].metadata?.license_id;
   return (
     <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
       {lines.data[0].description}
@@ -19,9 +20,9 @@ function Description({ hosted_invoice_url, lines }) {
           </A>
         </div>
       )}
-      {lines.data[0].metadata?.license_id && (
+      {license_id && (
         <div>
-          License: <License license_id={lines.data[0].metadata?.license_id} />
+          License: <License license_id={license_id} />
         </div>
       )}
     </div>

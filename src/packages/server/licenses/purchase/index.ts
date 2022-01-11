@@ -72,39 +72,44 @@ export default async function purchaseLicense(
   // We have to try a few times, since the metadata sometimes doesn't appear
   // when querying stripe for the customer, even after it was written in the
   // above line.  Also, this gives the credit card a first chance to work.
-  let done = false;
-  let delay_s = 1;
-  for (let i = 0; i < 20; i++) {
-    const customer = await callback2(database.stripe_update_customer, {
-      account_id,
-    });
-    const data = customer?.subscriptions?.data;
-    if (data != null) {
-      for (const sub of data) {
-        if (sub.metadata?.license_id == license_id && sub.status == "active") {
-          // metadata is set and status is active -- yes
-          done = true;
-          break;
+  // This is ONLY for subscriptions.
+  if (info.subscription != "no") {
+    let done = false;
+    let delay_s = 1;
+    for (let i = 0; i < 20; i++) {
+      const customer = await callback2(database.stripe_update_customer, {
+        account_id,
+      });
+      const data = customer?.subscriptions?.data;
+      if (data != null) {
+        for (const sub of data) {
+          if (
+            sub.metadata?.license_id == license_id &&
+            sub.status == "active"
+          ) {
+            // metadata is set and status is active -- yes
+            done = true;
+            break;
+          }
         }
       }
+      if (done) {
+        logger.debug(
+          "purchase_license: successfully verified metadata properly set and sub is active..."
+        );
+        break;
+      } else {
+        logger.debug(
+          "purchase_license: trying again to verify metadata properly set and sub is active..."
+        );
+      }
+      await delay(delay_s * 1000);
+      delay_s *= 1.1;
     }
-    if (done) {
-      logger.debug(
-        "purchase_license: successfully verified metadata properly set and sub is active..."
-      );
-      break;
-    } else {
-      logger.debug(
-        "purchase_license: trying again to verify metadata properly set and sub is active..."
-      );
-    }
-    await delay(delay_s * 1000);
-    delay_s *= 1.1;
+    // Sets the license expire date if the subscription is NOT
+    // active at this point (e.g., due to credit card failure).
+    await database.sync_site_license_subscriptions(account_id);
   }
-
-  // Sets the license expire date if the subscription is NOT
-  // active at this point (e.g., due to credit card failure).
-  await database.sync_site_license_subscriptions(account_id);
 
   return license_id;
 }
