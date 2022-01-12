@@ -138,7 +138,9 @@ function CreateLicense() {
         }}
       >
         <DisplayCost cost={cost} />
-        <div>{money(cost.discounted_cost / cost.input.quantity)} per project</div>
+        <div>
+          {money(cost.discounted_cost / cost.input.quantity)} per project
+        </div>
         <div style={{ textAlign: "center" }}>
           {router.query.id != null && (
             <Button
@@ -311,8 +313,8 @@ function CreateLicense() {
                 <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
                   Google cloud vCPU's.
                 </A>{" "}
-                Note that to keep prices low, these vCPU's may be shared with
-                other projects, though member hosting very significantly reduces
+                To keep prices low, these vCPU's may be shared with other
+                projects, though member hosting very significantly reduces
                 competition for CPUs. We also offer{" "}
                 <A external href="https://cocalc.com/pricing/dedicated">
                   dedicated virtual machines
