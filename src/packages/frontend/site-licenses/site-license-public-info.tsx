@@ -4,7 +4,7 @@
  */
 
 import { fromJS, Map } from "immutable";
-import { Table } from "antd";
+import { Table, Tag, Tooltip } from "antd";
 import {
   React,
   useEffect,
@@ -19,11 +19,15 @@ import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../components";
 import { alert_message } from "../alerts";
 import { Alert, Button, Input, Popconfirm, Popover } from "antd";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
-import { plural, trunc_left } from "@cocalc/util/misc";
+import { plural, trunc_left, trunc, unreachable } from "@cocalc/util/misc";
 import { DebounceInput } from "react-debounce-input";
 import { webapp_client } from "../webapp-client";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
-import { LicenseStatus, isLicenseStatus } from "@cocalc/util/upgrades/quota";
+import {
+  LicenseStatus,
+  isLicenseStatus,
+  LicenseStatusOptions,
+} from "@cocalc/util/upgrades/quota";
 import { LicensePurchaseInfo } from "./purchase-info-about-license";
 import { query, user_search } from "../frame-editors/generic/client";
 import { User } from "../users";
@@ -41,6 +45,11 @@ interface TableRow {
   license_id: string;
   title?: string;
   description?: string;
+  is_manager: boolean;
+  activates?: Date;
+  expires?: Date;
+  expired: boolean; // true if expired, with a bit of heuristics
+  status: LicenseStatus; // see calcStatus for what's going on
 }
 
 export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
@@ -48,7 +57,10 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
 ) => {
   const {
     site_license,
-    // project_id, restartAfterRemove, onRemove, warn_if
+    project_id,
+    restartAfterRemove = false,
+    onRemove,
+    warn_if,
   } = props;
 
   const isMountedRef = useIsMountedRef();
@@ -81,58 +93,218 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     setInfos(infos);
   }
 
+  function calcStatus(k, v): LicenseStatus {
+    const upgrades = site_license?.[k];
+    const status_val = upgrades?.get("status");
+    if (isLicenseStatus(status_val)) {
+      return status_val;
+    } else {
+      if (new Date() >= v.expires) {
+        return "expired";
+      } else if (new Date() < v.activates) {
+        return "future";
+      } else {
+        return "valid";
+      }
+    }
+  }
+
   useEffect(() => {
     if (infos == null) return;
     // derive table row data from site license and fetched infos
     setData(
       Object.entries(infos).map(([k, v], idx) => {
+        // we check if we definitely know the status, otherwise use the date
+        // if there is no information, we assume it is valid
+        const status = calcStatus(k, v);
+        const expired =
+          status === "expired"
+            ? true
+            : v?.expires != null
+            ? new Date() >= v.expires
+            : false;
         return {
           key: idx,
           license_id: k,
           title: v?.title,
           description: v?.description,
+          status,
+          is_manager: v.is_manager ?? false,
+          activates: v.activates,
+          expires: v.expires,
+          expired,
         };
       })
     );
   }, [site_license, infos]);
 
+  function rowInfo(rec: TableRow): JSX.Element {
+    return (
+      <SiteLicensePublicInfo
+        license_id={rec.license_id}
+        project_id={project_id}
+        upgrades={site_license?.[rec.license_id]}
+        onRemove={onRemove != null ? () => onRemove(rec.license_id) : undefined}
+        warn_if={
+          warn_if != null ? (info) => warn_if(info, rec.license_id) : undefined
+        }
+        restartAfterRemove={restartAfterRemove}
+        tableMode={true}
+      />
+    );
+  }
+
+  function renderStatusColor(status: LicenseStatus) {
+    switch (status) {
+      case "valid":
+        return "green";
+      case "expired":
+        return "darkred";
+      case "exhausted":
+        return "red";
+      case "future":
+        return "geekblue";
+      case "ineffective":
+        return "gray";
+      default:
+        unreachable(status);
+    }
+  }
+
+  function renderStatus(rec: TableRow) {
+    const status: LicenseStatus = rec.status;
+    const color = renderStatusColor(status);
+    const text = status === "expired" ? status.toUpperCase() : status;
+    const style = status === "expired" ? { fontSize: "110%" } : {};
+    return (
+      <Tag style={style} color={color}>
+        {text}
+      </Tag>
+    );
+  }
+
+  function activatesExpires(rec: TableRow): JSX.Element {
+    if (rec.activates != null && rec.activates > new Date()) {
+      return (
+        <>
+          Will activate in <TimeAgo date={rec.activates} />.
+        </>
+      );
+    } else {
+      const word = rec.expired ? "EXPIRED" : "Will expire";
+      const when =
+        rec?.expires != null ? (
+          <TimeAgo date={rec.expires} />
+        ) : rec.expired ? (
+          "in the past"
+        ) : rec?.expires != null ? (
+          "in the future"
+        ) : (
+          "never"
+        );
+      return (
+        <>
+          {word} {when}.
+        </>
+      );
+    }
+  }
+
+  function renderStatusText(rec: TableRow): JSX.Element {
+    const quota = site_license?.[rec.license_id]?.toJS()?.quota;
+    if (quota?.dedicated_disk || quota?.dedicated_vm) {
+      return <>{describe_quota(quota)}</>;
+    }
+
+    if (rec.status === "valid") {
+      return <>{describe_quota(quota)}</>;
+    }
+
+    const descr = LicenseStatusOptions[rec.status];
+    if (typeof descr === "string" && descr.length > 0) {
+      return <>{descr}</>;
+    }
+  }
+
+  function renderInfo(rec: TableRow): JSX.Element {
+    return (
+      <>
+        {renderStatusText(rec)}
+        <br />
+        {activatesExpires(rec)}
+      </>
+    );
+  }
+
+  function renderTitle(rec: TableRow): JSX.Element {
+    // as a fallback, we show the truncated license id
+    const title = rec.title ? rec.title : trunc_license_id(rec.license_id);
+    return (
+      <>
+        <strong>{title}</strong>
+        {rec.description && (
+          <>
+            <br />
+            <p>{trunc(rec.description, 30)}</p>
+          </>
+        )}
+      </>
+    );
+  }
+
+  function renderRemove(license_id: string): JSX.Element {
+    return (
+      <Tooltip
+        placement="bottom"
+        title={"Remove this license from the project"}
+      >
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            window.alert(`license id: ${license_id}`);
+          }}
+        >
+          <Icon name="times" />
+        </Button>
+      </Tooltip>
+    );
+  }
+
   return (
     <Table<TableRow>
       dataSource={data}
+      rowClassName={() => "cursor-pointer"}
+      pagination={{ hideOnSinglePage: true, defaultPageSize: 5 }}
       expandable={{
-        expandedRowRender: (record) => (
-          <p style={{ margin: 0 }}>{record.description}</p>
-        ),
+        expandedRowRender: (record) => rowInfo(record),
+        expandRowByClick: true,
       }}
     >
+      <Table.Column<TableRow>
+        key="status"
+        title=""
+        dataIndex="status"
+        align="center"
+        render={(_, rec) => renderStatus(rec)}
+      />
       <Table.Column<TableRow>
         key="title"
         title="License"
         dataIndex="title"
-        render={(text, rec) => (
-          <>
-            <strong>{text}</strong>
-            <br />
-            <p>{rec.description ?? ""}</p>
-          </>
-        )}
+        render={(_, rec) => renderTitle(rec)}
       />
       <Table.Column<TableRow>
-        key="license_id"
-        title="License ID"
-        dataIndex="license_id"
+        key="expires"
+        title="Information"
+        dataIndex="expires"
+        render={(_, rec) => renderInfo(rec)}
       />
-      <Table.Columns<TableRow>
+      <Table.Column<TableRow>
         key="actions"
         title=""
         dataIndex="license_id"
-        render={(license_id) => (
-          <>
-            <Button onClick={() => window.alert(`license id: ${license_id}`)}>
-              remove
-            </Button>
-          </>
-        )}
+        align={"right"}
+        render={(license_id) => renderRemove(license_id)}
       />
     </Table>
   );
@@ -145,6 +317,7 @@ interface Props {
   onRemove?: () => void; // called *before* the license is removed!
   warn_if?: (info) => void | string;
   restartAfterRemove?: boolean; // default false
+  tableMode?: boolean; // if true, used via SiteLicensePublicInfoTable
 }
 
 export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
@@ -155,6 +328,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     onRemove,
     warn_if,
     restartAfterRemove = false,
+    tableMode = false,
   } = props;
   const [info, set_info] = useState<Info | undefined>(undefined);
   const [err, set_err] = useState<string | undefined>(undefined);
@@ -310,8 +484,10 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
         <TimeAgo date={info.expires} />
       ) : expired ? (
         "in the past"
-      ) : (
+      ) : info?.expires != null ? (
         "in the future"
+      ) : (
+        "never"
       );
     return (
       <li
@@ -668,6 +844,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
 
   function render_remove_button(): JSX.Element | undefined {
     if (!project_id && onRemove == null) return;
+    if (tableMode) return;
     const extra = render_remove_button_extra();
     return (
       <Popconfirm

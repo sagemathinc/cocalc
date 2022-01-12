@@ -67,23 +67,11 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
 
   function render_current_licenses(): Rendered {
     if (!site_license) return;
-    //const v: Rendered[] = [];
-    //for (const [license_id, upgrades] of site_license) {
-    //  v.push(
-    //    <SiteLicensePublicInfo
-    //      key={license_id}
-    //      license_id={license_id}
-    //      project_id={project_id}
-    //      upgrades={upgrades}
-    //      restartAfterRemove={true}
-    //    />
-    //  );
-    //}
-
-    const site_licenses: { [license_id: string]: Map<string, number> } = {};
-    for (const [license_id, upgrades] of site_license) {
-      site_licenses[license_id] = upgrades;
-    }
+    const site_licenses: { [license_id: string]: Map<string, number> } =
+      site_license.reduce((acc, v, k) => {
+        acc[k] = v;
+        return acc;
+      }, {});
     return (
       <div>
         <SiteLicensePublicInfoTable

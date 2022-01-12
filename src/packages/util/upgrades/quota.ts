@@ -156,12 +156,13 @@ export interface SiteLicenseQuotaSetting {
   quota: SiteLicenseQuota;
 }
 
-const LicenseStatusOptions = {
-  valid: "valid license providing upgrades",
-  expired: "license expired",
-  exhausted: "run_limit reached",
-  future: "will be valid in the future",
-  ineffective: "valid, but does not provide any upgrades",
+// all descriptions should be short sentences, expalining the user what's going on
+export const LicenseStatusOptions = {
+  valid: "License provides upgrades.",
+  expired: "No longer valid.",
+  exhausted: "All seats are used up.",
+  future: "Not yet valid.",
+  ineffective: "Does not provide any additional upgrades.",
 } as const;
 
 export type LicenseStatus = keyof typeof LicenseStatusOptions;
