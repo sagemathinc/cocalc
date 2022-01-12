@@ -4,6 +4,7 @@
  */
 
 import { fromJS, Map } from "immutable";
+import { Table } from "antd";
 import {
   React,
   useEffect,
@@ -26,6 +27,116 @@ import { LicenseStatus, isLicenseStatus } from "@cocalc/util/upgrades/quota";
 import { LicensePurchaseInfo } from "./purchase-info-about-license";
 import { query, user_search } from "../frame-editors/generic/client";
 import { User } from "../users";
+
+interface PropsTable {
+  site_license: { [license_id: string]: Map<string, number> };
+  project_id?: string; // if not given, just provide the public info about the license (nothing about if it is upgrading a specific project or not) -- this is used, e.g., for the course configuration page
+  restartAfterRemove?: boolean; // default false
+  onRemove?: (license_id: string) => void; // called *before* the license is removed!
+  warn_if?: (info, license_id) => void | string;
+}
+
+interface TableRow {
+  key: number;
+  license_id: string;
+  title?: string;
+  description?: string;
+}
+
+export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
+  props: PropsTable
+) => {
+  const {
+    site_license,
+    // project_id, restartAfterRemove, onRemove, warn_if
+  } = props;
+
+  const isMountedRef = useIsMountedRef();
+  const [infos, setInfos] = useState<
+    { [license_id: string]: Info } | undefined
+  >(undefined);
+  const [data, setData] = useState<TableRow[]>([]);
+
+  useEffect(() => {
+    // Optimization: check in redux store for first approximation of
+    // info already available locally
+    let infos = redux.getStore("billing").getIn(["managed_licenses"]);
+    if (infos != null) {
+      const infos2 = infos.toJS() as { [license_id: string]: Info };
+      // redux store *only* has entries that are managed.
+      Object.values(infos2).forEach((v) => (v.is_manager = true));
+      setInfos(infos2);
+    }
+    // Now launch async fetch from database.  This has more info, e.g., number of
+    // projects that are running right now.
+    fetchInfos(true);
+  }, []);
+
+  async function fetchInfos(force: boolean = false): Promise<void> {
+    const infos: { [license_id: string]: Info } = {};
+    for (const license_id of Object.keys(site_license)) {
+      infos[license_id] = await site_license_public_info(license_id, force);
+    }
+    if (!isMountedRef.current) return;
+    setInfos(infos);
+  }
+
+  useEffect(() => {
+    if (infos == null) return;
+    // derive table row data from site license and fetched infos
+    setData(
+      Object.entries(infos).map(([k, v], idx) => {
+        return {
+          key: idx,
+          license_id: k,
+          title: v?.title,
+          description: v?.description,
+        };
+      })
+    );
+  }, [site_license, infos]);
+
+  return (
+    <Table<TableRow>
+      dataSource={data}
+      expandable={{
+        expandedRowRender: (record) => (
+          <p style={{ margin: 0 }}>{record.description}</p>
+        ),
+      }}
+    >
+      <Table.Column<TableRow>
+        key="title"
+        title="License"
+        dataIndex="title"
+        render={(text, rec) => (
+          <>
+            <strong>{text}</strong>
+            <br />
+            <p>{rec.description ?? ""}</p>
+          </>
+        )}
+      />
+      <Table.Column<TableRow>
+        key="license_id"
+        title="License ID"
+        dataIndex="license_id"
+      />
+      <Table.Columns<TableRow>
+        key="actions"
+        title=""
+        dataIndex="license_id"
+        render={(license_id) => (
+          <>
+            <Button onClick={() => window.alert(`license id: ${license_id}`)}>
+              remove
+            </Button>
+          </>
+        )}
+      />
+    </Table>
+  );
+};
 
 interface Props {
   license_id: string;
@@ -68,12 +179,12 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
   >(false);
   const user_map = useTypedRedux("users", "user_map");
 
-  function getLicenseStatus(): LicenseStatus {
+  function getLicenseStatus(): LicenseStatus | null {
     const status = upgrades?.get("status");
     if (isLicenseStatus(status)) {
       return status;
     } else {
-      return "valid";
+      return null;
     }
   }
 
@@ -185,7 +296,14 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
   }
 
   function render_expires(): JSX.Element | undefined {
-    const expired = license_status === "expired";
+    // we check if we definitely know the status, otherwise use the date
+    // if there is no information, we assume it is valid
+    const expired =
+      license_status != null
+        ? license_status === "expired"
+        : info?.expires != null
+        ? new Date() >= info.expires
+        : false;
     const word = expired ? "EXPIRED" : "Will expire";
     const when =
       info?.expires != null ? (
@@ -246,7 +364,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
               verticalAlign: "middle",
             }}
           >
-            {trunc_left(license_id, 14)}
+            {trunc_license_id(license_id)}
           </span>
         )}
       </li>
@@ -900,3 +1018,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     />
   );
 };
+
+function trunc_license_id(license_id: string) {
+  return trunc_left(license_id, 14);
+}
