@@ -64,9 +64,12 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   } = props;
 
   const isMountedRef = useIsMountedRef();
+  const [loading, setLoading] = useState<boolean>(true);
+  // string is an error, Info the actual license data
   const [infos, setInfos] = useState<
     { [license_id: string]: Info } | undefined
   >(undefined);
+  const [errors, setErrors] = useState<{ [license_id: string]: boolean }>({});
   const [data, setData] = useState<TableRow[]>([]);
 
   useEffect(() => {
@@ -85,12 +88,25 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   }, []);
 
   async function fetchInfos(force: boolean = false): Promise<void> {
+    setLoading(true);
     const infos: { [license_id: string]: Info } = {};
-    for (const license_id of Object.keys(site_license)) {
-      infos[license_id] = await site_license_public_info(license_id, force);
-    }
+    const errors: { [license_id: string]: boolean } = {};
+
+    await Promise.all(
+      Object.keys(site_license).map(async (license_id) => {
+        try {
+          infos[license_id] = await site_license_public_info(license_id, force);
+        } catch {
+          // could the error object expose the license id? we just report back that there was an error, that's all
+          errors[license_id] = true;
+        }
+      })
+    );
+
     if (!isMountedRef.current) return;
     setInfos(infos);
+    setErrors(errors);
+    setLoading(false);
   }
 
   function calcStatus(k, v): LicenseStatus {
@@ -109,9 +125,9 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     }
   }
 
+  // derive table row data from site license and fetched infos
   useEffect(() => {
     if (infos == null) return;
-    // derive table row data from site license and fetched infos
     setData(
       Object.entries(infos).map(([k, v], idx) => {
         // we check if we definitely know the status, otherwise use the date
@@ -211,7 +227,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   }
 
   function renderStatusText(rec: TableRow): JSX.Element {
-    const quota = site_license?.[rec.license_id]?.toJS()?.quota;
+    const quota = (site_license?.[rec.license_id]?.toJS() as any)?.quota;
     if (quota?.dedicated_disk || quota?.dedicated_vm) {
       return <>{describe_quota(quota)}</>;
     }
@@ -224,6 +240,8 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     if (typeof descr === "string" && descr.length > 0) {
       return <>{descr}</>;
     }
+
+    return <>{rec.status}</>;
   }
 
   function renderInfo(rec: TableRow): JSX.Element {
@@ -252,6 +270,33 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
+  function restart_project(): void {
+    if (!project_id) return;
+    const actions = redux.getActions("projects");
+    actions.restart_project(project_id);
+  }
+
+  async function removeLicense(license_id: string): Promise<void> {
+    if (typeof onRemove === "function") {
+      onRemove(license_id);
+    }
+    if (!project_id) return;
+    const actions = redux.getActions("projects");
+    // newly added licenses
+    try {
+      await actions.remove_site_license_from_project(project_id, license_id);
+    } catch (err) {
+      alert_message({
+        type: "error",
+        message: `Unable to remove license key -- ${err}`,
+      });
+      return;
+    }
+    if (restartAfterRemove) {
+      restart_project();
+    }
+  }
+
   function renderRemove(license_id: string): JSX.Element {
     return (
       <Tooltip
@@ -261,7 +306,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         <Button
           onClick={(e) => {
             e.stopPropagation();
-            window.alert(`license id: ${license_id}`);
+            removeLicense(license_id);
           }}
         >
           <Icon name="times" />
@@ -270,43 +315,68 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
+  function renderErrors() {
+    if (Object.keys(errors).length === 0) return;
+    return Object.values(errors).map((_, idx) => (
+      <Alert
+        type="error"
+        key={idx}
+        message={`Error fetching information of license ${idx + 1}.`}
+      />
+    ));
+  }
+
+  function renderReload(): JSX.Element {
+    return (
+      <Tooltip placement="bottom" title={"Reload license information"}>
+        <Button onClick={() => fetchInfos(true)}>
+          <Icon name="redo" />
+        </Button>
+      </Tooltip>
+    );
+  }
+
   return (
-    <Table<TableRow>
-      dataSource={data}
-      rowClassName={() => "cursor-pointer"}
-      pagination={{ hideOnSinglePage: true, defaultPageSize: 5 }}
-      expandable={{
-        expandedRowRender: (record) => rowInfo(record),
-        expandRowByClick: true,
-      }}
-    >
-      <Table.Column<TableRow>
-        key="status"
-        title=""
-        dataIndex="status"
-        align="center"
-        render={(_, rec) => renderStatus(rec)}
-      />
-      <Table.Column<TableRow>
-        key="title"
-        title="License"
-        dataIndex="title"
-        render={(_, rec) => renderTitle(rec)}
-      />
-      <Table.Column<TableRow>
-        key="expires"
-        title="Information"
-        dataIndex="expires"
-        render={(_, rec) => renderInfo(rec)}
-      />
-      <Table.Column<TableRow>
-        key="actions"
-        title=""
-        dataIndex="license_id"
-        align={"right"}
-        render={(license_id) => renderRemove(license_id)}
-      />
-    </Table>
+    <>
+      {renderErrors()}
+      <Table<TableRow>
+        loading={loading}
+        dataSource={data}
+        rowClassName={() => "cursor-pointer"}
+        pagination={{ hideOnSinglePage: true, defaultPageSize: 5 }}
+        expandable={{
+          expandedRowRender: (record) => rowInfo(record),
+          expandRowByClick: true,
+        }}
+      >
+        <Table.Column<TableRow>
+          key="status"
+          title="Status"
+          dataIndex="status"
+          align="center"
+          render={(_, rec) => renderStatus(rec)}
+        />
+        <Table.Column<TableRow>
+          key="title"
+          title="License"
+          dataIndex="title"
+          render={(_, rec) => renderTitle(rec)}
+        />
+        <Table.Column<TableRow>
+          key="expires"
+          title="Information"
+          dataIndex="expires"
+          render={(_, rec) => renderInfo(rec)}
+        />
+        <Table.Column<TableRow>
+          key="actions"
+          title={renderReload()}
+          dataIndex="license_id"
+          align={"right"}
+          render={(license_id) => renderRemove(license_id)}
+        />
+      </Table>
+    </>
   );
 };
 
