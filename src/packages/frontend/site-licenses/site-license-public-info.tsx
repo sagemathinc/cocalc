@@ -12,6 +12,7 @@ import {
   useState,
   useTypedRedux,
   redux,
+  usePrevious,
 } from "../app-framework";
 import { SiteLicensePublicInfo as Info } from "./types";
 import { site_license_public_info } from "./util";
@@ -22,7 +23,7 @@ import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { plural, trunc_left, trunc, unreachable } from "@cocalc/util/misc";
 import { DebounceInput } from "react-debounce-input";
 import { webapp_client } from "../webapp-client";
-import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import { describe_quota, Quota } from "@cocalc/util/db-schema/site-licenses";
 import {
   LicenseStatus,
   isLicenseStatus,
@@ -31,6 +32,9 @@ import {
 import { LicensePurchaseInfo } from "./purchase-info-about-license";
 import { query, user_search } from "../frame-editors/generic/client";
 import { User } from "../users";
+import { reuseInFlight } from "async-await-utils/hof";
+import { IeSquareFilled } from "@ant-design/icons";
+import { isEqual } from "lodash";
 
 interface PropsTable {
   site_license: { [license_id: string]: Map<string, number> };
@@ -71,6 +75,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   >(undefined);
   const [errors, setErrors] = useState<{ [license_id: string]: boolean }>({});
   const [data, setData] = useState<TableRow[]>([]);
+  const prevSiteLicense = usePrevious(site_license);
 
   useEffect(() => {
     // Optimization: check in redux store for first approximation of
@@ -82,12 +87,23 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
       Object.values(infos2).forEach((v) => (v.is_manager = true));
       setInfos(infos2);
     }
+
     // Now launch async fetch from database.  This has more info, e.g., number of
     // projects that are running right now.
     fetchInfos(true);
   }, []);
 
-  async function fetchInfos(force: boolean = false): Promise<void> {
+  useEffect(() => {
+    // site_licenses changed (we have to be careful, it's a plain object)
+    // hence we fetch everything again (it's a little bit cached, so fine)
+    if (!isEqual(prevSiteLicense, site_license)) {
+      fetchInfos(true);
+    }
+  }, [site_license]);
+
+  const fetchInfos = reuseInFlight(async function (
+    force: boolean = false
+  ): Promise<void> {
     setLoading(true);
     const infos: { [license_id: string]: Info } = {};
     const errors: { [license_id: string]: boolean } = {};
@@ -107,7 +123,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     setInfos(infos);
     setErrors(errors);
     setLoading(false);
-  }
+  });
 
   function calcStatus(k, v): LicenseStatus {
     const upgrades = site_license?.[k];
@@ -129,28 +145,32 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   useEffect(() => {
     if (infos == null) return;
     setData(
-      Object.entries(infos).map(([k, v], idx) => {
-        // we check if we definitely know the status, otherwise use the date
-        // if there is no information, we assume it is valid
-        const status = calcStatus(k, v);
-        const expired =
-          status === "expired"
-            ? true
-            : v?.expires != null
-            ? new Date() >= v.expires
-            : false;
-        return {
-          key: idx,
-          license_id: k,
-          title: v?.title,
-          description: v?.description,
-          status,
-          is_manager: v.is_manager ?? false,
-          activates: v.activates,
-          expires: v.expires,
-          expired,
-        };
-      })
+      Object.entries(infos)
+        // sort by UUID, to make the table stable
+        .sort(([a, _a], [b, _b]) => (a < b ? -1 : a > b ? 1 : 0))
+        // process all values
+        .map(([k, v], idx) => {
+          // we check if we definitely know the status, otherwise use the date
+          // if there is no information, we assume it is valid
+          const status = calcStatus(k, v);
+          const expired =
+            status === "expired"
+              ? true
+              : v?.expires != null
+              ? new Date() >= v.expires
+              : false;
+          return {
+            key: idx,
+            license_id: k,
+            title: v?.title,
+            description: v?.description,
+            status,
+            is_manager: v.is_manager ?? false,
+            activates: v.activates,
+            expires: v.expires,
+            expired,
+          };
+        })
     );
   }, [site_license, infos]);
 
@@ -227,12 +247,14 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   }
 
   function renderStatusText(rec: TableRow): JSX.Element {
-    const quota = (site_license?.[rec.license_id]?.toJS() as any)?.quota;
+    const quota: Quota | undefined = (
+      site_license?.[rec.license_id]?.toJS() as any
+    )?.quota;
     if (quota?.dedicated_disk || quota?.dedicated_vm) {
       return <>{describe_quota(quota)}</>;
     }
 
-    if (rec.status === "valid") {
+    if (quota != null && rec.status === "valid") {
       return <>{describe_quota(quota)}</>;
     }
 
@@ -297,21 +319,49 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     }
   }
 
-  function renderRemove(license_id: string): JSX.Element {
+  function renderRemoveExtra(license_id: string) {
+    if (data[license_id]?.status !== "valid") return;
+
     return (
-      <Tooltip
-        placement="bottom"
-        title={"Remove this license from the project"}
-      >
-        <Button
-          onClick={(e) => {
-            e.stopPropagation();
-            removeLicense(license_id);
-          }}
+      <>
+        The project will no longer get upgraded using this license.{" "}
+        {restartAfterRemove && (
+          <>
+            <br />
+            <strong>
+              It will also restart, interrupting any running computations.
+            </strong>
+          </>
+        )}
+      </>
+    );
+  }
+
+  function renderRemove(license_id: string): JSX.Element {
+    // div hack: https://github.com/ant-design/ant-design/issues/7233#issuecomment-356894956
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
+        <Tooltip
+          placement="bottom"
+          title={"Remove this license from the project"}
         >
-          <Icon name="times" />
-        </Button>
-      </Tooltip>
+          <Popconfirm
+            title={
+              <div>
+                Are you sure you want to remove this license from the project?
+                {renderRemoveExtra(license_id)}
+              </div>
+            }
+            onConfirm={() => removeLicense(license_id)}
+            okText={"Remove"}
+            cancelText={"Keep"}
+          >
+            <Button>
+              <Icon name="times" />
+            </Button>
+          </Popconfirm>
+        </Tooltip>
+      </div>
     );
   }
 
