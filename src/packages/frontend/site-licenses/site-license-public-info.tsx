@@ -43,6 +43,7 @@ interface PropsTable {
   site_licenses: SiteLicenses;
   project_id?: string; // if not given, just provide the public info about the license (nothing about if it is upgrading a specific project or not) -- this is used, e.g., for the course configuration page
   restartAfterRemove?: boolean; // default false
+  showRemoveWarning?: boolean; // default true
   onRemove?: (license_id: string) => void; // called *before* the license is removed!
   warn_if?: (info, license_id) => void | string;
 }
@@ -293,7 +294,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
-  function restart_project(): void {
+  function restartProject(): void {
     if (!project_id) return;
     const actions = redux.getActions("projects");
     const store = redux.getStore("projects");
@@ -303,10 +304,11 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   }
 
   async function removeLicense(license_id: string): Promise<void> {
-    if (!project_id) return;
+    // this might be called with license_id + onRemove set, but no project_id
     if (typeof onRemove === "function") {
       onRemove(license_id);
     }
+    if (!project_id) return;
     const actions = redux.getActions("projects");
     // newly added licenses
     try {
@@ -319,7 +321,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
       return;
     }
     if (restartAfterRemove) {
-      restart_project();
+      restartProject();
     }
   }
 
@@ -341,31 +343,34 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
+  function renderRemoveButton(license_id): JSX.Element {
+    return (
+      <Popconfirm
+        title={
+          <div>
+            Are you sure you want to remove this license?
+            {renderRemoveExtra(license_id)}
+          </div>
+        }
+        onConfirm={() => removeLicense(license_id)}
+        okText={"Remove"}
+        cancelText={"Keep"}
+      >
+        <Button>
+          <Icon name="times" />
+        </Button>
+      </Popconfirm>
+    );
+  }
+
   function renderRemove(license_id: string): JSX.Element | undefined {
     // we can only remove from within a project
-    if (!project_id) return;
+    if (!project_id && onRemove == null) return;
     // div hack: https://github.com/ant-design/ant-design/issues/7233#issuecomment-356894956
     return (
       <div onClick={(e) => e.stopPropagation()}>
-        <Tooltip
-          placement="bottom"
-          title={"Remove this license from the project"}
-        >
-          <Popconfirm
-            title={
-              <div>
-                Are you sure you want to remove this license from the project?
-                {renderRemoveExtra(license_id)}
-              </div>
-            }
-            onConfirm={() => removeLicense(license_id)}
-            okText={"Remove"}
-            cancelText={"Keep"}
-          >
-            <Button>
-              <Icon name="times" />
-            </Button>
-          </Popconfirm>
+        <Tooltip placement="bottom" title={"Remove this license"}>
+          {renderRemoveButton(license_id)}
         </Tooltip>
       </div>
     );

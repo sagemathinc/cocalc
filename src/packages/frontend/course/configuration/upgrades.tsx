@@ -591,11 +591,10 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
     if (!props.site_license_id) return;
     const licenses = props.site_license_id.split(",");
 
-    const site_licenses:SiteLicenses =
-      licenses.reduce((acc, v, k) => {
-        acc[k] = v;
-        return acc;
-      }, {});
+    const site_licenses: SiteLicenses = licenses.reduce((acc, v) => {
+      acc[v] = null; // we have no info about them yet
+      return acc;
+    }, {});
 
     return (
       <div style={{ margin: "15px 0" }}>
@@ -606,15 +605,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
         </b>
         , unless it is expired or in use by too many projects:
         <br />
-        <div
-          style={{
-            margin: "15px",
-            border: "1px solid lightgrey",
-            padding: "15px",
-            overflowY: "auto",
-            maxHeight: "50vH",
-          }}
-        >
+        <div style={{ margin: "15px 0", padding: "0" }}>
           {render_licenses(site_licenses)}
         </div>
         {licenses.length > 1 && render_site_license_strategy()}
