@@ -18,7 +18,7 @@ import { markdown_to_html } from "@cocalc/frontend/markdown";
 import { UpgradeGoal } from "../types";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
-import { Datastore } from "@cocalc/frontend/projects/actions";
+import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 
 export class StudentProjectsActions {
   private course_actions: CourseActions;
@@ -455,6 +455,7 @@ export class StudentProjectsActions {
     }
 
     const datastore: Datastore = store.get_datastore();
+    const envvars: EnvVars = store.get_envvars();
     const student_project_functionality = store
       .getIn(["settings", "student_project_functionality"])
       ?.toJS();
@@ -480,7 +481,8 @@ export class StudentProjectsActions {
           student_email_address,
           datastore,
           "student", // type of project
-          student_project_functionality
+          student_project_functionality,
+          envvars
         );
       }
     } finally {

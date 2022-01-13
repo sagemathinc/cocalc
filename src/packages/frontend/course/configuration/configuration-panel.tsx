@@ -54,6 +54,7 @@ import { StudentProjectSoftwareEnvironment } from "./student-project-software-en
 import { DatastoreConfig } from "./datastore-config";
 
 import EmptyTrash from "./empty-trash";
+import { EnvironmentVariablesConfig } from "./envvars-config";
 
 const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
@@ -672,6 +673,10 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             <DatastoreConfig
               actions={actions.configuration}
               datastore={settings.get("datastore")}
+            />
+            <EnvironmentVariablesConfig
+              actions={actions.configuration}
+              envvars={settings.get("envvars")}
             />
             <br />
             <EmptyTrash />

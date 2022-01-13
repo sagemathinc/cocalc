@@ -17,7 +17,7 @@ import {
   SoftwareEnvironmentState,
   derive_project_img_name,
 } from "../../custom-software/selector";
-import { Datastore } from "../../projects/actions";
+import { Datastore, EnvVars } from "../../projects/actions";
 import { StudentProjectFunctionality } from "./customize-student-project-functionality";
 
 export class ConfigurationActions {
@@ -219,6 +219,7 @@ export class ConfigurationActions {
     try {
       // make sure the course config for that nbgrader project (mainly for the datastore!) is set
       const datastore: Datastore = store.get_datastore();
+      const envvars: EnvVars = store.get_envvars();
       const projects_actions = redux.getActions("projects");
 
       // if for some reason this is a student project, we don't want to reconfigure it
@@ -234,7 +235,9 @@ export class ConfigurationActions {
           null, // account_id
           null, // email_address
           datastore,
-          "nbgrader" // type of project
+          "nbgrader", // type of project
+          undefined, // student_project_functionality
+          envvars
         );
       }
 
@@ -343,8 +346,16 @@ export class ConfigurationActions {
   public set_datastore(datastore: Datastore): void {
     this.set({ datastore, table: "settings" });
     this.course_actions.student_projects.configure_all_projects();
-    this.course_actions.shared_project.set_datastore();
-    // in case there is one, we have to set the datastore as well
+    this.course_actions.shared_project.set_datastore_and_envvars();
+    // in case there is a separate nbgrader project, we have to set the datastore as well
+    this.configure_nbgrader_grade_project();
+  }
+
+  public set_envvars(inherit: boolean): void {
+    this.set({ envvars: { inherit }, table: "settings" });
+    this.course_actions.student_projects.configure_all_projects();
+    this.course_actions.shared_project.set_datastore_and_envvars();
+    // in case there is a separate nbgrader project, we have to set the envvars as well
     this.configure_nbgrader_grade_project();
   }
 

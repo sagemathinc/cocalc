@@ -16,7 +16,7 @@ import { TypedMap, createTypedMap } from "@cocalc/frontend/app-framework";
 import { SITE_NAME } from "@cocalc/util/theme";
 // Upgrades
 import * as project_upgrades from "./project-upgrades";
-import { Datastore } from "@cocalc/frontend/projects/actions";
+import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 
 export const PARALLEL_DEFAULT = 5;
@@ -145,6 +145,8 @@ export type CourseSettingsRecord = TypedMap<{
   nbgrader_max_output?: number;
   nbgrader_max_output_per_cell?: number;
   nbgrader_parallel?: number;
+  datastore?: Datastore;
+  envvars?: EnvVars;
 }>;
 
 export const CourseSetting = createTypedMap<CourseSettingsRecord>();
@@ -255,6 +257,18 @@ export class CourseStore extends Store<CourseState> {
     } else {
       console.warn(`course/get_datastore: encountered faulty value:`, ds);
       return undefined;
+    }
+  }
+
+  public get_envvars(): EnvVars | undefined {
+    const settings = this.get("settings");
+    if (settings == null || settings.get("datastore") == null) return;
+    const envvars: any = settings.get("envvars");
+    if (typeof envvars?.inherit === "boolean") {
+      return envvars;
+    } else {
+      console.warn(`course/get_envvars: encountered faulty value:`, envvars);
+      return;
     }
   }
 

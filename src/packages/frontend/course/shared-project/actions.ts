@@ -13,7 +13,7 @@ import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
-import { Datastore } from "../../projects/actions";
+import { Datastore, EnvVars } from "../../projects/actions";
 
 export class SharedProjectActions {
   private actions: CourseActions;
@@ -175,13 +175,14 @@ export class SharedProjectActions {
     await actions.set_compute_image(img_id);
   }
 
-  public async set_datastore(): Promise<void> {
+  public async set_datastore_and_envvars(): Promise<void> {
     const store = this.get_store();
     const shared_project_id = store.get_shared_project_id();
     if (!shared_project_id) {
       return; // no shared project
     }
     const datastore: Datastore = store.get_datastore();
+    const envvars: EnvVars = store.get_envvars();
     const actions = redux.getActions("projects");
     await actions.set_project_course_info(
       shared_project_id,
@@ -191,7 +192,9 @@ export class SharedProjectActions {
       null, // account_id
       null, // email_address
       datastore,
-      "shared" // type of project
+      "shared", // type of project
+      undefined, // student_project_functionality (not used for shared projects)
+      envvars
     );
   }
 
