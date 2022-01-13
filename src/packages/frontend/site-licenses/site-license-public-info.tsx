@@ -33,7 +33,6 @@ import { LicensePurchaseInfo } from "./purchase-info-about-license";
 import { query, user_search } from "../frame-editors/generic/client";
 import { User } from "../users";
 import { reuseInFlight } from "async-await-utils/hof";
-import { IeSquareFilled } from "@ant-design/icons";
 import { isEqual } from "lodash";
 
 interface PropsTable {
@@ -144,6 +143,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   // derive table row data from site license and fetched infos
   useEffect(() => {
     if (infos == null) return;
+
     setData(
       Object.entries(infos)
         // sort by UUID, to make the table stable
@@ -295,7 +295,10 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   function restart_project(): void {
     if (!project_id) return;
     const actions = redux.getActions("projects");
-    actions.restart_project(project_id);
+    const store = redux.getStore("projects");
+    if (store.get_state(project_id) === "running") {
+      actions.restart_project(project_id);
+    }
   }
 
   async function removeLicense(license_id: string): Promise<void> {
@@ -753,10 +756,18 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     return <div>{describe_quota(quota)}</div>;
   }
 
-  function restart_project(): void {
+  // this restarts the project if "only_if_running" is true and it is running
+  function restart_project(only_if_running = false): void {
     if (!project_id) return;
     const actions = redux.getActions("projects");
-    actions.restart_project(project_id);
+    const store = redux.getStore("projects");
+    if (only_if_running) {
+      if (store.get_state(project_id) === "running") {
+        actions.restart_project(project_id);
+      }
+    } else {
+      actions.restart_project(project_id);
+    }
   }
 
   function render_why(): JSX.Element {
@@ -931,7 +942,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
       return;
     }
     if (restartAfterRemove) {
-      restart_project();
+      restart_project(true);
     }
   }
 
@@ -1317,5 +1328,5 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
 };
 
 function trunc_license_id(license_id: string) {
-  return trunc_left(license_id, 14);
+  return trunc_left(license_id, 13);
 }
