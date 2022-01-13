@@ -28,7 +28,10 @@ import {
 } from "../../app-framework";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
-import { SiteLicensePublicInfo } from "../../site-licenses/site-license-public-info";
+import {
+  SiteLicensePublicInfoTable,
+  SiteLicenses,
+} from "../../site-licenses/site-license-public-info";
 import { SiteLicenseInput } from "../../site-licenses/input";
 import { PurchaseOneLicenseLink } from "../../site-licenses/purchase";
 import { ShowSupportLink } from "../../support";
@@ -526,15 +529,14 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
     );
   }
 
-  function render_license(license_id: string): JSX.Element {
+  function render_licenses(site_licenses: SiteLicenses): JSX.Element {
     return (
-      <SiteLicensePublicInfo
-        key={license_id}
-        license_id={license_id}
-        onRemove={() => {
+      <SiteLicensePublicInfoTable
+        site_licenses={site_licenses}
+        onRemove={(license_id) => {
           remove_site_license_id(license_id);
         }}
-        warn_if={(info) => {
+        warn_if={(info, _) => {
           const n =
             get_store().get_student_ids().length +
             1 +
@@ -588,10 +590,13 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
   function render_current_licenses(): Rendered {
     if (!props.site_license_id) return;
     const licenses = props.site_license_id.split(",");
-    const v: JSX.Element[] = [];
-    for (const license_id of licenses) {
-      v.push(render_license(license_id));
-    }
+
+    const site_licenses:SiteLicenses =
+      licenses.reduce((acc, v, k) => {
+        acc[k] = v;
+        return acc;
+      }, {});
+
     return (
       <div style={{ margin: "15px 0" }}>
         This project and all student projects will be upgraded using the
@@ -610,7 +615,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
             maxHeight: "50vH",
           }}
         >
-          {v}
+          {render_licenses(site_licenses)}
         </div>
         {licenses.length > 1 && render_site_license_strategy()}
       </div>

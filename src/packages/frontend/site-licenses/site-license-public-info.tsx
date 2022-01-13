@@ -35,8 +35,12 @@ import { User } from "../users";
 import { reuseInFlight } from "async-await-utils/hof";
 import { isEqual } from "lodash";
 
+export type SiteLicenses = {
+  [license_id: string]: Map<string, number> | null;
+};
+
 interface PropsTable {
-  site_license: { [license_id: string]: Map<string, number> };
+  site_licenses: SiteLicenses;
   project_id?: string; // if not given, just provide the public info about the license (nothing about if it is upgrading a specific project or not) -- this is used, e.g., for the course configuration page
   restartAfterRemove?: boolean; // default false
   onRemove?: (license_id: string) => void; // called *before* the license is removed!
@@ -59,7 +63,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   props: PropsTable
 ) => {
   const {
-    site_license,
+    site_licenses,
     project_id,
     restartAfterRemove = false,
     onRemove,
@@ -72,9 +76,9 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   const [infos, setInfos] = useState<
     { [license_id: string]: Info } | undefined
   >(undefined);
-  const [errors, setErrors] = useState<{ [license_id: string]: boolean }>({});
+  const [errors, setErrors] = useState<{ [license_id: string]: string }>({});
   const [data, setData] = useState<TableRow[]>([]);
-  const prevSiteLicense = usePrevious(site_license);
+  const prevSiteLicense = usePrevious(site_licenses);
 
   useEffect(() => {
     // Optimization: check in redux store for first approximation of
@@ -95,25 +99,24 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   useEffect(() => {
     // site_licenses changed (we have to be careful, it's a plain object)
     // hence we fetch everything again (it's a little bit cached, so fine)
-    if (!isEqual(prevSiteLicense, site_license)) {
+    if (!isEqual(prevSiteLicense, site_licenses)) {
       fetchInfos(true);
     }
-  }, [site_license]);
+  }, [site_licenses]);
 
   const fetchInfos = reuseInFlight(async function (
     force: boolean = false
   ): Promise<void> {
     setLoading(true);
     const infos: { [license_id: string]: Info } = {};
-    const errors: { [license_id: string]: boolean } = {};
+    const errors: { [license_id: string]: string } = {};
 
     await Promise.all(
-      Object.keys(site_license).map(async (license_id) => {
+      Object.keys(site_licenses).map(async function (license_id) {
         try {
           infos[license_id] = await site_license_public_info(license_id, force);
-        } catch {
-          // could the error object expose the license id? we just report back that there was an error, that's all
-          errors[license_id] = true;
+        } catch (err) {
+          errors[license_id] = `${err}`;
         }
       })
     );
@@ -125,7 +128,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   });
 
   function calcStatus(k, v): LicenseStatus {
-    const upgrades = site_license?.[k];
+    const upgrades = site_licenses?.[k];
     const status_val = upgrades?.get("status");
     if (isLicenseStatus(status_val)) {
       return status_val;
@@ -172,14 +175,14 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
           };
         })
     );
-  }, [site_license, infos]);
+  }, [site_licenses, infos]);
 
   function rowInfo(rec: TableRow): JSX.Element {
     return (
       <SiteLicensePublicInfo
         license_id={rec.license_id}
         project_id={project_id}
-        upgrades={site_license?.[rec.license_id]}
+        upgrades={site_licenses?.[rec.license_id]}
         onRemove={onRemove != null ? () => onRemove(rec.license_id) : undefined}
         warn_if={
           warn_if != null ? (info) => warn_if(info, rec.license_id) : undefined
@@ -247,9 +250,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   }
 
   function renderStatusText(rec: TableRow): JSX.Element {
-    const quota: Quota | undefined = (
-      site_license?.[rec.license_id]?.toJS() as any
-    )?.quota;
+    const quota: Quota | undefined = infos?.[rec.license_id]?.quota;
     if (quota?.dedicated_disk || quota?.dedicated_vm) {
       return <>{describe_quota(quota)}</>;
     }
@@ -302,10 +303,10 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   }
 
   async function removeLicense(license_id: string): Promise<void> {
+    if (!project_id) return;
     if (typeof onRemove === "function") {
       onRemove(license_id);
     }
-    if (!project_id) return;
     const actions = redux.getActions("projects");
     // newly added licenses
     try {
@@ -340,7 +341,9 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
-  function renderRemove(license_id: string): JSX.Element {
+  function renderRemove(license_id: string): JSX.Element | undefined {
+    // we can only remove from within a project
+    if (!project_id) return;
     // div hack: https://github.com/ant-design/ant-design/issues/7233#issuecomment-356894956
     return (
       <div onClick={(e) => e.stopPropagation()}>
@@ -370,11 +373,11 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
 
   function renderErrors() {
     if (Object.keys(errors).length === 0) return;
-    return Object.values(errors).map((_, idx) => (
+    return Object.values(errors).map((err, idx) => (
       <Alert
         type="error"
         key={idx}
-        message={`Error fetching information of license ${idx + 1}.`}
+        message={`Error fetching information of license ${idx + 1} -- ${err}`}
       />
     ));
   }
@@ -436,14 +439,14 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
 interface Props {
   license_id: string;
   project_id?: string; // if not given, just provide the public info about the license (nothing about if it is upgrading a specific project or not) -- this is used, e.g., for the course configuration page
-  upgrades?: Map<string, number>;
+  upgrades: Map<string, number> | null;
   onRemove?: () => void; // called *before* the license is removed!
   warn_if?: (info) => void | string;
   restartAfterRemove?: boolean; // default false
   tableMode?: boolean; // if true, used via SiteLicensePublicInfoTable
 }
 
-export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
+const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
   const {
     license_id,
     project_id,
@@ -757,7 +760,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
   }
 
   // this restarts the project if "only_if_running" is true and it is running
-  function restart_project(only_if_running = false): void {
+  function restart_project(only_if_running): void {
     if (!project_id) return;
     const actions = redux.getActions("projects");
     const store = redux.getStore("projects");
@@ -856,8 +859,10 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
               </li>
               <li>
                 Try <Icon name="sync" />{" "}
-                <a onClick={restart_project}>restarting this project</a> to
-                attempt using the upgrades provided by this license.
+                <a onClick={() => restart_project(false)}>
+                  restarting this project
+                </a>{" "}
+                to attempt using the upgrades provided by this license.
               </li>
               {info?.quota && <li>{describe_quota(info.quota)}</li>}
             </>
@@ -870,7 +875,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
                 <Icon name="warning" /> License is already being used to upgrade{" "}
                 {info.running} other running projects, which is the limit. If
                 possible, stop one of those projects, then{" "}
-                <a onClick={restart_project}>restart this project.</a>
+                <a onClick={() => restart_project(false)}>
+                  restart this project.
+                </a>
               </li>
             </>
           );

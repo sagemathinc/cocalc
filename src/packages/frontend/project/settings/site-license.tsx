@@ -11,7 +11,10 @@ import { redux, Rendered, useState } from "../../app-framework";
 import { Button } from "../../antd-bootstrap";
 import { Icon } from "../../components";
 import { alert_message } from "../../alerts";
-import { SiteLicensePublicInfoTable } from "../../site-licenses/site-license-public-info";
+import {
+  SiteLicensePublicInfoTable,
+  SiteLicenses,
+} from "../../site-licenses/site-license-public-info";
 import { SiteLicenseInput } from "../../site-licenses/input";
 import { PurchaseOneLicenseLink } from "../../site-licenses/purchase";
 
@@ -67,15 +70,14 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
 
   function render_current_licenses(): Rendered {
     if (!site_license) return;
-    const site_licenses: { [license_id: string]: Map<string, number> } =
-      site_license.reduce((acc, v, k) => {
-        acc[k] = v;
-        return acc;
-      }, {});
+    const site_licenses: SiteLicenses = site_license.reduce((acc, v, k) => {
+      acc[k] = v;
+      return acc;
+    }, {});
     return (
       <div>
         <SiteLicensePublicInfoTable
-          site_license={site_licenses}
+          site_licenses={site_licenses}
           project_id={project_id}
           restartAfterRemove={true}
         />
