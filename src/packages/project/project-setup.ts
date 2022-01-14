@@ -8,6 +8,7 @@ This configures the project hub based on an environment variable or other data.
 */
 
 import debug from "debug";
+import { join } from "path";
 const L = debug("project:project-setup");
 import { setPriority } from "os";
 import { existsSync } from "fs";
@@ -59,6 +60,7 @@ export function configure() {
 // Contains additional environment variables. Base 64 encoded JSON of {[key:string]:string}.
 export function set_extra_env(): void {
   sage_aarch64_hack();
+  jupyterlab_app_dir(); // must come before processing extra_env vars below, since users might want to overwrite it
 
   if (!process.env.COCALC_EXTRA_ENV) {
     L("set_extra_env: nothing provided");
@@ -117,6 +119,17 @@ export function cleanup(): void {
   for (const key in process.env) {
     if (key.startsWith("npm_")) delete process.env[key];
   }
+}
+
+/**
+ * "We recommend users not install JupyterLab in a system location on Unix-like systems,
+ * because then the application directory will be read-only." … and well, with that it
+ * becomes writeable again.
+ *
+ * Ref: https://jupyterlab.readthedocs.io/en/stable/user/directories.html#jupyterlab-application-directory
+ */
+function jupyterlab_app_dir(): void {
+  process.env.JUPYTERLAB_DIR = join(env.HOME ?? "/home/user", ".lab");
 }
 
 // See https://github.com/opencv/opencv/issues/14884
