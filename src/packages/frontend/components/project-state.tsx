@@ -3,19 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../app-framework";
+import { React, useTypedRedux } from "../app-framework";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { ProjectStatus } from "../todo-types";
 import { Space } from "./space";
 import { Icon } from "./icon";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 interface Props {
   state?: ProjectStatus;
   show_desc?: boolean;
 }
 
-export const ProjectState: React.FC<Props> = ({ state, show_desc }) => {
-  function render_spinner() {
+export const ProjectState: React.FC<Props> = (props: Props) => {
+  const { state, show_desc } = props;
+
+  const kucalc = useTypedRedux("customize", "kucalc");
+  const showCoCalcCom = kucalc === KUCALC_COCALC_COM;
+
+  function renderSpinner() {
     return (
       <span style={{ marginRight: "15px" }}>
         ... <Icon name="cocalc-ring" spin />
@@ -23,13 +29,15 @@ export const ProjectState: React.FC<Props> = ({ state, show_desc }) => {
     );
   }
 
-  function render_desc(desc) {
+  function renderDescription({ desc, desc_cocalccom }) {
     if (!show_desc) {
       return;
     }
+    const text =
+      showCoCalcCom && desc_cocalccom != null ? desc_cocalccom : desc;
     return (
       <span>
-        <span style={{ fontSize: "11pt" }}>{desc}</span>
+        <span style={{ fontSize: "11pt" }}>{text}</span>
       </span>
     );
   }
@@ -38,13 +46,13 @@ export const ProjectState: React.FC<Props> = ({ state, show_desc }) => {
   if (s == null) {
     return <></>;
   }
-  const { display, desc, icon, stable } = s;
+  const { display, icon, stable } = s;
   return (
     <span>
       <Icon name={icon} /> {display}
       <Space />
-      {!stable && render_spinner()}
-      {render_desc(desc)}
+      {!stable && renderSpinner()}
+      {renderDescription(s)}
     </span>
   );
 };
