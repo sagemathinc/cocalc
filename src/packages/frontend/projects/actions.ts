@@ -33,9 +33,10 @@ import { StudentProjectFunctionality } from "../course/configuration/customize-s
 export type Datastore = boolean | string[] | undefined;
 
 // in the future, we might want to extend this to include custom environmment variables
-export interface EnvVars {
-  inherit: boolean;
+export interface EnvVarsRecord {
+  inherit?: boolean;
 }
+export type EnvVars = EnvVarsRecord | undefined;
 
 // Define projects actions
 export class ProjectsActions extends Actions<ProjectsState> {

@@ -11,7 +11,7 @@
 import { React, useTypedRedux, useState, TypedMap } from "../../app-framework";
 import { ConfigurationActions } from "./actions";
 import { Card, Typography, Switch, Form, Button } from "antd";
-import { EnvVars } from "../../projects/actions";
+import { EnvVars, EnvVarsRecord } from "../../projects/actions";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
@@ -19,21 +19,23 @@ import {
 import { Icon } from "../../components";
 import { ENV_VARS_ICON } from "../../project/settings/environment";
 
+const ENVVARS_DEFAULT = true;
+
 interface Props {
   actions: ConfigurationActions;
-  envvars?: EnvVars | TypedMap<EnvVars>;
+  envvars?: EnvVars | TypedMap<EnvVarsRecord>;
 }
 
 function normalizeTypeAndValue(
-  envvars: EnvVars | TypedMap<EnvVars> | undefined
-): EnvVars {
+  envvars: EnvVars | TypedMap<EnvVarsRecord>
+): NonNullable<EnvVars> {
   if (typeof (envvars as any)?.inherit === "boolean") {
-    return envvars as EnvVars;
+    return envvars as NonNullable<EnvVars>;
   }
   if (typeof (envvars as any)?.toJS === "function") {
-    return (envvars as TypedMap<EnvVars>).toJS();
+    return normalizeTypeAndValue((envvars as TypedMap<EnvVarsRecord>).toJS());
   }
-  return { inherit: true };
+  return { inherit: ENVVARS_DEFAULT };
 }
 
 export const EnvironmentVariablesConfig: React.FC<Props> = (props: Props) => {
@@ -44,7 +46,7 @@ export const EnvironmentVariablesConfig: React.FC<Props> = (props: Props) => {
 
   // by default, we inherit the environment variables
   // as of this, we only support true/false
-  const inherit = envvars.inherit;
+  const inherit = envvars.inherit ?? ENVVARS_DEFAULT;
   const [nextVal, setNextVal] = useState<boolean>(inherit);
 
   React.useEffect(() => {
@@ -94,6 +96,10 @@ export const EnvironmentVariablesConfig: React.FC<Props> = (props: Props) => {
         To configure them, please check this project's settings for more
         details. Any changes to the configuration of this project will be
         reflected after the next start of a student project.
+      </p>
+      <p>
+        Nodte: inherited variables will take precedence over the ones defined in
+        the student project with the same name.
       </p>
       {toggle()}
     </Card>

@@ -345,14 +345,15 @@ export class ConfigurationActions {
 
   public set_datastore(datastore: Datastore): void {
     this.set({ datastore, table: "settings" });
-    this.course_actions.student_projects.configure_all_projects();
-    this.course_actions.shared_project.set_datastore_and_envvars();
-    // in case there is a separate nbgrader project, we have to set the datastore as well
-    this.configure_nbgrader_grade_project();
+    this.configure_all_projects_shared_and_nbgrader();
   }
 
   public set_envvars(inherit: boolean): void {
     this.set({ envvars: { inherit }, table: "settings" });
+    this.configure_all_projects_shared_and_nbgrader();
+  }
+
+  private configure_all_projects_shared_and_nbgrader() {
     this.course_actions.student_projects.configure_all_projects();
     this.course_actions.shared_project.set_datastore_and_envvars();
     // in case there is a separate nbgrader project, we have to set the envvars as well
