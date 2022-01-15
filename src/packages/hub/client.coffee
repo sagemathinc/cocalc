@@ -326,6 +326,8 @@ class exports.Client extends EventEmitter
                     return
                 # sign them in if not already signed in
                 if @account_id != signed_in_mesg.account_id
+                    # DB only tells us the account_id, but the hub might have changed from last time
+                    signed_in_mesg.hub = @_opts.host + ':' + @_opts.port
                     @hash_session_id   = hash
                     @signed_in(signed_in_mesg)
                     @push_to_client(signed_in_mesg)
