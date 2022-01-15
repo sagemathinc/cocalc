@@ -14,6 +14,7 @@ interface Options {
   projectControl;
   clients: { [id: string]: any }; // todo: when client is in typescript, use proper type...
   host: string;
+  port: number;
   isPersonal: boolean;
 }
 
@@ -23,6 +24,7 @@ export default function init({
   projectControl,
   clients,
   host,
+  port,
   isPersonal,
 }: Options): void {
   const logger = Logger("primus");
@@ -43,6 +45,7 @@ export default function init({
       database,
       compute_server:projectControl,
       host,
+      port,
       personal: isPersonal,
     });
     logger.info(`num_clients=${len(clients)}`);
