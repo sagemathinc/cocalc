@@ -6,7 +6,7 @@
 import { join } from "path";
 import ms from "ms";
 import { isEqual } from "lodash";
-import { Router } from "express";
+import { Router, json } from "express";
 import {
   analytics_cookie_name,
   is_valid_uuid_string,
@@ -49,7 +49,8 @@ const _PNG_DATA =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
 const PNG_1x1 = Buffer.from(_PNG_DATA, "base64");
 
-function sanitize(obj: object): any {
+function sanitize(obj: object, recursive = 0): any {
+  if (recursive >= 2) return { error: "recursion limit" };
   const ret: any = {};
   let cnt = 0;
   for (const key of Object.keys(obj)) {
@@ -59,7 +60,7 @@ function sanitize(obj: object): any {
     let val_san = obj[key];
     if (val_san == null) continue;
     if (typeof val_san === "object") {
-      val_san = sanitize(val_san);
+      val_san = sanitize(val_san, recursive + 1);
     } else if (typeof val_san === "string") {
       val_san = val_san.slice(0, 2000);
     } else {
@@ -81,11 +82,11 @@ function recordAnalyticsData(
 ): void {
   if (payload == null) return;
   if (!is_valid_uuid_string(token)) return;
-  const dbg = create_log("rec");
-  dbg(token, payload);
+  const dbg = create_log("record");
+  dbg({ token, payload });
   // sanitize data (limits size and number of characters)
   const rec_data = sanitize(payload);
-  dbg("rec_data", rec_data);
+  dbg("sanitized data", rec_data);
   const expire = pii_retention_to_future(pii_retention);
 
   if (rec_data.account_id != null) {
@@ -222,6 +223,10 @@ export async function initAnalytics(
     },
   };
 
+  // process POST body data
+  // https://expressjs.com/en/api.html#express.json
+  router.use("/analytics.js", json());
+
   router.get("/analytics.js", cors(analytics_cors), function (req, res) {
     res.header("Content-Type", "text/javascript");
     // in case user was already here, do not send it again.
@@ -288,9 +293,6 @@ export async function initAnalytics(
       // req.body is an object (json middlewhere somewhere?)
       // e.g. {"utm":{"source":"asdfasdf"},"landing":"https://cocalc.com/..."}
       // ATTN key/values could be malicious
-      dbg(
-        `/analytics.js -- TOKEN=${token} -- DATA=${JSON.stringify(req.body)}`
-      );
       // record it, there is no need for a callback
       recordAnalyticsData(database, token, req.body, pii_retention);
     }
