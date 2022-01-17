@@ -30,12 +30,20 @@ interface Props {
   license_id: string;
   project_id?: string; // if not given, just provide the public info about the license (nothing about if it is upgrading a specific project or not) -- this is used, e.g., for the course configuration page
   upgrades?: Map<string, number>;
-  onRemove?: () => void;
+  onRemove?: () => void; // called *before* the license is removed!
   warn_if?: (info) => void | string;
+  restartAfterRemove?: boolean; // default false
 }
 
 export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
-  const { license_id, project_id, upgrades, onRemove, warn_if } = props;
+  const {
+    license_id,
+    project_id,
+    upgrades,
+    onRemove,
+    warn_if,
+    restartAfterRemove = false,
+  } = props;
   const [info, set_info] = useState<Info | undefined>(undefined);
   const [err, set_err] = useState<string | undefined>(undefined);
   const [loading, set_loading] = useState<boolean>(true);
@@ -466,7 +474,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
   }
 
   async function remove_license(): Promise<void> {
-    if (onRemove != null) {
+    if (typeof onRemove === "function") {
       onRemove();
     }
     if (!project_id) return;
@@ -477,9 +485,12 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     } catch (err) {
       alert_message({
         type: "error",
-        message: `Unable to add license key -- ${err}`,
+        message: `Unable to remove license key -- ${err}`,
       });
       return;
+    }
+    if (restartAfterRemove) {
+      restart_project();
     }
   }
 
@@ -492,15 +503,27 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_remove_button(): JSX.Element | undefined {
-    if (!project_id && onRemove == null) return;
-    const extra = provides_upgrades ? (
+  function render_remove_button_extra() {
+    if (!provides_upgrades) return null;
+    return (
       <>
         <br />
-        The project will no longer get upgraded using this license, and it may
-        restart.
+        The project will no longer get upgraded using this license.{" "}
+        {restartAfterRemove && (
+          <>
+            <br />
+            <strong>
+              It will also restart, interrupting any running computations.
+            </strong>
+          </>
+        )}
       </>
-    ) : undefined;
+    );
+  }
+
+  function render_remove_button(): JSX.Element | undefined {
+    if (!project_id && onRemove == null) return;
+    const extra = render_remove_button_extra();
     return (
       <Popconfirm
         title={

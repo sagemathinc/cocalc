@@ -112,7 +112,7 @@ async function site_license_hook0(
       // The site_license is supposed to be a map from uuid's to settings...
       // We could put some sort of error here in case, though I don't know what
       // we would do with it.
-      dbg(`skipping invalid license ${license_id}`);
+      dbg(`skipping invalid license ${license_id} -- invalid UUID`);
       continue;
     }
     const license = licenses.get(license_id);
@@ -200,10 +200,8 @@ async function site_license_hook0(
         );
       }
     } else {
-      dbg(`Not currently valid license -- "${license_id}".`);
-      // due to how jsonb_set works, we have to set this to null,
-      // because otherwise an existing license entry continues to exist.
-      new_site_license[license_id] = null;
+      dbg(`Not currently valid license -- "${license_id}".  So no upgrade contributions from this license.`);
+      new_site_license[license_id] = {} as any;
     }
   }
 
