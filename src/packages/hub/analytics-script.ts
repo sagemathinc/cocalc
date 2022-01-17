@@ -70,9 +70,15 @@ if (document.referrer.length > 0) {
 // also keep a note about the very first landing page
 response["landing"] = `${protocol}//${host}${pathname}`;
 
+// PREFIX could be "/", "//{domain}/", "/some/path", or even "//{domain}/some/path"
+// @see backend/base-path.ts + hub/analytics.ts
+// Note: don't use double // in the URL, because that will redirect and CORS doesn't work with redirects -- #5506
+const delim = PREFIX[PREFIX.length - 1] === "/" ? "" : "/";
+const fetch_url = `${PREFIX}${delim}analytics.js`;
+
 // send back a beacon (token is in an http-only cookie)
 window
-  .fetch(PREFIX + "/analytics.js", {
+  .fetch(fetch_url, {
     method: "POST",
     mode: "cors",
     cache: "no-cache",

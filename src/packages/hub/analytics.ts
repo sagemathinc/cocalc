@@ -136,12 +136,14 @@ function check_cors(
   }
   // now, we want dns_parsed and origin_parsed to be valid and listed
   if (origin_parsed.type === ParseResultType.Listed) {
+    // most likely case: same domain as settings.DNS
     if (
       isEqual(origin_parsed.topLevelDomains, dns_parsed.topLevelDomains) &&
       origin_parsed.domain === dns_parsed.domain
     ) {
       return true;
     }
+    // we also allow cocalc.com and sagemath.com
     if (isEqual(origin_parsed.topLevelDomains, ["com"])) {
       if (
         origin_parsed.domain === "cocalc" ||
@@ -150,6 +152,7 @@ function check_cors(
         return true;
       }
     }
+    // … as well as sagemath.org
     if (
       isEqual(origin_parsed.topLevelDomains, ["org"]) &&
       origin_parsed.domain === "sagemath"
@@ -232,7 +235,7 @@ export async function initAnalytics(
       req.cookies[analytics_cookie_name] ||
       dns_parsed.type !== ParseResultType.Listed
     ) {
-      // cache for 6 hours
+      // cache for 6 hours -- max-age has unit seconds
       res.header("Cache-Control", `private, max-age=${6 * 60 * 60}`);
       res.write("// NOOP");
       res.end();
