@@ -12,6 +12,7 @@ in a separate group.
 import { isValidUUID } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import { cmp } from "@cocalc/util/misc";
+import { Item } from "@cocalc/util/db-schema/shopping-cart-items";
 
 interface Options {
   account_id: string;

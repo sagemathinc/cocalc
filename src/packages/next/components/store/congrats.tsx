@@ -36,7 +36,7 @@ export default function Congrats() {
   return (
     <div>
       <div style={{ float: "right" }}>
-        <Image src={bella} width="100px" height="141px" />
+        <Image src={bella} width={100} height={141} alt="Picture of a doggie." />
       </div>
       <div style={{ maxWidth: "900px", margin: "auto" }}>
         <h1 style={{ fontSize: "24pt" }}>
