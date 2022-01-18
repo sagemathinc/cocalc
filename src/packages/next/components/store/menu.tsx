@@ -28,6 +28,9 @@ export default function ConfigMenu({ main }) {
       <Menu.Item key={"checkout"}>
         <Icon name={"list"} style={{ marginRight: "5px" }} /> Checkout
       </Menu.Item>
+      <Menu.Item key={"congrats"}>
+        <Icon name={"check-circle"} style={{ marginRight: "5px" }} /> Congrats
+      </Menu.Item>
     </Menu>
   );
 }
