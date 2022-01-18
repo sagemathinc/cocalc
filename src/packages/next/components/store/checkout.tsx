@@ -18,6 +18,7 @@ import { copy_without as copyWithout } from "@cocalc/util/misc";
 import { useRouter } from "next/router";
 
 export default function Checkout() {
+  const router = useRouter();
   const isMounted = useIsMounted();
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<string>("");
@@ -49,10 +50,17 @@ export default function Checkout() {
     try {
       setOrderError("");
       setPlacingOrder(true);
+      // This api call tells the backend, "buy everything in my shopping cart."
+      // It succeeds if the purchase goes through.
       await apiPost("/shopping/cart/checkout");
+      // Success!
       if (!isMounted.current) return;
-      await cart.call();
+      // If the user is still viewing the page after the purchase happened, we
+      // send them to the congrats page, which shows them what they recently purchased,
+      // with links about how to use it, etc.
+      router.push("/store/congrats");
     } catch (err) {
+      // The purchase failed.
       setOrderError(err.message);
     } finally {
       if (!isMounted.current) return;

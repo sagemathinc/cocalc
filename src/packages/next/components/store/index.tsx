@@ -13,6 +13,7 @@ import Cart from "./cart";
 import SiteLicense from "./site-license";
 import Overview from "./overview";
 import Checkout from "./checkout";
+import Congrats from "./congrats";
 
 const { Content } = Layout;
 
@@ -81,6 +82,8 @@ export default function ConfigLayout({ page }: Props) {
         return <Cart />;
       case "checkout":
         return <Checkout />;
+      case "congrats":
+        return <Congrats />;
     }
     return <Overview />;
   }
