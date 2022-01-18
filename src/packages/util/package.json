@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/util",
-  "version": "1.21.0",
+  "version": "1.22.0",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
     "./*": "./dist/*.js",
@@ -19,9 +19,16 @@
     "testquota": "cd test && npx jest quota.test.ts"
   },
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "mathjax", "markdown", "cocalc"],
+  "keywords": [
+    "utilities",
+    "mathjax",
+    "markdown",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
-  "workspaces": ["."],
+  "workspaces": [
+    "."
+  ],
   "dependencies": {
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
