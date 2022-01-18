@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import useAPI from "lib/hooks/api";
 import apiPost from "lib/api/post";
 import useIsMounted from "lib/hooks/mounted";
-import { Alert, Button, Input, Menu, Row, Col, Table } from "antd";
+import { Alert, Button, Input, Menu, Row, Col, Popconfirm, Table } from "antd";
 import { computeCost, DisplayCost, describeItem } from "./site-license-cost";
 import Loading from "components/share/loading";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -255,11 +255,9 @@ function DescriptionColumn({
           {tab == "buy-it-again" ? "Add to Cart" : "Move to Cart"}
         </Button>
         {tab == "saved-for-later" && (
-          <Button
-            disabled={updating}
-            type="dashed"
-            style={{ margin: "0 5px" }}
-            onClick={async () => {
+          <Popconfirm
+            title={"Are you sure you want to delete this item?"}
+            onConfirm={async () => {
               setUpdating(true);
               try {
                 await apiPost("/shopping/cart/delete", { id });
@@ -270,9 +268,17 @@ function DescriptionColumn({
                 setUpdating(false);
               }
             }}
+            okText={"Yes, delete this item"}
+            cancelText={"Cancel"}
           >
-            <Icon name="trash" /> Delete
-          </Button>
+            <Button
+              disabled={updating}
+              type="dashed"
+              style={{ margin: "0 5px" }}
+            >
+              <Icon name="trash" /> Delete
+            </Button>
+          </Popconfirm>
         )}
       </div>
     </>

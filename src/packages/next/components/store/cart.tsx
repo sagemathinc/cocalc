@@ -12,7 +12,7 @@ import apiPost from "lib/api/post";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Loading from "components/share/loading";
 import A from "components/misc/A";
-import { Alert, Button, Checkbox, Table } from "antd";
+import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
 import { EditRunLimit } from "./site-license";
 import {
   computeCost,
@@ -429,10 +429,9 @@ function DescriptionColumn({
         >
           <Icon name="save" /> Save for later
         </Button>
-        <Button
-          disabled={updating}
-          type="dashed"
-          onClick={async () => {
+        <Popconfirm
+          title={"Are you sure you want to delete this item?"}
+          onConfirm={async () => {
             setUpdating(true);
             try {
               await apiPost("/shopping/cart/delete", { id });
@@ -443,9 +442,13 @@ function DescriptionColumn({
               setUpdating(false);
             }
           }}
+          okText={"Yes, delete this item"}
+          cancelText={"Cancel"}
         >
-          <Icon name="trash" /> Delete
-        </Button>
+          <Button disabled={updating} type="dashed">
+            <Icon name="trash" /> Delete
+          </Button>
+        </Popconfirm>
       </div>
     </>
   );
