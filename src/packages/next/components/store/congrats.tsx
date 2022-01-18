@@ -33,10 +33,19 @@ export default function Congrats() {
     return <Loading large center />;
   }
 
+  if (result.length == 0) {
+    return <div>You have no recent purchases.</div>;
+  }
+
   return (
     <div>
       <div style={{ float: "right" }}>
-        <Image src={bella} width={100} height={141} alt="Picture of a doggie." />
+        <Image
+          src={bella}
+          width={100}
+          height={141}
+          alt="Picture of a doggie."
+        />
       </div>
       <div style={{ maxWidth: "900px", margin: "auto" }}>
         <h1 style={{ fontSize: "24pt" }}>
