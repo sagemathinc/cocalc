@@ -39,7 +39,7 @@ export default function SelectLicense({
           x.quota
         )}`.toLowerCase()}
       >
-        {x.title} - <span style={{ fontFamily: "monospace" }}>{x.id}</span>
+        {x.title?.trim() ? `${x.title} - ` : ''}<span style={{ fontFamily: "monospace" }}>{x.id}</span>
         <br />
         <Quota quota={x.quota} />
       </Option>
@@ -54,7 +54,9 @@ export default function SelectLicense({
       allowClear
       placeholder="Select a license"
       optionFilterProp="children"
-      value={license}
+      value={
+        license ? license : undefined /* no empty string so placeholder works */
+      }
       onChange={onSelect}
       filterOption={(input, option) => {
         if (!input.trim()) return true;
