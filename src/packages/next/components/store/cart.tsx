@@ -313,7 +313,7 @@ function DescriptionColumn({
   const router = useRouter();
   const { input } = cost;
   const [editRunLimit, setEditRunLimit] = useState<boolean>(false);
-  const [runLimit, setRunLimit] = useState<number>(description.runLimit);
+  const [runLimit, setRunLimit] = useState<number>(description.run_limit);
 
   function editableQuota() {
     return (
@@ -365,7 +365,7 @@ function DescriptionColumn({
                   setEditRunLimit(false);
                   await apiPost("/shopping/cart/edit", {
                     id,
-                    description: { ...description, runLimit },
+                    description: { ...description, run_limit: runLimit },
                   });
                   await reload();
                 }}
