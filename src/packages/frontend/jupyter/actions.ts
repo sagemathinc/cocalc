@@ -652,9 +652,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               obj.kernel_info = this.store.get_kernel_info(kernel);
               obj.backend_kernel_info = undefined;
             }
+            const prev_backend_state = this.store.get("backend_state");
             this.setState(obj);
-            if (!this.is_project && orig_kernel !== kernel) {
-              this.set_cm_options();
+            if (!this.is_project) {
+              // if the kernel changes or it just started running – we set the codemirror options!
+              // otherwise, just when computing them without the backend information, only a crude
+              // heuristic sets the values and we end up with "C" formatting for custom python kernels.
+              // @see https://github.com/sagemathinc/cocalc/issues/5478
+              const started_running =
+                record.get("backend_state") === "running" &&
+                prev_backend_state !== "running";
+              if (orig_kernel !== kernel || started_running) {
+                this.set_cm_options();
+              }
             }
 
             break;
