@@ -106,11 +106,9 @@ export function Details({
           Last used: <Timestamp epoch={result.last_used} />
         </div>
       )}
-      {result.quota != null && (
-        <div>
-          Quota: <Quota quota={result.quota} />
-        </div>
-      )}
+      <div>
+        Quota: <Quota quota={result.quota} upgrades={result.upgrades} />
+      </div>
       {result.run_limit != null && (
         <div style={{ width: "100%", display: "flex" }}>
           Run limit: {result.run_limit}
@@ -137,7 +135,19 @@ export function Details({
   );
 }
 
-export function Quota({ quota }) {
+export function Quota({ quota, upgrades }: { quota?: any; upgrades?: any }) {
+  if (quota == null) {
+    if (upgrades == null) {
+      return <></>;
+    } else {
+      // These are very old, and we just do a little bit to display
+      // something valid.
+      quota = {
+        cpu: upgrades.cores,
+        ram: upgrades.memory / 1000,
+      };
+    }
+  }
   const v: ReactNode[] = [];
   if (quota.user) {
     v.push(capitalize(quota.user));
