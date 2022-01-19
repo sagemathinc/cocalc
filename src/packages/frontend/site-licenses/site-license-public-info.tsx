@@ -62,7 +62,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
         first_name?: string;
         last_name?: string;
         account_id: string;
-        last_active?: Date;
+        last_active?: number;
       }
   >(false);
   const user_map = useTypedRedux("users", "user_map");
