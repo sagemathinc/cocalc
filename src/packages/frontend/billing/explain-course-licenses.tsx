@@ -20,7 +20,7 @@ import {
   User,
   Upgrade,
   Subscription,
-} from "../site-licenses/purchase/util";
+} from "@cocalc/util/licenses/purchase/util";
 import { LicenseExamples } from "./license-examples";
 
 export const TITLE = "Course licenses";

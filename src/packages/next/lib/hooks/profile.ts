@@ -8,6 +8,7 @@ empty object if user not signed in.
 
 */
 
+import useIsMounted from "./mounted";
 import { len } from "@cocalc/util/misc";
 import { useEffect, useState } from "react";
 import { Profile } from "@cocalc/server/accounts/profile/types";
@@ -29,6 +30,7 @@ interface Options {
 export default function useProfile({ account_id, noCache }: Options = {}):
   | Profile
   | undefined {
+  const isMounted = useIsMounted();
   const [profile, setProfile] = useState<Profile | undefined>(
     noCache ? undefined : cache.get(account_id ?? "")
   );
@@ -40,6 +42,7 @@ export default function useProfile({ account_id, noCache }: Options = {}):
         { account_id, noCache },
         DEFAULT_CACHE_S
       );
+      if (!isMounted.current) return;
       setProfile(profile);
       if (!noCache && len(profile) > 0) {
         // only cache if got actual information.

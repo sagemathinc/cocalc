@@ -3089,7 +3089,7 @@ API(
   message({
     event: "purchase_license",
     id: undefined,
-    info: required, // import { PurchaseInfo } from "@cocalc/frontend/site-licenses/purchase/util";
+    info: required, // import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
   })
 );
 

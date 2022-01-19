@@ -97,9 +97,13 @@ export default function Subscriptions({ customize }) {
                 upgrading your projects
               </A>{" "}
               or other projects where you are a collaborator — everyone using an
-              upgraded project benefits equally. Such a subscription{" "}
+              upgraded project benefits equally. Such a{" "}
+              <A href="/billing/subscriptions">subscription</A>{" "}
               <b>automatically renews</b> at the end of each period. You can{" "}
-              <b>cancel at any time</b>.
+              <A href="/billing/subscriptions">
+                <b>cancel at any time</b>
+              </A>
+              .
             </p>
             <Alert
               style={{ margin: "15px 0" }}
@@ -118,11 +122,12 @@ export default function Subscriptions({ customize }) {
             />
             <h2>Examples</h2>
             <p>
-              We list three typical configurations below. All parameters can be
-              adjusted to fit your needs. Listed upgrades are for each project.
-              Exact prices may vary. Below $100, only online purchases are
-              available (no purchase orders). Subscriptions receive a 10%
-              discount for monthly and 15% for yearly periods.
+              We list three typical configurations below, which you can{" "}
+              <A href="/store/site-license">modify and purchase here</A>. All
+              parameters can be adjusted to fit your needs. Listed upgrades are
+              for each project. Exact prices may vary. Below $100, only online
+              purchases are available (no purchase orders). Subscriptions
+              receive a 10% discount for monthly and 15% for yearly periods.
             </p>
             <List
               grid={{ gutter: 16, column: 3, xs: 1, sm: 1 }}

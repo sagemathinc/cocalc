@@ -110,17 +110,13 @@ export default function Courses({ customize }) {
 
             <h2>How to get started?</h2>
             <p>
-              Sign in to <span>CoCalc</span>, go to{" "}
-              <strong>
-                <A href="https://doc.cocalc.com/account/licenses.html">
-                  {" "}
-                  Account Settings
-                </A>
-              </strong>{" "}
-              and open the <strong>"Licenses" tab</strong>. Click on the{" "}
-              <strong>"Buy a license..."</strong> button to reveal a{" "}
-              <A href="https://doc.cocalc.com/licenses.html">
-                form to configure your license
+              You can{" "}
+              <A href="/store/site-license" external>
+                purchase a license for your course
+              </A>{" "}
+              in the{" "}
+              <A href="/store" external>
+                store
               </A>
               .
             </p>
@@ -172,10 +168,13 @@ export default function Courses({ customize }) {
 
             <h2>Examples</h2>
             <p>
-              Here are three typical configurations. All parameters can be
-              adjusted to fit your needs. Listed upgrades are for each project.
-              Exact prices may vary. Only self-service online purchases are
-              available below $100.
+              Here are three typical configurations, which you can{" "}
+              <A href="/store/site-license" external>
+                modify and purchase here
+              </A>
+              . All parameters can be adjusted to fit your needs. Listed
+              upgrades are for each project. Exact prices may vary. Only
+              self-service online purchases are available below $100.
             </p>
 
             <List
