@@ -40,7 +40,7 @@ interface License {
 type LicenseMap = TypedMap<License>;
 
 // used to throttle lase_used updates per license
-const LAST_USED: { [licensed_id: string]: number } = {};
+const LAST_USED: { [license_id: string]: number } = {};
 
 /**
  * Call this any time about to *start* the project.
@@ -338,7 +338,6 @@ class SiteLicenseHook {
     }
     LAST_USED[license_id] = now;
     dbg.info("did NOT recently update, so updating in database");
-
     await callback2(this.db._query.bind(this.db), {
       query: "UPDATE site_licenses",
       set: { last_used: "NOW()" },

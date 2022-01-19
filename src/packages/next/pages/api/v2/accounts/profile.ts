@@ -22,7 +22,7 @@ export default async function handle(req, res) {
       res.json({ profile: await getProfile(account_id, noCache) });
     }
   } catch (err) {
-    res.json({ error: `${err}` });
+    res.json({ error: err.message });
   }
 }
 

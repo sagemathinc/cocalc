@@ -124,8 +124,11 @@ export const SelectProject: React.FC<Props> = ({
           defaultValue={defaultValue}
           onChange={onChange}
           filterOption={(input, option) =>
-            (option?.children.toLowerCase().indexOf(input.toLowerCase()) ??
-              0) >= 0
+            option
+              ? (`${option.children}`
+                  .toLowerCase()
+                  .indexOf(input.toLowerCase()) ?? 0) >= 0
+              : false
           }
         >
           {data.map((v) => (

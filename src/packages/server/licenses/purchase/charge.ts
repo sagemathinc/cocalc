@@ -3,32 +3,30 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import {
-  COSTS,
-  PurchaseInfo,
-} from "@cocalc/frontend/site-licenses/purchase/util";
+import { COSTS, PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
 import { StripeClient, Stripe } from "@cocalc/server/stripe/client";
 import getConn from "@cocalc/server/stripe/connection";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
+import { getLogger } from "@cocalc/backend/logger";
+const logger = getLogger("licenses-charge");
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };
 
-export async function charge_user_for_license(
+export async function chargeUserForLicense(
   stripe: StripeClient,
-  info: PurchaseInfo,
-  dbg: (...args) => void
+  info: PurchaseInfo
 ): Promise<Purchase> {
-  dbg("getting product_id");
-  const product_id = await stripe_get_product(info);
-  dbg("got product_id", product_id);
+  logger.debug("getting product_id");
+  const product_id = await stripeGetProduct(info);
+  logger.debug("got product_id", product_id);
   if (info.subscription == "no") {
-    return await stripe_purchase_product(stripe, product_id, info, dbg);
+    return await stripePurchaseProduct(stripe, product_id, info);
   } else {
-    return await stripe_create_subscription(stripe, product_id, info, dbg);
+    return await stripeCreateSubscription(stripe, product_id, info);
   }
 }
 
-function get_days(info): number {
+function getDays(info): number {
   if (info.start == null || info.end == null) throw Error("bug");
   return Math.round(
     (info.end.valueOf() - info.start.valueOf()) / (24 * 60 * 60 * 1000)
@@ -41,7 +39,7 @@ function get_days(info): number {
 // automatically.
 const VERSION = 0;
 
-function get_product_id(info: PurchaseInfo): string {
+function getProductId(info: PurchaseInfo): string {
   /* We generate a unique identifier that represents the parameters of the purchase.
      The following parameters determine what "product" they are purchasing:
         - custom_always_running
@@ -56,7 +54,7 @@ function get_product_id(info: PurchaseInfo): string {
   */
   let period: string;
   if (info.subscription == "no") {
-    period = get_days(info).toString();
+    period = getDays(info).toString();
   } else {
     period = "0"; // 0 means "subscription" -- same product for all types of subscription billing;
   }
@@ -73,13 +71,13 @@ function get_product_id(info: PurchaseInfo): string {
   }_v${VERSION}`;
 }
 
-function get_product_name(info): string {
-  /* Similar to get_product_id above, but meant to be human readable.  This name is what
+function getProductName(info): string {
+  /* Similar to getProductId above, but meant to be human readable.  This name is what
      customers see on invoices, so it's very valuable as it reflects what they bought clearly.
   */
   let period: string;
   if (info.subscription == "no") {
-    period = `${get_days(info)} days`;
+    period = `${getDays(info)} days`;
   } else {
     period = "subscription";
   }
@@ -97,7 +95,7 @@ function get_product_name(info): string {
   return desc;
 }
 
-function get_product_metadata(info): object {
+function getProductMetadata(info): object {
   return {
     user: info.user,
     ram: info.custom_ram,
@@ -113,8 +111,8 @@ function get_product_metadata(info): object {
   };
 }
 
-async function stripe_create_price(info: PurchaseInfo): Promise<void> {
-  const product = get_product_id(info);
+async function stripeCreatePrice(info: PurchaseInfo): Promise<void> {
+  const product = getProductId(info);
   // Add the pricing info:
   //  - if sub then we set the price for monthly and yearly
   //    and build in the 25% discount since subscriptions are
@@ -152,20 +150,18 @@ async function stripe_create_price(info: PurchaseInfo): Promise<void> {
   }
 }
 
-async function stripe_get_product(
-  info: PurchaseInfo
-): Promise<string> {
-  const product_id = get_product_id(info);
+async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
+  const product_id = getProductId(info);
   // check to see if the product has already been created; if not, create it.
-  if (!(await stripe_product_exists(product_id))) {
+  if (!(await stripeProductExists(product_id))) {
     // now we have to create the product.
-    const metadata = get_product_metadata(info) as any; // avoid dealing with TS typings for metadata for now.
-    const name = get_product_name(info);
+    const metadata = getProductMetadata(info) as any; // avoid dealing with TS typings for metadata for now.
+    const name = getProductName(info);
     let statement_descriptor = "COCALC LICENSE ";
     if (info.subscription != "no") {
       statement_descriptor += "SUB";
     } else {
-      const n = get_days(info);
+      const n = getDays(info);
       // n<100 logic to fit in 22 characters
       statement_descriptor += `${n}${n < 100 ? " " : ""}DAYS`;
     }
@@ -176,12 +172,12 @@ async function stripe_get_product(
       metadata,
       statement_descriptor,
     });
-    stripe_create_price(info);
+    stripeCreatePrice(info);
   }
   return product_id;
 }
 
-async function stripe_product_exists(product_id: string): Promise<boolean> {
+async function stripeProductExists(product_id: string): Promise<boolean> {
   try {
     const conn = await getConn();
     await conn.products.retrieve(product_id);
@@ -191,20 +187,19 @@ async function stripe_product_exists(product_id: string): Promise<boolean> {
   }
 }
 
-async function stripe_purchase_product(
+async function stripePurchaseProduct(
   stripe: StripeClient,
   product_id: string,
-  info: PurchaseInfo,
-  dbg: (...args) => void
+  info: PurchaseInfo
 ): Promise<Purchase> {
   const { quantity } = info;
-  dbg("stripe_purchase_product", product_id, quantity);
+  logger.debug("stripePurchaseProduct", product_id, quantity);
   const customer: string = await stripe.need_customer_id();
   const conn = await getConn();
 
-  const coupon = await get_self_service_discount_coupon(conn);
+  const coupon = await getSelfServiceDiscountCoupon(conn);
 
-  dbg("stripe_purchase_product: get price");
+  logger.debug("stripePurchaseProduct: get price");
   const prices = await conn.prices.list({
     product: product_id,
     type: "one_time",
@@ -212,8 +207,8 @@ async function stripe_purchase_product(
   });
   let price: string | undefined = prices.data[0]?.id;
   if (price == null) {
-    dbg("stripe_purchase_product: missing -- try to create it");
-    await stripe_create_price(info);
+    logger.debug("stripePurchaseProduct: missing -- try to create it");
+    await stripeCreatePrice(info);
     const prices = await conn.prices.list({
       product: product_id,
       type: "one_time",
@@ -221,20 +216,20 @@ async function stripe_purchase_product(
     });
     price = prices.data[0]?.id;
     if (price == null) {
-      dbg("stripe_purchase_product: still missing -- give up");
+      logger.debug("stripePurchaseProduct: still missing -- give up");
       throw Error(
         `price for one-time purchase missing -- product_id="${product_id}"`
       );
     }
   }
-  dbg("stripe_purchase_product: got price", JSON.stringify(price));
+  logger.debug("stripePurchaseProduct: got price", JSON.stringify(price));
 
   if (info.start == null || info.end == null) {
     throw Error("start and end must be defined");
   }
   const period = {
-    start: Math.round(info.start.valueOf() / 1000),
-    end: Math.round(info.end.valueOf() / 1000),
+    start: Math.round(new Date(info.start).valueOf() / 1000),
+    end: Math.round(new Date(info.end).valueOf() / 1000),
   };
 
   // gets automatically put on the invoice created below.
@@ -242,7 +237,7 @@ async function stripe_purchase_product(
 
   // TODO: improve later to handle case of *multiple* items on one invoice
 
-  // TODO: tax_percent is DEPRECATED but not gone (see stripe_create_subscription below).
+  // TODO: tax_percent is DEPRECATED but not gone (see stripeCreateSubscription below).
   const tax_percent = await stripe.sales_tax(customer);
   const options = {
     customer,
@@ -253,7 +248,7 @@ async function stripe_purchase_product(
       : undefined,
   } as Stripe.InvoiceCreateParams;
 
-  dbg("stripe_purchase_product options=", JSON.stringify(options));
+  logger.debug("stripePurchaseProduct options=", JSON.stringify(options));
   await conn.customers.update(customer, { coupon });
   const invoice_id = (await conn.invoices.create(options)).id;
   await conn.invoices.finalizeInvoice(invoice_id, {
@@ -277,11 +272,10 @@ async function stripe_purchase_product(
   return { type: "invoice", id: invoice_id };
 }
 
-async function stripe_create_subscription(
+async function stripeCreateSubscription(
   stripe: StripeClient,
   product_id: string,
-  info: PurchaseInfo,
-  dbg: (...args) => void
+  info: PurchaseInfo
 ): Promise<Purchase> {
   const { quantity, subscription } = info;
   const customer: string = await stripe.need_customer_id();
@@ -300,7 +294,7 @@ async function stripe_create_subscription(
     }
   }
   if (price == null) {
-    await stripe_create_price(info);
+    await stripeCreatePrice(info);
     const prices = await conn.prices.list({
       product: product_id,
       type: "recurring",
@@ -313,7 +307,7 @@ async function stripe_create_subscription(
       }
     }
     if (price == null) {
-      dbg("stripe_purchase_product: still missing -- give up");
+      logger.debug("stripePurchaseProduct: still missing -- give up");
       throw Error(
         `price for subscription purchase missing -- product_id="${product_id}", subscription="${subscription}"`
       );
@@ -346,11 +340,11 @@ async function stripe_create_subscription(
 }
 
 // Gets a coupon that matches the current online discount.
-const known_coupons: { [coupon_id: string]: boolean } = {};
-async function get_self_service_discount_coupon(conn: Stripe): Promise<string> {
+const knownCoupons: { [coupon_id: string]: boolean } = {};
+async function getSelfServiceDiscountCoupon(conn: Stripe): Promise<string> {
   const percent_off = Math.round(100 * (1 - COSTS.online_discount));
   const id = `coupon_self_service_${percent_off}`;
-  if (known_coupons[id]) {
+  if (knownCoupons[id]) {
     return id;
   }
   try {
@@ -364,11 +358,11 @@ async function get_self_service_discount_coupon(conn: Stripe): Promise<string> {
       duration: "forever",
     });
   }
-  known_coupons[id] = true;
+  knownCoupons[id] = true;
   return id;
 }
 
-export async function set_purchase_metadata(
+export async function setPurchaseMetadata(
   purchase: Purchase,
   metadata
 ): Promise<void> {

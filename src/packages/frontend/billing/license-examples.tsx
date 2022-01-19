@@ -14,7 +14,7 @@ import {
   discount_monthly_pct,
   discount_yearly_pct,
   MIN_QUOTE,
-} from "../site-licenses/purchase/util";
+} from "@cocalc/util/licenses/purchase/util";
 
 // This component renders 3 price examples for licensed upgrades in a row
 

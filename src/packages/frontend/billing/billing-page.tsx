@@ -23,6 +23,9 @@ import { PaymentMethods } from "./payment-methods";
 import { AddSubscription } from "./add-subscription";
 const { Panel } = require("react-bootstrap");
 import { InvoiceHistory } from "./invoice-history";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
+import { Alert } from "antd";
 
 interface ReactProps {
   is_simplified?: boolean;
@@ -338,6 +341,17 @@ export const BillingPage = rclass<ReactProps>(
     public render(): Rendered {
       return (
         <div>
+          <Alert
+            showIcon
+            style={{ maxWidth: "600px", margin: "30px auto" }}
+            type="warning"
+            message={
+              <>
+                This is the old purchasing page (which still works).{" "}
+                <A href={join(appBasePath, "billing")}>Try the new page...</A>
+              </>
+            }
+          />
           <div>
             {!this.props.for_course ? this.render_info_link() : undefined}
             {!this.props.no_stripe ? this.render_action() : undefined}

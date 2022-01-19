@@ -271,7 +271,9 @@ function License({ license, onChange }) {
       optionFilterProp="children"
       onChange={onChange}
       filterOption={(input, option) =>
-        option?.children.toLowerCase().includes(input.toLowerCase())
+        option
+          ? `${option.children}`.toLowerCase().includes(input.toLowerCase())
+          : false
       }
     >
       {options}
