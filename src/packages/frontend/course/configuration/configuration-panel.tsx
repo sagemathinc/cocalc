@@ -54,6 +54,10 @@ import { StudentProjectSoftwareEnvironment } from "./student-project-software-en
 import { DatastoreConfig } from "./datastore-config";
 
 import EmptyTrash from "./empty-trash";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_ON_PREMISES,
+} from "@cocalc/util/db-schema/site-defaults";
 
 const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
@@ -75,6 +79,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     const actions = useActions<CourseActions>({ name });
     const store = useStore<CourseStore>({ name });
     const is_commercial = useTypedRedux("customize", "is_commercial");
+    const kucalc = useTypedRedux("customize", "kucalc");
 
     /*
      * Editing title/description
@@ -144,7 +149,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
       await actions.export.to_json();
     }
 
-    function render_save_grades() {
+    function render_export_grades() {
       return (
         <Card title={render_grades_header()}>
           <div style={{ marginBottom: "10px" }}>Save grades to... </div>
@@ -534,34 +539,63 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
         bg = "#fcf8e3";
       }
       return (
-        <Card
-          style={{ background: bg }}
-          title={
-            <div style={style}>
-              <Icon name="dashboard" /> Require students to upgrade (students
-              pay)
-            </div>
-          }
-        >
-          {render_student_pay_choice_checkbox()}
-          {settings?.get("student_pay") && render_student_pay_details()}
-        </Card>
+        <>
+          <Card
+            style={{ background: bg }}
+            title={
+              <div style={style}>
+                <Icon name="dashboard" /> Require students to upgrade (students
+                pay)
+              </div>
+            }
+          >
+            {render_student_pay_choice_checkbox()}
+            {settings?.get("student_pay") && render_student_pay_details()}
+          </Card>
+          <br />
+        </>
       );
     }
 
     function render_require_institute_pay() {
       if (!is_commercial) return;
       return (
-        <StudentProjectUpgrades
-          name={name}
-          upgrade_goal={settings?.get("upgrade_goal")}
-          institute_pay={settings?.get("institute_pay")}
-          student_pay={settings?.get("student_pay")}
-          site_license_id={settings?.get("site_license_id")}
-          site_license_strategy={settings?.get("site_license_strategy")}
-          shared_project_id={settings?.get("shared_project_id")}
-          disabled={configuring_projects}
-        />
+        <>
+          <StudentProjectUpgrades
+            name={name}
+            is_onprem={false}
+            is_commercial={is_commercial}
+            upgrade_goal={settings?.get("upgrade_goal")}
+            institute_pay={settings?.get("institute_pay")}
+            student_pay={settings?.get("student_pay")}
+            site_license_id={settings?.get("site_license_id")}
+            site_license_strategy={settings?.get("site_license_strategy")}
+            shared_project_id={settings?.get("shared_project_id")}
+            disabled={configuring_projects}
+          />
+          <br />
+        </>
+      );
+    }
+
+    /**
+     * OnPrem instances support licenses to be distributed to all student projects.
+     */
+    function render_onprem_upgrade_projects(): React.ReactNode {
+      if (is_commercial || kucalc !== KUCALC_ON_PREMISES) return;
+      return (
+        <>
+          <StudentProjectUpgrades
+            name={name}
+            is_onprem={true}
+            is_commercial={false}
+            site_license_id={settings?.get("site_license_id")}
+            site_license_strategy={settings?.get("site_license_strategy")}
+            shared_project_id={settings?.get("shared_project_id")}
+            disabled={configuring_projects}
+          />
+          <br />
+        </>
       );
     }
 
@@ -628,10 +662,9 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
         <Row>
           <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
             {render_require_students_pay()}
-            {is_commercial && <br />}
             {render_require_institute_pay()}
-            {is_commercial && <br />}
-            {render_save_grades()}
+            {render_onprem_upgrade_projects()}
+            {render_export_grades()}
             <br />
             {render_start_all_projects()}
             <br />

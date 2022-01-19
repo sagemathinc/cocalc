@@ -54,6 +54,8 @@ const radioStyle: CSS = {
 
 interface Props {
   name: string;
+  is_onprem: boolean;
+  is_commercial: boolean;
   upgrade_goal?: TypedMap<UpgradeGoal>;
   institute_pay?: boolean;
   student_pay?: boolean;
@@ -63,7 +65,20 @@ interface Props {
   disabled?: boolean;
 }
 
-export const StudentProjectUpgrades: React.FC<Props> = (props) => {
+export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
+  const {
+    name,
+    is_onprem,
+    is_commercial,
+    upgrade_goal,
+    institute_pay,
+    student_pay,
+    site_license_id,
+    site_license_strategy,
+    shared_project_id,
+    disabled,
+  } = props;
+
   const is_mounted_ref = useIsMountedRef();
   const upgrade_is_invalid = useRef<boolean>(false);
 
@@ -82,14 +97,14 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
   );
 
   function get_actions(): CourseActions {
-    return redux.getActions(props.name);
+    return redux.getActions(name);
   }
 
   function get_store(): CourseStore {
-    return redux.getStore(props.name) as any;
+    return redux.getStore(name) as any;
   }
 
-  function upgrade_goal(): UpgradeGoal {
+  function get_upgrade_goal(): UpgradeGoal {
     const goal = {};
     for (const quota in upgrades) {
       let val = upgrades[quota];
@@ -103,7 +118,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
   function save_upgrade_quotas(): void {
     set_upgrade_quotas(false);
     const a = get_actions();
-    const goal = upgrade_goal();
+    const goal = get_upgrade_goal();
     a.configuration.set_upgrade_goal(goal);
     a.student_projects.upgrade_all_student_projects(goal);
   }
@@ -432,9 +447,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
     }
     let left;
     const upgrades =
-      (left =
-        props.upgrade_goal != null ? props.upgrade_goal.toJS() : undefined) !=
-      null
+      (left = upgrade_goal != null ? upgrade_goal.toJS() : undefined) != null
         ? left
         : {};
     const upgrade_plan = get_store().get_upgrade_plan(upgrades);
@@ -448,7 +461,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
   }
 
   function update_plan(): void {
-    set_upgrade_plan(get_store().get_upgrade_plan(upgrade_goal()));
+    set_upgrade_plan(get_store().get_upgrade_plan(get_upgrade_goal()));
   }
 
   function render_upgrade_plan() {
@@ -511,8 +524,13 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
         license to this course project, all student projects, and the shared
         project whenever they are running. Clear the field below to stop
         applying those upgrades. Upgrades from the license are only applied when
-        a project is started. Create a <ShowSupportLink /> if you would like to
-        purchase a license key.
+        a project is started.{" "}
+        {is_commercial && (
+          <>
+            Create a <ShowSupportLink /> if you would like to purchase a license
+            key.
+          </>
+        )}
         <SiteLicenseInput
           onSave={(license_id) => {
             set_show_site_license(false);
@@ -538,7 +556,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
           const n =
             get_store().get_student_ids().length +
             1 +
-            (props.shared_project_id ? 1 : 0);
+            (shared_project_id ? 1 : 0);
           if (info.run_limit < n) {
             return `NOTE: This license can only upgrade ${info.run_limit} simultaneous running projects, but there are ${n} projects associated to this course.`;
           }
@@ -561,14 +579,14 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
         maximize the number of covered students or the upgrades per students:
         <br />
         <Radio.Group
-          disabled={props.disabled}
+          disabled={disabled}
           style={{ marginLeft: "15px", marginTop: "15px" }}
           onChange={(e) => {
             const actions = get_actions();
             actions.configuration.set_site_license_strategy(e.target.value);
             actions.configuration.configure_all_projects(true);
           }}
-          value={props.site_license_strategy ?? "serial"}
+          value={site_license_strategy ?? "serial"}
         >
           <Radio value={"serial"} key={"serial"} style={radioStyle}>
             <b>Maximize number of covered students:</b> apply one license to
@@ -586,8 +604,8 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
   }
 
   function render_current_licenses(): Rendered {
-    if (!props.site_license_id) return;
-    const licenses = props.site_license_id.split(",");
+    if (!site_license_id) return;
+    const licenses = site_license_id.split(",");
     const v: JSX.Element[] = [];
     for (const license_id of licenses) {
       v.push(render_license(license_id));
@@ -639,9 +657,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
   }
 
   function render_site_license() {
-    const n = !!props.site_license_id
-      ? props.site_license_id.split(",").length
-      : 0;
+    const n = !!site_license_id ? site_license_id.split(",").length : 0;
     return (
       <div>
         {render_current_licenses()}
@@ -657,10 +673,14 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
         </Button>
         {render_site_license_text()}
         <br />
-        <br />
-        <div style={{ fontSize: "13pt" }}>
-          <PurchaseOneLicenseLink />
-        </div>
+        {is_commercial && (
+          <>
+            <br />
+            <div style={{ fontSize: "13pt" }}>
+              <PurchaseOneLicenseLink />
+            </div>
+          </>
+        )}
         <br />
         {n == 0 && render_remove_all_licenses()}
       </div>
@@ -678,7 +698,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
     return (
       <span>
         <Checkbox
-          checked={!!props.institute_pay}
+          checked={!!institute_pay}
           onChange={handle_institute_pay_checkbox}
         >
           You or your institute will pay for this course
@@ -710,25 +730,52 @@ export const StudentProjectUpgrades: React.FC<Props> = (props) => {
     );
   }
 
-  let bg, style;
-  if (props.student_pay || props.institute_pay) {
-    style = bg = undefined;
-  } else {
-    style = { fontWeight: "bold" };
-    bg = "#fcf8e3";
+  function render_onprem(): JSX.Element {
+    return <div>{render_site_license()}</div>;
   }
-  return (
-    <Card
-      style={{ background: bg }}
-      title={
+
+  function box_style(): { bg: string; style: CSS } {
+    let bg, style;
+    if (is_onprem || student_pay || institute_pay) {
+      style = bg = undefined;
+    } else {
+      style = { fontWeight: "bold" };
+      bg = "#fcf8e3";
+    }
+    return { style, bg };
+  }
+
+  const { bg, style } = box_style();
+
+  function render_title(): React.ReactNode {
+    if (is_onprem) {
+      return <div style={style}>Upgrade student projects</div>;
+    } else {
+      return (
         <div style={style}>
           <Icon name="dashboard" /> Upgrade all student projects (institute
           pays)
         </div>
-      }
-    >
-      {render_checkbox()}
-      {props.institute_pay ? render_details() : undefined}
+      );
+    }
+  }
+
+  function render_body(): JSX.Element {
+    if (is_onprem) {
+      return render_onprem();
+    } else {
+      return (
+        <>
+          {render_checkbox()}
+          {institute_pay ? render_details() : undefined}
+        </>
+      );
+    }
+  }
+
+  return (
+    <Card style={{ background: bg }} title={render_title()}>
+      {render_body()}
     </Card>
   );
 };
