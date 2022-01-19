@@ -77,7 +77,12 @@ export default function Pricing({ customize }) {
       <Header page="pricing" />
       <IndexList
         title="Subscriptions and Pricing"
-        description="CoCalc products and subscriptions"
+        description={
+          <>
+            You can read more about {customize.siteName} products and
+            subscriptions below or <A href="/store">visit the store</A>.
+          </>
+        }
         dataSource={dataSource}
       />
       <Footer />

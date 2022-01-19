@@ -119,7 +119,7 @@ export default async function signUp(req, res) {
   } catch (err) {
     res.json({
       issues: {
-        registrationToken: `Issue with registration token -- ${err}`,
+        registrationToken: `Issue with registration token -- ${err.message}`,
       },
     });
     return;

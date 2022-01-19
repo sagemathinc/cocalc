@@ -55,7 +55,7 @@ async function handle(email: string, ip: string): Promise<object> {
     await sendPasswordResetEmail(email, id);
   } catch (err) {
     return {
-      error: `Sending password reset email failed -- ${err}`,
+      error: `Sending password reset email failed -- ${err.message}`,
     };
   }
 
