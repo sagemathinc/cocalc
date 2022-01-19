@@ -36,7 +36,7 @@ async function get(req): Promise<Project[]> {
     throw Error("license_id must be a valid uuid");
   }
   if (!(await isManager(license_id, account_id))) {
-    throw Error("signed in user must be manager of the licens");
+    throw Error("signed in user must be a manager of the license");
   }
   return await getProjectsWithLicense(license_id);
 }
