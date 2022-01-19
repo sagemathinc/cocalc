@@ -37,7 +37,7 @@ export default function Tickets() {
         </h1>
         <p style={{ fontSize: "12pt" }}>
           Check the status of your support tickets here or{" "}
-          <A href="/support/create">create a new ticket</A>. Newly created
+          <A href="/support/new">create a new ticket</A>. Newly created
           tickets do not appear here for a few minutes.
         </p>
         {error && (

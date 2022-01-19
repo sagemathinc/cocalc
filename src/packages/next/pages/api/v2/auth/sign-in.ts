@@ -40,7 +40,7 @@ export default async function signIn(req, res) {
   try {
     account_id = await getAccount(email, password);
   } catch (err) {
-    res.json({ error: `Problem signing into account -- ${err}.` });
+    res.json({ error: `Problem signing into account -- ${err.message}.` });
     recordFail(email, req.ip);
     return;
   }
@@ -71,14 +71,14 @@ export async function signUserIn(req, res, account_id: string): Promise<void> {
   try {
     ({ value, ttl_s } = await createRememberMeCookie(account_id));
   } catch (err) {
-    res.json({ error: `Problem creating session cookie -- ${err}.` });
+    res.json({ error: `Problem creating session cookie -- ${err.message}.` });
     return;
   }
   try {
     const cookies = new Cookies(req, res, { maxAge: ttl_s * 1000 });
     cookies.set(COOKIE_NAME, value);
   } catch (err) {
-    res.json({ error: `Problem setting cookie -- ${err}.` });
+    res.json({ error: `Problem setting cookie -- ${err.message}.` });
     return;
   }
   res.json({ account_id });

@@ -1,4 +1,4 @@
-import { is_valid_uuid_string as isValidUUID } from "@cocalc/util/misc";
+import { isValidUUID } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import { deleteAllRememberMe } from "@cocalc/server/auth/remember-me";
 import { StripeClient } from "@cocalc/server/stripe/client";

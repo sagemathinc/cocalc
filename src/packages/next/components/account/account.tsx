@@ -36,8 +36,6 @@ export default function Account({
         <h1>
           <Avatar
             account_id={account_id}
-            size={64}
-            style={{ float: "right" }}
           />{" "}
           {name}
         </h1>

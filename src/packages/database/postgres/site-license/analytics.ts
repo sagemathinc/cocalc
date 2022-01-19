@@ -5,8 +5,16 @@
 
 import { PostgreSQL } from "../types";
 import { callback2 } from "@cocalc/util/async-utils";
-import { copy_with, len } from "@cocalc/util/misc";
+import { copy_with, isValidUUID, len } from "@cocalc/util/misc";
 const TIMEOUT_S = 30;
+
+export function numberRunningQuery(license_id: string): string {
+  if (!isValidUUID(license_id)) {
+    // critical to check to avoid any possible SQL injection attack.
+    throw Error("invalid license_id");
+  }
+  return `SELECT COUNT(*) FROM projects WHERE state#>>'{state}' = 'running' AND site_license#>>'{${license_id}}'!='{}'`;
+}
 
 export async function number_of_running_projects_using_license(
   db: PostgreSQL,
@@ -21,7 +29,7 @@ export async function number_of_running_projects_using_license(
   select project_id, site_license, state from projects where state#>>'{state}' in ('running', 'starting') and site_license#>>'{f3942ea1-ff3f-4d9f-937a-c5007babc693}'!='{}';
   */
 
-  const query = `SELECT COUNT(*) FROM projects WHERE state#>>'{state}' = 'running' AND site_license#>>'{${license_id}}'!='{}'`;
+  const query = numberRunningQuery(license_id);
   const x = await db.async_query({ query, timeout_s: TIMEOUT_S });
   return parseInt(x.rows[0].count);
 }

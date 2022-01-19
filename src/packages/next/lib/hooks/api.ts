@@ -21,18 +21,19 @@ export default function useAPI(
   const isMounted = useIsMounted();
 
   async function call(
-    endpoint: string,
-    params?: object,
+    endpoint1: string | undefined = endpoint,
+    params1: object | undefined = params,
     cache_s?: number
   ): Promise<any> {
+    if (endpoint1 == undefined) return;
     if (calling) {
-      queue.current.push({ endpoint, params, cache_s });
+      queue.current.push({ endpoint: endpoint1, params: params1, cache_s });
       return;
     }
     setCalling(true);
     let result;
     try {
-      result = await apiPost(endpoint, params, cache_s);
+      result = await apiPost(endpoint1, params1, cache_s);
     } catch (err) {
       if (!isMounted.current) return;
       setCalling(false);
@@ -58,7 +59,7 @@ export default function useAPI(
     if (endpoint) {
       call(endpoint, params, cache_s);
     }
-  }, []);
+  }, [endpoint + JSON.stringify(params)]);
 
   return { error, result, calling, call };
 }
