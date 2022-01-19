@@ -173,7 +173,7 @@ function process_customize(obj) {
     const v = site_settings_conf[k];
     obj[k] = obj[k] ?? v.default;
     if (typeof v.to_val === "function") {
-      obj[k] = v.to_val(obj[k]);
+      obj[k] = v.to_val(obj[k], obj);
     }
   }
   set_customize(obj);

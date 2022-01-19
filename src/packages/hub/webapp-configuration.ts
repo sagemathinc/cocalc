@@ -115,7 +115,7 @@ export class WebappConfiguration {
       for (const [key, value] of Object.entries(data.theme)) {
         const config = SITE_SETTINGS_CONF[key] ?? SERVER_SETTINGS_EXTRAS[key];
         if (typeof config?.to_val == "function") {
-          theme[key] = config.to_val(value);
+          theme[key] = config.to_val(value, data.theme);
         } else {
           if (typeof value == "string" || typeof value == "boolean") {
             theme[key] = value;
