@@ -13,7 +13,7 @@ Throws an exception if something is wrong.
 */
 
 import getPool from "@cocalc/database/pool";
-import { is_valid_uuid_string as isValidUUID } from "@cocalc/util/misc";
+import { isValidUUID } from "@cocalc/util/misc";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import passwordHash, {
   verifyPassword,

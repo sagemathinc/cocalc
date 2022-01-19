@@ -56,6 +56,17 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
             : "Sign in"}
         </div>
         <form>
+          {strategies != null && strategies.length > 0 && (
+            <div style={{ textAlign: "center", margin: "20px 0" }}>
+              <SSO
+                strategies={strategies}
+                size={email ? 24 : undefined}
+                style={
+                  email ? { float: "right", marginBottom: "20px" } : undefined
+                }
+              />
+            </div>
+          )}
           <Input
             autoFocus
             style={{ fontSize: "12pt" }}
@@ -63,13 +74,6 @@ export default function SignIn({ strategies, minimal, onSuccess }: Props) {
             autoComplete="username"
             onChange={(e) => setEmail(e.target.value)}
           />
-          <div style={{ textAlign: "center", marginTop: "20px" }}>
-            <SSO
-              strategies={strategies}
-              size={email ? 24 : undefined}
-              style={email ? { float: "right" } : undefined}
-            />
-          </div>
           {/* Don't ever hide password input, since that messes up autofill */}
           <div style={{ marginTop: "30px" }}>
             <p>Password </p>

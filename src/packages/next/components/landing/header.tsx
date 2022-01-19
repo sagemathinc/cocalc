@@ -36,6 +36,7 @@ interface Props {
 
 export default function Header({ page, subPage }: Props) {
   const {
+    isCommercial,
     anonymousSignup,
     siteName,
     termsOfServiceURL,
@@ -103,12 +104,14 @@ export default function Header({ page, subPage }: Props) {
             >
               Software
             </A>
-            <A
-              href="/pricing"
-              style={page == "pricing" ? SelectedStyle : LinkStyle}
-            >
-              Pricing
-            </A>
+            {isCommercial && (
+              <A
+                href="/pricing"
+                style={page == "pricing" ? SelectedStyle : LinkStyle}
+              >
+                Pricing
+              </A>
+            )}
           </>
         )}
         {!landingPages && termsOfServiceURL && (
@@ -162,7 +165,9 @@ export default function Header({ page, subPage }: Props) {
           </A>
         )}{" "}
         {account ? (
-          <AccountNavTab />
+          <AccountNavTab
+            style={page == "account" ? SelectedStyle : LinkStyle}
+          />
         ) : (
           <>
             <A

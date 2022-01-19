@@ -85,6 +85,7 @@ export default function ConfigLayout({ page }: Props) {
         <div style={{ color: "#666" }}>
           <b style={{ fontSize: "13pt" }}>
             {profile?.first_name} {profile?.last_name}
+            {profile.name ? ` (@${profile.name})` : ""}
           </b>
           <div>Your account</div>
         </div>
