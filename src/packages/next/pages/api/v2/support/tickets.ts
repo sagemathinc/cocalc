@@ -19,7 +19,7 @@ export default async function handle(req, res) {
   try {
     tickets = await getSupportTickets(account_id);
   } catch (err) {
-    res.json({ error: `${err}` });
+    res.json({ error: `${err.message}` });
     return;
   }
   res.json({ tickets });

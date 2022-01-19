@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/util",
-  "version": "1.21.0",
+  "version": "1.22.0",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
     "./*": "./dist/*.js",
@@ -9,7 +9,8 @@
     "./types": "./dist/types/index.js",
     "./consts": "./dist/consts/index.js",
     "./sync/table": "./dist/sync/table/index.js",
-    "./sync/editor/db": "./dist/sync/editor/db/index.js"
+    "./sync/editor/db": "./dist/sync/editor/db/index.js",
+    "./licenses/purchase/*": "./dist/licenses/purchase/*.js"
   },
   "scripts": {
     "build": "npx tsc",
