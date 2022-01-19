@@ -23,7 +23,7 @@ export default async function handle(req, res) {
     const files = await fileAccess({ account_id, interval });
     res.json({ files });
   } catch (err) {
-    res.json({ error: `${err}` });
+    res.json({ error: `${err.message}` });
   }
 }
 

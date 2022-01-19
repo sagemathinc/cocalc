@@ -16,6 +16,9 @@ import { Row, Col, Panel } from "../../antd-bootstrap";
 import { ProgressBar } from "react-bootstrap";
 import { ProjectUpgradesTable } from "./project-upgrades-table";
 
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
+
 interface reduxProps {
   stripe_customer?: Map<string, any>;
   project_map?: Map<string, any>;
@@ -39,7 +42,8 @@ class UpgradesPage extends Component<reduxProps> {
     return (
       <div>
         <h3>Upgrades are no longer available</h3>
-        Please see the <A href="https://cocalc.com/pricing">pricing pages</A>.
+        Please visit <A href={join(appBasePath, "store")}>the new store</A> and
+        the <A href="https://cocalc.com/pricing">pricing pages</A>.
         <Footer />
       </div>
     );

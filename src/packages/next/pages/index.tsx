@@ -12,8 +12,12 @@ import Content from "components/landing/content";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import Head from "components/landing/head";
+import { join } from "path";
+import basePath from "lib/base-path";
 
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
+
+const topLinkStyle = { marginRight: "20px" };
 
 export default function Home({ customize }) {
   const {
@@ -52,6 +56,66 @@ export default function Home({ customize }) {
                         : ""
                     }`}
               </A>
+              <div style={{ fontSize: "10pt", margin: "15px 0" }}>
+                {customize.account != null && (
+                  <A
+                    href={join(basePath, "projects")}
+                    external
+                    style={topLinkStyle}
+                  >
+                    Projects
+                  </A>
+                )}
+                {customize.landingPages && (
+                  <>
+                    <A href="/features/" style={topLinkStyle}>
+                      Features
+                    </A>
+                    <A href="/software" style={topLinkStyle}>
+                      Software
+                    </A>
+                    {customize.isCommercial && (
+                      <A href="/pricing" style={topLinkStyle}>
+                        Pricing
+                      </A>
+                    )}
+                  </>
+                )}
+                {customize.account != null && (
+                  <A href={"/config"} style={topLinkStyle}>
+                    Config
+                  </A>
+                )}
+                {customize.isCommercial &&
+                  customize.account &&
+                  !customize.account.is_anonymous && (
+                    <>
+                      <A href="/store" style={topLinkStyle}>
+                        Store
+                      </A>
+                      <A href={"/licenses"} style={topLinkStyle}>
+                        Licenses
+                      </A>
+                      <A href={"/billing"} style={topLinkStyle}>
+                        Billing
+                      </A>
+                    </>
+                  )}
+                {customize.shareServer && (
+                  <A style={topLinkStyle} href={"/share/public_paths/page/1"}>
+                    Share
+                  </A>
+                )}
+                <A style={topLinkStyle} href="/support">
+                  Support
+                </A>
+                <A style={topLinkStyle} href="/info/status">
+                  Status
+                </A>
+                <A style={topLinkStyle} href="https://doc.cocalc.com">
+                  Docs
+                </A>
+              </div>
             </div>
           )}
           <Content
@@ -67,20 +131,17 @@ export default function Home({ customize }) {
                   </>
                 )}
                 {customize.onCoCalcCom && (
-                  <>
-                    {" "}
-                    <br />
-                    <br />{" "}
+                  <div style={{ marginTop: "15px" }}>
                     <iframe
                       width="210"
-                      height="315"
+                      height="300"
                       src="https://www.youtube.com/embed/PQ5p92DN0bs"
                       title="YouTube video player"
                       frameBorder={0}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     ></iframe>
-                  </>
+                  </div>
                 )}
               </div>
             }

@@ -13,7 +13,7 @@ export default async function redeemVerifyEmailAPICall(req, res) {
   try {
     await redeemVerifyEmail(email_address, token);
   } catch (err) {
-    res.json({ error: `${err}` });
+    res.json({ error: `${err.message}` });
     return;
   }
   res.json({});

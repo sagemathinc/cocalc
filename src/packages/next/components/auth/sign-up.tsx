@@ -329,6 +329,15 @@ function EmailOrSSO({ email, setEmail, signUp, strategies }) {
           ? "Enter the email address you will use to sign in."
           : "Sign up using a single sign on provider."}
       </p>
+      {strategies.length > 0 && (
+        <div style={{ textAlign: "center", margin: "20px 0" }}>
+          <SSO
+            strategies={strategies}
+            size={email ? 24 : undefined}
+            style={email ? { float: "right", marginBottom: "20px" } : undefined}
+          />
+        </div>
+      )}
       {emailSignup && (
         <p>
           <Input
@@ -341,13 +350,6 @@ function EmailOrSSO({ email, setEmail, signUp, strategies }) {
           />
         </p>
       )}
-      <div style={{ textAlign: "center" }}>
-        <SSO
-          strategies={strategies}
-          size={email ? 24 : undefined}
-          style={email ? { float: "right" } : undefined}
-        />
-      </div>
     </div>
   );
 }
