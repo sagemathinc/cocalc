@@ -43,7 +43,9 @@ export const SelectFile: React.FC<SelectFileProps> = React.memo(
         onSearch={(val) => set_search(val)}
         onInputKeyDown={input_key_down}
         filterOption={(input, option) =>
-          option?.value?.toLowerCase().indexOf(input.toLowerCase()) >= 0
+          option
+            ? `${option.value}`.toLowerCase().includes(input.toLowerCase())
+            : false
         }
         style={{ width: "100%" }}
       >

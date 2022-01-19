@@ -4,7 +4,12 @@
  */
 
 import { Alert, Button, ButtonToolbar, Col, Row } from "react-bootstrap";
-import { stripe_amount, stripe_date, capitalize } from "@cocalc/util/misc";
+import {
+  stripeAmount,
+  stripeDate,
+  planInterval,
+  capitalize,
+} from "@cocalc/util/misc";
 import { A } from "../components";
 import {
   CSS,
@@ -16,7 +21,6 @@ import {
 } from "../app-framework";
 const { HelpEmailLink } = require("../customize");
 import { Subscription as StripeSubscription } from "./types";
-import { plan_interval } from "./util";
 
 interface Props {
   subscription: StripeSubscription;
@@ -67,8 +71,11 @@ export const Subscription: React.FC<Props> = ({ subscription, style }) => {
   function render_price(): JSX.Element {
     return (
       <span>
-        {stripe_amount(subscription.plan.amount, subscription.plan.currency)}{" "}
-        for {plan_interval(subscription.plan)}
+        {stripeAmount(subscription.plan.amount, subscription.plan.currency)} for{" "}
+        {planInterval(
+          subscription.plan.interval,
+          subscription.plan.interval_count
+        )}
       </span>
     );
   }
@@ -85,9 +92,9 @@ export const Subscription: React.FC<Props> = ({ subscription, style }) => {
         <Col md={5}>{render_description()}</Col>
         <Col md={2}>{capitalize(sub.status)}</Col>
         <Col md={4} style={{ color: "#666" }}>
-          {stripe_date(sub.current_period_start)} –{" "}
-          {stripe_date(sub.current_period_end)} (start:{" "}
-          {stripe_date(sub.created)}){render_cancel_at_end_or_price()}
+          {stripeDate(sub.current_period_start)} –{" "}
+          {stripeDate(sub.current_period_end)} (start: {stripeDate(sub.created)}
+          ){render_cancel_at_end_or_price()}
         </Col>
         <Col md={1}>
           {cancellable ? (

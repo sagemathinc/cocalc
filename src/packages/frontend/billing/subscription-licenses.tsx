@@ -11,7 +11,7 @@ import {
   User,
   Upgrade,
   Subscription,
-} from "../site-licenses/purchase/util";
+} from "@cocalc/util/licenses/purchase/util";
 import { plural } from "@cocalc/util/misc";
 
 const p1data = {

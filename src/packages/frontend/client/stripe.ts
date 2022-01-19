@@ -9,7 +9,7 @@ stripe payments api via backend hub
 
 import { callback2 } from "@cocalc/util/async-utils";
 import * as message from "@cocalc/util/message";
-import { PurchaseInfo } from "../site-licenses/purchase/util";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
 
 export class StripeClient {
   private call_api: Function;

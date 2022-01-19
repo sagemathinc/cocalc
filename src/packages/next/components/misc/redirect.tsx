@@ -10,7 +10,7 @@ interface Props {
 export default function Redirect({ target }: Props) {
   const router = useRouter();
   useEffect(() => {
-     router.push(target);
+    router.replace(target);
   }, []);
   return (
     <div style={{ textAlign: "center", margin: "30px auto" }}>

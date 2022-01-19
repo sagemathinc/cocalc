@@ -9,8 +9,7 @@ import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Tip } from "../components/tip";
 import { Space } from "../components/space";
 import { round1, plural } from "@cocalc/util/misc";
-import { stripe_amount } from "@cocalc/util/misc";
-import { Plan } from "./types";
+import { stripeAmount } from "@cocalc/util/misc";
 
 export function powered_by_stripe(): Rendered {
   return (
@@ -54,11 +53,6 @@ export function render_project_quota(name: string, value: number): Rendered {
 
 export function render_amount(amount: number, currency: string) {
   return (
-    <div style={{ float: "right" }}>{stripe_amount(amount, currency)}</div>
+    <div style={{ float: "right" }}>{stripeAmount(amount, currency)}</div>
   );
-}
-
-export function plan_interval(plan: Plan): string {
-  const n: number = plan.interval_count;
-  return `${plan.interval_count} ${plural(n, plan.interval)}`;
 }

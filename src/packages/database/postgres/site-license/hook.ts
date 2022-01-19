@@ -224,7 +224,7 @@ async function site_license_hook0(
   }
 }
 
-const last_used: { [licensed_id: string]: number } = {};
+const last_used: { [license_id: string]: number } = {};
 async function update_last_used(
   db: PostgreSQL,
   license_id: string,
