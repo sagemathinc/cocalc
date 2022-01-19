@@ -344,7 +344,7 @@ function Problem({ onChange }) {
 function Question({ defaultValue, onChange }) {
   return (
     <Input.TextArea
-      rows={6}
+      rows={8}
       defaultValue={defaultValue}
       placeholder="Your question..."
       onChange={(e) => onChange(e.target.value)}

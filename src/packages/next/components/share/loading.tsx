@@ -11,9 +11,18 @@ interface Props {
   style?: CSSProperties;
   children?: ReactNode;
   before?: ReactNode;
+  center?: boolean;
+  large?: boolean;
 }
 
-export default function Loading({ delay, style, children, before }: Props) {
+export default function Loading({
+  delay,
+  style,
+  children,
+  before,
+  center,
+  large,
+}: Props) {
   const [show, setShow] = useState<boolean>(false);
   const isMounted = useIsMounted();
   useEffect(() => {
@@ -27,7 +36,14 @@ export default function Loading({ delay, style, children, before }: Props) {
     return <>{before}</>;
   }
   return (
-    <div style={{ color: "#666", ...style }}>
+    <div
+      style={{
+        textAlign: center ? "center" : undefined,
+        fontSize: large ? "32pt" : undefined,
+        color: "#666",
+        ...style,
+      }}
+    >
       <Icon name="spinner" spin /> {children ?? <>Loading...</>}
     </div>
   );

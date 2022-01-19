@@ -93,7 +93,7 @@ export class StripeClient {
   // or undefined if there is no known stripe customer id.
   // Throws an error if something goes wrong.
   // If called multiple times simultaneously, only does one DB query.
-  private async get_customer_id(): Promise<string | undefined> {
+  public async get_customer_id(): Promise<string | undefined> {
     //  If no customer info yet with stripe, then NOT an error; instead,
     //  customer_id is undefined (but will check every time in this case).
     const dbg = this.dbg("get_customer_id");
@@ -137,7 +137,7 @@ export class StripeClient {
     };
   }
 
-  private async get_customer(customer_id?: string): Promise<StripeCustomer> {
+  async get_customer(customer_id?: string): Promise<StripeCustomer> {
     const dbg = this.dbg("get_customer");
     if (customer_id == null) {
       dbg("getting customer id");
@@ -369,8 +369,6 @@ export class StripeClient {
     // else's subscription!
 
     dbg("cancel the subscription at stripe");
-    // This also returns the subscription, which lets
-    // us easily get the metadata of all projects associated to this subscription.
     await (
       await getConn()
     ).subscriptions.update(subscription_id, {
@@ -409,11 +407,8 @@ export class StripeClient {
     const dbg = this.dbg("mesg_get_subscriptions");
     dbg("get a list of all the subscriptions that this customer has");
 
-    const customer_id: string = await this.need_customer_id();
-
     const options = await this.stripe_api_pager_options(mesg);
     options.status = "all";
-    options.customer = customer_id;
     const subscriptions = await (await getConn()).subscriptions.list(options);
     return message.stripe_subscriptions({ subscriptions });
   }
@@ -627,6 +622,39 @@ export class StripeClient {
       }
     }
     dbg("Sync the database to indicate that everything is canceled.");
+    await this.update_database();
+  }
+
+  public async getPaymentMethods(): Promise<Message> {
+    const dbg = this.dbg("get_sources");
+    dbg("get a list of all the payment sources that this customer has");
+    const customer = await this.need_customer_id();
+    const conn = await getConn();
+    await conn.paymentMethods.list({ customer, type: "card" });
+  }
+
+  public async setDefaultSource(default_source: string): Promise<void> {
+    const conn = await getConn();
+    await conn.customers.update(await this.need_customer_id(), {
+      default_source,
+    });
+    await this.update_database();
+  }
+
+  public async deletePaymentMethod(id: string): Promise<void> {
+    const conn = await getConn();
+    await conn.customers.deleteSource(await this.need_customer_id(), id);
+    await this.update_database();
+  }
+
+  public async createPaymentMethod(token: string): Promise<void> {
+    await this.mesg_create_source({ token });
+  }
+
+  public async cancelSubscription(id: string): Promise<void> {
+    // TODO/SECURITY: see comment in mesg_cancel_subscription
+    const conn = await getConn();
+    await conn.subscriptions.update(id, { cancel_at_period_end: true });
     await this.update_database();
   }
 }

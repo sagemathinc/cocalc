@@ -74,7 +74,7 @@ export default async function handle(req, res) {
     // success means no exception and no error field in response.
     res.json({});
   } catch (err) {
-    res.json({ error: `${err}` });
+    res.json({ error: `${err.message}` });
   }
 }
 

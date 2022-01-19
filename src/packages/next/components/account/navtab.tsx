@@ -8,8 +8,16 @@ import { useCustomize } from "lib/customize";
 import { Icon } from "@cocalc/frontend/components/icon";
 import A from "components/misc/A";
 import useProfile from "lib/hooks/profile";
+import { CSSProperties } from "react";
+import apiPost from "lib/api/post";
+import { useRouter } from "next/router";
 
-export default function AccountNavTab() {
+interface Props {
+  style: CSSProperties;
+}
+
+export default function AccountNavTab({ style }: Props) {
+  const router = useRouter();
   const { isCommercial, siteName, sshGateway } = useCustomize();
   const profile = useProfile();
   if (!profile) return null;
@@ -51,6 +59,11 @@ export default function AccountNavTab() {
               Documentation
             </A>
           </Menu.Item>
+          {isCommercial && (
+            <Menu.Item key="store" icon={<Icon name="shopping-cart" />}>
+              <A href="/store">Store</A>
+            </Menu.Item>
+          )}
           <Menu.Divider />
 
           {!is_anonymous /* color due to a theme bug */ && (
@@ -89,23 +102,19 @@ export default function AccountNavTab() {
           </A>
         }
       >
-        <Menu.Item key="projects" icon={<Icon name="key" />}>
+        <Menu.Item key="projects" icon={<Icon name="edit" />}>
           <A href={join(basePath, "projects")} external>
             {is_anonymous ? "Project" : "Projects"}
           </A>
         </Menu.Item>
-        {!is_anonymous && isCommercial && (
+        {!is_anonymous && (
           <Menu.Item key="licenses" icon={<Icon name="key" />}>
-            <A href={join(basePath, "settings", "licenses")} external>
-              Licenses
-            </A>
+            <A href="/licenses">Licenses</A>
           </Menu.Item>
         )}
         {!is_anonymous && isCommercial && (
           <Menu.Item key="billing" icon={<Icon name="credit-card" />}>
-            <A href={join(basePath, "settings", "billing")} external>
-              Purchases
-            </A>
+            <A href="/billing">Billing</A>
           </Menu.Item>
         )}
         {!is_anonymous && sshGateway && (
@@ -141,14 +150,21 @@ export default function AccountNavTab() {
       <Menu.Divider />
 
       <Menu.Item key="sign-out" icon={<Icon name="sign-out-alt" />}>
-        <A href="/config/account/sign-out">Sign Out</A>
+        <A
+          onClick={async () => {
+            await apiPost("/accounts/sign-out", { all: false });
+            router.push("/");
+          }}
+        >
+          Sign Out
+        </A>
       </Menu.Item>
     </Menu>
   );
 
   return (
     <Dropdown overlay={menu} trigger={"click" as any}>
-      <div style={{ ...LinkStyle, cursor: "pointer" }}>
+      <div style={{ ...LinkStyle, cursor: "pointer", ...style }}>
         {/* The negative margin fixes some weird behavior that stretches header. */}
         {account_id && (
           <>

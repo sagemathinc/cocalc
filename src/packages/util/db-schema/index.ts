@@ -38,6 +38,7 @@ import "./registration-tokens";
 import "./server-settings";
 import "./site-licenses";
 import "./site-settings";
+import "./shopping-cart-items";
 import "./stats";
 import "./storage-servers";
 import "./system-notifications";

@@ -723,32 +723,37 @@ class WebappThreeJS
         @show_canvas()
 
         for o in opts.obj
-            switch o.type
-                when 'text'
-                    @add_text
-                        pos           : o.pos
-                        text          : o.text
-                        color         : o.color
-                        fontsize      : o.fontsize
-                        fontface      : o.fontface
-                        constant_size : o.constant_size
-                when 'index_face_set'
-                    if opts.wireframe?
-                        o.wireframe = opts.wireframe
-                    @add_obj(o)
-                    if o.mesh and not o.wireframe  # draw a wireframe mesh on top of the surface we just drew.
-                        o.color='#000000'
-                        o.wireframe = o.mesh
+            try
+                switch o.type
+                    when 'text'
+                        @add_text
+                            pos           : o.pos
+                            text          : o.text
+                            color         : o.color
+                            fontsize      : o.fontsize
+                            fontface      : o.fontface
+                            constant_size : o.constant_size
+                    when 'index_face_set'
+                        if opts.wireframe?
+                            o.wireframe = opts.wireframe
                         @add_obj(o)
-                when 'line'
-                    delete o.type
-                    @add_line(o)
-                when 'point'
-                    delete o.type
-                    @add_point(o)
-                else
-                    console.log("ERROR: no renderer for model number = #{o.id}")
-                    return
+                        if o.mesh and not o.wireframe  # draw a wireframe mesh on top of the surface we just drew.
+                            o.color='#000000'
+                            o.wireframe = o.mesh
+                            @add_obj(o)
+                    when 'line'
+                        delete o.type
+                        @add_line(o)
+                    when 'point'
+                        delete o.type
+                        @add_point(o)
+                    else
+                        console.log("ERROR: no renderer for model number = #{o.id}")
+                        return
+            catch err
+                # This can happen in some obscure case: https://github.com/sagemathinc/cocalc/issues/5654
+                # It's better to gracefully skip than to crash.
+                console.warn("WARNING -- #{err}")
 
         if opts.set_frame?
             @set_frame(opts.set_frame)
@@ -900,7 +905,7 @@ exports.render_3d_scene = (opts) ->
                     max_delay : 5
                     cb        : (err) ->
                         if err
-                            msg = "error downloading #{opts.url} - ${err}"
+                            msg = "error downloading #{opts.url} - #{err}"
                             console.warn(msg)
                             cb(msg)
                         else

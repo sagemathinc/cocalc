@@ -69,6 +69,8 @@ create_project = require("@cocalc/server/projects/create").default;
 
 {Stripe} = require("@cocalc/server/stripe/client")
 
+user_search = require("@cocalc/server/accounts/search").default;
+
 # log events, which contain personal information (email, account_id, ...)
 PII_EVENTS = ['create_account',
               'change_password',
@@ -1047,156 +1049,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         f(account_id, username)
                     opts.cb(undefined, usernames)
 
-    # This searches for users. In case someone has to debug this, the "clear text" for the user search by name (tokens) is
-    # SELECT account_id, first_name, last_name, last_active, created
-    # FROM accounts
-    # WHERE deleted IS NOT TRUE
-    #   AND (
-    #     (
-    #       (
-    #         lower(first_name) LIKE $1::TEXT
-    #         OR
-    #         lower(last_name) LIKE $1::TEXT
-    #       )
-    #       AND
-    #       (
-    #         lower(first_name) LIKE $2::TEXT
-    #         OR
-    #         lower(last_name) LIKE $2::TEXT
-    #       )
-    #       AND
-    #          ...
-    #     )
-    #   )
-    #   AND (
-    #     (last_active >= NOW() - $3::INTERVAL)
-    #     OR
-    #     (created >= NOW() - $3::INTERVAL)
-    #   )
-    #   ORDER BY last_active DESC NULLS LAST
-    #   LIMIT $4::INTEGER
     user_search: (opts) =>
-        opts = defaults opts,
-            query  : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
-            limit  : 50           # limit on string queries; email query always returns 0 or 1 result per email address
-            active : undefined    # for name search (not email), only return users active this recently. -- disabled b/c of #2991
-            admin  : false
-            cb     : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
-                                  # email_address *only* occurs in search queries that are by email_address -- we do not reveal
-                                  # email addresses of users queried by name.
-
-        if opts.admin and (misc.is_valid_uuid_string(opts.query) or misc.is_valid_email_address(opts.query))
-            # One special case: when the query is just an email address or uuid, in which case we
-            # just return that account (this is ONLY for admins) since
-            # this includes the email address, except NOT an error if
-            # there is no match
-            @get_account
-                account_id : if misc.is_valid_uuid_string(opts.query) then opts.query
-                email_address : if misc.is_valid_email_address(opts.query) then opts.query
-                columns:['account_id', 'first_name', 'last_name', 'email_address', 'last_active', 'created', 'banned']
-                cb: (err, account) =>
-                    if err
-                        opts.cb(undefined, [])
-                    else
-                        opts.cb(undefined, [account])
-            return
-
-
-        {string_queries, email_queries} = misc.parse_user_search(opts.query)
-
-        if opts.admin
-            # For admin we just do substring queries:
-            for x in email_queries
-                string_queries.push([x])
-            email_queries = []
-
-        dbg = @_dbg("user_search")
-        dbg("query = #{misc.to_json(opts.query)}")
-        #dbg("string_queries=#{misc.to_json(string_queries)}")
-        #dbg("email_queries=#{misc.to_json(email_queries)}")
-
-        locals =
-             results : []
-
-        process = (rows) ->
-            if not rows?
-                return
-            locals.results.push(rows...)
-
-        async.parallel([
-            (cb) =>
-                if email_queries.length == 0
-                    cb(); return
-                dbg("do email queries -- with exactly two targeted db queries (even if there are hundreds of addresses)")
-                @_query
-                    query : 'SELECT account_id, first_name, last_name, email_address, last_active, created, email_address_verified FROM accounts'
-                    where :
-                        'email_address = ANY($::TEXT[])' : email_queries
-                        'deleted is $'                   : null
-                    cb    : all_results (err, rows) =>
-                        process(rows)
-                        cb(err)
-            (cb) =>
-                dbg("do all string queries")
-                if string_queries.length == 0
-                    # nothing to do
-                    cb(); return
-                # substring search on first and last name.
-                # With the two indexes, the query below is instant even on several
-                # hundred thousand accounts:
-                #     CREATE INDEX accounts_first_name_idx ON accounts(first_name text_pattern_ops);
-                #     CREATE INDEX accounts_last_name_idx  ON accounts(last_name text_pattern_ops);
-                where  = []
-                params = []
-                i      = 1
-                for terms in string_queries
-                    v = []
-                    for s in terms
-                        s = s.toLowerCase()
-                        if opts.admin
-                            v.push("(lower(first_name) LIKE $#{i}::TEXT OR lower(last_name) LIKE $#{i}::TEXT OR lower(email_address) LIKE $#{i}::TEXT)")
-                            params.push("%#{s}%")
-                        else
-                            v.push("(lower(first_name) LIKE $#{i}::TEXT OR lower(last_name) LIKE $#{i}::TEXT)")
-                            params.push("#{s}%")  # require string to name to start with string --
-                                                  # makes searching way faster and is more useful too
-                        i += 1
-                    where.push("(#{v.join(' AND ')})")
-                query = 'SELECT account_id, first_name, last_name, last_active, created'
-                if opts.admin
-                    query += ', email_address, banned'
-                query += ' FROM accounts'
-                query += " WHERE deleted IS NOT TRUE AND (#{where.join(' OR ')})"
-                if opts.active and not opts.admin
-                    params.push(opts.active)
-                    # name search only includes active users
-                    query += " AND ((last_active >= NOW() - $#{i}::INTERVAL) OR (created >= NOW() - $#{i}::INTERVAL)) "
-                    i += 1
-                if not opts.admin
-                    # Exclude unlisted users from search results
-                    query += " AND unlisted IS NOT true ";
-                # recently active users are much more relevant than old ones -- #2991
-                query += " ORDER BY last_active DESC NULLS LAST"
-                query += " LIMIT $#{i}::INTEGER"; i += 1
-                params.push(opts.limit)
-                dbg("query params=#{params}")
-                @_query
-                    query  : query
-                    params : params
-                    cb     : all_results (err, rows) =>
-                        process(rows)
-                        cb(err)
-            ], (err) =>
-                locals.results.sort (a, b) ->
-                    a0 = (a.first_name + ' ' + a.last_name).toLowerCase()
-                    b0 = (b.first_name + ' ' + b.last_name).toLowerCase()
-                    c = misc.cmp(a0, b0)
-                    if c
-                        return c
-                    return -misc.cmp_Date(a.last_active ? a.created ? 0, b.last_active ? b.created ? 0)
-
-                opts.cb(err, locals.results)
-            )
+        try
+            opts.cb(undefined, await user_search(opts))
+        catch err
+            opts.cb(err.message)
 
     _account_where: (opts) =>
         # account_id > email_address > lti_id
