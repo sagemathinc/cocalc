@@ -25,7 +25,7 @@ export default async function redeemPasswordResetAPIEndPoint(req, res) {
   try {
     account_id = await redeemPasswordReset(password, passwordResetId);
   } catch (err) {
-    res.json({ error: `${err}` });
+    res.json({ error: `${err.message}` });
     return;
   }
   await signUserIn(req, res, account_id);

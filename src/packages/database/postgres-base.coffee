@@ -1078,6 +1078,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                         cb(err)
                         return
                     goal_type = goal_type.split(' ')[0]
+                    if goal_type == 'serial'
+                        # We can't do anything with this (or we could, but it's way too complicated).
+                        continue
                     if goal_type.slice(0,4) == 'char'
                         # we do NOT support changing between fixed length and variable length strength
                         goal_type = 'var' + goal_type
