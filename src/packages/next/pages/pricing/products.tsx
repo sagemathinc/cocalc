@@ -36,15 +36,14 @@ export default function Products({ customize }) {
               Initially, you start using CoCalc under a{" "}
               <A href="https://doc.cocalc.com/trial.html">free trial plan</A> in
               order to test out the service. If CoCalc works for you, please
-              subscribe!
+              purchase a license.
             </p>
             <p>
-              <strong>In order to purchase a license key</strong> sign into
-              CoCalc, open{" "}
-              <A href="https://doc.cocalc.com/account-settings.html">Account</A>{" "}
-              settings, and switch to the "Licenses" tab. The{" "}
-              <strong>"Buy a license..."</strong> button opens a form that walks
-              you through configuring your license key.
+              You can{" "}
+              <A href="/store/site-license">
+                <strong>purchase a license in the store</strong>
+              </A>
+              .
             </p>
             <p>
               Any subscription or{" "}

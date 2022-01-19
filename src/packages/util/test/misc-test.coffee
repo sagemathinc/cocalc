@@ -783,16 +783,6 @@ describe "replace_all", ->
         ra(ra("foo\nbar\tbaz", "\n", ""), "\t", "").should.eql "foobarbaz"
         ra("ſþ¨€¢→æł ¢ħæ¶æ¢ŧ€¶ſ", "æ", "a").should.eql "ſþ¨€¢→ał ¢ħa¶a¢ŧ€¶ſ"
 
-
-#describe "stripe_date", ->
-#    sd = misc.stripe_date
-#    it "creates a 'stripe date' (?) out of a timestamp (seconds since epoch)", ->
-#        sd(1000000000).should.containEql('Sunday')
-#                             .containEql('September')
-#                             .containEql("9")
-#                             .containEql('2001')
-
-
 describe "date_to_snapshot_format", ->
     dtsf = misc.date_to_snapshot_format
     it "correctly converts a number-date to the snapshot format", ->
