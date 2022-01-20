@@ -121,7 +121,7 @@ export class TaskActions extends Actions<TaskState> {
     if (this.is_closed) return;
     const local_view_state = this.store.get("local_view_state");
     if (local_view_state != null && localStorage !== null) {
-      set_local_storage(this.name, JSON.stringify(local_view_state));
+      set_local_storage(this.name, JSON.stringify(local_view_state.toJS()));
     }
   }
 
@@ -756,6 +756,7 @@ export class TaskActions extends Actions<TaskState> {
     view = view.set("sort", sort);
     this.setState({ local_view_state: view });
     this._update_visible();
+    this.__save_local_view_state();
   }
 
   // Move task that was at position old_index to now be at
