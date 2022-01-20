@@ -132,7 +132,11 @@ function autograde_cells_by_grade_id(notebook: JupyterNotebook): {
 function allGradeableCellIds(notebook: JupyterNotebook): string[] {
   const ids: string[] = [];
   for (const cell of notebook.cells) {
-    if (cell.metadata?.nbgrader?.grade) {
+    // Note that tasks have grade=false, but they have points.  Seems weird.
+    if (
+      cell.metadata?.nbgrader?.grade ||
+      cell.metadata?.nbgrader?.points != null
+    ) {
       // An gradeable cell.
       const grade_id = cell.metadata.nbgrader.grade_id;
       if (grade_id) {
