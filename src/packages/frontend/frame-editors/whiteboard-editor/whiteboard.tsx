@@ -41,11 +41,11 @@ export default function Whiteboard({
   for (const id in objects) {
     const object = objects[id];
     if (!object) continue;
-    const { css, strVal, objVal } = objects[id];
+    const { css, str, data } = objects[id];
     v.push(
       <div key={id} style={{ position: "relative", ...css }}>
-        {strVal != null && strVal}
-        {objVal != null && <pre>{JSON.stringify(objVal, undefined, 2)}</pre>}
+        {str != null && str}
+        {data != null && <pre>{JSON.stringify(data, undefined, 2)}</pre>}
       </div>
     );
   }

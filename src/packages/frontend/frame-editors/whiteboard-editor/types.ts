@@ -15,8 +15,8 @@ export interface Object {
   id: string;
   css: CSSProperties; // determines everything about look and position.
   type: ObjectType;
-  strVal?: string; // depends on type if set or not
-  objVal?: object; // depends on type if set or not
+  data?: object; // depends on type if set or not; patch/merge atomically
+  str?: string; // depends on type if set or not; patch/merge as string
 }
 
 export type ObjectMap = TypedMap<Object>;
