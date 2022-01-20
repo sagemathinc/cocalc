@@ -43,8 +43,8 @@ interface RegisteredUser {
   account_id: string;
   first_name?: string;
   last_name?: string;
-  last_active?: Date;
-  created?: Date;
+  last_active?: number;
+  created?: number;
   email_address?: string;
   email_address_verified?: boolean;
   label?: string;
@@ -646,7 +646,7 @@ export const AddCollaborators: React.FC<Props> = ({
     );
   }
 
-   if(student.disableCollaborators) {
+  if (student.disableCollaborators) {
     return <div></div>;
   }
 

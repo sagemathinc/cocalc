@@ -17,7 +17,43 @@
 //
 // The icon names below refer to font-awesome, and are used in the UI.
 
-export const COMPUTE_STATES = {
+export type State =
+  | "archived"
+  | "archiving"
+  | "closed"
+  | "closing"
+  | "opened"
+  | "opening"
+  | "pending"
+  | "running"
+  | "starting"
+  | "stopping"
+  | "unarchiving";
+
+// @hsy: completely unclear what this is for.
+type Operation =
+  | "open"
+  | "archived"
+  | "unarchive"
+  | "start"
+  | "stop"
+  | "close"
+  | "closed";
+
+type ComputeState = Readonly<{
+  [key in State]: {
+    desc: string; // shows up in the UI (default)
+    desc_cocalccom?: string; // if set, use this string instead of desc in "cocalc.com" mode
+    icon: string;
+    display: string;
+    stable?: boolean;
+    to: { [key in Operation]?: State };
+    timeout?: number;
+    commands: Readonly<string[]>;
+  };
+}>;
+
+export const COMPUTE_STATES: ComputeState = {
   archived: {
     desc: "Project is stored in longterm storage, and will take even longer to start.",
     icon: "file-archive",
@@ -106,20 +142,23 @@ export const COMPUTE_STATES = {
   },
 
   pending: {
-    desc: "Finding a place to run your project.  If nothing becomes available, reduce dedicated RAM or CPU, pay for members only hosting, or contact support.",
+    desc_cocalccom:
+      "Finding a place to run your project.  If nothing becomes available, reduce dedicated RAM or CPU, pay for members only hosting, or contact support.",
+    desc: "Finding a place to run your project. If nothing becomes available, contact support.",
     icon: "times-rectangle",
     display: "Pending",
     stable: true,
     to: {
       stop: "stopping",
     },
-    command: ["stop"],
+    commands: ["stop"],
   },
 
   starting: {
     desc: "Project is starting up.",
     icon: "flash",
     display: "Starting",
+    to: {},
     timeout: 60,
     commands: [
       "save",
@@ -140,6 +179,7 @@ export const COMPUTE_STATES = {
     icon: "hand-stop",
     display: "Stopping",
     timeout: 60,
+    to: {},
     commands: [
       "save",
       "copy_path",
@@ -179,5 +219,3 @@ export const COMPUTE_STATES = {
     ],
   },
 } as const;
-
-export type State = keyof typeof COMPUTE_STATES;

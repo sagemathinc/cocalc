@@ -4343,7 +4343,7 @@ def julia(code=None, **kwargs):
 
     """
     if julia.jupyter_kernel is None:
-        julia.jupyter_kernel = jupyter("julia-1.3")
+        julia.jupyter_kernel = jupyter("julia-1.7")
     return julia.jupyter_kernel(code, **kwargs)
 
 

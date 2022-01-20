@@ -16,15 +16,14 @@ import {
   useIsMountedRef,
 } from "../../app-framework";
 
-import { LicenseYouManage } from "./license-you-manage";
+import {
+  SiteLicensePublicInfoTable,
+  SiteLicenses,
+} from "../../site-licenses/site-license-public-info";
 
 export const LICENSES_STYLE: CSS = {
-  margin: "15px 30px",
-  maxHeight: "70vh",
-  overflowY: "auto",
-  border: "1px solid #ccc",
-  padding: "5px",
-  borderRadius: "3px",
+  margin: "30px 0",
+  padding: "0",
 } as const;
 
 export const ManagedLicenses: React.FC = () => {
@@ -36,11 +35,10 @@ export const ManagedLicenses: React.FC = () => {
 
   const active_licenses = useTypedRedux("billing", "managed_license_ids"); // currently or recently valid
   const all_licenses = useTypedRedux("billing", "all_managed_license_ids");
-  const licenses = useMemo(() => (show_all ? all_licenses : active_licenses), [
-    active_licenses,
-    all_licenses,
-    show_all,
-  ]);
+  const licenses = useMemo(
+    () => (show_all ? all_licenses : active_licenses),
+    [active_licenses, all_licenses, show_all]
+  );
 
   async function reload() {
     setLoading(true);
@@ -75,11 +73,15 @@ export const ManagedLicenses: React.FC = () => {
     if (licenses.size == 0) {
       return <div>You are not the manager of any licenses yet.</div>;
     }
+
+    const site_licenses: SiteLicenses = licenses.toJS().reduce((acc, v) => {
+      acc[v] = null; // we have no info about them yet
+      return acc;
+    }, {});
+
     return (
       <div style={LICENSES_STYLE}>
-        {licenses.toJS().map((license_id) => (
-          <LicenseYouManage license_id={license_id} key={license_id} />
-        ))}
+        <SiteLicensePublicInfoTable site_licenses={site_licenses} />
       </div>
     );
   }

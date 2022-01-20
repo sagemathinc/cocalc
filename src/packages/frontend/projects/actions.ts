@@ -28,8 +28,15 @@ import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { allow_project_to_run } from "../project/client-side-throttle";
 import { site_license_public_info } from "../site-licenses/util";
 import { Quota } from "@cocalc/util/db-schema/site-licenses";
+import { StudentProjectFunctionality } from "../course/configuration/customize-student-project-functionality";
 
 export type Datastore = boolean | string[] | undefined;
+
+// in the future, we might want to extend this to include custom environmment variables
+export interface EnvVarsRecord {
+  inherit?: boolean;
+}
+export type EnvVars = EnvVarsRecord | undefined;
 
 // Define projects actions
 export class ProjectsActions extends Actions<ProjectsState> {
@@ -249,7 +256,8 @@ export class ProjectsActions extends Actions<ProjectsState> {
     email_address: string | null,
     datastore: Datastore,
     type: "student" | "shared" | "nbgrader",
-    student_project_functionality?
+    student_project_functionality?: StudentProjectFunctionality,
+    envvars?: EnvVars
   ): Promise<void> {
     if (!(await this.have_project(project_id))) {
       const msg = `Can't set course info -- you are not a collaborator on project '${project_id}'.`;
@@ -266,6 +274,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
     };
     if (type == "student" && student_project_functionality != null) {
       course.student_project_functionality = student_project_functionality;
+    }
+    if (typeof envvars?.inherit === "boolean") {
+      course.envvars = envvars;
     }
     // null for shared/nbgrader project, otherwise student project
     if (account_id != null && email_address != null) {

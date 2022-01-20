@@ -4,7 +4,7 @@
  */
 
 import memoizeOne from "memoize-one";
-import { React, useState } from "@cocalc/frontend/app-framework";
+import { React, useState, CSS } from "@cocalc/frontend/app-framework";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { CopyButton } from "./copy-button";
 import { PublicButton } from "./public-button";
@@ -12,11 +12,20 @@ import { FileCheckbox } from "./file-checkbox";
 import { generate_click_for } from "./utils";
 import { TimeAgo, Tip, Icon, IconName } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
-import { Button, Row, Col } from "react-bootstrap";
+import { Row, Col } from "react-bootstrap";
+import { Button, Popover } from "antd";
 import * as misc from "@cocalc/util/misc";
 import { url_href } from "../../utils";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { open_new_tab } from "@cocalc/frontend/misc";
+
+const VIEWABLE_FILE_EXT: Readonly<string[]> = [
+  "md",
+  "txt",
+  "html",
+  "pdf",
+] as const;
 
 interface Props {
   isdir: boolean;
@@ -206,6 +215,12 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     });
   }
 
+  function handle_view_click(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    open_new_tab(url);
+  }
+
   function render_timestamp() {
     try {
       return (
@@ -223,25 +238,73 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     }
   }
 
+  function render_view_button(url_href, name) {
+    // if the file extension of name in lower case is in VIEWABLE_FILE_EXT
+    // then we will render a view button
+    const ext = misc.filename_extension(name);
+    if (ext == null) return null;
+    const ext_lower = ext.toLowerCase();
+    const style: CSS = {
+      marginLeft: "10px",
+      color: COLORS.GRAY,
+      padding: 0,
+    };
+    const icon = <Icon name="eye" />;
+    if (VIEWABLE_FILE_EXT.includes(ext_lower)) {
+      return (
+        <Popover
+          placement="bottomRight"
+          content={<>Click to view this file in a new tab.</>}
+        >
+          <Button
+            type="link"
+            href={`${url_href}`}
+            onClick={handle_view_click}
+            style={style}
+          >
+            {icon}
+          </Button>
+        </Popover>
+      );
+    } else {
+      //render an invisible placeholder of same size
+      return (
+        <Button type="link" style={{ ...style, visibility: "hidden" }}>
+          {icon}
+        </Button>
+      );
+    }
+  }
+
   function render_download_button(url_href) {
     if (student_project_functionality.disableActions) return;
-
-    // ugly width 2.5em is to line up with blank space for directory.
+    const size = misc.human_readable_size(props.size);
     // TODO: This really should not be in the size column...
     return (
-      <Button
-        style={{ marginLeft: "1em", background: "transparent", width: "2.5em" }}
-        bsStyle="default"
-        bsSize="xsmall"
-        href={`${url_href}`}
-        onClick={handle_download_click}
+      <Popover
+        placement="bottomRight"
+        content={
+          <>
+            Click to download {size}
+            <br />
+            to store this file in your own files.
+          </>
+        }
       >
-        <Icon name="cloud-download" style={{ color: "#666" }} />
-      </Button>
+        <Button
+          type="link"
+          href={`${url_href}`}
+          onClick={handle_download_click}
+          style={{ color: COLORS.GRAY, padding: 0 }}
+        >
+          {size}
+          <Icon name="cloud-download" style={{ color: COLORS.GRAY }} />
+        </Button>
+      </Popover>
     );
   }
 
-  const row_styles = {
+  const row_styles: CSS = {
     cursor: "pointer",
     borderRadius: "4px",
     backgroundColor: props.color,
@@ -279,11 +342,13 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       <Col sm={4} smPush={5} xs={6}>
         {render_timestamp()}
         {props.isdir ? (
-          <DirectorySize size={props.size} />
+          <>
+            <DirectorySize size={props.size} />
+          </>
         ) : (
           <span className="pull-right" style={{ color: "#666" }}>
-            {misc.human_readable_size(props.size)}
             {render_download_button(url)}
+            {render_view_button(url, props.name)}
           </span>
         )}
       </Col>
@@ -295,7 +360,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 });
 
 const directory_size_style: React.CSSProperties = {
-  color: "#666",
+  color: COLORS.GRAY,
   marginRight: "3em",
 } as const;
 

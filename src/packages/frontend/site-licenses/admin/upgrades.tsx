@@ -13,6 +13,7 @@ import {
   license_field_names,
   upgrade_fields_type,
   upgrade_fields,
+  isUpgradFieldsType as isUpgradeFieldsType,
 } from "./types";
 import { plural } from "@cocalc/util/misc";
 import { Icon } from "../../components";
@@ -187,13 +188,12 @@ export const EditUpgrades: React.FC<EditProps> = (props) => {
   );
 };
 
-export function normalize_upgrades_for_save(
-  obj: {
-    [field in upgrade_fields_type]: any;
-  }
-): void {
+export function normalize_upgrades_for_save(obj: {
+  [field in upgrade_fields_type]: any;
+}): void {
   for (const field in obj) {
-    const { display_factor, input_type } = params(field as upgrade_fields_type);
+    if (!isUpgradeFieldsType(field)) continue;
+    const { display_factor, input_type } = params(field);
     const val = (input_type == "number" ? parseFloat : parseInt)(obj[field]);
     if (isNaN(val) || !isFinite(val) || val < 0) {
       obj[field] = 0;
@@ -211,7 +211,11 @@ export function scale_by_display_factors(
 ): Map<string, number> {
   let x: Map<string, number> = Map();
   for (const [field, val] of upgrades) {
-    x = x.set(field, val * params(field as upgrade_fields_type).display_factor);
+    // this makes sure we only scale upgrade fields, no other ones (e.g. "status")
+    if (isUpgradeFieldsType(field)) {
+      const factor = params(field).display_factor;
+      x = x.set(field, val * factor);
+    }
   }
   return x;
 }

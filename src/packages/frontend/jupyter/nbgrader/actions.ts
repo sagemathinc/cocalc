@@ -126,9 +126,8 @@ export class NBGraderActions {
       ],
     });
     if (choice === "Validate") {
-      await this.jupyter_actions.restart();
+      await this.validate();
     }
-    await this.validate();
   }
 
   public async confirm_assign(): Promise<void> {
@@ -164,7 +163,7 @@ export class NBGraderActions {
     });
     if (choice === "Cancel") return;
     minimal_stubs = choice == MINIMAL_STUBS;
-    this.set_global_metadata({ "cocalc_minimal_stubs": minimal_stubs });
+    this.set_global_metadata({ cocalc_minimal_stubs: minimal_stubs });
     this.ensure_grade_ids_are_unique(); // non-unique ids lead to pain later
     await this.assign(target, minimal_stubs);
   }

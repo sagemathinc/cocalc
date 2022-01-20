@@ -76,12 +76,12 @@ export default async function search({
   // We just return that account or empty list if no match.
   if (isValidUUID(query)) {
     logger.debug("get user by account_id");
-    const user = process(await getUserByAccountId(query), admin);
+    const user = process(await getUserByAccountId(query), admin, false);
     return user ? [user] : [];
   }
   if (isValidEmailAddress(query)) {
     logger.debug("get user by email address");
-    const user = process(await getUserByEmailAddress(query), admin);
+    const user = process(await getUserByEmailAddress(query), admin, true);
     return user ? [user] : [];
   }
 
@@ -94,20 +94,23 @@ export default async function search({
     email_queries.splice(0, email_queries.length); // empty array
   }
 
-  const matches: DBUser[] = await getUsersByEmailAddresses(
-    email_queries,
-    limit
-  );
-  matches.push(
-    ...(await getUsersByStringQueries(
-      string_queries,
-      admin,
-      limit - matches.length
-    ))
-  );
   const results: User[] = [];
+  let matches: DBUser[] = await getUsersByEmailAddresses(email_queries, limit);
+
   for (const user of matches) {
-    const x = process(user, admin);
+    const x = process(user, admin, true);
+    if (x) {
+      results.push(x);
+    }
+  }
+
+  matches = await getUsersByStringQueries(
+    string_queries,
+    admin,
+    limit - matches.length
+  );
+  for (const user of matches) {
+    const x = process(user, admin, false);
     if (x) {
       results.push(x);
     }
@@ -125,7 +128,8 @@ export default async function search({
 
 function process(
   user: DBUser | undefined,
-  admin: boolean = false
+  admin: boolean = false,
+  isEmailSearch: boolean
 ): User | undefined {
   if (user == null) return undefined;
   const x: any = { ...user };
@@ -134,7 +138,9 @@ function process(
       x.email_address_verified[x.email_address] != null;
   }
   if (!admin) {
-    delete x.email_address;
+    if (!isEmailSearch) {
+      delete x.email_address;
+    }
     delete x.banned;
   }
   toEpoch(x, ["last_active", "created"]);
