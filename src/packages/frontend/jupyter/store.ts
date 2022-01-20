@@ -322,8 +322,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
         } else if (kernel.indexOf("gap") != -1) {
           mode = "gap";
         } else {
-          // C is probably a good fallback.
-          mode = "text/x-c";
+          // Python 3 is probably a good fallback.
+          mode = { name: "python", version: 3 };
         }
       }
     }
@@ -459,9 +459,9 @@ export class JupyterStore extends Store<JupyterStoreState> {
         .map((v) => v.get("name"));
       return v;
     });
-    const by_lang = OrderedMap<string, List<string>>(
-      data_lang
-    ).sortBy((_v, k) => k.toLowerCase());
+    const by_lang = OrderedMap<string, List<string>>(data_lang).sortBy(
+      (_v, k) => k.toLowerCase()
+    );
     return [by_name, by_lang];
   };
 
