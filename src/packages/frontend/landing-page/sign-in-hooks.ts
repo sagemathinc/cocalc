@@ -8,7 +8,7 @@
 */
 
 import { webapp_client } from "../webapp-client";
-import * as LS from "../misc/local-storage";
+import * as LS from "../misc/local-storage-typed";
 import { SignedIn } from "@cocalc/util/message-types";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";

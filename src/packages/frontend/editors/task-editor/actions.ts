@@ -40,8 +40,7 @@ import {
 import { TaskStore } from "./store";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { webapp_client } from "../../webapp-client";
-import { set_local_storage, get_local_storage } from "@cocalc/util/misc";
-
+import { set_local_storage, get_local_storage } from "@cocalc/frontend/misc/local-storage";
 export class TaskActions extends Actions<TaskState> {
   private syncdb: SyncDB;
   private project_id: string;

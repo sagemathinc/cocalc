@@ -5,7 +5,18 @@
 
 declare var window;
 
-import { get_local_storage } from "./local-storage";
+function getSkew(): number {
+  if (typeof window != "undefined") {
+    try {
+      const val = window.localStorage.getItem("cocalc_skew");
+      return parseFloat(val ?? "0");
+    } catch {
+      return 0;
+    }
+  } else {
+    return 0;
+  }
+}
 
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
@@ -33,9 +44,7 @@ export function months_ago(m): Date {
 
 export function server_time(): Date {
   if (typeof window != "undefined") {
-    return new Date(
-      new Date().valueOf() - parseFloat(get_local_storage("clock_skew") ?? "0")
-    );
+    return new Date(Date.now() - getSkew());
   } else {
     // On the server, we assume that the server clocks are sufficiently
     // accurate.  Providing these functions makes it simpler to write code
@@ -46,11 +55,7 @@ export function server_time(): Date {
 
 export function server_milliseconds_ago(ms: number): Date {
   if (typeof window != "undefined") {
-    return new Date(
-      new Date().valueOf() -
-        ms -
-        parseFloat(get_local_storage("clock_skew") ?? "0")
-    );
+    return new Date(Date.now() - ms - getSkew());
   } else {
     return milliseconds_ago(ms);
   }
@@ -104,7 +109,7 @@ export function months_before(d, tm) {
 export function expire_time(s: number): Date {
   // @ts-ignore: due to possible non-TS clients
   if (s == null) return;
-  return new Date(new Date().valueOf() + s * 1000);
+  return new Date(Date.now() + s * 1000);
 }
 
 export const YEAR = new Date().getFullYear();

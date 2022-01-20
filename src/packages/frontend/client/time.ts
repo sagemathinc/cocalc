@@ -5,7 +5,7 @@
 
 import { delay } from "awaiting";
 
-import { get_local_storage, set_local_storage } from "@cocalc/util/misc";
+import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc/local-storage";
 import * as message from "@cocalc/util/message";
 
 export class TimeClient {
