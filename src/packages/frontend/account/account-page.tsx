@@ -131,7 +131,11 @@ export const AccountPage: React.FC = () => {
       return [];
     }
     const v: JSX.Element[] = [];
-    if (kucalc === KUCALC_COCALC_COM || kucalc === KUCALC_ON_PREMISES) {
+    if (
+      kucalc === KUCALC_COCALC_COM ||
+      kucalc === KUCALC_ON_PREMISES ||
+      is_commercial
+    ) {
       v.push(
         <Tab
           key="licenses"
