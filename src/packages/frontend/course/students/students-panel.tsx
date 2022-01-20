@@ -1119,7 +1119,7 @@ class Student extends Component<StudentProps, StudentState> {
   }
 
   render_hosting() {
-    const { description, tip, state } = util.projectStatus(
+    const { description, tip, state, icon } = util.projectStatus(
       this.props.student.get("project_id"),
       redux
     );
@@ -1128,13 +1128,13 @@ class Student extends Component<StudentProps, StudentState> {
         placement="left"
         title={
           <span>
-            <Icon name="check" /> {description}
+            <Icon name={icon} /> {description}
           </span>
         }
         tip={tip}
       >
         <span style={{ color: "#888", cursor: "pointer" }}>
-          <Icon name="check" /> {description}
+          <Icon name={icon} /> {description}
           {state}
         </span>
       </Tip>

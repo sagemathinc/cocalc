@@ -17,6 +17,7 @@ import {
   cmp,
 } from "@cocalc/util/misc";
 import { IconName } from "@cocalc/frontend/components/icon";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 // Pure functions used in the course manager
 
@@ -278,28 +279,54 @@ export function autograded_filename(filename: string): string {
   return name + "_autograded." + ext;
 }
 
+interface ProjectStatus {
+  description: string;
+  icon: IconName;
+  state: string;
+  tip?: string;
+}
+
 export function projectStatus(
   project_id: string | undefined,
   redux
-): { description: string; icon: IconName; state: string; tip?: string } {
+): ProjectStatus {
   if (!project_id) {
-    return { description: "(not created)", icon: "square", state: "" };
+    return { description: "(not created)", icon: "hourglass-half", state: "" };
   }
   const store = redux.getStore("projects");
+  const state = ` (${store.get_state(project_id)})`;
+  const kucalc = redux.getStore("customize").get("kucalc");
+  if (kucalc === KUCALC_COCALC_COM) {
+    return projectStatusCoCalcCom({ project_id, state, store });
+  } else {
+    return {
+      icon: "exclamation-triangle",
+      description: "Ready",
+      tip: "Project exists and is ready.",
+      state,
+    };
+  }
+}
+
+function projectStatusCoCalcCom(opts): ProjectStatus {
+  const { project_id, state, store } = opts;
   const upgrades = store.get_total_project_quotas(project_id);
   if (upgrades == null) {
     // user opening the course, but isn't a collaborator on
     // this student project for some reason.  This will get fixed
     // when configure all projects runs.
-    return { description: "(not available)", icon: "question-circle", state: "" };
+    return {
+      description: "(not available)",
+      icon: "question-circle",
+      state: "",
+    };
   }
-  const state = ` (${store.get_state(project_id)})`;
+
   if (upgrades.member_host) {
     return {
       icon: "check",
       description: "Members-only hosting",
-      tip:
-        "Projects is on a members-only server, which is much more robust and has priority support.",
+      tip: "Projects is on a members-only server, which is much more robust and has priority support.",
       state,
     };
   }
@@ -316,7 +343,6 @@ export function projectStatus(
     description: "Free Trial",
     icon: "exclamation-triangle",
     state,
-    tip:
-      "Project is a trial project hosted on a free server, so it may be overloaded and will be rebooted frequently.  Please upgrade in course configuration.",
+    tip: "Project is a trial project hosted on a free server, so it may be overloaded and will be rebooted frequently.  Please upgrade in course configuration.",
   };
 }
