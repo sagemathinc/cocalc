@@ -23,7 +23,10 @@ import { SupportTickets } from "../support";
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { Icon, Loading } from "../components";
 import { SignOut } from "../account/sign-out";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import {
+  KUCALC_COCALC_COM,
+  KUCALC_ON_PREMISES,
+} from "@cocalc/util/db-schema/site-defaults";
 import { PublicPaths } from "./public-paths/public-paths";
 
 export const AccountPage: React.FC = () => {
@@ -128,7 +131,11 @@ export const AccountPage: React.FC = () => {
       return [];
     }
     const v: JSX.Element[] = [];
-    if (is_commercial) {
+    if (
+      kucalc === KUCALC_COCALC_COM ||
+      kucalc === KUCALC_ON_PREMISES ||
+      is_commercial
+    ) {
       v.push(
         <Tab
           key="licenses"
@@ -142,6 +149,8 @@ export const AccountPage: React.FC = () => {
           {active_page === "licenses" && <LicensesPage />}
         </Tab>
       );
+    }
+    if (is_commercial) {
       v.push(
         <Tab
           key="billing"
