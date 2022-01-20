@@ -245,6 +245,7 @@ async function startServer(): Promise<void> {
       projectControl,
       clients,
       host: program.hostname,
+      port,
       isPersonal: program.personal,
     });
   }
