@@ -4,7 +4,10 @@
  */
 
 import LRU from "lru-cache";
-import { AllSiteSettingsCached as ServerSettings } from "@cocalc/util/db-schema/types";
+import {
+  AllSiteSettingsCached as ServerSettings,
+  AllSiteSettingsKeys,
+} from "@cocalc/util/db-schema/types";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { site_settings_conf as CONF } from "@cocalc/util/schema";
 import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
@@ -45,19 +48,27 @@ export async function getServerSettings(): Promise<ServerSettings> {
 
   const settings: ServerSettings = { _timestamp: Date.now() };
 
+  const raw: { [key in AllSiteSettingsKeys]?: string } = {};
+  for (const row of rows) {
+    raw[row.name] = row.value;
+  }
+
   // process values, including any post-processing.
   for (const row of rows) {
     const { name, value } = row;
-    const toVal = (CONF[name] ?? EXTRAS[name])?.to_val;
-    settings[name] = toVal != null ? toVal(value) : value;
+    const spec = CONF[name] ?? EXTRAS[name];
+    // we only process values we know
+    if (spec == null) continue;
+    const toVal = spec.to_val;
+    settings[name] = toVal != null ? toVal(value, raw) : value;
   }
   // set default values for missing keys
   for (const config of [EXTRAS, CONF]) {
     for (const key in config) {
       if (settings[key] == null) {
-        const conf = config[key];
+        const spec = config[key];
         settings[key] =
-          conf?.to_val != null ? conf.to_val(conf.default) : conf.default;
+          spec?.to_val != null ? spec.to_val(spec.default, raw) : spec.default;
       }
     }
   }

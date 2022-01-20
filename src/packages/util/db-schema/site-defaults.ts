@@ -59,8 +59,11 @@ export interface Config {
   readonly valid?: ConfigValid;
   readonly password?: boolean;
   readonly show?: (conf: any) => boolean;
-  // this optional function derives the actual value of this setting from current value.
-  readonly to_val?: (val: string) => boolean | string | number;
+  // this optional function derives the actual value of this setting from current value or from a global (unprocessed) setting.
+  readonly to_val?: (
+    val: string,
+    config?: { [key in SiteSettingsKeys]?: string }
+  ) => boolean | string | number;
   // this optional function derives the visual representation for the admin (fallback: to_val)
   readonly to_display?: (val: string) => string;
   readonly hint?: (val: string) => string; // markdown
@@ -72,8 +75,10 @@ export interface Config {
 
 export type SiteSettings = Record<SiteSettingsKeys, Config>;
 
-const fallback = (conf, name: SiteSettingsKeys): string =>
-  conf[name] ?? site_settings_conf[name].default;
+const fallback = (
+  conf: { [key in SiteSettingsKeys]: string },
+  name: SiteSettingsKeys
+): string => conf[name] ?? site_settings_conf[name].default;
 
 // little helper fuctions, used in the site settings & site settings extras
 export const is_email_enabled = (conf): boolean =>
@@ -299,7 +304,17 @@ export const site_settings_conf: SiteSettings = {
     desc: "Whether or not to include user interface elements related to for-pay upgrades and other features.  Set to 'yes' to include these elements. IMPORTANT: You must restart your server after changing this setting for it to take effect.",
     default: "no",
     valid: only_booleans,
-    to_val: to_bool,
+    to_val: (val, conf: { [key in SiteSettingsKeys]: string }) => {
+      // special case: only if we're in cocalc.com production mode, the commercial setting can be true at all
+      const kucalc =
+        conf != null
+          ? fallback(conf, "kucalc")
+          : site_settings_conf.kucalc.default;
+      if (kucalc === KUCALC_COCALC_COM) {
+        return to_bool(val);
+      }
+      return false;
+    },
     show: only_cocalc_com,
   },
   max_trial_projects: {
@@ -395,4 +410,4 @@ export const site_settings_conf: SiteSettings = {
     show: only_cocalc_com,
     cocalc_only: true,
   },
-};
+} as const;
