@@ -138,9 +138,7 @@ class CoursePanelWrapper extends Component<FrameProps & ReduxProps> {
     );
   }
 
-  private counts(
-    name: string
-  ): {
+  private counts(name: string): {
     students: number;
     assignments: number;
     handouts: number;
