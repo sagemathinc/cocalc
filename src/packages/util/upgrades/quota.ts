@@ -156,8 +156,26 @@ export interface SiteLicenseQuotaSetting {
   quota: SiteLicenseQuota;
 }
 
+// all descriptions should be short sentences, expalining the user what's going on
+export const LicenseStatusOptions = {
+  valid: "License provides upgrades.",
+  expired: "No longer valid.",
+  exhausted: "All seats are used up.",
+  future: "Not yet valid.",
+  ineffective: "Does not provide any additional upgrades.",
+} as const;
+
+export type LicenseStatus = keyof typeof LicenseStatusOptions;
+
+export function isLicenseStatus(status?: unknown): status is LicenseStatus {
+  if (typeof status !== "string") return false;
+  return LicenseStatusOptions[status] != null;
+}
+
 // it could be null in the moment when a license is removed via the UI
-export type QuotaSetting = Upgrades | SiteLicenseQuotaSetting | null;
+export type QuotaSetting =
+  | ((Upgrades | SiteLicenseQuotaSetting | {}) & { status?: LicenseStatus })
+  | null;
 
 export type SiteLicenses = {
   [license_id: string]: QuotaSetting;
@@ -339,11 +357,11 @@ function select_site_licenses(site_licenses?: SiteLicenses): {
 
     const is_ar = isSiteLicenseQuotaSetting(val)
       ? val.quota.always_running === true
-      : (val.always_running ?? 0) >= 1;
+      : ((val as Upgrades).always_running ?? 0) >= 1;
 
     const is_member = isSiteLicenseQuotaSetting(val)
       ? val.quota.member === true
-      : (val.member_host ?? 0) >= 1;
+      : ((val as Upgrades).member_host ?? 0) >= 1;
 
     groups[`${is_member ? "1" : "0"}-${is_ar ? "1" : "0"}`].push(key);
   }

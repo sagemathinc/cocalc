@@ -13,7 +13,11 @@ export function numberRunningQuery(license_id: string): string {
     // critical to check to avoid any possible SQL injection attack.
     throw Error("invalid license_id");
   }
-  return `SELECT COUNT(*) FROM projects WHERE state#>>'{state}' = 'running' AND site_license#>>'{${license_id}}'!='{}'`;
+  return `
+    SELECT COUNT(*)
+    FROM projects
+    WHERE state ->> 'state' = 'running'
+    AND ((site_license -> '${license_id}') - 'status') != '{}'::JSONB`;
 }
 
 export async function number_of_running_projects_using_license(
@@ -22,13 +26,9 @@ export async function number_of_running_projects_using_license(
 ): Promise<number> {
   /* Do a query to count the number of projects that:
       (1) are running,
-      (2) have the given license_id has a key in their site_license field with
-          a nontrivial value.
-
-
-  select project_id, site_license, state from projects where state#>>'{state}' in ('running', 'starting') and site_license#>>'{f3942ea1-ff3f-4d9f-937a-c5007babc693}'!='{}';
+      (2) have the given license_id has a key in their site_license field with a nontrivial value.
+      (3) we have to ignore the "status" field, which is only information but not providing upgrades.
   */
-
   const query = numberRunningQuery(license_id);
   const x = await db.async_query({ query, timeout_s: TIMEOUT_S });
   return parseInt(x.rows[0].count);
@@ -99,8 +99,10 @@ function query_projects_using_site_license(
     params.push(cutoff);
   } else {
     // easier -- just directly query the projects table.
-    query = `FROM projects`;
-    query += ` WHERE state#>>'{state}' IN ('running', 'starting') AND site_license#>>'{${license_id}}'!='{}'`;
+    query = `
+        FROM projects
+        WHERE state#>>'{state}' IN ('running', 'starting')
+        AND ((site_license -> '${license_id}') - 'status') != '{}'::JSONB`;
   }
   return { query, params };
 }
