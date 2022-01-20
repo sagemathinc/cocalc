@@ -98,7 +98,7 @@ export const EnvironmentVariablesConfig: React.FC<Props> = (props: Props) => {
         reflected after the next start of a student project.
       </p>
       <p>
-        Nodte: inherited variables will take precedence over the ones defined in
+        Node: inherited variables will take precedence over the ones defined in
         the student project with the same name.
       </p>
       {toggle()}
