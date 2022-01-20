@@ -55,6 +55,9 @@ export interface SyncDBRecordAssignment {
   nbgrader_scores?: {
     [student_id: string]: { [ipynb: string]: NotebookScores | string };
   };
+  // nbgrader_score_ids are used entirely to determine the order of output when displaying the
+  // student scores to the instructor in the course assignments panel. They are extracted from
+  // the ipynb file.
   nbgrader_score_ids?: { [ipynb: string]: string[] };
   deleted?: boolean;
   path?: string;

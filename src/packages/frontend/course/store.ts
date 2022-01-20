@@ -493,7 +493,9 @@ export class CourseStore extends Store<CourseState> {
     // allow for the possibility that this fails and return undefined
     // in that case.  This is painful since it involves async calls
     // to the backend, and the code that does this as part of grading
-    // is deep inside other functions...
+    // is deep inside other functions.  The list we return here
+    // is always assumed to be used on a "best effort" basis, so this
+    // is at worst annoying.
   }
 
   public get_comments(assignment_id: string, student_id: string): string {

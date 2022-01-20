@@ -101,15 +101,16 @@ export function create_autograde_ipynb(
   }
 
   const autograde_ipynb = JSON.stringify(student);
-  return { autograde_ipynb, ids: instructor_by_grade_id.ids };
+  return { autograde_ipynb, ids: allGradeableCellIds(instructor) };
 }
 
 // Return a map from grade_id to reference to actual cell in the given notebook.
 // This makes it so we can avoid doing a linear search through the cells field,
 // to find a cell with given id.
-function autograde_cells_by_grade_id(
-  notebook: JupyterNotebook
-): { ids: string[]; cells: { [grade_id: string]: Cell } } {
+function autograde_cells_by_grade_id(notebook: JupyterNotebook): {
+  ids: string[];
+  cells: { [grade_id: string]: Cell };
+} {
   const ids: string[] = [];
   const cells: { [grade_id: string]: Cell } = {};
   for (const cell of notebook.cells) {
@@ -124,6 +125,22 @@ function autograde_cells_by_grade_id(
     }
   }
   return { cells, ids };
+}
+
+// Return ordered list of *all* cells that can be graded, both
+// autograded or manually graded.
+function allGradeableCellIds(notebook: JupyterNotebook): string[] {
+  const ids: string[] = [];
+  for (const cell of notebook.cells) {
+    if (cell.metadata?.nbgrader?.grade) {
+      // An gradeable cell.
+      const grade_id = cell.metadata.nbgrader.grade_id;
+      if (grade_id) {
+        ids.push(grade_id);
+      }
+    }
+  }
+  return ids;
 }
 
 export interface Score {

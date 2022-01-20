@@ -8,7 +8,8 @@ nbgrader functionality: the create assignment toolbar.
 */
 
 import { DebounceInput } from "react-debounce-input";
-import { Button, FormControl, Form } from "../../antd-bootstrap";
+import { Button, FormControl } from "../../antd-bootstrap";
+import { Space } from "antd";
 import { Map } from "immutable";
 import { Rendered, useRef } from "../../app-framework";
 import { Icon } from "../../components/icon";
@@ -118,7 +119,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
     const do_focus_points = focus_points.current;
     focus_points.current = false;
     return (
-      <span>
+      <>
         <span style={{ fontWeight: 400 }}>Points:</span>
         <DebounceInput
           element={"input"}
@@ -134,7 +135,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
             fontSize: "14px",
           }}
         />
-      </span>
+      </>
     );
   }
 
@@ -157,7 +158,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
     ]);
     if (grade_id == null) return;
     return (
-      <span>
+      <>
         <span style={{ marginLeft: "15px", fontWeight: 400 }}>ID:</span>
         <DebounceInput
           debounceTimeout={2000}
@@ -175,7 +176,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
             height: "32px",
           }}
         />
-      </span>
+      </>
     );
   }
 
@@ -230,12 +231,12 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
   return (
     <div style={{ width: "100%", background, color, padding: "3px" }}>
       {render_icon(value)}
-      <Form inline style={{ float: "right" }}>
+      <Space style={{ float: "right" }}>
         {render_points()}
         {render_id()}
         {render_dropdown()}
         {render_help()}
-      </Form>
+      </Space>
     </div>
   );
 };

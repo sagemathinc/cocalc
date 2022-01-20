@@ -1759,7 +1759,7 @@ ${details}
       }
     };
 
-    // NOTE: we *could* run multipel files in parallel, but that causes
+    // NOTE: we *could* run multiple files in parallel, but that causes
     // trouble for very little benefit.  It's better to run across all students in parallel,
     // and the trouble is just that running lots of code in the same project can confuse
     // the backend api and use extra memory (which is unfair to students being graded, e.g.,

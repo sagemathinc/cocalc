@@ -38,7 +38,11 @@ export interface NBGraderAPIOptions {
 
 export interface NBGraderAPIResponse {
   output: any; // TODO
-  ids: string[]; // the ordered id's of the test cells; order is the order in which they occur in the notebook.
+  // ids = the ordered id's of the cells that can have grades assigned to them;
+  // order is the order in which they occur in the notebook. These include autograded
+  // cells, but also manually graded cells.  This info is extracted from the instructor
+  // notebook, not the student notebook.
+  ids: string[];
 }
 
 export async function nbgrader(
