@@ -5,7 +5,7 @@
 
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
-import { Datastore } from "../projects/actions";
+import { Datastore, EnvVars } from "../projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 
 export interface SyncDBRecordBase {
@@ -36,6 +36,7 @@ export interface SyncDBRecordSettings {
   custom_image?: string; // if falsy use default environment; if true-ish, use this software image for student projects. it should be called compute_image or software_image
   inherit_compute_image?: boolean; // if true (default), set the compute_image of student projects to the one of the project hosting the course
   datastore?: Datastore;
+  envvars?: EnvVars;
 }
 
 // This is closely related to store.AssignmentRecord...

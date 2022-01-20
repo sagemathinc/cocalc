@@ -25,6 +25,7 @@ import { Button } from "antd";
 import { ErrorDisplay, SettingBox, Space } from "../../components";
 import jsonic from "jsonic";
 
+export const ENV_VARS_ICON = "bars";
 interface Props {
   project_id: string;
 }
@@ -50,7 +51,7 @@ export const Environment: React.FC<Props> = ({ project_id }) => {
   const [focused, set_focused] = useState<boolean>(false);
   const [editing, set_editing] = useState<string>(to_json(env?.toJS()));
   const [error, set_error] = useState<string>("");
-  const actions = useActions({project_id});
+  const actions = useActions({ project_id });
   const is_mounted_ref = useIsMountedRef();
   const [saving, set_saving] = useState<boolean>(false);
   const disabled = useMemo(() => {
@@ -76,7 +77,7 @@ export const Environment: React.FC<Props> = ({ project_id }) => {
     : "";
 
   return (
-    <SettingBox title="Custom environment variables" icon="bars">
+    <SettingBox title="Custom environment variables" icon={ENV_VARS_ICON}>
       {error != "" ? <ErrorDisplay error={error} /> : undefined}
       <textarea
         spellCheck="false"

@@ -9,8 +9,8 @@ Typescript async/await rewrite of @cocalc/util/client.coffee...
 
 import { webapp_client } from "../../webapp-client";
 const schema = require("@cocalc/util/schema");
-const DEFAULT_FONT_SIZE: number = require("@cocalc/util/db-schema")
-  .DEFAULT_FONT_SIZE;
+const DEFAULT_FONT_SIZE: number =
+  require("@cocalc/util/db-schema").DEFAULT_FONT_SIZE;
 import { redux } from "../../app-framework";
 import { callback2 } from "@cocalc/util/async-utils";
 import { FakeSyncstring } from "./syncstring-fake";
@@ -245,10 +245,10 @@ export function get_editor_settings(): Map<string, any> {
 
 export interface User {
   account_id: string;
-  created?: Date;
+  created?: number; // since commit 63e8e9954dc51632cf
   email_address?: string;
   first_name?: string;
-  last_active?: Date;
+  last_active?: number; // since commit 63e8e9954dc51632cf
   last_name?: string;
   banned?: boolean;
 }
