@@ -12,10 +12,10 @@ import { StoreState, User as ImmutableUser, store } from "./store";
 
 function user_sort_key(user: User): number {
   if (user.last_active) {
-    return -user.last_active.getTime();
+    return -user.last_active;
   }
   if (user.created) {
-    return -user.created.getTime();
+    return -user.created;
   }
   return 0;
 }

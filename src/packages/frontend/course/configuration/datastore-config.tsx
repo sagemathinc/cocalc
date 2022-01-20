@@ -14,10 +14,11 @@ import { Card, Typography, Switch, Form, Button } from "antd";
 import { Datastore } from "../../projects/actions";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { Icon } from "../../components";
+import { List } from "immutable";
 
 interface Props {
   actions: ConfigurationActions;
-  datastore?: Datastore;
+  datastore?: Datastore | List<string>; // List<string> is not used yet
 }
 
 export const DatastoreConfig: React.FC<Props> = (props: Props) => {

@@ -60,7 +60,9 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
       </Col>
       <Col sm={4} smPush={5} xs={6}>
         {render_sort_link("time", "Date Modified")}
-        <span className="pull-right">{render_sort_link("size", "Size")}</span>
+        <span className="pull-right">
+          {render_sort_link("size", "Size/Download/View")}
+        </span>
       </Col>
       <Col sm={5} smPull={4} xs={12}>
         {render_sort_link("name", "Name")}
