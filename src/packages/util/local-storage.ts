@@ -125,8 +125,11 @@ function do_the_trim() {
 - and they're also not recently modified
 */
 function is_trim_candidate(key: string, recent: string[]): boolean {
-  if (get_local_storage(key) == null) return false;
+  // do not trim recent keys
   if (recent.includes(key)) return false;
+  // do not remove the list of recent keys
+  if (key === RECENTLY_KEY) return false;
+  // only remove keys which start with an UUID, or are specific to editor- or jupyter-editor-
   const uuidlen = 36;
   for (const prefix of ["", "editor-", "jupyter-editor-"]) {
     const i = prefix.length;
