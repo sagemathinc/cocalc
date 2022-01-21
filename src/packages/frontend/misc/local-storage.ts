@@ -9,8 +9,8 @@ import { is_valid_uuid_string } from "@cocalc/util/misc";
 const RECENTLY_KEY = "__recent";
 const RECENTLY_KEEP = 64; // tradeoff: keys need storage as well
 
+// upon trimming, only remove keys which start with an UUID, or are specific to editor- or jupyter-editor-
 function candidate(key: string): boolean {
-  // only remove keys which start with an UUID, or are specific to editor- or jupyter-editor-
   const uuidlen = 36;
   for (const prefix of ["", "editor-", "jupyter-editor-"]) {
     const i = prefix.length;
@@ -50,4 +50,8 @@ export function has_local_storage(): boolean {
 
 export function local_storage_length(): number {
   return LS.size();
+}
+
+export function delete_local_storage_prefix(prefix: string): void {
+  LS.deletePrefix(prefix);
 }
