@@ -6,7 +6,8 @@
 declare var window;
 
 function getSkew(): number {
-  if (typeof window != "undefined") {
+  // this code is shared between frontend and backend. Hence we don't use a local storage wrapper.
+  if (typeof window != "undefined" && window.localStorage != null) {
     try {
       const val = window.localStorage.getItem("cocalc_skew");
       return parseFloat(val ?? "0");

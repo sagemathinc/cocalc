@@ -57,6 +57,7 @@ import {
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
 
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
+import { get_local_storage, set_local_storage } from "../misc/local-storage";
 
 /*
 The actions -- what you can do with a jupyter notebook, and also the
@@ -1454,18 +1455,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   set_local_storage = (key, value) => {
     if (localStorage == null) return;
-    let current = localStorage[this.name];
-    if (current != null) {
-      current = misc.from_json(current);
-    } else {
-      current = {};
-    }
+    let current_str = get_local_storage(this.name)
+    const current = current_str != null ? misc.from_json(current_str) : {};
     if (value === null) {
       delete current[key];
     } else {
       current[key] = value;
     }
-    localStorage[this.name] = misc.to_json(current);
+    set_local_storage( this.name,  misc.to_json(current))
   };
 
   // File --> Open: just show the file listing page.
