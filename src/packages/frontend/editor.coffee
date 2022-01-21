@@ -181,6 +181,7 @@ exports.file_options = require("./editor-tmp").file_options
 editor_local_storage         = require('./editor-local-storage')
 exports.local_storage_delete = editor_local_storage.local_storage_delete
 exports.local_storage        = editor_local_storage.local_storage
+local_storage                = exports.local_storage # used below
 
 ###############################################
 # Abstract base class for editors (not exports.Editor)
