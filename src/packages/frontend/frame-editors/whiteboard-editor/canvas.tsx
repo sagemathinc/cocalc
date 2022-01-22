@@ -8,6 +8,7 @@ the canvas as the area where the actual drawing appears.
 */
 import { ReactNode } from "react";
 import { Element } from "./types";
+import RenderElement from "./elements/render";
 
 interface Props {
   elements: Element[];
@@ -17,11 +18,10 @@ interface Props {
 export default function Canvas({ elements, font_size }: Props) {
   const v: ReactNode[] = [];
   for (const element of elements) {
-    const { id, style, str, data } = element;
+    const { id, style } = element;
     v.push(
-      <div key={id} style={{ position: "relative", ...style }}>
-        {str != null && str}
-        {data != null && <pre>{JSON.stringify(data, undefined, 2)}</pre>}
+      <div key={id} style={{ ...style, position: "absolute" }}>
+        <RenderElement element={element} />
       </div>
     );
   }
@@ -29,7 +29,10 @@ export default function Canvas({ elements, font_size }: Props) {
   const zoom = font_size ? font_size / 14 : undefined;
 
   return (
-    <div className={"smc-vfill"} style={{ zoom, overflow: "scroll" }}>
+    <div
+      className={"smc-vfill"}
+      style={{ zoom, overflow: "scroll", position: "relative" }}
+    >
       {v}
     </div>
   );
