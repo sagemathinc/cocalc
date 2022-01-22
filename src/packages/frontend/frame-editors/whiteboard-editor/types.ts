@@ -15,6 +15,8 @@ export interface Element {
   id: string;
   style: CSSProperties; // determines style of the object
   type: ElementType;
+  x: number;
+  y: number;
   data?: object; // optional json-able object - patch/merge atomic
   str?: string; // optional str data patch/merge via diff string
 }

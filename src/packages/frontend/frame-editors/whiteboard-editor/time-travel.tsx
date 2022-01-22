@@ -5,5 +5,5 @@ import Canvas from "./canvas";
 
 export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
   const elements = syncdb.version(version).get().toJS();
-  return <Canvas elements={elements} font_size={font_size} />;
+  return <Canvas elements={elements} font_size={font_size} margin={50} />;
 }

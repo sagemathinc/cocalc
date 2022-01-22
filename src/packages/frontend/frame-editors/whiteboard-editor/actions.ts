@@ -59,6 +59,16 @@ export class Actions extends BaseActions<State> {
     this.set_frame_tree({ id: frameId, focusedId });
   }
 
+  undo(_id: string): void {
+    this._syncstring.undo();
+    this._syncstring.commit();
+  }
+
+  redo(_id: string): void {
+    this._syncstring.redo();
+    this._syncstring.commit();
+  }
+
   /*
   zoom_page_width(id: string): void {
     console.log("TODO - zoom_page_width!", id);

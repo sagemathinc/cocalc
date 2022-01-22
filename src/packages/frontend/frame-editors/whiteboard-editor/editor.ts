@@ -22,6 +22,8 @@ const whiteboardButtons = set([
   "zoom_page_height",
   "save",
   "time_travel",
+  "undo",
+  "redo",
 ]);
 
 export const EDITOR_SPEC = {
