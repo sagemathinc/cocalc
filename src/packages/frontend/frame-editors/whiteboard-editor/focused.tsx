@@ -8,6 +8,7 @@ things to fix that later.
 */
 
 import { CSSProperties } from "react";
+import Draggable from "react-draggable";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 const padding = 15;
@@ -21,7 +22,19 @@ export default function Focused({ children, scale }) {
   const circleSize = `${baseCircleSize / scale}px`;
   const circleOffset = `-${baseCircleSize / scale / 2}px`;
 
-  function DragHandle({ top, left, bottom, right, scale, cursor }) {
+  function DragHandle({
+    top,
+    left,
+    bottom,
+    right,
+    cursor,
+  }: {
+    top?: boolean;
+    left?: boolean;
+    bottom?: boolean;
+    right?: boolean;
+    cursor: string;
+  }) {
     const style = {
       cursor,
       position: "absolute",
@@ -33,22 +46,38 @@ export default function Focused({ children, scale }) {
     if (left) style.left = circleOffset;
     if (bottom) style.bottom = circleOffset;
     if (right) style.right = circleOffset;
-    return <Icon style={style} name="square" />;
+    return (
+      <Draggable
+        onStart={(e, data) => {
+          console.log("start drag", data);
+        }}
+        onDrag={(e, data) => {
+          console.log("drag", data);
+        }}
+        onStop={(e, data) => {
+          console.log("stop drag", data);
+        }}
+      >
+        <Icon style={style} name="square" />
+      </Draggable>
+    );
   }
 
   function Rotate() {
     return (
-      <Icon
-        style={{
-          background: "white",
-          fontSize: `${24 / scale}px`,
-          cursor: "grab",
-          position: "absolute",
-          bottom: `-${(4 * baseCircleSize) / scale}px`,
-          left: `-${(4 * baseCircleSize) / scale}px`,
-        }}
-        name="reload"
-      />
+      <Draggable>
+        <Icon
+          style={{
+            background: "white",
+            fontSize: `${24 / scale}px`,
+            cursor: "grab",
+            position: "absolute",
+            bottom: `-${(4 * baseCircleSize) / scale}px`,
+            left: `-${(4 * baseCircleSize) / scale}px`,
+          }}
+          name="reload"
+        />
+      </Draggable>
     );
   }
 

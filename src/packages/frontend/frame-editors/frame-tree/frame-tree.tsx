@@ -35,7 +35,7 @@ import { is_safari } from "../generic/browser";
 import { merge, copy, hidden_meta_file, is_different } from "@cocalc/util/misc";
 import { ReactDOM, Component, redux, Rendered } from "../../app-framework";
 import { Map, Set } from "immutable";
-const Draggable = require("react-draggable");
+import Draggable from 'react-draggable'
 import { drag_start_iframe_disable, drag_stop_iframe_enable } from "../../misc";
 import * as feature from "@cocalc/frontend/feature";
 import { FrameTitleBar } from "./title-bar";
