@@ -6,7 +6,7 @@ This is NOT an HTML5 canvas.  It has nothing do with that.   We define
 "the whiteboard" as everything -- the controls, settings, etc. -- and
 the canvas as the area where the actual drawing appears.
 */
-import { ReactNode, useRef } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 import { Element } from "./types";
 import RenderElement from "./elements/render";
 
@@ -23,22 +23,18 @@ export default function Canvas({
   focusedId,
   margin,
 }: Props) {
-  margin = margin ?? 300;
+  margin = margin ?? 1000;
   const canvasRef = useRef<any>(null);
   const scale = font_size ? font_size / 14 : 1;
-  /*const scaledMargin = margin / scale;
-  console.log({ scaledMargin });
+
   useEffect(() => {
     const { current } = canvasRef;
     if (current != null) {
+      const scaledMargin = margin * scale;
       current.scrollTop = scaledMargin;
       current.scrollLeft = scaledMargin;
-      setTimeout(() => {
-        current.scrollTop = scaledMargin;
-        current.scrollLeft = scaledMargin;
-      }, 0);
     }
-  }, []);*/
+  }, []);
 
   const v: ReactNode[] = [];
   const transforms = getTransforms(elements, margin);
@@ -81,7 +77,6 @@ export default function Canvas({
     });
   }
 
-  console.log({ transforms });
   return (
     <div
       className={"smc-vfill"}
@@ -91,19 +86,25 @@ export default function Canvas({
     >
       <div
         style={{
-          backgroundSize: "40px 40px",
-          backgroundImage:
-            "linear-gradient(to right, #e0e0e0 1px, transparent 1px),linear-gradient(to bottom, #e0e0e0 1px, transparent 1px)",
           transform: `scale(${scale})`,
           transformOrigin: "top left",
-          position: "relative",
-          paddingBottom: `${
-            (1 / scale) * transforms.height
-          }px` /* have to use padding due to position:absolute children */,
-          paddingRight: `${(1 / scale) * transforms.width}px`,
         }}
       >
-        {v}
+        <div
+          style={{
+            backgroundSize: "40px 40px",
+            backgroundImage:
+              "linear-gradient(to right, #e0e0e0 1px, transparent 1px),linear-gradient(to bottom, #e0e0e0 1px, transparent 1px)",
+            position: "relative",
+            paddingBottom: `${
+              (1 / scale) * transforms.height
+            }px` /* have to use padding and negative margin due to position:absolute children.  This works! */,
+            marginBottom: `${-(1 / scale) * transforms.height}px`,
+            paddingRight: `${(1 / scale) * transforms.width}px`,
+          }}
+        >
+          {v}
+        </div>
       </div>
     </div>
   );
