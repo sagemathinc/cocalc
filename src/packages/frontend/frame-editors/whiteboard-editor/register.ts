@@ -7,7 +7,7 @@
 Register the Whiteboard editor
 */
 
-import { register_file_editor } from "../frame-tree/register";
+import { register_file_editor } from "@cocalc/frontend/frame-editors/frame-tree/register";
 
 register_file_editor({
   ext: "whiteboard",

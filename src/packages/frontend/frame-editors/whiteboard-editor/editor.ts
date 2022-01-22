@@ -10,6 +10,8 @@ Spec for whiteboard frame tree editor.
 import { EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { createEditor } from "@cocalc/frontend/frame-editors/frame-tree/editor";
 import { set } from "@cocalc/util/misc";
+import { terminal } from "@cocalc/frontend/frame-editors/terminal-editor/editor";
+import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
 
 import Whiteboard from "./whiteboard";
 
@@ -30,6 +32,8 @@ export const EDITOR_SPEC = {
     component: Whiteboard,
     buttons: whiteboardButtons,
   } as EditorDescription,
+  terminal,
+  time_travel,
 };
 
 export const Editor = createEditor({

@@ -7,19 +7,19 @@ import { CSSProperties } from "react";
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
 
-export type ObjectType = "point" | "markdown" | "code";
+export type ElementType = "point" | "markdown" | "code";
 
 export type Point = { x: number; y: number };
 
-export interface Object {
+export interface Element {
   id: string;
-  css: CSSProperties; // determines everything about look and position.
-  type: ObjectType;
-  data?: object; // depends on type if set or not; patch/merge atomically
-  str?: string; // depends on type if set or not; patch/merge as string
+  style: CSSProperties; // determines style of the object
+  type: ElementType;
+  data?: object; // optional json-able object - patch/merge atomic
+  str?: string; // optional str data patch/merge via diff string
 }
 
-export type ObjectMap = TypedMap<Object>;
+export type ElementMap = TypedMap<Element>;
 
-// Tasks is an immutable map from id to Object as a map.
-export type Objects = Map<string, ObjectMap>;
+// Tasks is an immutable map from id to Element as a map.
+export type Elements = Map<string, ElementMap>;

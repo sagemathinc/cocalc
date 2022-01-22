@@ -14,10 +14,10 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 
-import { Object, Objects } from "./types";
+import { Element, Elements } from "./types";
 
 export interface State extends CodeEditorState {
-  objects: Objects;
+  elements: Elements;
 }
 
 export class Actions extends BaseActions<State> {
@@ -30,26 +30,33 @@ export class Actions extends BaseActions<State> {
   }
 
   _init2(): void {
-    this.setState({ objects: Map({}) });
-
+    this.setState({ elements: Map({}) });
     this._syncstring.on("change", (keys) => {
-      let objects = this.store.get("objects");
-      const objects0 = objects;
+      let elements = this.store.get("elements");
+      const elements0 = elements;
       keys.forEach((key) => {
         const id = key.get("id");
         if (id) {
           const obj = this._syncstring.get_one(key);
           // @ts-ignore
-          objects = objects.set(id, obj);
+          elements = elements.set(id, obj);
         }
       });
-      if (objects !== objects0) {
-        this.setState({ objects });
+      if (elements !== elements0) {
+        this.setState({ elements });
       }
     });
   }
 
-  set(obj: Object): void {
+  set(obj: Element): void {
     this._syncstring.set(obj);
+  }
+
+  zoom_page_width(id: string): void {
+    console.log("TODO - zoom_page_width!", id);
+  }
+
+  zoom_page_height(id: string): void {
+    console.log("TODO - zoom_page_height!", id);
   }
 }

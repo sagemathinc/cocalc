@@ -1,13 +1,14 @@
-import { ReactNode } from "react";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { Actions, State } from "./actions";
+import { Element } from "./types";
+import Elements from "./elements";
 
 interface Props {
   actions: Actions;
   path: string;
   project_id: string;
-  font_size: number;
+  font_size?: number;
 }
 
 export default function Whiteboard({
@@ -20,7 +21,7 @@ export default function Whiteboard({
   actions = actions;
 
   const is_loaded = useEditor("is_loaded");
-  const objects = useEditor("objects").toJS();
+  const elements = useEditor("elements").toJS();
 
   if (!is_loaded) {
     return (
@@ -37,24 +38,11 @@ export default function Whiteboard({
     );
   }
 
-  const v: ReactNode[] = [];
-  for (const id in objects) {
-    const object = objects[id];
-    if (!object) continue;
-    const { css, str, data } = objects[id];
-    v.push(
-      <div key={id} style={{ position: "relative", ...css }}>
-        {str != null && str}
-        {data != null && <pre>{JSON.stringify(data, undefined, 2)}</pre>}
-      </div>
-    );
+  const x: Element[] = [];
+  for (const id in elements) {
+    const element = elements[id];
+    if (!element) continue;
+    x.push(element);
   }
-
-  const zoom = font_size ? font_size / 14 : undefined;
-
-  return (
-    <div className={"smc-vfill"} style={{ zoom }}>
-      {v}
-    </div>
-  );
+  return <Elements elements={x} font_size={font_size} />;
 }
