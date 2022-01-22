@@ -2,7 +2,7 @@ import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { Actions, State } from "./actions";
 import { Element } from "./types";
-import Elements from "./elements";
+import Canvas from "./canvas";
 
 interface Props {
   actions: Actions;
@@ -44,5 +44,5 @@ export default function Whiteboard({
     if (!element) continue;
     x.push(element);
   }
-  return <Elements elements={x} font_size={font_size} />;
+  return <Canvas elements={x} font_size={font_size} />;
 }

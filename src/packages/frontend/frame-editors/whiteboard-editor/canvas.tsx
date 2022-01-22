@@ -1,5 +1,10 @@
 /*
-Render the elements in the whiteboard.
+Render the canvas, which is by definition all of the drawing elements
+in the whiteboard.
+
+This is NOT an HTML5 canvas.  It has nothing do with that.   We define
+"the whiteboard" as everything -- the controls, settings, etc. -- and
+the canvas as the area where the actual drawing appears.
 */
 import { ReactNode } from "react";
 import { Element } from "./types";
@@ -9,7 +14,7 @@ interface Props {
   font_size?: number;
 }
 
-export default function Elements({ elements, font_size }: Props) {
+export default function Canvas({ elements, font_size }: Props) {
   const v: ReactNode[] = [];
   for (const element of elements) {
     const { id, style, str, data } = element;

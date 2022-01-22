@@ -34,6 +34,7 @@ import {
 } from "../../jupyter/history-viewer";
 import { SagewsCodemirror } from "./sagews-codemirror";
 import { SagewsDiff } from "./sagews-diff";
+import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/time-travel";
 
 interface Props {
   actions: TimeTravelActions;
@@ -133,6 +134,14 @@ class TimeTravel extends Component<Props> {
         return this.render_document_jupyter_notebook(syncdoc, version);
       case "sagews":
         return this.render_document_sagews();
+      case "whiteboard":
+        return (
+          <Whiteboard
+            syncdb={syncdoc}
+            version={version}
+            font_size={this.props.font_size}
+          />
+        );
       default:
         return this.render_document_codemirror();
     }
