@@ -26,9 +26,6 @@ import "./task-editor/register";
 // All the frame-tree editors
 import "../frame-editors/register";
 
-// The whiteboard
-import "./whiteboard/register";
-
 // Unknown files
 import "./unknown/register";
 
