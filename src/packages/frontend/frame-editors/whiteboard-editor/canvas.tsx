@@ -18,6 +18,7 @@ interface Props {
   font_size?: number;
   focusedId?: string;
   margin?: number;
+  readOnly?: boolean;
 }
 
 export default function Canvas({
@@ -25,16 +26,18 @@ export default function Canvas({
   font_size,
   focusedId,
   margin,
+  readOnly,
 }: Props) {
   console.log({ focusedId });
   margin = margin ?? 1000;
   const canvasRef = useRef<any>(null);
-  const scale = font_size ? font_size / 14 : 1;
+  const canvasScale = font_size ? font_size / 14 : 1;
+  console.log("canvasScale=", canvasScale);
 
   useEffect(() => {
     const { current } = canvasRef;
     if (current != null) {
-      const scaledMargin = margin * scale;
+      const scaledMargin = margin * canvasScale;
       current.scrollTop = scaledMargin;
       current.scrollLeft = scaledMargin;
     }
@@ -52,12 +55,28 @@ export default function Canvas({
       // This will probably go away, since too dangerous/generic.
       elt = <div style={element.style}>{elt}</div>;
     }
+    if (rotate) {
+      elt = (
+        <div
+          style={{
+            transform: `rotate(${parseFloat(rotate)}rad)`,
+            transformOrigin: "center",
+          }}
+        >
+          {elt}
+        </div>
+      );
+    }
     v.push(
-      <Position key={id} x={t.x} y={t.y} scale={scale} rotate={rotate}>
+      <Position key={id} x={t.x} y={t.y} scale={scale}>
         {id == focusedId ? (
-          <Focused scale={scale}>{elt}</Focused>
+          <Focused scale={scale} canvasScale={canvasScale} element={element}>
+            {elt}
+          </Focused>
         ) : (
-          <NotFocused id={id}>{elt}</NotFocused>
+          <NotFocused id={id} readOnly={readOnly}>
+            {elt}
+          </NotFocused>
         )}
       </Position>
     );
@@ -72,9 +91,9 @@ export default function Canvas({
     if (rect == null) return;
     const left = c.scrollLeft + clientX - rect.left;
     const top = c.scrollTop + clientY - rect.top;
-    console.log("clicked on", { scale, left, top });
+    console.log("clicked on", { canvasScale, left, top });
     console.log({
-      scale,
+      canvasScale,
       scrollLeft: c.scrollLeft,
       clientX,
       rect_left: rect.left,
@@ -86,12 +105,12 @@ export default function Canvas({
     <div
       className={"smc-vfill"}
       ref={canvasRef}
-      style={{ overflow: "scroll", cursor: "text" }}
-      onClick={undefined /*handleClick*/}
+      style={{ overflow: "scroll" }}
+      onClick={undefined /*!readOnly? handleClick : undefined */}
     >
       <div
         style={{
-          transform: `scale(${scale})`,
+          transform: `scale(${canvasScale})`,
           transformOrigin: "top left",
         }}
       >
@@ -99,13 +118,13 @@ export default function Canvas({
           style={{
             backgroundSize: "40px 40px",
             backgroundImage:
-              "linear-gradient(to right, #e0e0e0 1px, transparent 1px),linear-gradient(to bottom, #e0e0e0 1px, transparent 1px)",
+              "linear-gradient(to right, #f0f0f0 1px, transparent 1px),linear-gradient(to bottom, #f0f0f0 1px, transparent 1px)",
             position: "relative",
             paddingBottom: `${
-              (1 / scale) * transforms.height
+              (1 / canvasScale) * transforms.height
             }px` /* have to use padding and negative margin due to position:absolute children.  This works! */,
-            marginBottom: `${-(1 / scale) * transforms.height}px`,
-            paddingRight: `${(1 / scale) * transforms.width}px`,
+            marginBottom: `${-(1 / canvasScale) * transforms.height}px`,
+            paddingRight: `${(1 / canvasScale) * transforms.width}px`,
           }}
         >
           {v}

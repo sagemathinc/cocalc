@@ -7,17 +7,23 @@ then the border will be too wide.  We'll probably have to redo
 things to fix that later.
 */
 
-import { CSSProperties } from "react";
+import { CSSProperties, useMemo, useRef, useState } from "react";
 import Draggable from "react-draggable";
-
+import { getAngle } from "./math";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { Actions } from "./actions";
+
 const padding = 15;
 const thickness = 2;
 const color = "#40a9ff";
 const baseCircleSize = 14;
 const circleColor = "#888";
 
-export default function Focused({ children, scale }) {
+export default function Focused({ children, scale, canvasScale, element }) {
+  const frame = useFrameContext();
+  const rectRef = useRef<any>(null);
+  const [rotating, setRotating] = useState<number | undefined>(undefined);
   scale = scale ?? 1;
   const circleSize = `${baseCircleSize / scale}px`;
   const circleOffset = `-${baseCircleSize / scale / 2}px`;
@@ -48,11 +54,12 @@ export default function Focused({ children, scale }) {
     if (right) style.right = circleOffset;
     return (
       <Draggable
+        scale={canvasScale * scale}
         onStart={(e, data) => {
           console.log("start drag", data);
         }}
         onDrag={(e, data) => {
-          console.log("drag", data);
+          console.log("drag", e, data);
         }}
         onStop={(e, data) => {
           console.log("stop drag", data);
@@ -63,11 +70,48 @@ export default function Focused({ children, scale }) {
     );
   }
 
-  function Rotate() {
+  // useMemo is critical here because we don't want this
+  // component to get re-rendered as a result of it calling
+  // setRotating internally below to update the preview.
+  const RotateControl = useMemo(() => {
+    function computeAngle(data) {
+      const rect = rectRef.current;
+      if (!rect) return;
+      const { height, width } = rect.getBoundingClientRect();
+      const s = canvasScale * scale;
+      const start = {
+        x: -(4 * baseCircleSize) / s - width / 2,
+        y: (4 * baseCircleSize) / s + height / 2,
+      };
+      const stop = {
+        x: start.x + data.x * (canvasScale * Math.max(1, scale)),
+        y: start.y + data.y * (canvasScale * Math.max(1, scale)),
+      };
+      console.log(JSON.stringify({ start, stop }));
+      return getAngle(stop) - getAngle(start);
+    }
     return (
-      <Draggable>
+      <Draggable
+        position={{ x: 0, y: 0 }}
+        scale={canvasScale * scale}
+        onDrag={(_, data) => {
+          setRotating(computeAngle(data));
+        }}
+        onStop={(_, data) => {
+          const angle = computeAngle(data);
+          if (angle == null) return;
+          const { id, rotate } = element;
+          const actions = frame.actions as Actions;
+          setTimeout(() => {
+            setRotating(undefined);
+            actions.set({ id, rotate: parseFloat(rotate ?? 0) + angle });
+            actions.syncstring_commit();
+          }, 0);
+        }}
+      >
         <Icon
           style={{
+            color: "#888",
             background: "white",
             fontSize: `${24 / scale}px`,
             cursor: "grab",
@@ -79,26 +123,55 @@ export default function Focused({ children, scale }) {
         />
       </Draggable>
     );
-  }
+  }, [element.rotate]);
 
   return (
-    <div
-      style={{
-        cursor: "grab",
-        zIndex: 10000, // very large above everything so can always grab
-        position: "relative",
-        border: `${thickness / scale}px dashed ${color}`,
-        padding: `${padding / scale}px`,
-        marginLeft: `${(-padding - thickness) / scale}px`, // to offset border and padding, so object
-        marginTop: `${(-padding - thickness) / scale}px`, // doesn't appear to move when selected
+    <Draggable
+      cancel={".body"}
+      position={{ x: 0, y: 0 }}
+      scale={canvasScale * scale}
+      onStop={(_, data) => {
+        const { id } = element;
+        const x = element.x + data.x * scale;
+        const y = element.y + data.y * scale;
+        const actions = frame.actions as Actions;
+        actions.set({ id, x, y });
+        actions.syncstring_commit();
       }}
     >
-      <DragHandle top left cursor="nwse-resize" />
-      <DragHandle top right cursor="nesw-resize" />
-      <DragHandle bottom left cursor="nesw-resize" />
-      <DragHandle bottom right cursor="nwse-resize" />
-      <Rotate />
-      <div style={{ cursor: "text" }}>{children}</div>
-    </div>
+      <div
+        ref={rectRef}
+        style={{
+          cursor: "grab",
+          zIndex: 10000, // very large above everything so can always grab
+          position: "relative",
+          border: `${thickness / scale}px dashed ${color}`,
+          padding: `${padding / scale}px`,
+          marginLeft: `${(-padding - thickness) / scale}px`, // to offset border and padding, so object
+          marginTop: `${(-padding - thickness) / scale}px`, // doesn't appear to move when selected
+        }}
+      >
+        <div className="body">
+          <DragHandle top left cursor="nwse-resize" />
+          <DragHandle top right cursor="nesw-resize" />
+          <DragHandle bottom left cursor="nesw-resize" />
+          <DragHandle bottom right cursor="nwse-resize" />
+          {RotateControl}
+          <div
+            style={{
+              cursor: "text",
+              ...(rotating
+                ? {
+                    transform: `rotate(${rotating}rad)`,
+                    transformOrigin: "center",
+                  }
+                : undefined),
+            }}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
+    </Draggable>
   );
 }

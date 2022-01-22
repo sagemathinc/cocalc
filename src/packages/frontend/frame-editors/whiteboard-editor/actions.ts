@@ -50,7 +50,7 @@ export class Actions extends BaseActions<State> {
     });
   }
 
-  set(obj: Element): void {
+  set(obj: Partial<Element>): void {
     this._syncstring.set(obj);
   }
 
