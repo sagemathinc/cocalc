@@ -9,6 +9,7 @@ interface Props {
   path: string;
   project_id: string;
   font_size?: number;
+  desc;
 }
 
 export default function Whiteboard({
@@ -16,6 +17,7 @@ export default function Whiteboard({
   path,
   project_id,
   font_size,
+  desc,
 }: Props) {
   const useEditor = useEditorRedux<State>({ project_id, path });
   actions = actions;
@@ -44,5 +46,11 @@ export default function Whiteboard({
     if (!element) continue;
     x.push(element);
   }
-  return <Canvas elements={x} font_size={font_size} />;
+  return (
+    <Canvas
+      elements={x}
+      font_size={font_size}
+      focusedId={desc.get("focusedId")}
+    />
+  );
 }

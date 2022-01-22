@@ -3,26 +3,21 @@ Render any element
 */
 
 import { Element } from "../types";
-import { Markdown } from "@cocalc/frontend/components";
+import Markdown from "./markdown";
+import Generic from "./generic";
 
 interface Props {
   element: Element;
+  focused: boolean;
 }
 
-export default function Render({ element }: Props) {
+export default function Render({ element, focused }: Props) {
   /* dumb for now, but will be a cool plugin system like we used for our slate wysiwyg editor....*/
 
-  const { str, data, type } = element;
-
-  switch (type) {
+  switch (element.type) {
     case "markdown":
-      return <Markdown value={str} />;
+      return <Markdown element={element} focused={focused} />;
     default:
-      return (
-        <>
-          {str != null && str}
-          {data != null && <span>{JSON.stringify(data, undefined, 2)}</span>}
-        </>
-      );
+      return <Generic element={element} focused={focused} />;
   }
 }

@@ -53,6 +53,12 @@ export class Actions extends BaseActions<State> {
     this._syncstring.set(obj);
   }
 
+  public setFocusedElement(frameId: string, focusedId: string): void {
+    const node = this._get_frame_node(frameId);
+    if (node == null) return;
+    this.set_frame_tree({ id: frameId, focusedId });
+  }
+
   /*
   zoom_page_width(id: string): void {
     console.log("TODO - zoom_page_width!", id);
