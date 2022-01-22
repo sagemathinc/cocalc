@@ -30,6 +30,7 @@ export class Actions extends BaseActions<State> {
   }
 
   _init2(): void {
+    window.a = this;
     this.setState({ elements: Map({}) });
 
     this._syncstring.on("change", (keys) => {

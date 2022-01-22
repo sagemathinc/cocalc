@@ -6,9 +6,12 @@ This is NOT an HTML5 canvas.  It has nothing do with that.   We define
 "the whiteboard" as everything -- the controls, settings, etc. -- and
 the canvas as the area where the actual drawing appears.
 */
-import { ReactNode, useEffect, useRef } from "react";
+import { CSSProperties, ReactNode, useEffect, useRef } from "react";
 import { Element } from "./types";
 import RenderElement from "./elements/render";
+import Focused from "./focused";
+import NotFocused from "./not-focused";
+import Position from "./position";
 
 interface Props {
   elements: Element[];
@@ -23,6 +26,7 @@ export default function Canvas({
   focusedId,
   margin,
 }: Props) {
+  console.log({ focusedId });
   margin = margin ?? 1000;
   const canvasRef = useRef<any>(null);
   const scale = font_size ? font_size / 14 : 1;
@@ -39,22 +43,23 @@ export default function Canvas({
   const v: ReactNode[] = [];
   const transforms = getTransforms(elements, margin);
   for (const element of elements) {
-    const { id, style } = element;
-    const { x, y } = element;
+    const { id, x, y, scale, rotate } = element;
     if (x == null || y == null) continue; // invalid element!
     const t = transforms.dataToWindow(x, y);
+    const focused = id == focusedId;
+    let elt = <RenderElement element={element} focused={focused} />;
+    if (element.style) {
+      // This will probably go away, since too dangerous/generic.
+      elt = <div style={element.style}>{elt}</div>;
+    }
     v.push(
-      <div
-        key={id}
-        style={{
-          ...style,
-          position: "absolute",
-          left: t.x,
-          top: t.y,
-        }}
-      >
-        <RenderElement element={element} focused={id == focusedId} />
-      </div>
+      <Position key={id} x={t.x} y={t.y} scale={scale} rotate={rotate}>
+        {id == focusedId ? (
+          <Focused scale={scale}>{elt}</Focused>
+        ) : (
+          <NotFocused id={id}>{elt}</NotFocused>
+        )}
+      </Position>
     );
   }
 
@@ -82,7 +87,7 @@ export default function Canvas({
       className={"smc-vfill"}
       ref={canvasRef}
       style={{ overflow: "scroll", cursor: "text" }}
-      onClick={handleClick}
+      onClick={undefined /*handleClick*/}
     >
       <div
         style={{

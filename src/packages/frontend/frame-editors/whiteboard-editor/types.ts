@@ -17,6 +17,8 @@ export interface Element {
   type: ElementType;
   x: number;
   y: number;
+  rotate?: string; // e.g., '36deg' -- from css
+  scale?: number;
   data?: object; // optional json-able object - patch/merge atomic
   str?: string; // optional str data patch/merge via diff string
 }
