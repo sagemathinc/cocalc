@@ -29,7 +29,7 @@ export default function Canvas({ elements, font_size }: Props) {
   const zoom = font_size ? font_size / 14 : undefined;
 
   return (
-    <div className={"smc-vfill"} style={{ zoom }}>
+    <div className={"smc-vfill"} style={{ zoom, overflow: "scroll" }}>
       {v}
     </div>
   );

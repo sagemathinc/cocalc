@@ -53,11 +53,12 @@ export class Actions extends BaseActions<State> {
     this._syncstring.set(obj);
   }
 
+  /*
   zoom_page_width(id: string): void {
     console.log("TODO - zoom_page_width!", id);
   }
 
   zoom_page_height(id: string): void {
     console.log("TODO - zoom_page_height!", id);
-  }
+  }*/
 }
