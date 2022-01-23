@@ -22,14 +22,16 @@ export default function Panel({ selectedTool }) {
     <Draggable>
       <div
         style={{
-          zIndex: 1000000,
+          zIndex: 1000,
           position: "absolute",
           fontSize: "24px",
           display: "flex",
           flexDirection: "column",
-          padding: "15px",
+          padding: "10px",
           boxShadow: "0 0 10px",
-          margin: "15px",
+          margin: "10px",
+          background: "white",
+          opacity: 0.95,
         }}
       >
         {v}

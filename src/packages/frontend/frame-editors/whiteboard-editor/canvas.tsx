@@ -123,7 +123,7 @@ export default function Canvas({
       >
         <div
           style={{
-            cursor: selectedTool == "text" ? "text" : "pointer",
+            cursor: selectedTool == "text" ? "text" : "default",
             backgroundSize: "40px 40px",
             backgroundImage:
               "linear-gradient(to right, #f0f0f0 1px, transparent 1px),linear-gradient(to bottom, #f0f0f0 1px, transparent 1px)",
