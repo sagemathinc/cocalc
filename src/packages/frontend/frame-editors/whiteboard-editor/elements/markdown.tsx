@@ -26,6 +26,7 @@ export default function Markdown({ element, focused }) {
   return (
     <div>
       <Popover
+        placement={"left" as "left"}
         title={
           <>
             <Icon name="markdown" style={{ marginRight: "5px" }} /> Text
@@ -33,7 +34,7 @@ export default function Markdown({ element, focused }) {
           </>
         }
         content={() => (
-          <div style={{ width: "700px", maxWidth: "90vw" }}>
+          <div style={{ width: "600px", maxWidth: "70vw" }}>
             <Input.TextArea
               autoFocus
               value={value}

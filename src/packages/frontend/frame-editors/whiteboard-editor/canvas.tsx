@@ -97,7 +97,6 @@ export default function Canvas({
   function handleClick(e) {
     const { clientX, clientY } = e;
     const c = canvasRef.current;
-    window.c = c;
     if (c == null) return;
     const rect = c.getBoundingClientRect();
     console.log({ clientX, clientY }, rect);
@@ -109,9 +108,11 @@ export default function Canvas({
       divX / canvasScale,
       divY / canvasScale
     );
-    console.log(JSON.stringify({ divX, divY, data }));
-    if (selectedTool == "text") {
-      const id = uuid().slice(0, 8); // todo -- need to avoid any possible conflict by regen until unique
+
+    const id = uuid().slice(0, 8); // todo -- need to avoid any possible conflict by regen until unique
+
+    // this code needs to move to tool panel spec stuff...
+    if (selectedTool == "text" || selectedTool == "note") {
       const actions = frame.actions as Actions;
       actions.set({
         id,
@@ -124,11 +125,6 @@ export default function Canvas({
       actions.setFocusedElement(frame.id, id);
     }
   }
-
-  console.log(
-    { readOnly, selectedTool },
-    !readOnly && selectedTool != "select"
-  );
 
   return (
     <div
@@ -146,9 +142,11 @@ export default function Canvas({
         <div
           style={{
             cursor: selectedTool ? TOOLS[selectedTool]?.cursor : "default",
-            backgroundSize: "40px 40px",
+            backgroundPosition:
+              "-1.5px -1.5px, -1.5px -1.5px, -1px -1px, -1px -1px",
+            backgroundSize: "100px 100px, 100px 100px, 20px 20px, 20px 20px",
             backgroundImage:
-              "linear-gradient(to right, #f0f0f0 1px, transparent 1px),linear-gradient(to bottom, #f0f0f0 1px, transparent 1px)",
+              "linear-gradient(#eaeaea 1.5px, transparent 1.5px), linear-gradient(90deg, #eaeaea 1.5px, transparent 1.5px), linear-gradient(#f0f0f0 1px, transparent 1px), linear-gradient(90deg, #f0f0f0 1px, transparent 1px)",
             position: "relative",
             paddingBottom: `${
               (1 / canvasScale) * transforms.height
