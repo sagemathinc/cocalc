@@ -14,7 +14,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Actions } from "./actions";
 
-const padding = 15;
+const padding = 30;
 const thickness = 2;
 const color = "#40a9ff";
 const baseCircleSize = 14;
@@ -110,6 +110,7 @@ export default function Focused({ children, scale, canvasScale, element }) {
         }}
       >
         <Icon
+          className="body"
           style={{
             color: "#888",
             background: "white",
@@ -143,7 +144,6 @@ export default function Focused({ children, scale, canvasScale, element }) {
         ref={rectRef}
         style={{
           cursor: "grab",
-          zIndex: 100, // very large above everything so can always grab
           position: "relative",
           border: `${thickness / scale}px dashed ${color}`,
           padding: `${padding / scale}px`,
@@ -151,7 +151,7 @@ export default function Focused({ children, scale, canvasScale, element }) {
           marginTop: `${(-padding - thickness) / scale}px`, // doesn't appear to move when selected
         }}
       >
-        <div className="body">
+        <div>
           <DragHandle top left cursor="nwse-resize" />
           <DragHandle top right cursor="nesw-resize" />
           <DragHandle bottom left cursor="nesw-resize" />
@@ -159,7 +159,6 @@ export default function Focused({ children, scale, canvasScale, element }) {
           {RotateControl}
           <div
             style={{
-              cursor: "text",
               ...(rotating
                 ? {
                     transform: `rotate(${rotating}rad)`,

@@ -62,9 +62,25 @@ export default function Canvas({
     const t = transforms.dataToWindow(x, y);
     const focused = id == focusedId;
     let elt = <RenderElement element={element} focused={focused} />;
-    if (element.style) {
-      // This will probably go away, since too dangerous/generic.
-      elt = <div style={element.style}>{elt}</div>;
+    if (element.style || focused) {
+      elt = (
+        <div
+          className={focused ? "body" : undefined}
+          style={{
+            ...element.style,
+            ...(focused
+              ? {
+                  cursor: "text",
+                  border: "1px dashed grey",
+                  marginLeft: "-1px",
+                  marginTop: "-1px",
+                }
+              : undefined),
+          }}
+        >
+          {elt}
+        </div>
+      );
     }
     if (rotate) {
       elt = (
@@ -82,7 +98,7 @@ export default function Canvas({
     }
     v.push(
       <Position key={id} x={t.x} y={t.y} z={z} scale={scale}>
-        {id == focusedId ? (
+        {focused ? (
           <Focused scale={scale} canvasScale={canvasScale} element={element}>
             {elt}
           </Focused>
@@ -163,7 +179,7 @@ export default function Canvas({
               "-1.5px -1.5px, -1.5px -1.5px, -1px -1px, -1px -1px",
             backgroundSize: "100px 100px, 100px 100px, 20px 20px, 20px 20px",
             backgroundImage:
-              "linear-gradient(#eaeaea 1.5px, transparent 1.5px), linear-gradient(90deg, #eaeaea 1.5px, transparent 1.5px), linear-gradient(#f0f0f0 1px, transparent 1px), linear-gradient(90deg, #f0f0f0 1px, transparent 1px)",
+              "linear-gradient(#efefef 1.5px, transparent 1.5px), linear-gradient(90deg, #efefef 1.5px, transparent 1.5px), linear-gradient(#f8f8f8 1px, transparent 1px), linear-gradient(90deg, #f8f8f8 1px, transparent 1px)",
             position: "relative",
             paddingBottom: `${
               (1 / canvasScale) * transforms.height

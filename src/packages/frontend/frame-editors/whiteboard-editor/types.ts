@@ -17,6 +17,7 @@ export interface Element {
   type: ElementType;
   x: number;
   y: number;
+  z?: number; // zIndex
   rotate?: number; // angle in *radians*
   scale?: number;
   data?: object; // optional json-able object - patch/merge atomic
