@@ -13,6 +13,10 @@ import RenderElement from "./elements/render";
 import Focused from "./focused";
 import NotFocused from "./not-focused";
 import Position from "./position";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+
+import { Actions } from "./actions";
+import { uuid } from "@cocalc/util/misc";
 
 interface Props {
   elements: Element[];
@@ -46,6 +50,8 @@ export default function Canvas({
       current.scrollLeft = scaledMargin;
     }
   }, []);
+
+  const frame = useFrameContext();
 
   const v: ReactNode[] = [];
   const transforms = getTransforms(elements, margin);
@@ -91,28 +97,45 @@ export default function Canvas({
   function handleClick(e) {
     const { clientX, clientY } = e;
     const c = canvasRef.current;
-    //window.c = c;
+    window.c = c;
     if (c == null) return;
     const rect = c.getBoundingClientRect();
+    console.log({ clientX, clientY }, rect);
     if (rect == null) return;
-    const left = c.scrollLeft + clientX - rect.left;
-    const top = c.scrollTop + clientY - rect.top;
-    console.log("clicked on", { canvasScale, left, top });
-    console.log({
-      canvasScale,
-      scrollLeft: c.scrollLeft,
-      clientX,
-      rect_left: rect.left,
-      left,
-    });
+    // Coordinates inside the canvas div.
+    const divX = c.scrollLeft + clientX - rect.left;
+    const divY = c.scrollTop + clientY - rect.top;
+    const data = transforms.windowToData(
+      divX / canvasScale,
+      divY / canvasScale
+    );
+    console.log(JSON.stringify({ divX, divY, data }));
+    if (selectedTool == "text") {
+      const id = uuid().slice(0, 8); // todo -- need to avoid any possible conflict by regen until unique
+      const actions = frame.actions as Actions;
+      actions.set({
+        id,
+        ...data,
+        type: "markdown",
+        str: "",
+      });
+      actions.syncstring_commit();
+      actions.setSelectedTool(frame.id, "select");
+      actions.setFocusedElement(frame.id, id);
+    }
   }
+
+  console.log(
+    { readOnly, selectedTool },
+    !readOnly && selectedTool != "select"
+  );
 
   return (
     <div
       className={"smc-vfill"}
       ref={canvasRef}
       style={{ overflow: "scroll" }}
-      onClick={undefined /*!readOnly? handleClick : undefined */}
+      onClick={!readOnly && selectedTool != "select" ? handleClick : undefined}
     >
       <div
         style={{

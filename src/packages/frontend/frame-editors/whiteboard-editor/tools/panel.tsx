@@ -8,7 +8,7 @@ import { ReactNode } from "react";
 import { Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TOOLS } from "./spec";
-import Draggable from "react-draggable";
+//import Draggable from "react-draggable";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Actions } from "../actions";
 
@@ -20,25 +20,23 @@ export default function Panel({ selectedTool }) {
     );
   }
   return (
-    <Draggable>
-      <div
-        style={{
-          zIndex: 1000,
-          position: "absolute",
-          fontSize: "18px",
-          display: "flex",
-          flexDirection: "column",
-          padding: "10px",
-          boxShadow: "0 0 10px",
-          borderRadius: "3px",
-          margin: "10px",
-          background: "white",
-          opacity: 0.95,
-        }}
-      >
-        {v}
-      </div>
-    </Draggable>
+    <div
+      style={{
+        zIndex: 1000,
+        position: "absolute",
+        fontSize: "18px",
+        display: "flex",
+        flexDirection: "column",
+        padding: "10px",
+        boxShadow: "0 0 10px",
+        borderRadius: "3px",
+        margin: "10px",
+        background: "white",
+        opacity: 0.95,
+      }}
+    >
+      {v}
+    </div>
   );
 }
 

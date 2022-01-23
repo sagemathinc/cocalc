@@ -10,7 +10,12 @@ export default function Markdown({ element, focused }) {
   const frame = useFrameContext();
 
   if (!focused) {
-    return <StaticMarkdown value={element.str} />;
+    return (
+      <StaticMarkdown
+        value={element.str?.trim() ? element.str : "Type text"}
+        style={!element.str?.trim() ? { color: "#aaa" } : undefined}
+      />
+    );
   }
 
   useEffect(() => {
@@ -30,9 +35,11 @@ export default function Markdown({ element, focused }) {
         content={() => (
           <div style={{ width: "700px", maxWidth: "90vw" }}>
             <Input.TextArea
+              autoFocus
               value={value}
               rows={4}
               onChange={(e) => {
+                // TODO: need to also save changes (like with onBlur below), but debounced.
                 setValue(e.target.value);
               }}
               onBlur={() => {
@@ -45,7 +52,10 @@ export default function Markdown({ element, focused }) {
         )}
         trigger="click"
       >
-        <StaticMarkdown value={value} />
+        <StaticMarkdown
+          style={!value?.trim() ? { color: "#aaa" } : undefined}
+          value={value?.trim() ? value : "Type text"}
+        />
       </Popover>
     </div>
   );
