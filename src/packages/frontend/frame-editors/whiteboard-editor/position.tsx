@@ -1,7 +1,12 @@
 import { CSSProperties } from "react";
 
-export default function Position({ children, x, y, scale }) {
-  const style: CSSProperties = { left: x, top: y, position: "absolute" };
+export default function Position({ children, x, y, z, scale }) {
+  const style: CSSProperties = {
+    left: x,
+    top: y,
+    position: "absolute",
+    zIndex: z,
+  };
   let transform = "";
   if (scale) {
     transform += ` scale(${scale}) `;

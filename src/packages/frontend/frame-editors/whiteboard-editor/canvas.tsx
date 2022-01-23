@@ -39,6 +39,7 @@ export default function Canvas({
   console.log({ focusedId });
   margin = margin ?? 1000;
   const canvasRef = useRef<any>(null);
+  const innerCanvasRef = useRef<any>(null);
   const canvasScale = font_size ? font_size / 14 : 1;
   console.log("canvasScale=", canvasScale);
 
@@ -56,7 +57,7 @@ export default function Canvas({
   const v: ReactNode[] = [];
   const transforms = getTransforms(elements, margin);
   for (const element of elements) {
-    const { id, x, y, scale, rotate } = element;
+    const { id, x, y, z, scale, rotate } = element;
     if (x == null || y == null) continue; // invalid element!
     const t = transforms.dataToWindow(x, y);
     const focused = id == focusedId;
@@ -80,13 +81,17 @@ export default function Canvas({
       );
     }
     v.push(
-      <Position key={id} x={t.x} y={t.y} scale={scale}>
+      <Position key={id} x={t.x} y={t.y} z={z} scale={scale}>
         {id == focusedId ? (
           <Focused scale={scale} canvasScale={canvasScale} element={element}>
             {elt}
           </Focused>
         ) : (
-          <NotFocused id={id} readOnly={readOnly}>
+          <NotFocused
+            id={id}
+            readOnly={readOnly}
+            selectable={selectedTool == "select"}
+          >
             {elt}
           </NotFocused>
         )}
@@ -95,11 +100,23 @@ export default function Canvas({
   }
 
   function handleClick(e) {
+    console.log("handleClick on main canvas");
+    const actions = frame.actions as Actions;
+    if (selectedTool == "select") {
+      if (e.target != innerCanvasRef.current) {
+        // clicked on an element on the canvas; either stay selected or let
+        // it handle selecting it.
+        return;
+      } else {
+        // clear selection
+        // unfocus, because nothing got clicked on.
+        actions.setFocusedElement(frame.id, "");
+      }
+    }
     const { clientX, clientY } = e;
     const c = canvasRef.current;
     if (c == null) return;
     const rect = c.getBoundingClientRect();
-    console.log({ clientX, clientY }, rect);
     if (rect == null) return;
     // Coordinates inside the canvas div.
     const divX = c.scrollLeft + clientX - rect.left;
@@ -113,7 +130,6 @@ export default function Canvas({
 
     // this code needs to move to tool panel spec stuff...
     if (selectedTool == "text" || selectedTool == "note") {
-      const actions = frame.actions as Actions;
       actions.set({
         id,
         ...data,
@@ -131,7 +147,7 @@ export default function Canvas({
       className={"smc-vfill"}
       ref={canvasRef}
       style={{ overflow: "scroll" }}
-      onClick={!readOnly && selectedTool != "select" ? handleClick : undefined}
+      onClick={!readOnly ? handleClick : undefined}
     >
       <div
         style={{
@@ -140,6 +156,7 @@ export default function Canvas({
         }}
       >
         <div
+          ref={innerCanvasRef}
           style={{
             cursor: selectedTool ? TOOLS[selectedTool]?.cursor : "default",
             backgroundPosition:
