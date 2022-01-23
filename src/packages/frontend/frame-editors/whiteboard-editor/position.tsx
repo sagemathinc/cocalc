@@ -1,11 +1,8 @@
 import { CSSProperties } from "react";
 
-export default function Position({ children, x, y, scale, rotate }) {
+export default function Position({ children, x, y, scale }) {
   const style: CSSProperties = { left: x, top: y, position: "absolute" };
   let transform = "";
-  if (rotate) {
-    transform += ` rotate(${rotate}) `;
-  }
   if (scale) {
     transform += ` scale(${scale}) `;
   }

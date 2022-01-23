@@ -426,7 +426,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       <Draggable
         ref={"cols_drag_bar"}
         axis={"x"}
-        onStop={handle_stop}
+        onStop={handle_stop as any}
         onStart={drag_start_iframe_disable}
         defaultClassNameDragging={"cc-vertical-drag-bar-dragging"}
       >

@@ -6,12 +6,14 @@ This is NOT an HTML5 canvas.  It has nothing do with that.   We define
 "the whiteboard" as everything -- the controls, settings, etc. -- and
 the canvas as the area where the actual drawing appears.
 */
-import { CSSProperties, ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 import { Element } from "./types";
+import type { Tool } from "./tools/spec";
 import RenderElement from "./elements/render";
 import Focused from "./focused";
 import NotFocused from "./not-focused";
 import Position from "./position";
+import ToolPanel from "./tools/panel";
 
 interface Props {
   elements: Element[];
@@ -19,6 +21,7 @@ interface Props {
   focusedId?: string;
   margin?: number;
   readOnly?: boolean;
+  tool?: Tool;
 }
 
 export default function Canvas({
@@ -37,7 +40,7 @@ export default function Canvas({
   useEffect(() => {
     const { current } = canvasRef;
     if (current != null) {
-      const scaledMargin = margin * canvasScale;
+      const scaledMargin = (margin ?? 0) * canvasScale;
       current.scrollTop = scaledMargin;
       current.scrollLeft = scaledMargin;
     }
@@ -59,7 +62,9 @@ export default function Canvas({
       elt = (
         <div
           style={{
-            transform: `rotate(${parseFloat(rotate)}rad)`,
+            transform: `rotate(${
+              typeof rotate != "number" ? parseFloat(rotate) : rotate
+            }rad)`,
             transformOrigin: "center",
           }}
         >
@@ -85,7 +90,7 @@ export default function Canvas({
   function handleClick(e) {
     const { clientX, clientY } = e;
     const c = canvasRef.current;
-    window.c = c;
+    //window.c = c;
     if (c == null) return;
     const rect = c.getBoundingClientRect();
     if (rect == null) return;
@@ -108,6 +113,7 @@ export default function Canvas({
       style={{ overflow: "scroll" }}
       onClick={undefined /*!readOnly? handleClick : undefined */}
     >
+      {!readOnly && <ToolPanel selectedTool={"pen"} />}
       <div
         style={{
           transform: `scale(${canvasScale})`,

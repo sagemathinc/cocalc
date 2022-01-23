@@ -46,12 +46,14 @@ export default function Whiteboard({
     if (!element) continue;
     x.push(element);
   }
-  console.log("desc = ", desc.toJS());
+
   return (
-    <Canvas
-      elements={x}
-      font_size={font_size}
-      focusedId={desc.get("focusedId")}
-    />
+    <div className="smc-vfill">
+      <Canvas
+        elements={x}
+        font_size={font_size}
+        focusedId={desc.get("focusedId")}
+      />
+    </div>
   );
 }

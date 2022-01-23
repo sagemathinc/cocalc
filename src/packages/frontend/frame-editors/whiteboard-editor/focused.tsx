@@ -55,13 +55,13 @@ export default function Focused({ children, scale, canvasScale, element }) {
     return (
       <Draggable
         scale={canvasScale * scale}
-        onStart={(e, data) => {
+        onStart={(_, data) => {
           console.log("start drag", data);
         }}
-        onDrag={(e, data) => {
-          console.log("drag", e, data);
+        onDrag={(_, data) => {
+          console.log("drag", data);
         }}
-        onStop={(e, data) => {
+        onStop={(_, data) => {
           console.log("stop drag", data);
         }}
       >
@@ -143,7 +143,7 @@ export default function Focused({ children, scale, canvasScale, element }) {
         ref={rectRef}
         style={{
           cursor: "grab",
-          zIndex: 10000, // very large above everything so can always grab
+          zIndex: 100, // very large above everything so can always grab
           position: "relative",
           border: `${thickness / scale}px dashed ${color}`,
           padding: `${padding / scale}px`,

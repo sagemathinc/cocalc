@@ -1,4 +1,5 @@
 export default function Generic({ element, focused }) {
+  focused = focused;
   const { str, data } = element;
   return (
     <>
