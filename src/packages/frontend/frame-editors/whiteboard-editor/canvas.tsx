@@ -8,17 +8,17 @@ the canvas as the area where the actual drawing appears.
 */
 import { ReactNode, useEffect, useRef } from "react";
 import { Element } from "./types";
-import type { Tool } from "./tools/spec";
+import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
 import Focused from "./focused";
 import NotFocused from "./not-focused";
 import Position from "./position";
-import ToolPanel from "./tools/panel";
 
 interface Props {
   elements: Element[];
   font_size?: number;
   focusedId?: string;
+  selectedTool?: Tool;
   margin?: number;
   readOnly?: boolean;
   tool?: Tool;
@@ -114,7 +114,6 @@ export default function Canvas({
       style={{ overflow: "scroll" }}
       onClick={undefined /*!readOnly? handleClick : undefined */}
     >
-      {!readOnly && <ToolPanel selectedTool={selectedTool} />}
       <div
         style={{
           transform: `scale(${canvasScale})`,
@@ -123,7 +122,7 @@ export default function Canvas({
       >
         <div
           style={{
-            cursor: selectedTool == "text" ? "text" : "default",
+            cursor: selectedTool ? TOOLS[selectedTool]?.cursor : "default",
             backgroundSize: "40px 40px",
             backgroundImage:
               "linear-gradient(to right, #f0f0f0 1px, transparent 1px),linear-gradient(to bottom, #f0f0f0 1px, transparent 1px)",

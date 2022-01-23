@@ -3,6 +3,7 @@ import { Loading } from "@cocalc/frontend/components";
 import { Actions, State } from "./actions";
 import { Element } from "./types";
 import Canvas from "./canvas";
+import ToolPanel from "./tools/panel";
 
 interface Props {
   actions: Actions;
@@ -47,13 +48,16 @@ export default function Whiteboard({
     x.push(element);
   }
 
+  const selectedTool = desc.get("selectedTool") ?? "select";
+
   return (
     <div className="smc-vfill">
+      <ToolPanel selectedTool={desc.get("selectedTool") ?? "select"} />
       <Canvas
         elements={x}
         font_size={font_size}
-        focusedId={desc.get("focusedId")}
-        selectedTool={desc.get("selectedTool") ?? "select"}
+        focusedId={selectedTool == "select" ? desc.get("focusedId") : undefined}
+        selectedTool={selectedTool}
       />
     </div>
   );

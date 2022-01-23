@@ -5,6 +5,7 @@ Floating panel from which you can select a tool.
 */
 
 import { ReactNode } from "react";
+import { Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TOOLS } from "./spec";
 import Draggable from "react-draggable";
@@ -24,11 +25,12 @@ export default function Panel({ selectedTool }) {
         style={{
           zIndex: 1000,
           position: "absolute",
-          fontSize: "24px",
+          fontSize: "18px",
           display: "flex",
           flexDirection: "column",
           padding: "10px",
           boxShadow: "0 0 10px",
+          borderRadius: "3px",
           margin: "10px",
           background: "white",
           opacity: 0.95,
@@ -42,17 +44,19 @@ export default function Panel({ selectedTool }) {
 
 function ToolButton({ tool, isSelected }) {
   const { actions, id } = useFrameContext();
-  const { icon } = TOOLS[tool];
+  const { icon, tip } = TOOLS[tool];
   return (
-    <Icon
-      onClick={() => {
-        (actions as Actions).setSelectedTool(id, tool);
-      }}
-      name={icon}
-      style={{
-        margin: "10px 0",
-        color: isSelected ? "blue" : undefined,
-      }}
-    />
+    <Tooltip placement="right" title={tip}>
+      <Icon
+        onClick={() => {
+          (actions as Actions).setSelectedTool(id, tool);
+        }}
+        name={icon}
+        style={{
+          margin: "10px 0",
+          color: isSelected ? "blue" : undefined,
+        }}
+      />
+    </Tooltip>
   );
 }
