@@ -3,12 +3,13 @@ import { IconName } from "@cocalc/frontend/components/icon";
 
 interface ToolDescription {
   icon: IconName;
+  cursor: string;
 }
 
 export const TOOLS: { [tool: string]: ToolDescription } = {
-  select: { icon: "arrow-up" },
-  text: { icon: "font" },
-  note: { icon: "file" },
+  select: { icon: "arrow-up", cursor: "default" },
+  text: { icon: "font", cursor: "text" },
+  note: { icon: "file", cursor },
   shape: { icon: "file-image" },
   pen: { icon: "pencil" },
   chat: { icon: "comment" },

@@ -13,7 +13,7 @@ import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
-
+import { Tool } from "./tools/spec";
 import { Element, Elements } from "./types";
 
 export interface State extends CodeEditorState {
@@ -58,6 +58,12 @@ export class Actions extends BaseActions<State> {
     const node = this._get_frame_node(frameId);
     if (node == null) return;
     this.set_frame_tree({ id: frameId, focusedId });
+  }
+
+  public setSelectedTool(frameId: string, selectedTool: Tool): void {
+    const node = this._get_frame_node(frameId);
+    if (node == null) return;
+    this.set_frame_tree({ id: frameId, selectedTool });
   }
 
   undo(_id: string): void {

@@ -53,6 +53,7 @@ export default function Whiteboard({
         elements={x}
         font_size={font_size}
         focusedId={desc.get("focusedId")}
+        selectedTool={desc.get("selectedTool") ?? "select"}
       />
     </div>
   );

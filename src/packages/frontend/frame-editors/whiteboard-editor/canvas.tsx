@@ -30,6 +30,7 @@ export default function Canvas({
   focusedId,
   margin,
   readOnly,
+  selectedTool,
 }: Props) {
   console.log({ focusedId });
   margin = margin ?? 1000;
@@ -113,7 +114,7 @@ export default function Canvas({
       style={{ overflow: "scroll" }}
       onClick={undefined /*!readOnly? handleClick : undefined */}
     >
-      {!readOnly && <ToolPanel selectedTool={"pen"} />}
+      {!readOnly && <ToolPanel selectedTool={selectedTool} />}
       <div
         style={{
           transform: `scale(${canvasScale})`,
@@ -122,6 +123,7 @@ export default function Canvas({
       >
         <div
           style={{
+            cursor: selectedTool == "text" ? "text" : "pointer",
             backgroundSize: "40px 40px",
             backgroundImage:
               "linear-gradient(to right, #f0f0f0 1px, transparent 1px),linear-gradient(to bottom, #f0f0f0 1px, transparent 1px)",

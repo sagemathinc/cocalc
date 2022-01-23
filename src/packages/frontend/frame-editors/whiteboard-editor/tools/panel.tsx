@@ -8,6 +8,8 @@ import { ReactNode } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TOOLS } from "./spec";
 import Draggable from "react-draggable";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { Actions } from "../actions";
 
 export default function Panel({ selectedTool }) {
   const v: ReactNode[] = [];
@@ -37,10 +39,13 @@ export default function Panel({ selectedTool }) {
 }
 
 function ToolButton({ tool, isSelected }) {
+  const { actions, id } = useFrameContext();
   const { icon } = TOOLS[tool];
   return (
     <Icon
-      onClick={() => console.log("select", tool)}
+      onClick={() => {
+        (actions as Actions).setSelectedTool(id, tool);
+      }}
       name={icon}
       style={{
         margin: "10px 0",
