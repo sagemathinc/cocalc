@@ -35,7 +35,7 @@ import { is_safari } from "../generic/browser";
 import { merge, copy, hidden_meta_file, is_different } from "@cocalc/util/misc";
 import { ReactDOM, Component, redux, Rendered } from "../../app-framework";
 import { Map, Set } from "immutable";
-import Draggable from 'react-draggable'
+import Draggable from "react-draggable";
 import { drag_start_iframe_disable, drag_stop_iframe_enable } from "../../misc";
 import * as feature from "@cocalc/frontend/feature";
 import { FrameTitleBar } from "./title-bar";
@@ -376,6 +376,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           project_id: this.props.project_id,
           path: this.props.path,
           actions: editor_actions,
+          desc,
+          isFocused: this.props.active_id == desc.get("id"),
         }}
       >
         <div

@@ -4,13 +4,23 @@ Floating panel from which you can select a tool.
 
 */
 
-import { ReactNode } from "react";
-import { Tooltip } from "antd";
+import { CSSProperties, ReactNode } from "react";
+import { Button, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TOOLS } from "./spec";
 //import Draggable from "react-draggable";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Actions } from "../actions";
+
+export const PANEL_STYLE = {
+  zIndex: 1000,
+  position: "absolute",
+  fontSize: "18px",
+  boxShadow: "0 0 10px",
+  borderRadius: "3px",
+  margin: "5px",
+  background: "white",
+} as CSSProperties;
 
 export default function Panel({ selectedTool }) {
   const v: ReactNode[] = [];
@@ -20,21 +30,7 @@ export default function Panel({ selectedTool }) {
     );
   }
   return (
-    <div
-      style={{
-        zIndex: 1000,
-        position: "absolute",
-        fontSize: "18px",
-        display: "flex",
-        flexDirection: "column",
-        padding: "10px",
-        boxShadow: "0 0 10px",
-        borderRadius: "3px",
-        margin: "10px",
-        background: "white",
-        opacity: 0.95,
-      }}
-    >
+    <div style={{ ...PANEL_STYLE, display: "flex", flexDirection: "column" }}>
       {v}
     </div>
   );
@@ -45,16 +41,19 @@ function ToolButton({ tool, isSelected }) {
   const { icon, tip } = TOOLS[tool];
   return (
     <Tooltip placement="right" title={tip}>
-      <Icon
+      <Button
+        type="text"
         onClick={() => {
           (actions as Actions).setSelectedTool(id, tool);
         }}
-        name={icon}
-        style={{
-          margin: "10px 0",
-          color: isSelected ? "blue" : undefined,
-        }}
-      />
+      >
+        <Icon
+          name={icon}
+          style={{
+            color: isSelected ? "blue" : undefined,
+          }}
+        />
+      </Button>
     </Tooltip>
   );
 }

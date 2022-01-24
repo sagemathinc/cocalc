@@ -18,6 +18,8 @@ export interface Element {
   x: number;
   y: number;
   z?: number; // zIndex
+  w?: number; // width
+  h?: number; // height
   rotate?: number; // angle in *radians*
   scale?: number;
   data?: object; // optional json-able object - patch/merge atomic

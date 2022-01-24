@@ -76,12 +76,12 @@ export class Actions extends BaseActions<State> {
     this._syncstring.commit();
   }
 
-  /*
-  zoom_page_width(id: string): void {
-    console.log("TODO - zoom_page_width!", id);
+  fitToScreen(id: string): void {
+    this.set_frame_tree({ id, fitToScreen: true });
   }
 
-  zoom_page_height(id: string): void {
-    console.log("TODO - zoom_page_height!", id);
-  }*/
+  // define this, so icon shows up at top
+  zoom_page_width(id: string): void {
+    this.fitToScreen(id);
+  }
 }

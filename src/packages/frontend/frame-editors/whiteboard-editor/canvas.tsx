@@ -17,6 +17,7 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 
 import { Actions } from "./actions";
 import { uuid } from "@cocalc/util/misc";
+import { fontSizeToZoom, getPageSpan } from "./math";
 
 interface Props {
   elements: Element[];
@@ -26,6 +27,7 @@ interface Props {
   margin?: number;
   readOnly?: boolean;
   tool?: Tool;
+  fitToScreen?: boolean; // if set, compute data then set font_size to get zoom (plus offset) to everything is visible properly on the page; also set fitToScreen back to false in frame tree data
 }
 
 export default function Canvas({
@@ -35,13 +37,12 @@ export default function Canvas({
   margin,
   readOnly,
   selectedTool,
+  fitToScreen,
 }: Props) {
-  console.log({ focusedId });
   margin = margin ?? 1000;
   const canvasRef = useRef<any>(null);
   const innerCanvasRef = useRef<any>(null);
-  const canvasScale = font_size ? font_size / 14 : 1;
-  console.log("canvasScale=", canvasScale);
+  const canvasScale = fontSizeToZoom(font_size);
 
   useEffect(() => {
     const { current } = canvasRef;
@@ -53,9 +54,18 @@ export default function Canvas({
   }, []);
 
   const frame = useFrameContext();
+  const actions = frame.actions as Actions;
+
+  useEffect(() => {
+    if (fitToScreen) {
+      console.log("fitToScreen");
+      actions.set_frame_tree({ id: frame.id, fitToScreen: false });
+    }
+  }, [fitToScreen]);
 
   const v: ReactNode[] = [];
   const transforms = getTransforms(elements, margin);
+
   for (const element of elements) {
     const { id, x, y, z, scale, rotate } = element;
     if (x == null || y == null) continue; // invalid element!
@@ -116,8 +126,7 @@ export default function Canvas({
   }
 
   function handleClick(e) {
-    console.log("handleClick on main canvas");
-    const actions = frame.actions as Actions;
+    if (!frame.isFocused) return;
     if (selectedTool == "select") {
       if (e.target != innerCanvasRef.current) {
         // clicked on an element on the canvas; either stay selected or let
@@ -209,43 +218,21 @@ function getTransforms(
   // Returns functions to transform back and forth.
   // Just be really dumb for the first version.
 
-  let xmin, ymin, xmax, ymax;
-  if (elements.length == 0) {
-    xmin = ymin = xmax = ymax = 0;
-  } else {
-    xmin = xmax = elements[0].x ?? 0;
-    ymin = ymax = elements[0].y ?? 0;
-  }
-  for (let { x, y } of elements) {
-    if (x != null) {
-      if (x < xmin) {
-        xmin = x;
-      }
-      if (x > xmax) {
-        xmax = x;
-      }
-      if (y < ymin) {
-        ymin = y;
-      }
-      if (y > ymax) {
-        ymax = y;
-      }
-    }
-  }
-  xmin -= margin;
-  ymin -= margin;
-  xmax += margin;
-  ymax += margin;
+  let { xMin, yMin, xMax, yMax } = getPageSpan(elements);
+  xMin -= margin;
+  yMin -= margin;
+  xMax += margin;
+  yMax += margin;
   function dataToWindow(x, y) {
-    return { x: x - xmin, y: y - ymin };
+    return { x: x - xMin, y: y - yMin };
   }
   function windowToData(x, y) {
-    return { x: x + xmin, y: y + ymin };
+    return { x: x + xMin, y: y + yMin };
   }
   return {
     dataToWindow,
     windowToData,
-    width: xmax - xmin,
-    height: ymax - ymin,
+    width: xMax - xMin,
+    height: yMax - yMin,
   };
 }

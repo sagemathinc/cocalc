@@ -19,7 +19,6 @@ const whiteboardButtons = set([
   "decrease_font_size",
   "increase_font_size",
   "zoom_page_width",
-  "zoom_page_height",
   "save",
   "time_travel",
   "undo",
