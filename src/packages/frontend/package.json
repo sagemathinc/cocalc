@@ -54,6 +54,7 @@
     "@phosphor/widgets": "^1.9.3",
     "@react-hook/hover": "^4.0.0",
     "@types/pdfjs-dist": "^2.7.4",
+    "@use-gesture/react": "^10.2.4",
     "@zippytech/react-notify-resize": "^4.0.4",
     "ansi-to-react": "^6.0.10",
     "antd": "^4.18.2",

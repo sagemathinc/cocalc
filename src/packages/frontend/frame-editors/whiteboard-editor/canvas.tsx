@@ -18,6 +18,7 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { Actions } from "./actions";
 import { uuid } from "@cocalc/util/misc";
 import { fontSizeToZoom, getPageSpan } from "./math";
+import { usePinch } from "@use-gesture/react";
 
 interface Props {
   elements: Element[];
@@ -39,7 +40,7 @@ export default function Canvas({
   selectedTool,
   fitToScreen,
 }: Props) {
-  margin = margin ?? 1000;
+  margin = margin ?? 300;
   const canvasRef = useRef<any>(null);
   const innerCanvasRef = useRef<any>(null);
   const canvasScale = fontSizeToZoom(font_size);
@@ -166,6 +167,27 @@ export default function Canvas({
       actions.setFocusedElement(frame.id, id);
     }
   }
+
+  // This usePinch makes it so 2-finger pinch zoom gestures just modify the font
+  // size for the visible canvas, instead of zooming the whole page itself.
+  // I can't figure out how to get this to work in iPad, where it *does* modify
+  // the zoom, but annoyingly it also zooms the whole page. Changing the
+  // touch-action css on canvasRef can stop zooming the whole page on ipad,
+  // but then we don't get the pinch gesture either.
+  usePinch(
+    (state) => {
+      actions.set_font_size(
+        frame.id,
+        Math.min(
+          100,
+          Math.max(5, (font_size ?? 14) + (state.delta[0] < 0 ? -1 : 1))
+        )
+      );
+    },
+    {
+      target: canvasRef,
+    }
+  );
 
   return (
     <div

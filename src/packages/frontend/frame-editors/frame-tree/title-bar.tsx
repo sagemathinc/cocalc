@@ -764,7 +764,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return <ButtonGroup key={"height-width"}>{v}</ButtonGroup>;
     }
     if (v.length == 1) {
-      return <>{v}</>;
+      return <span key={"height-width"}>{v}</span>;
     }
   }
 
