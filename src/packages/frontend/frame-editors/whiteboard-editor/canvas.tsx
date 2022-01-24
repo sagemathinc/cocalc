@@ -158,11 +158,15 @@ export default function Canvas({
     const id = uuid().slice(0, 8); // todo -- need to avoid any possible conflict by regen until unique
 
     // this code needs to move to tool panel spec stuff...
-    if (selectedTool == "text" || selectedTool == "note") {
+    if (
+      selectedTool == "text" ||
+      selectedTool == "note" ||
+      selectedTool == "code"
+    ) {
       actions.set({
         id,
         ...data,
-        type: "markdown",
+        type: selectedTool,
         str: "",
       });
       actions.syncstring_commit();

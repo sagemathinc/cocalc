@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
-import { Markdown as StaticMarkdown } from "@cocalc/frontend/components";
+import { Markdown } from "@cocalc/frontend/components";
 import { Input, Popover } from "antd";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Actions } from "../actions";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Element } from "../types";
 
-export default function Markdown({ element, focused }) {
-  const [value, setValue] = useState<string>(element.str);
+interface Props {
+  element: Element;
+  focused?: boolean;
+}
+
+export default function Text({ element, focused }: Props) {
+  const [value, setValue] = useState<string>(element.str ?? "");
   const frame = useFrameContext();
 
   if (!focused) {
     return (
-      <StaticMarkdown
+      <Markdown
         value={element.str?.trim() ? element.str : "Type text"}
         style={!element.str?.trim() ? { color: "#aaa" } : undefined}
       />
@@ -20,7 +26,7 @@ export default function Markdown({ element, focused }) {
 
   useEffect(() => {
     // should really be a 3-way merge...
-    setValue(element.str);
+    setValue(element.str ?? "");
   }, [element.str]);
 
   return (
@@ -30,7 +36,6 @@ export default function Markdown({ element, focused }) {
         title={
           <>
             <Icon name="markdown" style={{ marginRight: "5px" }} /> Text
-            (Markdown)
           </>
         }
         content={() => (
@@ -53,8 +58,11 @@ export default function Markdown({ element, focused }) {
         )}
         trigger="click"
       >
-        <StaticMarkdown
-          style={!value?.trim() ? { color: "#aaa" } : undefined}
+        <Markdown
+          style={{
+            width: "400px",
+            ...(!value?.trim() ? { color: "#aaa" } : undefined),
+          }}
           value={value?.trim() ? value : "Type text"}
         />
       </Popover>

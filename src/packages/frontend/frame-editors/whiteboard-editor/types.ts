@@ -7,7 +7,16 @@ import { CSSProperties } from "react";
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
 
-export type ElementType = "point" | "markdown" | "code";
+export type ElementType =
+  | "text"
+  | "note"
+  | "code"
+  | "shape"
+  | "pen"
+  | "chat"
+  | "code"
+  | "terminal"
+  | "stopwatch";
 
 export type Point = { x: number; y: number };
 
