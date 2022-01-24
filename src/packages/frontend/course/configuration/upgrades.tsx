@@ -642,22 +642,25 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
 
   function render_remove_all_licenses() {
     return (
-      <Button
-        onClick={async () => {
-          try {
-            await get_actions().student_projects.remove_all_project_licenses();
-            alert_message({
-              type: "info",
-              message:
-                "Successfully removed all licenses from student projects.",
-            });
-          } catch (err) {
-            alert_message({ type: "error", message: `${err}` });
-          }
-        }}
-      >
-        Remove all licenses from student projects
-      </Button>
+      <>
+        <br />
+        <Button
+          onClick={async () => {
+            try {
+              await get_actions().student_projects.remove_all_project_licenses();
+              alert_message({
+                type: "info",
+                message:
+                  "Successfully removed all licenses from student projects.",
+              });
+            } catch (err) {
+              alert_message({ type: "error", message: `${err}` });
+            }
+          }}
+        >
+          Remove all licenses from student projects
+        </Button>
+      </>
     );
   }
 
@@ -686,7 +689,6 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
             </div>
           </>
         )}
-        <br />
         {n == 0 && render_remove_all_licenses()}
         <br />
         <ToggleUpgradingHostProject actions={actions} settings={settings} />
