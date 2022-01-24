@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { Actions, State } from "./actions";
@@ -6,6 +7,7 @@ import Canvas from "./canvas";
 import ToolPanel from "./tools/panel";
 import NavigationPanel from "./tools/navigation";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import Upload from "./tools/upload";
 
 interface Props {
   actions: Actions;
@@ -50,6 +52,7 @@ export default function Whiteboard({
   }
 
   const selectedTool = desc.get("selectedTool") ?? "select";
+  const evtToDataRef = useRef<Function | null>(null);
 
   return (
     <div className="smc-vfill" style={{ position: "relative" }}>
@@ -57,13 +60,18 @@ export default function Whiteboard({
         <ToolPanel selectedTool={desc.get("selectedTool") ?? "select"} />
       )}
       {isFocused && <NavigationPanel fontSize={font_size} />}
-      <Canvas
-        elements={x}
-        font_size={font_size}
-        focusedId={selectedTool == "select" ? desc.get("focusedId") : undefined}
-        selectedTool={selectedTool}
-        fitToScreen={desc.get("fitToScreen")}
-      />
+      <Upload evtToDataRef={evtToDataRef}>
+        <Canvas
+          elements={x}
+          font_size={font_size}
+          focusedId={
+            selectedTool == "select" ? desc.get("focusedId") : undefined
+          }
+          selectedTool={selectedTool}
+          fitToScreen={desc.get("fitToScreen")}
+          evtToDataRef={evtToDataRef}
+        />
+      </Upload>
     </div>
   );
 }

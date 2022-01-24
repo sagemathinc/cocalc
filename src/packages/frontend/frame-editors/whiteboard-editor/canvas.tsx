@@ -6,7 +6,7 @@ This is NOT an HTML5 canvas.  It has nothing do with that.   We define
 "the whiteboard" as everything -- the controls, settings, etc. -- and
 the canvas as the area where the actual drawing appears.
 */
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, MutableRefObject, useEffect, useRef } from "react";
 import { Element } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
@@ -17,7 +17,6 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 
 import { Actions } from "./actions";
-import { uuid } from "@cocalc/util/misc";
 import { fontSizeToZoom, getPageSpan } from "./math";
 
 interface Props {
@@ -29,6 +28,7 @@ interface Props {
   readOnly?: boolean;
   tool?: Tool;
   fitToScreen?: boolean; // if set, compute data then set font_size to get zoom (plus offset) to everything is visible properly on the page; also set fitToScreen back to false in frame tree data
+  evtToDataRef?: MutableRefObject<Function | null>;
 }
 
 export default function Canvas({
@@ -39,6 +39,7 @@ export default function Canvas({
   readOnly,
   selectedTool,
   fitToScreen,
+  evtToDataRef,
 }: Props) {
   margin = margin ?? 300;
 
@@ -129,6 +130,23 @@ export default function Canvas({
     );
   }
 
+  // convert mouse event to coordinates in data space
+  function evtToData(e): { x: number; y: number } {
+    const { clientX, clientY } = e;
+    const c = canvasRef.current;
+    if (c == null) return { x: 0, y: 0 };
+    const rect = c.getBoundingClientRect();
+    if (rect == null) return { x: 0, y: 0 };
+    // Coordinates inside the canvas div.
+    const divX = c.scrollLeft + clientX - rect.left;
+    const divY = c.scrollTop + clientY - rect.top;
+    return transforms.windowToData(divX / canvasScale, divY / canvasScale);
+  }
+  if (evtToDataRef != null) {
+    // share with outside world
+    evtToDataRef.current = evtToData;
+  }
+
   function handleClick(e) {
     if (!frame.isFocused) return;
     if (selectedTool == "select") {
@@ -142,20 +160,7 @@ export default function Canvas({
         actions.setFocusedElement(frame.id, "");
       }
     }
-    const { clientX, clientY } = e;
-    const c = canvasRef.current;
-    if (c == null) return;
-    const rect = c.getBoundingClientRect();
-    if (rect == null) return;
-    // Coordinates inside the canvas div.
-    const divX = c.scrollLeft + clientX - rect.left;
-    const divY = c.scrollTop + clientY - rect.top;
-    const data = transforms.windowToData(
-      divX / canvasScale,
-      divY / canvasScale
-    );
-
-    const id = uuid().slice(0, 8); // todo -- need to avoid any possible conflict by regen until unique
+    const data = evtToData(e);
 
     // this code needs to move to tool panel spec stuff...
     if (
@@ -163,13 +168,14 @@ export default function Canvas({
       selectedTool == "note" ||
       selectedTool == "code"
     ) {
-      actions.set({
-        id,
-        ...data,
-        type: selectedTool,
-        str: "",
-      });
-      actions.syncstring_commit();
+      const { id } = actions.createElement(
+        {
+          ...data,
+          type: selectedTool,
+          str: "",
+        },
+        true
+      );
       actions.setSelectedTool(frame.id, "select");
       actions.setFocusedElement(frame.id, id);
     }
@@ -191,7 +197,10 @@ export default function Canvas({
         <div
           ref={innerCanvasRef}
           style={{
-            cursor: selectedTool ? TOOLS[selectedTool]?.cursor : "default",
+            cursor:
+              frame.isFocused && selectedTool
+                ? TOOLS[selectedTool]?.cursor
+                : "default",
             backgroundPosition:
               "-1.5px -1.5px, -1.5px -1.5px, -1px -1px, -1px -1px",
             backgroundSize: "100px 100px, 100px 100px, 20px 20px, 20px 20px",

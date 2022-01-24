@@ -30,7 +30,6 @@ export default function EditBar({ elements }: Props) {
           <Button
             type="text"
             onClick={() => {
-              console.log("delete ", elements);
               for (const { id } of elements) {
                 (actions as Actions).delete(id);
               }

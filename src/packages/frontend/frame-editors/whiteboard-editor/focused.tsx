@@ -88,7 +88,6 @@ export default function Focused({ children, scale, canvasScale, element }) {
         x: start.x + data.x * (canvasScale * Math.max(1, scale)),
         y: start.y + data.y * (canvasScale * Math.max(1, scale)),
       };
-      console.log(JSON.stringify({ start, stop }));
       return getAngle(stop) - getAngle(start);
     }
     return (
@@ -105,8 +104,7 @@ export default function Focused({ children, scale, canvasScale, element }) {
           const actions = frame.actions as Actions;
           setTimeout(() => {
             setRotating(undefined);
-            actions.set({ id, rotate: parseFloat(rotate ?? 0) + angle });
-            actions.syncstring_commit();
+            actions.setElement({ id, rotate: parseFloat(rotate ?? 0) + angle });
           }, 0);
         }}
       >
@@ -137,8 +135,7 @@ export default function Focused({ children, scale, canvasScale, element }) {
         const x = element.x + data.x * scale;
         const y = element.y + data.y * scale;
         const actions = frame.actions as Actions;
-        actions.set({ id, x, y });
-        actions.syncstring_commit();
+        actions.setElement({ id, x, y });
       }}
     >
       <div

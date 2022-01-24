@@ -5,6 +5,7 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { Actions } from "../actions";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Element } from "../types";
+import { path_split } from "@cocalc/util/misc";
 
 interface Props {
   element: Element;
@@ -18,6 +19,8 @@ export default function Text({ element, focused }: Props) {
   if (!focused) {
     return (
       <Markdown
+        project_id={frame.project_id}
+        file_path={path_split(frame.path).head}
         value={element.str?.trim() ? element.str : "Type text"}
         style={!element.str?.trim() ? { color: "#aaa" } : undefined}
       />
@@ -39,7 +42,7 @@ export default function Text({ element, focused }: Props) {
           </>
         }
         content={() => (
-          <div style={{ width: "600px", maxWidth: "70vw" }}>
+          <div style={{ width: "600px", maxWidth: "70vw" }} className="nodrag">
             <Input.TextArea
               autoFocus
               value={value}
@@ -50,8 +53,7 @@ export default function Text({ element, focused }: Props) {
               }}
               onBlur={() => {
                 const actions = frame.actions as Actions;
-                actions.set({ id: element.id, str: value });
-                actions.syncstring_commit();
+                actions.setElement({ id: element.id, str: value });
               }}
             />
           </div>
@@ -59,6 +61,8 @@ export default function Text({ element, focused }: Props) {
         trigger="click"
       >
         <Markdown
+          project_id={frame.project_id}
+          file_path={path_split(frame.path).head}
           style={{
             width: "400px",
             ...(!value?.trim() ? { color: "#aaa" } : undefined),

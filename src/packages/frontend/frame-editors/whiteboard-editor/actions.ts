@@ -15,6 +15,7 @@ import {
 } from "../code-editor/actions";
 import { Tool } from "./tools/spec";
 import { Element, Elements } from "./types";
+import { uuid } from "@cocalc/util/misc";
 
 export interface State extends CodeEditorState {
   elements: Elements;
@@ -30,7 +31,6 @@ export class Actions extends BaseActions<State> {
   }
 
   _init2(): void {
-    window.a = this;
     this.setState({ elements: Map({}) });
 
     this._syncstring.on("change", (keys) => {
@@ -50,8 +50,21 @@ export class Actions extends BaseActions<State> {
     });
   }
 
-  set(obj: Partial<Element>): void {
+  setElement(obj: Partial<Element>, commit: boolean = true): void {
     this._syncstring.set(obj);
+    if (commit) {
+      this.syncstring_commit();
+    }
+  }
+
+  createElement(obj: Partial<Element>, commit: boolean = true): Element {
+    if (obj.id == null) {
+      // todo -- need to avoid any possible conflict by regen until unique
+      const id = uuid().slice(0, 8);
+      obj = { id, ...obj };
+    }
+    this.setElement(obj, commit);
+    return obj as Element;
   }
 
   delete(id: string): void {

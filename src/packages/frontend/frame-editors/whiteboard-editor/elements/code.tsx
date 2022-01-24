@@ -37,8 +37,7 @@ export default function Code({ element, focused }: Props) {
       }}
       onBlur={() => {
         const actions = frame.actions as Actions;
-        actions.set({ id: element.id, str: value });
-        actions.syncstring_commit();
+        actions.setElement({ id: element.id, str: value });
       }}
     />
   );

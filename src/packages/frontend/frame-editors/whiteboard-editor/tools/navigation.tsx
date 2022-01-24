@@ -70,7 +70,7 @@ export default function Navigation({ fontSize }) {
         display: "flex",
         flexDirection: "column",
         right: 0,
-        top: 0,
+        bottom: 0,
       }}
     >
       <div style={{ display: "flex" }}>{v}</div>
