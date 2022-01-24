@@ -518,7 +518,7 @@ export class Actions<
     let local_view_state;
     const x = get_local_storage(this.name);
     if (x != null) {
-      local_view_state = fromJS(JSON.parse(x));
+      local_view_state = typeof x === "string" ? fromJS(JSON.parse(x)) : x;
     }
     if (local_view_state == null) {
       local_view_state = Map();

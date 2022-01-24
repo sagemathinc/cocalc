@@ -10,10 +10,10 @@
 // tests at startup if localStorage exists and works. if not or disabled, uses memory as a fallback.
 
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { LS } from "./local-storage"
+import { LS } from "./local-storage";
 
-if (!LS.localStorageWorks()) {
-  console.warn(`Local Storage not vailable -- using memory fallback`);
+if (!LS.localStorageIsAvailable()) {
+  console.warn(`Local Storage not available -- using memory fallback`);
   window["cocalc_LS_memory"] = LS.getLocalStorage();
 }
 
@@ -51,7 +51,7 @@ export function del<T>(keys: Keys): T | undefined {
 export function set<T>(keys: Keys, value: T): boolean {
   const key = make_key(keys);
   try {
-    LS.set(key,  JSON.stringify(value))
+    LS.set(key, JSON.stringify(value));
     return true;
   } catch (e) {
     console.warn(`localStorage set("${key}"): ${e}`);
@@ -64,7 +64,11 @@ export function get<T>(keys: Keys): T | undefined {
   try {
     const val = LS.get(key);
     if (val != null) {
-      return JSON.parse(val);
+      if (typeof val === "string") {
+        return JSON.parse(val);
+      } else {
+        return val as unknown as T;
+      }
     } else {
       return undefined;
     }

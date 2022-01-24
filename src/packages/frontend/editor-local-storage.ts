@@ -73,7 +73,11 @@ export function local_storage(
         if (x == null) {
           return x;
         } else {
-          return from_json(x);
+          if (typeof x === "string") {
+            return from_json(x);
+          } else {
+            return x;
+          }
         }
       }
     } else {

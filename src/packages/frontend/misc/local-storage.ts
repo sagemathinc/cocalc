@@ -36,7 +36,7 @@ export function set_local_storage(key: string, val: string): void {
   LS.set(key, val);
 }
 
-export function get_local_storage(key: string): string | null {
+export function get_local_storage(key: string): string | object | null {
   return LS.get(key);
 }
 
@@ -45,7 +45,7 @@ export function delete_local_storage(key: string): void {
 }
 
 export function has_local_storage(): boolean {
-  return LS.localStorageWorks();
+  return LS.localStorageIsAvailable();
 }
 
 export function local_storage_length(): number {

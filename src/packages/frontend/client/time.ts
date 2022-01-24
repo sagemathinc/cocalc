@@ -5,7 +5,10 @@
 
 import { delay } from "awaiting";
 
-import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc/local-storage";
+import {
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
 import * as message from "@cocalc/util/message";
 
 export class TimeClient {
@@ -112,7 +115,7 @@ export class TimeClient {
     if (this.clock_skew_ms == null) {
       const x = get_local_storage("clock_skew");
       if (x != null) {
-        this.clock_skew_ms = parseFloat(x);
+        this.clock_skew_ms = typeof x === "string" ? parseFloat(x) : 0;
       }
     }
     if (this.clock_skew_ms != null) {

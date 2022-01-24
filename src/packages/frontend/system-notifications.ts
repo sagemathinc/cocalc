@@ -73,7 +73,7 @@ class NotificationsTable extends Table {
     const t = get_local_storage("system_notifications");
     let s;
     if (t != null) {
-      s = from_json(t);
+      s = typeof t === "string" ? from_json(t) : t;
     } else {
       s = {};
     }

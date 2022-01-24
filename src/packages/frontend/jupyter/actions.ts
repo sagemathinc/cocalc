@@ -1455,14 +1455,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   set_local_storage = (key, value) => {
     if (localStorage == null) return;
-    let current_str = get_local_storage(this.name)
-    const current = current_str != null ? misc.from_json(current_str) : {};
+    let current_str = get_local_storage(this.name);
+    const current =
+      current_str != null
+        ? typeof current_str === "string"
+          ? misc.from_json(current_str)
+          : current_str
+        : {};
     if (value === null) {
       delete current[key];
     } else {
       current[key] = value;
     }
-    set_local_storage( this.name,  misc.to_json(current))
+    set_local_storage(this.name, misc.to_json(current));
   };
 
   // File --> Open: just show the file listing page.

@@ -194,7 +194,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     const value = get_local_storage(this.name);
     if (value != null) {
       try {
-        const x = from_json(value);
+        const x = typeof value === "string" ? from_json(value) : value;
         if (x != null) {
           return x[key];
         }
