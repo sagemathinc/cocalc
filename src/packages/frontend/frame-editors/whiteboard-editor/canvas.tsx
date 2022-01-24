@@ -79,7 +79,7 @@ export default function Canvas({
     if (element.style || focused) {
       elt = (
         <div
-          className={focused ? "body" : undefined}
+          className={focused ? "nodrag" : undefined}
           style={{
             ...element.style,
             ...(focused

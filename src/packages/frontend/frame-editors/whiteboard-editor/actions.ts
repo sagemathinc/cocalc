@@ -54,6 +54,10 @@ export class Actions extends BaseActions<State> {
     this._syncstring.set(obj);
   }
 
+  delete(id: string): void {
+    this._syncstring.delete({ id });
+  }
+
   public setFocusedElement(frameId: string, focusedId: string): void {
     const node = this._get_frame_node(frameId);
     if (node == null) return;

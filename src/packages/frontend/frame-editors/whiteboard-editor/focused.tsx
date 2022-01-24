@@ -13,6 +13,7 @@ import { getAngle } from "./math";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Actions } from "./actions";
+import EditBar from "./tools/edit-bar";
 
 const padding = 30;
 const thickness = 2;
@@ -110,7 +111,7 @@ export default function Focused({ children, scale, canvasScale, element }) {
         }}
       >
         <Icon
-          className="body"
+          className="nodrag"
           style={{
             color: "#888",
             background: "white",
@@ -128,7 +129,7 @@ export default function Focused({ children, scale, canvasScale, element }) {
 
   return (
     <Draggable
-      cancel={".body"}
+      cancel={".nodrag"}
       position={{ x: 0, y: 0 }}
       scale={canvasScale * scale}
       onStop={(_, data) => {
@@ -157,6 +158,16 @@ export default function Focused({ children, scale, canvasScale, element }) {
           <DragHandle bottom left cursor="nesw-resize" />
           <DragHandle bottom right cursor="nwse-resize" />
           {RotateControl}
+          <div
+            className="nodrag"
+            style={{
+              position: "absolute",
+              bottom: `-${(4 * baseCircleSize) / scale}px`,
+              right: `-${(4 * baseCircleSize) / scale}px`,
+            }}
+          >
+            <EditBar elements={[element]} />
+          </div>
           <div
             style={{
               ...(rotating
