@@ -18,6 +18,7 @@ export default function NotFocused({
   const frame = useFrameContext();
   return (
     <div
+      style={{ width: "100%", height: "100%" }}
       onClick={
         !readOnly && selectable
           ? (e) => {

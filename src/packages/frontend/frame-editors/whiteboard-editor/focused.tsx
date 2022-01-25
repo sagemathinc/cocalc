@@ -9,11 +9,12 @@ things to fix that later.
 
 import { CSSProperties, useMemo, useRef, useState } from "react";
 import Draggable from "react-draggable";
-import { getAngle } from "./math";
+import { getAngle, DEFAULT_WIDTH, DEFAULT_HEIGHT } from "./math";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Actions } from "./actions";
 import EditBar from "./tools/edit-bar";
+import { delay } from "awaiting";
 
 const thickness = 5;
 const color = "#40a9ff";
@@ -56,13 +57,22 @@ export default function Focused({ children, canvasScale, element }) {
       <Draggable
         scale={canvasScale}
         onStart={(_, data) => {
-          console.log("start drag", data);
+          //console.log("start drag", data);
         }}
         onDrag={(_, data) => {
-          console.log("drag", data);
+          //console.log("drag", data);
         }}
-        onStop={(_, data) => {
-          console.log("stop drag", data);
+        onStop={async (_, data) => {
+          const actions = frame.actions as Actions;
+          if (bottom && right) {
+            // actually do something
+            await delay(0);
+            actions.setElement({
+              id: element.id,
+              w: (element.w ?? DEFAULT_WIDTH) + data.x,
+              h: (element.h ?? DEFAULT_HEIGHT) + data.y,
+            });
+          }
         }}
       >
         <Icon className="nodrag" style={style} name="square" />
@@ -96,15 +106,14 @@ export default function Focused({ children, canvasScale, element }) {
         onDrag={(_, data) => {
           setRotating(computeAngle(data));
         }}
-        onStop={(_, data) => {
+        onStop={async (_, data) => {
           const angle = computeAngle(data);
           if (angle == null) return;
           const { id, rotate } = element;
+          await delay(0);
           const actions = frame.actions as Actions;
-          setTimeout(() => {
-            setRotating(undefined);
-            actions.setElement({ id, rotate: parseFloat(rotate ?? 0) + angle });
-          }, 0);
+          setRotating(undefined);
+          actions.setElement({ id, rotate: parseFloat(rotate ?? 0) + angle });
         }}
       >
         <Icon
@@ -145,9 +154,11 @@ export default function Focused({ children, canvasScale, element }) {
           border: `${thickness}px dashed ${color}`,
           marginLeft: `${-thickness}px`, // to offse padding, so object
           marginTop: `${-thickness}px`, // doesn't appear to move when selected
+          width: "100%",
+          height: "100%",
         }}
       >
-        <div>
+        <div style={{ width: "100%", height: "100%" }}>
           <DragHandle top left cursor="nwse-resize" />
           <DragHandle top right cursor="nesw-resize" />
           <DragHandle bottom left cursor="nesw-resize" />
@@ -171,6 +182,8 @@ export default function Focused({ children, canvasScale, element }) {
                     transformOrigin: "center",
                   }
                 : undefined),
+              width: "100%",
+              height: "100%",
             }}
           >
             {children}

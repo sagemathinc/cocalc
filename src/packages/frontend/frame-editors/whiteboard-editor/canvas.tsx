@@ -98,6 +98,8 @@ export default function Canvas({
                   marginTop: "-1px",
                 }
               : undefined),
+            width: "100%",
+            height: "100%",
           }}
         >
           {elt}
@@ -112,6 +114,8 @@ export default function Canvas({
               typeof rotate != "number" ? parseFloat(rotate) : rotate
             }rad)`,
             transformOrigin: "center",
+            width: "100%",
+            height: "100%",
           }}
         >
           {elt}

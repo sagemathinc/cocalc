@@ -17,7 +17,7 @@ export default function Code({ element, focused }: Props) {
   if (!focused) {
     const val =
       "```py\n" + (element.str?.trim() ? element.str : "Type code") + "\n```";
-    return <Markdown value={val} />;
+    return <Markdown value={val} style={{ width: "100%", height: "100%" }} />;
   }
 
   useEffect(() => {
