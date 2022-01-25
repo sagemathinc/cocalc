@@ -19,8 +19,8 @@ import { UpgradeGoal } from "../types";
 import { run_in_all_projects, Result } from "./run-in-all-projects";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
+import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
 
-export const RESEND_INVITE_INTERVAL_DAYS = 1
 export const RESEND_INVITE_BEFORE = days_ago(RESEND_INVITE_INTERVAL_DAYS);
 export class StudentProjectsActions {
   private course_actions: CourseActions;
