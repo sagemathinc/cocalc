@@ -80,7 +80,7 @@ export default function Canvas({
   const transforms = getTransforms(elements, margin, canvasScale);
 
   for (const element of elements) {
-    const { id, x, y, z, w, h, scale, rotate } = element;
+    const { id, x, y, z, w, h, rotate } = element;
     if (x == null || y == null) continue; // invalid element!
     const t = transforms.dataToWindow(x, y);
     const focused = id == focusedId;
@@ -88,7 +88,6 @@ export default function Canvas({
     if (element.style || focused) {
       elt = (
         <div
-          className={focused ? "nodrag" : undefined}
           style={{
             ...element.style,
             ...(focused
@@ -127,10 +126,9 @@ export default function Canvas({
         z={z}
         w={w ?? DEFAULT_WIDTH}
         h={h ?? DEFAULT_HEIGHT}
-        scale={scale}
       >
         {focused ? (
-          <Focused scale={scale} canvasScale={canvasScale} element={element}>
+          <Focused canvasScale={canvasScale} element={element}>
             {elt}
           </Focused>
         ) : (

@@ -1,6 +1,6 @@
 import { CSSProperties } from "react";
 
-export default function Position({ children, x, y, z, w, h, scale }) {
+export default function Position({ children, x, y, z, w, h }) {
   const style: CSSProperties = {
     left: x,
     top: y,
@@ -9,14 +9,5 @@ export default function Position({ children, x, y, z, w, h, scale }) {
     position: "absolute",
     zIndex: z,
   };
-  let transform = "";
-  if (scale) {
-    transform += ` scale(${scale}) `;
-  }
-  if (transform) {
-    style.transformOrigin = "top left";
-    style.transform = transform;
-  }
-
   return <div style={style}>{children}</div>;
 }

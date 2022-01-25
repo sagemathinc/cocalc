@@ -27,6 +27,7 @@ export default function Code({ element, focused }: Props) {
 
   return (
     <Input.TextArea
+      className="nodrag"
       placeholder="Type code"
       autoFocus
       value={value}

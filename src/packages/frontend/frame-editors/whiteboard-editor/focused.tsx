@@ -144,9 +144,8 @@ export default function Focused({ children, scale, canvasScale, element }) {
           cursor: "grab",
           position: "relative",
           border: `${thickness / scale}px dashed ${color}`,
-          padding: `${padding / scale}px`,
-          marginLeft: `${(-padding - thickness) / scale}px`, // to offset border and padding, so object
-          marginTop: `${(-padding - thickness) / scale}px`, // doesn't appear to move when selected
+          marginLeft: `${-thickness / scale}px`, // to offse padding, so object
+          marginTop: `${-thickness / scale}px`, // doesn't appear to move when selected
         }}
       >
         <div>
