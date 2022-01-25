@@ -157,6 +157,7 @@ import {
   VideoCameraOutlined,
   WarningOutlined,
   WifiOutlined,
+  MailOutlined,
 } from "@ant-design/icons";
 
 const IconSpec = {
@@ -331,9 +332,10 @@ const IconSpec = {
   "list-ul": UnorderedListOutlined,
   "list-alt": UnorderedListOutlined,
   "list-ol": OrderedListOutlined,
-  lock: LockFilled,
   "lock-open": UnlockFilled,
+  lock: LockFilled,
   magic: { IconFont: "magic" },
+  mail: MailOutlined,
   markdown: { IconFont: "markdown" },
   mask: { IconFont: "mask" },
   medkit: MedicineBoxOutlined,

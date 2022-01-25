@@ -20,6 +20,8 @@ import { run_in_all_projects, Result } from "./run-in-all-projects";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/compute-images";
 import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 
+export const RESEND_INVITE_INTERVAL_DAYS = 1
+export const RESEND_INVITE_BEFORE = days_ago(RESEND_INVITE_INTERVAL_DAYS);
 export class StudentProjectsActions {
   private course_actions: CourseActions;
 
@@ -92,7 +94,7 @@ export class StudentProjectsActions {
   }
 
   // if student is an email address, invite via email – otherwise, if account_id, invite via standard collaborator invite
-  private async invite_student_to_project(props: {
+  public async invite_student_to_project(props: {
     student_id: string;
     student: string; // could be account_id or email_address
     student_project_id?: string;
@@ -618,7 +620,10 @@ export class StudentProjectsActions {
           desc: `Progress ${Math.round((100 * i) / ids.length)}%...`,
         });
         const last_email_invite = student.get("last_email_invite");
-        if (!last_email_invite || new Date(last_email_invite) < days_ago(1)) {
+        if (
+          !last_email_invite ||
+          new Date(last_email_invite) < RESEND_INVITE_BEFORE
+        ) {
           await this.invite_student_to_project({
             student_id,
             student: student.get("email_address"),

@@ -5,7 +5,7 @@
 
 // CoCalc libraries
 import { webapp_client } from "../../webapp-client";
-import { contains_url, days_ago } from "@cocalc/util/misc";
+import { contains_url, days_ago, plural } from "@cocalc/util/misc";
 import { debounce } from "lodash";
 // React libraries and Components
 import {
@@ -56,6 +56,7 @@ import { DatastoreConfig } from "./datastore-config";
 import EmptyTrash from "./empty-trash";
 import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import { EnvironmentVariablesConfig } from "./envvars-config";
+import { RESEND_INVITE_INTERVAL_DAYS } from "../student-projects/actions";
 
 const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
@@ -291,8 +292,9 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             </>
           }
         >
-          Send yet another email to all those students, who didn't sign up yet
-          (max. once per day).
+          Send yet another email to all those students, who didn't sign up yet.
+          Maximum one email every {RESEND_INVITE_INTERVAL_DAYS}{" "}
+          {plural(RESEND_INVITE_INTERVAL_DAYS, "day")} is sent out.
           <hr />
           <Button
             disabled={reinviting_students}
@@ -301,7 +303,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             }}
           >
             {reinviting_students ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
-            Reinvite outstanding students
+            Reinvite students
           </Button>
         </Card>
       );
