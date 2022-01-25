@@ -15,19 +15,17 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { Actions } from "./actions";
 import EditBar from "./tools/edit-bar";
 
-const padding = 30;
-const thickness = 2;
+const thickness = 5;
 const color = "#40a9ff";
 const baseCircleSize = 14;
 const circleColor = "#888";
 
-export default function Focused({ children, scale, canvasScale, element }) {
+export default function Focused({ children, canvasScale, element }) {
   const frame = useFrameContext();
   const rectRef = useRef<any>(null);
   const [rotating, setRotating] = useState<number | undefined>(undefined);
-  scale = scale ?? 1;
-  const circleSize = `${baseCircleSize / scale}px`;
-  const circleOffset = `-${baseCircleSize / scale / 2}px`;
+  const circleSize = `${baseCircleSize}px`;
+  const circleOffset = `-${baseCircleSize / 2}px`;
 
   function DragHandle({
     top,
@@ -48,6 +46,7 @@ export default function Focused({ children, scale, canvasScale, element }) {
       background: "white",
       color: circleColor,
       fontSize: circleSize,
+      zIndex: 1000,
     } as CSSProperties;
     if (top) style.top = circleOffset;
     if (left) style.left = circleOffset;
@@ -55,7 +54,7 @@ export default function Focused({ children, scale, canvasScale, element }) {
     if (right) style.right = circleOffset;
     return (
       <Draggable
-        scale={canvasScale * scale}
+        scale={canvasScale}
         onStart={(_, data) => {
           console.log("start drag", data);
         }}
@@ -79,21 +78,21 @@ export default function Focused({ children, scale, canvasScale, element }) {
       const rect = rectRef.current;
       if (!rect) return;
       const { height, width } = rect.getBoundingClientRect();
-      const s = canvasScale * scale;
+      const s = canvasScale;
       const start = {
         x: -(4 * baseCircleSize) / s - width / 2,
         y: (4 * baseCircleSize) / s + height / 2,
       };
       const stop = {
-        x: start.x + data.x * (canvasScale * Math.max(1, scale)),
-        y: start.y + data.y * (canvasScale * Math.max(1, scale)),
+        x: start.x + data.x * canvasScale,
+        y: start.y + data.y * canvasScale,
       };
       return getAngle(stop) - getAngle(start);
     }
     return (
       <Draggable
         position={{ x: 0, y: 0 }}
-        scale={canvasScale * scale}
+        scale={canvasScale}
         onDrag={(_, data) => {
           setRotating(computeAngle(data));
         }}
@@ -113,11 +112,11 @@ export default function Focused({ children, scale, canvasScale, element }) {
           style={{
             color: "#888",
             background: "white",
-            fontSize: `${24 / scale}px`,
+            fontSize: "24px",
             cursor: "grab",
             position: "absolute",
-            bottom: `-${(4 * baseCircleSize) / scale}px`,
-            left: `-${(4 * baseCircleSize) / scale}px`,
+            bottom: `-${4 * baseCircleSize}px`,
+            left: `-${4 * baseCircleSize}px`,
           }}
           name="reload"
         />
@@ -129,11 +128,11 @@ export default function Focused({ children, scale, canvasScale, element }) {
     <Draggable
       cancel={".nodrag"}
       position={{ x: 0, y: 0 }}
-      scale={canvasScale * scale}
+      scale={canvasScale}
       onStop={(_, data) => {
         const { id } = element;
-        const x = element.x + data.x * scale;
-        const y = element.y + data.y * scale;
+        const x = element.x + data.x;
+        const y = element.y + data.y;
         const actions = frame.actions as Actions;
         actions.setElement({ id, x, y });
       }}
@@ -143,9 +142,9 @@ export default function Focused({ children, scale, canvasScale, element }) {
         style={{
           cursor: "grab",
           position: "relative",
-          border: `${thickness / scale}px dashed ${color}`,
-          marginLeft: `${-thickness / scale}px`, // to offse padding, so object
-          marginTop: `${-thickness / scale}px`, // doesn't appear to move when selected
+          border: `${thickness}px dashed ${color}`,
+          marginLeft: `${-thickness}px`, // to offse padding, so object
+          marginTop: `${-thickness}px`, // doesn't appear to move when selected
         }}
       >
         <div>
@@ -158,8 +157,8 @@ export default function Focused({ children, scale, canvasScale, element }) {
             className="nodrag"
             style={{
               position: "absolute",
-              bottom: `-${(4 * baseCircleSize) / scale}px`,
-              right: `-${(4 * baseCircleSize) / scale}px`,
+              bottom: `-${4 * baseCircleSize}px`,
+              right: `-${4 * baseCircleSize}px`,
             }}
           >
             <EditBar elements={[element]} />

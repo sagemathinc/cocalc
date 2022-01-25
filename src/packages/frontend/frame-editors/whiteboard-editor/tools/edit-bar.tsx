@@ -21,8 +21,6 @@ export default function EditBar({ elements }: Props) {
         ...PANEL_STYLE,
         display: "flex",
         flexDirection: "column",
-        right: 0,
-        bottom: 0,
       }}
     >
       <div style={{ display: "flex" }}>

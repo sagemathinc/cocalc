@@ -82,7 +82,7 @@ export default function Canvas({
   for (const element of elements) {
     const { id, x, y, z, w, h, rotate } = element;
     if (x == null || y == null) continue; // invalid element!
-    const t = transforms.dataToWindow(x, y);
+    const t = transforms.dataToWindow(x, y, z);
     const focused = id == focusedId;
     let elt = <RenderElement element={element} focused={focused} />;
     if (element.style || focused) {
@@ -123,7 +123,7 @@ export default function Canvas({
         key={id}
         x={t.x}
         y={t.y}
-        z={z}
+        z={t.z}
         w={w ?? DEFAULT_WIDTH}
         h={h ?? DEFAULT_HEIGHT}
       >
@@ -232,31 +232,57 @@ function getTransforms(
   margin,
   scale
 ): {
-  dataToWindow: (x: number, y: number) => { x: number; y: number };
-  windowToData: (x: number, y: number) => { x: number; y: number };
+  dataToWindow: (
+    x: number,
+    y: number,
+    z?: number
+  ) => { x: number; y: number; z: number };
+  windowToData: (
+    x: number,
+    y: number,
+    z?: number
+  ) => { x: number; y: number; z: number };
   width: number;
   height: number;
   xMin: number;
   xMax: number;
   yMin: number;
   yMax: number;
+  zMin: number;
+  zMax: number;
+  zScale: number;
   scale: number;
 } {
-  // Consider the x and y coordinates of all elements, which could be anywhere in the "infinite canvas",
-  // Then transform to a rectangle (0,0) --> (width,height), along with a health margin.
-  // Returns functions to transform back and forth.
-  // Just be really dumb for the first version.
+  /*
+  Consider the x and y coordinates of all elements, which could be anywhere in the "infinite canvas",
+  Then transform to a rectangle (0,0) --> (width,height), along with a health margin.
+  Returns functions to transform back and forth.
+  Just be really dumb for the first version.
 
-  let { xMin, yMin, xMax, yMax } = getPageSpan(elements);
+  We also scale the zIndex z values of object to be in the closed
+  interval [0,100], so we can confidently place UI elements, etc.
+  */
+
+  let { xMin, yMin, xMax, yMax, zMin, zMax } = getPageSpan(elements);
   xMin -= margin;
   yMin -= margin;
   xMax += margin;
   yMax += margin;
-  function dataToWindow(x, y) {
-    return { x: x - xMin, y: y - yMin };
+
+  const zScale: number = zMin == zMax ? 1 : 100 / (zMax - zMin);
+  function dataToWindow(x, y, z?) {
+    return {
+      x: (x ?? 0) - xMin,
+      y: (y ?? 0) - yMin,
+      z: ((z ?? 0) - zMin) * zScale,
+    };
   }
-  function windowToData(x, y) {
-    return { x: x + xMin, y: y + yMin };
+  function windowToData(x, y, z?) {
+    return {
+      x: (x ?? 0) + xMin,
+      y: (y ?? 0) + yMin,
+      z: (z ?? 0) / zScale + zMin,
+    };
   }
   return {
     dataToWindow,
@@ -267,6 +293,9 @@ function getTransforms(
     yMin,
     xMax,
     yMax,
+    zMin,
+    zMax,
+    zScale,
     scale,
   };
 }
