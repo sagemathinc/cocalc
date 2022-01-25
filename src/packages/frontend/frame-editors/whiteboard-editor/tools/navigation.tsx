@@ -17,8 +17,16 @@ import { Actions } from "../actions";
 import { PANEL_STYLE } from "./panel";
 
 const TOOLS = {
+  map: {
+    width: "40px",
+    icon: "sitemap" /* todo */,
+    tip: "Toggle map",
+    click: (actions, id) => {
+      actions.toggleMap(id);
+    },
+  },
   fit: {
-    width: "30px",
+    width: "40px",
     icon: "ColumnWidthOutlined",
     tip: "Fit to screen",
     click: (actions, id) => {
@@ -26,7 +34,7 @@ const TOOLS = {
     },
   },
   zoomOut: {
-    width: "30px",
+    width: "40px",
     icon: "search-minus",
     tip: "Zoom out",
     click: (actions, id) => {
@@ -34,7 +42,7 @@ const TOOLS = {
     },
   },
   zoomIn: {
-    width: "30px",
+    width: "40px",
     icon: "search-plus",
     tip: "Zoom in",
     click: (actions, id) => {
@@ -58,7 +66,10 @@ const TOOLS = {
   };
 };
 
+const WIDTH = "250px";
+
 export default function Navigation({ fontSize }) {
+  const { desc } = useFrameContext();
   const v: ReactNode[] = [];
   for (const tool in TOOLS) {
     v.push(<Tool key={tool} tool={tool} fontSize={fontSize} />);
@@ -71,10 +82,11 @@ export default function Navigation({ fontSize }) {
         flexDirection: "column",
         right: 0,
         bottom: 0,
+        width: WIDTH,
       }}
     >
-      <div style={{ display: "flex" }}>{v}</div>
-      <Overview />
+      {!desc.get("hideMap") && <Overview />}
+      <div style={{ display: "flex", borderTop: "1px solid #ddd" }}>{v}</div>
     </div>
   );
 }
@@ -87,7 +99,7 @@ function Tool({ tool, fontSize }) {
       <Button
         type="text"
         onClick={() => click(actions as Actions, id)}
-        style={{ width, padding: "5px" }}
+        style={{ width, fontSize: "18px" }}
       >
         {typeof icon == "string" ? <Icon name={icon} /> : icon(fontSize)}
       </Button>
@@ -96,5 +108,5 @@ function Tool({ tool, fontSize }) {
 }
 
 function Overview() {
-  return null; // return <div>This is an overview.</div>;
+  return <div style={{ width: WIDTH, height: "150px" }}></div>;
 }
