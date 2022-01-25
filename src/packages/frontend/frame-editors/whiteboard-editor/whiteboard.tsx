@@ -59,7 +59,7 @@ export default function Whiteboard({
       {isFocused && (
         <ToolPanel selectedTool={desc.get("selectedTool") ?? "select"} />
       )}
-      {isFocused && <NavigationPanel fontSize={font_size} />}
+      {isFocused && <NavigationPanel fontSize={font_size} elements={x} />}
       <Upload evtToDataRef={evtToDataRef}>
         <Canvas
           elements={x}

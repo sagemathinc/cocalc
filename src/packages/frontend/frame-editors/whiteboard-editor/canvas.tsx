@@ -6,7 +6,13 @@ This is NOT an HTML5 canvas.  It has nothing do with that.   We define
 "the whiteboard" as everything -- the controls, settings, etc. -- and
 the canvas as the area where the actual drawing appears.
 */
-import { ReactNode, MutableRefObject, useEffect, useRef } from "react";
+import {
+  CSSProperties,
+  ReactNode,
+  MutableRefObject,
+  useEffect,
+  useRef,
+} from "react";
 import { Element } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
@@ -19,6 +25,13 @@ import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-z
 import { Actions } from "./actions";
 import { fontSizeToZoom, getPageSpan } from "./math";
 
+const GRID = {
+  backgroundPosition: "-1.5px -1.5px, -1.5px -1.5px, -1px -1px, -1px -1px",
+  backgroundSize: "100px 100px, 100px 100px, 20px 20px, 20px 20px",
+  backgroundImage:
+    "linear-gradient(#efefef 1.5px, transparent 1.5px), linear-gradient(90deg, #efefef 1.5px, transparent 1.5px), linear-gradient(#f8f8f8 1px, transparent 1px), linear-gradient(90deg, #f8f8f8 1px, transparent 1px)",
+} as CSSProperties;
+
 interface Props {
   elements: Element[];
   font_size?: number;
@@ -29,6 +42,7 @@ interface Props {
   tool?: Tool;
   fitToScreen?: boolean; // if set, compute data then set font_size to get zoom (plus offset) to everything is visible properly on the page; also set fitToScreen back to false in frame tree data
   evtToDataRef?: MutableRefObject<Function | null>;
+  noGrid?: boolean; // hide the grid
 }
 
 export default function Canvas({
@@ -40,6 +54,7 @@ export default function Canvas({
   selectedTool,
   fitToScreen,
   evtToDataRef,
+  noGrid,
 }: Props) {
   margin = margin ?? 300;
 
@@ -63,7 +78,6 @@ export default function Canvas({
 
   useEffect(() => {
     if (fitToScreen) {
-      console.log("fitToScreen");
       actions.set_frame_tree({ id: frame.id, fitToScreen: false });
     }
   }, [fitToScreen]);
@@ -72,7 +86,7 @@ export default function Canvas({
   const transforms = getTransforms(elements, margin);
 
   for (const element of elements) {
-    const { id, x, y, z, scale, rotate } = element;
+    const { id, x, y, z, w, h, scale, rotate } = element;
     if (x == null || y == null) continue; // invalid element!
     const t = transforms.dataToWindow(x, y);
     const focused = id == focusedId;
@@ -112,7 +126,7 @@ export default function Canvas({
       );
     }
     v.push(
-      <Position key={id} x={t.x} y={t.y} z={z} scale={scale}>
+      <Position key={id} x={t.x} y={t.y} z={z} w={w} h={h} scale={scale}>
         {focused ? (
           <Focused scale={scale} canvasScale={canvasScale} element={element}>
             {elt}
@@ -201,19 +215,23 @@ export default function Canvas({
               frame.isFocused && selectedTool
                 ? TOOLS[selectedTool]?.cursor
                 : "default",
-            backgroundPosition:
-              "-1.5px -1.5px, -1.5px -1.5px, -1px -1px, -1px -1px",
-            backgroundSize: "100px 100px, 100px 100px, 20px 20px, 20px 20px",
-            backgroundImage:
-              "linear-gradient(#efefef 1.5px, transparent 1.5px), linear-gradient(90deg, #efefef 1.5px, transparent 1.5px), linear-gradient(#f8f8f8 1px, transparent 1px), linear-gradient(90deg, #f8f8f8 1px, transparent 1px)",
             position: "relative",
-            paddingBottom: `${
-              (1 / canvasScale) * transforms.height
-            }px` /* have to use padding and negative margin due to position:absolute children.  This works! */,
-            marginBottom: `${-(1 / canvasScale) * transforms.height}px`,
-            paddingRight: `${(1 / canvasScale) * transforms.width}px`,
           }}
         >
+          {!noGrid && (
+            <div
+              style={{
+                zIndex: -1000,
+                border: "1px solid red",
+                top: transforms.yMin,
+                left: transforms.xMin,
+                width: `${transforms.width / canvasScale}px`,
+                height: `${transforms.height / canvasScale}px`,
+                position: "absolute",
+                ...GRID,
+              }}
+            ></div>
+          )}
           {v}
         </div>
       </div>
@@ -229,6 +247,10 @@ function getTransforms(
   windowToData: (x: number, y: number) => { x: number; y: number };
   width: number;
   height: number;
+  xMin: number;
+  xMax: number;
+  yMin: number;
+  yMax: number;
 } {
   // Consider the x and y coordinates of all elements, which could be anywhere in the "infinite canvas",
   // Then transform to a rectangle (0,0) --> (width,height), along with a health margin.
@@ -251,5 +273,9 @@ function getTransforms(
     windowToData,
     width: xMax - xMin,
     height: yMax - yMin,
+    xMin,
+    yMin,
+    xMax,
+    yMax,
   };
 }

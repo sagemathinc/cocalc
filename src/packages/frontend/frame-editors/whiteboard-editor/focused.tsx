@@ -66,7 +66,7 @@ export default function Focused({ children, scale, canvasScale, element }) {
           console.log("stop drag", data);
         }}
       >
-        <Icon style={style} name="square" />
+        <Icon className="nodrag" style={style} name="square" />
       </Draggable>
     );
   }

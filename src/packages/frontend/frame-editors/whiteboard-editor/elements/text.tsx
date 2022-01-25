@@ -64,7 +64,6 @@ export default function Text({ element, focused }: Props) {
           project_id={frame.project_id}
           file_path={path_split(frame.path).head}
           style={{
-            width: "400px",
             ...(!value?.trim() ? { color: "#aaa" } : undefined),
           }}
           value={value?.trim() ? value : "Type text"}

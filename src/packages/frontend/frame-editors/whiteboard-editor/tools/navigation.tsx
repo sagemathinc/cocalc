@@ -15,6 +15,8 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { fontSizeToZoom, ZOOM100 } from "../math";
 import { Actions } from "../actions";
 import { PANEL_STYLE } from "./panel";
+import Canvas from "../canvas";
+import { Element } from "../types";
 
 const TOOLS = {
   map: {
@@ -67,15 +69,23 @@ const TOOLS = {
 };
 
 const WIDTH = "250px";
+const MAP_HEIGHT = 150;
 
-export default function Navigation({ fontSize }) {
+interface Props {
+  fontSize?: number;
+  elements?: Element[];
+}
+
+export default function Navigation({ fontSize, elements }: Props) {
   const { desc } = useFrameContext();
   const v: ReactNode[] = [];
   for (const tool in TOOLS) {
     v.push(<Tool key={tool} tool={tool} fontSize={fontSize} />);
   }
+  const showMap = !desc.get("hideMap") && elements != null;
   return (
     <div
+      className="smc-vfill"
       style={{
         ...PANEL_STYLE,
         display: "flex",
@@ -83,9 +93,12 @@ export default function Navigation({ fontSize }) {
         right: 0,
         bottom: 0,
         width: WIDTH,
+        height: `${33 + (showMap ? MAP_HEIGHT : 0)}px`,
       }}
     >
-      {!desc.get("hideMap") && <Overview />}
+      {!desc.get("hideMap") && elements != null && (
+        <Overview elements={elements} />
+      )}
       <div style={{ display: "flex", borderTop: "1px solid #ddd" }}>{v}</div>
     </div>
   );
@@ -107,6 +120,13 @@ function Tool({ tool, fontSize }) {
   );
 }
 
-function Overview() {
-  return <div style={{ width: WIDTH, height: "150px" }}></div>;
+function Overview({ elements }) {
+  return (
+    <div
+      style={{ width: WIDTH, height: `${MAP_HEIGHT}px` }}
+      className="smc-vfill"
+    >
+      <Canvas elements={elements} font_size={2} />
+    </div>
+  );
 }
