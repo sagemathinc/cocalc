@@ -6,13 +6,7 @@ This is NOT an HTML5 canvas.  It has nothing do with that.   We define
 "the whiteboard" as everything -- the controls, settings, etc. -- and
 the canvas as the area where the actual drawing appears.
 */
-import {
-  CSSProperties,
-  ReactNode,
-  MutableRefObject,
-  useEffect,
-  useRef,
-} from "react";
+import { ReactNode, MutableRefObject, useEffect, useRef } from "react";
 import { Element } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
@@ -21,16 +15,15 @@ import NotFocused from "./not-focused";
 import Position from "./position";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
+import Grid from "./elements/grid";
 
 import { Actions } from "./actions";
-import { fontSizeToZoom, getPageSpan } from "./math";
-
-const GRID = {
-  backgroundPosition: "-1.5px -1.5px, -1.5px -1.5px, -1px -1px, -1px -1px",
-  backgroundSize: "100px 100px, 100px 100px, 20px 20px, 20px 20px",
-  backgroundImage:
-    "linear-gradient(#efefef 1.5px, transparent 1.5px), linear-gradient(90deg, #efefef 1.5px, transparent 1.5px), linear-gradient(#f8f8f8 1px, transparent 1px), linear-gradient(90deg, #f8f8f8 1px, transparent 1px)",
-} as CSSProperties;
+import {
+  fontSizeToZoom,
+  getPageSpan,
+  DEFAULT_WIDTH,
+  DEFAULT_HEIGHT,
+} from "./math";
 
 interface Props {
   elements: Element[];
@@ -56,8 +49,9 @@ export default function Canvas({
   evtToDataRef,
   noGrid,
 }: Props) {
-  margin = margin ?? 300;
+  margin = margin ?? 1000;
 
+  const gridDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
   usePinchToZoom({ target: canvasRef, min: 5, max: 100 });
 
@@ -83,7 +77,7 @@ export default function Canvas({
   }, [fitToScreen]);
 
   const v: ReactNode[] = [];
-  const transforms = getTransforms(elements, margin);
+  const transforms = getTransforms(elements, margin, canvasScale);
 
   for (const element of elements) {
     const { id, x, y, z, w, h, scale, rotate } = element;
@@ -126,7 +120,15 @@ export default function Canvas({
       );
     }
     v.push(
-      <Position key={id} x={t.x} y={t.y} z={z} w={w} h={h} scale={scale}>
+      <Position
+        key={id}
+        x={t.x}
+        y={t.y}
+        z={z}
+        w={w ?? DEFAULT_WIDTH}
+        h={h ?? DEFAULT_HEIGHT}
+        scale={scale}
+      >
         {focused ? (
           <Focused scale={scale} canvasScale={canvasScale} element={element}>
             {elt}
@@ -164,14 +166,14 @@ export default function Canvas({
   function handleClick(e) {
     if (!frame.isFocused) return;
     if (selectedTool == "select") {
-      if (e.target != innerCanvasRef.current) {
-        // clicked on an element on the canvas; either stay selected or let
-        // it handle selecting it.
-        return;
-      } else {
+      if (e.target == gridDivRef.current) {
         // clear selection
         // unfocus, because nothing got clicked on.
         actions.setFocusedElement(frame.id, "");
+      } else {
+        // clicked on an element on the canvas; either stay selected or let
+        // it handle selecting it.
+        return;
       }
     }
     const data = evtToData(e);
@@ -206,6 +208,7 @@ export default function Canvas({
         style={{
           transform: `scale(${canvasScale})`,
           transformOrigin: "top left",
+          height: `calc(${canvasScale * 100}%)`,
         }}
       >
         <div
@@ -218,20 +221,7 @@ export default function Canvas({
             position: "relative",
           }}
         >
-          {!noGrid && (
-            <div
-              style={{
-                zIndex: -1000,
-                border: "1px solid red",
-                top: transforms.yMin,
-                left: transforms.xMin,
-                width: `${transforms.width / canvasScale}px`,
-                height: `${transforms.height / canvasScale}px`,
-                position: "absolute",
-                ...GRID,
-              }}
-            ></div>
-          )}
+          {!noGrid && <Grid transforms={transforms} divRef={gridDivRef} />}
           {v}
         </div>
       </div>
@@ -241,7 +231,8 @@ export default function Canvas({
 
 function getTransforms(
   elements,
-  margin
+  margin,
+  scale
 ): {
   dataToWindow: (x: number, y: number) => { x: number; y: number };
   windowToData: (x: number, y: number) => { x: number; y: number };
@@ -251,6 +242,7 @@ function getTransforms(
   xMax: number;
   yMin: number;
   yMax: number;
+  scale: number;
 } {
   // Consider the x and y coordinates of all elements, which could be anywhere in the "infinite canvas",
   // Then transform to a rectangle (0,0) --> (width,height), along with a health margin.
@@ -277,5 +269,6 @@ function getTransforms(
     yMin,
     xMax,
     yMax,
+    scale,
   };
 }

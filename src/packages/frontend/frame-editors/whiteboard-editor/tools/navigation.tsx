@@ -126,7 +126,7 @@ function Overview({ elements }) {
       style={{ width: WIDTH, height: `${MAP_HEIGHT}px` }}
       className="smc-vfill"
     >
-      <Canvas elements={elements} font_size={2} />
+      <Canvas elements={elements} font_size={1} noGrid />
     </div>
   );
 }

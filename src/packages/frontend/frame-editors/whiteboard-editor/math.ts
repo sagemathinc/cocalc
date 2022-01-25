@@ -19,6 +19,9 @@ export function fontSizeToZoom(size?: number): number {
   return size ? size / ZOOM100 : 1;
 }
 
+export const DEFAULT_WIDTH = 300;
+export const DEFAULT_HEIGHT = 200;
+
 // Return angle in radians of line from pnt to origin from line
 // from (0,0) to (1,0).
 // This is a nonnegative number between 0 and 2*pi.
@@ -39,20 +42,27 @@ export function getPageSpan(elements: Element[]): {
   xMax: number;
   yMin: number;
   yMax: number;
+  zMin: number;
+  zMax: number;
 } {
   let xMin = 0,
     yMin = 0,
     xMax = 0,
-    yMax = 0;
+    yMax = 0,
+    zMin = 0,
+    zMax = 0;
   for (const element of elements) {
     const x = element.x ?? 0;
     const y = element.y ?? 0;
-    const w = element.w ?? 0;
-    const h = element.h ?? 0;
+    const z = element.z ?? 0;
+    const w = element.w ?? DEFAULT_WIDTH;
+    const h = element.h ?? DEFAULT_HEIGHT;
     if (x < xMin) xMin = x;
     if (y < yMin) yMin = y;
+    if (z < zMin) zMin = z;
+    if (z > zMax) zMax = z;
     if (x + w > xMax) xMax = x + w;
     if (y + h > yMax) yMax = y + h;
   }
-  return { xMin, xMax, yMin, yMax };
+  return { xMin, xMax, yMin, yMax, zMin, zMax };
 }
