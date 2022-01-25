@@ -178,6 +178,7 @@ export interface CourseState {
   course_filename: string;
   course_project_id: string;
   configuring_projects?: boolean;
+  reinviting_students?: boolean;
   error?: string;
   expanded_students: Set<string>;
   expanded_assignments: Set<string>;

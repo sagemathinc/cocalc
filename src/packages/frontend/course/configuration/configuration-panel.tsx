@@ -65,10 +65,18 @@ interface Props {
   settings: CourseSettingsRecord;
   project_map: ProjectMap;
   configuring_projects?: boolean;
+  reinviting_students?: boolean;
 }
 
 export const ConfigurationPanel: React.FC<Props> = React.memo(
-  ({ name, project_id, settings, project_map, configuring_projects }) => {
+  ({
+    name,
+    project_id,
+    settings,
+    project_map,
+    configuring_projects,
+    reinviting_students,
+  }) => {
     const [show_students_pay, set_show_students_pay] = useState<boolean>(false);
     const [email_body_error, set_email_body_error] = useState<
       string | undefined
@@ -262,13 +270,38 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
           <Button
             disabled={configuring_projects}
             onClick={() => {
-              actions.configuration.configure_all_projects(true);
+              actions.configuration.configure_all_projects();
             }}
           >
             {configuring_projects ? (
               <Icon name="cocalc-ring" spin />
             ) : undefined}{" "}
             Reconfigure all projects
+          </Button>
+        </Card>
+      );
+    }
+
+    function render_resend_outstanding_email_invites(): Rendered {
+      return (
+        <Card
+          title={
+            <>
+              <Icon name="envelope" /> Resend outstanding email invites
+            </>
+          }
+        >
+          Send yet another email to all those students, who didn't sign up yet
+          (max. once per day).
+          <hr />
+          <Button
+            disabled={reinviting_students}
+            onClick={() => {
+              actions.student_projects.reinvite_oustanding_students();
+            }}
+          >
+            {reinviting_students ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
+            Reinvite outstanding students
           </Button>
         </Card>
       );
@@ -688,6 +721,8 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             {render_student_project_functionality()}
             <br />
             {render_configure_all_projects()}
+            <br />
+            {render_resend_outstanding_email_invites()}
             <br />
             {render_push_missing_handouts_and_assignments()}
             <br />
