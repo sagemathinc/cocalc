@@ -103,6 +103,8 @@ export class Actions extends BaseActions<State> {
     this.set_frame_tree({ id, hideMap: !node.get("hideMap") });
   }
 
+  // TODO: serious concern -- this visibleWindow stuff is getting persisted
+  // to localStorage, but doesn't need to be, which is a waste.
   saveVisibleWindow(
     id: string,
     visibleWindow: { xMin: number; yMin: number; xMax: number; yMax: number }
@@ -110,6 +112,12 @@ export class Actions extends BaseActions<State> {
     const node = this._get_frame_node(id);
     if (node == null) return;
     this.set_frame_tree({ id, visibleWindow });
+  }
+
+  setVisibleWindowCenter(id: string, center: { x: number; y: number }) {
+    const node = this._get_frame_node(id);
+    if (node == null) return;
+    this.set_frame_tree({ id, visibleWindowCenter: center });
   }
 
   // define this, so icon shows up at top

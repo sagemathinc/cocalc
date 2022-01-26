@@ -133,6 +133,7 @@ function Overview({ elements, visibleWindow }) {
   const paddingTop = (MAP_HEIGHT - yRange) / 2;
   const paddingLeft = (MAP_WIDTH - xRange) / 2;
   const visible = visibleWindow?.toJS();
+  const { actions, id } = useFrameContext();
 
   return (
     <div
@@ -145,9 +146,8 @@ function Overview({ elements, visibleWindow }) {
       className="smc-vfill"
     >
       <Canvas
-        noScroll
-        noSaveWindow
-        noGrid
+        margin={0}
+        isNavigator
         elements={elements}
         scale={scale}
         elementStyle={{
@@ -155,18 +155,26 @@ function Overview({ elements, visibleWindow }) {
           margin: "-15px",
           background: "#9fc3ff",
         }}
-        extraElements={[
-          {
-            id: "frame",
-            x: visible.xMin,
-            y: visible.yMin,
-            w: visible.xMax - visible.xMin,
-            h: visible.yMax - visible.yMin,
-            z: 1000,
-            type: "frame",
-            data: { color: "grey", thickness: 3 },
-          },
-        ]}
+        extraElements={
+          visible
+            ? [
+                {
+                  id: "frame",
+                  x: visible.xMin,
+                  y: visible.yMin,
+                  w: visible.xMax - visible.xMin,
+                  h: visible.yMax - visible.yMin,
+                  z: 1000,
+                  type: "frame",
+                  data: { color: "black", thickness: 3 },
+                  style: { background: "lightgrey", opacity: 0.3 },
+                },
+              ]
+            : undefined
+        }
+        onClick={(data) => {
+          (actions as Actions).setVisibleWindowCenter(id, data);
+        }}
       />
     </div>
   );

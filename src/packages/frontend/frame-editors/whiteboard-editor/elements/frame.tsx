@@ -3,6 +3,7 @@ export default function Frame({ element, focused, canvasScale }) {
   return (
     <div
       style={{
+        ...element.style,
         width: "100%",
         height: "100%",
         border: `${(element.data?.width ?? 1) / canvasScale}px solid ${

@@ -40,10 +40,10 @@ interface Props {
   tool?: Tool;
   fitToScreen?: boolean; // if set, compute data then set font_size to get zoom (plus offset) to everything is visible properly on the page; also set fitToScreen back to false in frame tree data
   evtToDataRef?: MutableRefObject<Function | null>;
-  noGrid?: boolean; // hide the grid
   elementStyle?: CSSProperties; // if given, apply this style to div around all elements.
-  noSaveWindow?: boolean; // do not save window ranges on scroll, etc.?  E.g., the navigator map needs this.
-  noScroll?: boolean;
+  onClick?: (data: { x: number; y: number }) => void; // called with the data x,y coordinates of where user clicked.
+  onMouseDown?: (data: { x: number; y: number }) => void;
+  isNavigator?: boolean; // is the navigator, so hide the grid, don't save window, don't scroll, don't move
 }
 
 export default function Canvas({
@@ -58,9 +58,9 @@ export default function Canvas({
   fitToScreen,
   evtToDataRef,
   elementStyle,
-  noGrid,
-  noSaveWindow,
-  noScroll,
+  onClick,
+  onMouseDown,
+  isNavigator,
 }: Props) {
   margin = margin ?? 1000;
 
@@ -70,6 +70,7 @@ export default function Canvas({
 
   const innerCanvasRef = useRef<any>(null);
   const canvasScale = scale ?? fontSizeToZoom(font_size);
+  const transforms = getTransforms(elements, margin, canvasScale);
 
   useEffect(() => {
     const { current } = canvasRef;
@@ -82,10 +83,44 @@ export default function Canvas({
 
   useEffect(() => {
     updateVisibleWindow();
-  }, [font_size, scale]);
+  }, [font_size, scale, transforms.width, transforms.height]);
 
   const frame = useFrameContext();
   const actions = frame.actions as Actions;
+
+  // handle setting a center position for the visible window
+  useEffect(() => {
+    if (isNavigator) return;
+    const ctr = frame.desc.get("visibleWindowCenter")?.toJS();
+    if (ctr == null) return;
+    setCenterPosition(ctr.x, ctr.y);
+  }, [frame.desc.get("visibleWindowCenter")]);
+
+  function getCenterPosition(): { x: number; y: number } | undefined {
+    const c = canvasRef.current;
+    if (c == null) return;
+    const rect = c.getBoundingClientRect();
+    if (rect == null) return;
+    // the current center
+    return {
+      x: c.scrollLeft + rect.width / 2,
+      y: c.scrollTop + rect.height / 2,
+    };
+  }
+
+  function setCenterPosition(x: number, y: number) {
+    const t = transforms.dataToWindow(x, y);
+    t.x *= canvasScale;
+    t.y *= canvasScale;
+    const cur = getCenterPosition();
+    if (cur == null) return;
+    const delta_x = t.x - cur.x;
+    const delta_y = t.y - cur.y;
+    const c = canvasRef.current;
+    if (c == null) return;
+    c.scrollLeft += delta_x;
+    c.scrollTop += delta_y;
+  }
 
   useEffect(() => {
     if (fitToScreen) {
@@ -94,7 +129,6 @@ export default function Canvas({
   }, [fitToScreen]);
 
   const v: ReactNode[] = [];
-  const transforms = getTransforms(elements, margin, canvasScale);
 
   function processElement(element, isExtra) {
     const { id, rotate } = element;
@@ -234,7 +268,7 @@ export default function Canvas({
     }
   }
 
-  const updateVisibleWindow = noSaveWindow
+  const updateVisibleWindow = isNavigator
     ? () => {}
     : useMemo(() => {
         return throttle(() => {
@@ -254,16 +288,26 @@ export default function Canvas({
         }, 50);
       }, [transforms, canvasScale]);
 
-  //   useEffect(() => {
-  //     setTimeout(updateVisibleWindow, 500);
-  //   }, []);
-
   return (
     <div
       className={"smc-vfill"}
       ref={canvasRef}
-      style={{ overflow: noScroll ? "hidden" : "scroll" }}
-      onClick={!readOnly ? handleClick : undefined}
+      style={{ overflow: isNavigator ? "hidden" : "scroll" }}
+      onMouseDown={(e) => {
+        if (onMouseDown != null) {
+          const { x, y } = evtToData(e);
+          onMouseDown({ x, y });
+        }
+      }}
+      onClick={(e) => {
+        if (!readOnly) {
+          handleClick(e);
+        }
+        if (onClick != null) {
+          const { x, y } = evtToData(e);
+          onClick({ x, y });
+        }
+      }}
       onScroll={() => {
         updateVisibleWindow();
       }}
@@ -285,7 +329,7 @@ export default function Canvas({
             position: "relative",
           }}
         >
-          {!noGrid && <Grid transforms={transforms} divRef={gridDivRef} />}
+          {!isNavigator && <Grid transforms={transforms} divRef={gridDivRef} />}
           {v}
         </div>
       </div>
