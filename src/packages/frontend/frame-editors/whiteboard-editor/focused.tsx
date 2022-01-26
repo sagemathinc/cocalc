@@ -51,8 +51,11 @@ export default function Focused({
     h: number;
   }>({ x: 0, y: 0, w: 0, h: 0 });
   const [rotating, setRotating] = useState<number | undefined>(undefined);
+  const [dragging, setDragging] = useState<boolean>(false);
   const pos = getPosition(element);
-  const t = transforms.dataToWindow(pos.x + offset.x, pos.y + offset.y, pos.z);
+  const t = transforms.dataToWindow(pos.x, pos.y, pos.z);
+  const isChanging =
+    dragging || offset.x || offset.y || offset.w || offset.h || rotating;
 
   const dragHandles = useMemo(() => {
     const v: ReactNode[] = [];
@@ -141,24 +144,37 @@ export default function Focused({
           position: "absolute",
           top: `-${OFFSET}px`,
           left: `-${OFFSET}px`,
+          visibility: isChanging ? "hidden" : undefined,
         }}
       />
     </Tooltip>
   );
 
   return (
-    <Position
-      x={t.x}
-      y={t.y}
-      z={t.z}
-      w={pos.w + offset.w}
-      h={pos.h + offset.h}
-    >
+    <Position x={t.x} y={t.y} z={1000} w={pos.w} h={pos.h}>
+      <div style={{ visibility: isChanging ? "hidden" : undefined }}>
+        {dragHandles}
+        {RotateControl}
+        <div
+          className="nodrag"
+          style={{
+            position: "absolute",
+            bottom: `-${OFFSET}px`,
+            right: `-${OFFSET}px`,
+          }}
+        >
+          <EditBar elements={[element]} />
+        </div>
+      </div>
       <Draggable
         cancel={".nodrag"}
         position={{ x: 0, y: 0 }}
         scale={canvasScale}
+        onStart={() => {
+          setDragging(true);
+        }}
         onStop={(_, data) => {
+          setDragging(false);
           const { id } = element;
           const x = element.x + data.x;
           const y = element.y + data.y;
@@ -172,26 +188,14 @@ export default function Focused({
             cursor: "grab",
             position: "relative",
             border: `${thickness}px dashed ${color}`,
-            marginLeft: `${-thickness}px`, // to offse padding, so object
-            marginTop: `${-thickness}px`, // doesn't appear to move when selected
-            width: "100%",
-            height: "100%",
+            marginLeft: `${-thickness + canvasScale * offset.x}px`, // to offset padding, so object
+            marginTop: `${-thickness + canvasScale * offset.y}px`, // doesn't appear to move when selected
+            width: isChanging ? `${pos.w + offset.w}px` : "100%",
+            height: isChanging ? `${pos.h + offset.h}px` : "100%",
           }}
         >
+          {moveHandle}
           <div style={{ width: "100%", height: "100%" }}>
-            {moveHandle}
-            {dragHandles}
-            {RotateControl}
-            <div
-              className="nodrag"
-              style={{
-                position: "absolute",
-                bottom: `-${OFFSET}px`,
-                right: `-${OFFSET}px`,
-              }}
-            >
-              <EditBar elements={[element]} />
-            </div>
             <div
               style={{
                 ...(rotating

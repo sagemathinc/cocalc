@@ -15,6 +15,7 @@ const baseHandleSize = 20;
 const handleColor = "#888";
 const handleSize = `${baseHandleSize}px`;
 const handleOffset = `-${baseHandleSize / 2}px`;
+
 const dragHandleCursors = {
   "true-true": "nwse-resize",
   "true-false": "nesw-resize",
