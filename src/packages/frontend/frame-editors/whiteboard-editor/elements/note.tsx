@@ -10,6 +10,7 @@ export default function Note({ element, focused }) {
         overflowX: "scroll",
         width: "100%",
         height: "100%",
+        borderRadius: "5px",
       }}
     >
       <Text element={element} focused={focused} />

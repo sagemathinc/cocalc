@@ -77,7 +77,6 @@ export default function Canvas({
   for (const element of elements) {
     const { id, rotate } = element;
     const { x, y, z, w, h } = getPosition(element);
-    if (x == null || y == null) continue; // invalid element!
     const t = transforms.dataToWindow(x, y, z);
     const focused = id == focusedId;
     let elt = <RenderElement element={element} focused={focused} />;
@@ -119,12 +118,17 @@ export default function Canvas({
       );
     }
     v.push(
-      <Position key={id} x={t.x} y={t.y} z={t.z} w={w} h={h}>
-        {focused ? (
-          <Focused canvasScale={canvasScale} element={element}>
-            {elt}
-          </Focused>
-        ) : (
+      focused ? (
+        <Focused
+          key={id}
+          canvasScale={canvasScale}
+          element={element}
+          transforms={transforms}
+        >
+          {elt}
+        </Focused>
+      ) : (
+        <Position key={id} x={t.x} y={t.y} z={t.z} w={w} h={h}>
           <NotFocused
             id={id}
             readOnly={readOnly}
@@ -132,8 +136,8 @@ export default function Canvas({
           >
             {elt}
           </NotFocused>
-        )}
-      </Position>
+        </Position>
+      )
     );
   }
 

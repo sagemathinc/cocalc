@@ -11,10 +11,10 @@ import { Actions } from "./actions";
 import Draggable from "react-draggable";
 import { getPosition } from "./math";
 
-const baseCircleSize = 14;
-const circleColor = "#888";
-const circleSize = `${baseCircleSize}px`;
-const circleOffset = `-${baseCircleSize / 2}px`;
+const baseHandleSize = 20;
+const handleColor = "#888";
+const handleSize = `${baseHandleSize}px`;
+const handleOffset = `-${baseHandleSize / 2}px`;
 const dragHandleCursors = {
   "true-true": "nwse-resize",
   "true-false": "nesw-resize",
@@ -25,11 +25,13 @@ const dragHandleCursors = {
 export default function DragHandle({
   top,
   left,
+  setOffset,
   canvasScale,
   element,
 }: {
-  top?: boolean;
-  left?: boolean;
+  top: boolean;
+  left: boolean;
+  setOffset: (offset: { x: number; y: number; w: number; h: number }) => void;
   canvasScale: number;
   element: Element;
 }) {
@@ -42,49 +44,68 @@ export default function DragHandle({
     cursor: dragHandleCursors[`${top}-${left}`],
     position: "absolute",
     background: "white",
-    color: circleColor,
-    fontSize: circleSize,
+    color: handleColor,
+    fontSize: handleSize,
     zIndex: 1000,
   } as CSSProperties;
   if (top) {
-    style.top = circleOffset;
+    style.top = handleOffset;
   } else {
-    style.bottom = circleOffset;
+    style.bottom = handleOffset;
   }
   if (left) {
-    style.left = circleOffset;
+    style.left = handleOffset;
   } else {
-    style.right = circleOffset;
+    style.right = handleOffset;
   }
+  function getOffset(data): { x: number; y: number; w: number; h: number } {
+    if (top && left) {
+      return {
+        x: data.x,
+        y: data.y,
+        w: -data.x,
+        h: -data.y,
+      };
+    }
+    if (top && !left) {
+      return {
+        x: 0,
+        y: data.y,
+        w: data.x,
+        h: -data.y,
+      };
+    }
+    if (!top && left) {
+      return { x: data.x, y: 0, w: -data.x, h: data.y };
+    }
+    if (!top && !left) {
+      return { x: 0, y: 0, w: data.x, h: data.y };
+    }
+    throw Error("impossible");
+  }
+
   return (
     <Draggable
       scale={canvasScale}
       position={position}
       onDrag={(_, data) => {
         setPosition(data);
+        setOffset(getOffset(data));
       }}
       onStop={(_, data) => {
         const actions = frame.actions as Actions;
         let { w, h, x, y } = getPosition(element);
-        if (top && left) {
-          x += data.x;
-          y += data.y;
-          w -= data.x;
-          h -= data.y;
-        } else if (top && !left) {
-          y += data.y;
-          w += data.x;
-          h -= data.y;
-        } else if (!top && left) {
-          x += data.x;
-          w -= data.x;
-          h += data.y;
-        } else if (!top && !left) {
-          w += data.x;
-          h += data.y;
-        }
-        setTimeout(() => actions.setElement({ id: element.id, x, y, w, h }), 0);
-        setPosition({ x: 0, y: 0 });
+        const offset = getOffset(data);
+        w += offset.w;
+        h += offset.h;
+        x += offset.x;
+        y += offset.y;
+
+        setTimeout(() => {
+          setPosition({ x: 0, y: 0 });
+          setOffset({ x: 0, y: 0, w: 0, h: 0 });
+          actions.setElement({ id: element.id, x, y, w, h });
+        }, 0);
       }}
     >
       <Icon className="nodrag" style={style} name="square" />

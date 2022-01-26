@@ -22,7 +22,9 @@ export default function Text({ element, focused }: Props) {
         project_id={frame.project_id}
         file_path={path_split(frame.path).head}
         value={element.str?.trim() ? element.str : "Type text"}
-        style={!element.str?.trim() ? { color: "#aaa" } : undefined}
+        style={{
+          color: !element.str?.trim() ? "#aaa" : undefined,
+        }}
       />
     );
   }
