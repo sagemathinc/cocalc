@@ -6,7 +6,7 @@ This is NOT an HTML5 canvas.  It has nothing do with that.   We define
 "the whiteboard" as everything -- the controls, settings, etc. -- and
 the canvas as the area where the actual drawing appears.
 */
-import { ReactNode, MutableRefObject, useEffect, useRef } from "react";
+import { CSSProperties, ReactNode, MutableRefObject, useEffect, useRef } from "react";
 import { Element } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
@@ -31,6 +31,7 @@ interface Props {
   fitToScreen?: boolean; // if set, compute data then set font_size to get zoom (plus offset) to everything is visible properly on the page; also set fitToScreen back to false in frame tree data
   evtToDataRef?: MutableRefObject<Function | null>;
   noGrid?: boolean; // hide the grid
+  elementStyle?: CSSProperties; // if given, apply this style to div around all elements.
 }
 
 export default function Canvas({
@@ -43,6 +44,7 @@ export default function Canvas({
   fitToScreen,
   evtToDataRef,
   noGrid,
+  elementStyle,
 }: Props) {
   margin = margin ?? 1000;
 
@@ -80,7 +82,7 @@ export default function Canvas({
     const t = transforms.dataToWindow(x, y, z);
     const focused = id == focusedId;
     let elt = <RenderElement element={element} focused={focused} />;
-    if (element.style || focused) {
+    if (element.style || focused || elementStyle) {
       elt = (
         <div
           style={{
@@ -95,6 +97,7 @@ export default function Canvas({
               : undefined),
             width: "100%",
             height: "100%",
+            ...elementStyle,
           }}
         >
           {elt}
@@ -117,8 +120,9 @@ export default function Canvas({
         </div>
       );
     }
-    v.push(
-      focused ? (
+
+    if (focused) {
+      v.push(
         <Focused
           key={id}
           canvasScale={canvasScale}
@@ -127,7 +131,9 @@ export default function Canvas({
         >
           {elt}
         </Focused>
-      ) : (
+      );
+    } else {
+      v.push(
         <Position key={id} x={t.x} y={t.y} z={t.z} w={w} h={h}>
           <NotFocused
             id={id}
@@ -137,8 +143,8 @@ export default function Canvas({
             {elt}
           </NotFocused>
         </Position>
-      )
-    );
+      );
+    }
   }
 
   // convert mouse event to coordinates in data space

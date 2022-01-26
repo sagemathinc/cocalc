@@ -1,13 +1,23 @@
-import { CSSProperties } from "react";
+import { CSSProperties, ReactNode } from "react";
 
-export default function Position({ children, x, y, z, w, h }) {
-  const style: CSSProperties = {
+interface Props {
+  children: ReactNode;
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+  h: number;
+  style?: CSSProperties;
+}
+
+export default function Position({ children, x, y, z, w, h, style }: Props) {
+  const posStyle: CSSProperties = {
+    position: "absolute",
     left: x,
     top: y,
-    width: w ? `${w}px` : undefined,
-    height: h ? `${h}px` : undefined,
-    position: "absolute",
+    width: `${w}px`,
+    height: `${h}px`,
     zIndex: z,
   };
-  return <div style={style}>{children}</div>;
+  return <div style={{ ...style, ...posStyle }}>{children}</div>;
 }
