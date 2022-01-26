@@ -18,6 +18,7 @@ import EditBar from "./tools/edit-bar";
 import { Element } from "./types";
 import DragHandle from "./focused-resize";
 import Position from "./position";
+import { focusedElementStylePos } from "./canvas";
 
 const thickness = 2;
 export const FOCUSED_BORDER_COLOR = "#40a9ff";
@@ -163,8 +164,24 @@ export default function Focused({
   return (
     <Position x={t.x} y={t.y} z={1000} w={pos.w} h={pos.h}>
       <div style={{ visibility: isChanging ? "hidden" : undefined }}>
-        {dragHandles}
         {RotateControl}
+        <div
+          style={{
+            pointerEvents: "none", // otherwise entire element is blocked by this div
+            zIndex: 1001,
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            ...(element.rotate
+              ? {
+                  transform: `rotate(${element.rotate}rad)`,
+                  transformOrigin: "center",
+                }
+              : undefined),
+          }}
+        >
+          {dragHandles}
+        </div>
         <div
           className="nodrag"
           style={{

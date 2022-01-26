@@ -43,6 +43,7 @@ export default function DragHandle({
   });
   const frame = useFrameContext();
   const style = {
+    pointerEvents: "all", // because we turn off pointer events for containing div
     cursor: dragHandleCursors[`${top}-${left}`],
     position: "absolute",
     background: "white",
