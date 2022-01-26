@@ -37,6 +37,17 @@ export function getAngle(pnt: Point): number {
   return z;
 }
 
+export function getPosition(element: Element) {
+  const { x, y, z, w, h } = element;
+  return {
+    x: x ?? 0,
+    y: y ?? 0,
+    z: z ?? 0,
+    w: w ?? DEFAULT_WIDTH,
+    h: h ?? DEFAULT_HEIGHT,
+  };
+}
+
 export function getPageSpan(elements: Element[]): {
   xMin: number;
   xMax: number;

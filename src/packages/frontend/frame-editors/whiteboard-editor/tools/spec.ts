@@ -17,11 +17,11 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
   shape: { icon: "square", cursor: "crosshair", tip: "Shape" },
   pen: { icon: "pencil", cursor: "crosshair", tip: "Pen" },
   chat: { icon: "comment", cursor: "crosshair", tip: "Chat" },
-  terminal: {
-    icon: "code-outlined",
-    cursor: "crosshair",
-    tip: "Terminal",
-  },
+  //   terminal: {
+  //     icon: "code-outlined",
+  //     cursor: "crosshair",
+  //     tip: "Terminal",
+  //   },
   stopwatch: { icon: "stopwatch", cursor: "crosshair", tip: "Stopwatch" },
 };
 

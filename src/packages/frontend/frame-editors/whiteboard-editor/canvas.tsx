@@ -18,12 +18,7 @@ import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-z
 import Grid from "./elements/grid";
 
 import { Actions } from "./actions";
-import {
-  fontSizeToZoom,
-  getPageSpan,
-  DEFAULT_WIDTH,
-  DEFAULT_HEIGHT,
-} from "./math";
+import { fontSizeToZoom, getPageSpan, getPosition } from "./math";
 
 interface Props {
   elements: Element[];
@@ -80,7 +75,8 @@ export default function Canvas({
   const transforms = getTransforms(elements, margin, canvasScale);
 
   for (const element of elements) {
-    const { id, x, y, z, w, h, rotate } = element;
+    const { id, rotate } = element;
+    const { x, y, z, w, h } = getPosition(element);
     if (x == null || y == null) continue; // invalid element!
     const t = transforms.dataToWindow(x, y, z);
     const focused = id == focusedId;
@@ -123,14 +119,7 @@ export default function Canvas({
       );
     }
     v.push(
-      <Position
-        key={id}
-        x={t.x}
-        y={t.y}
-        z={t.z}
-        w={w ?? DEFAULT_WIDTH}
-        h={h ?? DEFAULT_HEIGHT}
-      >
+      <Position key={id} x={t.x} y={t.y} z={t.z} w={w} h={h}>
         {focused ? (
           <Focused canvasScale={canvasScale} element={element}>
             {elt}

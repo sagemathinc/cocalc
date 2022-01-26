@@ -15,70 +15,40 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { Actions } from "./actions";
 import EditBar from "./tools/edit-bar";
 import { delay } from "awaiting";
+import { Element } from "./types";
+import DragHandle from "./focused-resize";
 
-const thickness = 5;
+const thickness = 2;
 const color = "#40a9ff";
-const baseCircleSize = 14;
-const circleColor = "#888";
+const OFFSET = 50;
 
-export default function Focused({ children, canvasScale, element }) {
+interface Props {
+  children: CSSProperties;
+  canvasScale: number;
+  element: Element;
+}
+
+export default function Focused({ children, canvasScale, element }: Props) {
   const frame = useFrameContext();
   const rectRef = useRef<any>(null);
   const [rotating, setRotating] = useState<number | undefined>(undefined);
-  const circleSize = `${baseCircleSize}px`;
-  const circleOffset = `-${baseCircleSize / 2}px`;
 
-  function DragHandle({
-    top,
-    left,
-    bottom,
-    right,
-    cursor,
-  }: {
-    top?: boolean;
-    left?: boolean;
-    bottom?: boolean;
-    right?: boolean;
-    cursor: string;
-  }) {
-    const style = {
-      cursor,
-      position: "absolute",
-      background: "white",
-      color: circleColor,
-      fontSize: circleSize,
-      zIndex: 1000,
-    } as CSSProperties;
-    if (top) style.top = circleOffset;
-    if (left) style.left = circleOffset;
-    if (bottom) style.bottom = circleOffset;
-    if (right) style.right = circleOffset;
-    return (
-      <Draggable
-        scale={canvasScale}
-        onStart={(_, data) => {
-          //console.log("start drag", data);
-        }}
-        onDrag={(_, data) => {
-          //console.log("drag", data);
-        }}
-        onStop={async (_, data) => {
-          const actions = frame.actions as Actions;
-          if (bottom && right) {
-            // actually do something
-            await delay(0);
-            actions.setElement({
-              id: element.id,
-              w: (element.w ?? DEFAULT_WIDTH) + data.x,
-              h: (element.h ?? DEFAULT_HEIGHT) + data.y,
-            });
-          }
-        }}
-      >
-        <Icon className="nodrag" style={style} name="square" />
-      </Draggable>
-    );
-  }
+  const dragHandles = useMemo(() => {
+    const v: ReactNode[] = [];
+    for (const top of [true, false]) {
+      for (const left of [true, false]) {
+        v.push(
+          <DragHandle
+            top={top}
+            left={left}
+            canvasScale={canvasScale}
+            element={element}
+          />
+        );
+      }
+    }
+    return v;
+  }, [element, canvasScale]);
 
   // useMemo is critical here because we don't want this
   // component to get re-rendered as a result of it calling
@@ -90,8 +60,8 @@ export default function Focused({ children, canvasScale, element }) {
       const { height, width } = rect.getBoundingClientRect();
       const s = canvasScale;
       const start = {
-        x: -(4 * baseCircleSize) / s - width / 2,
-        y: (4 * baseCircleSize) / s + height / 2,
+        x: -OFFSET / s - width / 2,
+        y: OFFSET / s + height / 2,
       };
       const stop = {
         x: start.x + data.x * canvasScale,
@@ -124,8 +94,8 @@ export default function Focused({ children, canvasScale, element }) {
             fontSize: "24px",
             cursor: "grab",
             position: "absolute",
-            bottom: `-${4 * baseCircleSize}px`,
-            left: `-${4 * baseCircleSize}px`,
+            bottom: `-${OFFSET}px`,
+            left: `-${OFFSET}px`,
           }}
           name="reload"
         />
@@ -159,17 +129,14 @@ export default function Focused({ children, canvasScale, element }) {
         }}
       >
         <div style={{ width: "100%", height: "100%" }}>
-          <DragHandle top left cursor="nwse-resize" />
-          <DragHandle top right cursor="nesw-resize" />
-          <DragHandle bottom left cursor="nesw-resize" />
-          <DragHandle bottom right cursor="nwse-resize" />
+          {dragHandles}
           {RotateControl}
           <div
             className="nodrag"
             style={{
               position: "absolute",
-              bottom: `-${4 * baseCircleSize}px`,
-              right: `-${4 * baseCircleSize}px`,
+              bottom: `-${OFFSET}px`,
+              right: `-${OFFSET}px`,
             }}
           >
             <EditBar elements={[element]} />
