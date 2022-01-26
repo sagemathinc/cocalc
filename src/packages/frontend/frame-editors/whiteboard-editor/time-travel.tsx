@@ -10,7 +10,7 @@ export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
   const elements = syncdb.version(version).get().toJS();
   return (
     <div className="smc-vfill">
-      {isFocused && <NavigationPanel fontSize={font_size} />}
+      {isFocused && <NavigationPanel fontSize={font_size} elements={elements} />}
       <Canvas elements={elements} font_size={font_size} margin={50} readOnly />
     </div>
   );

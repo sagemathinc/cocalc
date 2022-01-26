@@ -6,7 +6,13 @@ This is NOT an HTML5 canvas.  It has nothing do with that.   We define
 "the whiteboard" as everything -- the controls, settings, etc. -- and
 the canvas as the area where the actual drawing appears.
 */
-import { CSSProperties, ReactNode, MutableRefObject, useEffect, useRef } from "react";
+import {
+  CSSProperties,
+  ReactNode,
+  MutableRefObject,
+  useEffect,
+  useRef,
+} from "react";
 import { Element } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
@@ -23,6 +29,7 @@ import { fontSizeToZoom, getPageSpan, getPosition } from "./math";
 interface Props {
   elements: Element[];
   font_size?: number;
+  scale?: number; // use this if passed in; otherwise, deduce from font_size.
   focusedId?: string;
   selectedTool?: Tool;
   margin?: number;
@@ -37,6 +44,7 @@ interface Props {
 export default function Canvas({
   elements,
   font_size,
+  scale,
   focusedId,
   margin,
   readOnly,
@@ -53,7 +61,7 @@ export default function Canvas({
   usePinchToZoom({ target: canvasRef, min: 5, max: 100 });
 
   const innerCanvasRef = useRef<any>(null);
-  const canvasScale = fontSizeToZoom(font_size);
+  const canvasScale = scale ?? fontSizeToZoom(font_size);
 
   useEffect(() => {
     const { current } = canvasRef;

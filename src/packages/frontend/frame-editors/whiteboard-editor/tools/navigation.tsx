@@ -12,7 +12,7 @@ import { ReactNode } from "react";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { Button, Tooltip } from "antd";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { fontSizeToZoom, ZOOM100 } from "../math";
+import { getPageSpan, fontSizeToZoom, ZOOM100 } from "../math";
 import { Actions } from "../actions";
 import { PANEL_STYLE } from "./panel";
 import Canvas from "../canvas";
@@ -68,12 +68,12 @@ const TOOLS = {
   };
 };
 
-const WIDTH = "250px";
-const MAP_HEIGHT = 150;
+const MAP_WIDTH = 275;
+const MAP_HEIGHT = 175;
 
 interface Props {
   fontSize?: number;
-  elements?: Element[];
+  elements: Element[];
 }
 
 export default function Navigation({ fontSize, elements }: Props) {
@@ -92,7 +92,7 @@ export default function Navigation({ fontSize, elements }: Props) {
         flexDirection: "column",
         right: 0,
         bottom: 0,
-        width: WIDTH,
+        width: `${MAP_WIDTH}px`,
         height: `${33 + (showMap ? MAP_HEIGHT : 0)}px`,
       }}
     >
@@ -121,20 +121,35 @@ function Tool({ tool, fontSize }) {
 }
 
 function Overview({ elements }) {
+  const { xMin, yMin, xMax, yMax } = getPageSpan(elements);
+  const xDiff = Math.max(1, xMax - xMin);
+  const yDiff = Math.max(1, yMax - yMin);
+  const scale = Math.min(MAP_WIDTH / xDiff, MAP_HEIGHT / yDiff);
+  const xRange = xDiff * scale;
+  const yRange = yDiff * scale;
+  const paddingTop = (MAP_HEIGHT - yRange) / 2;
+  const paddingLeft = (MAP_WIDTH - xRange) / 2;
+
   return (
     <div
-      style={{ width: WIDTH, height: `${MAP_HEIGHT}px` }}
+      style={{
+        width: `${MAP_WIDTH}px`,
+        height: `${MAP_HEIGHT}px`,
+        paddingTop,
+        paddingLeft,
+      }}
       className="smc-vfill"
     >
       <Canvas
         elements={elements}
-        font_size={1}
+        scale={scale}
         noGrid
         elementStyle={{
           border: "15px solid #9fc3ff",
           margin: "-15px",
           background: "#9fc3ff",
         }}
+        margin={0}
       />
     </div>
   );

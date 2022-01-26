@@ -16,7 +16,7 @@ export const PANEL_STYLE = {
   zIndex: 1000,
   position: "absolute",
   fontSize: "18px",
-  boxShadow: "0 0 10px",
+  boxShadow: "0 0 5px grey",
   borderRadius: "3px",
   margin: "5px",
   background: "white",
