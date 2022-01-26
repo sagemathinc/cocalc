@@ -13,6 +13,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import { Element } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
@@ -71,6 +72,26 @@ export default function Canvas({
   const innerCanvasRef = useRef<any>(null);
   const canvasScale = scale ?? fontSizeToZoom(font_size);
   const transforms = getTransforms(elements, margin, canvasScale);
+
+  // Whenever the scale changes, make sure the current center of the screen
+  // is preserved.
+  const [lastScale, setLastScale] = useState<number>(canvasScale);
+  useEffect(() => {
+    if (isNavigator) return;
+    if (canvasScale == lastScale) return;
+    const ctr = getCenterPosition();
+    if (ctr == null) return;
+    const { x, y } = ctr;
+    const new_x = (lastScale / canvasScale) * x;
+    const new_y = (lastScale / canvasScale) * y;
+    const delta_x = x - new_x;
+    const delta_y = y - new_y;
+    const c = canvasRef.current;
+    if (c == null) return;
+    c.scrollLeft += delta_x;
+    c.scrollTop += delta_y;
+    setLastScale(canvasScale);
+  }, [canvasScale]);
 
   useEffect(() => {
     const { current } = canvasRef;
