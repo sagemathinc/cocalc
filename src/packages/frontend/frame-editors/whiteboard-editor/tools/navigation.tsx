@@ -97,7 +97,10 @@ export default function Navigation({ fontSize, elements }: Props) {
       }}
     >
       {!desc.get("hideMap") && elements != null && (
-        <Overview elements={elements} />
+        <Overview
+          elements={elements}
+          visibleWindow={desc.get("visibleWindow")}
+        />
       )}
       <div style={{ display: "flex", borderTop: "1px solid #ddd" }}>{v}</div>
     </div>
@@ -120,15 +123,16 @@ function Tool({ tool, fontSize }) {
   );
 }
 
-function Overview({ elements }) {
-  const { xMin, yMin, xMax, yMax } = getPageSpan(elements);
-  const xDiff = Math.max(1, xMax - xMin);
-  const yDiff = Math.max(1, yMax - yMin);
+function Overview({ elements, visibleWindow }) {
+  const { xMin, yMin, xMax, yMax } = getPageSpan(elements, 1);
+  const xDiff = xMax - xMin;
+  const yDiff = yMax - yMin;
   const scale = Math.min(MAP_WIDTH / xDiff, MAP_HEIGHT / yDiff);
   const xRange = xDiff * scale;
   const yRange = yDiff * scale;
   const paddingTop = (MAP_HEIGHT - yRange) / 2;
   const paddingLeft = (MAP_WIDTH - xRange) / 2;
+  const visible = visibleWindow?.toJS();
 
   return (
     <div
@@ -141,15 +145,28 @@ function Overview({ elements }) {
       className="smc-vfill"
     >
       <Canvas
+        noScroll
+        noSaveWindow
+        noGrid
         elements={elements}
         scale={scale}
-        noGrid
         elementStyle={{
           border: "15px solid #9fc3ff",
           margin: "-15px",
           background: "#9fc3ff",
         }}
-        margin={0}
+        extraElements={[
+          {
+            id: "frame",
+            x: visible.xMin,
+            y: visible.yMin,
+            w: visible.xMax - visible.xMin,
+            h: visible.yMax - visible.yMin,
+            z: 1000,
+            type: "frame",
+            data: { color: "grey", thickness: 3 },
+          },
+        ]}
       />
     </div>
   );

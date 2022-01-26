@@ -16,13 +16,14 @@ export type ElementType =
   | "chat"
   | "code"
   | "terminal"
-  | "stopwatch";
+  | "stopwatch"
+  | "timer"
+  | "frame";
 
 export type Point = { x: number; y: number };
 
 export interface Element {
   id: string;
-  style: CSSProperties; // determines style of the object
   type: ElementType;
   x: number;
   y: number;
@@ -32,6 +33,7 @@ export interface Element {
   rotate?: number; // angle in *radians*
   data?: object; // optional json-able object - patch/merge atomic
   str?: string; // optional str data patch/merge via diff string
+  style?: CSSProperties; // determines style of the object -- probably a VERY bad idea to even have this.
 }
 
 export type ElementMap = TypedMap<Element>;

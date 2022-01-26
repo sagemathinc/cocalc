@@ -18,7 +18,7 @@ export const PANEL_STYLE = {
   fontSize: "18px",
   boxShadow: "0 0 5px grey",
   borderRadius: "3px",
-  margin: "5px",
+  margin: "10px",
   background: "white",
 } as CSSProperties;
 

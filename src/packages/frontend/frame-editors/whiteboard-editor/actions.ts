@@ -103,6 +103,15 @@ export class Actions extends BaseActions<State> {
     this.set_frame_tree({ id, hideMap: !node.get("hideMap") });
   }
 
+  saveVisibleWindow(
+    id: string,
+    visibleWindow: { xMin: number; yMin: number; xMax: number; yMax: number }
+  ): void {
+    const node = this._get_frame_node(id);
+    if (node == null) return;
+    this.set_frame_tree({ id, visibleWindow });
+  }
+
   // define this, so icon shows up at top
   zoom_page_width(id: string): void {
     this.fitToScreen(id);

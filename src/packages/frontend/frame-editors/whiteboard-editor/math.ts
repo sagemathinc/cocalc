@@ -48,7 +48,10 @@ export function getPosition(element: Element) {
   };
 }
 
-export function getPageSpan(elements: Element[]): {
+export function getPageSpan(
+  elements: Element[],
+  margin: number = 0
+): {
   xMin: number;
   xMax: number;
   yMin: number;
@@ -74,6 +77,12 @@ export function getPageSpan(elements: Element[]): {
     if (z > zMax) zMax = z;
     if (x + w > xMax) xMax = x + w;
     if (y + h > yMax) yMax = y + h;
+  }
+  if (margin) {
+    xMin -= margin;
+    yMin -= margin;
+    xMax += margin;
+    yMax += margin;
   }
   return { xMin, xMax, yMin, yMax, zMin, zMax };
 }

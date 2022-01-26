@@ -11,6 +11,7 @@ import {
   ReactNode,
   MutableRefObject,
   useEffect,
+  useMemo,
   useRef,
 } from "react";
 import { Element } from "./types";
@@ -25,9 +26,11 @@ import Grid from "./elements/grid";
 
 import { Actions } from "./actions";
 import { fontSizeToZoom, getPageSpan, getPosition } from "./math";
+import { throttle } from "lodash";
 
 interface Props {
   elements: Element[];
+  extraElements?: Element[];
   font_size?: number;
   scale?: number; // use this if passed in; otherwise, deduce from font_size.
   focusedId?: string;
@@ -39,10 +42,13 @@ interface Props {
   evtToDataRef?: MutableRefObject<Function | null>;
   noGrid?: boolean; // hide the grid
   elementStyle?: CSSProperties; // if given, apply this style to div around all elements.
+  noSaveWindow?: boolean; // do not save window ranges on scroll, etc.?  E.g., the navigator map needs this.
+  noScroll?: boolean;
 }
 
 export default function Canvas({
   elements,
+  extraElements,
   font_size,
   scale,
   focusedId,
@@ -51,8 +57,10 @@ export default function Canvas({
   selectedTool,
   fitToScreen,
   evtToDataRef,
-  noGrid,
   elementStyle,
+  noGrid,
+  noSaveWindow,
+  noScroll,
 }: Props) {
   margin = margin ?? 1000;
 
@@ -72,6 +80,10 @@ export default function Canvas({
     }
   }, []);
 
+  useEffect(() => {
+    updateVisibleWindow();
+  }, [font_size, scale]);
+
   const frame = useFrameContext();
   const actions = frame.actions as Actions;
 
@@ -84,13 +96,19 @@ export default function Canvas({
   const v: ReactNode[] = [];
   const transforms = getTransforms(elements, margin, canvasScale);
 
-  for (const element of elements) {
+  function processElement(element, isExtra) {
     const { id, rotate } = element;
     const { x, y, z, w, h } = getPosition(element);
     const t = transforms.dataToWindow(x, y, z);
     const focused = id == focusedId;
-    let elt = <RenderElement element={element} focused={focused} />;
-    if (element.style || focused || elementStyle) {
+    let elt = (
+      <RenderElement
+        element={element}
+        focused={focused}
+        canvasScale={canvasScale}
+      />
+    );
+    if (!isExtra && (element.style || focused || elementStyle)) {
       elt = (
         <div
           style={{
@@ -142,7 +160,7 @@ export default function Canvas({
       );
     } else {
       v.push(
-        <Position key={id} x={t.x} y={t.y} z={t.z} w={w} h={h}>
+        <Position key={id} x={t.x} y={t.y} z={isExtra ? z : t.z} w={w} h={h}>
           <NotFocused
             id={id}
             readOnly={readOnly}
@@ -152,6 +170,16 @@ export default function Canvas({
           </NotFocused>
         </Position>
       );
+    }
+  }
+
+  for (const element of elements) {
+    processElement(element, false);
+  }
+
+  if (extraElements) {
+    for (const element of extraElements) {
+      processElement(element, true);
     }
   }
 
@@ -206,12 +234,39 @@ export default function Canvas({
     }
   }
 
+  const updateVisibleWindow = noSaveWindow
+    ? () => {}
+    : useMemo(() => {
+        return throttle(() => {
+          const elt = canvasRef.current;
+          if (!elt) return;
+          // upper left corner of visible window
+          const { scrollLeft, scrollTop } = elt;
+          // width and height of visible window
+          const { width, height } = elt.getBoundingClientRect();
+          const { x: xMin, y: yMin } = transforms.windowToData(
+            scrollLeft / canvasScale,
+            scrollTop / canvasScale
+          );
+          const xMax = xMin + width / canvasScale;
+          const yMax = yMin + height / canvasScale;
+          actions.saveVisibleWindow(frame.id, { xMin, yMin, xMax, yMax });
+        }, 50);
+      }, [transforms, canvasScale]);
+
+  //   useEffect(() => {
+  //     setTimeout(updateVisibleWindow, 500);
+  //   }, []);
+
   return (
     <div
       className={"smc-vfill"}
       ref={canvasRef}
-      style={{ overflow: "scroll" }}
+      style={{ overflow: noScroll ? "hidden" : "scroll" }}
       onClick={!readOnly ? handleClick : undefined}
+      onScroll={() => {
+        updateVisibleWindow();
+      }}
     >
       <div
         style={{
@@ -274,11 +329,7 @@ function getTransforms(
   interval [0,100], so we can confidently place UI elements, etc.
   */
 
-  let { xMin, yMin, xMax, yMax, zMin, zMax } = getPageSpan(elements);
-  xMin -= margin;
-  yMin -= margin;
-  xMax += margin;
-  yMax += margin;
+  let { xMin, yMin, xMax, yMax, zMin, zMax } = getPageSpan(elements, margin);
 
   const zScale: number = zMin == zMax ? 1 : 100 / (zMax - zMin);
   function dataToWindow(x, y, z?) {

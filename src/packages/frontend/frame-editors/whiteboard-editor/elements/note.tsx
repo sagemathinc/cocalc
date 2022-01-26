@@ -4,7 +4,9 @@ export default function Note({ element, focused }) {
   return (
     <div
       style={{
-        background: element.color ?? "#fff9b2",
+        color: element.data?.color,
+        fontSize: element.data?.fontSize,
+        background: element.data?.background ?? "#fff9b2",
         boxShadow: "5px 5px 7px rgb(33 33 33 / 70%)",
         padding: "10px",
         overflowX: "scroll",
