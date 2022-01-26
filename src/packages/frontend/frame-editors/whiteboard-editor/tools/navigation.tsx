@@ -151,8 +151,6 @@ function Overview({ elements, visibleWindow }) {
         elements={elements}
         scale={scale}
         elementStyle={{
-          border: "15px solid #9fc3ff",
-          margin: "-15px",
           background: "#9fc3ff",
         }}
         extraElements={

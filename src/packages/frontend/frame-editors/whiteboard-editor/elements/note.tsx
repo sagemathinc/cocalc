@@ -8,10 +8,11 @@ export default function Note({ element, focused }) {
         fontSize: element.data?.fontSize,
         background: element.data?.background ?? "#fff9b2",
         boxShadow: "5px 5px 7px rgb(33 33 33 / 70%)",
-        padding: "10px",
+        padding: "15px",
         overflowX: "scroll",
         width: "100%",
         height: "100%",
+        border: "1px solid lightgrey",
         borderRadius: "5px",
       }}
     >

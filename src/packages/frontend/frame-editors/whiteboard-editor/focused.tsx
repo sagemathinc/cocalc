@@ -150,7 +150,7 @@ export default function Focused({
     <Position
       x={t.x}
       y={t.y}
-      z={1000}
+      z={t.z}
       w={pos.w + offset.w}
       h={pos.h + offset.h}
     >
