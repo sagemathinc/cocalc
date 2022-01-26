@@ -20,8 +20,13 @@ import DragHandle from "./focused-resize";
 import Position from "./position";
 
 const thickness = 2;
-const color = "#40a9ff";
+export const FOCUSED_BORDER_COLOR = "#40a9ff";
 const OFFSET = 50;
+const rotateEps = 0.07;
+const rotationSnaps: number[] = [];
+for (let i = 0; i <= 8; i++) {
+  rotationSnaps.push((i * Math.PI) / 4);
+}
 
 const ICON_STYLE = {
   opacity: 0.7,
@@ -106,14 +111,19 @@ export default function Focused({
         onStop={(_, data) => {
           const angle = computeAngle(data);
           if (angle == null) return;
-          const { id, rotate } = element;
+          let { id, rotate } = element;
+          rotate = (rotate ?? 0) + angle;
+          // heuristic to snap to some common rotations.
+          for (const s of rotationSnaps) {
+            if (Math.abs(rotate - s) < rotateEps) {
+              rotate = s;
+              break;
+            }
+          }
           const actions = frame.actions as Actions;
           setTimeout(() => {
-            actions.setElement({
-              id,
-              rotate: (rotate ?? 0) + angle,
-            }),
-              setRotating(undefined);
+            actions.setElement({ id, rotate });
+            setRotating(undefined);
           }, 0);
         }}
       >
@@ -159,8 +169,8 @@ export default function Focused({
           className="nodrag"
           style={{
             position: "absolute",
-            bottom: `-${OFFSET}px`,
-            right: `-${OFFSET}px`,
+            bottom: `-${OFFSET / 2}px`,
+            right: `-${OFFSET / 2}px`,
           }}
         >
           <EditBar elements={[element]} />
@@ -187,9 +197,18 @@ export default function Focused({
           style={{
             cursor: "grab",
             position: "relative",
-            border: `${thickness}px dashed ${color}`,
-            marginLeft: `${-thickness + canvasScale * offset.x}px`, // to offset padding, so object
-            marginTop: `${-thickness + canvasScale * offset.y}px`, // doesn't appear to move when selected
+            ...(rotating
+              ? {
+                  border: `${
+                    thickness / canvasScale
+                  }px dashed ${FOCUSED_BORDER_COLOR}`,
+                  marginLeft: `${-thickness / canvasScale + offset.x}px`,
+                  marginTop: `${-thickness / canvasScale + offset.y}px`,
+                }
+              : {
+                  marginLeft: `${offset.x}px`,
+                  marginTop: `${offset.y}px`,
+                }),
             width: isChanging ? `${pos.w + offset.w}px` : "100%",
             height: isChanging ? `${pos.h + offset.h}px` : "100%",
           }}

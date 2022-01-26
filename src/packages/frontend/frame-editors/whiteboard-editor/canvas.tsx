@@ -18,7 +18,7 @@ import {
 import { Element } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
-import Focused from "./focused";
+import Focused, { FOCUSED_BORDER_COLOR } from "./focused";
 import NotFocused from "./not-focused";
 import Position from "./position";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
@@ -171,9 +171,9 @@ export default function Canvas({
             ...(focused
               ? {
                   cursor: "text",
-                  border: "1px dashed grey",
-                  marginLeft: "-1px",
-                  marginTop: "-1px",
+                  border: `${2 / canvasScale}px dashed ${FOCUSED_BORDER_COLOR}`,
+                  marginLeft: `-${2 / canvasScale}px`,
+                  marginTop: `-${2 / canvasScale}px`,
                 }
               : undefined),
             width: "100%",

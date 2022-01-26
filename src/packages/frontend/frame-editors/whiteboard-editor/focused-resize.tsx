@@ -3,6 +3,7 @@ Supporting component for making focused element(s) resizable.
 
 */
 
+import { Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Element } from "./types";
 import { CSSProperties, useState } from "react";
@@ -109,7 +110,9 @@ export default function DragHandle({
         }, 0);
       }}
     >
-      <Icon className="nodrag" style={style} name="square" />
+      <Tooltip title="Resize">
+        <Icon className="nodrag" style={style} name="square" />
+      </Tooltip>
     </Draggable>
   );
 }
