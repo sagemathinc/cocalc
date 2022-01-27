@@ -5,6 +5,7 @@ import { Actions, State } from "./actions";
 import { Element } from "./types";
 import Canvas from "./canvas";
 import ToolPanel from "./tools/panel";
+import PenPanel from "./tools/pen";
 import NavigationPanel from "./tools/navigation";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import Upload from "./tools/upload";
@@ -57,9 +58,12 @@ export default function Whiteboard({
   return (
     <div className="smc-vfill" style={{ position: "relative" }}>
       {isFocused && (
-        <ToolPanel selectedTool={desc.get("selectedTool") ?? "select"} />
+        <>
+          <ToolPanel selectedTool={desc.get("selectedTool") ?? "select"} />
+          {desc.get("selectedTool") == "pen" && <PenPanel />}
+          <NavigationPanel fontSize={font_size} elements={x} />
+        </>
       )}
-      {isFocused && <NavigationPanel fontSize={font_size} elements={x} />}
       <Upload evtToDataRef={evtToDataRef}>
         <Canvas
           elements={x}

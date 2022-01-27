@@ -30,7 +30,7 @@ export default function Panel({ selectedTool }) {
     );
   }
   return (
-    <div style={{ ...PANEL_STYLE, display: "flex", flexDirection: "column" }}>
+    <div style={{ ...PANEL_STYLE, width:'46px', display: "flex", flexDirection: "column" }}>
       {v}
     </div>
   );
