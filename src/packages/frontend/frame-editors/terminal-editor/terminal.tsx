@@ -78,7 +78,9 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
     }
   }, [props.is_current]);
 
-  useEffect(measure_size, [props.resize]);
+  useEffect(() => {
+    measure_size();
+  }, [props.resize]);
 
   function delete_terminal(): void {
     if (terminalRef.current == null) return; // already deleted or never created
