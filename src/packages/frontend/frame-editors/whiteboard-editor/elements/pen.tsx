@@ -22,11 +22,12 @@ export default function Pen({ element }: Props) {
     if (ctx == null) return;
     const path = element.data?.["path"];
     if (path == null) return;
+    clearCanvas({ ctx });
     drawCurve({
       ctx,
       path: decompressPath(path),
-      brushColor: "black",
-      brushRadius: 1,
+      color: "black",
+      radius: 1,
     });
   }, []);
 
@@ -41,23 +42,26 @@ export default function Pen({ element }: Props) {
   );
 }
 
-function drawCurve({
+export function clearCanvas({ ctx }) {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+}
+
+export function drawCurve({
   ctx,
   path,
-  brushColor,
-  brushRadius,
+  color,
+  radius,
 }: {
   ctx;
   path: Point[];
-  brushColor: string;
-  brushRadius: number;
+  color: string;
+  radius: number;
 }) {
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
-  ctx.strokeStyle = brushColor;
+  ctx.strokeStyle = color;
 
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  ctx.lineWidth = brushRadius * 2;
+  ctx.lineWidth = radius;
 
   let p1 = path[0];
   let p2 = path[1];
