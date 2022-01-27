@@ -28,10 +28,10 @@ import Grid from "./elements/grid";
 import { Actions } from "./actions";
 import { fontSizeToZoom, getPageSpan, getPosition } from "./math";
 import { throttle } from "lodash";
+import Draggable from "react-draggable";
 
 interface Props {
   elements: Element[];
-  extraElements?: Element[];
   font_size?: number;
   scale?: number; // use this if passed in; otherwise, deduce from font_size.
   focusedId?: string;
@@ -41,7 +41,6 @@ interface Props {
   tool?: Tool;
   fitToScreen?: boolean; // if set, compute data then set font_size to get zoom (plus offset) to everything is visible properly on the page; also set fitToScreen back to false in frame tree data
   evtToDataRef?: MutableRefObject<Function | null>;
-  elementStyle?: CSSProperties; // if given, apply this style to div around all elements.
   onClick?: (data: { x: number; y: number }) => void; // called with the data x,y coordinates of where user clicked.
   onMouseDown?: (data: { x: number; y: number }) => void;
   isNavigator?: boolean; // is the navigator, so hide the grid, don't save window, don't scroll, don't move
@@ -49,7 +48,6 @@ interface Props {
 
 export default function Canvas({
   elements,
-  extraElements,
   font_size,
   scale,
   focusedId,
@@ -58,7 +56,6 @@ export default function Canvas({
   selectedTool,
   fitToScreen,
   evtToDataRef,
-  elementStyle,
   onClick,
   onMouseDown,
   isNavigator,
@@ -149,9 +146,7 @@ export default function Canvas({
     }
   }, [fitToScreen]);
 
-  const v: ReactNode[] = [];
-
-  function processElement(element, isExtra) {
+  function processElement(element, isNavRectangle = false) {
     const { id, rotate } = element;
     const { x, y, z, w, h } = getPosition(element);
     const t = transforms.dataToWindow(x, y, z);
@@ -163,7 +158,7 @@ export default function Canvas({
         canvasScale={canvasScale}
       />
     );
-    if (!isExtra && (element.style || focused || elementStyle)) {
+    if (!isNavRectangle && (element.style || focused || isNavigator)) {
       elt = (
         <div
           style={{
@@ -178,7 +173,9 @@ export default function Canvas({
               : undefined),
             width: "100%",
             height: "100%",
-            ...elementStyle,
+            ...(isNavigator
+              ? { background: "#9fc3ff", pointerEvents: "none" }
+              : undefined),
           }}
         >
           {elt}
@@ -203,7 +200,7 @@ export default function Canvas({
     }
 
     if (focused) {
-      v.push(
+      return (
         <Focused
           key={id}
           canvasScale={canvasScale}
@@ -214,8 +211,15 @@ export default function Canvas({
         </Focused>
       );
     } else {
-      v.push(
-        <Position key={id} x={t.x} y={t.y} z={isExtra ? z : t.z} w={w} h={h}>
+      return (
+        <Position
+          key={id}
+          x={t.x}
+          y={t.y}
+          z={isNavRectangle ? z : t.z}
+          w={w}
+          h={h}
+        >
           <NotFocused
             id={id}
             readOnly={readOnly}
@@ -228,13 +232,37 @@ export default function Canvas({
     }
   }
 
+  const v: ReactNode[] = [];
+
   for (const element of elements) {
-    processElement(element, false);
+    v.push(processElement(element));
   }
 
-  if (extraElements) {
-    for (const element of extraElements) {
-      processElement(element, true);
+  if (isNavigator) {
+    // The navigator rectangle
+    const visible = frame.desc.get("visibleWindow")?.toJS();
+    if (visible) {
+      const { xMin, yMin, xMax, yMax } = visible;
+      v.push(
+        <Draggable scale={canvasScale}>
+          <div>
+            {processElement(
+              {
+                id: "nav-frame",
+                x: xMin,
+                y: yMin,
+                w: xMax - xMin,
+                h: yMax - yMin,
+                z: 1000,
+                type: "frame",
+                data: { color: "black", thickness: 3 },
+                style: { background: "lightgrey", opacity: 0.3 },
+              },
+              true
+            )}
+          </div>
+        </Draggable>
+      );
     }
   }
 

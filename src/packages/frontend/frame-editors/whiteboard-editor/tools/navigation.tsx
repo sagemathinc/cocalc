@@ -97,10 +97,7 @@ export default function Navigation({ fontSize, elements }: Props) {
       }}
     >
       {!desc.get("hideMap") && elements != null && (
-        <Overview
-          elements={elements}
-          visibleWindow={desc.get("visibleWindow")}
-        />
+        <Overview elements={elements} />
       )}
       <div style={{ display: "flex", borderTop: "1px solid #ddd" }}>{v}</div>
     </div>
@@ -108,14 +105,18 @@ export default function Navigation({ fontSize, elements }: Props) {
 }
 
 function Tool({ tool, fontSize }) {
-  const { actions, id } = useFrameContext();
+  const { actions, id, desc } = useFrameContext();
   const { icon, tip, click, width } = TOOLS[tool];
   return (
     <Tooltip placement="top" title={tip}>
       <Button
         type="text"
         onClick={() => click(actions as Actions, id)}
-        style={{ width, fontSize: "18px" }}
+        style={{
+          width,
+          fontSize: "18px",
+          color: tool == "map" && !desc.get("hideMap") ? "blue" : undefined,
+        }}
       >
         {typeof icon == "string" ? <Icon name={icon} /> : icon(fontSize)}
       </Button>
@@ -123,7 +124,7 @@ function Tool({ tool, fontSize }) {
   );
 }
 
-function Overview({ elements, visibleWindow }) {
+function Overview({ elements }) {
   const { xMin, yMin, xMax, yMax } = getPageSpan(elements, 1);
   const xDiff = xMax - xMin;
   const yDiff = yMax - yMin;
@@ -132,7 +133,6 @@ function Overview({ elements, visibleWindow }) {
   const yRange = yDiff * scale;
   const paddingTop = (MAP_HEIGHT - yRange) / 2;
   const paddingLeft = (MAP_WIDTH - xRange) / 2;
-  const visible = visibleWindow?.toJS();
   const { actions, id } = useFrameContext();
 
   return (
@@ -153,23 +153,6 @@ function Overview({ elements, visibleWindow }) {
         elementStyle={{
           background: "#9fc3ff",
         }}
-        extraElements={
-          visible
-            ? [
-                {
-                  id: "frame",
-                  x: visible.xMin,
-                  y: visible.yMin,
-                  w: visible.xMax - visible.xMin,
-                  h: visible.yMax - visible.yMin,
-                  z: 1000,
-                  type: "frame",
-                  data: { color: "black", thickness: 3 },
-                  style: { background: "lightgrey", opacity: 0.3 },
-                },
-              ]
-            : undefined
-        }
         onClick={(data) => {
           (actions as Actions).setVisibleWindowCenter(id, data);
         }}
