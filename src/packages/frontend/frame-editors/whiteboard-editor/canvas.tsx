@@ -33,13 +33,13 @@ import {
   pointEqual,
   pointRound,
   compressPath,
+  scalePath,
 } from "./math";
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
 import { clearCanvas, drawCurve } from "./elements/pen";
 
-// other than 1 doesn't work yet. 
-const penDPIFactor = 1.0;
+const penDPIFactor = 1; // I can't get this to work! :-(
 
 interface Props {
   elements: Element[];
@@ -483,6 +483,7 @@ export default function Canvas({
           if (ctx == null) return;
           const c = canvasRef.current;
           if (c == null) return;
+          clearCanvas({ ctx });
           drawCurve({
             ctx,
             path: mousePath.current,

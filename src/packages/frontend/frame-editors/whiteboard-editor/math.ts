@@ -123,3 +123,11 @@ export function decompressPathPairs(
   }
   return path;
 }
+
+export function scalePath(path: Point[], scale): Point[] {
+  const v: Point[] = [];
+  for (const p of path) {
+    v.push({ x: scale * p.x, y: scale * p.y });
+  }
+  return v;
+}
