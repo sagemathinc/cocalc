@@ -41,8 +41,6 @@ interface Props {
   tool?: Tool;
   fitToScreen?: boolean; // if set, compute data then set font_size to get zoom (plus offset) to everything is visible properly on the page; also set fitToScreen back to false in frame tree data
   evtToDataRef?: MutableRefObject<Function | null>;
-  onClick?: (data: { x: number; y: number }) => void; // called with the data x,y coordinates of where user clicked.
-  onMouseDown?: (data: { x: number; y: number }) => void;
   isNavigator?: boolean; // is the navigator, so hide the grid, don't save window, don't scroll, don't move
 }
 
@@ -56,16 +54,15 @@ export default function Canvas({
   selectedTool,
   fitToScreen,
   evtToDataRef,
-  onClick,
-  onMouseDown,
   isNavigator,
 }: Props) {
   margin = margin ?? 1000;
 
   const gridDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
-  usePinchToZoom({ target: canvasRef, min: 5, max: 100 });
+  usePinchToZoom({ target: canvasRef, min: 5, max: 100, step: 2 });
 
+  const navDrag = useRef<null | { x0: number; y0: number }>(null);
   const innerCanvasRef = useRef<any>(null);
   const canvasScale = scale ?? fontSizeToZoom(font_size);
   const transforms = getTransforms(elements, margin, canvasScale);
@@ -244,7 +241,32 @@ export default function Canvas({
     if (visible) {
       const { xMin, yMin, xMax, yMax } = visible;
       v.push(
-        <Draggable scale={canvasScale}>
+        <Draggable
+          key="nav"
+          position={{ x: 0, y: 0 }}
+          scale={canvasScale}
+          onStart={(data) => {
+            // dragging also causes a click and
+            // the point of this is to prevent the click
+            // centering the rectangle. Also, we need the delta.
+            navDrag.current = { x0: data.clientX, y0: data.clientY };
+          }}
+          onStop={(data) => {
+            if (!navDrag.current) return;
+            const { x0, y0 } = navDrag.current;
+            const visible = frame.desc.get("visibleWindow")?.toJS();
+            if (visible == null) return;
+            const ctr = {
+              x: (visible.xMax + visible.xMin) / 2,
+              y: (visible.yMax + visible.yMin) / 2,
+            };
+            const { x, y } = data;
+            actions.setVisibleWindowCenter(frame.id, {
+              x: ctr.x + (x - x0) / canvasScale,
+              y: ctr.y + (y - y0) / canvasScale,
+            });
+          }}
+        >
           <div>
             {processElement(
               {
@@ -342,19 +364,17 @@ export default function Canvas({
       className={"smc-vfill"}
       ref={canvasRef}
       style={{ overflow: isNavigator ? "hidden" : "scroll" }}
-      onMouseDown={(e) => {
-        if (onMouseDown != null) {
-          const { x, y } = evtToData(e);
-          onMouseDown({ x, y });
-        }
-      }}
       onClick={(e) => {
+        if (isNavigator) {
+          if (navDrag.current) {
+            navDrag.current = null;
+            return;
+          }
+          actions.setVisibleWindowCenter(frame.id, evtToData(e));
+          return;
+        }
         if (!readOnly) {
           handleClick(e);
-        }
-        if (onClick != null) {
-          const { x, y } = evtToData(e);
-          onClick({ x, y });
         }
       }}
       onScroll={() => {

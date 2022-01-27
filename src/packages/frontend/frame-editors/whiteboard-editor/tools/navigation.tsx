@@ -1,11 +1,9 @@
 /*
-Overview navigation panel.
+Map navigation panel.
 
 This reproduces some of the functionality in the top button bar,
 but in a way that is always present and with an additional
 high level map view.
-
-(Obviously, inspired by miro.com, which is inspired by many other things...)
 */
 
 import { ReactNode } from "react";
@@ -96,9 +94,7 @@ export default function Navigation({ fontSize, elements }: Props) {
         height: `${33 + (showMap ? MAP_HEIGHT : 0)}px`,
       }}
     >
-      {!desc.get("hideMap") && elements != null && (
-        <Overview elements={elements} />
-      )}
+      {!desc.get("hideMap") && elements != null && <Map elements={elements} />}
       <div style={{ display: "flex", borderTop: "1px solid #ddd" }}>{v}</div>
     </div>
   );
@@ -124,7 +120,7 @@ function Tool({ tool, fontSize }) {
   );
 }
 
-function Overview({ elements }) {
+function Map({ elements }) {
   const { xMin, yMin, xMax, yMax } = getPageSpan(elements, 1);
   const xDiff = xMax - xMin;
   const yDiff = yMax - yMin;
@@ -133,7 +129,6 @@ function Overview({ elements }) {
   const yRange = yDiff * scale;
   const paddingTop = (MAP_HEIGHT - yRange) / 2;
   const paddingLeft = (MAP_WIDTH - xRange) / 2;
-  const { actions, id } = useFrameContext();
 
   return (
     <div
@@ -145,18 +140,7 @@ function Overview({ elements }) {
       }}
       className="smc-vfill"
     >
-      <Canvas
-        margin={0}
-        isNavigator
-        elements={elements}
-        scale={scale}
-        elementStyle={{
-          background: "#9fc3ff",
-        }}
-        onClick={(data) => {
-          (actions as Actions).setVisibleWindowCenter(id, data);
-        }}
-      />
+      <Canvas margin={0} isNavigator elements={elements} scale={scale} />
     </div>
   );
 }

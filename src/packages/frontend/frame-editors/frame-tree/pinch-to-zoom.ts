@@ -26,10 +26,12 @@ export default function usePinchToZoom({
   target,
   min,
   max,
+  step,
 }: {
   target: MutableRefObject<any>; // reference to element that we want pinch zoom.
   min?: number;
   max?: number;
+  step?: number;
 }) {
   const { actions, id, desc } = useFrameContext();
 
@@ -57,7 +59,8 @@ export default function usePinchToZoom({
           max ?? 100,
           Math.max(
             min ?? 5, // todo -- maybe 14 needs to be got from store?
-            (desc.get("font_size") ?? 14) + (state.delta[0] < 0 ? -1 : 1)
+            (desc.get("font_size") ?? 14) +
+              (state.delta[0] < 0 ? -(step ?? 1) : step ?? 1)
           )
         )
       );
