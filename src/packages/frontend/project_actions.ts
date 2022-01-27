@@ -512,10 +512,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             // of the component that displays this editor.  Otherwise, the user
             // would just see a spinner until they tab away and tab back.
             this.open_files.set(path, "component", { ...info });
+            // just like in the case where it is already loaded, we have to "show" it
+            // this is important, because e.g. the store has a "visible" field, which stays undefined
+            // which in turn causes e.g. https://github.com/sagemathinc/cocalc/issues/5398
+            this.show_file(path);
           })();
+        } else {
+          this.show_file(path);
         }
-
-        this.show_file(path);
     }
     this.setState(change);
   }

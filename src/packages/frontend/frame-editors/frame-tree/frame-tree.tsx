@@ -31,7 +31,7 @@ or
 */
 
 import * as feature from "@cocalc/frontend/feature";
-import { copy, hidden_meta_file, is_different, merge } from "@cocalc/util/misc";
+import { copy, hidden_meta_file, is_different } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";
 import React from "react";
@@ -41,6 +41,7 @@ import {
   Rendered,
   useState,
   useEffect,
+  CSS,
 } from "../../app-framework";
 import { Loading } from "../../components";
 import { drag_start_iframe_disable, drag_stop_iframe_enable } from "../../misc";
@@ -57,26 +58,32 @@ import * as tree_ops from "./tree-ops";
 import { EditorDescription, EditorSpec, EditorState, NodeDesc } from "./types";
 const Draggable = require("react-draggable");
 
-const drag_offset = feature.IS_TOUCH ? 5 : 2;
+const DRAG_OFFSET = feature.IS_TOUCH ? 5 : 2;
 
-const cols_drag_bar = {
-  padding: `${drag_offset}px`,
+const COLS_DRAG_BAR: CSS = {
+  padding: `${DRAG_OFFSET}px`,
   background: "#efefef",
   cursor: "ew-resize",
-};
+} as const;
 
-const drag_hover = {
+const DRAG_HOVER: CSS = {
   background: "darkgrey",
   opacity: 0.8,
-};
+} as const;
 
-const cols_drag_bar_drag_hover = merge(copy(cols_drag_bar), drag_hover);
+const COLS_DRAG_BAR_DRAG_HOVER: CSS = {
+  ...COLS_DRAG_BAR,
+  ...DRAG_HOVER,
+} as const;
 
-const rows_drag_bar = merge(copy(cols_drag_bar), {
-  cursor: "ns-resize",
-});
+const ROWS_DRAG_BAR: CSS = {
+  ...COLS_DRAG_BAR,
+  ...{
+    cursor: "ns-resize",
+  },
+} as const;
 
-const rows_drag_bar_drag_hover = merge(copy(rows_drag_bar), drag_hover);
+const ROWS_DRAG_BAR_HOVER = { ...ROWS_DRAG_BAR, DRAG_HOVER } as const;
 
 interface FrameTreeProps {
   name: string; // just so editors (leaf nodes) can plug into reduxProps if they need to.
@@ -114,67 +121,67 @@ interface FrameTreeProps {
 
 function shouldMemoize(prev, next) {
   return !is_different(prev, next, [
-    "frame_tree",
     "active_id",
-    "full_id",
-    "is_only",
+    "available_features",
+    "complete",
     "cursors",
-    "has_unsaved_changes",
+    "derived_file_types",
+    "editor_settings",
+    "frame_tree",
+    "full_id",
     "has_uncommitted_changes",
+    "has_unsaved_changes",
+    "is_only",
     "is_public",
-    "value",
-    "project_id",
-    "path",
+    "is_saving",
+    "is_visible",
+    "local_view_state",
     "misspelled_words",
+    "path",
+    "project_id",
     "reload",
     "resize",
-    "is_saving",
-    "editor_settings",
-    "terminal",
     "settings",
     "status",
-    "complete",
-    "derived_file_types",
-    "available_features",
-    "local_view_state",
-    "is_visible",
     "tab_is_visible",
+    "terminal",
+    "value",
   ]);
 }
 export const FrameTree: React.FC<FrameTreeProps> = React.memo(
   (props: FrameTreeProps) => {
     const {
-      name,
       actions,
-      path,
-      project_id,
       active_id,
-      full_id,
-      frame_tree,
+      available_features,
+      complete,
+      cursors,
+      derived_file_types,
+      editor_settings,
+      editor_spec,
       editor_state,
       font_size,
+      frame_tree,
+      full_id,
+      has_uncommitted_changes,
+      has_unsaved_changes,
       is_only,
-      cursors,
-      read_only,
       is_public,
-      value,
-      editor_spec,
+      is_saving,
+      is_visible,
+      local_view_state,
+      misspelled_words,
+      name,
+      path,
+      project_id,
+      read_only,
       reload,
       resize,
-      misspelled_words,
-      has_unsaved_changes,
-      has_uncommitted_changes,
-      is_saving,
-      editor_settings,
-      terminal,
-      status,
       settings,
-      complete,
-      derived_file_types,
-      available_features,
-      local_view_state,
-      is_visible,
+      status,
       tab_is_visible,
+      terminal,
+      value,
     } = props;
 
     const elementRef = React.useRef<HTMLDivElement>(null);
@@ -197,37 +204,37 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     function render_frame_tree(desc) {
       return (
         <FrameTree
-          name={name}
           actions={actions}
-          frame_tree={desc}
-          editor_state={editor_state}
           active_id={active_id}
-          full_id={full_id}
-          project_id={project_id}
-          path={path}
-          font_size={font_size}
-          is_only={false}
+          available_features={available_features}
+          complete={complete}
           cursors={cursors}
-          read_only={read_only}
-          is_public={is_public}
-          value={value}
+          derived_file_types={derived_file_types}
+          editor_settings={editor_settings}
           editor_spec={editor_spec}
+          editor_state={editor_state}
+          font_size={font_size}
+          frame_tree={desc}
+          full_id={full_id}
+          has_uncommitted_changes={has_uncommitted_changes}
+          has_unsaved_changes={has_unsaved_changes}
+          is_only={false}
+          is_public={is_public}
+          is_saving={is_saving}
+          is_visible={is_visible}
+          local_view_state={local_view_state}
+          misspelled_words={misspelled_words}
+          name={name}
+          path={path}
+          project_id={project_id}
+          read_only={read_only}
           reload={reload}
           resize={resize}
-          misspelled_words={misspelled_words}
-          has_unsaved_changes={has_unsaved_changes}
-          has_uncommitted_changes={has_uncommitted_changes}
-          is_saving={is_saving}
-          editor_settings={editor_settings}
-          terminal={terminal}
           settings={settings}
           status={status}
-          complete={complete}
-          derived_file_types={derived_file_types}
-          available_features={available_features}
-          local_view_state={local_view_state}
-          is_visible={is_visible}
           tab_is_visible={tab_is_visible}
+          terminal={terminal}
+          value={value}
         />
       );
     }
@@ -268,22 +275,22 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       return (
         <FrameTitleBar
           actions={actions}
-          editor_actions={editor_actions}
           active_id={active_id}
-          project_id={desc.get("project_id", project_id)}
-          path={desc.get("path", path)}
+          available_features={available_features}
+          connection_status={desc.get("connection_status")}
+          editor_actions={editor_actions}
+          editor_spec={editor_spec}
+          font_size={desc.get("font_size")}
+          id={id}
           is_full={desc.get("id") === full_id && !is_only}
           is_only={is_only}
-          id={id}
           is_paused={desc.get("is_paused")}
-          type={desc.get("type")}
-          editor_spec={editor_spec}
+          path={desc.get("path", path)}
+          project_id={desc.get("project_id", project_id)}
           spec={spec}
           status={status}
           title={desc.get("title")}
-          connection_status={desc.get("connection_status")}
-          font_size={desc.get("font_size")}
-          available_features={available_features}
+          type={desc.get("type")}
         />
       );
     }
@@ -340,31 +347,31 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
 
       return (
         <FrameTreeLeaf
+          actions={actions_leaf}
+          active_id={active_id}
+          available_features={available_features}
+          component={component}
+          derived_file_types={derived_file_types}
+          desc={desc}
+          editor_actions={editor_actions}
+          editor_settings={editor_settings}
+          editor_state={editor_state}
+          font_size={font_size}
+          is_fullscreen={is_only || desc.get("id") === full_id}
+          is_public={is_public}
+          is_subframe={is_subframe}
+          is_visible={is_visible}
+          local_view_state={local_view_state}
           name={name_leaf}
           path={path_leaf}
           project_id={project_id_leaf}
-          is_public={is_public}
-          font_size={font_size}
-          editor_state={editor_state}
-          active_id={active_id}
-          editor_settings={editor_settings}
-          terminal={terminal}
-          settings={settings}
-          status={status}
-          derived_file_types={derived_file_types}
-          available_features={available_features}
-          local_view_state={local_view_state}
-          actions={actions_leaf}
-          component={component}
-          desc={desc}
-          spec={spec}
-          editor_actions={editor_actions}
-          is_fullscreen={is_only || desc.get("id") === full_id}
           reload={reload.get(type)}
           resize={resize}
-          is_subframe={is_subframe}
-          is_visible={is_visible}
+          settings={settings}
+          spec={spec}
+          status={status}
           tab_is_visible={tab_is_visible}
+          terminal={terminal}
         />
       );
     }
@@ -429,19 +436,19 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     //  }
 
     function render_cols_drag_bar() {
-      const reset = () => {
+      function reset() {
         if (cols_drag_bar_ref.current != null) {
           (cols_drag_bar_ref.current as any).state.x = 0;
-          return $(ReactDOM.findDOMNode(cols_drag_bar_ref.current)).css(
+          $(ReactDOM.findDOMNode(cols_drag_bar_ref.current)).css(
             "transform",
             ""
           );
         }
-      };
+      }
 
       const handle_stop = async (_, ui) => {
         drag_stop_iframe_enable();
-        const clientX = ui.node.offsetLeft + ui.x + drag_offset;
+        const clientX = ui.node.offsetLeft + ui.x + DRAG_OFFSET;
         const elt = ReactDOM.findDOMNode(cols_container_ref.current);
         const pos = (clientX - elt.offsetLeft) / elt.offsetWidth;
         reset();
@@ -463,7 +470,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           defaultClassNameDragging={"cc-vertical-drag-bar-dragging"}
         >
           <div
-            style={drag_hover ? cols_drag_bar_drag_hover : cols_drag_bar}
+            style={drag_hover ? COLS_DRAG_BAR_DRAG_HOVER : COLS_DRAG_BAR}
             onMouseEnter={() => set_drag_hover(true)}
             onMouseLeave={() => set_drag_hover(false)}
           />
@@ -530,19 +537,19 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     }
 
     function render_rows_drag_bar() {
-      const reset = () => {
+      function reset() {
         if (rows_drag_bar_ref.current != null) {
           (rows_drag_bar_ref.current as any).state.y = 0;
-          return $(ReactDOM.findDOMNode(rows_drag_bar_ref.current)).css(
+          $(ReactDOM.findDOMNode(rows_drag_bar_ref.current)).css(
             "transform",
             ""
           );
         }
-      };
+      }
 
       function handle_stop(_, ui) {
         drag_stop_iframe_enable();
-        const clientY = ui.node.offsetTop + ui.y + drag_offset;
+        const clientY = ui.node.offsetTop + ui.y + DRAG_OFFSET;
         const elt = ReactDOM.findDOMNode(rows_container_ref.current);
         const pos = (clientY - elt.offsetTop) / elt.offsetHeight;
         reset();
@@ -563,7 +570,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           onStart={drag_start_iframe_disable}
         >
           <div
-            style={drag_hover ? rows_drag_bar_drag_hover : rows_drag_bar}
+            style={drag_hover ? ROWS_DRAG_BAR_HOVER : ROWS_DRAG_BAR}
             onMouseEnter={() => set_drag_hover(true)}
             onMouseLeave={() => set_drag_hover(false)}
           />
