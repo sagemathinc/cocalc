@@ -63,33 +63,45 @@ export const FileTypeSelector: React.FC<Props> = ({
             >
               <NewFileButton
                 icon="jupyter"
-                name="Jupyter notebook"
+                name="Jupyter Notebook"
                 on_click={create_file}
                 ext={"ipynb"}
               />
             </Tip>
           ) : undefined}
           <Tip
-            title="Linux terminal"
+            title="Linux Terminal"
             icon="terminal"
             tip="Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more."
           >
             <NewFileButton
               icon="terminal"
-              name="Linux terminal"
+              name="Linux Terminal"
               on_click={create_file}
               ext="term"
+            />
+          </Tip>
+          <Tip
+            icon="file-image"
+            title="Whiteboard"
+            tip="Create a collaborative whiteboard."
+          >
+            <NewFileButton
+              icon="file-image"
+              name="Collaborative Whiteboard"
+              on_click={create_file}
+              ext="board"
             />
           </Tip>
           {available.sage ? (
             <Tip
               icon="sagemath-bold"
-              title="Sage worksheet"
+              title="Sage Worksheet"
               tip="Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
             >
               <NewFileButton
                 icon="sagemath-bold"
-                name="Sage worksheet"
+                name="Sage Worksheet"
                 on_click={create_file}
                 ext="sagews"
               />
@@ -103,7 +115,7 @@ export const FileTypeSelector: React.FC<Props> = ({
             >
               <NewFileButton
                 icon="tex-file"
-                name="LaTeX document"
+                name="LaTeX Document"
                 on_click={create_file}
                 ext="tex"
               />
@@ -111,7 +123,7 @@ export const FileTypeSelector: React.FC<Props> = ({
           ) : undefined}
           {available.x11 ? (
             <Tip
-              title="Linux Graphical X11 desktop"
+              title="Linux X11 Desktop"
               icon="window-restore"
               tip="Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser."
             >
@@ -142,7 +154,7 @@ export const FileTypeSelector: React.FC<Props> = ({
       <Row style={row_style}>
         <Col sm={12}>
           <Tip
-            title="Create a chatroom"
+            title="Create a Chatroom"
             placement="bottom"
             icon="comment"
             tip="Create a chatroom for chatting with other collaborators on this project."
@@ -155,7 +167,7 @@ export const FileTypeSelector: React.FC<Props> = ({
             />
           </Tip>
           <Tip
-            title="Manage a course"
+            title="Manage a Course"
             placement="bottom"
             icon="graduation-cap"
             tip="If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc."
@@ -198,7 +210,7 @@ export const FileTypeSelector: React.FC<Props> = ({
             </Tip>
           ) : undefined}
           <Tip
-            title="Todo list"
+            title="Todo List"
             icon="tasks"
             tip="Create a todo list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates."
           >
@@ -230,7 +242,7 @@ export const FileTypeSelector: React.FC<Props> = ({
         <Col sm={12}>
           {available.jupyter_notebook && (
             <NewFileButton
-              name={"Jupyter classic server..."}
+              name={"Jupyter Classic Server..."}
               icon={"ipynb"}
               on_click={(): void => {
                 showNamedServer == "jupyter"
@@ -241,7 +253,7 @@ export const FileTypeSelector: React.FC<Props> = ({
           )}
           {available.jupyter_lab && (
             <NewFileButton
-              name={"JupyterLab server..."}
+              name={"JupyterLab Server..."}
               icon={"ipynb"}
               on_click={(): void => {
                 showNamedServer == "jupyterlab"
@@ -251,7 +263,7 @@ export const FileTypeSelector: React.FC<Props> = ({
             />
           )}
           <NewFileButton
-            name={"VS Code server..."}
+            name={"VS Code Server..."}
             icon={"vscode"}
             on_click={(): void => {
               showNamedServer == "code"
