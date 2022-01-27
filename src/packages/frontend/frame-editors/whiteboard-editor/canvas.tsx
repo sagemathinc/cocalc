@@ -26,7 +26,13 @@ import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-z
 import Grid from "./elements/grid";
 
 import { Actions } from "./actions";
-import { fontSizeToZoom, getPageSpan, getPosition } from "./math";
+import {
+  fontSizeToZoom,
+  getPageSpan,
+  getPosition,
+  pointEqual,
+  pointRound,
+} from "./math";
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
 
@@ -66,6 +72,7 @@ export default function Canvas({
   const innerCanvasRef = useRef<any>(null);
   const canvasScale = scale ?? fontSizeToZoom(font_size);
   const transforms = getTransforms(elements, margin, canvasScale);
+  const mousePath = useRef<{ x: number; y: number }[] | null>(null);
 
   // Whenever the scale changes, make sure the current center of the screen
   // is preserved.
@@ -379,6 +386,70 @@ export default function Canvas({
       }}
       onScroll={() => {
         updateVisibleWindow();
+      }}
+      onMouseDown={() => {
+        if (selectedTool != "pen") return;
+        if (mousePath.current == null) {
+          console.log("RESET");
+          mousePath.current = [];
+        }
+      }}
+      onMouseUp={() => {
+        if (selectedTool != "pen") return;
+        if (mousePath.current == null || mousePath.current.length <= 1) return;
+        const c = canvasRef.current;
+        if (c == null) return;
+        const rect = c.getBoundingClientRect();
+        if (rect == null) return;
+        function toData({ x, y }) {
+          return pointRound(
+            transforms.windowToData(
+              (c.scrollLeft + x - rect.left) / canvasScale,
+              (c.scrollTop + y - rect.top) / canvasScale
+            )
+          );
+        }
+        const { x, y } = toData(mousePath.current[0]);
+        let xMin = x,
+          xMax = x;
+        let yMin = y,
+          yMax = y;
+        const path: [number, number][] = [[x, y]];
+        let lastPt = path[0];
+        for (const pt of mousePath.current.slice(1)) {
+          const thisPt = toData(pt);
+          if (pointEqual(lastPt, thisPt)) continue;
+          const { x, y } = thisPt;
+          path.push([x, y]);
+          if (x < xMin) xMin = x;
+          if (x > xMax) xMax = x;
+          if (y < yMin) yMin = y;
+          if (y > yMax) yMax = y;
+        }
+        mousePath.current = null;
+        for (const pt of path) {
+          pt[0] -= xMin;
+          pt[1] -= yMin;
+        }
+
+        const { id } = actions.createElement(
+          {
+            x: xMin,
+            y: yMin,
+            w: xMax - xMin + 1,
+            h: yMax - yMin + 1,
+            data: { path },
+            type: "pen",
+          },
+          true
+        );
+      }}
+      onMouseMove={(e) => {
+        if (selectedTool == "pen" && mousePath.current != null) {
+          const point = { x: e.clientX, y: e.clientY };
+          console.log(point);
+          mousePath.current.push(point);
+        }
       }}
     >
       <div

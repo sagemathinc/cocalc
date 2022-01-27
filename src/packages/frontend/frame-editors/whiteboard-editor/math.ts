@@ -86,3 +86,11 @@ export function getPageSpan(
   }
   return { xMin, xMax, yMin, yMax, zMin, zMax };
 }
+
+export function pointRound({ x, y }: Point): Point {
+  return { x: Math.round(x), y: Math.round(y) };
+}
+
+export function pointEqual(p1: Point, p2: Point): boolean {
+  return p1.x == p2.x && p1.y == p2.y;
+}

@@ -8,6 +8,7 @@ import Note from "./note";
 import Code from "./code";
 import Frame from "./frame";
 import Generic from "./generic";
+import Pen from "./pen";
 
 interface Props {
   element: Element;
@@ -26,7 +27,11 @@ export default function Render({ element, focused, canvasScale }: Props) {
     case "code":
       return <Code element={element} focused={focused} />;
     case "frame":
-      return <Frame element={element} focused={focused} canvasScale={canvasScale} />;
+      return (
+        <Frame element={element} focused={focused} canvasScale={canvasScale} />
+      );
+    case "pen":
+      return <Pen element={element} focused={focused} />;
     default:
       return <Generic element={element} focused={focused} />;
   }

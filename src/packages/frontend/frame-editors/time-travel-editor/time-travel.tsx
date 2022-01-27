@@ -37,7 +37,7 @@ import { SagewsCodemirror } from "./sagews-codemirror";
 import { SagewsDiff } from "./sagews-diff";
 import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/time-travel";
 
-const HAS_SPECIAL_VIEWER = new Set(["tasks", "ipynb", "sagews", "whiteboard"]);
+const HAS_SPECIAL_VIEWER = new Set(["tasks", "ipynb", "sagews", "board"]);
 
 interface Props {
   actions: TimeTravelActions;
@@ -141,7 +141,7 @@ class TimeTravel extends Component<Props> {
         return this.render_document_jupyter_notebook(syncdoc, version);
       case "sagews":
         return this.render_document_sagews();
-      case "whiteboard":
+      case "board":
         return (
           <Whiteboard
             syncdb={syncdoc}
