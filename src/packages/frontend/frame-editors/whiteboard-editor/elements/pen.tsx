@@ -4,7 +4,8 @@ that inspired this.
 */
 
 import { useEffect, useRef } from "react";
-import type { Element } from "../types";
+import type { Element, Point } from "../types";
+import { decompressPath } from "../math";
 
 interface Props {
   element: Element;
@@ -19,9 +20,14 @@ export default function Pen({ element }: Props) {
     if (canvas == null) return;
     const ctx = canvas.getContext("2d");
     if (ctx == null) return;
-    const points = element.data?.["path"];
-    if (points == null) return;
-    drawCurve({ ctx, points, brushColor: "black", brushRadius: 1 });
+    const path = element.data?.["path"];
+    if (path == null) return;
+    drawCurve({
+      ctx,
+      path: decompressPath(path),
+      brushColor: "black",
+      brushRadius: 1,
+    });
   }, []);
 
   return (
@@ -37,12 +43,12 @@ export default function Pen({ element }: Props) {
 
 function drawCurve({
   ctx,
-  points,
+  path,
   brushColor,
   brushRadius,
 }: {
   ctx;
-  points: number[];
+  path: Point[];
   brushColor: string;
   brushRadius: number;
 }) {
@@ -53,25 +59,20 @@ function drawCurve({
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.lineWidth = brushRadius * 2;
 
-  let p1 = points[0];
-  let p2 = points[1];
+  let p1 = path[0];
+  let p2 = path[1];
 
-  ctx.moveTo(p2[0], p2[1]);
+  ctx.moveTo(p2.x, p2.y);
   ctx.beginPath();
 
-  for (let i = 1, len = points.length; i < len; i++) {
+  for (let i = 1, len = path.length; i < len; i++) {
     // we pick the point between pi+1 & pi+2 as the
     // end point and p1 as our control point
-    ctx.quadraticCurveTo(
-      p1[0],
-      p1[1],
-      (p1[0] + p2[0]) / 2,
-      (p1[1] + p2[1]) / 2
-    );
-    p1 = points[i];
-    p2 = points[i + 1];
+    ctx.quadraticCurveTo(p1.x, p1.y, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+    p1 = path[i];
+    p2 = path[i + 1];
   }
   // Draw last line as a straight line.
-  ctx.lineTo(p1[0], p1[1]);
+  ctx.lineTo(p1.x, p1.y);
   ctx.stroke();
 }

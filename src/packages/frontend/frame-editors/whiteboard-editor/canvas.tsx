@@ -15,7 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Element } from "./types";
+import { Element, Point } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
 import Focused, { FOCUSED_BORDER_COLOR } from "./focused";
@@ -32,6 +32,7 @@ import {
   getPosition,
   pointEqual,
   pointRound,
+  compressPath,
 } from "./math";
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
@@ -389,10 +390,7 @@ export default function Canvas({
       }}
       onMouseDown={() => {
         if (selectedTool != "pen") return;
-        if (mousePath.current == null) {
-          console.log("RESET");
-          mousePath.current = [];
-        }
+        mousePath.current = [];
       }}
       onMouseUp={() => {
         if (selectedTool != "pen") return;
@@ -414,13 +412,13 @@ export default function Canvas({
           xMax = x;
         let yMin = y,
           yMax = y;
-        const path: [number, number][] = [[x, y]];
+        const path: Point[] = [{ x, y }];
         let lastPt = path[0];
         for (const pt of mousePath.current.slice(1)) {
           const thisPt = toData(pt);
           if (pointEqual(lastPt, thisPt)) continue;
           const { x, y } = thisPt;
-          path.push([x, y]);
+          path.push({ x, y });
           if (x < xMin) xMin = x;
           if (x > xMax) xMax = x;
           if (y < yMin) yMin = y;
@@ -428,8 +426,8 @@ export default function Canvas({
         }
         mousePath.current = null;
         for (const pt of path) {
-          pt[0] -= xMin;
-          pt[1] -= yMin;
+          pt.x -= xMin;
+          pt.y -= yMin;
         }
 
         const { id } = actions.createElement(
@@ -438,7 +436,7 @@ export default function Canvas({
             y: yMin,
             w: xMax - xMin + 1,
             h: yMax - yMin + 1,
-            data: { path },
+            data: { path: compressPath(path) },
             type: "pen",
           },
           true
@@ -447,7 +445,6 @@ export default function Canvas({
       onMouseMove={(e) => {
         if (selectedTool == "pen" && mousePath.current != null) {
           const point = { x: e.clientX, y: e.clientY };
-          console.log(point);
           mousePath.current.push(point);
         }
       }}

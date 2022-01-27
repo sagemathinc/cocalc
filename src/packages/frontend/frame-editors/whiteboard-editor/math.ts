@@ -94,3 +94,19 @@ export function pointRound({ x, y }: Point): Point {
 export function pointEqual(p1: Point, p2: Point): boolean {
   return p1.x == p2.x && p1.y == p2.y;
 }
+
+export function compressPath(path: Point[]): number[] {
+  const v: number[] = [];
+  for (const p of path) {
+    v.push(p.x, p.y);
+  }
+  return v;
+}
+
+export function decompressPath(compressedPath: number[]): Point[] {
+  const path: Point[] = [];
+  for (let i = 0; i < compressedPath.length; i += 2) {
+    path.push({ x: compressedPath[i], y: compressedPath[i + 1] });
+  }
+  return path;
+}
