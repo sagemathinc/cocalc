@@ -3,19 +3,10 @@ The pen panel.
 */
 
 import { ReactNode, useState } from "react";
-import { Button, Select, Slider, Tooltip } from "antd";
-const { Option } = Select;
+import { Button, Slider, Tooltip } from "antd";
 import { PANEL_STYLE } from "./panel";
 import { Icon } from "@cocalc/frontend/components/icon";
-import {
-  CirclePicker,
-  ChromePicker,
-  PhotoshopPicker,
-  GithubPicker,
-  TwitterPicker,
-  SwatchesPicker,
-} from "react-color";
-import { capitalize } from "@cocalc/util/misc";
+import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { debounce } from "lodash";
 
@@ -153,27 +144,7 @@ function BrushPreview({
   );
 }
 
-const Pickers = {
-  circle: CirclePicker,
-  photoshop: PhotoshopPicker,
-  chrome: ChromePicker,
-  github: GithubPicker,
-  twitter: TwitterPicker,
-  swatches: SwatchesPicker,
-};
-
 function PenParams({ color, radius, setColor, setRadius }) {
-  const [picker, setPicker] = useState<keyof typeof Pickers>("circle");
-  const Picker = Pickers[picker];
-  const v: ReactNode[] = [];
-  for (const picker in Pickers) {
-    v.push(
-      <Option key={picker} value={picker}>
-        {capitalize(picker)}
-      </Option>
-    );
-  }
-
   return (
     <div
       style={{
@@ -198,14 +169,7 @@ function PenParams({ color, radius, setColor, setRadius }) {
           Radius
         </div>
       </div>
-      <Picker color={color} onChange={(color) => setColor(color.hex)} />
-      <Select
-        value={picker}
-        style={{ width: "120px", marginTop: "10px" }}
-        onChange={setPicker}
-      >
-        {v}
-      </Select>
+      <ColorPicker color={color} onChange={setColor} />
     </div>
   );
 }
