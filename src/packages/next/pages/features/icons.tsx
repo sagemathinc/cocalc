@@ -1,4 +1,8 @@
-/* Show all our icons. */
+/* Show all our icons.
+
+See frontend/components/iconfont.cn/README.md for how to add anything from
+the massive https://www.iconfont.cn/?lang=us
+*/
 
 import { Input } from "antd";
 import { Icon, iconNames } from "@cocalc/frontend/components/icon";
@@ -42,5 +46,3 @@ export default function Icons() {
     </div>
   );
 }
-
-

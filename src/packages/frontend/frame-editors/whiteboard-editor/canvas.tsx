@@ -38,6 +38,7 @@ import {
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
 import { clearCanvas, drawCurve } from "./elements/pen";
+import { penParams } from "./tools/pen";
 
 const penDPIFactor = 1; // I can't get this to work! :-(
 
@@ -131,6 +132,10 @@ export default function Canvas({
     if (ctr == null) return;
     setCenterPosition(ctr.x, ctr.y);
   }, [frame.desc.get("visibleWindowCenter")]);
+
+  function getPenParams() {
+    return penParams(frame.desc.get("penId") ?? 0);
+  }
 
   function getCenterPosition(): { x: number; y: number } | undefined {
     const c = canvasRef.current;
@@ -456,7 +461,7 @@ export default function Canvas({
               y: yMin,
               w: xMax - xMin + 1,
               h: yMax - yMin + 1,
-              data: { path: compressPath(path) },
+              data: { path: compressPath(path), ...getPenParams() },
               type: "pen",
             },
             true
@@ -487,8 +492,7 @@ export default function Canvas({
           drawCurve({
             ctx,
             path: mousePath.current,
-            color: "black",
-            radius: 1,
+            ...getPenParams(),
           });
         }
       }}

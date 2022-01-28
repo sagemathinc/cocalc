@@ -124,6 +124,7 @@
     "re-resizable": "^6.9.0",
     "react": "^17.0.2",
     "react-bootstrap": "^0.31.5",
+    "react-color": "^2.19.3",
     "react-debounce-input": "^3.2.2",
     "react-dom": "^17.0.2",
     "react-draggable": "^4.4.4",

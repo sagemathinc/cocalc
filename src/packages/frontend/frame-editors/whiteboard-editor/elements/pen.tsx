@@ -20,6 +20,11 @@ export default function Pen({ element }: Props) {
   const canvasRef = useRef<any>(null);
   const svgRef = useRef<any>(null);
   const svgDraw = useRef<any>(null);
+  // We pad to shift things just a little so that parts of the curve that
+  // are right on the edge of the canvas don't get partially truncated.
+  // I tried doing this at various points in "the pipeline", and here at
+  // the renderer is optimal.
+  const pad = 2 * (element.data?.["radius"] ?? 1);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -27,6 +32,7 @@ export default function Pen({ element }: Props) {
     const ctx = canvas.getContext("2d");
     if (ctx == null) return;
     ctx.scale(DPIFactor, DPIFactor);
+    ctx.translate(pad, pad);
   }, []);
 
   useEffect(() => {
@@ -36,17 +42,17 @@ export default function Pen({ element }: Props) {
     const ctx = canvas.getContext("2d");
     if (ctx == null) return;
     const data:
-      | { path?: number[]; color?: string; width?: number }
+      | { path?: number[]; color?: string; radius?: number }
       | undefined = element.data;
     if (data == null) return;
-    const path = data.path;
+    const { path, radius, color } = data;
     if (path == null) return;
     clearCanvas({ ctx });
     drawCurve({
       ctx,
       path: decompressPath(path),
-      color: "black",
-      radius: 1,
+      color: color ?? "black",
+      radius: radius ?? 1,
     });
   }, [element]);
 
@@ -78,8 +84,8 @@ export default function Pen({ element }: Props) {
     });
   }, [element]);
 
-  const w = element.w ?? 100;
-  const h = element.h ?? 100;
+  const w = (element.w ?? 100) + 2*pad;
+  const h = (element.h ?? 100) + 2*pad;
   return (
     <div>
       {CANVAS && (
@@ -91,8 +97,8 @@ export default function Pen({ element }: Props) {
             width: `${w}px`,
             height: `${h}px`,
             position: "absolute",
-            top: 0,
-            left: 0,
+            top: -pad,
+            left: -pad,
           }}
         />
       )}

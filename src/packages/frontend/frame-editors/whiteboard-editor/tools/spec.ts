@@ -11,11 +11,11 @@ interface ToolDescription {
 
 export const TOOLS: { [tool: string]: ToolDescription } = {
   select: { icon: "select-outlined", cursor: "default", tip: "Select" },
-  text: { icon: "font-size", cursor: "text", tip: "Text" },
-  note: { icon: "file", cursor: "crosshair", tip: "Note" },
-  code: { icon: "code", cursor: "crosshair", tip: "Code" },
+  text: { icon: "text", cursor: "text", tip: "Text" },
+  note: { icon: "note", cursor: "crosshair", tip: "Note" },
+  pen: { icon: "pen", cursor: "crosshair", tip: "Pen" },
+  code: { icon: "jupyter", cursor: "crosshair", tip: "Jupyter Code" },
   shape: { icon: "square", cursor: "crosshair", tip: "Shape" },
-  pen: { icon: "pencil", cursor: "crosshair", tip: "Pen" },
   chat: { icon: "comment", cursor: "crosshair", tip: "Chat" },
   //   terminal: {
   //     icon: "code-outlined",
