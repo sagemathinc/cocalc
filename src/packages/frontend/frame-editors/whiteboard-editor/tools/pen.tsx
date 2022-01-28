@@ -21,7 +21,12 @@ export default function Pen() {
     frame.desc.get("penId") ?? 0
   );
   const [paramControls, setParamControls] = useState<boolean>(false);
-  const [presets, setPresets] = useState<Presets>(loadPresets());
+  const [presets, setPresets0] = useState<Presets>(loadPresets());
+
+  function setPresets(presets) {
+    setPresets0(presets);
+    savePresets(presets);
+  }
 
   function BrushButton({ id }) {
     const { radius, color } = presets[id] ?? DEFAULT_PEN;
@@ -96,14 +101,12 @@ export default function Pen() {
               ...presets,
               [selected]: { ...presets[selected], color },
             });
-            savePresets(presets);
           }}
           setRadius={(radius) => {
             setPresets({
               ...presets,
               [selected]: { ...presets[selected], radius },
             });
-            savePresets(presets);
           }}
         />
       )}
