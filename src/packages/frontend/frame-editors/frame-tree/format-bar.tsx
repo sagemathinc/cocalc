@@ -7,15 +7,13 @@
 The format bar
 */
 
-const css_colors = require("css-color-names");
-
 import { Component, Rendered } from "../../app-framework";
-import { cmp } from "@cocalc/util/misc";
 import { SetMap } from "./types";
 import { DropdownMenu, MenuItem } from "../../components";
 import { ButtonGroup, Button } from "../../antd-bootstrap";
 import { FONT_FACES } from "../../editors/editor-button-bar";
 import { Icon, isIconName, Space } from "@cocalc/frontend/components";
+import { ColorButton } from "@cocalc/frontend/components/color-picker";
 
 const FONT_SIZES = "xx-small x-small small medium large x-large xx-large".split(
   " "
@@ -292,43 +290,10 @@ export class FormatBar extends Component<Props, {}> {
   }
 
   render_colors_dropdown(): Rendered {
-    let color, code;
-    const items: Rendered[] = [];
-    const v = (() => {
-      const result: any[] = [];
-      for (color in css_colors) {
-        code = css_colors[color];
-        result.push([color, code]);
-      }
-      return result;
-    })();
-    v.sort((a, b) => cmp(a.code, b.code));
-    for (const x of v) {
-      color = x[0];
-      code = x[1];
-      const item = (
-        <MenuItem key={color} eventKey={code}>
-          <span style={{ background: code }}>
-            <Space />
-            <Space />
-            <Space />
-            <Space />
-          </span>{" "}
-          {color}
-        </MenuItem>
-      );
-      items.push(item);
-    }
     return (
-      <DropdownMenu
-        button={true}
-        title={<Icon name={"colors"} />}
-        key={"font-color"}
-        id={"font-color"}
-        onClick={(code) => this.props.actions.format_action("color", code)}
-      >
-        {items}
-      </DropdownMenu>
+      <ColorButton
+        onChange={(code) => this.props.actions.format_action("color", code)}
+      />
     );
   }
 
