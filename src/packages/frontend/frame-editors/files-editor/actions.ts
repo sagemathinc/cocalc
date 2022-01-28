@@ -17,6 +17,7 @@ import {
 import { Favs } from "./types";
 
 export interface State extends CodeEditorState {
+  dir: string;
   favs: Favs;
 }
 
@@ -50,5 +51,9 @@ export class Actions extends BaseActions<State> {
 
   set(obj: Favs): void {
     this._syncstring.set(obj);
+  }
+
+  debugMe(path): void {
+    window.alert(`test: path=${path}`);
   }
 }
