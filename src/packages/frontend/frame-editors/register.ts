@@ -24,3 +24,4 @@ import "./time-travel-editor/register";
 import "./course-editor/register";
 import "./csv-editor/register";
 import "./whiteboard-editor/register";
+import "./files-editor/register";
