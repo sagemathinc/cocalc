@@ -15,6 +15,8 @@ import {
 } from "../code-editor/actions";
 
 import { Favs } from "./types";
+import { project_api } from "../generic/client";
+import { path_split } from "@cocalc/util/misc";
 
 export interface State extends CodeEditorState {
   dir: string;
@@ -55,5 +57,11 @@ export class Actions extends BaseActions<State> {
 
   debugMe(path): void {
     window.alert(`test: path=${path}`);
+  }
+
+  async setDir(path: string) {
+    const api = await project_api(this.project_id);
+    const cPath = await api.canonical_path(path);
+    this.setState({ dir: path_split(cPath).head });
   }
 }

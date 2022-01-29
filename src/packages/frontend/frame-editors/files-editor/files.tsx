@@ -3,19 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button } from "antd";
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
   redux,
   useEditorRedux,
   useEffect,
-  useMemo,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
+import { Button } from "antd";
 import { Actions, State } from "./actions";
+import { useFileListingWatching } from "./useFileListingWatching";
 import { useProjectRunning } from "./useProjectRunning";
-import { useInterval } from "react-interval-hook";
 
 interface Props {
   actions: Actions;
@@ -40,26 +39,12 @@ const Files: React.FC<Props> = (props: Props) => {
   const dir = useEditor("dir");
   const favs = useEditor("favs").toJS();
 
-  // once after mounting, when changing paths, and in regular intervals call watch()
-  useEffect(() => {
-    watch();
-  }, []);
-  useMemo(() => {
-    watch();
-  }, [dir]);
-  useInterval(watch, 10 * 1000);
-
-  function watch(): void {
-    const store = project_actions.get_store();
-    if (store == null) return;
-    try {
-      store.get_listings().watch("");
-    } catch (err) {
-      console.warn("ERROR watching directory", err);
-    }
-  }
-
+  useFileListingWatching(project_id, dir);
   const projectRunning = useProjectRunning(project_id);
+
+  useEffect(() => {
+    actions.setDir(path);
+  }, []);
 
   if (!is_loaded) {
     return (
@@ -79,7 +64,10 @@ const Files: React.FC<Props> = (props: Props) => {
   function buttons() {
     <div>
       <ButtonGroup>
-        <Button onClick={() => actions.debugMe(path)}>Test</Button>
+        <Button onClick={() => actions.debugMe(path)}>debugMe({path})</Button>
+        <Button onClick={() => project_actions.open_file(path)}>
+          Open File({path})
+        </Button>
       </ButtonGroup>
     </div>;
   }
@@ -101,7 +89,7 @@ const Files: React.FC<Props> = (props: Props) => {
 
   function content() {
     return (
-      <pre style={{ fontSize: "9pt" }}>
+      <pre style={{ fontSize: "8pt", overflowY: "auto" }}>
         {JSON.stringify(directory_listings, null, 2)}
       </pre>
     );

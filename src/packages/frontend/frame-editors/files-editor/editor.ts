@@ -26,7 +26,7 @@ export const EDITOR_SPEC = {
   files: {
     short: "Files",
     name: "Files",
-    icon: "file-image",
+    icon: "database",
     component: Files,
     buttons: filesButtons,
   } as EditorDescription,
