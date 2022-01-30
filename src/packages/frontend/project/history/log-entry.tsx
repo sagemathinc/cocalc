@@ -20,7 +20,6 @@ import {
 } from "../../components";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { User } = require("../../users");
-import { file_actions } from "../../project_store";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 import { ProjectTitle } from "../../projects/project-title";
 import { file_associations } from "../../file-associations";
@@ -43,21 +42,25 @@ import {
   SystemEvent,
   PublicPathEvent,
 } from "./types";
+import { FILE_ACTIONS } from "../../project_actions";
 
 const selected_item: React.CSSProperties = {
   backgroundColor: "#08c",
   color: "white",
 };
 
-const file_action_icons = {
+// this is a dictionary for FILE_ACTIONS in packages/frontend/project_actions.ts
+const file_action_icons: {
+  [key in FileActionEvent["action"]]: keyof typeof FILE_ACTIONS;
+} = {
   deleted: "delete",
   downloaded: "download",
   moved: "move",
-  renamed: "pencil-alt",
+  renamed: "rename",
   copied: "copy",
-  share: "shared",
+  shared: "share",
   uploaded: "upload",
-  created: "plus-circle",
+  created: "create",
 };
 
 interface Props {
@@ -554,8 +557,8 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
       case "set":
         return "wrench";
       case "file_action":
-        const icon = file_action_icons[props.event.action];
-        return file_actions[icon] != null ? file_actions[icon].icon : undefined;
+        const action_name = file_action_icons[props.event.action];
+        return FILE_ACTIONS[action_name].icon;
       case "upgrade":
         return "arrow-circle-up";
       case "invite_user":
