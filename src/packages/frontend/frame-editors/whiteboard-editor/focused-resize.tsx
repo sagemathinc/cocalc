@@ -99,6 +99,9 @@ export default function DragHandle({
         const actions = frame.actions as Actions;
         let { w, h, x, y } = getPosition(element);
         const offset = getOffset(data);
+
+        const scale_x = (offset.w + w) / w;
+        const scale_y = (offset.h + h) / h;
         w += offset.w;
         h += offset.h;
         x += offset.x;
@@ -107,7 +110,25 @@ export default function DragHandle({
         setTimeout(() => {
           setPosition({ x: 0, y: 0 });
           setOffset({ x: 0, y: 0, w: 0, h: 0 });
-          actions.setElement({ id: element.id, x, y, w, h });
+          if (element.type == "pen" && element.data?.path) {
+            // it would be better to move this code and have
+            // a generic plugin mechanism that gets called at this point.
+            const path: number[] = [];
+            for (let i = 0; i < element.data.path.length; i += 2) {
+              path[i] = element.data.path[i] * scale_x;
+              path[i + 1] = element.data.path[i + 1] * scale_y;
+            }
+            actions.setElement({
+              id: element.id,
+              x,
+              y,
+              w,
+              h,
+              data: { ...element.data, path },
+            });
+          } else {
+            actions.setElement({ id: element.id, x, y, w, h });
+          }
         }, 0);
       }}
     >

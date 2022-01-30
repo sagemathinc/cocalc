@@ -31,7 +31,7 @@ export interface Element {
   w?: number; // width
   h?: number; // height
   rotate?: number; // angle in *radians*
-  data?: object; // optional json-able object - patch/merge atomic
+  data?: any; // optional json-able object - patch/merge atomic
   str?: string; // optional str data patch/merge via diff string
   style?: CSSProperties; // determines style of the object -- probably a VERY bad idea to even have this.
 }

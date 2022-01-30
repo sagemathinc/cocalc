@@ -1,25 +1,20 @@
 /*
-I emplemented both a canvas and svg approach.  So far I like the canvas with dpi factor best.
+Render a pen element.
 */
 
 import { useEffect, useRef } from "react";
 import type { Element, Point } from "../types";
-import { decompressPath, decompressPathPairs } from "../math";
-import { SVG } from "@svgdotjs/svg.js";
-import svgBezierPath from "./svg-bezier-path";
+import { decompressPath } from "../math";
 
 interface Props {
   element: Element;
   focused?: boolean;
 }
 
-const CANVAS = true;
 const DPIFactor = 4;
 
 export default function Pen({ element }: Props) {
   const canvasRef = useRef<any>(null);
-  const svgRef = useRef<any>(null);
-  const svgDraw = useRef<any>(null);
   // We pad to shift things just a little so that parts of the curve that
   // are right on the edge of the canvas don't get partially truncated.
   // I tried doing this at various points in "the pipeline", and here at
@@ -31,12 +26,13 @@ export default function Pen({ element }: Props) {
     if (canvas == null) return;
     const ctx = canvas.getContext("2d");
     if (ctx == null) return;
+    ctx.restore();
+    ctx.save();
     ctx.scale(DPIFactor, DPIFactor);
     ctx.translate(pad, pad);
-  }, []);
+  }, [pad, element.w, element.h]);
 
   useEffect(() => {
-    if (!CANVAS) return;
     const canvas = canvasRef.current;
     if (canvas == null) return;
     const ctx = canvas.getContext("2d");
@@ -56,61 +52,22 @@ export default function Pen({ element }: Props) {
     });
   }, [element]);
 
-  useEffect(() => {
-    if (CANVAS) return;
-    const c = svgRef.current;
-    if (!c) return;
-    svgDraw.current = SVG().addTo(svgRef.current).size(element.w, element.h);
-  }, []);
-
-  useEffect(() => {
-    if (CANVAS) return;
-    const draw = svgDraw.current;
-    if (!draw) return;
-    const data:
-      | { path?: number[]; color?: string; width?: number }
-      | undefined = element.data;
-    if (data == null) return;
-    const path = data.path;
-    if (path == null || path.length <= 1) return;
-    draw.clear();
-    const p = draw.path(svgBezierPath(decompressPathPairs(path)));
-    p.fill("none");
-    p.stroke({
-      color: data.color ?? "black",
-      width: data.width ?? 1,
-      linecap: "round",
-      linejoin: "round",
-    });
-  }, [element]);
-
-  const w = (element.w ?? 100) + 2*pad;
-  const h = (element.h ?? 100) + 2*pad;
+  const w = (element.w ?? 100) + 2 * pad;
+  const h = (element.h ?? 100) + 2 * pad;
   return (
     <div>
-      {CANVAS && (
-        <canvas
-          ref={canvasRef}
-          width={w * DPIFactor}
-          height={h * DPIFactor}
-          style={{
-            width: `${w}px`,
-            height: `${h}px`,
-            position: "absolute",
-            top: -pad,
-            left: -pad,
-          }}
-        />
-      )}
-      {!CANVAS && (
-        <svg
-          ref={svgRef}
-          width={`${w}px`}
-          height={`${h}px`}
-          style={{ position: "absolute", top: 0, left: 0 }}
-        />
-      )}
-      {/* JSON.stringify(decompressPath(element.data.path)) */}
+      <canvas
+        ref={canvasRef}
+        width={w * DPIFactor}
+        height={h * DPIFactor}
+        style={{
+          width: `${w}px`,
+          height: `${h}px`,
+          position: "absolute",
+          top: -pad,
+          left: -pad,
+        }}
+      />
     </div>
   );
 }
