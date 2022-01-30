@@ -15,7 +15,7 @@ import { Map } from "immutable";
 import { callback, delay } from "awaiting";
 import { redux, ProjectActions } from "../../app-framework";
 import { debounce } from "lodash";
-import { aux_file } from "../frame-tree/util";
+import { aux_file } from "@cocalc/util/misc";
 import { Terminal as XTerminal } from "xterm";
 import "xterm/css/xterm.css";
 

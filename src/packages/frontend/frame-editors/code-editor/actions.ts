@@ -26,7 +26,7 @@ import {
 } from "../generic/client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { SyncString } from "@cocalc/sync/editor/string";
-import { aux_file } from "../frame-tree/util";
+import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension, history_path, len, uuid } from "@cocalc/util/misc";
 import { print_code } from "../frame-tree/print-code";
