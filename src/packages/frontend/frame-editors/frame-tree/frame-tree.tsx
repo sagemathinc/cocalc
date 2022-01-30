@@ -382,6 +382,8 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             project_id: project_id,
             path: path,
             actions: editor_actions,
+            desc,
+            isFocused: active_id == desc.get("id"),
           }}
         >
           <div
