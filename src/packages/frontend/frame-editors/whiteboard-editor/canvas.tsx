@@ -7,7 +7,6 @@ This is NOT an HTML5 canvas.  It has nothing do with that.   We define
 the canvas as the area where the actual drawing appears.
 */
 import {
-  CSSProperties,
   ReactNode,
   MutableRefObject,
   useEffect,
@@ -33,7 +32,6 @@ import {
   pointEqual,
   pointRound,
   compressPath,
-  scalePath,
 } from "./math";
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
@@ -271,13 +269,13 @@ export default function Canvas({
           key="nav"
           position={{ x: 0, y: 0 }}
           scale={canvasScale}
-          onStart={(data) => {
+          onStart={(data: MouseEvent) => {
             // dragging also causes a click and
             // the point of this is to prevent the click
             // centering the rectangle. Also, we need the delta.
             navDrag.current = { x0: data.clientX, y0: data.clientY };
           }}
-          onStop={(data) => {
+          onStop={(data: MouseEvent) => {
             if (!navDrag.current) return;
             const { x0, y0 } = navDrag.current;
             const visible = frame.desc.get("visibleWindow")?.toJS();
@@ -424,9 +422,8 @@ export default function Canvas({
           if (mousePath.current == null || mousePath.current.length <= 1) {
             return;
           }
-          function toData({ x, y }) {
-            return pointRound(transforms.windowToData(x, y));
-          }
+          const toData = ({ x, y }) =>
+            pointRound(transforms.windowToData(x, y));
           const { x, y } = toData(mousePath.current[0]);
           let xMin = x,
             xMax = x;
@@ -455,7 +452,7 @@ export default function Canvas({
             pt.y = pt.y - yMin;
           }
 
-          const { id } = actions.createElement(
+          actions.createElement(
             {
               x: xMin,
               y: yMin,
@@ -486,8 +483,6 @@ export default function Canvas({
           if (canvas == null) return;
           const ctx = canvas.getContext("2d");
           if (ctx == null) return;
-          const c = canvasRef.current;
-          if (c == null) return;
           clearCanvas({ ctx });
           drawCurve({
             ctx,

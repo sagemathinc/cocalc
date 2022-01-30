@@ -18,7 +18,6 @@ import EditBar from "./tools/edit-bar";
 import { Element } from "./types";
 import DragHandle from "./focused-resize";
 import Position from "./position";
-import { focusedElementStylePos } from "./canvas";
 
 const thickness = 2;
 export const FOCUSED_BORDER_COLOR = "#40a9ff";
