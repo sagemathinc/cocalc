@@ -30,6 +30,13 @@ export class UsersStore extends Store<UsersState> {
     return this.getIn(["user_map", account_id, "last_name"], "User");
   }
 
+  /**
+   * the global unique alias name of this user, if specified
+   */
+  get_alias_name(account_id: string): string | undefined {
+    return this.getIn(["user_map", account_id, "name"]);
+  }
+
   // get_color and get_image below: for collaborators the image may
   // immediately be known; for non-collabs
   // it gets looked up via a database query (if not cached):
