@@ -10,7 +10,7 @@ for different account related information
 and configuration.
 */
 
-import { local_storage_length } from "@cocalc/util/misc";
+import { local_storage_length } from "@cocalc/frontend/misc/local-storage";
 import { React, redux, useTypedRedux } from "../app-framework";
 import { Col, Row, Tab, Tabs } from "../antd-bootstrap";
 import { LandingPage } from "../landing-page/landing-page";

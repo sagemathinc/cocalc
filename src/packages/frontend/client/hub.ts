@@ -21,7 +21,10 @@ import {
   do_anonymous_setup,
   should_do_anonymous_setup,
 } from "./anonymous-setup";
-import { deleteRememberMe, setRememberMe } from "@cocalc/util/remember-me";
+import {
+  deleteRememberMe,
+  setRememberMe,
+} from "@cocalc/frontend/misc/remember-me";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 // Maximum number of outstanding concurrent messages (that have responses)

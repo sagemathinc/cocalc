@@ -17,7 +17,7 @@ import { define, required } from "@cocalc/util/fill";
 import { set_url } from "../history";
 import { track_conversion } from "../misc";
 import { join } from "path";
-import { deleteRememberMe } from "@cocalc/util/remember-me";
+import { deleteRememberMe } from "@cocalc/frontend/misc/remember-me";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 // Define account actions

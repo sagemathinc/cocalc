@@ -18,7 +18,7 @@ import {
   deleteRememberMe,
   hasRememberMe,
   setRememberMe,
-} from "@cocalc/util/remember-me";
+} from "@cocalc/frontend/misc/remember-me";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 let first_login = true;

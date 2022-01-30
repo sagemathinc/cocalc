@@ -6,7 +6,7 @@ a big red warning.  In particular, checks for:
 - cookies
 */
 
-import { has_local_storage } from "@cocalc/util/misc";
+import { has_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { redux } from "@cocalc/frontend/app-framework";
 import { delay } from "awaiting";
 

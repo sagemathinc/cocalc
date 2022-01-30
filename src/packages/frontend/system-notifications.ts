@@ -8,11 +8,14 @@ import {
   required,
   from_json,
   to_json,
-  get_local_storage,
   minutes_ago,
-  set_local_storage,
   uuid,
 } from "@cocalc/util/misc";
+
+import {
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
 
 import { Map } from "immutable";
 import { COCALC_MINIMAL } from "./fullscreen";
@@ -70,7 +73,7 @@ class NotificationsTable extends Table {
     const t = get_local_storage("system_notifications");
     let s;
     if (t != null) {
-      s = from_json(t);
+      s = typeof t === "string" ? from_json(t) : t;
     } else {
       s = {};
     }

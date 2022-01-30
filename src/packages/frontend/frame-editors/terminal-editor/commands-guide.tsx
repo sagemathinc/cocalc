@@ -87,9 +87,8 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
   // empty immutable js list
   const [listing, set_listing] = useState<ListingImm>(List([]));
 
-  const [listing_stats, set_listing_stats] = useState<typeof ListingStatsInit>(
-    ListingStatsInit
-  );
+  const [listing_stats, set_listing_stats] =
+    useState<typeof ListingStatsInit>(ListingStatsInit);
   const [directorynames, set_directorynames] = useState<string[]>([]);
   const [filenames, set_filenames] = useState<string[]>([]);
   // directory and filenames
@@ -417,17 +416,10 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
     const style: CSS = { overflowY: "auto" };
     return (
       <Collapse defaultActiveKey={[info]} style={style}>
-        <Panel
-          header={
-            <>
-              <InfoCircleOutlined /> General
-            </>
-          }
-          key={info}
-        >
+        <Panel header="General" extra={<InfoCircleOutlined />} key={info}>
           <Typography.Paragraph
             type="secondary"
-            ellipsis={{ rows: 1, expandable: true, symbol: "more…" }}
+            ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
           >
             This panel shows you the current directory and statistics about the
             files in it. You can select the first and second argument for
@@ -439,94 +431,51 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
 
           {render_info()}
         </Panel>
-        <Panel
-          header={
-            <>
-              <Icon name="list" /> Files
-            </>
-          }
-          key="files"
-        >
+        <Panel header="Files" extra={<Icon name="list" />} key="files">
           {render_files()}
         </Panel>
         <Panel
-          header={
-            <>
-              <FileOutlined /> File commands
-            </>
-          }
+          header="File commands"
+          extra={<FileOutlined />}
           key="file-commands"
         >
           {render_file_commands()}
         </Panel>
         <Panel
-          header={
-            <>
-              <FolderOpenOutlined /> Directory commands
-            </>
-          }
+          header="Directory commands"
+          extra={<FolderOpenOutlined />}
           key="directory-commands"
         >
           {render_directory_commands()}
         </Panel>
-        <Panel
-          header={
-            <>
-              <Icon name="git" /> Git
-            </>
-          }
-          key="git"
-        >
+        <Panel header={"Git"} extra={<Icon name="git" />} key="git">
           {render_git()}
         </Panel>
         <Panel
-          header={
-            <>
-              <Icon name="file-archive" /> Archiving
-            </>
-          }
+          header="Archiving"
+          extra={<Icon name="file-archive" />}
           key="archiving-commands"
         >
           {render_archiving_commands()}
         </Panel>
         <Panel
-          header={
-            <>
-              <ControlOutlined /> System commands
-            </>
-          }
+          header={"System commands"}
+          extra={<ControlOutlined />}
           key="system-commands"
         >
           {render_system_commands()}
         </Panel>
-        <Panel
-          header={
-            <>
-              <Icon name="terminal" /> Bash
-            </>
-          }
-          key="bash"
-        >
+        <Panel header="Bash" extra={<Icon name="terminal" />} key="bash">
           {render_bash()}
         </Panel>
         <Panel
-          header={
-            <>
-              <Icon name="network-wired" /> Network
-            </>
-          }
+          header={"Network"}
+          extra={<Icon name="network-wired" />}
           key="network"
         >
           {render_network()}
         </Panel>
-        <Panel
-          header={
-            <>
-              <QuestionCircleOutlined /> Help
-            </>
-          }
-          key="help"
-        >
+        <Panel header="Help" extra={<QuestionCircleOutlined />} key="help">
           {render_help()}
         </Panel>
       </Collapse>

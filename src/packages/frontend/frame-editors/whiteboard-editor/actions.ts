@@ -32,7 +32,6 @@ export class Actions extends BaseActions<State> {
 
   _init2(): void {
     this.setState({ elements: Map({}) });
-
     this._syncstring.on("change", (keys) => {
       let elements = this.store.get("elements");
       const elements0 = elements;

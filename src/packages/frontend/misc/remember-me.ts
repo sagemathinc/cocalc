@@ -23,7 +23,7 @@ import {
   set_local_storage,
   get_local_storage,
   delete_local_storage,
-} from "./misc";
+} from "@cocalc/frontend/misc/local-storage";
 
 function name(basePath: string) {
   // we normalize the basePath by removing the leading slash if there
