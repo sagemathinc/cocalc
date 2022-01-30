@@ -30,7 +30,6 @@ or
     deletable : bool
 */
 
-import * as feature from "@cocalc/frontend/feature";
 import { copy, hidden_meta_file, is_different } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";
@@ -41,49 +40,20 @@ import {
   Rendered,
   useState,
   useEffect,
-  CSS,
 } from "../../app-framework";
 import { Loading } from "../../components";
-import { drag_start_iframe_disable, drag_stop_iframe_enable } from "../../misc";
 import { AvailableFeatures } from "../../project_configuration";
 import { Actions } from "../code-editor/actions";
 import { cm as cm_spec } from "../code-editor/editor";
 import { is_safari } from "../generic/browser";
 import { TimeTravelActions } from "../time-travel-editor/actions";
 import { FrameContext } from "./frame-context";
+import { FrameTreeDragBar } from "./frame-tree-drag-bar";
 import { FrameTreeLeaf } from "./leaf";
 import { get_file_editor } from "./register";
 import { FrameTitleBar } from "./title-bar";
 import * as tree_ops from "./tree-ops";
 import { EditorDescription, EditorSpec, EditorState, NodeDesc } from "./types";
-const Draggable = require("react-draggable");
-
-const DRAG_OFFSET = feature.IS_TOUCH ? 5 : 2;
-
-const COLS_DRAG_BAR: CSS = {
-  padding: `${DRAG_OFFSET}px`,
-  background: "#efefef",
-  cursor: "ew-resize",
-} as const;
-
-const DRAG_HOVER: CSS = {
-  background: "darkgrey",
-  opacity: 0.8,
-} as const;
-
-const COLS_DRAG_BAR_DRAG_HOVER: CSS = {
-  ...COLS_DRAG_BAR,
-  ...DRAG_HOVER,
-} as const;
-
-const ROWS_DRAG_BAR: CSS = {
-  ...COLS_DRAG_BAR,
-  ...{
-    cursor: "ns-resize",
-  },
-} as const;
-
-const ROWS_DRAG_BAR_HOVER = { ...ROWS_DRAG_BAR, DRAG_HOVER } as const;
 
 interface FrameTreeProps {
   name: string; // just so editors (leaf nodes) can plug into reduxProps if they need to.
@@ -185,12 +155,9 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     } = props;
 
     const elementRef = React.useRef<HTMLDivElement>(null);
-    const cols_drag_bar_ref = React.useRef<HTMLDivElement>(null);
     const cols_container_ref = React.useRef<HTMLDivElement>(null);
-    const rows_drag_bar_ref = React.useRef<HTMLDivElement>(null);
     const rows_container_ref = React.useRef<HTMLDivElement>(null);
 
-    const [drag_hover, set_drag_hover] = useState<boolean>(false);
     const [forceReload, setForceReload] = useState<number>(0);
 
     useEffect(() => {
@@ -430,54 +397,6 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       );
     }
 
-    //function   render_first() {
-    //    const desc = frame_tree.get("first");
-    //    return <div className={"smc-vfill"}>{render_one(desc)}</div>;
-    //  }
-
-    function render_cols_drag_bar() {
-      function reset() {
-        if (cols_drag_bar_ref.current != null) {
-          (cols_drag_bar_ref.current as any).state.x = 0;
-          $(ReactDOM.findDOMNode(cols_drag_bar_ref.current)).css(
-            "transform",
-            ""
-          );
-        }
-      }
-
-      const handle_stop = async (_, ui) => {
-        drag_stop_iframe_enable();
-        const clientX = ui.node.offsetLeft + ui.x + DRAG_OFFSET;
-        const elt = ReactDOM.findDOMNode(cols_container_ref.current);
-        const pos = (clientX - elt.offsetLeft) / elt.offsetWidth;
-        reset();
-        const id = frame_tree.get("id");
-        actions.set_frame_tree({
-          id,
-          pos,
-        });
-        actions.set_resize();
-        actions.focus(); // see https://github.com/sagemathinc/cocalc/issues/3269
-      };
-
-      return (
-        <Draggable
-          ref={cols_drag_bar_ref}
-          axis={"x"}
-          onStop={handle_stop}
-          onStart={drag_start_iframe_disable}
-          defaultClassNameDragging={"cc-vertical-drag-bar-dragging"}
-        >
-          <div
-            style={drag_hover ? COLS_DRAG_BAR_DRAG_HOVER : COLS_DRAG_BAR}
-            onMouseEnter={() => set_drag_hover(true)}
-            onMouseLeave={() => set_drag_hover(false)}
-          />
-        </Draggable>
-      );
-    }
-
     function get_pos() {
       let left;
       let pos = (left = parseFloat(frame_tree.get("pos"))) != null ? left : 0.5;
@@ -517,7 +436,13 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           <div className={"smc-vfill"} style={data.style_first}>
             {render_one(data.first)}
           </div>
-          {render_cols_drag_bar()}
+          <FrameTreeDragBar
+            actions={actions}
+            containerRef={cols_container_ref}
+            dir={"col"}
+            frame_tree={frame_tree}
+            safari_hack={safari_hack}
+          />
           <div className={"smc-vfill"} style={data.style_second}>
             {render_one(data.second)}
           </div>
@@ -536,48 +461,6 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
         .make_height_defined();
     }
 
-    function render_rows_drag_bar() {
-      function reset() {
-        if (rows_drag_bar_ref.current != null) {
-          (rows_drag_bar_ref.current as any).state.y = 0;
-          $(ReactDOM.findDOMNode(rows_drag_bar_ref.current)).css(
-            "transform",
-            ""
-          );
-        }
-      }
-
-      function handle_stop(_, ui) {
-        drag_stop_iframe_enable();
-        const clientY = ui.node.offsetTop + ui.y + DRAG_OFFSET;
-        const elt = ReactDOM.findDOMNode(rows_container_ref.current);
-        const pos = (clientY - elt.offsetTop) / elt.offsetHeight;
-        reset();
-        actions.set_frame_tree({
-          id: frame_tree.get("id"),
-          pos,
-        });
-        actions.set_resize();
-        actions.focus();
-        safari_hack();
-      }
-
-      return (
-        <Draggable
-          ref={rows_drag_bar_ref}
-          axis={"y"}
-          onStop={handle_stop}
-          onStart={drag_start_iframe_disable}
-        >
-          <div
-            style={drag_hover ? ROWS_DRAG_BAR_HOVER : ROWS_DRAG_BAR}
-            onMouseEnter={() => set_drag_hover(true)}
-            onMouseLeave={() => set_drag_hover(false)}
-          />
-        </Draggable>
-      );
-    }
-
     function render_rows() {
       const data = get_data("column");
       return (
@@ -589,7 +472,13 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           <div className={"smc-vfill"} style={data.style_first}>
             {render_one(data.first)}
           </div>
-          {render_rows_drag_bar()}
+          <FrameTreeDragBar
+            actions={actions}
+            containerRef={rows_container_ref}
+            dir={"row"}
+            frame_tree={frame_tree}
+            safari_hack={safari_hack}
+          />
           <div className={"smc-vfill"} style={data.style_second}>
             {render_one(data.second)}
           </div>
