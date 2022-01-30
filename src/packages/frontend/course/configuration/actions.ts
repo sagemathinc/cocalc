@@ -19,6 +19,7 @@ import {
 } from "../../custom-software/selector";
 import { Datastore, EnvVars } from "../../projects/actions";
 import { StudentProjectFunctionality } from "./customize-student-project-functionality";
+import { DEFAULT_LICENSE_UPGRADE_HOST_PROJECT } from "../store";
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
@@ -144,14 +145,21 @@ export class ConfigurationActions {
       // NOTE: we never remove it or any other licenses from the host project,
       // since instructor may want to augment license with another license.
       const store = this.course_actions.get_store();
-      const site_license_id = store.getIn(["settings", "site_license_id"]);
-      const actions = redux.getActions("projects");
-      const course_project_id = store.get("course_project_id");
-      if (site_license_id) {
-        await actions.add_site_license_to_project(
-          course_project_id,
-          site_license_id
-        );
+      // be explicit about copying all course licenses to host project
+      // https://github.com/sagemathinc/cocalc/issues/5360
+      const license_upgrade_host_project =
+        store.getIn(["settings", "license_upgrade_host_project"]) ??
+        DEFAULT_LICENSE_UPGRADE_HOST_PROJECT;
+      if (license_upgrade_host_project) {
+        const site_license_id = store.getIn(["settings", "site_license_id"]);
+        const actions = redux.getActions("projects");
+        const course_project_id = store.get("course_project_id");
+        if (site_license_id) {
+          await actions.add_site_license_to_project(
+            course_project_id,
+            site_license_id
+          );
+        }
       }
     } catch (err) {
       this.course_actions.set_error(`Error configuring host project - ${err}`);
@@ -351,6 +359,11 @@ export class ConfigurationActions {
   public set_envvars(inherit: boolean): void {
     this.set({ envvars: { inherit }, table: "settings" });
     this.configure_all_projects_shared_and_nbgrader();
+  }
+
+  public set_license_upgrade_host_project(upgrade: boolean): void {
+    this.set({ license_upgrade_host_project: upgrade, table: "settings" });
+    this.configure_host_project();
   }
 
   private configure_all_projects_shared_and_nbgrader() {

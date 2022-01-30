@@ -27,7 +27,11 @@ import {
   useTypedRedux,
 } from "../../app-framework";
 import { CourseActions } from "../actions";
-import { CourseStore } from "../store";
+import {
+  CourseSettingsRecord,
+  CourseStore,
+  DEFAULT_LICENSE_UPGRADE_HOST_PROJECT,
+} from "../store";
 import {
   SiteLicensePublicInfoTable,
   SiteLicenses,
@@ -46,8 +50,9 @@ import {
   Row,
   Col,
 } from "../../antd-bootstrap";
-import { Alert, Card, Radio } from "antd";
+import { Alert, Card, Form, Radio, Switch, Typography } from "antd";
 import { alert_message } from "../../alerts";
+import { ConfigurationActions } from "./actions";
 
 const radioStyle: CSS = {
   display: "block",
@@ -66,6 +71,8 @@ interface Props {
   site_license_strategy?: SiteLicenseStrategy;
   shared_project_id?: string;
   disabled?: boolean;
+  settings: CourseSettingsRecord;
+  actions: ConfigurationActions;
 }
 
 export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
@@ -80,6 +87,8 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     site_license_strategy,
     shared_project_id,
     disabled,
+    settings,
+    actions,
   } = props;
 
   const is_mounted_ref = useIsMountedRef();
@@ -633,22 +642,25 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
 
   function render_remove_all_licenses() {
     return (
-      <Button
-        onClick={async () => {
-          try {
-            await get_actions().student_projects.remove_all_project_licenses();
-            alert_message({
-              type: "info",
-              message:
-                "Successfully removed all licenses from student projects.",
-            });
-          } catch (err) {
-            alert_message({ type: "error", message: `${err}` });
-          }
-        }}
-      >
-        Remove all licenses from student projects
-      </Button>
+      <>
+        <br />
+        <Button
+          onClick={async () => {
+            try {
+              await get_actions().student_projects.remove_all_project_licenses();
+              alert_message({
+                type: "info",
+                message:
+                  "Successfully removed all licenses from student projects.",
+              });
+            } catch (err) {
+              alert_message({ type: "error", message: `${err}` });
+            }
+          }}
+        >
+          Remove all licenses from student projects
+        </Button>
+      </>
     );
   }
 
@@ -677,8 +689,9 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
             </div>
           </>
         )}
-        <br />
         {n == 0 && render_remove_all_licenses()}
+        <br />
+        <ToggleUpgradingHostProject actions={actions} settings={settings} />
       </div>
     );
   }
@@ -773,5 +786,60 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     <Card style={{ background: bg }} title={render_title()}>
       {render_body()}
     </Card>
+  );
+};
+
+interface ToggleUpgradingHostProjectProps {
+  actions: ConfigurationActions;
+  settings: CourseSettingsRecord;
+}
+
+const ToggleUpgradingHostProject = (props: ToggleUpgradingHostProjectProps) => {
+  const { actions, settings } = props;
+
+  const [needSave, setNeedSave] = useState<boolean>(false);
+  const upgradeHostProject = settings.get("license_upgrade_host_project");
+  const upgrade = upgradeHostProject ?? DEFAULT_LICENSE_UPGRADE_HOST_PROJECT;
+  const [nextVal, setNextVal] = useState<boolean>(upgrade);
+
+  React.useEffect(() => {
+    setNeedSave(nextVal != upgrade);
+  }, [nextVal, upgrade]);
+
+  function toggle() {
+    return (
+      <Form layout="inline">
+        <Form.Item
+          label="Upgrade instructor project:"
+          style={{ marginBottom: 0 }}
+        >
+          <Switch checked={nextVal} onChange={(val) => setNextVal(val)} />
+        </Form.Item>
+        <Form.Item>
+          <Button
+            disabled={!needSave}
+            bsStyle={needSave ? "primary" : "default"}
+            onClick={() => actions.set_license_upgrade_host_project(nextVal)}
+          >
+            Save
+          </Button>
+        </Form.Item>
+      </Form>
+    );
+  }
+
+  return (
+    <>
+      <hr />
+      {toggle()}
+      <Typography.Paragraph
+        ellipsis={{ expandable: true, rows: 1, symbol: "more" }}
+      >
+        If enabled, this instructor project is upgaded using all configured
+        course license(s). Otherwise, explictly add your license to the
+        instructor project. Disabling this options does <i>not</i> remove
+        licenses from the instructor project.
+      </Typography.Paragraph>
+    </>
   );
 };

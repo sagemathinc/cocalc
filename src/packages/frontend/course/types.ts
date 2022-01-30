@@ -37,6 +37,7 @@ export interface SyncDBRecordSettings {
   inherit_compute_image?: boolean; // if true (default), set the compute_image of student projects to the one of the project hosting the course
   datastore?: Datastore;
   envvars?: EnvVars;
+  license_upgrade_host_project?: boolean;
 }
 
 // This is closely related to store.AssignmentRecord...
