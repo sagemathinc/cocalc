@@ -549,6 +549,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     // but we still have to work around it.
     // The fix to https://github.com/sagemathinc/cocalc/issues/4140
     // might now prevent this bug.
+    //
+    // as of Jan 2022: if there isn't enough content yet (i.e. a new terminal)
+    // this doesn't resize properly.  This is probably a bug in xterm.js.
     try {
       this.terminal.resize(Math.floor(cols), Math.floor(rows));
     } catch (err) {
