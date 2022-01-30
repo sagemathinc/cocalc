@@ -23,6 +23,7 @@ import apiPost from "lib/api/post";
 import { useRouter } from "next/router";
 import Loading from "components/share/loading";
 import { money } from "@cocalc/util/licenses/purchase/util";
+import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc/local-storage";
 
 export default function Create() {
   const router = useRouter();
@@ -71,10 +72,11 @@ function CreateLicense() {
   }
 
   useEffect(() => {
-    if (window.localStorage.store_site_license_show_explanations != null) {
-      setShowExplanations(
-        !!window.localStorage.store_site_license_show_explanations
-      );
+    const store_site_license_show_explanations = get_local_storage(
+      "store_site_license_show_explanations"
+    );
+    if (store_site_license_show_explanations != null) {
+      setShowExplanations(!!store_site_license_show_explanations);
     }
     const { id } = router.query;
     if (id != null) {
@@ -191,9 +193,10 @@ function CreateLicense() {
               onChange={(show) => {
                 setShowExplanations(show);
                 // ugly and ignores basePath -- change later:
-                window.localStorage.store_site_license_show_explanations = show
-                  ? "t"
-                  : "";
+                set_local_storage(
+                  "store_site_license_show_explanations",
+                  show ? "t" : ""
+                );
               }}
             />{" "}
             Show explanations

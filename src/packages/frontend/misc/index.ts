@@ -16,3 +16,11 @@ export * from "./sagews-canonical-mode";
 export * from "./show-react-modal";
 
 import "./bootstrap-fixes";
+
+export {
+  set_local_storage,
+  get_local_storage,
+  has_local_storage,
+  delete_local_storage,
+  local_storage_length,
+} from "./local-storage";

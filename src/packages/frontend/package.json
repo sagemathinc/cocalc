@@ -44,6 +44,7 @@
     "@cocalc/assets": "^1.5.1",
     "@cocalc/cdn": "^1.8.2",
     "@cocalc/hub": "^1.36.0",
+    "@cocalc/local-storage-lru": "^2.1.1",
     "@cocalc/project": "^1.13.4",
     "@cocalc/sync": "^0.2.3",
     "@cocalc/util": "^1.24.1",

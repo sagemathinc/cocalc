@@ -177,76 +177,11 @@ exports.file_icon_class = file_icon_class = (ext) ->
 
 exports.file_options = require("./editor-tmp").file_options
 
-SEP = "\uFE10"
-
-_local_storage_prefix = (project_id, filename, key) ->
-    s = project_id
-    if filename?
-        s += filename + SEP
-    if key?
-        s += key
-    return s
-#
-# Set or get something about a project from local storage:
-#
-#    local_storage(project_id):  returns everything known about this project.
-#    local_storage(project_id, filename):  get everything about given filename in project
-#    local_storage(project_id, filename, key):  get value of key for given filename in project
-#    local_storage(project_id, filename, key, value):   set value of key
-#
-# In all cases, returns undefined if localStorage is not supported in this browser.
-#
-
-if misc.has_local_storage()
-    local_storage_delete = exports.local_storage_delete = (project_id, filename, key) ->
-        storage = window.localStorage
-        if storage?
-            prefix = _local_storage_prefix(project_id, filename, key)
-            n = prefix.length
-            for k, v of storage
-                if k.slice(0,n) == prefix
-                    delete storage[k]
-
-    local_storage = exports.local_storage = (project_id, filename, key, value) ->
-        storage = window.localStorage
-        if storage?
-            prefix = _local_storage_prefix(project_id, filename, key)
-            n = prefix.length
-            if filename?
-                if key?
-                    if value?
-                        storage[prefix] = misc.to_json(value)
-                    else
-                        x = storage[prefix]
-                        if not x?
-                            return x
-                        else
-                            return misc.from_json(x)
-                else
-                    # Everything about a given filename
-                    obj = {}
-                    for k, v of storage
-                        if k.slice(0,n) == prefix
-                            obj[k.split(SEP)[1]] = v
-                    return obj
-            else
-                # Everything about project
-                obj = {}
-                for k, v of storage
-                    if k.slice(0,n) == prefix
-                        x = k.slice(n)
-                        z = x.split(SEP)
-                        filename = z[0]
-                        key = z[1]
-                        if not obj[filename]?
-                            obj[filename] = {}
-                        obj[filename][key] = v
-                return obj
-else
-    # no-op fallback
-    console.warn("cursor saving won't work due to lack of localStorage")
-    local_storage_delete = local_storage = () ->
-
+# old "local storage" code was here, now moved to TS
+editor_local_storage         = require('./editor-local-storage')
+exports.local_storage_delete = editor_local_storage.local_storage_delete
+exports.local_storage        = editor_local_storage.local_storage
+local_storage                = exports.local_storage # used below
 
 ###############################################
 # Abstract base class for editors (not exports.Editor)
