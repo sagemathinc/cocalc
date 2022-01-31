@@ -160,6 +160,9 @@ export default function Focused({
     </Tooltip>
   );
 
+  const scale_x = element.w ? (element.w + offset.w) / element.w : 1;
+  const scale_y = element.h ? (element.h + offset.h) / element.h : 1;
+
   return (
     <Position x={t.x} y={t.y} z={1000} w={pos.w} h={pos.h}>
       <div style={{ visibility: isChanging ? "hidden" : undefined }}>
@@ -230,7 +233,20 @@ export default function Focused({
           }}
         >
           {moveHandle}
-          <div style={{ width: "100%", height: "100%" }}>
+          <div
+            style={{
+              width: `${element.w}px`,
+              height: `${element.h}px`,
+              ...(scale_x != 1 || scale_y != 1
+                ? {
+                    transform: `scale(${scale_x},${scale_y})`,
+                    transformOrigin: "top left",
+                    opacity: 0.5,
+                    background: "lightblue",
+                  }
+                : undefined),
+            }}
+          >
             <div
               style={{
                 ...(rotating

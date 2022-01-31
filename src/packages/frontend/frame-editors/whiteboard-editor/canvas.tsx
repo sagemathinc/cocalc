@@ -83,7 +83,6 @@ export default function Canvas({
     const canvas = penCanvasRef.current;
     if (canvas == null) return;
     const ctx = canvas.getContext("2d");
-    console.log("scaling!", penDPIFactor);
     ctx.scale(penDPIFactor, penDPIFactor);
   }, []);
 
