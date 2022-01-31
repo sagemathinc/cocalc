@@ -382,12 +382,111 @@ export default function Canvas({
         }, 50);
       }, [transforms, canvasScale]);
 
+  const onMouseDown = () => {
+    if (selectedTool != "pen") return;
+    mousePath.current = [];
+  };
+
+  const onTouchStart = () => {
+    onMouseDown();
+  };
+
+  const onMouseUp = () => {
+    if (selectedTool != "pen") return;
+    try {
+      const canvas = penCanvasRef.current;
+      if (canvas == null) return;
+      const ctx = canvas.getContext("2d");
+      if (ctx == null) return;
+      clearCanvas({ ctx });
+      if (mousePath.current == null || mousePath.current.length <= 1) {
+        return;
+      }
+      const toData = ({ x, y }) => pointRound(transforms.windowToData(x, y));
+      const { x, y } = toData(mousePath.current[0]);
+      let xMin = x,
+        xMax = x;
+      let yMin = y,
+        yMax = y;
+      const path: Point[] = [{ x, y }];
+      let lastPt = path[0];
+      for (const pt of mousePath.current.slice(1)) {
+        const thisPt = toData(pt);
+        if (pointEqual(lastPt, thisPt)) {
+          lastPt = thisPt;
+          continue;
+        }
+        lastPt = thisPt;
+        const { x, y } = thisPt;
+        path.push({ x, y });
+        if (x < xMin) xMin = x;
+        if (x > xMax) xMax = x;
+        if (y < yMin) yMin = y;
+        if (y > yMax) yMax = y;
+      }
+      if (path.length <= 1) return;
+
+      for (const pt of path) {
+        pt.x = pt.x - xMin;
+        pt.y = pt.y - yMin;
+      }
+
+      actions.createElement(
+        {
+          x: xMin,
+          y: yMin,
+          w: xMax - xMin + 1,
+          h: yMax - yMin + 1,
+          data: { path: compressPath(path), ...getPenParams() },
+          type: "pen",
+        },
+        true
+      );
+    } finally {
+      mousePath.current = null;
+    }
+  };
+
+  const onTouchEnd = () => {
+    onMouseUp();
+  };
+
+  const onMouseMove = (e) => {
+    if (selectedTool == "pen" && mousePath.current != null) {
+      const c = canvasRef.current;
+      if (c == null) return;
+      const rect = c.getBoundingClientRect();
+      if (rect == null) return;
+      const point = {
+        x: (c.scrollLeft + e.clientX - rect.left) / canvasScale,
+        y: (c.scrollTop + e.clientY - rect.top) / canvasScale,
+      };
+      mousePath.current.push(point);
+      if (mousePath.current.length <= 1) return;
+      const canvas = penCanvasRef.current;
+      if (canvas == null) return;
+      const ctx = canvas.getContext("2d");
+      if (ctx == null) return;
+      clearCanvas({ ctx });
+      drawCurve({
+        ctx,
+        path: mousePath.current,
+        ...getPenParams(),
+      });
+    }
+  };
+
+  const onTouchMove = (e) => {
+    onMouseMove(e.touches[0]);
+  };
+
   return (
     <div
       className={"smc-vfill"}
       ref={canvasRef}
       style={{
         overflow: isNavigator ? "hidden" : "scroll",
+        touchAction: selectedTool == "pen" ? "none" : undefined,
       }}
       onClick={(e) => {
         mousePath.current = null;
@@ -406,90 +505,12 @@ export default function Canvas({
       onScroll={() => {
         updateVisibleWindow();
       }}
-      onMouseDown={() => {
-        if (selectedTool != "pen") return;
-        mousePath.current = [];
-      }}
-      onMouseUp={() => {
-        if (selectedTool != "pen") return;
-        try {
-          const canvas = penCanvasRef.current;
-          if (canvas == null) return;
-          const ctx = canvas.getContext("2d");
-          if (ctx == null) return;
-          clearCanvas({ ctx });
-          if (mousePath.current == null || mousePath.current.length <= 1) {
-            return;
-          }
-          const toData = ({ x, y }) =>
-            pointRound(transforms.windowToData(x, y));
-          const { x, y } = toData(mousePath.current[0]);
-          let xMin = x,
-            xMax = x;
-          let yMin = y,
-            yMax = y;
-          const path: Point[] = [{ x, y }];
-          let lastPt = path[0];
-          for (const pt of mousePath.current.slice(1)) {
-            const thisPt = toData(pt);
-            if (pointEqual(lastPt, thisPt)) {
-              lastPt = thisPt;
-              continue;
-            }
-            lastPt = thisPt;
-            const { x, y } = thisPt;
-            path.push({ x, y });
-            if (x < xMin) xMin = x;
-            if (x > xMax) xMax = x;
-            if (y < yMin) yMin = y;
-            if (y > yMax) yMax = y;
-          }
-          if (path.length <= 1) return;
-
-          for (const pt of path) {
-            pt.x = pt.x - xMin;
-            pt.y = pt.y - yMin;
-          }
-
-          actions.createElement(
-            {
-              x: xMin,
-              y: yMin,
-              w: xMax - xMin + 1,
-              h: yMax - yMin + 1,
-              data: { path: compressPath(path), ...getPenParams() },
-              type: "pen",
-            },
-            true
-          );
-        } finally {
-          mousePath.current = null;
-        }
-      }}
-      onMouseMove={(e) => {
-        if (selectedTool == "pen" && mousePath.current != null) {
-          const c = canvasRef.current;
-          if (c == null) return;
-          const rect = c.getBoundingClientRect();
-          if (rect == null) return;
-          const point = {
-            x: (c.scrollLeft + e.clientX - rect.left) / canvasScale,
-            y: (c.scrollTop + e.clientY - rect.top) / canvasScale,
-          };
-          mousePath.current.push(point);
-          if (mousePath.current.length <= 1) return;
-          const canvas = penCanvasRef.current;
-          if (canvas == null) return;
-          const ctx = canvas.getContext("2d");
-          if (ctx == null) return;
-          clearCanvas({ ctx });
-          drawCurve({
-            ctx,
-            path: mousePath.current,
-            ...getPenParams(),
-          });
-        }
-      }}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
     >
       <div
         style={{
