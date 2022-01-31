@@ -170,6 +170,28 @@ export default function Canvas({
     const { id, rotate } = element;
     const { x, y, z, w, h } = getPosition(element);
     const t = transforms.dataToWindow(x, y, z);
+
+    // This just shows blue boxes in the nav map, instead of actually
+    // rendering something.
+    /*
+    if (isNavigator && !isNavRectangle) {
+      return (
+        <Position key={id} x={t.x} y={t.y} z={0} w={w} h={h}>
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              opacity: "0.8",
+              background: "#9fc3ff",
+              pointerEvents: "none",
+              touchAction: "none",
+            }}
+          ></div>
+        </Position>
+      );
+    }
+    */
+
     const focused = id == focusedId;
     let elt = (
       <RenderElement
@@ -194,7 +216,11 @@ export default function Canvas({
             width: "100%",
             height: "100%",
             ...(isNavigator
-              ? { background: "#9fc3ff", pointerEvents: "none" }
+              ? {
+                  border: "2px solid #9fc3ff",
+                  pointerEvents: "none",
+                  touchAction: "none",
+                }
               : undefined),
           }}
         >

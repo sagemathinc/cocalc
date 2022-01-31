@@ -14,7 +14,6 @@ export type ElementType =
   | "shape"
   | "pen"
   | "chat"
-  | "code"
   | "terminal"
   | "stopwatch"
   | "timer"
