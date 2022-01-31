@@ -21,7 +21,7 @@ the "Open in CoCalc" link on the share server, with minimal friction.
 */
 
 import { redux, Actions, Store } from "../app-framework";
-import * as LS from "../misc/local-storage";
+import * as LS from "../misc/local-storage-typed";
 import { QueryParams } from "../misc/query-params";
 import { ShareLauncher } from "./share";
 import { CSILauncher } from "./custom-image";

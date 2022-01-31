@@ -11,6 +11,7 @@ import { List } from "immutable";
 
 import { UNIT, Icon, Loading } from "../components";
 import { COLORS } from "@cocalc/util/theme";
+import { set_local_storage } from "../misc";
 
 const {
   HelpEmailLink,
@@ -204,7 +205,7 @@ export class SignUp extends React.Component<Props, State> {
     if (this.state.domain_blocked == null) return;
     return (
       <div style={ERROR_STYLE}>
-        To sign up with {" "}
+        To sign up with{" "}
         <code style={{ color: "white" }}>@{this.state.domain_blocked}</code>,
         you have to use the corresponding SSO connect mechanism listed above!
       </div>
@@ -255,7 +256,7 @@ export class SignUp extends React.Component<Props, State> {
       // It can get saved to the backend (associated
       // with their account) once they have signed in
       // or created an account in some way.
-      localStorage.sign_up_how_find_cocalc = question;
+      set_local_storage("sign_up_how_find_cocalc", question);
     } catch (err) {
       // silently fail -- only for analytics.
     }
@@ -297,8 +298,8 @@ export class SignUp extends React.Component<Props, State> {
         cocalc-test={"sign-up-submit"}
         block
       >
-        {this.props.signing_up ? <Icon name="cocalc-ring" spin /> : undefined} Sign
-        Up!
+        {this.props.signing_up ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
+        Sign Up!
       </Button>
     );
   }

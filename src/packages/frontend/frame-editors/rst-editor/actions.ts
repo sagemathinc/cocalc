@@ -11,7 +11,8 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { Actions as CodeEditorActions } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { convert } from "./rst2html";
-import { raw_url, aux_file } from "../frame-tree/util";
+import { raw_url } from "../frame-tree/util";
+import { aux_file } from "@cocalc/util/misc";
 import { FrameTree } from "../frame-tree/types";
 
 export class Actions extends CodeEditorActions {

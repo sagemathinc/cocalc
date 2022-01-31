@@ -13,8 +13,18 @@ export function share_id(project_id: string, path: string): string {
   return client_db.sha1(project_id, path); // Consistent with @cocalc/util/db-schema...
 }
 
-// Returns optimal URL for this share, taking into account
-// vanity names.
+function getProjectOwnerName(project_id: string): string | undefined {
+  const project_users = redux.getStore("projects").get_users(project_id);
+  const users_store = redux.getStore("users");
+  if (project_users == null) return;
+  for (const [aid, user] of project_users) {
+    if (user.get("group") === "owner") {
+      return users_store.get_alias_name(aid);
+    }
+  }
+}
+
+// Returns optimal URL for this share, taking vanity names into account.
 export function publicShareUrl(
   project_id: string,
   public_path: string,
@@ -25,7 +35,7 @@ export function publicShareUrl(
   }
   const relativePath = encode_path(file_path.slice(public_path.length));
   const id = share_id(project_id, public_path);
-  const userName = redux.getStore("account").get("name");
+  const userName = getProjectOwnerName(project_id);
   if (userName) {
     // nicer vanity url
     const projectName = redux
@@ -52,6 +62,7 @@ export function shareServerUrl(): string {
   return `${serverUrl()}/share`;
 }
 
-function serverUrl(): string { // does NOT end in a slash
+function serverUrl(): string {
+  // does NOT end in a slash
   return `${document.location.origin}${appBasePath == "/" ? "" : appBasePath}`;
 }

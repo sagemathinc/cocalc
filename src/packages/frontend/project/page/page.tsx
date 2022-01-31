@@ -34,6 +34,7 @@ import {
   FIXED_PROJECT_TABS,
   FileTab,
 } from "./file-tab";
+
 const SortableFileTab = SortableElement(FileTab);
 
 const PAGE_STYLE: React.CSSProperties = {

@@ -40,8 +40,10 @@ import {
 import { TaskStore } from "./store";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { webapp_client } from "../../webapp-client";
-import { set_local_storage, get_local_storage } from "@cocalc/util/misc";
-
+import {
+  set_local_storage,
+  get_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
 export class TaskActions extends Actions<TaskState> {
   private syncdb: SyncDB;
   private project_id: string;
@@ -130,7 +132,9 @@ export class TaskActions extends Actions<TaskState> {
     if (x == null) return fromJS({}); // no data, nothing to process
     let local_view_state: LocalViewStateMap;
     try {
-      local_view_state = fromJS(JSON.parse(x) ?? {});
+      local_view_state = fromJS(
+        typeof x === "string" ? JSON.parse(x) : x ?? {}
+      );
     } catch (_) {
       local_view_state = fromJS({});
     }

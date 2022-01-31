@@ -5,7 +5,7 @@
 
 import { useEffect, useIsMountedRef, useState } from "../app-framework";
 import { Loading, Space, Icon } from "../components";
-import { Button } from "../antd-bootstrap";
+import { Button } from "antd";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { open_new_tab } from "../misc";
 
@@ -13,17 +13,15 @@ interface Props {
   href: string;
   mode?: "link" | "button";
   children?;
+  size?: "small" | undefined; // antd button size
 }
 
-export default function LinkRetryUntilSuccess({ href, mode, children }: Props) {
+const LinkRetryUntilSuccess: React.FC<Props> = (props: Props) => {
+  const { href, size, mode = "link", children } = props;
   const isMountedRef = useIsMountedRef();
   const [working, setWorking] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<boolean>(false);
-
-  if (mode == null) {
-    mode = "link";
-  }
 
   useEffect(() => {
     setError(false);
@@ -73,7 +71,7 @@ export default function LinkRetryUntilSuccess({ href, mode, children }: Props) {
   }
 
   function click(): void {
-    console.log("click , state = ", { error, working, loading });
+    //console.log("click , state = ", { error, working, loading });
     if (working) {
       open();
     } else if (!loading) {
@@ -102,7 +100,7 @@ export default function LinkRetryUntilSuccess({ href, mode, children }: Props) {
       );
     case "button":
       return (
-        <Button onClick={click} bsSize={"small"}>
+        <Button onClick={click} size={size}>
           {children}
           {loading ? (
             <Icon name="cocalc-ring" spin />
@@ -114,4 +112,6 @@ export default function LinkRetryUntilSuccess({ href, mode, children }: Props) {
     default:
       throw Error("invalid mode");
   }
-}
+};
+
+export default LinkRetryUntilSuccess;
