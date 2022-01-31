@@ -81,14 +81,10 @@ export const FileTypeSelector: React.FC<Props> = ({
               ext="term"
             />
           </Tip>
-          <Tip
-            icon="file-image"
-            title="Whiteboard"
-            tip="Create a collaborative whiteboard."
-          >
+          <Tip icon="file-image" title="Whiteboard" tip="Create a whiteboard.">
             <NewFileButton
               icon="file-image"
-              name="Collaborative Whiteboard"
+              name="Whiteboard"
               on_click={create_file}
               ext="board"
             />
