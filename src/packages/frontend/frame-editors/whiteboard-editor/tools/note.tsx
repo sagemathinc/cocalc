@@ -14,18 +14,22 @@ import { STYLE } from "../elements/note";
 const minFontSize = 7;
 const maxFontSize = 64;
 
+// see https://www.post-it.com/3M/en_US/post-it/ideas/color/
 const COLORS = [
-  "#fff9b1",
-  "#f5f6f8",
-  "#d4f692",
-  "#f5d027",
-  "#c9de55",
-  "#fe9d47",
-  "#93d174",
-  "#6cd7fa",
-  "#fecedf",
-  "#a6ccf5",
-  "#000000",
+  "#f5f468",
+  "#e8edfa",
+  "#f5e3ad",
+  "#7ae294",
+  "#4dd1f1",
+  "#fdaf8a",
+  "#f9b2c3",
+  "#a8cc67",
+  "#fe871c",
+  "#fdce04",
+  "#cfec6d",
+  "#fe5b60",
+  "#c1bab9",
+  "#99b1f0",
 ];
 const numNoteTypes = COLORS.length;
 export const DEFAULT_NOTE = { fontSize: 14, color: COLORS[0] };
@@ -47,7 +51,7 @@ export default function NoteToolPanel() {
     const { fontSize, color } = presets[id] ?? DEFAULT_NOTE;
     return (
       <Button
-        style={{ padding: "5px" }}
+        style={{ padding: "5px", height:'35px' }}
         type="text"
         onClick={() => {
           if (id == selected) {
@@ -83,7 +87,7 @@ export default function NoteToolPanel() {
         display: "flex",
         flexDirection: "column",
         left: "55px",
-        width: "66px",
+        width: "63px",
         paddingBottom: "10px",
       }}
     >
@@ -130,20 +134,21 @@ function NotePreview({
   borderColor?: string;
 }) {
   return (
-    <div
-      style={{
-        ...STYLE,
-        padding: 0,
-        margin: 0,
-        background: color,
-        border: `2px solid ${borderColor ?? "#ccc"}`,
-        width: "50px",
-        height: "25px",
-        fontSize: "9pt",
-      }}
-    >
-      {fontSize}px
-    </div>
+    <Tooltip title={`Font size: ${fontSize}px`}>
+      <div
+        style={{
+          ...STYLE,
+          padding: 0,
+          margin: 0,
+          background: color,
+          border: `2px solid ${borderColor ?? "#ccc"}`,
+          width: "50px",
+          height: "25px",
+          fontSize: "8pt",
+          color: "#888",
+        }}
+      ></div>
+    </Tooltip>
   );
 }
 
@@ -172,7 +177,7 @@ function NoteParams({ color, fontSize, setColor, setFontSize }) {
           Font size (px)
         </div>
       </div>
-      <ColorPicker color={color} onChange={setColor} defaultPicker="twitter" />
+      <ColorPicker color={color} onChange={setColor} defaultPicker="swatches" />
     </div>
   );
 }
