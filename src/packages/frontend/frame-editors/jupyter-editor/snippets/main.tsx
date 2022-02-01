@@ -3,8 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { alert_message } from "@cocalc/frontend/alerts";
-
 // lazy loading the json file via webpack – using @types/webpack-env doesn't work
 declare var require: {
   <T>(path: string): T;
@@ -25,6 +23,7 @@ import {
   useMemo,
   useRedux,
 } from "../../../app-framework";
+import { alert_message } from "@cocalc/frontend/alerts";
 import { sortBy, debounce, isEmpty, merge } from "lodash";
 import { JupyterEditorActions } from "../actions";
 import { JupyterStore } from "../../../jupyter/store";
@@ -52,9 +51,9 @@ import {
 
 import { SnippetDoc, SnippetEntry, SnippetEntries, Snippets } from "./types";
 import {
-  filter_snippets,
-  generate_setup_code,
-  load_custom_snippets,
+  filterSnippets,
+  generateSetupCode,
+  loadCustomSnippets,
   LOCAL_CUSTOM_DIR,
   GLOBAL_CUSTOM_DIR,
   CUSTOM_SNIPPETS_TITLE,
@@ -69,21 +68,21 @@ const HEADER_SORTER = ([k, _]) =>
 // will be set once in the require.ensure callback
 let hardcoded: any = {};
 
-async function load_data(project_actions, set_data, set_error, forced = false) {
+async function loadData(project_actions, setData, setError, forced = false) {
   const main_conf = await project_actions.init_configuration("main");
   if (
     main_conf != null &&
     isMainConfiguration(main_conf) &&
     main_conf.capabilities.jq === true
   ) {
-    const custom = await load_custom_snippets(
+    const custom = await loadCustomSnippets(
       project_actions.project_id,
-      set_error,
+      setError,
       forced
     );
-    set_data(merge({}, hardcoded, custom));
+    setData(merge({}, hardcoded, custom));
   } else {
-    set_error(
+    setError(
       "The command line JSON processor 'jq' is not installed in your project; you must install and possibly restart your project."
     );
   }
@@ -91,23 +90,23 @@ async function load_data(project_actions, set_data, set_error, forced = false) {
 
 function useData(
   project_actions,
-  set_error
+  setError
 ): [
   { [lang: string]: Snippets | undefined } | undefined,
   Function,
   number,
   boolean
 ] {
-  const [data, set_data] = useState<{ [lang: string]: Snippets | undefined }>();
-  const [reload_ts, set_reload_ts] = useState<number>(Date.now());
-  const [loading, set_loading] = useState<boolean>(false);
+  const [data, setData] = useState<{ [lang: string]: Snippets | undefined }>();
+  const [reloadTS, setReloadTS] = useState<number>(Date.now());
+  const [loading, setLoading] = useState<boolean>(false);
   if (data == null) {
     require.ensure([], () => {
       // this file is supposed to be in @cocalc/assets/examples/examples.json
       //     follow "./install.py examples" to see how the makefile is called during build
       hardcoded = require("@cocalc/assets/examples/examples.json");
-      set_data(hardcoded); // call immediately to show default snippets quickly
-      load_data(project_actions, set_data, set_error);
+      setData(hardcoded); // call immediately to show default snippets quickly
+      loadData(project_actions, setData, setError);
     });
   }
   // reload has "forced" set to true, which clears the cache
@@ -117,13 +116,13 @@ function useData(
       message: "Reloading custom snippets...",
       timeout: 5,
     });
-    set_error(null);
-    set_loading(true);
-    await load_data(project_actions, set_data, set_error, true);
-    set_reload_ts(Date.now());
-    set_loading(false);
+    setError(null);
+    setLoading(true);
+    await loadData(project_actions, setData, setError, true);
+    setReloadTS(Date.now());
+    setLoading(false);
   };
-  return [data, reload, reload_ts, loading];
+  return [data, reload, reloadTS, loading];
 }
 
 interface Props {
@@ -144,29 +143,29 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const jupyter_actions = frame_actions.jupyter_actions;
 
   // the most recent notebook frame id, i.e. that's where we'll insert cells
-  const [jupyter_id, set_jupyter_id] = useState<string | undefined>();
+  const [jupyterFrameID, setJupyterFrameID] = useState<string | undefined>();
   const jupyter_store = useStore<JupyterStore>({ name: jupyter_actions.name });
   const kernel = useRedux(jupyter_actions.name, "kernel");
   const kernel_info = useRedux(jupyter_actions.name, "kernel_info");
-  const [lang, set_lang] = useState<string | undefined>();
-  const [insert_setup, set_insert_setup] = useState<boolean>(true);
-  const [search_txt, set_search_txt] = useState("");
-  const [search, set_search] = useState("");
-  const set_search_debounced = debounce(set_search, 333);
-  const [error, set_error] = useState<string | null>(null);
-  const [data, reload, reload_ts, reloading] = useData(
+  const [lang, setLang] = useState<string | undefined>();
+  const [insertSetup, setInsertSetup] = useState<boolean>(true);
+  const [searchText, setSearchText] = useState("");
+  const [search, setSearch] = useState("");
+  const setSearchDebounced = debounce(setSearch, 333);
+  const [error, setError] = useState<string | null>(null);
+  const [data, reload, reloadTS, reloading] = useData(
     project_actions,
-    set_error
+    setError
   );
 
   useEffect(() => {
-    set_search_debounced(search_txt);
-  }, [search_txt]);
+    setSearchDebounced(searchText);
+  }, [searchText]);
 
   // get_kernel_language() depends on kernel and kernel_info
   useEffect(() => {
-    const next_lang = jupyter_store.get_kernel_language();
-    if (next_lang != lang) set_lang(next_lang);
+    const next_lang = jupyter_store.get_kernel_language()?.toLowerCase();
+    if (next_lang != lang) setLang(next_lang);
   }, [kernel, kernel_info]);
 
   // recompute snippets when data, the kernel language or the search string changes
@@ -176,8 +175,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     if (raw == null) return;
     // we also pass the raw data through the filter if the string is empty,
     // such that no headers without any data do not show up
-    return filter_snippets(raw, search);
-  }, [data, lang, search, reload_ts]);
+    return filterSnippets(raw, search);
+  }, [data, lang, search, reloadTS]);
 
   // we need to know the target frame of the jupyter notebook
   useEffect(() => {
@@ -185,16 +184,17 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       "jupyter_cell_notebook"
     );
     if (jid == null) return;
-    if (jupyter_id != jid) set_jupyter_id(jid);
+    if (jupyterFrameID != jid) setJupyterFrameID(jid);
   }, [local_view_state]);
 
   // this is the core part of this: upon user request, the select part of the snippets
   // data-structure is inserted into the notebook + evaluated
   function insert_snippet(args: { code: string; descr?: string }): void {
     const { code, descr } = args;
-    if (jupyter_id == null) return;
-    const frame_store = new NotebookFrameStore(frame_actions, jupyter_id);
-    const notebook_frame_actions = frame_actions.get_frame_actions(jupyter_id);
+    if (jupyterFrameID == null) return;
+    const frame_store = new NotebookFrameStore(frame_actions, jupyterFrameID);
+    const notebook_frame_actions =
+      frame_actions.get_frame_actions(jupyterFrameID);
     // unlikely, unless it was closed or so …
     if (notebook_frame_actions == null) return;
     const sel_cells = frame_store.get_selected_cell_ids_list();
@@ -218,7 +218,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   // either a button to pick a snippet or just an insert link
-  function render_insert({ code, descr }, link = false) {
+  function insert({ code, descr }, link = false) {
     if (!code) return;
     const text = link ? "insert code" : BUTTON_TEXT;
     return (
@@ -237,8 +237,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   // the actual snippet
-  function render_snippet(
-    lvl3_title: string,
+  function snippet(
+    titleLevel3: string,
     doc: SnippetDoc[1],
     data: SnippetEntry
   ) {
@@ -250,17 +250,17 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         : typeof doc[0] === "string"
         ? [doc[0]]
         : doc[0];
-    if (code != null && insert_setup) {
-      const setup = generate_setup_code({ code, data });
+    if (code != null && insertSetup) {
+      const setup = generateSetupCode({ code, data });
       if (setup != "") code.unshift(setup);
     }
     const descr = doc[1];
-    const extra = render_insert({ code, descr });
-    const header = <Highlight text={lvl3_title} search={search} />;
+    const extra = insert({ code, descr });
+    const header = <Highlight text={titleLevel3} search={search} />;
     return (
       <Collapse.Panel
         header={header}
-        key={lvl3_title}
+        key={titleLevel3}
         className="cc-jupyter-snippet"
         extra={extra}
         showArrow={search === ""}
@@ -273,9 +273,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
           />
           {code != null && code.map((v, idx) => <pre key={idx}>{v}</pre>)}
           <Row>
-            <Col flex={3}>
-              {render_insert({ code, descr: undefined }, true)}
-            </Col>
+            <Col flex={3}>{insert({ code, descr: undefined }, true)}</Col>
             <Col flex={1} style={{ textAlign: "right" }}>
               <Copy code={code} />
             </Col>
@@ -286,16 +284,16 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   // this iterates over all subheaders to render each snippet
-  function render_level2([lvl2_title, data]): JSX.Element {
+  function level2([titleLevel2, data]): JSX.Element {
     // when searching, limit to the first 10 hits, otherwise all this might get too large
     const entries = search === "" ? data.entries : data.entries.slice(0, 10);
-    const active_search =
+    const activeSearch =
       search === "" ? undefined : { activeKey: entries.map((val) => val[0]) };
     return (
       <Collapse.Panel
-        key={lvl2_title}
-        header={<Highlight search={search} text={lvl2_title} />}
-        showArrow={active_search == null}
+        key={titleLevel2}
+        header={<Highlight search={search} text={titleLevel2} />}
+        showArrow={activeSearch == null}
       >
         <Collapse
           bordered={false}
@@ -304,18 +302,16 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
             <CaretRightOutlined rotate={isActive ? 90 : 0} />
           )}
           className="cc-jupyter-snippet-collapse"
-          {...active_search}
+          {...activeSearch}
         >
-          {entries.map(([lvl3_title, doc]) =>
-            render_snippet(lvl3_title, doc, data)
-          )}
+          {entries.map(([titleLevel3, doc]) => snippet(titleLevel3, doc, data))}
         </Collapse>
       </Collapse.Panel>
     );
   }
 
   // for each section, iterate over all headers
-  function render_level1([lvl1_title, entries]: [
+  function level1([titleLevel1, entries]: [
     string,
     SnippetEntries
   ]): JSX.Element {
@@ -323,39 +319,39 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       ([_, v]) => v.sortweight,
       HEADER_SORTER,
     ]);
-    const title_el = (
+    const titleElement = (
       <Highlight
         search={search}
-        text={lvl1_title}
+        text={titleLevel1}
         style={{ fontWeight: "bold" }}
       />
     );
     // when searching, expand the first 3 to aid the user
-    const active_search =
+    const activeSearch =
       search === ""
         ? undefined
         : { activeKey: lvl2.slice(0, 3).map((val) => val[0]) };
 
     return (
       <Collapse.Panel
-        key={lvl1_title}
-        header={title_el}
+        key={titleLevel1}
+        header={titleElement}
         className="cc-jupyter-snippets"
-        showArrow={active_search == null}
+        showArrow={activeSearch == null}
       >
-        <Collapse ghost={true} destroyInactivePanel {...active_search}>
-          {lvl2.map(render_level2)}
+        <Collapse ghost={true} destroyInactivePanel {...activeSearch}>
+          {lvl2.map(level2)}
         </Collapse>
       </Collapse.Panel>
     );
   }
 
-  function open_custom_snippet_file() {
+  function openCustomSnippetFile() {
     const path = `${LOCAL_CUSTOM_DIR}/snippets.ipynb`;
     project_actions?.open_file({ path, foreground: true });
   }
 
-  function render_custom_info() {
+  function customSnippetInfo() {
     return (
       <Collapse.Panel
         key={"custom_info"}
@@ -372,7 +368,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
             <Button
               type="link"
               style={{ padding: 0, fontSize: `${font_size}px` }}
-              onClick={open_custom_snippet_file}
+              onClick={openCustomSnippetFile}
             >
               snippets.ipynb
             </Button>
@@ -421,7 +417,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_no_kernel(): JSX.Element {
+  function noKernel(): JSX.Element {
     return (
       <Alert
         message="No kernel"
@@ -431,7 +427,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_no_snippets(): JSX.Element {
+  function noSnippet(): JSX.Element {
     return (
       <Alert
         message="No Snippets"
@@ -446,7 +442,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_loading(): JSX.Element {
+  function loading(): JSX.Element {
     return (
       <div style={{ textAlign: "center", marginTop: "5rem" }}>
         <Loading />
@@ -454,7 +450,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function no_search_result(): JSX.Element {
+  function noSearchResult(): JSX.Element {
     return (
       <Alert
         message="No search results"
@@ -462,7 +458,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         description={
           <>
             There are no matches for your search.{" "}
-            <Button type="link" onClick={() => set_search_txt("")}>
+            <Button type="link" onClick={() => setSearchText("")}>
               clear search
             </Button>
           </>
@@ -471,12 +467,12 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  // memoizes the actually rendered snippet (depends only on a few details)
-  const render_snippets = React.useCallback((): JSX.Element => {
-    if (data == null) return render_loading();
-    if (lang == null) return render_no_kernel();
-    if (snippets == null) return render_no_snippets();
-    if (search !== "" && isEmpty(snippets)) return no_search_result();
+  // memoizes the actually rendered snippet (depends only on a few details, in particular the search text)
+  const allSnippets = React.useCallback((): JSX.Element => {
+    if (data == null) return loading();
+    if (lang == null) return noKernel();
+    if (snippets == null) return noSnippet();
+    if (search !== "" && isEmpty(snippets)) return noSearchResult();
     const lvl1 = sortBy(Object.entries(snippets), [
       HEADER_SORTER,
       ([k, _]) => k,
@@ -487,7 +483,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       fontSize: `${font_size}px`,
     };
     // when searching, expand the first three to aid the user
-    const active_search =
+    const activeSearch =
       search === ""
         ? undefined
         : { activeKey: lvl1.slice(0, 3).map((val) => val[0]) };
@@ -502,16 +498,25 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
             return <PlusSquareOutlined style={style} />;
           }
         }}
-        {...active_search}
+        {...activeSearch}
       >
-        {lvl1.map(render_level1)}
-        {render_custom_info()}
+        {lvl1.map(level1)}
+        {customSnippetInfo()}
       </Collapse>
     );
-  }, [snippets, insert_setup, search, font_size, reload_ts, error, reloading]);
+  }, [
+    snippets,
+    insertSetup,
+    search,
+    font_size,
+    reloadTS,
+    error,
+    reloading,
+    data,
+  ]);
 
   // introduction at the top
-  function render_help(): JSX.Element {
+  function help(): JSX.Element {
     return (
       <Typography.Paragraph
         type="secondary"
@@ -529,30 +534,30 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   // search box and if user also wants to insert the setup cells
-  function render_controlls(): JSX.Element {
+  function controls(): JSX.Element {
     const onChange = (e) => {
       const txt = e.target.value;
-      set_search_txt(txt);
+      setSearchText(txt);
     };
 
     return (
       <Row>
         <Col flex={3}>
           <Input.Search
-            value={search_txt}
+            value={searchText}
             addonBefore={<span style={{ paddingRight: "10px" }}>Search</span>}
             placeholder="filter..."
             allowClear
             enterButton
-            onSearch={set_search}
+            onSearch={setSearch}
             onChange={onChange}
           />
         </Col>
         <Col flex={2}>
           <Checkbox
             style={{ padding: "5px", fontWeight: "normal" }}
-            checked={insert_setup}
-            onChange={(e) => set_insert_setup(e.target.checked)}
+            checked={insertSetup}
+            onChange={(e) => setInsertSetup(e.target.checked)}
           >
             include setup code
           </Checkbox>
@@ -564,10 +569,10 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   return (
     <>
       <div style={{ margin: "10px", fontSize: `${font_size}px` }}>
-        {render_help()}
-        {render_controlls()}
+        {help()}
+        {controls()}
       </div>
-      {render_snippets()}
+      {allSnippets()}
     </>
   );
 });
