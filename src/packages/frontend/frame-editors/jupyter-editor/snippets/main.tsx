@@ -359,11 +359,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     return (
       <Collapse.Panel
         key={"custom_info"}
-        header={
-          <>
-            <QuestionCircleOutlined /> Custom Snippets
-          </>
-        }
+        extra={<QuestionCircleOutlined />}
+        header={"Custom Snippets"}
         className="cc-jupyter-snippets"
       >
         <div style={{ margin: "10px", fontSize: `${font_size}px` }}>
@@ -393,8 +390,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
             >
               click here to reload custom snippets
             </Button>
-            , which will appear in a new category "Custom Snippets" at
-            the top above.
+            , which will appear in a new category "Custom Snippets" at the top
+            above.
             {error && (
               <>
                 <br />
@@ -410,9 +407,10 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
             <Typography.Text code># Title</Typography.Text>. The next cells
             should be alternating between Markdown (with a 2nd level header,
             i.e., <Typography.Text code>## Snippet Name</Typography.Text> and a
-            description) and followed at least one line of explanatory text and one or more code cells. The language of
-            the snippet notebook must match the language of your notebook in
-            order to see the snippets! Include one snippet in each notebook.
+            description) and followed at least one line of explanatory text and
+            one or more code cells. The language of the snippet notebook must
+            match the language of your notebook in order to see the snippets!
+            Include one snippet in each notebook.
           </p>
           <p>
             Also, at least for now, there cannot be spaces in the path or
