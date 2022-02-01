@@ -37,6 +37,7 @@ import { throttle } from "lodash";
 import Draggable from "react-draggable";
 import { clearCanvas, drawCurve } from "./elements/pen";
 import { penParams } from "./tools/pen";
+import { noteParams } from "./tools/note";
 
 const penDPIFactor = 1; // I can't get this to work! :-(
 
@@ -132,6 +133,10 @@ export default function Canvas({
 
   function getPenParams() {
     return penParams(frame.desc.get("penId") ?? 0);
+  }
+
+  function getNoteParams() {
+    return noteParams(frame.desc.get("noteId") ?? 0);
   }
 
   function getCenterPosition(): { x: number; y: number } | undefined {
@@ -368,6 +373,11 @@ export default function Canvas({
       }
     }
     const data = evtToData(e);
+    let params: any = undefined;
+
+    if (selectedTool == "note") {
+      params = { data: getNoteParams() };
+    }
 
     // this code needs to move to tool panel spec stuff...
     if (
@@ -380,6 +390,7 @@ export default function Canvas({
           ...data,
           type: selectedTool,
           str: "",
+          ...params,
         },
         true
       );

@@ -6,6 +6,7 @@ import { Element } from "./types";
 import Canvas from "./canvas";
 import ToolPanel from "./tools/panel";
 import PenPanel from "./tools/pen";
+import NotePanel from "./tools/note";
 import NavigationPanel from "./tools/navigation";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import Upload from "./tools/upload";
@@ -61,6 +62,7 @@ export default function Whiteboard({
         <>
           <ToolPanel selectedTool={desc.get("selectedTool") ?? "select"} />
           {desc.get("selectedTool") == "pen" && <PenPanel />}
+          {desc.get("selectedTool") == "note" && <NotePanel />}
           <NavigationPanel fontSize={font_size} elements={x} />
         </>
       )}

@@ -1,5 +1,5 @@
 /*
-The pen panel.
+The note config panel.
 */
 
 import { ReactNode, useState } from "react";
@@ -9,16 +9,31 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { debounce } from "lodash";
+import { STYLE } from "../elements/note";
 
-const minRadius = 0.5;
-const maxRadius = 15;
-const numBrushes = 5;
-const DEFAULT_PEN = { radius: 1, color: "black" };
+const minFontSize = 7;
+const maxFontSize = 64;
 
-export default function Pen() {
+const COLORS = [
+  "#fff9b1",
+  "#f5f6f8",
+  "#d4f692",
+  "#f5d027",
+  "#c9de55",
+  "#fe9d47",
+  "#93d174",
+  "#6cd7fa",
+  "#fecedf",
+  "#a6ccf5",
+  "#000000",
+];
+const numNoteTypes = COLORS.length;
+export const DEFAULT_NOTE = { fontSize: 14, color: COLORS[0] };
+
+export default function NoteToolPanel() {
   const frame = useFrameContext();
   const [selected, setSelected] = useState<number>(
-    frame.desc.get("penId") ?? 0
+    frame.desc.get("noteId") ?? 0
   );
   const [paramControls, setParamControls] = useState<boolean>(false);
   const [presets, setPresets0] = useState<Presets>(loadPresets());
@@ -28,11 +43,11 @@ export default function Pen() {
     savePresets(presets);
   }
 
-  function BrushButton({ id }) {
-    const { radius, color } = presets[id] ?? DEFAULT_PEN;
+  function NoteButton({ id }) {
+    const { fontSize, color } = presets[id] ?? DEFAULT_NOTE;
     return (
       <Button
-        style={{ paddingLeft: "7px", marginTop: "4px" }}
+        style={{ padding: "5px" }}
         type="text"
         onClick={() => {
           if (id == selected) {
@@ -41,12 +56,12 @@ export default function Pen() {
           } else {
             // select this one
             setSelected(id);
-            frame.actions.set_frame_tree({ id: frame.id, penId: id });
+            frame.actions.set_frame_tree({ id: frame.id, noteId: id });
           }
         }}
       >
-        <BrushPreview
-          radius={radius}
+        <NotePreview
+          fontSize={fontSize}
           color={color}
           borderColor={id == selected ? "blue" : "#ccc"}
         />
@@ -54,15 +69,12 @@ export default function Pen() {
     );
   }
 
-  const brushes: ReactNode[] = [];
-  for (let id = 0; id < numBrushes; id++) {
-    brushes.push(<BrushButton key={id} id={id} />);
+  const notes: ReactNode[] = [];
+  for (let id = 0; id < numNoteTypes; id++) {
+    notes.push(<NoteButton key={id} id={id} />);
   }
 
-  const { radius, color } = presets[selected] ?? {
-    radius: 0.5,
-    color: "black",
-  };
+  const { fontSize, color } = presets[selected] ?? DEFAULT_NOTE;
 
   return (
     <div
@@ -71,41 +83,31 @@ export default function Pen() {
         display: "flex",
         flexDirection: "column",
         left: "55px",
-        width: "46px",
+        width: "66px",
         paddingBottom: "10px",
       }}
     >
-      <Tooltip title="Pen">
+      <Tooltip title="Note">
         <Button type="text">
-          <Icon style={{ color: "blue" }} name="pencil" />
+          <Icon style={{ color: "blue" }} name="note" />
         </Button>
       </Tooltip>
-      <Tooltip title="Highlighter">
-        <Button type="text">
-          <Icon name="blog" />
-        </Button>
-      </Tooltip>
-      <Tooltip title="Erase">
-        <Button type="text">
-          <Icon name="eraser" />
-        </Button>
-      </Tooltip>
-
-      {brushes}
+      {notes}
+      <ResetButton />
       {paramControls && (
-        <PenParams
+        <NoteParams
           color={color}
-          radius={radius}
+          fontSize={fontSize}
           setColor={(color) => {
             setPresets({
               ...presets,
               [selected]: { ...presets[selected], color },
             });
           }}
-          setRadius={(radius) => {
+          setFontSize={(fontSize) => {
             setPresets({
               ...presets,
-              [selected]: { ...presets[selected], radius },
+              [selected]: { ...presets[selected], fontSize },
             });
           }}
         />
@@ -114,40 +116,33 @@ export default function Pen() {
   );
 }
 
-function BrushPreview({
-  radius,
+function NotePreview({
+  fontSize,
   color,
   borderColor,
 }: {
-  radius: number;
+  fontSize: number;
   color: string;
   borderColor?: string;
 }) {
   return (
     <div
       style={{
-        width: `${(maxRadius + 1) * 2}px`,
-        height: `${(maxRadius + 1) * 2}px`,
-        borderRadius: `${maxRadius + 1}px`,
-        background: "white",
-        border: `1px solid ${borderColor ?? "#ccc"}`,
-        paddingLeft: `${maxRadius + 1 - radius - 1}px`,
-        paddingTop: `${maxRadius + 1 - radius - 1}px`,
+        ...STYLE,
+        padding: 0,
+        margin: 0,
+        background: color,
+        border: `2px solid ${borderColor ?? "#ccc"}`,
+        width: "50px",
+        height: "25px",
       }}
     >
-      <div
-        style={{
-          width: `${radius * 2}px`,
-          height: `${radius * 2}px`,
-          borderRadius: `${radius}px`,
-          background: color,
-        }}
-      ></div>
+      {fontSize}px
     </div>
   );
 }
 
-function PenParams({ color, radius, setColor, setRadius }) {
+function NoteParams({ color, fontSize, setColor, setFontSize }) {
   return (
     <div
       style={{
@@ -161,34 +156,45 @@ function PenParams({ color, radius, setColor, setRadius }) {
     >
       <div style={{ width: "100%", display: "flex" }}>
         <Slider
-          value={radius}
-          min={minRadius}
-          max={maxRadius}
-          step={0.5}
-          onChange={setRadius}
+          value={fontSize}
+          min={minFontSize}
+          max={maxFontSize}
+          step={1}
+          onChange={setFontSize}
           style={{ flex: "1" }}
         />
         <div style={{ marginLeft: "5px", fontSize: "9pt", paddingTop: "6px" }}>
-          Radius
+          Font size (px)
         </div>
       </div>
-      <ColorPicker color={color} onChange={setColor} />
+      <ColorPicker color={color} onChange={setColor} defaultPicker="twitter" />
     </div>
+  );
+}
+
+function ResetButton() {
+  return (
+    <Tooltip title="Reset to default colors and size">
+      <Button type="text" style={{ color: "#888", marginTop: "8px" }}>
+        Reset
+      </Button>
+    </Tooltip>
   );
 }
 
 // For now just storing these presets in localStorage.
 // TODO: move to account settings or the document.  NOT SURE?!
-type Presets = { [id: string]: { color: string; radius: number } };
+// Same problem with pen params.
+type Presets = { [id: string]: { color: string; fontSize: number } };
 
-const key = "whiteboard-pen-presets";
-const COLORS = ["black", "red", "green", "blue", "yellow"];
+const key = "whiteboard-note-presets";
+
 function loadPresets() {
   try {
     const presets = JSON.parse(localStorage[key]);
-    for (let id = 0; id < numBrushes; id++) {
+    for (let id = 0; id < numNoteTypes; id++) {
       if (presets[id] == null) {
-        presets[id] = { radius: 2 * id + 1, color: COLORS[id] };
+        presets[id] = { ...DEFAULT_NOTE, color: COLORS[id] };
       }
       return presets;
     }
@@ -196,8 +202,8 @@ function loadPresets() {
     // fine
   }
   const presets: Presets = {};
-  for (let id = 0; id < numBrushes; id++) {
-    presets[id] = { radius: 2 * id + 1, color: COLORS[id] };
+  for (let id = 0; id < numNoteTypes; id++) {
+    presets[id] = { ...DEFAULT_NOTE, color: COLORS[id] };
   }
   return presets;
 }
@@ -206,6 +212,6 @@ const savePresets = debounce((presets) => {
   localStorage[key] = JSON.stringify(presets);
 }, 250);
 
-export function penParams(id: number) {
-  return loadPresets()[id] ?? DEFAULT_PEN;
+export function noteParams(id: number) {
+  return loadPresets()[id] ?? DEFAULT_NOTE;
 }

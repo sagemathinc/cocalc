@@ -35,9 +35,17 @@ interface Props {
   color?: string;
   onChange?: (htmlColor: string) => void;
   style?: CSSProperties;
+  defaultPicker?: keyof typeof Pickers;
 }
-export default function ColorPicker({ color, onChange, style }: Props) {
-  const [picker, setPicker] = useState<keyof typeof Pickers>("circle");
+export default function ColorPicker({
+  color,
+  onChange,
+  style,
+  defaultPicker,
+}: Props) {
+  const [picker, setPicker] = useState<keyof typeof Pickers>(
+    defaultPicker ?? "circle"
+  );
   const Picker = Pickers[picker];
   const v: ReactNode[] = [];
   for (const picker in Pickers) {
@@ -53,13 +61,18 @@ export default function ColorPicker({ color, onChange, style }: Props) {
         color={color}
         onChange={onChange != null ? (color) => onChange(color.hex) : undefined}
       />
-      <Select
-        value={picker}
-        style={{ width: "120px", marginTop: "10px" }}
-        onChange={setPicker}
-      >
-        {v}
-      </Select>
+      <div>
+        <div style={{ float: "right", fontSize: "12px", marginTop: "20px" }}>
+          Palette
+        </div>
+        <Select
+          value={picker}
+          style={{ width: "120px", marginTop: "10px" }}
+          onChange={setPicker}
+        >
+          {v}
+        </Select>
+      </div>
     </div>
   );
 }
