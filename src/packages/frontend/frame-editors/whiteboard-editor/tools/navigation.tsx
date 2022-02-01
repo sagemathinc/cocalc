@@ -6,7 +6,7 @@ but in a way that is always present and with an additional
 high level map view.
 */
 
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { Button, Tooltip } from "antd";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
@@ -15,10 +15,12 @@ import { Actions } from "../actions";
 import { PANEL_STYLE } from "./panel";
 import Canvas from "../canvas";
 import { Element } from "../types";
+import Draggable from "react-draggable";
+import { FOCUSED_BORDER_COLOR } from "../focused";
 
 const TOOLS = {
   map: {
-    width: "40px",
+    width: "35px",
     icon: "sitemap" /* todo */,
     tip: "Toggle map",
     click: (actions, id) => {
@@ -26,7 +28,7 @@ const TOOLS = {
     },
   },
   fit: {
-    width: "40px",
+    width: "35px",
     icon: "ColumnWidthOutlined",
     tip: "Fit to screen",
     click: (actions, id) => {
@@ -34,7 +36,7 @@ const TOOLS = {
     },
   },
   zoomOut: {
-    width: "40px",
+    width: "35px",
     icon: "search-minus",
     tip: "Zoom out",
     click: (actions, id) => {
@@ -42,7 +44,7 @@ const TOOLS = {
     },
   },
   zoomIn: {
-    width: "40px",
+    width: "35px",
     icon: "search-plus",
     tip: "Zoom in",
     click: (actions, id) => {
@@ -50,7 +52,7 @@ const TOOLS = {
     },
   },
   zoom100: {
-    width: "50px",
+    width: "45px",
     icon: (fontSize) => <>{Math.round(100 * fontSizeToZoom(fontSize))}%</>,
     tip: "Zoom to 100%",
     click: (actions, id) => {
@@ -68,6 +70,7 @@ const TOOLS = {
 
 const MAP_WIDTH = 275;
 const MAP_HEIGHT = 175;
+const BAR_HEIGHT = 33;
 
 interface Props {
   fontSize?: number;
@@ -75,28 +78,59 @@ interface Props {
 }
 
 export default function Navigation({ fontSize, elements }: Props) {
+  const [resize, setResize] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  });
   const { desc } = useFrameContext();
+  const width = desc.get("navWidth") ?? MAP_WIDTH;
+  const height = desc.get("navHeight") ?? MAP_HEIGHT;
   const v: ReactNode[] = [];
   for (const tool in TOOLS) {
     v.push(<Tool key={tool} tool={tool} fontSize={fontSize} />);
   }
   const showMap = !desc.get("hideMap") && elements != null;
   return (
-    <div
-      className="smc-vfill"
-      style={{
-        ...PANEL_STYLE,
-        display: "flex",
-        flexDirection: "column",
-        right: 0,
-        bottom: 0,
-        width: `${MAP_WIDTH}px`,
-        height: `${33 + (showMap ? MAP_HEIGHT : 0)}px`,
-      }}
-    >
-      {!desc.get("hideMap") && elements != null && <Map elements={elements} />}
-      <div style={{ display: "flex", borderTop: "1px solid #ddd" }}>{v}</div>
-    </div>
+    <>
+      <div
+        className="smc-vfill"
+        style={{
+          ...PANEL_STYLE,
+          display: "flex",
+          flexDirection: "column",
+          right: 0,
+          bottom: 0,
+          width: `${width}px`,
+          height: `${BAR_HEIGHT + (showMap ? height : 0)}px`,
+        }}
+      >
+        {!desc.get("hideMap") && elements != null && (
+          <Map
+            elements={elements}
+            width={width}
+            height={height}
+            resize={resize}
+            setResize={setResize}
+          />
+        )}
+        <div style={{ display: "flex", borderTop: "1px solid #ddd" }}>{v}</div>
+      </div>
+      {(resize.x || resize.y) && (
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            bottom: 0,
+            width: `${width + resize.x}px`,
+            height: `${BAR_HEIGHT + height + resize.y}px`,
+            opacity: "0.5",
+            background: "lightblue",
+            border: `2px dashed ${FOCUSED_BORDER_COLOR}`,
+            zIndex: 1005,
+          }}
+        ></div>
+      )}
+    </>
   );
 }
 
@@ -110,7 +144,7 @@ function Tool({ tool, fontSize }) {
         onClick={() => click(actions as Actions, id)}
         style={{
           width,
-          fontSize: "18px",
+          fontSize: "16px",
           color: tool == "map" && !desc.get("hideMap") ? "blue" : undefined,
         }}
       >
@@ -120,27 +154,62 @@ function Tool({ tool, fontSize }) {
   );
 }
 
-function Map({ elements }) {
+function Map({ elements, width, height, resize, setResize }) {
+  const { id, actions } = useFrameContext();
   const { xMin, yMin, xMax, yMax } = getPageSpan(elements, 1);
   const xDiff = xMax - xMin;
   const yDiff = yMax - yMin;
-  const scale = Math.min(MAP_WIDTH / xDiff, MAP_HEIGHT / yDiff);
+  const scale = Math.min(width / xDiff, height / yDiff);
   const xRange = xDiff * scale;
   const yRange = yDiff * scale;
-  const paddingTop = (MAP_HEIGHT - yRange) / 2;
-  const paddingLeft = (MAP_WIDTH - xRange) / 2;
+  const paddingLeft = (width - xRange) / 2;
+  const paddingTop = (height - yRange) / 2;
 
   return (
     <div
       style={{
-        width: `${MAP_WIDTH}px`,
-        height: `${MAP_HEIGHT}px`,
+        width: `${width}px`,
+        height: `${height}px`,
         paddingTop,
         paddingLeft,
       }}
       className="smc-vfill"
     >
       <Canvas margin={0} isNavigator elements={elements} scale={scale} />
+      <Draggable
+        position={{ x: 0, y: 0 }}
+        bounds={{
+          right: Math.max(0, width - MAP_WIDTH * 0.75),
+          bottom: Math.max(0, height - MAP_HEIGHT * 0.75),
+        }}
+        onDrag={(_, data) => {
+          setResize({ x: -data.x, y: -data.y });
+        }}
+        onStop={(_, data) => {
+          setTimeout(() => {
+            setResize({ x: 0, y: 0 });
+            actions.set_frame_tree({
+              id,
+              navWidth: width - data.x,
+              navHeight: height - data.y,
+            });
+          }, 0);
+        }}
+      >
+        <Icon
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            zIndex: 1011,
+            cursor: "nwse-resize",
+            background: "white",
+            color: "#888",
+            visibility: resize.x || resize.y ? "hidden" : undefined,
+          }}
+          name="square"
+        />
+      </Draggable>
     </div>
   );
 }
