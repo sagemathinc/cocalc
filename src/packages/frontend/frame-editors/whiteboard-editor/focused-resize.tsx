@@ -50,6 +50,7 @@ export default function DragHandle({
     color: handleColor,
     fontSize: handleSize,
     zIndex: 1000,
+    transform: `scale(${1 / canvasScale})`,
   } as CSSProperties;
   if (top) {
     style.top = handleOffset;

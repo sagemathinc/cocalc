@@ -15,7 +15,7 @@ const minFontSize = 7;
 const maxFontSize = 64;
 
 // see https://www.post-it.com/3M/en_US/post-it/ideas/color/
-const COLORS = [
+export const COLORS = [
   "#f5f468",
   "#e8edfa",
   "#f5e3ad",
@@ -51,7 +51,7 @@ export default function NoteToolPanel() {
     const { fontSize, color } = presets[id] ?? DEFAULT_NOTE;
     return (
       <Button
-        style={{ padding: "5px", height:'35px' }}
+        style={{ padding: "5px", height: "35px" }}
         type="text"
         onClick={() => {
           if (id == selected) {
@@ -96,7 +96,9 @@ export default function NoteToolPanel() {
           <Icon style={{ color: "blue" }} name="note" />
         </Button>
       </Tooltip>
-      {notePresets}
+      <div style={{ maxHeight: "50vh", overflowY: "scroll" }}>
+        {notePresets}
+      </div>
       <ResetButton
         onClick={() => {
           setPresets(defaultPresets());
@@ -182,14 +184,17 @@ function NoteParams({ color, fontSize, setColor, setFontSize }) {
   );
 }
 
-function ResetButton({ onClick }) {
+export function ResetButton({ onClick }) {
   return (
     <Tooltip title="Reset to defaults">
       <Popconfirm
-        title="Are you sure you want to reset the note types to their default settings?"
+        title="Are you sure you want to reset the presets to their default settings?"
         onConfirm={onClick}
       >
-        <Button type="text" style={{ color: "#888", marginTop: "8px" }}>
+        <Button
+          type="text"
+          style={{ color: "#666", marginTop: "8px", paddingLeft: "4px" }}
+        >
           Reset
         </Button>
       </Popconfirm>

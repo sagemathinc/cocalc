@@ -38,10 +38,10 @@ export default function Pen({ element }: Props) {
     const ctx = canvas.getContext("2d");
     if (ctx == null) return;
     const data:
-      | { path?: number[]; color?: string; radius?: number }
+      | { path?: number[]; color?: string; radius?: number; opacity?: number }
       | undefined = element.data;
     if (data == null) return;
-    const { path, radius, color } = data;
+    const { path, radius, color, opacity } = data;
     if (path == null) return;
     clearCanvas({ ctx });
     drawCurve({
@@ -49,6 +49,7 @@ export default function Pen({ element }: Props) {
       path: decompressPath(path),
       color: color ?? "black",
       radius: radius ?? 1,
+      opacity,
     });
   }, [element]);
 
@@ -81,11 +82,13 @@ export function drawCurve({
   path,
   color,
   radius,
+  opacity,
 }: {
   ctx;
   path: Point[];
   color: string;
   radius: number;
+  opacity?: number;
 }) {
   // There's some useful MIT licensed code at https://github.com/embiem/react-canvas-draw
   // that inspired this.
@@ -93,6 +96,9 @@ export function drawCurve({
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
   ctx.strokeStyle = color;
+  if (opacity) {
+    ctx.globalAlpha = opacity;
+  }
 
   ctx.lineWidth = radius;
 

@@ -1,6 +1,6 @@
 import Text from "./text";
-
 import { DEFAULT_NOTE } from "../tools/note";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
 export const STYLE = {
   borderBottomRightRadius: "60px 5px",
@@ -13,6 +13,12 @@ export const STYLE = {
 };
 
 export default function Note({ element, focused }) {
+  console.log(element.data?.color, avatar_fontcolor(element.data?.color));
+  // TODO: also use white color in some cases for text.
+  const data = {
+    ...element.data,
+    color: avatar_fontcolor(element.data?.color),
+  };
   return (
     <div
       style={{
@@ -21,7 +27,7 @@ export default function Note({ element, focused }) {
         background: element.data?.color ?? DEFAULT_NOTE.color,
       }}
     >
-      <Text element={element} focused={focused} />
+      <Text element={{ ...element, data }} focused={focused} />
     </div>
   );
 }

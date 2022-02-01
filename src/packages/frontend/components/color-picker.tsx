@@ -44,7 +44,7 @@ export default function ColorPicker({
   defaultPicker,
 }: Props) {
   const [picker, setPicker] = useState<keyof typeof Pickers>(
-    defaultPicker ?? "circle"
+    defaultPicker ?? localStorage["defaultColorPicker"] ?? "circle"
   );
   const Picker = Pickers[picker];
   const v: ReactNode[] = [];
@@ -62,13 +62,23 @@ export default function ColorPicker({
         onChange={onChange != null ? (color) => onChange(color.hex) : undefined}
       />
       <div>
-        <div style={{ float: "right", fontSize: "12px", marginTop: "20px" }}>
-          Palette
+        <div
+          style={{
+            float: "right",
+            fontSize: "12px",
+            marginTop: "20px",
+            color: "#666",
+          }}
+        >
+          Color Picker
         </div>
         <Select
           value={picker}
           style={{ width: "120px", marginTop: "10px" }}
-          onChange={setPicker}
+          onChange={(picker) => {
+            setPicker(picker);
+            localStorage["defaultColorPicker"] = picker;
+          }}
         >
           {v}
         </Select>

@@ -134,15 +134,16 @@ export default function Focused({
               ...ICON_STYLE,
               cursor: "grab",
               position: "absolute",
-              bottom: `-${OFFSET}px`,
-              left: `-${OFFSET}px`,
+              bottom: `-${OFFSET / canvasScale}px`,
+              left: `-${OFFSET / canvasScale}px`,
+              transform: `scale(${1 / canvasScale})`,
             }}
             name="reload"
           />
         </Tooltip>
       </Draggable>
     );
-  }, [element.rotate]);
+  }, [element.rotate, canvasScale]);
 
   const moveHandle = (
     <Tooltip key="move" title="Move">
@@ -152,9 +153,10 @@ export default function Focused({
           ...ICON_STYLE,
           cursor: "grab",
           position: "absolute",
-          top: `-${OFFSET}px`,
-          left: `-${OFFSET}px`,
+          top: `-${OFFSET / canvasScale}px`,
+          left: `-${OFFSET / canvasScale}px`,
           visibility: isChanging ? "hidden" : undefined,
+          transform: `scale(${1 / canvasScale})`,
         }}
       />
     </Tooltip>
@@ -165,7 +167,11 @@ export default function Focused({
 
   return (
     <Position x={t.x} y={t.y} z={1000} w={pos.w} h={pos.h}>
-      <div style={{ visibility: isChanging ? "hidden" : undefined }}>
+      <div
+        style={{
+          visibility: isChanging ? "hidden" : undefined,
+        }}
+      >
         {RotateControl}
         <div
           style={{
@@ -188,8 +194,10 @@ export default function Focused({
           className="nodrag"
           style={{
             position: "absolute",
-            bottom: `-${OFFSET / 2}px`,
-            right: `-${OFFSET / 2}px`,
+            bottom: `-${OFFSET / 2 / canvasScale}px`,
+            right: `-${OFFSET / 2 / canvasScale}px`,
+            transform: `scale(${1 / canvasScale})`,
+            transformOrigin: "top left",
           }}
         >
           <EditBar elements={[element]} />
