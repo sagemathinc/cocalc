@@ -3,7 +3,7 @@ The note config panel.
 */
 
 import { ReactNode, useState } from "react";
-import { Button, Slider, Tooltip } from "antd";
+import { Button, Popconfirm, Slider, Tooltip } from "antd";
 import { PANEL_STYLE } from "./panel";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
@@ -69,9 +69,9 @@ export default function NoteToolPanel() {
     );
   }
 
-  const notes: ReactNode[] = [];
+  const notePresets: ReactNode[] = [];
   for (let id = 0; id < numNoteTypes; id++) {
-    notes.push(<NoteButton key={id} id={id} />);
+    notePresets.push(<NoteButton key={id} id={id} />);
   }
 
   const { fontSize, color } = presets[selected] ?? DEFAULT_NOTE;
@@ -92,8 +92,12 @@ export default function NoteToolPanel() {
           <Icon style={{ color: "blue" }} name="note" />
         </Button>
       </Tooltip>
-      {notes}
-      <ResetButton />
+      {notePresets}
+      <ResetButton
+        onClick={() => {
+          setPresets(defaultPresets());
+        }}
+      />
       {paramControls && (
         <NoteParams
           color={color}
@@ -135,6 +139,7 @@ function NotePreview({
         border: `2px solid ${borderColor ?? "#ccc"}`,
         width: "50px",
         height: "25px",
+        fontSize: "9pt",
       }}
     >
       {fontSize}px
@@ -172,12 +177,17 @@ function NoteParams({ color, fontSize, setColor, setFontSize }) {
   );
 }
 
-function ResetButton() {
+function ResetButton({ onClick }) {
   return (
-    <Tooltip title="Reset to default colors and size">
-      <Button type="text" style={{ color: "#888", marginTop: "8px" }}>
-        Reset
-      </Button>
+    <Tooltip title="Reset to defaults">
+      <Popconfirm
+        title="Are you sure you want to reset the note types to their default settings?"
+        onConfirm={onClick}
+      >
+        <Button type="text" style={{ color: "#888", marginTop: "8px" }}>
+          Reset
+        </Button>
+      </Popconfirm>
     </Tooltip>
   );
 }
@@ -188,6 +198,14 @@ function ResetButton() {
 type Presets = { [id: string]: { color: string; fontSize: number } };
 
 const key = "whiteboard-note-presets";
+
+function defaultPresets() {
+  const presets: Presets = {};
+  for (let id = 0; id < numNoteTypes; id++) {
+    presets[id] = { ...DEFAULT_NOTE, color: COLORS[id] };
+  }
+  return presets;
+}
 
 function loadPresets() {
   try {
@@ -201,11 +219,7 @@ function loadPresets() {
   } catch (_err) {
     // fine
   }
-  const presets: Presets = {};
-  for (let id = 0; id < numNoteTypes; id++) {
-    presets[id] = { ...DEFAULT_NOTE, color: COLORS[id] };
-  }
-  return presets;
+  return defaultPresets();
 }
 
 const savePresets = debounce((presets) => {
