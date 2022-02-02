@@ -29,6 +29,9 @@ http: const COLORS = [
 ];
 const RADS = [1, 7];
 
+const HIGHLIGHTER = -1;
+const ERASER = -2;
+
 export const minRadius = 0.5;
 export const maxRadius = 15;
 const numBrushes = COLORS.length * RADS.length;
@@ -36,9 +39,13 @@ const DEFAULT_PEN = { radius: 1, color: "black" };
 
 export default function Pen() {
   const frame = useFrameContext();
-  const [selected, setSelected] = useState<number>(
+  const [selected, setSelected0] = useState<number>(
     frame.desc.get("penId") ?? 0
   );
+  const setSelected = (id) => {
+    setSelected0(id);
+    frame.actions.set_frame_tree({ id: frame.id, penId: id });
+  };
   const [paramControls, setParamControls] = useState<boolean>(false);
   const [presets, setPresets0] = useState<Presets>(loadPresets());
 
@@ -50,26 +57,27 @@ export default function Pen() {
   function BrushButton({ id }) {
     const { radius, color } = presets[id] ?? DEFAULT_PEN;
     return (
-      <Button
-        style={{ paddingLeft: "3px", marginTop: "-15px" }}
-        type="text"
-        onClick={() => {
-          if (id == selected) {
-            // show color selector
-            setParamControls(!paramControls);
-          } else {
-            // select this one
-            setSelected(id);
-            frame.actions.set_frame_tree({ id: frame.id, penId: id });
-          }
-        }}
-      >
-        <BrushPreset
-          radius={radius}
-          color={color}
-          selectedColor={id == selected ? "#ccc" : undefined}
-        />
-      </Button>
+      <Tooltip title={`Color: ${color}, Radius: ${radius}px`} placement="right">
+        <Button
+          style={{ paddingLeft: "3px", marginTop: "-15px" }}
+          type="text"
+          onClick={() => {
+            if (id == selected) {
+              // show color selector
+              setParamControls(!paramControls);
+            } else {
+              // select this one
+              setSelected(id);
+            }
+          }}
+        >
+          <BrushPreset
+            radius={radius}
+            color={color}
+            selectedColor={id == selected ? "#ccc" : undefined}
+          />
+        </Button>
+      </Tooltip>
     );
   }
 
@@ -94,19 +102,28 @@ export default function Pen() {
         paddingBottom: "10px",
       }}
     >
-      <Tooltip title="Pen">
-        <Button type="text">
-          <Icon style={{ color: "blue" }} name="pencil" />
+      <Tooltip title="Pen" placement="right">
+        <Button type="text" onClick={() => setSelected(0)}>
+          <Icon
+            style={{ color: selected >= 0 ? "blue" : undefined }}
+            name="pencil"
+          />
         </Button>
       </Tooltip>
-      <Tooltip title="Highlighter">
-        <Button type="text">
-          <Icon name="blog" />
+      <Tooltip title="Highlighter" placement="right">
+        <Button type="text" onClick={() => setSelected(HIGHLIGHTER)}>
+          <Icon
+            style={{ color: selected == HIGHLIGHTER ? "blue" : undefined }}
+            name="blog"
+          />
         </Button>
       </Tooltip>
-      <Tooltip title="Erase">
-        <Button type="text">
-          <Icon name="eraser" />
+      <Tooltip title="Erase" placement="right">
+        <Button type="text" onClick={() => setSelected(ERASER)}>
+          <Icon
+            style={{ color: selected == ERASER ? "blue" : undefined }}
+            name="eraser"
+          />
         </Button>
       </Tooltip>
       <div
@@ -305,5 +322,11 @@ const savePresets = debounce((presets) => {
 }, 250);
 
 export function penParams(id: number) {
+  if (id == HIGHLIGHTER) {
+    return { color: "#ffff00", opacity: 0.4, radius: 15 };
+  }
+  if (id == ERASER) {
+    return { color: "#ffffff", radius: 15 };
+  }
   return loadPresets()[id] ?? DEFAULT_PEN;
 }
