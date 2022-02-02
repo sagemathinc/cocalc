@@ -9,6 +9,7 @@ import Code from "./code";
 import Frame from "./frame";
 import Generic from "./generic";
 import Pen from "./pen";
+import Stopwatch from "./stopwatch";
 
 interface Props {
   element: Element;
@@ -16,23 +17,23 @@ interface Props {
   canvasScale: number;
 }
 
-export default function Render({ element, focused, canvasScale }: Props) {
+export default function Render(props: Props) {
   /* dumb for now, but will be a cool plugin system like we used for our slate wysiwyg editor....*/
 
-  switch (element.type) {
+  switch (props.element.type) {
     case "text":
-      return <Text element={element} focused={focused} />;
+      return <Text {...props} />;
     case "note":
-      return <Note element={element} focused={focused} />;
+      return <Note {...props} />;
     case "code":
-      return <Code element={element} focused={focused} />;
+      return <Code {...props} />;
     case "frame":
-      return (
-        <Frame element={element} focused={focused} canvasScale={canvasScale} />
-      );
+      return <Frame {...props} />;
     case "pen":
-      return <Pen element={element} focused={focused} />;
+      return <Pen {...props} />;
+    case "stopwatch":
+      return <Stopwatch {...props} />;
     default:
-      return <Generic element={element} focused={focused} />;
+      return <Generic {...props} />;
   }
 }

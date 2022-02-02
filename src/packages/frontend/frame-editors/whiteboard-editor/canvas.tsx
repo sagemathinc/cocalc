@@ -368,31 +368,34 @@ export default function Canvas({
       } else {
         // clicked on an element on the canvas; either stay selected or let
         // it handle selecting it.
-        return;
       }
+      return;
     }
-    const data = evtToData(e);
+    const data = { ...evtToData(e), z: transforms.zMax + 1 };
     let params: any = undefined;
 
     if (selectedTool == "note") {
       params = { data: getNoteParams() };
+    } else if (selectedTool == "stopwatch") {
+      params = { data: { fontSize: 24 } };
     }
 
-    // this code needs to move to tool panel spec stuff...
+    const element = {
+      ...data,
+      type: selectedTool,
+      ...params,
+    };
+
+    // create element
+    const { id } = frame.actions.createElement(element, true);
+
+    // in some cases, select it
     if (
       selectedTool == "text" ||
       selectedTool == "note" ||
-      selectedTool == "code"
+      selectedTool == "code" ||
+      selectedTool == "stopwatch"
     ) {
-      const element = {
-        ...data,
-        type: selectedTool,
-        str: "",
-        ...params,
-        z: transforms.zMax + 1,
-      };
-
-      const { id } = frame.actions.createElement(element, true);
       frame.actions.setSelectedTool(frame.id, "select");
       frame.actions.setSelection(frame.id, id);
     }

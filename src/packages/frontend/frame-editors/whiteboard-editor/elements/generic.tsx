@@ -1,10 +1,14 @@
+import { Markdown } from "@cocalc/frontend/components";
+
 export default function Generic({ element, focused }) {
   focused = focused;
-  const { str, data } = element;
   return (
-    <>
-      {str != null && str}
-      {data != null && <span>{JSON.stringify(data, undefined, 2)}</span>}
-    </>
+    <Markdown
+      value={"```js\n" + JSON.stringify(element, undefined, 2) + "\n```"}
+      style={{
+        width: "100%",
+        height: "100%",
+      }}
+    />
   );
 }

@@ -7,7 +7,8 @@
 The stopwatch component
 */
 
-import { Button, Row, Col } from "antd";
+import { CSSProperties } from "react";
+import { Button, Row, Col, Tooltip } from "antd";
 import {
   DeleteTwoTone,
   PauseCircleTwoTone,
@@ -27,10 +28,15 @@ interface StopwatchProps {
   state: TimerState; // 'paused' or 'running' or 'stopped'
   time: number; // when entered this state
   click_button: (str: string) => void;
-  set_label: (str: string) => void;
+  set_label?: (str: string) => void;
   compact?: boolean;
   label?: string; // a text label
+  noLabel?: boolean; // show no label at all
+  noDelete?: boolean; // do not show delete button
+  noButtons?: boolean; // hide ALL buttons
   total?: number; // total time accumulated before entering current state
+  style?: CSSProperties;
+  timeStyle?: CSSProperties;
 }
 
 interface StopwatchState {
@@ -59,51 +65,56 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
 
   private render_start_button(): Rendered {
     return (
-      <Button
-        icon={<PlayCircleTwoTone />}
-        onClick={() => this.props.click_button("start")}
-        style={!this.props.compact ? { width: "8em" } : undefined}
-        size={this.props.compact ? "small" : undefined}
-      >
-        {!this.props.compact ? "Start" : undefined}
-      </Button>
+      <Tooltip title="Start the stopwatch">
+        <Button
+          icon={<PlayCircleTwoTone />}
+          onClick={() => this.props.click_button("start")}
+          style={!this.props.compact ? { width: "8em" } : undefined}
+        >
+          {!this.props.compact ? "Start" : undefined}
+        </Button>
+      </Tooltip>
     );
   }
 
   private render_reset_button(): Rendered {
     return (
-      <Button
-        icon={<StopTwoTone />}
-        onClick={() => this.props.click_button("reset")}
-        size={this.props.compact ? "small" : undefined}
-      >
-        {!this.props.compact ? "Reset" : undefined}
-      </Button>
+      <Tooltip title="Reset the stopwatch to 0">
+        <Button
+          icon={<StopTwoTone />}
+          onClick={() => this.props.click_button("reset")}
+        >
+          {!this.props.compact ? "Reset" : undefined}
+        </Button>
+      </Tooltip>
     );
   }
 
   private render_delete_button(): Rendered {
-    if (this.props.compact) return;
+    if (this.props.compact || this.props.noDelete) return;
     return (
-      <Button
-        icon={<DeleteTwoTone />}
-        onClick={() => this.props.click_button("delete")}
-      >
-        {!this.props.compact ? "Delete" : undefined}
-      </Button>
+      <Tooltip title="Delete this stopwatch">
+        <Button
+          icon={<DeleteTwoTone />}
+          onClick={() => this.props.click_button("delete")}
+        >
+          {!this.props.compact ? "Delete" : undefined}
+        </Button>
+      </Tooltip>
     );
   }
 
   private render_pause_button(): Rendered {
     return (
-      <Button
-        icon={<PauseCircleTwoTone />}
-        onClick={() => this.props.click_button("pause")}
-        style={!this.props.compact ? { width: "8em" } : undefined}
-        size={this.props.compact ? "small" : undefined}
-      >
-        {!this.props.compact ? "Pause" : undefined}
-      </Button>
+      <Tooltip title="Pause the stopwatch">
+        <Button
+          icon={<PauseCircleTwoTone />}
+          onClick={() => this.props.click_button("pause")}
+          style={!this.props.compact ? { width: "8em" } : undefined}
+        >
+          {!this.props.compact ? "Pause" : undefined}
+        </Button>
+      </Tooltip>
     );
   }
 
@@ -125,7 +136,12 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
     }
 
     return (
-      <TimeAmount key={"time"} amount={amount} compact={this.props.compact} />
+      <TimeAmount
+        key={"time"}
+        amount={amount}
+        compact={this.props.compact}
+        style={this.props.timeStyle}
+      />
     );
   }
 
@@ -168,7 +184,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
         <TextInput
           text={this.props.label ? this.props.label : ""}
           on_change={(value) => {
-            this.props.set_label(value);
+            this.props.set_label?.(value);
             this.setState({ editing_label: false });
           }}
           autoFocus={true}
@@ -210,6 +226,21 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   }
 
   private render_full_size(): Rendered {
+    if (this.props.noLabel) {
+      return (
+        <div
+          style={{
+            borderBottom: "1px solid #666",
+            background: "#efefef",
+            padding: "15px",
+            ...this.props.style,
+          }}
+        >
+          <div>{this.render_time()}</div>
+          <div>{this.render_buttons()}</div>
+        </div>
+      );
+    }
     return (
       <div
         style={{
@@ -226,9 +257,11 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
             {this.render_label()}
           </Col>
         </Row>
-        <Row>
-          <Col md={24}>{this.render_buttons()}</Col>
-        </Row>
+        {!this.props.noButtons && (
+          <Row>
+            <Col md={24}>{this.render_buttons()}</Col>
+          </Row>
+        )}
       </div>
     );
   }
@@ -236,8 +269,13 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
   public render(): Rendered {
     if (this.props.compact) {
       return (
-        <div>
-          {this.render_time()} {this.render_buttons()}
+        <div style={{ display: "flex" }}>
+          {this.render_time()}
+          {!this.props.noButtons && (
+            <div style={{ marginTop: "3px", marginLeft: "5px" }}>
+              {this.render_buttons()}
+            </div>
+          )}
         </div>
       );
     } else {
@@ -257,6 +295,7 @@ const zpad = function (n) {
 interface TimeProps {
   amount: number;
   compact?: boolean;
+  style?: CSSProperties;
 }
 
 //const TimeAmount = function(props: TimeProps) {
@@ -272,6 +311,7 @@ function TimeAmount(props: TimeProps) {
       style={{
         fontSize: !props.compact ? "50pt" : undefined,
         fontFamily: "courier",
+        ...props.style,
       }}
     >
       {zpad(hours)}:{zpad(minutes)}:{zpad(seconds)}

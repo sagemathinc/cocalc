@@ -193,7 +193,7 @@ export default function Focused({
           style={{
             position: "absolute",
             bottom: `-${OFFSET / 2 / canvasScale}px`,
-            right: `-${OFFSET / 2 / canvasScale}px`,
+            left: `${OFFSET / 2 / canvasScale}px`,
             transform: `scale(${1 / canvasScale})`,
             transformOrigin: "top left",
           }}

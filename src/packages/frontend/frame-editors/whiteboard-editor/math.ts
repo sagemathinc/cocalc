@@ -19,8 +19,8 @@ export function fontSizeToZoom(size?: number): number {
   return size ? size / ZOOM100 : 1;
 }
 
-export const DEFAULT_WIDTH = 300;
-export const DEFAULT_HEIGHT = 200;
+export const DEFAULT_WIDTH = 250;
+export const DEFAULT_HEIGHT = 100;
 
 // Return angle in radians of line from pnt to origin from line
 // from (0,0) to (1,0).
@@ -132,4 +132,3 @@ export function scalePath(path: Point[], scale): Point[] {
   }
   return v;
 }
-

@@ -19,7 +19,6 @@ export default function Text({ element, focused }: Props) {
     setValue(element.str ?? "");
   }, [element.str]);
 
-
   if (!focused) {
     return (
       <Markdown
@@ -69,10 +68,19 @@ export default function Text({ element, focused }: Props) {
   );
 }
 
-function getStyle(element) {
+export function getStyle(
+  element,
+  defaults?: {
+    color?: string;
+    fontSize?: number;
+    fontFamily?: string;
+    background?: string;
+  }
+) {
   return {
-    color: element.data?.color,
-    fontSize: element.data?.fontSize,
-    fontFamily: element.data?.fontFamily,
+    color: element.data?.color ?? defaults?.color,
+    fontSize: element.data?.fontSize ?? defaults?.fontSize,
+    fontFamily: element.data?.fontFamily ?? defaults?.fontFamily,
+    background: element.data?.background ?? defaults?.background,
   };
 }
