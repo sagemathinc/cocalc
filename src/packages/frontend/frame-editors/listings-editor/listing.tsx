@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { fromJS } from "immutable";
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
   redux,
@@ -24,7 +25,7 @@ interface Props {
   name: string;
 }
 
-const Files: React.FC<Props> = (props: Props) => {
+const Listing: React.FC<Props> = (props: Props) => {
   const { actions, path = "", project_id, font_size } = props;
 
   const open_files_order = useTypedRedux({ project_id }, "open_files_order");
@@ -61,18 +62,23 @@ const Files: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function buttons() {
-    <div>
-      <ButtonGroup>
-        <Button onClick={() => actions.debugMe(path)}>debugMe({path})</Button>
-        <Button onClick={() => project_actions.open_file(path)}>
-          Open File({path})
-        </Button>
-      </ButtonGroup>
-    </div>;
+  function buttons(): JSX.Element {
+    return (
+      <div>
+        <ButtonGroup>
+          <Button onClick={() => actions.debugMe(path)}>debugMe({path})</Button>
+          <Button onClick={() => project_actions.open_file(path)}>
+            Open File({path})
+          </Button>
+          <Button onClick={() => actions.setFavs(fromJS({ xxx: "test" }))}>
+            test favs
+          </Button>
+        </ButtonGroup>
+      </div>
+    );
   }
 
-  function debug() {
+  function debug(): JSX.Element {
     return (
       <ul>
         <li>is_loaded: {JSON.stringify(is_loaded)}</li>
@@ -87,7 +93,7 @@ const Files: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function content() {
+  function content(): JSX.Element {
     return (
       <pre style={{ fontSize: "8pt", overflowY: "auto" }}>
         {JSON.stringify(directory_listings, null, 2)}
@@ -105,4 +111,4 @@ const Files: React.FC<Props> = (props: Props) => {
   );
 };
 
-export default Files;
+export default Listing;
