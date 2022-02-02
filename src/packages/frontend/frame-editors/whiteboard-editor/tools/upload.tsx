@@ -26,7 +26,6 @@ export default function Upload({ children, evtToDataRef }: Props) {
       // TOOD: this is the wrong location - should instead just let canvas save mouse location in a ref,
       // and don't involve Dropzone at all.
       const location = evtToDataRef.current?.(mouse) ?? { x: 0, y: 0 };
-      console.log("final location = ", location);
       let str: string;
       const filename = join(dest_path, file.name);
       if (file.type.indexOf("image") == -1) {

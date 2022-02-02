@@ -13,7 +13,6 @@ export const STYLE = {
 };
 
 export default function Note({ element, focused }) {
-  console.log(element.data?.color, avatar_fontcolor(element.data?.color));
   // TODO: also use white color in some cases for text.
   const data = {
     ...element.data,
@@ -23,7 +22,6 @@ export default function Note({ element, focused }) {
     <div
       style={{
         ...STYLE,
-        fontSize: element.data?.fontSize,
         background: element.data?.color ?? DEFAULT_NOTE.color,
       }}
     >

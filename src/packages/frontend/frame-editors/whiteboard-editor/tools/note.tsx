@@ -10,9 +10,8 @@ import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { debounce } from "lodash";
 import { STYLE } from "../elements/note";
+import { DEFAULT_FONT_SIZE, minFontSize, maxFontSize } from "./defaults";
 
-const minFontSize = 7;
-const maxFontSize = 64;
 
 // see https://www.post-it.com/3M/en_US/post-it/ideas/color/
 export const COLORS = [
@@ -32,7 +31,7 @@ export const COLORS = [
   "#99b1f0",
 ];
 const numNoteTypes = COLORS.length;
-export const DEFAULT_NOTE = { fontSize: 14, color: COLORS[0] };
+export const DEFAULT_NOTE = { fontSize: DEFAULT_FONT_SIZE, color: COLORS[0] };
 
 export default function NoteToolPanel() {
   const frame = useFrameContext();

@@ -24,6 +24,7 @@ export default function Text({ element, focused }: Props) {
         value={element.str?.trim() ? element.str : "Type text"}
         style={{
           color: element.data?.color,
+          fontSize: element.data?.fontSize,
         }}
       />
     );
@@ -67,6 +68,7 @@ export default function Text({ element, focused }: Props) {
           file_path={path_split(frame.path).head}
           style={{
             color: element.data?.color,
+            fontSize: element.data?.fontSize,
           }}
           value={value?.trim() ? value : "Type text"}
         />
