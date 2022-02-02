@@ -14,19 +14,26 @@ export default function Code({ element, focused }: Props) {
   const [value, setValue] = useState<string>(element.str ?? "");
   const frame = useFrameContext();
 
+  const style = {
+    fontSize: element.data?.fontSize,
+    border: element.data?.color
+      ? `2px solid ${element.data?.color}`
+      : undefined,
+  };
+
   if (!focused) {
     const val =
       "```py\n" + (element.str?.trim() ? element.str : "Type code") + "\n```";
     return (
-      <Markdown
-        value={val}
-        style={{
-          width: "100%",
-          height: "100%",
-          color: element.data?.color,
-          fontSize: element.data?.fontSize,
-        }}
-      />
+      <div style={style}>
+        <Markdown
+          value={val}
+          style={{
+            width: "100%",
+            height: "100%",
+          }}
+        />
+      </div>
     );
   }
 
@@ -37,6 +44,7 @@ export default function Code({ element, focused }: Props) {
 
   return (
     <Input.TextArea
+      style={style}
       className="nodrag"
       placeholder="Type code"
       autoFocus

@@ -16,6 +16,7 @@ import {
 import { Tool } from "./tools/spec";
 import { Element, Elements } from "./types";
 import { uuid } from "@cocalc/util/misc";
+import { getPageSpan } from "./math";
 
 export interface State extends CodeEditorState {
   elements: Elements;
@@ -61,6 +62,14 @@ export class Actions extends BaseActions<State> {
       // todo -- need to avoid any possible conflict by regen until unique
       const id = uuid().slice(0, 8);
       obj = { id, ...obj };
+    }
+    if (obj.z == null) {
+      // most calls to createElement should NOT resort to having to do this.
+      let { zMax } = getPageSpan(
+        this.store.get("elements").toJS() as Element[],
+        0
+      );
+      obj.z = zMax + 1;
     }
     this.setElement(obj, commit);
     return obj as Element;

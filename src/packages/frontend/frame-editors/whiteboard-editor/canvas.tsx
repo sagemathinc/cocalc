@@ -387,6 +387,7 @@ export default function Canvas({
     ) {
       const { id } = actions.createElement(
         {
+          z: transforms.zMax + 1,
           ...data,
           type: selectedTool,
           str: "",
@@ -472,6 +473,7 @@ export default function Canvas({
         {
           x: xMin,
           y: yMin,
+          z: transforms.zMax + 1,
           w: xMax - xMin + 1,
           h: yMax - yMin + 1,
           data: { path: compressPath(path), ...getPenParams() },

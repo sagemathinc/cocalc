@@ -83,6 +83,7 @@ export function getPageSpan(
     yMin -= margin;
     xMax += margin;
     yMax += margin;
+    // do NOT add to z!
   }
   return { xMin, xMax, yMin, yMax, zMin, zMax };
 }
@@ -131,3 +132,4 @@ export function scalePath(path: Point[], scale): Point[] {
   }
   return v;
 }
+
