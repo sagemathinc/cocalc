@@ -385,16 +385,15 @@ export default function Canvas({
       selectedTool == "note" ||
       selectedTool == "code"
     ) {
-      const { id } = actions.createElement(
-        {
-          z: transforms.zMax + 1,
-          ...data,
-          type: selectedTool,
-          str: "",
-          ...params,
-        },
-        true
-      );
+      const element = {
+        ...data,
+        type: selectedTool,
+        str: "",
+        ...params,
+        z: transforms.zMax + 1,
+      };
+
+      const { id } = actions.createElement(element, true);
       actions.setSelectedTool(frame.id, "select");
       actions.setFocusedElement(frame.id, id);
     }

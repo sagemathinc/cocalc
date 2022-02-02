@@ -65,7 +65,7 @@ export class Actions extends BaseActions<State> {
     }
     if (obj.z == null) {
       // most calls to createElement should NOT resort to having to do this.
-      let { zMax } = getPageSpan(
+      const { zMax } = getPageSpan(
         this.store.get("elements").toJS() as Element[],
         0
       );

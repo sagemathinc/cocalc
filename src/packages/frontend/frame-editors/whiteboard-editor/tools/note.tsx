@@ -147,6 +147,7 @@ function NotePreview({
 }) {
   return (
     <Tooltip
+      placement="right"
       title={
         `Font size: ${fontSize}px` +
         (fontFamily ? `, Font family: ${fontFamily}` : "")

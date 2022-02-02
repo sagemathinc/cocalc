@@ -3,7 +3,7 @@ Editing bar for editing one (or more) selected elements.
 */
 
 import { CSSProperties, ReactNode, useState } from "react";
-import { Button, InputNumber, Select, Tooltip } from "antd";
+import { Button, InputNumber, Menu, Dropdown, Select, Tooltip } from "antd";
 const { Option } = Select;
 import { Element } from "../types";
 import { PANEL_STYLE } from "./panel";
@@ -13,6 +13,7 @@ import { Actions } from "../actions";
 import { BrushPreview, maxRadius } from "./pen";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { FONT_FACES as FONT_FAMILIES } from "@cocalc/frontend/editors/editor-button-bar";
+import { getPageSpan } from "../math";
 
 import {
   DEFAULT_FONT_SIZE,
@@ -44,6 +45,7 @@ export default function EditBar({ elements }: Props) {
         <FontSize actions={actions} elements={elements} />
         <ColorButton actions={actions} elements={elements} />
         <DeleteButton actions={actions} elements={elements} />
+        <OtherOperations actions={actions} elements={elements} />
       </div>
     </div>
   );
@@ -222,6 +224,53 @@ function getFontFamily(elements: Element[]): string | undefined {
     }
   }
   return DEFAULT_FONT_FAMILY;
+}
+
+function OtherOperations({ actions, elements }: ButtonProps) {
+  const frame = useFrameContext();
+  const menu = (
+    <Menu
+      onClick={({ key }) => {
+        if (key == "bring-to-front") {
+          const { zMax } = getPageSpan(elements);
+          let z = zMax + 1;
+          for (const element of elements) {
+            actions.setElement({ ...element, z }, false);
+            z += 1;
+          }
+          actions.syncstring_commit();
+          actions.setFocusedElement(frame.id, "");
+        } else if (key == "send-to-back") {
+          const { zMin } = getPageSpan(elements);
+          let z = zMin - 1;
+          console.log("zMin = ", zMin, "  z = ", z);
+          for (const element of elements) {
+            actions.setElement({ ...element, z }, false);
+            z -= 1;
+          }
+          actions.syncstring_commit();
+          actions.setFocusedElement(frame.id, "");
+          return;
+        }
+      }}
+    >
+      <Menu.Item key="bring-to-front">Bring to front</Menu.Item>
+      <Menu.Item key="send-to-back">Send to back</Menu.Item>
+    </Menu>
+  );
+
+  return (
+    <Dropdown overlay={menu} trigger={["click"]}>
+      <Icon
+        name="ellipsis"
+        style={{
+          padding: "12px 10px 0",
+          borderLeft: "1px solid #ccc",
+          cursor: "pointer",
+        }}
+      />
+    </Dropdown>
+  );
 }
 
 function setDataField(
