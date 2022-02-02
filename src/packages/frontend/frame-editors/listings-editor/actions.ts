@@ -7,16 +7,16 @@
 Files Listings Editor Actions
 */
 
+//import { project_api } from "../generic/client";
+import { path_split } from "@cocalc/util/misc";
 import { Map } from "immutable";
-import { FrameTree } from "../frame-tree/types";
 import {
   Actions as BaseActions,
-  CodeEditorState,
+  CodeEditorState
 } from "../code-editor/actions";
-
+import { FrameTree } from "../frame-tree/types";
 import { Favs } from "./types";
-import { project_api } from "../generic/client";
-import { path_split } from "@cocalc/util/misc";
+
 
 export interface State extends CodeEditorState {
   dir: string;
@@ -69,11 +69,11 @@ export class Actions extends BaseActions<State> {
   }
 
   async setDir(path: string) {
-    const api = await project_api(this.project_id);
-    const cPath = await api.canonical_path(path);
-    const cDir = path_split(cPath).head;
-    this.setState({ dir: cDir });
-    this._syncstring.set({ dir: cDir });
+    //const api = await project_api(this.project_id);
+    //const cPath = await api.canonical_path(path);
+    //const cDir = path_split(cPath).head;
+    const dir = path === "" ? "" : path_split(path).head;
+    this._syncstring.set({ dir });
     this._syncstring.commit();
   }
 }

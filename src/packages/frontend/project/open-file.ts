@@ -32,21 +32,23 @@ const { local_storage } = require("../editor");
 
 import { remove } from "../project-file";
 
+export interface OpenFileProps {
+  path: string;
+  foreground?: boolean;
+  foreground_project?: boolean;
+  chat?: any;
+  chat_width?: number;
+  ignore_kiosk?: boolean;
+  new_browser_window?: boolean;
+  change_history?: boolean;
+  // anchor -- if given, try to jump to scroll to this id in the editor, after it
+  // renders and is put in the foreground (ignored if foreground not true)
+  anchor?: string;
+}
+
 export async function open_file(
   actions: ProjectActions,
-  opts: {
-    path: string;
-    foreground?: boolean;
-    foreground_project?: boolean;
-    chat?: any;
-    chat_width?: number;
-    ignore_kiosk?: boolean;
-    new_browser_window?: boolean;
-    change_history?: boolean;
-    // anchor -- if given, try to jump to scroll to this id in the editor, after it
-    // renders and is put in the foreground (ignored if foreground not true)
-    anchor?: string;
-  }
+  opts: OpenFileProps
 ): Promise<void> {
   if (endswith(opts.path, "/")) {
     actions.open_directory(opts.path);

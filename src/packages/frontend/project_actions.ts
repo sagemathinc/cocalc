@@ -28,7 +28,12 @@ import { in_snapshot_path, NewFilenames, normalize } from "./project/utils";
 import { NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { transform_get_url } from "./project/transform-get-url";
 import { OpenFiles } from "./project/open-files";
-import { log_opened_time, open_file, log_file_open } from "./project/open-file";
+import {
+  log_opened_time,
+  open_file,
+  log_file_open,
+  OpenFileProps,
+} from "./project/open-file";
 import * as project_file from "./project-file";
 import { get_editor } from "./editors/react-wrapper";
 import * as misc from "@cocalc/util/misc";
@@ -758,7 +763,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Open the given file in this project.
-  public async open_file(opts): Promise<void> {
+  public async open_file(opts: OpenFileProps): Promise<void> {
     await open_file(this, opts);
   }
 
