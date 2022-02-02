@@ -11,7 +11,8 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { debounce } from "lodash";
 import { STYLE } from "../elements/note";
 import { DEFAULT_FONT_SIZE, minFontSize, maxFontSize } from "./defaults";
-
+import { SelectFontFamily } from "./edit-bar";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
 // see https://www.post-it.com/3M/en_US/post-it/ideas/color/
 export const COLORS = [
@@ -47,7 +48,7 @@ export default function NoteToolPanel() {
   }
 
   function NoteButton({ id }) {
-    const { fontSize, color } = presets[id] ?? DEFAULT_NOTE;
+    const { fontSize, color, fontFamily } = presets[id] ?? DEFAULT_NOTE;
     return (
       <Button
         style={{ padding: "5px", height: "35px" }}
@@ -65,6 +66,7 @@ export default function NoteToolPanel() {
       >
         <NotePreview
           fontSize={fontSize}
+          fontFamily={fontFamily}
           color={color}
           borderColor={id == selected ? "blue" : "#ccc"}
         />
@@ -77,7 +79,7 @@ export default function NoteToolPanel() {
     notePresets.push(<NoteButton key={id} id={id} />);
   }
 
-  const { fontSize, color } = presets[selected] ?? DEFAULT_NOTE;
+  const { fontSize, color, fontFamily } = presets[selected] ?? DEFAULT_NOTE;
 
   return (
     <div
@@ -107,6 +109,7 @@ export default function NoteToolPanel() {
         <NoteParams
           color={color}
           fontSize={fontSize}
+          fontFamily={fontFamily}
           setColor={(color) => {
             setPresets({
               ...presets,
@@ -119,6 +122,12 @@ export default function NoteToolPanel() {
               [selected]: { ...presets[selected], fontSize },
             });
           }}
+          setFontFamily={(fontFamily) => {
+            setPresets({
+              ...presets,
+              [selected]: { ...presets[selected], fontFamily },
+            });
+          }}
         />
       )}
     </div>
@@ -127,15 +136,22 @@ export default function NoteToolPanel() {
 
 function NotePreview({
   fontSize,
+  fontFamily,
   color,
   borderColor,
 }: {
   fontSize: number;
+  fontFamily?: string;
   color: string;
   borderColor?: string;
 }) {
   return (
-    <Tooltip title={`Font size: ${fontSize}px`}>
+    <Tooltip
+      title={
+        `Font size: ${fontSize}px` +
+        (fontFamily ? `, Font family: ${fontFamily}` : "")
+      }
+    >
       <div
         style={{
           ...STYLE,
@@ -145,15 +161,25 @@ function NotePreview({
           border: `2px solid ${borderColor ?? "#ccc"}`,
           width: "50px",
           height: "25px",
-          fontSize: "8pt",
-          color: "#888",
+          fontSize: "14px",
+          fontFamily,
+          color: avatar_fontcolor(color),
         }}
-      ></div>
+      >
+        A
+      </div>
     </Tooltip>
   );
 }
 
-function NoteParams({ color, fontSize, setColor, setFontSize }) {
+function NoteParams({
+  color,
+  fontSize,
+  fontFamily,
+  setColor,
+  setFontSize,
+  setFontFamily,
+}) {
   return (
     <div
       style={{
@@ -176,6 +202,17 @@ function NoteParams({ color, fontSize, setColor, setFontSize }) {
         />
         <div style={{ marginLeft: "5px", fontSize: "9pt", paddingTop: "6px" }}>
           Font size (px)
+        </div>
+      </div>
+      <div style={{ width: "100%", display: "flex", marginBottom: "10px" }}>
+        <SelectFontFamily
+          onChange={setFontFamily}
+          defaultValue={fontFamily}
+          size="small"
+          style={{ width: "70%", flex: 1 }}
+        />
+        <div style={{ marginLeft: "5px", fontSize: "9pt", paddingTop: "6px" }}>
+          Font family
         </div>
       </div>
       <ColorPicker color={color} onChange={setColor} defaultPicker="swatches" />
@@ -204,7 +241,9 @@ export function ResetButton({ onClick }) {
 // For now just storing these presets in localStorage.
 // TODO: move to account settings or the document.  NOT SURE?!
 // Same problem with pen params.
-type Presets = { [id: string]: { color: string; fontSize: number } };
+type Presets = {
+  [id: string]: { color: string; fontSize: number; fontFamily?: string };
+};
 
 const key = "whiteboard-note-presets";
 

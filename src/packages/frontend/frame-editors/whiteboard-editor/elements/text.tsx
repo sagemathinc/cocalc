@@ -22,10 +22,7 @@ export default function Text({ element, focused }: Props) {
         project_id={frame.project_id}
         file_path={path_split(frame.path).head}
         value={element.str?.trim() ? element.str : "Type text"}
-        style={{
-          color: element.data?.color,
-          fontSize: element.data?.fontSize,
-        }}
+        style={getStyle(element)}
       />
     );
   }
@@ -66,13 +63,18 @@ export default function Text({ element, focused }: Props) {
         <Markdown
           project_id={frame.project_id}
           file_path={path_split(frame.path).head}
-          style={{
-            color: element.data?.color,
-            fontSize: element.data?.fontSize,
-          }}
+          style={getStyle(element)}
           value={value?.trim() ? value : "Type text"}
         />
       </Popover>
     </div>
   );
+}
+
+function getStyle(element) {
+  return {
+    color: element.data?.color,
+    fontSize: element.data?.fontSize,
+    fontFamily: element.data?.fontFamily,
+  };
 }

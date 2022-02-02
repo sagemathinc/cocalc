@@ -2,8 +2,9 @@
 Editing bar for editing one (or more) selected elements.
 */
 
-import { useState } from "react";
-import { Button, InputNumber, Tooltip } from "antd";
+import { CSSProperties, ReactNode, useState } from "react";
+import { Button, InputNumber, Select, Tooltip } from "antd";
+const { Option } = Select;
 import { Element } from "../types";
 import { PANEL_STYLE } from "./panel";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -11,8 +12,14 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { Actions } from "../actions";
 import { BrushPreview, maxRadius } from "./pen";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
+import { FONT_FACES as FONT_FAMILIES } from "@cocalc/frontend/editors/editor-button-bar";
 
-import { DEFAULT_FONT_SIZE, minFontSize, maxFontSize } from "./defaults";
+import {
+  DEFAULT_FONT_SIZE,
+  DEFAULT_FONT_FAMILY,
+  minFontSize,
+  maxFontSize,
+} from "./defaults";
 
 interface Props {
   elements: Element[];
@@ -33,6 +40,7 @@ export default function EditBar({ elements }: Props) {
       }}
     >
       <div style={{ display: "flex" }}>
+        <FontFamily actions={actions} elements={elements} />
         <FontSize actions={actions} elements={elements} />
         <ColorButton actions={actions} elements={elements} />
         <DeleteButton actions={actions} elements={elements} />
@@ -57,7 +65,7 @@ function DeleteButton({ actions, elements }: ButtonProps) {
   return (
     <Tooltip title="Delete">
       <Button
-        style={BUTTON_STYLE}
+        style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
         type="text"
         onClick={() => {
           for (const { id } of elements) {
@@ -147,6 +155,73 @@ function getFontSize(elements: Element[]): number | undefined {
     }
   }
   return DEFAULT_FONT_SIZE;
+}
+
+function FontFamily({ actions, elements }: ButtonProps) {
+  return (
+    <SelectFontFamily
+      onChange={(fontFamily) => {
+        setDataField({ elements, actions }, { fontFamily });
+      }}
+      defaultValue={getFontFamily(elements)}
+      size="large"
+      style={{ marginTop: "1px", minWidth: "100px" }}
+    />
+  );
+}
+
+export function SelectFontFamily({
+  onChange,
+  defaultValue,
+  size,
+  style,
+}: {
+  onChange?: (fontFamily: string) => void;
+  defaultValue?: string;
+  size?: any;
+  style?: CSSProperties;
+}) {
+  const v: ReactNode[] = [];
+  for (const fontFamily of FONT_FAMILIES) {
+    v.push(
+      <Option
+        value={fontFamily}
+        key={fontFamily}
+        search={fontFamily.toLowerCase()}
+      >
+        <span style={{ fontFamily }}>{fontFamily}</span>
+      </Option>
+    );
+  }
+
+  return (
+    <Tooltip title="Select a font">
+      <Select
+        style={style}
+        size={size}
+        defaultValue={defaultValue}
+        showSearch
+        placeholder="Select a font"
+        optionFilterProp="children"
+        onChange={onChange}
+        filterOption={(input, option) => {
+          if (!input.trim()) return true;
+          return option?.search.includes(input.toLowerCase());
+        }}
+      >
+        {v}
+      </Select>
+    </Tooltip>
+  );
+}
+
+function getFontFamily(elements: Element[]): string | undefined {
+  for (const element of elements) {
+    if (element.data?.fontFamily) {
+      return element.data?.fontFamily;
+    }
+  }
+  return DEFAULT_FONT_FAMILY;
 }
 
 function setDataField(
