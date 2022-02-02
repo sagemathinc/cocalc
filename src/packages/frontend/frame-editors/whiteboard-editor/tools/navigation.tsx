@@ -115,7 +115,7 @@ export default function Navigation({ fontSize, elements }: Props) {
         )}
         <div style={{ display: "flex", borderTop: "1px solid #ddd" }}>{v}</div>
       </div>
-      {(resize.x || resize.y) && (
+      {resize.x || resize.y ? (
         <div
           style={{
             position: "absolute",
@@ -129,7 +129,7 @@ export default function Navigation({ fontSize, elements }: Props) {
             zIndex: 1005,
           }}
         ></div>
-      )}
+      ) : undefined}
     </>
   );
 }
