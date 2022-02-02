@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { webapp_client } from "../../webapp-client";
 import {
   filename_extension,
@@ -10,86 +15,7 @@ import { Actions, redux_name } from "../../app-framework";
 import { register_file_editor } from "../../project-file";
 
 import { Archive } from "./component";
-
-const COMMANDS: {
-  [type: string]: {
-    list: { command: string; args: string[] };
-    extract: { command: string; args: string[] };
-  };
-} = {
-  zip: {
-    list: {
-      command: "unzip",
-      args: ["-l"],
-    },
-    extract: {
-      command: "unzip",
-      args: ["-B"],
-    },
-  },
-  tar: {
-    list: {
-      command: "tar",
-      args: ["-tf"],
-    },
-    extract: {
-      command: "tar",
-      args: ["-xvf"],
-    },
-  },
-  tgz: {
-    list: {
-      command: "tar",
-      args: ["-tzf"],
-    },
-    extract: {
-      command: "tar",
-      args: ["-xvzf"],
-    },
-  },
-  gz: {
-    list: {
-      command: "gzip",
-      args: ["-l"],
-    },
-    extract: {
-      command: "gunzip",
-      args: ["-vf"],
-    },
-  },
-  bzip2: {
-    list: {
-      command: "ls",
-      args: ["-l"],
-    },
-    extract: {
-      command: "bunzip2",
-      args: ["-vf"],
-    },
-  },
-  lzip: {
-    list: {
-      command: "ls",
-      args: ["-l"],
-    },
-    extract: {
-      command: "lzip",
-      args: ["-vfd"],
-    },
-  },
-  xz: {
-    list: {
-      command: "xz",
-      args: ["-l"],
-    },
-    extract: {
-      command: "xz",
-      args: ["-vfd"],
-    },
-  },
-};
-
-COMMANDS.bz2 = COMMANDS.bzip2;
+import { COMMANDS, DOUBLE_EXT } from "./misc";
 
 function init_redux(path: string, redux, project_id: string): string {
   const name = redux_name(project_id, path);
@@ -98,7 +24,7 @@ function init_redux(path: string, redux, project_id: string): string {
   }
   redux.createStore(name);
   const actions = redux.createActions(name, ArchiveActions);
-  actions.set_archive_contents(project_id, path);
+  actions.setArchiveContents(project_id, path);
   return name;
 }
 
@@ -118,7 +44,7 @@ interface State {
   extract_output?: string;
 }
 
-class ArchiveActions extends Actions<State> {
+export class ArchiveActions extends Actions<State> {
   parse_file_type(file_info: string): string | undefined {
     if (file_info.indexOf("Zip archive data") !== -1) {
       return "zip";
@@ -136,7 +62,7 @@ class ArchiveActions extends Actions<State> {
     return undefined;
   }
 
-  set_unsupported(ext: string): void {
+  setUnsupported(ext: string | undefined): void {
     this.setState({
       error: "unsupported",
       contents: "",
@@ -144,18 +70,34 @@ class ArchiveActions extends Actions<State> {
     });
   }
 
-  async set_archive_contents(project_id: string, path: string): Promise<void> {
-    const ext0 = filename_extension_notilde(path)?.toLowerCase();
-    const ext = filename_extension(path)?.toLowerCase();
+  /**
+   * Extract the extension, and check if there is a tilde.
+   */
+  private extractExtension(pathReal: string): string | null {
+    const path = pathReal.toLowerCase(); // convert to lowercase for case-insensitive matching
+    const ext0 = filename_extension_notilde(path);
+    const ext = filename_extension(path);
     if (ext0 !== ext) {
       this.setState({
         error: "Rename the archive file to not end in a tilde.",
       });
-      return;
+      return null;
     }
+    // there are "double extension" with a dot, like "tar.bz2"
+    for (const ext of DOUBLE_EXT) {
+      if (path.endsWith(`.${ext}`)) {
+        return ext;
+      }
+    }
+    return ext;
+  }
+
+  async setArchiveContents(project_id: string, path: string): Promise<void> {
+    const ext = this.extractExtension(path);
+    if (ext === null) return;
 
     if (COMMANDS[ext]?.list == null) {
-      this.set_unsupported(ext);
+      this.setUnsupported(ext);
       return;
     }
 
@@ -182,14 +124,14 @@ class ArchiveActions extends Actions<State> {
     }
   }
 
-  async extract_archive_files(
+  async extractArchiveFiles(
     project_id: string,
     path: string,
-    type: string,
-    contents: string
+    type: string | undefined,
+    contents: string | undefined
   ): Promise<void> {
-    if (COMMANDS[type]?.extract == null) {
-      this.set_unsupported(type);
+    if (type == null || COMMANDS[type]?.extract == null) {
+      this.setUnsupported(type);
       return;
     }
     let post_args;
@@ -260,7 +202,7 @@ class ArchiveActions extends Actions<State> {
 // yet and we don't want to open those in codemirror -- see https://github.com/sagemathinc/cocalc/issues/1720
 // NOTE: One you implement one of these (so it is in commands), be
 // sure to delete it from the list below.
-const TODO_TYPES = split("z lz lzma tbz tbz2 tb2 taz tz tlz txz");
+const TODO_TYPES = split("z lz lzma tbz tb2 taz tz tlz txz");
 register_file_editor({
   ext: keys(COMMANDS).concat(TODO_TYPES),
   icon: "file-archive",
