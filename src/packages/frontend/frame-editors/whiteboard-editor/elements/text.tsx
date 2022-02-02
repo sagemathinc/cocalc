@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Markdown } from "@cocalc/frontend/components";
 import { Input, Popover } from "antd";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Actions } from "../actions";
+import { useFrameContext } from "../hooks";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Element } from "../types";
 import { path_split } from "@cocalc/util/misc";
@@ -52,8 +51,7 @@ export default function Text({ element, focused }: Props) {
                 setValue(e.target.value);
               }}
               onBlur={() => {
-                const actions = frame.actions as Actions;
-                actions.setElement({ id: element.id, str: value });
+                frame.actions.setElement({ id: element.id, str: value });
               }}
             />
           </div>

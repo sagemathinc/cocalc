@@ -8,9 +8,7 @@ import { CSSProperties, ReactNode } from "react";
 import { Button, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TOOLS } from "./spec";
-//import Draggable from "react-draggable";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Actions } from "../actions";
+import { useFrameContext } from "../hooks";
 
 export const PANEL_STYLE = {
   zIndex: 1000,
@@ -30,7 +28,14 @@ export default function Panel({ selectedTool }) {
     );
   }
   return (
-    <div style={{ ...PANEL_STYLE, width:'46px', display: "flex", flexDirection: "column" }}>
+    <div
+      style={{
+        ...PANEL_STYLE,
+        width: "46px",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {v}
     </div>
   );
@@ -44,7 +49,7 @@ function ToolButton({ tool, isSelected }) {
       <Button
         type="text"
         onClick={() => {
-          (actions as Actions).setSelectedTool(id, tool);
+          actions.setSelectedTool(id, tool);
         }}
       >
         <Icon

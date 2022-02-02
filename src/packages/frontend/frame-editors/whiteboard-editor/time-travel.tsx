@@ -3,7 +3,7 @@ Viewer used by time travel to show whiteboard canvas at a particular point in ti
 */
 import Canvas from "./canvas";
 import NavigationPanel from "./tools/navigation";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { useFrameContext } from "./hooks";
 
 export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
   const { isFocused } = useFrameContext();

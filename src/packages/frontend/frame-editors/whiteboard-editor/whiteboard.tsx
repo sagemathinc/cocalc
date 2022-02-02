@@ -8,7 +8,7 @@ import ToolPanel from "./tools/panel";
 import PenPanel from "./tools/pen";
 import NotePanel from "./tools/note";
 import NavigationPanel from "./tools/navigation";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { useFrameContext } from "./hooks";
 import Upload from "./tools/upload";
 
 interface Props {

@@ -20,11 +20,9 @@ import RenderElement from "./elements/render";
 import Focused, { FOCUSED_BORDER_COLOR } from "./focused";
 import NotFocused from "./not-focused";
 import Position from "./position";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { useFrameContext } from "./hooks";
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import Grid from "./elements/grid";
-
-import { Actions } from "./actions";
 import {
   fontSizeToZoom,
   getPageSpan,
@@ -121,7 +119,6 @@ export default function Canvas({
   }, [font_size, scale, transforms.width, transforms.height]);
 
   const frame = useFrameContext();
-  const actions = frame.actions as Actions;
 
   // handle setting a center position for the visible window
   useEffect(() => {
@@ -167,7 +164,7 @@ export default function Canvas({
 
   useEffect(() => {
     if (fitToScreen) {
-      actions.set_frame_tree({ id: frame.id, fitToScreen: false });
+      frame.actions.set_frame_tree({ id: frame.id, fitToScreen: false });
     }
   }, [fitToScreen]);
 
@@ -315,7 +312,7 @@ export default function Canvas({
               y: (visible.yMax + visible.yMin) / 2,
             };
             const { x, y } = data;
-            actions.setVisibleWindowCenter(frame.id, {
+            frame.actions.setVisibleWindowCenter(frame.id, {
               x: ctr.x + (x - x0) / canvasScale,
               y: ctr.y + (y - y0) / canvasScale,
             });
@@ -365,7 +362,7 @@ export default function Canvas({
       if (e.target == gridDivRef.current) {
         // clear selection
         // unfocus, because nothing got clicked on.
-        actions.setFocusedElement(frame.id, "");
+        frame.actions.setFocusedElement(frame.id, "");
       } else {
         // clicked on an element on the canvas; either stay selected or let
         // it handle selecting it.
@@ -393,9 +390,9 @@ export default function Canvas({
         z: transforms.zMax + 1,
       };
 
-      const { id } = actions.createElement(element, true);
-      actions.setSelectedTool(frame.id, "select");
-      actions.setFocusedElement(frame.id, id);
+      const { id } = frame.actions.createElement(element, true);
+      frame.actions.setSelectedTool(frame.id, "select");
+      frame.actions.setFocusedElement(frame.id, id);
     }
   }
 
@@ -415,7 +412,7 @@ export default function Canvas({
           );
           const xMax = xMin + width / canvasScale;
           const yMax = yMin + height / canvasScale;
-          actions.saveVisibleWindow(frame.id, { xMin, yMin, xMax, yMax });
+          frame.actions.saveVisibleWindow(frame.id, { xMin, yMin, xMax, yMax });
         }, 50);
       }, [transforms, canvasScale]);
 
@@ -468,7 +465,7 @@ export default function Canvas({
         pt.y = pt.y - yMin;
       }
 
-      actions.createElement(
+      frame.actions.createElement(
         {
           x: xMin,
           y: yMin,
@@ -533,7 +530,7 @@ export default function Canvas({
             navDrag.current = null;
             return;
           }
-          actions.setVisibleWindowCenter(frame.id, evtToData(e));
+          frame.actions.setVisibleWindowCenter(frame.id, evtToData(e));
           return;
         }
         if (!readOnly) {

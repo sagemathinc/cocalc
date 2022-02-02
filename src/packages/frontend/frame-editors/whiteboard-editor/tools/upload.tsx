@@ -2,8 +2,7 @@ import { ReactNode, RefObject, useRef } from "react";
 import { Dropzone, FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { aux_file } from "@cocalc/util/misc";
 const AUX_FILE_EXT = "upload";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Actions } from "../actions";
+import { useFrameContext } from "../hooks";
 import { join } from "path";
 
 interface Props {
@@ -35,7 +34,7 @@ export default function Upload({ children, evtToDataRef }: Props) {
         // is an image
         str = `<img src="${filename}" style="object-fit:cover"/>`;
       }
-      (actions as Actions).createElement({
+      actions.createElement({
         ...location,
         type: "text",
         str,

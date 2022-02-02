@@ -9,9 +9,9 @@ high level map view.
 import { ReactNode, useState } from "react";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { Button, Tooltip } from "antd";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { getPageSpan, fontSizeToZoom, ZOOM100 } from "../math";
+import { useFrameContext } from "../hooks";
 import { Actions } from "../actions";
+import { getPageSpan, fontSizeToZoom, ZOOM100 } from "../math";
 import { PANEL_STYLE } from "./panel";
 import Canvas from "../canvas";
 import { Element } from "../types";

@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Actions } from "./actions";
+import { useFrameContext } from "./hooks";
 
 interface Props {
   children: ReactNode;
@@ -23,7 +22,8 @@ export default function NotFocused({
         !readOnly && selectable
           ? (e) => {
               e.stopPropagation();
-              (frame.actions as Actions).setFocusedElement(frame.id, id);
+              console.log(e);
+              frame.actions.setFocusedElement(frame.id, id);
             }
           : undefined
       }

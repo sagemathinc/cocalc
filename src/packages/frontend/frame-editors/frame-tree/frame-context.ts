@@ -15,7 +15,7 @@ import { createContext, useContext } from "react";
 import { Actions } from "../code-editor/actions";
 import { Map } from "immutable";
 
-interface IFrameContext {
+export interface IFrameContext {
   id: string;
   project_id: string;
   path: string;

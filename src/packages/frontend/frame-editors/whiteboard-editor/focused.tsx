@@ -12,8 +12,7 @@ import { ReactNode, useMemo, useRef, useState } from "react";
 import Draggable from "react-draggable";
 import { getAngle, getPosition } from "./math";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Actions } from "./actions";
+import { useFrameContext } from "./hooks";
 import EditBar from "./tools/edit-bar";
 import { Element } from "./types";
 import DragHandle from "./focused-resize";
@@ -120,9 +119,8 @@ export default function Focused({
               break;
             }
           }
-          const actions = frame.actions as Actions;
           setTimeout(() => {
-            actions.setElement({ id, rotate });
+            frame.actions.setElement({ id, rotate });
             setRotating(undefined);
           }, 0);
         }}
@@ -215,8 +213,7 @@ export default function Focused({
           const { id } = element;
           const x = element.x + data.x;
           const y = element.y + data.y;
-          const actions = frame.actions as Actions;
-          actions.setElement({ id, x, y });
+          frame.actions.setElement({ id, x, y });
         }}
       >
         <div

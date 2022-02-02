@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Input } from "antd";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Actions } from "../actions";
+import { useFrameContext } from "../hooks";
 import { Element } from "../types";
 import { Markdown } from "@cocalc/frontend/components";
 
@@ -55,8 +54,7 @@ export default function Code({ element, focused }: Props) {
         setValue(e.target.value);
       }}
       onBlur={() => {
-        const actions = frame.actions as Actions;
-        actions.setElement({ id: element.id, str: value });
+        frame.actions.setElement({ id: element.id, str: value });
       }}
     />
   );

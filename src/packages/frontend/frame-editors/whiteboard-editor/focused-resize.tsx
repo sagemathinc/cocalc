@@ -7,8 +7,7 @@ import { Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Element } from "./types";
 import { CSSProperties, useState } from "react";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { Actions } from "./actions";
+import { useFrameContext } from "./hooks";
 import Draggable from "react-draggable";
 import { getPosition } from "./math";
 
@@ -97,7 +96,6 @@ export default function DragHandle({
         setOffset(getOffset(data));
       }}
       onStop={(_, data) => {
-        const actions = frame.actions as Actions;
         let { w, h, x, y } = getPosition(element);
         const offset = getOffset(data);
 
@@ -119,7 +117,7 @@ export default function DragHandle({
               path[i] = element.data.path[i] * scale_x;
               path[i + 1] = element.data.path[i + 1] * scale_y;
             }
-            actions.setElement({
+            frame.actions.setElement({
               id: element.id,
               x,
               y,
@@ -128,7 +126,7 @@ export default function DragHandle({
               data: { ...element.data, path },
             });
           } else {
-            actions.setElement({ id: element.id, x, y, w, h });
+            frame.actions.setElement({ id: element.id, x, y, w, h });
           }
         }, 0);
       }}

@@ -8,7 +8,7 @@ const { Option } = Select;
 import { Element } from "../types";
 import { PANEL_STYLE } from "./panel";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { useFrameContext } from "../hooks";
 import { Actions } from "../actions";
 import { BrushPreview, maxRadius } from "./pen";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
@@ -27,8 +27,7 @@ interface Props {
 }
 
 export default function EditBar({ elements }: Props) {
-  const frame = useFrameContext();
-  const actions = frame.actions as Actions;
+  const { actions } = useFrameContext();
   if (elements.length == 0) return null;
   return (
     <div

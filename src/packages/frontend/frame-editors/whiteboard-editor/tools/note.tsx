@@ -7,7 +7,7 @@ import { Button, Popconfirm, Slider, Tooltip } from "antd";
 import { PANEL_STYLE } from "./panel";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { useFrameContext } from "../hooks";
 import { debounce } from "lodash";
 import { STYLE } from "../elements/note";
 import { DEFAULT_FONT_SIZE, minFontSize, maxFontSize } from "./defaults";
