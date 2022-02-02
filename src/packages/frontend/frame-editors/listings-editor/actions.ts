@@ -4,7 +4,7 @@
  */
 
 /*
-Whiteboard FRAME Editor Actions
+Files Listings Editor Actions
 */
 
 import { Map } from "immutable";
@@ -26,33 +26,42 @@ export interface State extends CodeEditorState {
 export class Actions extends BaseActions<State> {
   protected doctype: string = "syncdb";
   protected primary_keys: string[] = ["id"];
-  protected string_cols: string[] = ["strVal"];
+  protected string_cols: string[] = ["data"];
 
   _raw_default_frame_tree(): FrameTree {
     return { type: "files" };
   }
 
   _init2(): void {
-    this.setState({ favs: Map() });
+    this.setState({ favs: Map(), dir: "" });
 
     this._syncstring.on("change", (keys) => {
       let favs = this.store.get("favs");
-      const favsPrev = favs;
+      let dir = this.store.get("dir");
       keys.forEach((key) => {
         const id = key.get("id");
         if (typeof id !== "string") return;
-        const obj = this._syncstring.get_one(key);
+        const data = this._syncstring.get_one(key);
         // @ts-ignore
-        favs = favs.set(id, obj);
+        switch (id) {
+          case "favs":
+            if (data !== favs) {
+              this.setState({ favs: data });
+            }
+            break;
+          case "dir":
+            if (data !== dir) {
+              this.setState({ dir: data });
+            }
+            break;
+        }
       });
-      if (favs !== favsPrev) {
-        this.setState({ favs });
-      }
     });
   }
 
-  set(obj: Favs): void {
-    this._syncstring.set(obj);
+  setFavs(favs: Favs): void {
+    this._syncstring.set({ favs });
+    this._syncstring.commit();
   }
 
   debugMe(path): void {
@@ -62,6 +71,9 @@ export class Actions extends BaseActions<State> {
   async setDir(path: string) {
     const api = await project_api(this.project_id);
     const cPath = await api.canonical_path(path);
-    this.setState({ dir: path_split(cPath).head });
+    const cDir = path_split(cPath).head;
+    this.setState({ dir: cDir });
+    this._syncstring.set({ dir: cDir });
+    this._syncstring.commit();
   }
 }

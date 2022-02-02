@@ -4,7 +4,7 @@
  */
 
 /*
-Register the Files Editor
+Register the File Listing Editor
 */
 
 import { register_file_editor } from "@cocalc/frontend/frame-editors/frame-tree/register";

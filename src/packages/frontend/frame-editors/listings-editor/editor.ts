@@ -4,7 +4,7 @@
  */
 
 /*
-Spec for whiteboard frame tree editor.
+Spec for file listing frame tree editor.
 */
 
 import { EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
