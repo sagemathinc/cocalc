@@ -22,8 +22,13 @@ export default function NotFocused({
         !readOnly && selectable
           ? (e) => {
               e.stopPropagation();
-              console.log(e);
-              frame.actions.setFocusedElement(frame.id, id);
+              frame.actions.setSelection(
+                frame.id,
+                id,
+                e.altKey || e.metaKey || e.ctrlKey || e.shiftKey
+                  ? "toggle"
+                  : "only"
+              );
             }
           : undefined
       }

@@ -238,7 +238,7 @@ function OtherOperations({ actions, elements }: ButtonProps) {
             z += 1;
           }
           actions.syncstring_commit();
-          actions.setFocusedElement(frame.id, "");
+          actions.clearSelection(frame.id);
         } else if (key == "send-to-back") {
           const { zMin } = getPageSpan(elements);
           let z = zMin - 1;
@@ -248,7 +248,7 @@ function OtherOperations({ actions, elements }: ButtonProps) {
             z -= 1;
           }
           actions.syncstring_commit();
-          actions.setFocusedElement(frame.id, "");
+          actions.clearSelection(frame.id);
           return;
         }
       }}

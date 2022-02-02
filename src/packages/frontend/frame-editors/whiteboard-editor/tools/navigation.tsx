@@ -16,7 +16,7 @@ import { PANEL_STYLE } from "./panel";
 import Canvas from "../canvas";
 import { Element } from "../types";
 import Draggable from "react-draggable";
-import { FOCUSED_BORDER_COLOR } from "../focused";
+import { SELECTED_BORDER_COLOR } from "../focused";
 
 const TOOLS = {
   map: {
@@ -125,7 +125,7 @@ export default function Navigation({ fontSize, elements }: Props) {
             height: `${BAR_HEIGHT + height + resize.y}px`,
             opacity: "0.5",
             background: "lightblue",
-            border: `2px dashed ${FOCUSED_BORDER_COLOR}`,
+            border: `2px dashed ${SELECTED_BORDER_COLOR}`,
             zIndex: 1005,
           }}
         ></div>

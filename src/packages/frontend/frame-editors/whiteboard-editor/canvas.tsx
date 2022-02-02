@@ -17,7 +17,7 @@ import {
 import { Element, Point } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
-import Focused, { FOCUSED_BORDER_COLOR } from "./focused";
+import Focused, { SELECTED_BORDER_COLOR } from "./focused";
 import NotFocused from "./not-focused";
 import Position from "./position";
 import { useFrameContext } from "./hooks";
@@ -43,7 +43,7 @@ interface Props {
   elements: Element[];
   font_size?: number;
   scale?: number; // use this if passed in; otherwise, deduce from font_size.
-  focusedId?: string;
+  selection?: Set<string>;
   selectedTool?: Tool;
   margin?: number;
   readOnly?: boolean;
@@ -57,7 +57,7 @@ export default function Canvas({
   elements,
   font_size,
   scale,
-  focusedId,
+  selection,
   margin,
   readOnly,
   selectedTool,
@@ -194,7 +194,8 @@ export default function Canvas({
     }
     */
 
-    const focused = id == focusedId;
+    const selected = selection?.has(id);
+    const focused = !!(selected && selection?.size === 1);
     let elt = (
       <RenderElement
         element={element}
@@ -202,15 +203,17 @@ export default function Canvas({
         canvasScale={canvasScale}
       />
     );
-    if (!isNavRectangle && (element.style || focused || isNavigator)) {
+    if (!isNavRectangle && (element.style || selected || isNavigator)) {
       elt = (
         <div
           style={{
             ...element.style,
-            ...(focused
+            ...(selected
               ? {
                   cursor: "text",
-                  border: `${2 / canvasScale}px dashed ${FOCUSED_BORDER_COLOR}`,
+                  border: `${
+                    2 / canvasScale
+                  }px dashed ${SELECTED_BORDER_COLOR}`,
                   marginLeft: `-${2 / canvasScale}px`,
                   marginTop: `-${2 / canvasScale}px`,
                 }
@@ -361,8 +364,7 @@ export default function Canvas({
     if (selectedTool == "select") {
       if (e.target == gridDivRef.current) {
         // clear selection
-        // unfocus, because nothing got clicked on.
-        frame.actions.setFocusedElement(frame.id, "");
+        frame.actions.clearSelection(frame.id);
       } else {
         // clicked on an element on the canvas; either stay selected or let
         // it handle selecting it.
@@ -392,7 +394,7 @@ export default function Canvas({
 
       const { id } = frame.actions.createElement(element, true);
       frame.actions.setSelectedTool(frame.id, "select");
-      frame.actions.setFocusedElement(frame.id, id);
+      frame.actions.setSelection(frame.id, id);
     }
   }
 

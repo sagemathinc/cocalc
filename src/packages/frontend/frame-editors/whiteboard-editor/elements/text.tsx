@@ -14,6 +14,11 @@ interface Props {
 export default function Text({ element, focused }: Props) {
   const [value, setValue] = useState<string>(element.str ?? "");
   const frame = useFrameContext();
+  useEffect(() => {
+    // should really be a 3-way merge...
+    setValue(element.str ?? "");
+  }, [element.str]);
+
 
   if (!focused) {
     return (
@@ -25,11 +30,6 @@ export default function Text({ element, focused }: Props) {
       />
     );
   }
-
-  useEffect(() => {
-    // should really be a 3-way merge...
-    setValue(element.str ?? "");
-  }, [element.str]);
 
   return (
     <div>

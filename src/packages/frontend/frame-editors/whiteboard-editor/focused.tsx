@@ -1,5 +1,5 @@
 /*
-Displays focused element with a border around it.
+Displays selected element with a border around it.
 
 NOTE that this is HTML and border width must be at least 1px.
 Given our CSS scale before this, if the scale is bigger than 2
@@ -19,7 +19,7 @@ import DragHandle from "./focused-resize";
 import Position from "./position";
 
 const thickness = 2;
-export const FOCUSED_BORDER_COLOR = "#40a9ff";
+export const SELECTED_BORDER_COLOR = "#40a9ff";
 const OFFSET = 50;
 const rotateEps = 0.07;
 const rotationSnaps: number[] = [];
@@ -225,7 +225,7 @@ export default function Focused({
               ? {
                   border: `${
                     thickness / canvasScale
-                  }px dashed ${FOCUSED_BORDER_COLOR}`,
+                  }px dashed ${SELECTED_BORDER_COLOR}`,
                   marginLeft: `${-thickness / canvasScale + offset.x}px`,
                   marginTop: `${-thickness / canvasScale + offset.y}px`,
                 }

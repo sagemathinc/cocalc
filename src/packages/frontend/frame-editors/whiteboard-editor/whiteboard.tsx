@@ -70,8 +70,10 @@ export default function Whiteboard({
         <Canvas
           elements={x}
           font_size={font_size}
-          focusedId={
-            selectedTool == "select" ? desc.get("focusedId") : undefined
+          selection={
+            selectedTool == "select"
+              ? new Set(desc.get("selection")?.toJS() ?? [])
+              : undefined
           }
           selectedTool={selectedTool}
           fitToScreen={desc.get("fitToScreen")}

@@ -79,10 +79,38 @@ export class Actions extends BaseActions<State> {
     this._syncstring.delete({ id });
   }
 
-  public setFocusedElement(frameId: string, focusedId: string): void {
+  public clearSelection(frameId: string): void {
     const node = this._get_frame_node(frameId);
     if (node == null) return;
-    this.set_frame_tree({ id: frameId, focusedId });
+    this.set_frame_tree({ id: frameId, selection: [] });
+  }
+
+  public setSelection(
+    frameId: string,
+    id: string,
+    type: "add" | "remove" | "only" | "toggle" = "only"
+  ): void {
+    const node = this._get_frame_node(frameId);
+    if (node == null) return;
+    let selection = node.get("selection")?.toJS() ?? [];
+    if (type == "toggle") {
+      const i = selection.indexOf(id);
+      if (i == -1) {
+        selection.push(id);
+      } else {
+        selection.splice(i, 1);
+      }
+    } else if (type == "add") {
+      if (selection.includes(id)) return;
+      selection.push(id);
+    } else if (type == "remove") {
+      const i = selection.indexOf(id);
+      if (i == -1) return;
+      selection.splice(i, 1);
+    } else if (type == "only") {
+      selection = [id];
+    }
+    this.set_frame_tree({ id: frameId, selection });
   }
 
   public setSelectedTool(frameId: string, selectedTool: Tool): void {
