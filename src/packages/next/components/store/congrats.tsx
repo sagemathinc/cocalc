@@ -47,7 +47,7 @@ export default function Congrats() {
           alt="Picture of a doggie."
         />
       </div>
-      <div style={{ maxWidth: "900px", margin: "auto" }}>
+      <div style={{ maxWidth: "900px", margin: "auto", fontSize:'12pt' }}>
         <h1 style={{ fontSize: "24pt" }}>
           <Icon
             name="check-circle"
@@ -88,6 +88,13 @@ export default function Congrats() {
             <A href="https://doc.cocalc.com/licenses.html">explained here</A>.
             It's time to make your <SiteName /> projects much, much better.
           </li>
+          <li>
+            You can <A href="/billing/receipts">download your receipt</A> and{" "}
+            <A href="/billing/subscriptions">
+              check on the status of subscriptions.
+            </A>
+          </li>
+
           <li>
             If you have questions,{" "}
             <A href="/support/new">create a support ticket</A>. Now that you're

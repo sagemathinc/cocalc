@@ -23,7 +23,10 @@ import apiPost from "lib/api/post";
 import { useRouter } from "next/router";
 import Loading from "components/share/loading";
 import { money } from "@cocalc/util/licenses/purchase/util";
-import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc/local-storage";
+import {
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
 
 export default function Create() {
   const router = useRouter();
@@ -267,6 +270,7 @@ function CreateLicense() {
             getFieldValue("period") == "range" ? (
               <DateRange
                 noPast
+                maxDaysInFuture={365 * 4}
                 style={{ margin: "5px 0 30px", textAlign: "center" }}
                 onChange={(range) => {
                   form.setFieldsValue({ range });
