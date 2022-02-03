@@ -10,7 +10,7 @@ things to fix that later.
 import { Tooltip } from "antd";
 import { ReactNode, useMemo, useRef, useState } from "react";
 import Draggable from "react-draggable";
-import { getAngle, getPosition } from "./math";
+import { getAngle, getPosition, MAX_ELEMENTS } from "./math";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "./hooks";
 import EditBar from "./tools/edit-bar";
@@ -170,7 +170,7 @@ export default function Focused({
   const scale_y = element.h ? (element.h + offset.h) / element.h : 1;
 
   return (
-    <Position x={t.x} y={t.y} z={1000} w={pos.w} h={pos.h}>
+    <Position x={t.x} y={t.y} z={MAX_ELEMENTS+1} w={pos.w} h={pos.h}>
       <div
         style={{
           visibility: isChanging ? "hidden" : undefined,
@@ -180,7 +180,7 @@ export default function Focused({
         <div
           style={{
             pointerEvents: "none", // otherwise entire element is blocked by this div
-            zIndex: 1001,
+            zIndex: MAX_ELEMENTS+2,
             position: "absolute",
             width: "100%",
             height: "100%",

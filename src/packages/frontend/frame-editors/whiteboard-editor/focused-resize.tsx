@@ -9,7 +9,7 @@ import { Element } from "./types";
 import { CSSProperties, useState } from "react";
 import { useFrameContext } from "./hooks";
 import Draggable from "react-draggable";
-import { getPosition } from "./math";
+import { getPosition, MAX_ELEMENTS } from "./math";
 
 const baseHandleSize = 20;
 const handleColor = "#888";
@@ -55,7 +55,7 @@ export default function DragHandle({
     background: "white",
     color: handleColor,
     fontSize: handleSize,
-    zIndex: 1000,
+    zIndex: MAX_ELEMENTS + 1,
     transform: `scale(${1 / canvasScale})`,
   } as CSSProperties;
   if (top) {

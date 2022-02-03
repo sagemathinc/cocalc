@@ -22,6 +22,10 @@ export function fontSizeToZoom(size?: number): number {
 export const DEFAULT_WIDTH = 250;
 export const DEFAULT_HEIGHT = 100;
 
+// We assume that there are at most this many elements.
+// E.g., to map z-indexes to integers in a safe range.
+export const MAX_ELEMENTS = 1000000;
+
 // Return angle in radians of line from pnt to origin from line
 // from (0,0) to (1,0).
 // This is a nonnegative number between 0 and 2*pi.

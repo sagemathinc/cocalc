@@ -30,12 +30,14 @@ import {
   pointEqual,
   pointRound,
   compressPath,
+  MAX_ELEMENTS,
 } from "./math";
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
 import { clearCanvas, drawCurve } from "./elements/pen";
 import { penParams } from "./tools/pen";
 import { noteParams } from "./tools/note";
+import { cmp } from "@cocalc/util/misc";
 
 const penDPIFactor = 1; // I can't get this to work! :-(
 
@@ -602,7 +604,7 @@ export default function Canvas({
               height: `${transforms.height}px`,
               cursor: TOOLS[selectedTool]?.cursor,
               position: "absolute",
-              zIndex: 1001,
+              zIndex: MAX_ELEMENTS + 1,
               top: 0,
               left: 0,
               border: "1px solid red",
@@ -637,11 +639,7 @@ function getTransforms(
     y: number,
     z?: number
   ) => { x: number; y: number; z: number };
-  windowToData: (
-    x: number,
-    y: number,
-    z?: number
-  ) => { x: number; y: number; z: number };
+  windowToData: (x: number, y: number) => { x: number; y: number };
   width: number;
   height: number;
   xMin: number;
@@ -650,8 +648,8 @@ function getTransforms(
   yMax: number;
   zMin: number;
   zMax: number;
-  zScale: number;
   scale: number;
+  zMap: { [z: number]: number };
 } {
   /*
   Consider the x and y coordinates of all elements, which could be anywhere in the "infinite canvas",
@@ -659,25 +657,24 @@ function getTransforms(
   Returns functions to transform back and forth.
   Just be really dumb for the first version.
 
-  We also scale the zIndex z values of object to be in the closed
-  interval [0,100], so we can confidently place UI elements, etc.
+  We also map the zIndex z values of object to be 1,2,..., MAX_ELEMENTS,
+  so we can confidently place UI elements, etc. above MAX_ELEMENTS.
   */
 
   let { xMin, yMin, xMax, yMax, zMin, zMax } = getPageSpan(elements, margin);
+  const zMap = zIndexMap(elements);
 
-  const zScale: number = zMin == zMax ? 1 : 100 / (zMax - zMin);
   function dataToWindow(x, y, z?) {
     return {
       x: (x ?? 0) - xMin,
       y: (y ?? 0) - yMin,
-      z: ((z ?? 0) - zMin) * zScale,
+      z: zMap[z ?? 0] ?? 0,
     };
   }
-  function windowToData(x, y, z?) {
+  function windowToData(x, y) {
     return {
       x: (x ?? 0) + xMin,
       y: (y ?? 0) + yMin,
-      z: (z ?? 0) / zScale + zMin,
     };
   }
   return {
@@ -691,7 +688,20 @@ function getTransforms(
     yMax,
     zMin,
     zMax,
-    zScale,
     scale,
+    zMap,
   };
+}
+
+// this sorts elements by their z value as a side effect.
+// TODO: potentially inefficient, since we do this every time anything changes...
+function zIndexMap(elements: Element[]) {
+  elements.sort((x, y) => cmp(x.z ?? 0, y.z ?? 0));
+  const zMap: { [z: number]: number } = {};
+  let i = 1;
+  for (const { z } of elements) {
+    zMap[z ?? 0] = i;
+    i += 1;
+  }
+  return zMap;
 }

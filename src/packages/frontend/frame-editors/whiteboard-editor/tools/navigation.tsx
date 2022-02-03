@@ -11,7 +11,7 @@ import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { Button, Tooltip } from "antd";
 import { useFrameContext } from "../hooks";
 import { Actions } from "../actions";
-import { getPageSpan, fontSizeToZoom, ZOOM100 } from "../math";
+import { getPageSpan, fontSizeToZoom, MAX_ELEMENTS, ZOOM100 } from "../math";
 import { PANEL_STYLE } from "./panel";
 import Canvas from "../canvas";
 import { Element } from "../types";
@@ -126,7 +126,7 @@ export default function Navigation({ fontSize, elements }: Props) {
             opacity: "0.5",
             background: "lightblue",
             border: `2px dashed ${SELECTED_BORDER_COLOR}`,
-            zIndex: 1005,
+            zIndex: MAX_ELEMENTS + 5,
           }}
         ></div>
       ) : undefined}

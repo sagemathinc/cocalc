@@ -9,9 +9,10 @@ import { Button, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TOOLS } from "./spec";
 import { useFrameContext } from "../hooks";
+import { MAX_ELEMENTS } from "../math";
 
 export const PANEL_STYLE = {
-  zIndex: 1000,
+  zIndex: MAX_ELEMENTS + 1,
   position: "absolute",
   fontSize: "18px",
   boxShadow: "0 0 5px grey",
