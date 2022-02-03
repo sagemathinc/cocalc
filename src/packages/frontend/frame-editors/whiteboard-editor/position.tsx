@@ -11,7 +11,6 @@ interface Props {
 }
 
 export default function Position({ children, x, y, z, w, h, style }: Props) {
-  console.log("z = ", z);
   const posStyle: CSSProperties = {
     position: "absolute",
     left: x,
