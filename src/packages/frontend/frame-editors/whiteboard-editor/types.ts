@@ -22,6 +22,13 @@ export type ElementType =
 
 export type Point = { x: number; y: number };
 
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface Element {
   id: string;
   type: ElementType;

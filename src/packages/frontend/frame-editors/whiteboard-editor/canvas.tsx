@@ -27,8 +27,10 @@ import {
   fontSizeToZoom,
   getPageSpan,
   getPosition,
+  getOverlappingElements,
   pointEqual,
   pointRound,
+  pointsToRect,
   compressPath,
   MAX_ELEMENTS,
 } from "./math";
@@ -78,6 +80,7 @@ export default function Canvas({
   const canvasScale = scale ?? fontSizeToZoom(font_size);
   const transforms = getTransforms(elements, margin, canvasScale);
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
+  const ignoreNextClick = useRef<boolean>(false);
 
   const penCanvasRef = useRef<any>(null);
   useEffect(() => {
@@ -396,6 +399,10 @@ export default function Canvas({
 
   function handleClick(e) {
     if (!frame.isFocused) return;
+    if (ignoreNextClick.current) {
+      ignoreNextClick.current = false;
+      return;
+    }
     if (selectedTool == "select") {
       if (e.target == gridDivRef.current) {
         // clear selection
@@ -466,6 +473,7 @@ export default function Canvas({
     }
     if (selectedTool == "pen") {
       mousePath.current = [];
+      ignoreNextClick.current = true;
       return;
     }
   };
@@ -474,17 +482,29 @@ export default function Canvas({
     onMouseDown(e.touches[0]);
   };
 
-  const onMouseUp = () => {
+  const onMouseUp = (e) => {
     if (mousePath.current == null) return;
+    e.stopPropagation();
     try {
       if (selectedTool == "select") {
         if (mousePath.current.length < 2) return;
-        console.log(
-          "would select everything touched by ",
-          JSON.stringify(mousePath.current)
+        ignoreNextClick.current = true;
+        if (!(e.altKey || e.metaKey || e.ctrlKey || e.shiftKey)) {
+          frame.actions.clearSelection(frame.id);
+        }
+        const p0 = mousePath.current[0];
+        const p1 = mousePath.current[1];
+        const rect = pointsToRect(
+          transforms.windowToData(p0.x, p0.y),
+          transforms.windowToData(p1.x, p1.y)
         );
-      }
-      if (selectedTool == "pen") {
+
+        const overlapping = getOverlappingElements(elements, rect);
+        for (const { id } of overlapping) {
+          frame.actions.setSelection(frame.id, id, "add");
+        }
+        return;
+      } else if (selectedTool == "pen") {
         const canvas = penCanvasRef.current;
         if (canvas == null) return;
         const ctx = canvas.getContext("2d");
@@ -493,6 +513,7 @@ export default function Canvas({
         if (mousePath.current == null || mousePath.current.length <= 1) {
           return;
         }
+        ignoreNextClick.current = true;
         const toData = ({ x, y }) => pointRound(transforms.windowToData(x, y));
         const { x, y } = toData(mousePath.current[0]);
         let xMin = x,
@@ -534,14 +555,16 @@ export default function Canvas({
           },
           true
         );
+
+        return;
       }
     } finally {
       mousePath.current = null;
     }
   };
 
-  const onTouchEnd = () => {
-    onMouseUp();
+  const onTouchEnd = (e) => {
+    onMouseUp(e.touches[0]);
   };
 
   function getMousePos(e): { x: number; y: number } | undefined {

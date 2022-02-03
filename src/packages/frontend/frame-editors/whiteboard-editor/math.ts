@@ -5,12 +5,7 @@ It seems like some basic trig, etc., is useful for this sort of editor!
 
 */
 
-import { Element } from "./types";
-
-interface Point {
-  x: number;
-  y: number;
-}
+import { Element, Point, Rect } from "./types";
 
 // We just declare a font size of 14 to be "zoom 100%".
 
@@ -135,4 +130,52 @@ export function scalePath(path: Point[], scale): Point[] {
     v.push({ x: scale * p.x, y: scale * p.y });
   }
   return v;
+}
+
+// Returns subset of elements whose rect overlap with given rect
+export function getOverlappingElements(
+  elements: Element[],
+  rect: Rect
+): Element[] {
+  return elements.filter((element) =>
+    areOverlappingRectangles(eltToRect(element), rect)
+  );
+}
+
+function eltToRect(element: Element): Rect {
+  return {
+    x: element.x,
+    y: element.y,
+    w: element.w ?? DEFAULT_WIDTH,
+    h: element.h ?? DEFAULT_HEIGHT,
+  };
+}
+
+export function pointsToRect(point1: Point, point2: Point): Rect {
+  const x0 = Math.min(point1.x, point2.x);
+  const x1 = Math.max(point1.x, point2.x);
+  const y0 = Math.min(point1.y, point2.y);
+  const y1 = Math.max(point1.y, point2.y);
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+function areOverlappingRectangles(r0: Rect, r1: Rect): boolean {
+  const { w, h } = intersectionOfRectangles(r0, r1);
+  return w > 0 && h > 0;
+}
+
+// Compute intersection of two rectangles.
+// non-intersection ==> width of 0.
+// Key idea for math below is that a rectangle is determined by
+// its projection to the x and y axes.  So we just compute those
+// two projections by intersecting closed intervals, then recover
+// the intersection from that.
+function intersectionOfRectangles(r0: Rect, r1: Rect): Rect {
+  const x0 = Math.max(r0.x, r1.x);
+  const x1 = Math.min(r0.x + r0.w, r1.x + r1.w);
+  const y0 = Math.max(r0.y, r1.y);
+  const y1 = Math.min(r0.y + r0.w, r1.y + r1.w);
+  const w = Math.max(x1 - x0, 0);
+  const h = Math.max(y1 - y0, 0);
+  return { x: x0, y: y0, w, h };
 }
