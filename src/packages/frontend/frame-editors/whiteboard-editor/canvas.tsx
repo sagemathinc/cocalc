@@ -464,8 +464,9 @@ export default function Canvas({
       mousePath.current = [point];
       return;
     }
-    if (selectedTool != "pen") {
+    if (selectedTool == "pen") {
       mousePath.current = [];
+      return;
     }
   };
 
@@ -560,7 +561,8 @@ export default function Canvas({
       const point = getMousePos(e);
       if (point == null) return;
       mousePath.current[1] = point;
-      console.log(JSON.stringify(mousePath.current));
+      //console.log(JSON.stringify(mousePath.current));
+      return;
     }
     if (selectedTool == "pen") {
       const point = getMousePos(e);
@@ -577,6 +579,7 @@ export default function Canvas({
         path: mousePath.current,
         ...getPenParams(),
       });
+      return;
     }
   };
 
