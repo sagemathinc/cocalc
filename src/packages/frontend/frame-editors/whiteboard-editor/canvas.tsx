@@ -82,6 +82,14 @@ export default function Canvas({
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
   const ignoreNextClick = useRef<boolean>(false);
 
+  // this is in terms of window coords:
+  const [selectRect, setSelectRect] = useState<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null>(null);
+
   const penCanvasRef = useRef<any>(null);
   useEffect(() => {
     const canvas = penCanvasRef.current;
@@ -465,6 +473,7 @@ export default function Canvas({
 
   const onMouseDown = (e) => {
     if (selectedTool == "select") {
+      if (e.target != gridDivRef.current) return;
       // draw a rectangular to select multiple items
       const point = getMousePos(e);
       if (point == null) return;
@@ -483,11 +492,12 @@ export default function Canvas({
   };
 
   const onMouseUp = (e) => {
+    setSelectRect(null);
     if (mousePath.current == null) return;
-    e.stopPropagation();
     try {
       if (selectedTool == "select") {
         if (mousePath.current.length < 2) return;
+        setSelectRect(null);
         ignoreNextClick.current = true;
         if (!(e.altKey || e.metaKey || e.ctrlKey || e.shiftKey)) {
           frame.actions.clearSelection(frame.id);
@@ -580,11 +590,12 @@ export default function Canvas({
 
   const onMouseMove = (e) => {
     if (mousePath.current == null) return;
+    e.preventDefault();
     if (selectedTool == "select") {
       const point = getMousePos(e);
       if (point == null) return;
       mousePath.current[1] = point;
-      //console.log(JSON.stringify(mousePath.current));
+      setSelectRect(pointsToRect(mousePath.current[0], mousePath.current[1]));
       return;
     }
     if (selectedTool == "pen") {
@@ -665,6 +676,28 @@ export default function Canvas({
               border: "1px solid red",
             }}
           />
+        )}
+        {selectRect != null && (
+          <div
+            style={{
+              position: "absolute",
+              left: `${selectRect.x}px`,
+              top: `${selectRect.y}px`,
+              width: `${selectRect.w}px`,
+              height: `${selectRect.h}px`,
+              border: `${2 / canvasScale}px solid ${SELECTED_BORDER_COLOR}`,
+              zIndex: MAX_ELEMENTS + 100,
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                background: "blue",
+                opacity: 0.1,
+              }}
+            ></div>
+          </div>
         )}
         <div
           ref={innerCanvasRef}

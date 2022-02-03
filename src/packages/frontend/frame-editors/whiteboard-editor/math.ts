@@ -174,7 +174,7 @@ function intersectionOfRectangles(r0: Rect, r1: Rect): Rect {
   const x0 = Math.max(r0.x, r1.x);
   const x1 = Math.min(r0.x + r0.w, r1.x + r1.w);
   const y0 = Math.max(r0.y, r1.y);
-  const y1 = Math.min(r0.y + r0.w, r1.y + r1.w);
+  const y1 = Math.min(r0.y + r0.h, r1.y + r1.h);
   const w = Math.max(x1 - x0, 0);
   const h = Math.max(y1 - y0, 0);
   return { x: x0, y: y0, w, h };
