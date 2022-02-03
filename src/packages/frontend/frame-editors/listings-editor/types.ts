@@ -7,7 +7,7 @@ import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
 
 export interface Fav {
-  time?:  number;
+  time?: number;
   comment?: string; // optional str data patch/merge via diff string
 }
 
@@ -15,3 +15,11 @@ export type FavMap = TypedMap<Fav>;
 
 // Tasks is an immutable map from id to Element as a map.
 export type Favs = Map<string, FavMap>;
+
+export interface FileEntry {
+  key: string;
+  name: string;
+  nameLC: string; // lower-case name
+  size: number;
+  time: number;
+}

@@ -9,7 +9,7 @@ Files Listings Editor Actions
 
 //import { project_api } from "../generic/client";
 import { path_split } from "@cocalc/util/misc";
-import { fromJS, Map } from "immutable";
+import { Map } from "immutable";
 import _ from "lodash";
 import {
   Actions as BaseActions,
@@ -47,7 +47,6 @@ export class Actions extends BaseActions<State> {
         if (typeof key !== "string") return;
 
         const value = this._syncstring.get_one(entry);
-        console.log({ type, key, data: value?.toJS() });
 
         switch (type) {
           case "settings":

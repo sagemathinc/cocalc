@@ -706,21 +706,15 @@ function _compute_public_files(data, public_paths, current_path) {
       public_path_data[x.path] = x;
       paths.push(x.path);
     }
-    return (() => {
-      const result: any = [];
-      for (x of listing) {
-        const full = head + x.name;
-        const p = misc.containing_public_path(full, paths);
-        if (p != null) {
-          x.public = public_path_data[p];
-          x.is_public = !x.public.disabled;
-          result.push((pub[x.name] = public_path_data[p]));
-        } else {
-          result.push(undefined);
-        }
+    for (x of listing) {
+      const full = head + x.name;
+      const p = misc.containing_public_path(full, paths);
+      if (p != null) {
+        x.public = public_path_data[p];
+        x.is_public = !x.public.disabled;
+        pub[x.name] = public_path_data[p];
       }
-      return result;
-    })();
+    }
   }
 }
 

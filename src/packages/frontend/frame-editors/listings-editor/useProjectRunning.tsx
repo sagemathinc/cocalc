@@ -10,7 +10,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 
-export function useProjectRunning(project_id: string) {
+export default function useProjectRunning(project_id: string) {
   const [isRunning, setIsRunning] = useState<boolean>(false);
 
   const projState = useTypedRedux("projects", "project_map")?.getIn([
