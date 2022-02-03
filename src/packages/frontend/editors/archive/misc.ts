@@ -18,6 +18,11 @@ const tbz2: Entry = {
   extract: { command: "tar", args: ["-xjf"] },
 };
 
+const tgz: Entry = {
+  list: { command: "tar", args: ["-tzf"] },
+  extract: { command: "tar", args: ["-xvzf"] },
+};
+
 export const COMMANDS: { [type: string]: Entry } = {
   "tar.bz2": tbz2,
   tbz2: tbz2,
@@ -29,10 +34,8 @@ export const COMMANDS: { [type: string]: Entry } = {
     list: { command: "tar", args: ["-tf"] },
     extract: { command: "tar", args: ["-xvf"] },
   },
-  tgz: {
-    list: { command: "tar", args: ["-tzf"] },
-    extract: { command: "tar", args: ["-xvzf"] },
-  },
+  tgz,
+  "tar.gz": tgz,
   gz: {
     list: { command: "gzip", args: ["-l"] },
     extract: { command: "gunzip", args: ["-vf"] },
