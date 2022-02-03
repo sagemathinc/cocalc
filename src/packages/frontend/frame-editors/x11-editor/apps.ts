@@ -257,4 +257,9 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     label: "KBibTeX",
     desc: "A reference management software primarily for BibTeX",
   },
+  texmaker: {
+    icon: "tex-file",
+    label: "TeXmaker",
+    desc: "Free cross-platform LaTeX editor since 2003",
+  },
 });
