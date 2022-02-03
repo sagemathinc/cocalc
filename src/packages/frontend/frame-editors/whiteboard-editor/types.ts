@@ -17,7 +17,8 @@ export type ElementType =
   | "terminal"
   | "stopwatch"
   | "timer"
-  | "frame";
+  | "frame"
+  | "selection";
 
 export type Point = { x: number; y: number };
 

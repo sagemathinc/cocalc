@@ -59,16 +59,16 @@ export function getPageSpan(
   zMin: number;
   zMax: number;
 } {
-  let xMin = 0,
-    yMin = 0,
-    xMax = 0,
-    yMax = 0,
-    zMin = 0,
-    zMax = 0;
+  let xMin = elements[0]?.x ?? 0,
+    xMax = elements[0]?.x ?? 0,
+    yMin = elements[0]?.y ?? 0,
+    yMax = elements[0]?.y ?? 0,
+    zMin = elements[0]?.z ?? 0,
+    zMax = elements[0]?.z ?? 0;
   for (const element of elements) {
-    const x = element.x ?? 0;
-    const y = element.y ?? 0;
-    const z = element.z ?? 0;
+    const x = element.x ?? xMin;
+    const y = element.y ?? yMin;
+    const z = element.z ?? zMin;
     const w = element.w ?? DEFAULT_WIDTH;
     const h = element.h ?? DEFAULT_HEIGHT;
     if (x < xMin) xMin = x;

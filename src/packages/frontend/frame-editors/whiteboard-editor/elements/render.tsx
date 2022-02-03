@@ -10,6 +10,7 @@ import Frame from "./frame";
 import Generic from "./generic";
 import Pen from "./pen";
 import Stopwatch from "./stopwatch";
+import Selection from "./selection";
 
 interface Props {
   element: Element;
@@ -33,6 +34,8 @@ export default function Render(props: Props) {
       return <Pen {...props} />;
     case "stopwatch":
       return <Stopwatch {...props} />;
+    case "selection":
+      return <Selection {...props} />;
     default:
       return <Generic {...props} />;
   }

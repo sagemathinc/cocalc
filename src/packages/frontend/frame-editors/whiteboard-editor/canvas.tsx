@@ -14,7 +14,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Element, Point } from "./types";
+import { Element, ElementType, Point } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
 import Focused, { SELECTED_BORDER_COLOR } from "./focused";
@@ -256,6 +256,8 @@ export default function Canvas({
           key={id}
           canvasScale={canvasScale}
           element={element}
+          allElements={elements}
+          selectedElements={[element]}
           transforms={transforms}
         >
           {elt}
@@ -287,6 +289,37 @@ export default function Canvas({
 
   for (const element of elements) {
     v.push(processElement(element));
+  }
+
+  if (selection != null && selection.size > 1) {
+    // create a virtual selection element that
+    // contains the region spanned by all elements
+    // in the selection.
+    // TODO: This could be optimized with better data structures...
+    const selectedElements = elements.filter((element) =>
+      selection.has(element.id)
+    );
+    const { xMin, yMin, xMax, yMax } = getPageSpan(selectedElements, 0);
+    const element = {
+      type: "selection" as ElementType,
+      id: "selection",
+      x: xMin,
+      y: yMin,
+      w: xMax - xMin + 1,
+      h: yMax - yMin + 1,
+    };
+    v.push(
+      <Focused
+        key={"selection"}
+        canvasScale={canvasScale}
+        element={element}
+        allElements={elements}
+        selectedElements={selectedElements}
+        transforms={transforms}
+      >
+        <RenderElement element={element} canvasScale={canvasScale} focused />
+      </Focused>
+    );
   }
 
   if (isNavigator) {

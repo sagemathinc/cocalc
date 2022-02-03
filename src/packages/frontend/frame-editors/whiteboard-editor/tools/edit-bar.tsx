@@ -23,10 +23,11 @@ import {
 } from "./defaults";
 
 interface Props {
-  elements: Element[];
+  elements: Element[]; // selected ones
+  allElements: Element[]; // all of them
 }
 
-export default function EditBar({ elements }: Props) {
+export default function EditBar({ elements, allElements }: Props) {
   const { actions } = useFrameContext();
   if (elements.length == 0) return null;
   return (
@@ -44,7 +45,11 @@ export default function EditBar({ elements }: Props) {
         <FontSize actions={actions} elements={elements} />
         <ColorButton actions={actions} elements={elements} />
         <DeleteButton actions={actions} elements={elements} />
-        <OtherOperations actions={actions} elements={elements} />
+        <OtherOperations
+          actions={actions}
+          elements={elements}
+          allElements={allElements}
+        />
       </div>
     </div>
   );
@@ -225,13 +230,13 @@ function getFontFamily(elements: Element[]): string | undefined {
   return DEFAULT_FONT_FAMILY;
 }
 
-function OtherOperations({ actions, elements }: ButtonProps) {
+function OtherOperations({ actions, elements, allElements }) {
   const frame = useFrameContext();
   const menu = (
     <Menu
       onClick={({ key }) => {
         if (key == "bring-to-front") {
-          const { zMax } = getPageSpan(elements);
+          const { zMax } = getPageSpan(allElements);
           let z = zMax + 1;
           for (const element of elements) {
             actions.setElement({ ...element, z }, false);
@@ -240,9 +245,8 @@ function OtherOperations({ actions, elements }: ButtonProps) {
           actions.syncstring_commit();
           actions.clearSelection(frame.id);
         } else if (key == "send-to-back") {
-          const { zMin } = getPageSpan(elements);
+          const { zMin } = getPageSpan(allElements);
           let z = zMin - 1;
-          console.log("zMin = ", zMin, "  z = ", z);
           for (const element of elements) {
             actions.setElement({ ...element, z }, false);
             z -= 1;

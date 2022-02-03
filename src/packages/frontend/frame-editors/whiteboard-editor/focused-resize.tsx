@@ -29,18 +29,25 @@ export default function DragHandle({
   setOffset,
   canvasScale,
   element,
+  selectedElements,
 }: {
   top: boolean;
   left: boolean;
   setOffset: (offset: { x: number; y: number; w: number; h: number }) => void;
   canvasScale: number;
   element: Element;
+  selectedElements: Element[];
 }) {
   const [position, setPosition] = useState<{ x: number; y: number }>({
     x: 0,
     y: 0,
   });
   const frame = useFrameContext();
+
+  if (selectedElements.length > 1) {
+    return null;
+  }
+
   const style = {
     pointerEvents: "all", // because we turn off pointer events for containing div
     cursor: dragHandleCursors[`${top}-${left}`],

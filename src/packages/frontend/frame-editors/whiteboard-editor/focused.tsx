@@ -37,6 +37,8 @@ interface Props {
   children: ReactNode;
   canvasScale: number;
   element: Element;
+  selectedElements: Element[];
+  allElements: Element[];
   transforms;
 }
 
@@ -44,7 +46,9 @@ export default function Focused({
   children,
   canvasScale,
   element,
+  selectedElements,
   transforms,
+  allElements,
 }: Props) {
   const frame = useFrameContext();
   const rectRef = useRef<any>(null);
@@ -72,6 +76,7 @@ export default function Focused({
             left={left}
             canvasScale={canvasScale}
             element={element}
+            selectedElements={selectedElements}
             setOffset={setOffset}
           />
         );
@@ -120,6 +125,7 @@ export default function Focused({
             }
           }
           setTimeout(() => {
+            if (id == "selection") return; // todo
             frame.actions.setElement({ id, rotate });
             setRotating(undefined);
           }, 0);
@@ -198,7 +204,7 @@ export default function Focused({
             transformOrigin: "top left",
           }}
         >
-          <EditBar elements={[element]} />
+          <EditBar elements={selectedElements} allElements={allElements} />
         </div>
       </div>
       <Draggable
@@ -210,10 +216,12 @@ export default function Focused({
         }}
         onStop={(_, data) => {
           setDragging(false);
-          const { id } = element;
-          const x = element.x + data.x;
-          const y = element.y + data.y;
-          frame.actions.setElement({ id, x, y });
+          for (const elt of selectedElements) {
+            const { id } = elt;
+            const x = elt.x + data.x;
+            const y = elt.y + data.y;
+            frame.actions.setElement({ id, x, y });
+          }
         }}
       >
         <div
