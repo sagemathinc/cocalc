@@ -7,6 +7,7 @@ import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
 
 export interface Fav {
+  time?:  number;
   comment?: string; // optional str data patch/merge via diff string
 }
 

@@ -5,6 +5,7 @@
 
 import { fromJS } from "immutable";
 import { Table } from "antd";
+const { Column } = Table;
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
   redux,
@@ -21,6 +22,7 @@ import { Actions, State } from "./actions";
 import { useFileListingWatching } from "./useFileListingWatching";
 import { useProjectRunning } from "./useProjectRunning";
 import { COLORS } from "@cocalc/util/theme";
+import { StarFilled, StarOutlined } from "@ant-design/icons";
 
 const ROOT_STYLE: CSS = {
   overflowY: "auto",
@@ -45,6 +47,7 @@ const Listing: React.FC<Props> = (props: Props) => {
   const { actions, path = "", project_id, font_size, resize } = props;
 
   const [height, setHeight] = useState<number>(0);
+  const [debugMe, setDebugMe] = useState<boolean>(false);
   const tableRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -59,7 +62,7 @@ const Listing: React.FC<Props> = (props: Props) => {
   const useEditor = useEditorRedux<State>({ project_id, path });
   const is_loaded = useEditor("is_loaded");
   const dir = useEditor("dir");
-  const favs = useEditor("favs").toJS();
+  const favs = useEditor("favs")?.toJS() ?? {};
 
   useFileListingWatching(project_id, dir);
   const projectRunning = useProjectRunning(project_id);
@@ -78,8 +81,10 @@ const Listing: React.FC<Props> = (props: Props) => {
     const pagerEl = $(tableRef.current).find(".ant-pagination").first();
     const pagerHeight = pagerEl.height() ?? 0;
     const pagerMargins =
-      parseInt(pagerEl.css("margin-top")) +
-      parseInt(pagerEl.css("margin-bottom"));
+      pagerEl != null
+        ? parseInt(pagerEl.css("margin-top")) +
+          parseInt(pagerEl.css("margin-bottom"))
+        : 0;
     const tableHeaderHeight =
       $(tableRef.current).find(".ant-table-header").first().height() ?? 0;
     const rootDivHeight = $(rootRef.current).height() ?? 0;
@@ -112,19 +117,17 @@ const Listing: React.FC<Props> = (props: Props) => {
     return (
       <div>
         <ButtonGroup>
-          <Button onClick={() => actions.debugMe(path)}>debugMe({path})</Button>
+          <Button onClick={() => setDebugMe(!debugMe)}>debug</Button>
           <Button onClick={() => project_actions.open_file({ path })}>
             Open File({path})
-          </Button>
-          <Button onClick={() => actions.setFavs(fromJS({ xxx: "test" }))}>
-            test favs
           </Button>
         </ButtonGroup>
       </div>
     );
   }
 
-  function debug(): JSX.Element {
+  function debug(): JSX.Element | null {
+    if (!debugMe) return null;
     return (
       <ul>
         <li>is_loaded: {JSON.stringify(is_loaded)}</li>
@@ -140,11 +143,29 @@ const Listing: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function star(): JSX.Element {
+    return (
+      <Column<FileEntry>
+        title="Star"
+        dataIndex="name"
+        render={(name) => {
+          const isFav = favs[name] != null;
+          const icon = isFav ? <StarFilled /> : <StarOutlined />;
+          return (
+            <Button onClick={() => actions.toggleFavorite(name, !isFav)}>
+              {icon}
+            </Button>
+          );
+        }}
+      />
+    );
+  }
+
   function filesTable(): JSX.Element {
-    const { Column } = Table;
+    if (dir == null) return <Loading />;
     const data = directory_listings
       .get(dir)
-      .map((file) => {
+      ?.map((file) => {
         return {
           key: file.get("name"),
           name: file.get("name"),
@@ -161,6 +182,7 @@ const Listing: React.FC<Props> = (props: Props) => {
         scroll={{ y: height }}
         size="small"
       >
+        {star()}
         <Column<FileEntry> title="Name" dataIndex="name" />
         <Column<FileEntry> title="Size" dataIndex="size" />
         <Column<FileEntry> title="Time" dataIndex="time" />

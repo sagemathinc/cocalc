@@ -435,6 +435,13 @@ file_associations["sage-history"] = {
   exclude_from_menu: true,
 };
 
+file_associations["files"] = {
+  editor: "files",
+  icon: "database",
+  opts: {},
+  name: "Files",
+};
+
 // For tar, see http://en.wikipedia.org/wiki/Tar_%28computing%29
 const archive_association = {
   editor: "archive",

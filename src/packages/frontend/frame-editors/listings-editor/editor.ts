@@ -11,8 +11,8 @@ import { EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/typ
 import { createEditor } from "@cocalc/frontend/frame-editors/frame-tree/editor";
 import { set } from "@cocalc/util/misc";
 import { terminal } from "@cocalc/frontend/frame-editors/terminal-editor/editor";
-
-import Listing from "./listing"
+import Listing from "./listing";
+import { file_associations } from "@cocalc/frontend/file-associations";
 
 const filesButtons = set([
   "decrease_font_size",
@@ -24,9 +24,9 @@ const filesButtons = set([
 
 export const EDITOR_SPEC = {
   files: {
-    short: "Files",
-    name: "Files",
-    icon: "database",
+    short: file_associations["files"].name,
+    name: file_associations["files"].name,
+    icon: file_associations["files"].icon,
     component: Listing,
     buttons: filesButtons,
   } as EditorDescription,
