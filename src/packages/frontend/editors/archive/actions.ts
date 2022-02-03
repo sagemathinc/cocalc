@@ -152,7 +152,7 @@ export class ArchiveActions extends Actions<State> {
         if (contents.indexOf(base + "/") === -1) {
           extra_args = ["-d", base];
         }
-      } else if (type === "tar") {
+      } else if (["tar", "tar.gz", "tar.bz2"].includes(type)) {
         // special case for tar files: if heuristically it looks like not everything is contained
         // in a subdirectory with name the tar file, then create that subdirectory.
         const i = path_parts.tail.lastIndexOf(".t"); // hopefully that's good enough.
