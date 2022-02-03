@@ -598,8 +598,8 @@ export class Actions<
   }
 
   // Set which frame is active (unless setting is blocked).
-  // Raises an exception if try to set an active_id, and there is no
-  // leaf with that id.  If ignore_if_missing is true, then don't raise exception.
+  // Writes a warning to the console log if try to set an active_id, and there is no
+  // leaf with that id.  If ignore_if_missing is true, then don't write warning.
   // If a different frame is maximized, switch out of maximized mode.
   public set_active_id(active_id: string, ignore_if_missing?: boolean): void {
     // Set the active_id, if necessary.
@@ -611,7 +611,8 @@ export class Actions<
 
     if (!this._is_leaf_id(active_id)) {
       if (ignore_if_missing) return;
-      throw Error(`set_active_id - no leaf with id "${active_id}"`);
+      console.warn(`WARNING: set_active_id - no leaf with id "${active_id}"`);
+      return;
     }
 
     // record which id is being made active.
