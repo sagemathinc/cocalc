@@ -7,8 +7,8 @@ import { pick, merge } from "lodash";
 import { basename } from "path";
 import { unreachable, separate_file_extension } from "@cocalc/util/misc";
 import { reuseInFlight } from "async-await-utils/hof";
-import { exec } from "../../generic/client";
-import { canonical_language } from "../../../jupyter/store";
+import { exec } from "@cocalc/frontend/frame-editors/generic/client";
+import { canonical_language } from "@cocalc/frontend/jupyter/store";
 import {
   Snippets,
   LangSnippets,
@@ -19,7 +19,7 @@ import {
 } from "./types";
 
 // snippets are specific to a project, even if data comes from a global directory
-const custom_snippets_cache: {
+const CUSTOM_SNIPPETS_CACHE: {
   [project_id: string]: LangSnippets;
 } = {};
 
@@ -74,7 +74,7 @@ function cells2snippets(cells?: JupyterNotebook["cells"]): SnippetEntry {
         if (code.length > 0) finish();
         if (title == null) {
           // lvl2_title might modify cell.source!
-          title = lvl2_title(cell.source ?? []);
+          title = titleLevel2(cell.source ?? []);
         }
         md = `${md ?? ""}\n\n${(cell.source ?? []).join("").trim()}`;
         break;
@@ -92,7 +92,7 @@ function cells2snippets(cells?: JupyterNotebook["cells"]): SnippetEntry {
 
 // search for a markdown title starting with at least ##...
 // this also removes the title it finds!
-function lvl2_title(lines: string[]): string | null {
+function titleLevel2(lines: string[]): string | null {
   for (const i in lines) {
     // weird, sometimes lines end with \n which aren't matched with the regex
     const line = lines[i].split("\n")[0];
@@ -107,7 +107,7 @@ function lvl2_title(lines: string[]): string | null {
 
 // the level 1 title is either the first h1 title in the first cell, or the filename
 // this also removes the title it finds!
-function lvl1_title(fn: string, nb: JupyterNotebook) {
+function titleLevel1(fn: string, nb: JupyterNotebook) {
   const cell1 = nb.cells?.[0];
   if (cell1 != null) {
     if (cell1.cell_type === "markdown" && cell1.source) {
@@ -128,19 +128,21 @@ function lvl1_title(fn: string, nb: JupyterNotebook) {
   return name;
 }
 
-function parse_custom_snippets(json?: object): LangSnippets {
+function parseCustomSnippet(json?: object): LangSnippets {
   const ret = {};
   if (json == null) return ret;
 
   for (const entry of Object.entries(json)) {
     const [fn, nb]: [string, JupyterNotebook] = entry;
     const fn_base = basename(fn);
-    const lvl1 = lvl1_title(fn_base, nb);
+    const lvl1 = titleLevel1(fn_base, nb);
     const meta = nb.metadata;
-    // python as a default fallback is a sane choice
-    const lang =
+    // python as a default fallback is a sane choice.
+    // we also convert to lower case since at least for R, there is r and R in use somehow.
+    const lang = (
       canonical_language(meta?.kernelspec?.name, meta?.language_info?.name) ??
-      "python";
+      "python"
+    ).toLowerCase();
     const sippets = cells2snippets(nb.cells);
     if (ret[lang] == null) {
       ret[lang] = { [CUSTOM_SNIPPETS_TITLE]: {} };
@@ -157,24 +159,26 @@ function parse_custom_snippets(json?: object): LangSnippets {
   return ret;
 }
 
-async function fetch_custom_sippets_data(
+function getBase(location: "local" | "global"): string {
+  const local = `$HOME/${LOCAL_CUSTOM_DIR}`;
+  switch (location) {
+    case "local":
+      return local;
+    case "global":
+      return GLOBAL_CUSTOM_DIR;
+    default:
+      unreachable(location);
+      return local;
+  }
+}
+
+async function fetchCustomSnippetsData(
   location: "local" | "global",
   project_id: string
 ): Promise<LangSnippets | Error> {
   // we collect all files by their name and drop all outputs (images are embedded!)
   // TODO of course, if there are many files, we'll end up having problems.
-  const base = (function () {
-    const local = `$HOME/${LOCAL_CUSTOM_DIR}`;
-    switch (location) {
-      case "local":
-        return local;
-      case "global":
-        return GLOBAL_CUSTOM_DIR;
-      default:
-        unreachable(location);
-        return local;
-    }
-  })();
+  const base = getBase(location);
   // TODO make this robust for spaces in filenames
   const command = `jq -cnM 'reduce inputs as $s (.; .[input_filename] += $s)' ${base}/*.ipynb | jq -Mrc 'del(.. | .outputs?)'`;
   const res = await exec({
@@ -186,7 +190,7 @@ async function fetch_custom_sippets_data(
 
   if (res.exit_code === 0) {
     try {
-      return parse_custom_snippets(JSON.parse(res.stdout));
+      return parseCustomSnippet(JSON.parse(res.stdout));
     } catch (err) {
       return { error: `${err}` };
     }
@@ -195,41 +199,43 @@ async function fetch_custom_sippets_data(
   }
 }
 
-async function _load_custom_snippets(
+// this loads snippets from a global directory (used for docker and onprem, not cocalc.com)
+// and a local directory in the project.
+async function _loadCustomSnippets(
   project_id: string,
-  set_error: (err) => void,
+  setError: (err) => void,
   forced: boolean
 ): Promise<LangSnippets> {
-  const cached = custom_snippets_cache[project_id];
+  const cached = CUSTOM_SNIPPETS_CACHE[project_id];
   if (forced) {
-    delete custom_snippets_cache[project_id];
+    delete CUSTOM_SNIPPETS_CACHE[project_id];
   } else if (cached != null) {
     return cached;
   }
   const [local, global] = await Promise.all([
-    fetch_custom_sippets_data("local", project_id),
-    fetch_custom_sippets_data("global", project_id),
+    fetchCustomSnippetsData("local", project_id),
+    fetchCustomSnippetsData("global", project_id),
   ]);
   const snippets: LangSnippets = {};
   if (local?.error != null) {
-    set_error(`Error loading local snippets: ${local.error}`);
+    setError(`Error loading local snippets: ${local.error}`);
   } else {
     merge(snippets, local);
   }
   if (global?.error != null) {
-    set_error(`Error loading local snippets: ${global.error}`);
+    setError(`Error loading local snippets: ${global.error}`);
   } else {
     merge(snippets, global);
   }
-  custom_snippets_cache[project_id] = snippets;
+  CUSTOM_SNIPPETS_CACHE[project_id] = snippets;
   return snippets;
 }
 
-export const load_custom_snippets = reuseInFlight(_load_custom_snippets);
+export const loadCustomSnippets = reuseInFlight(_loadCustomSnippets);
 
 // this derives the "snippets" datastrcture from the given data
 // if there is no or an empty string set, it's only purpose is to filter out empty snippet blocks
-export function filter_snippets(raw: Snippets, str?: string) {
+export function filterSnippets(raw: Snippets, str?: string) {
   const res: Snippets = {};
   const ss = (str ?? "").toLowerCase(); // actual search string
   for (const [k1, lvl1] of Object.entries(raw)) {
@@ -256,7 +262,7 @@ export function filter_snippets(raw: Snippets, str?: string) {
   return res;
 }
 
-function generate_setup_code_extra(args): string | undefined {
+function generateSetupCodeExtra(args): string | undefined {
   const { vars, code } = args;
   if (vars == null) return;
 
@@ -285,7 +291,7 @@ function generate_setup_code_extra(args): string | undefined {
     .join("\n");
 }
 
-export function generate_setup_code(args: {
+export function generateSetupCode(args: {
   code: string[];
   data: SnippetEntry;
 }): string {
@@ -293,7 +299,7 @@ export function generate_setup_code(args: {
   const { setup, variables: vars } = data;
 
   // given we have a "variables" dictionary, we check
-  const extra = generate_setup_code_extra({ vars, code });
+  const extra = generateSetupCodeExtra({ vars, code });
 
   let ret = "";
   if (setup) {
