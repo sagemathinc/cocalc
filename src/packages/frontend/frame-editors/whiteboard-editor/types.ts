@@ -3,11 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSSProperties } from "react";
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
 
-export type NodeType =
+export type ElementType =
   | "text"
   | "note"
   | "code"
@@ -18,31 +17,33 @@ export type NodeType =
   | "stopwatch"
   | "timer"
   | "frame"
+  | "edge"
   | "selection";
 
-export interface Base {
+export interface Element {
   id: string;
-  data?: any; // optional json-able object - patch/merge atomic
-  str?: string; // optional str data patch/merge via diff string
-  z?: number; // zIndex
-}
-
-export interface Element extends Base {
-  type: NodeType;
+  type: ElementType;
   x: number;
   y: number;
   w?: number; // width
   h?: number; // height
+  data?: any; // optional json-able object - patch/merge atomic
+  str?: string; // optional str data patch/merge via diff string
+  z?: number; // zIndex
+  group?: string; // group id if object is part of a group
   rotate?: number; // angle in *radians*
-}
-
-export interface Edge extends Base {
-  type: "edge";
-  from: string; // a node id
-  to: string; // a node id
 }
 
 export type ElementMap = TypedMap<Element>;
 
 // Tasks is an immutable map from id to Element as a map.
 export type Elements = Map<string, ElementMap>;
+
+export type Point = { x: number; y: number };
+
+export interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}

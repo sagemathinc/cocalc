@@ -30,6 +30,7 @@ interface Props {
 export default function EditBar({ elements, allElements }: Props) {
   const { actions } = useFrameContext();
   if (elements.length == 0) return null;
+  const props = { actions, elements, allElements };
   return (
     <div
       style={{
@@ -41,15 +42,12 @@ export default function EditBar({ elements, allElements }: Props) {
       }}
     >
       <div style={{ display: "flex" }}>
-        <FontFamily actions={actions} elements={elements} />
-        <FontSize actions={actions} elements={elements} />
-        <ColorButton actions={actions} elements={elements} />
-        <DeleteButton actions={actions} elements={elements} />
-        <OtherOperations
-          actions={actions}
-          elements={elements}
-          allElements={allElements}
-        />
+        <FontFamily {...props} />
+        <FontSize {...props} />
+        <ColorButton {...props} />
+        <GroupButton {...props} />
+        <DeleteButton {...props} />
+        <OtherOperations {...props} />
       </div>
     </div>
   );
@@ -122,6 +120,34 @@ function ColorButton({ actions, elements }: ButtonProps) {
         />
       )}
     </>
+  );
+}
+
+function GroupButton({ actions, elements }: ButtonProps) {
+  let grouped = false;
+  for (const element of elements) {
+    if (element.group) {
+      grouped = true;
+      break;
+    }
+  }
+  return (
+    <Tooltip title={`${grouped ? "Ungroup" : "Group"} objects`}>
+      <Button
+        style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
+        type="text"
+        onClick={() => {
+          const ids = elements.map((element) => element.id);
+          if (grouped) {
+            actions.ungroupElements(ids);
+          } else {
+            actions.groupElements(ids);
+          }
+        }}
+      >
+        <Icon name={grouped ? "ungroup" : "group"} />
+      </Button>
+    </Tooltip>
   );
 }
 

@@ -18,6 +18,10 @@ import { Element, Elements } from "./types";
 import { uuid } from "@cocalc/util/misc";
 import { getPageSpan } from "./math";
 
+function createId(): string {
+  return uuid().slice(0, 8);
+}
+
 export interface State extends CodeEditorState {
   elements: Elements;
 }
@@ -60,7 +64,7 @@ export class Actions extends BaseActions<State> {
   createElement(obj: Partial<Element>, commit: boolean = true): Element {
     if (obj.id == null) {
       // todo -- need to avoid any possible conflict by regen until unique
-      const id = uuid().slice(0, 8);
+      const id = createId();
       obj = { id, ...obj };
     }
     if (obj.z == null) {
@@ -111,6 +115,28 @@ export class Actions extends BaseActions<State> {
       selection = [id];
     }
     this.set_frame_tree({ id: frameId, selection });
+  }
+
+  // Groups
+  // Make it so the elements with the given list of ids
+  // form a group.
+  public groupElements(ids: string[]) {
+    const group = createId();
+    // TODO: check that this group id isn't already in use
+    for (const id of ids) {
+      this.setElement({ id, group }, false);
+    }
+    this.syncstring_commit();
+  }
+
+  // Remove elements with given ids from the group they
+  // are in, if any.
+  public ungroupElements(ids: string[]) {
+    for (const id of ids) {
+      // "as any" since null is used for deleting a field.
+      this.setElement({ id, group: null as any }, false);
+    }
+    this.syncstring_commit();
   }
 
   public setSelectedTool(frameId: string, selectedTool: Tool): void {

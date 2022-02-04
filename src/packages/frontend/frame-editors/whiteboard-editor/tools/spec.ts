@@ -23,6 +23,11 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
   //     tip: "Terminal",
   //   },
   stopwatch: { icon: "stopwatch", cursor: "crosshair", tip: "Stopwatch" },
+  timer: {
+    icon: "hourglass-half",
+    cursor: "crosshair",
+    tip: "Countdown Timer",
+  },
 };
 
 export type Tool = keyof typeof TOOLS;
