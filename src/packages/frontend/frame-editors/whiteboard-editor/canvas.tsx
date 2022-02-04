@@ -43,6 +43,7 @@ import Draggable from "react-draggable";
 import { clearCanvas, drawCurve } from "./elements/pen";
 import { penParams } from "./tools/pen";
 import { noteParams } from "./tools/note";
+import { iconParams } from "./tools/icon";
 import { cmp } from "@cocalc/util/misc";
 
 const penDPIFactor = 1; // I can't get this to work! :-(
@@ -151,6 +152,10 @@ export default function Canvas({
 
   function getNoteParams() {
     return noteParams(frame.desc.get("noteId") ?? 0);
+  }
+
+  function getIconParams() {
+    return iconParams(frame.desc.get("iconId") ?? 0);
   }
 
   function getCenterPosition(): { x: number; y: number } | undefined {
@@ -432,6 +437,8 @@ export default function Canvas({
       params = { data: getNoteParams() };
     } else if (selectedTool == "stopwatch") {
       params = { data: { fontSize: 24 } };
+    } else if (selectedTool == "icon") {
+      params = { data: getIconParams() };
     }
 
     const element = {

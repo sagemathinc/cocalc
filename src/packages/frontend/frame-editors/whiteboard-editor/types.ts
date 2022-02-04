@@ -10,7 +10,7 @@ export type ElementType =
   | "text"
   | "note"
   | "code"
-  | "shape"
+  | "icon"
   | "pen"
   | "chat"
   | "terminal"

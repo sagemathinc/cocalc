@@ -15,7 +15,8 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
   note: { icon: "note", cursor: "crosshair", tip: "Note" },
   pen: { icon: "pen", cursor: "crosshair", tip: "Pen" },
   code: { icon: "jupyter", cursor: "crosshair", tip: "Jupyter Code" },
-  shape: { icon: "square", cursor: "crosshair", tip: "Shape" },
+  icon: { icon: "square", cursor: "crosshair", tip: "Icon" },
+  //shape: { icon: "square", cursor: "crosshair", tip: "Shape" },
   chat: { icon: "comment", cursor: "crosshair", tip: "Chat" },
   //   terminal: {
   //     icon: "code-outlined",

@@ -11,6 +11,7 @@ import Generic from "./generic";
 import Pen from "./pen";
 import Stopwatch from "./stopwatch";
 import Selection from "./selection";
+import Icon from "./icon";
 
 interface Props {
   element: Element;
@@ -24,6 +25,8 @@ export default function Render(props: Props) {
   switch (props.element.type) {
     case "text":
       return <Text {...props} />;
+    case "icon":
+      return <Icon {...props} />;
     case "note":
       return <Note {...props} />;
     case "code":
