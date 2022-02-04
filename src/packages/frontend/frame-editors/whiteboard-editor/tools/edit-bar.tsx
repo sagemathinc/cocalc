@@ -124,6 +124,7 @@ function ColorButton({ actions, elements }: ButtonProps) {
 }
 
 function GroupButton({ actions, elements }: ButtonProps) {
+  if (elements.length <= 1) return null;
   let grouped = false;
   for (const element of elements) {
     if (element.group) {

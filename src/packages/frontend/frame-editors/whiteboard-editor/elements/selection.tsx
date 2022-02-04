@@ -1,10 +1,10 @@
-import { SELECTED_BORDER_COLOR } from "../focused";
+import { SELECTED_BORDER_COLOR, SELECTED_BORDER_WIDTH } from "../focused";
 
 export default function Selection({ canvasScale }) {
   return (
     <div
       style={{
-        border: `${2 / canvasScale}px solid ${SELECTED_BORDER_COLOR}`,
+        border: `${SELECTED_BORDER_WIDTH / canvasScale}px solid ${SELECTED_BORDER_COLOR}`,
         width: "100%",
         height: "100%",
       }}

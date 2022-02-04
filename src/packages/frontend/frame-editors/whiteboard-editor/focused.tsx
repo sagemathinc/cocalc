@@ -18,8 +18,9 @@ import { Element } from "./types";
 import DragHandle from "./focused-resize";
 import Position from "./position";
 
-const thickness = 2;
 export const SELECTED_BORDER_COLOR = "#40a9ff";
+export const SELECTED_BORDER_WIDTH = 1;
+export const SELECTED_BORDER_TYPE = "solid";
 const OFFSET = 50;
 const rotateEps = 0.07;
 const rotationSnaps: number[] = [];
@@ -200,8 +201,8 @@ export default function Focused({
           className="nodrag"
           style={{
             position: "absolute",
-            bottom: `-${OFFSET / 2 / canvasScale}px`,
-            left: `${OFFSET / 2 / canvasScale}px`,
+            bottom: `-${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
+            left: `${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
             transform: `scale(${1 / canvasScale})`,
             transformOrigin: "top left",
           }}
@@ -234,10 +235,14 @@ export default function Focused({
             ...(rotating
               ? {
                   border: `${
-                    thickness / canvasScale
-                  }px dashed ${SELECTED_BORDER_COLOR}`,
-                  marginLeft: `${-thickness / canvasScale + offset.x}px`,
-                  marginTop: `${-thickness / canvasScale + offset.y}px`,
+                    SELECTED_BORDER_WIDTH / canvasScale
+                  }px ${SELECTED_BORDER_TYPE} ${SELECTED_BORDER_COLOR}`,
+                  marginLeft: `${
+                    -SELECTED_BORDER_WIDTH / canvasScale + offset.x
+                  }px`,
+                  marginTop: `${
+                    -SELECTED_BORDER_WIDTH / canvasScale + offset.y
+                  }px`,
                 }
               : {
                   marginLeft: `${offset.x}px`,

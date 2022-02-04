@@ -89,14 +89,42 @@ export class Actions extends BaseActions<State> {
     this.set_frame_tree({ id: frameId, selection: [] });
   }
 
+  // Sets the selection to either a single element or a list
+  // of elements, with specified ids.
+  // This automatically extends the selection to include the
+  // entire group of any element, so it should be impossible
+  // to select a partial group, so long as this function is
+  // always called to do selection.  (TODO: with realtime
+  // collaboration and merging of changes, it is of course possible
+  // to break the "can only select complete groups" invariant,
+  // without further work.  In miro they don't solve this problem.)
   public setSelection(
     frameId: string,
     id: string,
-    type: "add" | "remove" | "only" | "toggle" = "only"
+    type: "add" | "remove" | "only" | "toggle" = "only",
+    expandGroups: boolean = true // for internal use when we recurse
   ): void {
     const node = this._get_frame_node(frameId);
     if (node == null) return;
     let selection = node.get("selection")?.toJS() ?? [];
+    if (expandGroups) {
+      const elements = this.store.get("elements");
+      if (elements == null) return;
+      const group = elements.getIn([id, "group"]);
+      if (group) {
+        const ids = getGroup(elements, group);
+        if (ids.length > 1) {
+          if (type == "toggle") {
+            type = selection.includes(id) ? "remove" : "add";
+          }
+          this.setSelectionMulti(frameId, ids, type, false);
+          return;
+        }
+        // expanding the group did nothing
+      }
+      // not in a group
+    }
+
     if (type == "toggle") {
       const i = selection.indexOf(id);
       if (i == -1) {
@@ -115,6 +143,37 @@ export class Actions extends BaseActions<State> {
       selection = [id];
     }
     this.set_frame_tree({ id: frameId, selection });
+  }
+
+  public setSelectionMulti(
+    frameId: string,
+    ids: string[],
+    type: "add" | "remove" | "only" = "only",
+    expandGroups: boolean = true
+  ): void {
+    const X = new Set(ids);
+    if (expandGroups) {
+      // extend id list to contain any groups it intersects.
+      const groups = new Set<string>([]);
+      const elements = this.store.get("elements");
+      if (elements == null) return;
+      for (const id of ids) {
+        const group = elements.getIn([id, "group"]);
+        if (group && !groups.has(group)) {
+          groups.add(group);
+          for (const id2 of getGroup(elements, group)) {
+            X.add(id2);
+          }
+        }
+      }
+    }
+    if (type == "only") {
+      this.clearSelection(frameId);
+      type = "add";
+    }
+    for (const id of X) {
+      this.setSelection(frameId, id, type, false);
+    }
   }
 
   // Groups
@@ -186,4 +245,15 @@ export class Actions extends BaseActions<State> {
   zoom_page_width(id: string): void {
     this.fitToScreen(id);
   }
+}
+
+function getGroup(elements, group: string): string[] {
+  const ids: string[] = [];
+  if (!group) return ids;
+  for (const [id, element] of elements) {
+    if (element?.get("group") == group) {
+      ids.push(id);
+    }
+  }
+  return ids;
 }

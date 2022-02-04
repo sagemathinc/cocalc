@@ -17,7 +17,11 @@ import {
 import { Element, ElementType, Point } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
-import Focused, { SELECTED_BORDER_COLOR } from "./focused";
+import Focused, {
+  SELECTED_BORDER_COLOR,
+  SELECTED_BORDER_TYPE,
+  SELECTED_BORDER_WIDTH,
+} from "./focused";
 import NotFocused from "./not-focused";
 import Position from "./position";
 import { useFrameContext } from "./hooks";
@@ -225,21 +229,21 @@ export default function Canvas({
               ? {
                   cursor: "text",
                   border: `${
-                    2 / canvasScale
-                  }px dashed ${SELECTED_BORDER_COLOR}`,
-                  marginLeft: `-${2 / canvasScale}px`,
-                  marginTop: `-${2 / canvasScale}px`,
+                    SELECTED_BORDER_WIDTH / canvasScale
+                  }px ${SELECTED_BORDER_TYPE} ${SELECTED_BORDER_COLOR}`,
+                  marginLeft: `-${SELECTED_BORDER_WIDTH / canvasScale}px`,
+                  marginTop: `-${SELECTED_BORDER_WIDTH / canvasScale}px`,
                 }
               : undefined),
             width: "100%",
             height: "100%",
-            ...(isNavigator
+            /*...(isNavigator
               ? {
                   border: "2px solid #9fc3ff",
                   pointerEvents: "none",
                   touchAction: "none",
                 }
-              : undefined),
+              : undefined),*/
           }}
         >
           {elt}
@@ -510,9 +514,8 @@ export default function Canvas({
         );
 
         const overlapping = getOverlappingElements(elements, rect);
-        for (const { id } of overlapping) {
-          frame.actions.setSelection(frame.id, id, "add");
-        }
+        const ids = overlapping.map((element) => element.id);
+        frame.actions.setSelectionMulti(frame.id, ids, "add");
         return;
       } else if (selectedTool == "pen") {
         const canvas = penCanvasRef.current;
@@ -685,7 +688,9 @@ export default function Canvas({
               top: `${selectRect.y}px`,
               width: `${selectRect.w}px`,
               height: `${selectRect.h}px`,
-              border: `${2 / canvasScale}px solid ${SELECTED_BORDER_COLOR}`,
+              border: `${
+                SELECTED_BORDER_WIDTH / canvasScale
+              }px solid ${SELECTED_BORDER_COLOR}`,
               zIndex: MAX_ELEMENTS + 100,
             }}
           >
