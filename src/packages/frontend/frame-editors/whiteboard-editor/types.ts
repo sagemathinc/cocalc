@@ -7,7 +7,7 @@ import { CSSProperties } from "react";
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
 
-export type ElementType =
+export type NodeType =
   | "text"
   | "note"
   | "code"
@@ -20,27 +20,26 @@ export type ElementType =
   | "frame"
   | "selection";
 
-export type Point = { x: number; y: number };
-
-export interface Rect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
+export interface Base {
+  id: string;
+  data?: any; // optional json-able object - patch/merge atomic
+  str?: string; // optional str data patch/merge via diff string
+  z?: number; // zIndex
 }
 
-export interface Element {
-  id: string;
-  type: ElementType;
+export interface Element extends Base {
+  type: NodeType;
   x: number;
   y: number;
-  z?: number; // zIndex
   w?: number; // width
   h?: number; // height
   rotate?: number; // angle in *radians*
-  data?: any; // optional json-able object - patch/merge atomic
-  str?: string; // optional str data patch/merge via diff string
-  style?: CSSProperties; // determines style of the object -- probably a VERY bad idea to even have this.
+}
+
+export interface Edge extends Base {
+  type: "edge";
+  from: string; // a node id
+  to: string; // a node id
 }
 
 export type ElementMap = TypedMap<Element>;
