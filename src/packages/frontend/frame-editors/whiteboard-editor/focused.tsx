@@ -89,6 +89,8 @@ export default function Focused({
   // component to get re-rendered as a result of it calling
   // setRotating internally below to update the preview.
   const RotateControl = useMemo(() => {
+    // TODO: implement a notion of rotate for multiple objects...
+    if (selectedElements.length > 1) return null;
     function computeAngle(data) {
       const rect = rectRef.current;
       if (!rect) return;
@@ -147,7 +149,7 @@ export default function Focused({
         </Tooltip>
       </Draggable>
     );
-  }, [element.rotate, canvasScale]);
+  }, [element.rotate, canvasScale, selectedElements.length]);
 
   const moveHandle = (
     <Tooltip key="move" title="Move">
@@ -170,7 +172,7 @@ export default function Focused({
   const scale_y = element.h ? (element.h + offset.h) / element.h : 1;
 
   return (
-    <Position x={t.x} y={t.y} z={MAX_ELEMENTS+1} w={pos.w} h={pos.h}>
+    <Position x={t.x} y={t.y} z={MAX_ELEMENTS + 1} w={pos.w} h={pos.h}>
       <div
         style={{
           visibility: isChanging ? "hidden" : undefined,
@@ -180,7 +182,7 @@ export default function Focused({
         <div
           style={{
             pointerEvents: "none", // otherwise entire element is blocked by this div
-            zIndex: MAX_ELEMENTS+2,
+            zIndex: MAX_ELEMENTS + 2,
             position: "absolute",
             width: "100%",
             height: "100%",
