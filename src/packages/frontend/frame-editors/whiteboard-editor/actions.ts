@@ -20,9 +20,11 @@ import {
   DEFAULT_WIDTH,
   DEFAULT_HEIGHT,
   getPageSpan,
-  centerOfRect,
+  compressPath,
+  drawEdge,
 } from "./math";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
+import { isEqual } from "lodash";
 
 function createId(): string {
   return uuid().slice(0, 8);
@@ -62,6 +64,12 @@ export class Actions extends BaseActions<State> {
 
   setElement(obj: Partial<Element>, commit: boolean = true): void {
     this._syncstring.set(obj);
+    if (
+      obj.type != "edge" &&
+      (obj.x != null || obj.y != null || obj.h != null || obj.w != null)
+    ) {
+      this.updateEdges();
+    }
     if (commit) {
       this.syncstring_commit();
     }
@@ -98,8 +106,11 @@ export class Actions extends BaseActions<State> {
     return obj as Element;
   }
 
-  delete(id: string): void {
+  delete(id: string, commit: boolean = true): void {
     this._syncstring.delete({ id });
+    if (commit) {
+      this.syncstring_commit();
+    }
   }
 
   public clearSelection(frameId: string): void {
@@ -278,29 +289,56 @@ export class Actions extends BaseActions<State> {
     const fromElt = elements.get(from)?.toJS();
     const toElt = elements.get(to)?.toJS();
     if (fromElt == null || toElt == null) return;
-    let { x, y } = centerOfRect(fromElt);
-    const ctr = centerOfRect(toElt);
-    let w = ctr.x - x;
-    let h = ctr.y - y;
-    if (w < 0) {
-      w = -w;
-      x = ctr.x;
-    }
-    if (h < 0) {
-      h = -h;
-      y = ctr.y;
-    }
+    const { rect, path, dir } = drawEdge(fromElt, toElt);
     const z = this.getPageSpan().zMin - 1;
 
     return this.createElement({
-      x,
-      y,
+      ...rect,
       z,
-      w,
-      h,
       type: "edge",
-      data: { from, to },
+      data: { from, to, path: compressPath(path), dir: compressPath(dir) },
     });
+  }
+
+  // recompute the parameters of all edges, in case vertices
+  // have moved.
+  // TODO: optimize to only do this when necessary!
+  updateEdges() {
+    const elements = this.store.get("elements");
+    let changed = false;
+    for (const [id, element0] of elements) {
+      if (element0?.get("type") !== "edge") continue;
+      const element = element0.toJS();
+      const { from, to } = element.data ?? {};
+      if (!from || !to) continue;
+      const fromElt = elements.get(from)?.toJS();
+      const toElt = elements.get(to)?.toJS();
+      if (fromElt == null || toElt == null) {
+        // adjacent vertex deleted, so delete this edge.
+        this.delete(id, false);
+        changed = true;
+        continue;
+      }
+      const { rect, path, dir } = drawEdge(fromElt, toElt);
+      // Usually nothing changed!  This is so dumb for a first round!
+      const element1 = {
+        ...element,
+        ...rect,
+        data: {
+          ...element.data,
+          path: compressPath(path),
+          dir: compressPath(dir),
+        },
+      };
+      if (!isEqual(element, element1)) {
+        changed = true;
+        console.log({ element, element1 });
+        this.setElement(element1, false);
+      }
+    }
+    if (changed) {
+      this.syncstring_commit();
+    }
   }
 }
 

@@ -186,3 +186,36 @@ export function centerOfRect(r: Rect): Point {
     y: (r.y ?? 0) + (r.h ?? DEFAULT_HEIGHT) / 2,
   };
 }
+
+// Point right between two points.
+export function midPoint(p0: Point, p1: Point): Point {
+  return { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 };
+}
+
+// Compute data to define an edge drawn from one rectangle to another
+
+export function drawEdge(
+  r0: Rect,
+  r1: Rect
+): {
+  rect: Rect; // rectangle that contains the edge path
+  path: Point[]; // path drawn using coordinates inside the rect.
+  dir: Point[]; // path indicating direction of edge.
+} {
+  const c0 = centerOfRect(r0);
+  const c1 = centerOfRect(r1);
+  const x = Math.min(c0.x, c1.x);
+  const y = Math.min(c0.y, c1.y);
+  const w = Math.max(c0.x, c1.x) - x + 1;
+  const h = Math.max(c0.y, c1.y) - y + 1;
+
+  const path = [
+    { x: c0.x - x, y: c0.y - y },
+    { x: c1.x - x, y: c1.y - y },
+  ];
+
+  // draw path to indicate direction of the edge
+  const c = midPoint(path[0], path[1]);
+  const dir = [{ x: c.x - 10, y: c.y - 10 }, c, c, { x: c.x - 10, y: c.y + 10 }];
+  return { rect: { x, y, w, h }, path, dir };
+}

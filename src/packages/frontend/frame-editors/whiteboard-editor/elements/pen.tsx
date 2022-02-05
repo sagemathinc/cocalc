@@ -4,7 +4,7 @@ Render a pen element.
 
 import { useEffect, useRef } from "react";
 import type { Element, Point } from "../types";
-import { decompressPath } from "../math";
+import { decompressPath, midPoint } from "../math";
 
 interface Props {
   element: Element;
@@ -110,7 +110,8 @@ export function drawCurve({
   for (let i = 1, len = path.length; i < len; i++) {
     // we pick the point between pi+1 & pi+2 as the
     // end point and p1 as our control point
-    ctx.quadraticCurveTo(p1.x, p1.y, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+    const { x, y } = midPoint(p1, p2);
+    ctx.quadraticCurveTo(p1.x, p1.y, x, y);
     p1 = path[i];
     p2 = path[i + 1];
   }
