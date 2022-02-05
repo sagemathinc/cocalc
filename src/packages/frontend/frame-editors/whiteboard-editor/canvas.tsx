@@ -510,7 +510,7 @@ export default function Canvas({
         if (mousePath.current.length < 2) return;
         setSelectRect(null);
         ignoreNextClick.current = true;
-        if (!(e.altKey || e.metaKey || e.ctrlKey || e.shiftKey)) {
+        if (e != null && !(e.altKey || e.metaKey || e.ctrlKey || e.shiftKey)) {
           frame.actions.clearSelection(frame.id);
         }
         const p0 = mousePath.current[0];
@@ -600,7 +600,7 @@ export default function Canvas({
 
   const onMouseMove = (e) => {
     if (mousePath.current == null) return;
-    e.preventDefault();
+    e.preventDefault?.(); // only makes sense for mouse not touch.
     if (selectedTool == "select") {
       const point = getMousePos(e);
       if (point == null) return;
