@@ -16,6 +16,9 @@ import { useFrameContext } from "./hooks";
 import EditBar from "./tools/edit-bar";
 import { Element } from "./types";
 import DragHandle from "./focused-resize";
+import EdgeCreate, {
+  Position as EdgeCreatePosition,
+} from "./focused-edge-create";
 import Position from "./position";
 
 export const SELECTED_BORDER_COLOR = "#40a9ff";
@@ -84,6 +87,20 @@ export default function Focused({
       }
     }
     return v;
+  }, [element, canvasScale]);
+
+  const edgeCreationPoints = useMemo(() => {
+    if (selectedElements.length >= 2) return null;
+    return ["top", "bottom", "left", "right"].map(
+      (position: EdgeCreatePosition) => (
+        <EdgeCreate
+          key={position}
+          position={position}
+          canvasScale={canvasScale}
+          element={element}
+        />
+      )
+    );
   }, [element, canvasScale]);
 
   // useMemo is critical here because we don't want this
@@ -196,6 +213,7 @@ export default function Focused({
           }}
         >
           {dragHandles}
+          {edgeCreationPoints}
         </div>
         <div
           className="nodrag"

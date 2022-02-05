@@ -55,7 +55,7 @@ export default function DragHandle({
     background: "white",
     color: handleColor,
     fontSize: handleSize,
-    zIndex: MAX_ELEMENTS + 1,
+    zIndex: MAX_ELEMENTS + 15,
     transform: `scale(${1 / canvasScale})`,
   } as CSSProperties;
   if (top) {
