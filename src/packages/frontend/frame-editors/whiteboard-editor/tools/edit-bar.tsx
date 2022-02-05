@@ -10,7 +10,7 @@ import { PANEL_STYLE } from "./panel";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "../hooks";
 import { Actions } from "../actions";
-import { BrushPreview, maxRadius } from "./pen";
+import { BrushPreview } from "./pen";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { FONT_FACES as FONT_FAMILIES } from "@cocalc/frontend/editors/editor-button-bar";
 import { getPageSpan } from "../math";
@@ -20,6 +20,9 @@ import {
   DEFAULT_FONT_FAMILY,
   minFontSize,
   maxFontSize,
+  defaultRadius,
+  minRadius,
+  maxRadius,
 } from "./defaults";
 
 interface Props {
@@ -44,6 +47,7 @@ export default function EditBar({ elements, allElements }: Props) {
       <div style={{ display: "flex" }}>
         <FontFamily {...props} />
         <FontSize {...props} />
+        <Radius {...props} />
         <ColorButton {...props} />
         <GroupButton {...props} />
         <DeleteButton {...props} />
@@ -188,6 +192,36 @@ function getFontSize(elements: Element[]): number | undefined {
     }
   }
   return DEFAULT_FONT_SIZE;
+}
+
+function Radius({ actions, elements }: ButtonProps) {
+  return (
+    <Tooltip title="Radius in pixels">
+      <InputNumber
+        style={{
+          width: "64px",
+          fontSize: "20px",
+          color: "#666",
+          paddingTop: "4px",
+        }}
+        min={minRadius}
+        max={maxRadius}
+        defaultValue={getRadius(elements)}
+        onChange={(radius) => {
+          setDataField({ elements, actions }, { radius });
+        }}
+      />
+    </Tooltip>
+  );
+}
+
+function getRadius(elements: Element[]): number | undefined {
+  for (const element of elements) {
+    if (element.data?.radius) {
+      return element.data?.radius;
+    }
+  }
+  return defaultRadius;
 }
 
 function FontFamily({ actions, elements }: ButtonProps) {

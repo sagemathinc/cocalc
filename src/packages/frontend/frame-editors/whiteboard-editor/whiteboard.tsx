@@ -2,7 +2,6 @@ import { useRef } from "react";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { Actions, State } from "./actions";
-import { Element } from "./types";
 import Canvas from "./canvas";
 import ToolPanel from "./tools/panel";
 import PenPanel from "./tools/pen";
@@ -30,7 +29,10 @@ export default function Whiteboard({
   const useEditor = useEditorRedux<State>({ project_id, path });
 
   const is_loaded = useEditor("is_loaded");
-  const elements = useEditor("elements").toJS();
+  const elements = useEditor("elements")
+    .valueSeq()
+    .filter((x) => x != null)
+    .toJS();
 
   if (!is_loaded) {
     return (
@@ -47,13 +49,6 @@ export default function Whiteboard({
     );
   }
 
-  const x: Element[] = [];
-  for (const id in elements) {
-    const element = elements[id];
-    if (!element) continue;
-    x.push(element);
-  }
-
   const selectedTool = desc.get("selectedTool") ?? "select";
   const evtToDataRef = useRef<Function | null>(null);
 
@@ -65,12 +60,12 @@ export default function Whiteboard({
           {desc.get("selectedTool") == "pen" && <PenPanel />}
           {desc.get("selectedTool") == "note" && <NotePanel />}
           {desc.get("selectedTool") == "icon" && <IconPanel />}
-          <NavigationPanel fontSize={font_size} elements={x} />
+          <NavigationPanel fontSize={font_size} elements={elements} />
         </>
       )}
       <Upload evtToDataRef={evtToDataRef}>
         <Canvas
-          elements={x}
+          elements={elements}
           font_size={font_size}
           selection={
             selectedTool == "select"

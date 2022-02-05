@@ -67,6 +67,17 @@ export class Actions extends BaseActions<State> {
     }
   }
 
+  private getPageSpan() {
+    return getPageSpan(
+      this.store
+        .get("elements")
+        .valueSeq()
+        .filter((x) => x != null)
+        .toJS() as Element[],
+      0
+    );
+  }
+
   createElement(obj: Partial<Element>, commit: boolean = true): Element {
     if (obj.id == null) {
       // todo -- need to avoid any possible conflict by regen until unique
@@ -75,11 +86,7 @@ export class Actions extends BaseActions<State> {
     }
     if (obj.z == null) {
       // most calls to createElement should NOT resort to having to do this.
-      const { zMax } = getPageSpan(
-        this.store.get("elements").valueSeq().toJS() as Element[],
-        0
-      );
-      obj.z = zMax + 1;
+      obj.z = this.getPageSpan().zMax + 1;
     }
     if (obj.w == null) {
       obj.w = DEFAULT_WIDTH;
@@ -283,8 +290,17 @@ export class Actions extends BaseActions<State> {
       h = -h;
       y = ctr.y;
     }
+    const z = this.getPageSpan().zMin - 1;
 
-    return this.createElement({ x, y, w, h, type: "edge", data: { from, to } });
+    return this.createElement({
+      x,
+      y,
+      z,
+      w,
+      h,
+      type: "edge",
+      data: { from, to },
+    });
   }
 }
 

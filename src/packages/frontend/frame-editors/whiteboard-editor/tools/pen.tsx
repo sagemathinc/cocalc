@@ -10,6 +10,7 @@ import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { useFrameContext } from "../hooks";
 import { debounce } from "lodash";
 import { ResetButton } from "./note";
+import { defaultRadius, minRadius, maxRadius } from "./defaults";
 
 // Standard 12 original sharpie colors
 //www.jennyscrayoncollection.com/2021/04/complete-list-of-sharpie-marker-colors.html
@@ -32,10 +33,8 @@ const RADS = [1, 7];
 const HIGHLIGHTER = -1;
 const ERASER = -2;
 
-export const minRadius = 0.5;
-export const maxRadius = 15;
 const numBrushes = COLORS.length * RADS.length;
-const DEFAULT_PEN = { radius: 1, color: "black" };
+const DEFAULT_PEN = { radius: defaultRadius, color: "black" };
 
 export default function Pen() {
   const frame = useFrameContext();

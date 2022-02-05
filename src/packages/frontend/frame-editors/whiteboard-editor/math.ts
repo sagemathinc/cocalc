@@ -181,5 +181,8 @@ function intersectionOfRectangles(r0: Rect, r1: Rect): Rect {
 }
 
 export function centerOfRect(r: Rect): Point {
-  return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+  return {
+    x: (r.x ?? 0) + (r.w ?? DEFAULT_WIDTH) / 2,
+    y: (r.y ?? 0) + (r.h ?? DEFAULT_HEIGHT) / 2,
+  };
 }

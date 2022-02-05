@@ -8,6 +8,9 @@ interface Props {
 
 export default function IconElt({ element }: Props) {
   return (
-    <Icon name={element.data?.name ?? "square"} style={getStyle(element)} />
+    <Icon
+      name={element.data?.name ?? "square"}
+      style={getStyle(element, { background: "white" })}
+    />
   );
 }

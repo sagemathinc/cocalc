@@ -12,6 +12,7 @@ import Pen from "./pen";
 import Stopwatch from "./stopwatch";
 import Selection from "./selection";
 import Icon from "./icon";
+import Edge from "./edge";
 
 interface Props {
   element: Element;
@@ -37,6 +38,8 @@ export default function Render(props: Props) {
       return <Pen {...props} />;
     case "stopwatch":
       return <Stopwatch {...props} />;
+    case "edge":
+      return <Edge {...props} />;
     case "selection":
       return <Selection {...props} />;
     default:

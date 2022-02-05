@@ -8,7 +8,6 @@ import { decompressPath } from "../math";
 
 interface Props {
   element: Element;
-  focused?: boolean;
 }
 
 const DPIFactor = 4;

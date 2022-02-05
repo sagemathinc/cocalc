@@ -57,6 +57,7 @@ function ToolButton({ tool, isSelected }) {
           name={icon}
           style={{
             color: isSelected ? "blue" : undefined,
+            fontSize: "16px",
           }}
         />
       </Button>
