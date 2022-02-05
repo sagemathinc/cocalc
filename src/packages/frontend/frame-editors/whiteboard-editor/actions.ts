@@ -16,7 +16,13 @@ import {
 import { Tool } from "./tools/spec";
 import { Element, Elements } from "./types";
 import { uuid } from "@cocalc/util/misc";
-import { getPageSpan } from "./math";
+import {
+  DEFAULT_WIDTH,
+  DEFAULT_HEIGHT,
+  getPageSpan,
+  centerOfRect,
+} from "./math";
+import { Position as EdgeCreatePosition } from "./focused-edge-create";
 
 function createId(): string {
   return uuid().slice(0, 8);
@@ -70,10 +76,16 @@ export class Actions extends BaseActions<State> {
     if (obj.z == null) {
       // most calls to createElement should NOT resort to having to do this.
       const { zMax } = getPageSpan(
-        this.store.get("elements").toJS() as Element[],
+        this.store.get("elements").valueSeq().toJS() as Element[],
         0
       );
       obj.z = zMax + 1;
+    }
+    if (obj.w == null) {
+      obj.w = DEFAULT_WIDTH;
+    }
+    if (obj.h == null) {
+      obj.h = DEFAULT_HEIGHT;
     }
     this.setElement(obj, commit);
     return obj as Element;
@@ -84,8 +96,6 @@ export class Actions extends BaseActions<State> {
   }
 
   public clearSelection(frameId: string): void {
-    const node = this._get_frame_node(frameId);
-    if (node == null) return;
     this.set_frame_tree({ id: frameId, selection: [] });
   }
 
@@ -230,20 +240,51 @@ export class Actions extends BaseActions<State> {
     id: string,
     visibleWindow: { xMin: number; yMin: number; xMax: number; yMax: number }
   ): void {
-    const node = this._get_frame_node(id);
-    if (node == null) return;
     this.set_frame_tree({ id, visibleWindow });
   }
 
   setVisibleWindowCenter(id: string, center: { x: number; y: number }) {
-    const node = this._get_frame_node(id);
-    if (node == null) return;
     this.set_frame_tree({ id, visibleWindowCenter: center });
   }
 
   // define this, so icon shows up at top
   zoom_page_width(id: string): void {
     this.fitToScreen(id);
+  }
+
+  // maybe this should NOT be in localStorage somehow... we need something like frame tree state that isn't persisted...
+  setEdgeCreateStart(
+    id: string,
+    eltId: string,
+    position: EdgeCreatePosition
+  ): void {
+    this.set_frame_tree({ id, edgeStart: { id: eltId, position } });
+  }
+
+  clearEdgeCreateStart(id: string): void {
+    this.set_frame_tree({ id, edgeStart: null });
+  }
+
+  // returns created element or null if from or to don't exist...
+  createEdge(from: string, to: string): Element | undefined {
+    const elements = this.store.get("elements");
+    const fromElt = elements.get(from)?.toJS();
+    const toElt = elements.get(to)?.toJS();
+    if (fromElt == null || toElt == null) return;
+    let { x, y } = centerOfRect(fromElt);
+    const ctr = centerOfRect(toElt);
+    let w = ctr.x - x;
+    let h = ctr.y - y;
+    if (w < 0) {
+      w = -w;
+      x = ctr.x;
+    }
+    if (h < 0) {
+      h = -h;
+      y = ctr.y;
+    }
+
+    return this.createElement({ x, y, w, h, type: "edge", data: { from, to } });
   }
 }
 

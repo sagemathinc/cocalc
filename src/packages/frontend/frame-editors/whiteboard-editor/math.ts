@@ -179,3 +179,7 @@ function intersectionOfRectangles(r0: Rect, r1: Rect): Rect {
   const h = Math.max(y1 - y0, 0);
   return { x: x0, y: y0, w, h };
 }
+
+export function centerOfRect(r: Rect): Point {
+  return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+}

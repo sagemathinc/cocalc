@@ -424,6 +424,10 @@ export default function Canvas({
       if (e.target == gridDivRef.current) {
         // clear selection
         frame.actions.clearSelection(frame.id);
+        const edgeStart = frame.desc.get("edgeStart");
+        if (edgeStart) {
+          frame.actions.clearEdgeCreateStart(frame.id);
+        }
       } else {
         // clicked on an element on the canvas; either stay selected or let
         // it handle selecting it.

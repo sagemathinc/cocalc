@@ -20,13 +20,16 @@ export type ElementType =
   | "edge"
   | "selection";
 
-export interface Element {
-  id: string;
-  type: ElementType;
+export interface Rect {
   x: number;
   y: number;
-  w?: number; // width
-  h?: number; // height
+  w: number;
+  h: number;
+}
+
+export interface Element extends Rect {
+  id: string;
+  type: ElementType;
   data?: any; // optional json-able object - patch/merge atomic
   str?: string; // optional str data patch/merge via diff string
   z?: number; // zIndex
@@ -40,10 +43,3 @@ export type ElementMap = TypedMap<Element>;
 export type Elements = Map<string, ElementMap>;
 
 export type Point = { x: number; y: number };
-
-export interface Rect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}

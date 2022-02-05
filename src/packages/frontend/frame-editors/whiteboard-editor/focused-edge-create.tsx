@@ -9,6 +9,7 @@ import { Element } from "./types";
 import { CSSProperties } from "react";
 import { MAX_ELEMENTS, DEFAULT_WIDTH, DEFAULT_HEIGHT } from "./math";
 import { SELECTED_BORDER_COLOR } from "./focused";
+import { useFrameContext } from "./hooks";
 
 const SIZE = 12;
 const OFFSET = -SIZE / 2;
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export default function EdgeCreate({ position, canvasScale, element }: Props) {
+  const { actions, id } = useFrameContext();
   const style = {
     pointerEvents: "all", // because we turn off pointer events for containing div
     position: "absolute",
@@ -50,7 +52,14 @@ export default function EdgeCreate({ position, canvasScale, element }: Props) {
 
   return (
     <Tooltip title="Create edge">
-      <Icon className="nodrag" style={style} name="circle" />
+      <Icon
+        className="nodrag"
+        style={style}
+        name="circle"
+        onClick={() => {
+          actions.setEdgeCreateStart(id, element.id, position);
+        }}
+      />
     </Tooltip>
   );
 }
