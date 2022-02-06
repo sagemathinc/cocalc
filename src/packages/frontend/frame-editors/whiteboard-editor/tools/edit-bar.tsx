@@ -166,7 +166,7 @@ function getColor(elements: Element[]): string | undefined {
 
 function FontSize({ actions, elements }: ButtonProps) {
   return (
-    <Tooltip title="Font size in pixels">
+    <Tooltip title="Font size (pixels)">
       <InputNumber
         style={{
           width: "64px",
@@ -196,7 +196,7 @@ function getFontSize(elements: Element[]): number | undefined {
 
 function Radius({ actions, elements }: ButtonProps) {
   return (
-    <Tooltip title="Radius in pixels">
+    <Tooltip title="Radius (pixels)">
       <InputNumber
         style={{
           width: "64px",

@@ -43,6 +43,7 @@ import Draggable from "react-draggable";
 import { clearCanvas, drawCurve } from "./elements/pen";
 import { penParams } from "./tools/pen";
 import { noteParams } from "./tools/note";
+import { textParams } from "./tools/text";
 import { iconParams } from "./tools/icon";
 import { cmp } from "@cocalc/util/misc";
 
@@ -152,6 +153,10 @@ export default function Canvas({
 
   function getNoteParams() {
     return noteParams(frame.desc.get("noteId") ?? 0);
+  }
+
+  function getTextParams() {
+    return textParams(frame.desc.get("textId") ?? 0);
   }
 
   function getIconParams() {
@@ -443,6 +448,8 @@ export default function Canvas({
       params = { data: { fontSize: 24 } };
     } else if (selectedTool == "icon") {
       params = { data: getIconParams() };
+    } else if (selectedTool == "text") {
+      params = { data: getTextParams() };
     }
 
     const element = {

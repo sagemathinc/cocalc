@@ -9,7 +9,7 @@ Icon configuration:
 */
 
 import { ReactNode, useState } from "react";
-import { Button, Popconfirm, Popover, Slider, Tooltip } from "antd";
+import { Button, Popover, Slider } from "antd";
 import { PANEL_STYLE } from "./panel";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import IconSelect from "@cocalc/frontend/components/icon-select";
@@ -17,6 +17,7 @@ import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { useFrameContext } from "../hooks";
 import { debounce } from "lodash";
 import { DEFAULT_FONT_SIZE, minFontSize, maxFontSize } from "./defaults";
+import { ResetButton } from "./common";
 
 const ICONS: IconName[] = [
   "square",
@@ -213,21 +214,6 @@ function IconParams({ color, fontSize, name, setColor, setFontSize, setName }) {
       />
       <ColorPicker color={color} onChange={setColor} defaultPicker="swatches" />
     </div>
-  );
-}
-
-export function ResetButton({ onClick }) {
-  return (
-    <Tooltip title="Reset to defaults">
-      <Popconfirm
-        title="Are you sure you want to reset the presets to their default settings?"
-        onConfirm={onClick}
-      >
-        <Button type="text" style={{ color: "#666", paddingLeft: "2px" }}>
-          Reset
-        </Button>
-      </Popconfirm>
-    </Tooltip>
   );
 }
 

@@ -9,12 +9,13 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { useFrameContext } from "../hooks";
 import { debounce } from "lodash";
-import { ResetButton } from "./note";
+import { ResetButton } from "./common";
 import { defaultRadius, minRadius, maxRadius } from "./defaults";
 
 // Standard 12 original sharpie colors
 //www.jennyscrayoncollection.com/2021/04/complete-list-of-sharpie-marker-colors.html
-http: const COLORS = [
+export const COLORS = [
+  "#000",
   "#95067a",
   "#2b6855",
   "#53b79c",

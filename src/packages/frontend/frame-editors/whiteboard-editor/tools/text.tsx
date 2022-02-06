@@ -1,5 +1,5 @@
 /*
-The note config panel.
+The text config panel.
 */
 
 import { ReactNode, useState } from "react";
@@ -9,36 +9,18 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { useFrameContext } from "../hooks";
 import { debounce } from "lodash";
-import { STYLE } from "../elements/note";
 import { DEFAULT_FONT_SIZE, minFontSize, maxFontSize } from "./defaults";
 import { SelectFontFamily } from "./edit-bar";
-import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+import { COLORS } from "./pen";
 import { ResetButton } from "./common";
 
-// see https://www.post-it.com/3M/en_US/post-it/ideas/color/
-export const COLORS = [
-  "#f5f468",
-  "#e8edfa",
-  "#f5e3ad",
-  "#7ae294",
-  "#4dd1f1",
-  "#fdaf8a",
-  "#f9b2c3",
-  "#a8cc67",
-  "#fe871c",
-  "#fdce04",
-  "#cfec6d",
-  "#fe5b60",
-  "#c1bab9",
-  "#99b1f0",
-];
-const numNoteTypes = COLORS.length;
-export const DEFAULT_NOTE = { fontSize: DEFAULT_FONT_SIZE, color: COLORS[0] };
+const numTextTypes = COLORS.length;
+export const DEFAULT_TEXT = { fontSize: DEFAULT_FONT_SIZE, color: COLORS[0] };
 
-export default function NoteToolPanel() {
+export default function TextToolPanel() {
   const frame = useFrameContext();
   const [selected, setSelected] = useState<number>(
-    frame.desc.get("noteId") ?? 0
+    frame.desc.get("textId") ?? 0
   );
   const [paramControls, setParamControls] = useState<boolean>(false);
   const [presets, setPresets0] = useState<Presets>(loadPresets());
@@ -48,8 +30,8 @@ export default function NoteToolPanel() {
     savePresets(presets);
   }
 
-  function NoteButton({ id }) {
-    const { fontSize, color, fontFamily } = presets[id] ?? DEFAULT_NOTE;
+  function TextButton({ id }) {
+    const { fontSize, color, fontFamily } = presets[id] ?? DEFAULT_TEXT;
     return (
       <Button
         style={{ padding: "5px", height: "35px" }}
@@ -61,11 +43,11 @@ export default function NoteToolPanel() {
           } else {
             // select this one
             setSelected(id);
-            frame.actions.set_frame_tree({ id: frame.id, noteId: id });
+            frame.actions.set_frame_tree({ id: frame.id, textId: id });
           }
         }}
       >
-        <NoteToolButton
+        <TextToolButton
           fontSize={fontSize}
           fontFamily={fontFamily}
           color={color}
@@ -76,11 +58,11 @@ export default function NoteToolPanel() {
   }
 
   const notePresets: ReactNode[] = [];
-  for (let id = 0; id < numNoteTypes; id++) {
-    notePresets.push(<NoteButton key={id} id={id} />);
+  for (let id = 0; id < numTextTypes; id++) {
+    notePresets.push(<TextButton key={id} id={id} />);
   }
 
-  const { fontSize, color, fontFamily } = presets[selected] ?? DEFAULT_NOTE;
+  const { fontSize, color, fontFamily } = presets[selected] ?? DEFAULT_TEXT;
 
   return (
     <div
@@ -93,7 +75,7 @@ export default function NoteToolPanel() {
         paddingBottom: "10px",
       }}
     >
-      <Tooltip title="Note">
+      <Tooltip title="Text">
         <Button type="text">
           <Icon style={{ color: "blue" }} name="note" />
         </Button>
@@ -107,7 +89,7 @@ export default function NoteToolPanel() {
         }}
       />
       {paramControls && (
-        <NoteParams
+        <TextParams
           color={color}
           fontSize={fontSize}
           fontFamily={fontFamily}
@@ -135,7 +117,7 @@ export default function NoteToolPanel() {
   );
 }
 
-function NoteToolButton({
+function TextToolButton({
   fontSize,
   fontFamily,
   color,
@@ -150,7 +132,7 @@ function NoteToolButton({
     <Popover
       placement="right"
       content={
-        <NotePreview
+        <TextPreview
           fontSize={fontSize}
           fontFamily={fontFamily}
           color={color}
@@ -159,16 +141,14 @@ function NoteToolButton({
     >
       <div
         style={{
-          ...STYLE,
           padding: 0,
           margin: 0,
-          background: color,
           border: `2px solid ${borderColor ?? "#ccc"}`,
           width: "50px",
           height: "25px",
           fontSize: "14px",
           fontFamily,
-          color: avatar_fontcolor(color),
+          color,
         }}
       >
         A
@@ -177,26 +157,25 @@ function NoteToolButton({
   );
 }
 
-function NotePreview({ fontSize, fontFamily, color }) {
+function TextPreview({ fontSize, fontFamily, color }) {
   return (
     <div
       style={{
-        ...STYLE,
         margin: "auto",
-        background: color,
         width: "200px",
-        height: "125px",
+        height: `${fontSize + 20}px`,
         fontSize: `${fontSize ?? DEFAULT_FONT_SIZE}px`,
         fontFamily,
-        color: avatar_fontcolor(color),
+        color,
+        textAlign: "center",
       }}
     >
-      Note
+      Text
     </div>
   );
 }
 
-function NoteParams({
+function TextParams({
   color,
   fontSize,
   fontFamily,
@@ -216,7 +195,7 @@ function NoteParams({
       }}
     >
       <div style={{ textAlign: "center" }}>
-        <NotePreview
+        <TextPreview
           fontSize={fontSize}
           fontFamily={fontFamily}
           color={color}
@@ -251,7 +230,6 @@ function NoteParams({
   );
 }
 
-
 // For now just storing these presets in localStorage.
 // TODO: move to account settings or the document.  NOT SURE?!
 // Same problem with pen params.
@@ -259,12 +237,12 @@ type Presets = {
   [id: string]: { color: string; fontSize: number; fontFamily?: string };
 };
 
-const key = "whiteboard-note-presets";
+const key = "whiteboard-text-presets";
 
 function defaultPresets() {
   const presets: Presets = {};
-  for (let id = 0; id < numNoteTypes; id++) {
-    presets[id] = { ...DEFAULT_NOTE, color: COLORS[id] };
+  for (let id = 0; id < numTextTypes; id++) {
+    presets[id] = { ...DEFAULT_TEXT, color: COLORS[id] };
   }
   return presets;
 }
@@ -272,9 +250,9 @@ function defaultPresets() {
 function loadPresets() {
   try {
     const presets = JSON.parse(localStorage[key]);
-    for (let id = 0; id < numNoteTypes; id++) {
+    for (let id = 0; id < numTextTypes; id++) {
       if (presets[id] == null) {
-        presets[id] = { ...DEFAULT_NOTE, color: COLORS[id] };
+        presets[id] = { ...DEFAULT_TEXT, color: COLORS[id] };
       }
       return presets;
     }
@@ -288,6 +266,6 @@ const savePresets = debounce((presets) => {
   localStorage[key] = JSON.stringify(presets);
 }, 250);
 
-export function noteParams(id: number) {
-  return loadPresets()[id] ?? DEFAULT_NOTE;
+export function textParams(id: number) {
+  return loadPresets()[id] ?? DEFAULT_TEXT;
 }

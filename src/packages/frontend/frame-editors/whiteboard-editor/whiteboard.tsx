@@ -6,6 +6,7 @@ import Canvas from "./canvas";
 import ToolPanel from "./tools/panel";
 import PenPanel from "./tools/pen";
 import NotePanel from "./tools/note";
+import TextPanel from "./tools/text";
 import IconPanel from "./tools/icon";
 import NavigationPanel from "./tools/navigation";
 import { useFrameContext } from "./hooks";
@@ -59,6 +60,7 @@ export default function Whiteboard({
           <ToolPanel selectedTool={desc.get("selectedTool") ?? "select"} />
           {desc.get("selectedTool") == "pen" && <PenPanel />}
           {desc.get("selectedTool") == "note" && <NotePanel />}
+          {desc.get("selectedTool") == "text" && <TextPanel />}
           {desc.get("selectedTool") == "icon" && <IconPanel />}
           <NavigationPanel fontSize={font_size} elements={elements} />
         </>
