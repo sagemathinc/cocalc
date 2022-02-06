@@ -33,11 +33,13 @@ interface Props {
 
 export default function EditBar({ elements, allElements }: Props) {
   const { actions } = useFrameContext();
-  if (elements.length == 0) return null;
-  const props = { actions, elements, allElements };
   const configParams = useMemo(() => {
     return getCommonConfigParams(elements);
   }, [elements]);
+
+  if (elements.length == 0) return null;
+  const props = { actions, elements, allElements };
+
   return (
     <div
       style={{

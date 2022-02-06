@@ -24,7 +24,7 @@ import {
   drawEdge,
 } from "./math";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
-import { isEqual } from "lodash";
+import { debounce, isEqual } from "lodash";
 
 function createId(): string {
   return uuid().slice(0, 8);
@@ -44,6 +44,7 @@ export class Actions extends BaseActions<State> {
   }
 
   _init2(): void {
+    this.updateEdges = debounce(this.updateEdgesNoDebounce.bind(this), 250);
     this.setState({ elements: Map({}) });
     this._syncstring.on("change", (keys) => {
       let elements = this.store.get("elements");
@@ -309,7 +310,8 @@ export class Actions extends BaseActions<State> {
   // recompute the parameters of all edges, in case vertices
   // have moved.
   // TODO: optimize to only do this when necessary!
-  updateEdges() {
+  updateEdges() {} // gets set to a debounced version.
+  updateEdgesNoDebounce() {
     const elements = this.store.get("elements");
     let changed = false;
     for (const [id, element0] of elements) {
