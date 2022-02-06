@@ -41,12 +41,12 @@ const ICONS: IconName[] = [
 const numIconTypes = ICONS.length;
 
 interface IconConfig {
-  name: IconName;
+  icon: IconName;
   fontSize?: number;
   color?: string;
 }
 
-export const DEFAULT_ICON: IconConfig = { name: "square" };
+export const DEFAULT_ICON: IconConfig = { icon: "square" };
 
 export default function IconToolPanel() {
   const frame = useFrameContext();
@@ -62,7 +62,7 @@ export default function IconToolPanel() {
   }
 
   function IconButton({ id }) {
-    const { fontSize, color, name } = presets[id] ?? DEFAULT_ICON;
+    const { fontSize, color, icon } = presets[id] ?? DEFAULT_ICON;
     return (
       <Button
         style={{ padding: "5px", height: "35px" }}
@@ -81,7 +81,7 @@ export default function IconToolPanel() {
         <IconToolButton
           fontSize={fontSize}
           color={color}
-          name={name}
+          icon={icon}
           borderColor={id == selected ? "blue" : "#ccc"}
         />
       </Button>
@@ -93,7 +93,7 @@ export default function IconToolPanel() {
     iconPresets.push(<IconButton key={id} id={id} />);
   }
 
-  const { fontSize, color, name } = presets[selected] ?? DEFAULT_ICON;
+  const { fontSize, color, icon } = presets[selected] ?? DEFAULT_ICON;
 
   return (
     <div
@@ -117,7 +117,7 @@ export default function IconToolPanel() {
         <IconParams
           color={color}
           fontSize={fontSize}
-          name={name}
+          icon={icon}
           setColor={(color) => {
             setPresets({
               ...presets,
@@ -130,10 +130,10 @@ export default function IconToolPanel() {
               [selected]: { ...presets[selected], fontSize },
             });
           }}
-          setName={(name) => {
+          setIcon={(icon) => {
             setPresets({
               ...presets,
-              [selected]: { ...presets[selected], name },
+              [selected]: { ...presets[selected], icon },
             });
           }}
         />
@@ -144,11 +144,11 @@ export default function IconToolPanel() {
 
 function IconToolButton({
   fontSize,
-  name,
+  icon,
   color,
   borderColor,
 }: {
-  name: IconName;
+  icon: IconName;
   fontSize?: number;
   color?: string;
   borderColor?: string;
@@ -156,8 +156,8 @@ function IconToolButton({
   return (
     <Popover
       placement="right"
-      title={`Name: ${name}` + (fontSize ? `, Size: ${fontSize}px` : "")}
-      content={<IconPreview name={name} fontSize={fontSize} color={color} />}
+      title={`Name: ${icon}` + (fontSize ? `, Size: ${fontSize}px` : "")}
+      content={<IconPreview icon={icon} fontSize={fontSize} color={color} />}
     >
       <div
         style={{
@@ -167,29 +167,29 @@ function IconToolButton({
           height: "25px",
         }}
       >
-        <Icon name={name} />
+        <Icon name={icon} />
       </div>
     </Popover>
   );
 }
 
 function IconPreview({
-  name,
+  icon,
   fontSize,
   color,
 }: {
-  name: IconName;
+  icon: IconName;
   fontSize?: number;
   color?: string;
 }) {
   return (
     <div style={{ textAlign: "center" }}>
-      <Icon name={name} style={{ color, fontSize }} />
+      <Icon name={icon} style={{ color, fontSize }} />
     </div>
   );
 }
 
-function IconParams({ color, fontSize, name, setColor, setFontSize, setName }) {
+function IconParams({ color, fontSize, icon, setColor, setFontSize, setIcon }) {
   return (
     <div
       style={{
@@ -201,7 +201,7 @@ function IconParams({ color, fontSize, name, setColor, setFontSize, setName }) {
         margin: 0,
       }}
     >
-      <IconPreview name={name} fontSize={fontSize} color={color} />
+      <IconPreview icon={icon} fontSize={fontSize} color={color} />
       <div style={{ width: "100%", display: "flex" }}>
         <Slider
           value={fontSize ?? DEFAULT_FONT_SIZE}
@@ -216,8 +216,8 @@ function IconParams({ color, fontSize, name, setColor, setFontSize, setName }) {
         </div>
       </div>
       <IconSelect
-        onSelect={setName}
-        search={name}
+        onSelect={setIcon}
+        search={icon}
         style={{
           maxWidth: "100%",
           marginBottom: "10px",
@@ -242,7 +242,7 @@ const key = "whiteboard-icon-presets";
 function defaultPresets() {
   const presets: Presets = {};
   for (let id = 0; id < numIconTypes; id++) {
-    presets[id] = { name: ICONS[id] };
+    presets[id] = { icon: ICONS[id] };
   }
   return presets;
 }
@@ -252,7 +252,7 @@ function loadPresets() {
     const presets = JSON.parse(localStorage[key]);
     for (let id = 0; id < numIconTypes; id++) {
       if (presets[id] == null) {
-        presets[id] = { name: ICONS[id] };
+        presets[id] = { icon: ICONS[id] };
       }
       return presets;
     }

@@ -241,8 +241,9 @@ export default function Focused({
             const { id } = elt;
             const x = elt.x + data.x;
             const y = elt.y + data.y;
-            frame.actions.setElement({ id, x, y });
+            frame.actions.setElement({ id, x, y }, false);
           }
+          frame.actions.syncstring_commit();
         }}
       >
         <div

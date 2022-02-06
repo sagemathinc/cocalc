@@ -22,13 +22,11 @@ import {
   getPageSpan,
   compressPath,
   drawEdge,
+  centerRectsAt,
+  translateRectsZ,
 } from "./math";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { debounce, cloneDeep, isEqual } from "lodash";
-
-function createId(): string {
-  return uuid().slice(0, 8);
-}
 
 export interface State extends CodeEditorState {
   elements: Elements;
@@ -76,21 +74,23 @@ export class Actions extends BaseActions<State> {
     }
   }
 
-  private getPageSpan() {
-    return getPageSpan(
-      this.store
-        .get("elements")
-        .valueSeq()
-        .filter((x) => x != null)
-        .toJS() as Element[],
-      0
-    );
+  private createId(): string {
+    // TODO: make this ensure id is unique!
+    return uuid().slice(0, 8);
+  }
+
+  private getPageSpan(margin: number = 0) {
+    const elements = this.store
+      .get("elements")
+      .valueSeq()
+      .filter((x) => x != null)
+      .toJS() as Element[];
+    return getPageSpan(elements, margin);
   }
 
   createElement(obj: Partial<Element>, commit: boolean = true): Element {
     if (obj.id == null) {
-      // todo -- need to avoid any possible conflict by regen until unique
-      const id = createId();
+      const id = this.createId();
       obj = { id, ...obj };
     }
     if (obj.z == null) {
@@ -209,7 +209,7 @@ export class Actions extends BaseActions<State> {
   // Make it so the elements with the given list of ids
   // form a group.
   public groupElements(ids: string[]) {
-    const group = createId();
+    const group = this.createId();
     // TODO: check that this group id isn't already in use
     for (const id of ids) {
       this.setElement({ id, group }, false);
@@ -340,7 +340,6 @@ export class Actions extends BaseActions<State> {
       };
       if (!isEqual(element, element1)) {
         changed = true;
-        console.log({ element, element1 });
         this.setElement(element1, false);
       }
     }
@@ -353,14 +352,36 @@ export class Actions extends BaseActions<State> {
   // Inserts the given elements, moving them so the center
   // of the rectangle spanned by all elements is the given
   // center point, or (0,0) if not given.
-  insertElements(elements: Element[], center?: Point) {
+  // Returns the ids of the inserted elements.
+  insertElements(elements: Element[], center?: Point): string[] {
     elements = cloneDeep(elements); // we will mutate it a lot
-    console.log("insertElements", elements, center);
+    if (center != null) {
+      centerRectsAt(elements, center);
+    }
+    translateRectsZ(elements, this.getPageSpan().zMax + 1);
+    const ids: string[] = [];
+    const idMap: { [id: string]: string } = {};
     for (const element of elements) {
-      element.id = createId(); // todo
+      idMap[element.id] = this.createId();
+      element.id = idMap[element.id];
+      ids.push(element.id);
+    }
+    // We adjust any edges below, discarding any that aren't
+    // part of what is being pasted.
+    for (const element of elements) {
+      if (element.type == "edge" && element.data != null) {
+        // need to update adjacent vertices.
+        const from = idMap[element.data.from ?? ""];
+        if (from == null) continue;
+        element.data.from = from;
+        const to = idMap[element.data.to ?? ""];
+        if (to == null) continue;
+        element.data.to = to;
+      }
       this.createElement(element, false);
     }
     this.syncstring_commit();
+    return ids;
   }
 }
 

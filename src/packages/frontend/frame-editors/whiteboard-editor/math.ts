@@ -87,6 +87,26 @@ export function getPageSpan(
   return { xMin, xMax, yMin, yMax, zMin, zMax };
 }
 
+// Get the rectangle spanned by given rectangles.
+// Simpler version of getPageSpan above...
+function rectSpan(rects: Rect[]): Rect {
+  if (rects.length == 0) {
+    return { x: 0, y: 0, w: DEFAULT_WIDTH, h: DEFAULT_HEIGHT };
+  }
+  let { x, y, w, h } = rects[0];
+  for (const rect of rects.slice(1)) {
+    if (rect.x < x) x = rect.x;
+    if (rect.x + rect.w > x + w) {
+      w = rect.x + rect.w - x;
+    }
+    if (rect.y < y) y = rect.y;
+    if (rect.y + rect.h > y + h) {
+      h = rect.y + rect.h - y;
+    }
+  }
+  return { x, y, w, h };
+}
+
 export function pointRound({ x, y }: Point): Point {
   return { x: Math.round(x), y: Math.round(y) };
 }
@@ -216,6 +236,42 @@ export function drawEdge(
 
   // draw path to indicate direction of the edge
   const c = midPoint(path[0], path[1]);
-  const dir = [{ x: c.x - 10, y: c.y - 10 }, c, c, { x: c.x - 10, y: c.y + 10 }];
+  const dir = [
+    { x: c.x - 10, y: c.y - 10 },
+    c,
+    c,
+    { x: c.x - 10, y: c.y + 10 },
+  ];
   return { rect: { x, y, w, h }, path, dir };
+}
+
+// Translate the list of rectangles (by mutating them!)
+// so that the center of the rectangle they together span
+// is the given center.
+export function centerRectsAt(rects: Rect[], center: Point): void {
+  const cur = centerOfRect(rectSpan(rects));
+  const x = center.x - cur.x;
+  const y = center.y - cur.y;
+  for (const rect of rects) {
+    rect.x += x;
+    rect.y += y;
+  }
+}
+
+// translate all the input objects of the rects by a single number
+// so their zMin is as given.  MUTATES!
+export function translateRectsZ(objs: { z?: number }[], zMin: number): void {
+  if (objs.length == 0) return;
+  let cur = objs[0].z ?? 0;
+  for (const obj of objs.slice(1)) {
+    if (obj.z != null && obj.z < cur) {
+      cur = obj.z;
+    }
+  }
+  const t = zMin - cur;
+  if (t) {
+    for (const obj of objs) {
+      obj.z = (obj.z ?? 0) + t;
+    }
+  }
 }

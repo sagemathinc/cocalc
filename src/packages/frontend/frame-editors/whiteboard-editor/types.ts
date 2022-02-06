@@ -5,6 +5,7 @@
 
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
+import { IconName } from "@cocalc/frontend/components/icon";
 
 export type ElementType =
   | "text"
@@ -20,6 +21,8 @@ export type ElementType =
   | "edge"
   | "selection";
 
+export type Point = { x: number; y: number };
+
 export interface Rect {
   x: number;
   y: number;
@@ -27,12 +30,59 @@ export interface Rect {
   h: number;
 }
 
+interface Data {
+  fontSize?: number;
+  radius?: number;
+  fontFamily?: string;
+  color?: string;
+  path?: number[]; // right now is encoded as [x,y,x2,y2,x3,y3] to be simpler to JSON.
+  from?: string; // id of from node
+  to?: string; // id of to node
+  dir?: number[]; // dir path part of edge
+  icon?: IconName; // icon
+}
+
+/*
+It will be better but more work to make all the following
+instead of the big union above.
+
+interface TextData {
+  fontSize?: number;
+  fontFamily?: string;
+  color?: string;
+}
+
+interface NoteData {
+  fontSize?: number;
+  fontFamily?: string;
+  color?: string;
+}
+
+interface PathData {
+  radius?: number;
+  color?: string;
+  path?: number[]; // right now is encoded as [x,y,x2,y2,x3,y3] to be simpler to JSON.
+}
+
+interface IconData {
+  color?: string;
+  fontSize?: number;
+  name?: string;
+}
+
+interface EdgeData extends PathData {
+  from?: string; // id of from node
+  to?: string; // id of to node
+  dir?: number[]; // dir path part of edge
+}
+*/
+
 export interface Element extends Rect {
   id: string;
   type: ElementType;
-  data?: any; // optional json-able object - patch/merge atomic
+  z: number; // zIndex
+  data?: Data; // optional json-able object - patch/merge atomic
   str?: string; // optional str data patch/merge via diff string
-  z?: number; // zIndex
   group?: string; // group id if object is part of a group
   rotate?: number; // angle in *radians*
 }
@@ -41,5 +91,3 @@ export type ElementMap = TypedMap<Element>;
 
 // Tasks is an immutable map from id to Element as a map.
 export type Elements = Map<string, ElementMap>;
-
-export type Point = { x: number; y: number };

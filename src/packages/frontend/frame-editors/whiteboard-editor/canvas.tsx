@@ -164,6 +164,7 @@ export default function Canvas({
     return iconParams(frame.desc.get("iconId") ?? 0);
   }
 
+  // gets center of visible canvas in *window* coordinates.
   function getCenterPosition(): { x: number; y: number } | undefined {
     const c = canvasRef.current;
     if (c == null) return;
@@ -335,6 +336,7 @@ export default function Canvas({
       y: yMin,
       w: xMax - xMin + 1,
       h: yMax - yMin + 1,
+      z: 0,
     };
     v.push(
       <Focused
@@ -700,10 +702,15 @@ export default function Canvas({
                 const pastedElements = JSON.parse(
                   decodeURIComponent(window.atob(encoded))
                 );
-                frame.actions.insertElements(
+                /* TODO: should also get where mouse is? */
+                const target = getCenterPosition();
+                const ids = frame.actions.insertElements(
                   pastedElements,
-                  getCenterPosition() /* for now -- should also get where mouse is */
+                  target
+                    ? windowToData({ transforms, canvasScale, point: target })
+                    : undefined
                 );
+                frame.actions.setSelectionMulti(frame.id, ids);
               } else {
                 // nothing else implemented yet!
               }
@@ -851,4 +858,8 @@ function zIndexMap(elements: Element[]) {
     i += 1;
   }
   return zMap;
+}
+
+function windowToData({ transforms, canvasScale, point }) {
+  return transforms.windowToData(point.x / canvasScale, point.y / canvasScale);
 }
