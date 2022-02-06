@@ -4,6 +4,8 @@
  */
 
 import { useMemo, useState, useTypedRedux } from "../../app-framework";
+import compute_file_masks from "@cocalc/frontend/project/explorer/compute_file_masks";
+import compute_public_files from "@cocalc/frontend/project/explorer/compute_public_files";
 import { FileEntry } from "./types";
 
 export default function useListingsData({ project_id, useEditor, showHidden }) {
@@ -12,15 +14,51 @@ export default function useListingsData({ project_id, useEditor, showHidden }) {
     "directory_listings"
   );
 
+  const strippedPublicPaths = useTypedRedux(
+    { project_id },
+    "stripped_public_paths"
+  );
+
   const dir = useEditor("dir");
 
   const [data, setData] = useState<FileEntry[] | null>(null);
 
   function extractFileData(): FileEntry[] {
+    const listing = directory_listings?.get(dir);
+
+    if (typeof listing === "string") {
+      // TODO error
+    }
+
+    if (listing == null) return [];
+
+    const listingFiltered = listing.filter(
+      (file) => showHidden || !file.get("name")?.startsWith(".")
+    );
+
+    const listingJS = listingFiltered.toJS();
+    compute_file_masks(listingJS);
+
+    const map = {};
+    for (const x of listing) {
+      map[x.name] = x;
+    }
+
+    const x = {
+      listing,
+      public: {},
+      path: "", // current_path
+      file_map: map,
+    };
+
+    compute_public_files(
+      x,
+      strippedPublicPaths,
+      "" // current_path
+    );
+
     return (
-      directory_listings
-        ?.get(dir)
-        ?.filter((file) => showHidden || !file.get("name")?.startsWith("."))
+      listingJS
         .map((file) => {
           const name = file.get("name");
           return {

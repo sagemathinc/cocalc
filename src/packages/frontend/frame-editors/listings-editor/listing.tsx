@@ -25,7 +25,6 @@ import { StarFilled, StarOutlined } from "@ant-design/icons";
 import useListingsData from "./useListingsData";
 import { FileEntry } from "./types";
 import useTableHeight from "./useTableHeight";
-import { times } from "underscore";
 
 const ROOT_STYLE: CSS = {
   overflowY: "auto",
@@ -110,11 +109,10 @@ const Listing: React.FC<Props> = (props: Props) => {
     if (!debugMe) return null;
     return (
       <ul>
-        <li>is_loaded: {JSON.stringify(is_loaded)}</li>
-        <li>project_id: {project_id}</li>
-        <li>path: {path}</li>
-        <li>dir: {dir}</li>
-        <li>fontSize: {font_size}</li>
+        <li>project_id: "{project_id}"</li>
+        <li>path: "{path}"</li>
+        <li>dir: "{dir}"</li>
+        <li>fontSize: "{font_size}"</li>
         <li>favs: {JSON.stringify(favs)}</li>
         <li>projectRunning: {JSON.stringify(projectRunning)}</li>
         <li>open_files_order: {JSON.stringify(open_files_order)}</li>
@@ -123,10 +121,10 @@ const Listing: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function timeColumn(): JSX.Element {
+  function modifiedColumn(): JSX.Element {
     return (
       <Column<FileEntry>
-        title="Time"
+        title="Modified"
         dataIndex="time"
         align="right"
         sorter={(a, b) => a.time - b.time}
@@ -212,7 +210,7 @@ const Listing: React.FC<Props> = (props: Props) => {
       >
         {starColumn()}
         {nameColumn()}
-        {timeColumn()}
+        {modifiedColumn()}
         {sizeColumn()}
       </Table>
     );

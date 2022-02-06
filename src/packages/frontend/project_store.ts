@@ -21,7 +21,6 @@ import {
   Available as AvailableFeatures,
   isMainConfiguration,
 } from "./project_configuration";
-import { derive_rmd_output_filename } from "./frame-editors/rmd-editor/utils";
 import {
   project_redux_name,
   Table,
@@ -36,12 +35,14 @@ import { ProjectLogMap } from "./project/history/types";
 import { alert_message } from "./alerts";
 import { Listings, listings } from "./project/websocket/listings";
 import { deleted_file_variations } from "@cocalc/util/delete-files";
+import compute_public_files from "@cocalc/frontend/project/explorer/compute_public_files";
+import compute_file_masks from "@cocalc/frontend/project/explorer/compute_file_masks";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
-const MASKED_FILENAMES = ["__pycache__"];
+export const MASKED_FILENAMES = ["__pycache__"];
 
-const MASKED_FILE_EXTENSIONS = {
+export const MASKED_FILE_EXTENSIONS = {
   py: ["pyc"],
   java: ["class"],
   cs: ["exe"],
@@ -53,6 +54,13 @@ const MASKED_FILE_EXTENSIONS = {
   rmd: ["pdf", "html", "nb.html", "md", "NODOT_files"],
   sage: ["sage.py"],
 };
+
+export interface FileData {
+  listing: any; // directory_listings.get(current_path)
+  public: { [key: string]: any };
+  path: string; // current_path
+  file_map: { [path: string]: any };
+}
 
 export type ModalInfo = TypedMap<{
   title: string | JSX.Element;
@@ -348,7 +356,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         listing = listing.toJS();
 
         if (this.get("other_settings").get("mask_files")) {
-          _compute_file_masks(listing);
+          compute_file_masks(listing);
         }
 
         if (this.get("current_path") === ".snapshots") {
@@ -406,7 +414,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           // if we do not gray out files (and hence haven't computed the file mask yet)
           // we do it now!
           if (!this.get("other_settings").get("mask_files")) {
-            _compute_file_masks(listing);
+            compute_file_masks(listing);
           }
 
           const filtered: string[] = [];
@@ -428,7 +436,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           file_map: map,
         };
 
-        _compute_public_files(
+        compute_public_files(
           x,
           this.get("stripped_public_paths"),
           this.get("current_path")
@@ -629,92 +637,11 @@ function _matched_files(search, listing) {
   return v;
 }
 
-function _compute_file_masks(listing): void {
-  // mask compiled files, e.g. mask 'foo.class' when 'foo.java' exists
-  // the general outcome of this function is to set for some file entry objects
-  // in "listing" the attribute <file>.mask=true
-  const filename_map = misc.dict(listing.map((item) => [item.name, item])); // map filename to file
-  for (const file of listing) {
-    // mask certain known directories
-    if (MASKED_FILENAMES.indexOf(file.name) >= 0) {
-      filename_map[file.name].mask = true;
-    }
-
-    // note: never skip already masked files, because of rnw/rtex->tex
-
-    const ext = misc.filename_extension(file.name).toLowerCase();
-    // some extensions like Rmd modify the basename during compilation
-    const filename = (function () {
-      switch (ext) {
-        case "rmd":
-          // converts .rmd to .rmd, but the basename changes!
-          return derive_rmd_output_filename(file.name, "rmd");
-        default:
-          return file.name;
-      }
-    })();
-
-    const basename = filename.slice(0, filename.length - ext.length);
-
-    for (let mask_ext of MASKED_FILE_EXTENSIONS[ext] ?? []) {
-      // check each possible compiled extension
-      let bn; // derived basename
-      // some uppercase-strings have special meaning
-      if (misc.startswith(mask_ext, "NODOT")) {
-        bn = basename.slice(0, -1); // exclude the trailing dot
-        mask_ext = mask_ext.slice("NODOT".length);
-      } else if (mask_ext.indexOf("FILENAME") >= 0) {
-        bn = mask_ext.replace("FILENAME", filename);
-        mask_ext = "";
-      } else if (mask_ext.indexOf("BASENAME") >= 0) {
-        bn = mask_ext.replace("BASENAME", basename.slice(0, -1));
-        mask_ext = "";
-      } else if (mask_ext.indexOf("BASEDASHNAME") >= 0) {
-        // BASEDASHNAME is like BASENAME, but replaces spaces by dashes
-        // https://github.com/sagemathinc/cocalc/issues/3229
-        const fragment = basename.slice(0, -1).replace(/ /g, "-");
-        bn = mask_ext.replace("BASEDASHNAME", fragment);
-        mask_ext = "";
-      } else {
-        bn = basename;
-      }
-      const mask_fn = `${bn}${mask_ext}`;
-      if (filename_map[mask_fn] != null) {
-        filename_map[mask_fn].mask = true;
-      }
-    }
-  }
-}
-
 function compute_snapshot_display_names(listing): void {
   for (const item of listing) {
     const tm = misc.parse_bup_timestamp(item.name);
     item.display_name = `${tm}`;
     item.mtime = tm.valueOf() / 1000;
-  }
-}
-
-// Mutates data to include info on public paths.
-function _compute_public_files(data, public_paths, current_path) {
-  const { listing } = data;
-  const pub = data.public;
-  if (public_paths != null && public_paths.size > 0) {
-    const head = current_path ? current_path + "/" : "";
-    const paths: string[] = [];
-    const public_path_data = {};
-    for (var x of public_paths.toJS()) {
-      public_path_data[x.path] = x;
-      paths.push(x.path);
-    }
-    for (x of listing) {
-      const full = head + x.name;
-      const p = misc.containing_public_path(full, paths);
-      if (p != null) {
-        x.public = public_path_data[p];
-        x.is_public = !x.public.disabled;
-        pub[x.name] = public_path_data[p];
-      }
-    }
   }
 }
 

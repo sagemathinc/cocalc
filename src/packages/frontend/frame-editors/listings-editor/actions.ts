@@ -34,46 +34,47 @@ export class Actions extends BaseActions<State> {
 
   _init2(): void {
     this.setState({ favs: Map(), dir: "" });
-
-    this._syncstring.on("change", (entries) => {
-      let favs = this.store.get("favs");
-      const prevFavs = favs;
-      let dir = this.store.get("dir");
-
-      entries.forEach((entry) => {
-        const type = entry.get("type");
-        const key = entry.get("key");
-        if (typeof type !== "string") return;
-        if (typeof key !== "string") return;
-
-        const value = this._syncstring.get_one(entry);
-
-        switch (type) {
-          case "settings":
-            const data = value?.get("data");
-            switch (key) {
-              case "dir":
-                if (dir !== data) {
-                  this.setState({ dir: data });
-                }
-            }
-            break;
-          case "favs":
-            // @ts-ignore
-            if (value != null) {
-              const valueJS = _.omit(value.toJS(), "type", "key");
-              // @ts-ignore
-              favs = favs.set(key, valueJS);
-            } else {
-              favs = favs.delete(key);
-            }
-            break;
-        }
-      });
-
-      if (favs !== prevFavs) this.setState({ favs });
-    });
+    this._syncstring.on("change", this.syncstringChange);
   }
+
+  private syncstringChange = (entries) => {
+    let favs = this.store.get("favs");
+    const prevFavs = favs;
+    let dir = this.store.get("dir");
+
+    entries.forEach((entry) => {
+      const type = entry.get("type");
+      const key = entry.get("key");
+      if (typeof type !== "string") return;
+      if (typeof key !== "string") return;
+
+      const value = this._syncstring.get_one(entry);
+
+      switch (type) {
+        case "settings":
+          const data = value?.get("data");
+          switch (key) {
+            case "dir":
+              if (dir !== data) {
+                this.setState({ dir: data });
+              }
+          }
+          break;
+        case "favs":
+          // @ts-ignore
+          if (value != null) {
+            const valueJS = _.omit(value.toJS(), "type", "key");
+            // @ts-ignore
+            favs = favs.set(key, valueJS);
+          } else {
+            favs = favs.delete(key);
+          }
+          break;
+      }
+    });
+
+    if (favs !== prevFavs) this.setState({ favs });
+  };
 
   toggleFavorite(path, makeFav): void {
     if (makeFav) {
