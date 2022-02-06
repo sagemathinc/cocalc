@@ -58,10 +58,14 @@ export default function Whiteboard({
       {isFocused && (
         <>
           <ToolPanel selectedTool={desc.get("selectedTool") ?? "select"} />
-          {desc.get("selectedTool") == "pen" && <PenPanel />}
-          {desc.get("selectedTool") == "note" && <NotePanel />}
-          {desc.get("selectedTool") == "text" && <TextPanel />}
-          {desc.get("selectedTool") == "icon" && <IconPanel />}
+          {!desc.get("selectedToolHidePanel") && (
+            <>
+              {desc.get("selectedTool") == "pen" && <PenPanel />}
+              {desc.get("selectedTool") == "note" && <NotePanel />}
+              {desc.get("selectedTool") == "text" && <TextPanel />}
+              {desc.get("selectedTool") == "icon" && <IconPanel />}
+            </>
+          )}
           <NavigationPanel fontSize={font_size} elements={elements} />
         </>
       )}
