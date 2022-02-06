@@ -602,8 +602,12 @@ export default function Canvas({
     };
   }
 
-  const onMouseMove = (e) => {
+  const onMouseMove = (e, touch = false) => {
     if (mousePath.current == null) return;
+    if (!touch && !e.buttons) {
+      onMouseUp(e);
+      return;
+    }
     e.preventDefault?.(); // only makes sense for mouse not touch.
     if (selectedTool == "select") {
       const point = getMousePos(e);
@@ -621,10 +625,9 @@ export default function Canvas({
       if (canvas == null) return;
       const ctx = canvas.getContext("2d");
       if (ctx == null) return;
-      clearCanvas({ ctx });
       drawCurve({
         ctx,
-        path: mousePath.current,
+        path: mousePath.current.slice(mousePath.current.length - 2),
         ...getPenParams(),
       });
       return;
@@ -632,7 +635,7 @@ export default function Canvas({
   };
 
   const onTouchMove = (e) => {
-    onMouseMove(e.touches[0]);
+    onMouseMove(e.touches[0], true);
   };
 
   return (
