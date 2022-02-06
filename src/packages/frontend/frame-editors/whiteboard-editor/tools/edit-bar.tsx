@@ -2,7 +2,7 @@
 Editing bar for editing one (or more) selected elements.
 */
 
-import { CSSProperties, ReactNode, useState } from "react";
+import { CSSProperties, ReactNode, useMemo, useState } from "react";
 import { Button, InputNumber, Menu, Dropdown, Select, Tooltip } from "antd";
 const { Option } = Select;
 import { Element } from "../types";
@@ -14,6 +14,7 @@ import { BrushPreview } from "./pen";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { FONT_FACES as FONT_FAMILIES } from "@cocalc/frontend/editors/editor-button-bar";
 import { getPageSpan } from "../math";
+import { ConfigParams, TOOLS } from "./spec";
 
 import {
   DEFAULT_FONT_SIZE,
@@ -34,6 +35,9 @@ export default function EditBar({ elements, allElements }: Props) {
   const { actions } = useFrameContext();
   if (elements.length == 0) return null;
   const props = { actions, elements, allElements };
+  const configParams = useMemo(() => {
+    return getCommonConfigParams(elements);
+  }, [elements]);
   return (
     <div
       style={{
@@ -45,10 +49,10 @@ export default function EditBar({ elements, allElements }: Props) {
       }}
     >
       <div style={{ display: "flex" }}>
-        <FontFamily {...props} />
-        <FontSize {...props} />
-        <Radius {...props} />
-        <ColorButton {...props} />
+        {configParams.has("fontFamily") && <FontFamily {...props} />}
+        {configParams.has("fontSize") && <FontSize {...props} />}
+        {configParams.has("radius") && <Radius {...props} />}
+        {configParams.has("color") && <ColorButton {...props} />}
         <GroupButton {...props} />
         <DeleteButton {...props} />
         <OtherOperations {...props} />
@@ -137,7 +141,9 @@ function GroupButton({ actions, elements }: ButtonProps) {
     }
   }
   return (
-    <Tooltip title={`${grouped ? "Ungroup" : "Group"} objects`}>
+    <Tooltip
+      title={`${grouped ? "Ungroup" : "Group"} ${elements.length} objects`}
+    >
       <Button
         style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
         type="text"
@@ -357,4 +363,24 @@ function setDataField(
     );
   }
   actions.syncstring_commit();
+}
+
+// Determine which of the config params are applicable
+// to the selected elements.
+
+function getCommonConfigParams(elements: Element[]): Set<ConfigParams> {
+  let params = TOOLS[elements?.[0]?.type]?.config ?? new Set([]);
+  if (elements.length <= 1) {
+    return params;
+  }
+  // intersect it down
+  for (const { type } of elements.slice(1)) {
+    const { config } = TOOLS[type] ?? {};
+    if (config == null) {
+      return new Set([]);
+    }
+    params = new Set([...params].filter((x) => config.has(x)));
+    if (params.size == 0) return params;
+  }
+  return params;
 }
