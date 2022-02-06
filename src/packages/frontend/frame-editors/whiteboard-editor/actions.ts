@@ -14,7 +14,7 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 import { Tool } from "./tools/spec";
-import { Element, Elements } from "./types";
+import { Element, Elements, Point } from "./types";
 import { uuid } from "@cocalc/util/misc";
 import {
   DEFAULT_WIDTH,
@@ -24,7 +24,7 @@ import {
   drawEdge,
 } from "./math";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
-import { debounce, isEqual } from "lodash";
+import { debounce, cloneDeep, isEqual } from "lodash";
 
 function createId(): string {
   return uuid().slice(0, 8);
@@ -347,6 +347,20 @@ export class Actions extends BaseActions<State> {
     if (changed) {
       this.syncstring_commit();
     }
+  }
+
+  // Used for copy/paste, and maybe templates later.
+  // Inserts the given elements, moving them so the center
+  // of the rectangle spanned by all elements is the given
+  // center point, or (0,0) if not given.
+  insertElements(elements: Element[], center?: Point) {
+    elements = cloneDeep(elements); // we will mutate it a lot
+    console.log("insertElements", elements, center);
+    for (const element of elements) {
+      element.id = createId(); // todo
+      this.createElement(element, false);
+    }
+    this.syncstring_commit();
   }
 }
 

@@ -7,6 +7,7 @@ This is NOT an HTML5 canvas.  It has nothing do with that.   We define
 the canvas as the area where the actual drawing appears.
 */
 import {
+  ClipboardEvent,
   ReactNode,
   MutableRefObject,
   useEffect,
@@ -676,6 +677,38 @@ export default function Canvas({
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
+      onCopy={(event: ClipboardEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        const selectedElements =
+          selection == null
+            ? []
+            : elements.filter((element) => selection.has(element.id));
+        const encoded = window.btoa(
+          encodeURIComponent(JSON.stringify(selectedElements))
+        );
+        event.clipboardData.setData("application/x-cocalc-whiteboard", encoded);
+      }}
+      onPaste={
+        readOnly
+          ? undefined
+          : (event: ClipboardEvent<HTMLDivElement>) => {
+              const encoded = event.clipboardData.getData(
+                "application/x-cocalc-whiteboard"
+              );
+              if (encoded) {
+                // copy/paste between whiteboards of their own structued data
+                const pastedElements = JSON.parse(
+                  decodeURIComponent(window.atob(encoded))
+                );
+                frame.actions.insertElements(
+                  pastedElements,
+                  getCenterPosition() /* for now -- should also get where mouse is */
+                );
+              } else {
+                // nothing else implemented yet!
+              }
+            }
+      }
     >
       <div
         style={{
