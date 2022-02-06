@@ -13,8 +13,9 @@ import { Actions } from "../actions";
 import { BrushPreview } from "./pen";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { FONT_FACES as FONT_FAMILIES } from "@cocalc/frontend/editors/editor-button-bar";
-import { getPageSpan } from "../math";
+import { getPageSpan, rectSpan } from "../math";
 import { ConfigParams, TOOLS } from "./spec";
+import { copyToClipboard, pasteFromInternalClipboard } from "./clipboard";
 
 import {
   DEFAULT_FONT_SIZE,
@@ -82,10 +83,7 @@ function DeleteButton({ actions, elements }: ButtonProps) {
         style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
         type="text"
         onClick={() => {
-          for (const { id } of elements) {
-            actions.delete(id);
-          }
-          actions.syncstring_commit();
+          deleteElements(actions, elements);
         }}
       >
         <Icon name="trash" />
@@ -316,6 +314,7 @@ function OtherOperations({ actions, elements, allElements }) {
           }
           actions.syncstring_commit();
           actions.clearSelection(frame.id);
+          return;
         } else if (key == "send-to-back") {
           const { zMin } = getPageSpan(allElements);
           let z = zMin - 1;
@@ -326,11 +325,25 @@ function OtherOperations({ actions, elements, allElements }) {
           actions.syncstring_commit();
           actions.clearSelection(frame.id);
           return;
+        } else if (key == "copy") {
+          copyToClipboard(elements);
+        } else if (key == "duplicate") {
+          copyToClipboard(elements);
+          pasteElements(actions, elements, frame.id);
+        } else if (key == "cut") {
+          copyToClipboard(elements);
+          deleteElements(actions, elements);
+        } else if (key == "paste") {
+          pasteElements(actions, elements, frame.id);
         }
       }}
     >
       <Menu.Item key="bring-to-front">Bring to front</Menu.Item>
       <Menu.Item key="send-to-back">Send to back</Menu.Item>
+      <Menu.Item key="cut">Cut</Menu.Item>
+      <Menu.Item key="copy">Copy</Menu.Item>
+      <Menu.Item key="paste">Paste</Menu.Item>
+      <Menu.Item key="duplicate">Duplicate</Menu.Item>
     </Menu>
   );
 
@@ -385,4 +398,24 @@ function getCommonConfigParams(elements: Element[]): Set<ConfigParams> {
     if (params.size == 0) return params;
   }
   return params;
+}
+
+function deleteElements(actions, elements: Element[]) {
+  for (const { id } of elements) {
+    actions.delete(id, false);
+  }
+  actions.syncstring_commit();
+}
+
+function pasteElements(actions, elements: Element[], frameId?: string) {
+  // very limited, since you can't easily force paste
+  // from javascript...
+  const pastedElements = pasteFromInternalClipboard();
+  const { x, y, w, h } = rectSpan(elements);
+  const w2 = rectSpan(pastedElements).w;
+  const target = { x: x + w + 100 + w2 / 2, y: y + h / 2 };
+  const ids = actions.insertElements(pastedElements, target);
+  if (frameId) {
+    actions.setSelectionMulti(frameId, ids);
+  }
 }

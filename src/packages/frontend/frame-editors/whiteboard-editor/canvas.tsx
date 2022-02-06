@@ -47,6 +47,7 @@ import { noteParams } from "./tools/note";
 import { textParams } from "./tools/text";
 import { iconParams } from "./tools/icon";
 import { cmp } from "@cocalc/util/misc";
+import { encodeForCopy, decodeForPaste} from "./tools/clipboard";
 
 const penDPIFactor = 1; // I can't get this to work! :-(
 
@@ -685,9 +686,7 @@ export default function Canvas({
           selection == null
             ? []
             : elements.filter((element) => selection.has(element.id));
-        const encoded = window.btoa(
-          encodeURIComponent(JSON.stringify(selectedElements))
-        );
+        const encoded = encodeForCopy(selectedElements);
         event.clipboardData.setData("application/x-cocalc-whiteboard", encoded);
       }}
       onPaste={
@@ -699,9 +698,7 @@ export default function Canvas({
               );
               if (encoded) {
                 // copy/paste between whiteboards of their own structued data
-                const pastedElements = JSON.parse(
-                  decodeURIComponent(window.atob(encoded))
-                );
+                const pastedElements = decodeForPaste(encoded);
                 /* TODO: should also get where mouse is? */
                 const target = getCenterPosition();
                 const ids = frame.actions.insertElements(

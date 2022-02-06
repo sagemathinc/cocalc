@@ -89,7 +89,7 @@ export function getPageSpan(
 
 // Get the rectangle spanned by given rectangles.
 // Simpler version of getPageSpan above...
-function rectSpan(rects: Rect[]): Rect {
+export function rectSpan(rects: Rect[]): Rect {
   if (rects.length == 0) {
     return { x: 0, y: 0, w: DEFAULT_WIDTH, h: DEFAULT_HEIGHT };
   }
