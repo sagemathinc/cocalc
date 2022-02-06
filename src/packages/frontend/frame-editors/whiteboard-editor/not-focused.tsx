@@ -31,7 +31,6 @@ function onClick(readOnly, selectable, id, e, frame) {
   const edgeStart = frame.desc.get("edgeStart");
   if (edgeStart) {
     frame.actions.clearEdgeCreateStart(frame.id);
-    console.log("edge from ", edgeStart.toJS(), " to ", id);
     // I'm ignoring edgeStart.get('position') here until I get a sense
     // for cocalc if we want to automate and make manual where the edge
     // comes out, etc.  Maybe we want less user control for less cognitive load,

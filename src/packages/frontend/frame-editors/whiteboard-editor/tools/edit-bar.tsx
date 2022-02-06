@@ -400,7 +400,7 @@ function getCommonConfigParams(elements: Element[]): Set<ConfigParams> {
   return params;
 }
 
-function deleteElements(actions, elements: Element[]) {
+export function deleteElements(actions, elements: Element[]) {
   for (const { id } of elements) {
     actions.delete(id, false);
   }

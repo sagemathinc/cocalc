@@ -47,7 +47,8 @@ import { noteParams } from "./tools/note";
 import { textParams } from "./tools/text";
 import { iconParams } from "./tools/icon";
 import { cmp } from "@cocalc/util/misc";
-import { encodeForCopy, decodeForPaste} from "./tools/clipboard";
+import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
+import { deleteElements } from "./tools/edit-bar";
 
 const penDPIFactor = 1; // I can't get this to work! :-(
 
@@ -682,12 +683,16 @@ export default function Canvas({
       onTouchEnd={onTouchEnd}
       onCopy={(event: ClipboardEvent<HTMLDivElement>) => {
         event.preventDefault();
-        const selectedElements =
-          selection == null
-            ? []
-            : elements.filter((element) => selection.has(element.id));
+        const selectedElements = getSelectedElements({ elements, selection });
         const encoded = encodeForCopy(selectedElements);
         event.clipboardData.setData("application/x-cocalc-whiteboard", encoded);
+      }}
+      onCut={(event: ClipboardEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        const selectedElements = getSelectedElements({ elements, selection });
+        const encoded = encodeForCopy(selectedElements);
+        event.clipboardData.setData("application/x-cocalc-whiteboard", encoded);
+        deleteElements(frame.actions, selectedElements);
       }}
       onPaste={
         readOnly
@@ -859,4 +864,15 @@ function zIndexMap(elements: Element[]) {
 
 function windowToData({ transforms, canvasScale, point }) {
   return transforms.windowToData(point.x / canvasScale, point.y / canvasScale);
+}
+
+function getSelectedElements({
+  elements,
+  selection,
+}: {
+  elements: Element[];
+  selection?: Set<string>;
+}): Element[] {
+  if (!selection) return [];
+  return elements.filter((element) => selection.has(element.id));
 }
