@@ -78,7 +78,7 @@ export default function IconToolPanel() {
           }
         }}
       >
-        <IconPreview
+        <IconToolButton
           fontSize={fontSize}
           color={color}
           name={name}
@@ -142,7 +142,7 @@ export default function IconToolPanel() {
   );
 }
 
-function IconPreview({
+function IconToolButton({
   fontSize,
   name,
   color,
@@ -156,12 +156,8 @@ function IconPreview({
   return (
     <Popover
       placement="right"
-      title={`Name: ${name}` + (fontSize ? `, Font size: ${fontSize}px` : "")}
-      content={
-        <div style={{ textAlign: "center" }}>
-          <Icon name={name} style={{ color, fontSize }} />
-        </div>
-      }
+      title={`Name: ${name}` + (fontSize ? `, Size: ${fontSize}px` : "")}
+      content={<IconPreview name={name} fontSize={fontSize} color={color} />}
     >
       <div
         style={{
@@ -177,6 +173,22 @@ function IconPreview({
   );
 }
 
+function IconPreview({
+  name,
+  fontSize,
+  color,
+}: {
+  name: IconName;
+  fontSize?: number;
+  color?: string;
+}) {
+  return (
+    <div style={{ textAlign: "center" }}>
+      <Icon name={name} style={{ color, fontSize }} />
+    </div>
+  );
+}
+
 function IconParams({ color, fontSize, name, setColor, setFontSize, setName }) {
   return (
     <div
@@ -189,6 +201,7 @@ function IconParams({ color, fontSize, name, setColor, setFontSize, setName }) {
         margin: 0,
       }}
     >
+      <IconPreview name={name} fontSize={fontSize} color={color} />
       <div style={{ width: "100%", display: "flex" }}>
         <Slider
           value={fontSize ?? DEFAULT_FONT_SIZE}
@@ -199,12 +212,12 @@ function IconParams({ color, fontSize, name, setColor, setFontSize, setName }) {
           style={{ flex: "1" }}
         />
         <div style={{ marginLeft: "5px", fontSize: "9pt", paddingTop: "6px" }}>
-          Font size (px)
+          Size (px)
         </div>
       </div>
       <IconSelect
         onSelect={setName}
-        defaultSearch={name}
+        search={name}
         style={{
           maxWidth: "100%",
           marginBottom: "10px",

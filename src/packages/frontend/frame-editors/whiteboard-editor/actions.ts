@@ -232,7 +232,9 @@ export class Actions extends BaseActions<State> {
     this.set_frame_tree({
       id: frameId,
       selectedTool,
-      selectedToolHidePanel: node.get("selectedTool") == selectedTool,
+      selectedToolHidePanel:
+        node.get("selectedTool") == selectedTool &&
+        !node.get("selectedToolHidePanel"),
     });
   }
 

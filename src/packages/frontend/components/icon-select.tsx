@@ -6,17 +6,30 @@ the massive https://www.iconfont.cn/?lang=us
 
 import { Input } from "antd";
 import { Icon, iconNames, IconName } from "./icon";
-import { CSSProperties, useState } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 const { Search } = Input;
 
 interface Props {
   onSelect?: (name: IconName) => void;
   defaultSearch?: string;
+  search?: string;
   style?: CSSProperties;
 }
 
-export default function IconSelect({ onSelect, defaultSearch, style }: Props) {
-  const [search, setSearch] = useState<string>(defaultSearch ?? "");
+export default function IconSelect({
+  onSelect,
+  defaultSearch,
+  search: search0,
+  style,
+}: Props) {
+  const [search, setSearch] = useState<string>(search0 ?? defaultSearch ?? "");
+
+  useEffect(() => {
+    if (search0 != null) {
+      setSearch(search0);
+    }
+  }, [search0]);
+
   return (
     <div style={style}>
       <Search
