@@ -239,12 +239,14 @@ function FontFamily({ actions, elements }: ButtonProps) {
 
 export function SelectFontFamily({
   onChange,
+  value,
   defaultValue,
   size,
   style,
 }: {
   onChange?: (fontFamily: string) => void;
   defaultValue?: string;
+  value?: string;
   size?: any;
   style?: CSSProperties;
 }) {
@@ -266,6 +268,7 @@ export function SelectFontFamily({
       <Select
         style={style}
         size={size}
+        value={value}
         defaultValue={defaultValue}
         showSearch
         placeholder="Select a font"

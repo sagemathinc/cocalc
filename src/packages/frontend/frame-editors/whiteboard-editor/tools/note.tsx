@@ -3,7 +3,7 @@ The note config panel.
 */
 
 import { ReactNode, useState } from "react";
-import { Button, Popconfirm, Slider, Tooltip } from "antd";
+import { Button, Popconfirm, Popover, Slider, Tooltip } from "antd";
 import { PANEL_STYLE } from "./panel";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
@@ -55,7 +55,7 @@ export default function NoteToolPanel() {
         type="text"
         onClick={() => {
           if (id == selected) {
-            // show color selector
+            // show note config selector
             setParamControls(!paramControls);
           } else {
             // select this one
@@ -64,7 +64,7 @@ export default function NoteToolPanel() {
           }
         }}
       >
-        <NotePreview
+        <NoteToolButton
           fontSize={fontSize}
           fontFamily={fontFamily}
           color={color}
@@ -97,7 +97,7 @@ export default function NoteToolPanel() {
           <Icon style={{ color: "blue" }} name="note" />
         </Button>
       </Tooltip>
-      <div style={{ maxHeight: "50vh", overflowY: "scroll" }}>
+      <div style={{ maxHeight: "40vh", overflowY: "scroll" }}>
         {notePresets}
       </div>
       <ResetButton
@@ -134,7 +134,7 @@ export default function NoteToolPanel() {
   );
 }
 
-function NotePreview({
+function NoteToolButton({
   fontSize,
   fontFamily,
   color,
@@ -146,11 +146,14 @@ function NotePreview({
   borderColor?: string;
 }) {
   return (
-    <Tooltip
+    <Popover
       placement="right"
-      title={
-        `Font size: ${fontSize}px` +
-        (fontFamily ? `, Font family: ${fontFamily}` : "")
+      content={
+        <NotePreview
+          fontSize={fontSize}
+          fontFamily={fontFamily}
+          color={color}
+        />
       }
     >
       <div
@@ -169,7 +172,26 @@ function NotePreview({
       >
         A
       </div>
-    </Tooltip>
+    </Popover>
+  );
+}
+
+function NotePreview({ fontSize, fontFamily, color }) {
+  return (
+    <div
+      style={{
+        ...STYLE,
+        margin: "auto",
+        background: color,
+        width: "200px",
+        height: "125px",
+        fontSize: `${fontSize ?? DEFAULT_FONT_SIZE}px`,
+        fontFamily,
+        color: avatar_fontcolor(color),
+      }}
+    >
+      Note
+    </div>
   );
 }
 
@@ -192,6 +214,13 @@ function NoteParams({
         margin: 0,
       }}
     >
+      <div style={{ textAlign: "center" }}>
+        <NotePreview
+          fontSize={fontSize}
+          fontFamily={fontFamily}
+          color={color}
+        />
+      </div>
       <div style={{ width: "100%", display: "flex" }}>
         <Slider
           value={fontSize}
@@ -208,7 +237,7 @@ function NoteParams({
       <div style={{ width: "100%", display: "flex", marginBottom: "10px" }}>
         <SelectFontFamily
           onChange={setFontFamily}
-          defaultValue={fontFamily}
+          value={fontFamily}
           size="small"
           style={{ width: "70%", flex: 1 }}
         />
@@ -230,7 +259,7 @@ export function ResetButton({ onClick }) {
       >
         <Button
           type="text"
-          style={{ color: "#666", marginTop: "8px", paddingLeft: "4px" }}
+          style={{ color: "#666", margin: "auto", padding: "4px" }}
         >
           Reset
         </Button>
