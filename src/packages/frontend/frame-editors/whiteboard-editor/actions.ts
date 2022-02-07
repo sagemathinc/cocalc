@@ -45,8 +45,8 @@ export class Actions extends BaseActions<State> {
     this.updateEdges = debounce(this.updateEdgesNoDebounce.bind(this), 250);
     this.setState({});
     this._syncstring.on("change", (keys) => {
-      let elements = this.store.get("elements") ?? Map({});
-      const elements0 = elements;
+      const elements0 = this.store.get("elements");
+      let elements = elements0 ?? Map({});
       keys.forEach((key) => {
         const id = key.get("id");
         if (id) {
