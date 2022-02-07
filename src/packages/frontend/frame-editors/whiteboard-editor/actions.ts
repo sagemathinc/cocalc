@@ -29,7 +29,7 @@ import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { debounce, cloneDeep, isEqual } from "lodash";
 
 export interface State extends CodeEditorState {
-  elements: Elements;
+  elements?: Elements;
 }
 
 export class Actions extends BaseActions<State> {
@@ -43,9 +43,9 @@ export class Actions extends BaseActions<State> {
 
   _init2(): void {
     this.updateEdges = debounce(this.updateEdgesNoDebounce.bind(this), 250);
-    this.setState({ elements: Map({}) });
+    this.setState({});
     this._syncstring.on("change", (keys) => {
-      let elements = this.store.get("elements");
+      let elements = this.store.get("elements") ?? Map({});
       const elements0 = elements;
       keys.forEach((key) => {
         const id = key.get("id");
@@ -80,11 +80,11 @@ export class Actions extends BaseActions<State> {
   }
 
   private getPageSpan(margin: number = 0) {
-    const elements = this.store
+    const elements = (this.store
       .get("elements")
-      .valueSeq()
+      ?.valueSeq()
       .filter((x) => x != null)
-      .toJS() as Element[];
+      .toJS() ?? []) as Element[];
     return getPageSpan(elements, margin);
   }
 
@@ -272,6 +272,10 @@ export class Actions extends BaseActions<State> {
     this.set_frame_tree({ id, visibleWindowCenter: center });
   }
 
+  saveCenter(id: string, center: { x: number; y: number }) {
+    this.set_frame_tree({ id, center });
+  }
+
   // define this, so icon shows up at top
   zoom_page_width(id: string): void {
     this.fitToScreen(id);
@@ -293,6 +297,7 @@ export class Actions extends BaseActions<State> {
   // returns created element or null if from or to don't exist...
   createEdge(from: string, to: string): Element | undefined {
     const elements = this.store.get("elements");
+    if (elements == null) return;
     const fromElt = elements.get(from)?.toJS();
     const toElt = elements.get(to)?.toJS();
     if (fromElt == null || toElt == null) return;
@@ -313,6 +318,7 @@ export class Actions extends BaseActions<State> {
   updateEdges() {} // gets set to a debounced version.
   updateEdgesNoDebounce() {
     const elements = this.store.get("elements");
+    if (elements == null) return;
     let changed = false;
     for (const [id, element0] of elements) {
       if (element0?.get("type") !== "edge") continue;

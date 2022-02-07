@@ -153,7 +153,7 @@
     "underscore": "^1.12.1",
     "universal-cookie": "^4.0.2",
     "use-async-effect": "^2.2.2",
-    "use-debounce": "^3.4.2",
+    "use-debounce": "^7.0.1",
     "utility-types": "^3.10.0",
     "xss": "^1.0.9",
     "xterm": "^4.9.0",

@@ -5,6 +5,11 @@ in the whiteboard.
 This is NOT an HTML5 canvas.  It has nothing do with that.   We define
 "the whiteboard" as everything -- the controls, settings, etc. -- and
 the canvas as the area where the actual drawing appears.
+
+NOTE: This component assumes that when it is first mounted that elements
+is actually what it will be for the initial load, so that it can properly
+set the center position.  Do not create with elements=[], then the real
+elements.
 */
 import {
   ClipboardEvent,
@@ -39,7 +44,7 @@ import {
   compressPath,
   MAX_ELEMENTS,
 } from "./math";
-import { debounce, throttle } from "lodash";
+import { throttle } from "lodash";
 import Draggable from "react-draggable";
 import { clearCanvas, drawCurve } from "./elements/pen";
 import { penParams } from "./tools/pen";
@@ -49,6 +54,7 @@ import { iconParams } from "./tools/icon";
 import { cmp } from "@cocalc/util/misc";
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { deleteElements } from "./tools/edit-bar";
+import { useDebouncedCallback } from "use-debounce";
 
 const penDPIFactor = 1; // I can't get this to work! :-(
 
@@ -147,37 +153,35 @@ export default function Canvas({
   const frame = useFrameContext();
 
   // handle setting a center position for the visible window
+  const restoring = useRef<boolean>(true);
   useEffect(() => {
-    if (isNavigator) return;
+    if (isNavigator || restoring.current) return;
     const center = frame.desc.get("visibleWindowCenter")?.toJS();
     if (center == null) return;
     setCenterPosition(center.x, center.y);
   }, [frame.desc.get("visibleWindowCenter")]);
 
-  // save center position when unmounting, so can be restored later.
-  const centerPos = useRef<Point | null>(null);
-  const saveCenterPosition = isNavigator
-    ? () => {}
-    : debounce(() => {
-        const center = getCenterPosition();
-        if (center != null) {
-          centerPos.current = center;
-        }
-      }, 50);
   useEffect(() => {
     if (isNavigator) return;
-    return () => {
-      if (centerPos.current) {
-        const center = windowToData({
-          transforms,
-          canvasScale,
-          point: centerPos.current,
-        });
-        // set saves it...
-        frame.actions.setVisibleWindowCenter(frame.id, center);
-      }
-    };
+    const center = frame.desc.get("center")?.toJS();
+    if (center != null) {
+      setCenterPosition(center.x, center.y);
+    }
+    restoring.current = false;
   }, []);
+
+  // save center position, so can be restored later.
+  const saveCenterPosition = useDebouncedCallback(() => {
+    if (isNavigator || restoring.current) return;
+    const center = windowToData({
+      transforms,
+      canvasScale,
+      point: getCenterPosition(),
+    });
+    if (center != null) {
+      frame.actions.saveCenter(frame.id, center);
+    }
+  }, 200);
 
   function getPenParams() {
     return penParams(frame.desc.get("penId") ?? 0);
@@ -222,34 +226,6 @@ export default function Canvas({
     const scrollTopGoal = Math.floor(c.scrollTop + delta_y);
     c.scrollLeft = scrollLeftGoal;
     c.scrollTop = scrollTopGoal;
-    // Sometimes we need to do this again in the next render loop,
-    // due to grid needing to get rendered.
-    if (c.scrollLeft != scrollLeftGoal || c.scrollTop != scrollTopGoal) {
-      requestAnimationFrame(() => {
-        c.scrollLeft = scrollLeftGoal;
-        c.scrollTop = scrollTopGoal;
-      });
-    }
-    /*
-    // This is horrible, but useful for testing...
-    (async () => {
-      for (const d of [0, 100, 500, 1000]) {
-        if (c.scrollLeft == scrollLeftGoal && c.scrollTop == scrollTopGoal) {
-          return;
-        }
-        console.log(
-          d,
-          c.scrollLeft,
-          scrollLeftGoal,
-          c.scrollTop,
-          scrollTopGoal
-        );
-        await require("awaiting").delay(d);
-        c.scrollLeft = scrollLeftGoal;
-        c.scrollTop = scrollTopGoal;
-      }
-    })();
-    */
   }
 
   useEffect(() => {

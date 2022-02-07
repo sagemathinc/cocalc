@@ -31,11 +31,13 @@ export default function Whiteboard({
 
   const is_loaded = useEditor("is_loaded");
   const elements = useEditor("elements")
-    .valueSeq()
+    ?.valueSeq()
     .filter((x) => x != null)
     .toJS();
+  const selectedTool = desc.get("selectedTool") ?? "select";
+  const evtToDataRef = useRef<Function | null>(null);
 
-  if (!is_loaded) {
+  if (!is_loaded || elements == null) {
     return (
       <div
         style={{
@@ -49,9 +51,6 @@ export default function Whiteboard({
       </div>
     );
   }
-
-  const selectedTool = desc.get("selectedTool") ?? "select";
-  const evtToDataRef = useRef<Function | null>(null);
 
   return (
     <div className="smc-vfill" style={{ position: "relative" }}>
