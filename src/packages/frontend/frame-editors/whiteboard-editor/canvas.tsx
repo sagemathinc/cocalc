@@ -90,6 +90,10 @@ export default function Canvas({
   const transforms = getTransforms(elements, margin, canvasScale);
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
   const ignoreNextClick = useRef<boolean>(false);
+  // position of mouse right now not transformed in any way,
+  // just in case we need it. This is clientX, clientY off
+  // of the canvas div.
+  const mousePos = useRef<{ clientX: number; clientY: number } | null>(null);
 
   // this is in terms of window coords:
   const [selectRect, setSelectRect] = useState<{
@@ -603,6 +607,7 @@ export default function Canvas({
     onMouseUp(e.touches[0]);
   };
 
+  // convert from clientX,clientY to unscaled window coordinates,
   function getMousePos(e): { x: number; y: number } | undefined {
     const c = canvasRef.current;
     if (c == null) return;
@@ -615,6 +620,7 @@ export default function Canvas({
   }
 
   const onMouseMove = (e, touch = false) => {
+    mousePos.current = { clientX: e.clientX, clientY: e.clientY };
     if (mousePath.current == null) return;
     if (!touch && !e.buttons) {
       onMouseUp(e);
@@ -705,12 +711,25 @@ export default function Canvas({
                 // copy/paste between whiteboards of their own structued data
                 const pastedElements = decodeForPaste(encoded);
                 /* TODO: should also get where mouse is? */
-                const target = getCenterPosition();
+                let target: Point | undefined = undefined;
+                const pos = getMousePos(mousePos.current);
+                if (pos != null) {
+                  const { x, y } = pos;
+                  target = transforms.windowToData(x, y);
+                } else {
+                  const point = getCenterPosition();
+                  if (point != null) {
+                    target = windowToData({
+                      transforms,
+                      canvasScale,
+                      point,
+                    });
+                  }
+                }
+
                 const ids = frame.actions.insertElements(
                   pastedElements,
                   target
-                    ? windowToData({ transforms, canvasScale, point: target })
-                    : undefined
                 );
                 frame.actions.setSelectionMulti(frame.id, ids);
               } else {
