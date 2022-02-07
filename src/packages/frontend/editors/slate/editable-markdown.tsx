@@ -120,7 +120,7 @@ interface Props {
   font_size: number;
   read_only: boolean;
   value: string;
-  reload_images: boolean;
+  reload_images?: boolean; // I think this is used only to trigger an update
   is_current?: boolean;
   is_fullscreen?: boolean;
   editor_state?: EditorState;

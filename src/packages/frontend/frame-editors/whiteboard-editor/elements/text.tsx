@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Markdown } from "@cocalc/frontend/components";
 import { Input, Popover } from "antd";
 import { useFrameContext } from "../hooks";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Element } from "../types";
-import { path_split } from "@cocalc/util/misc";
+
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+// This import ensures that math rendering is loaded.
+import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 
 interface Props {
   element: Element;
@@ -21,9 +23,7 @@ export default function Text({ element, focused }: Props) {
 
   if (!focused) {
     return (
-      <Markdown
-        project_id={frame.project_id}
-        file_path={path_split(frame.path).head}
+      <StaticMarkdown
         value={element.str?.trim() ? element.str : "Type text"}
         style={getStyle(element)}
       />
@@ -57,9 +57,7 @@ export default function Text({ element, focused }: Props) {
         )}
         trigger="click"
       >
-        <Markdown
-          project_id={frame.project_id}
-          file_path={path_split(frame.path).head}
+        <StaticMarkdown
           style={getStyle(element)}
           value={value?.trim() ? value : "Type text"}
         />
