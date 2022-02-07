@@ -15,11 +15,10 @@ import { defaultRadius, minRadius, maxRadius } from "./defaults";
 // Standard 12 original sharpie colors
 //www.jennyscrayoncollection.com/2021/04/complete-list-of-sharpie-marker-colors.html
 export const COLORS = [
-  "#000",
+  "#252937",
   "#95067a",
   "#2b6855",
   "#53b79c",
-  "#252937",
   "#c1003c",
   "#82bc0e",
   "#009ac1",
@@ -29,6 +28,8 @@ export const COLORS = [
   "#002bdb",
   "#6a4acb",
 ];
+//export const COLORS = ["#000", "#f00", "#0f0", "#00f"];
+
 const RADS = [1, 7];
 
 const HIGHLIGHTER = -1;
@@ -196,16 +197,16 @@ export function BrushPreview({
         height: `${(maxRadius + 1) * 2}px`,
         borderRadius: `${maxRadius + 1}px`,
         background: "white",
-        border: `1px solid ${color ?? "#ccc"}`,
-        paddingLeft: `${maxRadius + 1 - radius - 1}px`,
-        paddingTop: `${maxRadius + 1 - radius - 1}px`,
+        border: `3px solid ${color ?? "#ccc"}`,
+        paddingLeft: `${maxRadius + 1 - radius - 3}px`,
+        paddingTop: `${maxRadius + 1 - radius - 3}px`,
       }}
     >
       <div
         style={{
-          width: `${radius * 2}px`,
-          height: `${radius * 2}px`,
-          borderRadius: `${radius}px`,
+          width: `${Math.min(radius, maxRadius - 2) * 2}px`,
+          height: `${Math.min(radius, maxRadius - 2) * 2}px`,
+          borderRadius: `${Math.min(radius, maxRadius - 2)}px`,
           background: color,
         }}
       ></div>
@@ -289,6 +290,8 @@ const key = "whiteboard-pen-presets";
 
 function kthPreset(k) {
   return {
+    //radius: RADS[Math.floor(k / COLORS.length) % RADS.length],
+    //color: COLORS[k % COLORS.length] ?? "#000",
     radius: RADS[k % RADS.length],
     color: COLORS[Math.floor(k / RADS.length) % COLORS.length] ?? "#000",
   };

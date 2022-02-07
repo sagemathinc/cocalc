@@ -148,6 +148,7 @@ function TextToolButton({
           height: "25px",
           fontSize: "14px",
           fontFamily,
+          fontWeight: "bold",
           color,
         }}
       >

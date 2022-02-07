@@ -99,7 +99,7 @@ export function drawCurve({
     ctx.globalAlpha = opacity;
   }
 
-  ctx.lineWidth = radius;
+  ctx.lineWidth = 2*radius;
 
   let p1 = path[0];
   let p2 = path[1];
