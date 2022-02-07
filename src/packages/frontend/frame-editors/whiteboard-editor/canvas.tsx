@@ -39,7 +39,7 @@ import {
   compressPath,
   MAX_ELEMENTS,
 } from "./math";
-import { throttle } from "lodash";
+import { debounce, throttle } from "lodash";
 import Draggable from "react-draggable";
 import { clearCanvas, drawCurve } from "./elements/pen";
 import { penParams } from "./tools/pen";
@@ -149,10 +149,35 @@ export default function Canvas({
   // handle setting a center position for the visible window
   useEffect(() => {
     if (isNavigator) return;
-    const ctr = frame.desc.get("visibleWindowCenter")?.toJS();
-    if (ctr == null) return;
-    setCenterPosition(ctr.x, ctr.y);
+    const center = frame.desc.get("visibleWindowCenter")?.toJS();
+    if (center == null) return;
+    setCenterPosition(center.x, center.y);
   }, [frame.desc.get("visibleWindowCenter")]);
+
+  // save center position when unmounting, so can be restored later.
+  const centerPos = useRef<Point | null>(null);
+  const saveCenterPosition = isNavigator
+    ? () => {}
+    : debounce(() => {
+        const center = getCenterPosition();
+        if (center != null) {
+          centerPos.current = center;
+        }
+      }, 50);
+  useEffect(() => {
+    if (isNavigator) return;
+    return () => {
+      if (centerPos.current) {
+        const center = windowToData({
+          transforms,
+          canvasScale,
+          point: centerPos.current,
+        });
+        // set saves it...
+        frame.actions.setVisibleWindowCenter(frame.id, center);
+      }
+    };
+  }, []);
 
   function getPenParams() {
     return penParams(frame.desc.get("penId") ?? 0);
@@ -193,8 +218,38 @@ export default function Canvas({
     const delta_y = t.y - cur.y;
     const c = canvasRef.current;
     if (c == null) return;
-    c.scrollLeft += delta_x;
-    c.scrollTop += delta_y;
+    const scrollLeftGoal = Math.floor(c.scrollLeft + delta_x);
+    const scrollTopGoal = Math.floor(c.scrollTop + delta_y);
+    c.scrollLeft = scrollLeftGoal;
+    c.scrollTop = scrollTopGoal;
+    // Sometimes we need to do this again in the next render loop,
+    // due to grid needing to get rendered.
+    if (c.scrollLeft != scrollLeftGoal || c.scrollTop != scrollTopGoal) {
+      requestAnimationFrame(() => {
+        c.scrollLeft = scrollLeftGoal;
+        c.scrollTop = scrollTopGoal;
+      });
+    }
+    /*
+    // This is horrible, but useful for testing...
+    (async () => {
+      for (const d of [0, 100, 500, 1000]) {
+        if (c.scrollLeft == scrollLeftGoal && c.scrollTop == scrollTopGoal) {
+          return;
+        }
+        console.log(
+          d,
+          c.scrollLeft,
+          scrollLeftGoal,
+          c.scrollTop,
+          scrollTopGoal
+        );
+        await require("awaiting").delay(d);
+        c.scrollLeft = scrollLeftGoal;
+        c.scrollTop = scrollTopGoal;
+      }
+    })();
+    */
   }
 
   useEffect(() => {
@@ -680,6 +735,7 @@ export default function Canvas({
       }}
       onScroll={() => {
         updateVisibleWindow();
+        saveCenterPosition();
       }}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
