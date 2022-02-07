@@ -29,6 +29,7 @@ salvus = None  # set externally
 
 
 class JUPYTER(object):
+
     def __call__(self, kernel_name, **kwargs):
         if kernel_name.startswith('sage'):
             raise ValueError(
@@ -109,6 +110,8 @@ def _jkmagic(kernel_name, **kwargs):
     # CRITICAL: We import these here rather than at module scope, since they can take nearly a second
     # i CPU time to import.
     import jupyter_client  # TIMING: takes a bit of time
+    # version 6 to 7 has API changes
+    jupyter_client_version = int(jupyter_client.__version__.split('.')[0])
     from ansi2html import Ansi2HTMLConverter  # TIMING: this is surprisingly bad.
     from six.moves.queue import Empty  # TIMING: cheap
     import base64, tempfile, sys, re  # TIMING: cheap
@@ -119,8 +122,13 @@ def _jkmagic(kernel_name, **kwargs):
         warnings.simplefilter("ignore", DeprecationWarning)
         km, kc = jupyter_client.manager.start_new_kernel(
             kernel_name=kernel_name)
+        if jupyter_client_version >= 7:
+            # https://github.com/jupyter/jupyter_client/blob/main/jupyter_client/provisioning/local_provisioner.py
+            kernel_pid = km.provisioner.pid
+        else:
+            kernel_pid = km.kernel.pid
         import sage.interfaces.cleaner
-        sage.interfaces.cleaner.cleaner(km.kernel.pid, "km.kernel.pid")
+        sage.interfaces.cleaner.cleaner(kernel_pid, "km.kernel.pid")
         import atexit
         atexit.register(km.shutdown_kernel)
         atexit.register(kc.hb_channel.close)
@@ -163,6 +171,7 @@ def _jkmagic(kernel_name, **kwargs):
                 sys.stdout.flush()
 
     def run_code(code=None, **kwargs):
+
         def p(*args):
             from smc_sagews.sage_server import log
             if run_code.debug:
