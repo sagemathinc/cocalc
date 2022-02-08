@@ -1,3 +1,4 @@
+import { CSSProperties } from "react";
 import Text from "./text";
 import { DEFAULT_NOTE } from "../tools/note";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
@@ -9,10 +10,10 @@ export const STYLE = {
   width: "100%",
   height: "100%",
   border: "1px solid lightgrey",
-  overflow: "hidden",
-};
+  overflowY: "auto",
+} as CSSProperties;
 
-export default function Note({ element, focused }) {
+export default function Note({ element, focused, canvasScale }) {
   // TODO: also use white color in some cases for text.
   const data = {
     ...element.data,
@@ -25,7 +26,11 @@ export default function Note({ element, focused }) {
         background: element.data?.color ?? DEFAULT_NOTE.color,
       }}
     >
-      <Text element={{ ...element, data }} focused={focused} />
+      <Text
+        element={{ ...element, data }}
+        focused={focused}
+        canvasScale={canvasScale}
+      />
     </div>
   );
 }

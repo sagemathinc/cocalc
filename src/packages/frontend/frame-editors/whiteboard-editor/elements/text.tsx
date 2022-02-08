@@ -1,67 +1,76 @@
 import { useEffect, useState } from "react";
-import { Input, Popover } from "antd";
 import { useFrameContext } from "../hooks";
-import { Icon } from "@cocalc/frontend/components/icon";
 import { Element } from "../types";
+import { DEFAULT_FONT_SIZE } from "../tools/defaults";
 
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 // This import ensures that math rendering is loaded.
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
+import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
 
 interface Props {
   element: Element;
   focused?: boolean;
+  canvasScale: number;
 }
 
-export default function Text({ element, focused }: Props) {
+export default function Text({ element, focused, canvasScale }: Props) {
   const [value, setValue] = useState<string>(element.str ?? "");
-  const frame = useFrameContext();
+  const { actions } = useFrameContext();
   useEffect(() => {
     // should really be a 3-way merge...
     setValue(element.str ?? "");
   }, [element.str]);
+  useEffect(() => {
+    return () => {
+      // unmounting, so save
+      console.log("unmounting, so need to save if editing...");
+      //actions.setElement({ id: element.id, str: value });
+    };
+  }, []);
+
+  const style = getStyle(element);
 
   if (!focused) {
     return (
       <StaticMarkdown
         value={element.str?.trim() ? element.str : "Type text"}
-        style={getStyle(element)}
+        style={style}
       />
     );
   }
 
   return (
-    <div>
-      <Popover
-        placement={"left" as "left"}
-        title={
-          <>
-            <Icon name="markdown" style={{ marginRight: "5px" }} /> Text
-          </>
-        }
-        content={() => (
-          <div style={{ width: "600px", maxWidth: "70vw" }} className="nodrag">
-            <Input.TextArea
-              autoFocus
-              value={value}
-              rows={4}
-              onChange={(e) => {
-                // TODO: need to also save changes (like with onBlur below), but debounced.
-                setValue(e.target.value);
-              }}
-              onBlur={() => {
-                frame.actions.setElement({ id: element.id, str: value });
-              }}
-            />
-          </div>
-        )}
-        trigger="click"
-      >
-        <StaticMarkdown
-          style={getStyle(element)}
-          value={value?.trim() ? value : "Type text"}
-        />
-      </Popover>
+    <div style={{ ...style, height: "100%" }} className="nodrag">
+      <EditableMarkdown
+        is_current={true}
+        value={value}
+        hidePath
+        disableWindowing
+        font_size={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
+        style={{ background: undefined, backgroundColor: undefined }}
+        pageStyle={{ background: undefined, padding: 0 }}
+        editBarStyle={{
+          top: `${-35 - 5 / canvasScale}px`,
+          left: "5px",
+          position: "absolute",
+          border: "1px solid #ccc",
+          borderRadius: "3px",
+          boxShadow: "1px 3px 5px #ccc",
+          margin: "5px",
+          minWidth: "500px",
+          overflow: "hidden",
+          background: "white",
+          transform: `scale(${1 / canvasScale})`,
+          transformOrigin: "bottom left",
+          fontFamily: "sans-serif",
+        }}
+        actions={{
+          set_value: (str) => {
+            actions.setElement({ id: element.id, str });
+          },
+        }}
+      />
     </div>
   );
 }

@@ -72,6 +72,8 @@ export type { SlateEditor };
 // including subtle issues with selection, scroll state, etc.
 // IMPORTANT: Do not set this to false unless you want to make
 // slate editing **basically unusable** at scale beyond a few pages!!
+// This is the default and the component can be explicitly created
+// with a windowing disabled.
 const USE_WINDOWING = true;
 
 // Why window?  Unfortunately, due to how slate is designed, actually editing
@@ -98,8 +100,8 @@ const STYLE = {
 } as CSS;
 
 interface Props {
-  actions: Actions;
   value: string;
+  actions?: Actions;
   read_only?: boolean;
   font_size?: number;
   id?: string;
@@ -108,11 +110,16 @@ interface Props {
   is_fullscreen?: boolean;
   editor_state?: EditorState;
   cursors?: Map<string, any>;
+  hidePath?: boolean;
+  disableWindowing?: boolean;
+  style?: CSS;
+  pageStyle?: CSS;
+  editBarStyle?: CSS;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
   ({
-    actions,
+    actions: actions0,
     id: id0,
     read_only,
     value,
@@ -121,10 +128,19 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     is_fullscreen,
     editor_state,
     cursors,
+    hidePath,
+    disableWindowing,
+    style,
+    pageStyle,
+    editBarStyle,
   }) => {
+    if (disableWindowing == null) {
+      disableWindowing = !USE_WINDOWING;
+    }
     const { project_id, path, desc } = useFrameContext();
     const isMountedRef = useIsMountedRef();
     const id = id0 ?? "";
+    const actions = actions0 ?? {};
     const font_size = font_size0 ?? desc.get("font_size") ?? 14; // so possible to use without specifying this.  TODO: should be from account settings
 
     const editor = useMemo(() => {
@@ -225,7 +241,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const updateWindowedScrollState = useMemo(
       () =>
         debounce(() => {
-          if (!USE_WINDOWING || actions.save_editor_state == null) return;
+          if (disableWindowing || actions.save_editor_state == null) return;
           const scroll =
             editor.windowedListRef.current?.render_info?.visibleStartIndex;
           if (scroll != null) {
@@ -257,7 +273,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       if (scroll == null) return;
 
       // First test for windowing support
-      if (USE_WINDOWING) {
+      if (!disableWindowing) {
         await new Promise(requestAnimationFrame);
         // Standard embarassing hacks due to waiting to load and measure cells...
         editor.windowedListRef.current?.scrollToItem(scroll, "start");
@@ -522,7 +538,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     let slate = (
       <Slate editor={editor} value={editorValue} onChange={onChange}>
         <Editable
-          className={USE_WINDOWING ? "smc-vfill" : undefined}
+          className={!disableWindowing ? "smc-vfill" : undefined}
           readOnly={read_only}
           renderElement={Element}
           renderLeaf={Leaf}
@@ -535,10 +551,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           decorate={cursorDecorate}
           divref={scrollRef}
           onScroll={
-            USE_WINDOWING ? updateWindowedScrollState : updateScrollState
+            !disableWindowing ? updateWindowedScrollState : updateScrollState
           }
           style={
-            USE_WINDOWING
+            !disableWindowing
               ? undefined
               : {
                   position: "relative", // CRITICAL!!! Without this, editor will sometimes scroll the entire frame off the screen.  Do NOT delete position:'relative'.  5+ hours of work to figure this out!  Note that this isn't needed when using windowing above.
@@ -547,10 +563,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
                   background: "white",
                   overflow:
                     "auto" /* for this overflow, see https://github.com/ianstormtaylor/slate/issues/3706 */,
+                  ...pageStyle,
                 }
           }
           windowing={
-            USE_WINDOWING
+            !disableWindowing
               ? {
                   rowStyle: {
                     padding: "0 70px",
@@ -571,9 +588,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     let body = (
       <div
         className="smc-vfill"
-        style={{ overflow: "auto", backgroundColor: "white" }}
+        style={{ overflow: "auto", backgroundColor: "white", ...style }}
       >
-        <Path is_current={is_current} path={path} project_id={project_id} />
+        {!hidePath && (
+          <Path is_current={is_current} path={path} project_id={project_id} />
+        )}
         <EditBar
           Search={search.Search}
           isCurrent={is_current}
@@ -581,6 +600,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           linkURL={linkURL}
           listProperties={listProperties}
           editor={editor}
+          style={editBarStyle}
         />
         <div
           className="smc-vfill"

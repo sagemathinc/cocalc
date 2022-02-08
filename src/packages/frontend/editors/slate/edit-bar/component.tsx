@@ -19,6 +19,7 @@ interface Props {
   linkURL: string | undefined;
   listProperties: ListProperties | undefined;
   editor: SlateEditor;
+  style?: React.CSSProperties;
 }
 
 const HEIGHT = "25px";
@@ -30,6 +31,7 @@ export const EditBar: React.FC<Props> = ({
   linkURL,
   listProperties,
   editor,
+  style,
 }) => {
   function renderContent() {
     return (
@@ -51,6 +53,7 @@ export const EditBar: React.FC<Props> = ({
         height: HEIGHT,
         display: "flex",
         flexDirection: "row",
+        ...style,
       }}
     >
       {isCurrent && renderContent()}
