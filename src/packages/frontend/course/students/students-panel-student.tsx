@@ -211,7 +211,7 @@ export const Student: React.FC<StudentProps> = React.memo(
     }
 
     function render_last_active() {
-      if (hasAccount) {
+      if (!hasAccount) {
         return (
           <span style={{ color: "#666" }}>(has not created account yet)</span>
         );
