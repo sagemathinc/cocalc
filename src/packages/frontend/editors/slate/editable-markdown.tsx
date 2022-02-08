@@ -115,6 +115,8 @@ interface Props {
   style?: CSS;
   pageStyle?: CSS;
   editBarStyle?: CSS;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -133,6 +135,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     style,
     pageStyle,
     editBarStyle,
+    onFocus,
+    onBlur,
   }) => {
     if (disableWindowing == null) {
       disableWindowing = !USE_WINDOWING;
@@ -546,8 +550,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           onBlur={() => {
             editor.saveValue();
             updateMarks();
+            onBlur?.();
           }}
-          onFocus={updateMarks}
+          onFocus={() => {
+            updateMarks();
+            onFocus?.();
+          }}
           decorate={cursorDecorate}
           divref={scrollRef}
           onScroll={

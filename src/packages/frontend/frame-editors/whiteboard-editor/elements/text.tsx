@@ -16,6 +16,7 @@ interface Props {
 
 export default function Text({ element, focused, canvasScale }: Props) {
   const [value, setValue] = useState<string>(element.str ?? "");
+  const [editFocus, setEditFocus] = useState<boolean>(false);
   const { actions } = useFrameContext();
   useEffect(() => {
     // should really be a 3-way merge...
@@ -41,8 +42,13 @@ export default function Text({ element, focused, canvasScale }: Props) {
   }
 
   return (
-    <div style={{ ...style, height: "100%" }} className="nodrag">
+    <div
+      style={{ ...style, height: "100%" }}
+      className={editFocus ? "nodrag" : undefined}
+    >
       <EditableMarkdown
+        onFocus={() => setEditFocus(true)}
+        onBlur={() => setEditFocus(false)}
         is_current={true}
         value={value}
         hidePath
