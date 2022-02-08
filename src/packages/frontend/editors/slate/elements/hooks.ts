@@ -10,11 +10,9 @@ import {
   useEffect,
   useFrameContext,
   useRef,
-  useActions as useReduxActions,
 } from "@cocalc/frontend/app-framework";
 import { Range } from "slate";
 import { path_split } from "@cocalc/util/misc";
-import { Actions } from "@cocalc/frontend/frame-editors/markdown-editor/actions";
 import {
   useSlate as useSlate0,
   useSlateStatic as useSlateStatic0,
@@ -54,12 +52,3 @@ export const useProcessLinks = (deps?) => {
   }, deps);
   return ref;
 };
-
-// The actions for the ambient markdown editor; we just hang this
-// on the useSlate context.  The right way is to write our own
-// context-based useActions hook of course, which would be useful
-// all over the place!
-export function useActions(): Actions {
-  const { project_id, path } = useFrameContext();
-  return useReduxActions(project_id, path);
-}

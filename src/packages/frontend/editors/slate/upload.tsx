@@ -5,12 +5,13 @@
 
 import { Transforms } from "slate";
 import { SlateEditor } from "./editable-markdown";
-import { useActions, useRef } from "@cocalc/frontend/app-framework";
+import { useRef } from "react";
 import { Dropzone, FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { join } from "path";
 import { aux_file, path_split } from "@cocalc/util/misc";
 const AUX_FILE_EXT = "upload";
 import { getFocus } from "./format/commands";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 export const withUpload = (editor: SlateEditor) => {
   const { insertData } = editor;
@@ -54,7 +55,7 @@ export function useUpload(
 ): JSX.Element {
   const dropzoneRef = useRef<Dropzone>(null);
   editor.dropzoneRef = dropzoneRef;
-  const actions = useActions(project_id, path);
+  const { actions } = useFrameContext();
 
   const updloadEventHandlers = {
     sending: ({ name }) => {

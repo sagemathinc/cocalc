@@ -8,9 +8,9 @@
 const EXPENSIVE_DEBUG = false; // EXTRA SLOW -- turn off before release!
 
 import { Map } from "immutable";
-
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
-import { createEditor, Descendant, Range, Transforms } from "slate";
+import { createEditor, Descendant, Transforms } from "slate";
 import { withFix4131, withNonfatalRange } from "./patches";
 import { Slate, ReactEditor, Editable, withReact } from "./slate-react";
 import { debounce, isEqual } from "lodash";
@@ -24,7 +24,7 @@ import {
   useState,
   useIsMountedRef,
 } from "@cocalc/frontend/app-framework";
-import { Actions } from "@cocalc/frontend/frame-editors/markdown-editor/actions";
+import { Actions } from "./types";
 
 import { Path } from "@cocalc/frontend/frame-editors/frame-tree/path";
 import { slate_to_markdown } from "./slate-to-markdown";
@@ -62,23 +62,8 @@ import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/con
 
 import { delay } from "awaiting";
 
-export interface SlateEditor extends ReactEditor {
-  ignoreNextOnChange?: boolean;
-  syncCausedUpdate?: boolean;
-  saveValue: (force?) => void;
-  dropzoneRef?: any;
-  applyingOperations?: boolean;
-  lastSelection?: Range;
-  curSelection?: Range;
-  inverseSearch: (boolean?) => Promise<void>;
-  hasUnsavedChanges?: boolean;
-  markdownValue?: string;
-  getMarkdownValue: () => string;
-  getPlainValue: () => string;
-  getSourceValue: (fragment?) => string;
-  syncCache?: any;
-  search: SearchHook;
-}
+import type { SlateEditor } from "./types";
+export type { SlateEditor };
 
 // Whether or not to use windowing (=only rendering visible elements).
 // I'm going to disable this by default (for production
@@ -114,37 +99,36 @@ const STYLE = {
 
 interface Props {
   actions: Actions;
-  id: string;
-  path: string;
-  project_id: string;
-  font_size: number;
-  read_only: boolean;
   value: string;
+  read_only?: boolean;
+  font_size?: number;
+  id?: string;
   reload_images?: boolean; // I think this is used only to trigger an update
   is_current?: boolean;
   is_fullscreen?: boolean;
   editor_state?: EditorState;
-  cursors: Map<string, any>;
+  cursors?: Map<string, any>;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
   ({
     actions,
-    id,
-    font_size,
+    id: id0,
     read_only,
     value,
-    project_id,
-    path,
+    font_size: font_size0,
     is_current,
     is_fullscreen,
     editor_state,
     cursors,
   }) => {
+    const { project_id, path, desc } = useFrameContext();
     const isMountedRef = useIsMountedRef();
+    const id = id0 ?? "";
+    const font_size = font_size0 ?? desc.get("font_size") ?? 14; // so possible to use without specifying this.  TODO: should be from account settings
 
     const editor = useMemo(() => {
-      const cur = actions.getSlateEditor(id);
+      const cur = actions.getSlateEditor?.(id);
       if (cur != null) return cur;
       const ed = withNonfatalRange(
         withFix4131(
@@ -159,7 +143,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           )
         )
       ) as SlateEditor;
-      actions.registerSlateEditor(id, ed);
+      actions.registerSlateEditor?.(id, ed);
 
       ed.getSourceValue = (fragment?) => {
         return fragment ? slate_to_markdown(fragment) : ed.getMarkdownValue();
@@ -190,7 +174,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         editor.hasUnsavedChanges = false;
         setSyncstringFromSlate();
 
-        actions.ensure_syncstring_is_saved();
+        actions.ensure_syncstring_is_saved?.();
       };
 
       ed.syncCache = {};
@@ -229,6 +213,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const updateScrollState = useMemo(
       () =>
         debounce(() => {
+          if (actions.save_editor_state == null) return;
           const scroll = scrollRef.current?.scrollTop;
           if (scroll != null) {
             actions.save_editor_state(id, { scroll });
@@ -240,7 +225,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const updateWindowedScrollState = useMemo(
       () =>
         debounce(() => {
-          if (!USE_WINDOWING) return;
+          if (!USE_WINDOWING || actions.save_editor_state == null) return;
           const scroll =
             editor.windowedListRef.current?.render_info?.visibleStartIndex;
           if (scroll != null) {
@@ -252,8 +237,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
 
     const broadcastCursors = useBroadcastCursors({
       editor,
-      broadcastCursors: (x) => actions.set_cursor_locs(x),
+      broadcastCursors: (x) => actions.set_cursor_locs?.(x),
     });
+
     const cursorDecorate = useCursorDecorate({
       editor,
       cursors,
@@ -304,6 +290,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, [value]);
 
     function setSyncstringFromSlate() {
+      if (actions.set_value == null) return;
       const v = editor.getMarkdownValue();
       actions.set_value(v);
     }
@@ -350,7 +337,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           // an unsaved change, so save state.
           editor.hasUnsavedChanges = false;
           setSyncstringFromSlate();
-          actions.ensure_syncstring_is_saved();
+          actions.ensure_syncstring_is_saved?.();
         }
       }
     }, [is_current]);
@@ -367,8 +354,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           setSyncstringFromSlate();
         }
       }
-      actions.get_syncstring().on("before-change", before_change);
-      return () => actions.get_syncstring().off("before-change", before_change);
+      actions.get_syncstring?.().on("before-change", before_change);
+      return () =>
+        actions.get_syncstring?.().off("before-change", before_change);
     }, []);
 
     useEffect(() => {
@@ -436,7 +424,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     ): Promise<void> {
       if (
         !force &&
-        (is_fullscreen || !actions.get_matching_frame({ type: "cm" }))
+        (is_fullscreen || !actions.get_matching_frame?.({ type: "cm" }))
       ) {
         // - if user is fullscreen assume they just want to WYSIWYG edit
         // and double click is to select.  They can use sync button to
@@ -460,7 +448,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
       }
       const pos = slatePointToMarkdownPosition(editor, point);
       if (pos == null) return;
-      actions.programmatical_goto_line(
+      actions.programmatical_goto_line?.(
         pos.line + 1, // 1 based (TODO: could use codemirror option)
         true,
         false, // it is REALLY annoying to switch focus to be honest, e.g., because double click to select a word is common in WYSIWYG editing.  If change this to true, make sure to put an extra always 50ms delay above due to focus even order.

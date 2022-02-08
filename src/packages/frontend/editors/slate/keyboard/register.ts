@@ -8,7 +8,7 @@
 export { IS_MACOS } from "@cocalc/frontend/feature";
 
 import { SlateEditor } from "../editable-markdown";
-import { Actions } from "@cocalc/frontend/frame-editors/markdown-editor/actions";
+import { Actions } from "../types";
 import { SearchHook } from "../search";
 
 interface Key {
