@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
-import { Input } from "antd";
+//import { useEffect, useState } from "react";
+//import { Input } from "antd";
+//import { Markdown } from "@cocalc/frontend/components";
 import { useFrameContext } from "../hooks";
 import { Element } from "../types";
-import { Markdown } from "@cocalc/frontend/components";
+import { Cell } from "@cocalc/frontend/jupyter/cell";
+import { redux } from "@cocalc/frontend/app-framework";
+import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
+import { aux_file } from "@cocalc/util/misc";
 
 interface Props {
   element: Element;
@@ -10,6 +14,40 @@ interface Props {
 }
 
 export default function Code({ element, focused }: Props) {
+  const { project_id, path } = useFrameContext();
+  const aux_path = aux_file(path, "ipynb");
+  const actions = redux.getEditorActions(project_id, aux_path) as
+    | JupyterEditorActions
+    | undefined;
+  if (actions == null) {
+    return <div>TODO</div>;
+  }
+  const store = actions.jupyter_actions.store;
+  const id = element.str ?? "todo";
+  const cell = store.get("cells").get(id);
+  if (cell == null) {
+    return <div>Create cell '{id}'</div>;
+  }
+  const cm_options = store.get("cm_options");
+  const style = {
+    fontSize: `${element.data?.fontSize}px`,
+    borderLeft: element.data?.color
+      ? `5px solid ${element.data?.color}`
+      : undefined,
+  };
+
+  return (
+    <div style={style}>
+      <Cell
+        cell={cell}
+        cm_options={cm_options}
+        mode="edit"
+        font_size={element.data?.fontSize ?? 14}
+        project_id={project_id}
+      />
+    </div>
+  );
+  /*
   const [value, setValue] = useState<string>(element.str ?? "");
   const frame = useFrameContext();
 
@@ -57,5 +95,5 @@ export default function Code({ element, focused }: Props) {
         frame.actions.setElement({ id: element.id, str: value });
       }}
     />
-  );
+  );*/
 }

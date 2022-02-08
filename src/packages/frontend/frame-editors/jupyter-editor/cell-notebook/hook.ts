@@ -8,6 +8,6 @@ export default function useNotebookFrameActions() {
   const ref = useRef<NotebookFrameActions | undefined>(undefined);
   ref.current = (
     frameContext.actions as JupyterEditorActions
-  ).get_frame_actions(frameContext.id);
+  ).get_frame_actions?.(frameContext.id);
   return ref;
 }
