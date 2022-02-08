@@ -15,7 +15,7 @@ import { should_load_target_url } from "./misc";
 import { AppRedux } from "./app-framework";
 import { COCALC_MINIMAL } from "./fullscreen";
 import { callback2 } from "@cocalc/util/async-utils";
-import * as LS from "./misc/local-storage";
+import * as LS from "./misc/local-storage-typed";
 import { bind_methods } from "@cocalc/util/misc";
 import { target } from "@cocalc/frontend/client/handle-hash-url";
 import { load_target } from "./history";

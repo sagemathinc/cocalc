@@ -157,14 +157,17 @@ async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
     // now we have to create the product.
     const metadata = getProductMetadata(info) as any; // avoid dealing with TS typings for metadata for now.
     const name = getProductName(info);
-    let statement_descriptor = "COCALC LICENSE ";
+    let statement_descriptor = "COCALC LIC ";
     if (info.subscription != "no") {
       statement_descriptor += "SUB";
     } else {
       const n = getDays(info);
-      // n<100 logic to fit in 22 characters
       statement_descriptor += `${n}${n < 100 ? " " : ""}DAYS`;
     }
+    // Hard limit of 22 characters.  Deleting part of "DAYS" is ok, as
+    // this is for credit card, and just having "COCALC" is mainly what is needed.
+    // See https://github.com/sagemathinc/cocalc/issues/5712
+    statement_descriptor = statement_descriptor.slice(0, 22);
     const conn = await getConn();
     await conn.products.create({
       id: product_id,

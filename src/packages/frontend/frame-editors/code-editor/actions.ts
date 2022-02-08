@@ -26,7 +26,7 @@ import {
 } from "../generic/client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { SyncString } from "@cocalc/sync/editor/string";
-import { aux_file } from "../frame-tree/util";
+import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension, history_path, len, uuid } from "@cocalc/util/misc";
 import { print_code } from "../frame-tree/print-code";
@@ -60,7 +60,7 @@ import {
   set_local_storage,
   get_local_storage,
   delete_local_storage,
-} from "@cocalc/util/misc";
+} from "@cocalc/frontend/misc/local-storage";
 
 import {
   ext2syntax,
@@ -374,7 +374,7 @@ export class Actions<
       path: aux,
       primary_keys,
       string_cols,
-      file_use_interval: 0, // disable file use,, since syncdb is an auxiliary file
+      file_use_interval: 0, // disable file use, since syncdb is an auxiliary file
     });
     this._syncdb.once("error", (err) => {
       this.set_error(
@@ -518,7 +518,7 @@ export class Actions<
     let local_view_state;
     const x = get_local_storage(this.name);
     if (x != null) {
-      local_view_state = fromJS(JSON.parse(x));
+      local_view_state = typeof x === "string" ? fromJS(JSON.parse(x)) : x;
     }
     if (local_view_state == null) {
       local_view_state = Map();
@@ -598,8 +598,8 @@ export class Actions<
   }
 
   // Set which frame is active (unless setting is blocked).
-  // Raises an exception if try to set an active_id, and there is no
-  // leaf with that id.  If ignore_if_missing is true, then don't raise exception.
+  // Writes a warning to the console log if try to set an active_id, and there is no
+  // leaf with that id.  If ignore_if_missing is true, then don't write warning.
   // If a different frame is maximized, switch out of maximized mode.
   public set_active_id(active_id: string, ignore_if_missing?: boolean): void {
     // Set the active_id, if necessary.
@@ -611,7 +611,8 @@ export class Actions<
 
     if (!this._is_leaf_id(active_id)) {
       if (ignore_if_missing) return;
-      throw Error(`set_active_id - no leaf with id "${active_id}"`);
+      console.warn(`WARNING: set_active_id - no leaf with id "${active_id}"`);
+      return;
     }
 
     // record which id is being made active.

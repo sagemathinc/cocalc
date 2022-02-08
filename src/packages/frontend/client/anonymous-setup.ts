@@ -10,7 +10,7 @@ import { WelcomeFile } from "./welcome-file";
 import { WebappClient } from "./client";
 import { NAME as LAUNCH_NAME } from "../launch/actions";
 import { PROJECT_INVITE_QUERY_PARAM } from "../collaborators/handle-project-invite";
-import { hasRememberMe } from "@cocalc/util/remember-me";
+import { hasRememberMe } from "@cocalc/frontend/misc/remember-me";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export const ANON_PROJECT_TITLE = "Welcome to CoCalc!";

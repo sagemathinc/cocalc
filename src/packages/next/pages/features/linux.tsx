@@ -19,7 +19,7 @@ import terminalCollab from "public/features/cocalc-terminal-collab.gif";
 import jupyterBash from "public/features/cocalc-jupyter-bash.png";
 import postgres from "public/features/terminal-jupyter-postgresql.png";
 
-export default function JupyterNotebook({ customize }) {
+export default function Linux({ customize }) {
   return (
     <Customize value={customize}>
       <Head title="Online Linux Environment" />

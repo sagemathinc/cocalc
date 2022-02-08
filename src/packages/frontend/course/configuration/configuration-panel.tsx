@@ -605,6 +605,8 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             site_license_strategy={settings?.get("site_license_strategy")}
             shared_project_id={settings?.get("shared_project_id")}
             disabled={configuring_projects}
+            settings={settings}
+            actions={actions.configuration}
           />
           <br />
         </>
@@ -626,6 +628,8 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             site_license_strategy={settings?.get("site_license_strategy")}
             shared_project_id={settings?.get("shared_project_id")}
             disabled={configuring_projects}
+            settings={settings}
+            actions={actions.configuration}
           />
           <br />
         </>

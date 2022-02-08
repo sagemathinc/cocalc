@@ -1,6 +1,12 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { useRedux, useActions } from "../../app-framework";
 import { Button, Panel } from "../../antd-bootstrap";
 import { A, ErrorDisplay, Icon, Loading } from "../../components";
+import { ArchiveActions } from "./actions";
 
 export const Archive: React.FC<{ project_id: string; path: string }> = ({
   path,
@@ -17,7 +23,7 @@ export const Archive: React.FC<{ project_id: string; path: string }> = ({
     path
   );
 
-  const actions = useActions(project_id, path);
+  const actions: ArchiveActions = useActions(project_id, path);
 
   function render_button_icon() {
     if (loading) {
@@ -77,7 +83,7 @@ export const Archive: React.FC<{ project_id: string; path: string }> = ({
         bsSize="large"
         bsStyle="success"
         onClick={() =>
-          actions.extract_archive_files(project_id, path, type, contents)
+          actions.extractArchiveFiles(project_id, path, type, contents)
         }
       >
         {render_button_icon()} Extract Files...

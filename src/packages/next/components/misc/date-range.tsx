@@ -8,9 +8,15 @@ interface Props {
   onChange?: (x: [Date0, Date0]) => void;
   style?: CSSProperties;
   noPast?: boolean; // if true, don't allow dates in the past
+  maxDaysInFuture?: number; // don't allow dates this far in the future from now
 }
 
-export default function DateRange({ onChange, style, noPast }: Props) {
+export default function DateRange({
+  onChange,
+  style,
+  noPast,
+  maxDaysInFuture,
+}: Props) {
   const [dateRange, setDateRange] = useState<[Date0, Date0]>([
     undefined,
     undefined,
@@ -52,8 +58,17 @@ export default function DateRange({ onChange, style, noPast }: Props) {
           onChange?.(x);
         }}
         disabledDate={
-          noPast
-            ? (date) => date && date <= moment().subtract(1, "days")
+          noPast || maxDaysInFuture
+            ? (date) => {
+                if (!date) return false;
+                if (noPast && date <= moment().subtract(1, "days")) return true;
+                if (
+                  maxDaysInFuture &&
+                  date >= moment().add(maxDaysInFuture, "days")
+                )
+                  return true;
+                return false;
+              }
             : undefined
         }
       />

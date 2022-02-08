@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { hasRememberMe } from "@cocalc/util/remember-me";
+import { hasRememberMe } from "@cocalc/frontend/misc/remember-me";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 

@@ -37,6 +37,8 @@ import { NotebookScores } from "../jupyter/nbgrader/autograde";
 
 import { CourseActions } from "./actions";
 
+export const DEFAULT_LICENSE_UPGRADE_HOST_PROJECT = false;
+
 export type TerminalCommandOutput = TypedMap<{
   project_id: string;
   stdout?: string;
@@ -137,6 +139,7 @@ export type CourseSettingsRecord = TypedMap<{
   student_pay: boolean;
   title: string;
   upgrade_goal: Map<any, any>;
+  license_upgrade_host_project?: boolean; // https://github.com/sagemathinc/cocalc/issues/5360
   site_license_id?: string;
   site_license_removed?: string; // comma separated list of licenses that have been explicitly removed from this course.
   site_license_strategy?: SiteLicenseStrategy;

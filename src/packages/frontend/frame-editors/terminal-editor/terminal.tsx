@@ -78,7 +78,9 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
     }
   }, [props.is_current]);
 
-  useEffect(measure_size, [props.resize]);
+  useEffect(() => {
+    measure_size();
+  }, [props.resize]);
 
   function delete_terminal(): void {
     if (terminalRef.current == null) return; // already deleted or never created
@@ -113,7 +115,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props) => {
     // NOTE: this would probably make sense in DOM mode instead of canvas mode;
     // if we switch, disable ..
     // Well, this context menu is still silly. Always disable it.
-    $(node).bind("contextmenu", function () {
+    $(node).on("contextmenu", function () {
       return false;
     });
 

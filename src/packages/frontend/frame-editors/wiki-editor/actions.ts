@@ -12,7 +12,7 @@ import { Actions as MarkdownActions } from "../markdown-editor/actions";
 import { convert } from "./wiki2html";
 import { FrameTree } from "../frame-tree/types";
 import { print_html } from "../frame-tree/print";
-import { aux_file } from "../frame-tree/util";
+import { aux_file } from "@cocalc/util/misc";
 import { raw_url } from "../frame-tree/util";
 
 export class Actions extends MarkdownActions {

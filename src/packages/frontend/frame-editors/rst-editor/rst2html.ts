@@ -9,7 +9,7 @@ src pointed to this file (via raw server).
 */
 
 import { exec, ExecOutput } from "../generic/client";
-import { aux_file } from "../frame-tree/util";
+import { aux_file } from "@cocalc/util/misc";
 
 export async function convert(
   project_id: string,
