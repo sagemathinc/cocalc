@@ -59,11 +59,11 @@ export default function Text({ element, focused, canvasScale }: Props) {
           boxShadow: "1px 3px 5px #ccc",
           margin: "5px",
           minWidth: "500px",
-          overflow: "hidden",
           background: "white",
           transform: `scale(${1 / canvasScale})`,
           transformOrigin: "bottom left",
           fontFamily: "sans-serif",
+          fontSize: "14px",
         }}
         actions={{
           set_value: (str) => {
