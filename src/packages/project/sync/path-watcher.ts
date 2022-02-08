@@ -20,7 +20,8 @@ The code below deals with two very different cases:
  - when the path does exist: use fs.watch (hence inotify) on the path itself to report when it changes
 
 NOTE: if you are running on a filesystem like NFS, inotify won't work well or not at all.
-In that case, set the env variable COCALC_FS_WATCHER=poll to use fs.watchFile instead.
+In that case, set the env variable COCALC_FS_WATCHER=poll to use polling instead.
+You can configure the poll interval by setting COCALC_FS_WATCHER_POLL_INTERVAL_MS.
 */
 
 import { watch, WatchOptions } from "chokidar";
@@ -117,11 +118,9 @@ export class Watcher extends EventEmitter {
     } else if (this.exists && !e) {
       // it got deleted
       this.exists = e;
-      for (const w in ["watchContentsInotify", "watchContentsPoll"]) {
-        if (this[w] != null) {
-          this[w].close();
-          delete this[w];
-        }
+      if (this.watchContents != null) {
+        this.watchContents.close();
+        delete this.watchContents;
       }
 
       this.change();
