@@ -163,8 +163,8 @@ export class StudentProjectsActions {
     // Make sure the student is on the student's project:
     const student_account_id = student.get("account_id");
     if (student_account_id == null) {
-      // No known account yet, so invite by email.  That said,
-      // we only do this at most once every few days.
+      // No known account yet, so invite by email.
+      // This is done once and then on demand by the teacher – only limited to once per day or less
       const last_email_invite = student.get("last_email_invite");
       if (force_send_invite_by_email || !last_email_invite) {
         await this.invite_student_to_project({
