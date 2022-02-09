@@ -17,8 +17,13 @@
 //  });
 //const { teardown } = init;
 
+// make TS happy, despite @types/jest is installed
+declare var describe: Function;
+declare var it: Function;
+
 import expect from "expect";
 const { quota } = require("@cocalc/util/upgrades/quota");
+import { PRICES } from "@cocalc/util/upgrades/dedicated";
 
 describe("default quota", () => {
   it("basics are fine", () => {
@@ -1304,7 +1309,7 @@ describe("default quota", () => {
     });
   });
 
-  it("dedicated vm do not mix with quotas", () => {
+  it("dedicated vm do not mix with quotas /1", () => {
     const site_license = {
       a1: {
         quota: {
@@ -1348,7 +1353,7 @@ describe("default quota", () => {
     });
   });
 
-  it("dedicated vm do not mix with quotas", () => {
+  it("dedicated vm do not mix with quotas /2", () => {
     const site_license = {
       a1: {
         quota: {
@@ -1357,13 +1362,14 @@ describe("default quota", () => {
         },
       },
     };
+    const spec = PRICES.vms["n2-standard-4"].spec;
     const q = quota({}, { userX: {} }, site_license);
     expect(q.dedicated_vm.machine).toBe("n2-standard-4");
     expect(q.always_running).toBe(true);
     expect(q.member_host).toBe(true);
     expect(q.network).toBe(true);
     expect(q.dedicated_disks.length).toBe(1);
-    expect(q.memory_limit).toBe(15000);
+    expect(q.memory_limit).toBe(1000 * spec.mem);
     expect(q.cpu_limit).toBe(4);
   });
 
