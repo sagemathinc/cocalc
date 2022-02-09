@@ -23,8 +23,11 @@ echo=(content, cb) => setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
 
 */
 
-//const DEBUG = true; // only for extreme deebugging.
-const DEBUG = false; // normal mode
+const DEBUG = true; // only for extreme deebugging.
+//const DEBUG = false; // normal mode
+if (DEBUG) {
+  console.log("Enabling low level Jupyter kernel debugging.");
+}
 
 export const VERSION = "5.3";
 
@@ -328,6 +331,10 @@ export class JupyterKernel
     const dbg = this.dbg("finish_spawn");
     dbg("now finishing spawn of kernel...");
 
+    if (DEBUG) {
+      this.low_level_dbg();
+    }
+
     this._kernel.spawn.on("error", (err) => {
       const error = `${err}\n${this.stderr}`;
       dbg("kernel error", error);
@@ -357,15 +364,13 @@ export class JupyterKernel
       // no data gets dropped.  See https://github.com/sagemathinc/cocalc/issues/5065
     });
 
+    dbg("create main channel...");
     this.channel = await createMainChannel(
       this._kernel.config,
       "",
       this.identity
     );
-
-    if (DEBUG) {
-      this.low_level_dbg();
-    }
+    dbg("created main channel");
 
     this.channel?.subscribe((mesg) => {
       switch (mesg.channel) {
@@ -554,6 +559,7 @@ export class JupyterKernel
 
   low_level_dbg(): void {
     const dbg = this.dbg("low_level_debug", 10000);
+    dbg("Enabling");
     this._kernel.spawn.all?.on("data", (data) => dbg("STDIO", data.toString()));
     // for low level debugging only...
     this.channel?.subscribe((mesg) => {

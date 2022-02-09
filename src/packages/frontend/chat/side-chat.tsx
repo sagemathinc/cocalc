@@ -190,8 +190,6 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
         style={{
           marginTop: "auto",
           padding: "5px",
-          paddingLeft: "15px",
-          paddingRight: "15px",
           display: "flex",
           flexDirection: "column",
         }}
@@ -216,9 +214,8 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
               width: INPUT_HEIGHT /* yes, to make it square */,
             }}
           >
-            <div style={{ flex: 1 }} />
             <Button
-              style={{ height: INPUT_HEIGHT }}
+              style={{ flex: 1, marginLeft: "5px" }}
               onClick={() => {
                 send_chat();
                 user_activity("side_chat", "send_chat", "click");

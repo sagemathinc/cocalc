@@ -49,8 +49,8 @@ export default function Text({ element, focused, canvasScale }: Props) {
       <EditableMarkdown
         onFocus={() => setEditFocus(true)}
         onBlur={() => setEditFocus(false)}
-        is_current={true}
         value={value}
+        is_current={true}
         hidePath
         disableWindowing
         font_size={element.data?.fontSize ?? DEFAULT_FONT_SIZE}

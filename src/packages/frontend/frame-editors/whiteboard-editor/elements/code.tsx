@@ -14,6 +14,7 @@ interface Props {
 }
 
 export default function Code({ element, focused }: Props) {
+  focused = focused;
   const { project_id, path } = useFrameContext();
   const aux_path = aux_file(path, "ipynb");
   const actions = redux.getEditorActions(project_id, aux_path) as

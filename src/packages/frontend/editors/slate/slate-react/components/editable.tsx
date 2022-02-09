@@ -554,7 +554,13 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
               }) &&
               isDOMNode(event.target)
             ) {
-              const node = ReactEditor.toSlateNode(editor, event.target);
+              let node;
+              try {
+                node = ReactEditor.toSlateNode(editor, event.target);
+              } catch (err) {
+                // node not actually in editor.
+                return;
+              }
               let path;
               try {
                 path = ReactEditor.findPath(editor, node);

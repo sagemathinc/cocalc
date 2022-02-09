@@ -117,6 +117,8 @@ interface Props {
   editBarStyle?: CSS;
   onFocus?: () => void;
   onBlur?: () => void;
+  autoFocus?: boolean;
+  hideSearch?: boolean;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -137,6 +139,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     editBarStyle,
     onFocus,
     onBlur,
+    autoFocus,
+    hideSearch,
   }) => {
     if (disableWindowing == null) {
       disableWindowing = !USE_WINDOWING;
@@ -542,6 +546,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     let slate = (
       <Slate editor={editor} value={editorValue} onChange={onChange}>
         <Editable
+          autoFocus={autoFocus}
           className={!disableWindowing ? "smc-vfill" : undefined}
           readOnly={read_only}
           renderElement={Element}
@@ -609,6 +614,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
           listProperties={listProperties}
           editor={editor}
           style={editBarStyle}
+          hideSearch={hideSearch}
         />
         <div
           className="smc-vfill"
@@ -622,7 +628,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
         </div>
       </div>
     );
-    return useUpload(project_id, path, editor, body);
+    return useUpload(editor, body);
   }
 );
 

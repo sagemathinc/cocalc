@@ -47,22 +47,17 @@ function uploadTarget(path: string, file: { name: string }): string {
   return join(path_split(aux_file(path, AUX_FILE_EXT)).tail, file.name);
 }
 
-export function useUpload(
-  project_id: string,
-  path: string,
-  editor: SlateEditor,
-  body: JSX.Element
-): JSX.Element {
+export function useUpload(editor: SlateEditor, body: JSX.Element): JSX.Element {
   const dropzoneRef = useRef<Dropzone>(null);
   editor.dropzoneRef = dropzoneRef;
-  const { actions } = useFrameContext();
+  const { actions, project_id, path } = useFrameContext();
 
   const updloadEventHandlers = {
     sending: ({ name }) => {
-      actions.set_status(`Uploading ${name}...`);
+      actions.set_status?.(`Uploading ${name}...`);
     },
     complete: (file: { type: string; name: string; status: string }) => {
-      actions.set_status("");
+      actions.set_status?.("");
       let node;
       if (file.type.indexOf("image") == -1) {
         node = {

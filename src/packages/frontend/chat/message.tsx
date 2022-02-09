@@ -78,14 +78,15 @@ export const Message: React.FC<Props> = React.memo((props) => {
     [props.message] /* note -- edited_message is a function of props.message */
   );
 
-  const history_size = useMemo(() => props.message.get("history").size, [
-    props.message,
-  ]);
+  const history_size = useMemo(
+    () => props.message.get("history").size,
+    [props.message]
+  );
 
-  const isEditing = useMemo(() => is_editing(props.message, props.account_id), [
-    props.message,
-    props.account_id,
-  ]);
+  const isEditing = useMemo(
+    () => is_editing(props.message, props.account_id),
+    [props.message, props.account_id]
+  );
 
   const editor_name = useMemo(() => {
     return props.get_user_name(
@@ -297,9 +298,11 @@ export const Message: React.FC<Props> = React.memo((props) => {
           className="smc-chat-message"
           onDoubleClick={edit_message}
         >
-          <span style={lighten}>
-            <Time message={props.message} edit={edit_message} />
-          </span>
+          {!isEditing && (
+            <span style={lighten}>
+              <Time message={props.message} edit={edit_message} />
+            </span>
+          )}
           {!isEditing ? (
             <Markdown
               value={value}

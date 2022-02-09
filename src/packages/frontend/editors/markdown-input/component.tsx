@@ -73,16 +73,15 @@ import {
 } from "@cocalc/util/misc";
 import { IS_MOBILE } from "../../feature";
 import { A } from "../../components";
+import { useTypedRedux, useRedux, redux, ReactDOM } from "../../app-framework";
 import {
-  React,
-  ReactDOM,
+  CSSProperties,
+  FC,
+  ReactNode,
   useEffect,
   useRef,
-  useRedux,
   useState,
-  useTypedRedux,
-  redux,
-} from "../../app-framework";
+} from "react";
 import { Dropzone, FileUploadWrapper } from "../../file-upload";
 import { alert_message } from "../../alerts";
 import { Complete, Item } from "./complete";
@@ -92,11 +91,11 @@ import { mentionableUsers } from "./mentionable-users";
 // This code depends on codemirror being initialized.
 import "@cocalc/frontend/codemirror/init";
 
-const BLURED_STYLE: React.CSSProperties = {
+export const BLURED_STYLE: CSSProperties = {
   border: "1px solid rgb(204,204,204)", // focused will be rgb(112, 178, 230);
 };
 
-const FOCUSED_STYLE: React.CSSProperties = {
+export const FOCUSED_STYLE: CSSProperties = {
   outline: "none !important",
   boxShadow: "0px 0px 5px  #719ECE",
   border: "1px solid #719ECE",
@@ -117,14 +116,14 @@ interface Props {
   onUploadEnd?: () => void;
   enableMentions?: boolean;
   submitMentionsRef?: any;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   onShiftEnter?: (value: string) => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
   onEscape?: () => void;
   onBlur?: (value: string) => void;
   onFocus?: () => void;
   placeholder?: string;
   height?: string;
-  extraHelp?: string | JSX.Element;
+  extraHelp?: ReactNode;
   hideHelp?: boolean;
   fontSize?: number;
   styleActiveLine?: boolean;
@@ -132,7 +131,7 @@ interface Props {
   autoFocus?: boolean;
 }
 
-export const MarkdownInput: React.FC<Props> = ({
+export const MarkdownInput: FC<Props> = ({
   project_id,
   path,
   value,
@@ -181,6 +180,10 @@ export const MarkdownInput: React.FC<Props> = ({
   useEffect(() => {
     // initialize the codemirror editor
     const node = ReactDOM.findDOMNode(textarea_ref.current);
+    if (node == null) {
+      // maybe unmounted right as this happened.
+      return;
+    }
     const extraKeys: CodeMirror.KeyMap = {};
     if (onShiftEnter != null) {
       const f = (cm) => onShiftEnter(cm.getValue());
@@ -465,7 +468,12 @@ export const MarkdownInput: React.FC<Props> = ({
     // TODO: make clicking on drag and drop thing pop up dialog
     return (
       <div
-        style={{ color: "#767676", fontSize: "12.5px", marginBottom: "5px" }}
+        style={{
+          color: "#767676",
+          fontSize: "12.5px",
+          padding: "5px 15px",
+          background: "white",
+        }}
       >
         {render_mention_instructions()}
         {render_mention_email()}. Use{" "}
@@ -487,7 +495,14 @@ export const MarkdownInput: React.FC<Props> = ({
     // TODO: make clicking on drag and drop thing pop up dialog
     if (hideHelp) return;
     return (
-      <div style={{ fontSize: "12.5px", marginBottom: "5px" }}>
+      <div
+        style={{
+          fontSize: "12.5px",
+          padding: "5px 15px",
+          color: "#767676",
+          background: "white",
+        }}
+      >
         Shift+Enter when done. {render_mention_instructions()}
         Use{" "}
         <A href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/">

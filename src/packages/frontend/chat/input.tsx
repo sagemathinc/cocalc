@@ -4,7 +4,8 @@
  */
 
 import { useActions, useRedux } from "../app-framework";
-import { MarkdownInput } from "../editors/markdown-input";
+//import { MarkdownInput } from "../editors/markdown-input";
+import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "../feature";
 
 interface Props {
@@ -23,8 +24,6 @@ export const ChatInput: React.FC<Props> = (props) => {
   const font_size = useRedux(["font_size"], props.project_id, props.path);
   return (
     <MarkdownInput
-      project_id={props.project_id}
-      path={props.path}
       value={props.input}
       enableUpload={true}
       onUploadStart={() => actions?.set_uploading(true)}
