@@ -953,6 +953,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
+  in_undo_mode(): boolean {
+    return this.syncdb?.in_undo_mode() ?? false;
+  }
+
   // in the future, might throw a CellWriteProtectedException.
   // for now, just running is ok.
   public run_cell(
@@ -1107,7 +1111,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.save_asap();
   }
 
-  public set_cursor_locs(locs: any = [], side_effect?: any): void {
+  public set_cursor_locs(locs: any[] = [], side_effect: boolean = false): void {
     this.last_cursor_move_time = new Date();
     if (this.syncdb == null) {
       // syncdb not always set -- https://github.com/sagemathinc/cocalc/issues/2107
@@ -1685,7 +1689,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_cell_input(id, new_input, save);
   }
 
-  complete_handle_key = (_: string, keyCode: any): void => {
+  complete_handle_key = (_: string, keyCode: number): void => {
     // User presses a key while the completions dialog is open.
     let complete = this.store.get("complete");
     if (complete == null) {
@@ -1721,8 +1725,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
+  is_introspecting(): boolean {
+    return this.store.get("introspect") != null;
+  }
+
   introspect_close = () => {
-    if (this.store.get("introspect") != null) {
+    if (this.is_introspecting()) {
       this.setState({ introspect: undefined });
     }
   };

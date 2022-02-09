@@ -15,11 +15,10 @@ import { React, useRef, usePrevious } from "../app-framework";
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
 import { three_way_merge } from "@cocalc/sync/editor/generic/util";
-import { Complete } from "./complete";
+import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
 import CodeMirror from "codemirror";
 
-import { JupyterActions } from "./browser-actions";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
 // We cache a little info about each Codemirror editor we make here,
@@ -41,6 +40,32 @@ const FOCUSED_STYLE: React.CSSProperties = {
   lineHeight: "1.21429em",
 } as const;
 
+// This is what we use.  It's satisfied by these actions
+// -- 'import { JupyterActions } from "./browser-actions";',
+// but anybody who wants to use this component could make
+// there own object with this interface and it should work.
+interface Actions extends CompleteActions {
+  set_cursor_locs: (locs: any[], side_effect?: boolean) => void;
+  set_cell_input: (id: string, input: string, save?: boolean) => void;
+  undo: () => void;
+  redo: () => void;
+  in_undo_mode: () => boolean;
+  is_introspecting: () => boolean;
+  introspect_close: () => void;
+  introspect_at_pos: (
+    code: string,
+    level: 0 | 1,
+    pos: { ch: number; line: number }
+  ) => Promise<void>;
+  complete: (
+    code: string,
+    pos?: { line: number; ch: number } | number,
+    id?: string,
+    offset?: any
+  ) => Promise<boolean>;
+  save: () => Promise<void>;
+}
+
 // Todo: the frame-editor/code-editor needs a similar treatment...?
 export interface EditorFunctions {
   save: () => string | undefined;
@@ -53,40 +78,37 @@ export interface EditorFunctions {
 }
 
 interface CodeMirrorEditorProps {
-  actions: JupyterActions;
+  actions: Actions; // e.g., JupyterActions from "./browser-actions".
   id: string;
   options: ImmutableMap<any, any>;
   value: string;
+  set_click_coords?: Function; // TODO: type
   font_size?: number; // font_size not explicitly used, but it is critical
   // to re-render on change so Codemirror recomputes itself!
   cursors?: ImmutableMap<any, any>;
-  set_click_coords: Function; // TODO: type
   click_coords?: any; // coordinates if cell was just clicked on
-  set_last_cursor: Function; // TODO: type
+  set_last_cursor?: Function; // TODO: type
   last_cursor?: any;
   is_focused?: boolean;
   is_scrolling?: boolean;
   complete?: ImmutableMap<any, any>;
 }
 
-export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
-  props: CodeMirrorEditorProps
-) => {
-  const {
-    actions,
-    id,
-    options,
-    value,
-    font_size,
-    cursors,
-    set_click_coords,
-    click_coords,
-    set_last_cursor,
-    last_cursor,
-    is_focused,
-    is_scrolling,
-    complete,
-  } = props;
+export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
+  actions,
+  id,
+  options,
+  value,
+  font_size,
+  cursors,
+  set_click_coords,
+  click_coords,
+  set_last_cursor,
+  last_cursor,
+  is_focused,
+  is_scrolling,
+  complete,
+}: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
   const cm_change = useRef<any>(null);
@@ -203,7 +225,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
     if (cm.current == null || actions == null) {
       return;
     }
-    set_last_cursor(cm.current.getCursor());
+    set_last_cursor?.(cm.current.getCursor());
     // NOTE: see https://github.com/sagemathinc/cocalc/issues/5289
     // We had code here that did
     //    frameActions.current?.set_mode("escape");
@@ -310,7 +332,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
       return;
     }
     if (
-      !actions.syncdb.in_undo_mode() ||
+      !actions.in_undo_mode() ||
       cm.current.getValue() !== cm_last_remote.current
     ) {
       cm_save();
@@ -344,7 +366,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
       }
     }
     if (
-      actions.store.get("introspect") != null &&
+      actions.is_introspecting() &&
       last_introspect_pos != null &&
       last_introspect_pos.line === pos.line &&
       last_introspect_pos.ch === pos.ch
@@ -623,10 +645,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = (
     if (click_coords != null) {
       // editor clicked on, so restore cursor to that position
       cm.current.setCursor(cm.current.coordsChar(click_coords, "window"));
-      set_click_coords(); // clear them
+      set_click_coords?.(); // clear them
     } else if (last_cursor != null) {
       cm.current.setCursor(last_cursor);
-      set_last_cursor();
+      set_last_cursor?.();
     }
 
     if (is_focused) {

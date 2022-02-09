@@ -7,11 +7,21 @@ declare const $: any;
 
 import { React, Rendered } from "../app-framework";
 import { Map } from "immutable";
-import { JupyterActions } from "./browser-actions";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
+// e.g., this is a subset of { JupyterActions } from "./browser-actions";
+export interface Actions {
+  select_complete: (
+    id: string,
+    item: string,
+    complete?: Map<string, any>
+  ) => void;
+  complete_handle_key: (_: string, keyCode: number) => void;
+  clear_complete: () => void;
+}
+
 interface CompleteProps {
-  actions: JupyterActions;
+  actions: Actions;
   id: string;
   complete: Map<string, any>;
 }
