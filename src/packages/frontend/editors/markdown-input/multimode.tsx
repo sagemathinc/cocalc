@@ -78,6 +78,7 @@ export default function MultiMarkdownInput({
             ? { position: "absolute", right: 1, top: 1, zIndex: 100 }
             : { float: "right" }),
           fontWeight: 250,
+          background: "white",
         }}
         checked={mode == "markdown"}
         onClick={(e: any) => setMode(e.target.checked ? "markdown" : "editor")}
@@ -123,9 +124,21 @@ export default function MultiMarkdownInput({
               padding: "5px 15px",
               height: height ?? "100%",
             }}
+            saveDebounceMs={0}
             actions={{
               set_value: (value) => {
                 onChange?.(value);
+              },
+              shiftEnter:
+                onShiftEnter == null
+                  ? undefined
+                  : (value) => {
+                      onChange?.(value);
+                      onShiftEnter();
+                    },
+              altEnter: (value) => {
+                onChange?.(value);
+                setMode("markdown");
               },
             }}
             font_size={fontSize}

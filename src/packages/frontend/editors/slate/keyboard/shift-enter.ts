@@ -11,7 +11,19 @@ import { register } from "./register";
 import { hardbreak } from "../elements/break";
 import { isWhitespaceParagraph, isWhitespaceText } from "../padding";
 
-register({ key: "Enter", shift: true }, ({ editor }) => {
+register({ key: "Enter", shift: true }, ({ editor, extra }) => {
+  // Configured editor so shift+enter does some action, e.g., "submit chat".
+  // In this case, we do that instead of the various things below involving
+  // newlines, which can instead be done with control+enter.
+  const shiftEnter = extra?.actions?.shiftEnter;
+  if (shiftEnter != null) {
+    shiftEnter(editor.getMarkdownValue());
+    return true;
+  }
+  return softBreak({ editor });
+});
+
+function softBreak({ editor }) {
   // In a table, the only option is to insert a <br/>.
   const fragment = editor.getFragment();
   if (isElementOfType(fragment?.[0], "table")) {
@@ -50,4 +62,6 @@ register({ key: "Enter", shift: true }, ({ editor }) => {
   Transforms.insertNodes(editor, [hardbreak()]);
   Transforms.move(editor, { distance: 1 });
   return true;
-});
+}
+
+register({ key: "Enter", ctrl: true }, softBreak);

@@ -119,6 +119,7 @@ interface Props {
   onBlur?: () => void;
   autoFocus?: boolean;
   hideSearch?: boolean;
+  saveDebounceMs?: number;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo(
@@ -141,6 +142,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     onBlur,
     autoFocus,
     hideSearch,
+    saveDebounceMs,
   }) => {
     if (disableWindowing == null) {
       disableWindowing = !USE_WINDOWING;
@@ -322,10 +324,18 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     // We don't want to do saveValue too much, since it presumably can be slow,
     // especially if the document is large. By debouncing, we only do this when
     // the user pauses typing for a moment. Also, this avoids making too many commits.
-    const saveValueDebounce = useMemo(
-      () => debounce(() => editor.saveValue(), SAVE_DEBOUNCE_MS),
-      []
-    );
+    // For tiny documents, user can make this small or even 0 to not dbounce.
+    const saveValueDebounce =
+      saveDebounceMs != null && !saveDebounceMs
+        ? () => editor.saveValue()
+        : useMemo(
+            () =>
+              debounce(
+                () => editor.saveValue(),
+                saveDebounceMs ?? SAVE_DEBOUNCE_MS
+              ),
+            []
+          );
 
     function onKeyDown(e) {
       if (read_only) {

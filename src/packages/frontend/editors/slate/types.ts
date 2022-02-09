@@ -46,4 +46,6 @@ export interface Actions {
   change_font_size?: (delta?: number, id?: string, zoom?: number) => void;
   undo?: (id: string) => void;
   redo?: (id: string) => void;
+  shiftEnter?: (value: string) => void;
+  altEnter?: (value: string) => void;
 }
