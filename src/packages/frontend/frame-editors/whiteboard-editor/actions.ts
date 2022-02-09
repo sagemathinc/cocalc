@@ -74,6 +74,14 @@ export class Actions extends BaseActions<State> {
     }
   }
 
+  // Merge obj into data field of element with given id.
+  setElementData(element: Element, obj: object, commit: boolean = true): void {
+    this.setElement(
+      { id: element.id, data: { ...element.data, ...obj } },
+      commit
+    );
+  }
+
   private createId(): string {
     // TODO: make this ensure id is unique!
     return uuid().slice(0, 8);

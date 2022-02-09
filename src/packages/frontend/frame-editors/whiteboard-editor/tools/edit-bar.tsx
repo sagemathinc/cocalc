@@ -372,10 +372,7 @@ function setDataField(
   obj: object
 ) {
   for (const element of elements) {
-    actions.setElement(
-      { ...element, data: { ...element.data, ...obj } },
-      false
-    );
+    actions.setElementData(element, obj, false);
   }
   actions.syncstring_commit();
 }

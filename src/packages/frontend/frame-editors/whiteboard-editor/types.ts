@@ -40,6 +40,9 @@ interface Data {
   to?: string; // id of to node
   dir?: number[]; // dir path part of edge
   icon?: IconName; // icon
+  hideInput?: boolean; // used for code cells
+  hideOutput?: boolean; // used for code cells
+  output?: any; // code
 }
 
 /*
