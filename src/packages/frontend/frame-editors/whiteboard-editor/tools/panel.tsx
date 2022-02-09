@@ -24,6 +24,7 @@ export const PANEL_STYLE = {
 export default function Panel({ selectedTool }) {
   const v: ReactNode[] = [];
   for (const tool in TOOLS) {
+    if (TOOLS[tool].hideFromToolbar) continue;
     v.push(
       <ToolButton key={tool} tool={tool} isSelected={tool == selectedTool} />
     );

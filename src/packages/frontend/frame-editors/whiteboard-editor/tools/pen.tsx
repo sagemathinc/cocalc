@@ -30,7 +30,7 @@ export const COLORS = [
 ];
 //export const COLORS = ["#000", "#f00", "#0f0", "#00f"];
 
-const RADS = [1, 7];
+const RADS = [1, 4];
 
 const HIGHLIGHTER = -1;
 const ERASER = -2;

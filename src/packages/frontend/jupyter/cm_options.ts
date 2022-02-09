@@ -17,7 +17,7 @@ import { extra_alt_keys } from "@cocalc/frontend/frame-editors/codemirror/mobile
 // editor_settings - from account store.
 // TODO: type parameters
 export function cm_options(
-  mode?: any,
+  mode?: string | { name: string },
   editor_settings?: any,
   line_numbers?: any,
   read_only?: any

@@ -2,13 +2,14 @@
 //import { Input } from "antd";
 //import { Markdown } from "@cocalc/frontend/components";
 
-//import { useFrameContext } from "../hooks";
+import { useFrameContext } from "../hooks";
 import { Element } from "../types";
 //import { Cell } from "@cocalc/frontend/jupyter/cell";
 //import { redux } from "@cocalc/frontend/app-framework";
 //import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 //import { aux_file } from "@cocalc/util/misc";
 import { fromJS, Map } from "immutable";
+import { cm_options } from "@cocalc/frontend/jupyter/cm_options";
 
 import { CodeMirrorEditor } from "@cocalc/frontend/jupyter/codemirror-editor";
 
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export default function Code({ element, focused }: Props) {
+  const frame = useFrameContext();
   focused = focused;
   const actions = {
     select_complete: (
@@ -28,7 +30,9 @@ export default function Code({ element, focused }: Props) {
     complete_handle_key: (_: string, keyCode: number) => {},
     clear_complete: () => {},
     set_cursor_locs: (locs: any[], side_effect?: boolean) => {},
-    set_cell_input: (id: string, input: string, save?: boolean) => {},
+    set_cell_input: (id: string, input: string, save?: boolean) => {
+      frame.actions.setElement({ id: element.id, str: input }, save);
+    },
     undo: () => {},
     redo: () => {},
     in_undo_mode: () => {
@@ -54,13 +58,27 @@ export default function Code({ element, focused }: Props) {
     save: (): Promise<void> => {},
   };
 
+  const style = {
+    fontSize: element.data?.fontSize,
+    border: `${2 * (element.data?.radius ?? 1)}px solid ${
+      element.data?.color ?? "#ccc"
+    }`,
+    borderRadius: "5px",
+    padding: "5px",
+    background: "white",
+    is_focused: focused,
+  };
+
   return (
-    <CodeMirrorEditor
-      actions={actions}
-      id={""}
-      options={fromJS({})}
-      value={element.str ?? ""}
-    />
+    <div className={focused ? "nodrag" : undefined}>
+      <CodeMirrorEditor
+        actions={actions}
+        id={""}
+        options={getCMOptions()}
+        value={element.str ?? ""}
+        style={style}
+      />
+    </div>
   );
 
   /*
@@ -100,53 +118,15 @@ export default function Code({ element, focused }: Props) {
 
   */
 
-  /*
-  const [value, setValue] = useState<string>(element.str ?? "");
-  const frame = useFrameContext();
+}
 
-  const style = {
-    fontSize: element.data?.fontSize,
-    border: element.data?.color
-      ? `2px solid ${element.data?.color}`
-      : undefined,
-  };
-
-  if (!focused) {
-    const val =
-      "```py\n" + (element.str?.trim() ? element.str : "Type code") + "\n```";
-    return (
-      <div style={style}>
-        <Markdown
-          value={val}
-          style={{
-            width: "100%",
-            height: "100%",
-          }}
-        />
-      </div>
-    );
-  }
-
-  useEffect(() => {
-    // should be a 3-way merge...
-    setValue(element.str ?? "");
-  }, [element.str]);
-
-  return (
-    <Input.TextArea
-      style={style}
-      className="nodrag"
-      placeholder="Type code"
-      autoFocus
-      value={value}
-      rows={4}
-      onChange={(e) => {
-        // TODO: need to also save changes (like with onBlur below), but debounced.
-        setValue(e.target.value);
-      }}
-      onBlur={() => {
-        frame.actions.setElement({ id: element.id, str: value });
-      }}
-    />
-  );*/
+import { redux } from "@cocalc/frontend/app-framework";
+function getCMOptions() {
+  const mode = "python";
+  const account = redux.getStore("account");
+  const immutable_editor_settings = account?.get("editor_settings");
+  const editor_settings = immutable_editor_settings?.toJS() ?? {};
+  const line_numbers =
+    immutable_editor_settings?.get("jupyter_line_numbers") ?? false;
+  return fromJS(cm_options(mode, editor_settings, line_numbers, false));
 }

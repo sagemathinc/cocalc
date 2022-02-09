@@ -10,6 +10,7 @@ interface ToolDescription {
   cursor?: string;
   tip: ReactNode;
   config?: Set<ConfigParams>;
+  hideFromToolbar?: boolean;
 }
 
 export const TOOLS: { [tool: string]: ToolDescription } = {
@@ -36,7 +37,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     icon: "jupyter",
     cursor: "crosshair",
     tip: "Jupyter Code",
-    config: new Set(["fontSize", "color"]),
+    config: new Set(["fontSize", "color", "radius"]),
   },
   icon: {
     icon: "square",
@@ -62,6 +63,12 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     cursor: "crosshair",
     tip: "Countdown Timer",
     config: new Set(["fontFamily", "fontSize", "color"]),
+  },
+  edge: {
+    hideFromToolbar: true,
+    icon: "network-wired", // really bad
+    tip: "Edge",
+    config: new Set(["color", "radius"]),
   },
 };
 

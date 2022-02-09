@@ -18,6 +18,7 @@ import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
 import CodeMirror from "codemirror";
+import { CSSProperties } from "react";
 
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
@@ -92,6 +93,7 @@ interface CodeMirrorEditorProps {
   is_focused?: boolean;
   is_scrolling?: boolean;
   complete?: ImmutableMap<any, any>;
+  style?: CSSProperties;
 }
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
@@ -108,6 +110,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   is_focused,
   is_scrolling,
   complete,
+  style,
 }: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
@@ -690,7 +693,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   return (
     <div style={{ width: "100%", overflow: "auto" }}>
       {render_cursors()}
-      <div style={FOCUSED_STYLE}>
+      <div style={{ ...FOCUSED_STYLE, ...style }}>
         <pre
           ref={cm_ref}
           style={{
