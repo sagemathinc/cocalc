@@ -42,7 +42,7 @@ interface Data {
   icon?: IconName; // icon
   hideInput?: boolean; // used for code cells
   hideOutput?: boolean; // used for code cells
-  output?: any; // code
+  output?: { [index: number]: object }; // code
 }
 
 /*

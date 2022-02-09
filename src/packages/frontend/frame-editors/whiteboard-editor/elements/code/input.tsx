@@ -12,7 +12,6 @@ interface Props {
 
 export default function Input({ element, focused }: Props) {
   const frame = useFrameContext();
-  focused = focused;
   const actions = {
     select_complete: (
       id: string,

@@ -2,6 +2,7 @@ import { CSSProperties } from "react";
 import { Element } from "../../types";
 import ControlBar from "./control";
 import Input from "./input";
+import Output from "./output";
 
 interface Props {
   element: Element;
@@ -21,11 +22,14 @@ export default function Code({ element, focused }: Props) {
     background: "white",
   } as CSSProperties;
 
-  const { hideInput } = element.data ?? {};
+  const { hideInput, hideOutput } = element.data ?? {};
 
   return (
     <div className={focused ? "nodrag" : undefined} style={style}>
       {!hideInput && <Input element={element} focused={focused} />}
+      {!hideOutput && element.data?.output && (
+        <Output output={element.data.output} />
+      )}
       {/* hideInput && (hideOutput || !element.data?.output) && (
         <Icon name="jupyter" />
       )*/}

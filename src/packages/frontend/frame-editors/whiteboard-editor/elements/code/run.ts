@@ -8,11 +8,13 @@ export async function run({
   path,
   input,
   id,
+  set,
 }: {
   project_id: string;
   path: string;
   input: string;
   id: string;
+  set: (object) => void;
 }) {
   const aux_path = aux_file(path, "ipynb");
   let actions = redux.getEditorActions(project_id, aux_path) as
@@ -38,7 +40,19 @@ export async function run({
   if (cell == null) {
     jupyter_actions.insert_cell_at(0, false, id);
   }
+  jupyter_actions.clear_outputs([id], false);
   jupyter_actions.set_cell_input(id, input, false);
   jupyter_actions.run_code_cell(id);
+  function onChange() {
+    const cell = store.get("cells").get(id);
+    if (cell == null) return;
+    console.log("onChange", JSON.stringify(cell.toJS()));
+
+    set({ state: cell.get("state"), output: cell.get("output")?.toJS() });
+    if (cell.get("state") == "done") {
+      store.removeListener("change", onChange);
+    }
+  }
+  store.on("change", onChange);
   window.x = { actions, id, aux_path, input };
 }

@@ -45,7 +45,13 @@ export default function CodeControlBar({ element }: Props) {
       <Button
         onClick={() => {
           console.log("run code", element.str);
-          run({ project_id, path, input: element.str ?? "", id: element.id });
+          run({
+            project_id,
+            path,
+            input: element.str ?? "",
+            id: element.id,
+            set: (obj) => actions.setElementData(element, obj),
+          });
         }}
       >
         <Icon name="play" /> Run
