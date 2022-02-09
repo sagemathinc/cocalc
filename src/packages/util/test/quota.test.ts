@@ -24,6 +24,7 @@ declare var it: Function;
 import expect from "expect";
 const { quota } = require("@cocalc/util/upgrades/quota");
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
+import { LicenseIdleTimeoutsKeysOrdered } from "@cocalc/util/consts/site-license";
 
 describe("default quota", () => {
   it("basics are fine", () => {
@@ -1405,5 +1406,97 @@ describe("default quota", () => {
     };
     const q = quota({}, { userX: {} }, site_license);
     expect(["n2-standard-4", "n2-highmem-4"]).toContain(q.dedicated_vm.machine);
+  });
+
+  it("licensed idle timeout / member + short", () => {
+    const site_license = {
+      "1234-5678-asdf-yxcv": {
+        quota: {
+          ram: 2,
+          cpu: 1,
+          disk: 4,
+          member: true,
+          user: "academic",
+        },
+      },
+      "4321-5678-asdf-yxcv": {
+        quota: {
+          ram: 2,
+          cpu: 1,
+          disk: 1,
+          idle_timeout: "short", // implies member: true!
+          user: "academic",
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_license);
+    expect(q).toEqual({
+      idle_timeout: 30 * 60,
+      member_host: true,
+      network: true,
+      privileged: false,
+      always_running: false,
+      memory_request: 300,
+      memory_limit: 4000,
+      cpu_request: 0.05,
+      cpu_limit: 2,
+      disk_quota: 5000,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+
+  it("licensed idle timeout / don't mix short and medium", () => {
+    const site_license = {
+      "1234-5678-asdf-yxcv": {
+        quota: {
+          ram: 2,
+          cpu: 2,
+          disk: 6,
+          idle_timeout: "medium", // "medium" is stronger than "short"
+          user: "academic",
+        },
+      },
+      "4321-5678-asdf-yxcv": {
+        quota: {
+          ram: 1,
+          cpu: 1,
+          disk: 4,
+          idle_timeout: "short",
+          user: "academic",
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_license);
+    expect(q).toEqual({
+      idle_timeout: 2 * 60 * 60,
+      member_host: true,
+      network: true,
+      privileged: false,
+      always_running: false,
+      memory_request: 300,
+      memory_limit: 2000, // only first license counts
+      cpu_request: 0.05,
+      cpu_limit: 2,
+      disk_quota: 6000,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
+  });
+
+  it("licensed idle timeout / actually increasing idle_timeout", () => {
+    const q0 = quota({}, {}, { l: { quota: { idle_timeout: "short" } } });
+    const q1 = quota({}, {}, { l: { quota: { idle_timeout: "medium" } } });
+    const q2 = quota({}, {}, { l: { quota: { idle_timeout: "day" } } });
+    expect(q0.idle_timeout).toBe(30 * 60);
+    expect(q1.idle_timeout).toBe(2 * 60 * 60);
+    expect(q2.idle_timeout).toBe(24 * 60 * 60);
+    expect(q0.member_host).toBe(true);
+    expect(q1.member_host).toBe(true);
+    expect(q2.member_host).toBe(true);
+  });
+
+  it("check order of license timeout keys", () => {
+    expect(LicenseIdleTimeoutsKeysOrdered).toEqual(["short", "medium", "day"]);
   });
 });
