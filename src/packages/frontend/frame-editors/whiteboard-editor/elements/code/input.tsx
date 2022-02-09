@@ -1,20 +1,16 @@
-import { CSSProperties } from "react";
-import { useFrameContext } from "../hooks";
-import { Element } from "../types";
+import { useFrameContext } from "../../hooks";
+import { Element } from "../../types";
 import { fromJS, Map } from "immutable";
 import { cm_options } from "@cocalc/frontend/jupyter/cm_options";
-//import { Icon } from "@cocalc/frontend/components/icon";
-
 import { CodeMirrorEditor } from "@cocalc/frontend/jupyter/codemirror-editor";
-
-import CodeControlBar from "./code-control";
+import { redux } from "@cocalc/frontend/app-framework";
 
 interface Props {
   element: Element;
   focused?: boolean;
 }
 
-export default function Code({ element, focused }: Props) {
+export default function Input({ element, focused }: Props) {
   const frame = useFrameContext();
   focused = focused;
   const actions = {
@@ -77,38 +73,17 @@ export default function Code({ element, focused }: Props) {
     },
   };
 
-  const style = {
-    fontSize: element.data?.fontSize,
-    border: `${2 * (element.data?.radius ?? 1)}px solid ${
-      element.data?.color ?? "#ccc"
-    }`,
-    borderRadius: "5px",
-    padding: "5px",
-    background: "white",
-  } as CSSProperties;
-
-  const { hideInput, hideOutput } = element.data ?? {};
-
   return (
-    <div className={focused ? "nodrag" : undefined} style={style}>
-      {!hideInput && (
-        <CodeMirrorEditor
-          actions={actions}
-          id={""}
-          options={getCMOptions()}
-          value={element.str ?? ""}
-          is_focused={focused}
-        />
-      )}
-      {/* hideInput && (hideOutput || !element.data?.output) && (
-        <Icon name="jupyter" />
-      )*/}
-      {focused && <CodeControlBar element={element} />}
-    </div>
+    <CodeMirrorEditor
+      actions={actions}
+      id={""}
+      options={getCMOptions()}
+      value={element.str ?? ""}
+      is_focused={focused}
+    />
   );
 }
 
-import { redux } from "@cocalc/frontend/app-framework";
 function getCMOptions() {
   const mode = "python";
   const account = redux.getStore("account");
