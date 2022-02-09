@@ -55,7 +55,7 @@
     "express-session": "^1.10.4",
     "http-proxy": "^1.18.1",
     "immutable": "^3.8.2",
-    "jquery": "^3.5.1",
+    "jquery": "^3.6.0",
     "jsdom": "^16.2.2",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
