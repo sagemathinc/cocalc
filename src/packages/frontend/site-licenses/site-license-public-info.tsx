@@ -23,7 +23,7 @@ import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { plural, trunc_left, trunc, unreachable } from "@cocalc/util/misc";
 import { DebounceInput } from "react-debounce-input";
 import { webapp_client } from "../webapp-client";
-import { describe_quota, Quota } from "@cocalc/util/db-schema/site-licenses";
+import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import {
   LicenseStatus,
   isLicenseStatus,
@@ -34,6 +34,7 @@ import { query, user_search } from "../frame-editors/generic/client";
 import { User } from "../users";
 import { reuseInFlight } from "async-await-utils/hof";
 import { isEqual } from "lodash";
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 
 export type SiteLicenses = {
   [license_id: string]: Map<string, number> | null;
@@ -251,7 +252,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   }
 
   function renderStatusText(rec: TableRow): JSX.Element {
-    const quota: Quota | undefined = infos?.[rec.license_id]?.quota;
+    const quota: SiteLicenseQuota | undefined = infos?.[rec.license_id]?.quota;
     if (quota?.dedicated_disk || quota?.dedicated_vm) {
       return <>{describe_quota(quota)}</>;
     }

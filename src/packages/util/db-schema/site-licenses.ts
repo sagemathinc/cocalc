@@ -20,44 +20,13 @@ for students).
 import { is_valid_uuid_string, plural } from "../misc";
 import { Table } from "./types";
 import { SCHEMA } from "./index";
-import {
-  DedicatedDisk,
-  DedicatedVM,
-  dedicated_disk_display,
-} from "@cocalc/util/types/dedicated";
+import { dedicated_disk_display } from "@cocalc/util/types/dedicated";
+import { SiteLicenseQuota } from "../types/site-licenses";
 
-export interface Quota {
-  ram?: number;
-  dedicated_ram?: number;
-  cpu?: number;
-  dedicated_cpu?: number;
-  disk?: number;
-  always_running?: boolean;
-  member?: boolean;
-  user?: "academic" | "business";
-  dedicated_vm?: DedicatedVM | boolean;
-  dedicated_disk?: DedicatedDisk;
-}
-
-// For typescript use of these from user side, we make this available:
-export interface SiteLicense {
-  id: string;
-  title?: string;
-  description?: string;
-  info?: object;
-  expires?: Date;
-  activates?: Date;
-  created: Date;
-  last_used?: Date;
-  managers?: string[];
-  restricted?: boolean;
-  upgrades?: object;
-  quota?: Quota;
-  run_limit?: number;
-  apply_limit?: number;
-}
-
-export function describe_quota(quota: Quota, short?: boolean): string {
+export function describe_quota(
+  quota: SiteLicenseQuota,
+  short?: boolean
+): string {
   let desc: string = "";
   if (!short) {
     desc =

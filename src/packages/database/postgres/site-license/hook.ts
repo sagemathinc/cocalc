@@ -11,8 +11,9 @@ import { TypedMap } from "@cocalc/util/types/typed-map";
 import { is_valid_uuid_string, len } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import { number_of_running_projects_using_license } from "./analytics";
-import { Quota } from "@cocalc/util/db-schema/site-licenses";
-type QuotaMap = TypedMap<Quota>;
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+
+type QuotaMap = TypedMap<SiteLicenseQuota>;
 import {
   quota as compute_total_quota,
   SiteLicenseQuotaSetting,

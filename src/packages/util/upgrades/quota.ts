@@ -38,10 +38,11 @@ costs add).
 
 import { isEmpty } from "lodash";
 import { DEFAULT_QUOTAS, upgrades } from "../upgrade-spec";
-import { Quota as SiteLicenseQuota } from "../db-schema/site-licenses";
+
 import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import { len } from "../misc";
 import { VMS } from "@cocalc/util/upgrades/dedicated";
+import { SiteLicenseQuota } from "../types/site-licenses";
 // TODO how to use the logger ?
 //import { getLogger } from "@cocalc/backend/logger";
 //const L = getLogger("upgrades:quota");
