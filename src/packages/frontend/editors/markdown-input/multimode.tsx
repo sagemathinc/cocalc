@@ -33,6 +33,7 @@ interface Props {
   submitMentionsRef?: any;
   extraHelp?: ReactNode;
   lineWrapping?: boolean;
+  saveDebounceMs?: number;
 }
 
 export default function MultiMarkdownInput({
@@ -52,6 +53,7 @@ export default function MultiMarkdownInput({
   submitMentionsRef,
   extraHelp,
   lineWrapping,
+  saveDebounceMs,
 }: Props) {
   const { project_id, path } = useFrameContext();
   const [mode, setMode0] = useState<Mode>(
@@ -124,7 +126,7 @@ export default function MultiMarkdownInput({
               padding: "5px 15px",
               height: height ?? "100%",
             }}
-            saveDebounceMs={0}
+            saveDebounceMs={saveDebounceMs ?? 0}
             actions={{
               set_value: (value) => {
                 onChange?.(value);

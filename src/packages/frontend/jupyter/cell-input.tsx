@@ -23,6 +23,7 @@ import { get_blob_url } from "./server-urls";
 import { CellHiddenPart } from "./cell-hidden-part";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { JupyterActions } from "./browser-actions";
+import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 
 function href_transform(
   project_id: string | undefined,
@@ -223,6 +224,22 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       return <div>Unsupported cell type {type}</div>;
     }
 
+    function renderMarkdownEdit() {
+      return (
+        <MarkdownInput
+          value={props.cell.get("input") ?? ""}
+          height="50vh"
+          onChange={(value) => {
+            props.actions?.set_cell_input(props.id, value, true);
+          }}
+          onShiftEnter={() => {
+            frameActions.current?.set_md_cell_not_editing(props.id);
+          }}
+          saveDebounceMs={1500}
+        />
+      );
+    }
+
     function render_input_value(type: string): Rendered {
       switch (type) {
         case "code":
@@ -230,8 +247,12 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         case "raw":
           return render_codemirror(type);
         case "markdown":
-          if (props.is_markdown_edit) return render_codemirror(type);
-          else return render_markdown();
+          if (props.is_markdown_edit) {
+            return renderMarkdownEdit();
+            //return render_codemirror(type);
+          } else {
+            return render_markdown();
+          }
         default:
           return render_unsupported(type);
       }
