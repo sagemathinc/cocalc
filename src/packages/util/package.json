@@ -14,7 +14,7 @@
   },
   "scripts": {
     "build": "npx tsc",
-    "tsc": "npx tsc --watch",
+    "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput",
     "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee; cd test && npx jest",
     "testquota": "cd test && npx jest quota.test.ts"
   },

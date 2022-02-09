@@ -122,7 +122,7 @@
     "hub-project-prod": "npm run build && unset DATA COCALC_ROOT  BASE_PATH && PGUSER='smc' PGHOST=$INIT_CWD/../../data/postgres/socket DEBUG='cocalc:*,-cocalc:silly:*',$DEBUG NODE_ENV=production NODE_OPTIONS='--max_old_space_size=8000 --enable-source-maps' npx cocalc-hub-server --mode=single-user --all --hostname=0.0.0.0",
     "hub-docker-dev": "COCALC_DOCKER=true DEBUG='cocalc:*,-cocalc:silly:*',$DEBUG NODE_ENV=development PROJECTS=/projects/[project_id] PORT=443 NODE_OPTIONS='--max_old_space_size=8000 --trace-warnings --enable-source-maps' npx cocalc-hub-server --mode=multi-user --all --hostname=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",
     "hub-docker-prod": "COCALC_DOCKER=true DEBUG='cocalc:*,-cocalc:silly:*',$DEBUG NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production PROJECTS=/projects/[project_id] PORT=443 NODE_OPTIONS=--enable-source-maps npx cocalc-hub-server --mode=multi-user  --all --hostname=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",
-    "tsc": "npx tsc --watch  --pretty "
+    "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput"
   },
   "repository": {
     "type": "git",
