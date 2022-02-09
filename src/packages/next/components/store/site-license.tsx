@@ -27,6 +27,7 @@ import {
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
+import e from "express";
 
 export default function Create() {
   const router = useRouter();
@@ -283,7 +284,7 @@ function CreateLicense() {
         <Form.Item
           label="GB shared RAM"
           name="ram"
-          initialValue={1}
+          initialValue={2}
           extra={
             showExplanations ? (
               <>
@@ -452,6 +453,26 @@ function CreateLicense() {
           }
         >
           <Checkbox>Keep projects running</Checkbox>
+        </Form.Item>
+        <Form.Item
+          initialValue="short"
+          name="uptime"
+          label="Uptime"
+          valuePropName="uptime"
+          extra={showExplanations ? <>more info about uptime</> : undefined}
+        >
+          <Radio.Group
+            defaultValue={"short"}
+            onChange={(e) => {
+              form.setFieldsValue({ uptime: e.target.value });
+              onChange();
+            }}
+          >
+            <Radio.Button value="short">Short</Radio.Button>
+            <Radio.Button value="medium">Medium</Radio.Button>
+            <Radio.Button value="day">Day</Radio.Button>
+            <Radio.Button value="always_running">Always Running</Radio.Button>
+          </Radio.Group>
         </Form.Item>
         <Form.Item
           label="Title"

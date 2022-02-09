@@ -28,6 +28,7 @@ const p1data = {
   custom_dedicated_ram: 0,
   custom_dedicated_cpu: 0,
   custom_always_running: false,
+  custom_idle_timeout: "short" as "short",
 };
 const Price1m = compute_cost(p1data);
 const Price1y = compute_cost({
@@ -49,6 +50,7 @@ const p2data = {
   custom_dedicated_ram: 1,
   custom_dedicated_cpu: 0,
   custom_always_running: false,
+  custom_idle_timeout: "short" as "short",
 };
 const Price2m = compute_cost(p2data);
 const Price2y = compute_cost({
@@ -70,6 +72,7 @@ const p3data = {
   custom_dedicated_ram: 1,
   custom_dedicated_cpu: 1,
   custom_always_running: false,
+  custom_idle_timeout: "short" as "short",
 };
 const Price3m = compute_cost(p3data);
 const Price3y = compute_cost({

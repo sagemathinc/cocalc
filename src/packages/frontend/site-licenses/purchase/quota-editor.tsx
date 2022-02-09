@@ -48,13 +48,8 @@ interface Props {
   show_advanced_default?: boolean; // if the "advanced" part should pop up by default
 }
 
-export const QuotaEditor: React.FC<Props> = ({
-  quota,
-  onChange,
-  hideExtra,
-  disabled,
-  show_advanced_default,
-}) => {
+export const QuotaEditor: React.FC<Props> = (props: Props) => {
+  const { quota, onChange, hideExtra, disabled, show_advanced_default } = props;
   const [show_advanced, set_show_advanced] = useState<boolean>(
     show_advanced_default ?? false
   );
@@ -159,6 +154,42 @@ export const QuotaEditor: React.FC<Props> = ({
               )
             </b>
             {render_explanation("RAM may be shared with other users")}
+          </Col>
+        )}
+      </Row>
+    );
+  }
+
+  function render_idle_timeout() {
+    return (
+      <Row style={ROW_STYLE}>
+        <Col md={col.control - col.max}>
+          <InputNumber
+            disabled={disabled}
+            value={quota.idle_timeout}
+            onChange={(x) => {
+              onChange({ idle_timeout: x });
+            }}
+          />
+          <Space />
+          <span style={UNIT_STYLE}>idle timeout</span>
+        </Col>
+        {!hideExtra && (
+          <Col md={col.desc}>
+            {false && (
+              <>
+                <b>
+                  GB RAM (
+                  {`${money(
+                    COSTS.user_discount[user()] *
+                      COSTS.custom_cost.ram *
+                      hosting_multiplier
+                  )}/GB RAM per month per project`}
+                  )
+                </b>
+                {render_explanation("RAM may be shared with other users")}
+              </>
+            )}
           </Col>
         )}
       </Row>
@@ -446,6 +477,7 @@ export const QuotaEditor: React.FC<Props> = ({
       {render_cpu()}
       {render_ram()}
       {render_disk()}
+      {render_idle_timeout()}
       {!hideExtra && render_support()}
       {!hideExtra && render_network()}
       {render_show_advanced_link()}

@@ -1499,4 +1499,31 @@ describe("default quota", () => {
   it("check order of license timeout keys", () => {
     expect(LicenseIdleTimeoutsKeysOrdered).toEqual(["short", "medium", "day"]);
   });
+
+  it("licensed idle timeout / non members are always short", () => {
+    const q0 = quota(
+      {},
+      {},
+      { l: { quota: { idle_timeout: "day", member: false } } }
+    );
+    expect(q0.idle_timeout).toBe(30 * 60); // short
+  });
+
+  it("licensed idle timeout / short is automatically member, unless set to false", () => {
+    const q0 = quota(
+      {},
+      {},
+      { l: { quota: { idle_timeout: "short", member: false } } }
+    );
+    expect(q0.idle_timeout).toBe(30 * 60); // short
+    expect(q0.member_host).toBe(false);
+
+    const q1 = quota(
+      {},
+      {},
+      { l: { quota: { idle_timeout: "short", member: true } } }
+    );
+    expect(q1.idle_timeout).toBe(30 * 60); // short
+    expect(q1.member_host).toBe(true);
+  });
 });

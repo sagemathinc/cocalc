@@ -7,6 +7,7 @@ import { isEqual } from "lodash";
 import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import { ONE_MONTH_MS } from "@cocalc/util/consts/billing";
 import { dedicatedPrice } from "./dedicated";
+import { LicenseIdleTimeouts } from "../../consts/site-license";
 
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "max" | "custom";
@@ -46,6 +47,7 @@ export interface PurchaseInfo {
   custom_disk: number;
   custom_always_running: boolean;
   custom_member: boolean;
+  custom_idle_timeout: keyof typeof LicenseIdleTimeouts;
   dedicated_disk?: DedicatedDisk;
   dedicated_vm?: DedicatedVM;
   title?: string;
@@ -228,9 +230,12 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_member,
     dedicated_disk,
     dedicated_vm,
+    custom_idle_timeout,
   } = info;
   const start = new Date(info.start);
   const end = info.end ? new Date(info.end) : undefined;
+
+  // TODO this is just a sketch, improve it
   if (!!dedicated_disk || !!dedicated_vm) {
     const cost = dedicatedPrice({
       start,
@@ -274,6 +279,11 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_member = !!MAX.member;
   }
 
+  // member hosting is controlled by idle_timeout
+  if (custom_idle_timeout != "short" && custom_idle_timeout != "medium") {
+    custom_member = true;
+  }
+
   // We compute the cost for one project for one month.
   // First we add the cost for RAM and CPU.
   let cost_per_project_per_month =
@@ -292,11 +302,20 @@ export function compute_cost(info: PurchaseInfo): Cost {
       // for long-running computations that can be checkpointed and started.
       cost_per_project_per_month *= GCE_COSTS.non_pre_factor;
     }
+  } else {
+    // multiply by the idle_timeout factor
+    // the smallest idle_timeout has a factor of 1
+    const idle_timeout_spec = LicenseIdleTimeouts[custom_idle_timeout];
+    if (idle_timeout_spec != null) {
+      cost_per_project_per_month *= idle_timeout_spec.priceFactor;
+    }
   }
+
   // If the project is member hosted, multiply the RAM/CPU cost by a factor.
   if (custom_member) {
     cost_per_project_per_month *= COSTS.custom_cost.member;
   }
+
   // Add the disk cost, which doesn't depend on how frequently the project
   // is used or the quality of hosting.
   cost_per_project_per_month += custom_disk * COSTS.custom_cost.disk;

@@ -63,6 +63,7 @@ async function purchaseSiteLicense(item): Promise<string> {
     disk,
     always_running,
     member,
+    idle_timeout,
   } = item.description;
   const info: PurchaseInfo = {
     user,
@@ -81,6 +82,7 @@ async function purchaseSiteLicense(item): Promise<string> {
     custom_disk: disk,
     custom_always_running: always_running,
     custom_member: member,
+    custom_idle_timeout: idle_timeout,
     title,
     description,
   };
