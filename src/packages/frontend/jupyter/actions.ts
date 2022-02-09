@@ -883,11 +883,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return "";
   }
 
-  insert_cell_at(pos: number, save: boolean = true): string {
+  insert_cell_at(
+    pos: number,
+    save: boolean = true,
+    id: string | undefined = undefined // dangerous since could conflict (used by whiteboard)
+  ): string {
     if (this.store.get("read_only")) {
       throw Error("document is read only");
     }
-    const new_id = this.new_id();
+    const new_id = id ?? this.new_id();
     this._set(
       {
         type: "cell",

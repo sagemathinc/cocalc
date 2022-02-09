@@ -1,39 +1,44 @@
-//import { redux } from "@cocalc/frontend/app-framework";
-//import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
-//import { aux_file } from "@cocalc/util/misc";
-/*
-  const { project_id, path } = useFrameContext();
+import { redux } from "@cocalc/frontend/app-framework";
+import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
+import { aux_file } from "@cocalc/util/misc";
+import { once } from "@cocalc/util/async-utils";
+
+export async function run({
+  project_id,
+  path,
+  input,
+  id,
+}: {
+  project_id: string;
+  path: string;
+  input: string;
+  id: string;
+}) {
   const aux_path = aux_file(path, "ipynb");
-  const actions = redux.getEditorActions(project_id, aux_path) as
+  let actions = redux.getEditorActions(project_id, aux_path) as
     | JupyterEditorActions
     | undefined;
   if (actions == null) {
-    return <div>TODO</div>;
+    const projectActions = redux.getProjectActions(project_id);
+    //await projectActions.open_file({ path: aux_path, foreground: false });
+    await projectActions.initFileRedux(aux_path);
+    actions = redux.getEditorActions(project_id, aux_path) as
+      | JupyterEditorActions
+      | undefined;
   }
-  const store = actions.jupyter_actions.store;
-  const id = element.str ?? "todo";
-  const cell = store.get("cells").get(id);
+  if (actions == null) {
+    throw Error("bug -- actions must be defined");
+  }
+  const { jupyter_actions } = actions;
+  if (jupyter_actions.syncdb.get_state() != "ready") {
+    await once(jupyter_actions.syncdb, "ready");
+  }
+  const store = jupyter_actions.store;
+  let cell = store.get("cells").get(id);
   if (cell == null) {
-    return <div>Create cell '{id}'</div>;
+    jupyter_actions.insert_cell_at(0, false, id);
   }
-  const cm_options = store.get("cm_options");
-  const style = {
-    fontSize: `${element.data?.fontSize}px`,
-    borderLeft: element.data?.color
-      ? `5px solid ${element.data?.color}`
-      : undefined,
-  };
-
-  return (
-    <div style={style}>
-      <Cell
-        cell={cell}
-        cm_options={cm_options}
-        mode="edit"
-        font_size={element.data?.fontSize ?? 14}
-        project_id={project_id}
-      />
-    </div>
-  );
-
-  */
+  jupyter_actions.set_cell_input(id, input, false);
+  jupyter_actions.run_code_cell(id);
+  window.x = { actions, id, aux_path, input };
+}
