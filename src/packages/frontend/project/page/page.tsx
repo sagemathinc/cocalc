@@ -289,6 +289,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       const tab_name = "editor-" + path;
       return v.push(
         <FrameContext.Provider
+          key={tab_name}
           value={
             {
               project_id,
@@ -299,7 +300,6 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
           }
         >
           <Content
-            key={tab_name}
             is_visible={active_project_tab === tab_name}
             project_id={project_id}
             tab_name={tab_name}
