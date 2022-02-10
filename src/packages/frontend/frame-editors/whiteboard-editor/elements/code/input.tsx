@@ -79,6 +79,31 @@ export default function Input({ element, focused }: Props) {
       options={getCMOptions()}
       value={element.str ?? ""}
       is_focused={focused}
+      onKeyDown={(cm, e) => {
+        if (
+          e.key == "Enter" &&
+          (e.altKey || e.metaKey || e.shiftKey || e.ctrlKey)
+        ) {
+          // don't do anything else -- we handle:
+          e.preventDefault();
+          // ensure use latest inpute, straight from the editor (avoiding all debounce issues)
+          frame.actions.setElement(
+            { id: element.id, str: cm.getValue() },
+            false
+          );
+          // evaluate in all cases
+          frame.actions.runCodeElement({ id: element.id });
+          // TODO: handle these cases
+          if (e.altKey || e.metaKey) {
+            // this is "evaluate and make new cell"
+          } else if (e.shiftKey) {
+            // this is "evaluate and move to next cell, making one if there isn't one."
+          } else if (e.ctrlKey) {
+            // this is "evaluate keeping focus", so nothing further to do.
+          }
+          return;
+        }
+      }}
     />
   );
 }

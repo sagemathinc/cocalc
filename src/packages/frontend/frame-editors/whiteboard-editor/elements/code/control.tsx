@@ -2,7 +2,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { Button, Checkbox } from "antd";
 import { Element } from "../../types";
 import { useFrameContext } from "../../hooks";
-import { run } from "./run";
 
 interface Props {
   element: Element;
@@ -10,7 +9,7 @@ interface Props {
 }
 
 export default function CodeControlBar({ element }: Props) {
-  const { actions, project_id, path } = useFrameContext();
+  const { actions } = useFrameContext();
   return (
     <div
       style={{
@@ -35,19 +34,10 @@ export default function CodeControlBar({ element }: Props) {
       </Checkbox>*/}
       <Button
         onClick={() => {
-          run({
-            project_id,
-            path,
-            input: element.str ?? "",
-            id: element.id,
-            set: (obj) => actions.setElementData(element, obj),
-          });
+          actions.runCodeElement({ id: element.id });
         }}
       >
         <Icon name="play" /> Run
-      </Button>
-      <Button onClick={() => console.log("interrupt code")}>
-        <Icon name="stop" /> Interrupt
       </Button>
       <Checkbox
         checked={!element.data?.hideInput}

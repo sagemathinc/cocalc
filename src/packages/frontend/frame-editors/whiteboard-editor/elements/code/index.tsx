@@ -14,9 +14,11 @@ export default function Code({ element, focused }: Props) {
     height: "100%",
     overflowY: "auto",
     fontSize: element.data?.fontSize,
-    border: `${2 * (element.data?.radius ?? 1)}px solid ${
-      element.data?.color ?? "#ccc"
-    }`,
+    border: element.data?.radius
+      ? `${2 * (element.data?.radius ?? 1)}px solid ${
+          element.data?.color ?? "#ccc"
+        }`
+      : undefined,
     borderRadius: "5px",
     padding: "5px",
     background: "white",
@@ -27,9 +29,7 @@ export default function Code({ element, focused }: Props) {
   return (
     <div className={focused ? "nodrag" : undefined} style={style}>
       {!hideInput && <Input element={element} focused={focused} />}
-      {!hideOutput && element.data?.output && (
-        <Output element={element} />
-      )}
+      {!hideOutput && element.data?.output && <Output element={element} />}
       {/* hideInput && (hideOutput || !element.data?.output) && (
         <Icon name="jupyter" />
       )*/}

@@ -27,6 +27,7 @@ import {
 } from "./math";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { debounce, cloneDeep, isEqual } from "lodash";
+import runCode from "./elements/code/run";
 
 export interface State extends CodeEditorState {
   elements?: Elements;
@@ -396,6 +397,23 @@ export class Actions extends BaseActions<State> {
     }
     this.syncstring_commit();
     return ids;
+  }
+
+  // There may be a lot of options for this...
+  runCodeElement({ id }: { id: string }) {
+    const element = this.store.get("elements")?.get(id)?.toJS();
+    if (element == null) {
+      // no-op no such element
+      console.warn("no cell with id", id);
+      return;
+    }
+    runCode({
+      project_id: this.project_id,
+      path: this.path,
+      input: element.str ?? "",
+      id,
+      set: (obj) => this.setElementData(element, obj),
+    });
   }
 }
 

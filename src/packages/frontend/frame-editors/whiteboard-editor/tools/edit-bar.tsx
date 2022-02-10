@@ -23,7 +23,6 @@ import {
   minFontSize,
   maxFontSize,
   defaultRadius,
-  minRadius,
   maxRadius,
 } from "./defaults";
 
@@ -210,11 +209,16 @@ function Radius({ actions, elements }: ButtonProps) {
           color: "#666",
           paddingTop: "4px",
         }}
-        min={minRadius}
+        min={0}
         max={maxRadius}
         defaultValue={getRadius(elements)}
         onChange={(radius) => {
-          setDataField({ elements, actions }, { radius });
+          // If radius is 0 we set radius to null, hence removing it, so will fallback to default value.
+          // For code cell the default is "no border", but for a pen it might be something else.
+          setDataField(
+            { elements, actions },
+            { radius: !radius ? null : radius }
+          );
         }}
       />
     </Tooltip>

@@ -94,6 +94,7 @@ interface CodeMirrorEditorProps {
   is_scrolling?: boolean;
   complete?: ImmutableMap<any, any>;
   style?: CSSProperties;
+  onKeyDown?: (cm, e) => void;
 }
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
@@ -111,6 +112,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   is_scrolling,
   complete,
   style,
+  onKeyDown,
 }: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
@@ -624,6 +626,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     cm.current.on("focus", cm_focus);
     cm.current.on("blur", cm_blur);
     cm.current.on("cursorActivity", cm_cursor);
+    if (onKeyDown != null) {
+      cm.current.on("keydown", (cm, e) => onKeyDown(cm, e));
+    }
 
     // replace undo/redo by our sync aware versions
     cm.current.undo = cm_undo;
