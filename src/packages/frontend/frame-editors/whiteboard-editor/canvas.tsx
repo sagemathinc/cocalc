@@ -394,7 +394,7 @@ export default function Canvas({
     const visible = frame.desc.get("visibleWindow")?.toJS();
     if (visible) {
       const { xMin, yMin, xMax, yMax } = visible;
-      v.push(
+      v.unshift(
         <Draggable
           key="nav"
           position={{ x: 0, y: 0 }}
@@ -421,7 +421,7 @@ export default function Canvas({
             });
           }}
         >
-          <div>
+          <div style={{ zIndex: MAX_ELEMENTS + 1, position: "absolute" }}>
             {processElement(
               {
                 id: "nav-frame",
@@ -429,10 +429,14 @@ export default function Canvas({
                 y: yMin,
                 w: xMax - xMin,
                 h: yMax - yMin,
-                z: 1000,
+                z: MAX_ELEMENTS + 1,
                 type: "frame",
                 data: { color: "black", thickness: 3 },
-                style: { background: "lightgrey", opacity: 0.3 },
+                style: {
+                  background: "lightgrey",
+                  opacity: 0.3,
+                  borderRadius: "5px",
+                },
               },
               true
             )}

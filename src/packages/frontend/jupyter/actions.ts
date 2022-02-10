@@ -1507,7 +1507,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.store.getIn(["cells", id, "input"], "");
   }
 
-  set_kernel = (kernel: any) => {
+  set_kernel = (kernel: string) => {
     if (this.syncdb.get_state() != "ready") {
       console.warn("Jupyter syncdb not yet ready -- not setting kernel");
       return;

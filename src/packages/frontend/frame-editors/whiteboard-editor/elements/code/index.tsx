@@ -28,7 +28,7 @@ export default function Code({ element, focused }: Props) {
     <div className={focused ? "nodrag" : undefined} style={style}>
       {!hideInput && <Input element={element} focused={focused} />}
       {!hideOutput && element.data?.output && (
-        <Output output={element.data.output} />
+        <Output element={element} />
       )}
       {/* hideInput && (hideOutput || !element.data?.output) && (
         <Icon name="jupyter" />

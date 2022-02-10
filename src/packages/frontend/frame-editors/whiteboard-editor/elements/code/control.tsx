@@ -24,16 +24,7 @@ export default function CodeControlBar({ element }: Props) {
         boxShadow: "1px 5px 7px rgb(33 33 33 / 70%)",
       }}
     >
-      <Checkbox
-        checked={!element.data?.hideInput}
-        style={{ fontWeight: 250 }}
-        onChange={(e) => {
-          actions.setElementData(element, { hideInput: !e.target.checked });
-        }}
-      >
-        Input
-      </Checkbox>
-      <Checkbox
+      {/*<Checkbox
         checked={!element.data?.hideOutput}
         style={{ fontWeight: 250 }}
         onChange={(e) =>
@@ -41,7 +32,7 @@ export default function CodeControlBar({ element }: Props) {
         }
       >
         Output
-      </Checkbox>
+      </Checkbox>*/}
       <Button
         onClick={() => {
           console.log("run code", element.str);
@@ -59,6 +50,15 @@ export default function CodeControlBar({ element }: Props) {
       <Button onClick={() => console.log("interrupt code")}>
         <Icon name="stop" /> Interrupt
       </Button>
+      <Checkbox
+        checked={!element.data?.hideInput}
+        style={{ fontWeight: 250, marginLeft: "10px" }}
+        onChange={(e) => {
+          actions.setElementData(element, { hideInput: !e.target.checked });
+        }}
+      >
+        Input
+      </Checkbox>
     </div>
   );
 }
