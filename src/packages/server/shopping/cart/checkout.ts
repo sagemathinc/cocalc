@@ -61,9 +61,8 @@ async function purchaseSiteLicense(item): Promise<string> {
     ram,
     cpu,
     disk,
-    always_running,
     member,
-    idle_timeout,
+    uptime,
   } = item.description;
   const info: PurchaseInfo = {
     user,
@@ -80,9 +79,8 @@ async function purchaseSiteLicense(item): Promise<string> {
     custom_cpu: cpu,
     custom_dedicated_cpu: 0,
     custom_disk: disk,
-    custom_always_running: always_running,
     custom_member: member,
-    custom_idle_timeout: idle_timeout,
+    custom_uptime: uptime,
     title,
     description,
   };

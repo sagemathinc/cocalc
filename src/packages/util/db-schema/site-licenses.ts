@@ -22,6 +22,7 @@ import { Table } from "./types";
 import { SCHEMA } from "./index";
 import { dedicated_disk_display } from "@cocalc/util/types/dedicated";
 import { SiteLicenseQuota } from "../types/site-licenses";
+import { LicenseIdleTimeouts } from "../consts/site-license";
 
 export function describe_quota(
   quota: SiteLicenseQuota,
@@ -74,6 +75,13 @@ export function describe_quota(
   }
   if (quota.always_running) {
     v.push("always running");
+  } else {
+    if (quota.idle_timeout != null) {
+      const it = LicenseIdleTimeouts[quota.idle_timeout];
+      if (it != null) {
+        v.push(`${it.label} timeout`);
+      }
+    }
   }
   v.push("network"); // always provided, because we trust customers.
   desc += v.join(", ");

@@ -7,7 +7,11 @@ import { isEqual } from "lodash";
 import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import { ONE_MONTH_MS } from "@cocalc/util/consts/billing";
 import { dedicatedPrice } from "./dedicated";
-import { LicenseIdleTimeouts } from "../../consts/site-license";
+import {
+  LicenseIdleTimeouts,
+  requiresMemberhosting,
+  Uptime,
+} from "../../consts/site-license";
 
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "max" | "custom";
@@ -45,9 +49,8 @@ export interface PurchaseInfo {
   custom_cpu: number;
   custom_dedicated_cpu: number;
   custom_disk: number;
-  custom_always_running: boolean;
   custom_member: boolean;
-  custom_idle_timeout: keyof typeof LicenseIdleTimeouts;
+  custom_uptime: Uptime;
   dedicated_disk?: DedicatedDisk;
   dedicated_vm?: DedicatedVM;
   title?: string;
@@ -226,11 +229,10 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_dedicated_ram,
     custom_dedicated_cpu,
     custom_disk,
-    custom_always_running,
     custom_member,
     dedicated_disk,
     dedicated_vm,
-    custom_idle_timeout,
+    custom_uptime,
   } = info;
   const start = new Date(info.start);
   const end = info.end ? new Date(info.end) : undefined;
@@ -256,6 +258,8 @@ export function compute_cost(info: PurchaseInfo): Cost {
     };
   }
 
+  // this is set in the next if/else block
+  let custom_always_running = false;
   if (upgrade == "standard") {
     // set custom_* to what they would be:
     custom_ram = STANDARD.ram;
@@ -277,10 +281,12 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_disk = MAX.disk;
     custom_always_running = !!MAX.always_running;
     custom_member = !!MAX.member;
+  } else {
+    custom_always_running = custom_uptime === "always_running";
   }
 
-  // member hosting is controlled by idle_timeout
-  if (custom_idle_timeout != "short" && custom_idle_timeout != "medium") {
+  // member hosting is controlled by uptime
+  if (custom_always_running !== true && requiresMemberhosting(custom_uptime)) {
     custom_member = true;
   }
 
@@ -305,7 +311,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
   } else {
     // multiply by the idle_timeout factor
     // the smallest idle_timeout has a factor of 1
-    const idle_timeout_spec = LicenseIdleTimeouts[custom_idle_timeout];
+    const idle_timeout_spec = LicenseIdleTimeouts[custom_uptime];
     if (idle_timeout_spec != null) {
       cost_per_project_per_month *= idle_timeout_spec.priceFactor;
     }

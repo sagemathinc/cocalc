@@ -8,6 +8,7 @@ import { StripeClient, Stripe } from "@cocalc/server/stripe/client";
 import getConn from "@cocalc/server/stripe/connection";
 import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { getLogger } from "@cocalc/backend/logger";
+import { LicenseIdleTimeoutsKeysOrdered } from "@cocalc/util/consts/site-license";
 const logger = getLogger("licenses-charge");
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };
@@ -42,7 +43,7 @@ const VERSION = 0;
 function getProductId(info: PurchaseInfo): string {
   /* We generate a unique identifier that represents the parameters of the purchase.
      The following parameters determine what "product" they are purchasing:
-        - custom_always_running
+        - custom_always_running → since 2022-02 custom_uptime
         - custom_cpu
         - custom_dedicated_cpu
         - custom_disk
@@ -52,19 +53,31 @@ function getProductId(info: PurchaseInfo): string {
         - period: subscription or set number of days
       We encode these in a string which serves to identify the product.
   */
-  let period: string;
-  if (info.subscription == "no") {
-    period = getDays(info).toString();
-  } else {
-    period = "0"; // 0 means "subscription" -- same product for all types of subscription billing;
+  function period(): string {
+    if (info.subscription == "no") {
+      return getDays(info).toString();
+    } else {
+      return "0"; // 0 means "subscription" -- same product for all types of subscription billing;
+    }
   }
-  return `license_a${info.custom_always_running ? 1 : 0}b${
-    info.user == "business" ? 1 : 0
-  }c${info.custom_cpu}d${info.custom_disk}m${
-    info.custom_member ? 1 : 0
-  }p${period}r${info.custom_ram}${
-    info.custom_dedicated_ram ? "y" + info.custom_dedicated_ram : ""
-  }${
+
+  // this is backwards compatible: short: 0, always_running: 1, ...
+  function a(): number {
+    switch (info.custom_uptime) {
+      case "short":
+        return 0;
+      case "always_running":
+        return 1;
+      default:
+        return 1 + LicenseIdleTimeoutsKeysOrdered.indexOf(info.custom_uptime);
+    }
+  }
+
+  return `license_a${a()}b${info.user == "business" ? 1 : 0}c${
+    info.custom_cpu
+  }d${info.custom_disk}m${info.custom_member ? 1 : 0}p${period()}r${
+    info.custom_ram
+  }${info.custom_dedicated_ram ? "y" + info.custom_dedicated_ram : ""}${
     info.custom_dedicated_cpu
       ? "z" + Math.round(10 * info.custom_dedicated_cpu)
       : ""

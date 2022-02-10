@@ -11,7 +11,10 @@ import { describe_quota } from "@cocalc/util/db-schema/site-licenses";
 import { plural } from "@cocalc/util/misc";
 import { ReactNode } from "react";
 import Timestamp from "components/misc/timestamp";
-import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
+import {
+  LicenseIdleTimeouts,
+  untangleUptime,
+} from "@cocalc/util/consts/site-license";
 
 export type Period = "range" | "monthly" | "yearly";
 
@@ -48,13 +51,6 @@ export function computeCost({
     return undefined;
   }
 
-  // elimite the always_running case, dealth with below
-  const custom_idle_timeout: keyof typeof LicenseIdleTimeouts =
-    uptime == "always_running" ? "day" : uptime;
-
-  // if we select always running as the uptime, set it as well
-  always_running = always_running || uptime == "always_running";
-
   const input = {
     user,
     upgrade: "custom" as "custom",
@@ -72,7 +68,7 @@ export function computeCost({
     custom_disk: disk,
     custom_always_running: always_running,
     custom_member: member,
-    custom_idle_timeout,
+    custom_uptime: uptime,
   };
   return {
     ...compute_cost(input),
@@ -137,13 +133,15 @@ export function DisplayCost({ cost, simple, oneLine }: Props) {
 }
 
 export function describeItem(info: PurchaseInfo): ReactNode {
+  const { always_running, idle_timeout } = untangleUptime(info.custom_uptime);
   return (
     <>
       {describe_quota({
         ram: info.custom_ram,
         cpu: info.custom_cpu,
         disk: info.custom_disk,
-        always_running: info.custom_always_running,
+        always_running,
+        idle_timeout,
         member: info.custom_member,
         user: info.user,
       })}{" "}

@@ -12,6 +12,7 @@ import {
   Popconfirm,
   Radio,
   Switch,
+  Typography,
 } from "antd";
 import SiteName from "components/share/site-name";
 import A from "components/misc/A";
@@ -27,7 +28,11 @@ import {
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
-import e from "express";
+import {
+  LicenseIdleTimeouts,
+  requiresMemberhosting,
+} from "@cocalc/util/consts/site-license";
+const { Text } = Typography;
 
 export default function Create() {
   const router = useRouter();
@@ -68,6 +73,7 @@ function CreateLicense() {
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
   const [showExplanations, setShowExplanations] = useState<boolean>(true);
+  const [shadowMember, setShadowMember] = useState<boolean | null>(null);
   const [form] = Form.useForm();
   const router = useRouter();
 
@@ -127,6 +133,103 @@ function CreateLicense() {
     } catch (err) {
       setCartError(err.message);
     }
+  }
+
+  function memberExplanation(): JSX.Element | undefined {
+    if (!showExplanations) return;
+    return (
+      <>
+        Member hosting significanlty reduces competition for resources, and we
+        prioritize{" "}
+        <A href="support/new" external>
+          support requests
+        </A>{" "}
+        much higher. All licensed projects, with or without member hosting, have
+        network access, so they can connect to the network to clone git
+        repositories, download data files and install software.
+        {requiresMemberhosting(form.getFieldValue("uptime")) && (
+          <>
+            <br />
+            <Text italic type="secondary">
+              Note: this level of idle timeout requires member hosting.
+            </Text>
+          </>
+        )}
+      </>
+    );
+  }
+
+  function idleTimeoutExplanation(): JSX.Element | undefined {
+    if (!showExplanations) return;
+    const uptime = form.getFieldValue("uptime");
+    const bottom = (
+      <>
+        <br />
+        <Text italic type="secondary">
+          Please be aware: licenses with different idle timeouts cannot be
+          combined!
+        </Text>
+      </>
+    );
+    const main = (function () {
+      if (uptime === "always_running") {
+        return (
+          <>
+            <Text strong type="secondary">
+              Keep projects running:
+            </Text>{" "}
+            Once started your project stays running, so you can run very long
+            computations and also never have to wait for your project to start.
+            This effectively disables{" "}
+            <A href="https://doc.cocalc.com/howto/software-development.html#idle-timeout">
+              idle timeout
+            </A>
+            , since your project will restart automatically if it stops. See{" "}
+            <A href="https://doc.cocalc.com/project-init.html">
+              project init scripts
+            </A>
+            . (Note: this is NOT guaranteed 100% uptime, since projects may
+            sometimes restart for security and maintenance reasons.)
+          </>
+        );
+      } else {
+        return (
+          <>
+            Projects stop automatically if they are not actively used.
+            Increasing{" "}
+            <A href="https://doc.cocalc.com/howto/software-development.html#idle-timeout">
+              idle timeout
+            </A>{" "}
+            will allow you to run longer calculations without you having to be
+            active while they run. However, this is not 100% guaranteed, because
+            projects may still restart due to maintenance or security reasons.
+          </>
+        );
+      }
+    })();
+    return (
+      <>
+        {main}
+        {bottom}
+      </>
+    );
+  }
+
+  function uptimeOptions(): JSX.Element[] {
+    const ret: JSX.Element[] = [];
+    for (const [key, it] of Object.entries(LicenseIdleTimeouts)) {
+      ret.push(
+        <Radio.Button key={key} value={key}>
+          {it.label}
+        </Radio.Button>
+      );
+    }
+    ret.push(
+      <Radio.Button key={"always_running"} value={"always_running"}>
+        Always running
+      </Radio.Button>
+    );
+    return ret;
   }
 
   const addBox = cost ? (
@@ -411,55 +514,42 @@ function CreateLicense() {
           label="Member hosting"
           name="member"
           valuePropName="checked"
-          extra={
-            showExplanations ? (
-              <>
-                Member hosting significanlty reduces competition for resources,
-                and we prioritize{" "}
-                <A href="support/new" external>
-                  support requests
-                </A>{" "}
-                much higher. All licensed projects, with or without member
-                hosting, have network access, so they can connect to the network
-                to clone git repositories, download data files and install
-                software.
-              </>
-            ) : undefined
-          }
+          dependencies={["uptime"]}
+          rules={[
+            ({ getFieldValue, setFieldsValue }) => ({
+              validator: (_, value) => {
+                // we force member true if the uptime is higher than medium
+                const uptime = getFieldValue("uptime");
+                if (requiresMemberhosting(uptime)) {
+                  if (value !== true) {
+                    setShadowMember(value);
+                    setFieldsValue({ member: true });
+                  }
+                } else {
+                  // if the user toggles back to a lower idle timeout,
+                  // we use shadowMember to restore the previous member value.
+                  if (shadowMember != null) {
+                    setFieldsValue({ member: shadowMember });
+                    setShadowMember(null);
+                  }
+                }
+              },
+            }),
+          ]}
+          extra={memberExplanation()}
         >
-          <Checkbox>
+          <Checkbox
+            disabled={requiresMemberhosting(form.getFieldValue("uptime"))}
+          >
             Run project on a much better host with network access
           </Checkbox>
         </Form.Item>
         <Form.Item
-          initialValue={false}
-          label="Always running"
-          name="always_running"
-          valuePropName="checked"
-          extra={
-            showExplanations ? (
-              <>
-                Once started your project stays running, so you can run very
-                long computations and also never have to wait for your project
-                to start. Without this, your project will stop if it is not
-                actively being used. See{" "}
-                <A href="https://doc.cocalc.com/project-init.html">
-                  project init scripts
-                </A>
-                . (Note: this is NOT guaranteed 100% uptime, since projects may
-                sometimes restart for security and maintenance reasons.)
-              </>
-            ) : undefined
-          }
-        >
-          <Checkbox>Keep projects running</Checkbox>
-        </Form.Item>
-        <Form.Item
           initialValue="short"
           name="uptime"
-          label="Uptime"
+          label="Idle timeout"
           valuePropName="uptime"
-          extra={showExplanations ? <>more info about uptime</> : undefined}
+          extra={idleTimeoutExplanation()}
         >
           <Radio.Group
             defaultValue={"short"}
@@ -468,10 +558,7 @@ function CreateLicense() {
               onChange();
             }}
           >
-            <Radio.Button value="short">Short</Radio.Button>
-            <Radio.Button value="medium">Medium</Radio.Button>
-            <Radio.Button value="day">Day</Radio.Button>
-            <Radio.Button value="always_running">Always Running</Radio.Button>
+            {uptimeOptions()}
           </Radio.Group>
         </Form.Item>
         <Form.Item
