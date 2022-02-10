@@ -109,7 +109,7 @@ const MENTION_CSS =
 interface Props {
   project_id?: string; // must be set if enableUpload or enableMentions is set  (todo: enforce via typescript)
   path?: string; // must be set if enableUpload or enableMentions is set (todo: enforce via typescript)
-  value: string;
+  value?: string;
   onChange?: (value: string) => void;
   enableUpload?: boolean; // if true, enable drag-n-drop and pasted files
   onUploadStart?: () => void;
@@ -219,7 +219,7 @@ export const MarkdownInput: FC<Props> = ({
     cm.current = CodeMirror.fromTextArea(node, options);
     // UNCOMMENT FOR DEBUGGING ONLY
     // (window as any).cm = cm.current;
-    cm.current.setValue(value);
+    cm.current.setValue(value ?? "");
     if (onChange != null) {
       cm.current.on("change", (editor, change) => {
         if (change.origin == "setValue") {
@@ -335,7 +335,11 @@ export const MarkdownInput: FC<Props> = ({
   }, [bindings]);
 
   useEffect(() => {
-    if (cm.current == null || cm.current.getValue() === value) {
+    if (
+      value == null ||
+      cm.current == null ||
+      cm.current.getValue() === value
+    ) {
       return;
     }
     if (value == "") {

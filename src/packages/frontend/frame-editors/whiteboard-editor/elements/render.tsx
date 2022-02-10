@@ -13,6 +13,7 @@ import Stopwatch from "./stopwatch";
 import Selection from "./selection";
 import Icon from "./icon";
 import Edge from "./edge";
+import Chat from "./chat";
 
 interface Props {
   element: Element;
@@ -40,6 +41,8 @@ export default function Render(props: Props) {
       return <Stopwatch {...props} />;
     case "edge":
       return <Edge {...props} />;
+    case "chat":
+      return <Chat {...props} />;
     case "selection":
       return <Selection {...props} />;
     default:

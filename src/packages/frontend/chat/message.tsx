@@ -363,8 +363,6 @@ export const Message: React.FC<Props> = React.memo((props) => {
     }
     return (
       <ChatInput
-        project_id={props.project_id}
-        path={props.path}
         input={edited_message}
         submitMentionsRef={submitMentionsRef}
         on_send={on_send}

@@ -29,7 +29,10 @@ import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import { AnonymousName } from "../anonymous-name";
 import { StartButton } from "../start-button";
 import { useProjectStatus } from "./project-status-hook";
-import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import {
+  defaultFrameContext,
+  FrameContext,
+} from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 import {
   DEFAULT_FILE_TAB_STYLES,
@@ -290,14 +293,13 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       return v.push(
         <FrameContext.Provider
           key={tab_name}
-          value={
-            {
-              project_id,
-              path,
-              actions: redux.getEditorActions(project_id, path),
-              isFocused: active_project_tab === tab_name,
-            } as any /* TODO!   */
-          }
+          value={{
+            ...defaultFrameContext,
+            project_id,
+            path,
+            actions: redux.getEditorActions(project_id, path) as any,
+            isFocused: active_project_tab === tab_name,
+          }}
         >
           <Content
             is_visible={active_project_tab === tab_name}

@@ -100,7 +100,7 @@ const STYLE = {
 } as CSS;
 
 interface Props {
-  value: string;
+  value?: string;
   actions?: Actions;
   read_only?: boolean;
   font_size?: number;
@@ -209,7 +209,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, []);
 
     const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
-      markdown_to_slate(value, false, editor.syncCache)
+      markdown_to_slate(value ?? "", false, editor.syncCache)
     );
 
     const rowSizeEstimator = useCallback((node) => {
@@ -269,7 +269,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     const cursorDecorate = useCursorDecorate({
       editor,
       cursors,
-      value,
+      value: value ?? "",
       search,
     });
 
@@ -394,7 +394,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo(
     }, []);
 
     useEffect(() => {
-      if (value == editor.markdownValue) {
+      if (value == null || value == editor.markdownValue) {
         // Setting to current value, so no-op.
         return;
       }

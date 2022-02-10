@@ -1735,6 +1735,15 @@ export class Actions<
     }
   }
 
+  // convenient to have...
+  set_uploading(state: boolean): void {
+    if (state) {
+      this.set_status("Uploading file...", 45);
+    } else {
+      this.set_status("");
+    }
+  }
+
   print(id: string): void {
     const cm = this._get_cm(id);
     if (!cm) {

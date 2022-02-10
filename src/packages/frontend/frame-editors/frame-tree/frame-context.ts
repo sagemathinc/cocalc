@@ -24,14 +24,16 @@ export interface IFrameContext {
   isFocused: boolean; // true if this is the focused frame, i.e., active_id == id.
 }
 
-export const FrameContext = createContext<IFrameContext>({
+export const defaultFrameContext = {
   id: "",
   project_id: "",
   path: "",
   actions: {} as unknown as Actions, // why is there a default context... we always set it?
   desc: Map<string, any>(),
   isFocused: false,
-});
+} as const;
+
+export const FrameContext = createContext<IFrameContext>(defaultFrameContext);
 
 export const useFrameContext: () => IFrameContext = () => {
   return useContext(FrameContext);

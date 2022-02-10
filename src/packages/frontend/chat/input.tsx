@@ -3,25 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useActions, useRedux } from "../app-framework";
-//import { MarkdownInput } from "../editors/markdown-input";
+import { useRedux } from "../app-framework";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "../feature";
+import { useFrameContext } from "../frame-editors/frame-tree/frame-context";
 
 interface Props {
-  project_id: string;
-  path: string;
-  input: string;
+  input?: string;
   on_paste?: (e) => void;
-  on_send: () => void;
+  on_send?: () => void;
   height?: string;
-  onChange: (string) => void;
-  submitMentionsRef: any;
+  onChange?: (string) => void;
+  submitMentionsRef?: any;
+  font_size?: number;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
-  const actions = useActions(props.project_id, props.path);
-  const font_size = useRedux(["font_size"], props.project_id, props.path);
+  const { project_id, path, actions } = useFrameContext();
+  const font_size =
+    props.font_size ?? useRedux(["font_size"], project_id, path);
   return (
     <MarkdownInput
       value={props.input}

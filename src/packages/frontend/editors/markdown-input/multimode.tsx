@@ -17,7 +17,7 @@ export type Mode = "markdown" | "editor";
 const LOCAL_STORAGE_KEY = "markdown-editor-mode";
 
 interface Props {
-  value: string;
+  value?: string;
   defaultMode?: Mode; // defaults to editor or whatever was last used (as stored in localStorage)
   onChange?: (value: string) => void;
   onShiftEnter?: () => void;
