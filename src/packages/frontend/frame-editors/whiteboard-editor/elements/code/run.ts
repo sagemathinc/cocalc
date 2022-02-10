@@ -22,7 +22,6 @@ export async function run({
     | undefined;
   if (actions == null) {
     const projectActions = redux.getProjectActions(project_id);
-    //await projectActions.open_file({ path: aux_path, foreground: false });
     await projectActions.initFileRedux(aux_path);
     actions = redux.getEditorActions(project_id, aux_path) as
       | JupyterEditorActions
@@ -46,7 +45,6 @@ export async function run({
   function onChange() {
     const cell = store.get("cells").get(id);
     if (cell == null) return;
-    console.log("onChange", JSON.stringify(cell.toJS()));
 
     set({ state: cell.get("state"), output: cell.get("output")?.toJS() });
     if (cell.get("state") == "done") {
@@ -54,5 +52,4 @@ export async function run({
     }
   }
   store.on("change", onChange);
-  window.x = { actions, id, aux_path, input };
 }

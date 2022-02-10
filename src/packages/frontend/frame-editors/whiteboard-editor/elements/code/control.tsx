@@ -35,7 +35,6 @@ export default function CodeControlBar({ element }: Props) {
       </Checkbox>*/}
       <Button
         onClick={() => {
-          console.log("run code", element.str);
           run({
             project_id,
             path,
