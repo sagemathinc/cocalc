@@ -8,7 +8,9 @@ import { useFrameContext } from "../hooks";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { Comment } from "antd";
-import { cmp } from "@cocalc/util/misc";
+import { cmp, trunc_middle } from "@cocalc/util/misc";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { redux } from "@cocalc/frontend/app-framework";
 
 interface Props {
   element: Element;
@@ -22,14 +24,15 @@ export default function IconElt({ element, focused }: Props) {
         name={"comment"}
         style={getStyle(element, { fontSize: 24, background: "white" })}
       />
-      {focused && <Conversation element={element} />}
+      <Conversation element={element} focused={focused} />
     </>
   );
 }
 
-function Conversation({ element }: { element: Element }) {
+function Conversation({ element, focused }: Props) {
   const { actions } = useFrameContext();
   const [input, setInput] = useState<string>("");
+
   return (
     <div
       style={{
@@ -49,10 +52,10 @@ function Conversation({ element }: { element: Element }) {
         element={element}
         style={{ flex: 1, overflowY: "auto", background: "white" }}
       />
-      <div style={{ height: "100px" }} className="nodrag">
+      <div style={{ height: focused ? "125px" : "50px" }} className="nodrag">
         <ChatInput
           hideHelp
-          height={"98px"}
+          height={focused ? "123px" : "48px"}
           input={input}
           onChange={setInput}
           on_send={() => {
@@ -91,7 +94,7 @@ function Message({
   element: Element;
   messageNumber: number;
 }) {
-  const { input, time } = element.data?.[messageNumber] ?? {};
+  const { input, sender_id, time } = element.data?.[messageNumber] ?? {};
   return (
     <div
       style={{
@@ -102,13 +105,17 @@ function Message({
       }}
     >
       <Comment
-        author={<a>Han Solo</a>}
-        avatar={<div>foo</div>}
+        author={sender_id ? getName(sender_id) : undefined}
+        avatar={sender_id ? <Avatar account_id={sender_id} /> : undefined}
         content={<StaticMarkdown value={input ?? ""} />}
         datetime={<TimeAgo date={time} />}
       />
     </div>
   );
+}
+
+function getName(account_id: string) {
+  return trunc_middle(redux.getStore("users").get_name(account_id)?.trim(), 20);
 }
 
 export function lastMessageNumber(element: Element): number {

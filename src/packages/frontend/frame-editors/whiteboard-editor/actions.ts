@@ -425,8 +425,13 @@ export class Actions extends BaseActions<State> {
       console.warn("no cell with id", id);
       return;
     }
+    const sender_id = this.redux.getStore("account").get_account_id();
     this.setElementData(element, {
-      [lastMessageNumber(element) + 1]: { input, time: new Date().valueOf() },
+      [lastMessageNumber(element) + 1]: {
+        input,
+        time: new Date().valueOf(),
+        sender_id,
+      },
     });
   }
 }
