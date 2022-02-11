@@ -6,6 +6,7 @@
 import { Map } from "immutable";
 import { TypedMap } from "../../app-framework";
 import { IconName } from "@cocalc/frontend/components/icon";
+import { TimerState } from "@cocalc/frontend/editors/stopwatch/actions";
 
 export type ElementType =
   | "text"
@@ -43,6 +44,10 @@ interface Data {
   hideInput?: boolean; // used for code cells
   hideOutput?: boolean; // used for code cells
   output?: { [index: number]: object }; // code
+  countdown?: number; // used for countdown timer.
+  state?: TimerState; // for timer
+  time?: number; // used by timer
+  total?: number; // used by timer
 }
 
 /*

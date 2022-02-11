@@ -47,10 +47,13 @@ import {
 import { throttle } from "lodash";
 import Draggable from "react-draggable";
 import { clearCanvas, drawCurve } from "./elements/pen";
+
 import { penParams } from "./tools/pen";
 import { noteParams } from "./tools/note";
 import { textParams } from "./tools/text";
 import { iconParams } from "./tools/icon";
+import { timerParams } from "./tools/timer";
+
 import { cmp } from "@cocalc/util/misc";
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { deleteElements } from "./tools/edit-bar";
@@ -197,6 +200,10 @@ export default function Canvas({
 
   function getIconParams() {
     return iconParams(frame.desc.get("iconId") ?? 0);
+  }
+
+  function getTimerParams() {
+    return timerParams(frame.desc.get("timerId") ?? 0);
   }
 
   // gets center of visible canvas in *window* coordinates.
@@ -489,8 +496,8 @@ export default function Canvas({
     // TODO -- move some of this to the spec?
     if (selectedTool == "note") {
       params = { data: getNoteParams() };
-    } else if (selectedTool == "stopwatch") {
-      params = { data: { fontSize: 24 } };
+    } else if (selectedTool == "timer") {
+      params = { data: getTimerParams() };
     } else if (selectedTool == "icon") {
       params = { data: getIconParams() };
     } else if (selectedTool == "text") {
@@ -514,7 +521,7 @@ export default function Canvas({
       selectedTool == "text" ||
       selectedTool == "note" ||
       selectedTool == "code" ||
-      selectedTool == "stopwatch" ||
+      selectedTool == "timer" ||
       selectedTool == "chat"
     ) {
       frame.actions.setSelectedTool(frame.id, "select");

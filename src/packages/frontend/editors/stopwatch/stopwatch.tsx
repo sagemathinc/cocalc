@@ -101,7 +101,6 @@ export default function Stopwatch(props: StopwatchProps) {
   }
 
   function renderEditTimeButton() {
-    if (props.compact || props.noDelete) return;
     const { setCountdown } = props;
     if (setCountdown == null) return;
     return (
@@ -118,7 +117,8 @@ export default function Stopwatch(props: StopwatchProps) {
                 setCountdown(
                   time.seconds() + time.minutes() * 60 + time.hours() * 60 * 60
                 );
-                props.clickButton("reset");
+                // timeout so the setcountdown can fully propagate through flux; needed for whiteboard
+                setTimeout(() => props.clickButton("reset"), 0);
               }
             }}
             showNow={false}
@@ -199,11 +199,6 @@ export default function Stopwatch(props: StopwatchProps) {
     return m;
   }
 
-  function focusAndReset() {
-    props.clickButton("reset");
-    redux.getProjectActions(frame.project_id)?.open_file({ path: frame.path });
-  }
-
   function renderTime() {
     const amount = getRemainingMs();
     return (
@@ -228,12 +223,20 @@ export default function Stopwatch(props: StopwatchProps) {
           <Modal
             title={
               <>
-                <Icon name="hourglass-half" /> Countdown Timer Finished
+                <Icon name="hourglass-half" /> A Countdown Timer in "
+                {frame.path}" is Finished
               </>
             }
             visible={true}
-            onOk={focusAndReset}
-            onCancel={focusAndReset}
+            onOk={() => {
+              props.clickButton("reset");
+              redux
+                .getProjectActions(frame.project_id)
+                ?.open_file({ path: frame.path });
+            }}
+            onCancel={() => {
+              props.clickButton("reset");
+            }}
           >
             {props.label && <StaticMarkdown value={props.label} />}
           </Modal>
@@ -410,7 +413,7 @@ interface TimeProps {
   style?: CSSProperties;
 }
 
-function TimeAmount(props: TimeProps) {
+export function TimeAmount(props: TimeProps) {
   let t = Math.round(props.amount / 1000);
   const hours = Math.floor(t / 3600);
   t -= 3600 * hours;
@@ -418,7 +421,7 @@ function TimeAmount(props: TimeProps) {
   t -= 60 * minutes;
   const seconds = t;
   return (
-    <div
+    <span
       style={{
         fontSize: !props.compact ? "50pt" : undefined,
         fontFamily: "courier",
@@ -426,6 +429,6 @@ function TimeAmount(props: TimeProps) {
       }}
     >
       {zpad(hours)}:{zpad(minutes)}:{zpad(seconds)}
-    </div>
+    </span>
   );
 }

@@ -9,7 +9,7 @@ import Code from "./code";
 import Frame from "./frame";
 import Generic from "./generic";
 import Pen from "./pen";
-import Stopwatch from "./stopwatch";
+import Timer from "./timer";
 import Selection from "./selection";
 import Icon from "./icon";
 import Edge from "./edge";
@@ -37,8 +37,8 @@ export default function Render(props: Props) {
       return <Frame {...props} />;
     case "pen":
       return <Pen {...props} />;
-    case "stopwatch":
-      return <Stopwatch {...props} />;
+    case "timer":
+      return <Timer {...props} />;
     case "edge":
       return <Edge {...props} />;
     case "chat":

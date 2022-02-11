@@ -3,7 +3,12 @@ import { ReactNode } from "react";
 // TODO: terrible icons...  need to add more.
 import { IconName } from "@cocalc/frontend/components/icon";
 
-export type ConfigParams = "fontFamily" | "fontSize" | "radius" | "color";
+export type ConfigParams =
+  | "fontFamily"
+  | "fontSize"
+  | "radius"
+  | "color"
+  | "countdown";
 
 interface ToolDescription {
   icon: IconName;
@@ -52,22 +57,11 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     tip: "Chat",
     config: new Set(["fontSize", "color"]),
   },
-  //   terminal: {
-  //     icon: "code-outlined",
-  //     cursor: "crosshair",
-  //     tip: "Terminal",
-  //   },
-  stopwatch: {
+  timer: {
     icon: "stopwatch",
     cursor: "crosshair",
-    tip: "Stopwatch",
-    config: new Set(["fontFamily", "fontSize", "color"]),
-  },
-  timer: {
-    icon: "hourglass-half",
-    cursor: "crosshair",
-    tip: "Countdown Timer",
-    config: new Set(["fontFamily", "fontSize", "color"]),
+    tip: "Stopwatches and Timers",
+    config: new Set(["fontFamily", "fontSize", "color", "countdown"]),
   },
   edge: {
     hideFromToolbar: true,

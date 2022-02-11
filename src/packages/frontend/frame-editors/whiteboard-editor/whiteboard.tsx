@@ -8,6 +8,7 @@ import PenPanel from "./tools/pen";
 import NotePanel from "./tools/note";
 import TextPanel from "./tools/text";
 import IconPanel from "./tools/icon";
+import TimerPanel from "./tools/timer";
 import NavigationPanel from "./tools/navigation";
 import { useFrameContext } from "./hooks";
 import Upload from "./tools/upload";
@@ -63,6 +64,7 @@ export default function Whiteboard({
               {desc.get("selectedTool") == "note" && <NotePanel />}
               {desc.get("selectedTool") == "text" && <TextPanel />}
               {desc.get("selectedTool") == "icon" && <IconPanel />}
+              {desc.get("selectedTool") == "timer" && <TimerPanel />}
             </>
           )}
           <NavigationPanel fontSize={font_size} elements={elements} />
