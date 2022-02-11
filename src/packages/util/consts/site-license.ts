@@ -40,7 +40,8 @@ export const LicenseIdleTimeoutsKeysOrdered = sortBy(
   (v) => LicenseIdleTimeouts[v].mins
 ) as Readonly<Keys[]>;
 
-export function requiresMemberhosting(key: Uptime | string): boolean {
+export function requiresMemberhosting(key?: Uptime | string): boolean {
+  if (key == null) return false;
   if (key == "always_running") return true;
   return LicenseIdleTimeouts[key]?.requireMemberhosting ?? false;
 }

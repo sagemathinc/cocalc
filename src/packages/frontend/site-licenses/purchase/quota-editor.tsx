@@ -13,12 +13,19 @@ Editing a quota
 
 */
 
-import { Button, Checkbox, InputNumber, Row, Col } from "antd";
+import { Button, Checkbox, InputNumber, Row, Col, Radio, Select } from "antd";
 import { A, Space } from "../../components";
 import { CSS, React, useMemo, useState } from "../../app-framework";
 import { COSTS, GCE_COSTS, money } from "@cocalc/util/licenses/purchase/util";
 import { plural, round1 } from "@cocalc/util/misc";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import {
+  LicenseIdleTimeouts,
+  LicenseIdleTimeoutsKeysOrdered,
+  requiresMemberhosting,
+  untangleUptime,
+  Uptime,
+} from "@cocalc/util/consts/site-license";
 
 const ROW_STYLE: CSS = {
   border: "1px solid #eee",
@@ -154,42 +161,6 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
               )
             </b>
             {render_explanation("RAM may be shared with other users")}
-          </Col>
-        )}
-      </Row>
-    );
-  }
-
-  function render_idle_timeout() {
-    return (
-      <Row style={ROW_STYLE}>
-        <Col md={col.control - col.max}>
-          <InputNumber
-            disabled={disabled}
-            value={quota.idle_timeout}
-            onChange={(x) => {
-              onChange({ idle_timeout: x });
-            }}
-          />
-          <Space />
-          <span style={UNIT_STYLE}>idle timeout</span>
-        </Col>
-        {!hideExtra && (
-          <Col md={col.desc}>
-            {false && (
-              <>
-                <b>
-                  GB RAM (
-                  {`${money(
-                    COSTS.user_discount[user()] *
-                      COSTS.custom_cost.ram *
-                      hosting_multiplier
-                  )}/GB RAM per month per project`}
-                  )
-                </b>
-                {render_explanation("RAM may be shared with other users")}
-              </>
-            )}
           </Col>
         )}
       </Row>
@@ -340,7 +311,11 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <Checkbox
             checked={quota.member}
             onChange={(e) => onChange({ member: e.target.checked })}
-            disabled={disabled}
+            disabled={
+              disabled ||
+              requiresMemberhosting(quota.idle_timeout) ||
+              quota.always_running
+            }
           >
             Member hosting
           </Checkbox>
@@ -358,41 +333,66 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_always_running() {
+  function idleTimeoutUptimeOptions(): JSX.Element[] {
+    const ret: JSX.Element[] = [];
+    for (const [key, it] of Object.entries(LicenseIdleTimeouts)) {
+      ret.push(
+        <Select.Option key={key} value={key}>
+          {it.label}
+        </Select.Option>
+      );
+    }
+    ret.push(
+      <Select.Option key={"always_running"} value={"always_running"}>
+        Always running
+      </Select.Option>
+    );
+    return ret;
+  }
+
+  function onIdleTimeoutChange(val: Uptime) {
+    const { always_running, idle_timeout } = untangleUptime(val);
+    const next: Partial<SiteLicenseQuota> = { always_running, idle_timeout };
+    if (requiresMemberhosting(val)) {
+      next.member = true;
+    }
+    onChange(next);
+  }
+
+  function idleTimeoutExtra(): JSX.Element | undefined {
+    if (hideExtra) return;
+    return (
+      <Col md={col.desc}>
+        {
+          <>
+            <b>
+              longer idle time increases price by up to{" "}
+              {COSTS.custom_cost.always_running * GCE_COSTS.non_pre_factor}{" "}
+              times
+            </b>{" "}
+            {render_explanation(`If you leave your project alone, it will be shut down the latest
+            after the selected interval.
+            This is not 100% guaranteed, because
+            projects may still restart due to maintenance or security reasons.
+            Always running essentially disables this,
+            because if the project stops for any reason, it will be automatically restarted.
+            `)}
+          </>
+        }
+      </Col>
+    );
+  }
+
+  function render_idle_timeout() {
     return (
       <Row style={ROW_STYLE}>
-        <Col md={col.control}>
-          <Checkbox
-            checked={quota.always_running}
-            onChange={(e) => onChange({ always_running: e.target.checked })}
-            disabled={disabled}
-          >
-            Always running
-          </Checkbox>
+        <Col md={col.control} style={{ whiteSpace: "nowrap" }}>
+          <Select defaultValue={"short"} onChange={onIdleTimeoutChange}>
+            {idleTimeoutUptimeOptions()}
+          </Select>{" "}
+          idle timeout
         </Col>
-        {!hideExtra && (
-          <Col md={col.desc}>
-            project is always running{" "}
-            <b>
-              (multiplies RAM/CPU price by{" "}
-              {COSTS.custom_cost.always_running * GCE_COSTS.non_pre_factor} for
-              member hosting or multiply by {COSTS.custom_cost.always_running}{" "}
-              without)
-            </b>{" "}
-            {render_explanation(
-              "run long computations and never have to wait for project to start.  Without this, project will stop  if it is not actively being used." +
-                (!quota.member
-                  ? " Because member hosting isn't selected, project will restart at least once daily."
-                  : "")
-            )}{" "}
-            See{" "}
-            <A href="https://doc.cocalc.com/project-init.html">
-              project init scripts.
-            </A>{" "}
-            (Note: this is NOT guaranteed 100% uptime, since projects may
-            sometimes restart for security and maintenance reasons.)
-          </Col>
-        )}
+        {idleTimeoutExtra()}
       </Row>
     );
   }
@@ -477,12 +477,11 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
       {render_cpu()}
       {render_ram()}
       {render_disk()}
-      {render_idle_timeout()}
       {!hideExtra && render_support()}
       {!hideExtra && render_network()}
       {render_show_advanced_link()}
       {show_advanced && render_member()}
-      {show_advanced && render_always_running()}
+      {show_advanced && render_idle_timeout()}
       {show_advanced && render_dedicated_cpu()}
       {show_advanced && render_dedicated_ram()}
       {show_advanced && !hideExtra && render_dedicated()}
