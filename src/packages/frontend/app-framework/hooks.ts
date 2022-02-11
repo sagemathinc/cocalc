@@ -30,9 +30,10 @@ import useToggle from "./toggle-hook";
 export { useToggle };
 
 export function useForceUpdate() {
-  const [state, set_state] = useState<boolean>(true);
+  const counterRef = useRef<any>(0);
+  const [, setCounter] = useState<number>(0);
   return () => {
-    set_state(!state);
+    setCounter((counterRef.current += 1));
   };
 }
 

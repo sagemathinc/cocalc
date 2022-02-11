@@ -7,7 +7,9 @@
 The stopwatch component
 */
 
-import { CSSProperties } from "react";
+import { CSSProperties, useEffect, useState } from "react";
+import { useForceUpdate } from "@cocalc/frontend/app-framework";
+
 import { Button, Row, Col, Tooltip } from "antd";
 import {
   DeleteTwoTone,
@@ -15,8 +17,8 @@ import {
   PlayCircleTwoTone,
   StopTwoTone,
 } from "@ant-design/icons";
-import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { TimerState } from "./actions";
+//import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { TextInput } from "@cocalc/frontend/components/text-input";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 
@@ -39,119 +41,99 @@ interface StopwatchProps {
   timeStyle?: CSSProperties;
 }
 
-interface StopwatchState {
-  editing_label: boolean;
-}
+export default function Stopwatch(props: StopwatchProps) {
+  const [editingLabel, setEditingLabel] = useState<boolean>(false);
+  const update = useForceUpdate();
 
-export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
-  private intervals: number[] = [];
+  useEffect(() => {
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
-  constructor(props) {
-    super(props);
-    this.state = { editing_label: false };
-  }
-
-  private setInterval(fn: Function, ms: number): void {
-    this.intervals.push(setInterval(fn, ms));
-  }
-
-  public componentWillUnmount(): void {
-    this.intervals.forEach(clearInterval);
-  }
-
-  public componentDidMount(): void {
-    this.setInterval(() => this.forceUpdate(), 1000);
-  }
-
-  private render_start_button(): Rendered {
+  function renderStartButton() {
     return (
       <Tooltip title="Start the stopwatch">
         <Button
           icon={<PlayCircleTwoTone />}
-          onClick={() => this.props.clickButton("start")}
-          style={!this.props.compact ? { width: "8em" } : undefined}
+          onClick={() => props.clickButton("start")}
+          style={!props.compact ? { width: "8em" } : undefined}
         >
-          {!this.props.compact ? "Start" : undefined}
+          {!props.compact ? "Start" : undefined}
         </Button>
       </Tooltip>
     );
   }
 
-  private render_reset_button(): Rendered {
+  function renderResetButton() {
     return (
       <Tooltip title="Reset the stopwatch to 0">
         <Button
           icon={<StopTwoTone />}
-          onClick={() => this.props.clickButton("reset")}
+          onClick={() => props.clickButton("reset")}
         >
-          {!this.props.compact ? "Reset" : undefined}
+          {!props.compact ? "Reset" : undefined}
         </Button>
       </Tooltip>
     );
   }
 
-  private render_delete_button(): Rendered {
-    if (this.props.compact || this.props.noDelete) return;
+  function renderDeleteButton() {
+    if (props.compact || props.noDelete) return;
     return (
       <Tooltip title="Delete this stopwatch">
         <Button
           icon={<DeleteTwoTone />}
-          onClick={() => this.props.clickButton("delete")}
+          onClick={() => props.clickButton("delete")}
         >
-          {!this.props.compact ? "Delete" : undefined}
+          {!props.compact ? "Delete" : undefined}
         </Button>
       </Tooltip>
     );
   }
 
-  private render_pause_button(): Rendered {
+  function renderPauseButton() {
     return (
       <Tooltip title="Pause the stopwatch">
         <Button
           icon={<PauseCircleTwoTone />}
-          onClick={() => this.props.clickButton("pause")}
-          style={!this.props.compact ? { width: "8em" } : undefined}
+          onClick={() => props.clickButton("pause")}
+          style={!props.compact ? { width: "8em" } : undefined}
         >
-          {!this.props.compact ? "Pause" : undefined}
+          {!props.compact ? "Pause" : undefined}
         </Button>
       </Tooltip>
     );
   }
 
-  private render_time(): Rendered {
+  function renderTime() {
     let amount: number = 0;
-    switch (this.props.state) {
+    switch (props.state) {
       case "stopped":
         break;
       case "paused":
-        amount = this.props.total || 0;
+        amount = props.total || 0;
         break;
       case "running":
         amount =
-          (this.props.total || 0) +
-          (webapp_client.server_time() - this.props.time);
+          (props.total || 0) + (webapp_client.server_time() - props.time);
         break;
       default:
-        assertNever(this.props.state);
+        assertNever(props.state);
     }
 
     return (
       <TimeAmount
         key={"time"}
         amount={amount}
-        compact={this.props.compact}
-        style={this.props.timeStyle}
+        compact={props.compact}
+        style={props.timeStyle}
       />
     );
   }
 
-  private edit_label(): void {
-    this.setState({ editing_label: true });
-  }
-
-  private render_label(): Rendered {
-    if (this.state.editing_label) {
-      return this.render_editing_label();
+  function renderLabel() {
+    if (editingLabel) {
+      return renderEditingLabel();
     }
     return (
       <div
@@ -160,18 +142,18 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
           fontSize: "25px",
           marginTop: "25px",
           width: "100%",
-          color: this.props.label ? "#444" : "#999",
+          color: props.label ? "#444" : "#999",
           borderBottom: "1px solid #999",
           marginBottom: "10px",
         }}
-        onClick={() => this.edit_label()}
+        onClick={() => setEditingLabel(true)}
       >
-        {this.props.label ? this.props.label : "Label"}
+        {props.label ? props.label : "Label"}
       </div>
     );
   }
 
-  private render_editing_label(): Rendered {
+  function renderEditingLabel() {
     return (
       <div
         key="edit-label"
@@ -182,62 +164,70 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
         }}
       >
         <TextInput
-          text={this.props.label ? this.props.label : ""}
+          text={props.label ? props.label : ""}
           on_change={(value) => {
-            this.props.setLabel?.(value);
-            this.setState({ editing_label: false });
+            props.setLabel?.(value);
+            setEditingLabel(false);
           }}
           autoFocus={true}
         />
+        {/*
+        <MarkdownInput
+          value={props.label ? props.label : ""}
+          onChange={(value) => {
+            props.setLabel?.(value);
+            //setState({ editing_label: false });
+          }}
+        />*/}
       </div>
     );
   }
 
-  private render_buttons(): Rendered {
-    switch (this.props.state) {
+  function renderButtons() {
+    switch (props.state) {
       case "stopped":
         return (
           <Button.Group key={"buttons"}>
-            {this.render_start_button()}
-            {this.render_delete_button()}
+            {renderStartButton()}
+            {renderDeleteButton()}
           </Button.Group>
         );
       case "paused":
         return (
           <Button.Group key={"buttons"}>
-            {this.render_start_button()}
-            {this.render_reset_button()}
-            {this.render_delete_button()}
+            {renderStartButton()}
+            {renderResetButton()}
+            {renderDeleteButton()}
           </Button.Group>
         );
       case "running":
         return (
           <Button.Group key={"buttons"}>
-            {this.render_pause_button()}
-            {this.render_reset_button()}
-            {this.render_delete_button()}
+            {renderPauseButton()}
+            {renderResetButton()}
+            {renderDeleteButton()}
           </Button.Group>
         );
       default:
-        assertNever(this.props.state);
+        assertNever(props.state);
         // TS doesn't have strong enough type inference here??
         return <div />;
     }
   }
 
-  private render_full_size(): Rendered {
-    if (this.props.noLabel) {
+  function renderFullSize() {
+    if (props.noLabel) {
       return (
         <div
           style={{
             borderBottom: "1px solid #666",
             background: "#efefef",
             padding: "15px",
-            ...this.props.style,
+            ...props.style,
           }}
         >
-          <div>{this.render_time()}</div>
-          <div>{this.render_buttons()}</div>
+          <div>{renderTime()}</div>
+          <div>{renderButtons()}</div>
         </div>
       );
     }
@@ -251,46 +241,44 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
       >
         <Row>
           <Col sm={12} md={12}>
-            {this.render_time()}
+            {renderTime()}
           </Col>
           <Col sm={12} md={12}>
-            {this.render_label()}
+            {renderLabel()}
           </Col>
         </Row>
-        {!this.props.noButtons && (
+        {!props.noButtons && (
           <Row>
-            <Col md={24}>{this.render_buttons()}</Col>
+            <Col md={24}>{renderButtons()}</Col>
           </Row>
         )}
       </div>
     );
   }
 
-  public render(): Rendered {
-    if (this.props.compact) {
-      return (
-        <div style={{ display: "flex" }}>
-          {this.render_time()}
-          {!this.props.noButtons && (
-            <div style={{ marginTop: "3px", marginLeft: "5px" }}>
-              {this.render_buttons()}
-            </div>
-          )}
-        </div>
-      );
-    } else {
-      return this.render_full_size();
-    }
+  if (props.compact) {
+    return (
+      <div style={{ display: "flex" }}>
+        {renderTime()}
+        {!props.noButtons && (
+          <div style={{ marginTop: "3px", marginLeft: "5px" }}>
+            {renderButtons()}
+          </div>
+        )}
+      </div>
+    );
+  } else {
+    return renderFullSize();
   }
 }
 
-const zpad = function (n) {
-  n = `${n}`;
-  if (n.length === 1) {
-    n = `0${n}`;
+function zpad(n: number): string {
+  let s = `${n}`;
+  if (s.length === 1) {
+    s = `0${s}`;
   }
-  return n;
-};
+  return s;
+}
 
 interface TimeProps {
   amount: number;
@@ -298,7 +286,6 @@ interface TimeProps {
   style?: CSSProperties;
 }
 
-//const TimeAmount = function(props: TimeProps) {
 function TimeAmount(props: TimeProps) {
   let t = Math.round(props.amount / 1000);
   const hours = Math.floor(t / 3600);

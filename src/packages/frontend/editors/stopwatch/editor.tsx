@@ -27,7 +27,7 @@ import { Button } from "antd";
 import { PlusCircleTwoTone } from "@ant-design/icons";
 import { Loading } from "@cocalc/frontend/components/loading";
 import { ReactNode } from "react";
-import { Stopwatch } from "./stopwatch";
+import Stopwatch from "./stopwatch";
 import { ButtonBar } from "./button-bar";
 import type { TimeActions } from "./actions";
 import { List } from "immutable";

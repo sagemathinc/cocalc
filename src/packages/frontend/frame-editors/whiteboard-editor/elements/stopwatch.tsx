@@ -1,4 +1,4 @@
-import { Stopwatch as StopwatchEditor } from "@cocalc/frontend/editors/stopwatch/stopwatch";
+import StopwatchEditor from "@cocalc/frontend/editors/stopwatch/stopwatch";
 import { getStyle } from "./text";
 import { useFrameContext } from "../hooks";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
