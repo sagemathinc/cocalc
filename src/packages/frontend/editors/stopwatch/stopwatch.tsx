@@ -27,8 +27,8 @@ function assertNever(x: never): never {
 interface StopwatchProps {
   state: TimerState; // 'paused' or 'running' or 'stopped'
   time: number; // when entered this state
-  click_button: (str: string) => void;
-  set_label?: (str: string) => void;
+  clickButton: (str: string) => void;
+  setLabel?: (str: string) => void;
   compact?: boolean;
   label?: string; // a text label
   noLabel?: boolean; // show no label at all
@@ -68,7 +68,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
       <Tooltip title="Start the stopwatch">
         <Button
           icon={<PlayCircleTwoTone />}
-          onClick={() => this.props.click_button("start")}
+          onClick={() => this.props.clickButton("start")}
           style={!this.props.compact ? { width: "8em" } : undefined}
         >
           {!this.props.compact ? "Start" : undefined}
@@ -82,7 +82,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
       <Tooltip title="Reset the stopwatch to 0">
         <Button
           icon={<StopTwoTone />}
-          onClick={() => this.props.click_button("reset")}
+          onClick={() => this.props.clickButton("reset")}
         >
           {!this.props.compact ? "Reset" : undefined}
         </Button>
@@ -96,7 +96,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
       <Tooltip title="Delete this stopwatch">
         <Button
           icon={<DeleteTwoTone />}
-          onClick={() => this.props.click_button("delete")}
+          onClick={() => this.props.clickButton("delete")}
         >
           {!this.props.compact ? "Delete" : undefined}
         </Button>
@@ -109,7 +109,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
       <Tooltip title="Pause the stopwatch">
         <Button
           icon={<PauseCircleTwoTone />}
-          onClick={() => this.props.click_button("pause")}
+          onClick={() => this.props.clickButton("pause")}
           style={!this.props.compact ? { width: "8em" } : undefined}
         >
           {!this.props.compact ? "Pause" : undefined}
@@ -184,7 +184,7 @@ export class Stopwatch extends Component<StopwatchProps, StopwatchState> {
         <TextInput
           text={this.props.label ? this.props.label : ""}
           on_change={(value) => {
-            this.props.set_label?.(value);
+            this.props.setLabel?.(value);
             this.setState({ editing_label: false });
           }}
           autoFocus={true}

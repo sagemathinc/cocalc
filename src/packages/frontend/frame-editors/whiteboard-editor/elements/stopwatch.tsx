@@ -22,7 +22,7 @@ export default function Stopwatch({ element, focused }) {
       state={data?.state ?? "stopped"}
       time={data?.time ?? 0}
       total={data?.total ?? 0}
-      click_button={(button: string) => {
+      clickButton={(button: string) => {
         if (button == "start") {
           set({ state: "running" });
         } else if (button == "reset") {

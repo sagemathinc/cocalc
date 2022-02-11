@@ -59,7 +59,7 @@ export class TimeActions extends Actions<StopwatchEditorState> {
     });
 
     if (this.syncdb.get_doc().size === 0) {
-      this.add_stopwatch();
+      this.addStopwatch();
     }
   }
 
@@ -69,7 +69,7 @@ export class TimeActions extends Actions<StopwatchEditorState> {
     this.syncdb.save_to_disk();
   }
 
-  public add_stopwatch(): void {
+  public addStopwatch(): void {
     // make id equal to the largest current id (or 0 if none)
     let id = 0;
     this.syncdb.get().map((data) => {
@@ -85,16 +85,16 @@ export class TimeActions extends Actions<StopwatchEditorState> {
     });
   }
 
-  public delete_stopwatch(id: number): void {
+  public deleteStopwatch(id: number): void {
     this.syncdb.delete({ id });
     if (this.syncdb.get_doc().size === 0) {
-      this.add_stopwatch();
+      this.addStopwatch();
     }
     this.syncdb.commit();
     this.syncdb.save_to_disk();
   }
 
-  public reset_stopwatch(id: number): void {
+  public resetStopwatch(id: number): void {
     this._set({
       id,
       total: 0,
@@ -103,7 +103,7 @@ export class TimeActions extends Actions<StopwatchEditorState> {
     });
   }
 
-  public start_stopwatch(id: number): void {
+  public startStopwatch(id: number): void {
     this._set({
       id,
       time: webapp_client.server_time() - 0,
@@ -111,7 +111,7 @@ export class TimeActions extends Actions<StopwatchEditorState> {
     });
   }
 
-  public pause_stopwatch(id: number): void {
+  public pauseStopwatch(id: number): void {
     const x = this.syncdb && this.syncdb.get_one({ id });
     if (x == null) return;
     this._set({
@@ -122,7 +122,7 @@ export class TimeActions extends Actions<StopwatchEditorState> {
     });
   }
 
-  public set_label(id: number, label: string): void {
+  public setLabel(id: number, label: string): void {
     const x = this.syncdb && this.syncdb.get_one({ id });
     if (x == null) return;
     this._set({ id, label, state: x.get("state"), time: x.get("time") });

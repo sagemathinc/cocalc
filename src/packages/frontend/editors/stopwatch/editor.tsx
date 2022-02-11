@@ -44,7 +44,7 @@ export default function EditorTime() {
   const timers: List<any> | undefined = useRedux(["timers"], project_id, path);
   const error: string | undefined = useRedux(["error"], project_id, path);
 
-  function render_stopwatches(): ReactNode[] {
+  function renderStopwatches(): ReactNode[] {
     if (timers === undefined) {
       return [];
     }
@@ -59,27 +59,27 @@ export default function EditorTime() {
             total={data.get("total")}
             state={data.get("state")}
             time={data.get("time")}
-            click_button={(button) => click_button(data.get("id"), button)}
-            set_label={(label) => set_label(data.get("id"), label)}
+            clickButton={(button) => clickButton(data.get("id"), button)}
+            setLabel={(label) => setLabel(data.get("id"), label)}
           />
         );
       });
     return v;
   }
 
-  function click_button(id: number, button: string): void {
+  function clickButton(id: number, button: string): void {
     switch (button) {
       case "reset":
-        actions.reset_stopwatch(id);
+        actions.resetStopwatch(id);
         return;
       case "start":
-        actions.start_stopwatch(id);
+        actions.startStopwatch(id);
         return;
       case "pause":
-        actions.pause_stopwatch(id);
+        actions.pauseStopwatch(id);
         return;
       case "delete":
-        actions.delete_stopwatch(id);
+        actions.deleteStopwatch(id);
         return;
       default:
         console.warn(`unknown button '${button}'`);
@@ -87,26 +87,26 @@ export default function EditorTime() {
     }
   }
 
-  function set_label(id: number, label: string): void {
-    actions.set_label(id, label);
+  function setLabel(id: number, label: string): void {
+    actions.setLabel(id, label);
   }
 
-  function render_button_bar(): ReactNode {
+  function renderButtonBar(): ReactNode {
     return <ButtonBar actions={actions} />;
   }
 
   // TODO
-  function render_error(): ReactNode {
+  function renderError(): ReactNode {
     return <div>Todo. There is an error</div>;
   }
 
-  function render_add_stopwatch(): ReactNode {
+  function renderAddStopwatch(): ReactNode {
     return (
       <Button
         icon={<PlusCircleTwoTone />}
         style={{ maxWidth: "200px", margin: "15px" }}
         key={"add-stopwatch"}
-        onClick={() => actions.add_stopwatch()}
+        onClick={() => actions.addStopwatch()}
       >
         New Stopwatch
       </Button>
@@ -114,14 +114,14 @@ export default function EditorTime() {
   }
 
   if (error !== undefined) {
-    return render_error();
+    return renderError();
   } else if (timers !== undefined && timers.size > 0) {
     return (
       <div className="smc-vfill">
-        {render_button_bar()}
+        {renderButtonBar()}
         <div className="smc-vfill" style={{ overflowY: "auto" }}>
-          {render_stopwatches()}
-          {render_add_stopwatch()}
+          {renderStopwatches()}
+          {renderAddStopwatch()}
         </div>
       </div>
     );

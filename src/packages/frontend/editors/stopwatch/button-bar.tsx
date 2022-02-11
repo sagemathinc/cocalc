@@ -16,14 +16,14 @@ import { Space } from "@cocalc/frontend/components/space";
 export function ButtonBar({ actions }: { actions: TimeActions }): JSX.Element {
   return (
     <div style={{ margin: "1px" }}>
-      {time_travel_button(actions)}
+      {timeTravelButton(actions)}
       <Space />
-      {undo_redo_group(actions)}
+      {undoRedoGroup(actions)}
     </div>
   );
 }
 
-function time_travel_button(actions: TimeActions): Rendered {
+function timeTravelButton(actions: TimeActions): Rendered {
   return (
     <Button
       key={"time-travel"}
@@ -35,7 +35,7 @@ function time_travel_button(actions: TimeActions): Rendered {
   );
 }
 
-function undo_redo_group(actions: TimeActions): Rendered {
+function undoRedoGroup(actions: TimeActions): Rendered {
   return (
     <Button.Group key={"undo-group"}>
       <Button
