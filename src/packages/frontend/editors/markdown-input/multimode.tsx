@@ -118,6 +118,7 @@ export default function MultiMarkdownInput({
             ...style,
             height: height ?? "100%",
             width: "100%",
+            fontSize: "14px" /* otherwise button bar can be skewed */,
           }}
           className="smc-vfill"
         >

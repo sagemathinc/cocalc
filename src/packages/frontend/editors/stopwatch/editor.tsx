@@ -8,19 +8,19 @@ Time
 
 Right now this is the simplest possible imaginable stopwatch, with state synchronized properly.
 
-This is also probably a good relatiely simple example of a React-based editor that
+This is also probably a good relatively simple example of a React-based editor that
 uses persistent shared state.
 
 Later, maybe:
 
- - Make the editor title tab display the current time
- - Make TimeTravel rendering work (so easy undo in case accidentally hit stop)
- - Labels/description, which is full markdown, hence can have links
- - Ability to set a specific time
- - Initialize this will just be a simple stopwatch, synchronized between viewers.
- - Maybe a bunch of stopwatches and countdown timers, with labels, markdown links, etc.;  draggable.
- - Later yet, it may hook into what other activities are going on in a project, to auto stop/start, etc.
- - Time tracking
+ - [ ] Make the editor title tab display the current time
+ - [ ] Make TimeTravel rendering work (so easy undo in case accidentally hit stop)
+ - [x] Labels/description, which is full markdown, hence can have links
+ - [ ] Ability to set a specific time
+ - [ ] Initialize this will just be a simple stopwatch, synchronized between viewers.
+ - [ ] Maybe a bunch of stopwatches and countdown timers, with labels, markdown links, etc.;  draggable.
+ - [ ] Later yet, it may hook into what other activities are going on in a project, to auto stop/start, etc.
+ - [ ] Time tracking
 */
 
 import { Button } from "antd";

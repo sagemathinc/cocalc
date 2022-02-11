@@ -9,6 +9,7 @@ The stopwatch component
 
 import { CSSProperties, useEffect, useState } from "react";
 import { useForceUpdate } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
 
 import { Button, Row, Col, Tooltip } from "antd";
 import {
@@ -18,8 +19,8 @@ import {
   StopTwoTone,
 } from "@ant-design/icons";
 import { TimerState } from "./actions";
-//import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
-import { TextInput } from "@cocalc/frontend/components/text-input";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 function assertNever(x: never): never {
@@ -148,7 +149,7 @@ export default function Stopwatch(props: StopwatchProps) {
         }}
         onClick={() => setEditingLabel(true)}
       >
-        {props.label ? props.label : "Label"}
+        {props.label ? <StaticMarkdown value={props.label} /> : "Label"}
       </div>
     );
   }
@@ -163,22 +164,17 @@ export default function Stopwatch(props: StopwatchProps) {
           width: "100%",
         }}
       >
-        <TextInput
-          text={props.label ? props.label : ""}
-          on_change={(value) => {
-            props.setLabel?.(value);
-            setEditingLabel(false);
-          }}
-          autoFocus={true}
-        />
-        {/*
         <MarkdownInput
+          height="200px"
           value={props.label ? props.label : ""}
           onChange={(value) => {
             props.setLabel?.(value);
-            //setState({ editing_label: false });
           }}
-        />*/}
+          onShiftEnter={() => setEditingLabel(false)}
+        />
+        <Button onClick={() => setEditingLabel(false)}>
+          <Icon name="save" /> Save
+        </Button>
       </div>
     );
   }
