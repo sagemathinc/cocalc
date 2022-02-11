@@ -27,6 +27,7 @@ interface Timer {
   total?: number;
   state: TimerState;
   time: number;
+  countdown?: number; // a countdown time is the same a stopwatch, but has this field, which is the number of seconds.
 }
 
 type TimerRecord = TypedMap<Timer>;
@@ -63,7 +64,7 @@ export class TimeActions extends Actions<StopwatchEditorState> {
     }
   }
 
-  private _set(obj: Timer): void {
+  private _set(obj: Partial<Timer>): void {
     this.syncdb.set(obj);
     this.syncdb.commit();
     this.syncdb.save_to_disk();
@@ -128,6 +129,17 @@ export class TimeActions extends Actions<StopwatchEditorState> {
     this._set({ id, label, state: x.get("state"), time: x.get("time") });
   }
 
+  // Set current displayed time on clock or starting value for timer (and reset timer to be at that value),
+  // where the input is the time in seconds.
+  public setCountdown(id: number, time: number): void {
+    const x = this.syncdb && this.syncdb.get_one({ id });
+    if (x == null) return;
+    this._set({
+      id,
+      countdown: time,
+    });
+  }
+
   public time_travel(): void {
     this.redux.getProjectActions(this.project_id).open_file({
       path: history_path(this.path),
@@ -145,5 +157,22 @@ export class TimeActions extends Actions<StopwatchEditorState> {
     if (this.syncdb) {
       this.syncdb.redo();
     }
+  }
+
+  public addTimer(): void {
+    // make id equal to the largest current id (or 0 if none)
+    let id = 0;
+    this.syncdb.get().map((data) => {
+      id = Math.max(data.get("id"), id);
+    });
+    id += 1; // our new timer has the largest id (so at the bottom)
+    this._set({
+      id,
+      label: "",
+      total: 0,
+      state: "stopped",
+      time: webapp_client.server_time() - 0,
+      countdown: 60,
+    });
   }
 }

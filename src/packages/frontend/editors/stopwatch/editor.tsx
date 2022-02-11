@@ -23,7 +23,7 @@ Later, maybe:
  - [ ] Time tracking
 */
 
-import { Button } from "antd";
+import { Alert, Button } from "antd";
 import { PlusCircleTwoTone } from "@ant-design/icons";
 import { Loading } from "@cocalc/frontend/components/loading";
 import { ReactNode } from "react";
@@ -45,26 +45,31 @@ export default function EditorTime() {
   const error: string | undefined = useRedux(["error"], project_id, path);
 
   function renderStopwatches(): ReactNode[] {
-    if (timers === undefined) {
+    if (timers == null) {
       return [];
     }
-    const v: ReactNode[] = [];
-    timers
+    return timers
       .sortBy((x) => x.get("id"))
-      .map((data) => {
-        v.push(
-          <Stopwatch
-            key={data.get("id")}
-            label={data.get("label")}
-            total={data.get("total")}
-            state={data.get("state")}
-            time={data.get("time")}
-            clickButton={(button) => clickButton(data.get("id"), button)}
-            setLabel={(label) => setLabel(data.get("id"), label)}
-          />
-        );
-      });
-    return v;
+      .toJS()
+      .map((data) => (
+        <Stopwatch
+          key={data.id}
+          label={data.label}
+          total={data.total}
+          state={data.state}
+          time={data.time}
+          countdown={data.countdown}
+          clickButton={(button) => clickButton(data.id, button)}
+          setLabel={(label) => setLabel(data.id, label)}
+          setCountdown={
+            data.countdown != null
+              ? (countdown) => {
+                  actions.setCountdown(data.id, countdown);
+                }
+              : undefined
+          }
+        />
+      ));
   }
 
   function clickButton(id: number, button: string): void {
@@ -95,37 +100,34 @@ export default function EditorTime() {
     return <ButtonBar actions={actions} />;
   }
 
-  // TODO
-  function renderError(): ReactNode {
-    return <div>Todo. There is an error</div>;
-  }
-
-  function renderAddStopwatch(): ReactNode {
-    return (
-      <Button
-        icon={<PlusCircleTwoTone />}
-        style={{ maxWidth: "200px", margin: "15px" }}
-        key={"add-stopwatch"}
-        onClick={() => actions.addStopwatch()}
-      >
-        New Stopwatch
-      </Button>
-    );
-  }
-
-  if (error !== undefined) {
-    return renderError();
-  } else if (timers !== undefined && timers.size > 0) {
-    return (
-      <div className="smc-vfill">
-        {renderButtonBar()}
-        <div className="smc-vfill" style={{ overflowY: "auto" }}>
-          {renderStopwatches()}
-          {renderAddStopwatch()}
+  if (timers == null) return <Loading />;
+  return (
+    <div className="smc-vfill">
+      {error && <Alert type="error" message={`Error: ${error}`} />}
+      {renderButtonBar()}
+      <div className="smc-vfill" style={{ overflowY: "auto" }}>
+        {renderStopwatches()}
+        <div style={{ display: "flex" }}>
+          <Button
+            size="large"
+            icon={<PlusCircleTwoTone />}
+            style={{ maxWidth: "200px", margin: "15px" }}
+            key={"add-stopwatch"}
+            onClick={() => actions.addStopwatch()}
+          >
+            New Stopwatch
+          </Button>
+          <Button
+            size="large"
+            icon={<PlusCircleTwoTone />}
+            style={{ maxWidth: "200px", margin: "15px" }}
+            key={"add-timer"}
+            onClick={() => actions.addTimer()}
+          >
+            New Timer
+          </Button>
         </div>
       </div>
-    );
-  } else {
-    return <Loading />;
-  }
+    </div>
+  );
 }

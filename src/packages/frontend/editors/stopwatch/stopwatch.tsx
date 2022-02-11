@@ -4,24 +4,26 @@
  */
 
 /*
-The stopwatch component
+The stopwatch and timer component
 */
 
 import { CSSProperties, useEffect, useState } from "react";
-import { useForceUpdate } from "@cocalc/frontend/app-framework";
+import { redux, useForceUpdate } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-
-import { Button, Row, Col, Tooltip } from "antd";
+import moment from "moment";
+import { Button, Row, Col, Modal, TimePicker, Tooltip } from "antd";
 import {
   DeleteTwoTone,
   PauseCircleTwoTone,
   PlayCircleTwoTone,
   StopTwoTone,
+  EditTwoTone,
 } from "@ant-design/icons";
 import { TimerState } from "./actions";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 function assertNever(x: never): never {
   throw new Error("Unexpected object: " + x);
@@ -30,8 +32,10 @@ function assertNever(x: never): never {
 interface StopwatchProps {
   state: TimerState; // 'paused' or 'running' or 'stopped'
   time: number; // when entered this state
+  countdown?: number; // if given, this is a countdown timer, counting down from this many seconds.
   clickButton: (str: string) => void;
   setLabel?: (str: string) => void;
+  setCountdown?: (time: number) => void; // time in seconds
   compact?: boolean;
   label?: string; // a text label
   noLabel?: boolean; // show no label at all
@@ -44,7 +48,9 @@ interface StopwatchProps {
 
 export default function Stopwatch(props: StopwatchProps) {
   const [editingLabel, setEditingLabel] = useState<boolean>(false);
+  const [editingTime, setEditingTime] = useState<boolean>(false);
   const update = useForceUpdate();
+  const frame = useFrameContext();
 
   useEffect(() => {
     const interval = setInterval(update, 1000);
@@ -53,7 +59,11 @@ export default function Stopwatch(props: StopwatchProps) {
 
   function renderStartButton() {
     return (
-      <Tooltip title="Start the stopwatch">
+      <Tooltip
+        title={`Start the ${
+          props.countdown != null ? "countdown timer" : "stopwatch"
+        }`}
+      >
         <Button
           icon={<PlayCircleTwoTone />}
           onClick={() => props.clickButton("start")}
@@ -67,7 +77,19 @@ export default function Stopwatch(props: StopwatchProps) {
 
   function renderResetButton() {
     return (
-      <Tooltip title="Reset the stopwatch to 0">
+      <Tooltip
+        title={
+          <>
+            Reset the{" "}
+            {props.countdown != null ? "countdown timer" : "stopwatch"} to{" "}
+            {props.countdown != null ? (
+              <TimeAmount compact amount={props.countdown * 1000} />
+            ) : (
+              "0"
+            )}
+          </>
+        }
+      >
         <Button
           icon={<StopTwoTone />}
           onClick={() => props.clickButton("reset")}
@@ -78,10 +100,47 @@ export default function Stopwatch(props: StopwatchProps) {
     );
   }
 
+  function renderEditTimeButton() {
+    if (props.compact || props.noDelete) return;
+    const { setCountdown } = props;
+    if (setCountdown == null) return;
+    return (
+      <div>
+        <Button icon={<EditTwoTone />} onClick={() => setEditingTime(true)}>
+          {!props.compact ? "Edit" : undefined}
+        </Button>
+        {editingTime && (
+          <TimePicker
+            open
+            defaultValue={getCountdownMoment()}
+            onChange={(time) => {
+              if (time != null) {
+                setCountdown(
+                  time.seconds() + time.minutes() * 60 + time.hours() * 60 * 60
+                );
+                props.clickButton("reset");
+              }
+            }}
+            showNow={false}
+            onOpenChange={(open) => {
+              if (!open) {
+                setEditingTime(false);
+              }
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
   function renderDeleteButton() {
     if (props.compact || props.noDelete) return;
     return (
-      <Tooltip title="Delete this stopwatch">
+      <Tooltip
+        title={`Delete this ${
+          props.countdown != null ? "countdown timer" : "stopwatch"
+        }`}
+      >
         <Button
           icon={<DeleteTwoTone />}
           onClick={() => props.clickButton("delete")}
@@ -106,7 +165,7 @@ export default function Stopwatch(props: StopwatchProps) {
     );
   }
 
-  function renderTime() {
+  function getRemainingMs(): number {
     let amount: number = 0;
     switch (props.state) {
       case "stopped":
@@ -122,13 +181,64 @@ export default function Stopwatch(props: StopwatchProps) {
         assertNever(props.state);
     }
 
+    if (props.countdown != null) {
+      // it's a countdown timer.
+      amount = Math.max(0, 1000 * props.countdown - amount);
+    }
+    return amount;
+  }
+
+  function getCountdownMoment() {
+    let amount = Math.round(props.countdown ?? 0);
+    const m = moment();
+    m.seconds(amount % 60);
+    amount = (amount - (amount % 60)) / 60;
+    m.minutes(amount % 60);
+    amount = (amount - (amount % 60)) / 60;
+    m.hours(amount);
+    return m;
+  }
+
+  function focusAndReset() {
+    props.clickButton("reset");
+    redux.getProjectActions(frame.project_id)?.open_file({ path: frame.path });
+  }
+
+  function renderTime() {
+    const amount = getRemainingMs();
     return (
-      <TimeAmount
-        key={"time"}
-        amount={amount}
-        compact={props.compact}
-        style={props.timeStyle}
-      />
+      <>
+        <TimeAmount
+          key={"time"}
+          amount={amount}
+          compact={props.compact}
+          style={{
+            ...props.timeStyle,
+            ...(props.countdown && amount == 0
+              ? {
+                  background: "#b71c1c",
+                  borderRadius: "3px",
+                  marginRight: "15px",
+                  color: "white",
+                }
+              : undefined),
+          }}
+        />
+        {props.countdown && amount == 0 && (
+          <Modal
+            title={
+              <>
+                <Icon name="hourglass-half" /> Countdown Timer Finished
+              </>
+            }
+            visible={true}
+            onOk={focusAndReset}
+            onCancel={focusAndReset}
+          >
+            {props.label && <StaticMarkdown value={props.label} />}
+          </Modal>
+        )}
+      </>
     );
   }
 
@@ -140,7 +250,7 @@ export default function Stopwatch(props: StopwatchProps) {
       <div
         key="show-label"
         style={{
-          fontSize: "25px",
+          fontSize: "16px",
           marginTop: "25px",
           width: "100%",
           color: props.label ? "#444" : "#999",
@@ -165,43 +275,41 @@ export default function Stopwatch(props: StopwatchProps) {
         }}
       >
         <MarkdownInput
-          height="200px"
+          autoFocus
+          height="150px"
           value={props.label ? props.label : ""}
           onChange={(value) => {
             props.setLabel?.(value);
           }}
           onShiftEnter={() => setEditingLabel(false)}
+          onBlur={() => setEditingLabel(false)}
         />
-        <Button onClick={() => setEditingLabel(false)}>
-          <Icon name="save" /> Save
-        </Button>
       </div>
     );
   }
 
-  function renderButtons() {
+  function renderActionButtons() {
     switch (props.state) {
       case "stopped":
         return (
-          <Button.Group key={"buttons"}>
+          <Button.Group>
             {renderStartButton()}
-            {renderDeleteButton()}
+            {renderEditTimeButton()}
           </Button.Group>
         );
       case "paused":
         return (
-          <Button.Group key={"buttons"}>
+          <Button.Group>
             {renderStartButton()}
             {renderResetButton()}
-            {renderDeleteButton()}
+            {renderEditTimeButton()}
           </Button.Group>
         );
       case "running":
         return (
-          <Button.Group key={"buttons"}>
+          <Button.Group>
             {renderPauseButton()}
             {renderResetButton()}
-            {renderDeleteButton()}
           </Button.Group>
         );
       default:
@@ -209,6 +317,15 @@ export default function Stopwatch(props: StopwatchProps) {
         // TS doesn't have strong enough type inference here??
         return <div />;
     }
+  }
+
+  function renderButtons() {
+    return (
+      <div key="buttons">
+        {renderActionButtons()}
+        <div style={{ float: "right" }}>{renderDeleteButton()}</div>
+      </div>
+    );
   }
 
   function renderFullSize() {
@@ -235,6 +352,17 @@ export default function Stopwatch(props: StopwatchProps) {
           padding: "15px",
         }}
       >
+        <div style={{ float: "right", fontSize: "24px", color: "#666" }}>
+          {props.countdown != null ? (
+            <Tooltip title="Countdown Timer">
+              <Icon name="hourglass-half" />
+            </Tooltip>
+          ) : (
+            <Tooltip title="Stopwatch">
+              <Icon name="stopwatch" />
+            </Tooltip>
+          )}
+        </div>
         <Row>
           <Col sm={12} md={12}>
             {renderTime()}
@@ -244,7 +372,7 @@ export default function Stopwatch(props: StopwatchProps) {
           </Col>
         </Row>
         {!props.noButtons && (
-          <Row>
+          <Row style={{ marginTop: "5px" }}>
             <Col md={24}>{renderButtons()}</Col>
           </Row>
         )}

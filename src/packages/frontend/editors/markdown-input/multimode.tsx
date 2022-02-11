@@ -8,7 +8,7 @@ import { Checkbox } from "antd";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
 import { MarkdownInput } from "./component";
-import { CSSProperties, ReactNode, useState } from "react";
+import { CSSProperties, ReactNode, useRef, useState } from "react";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { FOCUSED_STYLE, BLURED_STYLE } from "./component";
 
@@ -35,6 +35,8 @@ interface Props {
   hideHelp?: boolean;
   lineWrapping?: boolean;
   saveDebounceMs?: number;
+  onBlur?: () => void;
+  onFocus?: () => void;
 }
 
 export default function MultiMarkdownInput({
@@ -56,6 +58,8 @@ export default function MultiMarkdownInput({
   lineWrapping,
   saveDebounceMs,
   hideHelp,
+  onBlur,
+  onFocus,
 }: Props) {
   const { project_id, path } = useFrameContext();
   const [mode, setMode0] = useState<Mode>(
@@ -66,6 +70,8 @@ export default function MultiMarkdownInput({
     setMode0(mode);
   };
   const [focused, setFocused] = useState<boolean>(!!autoFocus);
+  const ignoreBlur = useRef<boolean>(false);
+
   return (
     <div
       style={{
@@ -77,19 +83,36 @@ export default function MultiMarkdownInput({
         ...(focused ? FOCUSED_STYLE : BLURED_STYLE),
       }}
     >
-      <Checkbox
-        style={{
-          ...(mode == "editor" || !value
-            ? { position: "absolute", right: 1, top: 1, zIndex: 100 }
-            : { float: "right" }),
-          fontWeight: 250,
-          background: "white",
+      <div
+        onMouseDown={() => {
+          // Clicking the checkbox blurs the edit field, but
+          // this is the one case we do NOT want to trigger the
+          // onBlur callback, since that would make switching
+          // back and forth between edit modes impossible.
+          ignoreBlur.current = true;
+          setTimeout(() => (ignoreBlur.current = false), 100);
         }}
-        checked={mode == "markdown"}
-        onClick={(e: any) => setMode(e.target.checked ? "markdown" : "editor")}
+        onTouchStart={() => {
+          ignoreBlur.current = true;
+          setTimeout(() => (ignoreBlur.current = false), 100);
+        }}
       >
-        Markdown
-      </Checkbox>
+        <Checkbox
+          style={{
+            ...(mode == "editor" || !value
+              ? { position: "absolute", right: 1, top: 1, zIndex: 100 }
+              : { float: "right" }),
+            fontWeight: 250,
+            background: "white",
+          }}
+          checked={mode == "markdown"}
+          onClick={(e: any) => {
+            setMode(e.target.checked ? "markdown" : "editor");
+          }}
+        >
+          Markdown
+        </Checkbox>
+      </div>
       {mode == "markdown" && (
         <MarkdownInput
           value={value}
@@ -110,6 +133,16 @@ export default function MultiMarkdownInput({
           submitMentionsRef={submitMentionsRef}
           extraHelp={extraHelp}
           hideHelp={hideHelp}
+          onBlur={
+            onBlur != null
+              ? () => {
+                  if (!ignoreBlur.current) {
+                    onBlur();
+                  }
+                }
+              : undefined
+          }
+          onFocus={onFocus}
         />
       )}
       {mode == "editor" && (
@@ -150,8 +183,16 @@ export default function MultiMarkdownInput({
             }}
             font_size={fontSize}
             autoFocus={autoFocus}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
+            onFocus={() => {
+              setFocused(true);
+              onFocus?.();
+            }}
+            onBlur={() => {
+              setFocused(false);
+              if (!ignoreBlur.current) {
+                onBlur?.();
+              }
+            }}
             hideSearch
           />
         </div>

@@ -220,11 +220,11 @@ export const FileTypeSelector: React.FC<Props> = ({
           <Tip
             title="Stopwatch"
             icon="stopwatch"
-            tip="Create a collaborative stopwatch to keep track how long it takes to do something."
+            tip="Create collaborative stopwatches and timers to coordinate time."
           >
             <NewFileButton
               icon="stopwatch"
-              name="Stopwatch"
+              name="Stopwatches and Timers"
               on_click={create_file}
               ext="time"
             />
