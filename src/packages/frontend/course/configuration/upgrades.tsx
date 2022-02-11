@@ -835,7 +835,7 @@ const ToggleUpgradingHostProject = (props: ToggleUpgradingHostProjectProps) => {
       <Typography.Paragraph
         ellipsis={{ expandable: true, rows: 1, symbol: "more" }}
       >
-        If enabled, this instructor project is upgaded using all configured
+        If enabled, this instructor project is upgraded using all configured
         course license(s). Otherwise, explictly add your license to the
         instructor project. Disabling this options does <i>not</i> remove
         licenses from the instructor project.
