@@ -32,6 +32,7 @@ interface Props {
   onUploadEnd?: () => void;
   submitMentionsRef?: any;
   extraHelp?: ReactNode;
+  hideHelp?: boolean;
   lineWrapping?: boolean;
   saveDebounceMs?: number;
 }
@@ -54,6 +55,7 @@ export default function MultiMarkdownInput({
   extraHelp,
   lineWrapping,
   saveDebounceMs,
+  hideHelp,
 }: Props) {
   const { project_id, path } = useFrameContext();
   const [mode, setMode0] = useState<Mode>(
@@ -71,6 +73,7 @@ export default function MultiMarkdownInput({
         color: "black",
         position: "relative",
         width: "100%",
+        height: "100%",
         ...(focused ? FOCUSED_STYLE : BLURED_STYLE),
       }}
     >
@@ -106,6 +109,7 @@ export default function MultiMarkdownInput({
           autoFocus={autoFocus}
           submitMentionsRef={submitMentionsRef}
           extraHelp={extraHelp}
+          hideHelp={hideHelp}
         />
       )}
       {mode == "editor" && (

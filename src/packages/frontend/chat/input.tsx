@@ -16,6 +16,7 @@ interface Props {
   onChange?: (string) => void;
   submitMentionsRef?: any;
   font_size?: number;
+  hideHelp?: boolean;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
@@ -41,6 +42,7 @@ export const ChatInput: React.FC<Props> = (props) => {
       }
       fontSize={font_size}
       lineWrapping={true}
+      hideHelp={props.hideHelp}
       autoFocus
     />
   );

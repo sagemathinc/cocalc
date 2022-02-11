@@ -483,9 +483,10 @@ export default function Canvas({
       }
       return;
     }
-    const data = { ...evtToData(e), z: transforms.zMax + 1 };
+    const data: Partial<Element> = { ...evtToData(e), z: transforms.zMax + 1 };
     let params: any = undefined;
 
+    // TODO -- move some of this to the spec?
     if (selectedTool == "note") {
       params = { data: getNoteParams() };
     } else if (selectedTool == "stopwatch") {
@@ -494,6 +495,9 @@ export default function Canvas({
       params = { data: getIconParams() };
     } else if (selectedTool == "text") {
       params = { data: getTextParams() };
+    } else if (selectedTool == "chat") {
+      data.w = 375;
+      data.h = 450;
     }
 
     const element = {
@@ -510,7 +514,8 @@ export default function Canvas({
       selectedTool == "text" ||
       selectedTool == "note" ||
       selectedTool == "code" ||
-      selectedTool == "stopwatch"
+      selectedTool == "stopwatch" ||
+      selectedTool == "chat"
     ) {
       frame.actions.setSelectedTool(frame.id, "select");
       frame.actions.setSelection(frame.id, id);

@@ -28,6 +28,7 @@ import {
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { debounce, cloneDeep, isEqual } from "lodash";
 import runCode from "./elements/code/run";
+import { lastMessageNumber } from "./elements/chat";
 
 export interface State extends CodeEditorState {
   elements?: Elements;
@@ -404,6 +405,7 @@ export class Actions extends BaseActions<State> {
     const element = this.store.get("elements")?.get(id)?.toJS();
     if (element == null) {
       // no-op no such element
+      // TODO?!
       console.warn("no cell with id", id);
       return;
     }
@@ -413,6 +415,18 @@ export class Actions extends BaseActions<State> {
       input: element.str ?? "",
       id,
       set: (obj) => this.setElementData(element, obj),
+    });
+  }
+
+  sendChat({ id, input }: { id: string; input: string }) {
+    const element = this.store.get("elements")?.get(id)?.toJS();
+    if (element == null) {
+      // no-op no such element - TODO
+      console.warn("no cell with id", id);
+      return;
+    }
+    this.setElementData(element, {
+      [lastMessageNumber(element) + 1]: { input, time: new Date().valueOf() },
     });
   }
 }

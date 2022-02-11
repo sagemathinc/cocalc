@@ -46,7 +46,12 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     config: new Set(["fontSize", "color"]),
   },
   //shape: { icon: "square", cursor: "crosshair", tip: "Shape" },
-  chat: { icon: "comment", cursor: "crosshair", tip: "Chat" },
+  chat: {
+    icon: "comment",
+    cursor: "crosshair",
+    tip: "Chat",
+    config: new Set(["fontSize", "color"]),
+  },
   //   terminal: {
   //     icon: "code-outlined",
   //     cursor: "crosshair",
