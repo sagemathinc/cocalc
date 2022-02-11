@@ -22,6 +22,7 @@ import {
   Subscription,
 } from "@cocalc/util/licenses/purchase/util";
 import { LicenseExamples } from "./license-examples";
+import { Uptime } from "@cocalc/util/consts/site-license";
 
 export const TITLE = "Course licenses";
 
@@ -38,8 +39,7 @@ const p1data = {
   custom_member: true,
   custom_dedicated_ram: 0,
   custom_dedicated_cpu: 0,
-  custom_always_running: false,
-  custom_idle_timeout: "short" as "short",
+  custom_uptime: "short" as Uptime,
 };
 const Price1 = compute_cost(p1data);
 
@@ -56,8 +56,7 @@ const p2data = {
   custom_member: true,
   custom_dedicated_ram: 1,
   custom_dedicated_cpu: 0.5,
-  custom_always_running: false,
-  custom_idle_timeout: "short" as "short",
+  custom_uptime: "short" as Uptime,
 };
 const Price2 = compute_cost(p2data);
 
@@ -74,8 +73,7 @@ const p3data = {
   custom_member: true,
   custom_dedicated_ram: 0,
   custom_dedicated_cpu: 0,
-  custom_always_running: false,
-  custom_idle_timeout: "short" as "short",
+  custom_uptime: "short" as Uptime,
 };
 const Price3 = compute_cost(p3data);
 

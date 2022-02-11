@@ -176,9 +176,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       custom_dedicated_ram,
       custom_dedicated_cpu,
       custom_disk,
-      custom_always_running,
       custom_member,
-      custom_idle_timeout,
+      custom_uptime:
+        custom_always_running == true ? "always_running" : custom_idle_timeout,
     });
   }, [
     quantity,
@@ -618,9 +618,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       custom_dedicated_ram,
       custom_dedicated_cpu,
       custom_disk,
-      custom_always_running,
       custom_member,
-      custom_idle_timeout,
+      custom_uptime:
+        custom_always_running == true ? "always_running" : custom_idle_timeout,
       title,
       description,
     };

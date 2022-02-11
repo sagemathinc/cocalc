@@ -13,15 +13,14 @@ Editing a quota
 
 */
 
-import { Button, Checkbox, InputNumber, Row, Col, Radio, Select } from "antd";
-import { A, Space } from "../../components";
+import { Button, Checkbox, InputNumber, Row, Col, Select } from "antd";
+import { Space } from "../../components";
 import { CSS, React, useMemo, useState } from "../../app-framework";
 import { COSTS, GCE_COSTS, money } from "@cocalc/util/licenses/purchase/util";
 import { plural, round1 } from "@cocalc/util/misc";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import {
   LicenseIdleTimeouts,
-  LicenseIdleTimeoutsKeysOrdered,
   requiresMemberhosting,
   untangleUptime,
   Uptime,
