@@ -351,18 +351,35 @@ function prepareSiteLicenses(site_licenses?: SiteLicenses): SiteLicenses {
   return site_licenses;
 }
 
-// key is <idle_timeout>-<member:0/1>-<always_running:0/1>
+// this is used below to map the various types of site license upgrades into unique groups
+// key is <member:0/1>-<always_running:0/1>-<idle_timeout>
+function makeSiteLicenseGroupKey(params: {
+  always_running: "0" | "1";
+  member_hosting: "0" | "1";
+  idle_timeout: NonNullable<SiteLicenseQuota["idle_timeout"]>;
+}): string {
+  const { always_running: ar, member_hosting: mh, idle_timeout: it } = params;
+  return `${ar}-${mh}-${it}`;
+}
+
 // return all possible key combinations,
 // where the order is from highest to lowest priority
 function* siteLicenseSelectionKeys() {
   const ltkeys = LicenseIdleTimeoutsKeysOrdered.slice(0);
+  // reversing a copy of ordered keys
   ltkeys.reverse();
+  // one first, higher priority
+  const oneZero = ["1", "0"] as const;
   // always running
-  for (const ar of ["1", "0"]) {
+  for (const ar of oneZero) {
     // member hosting
-    for (const mh of ["1", "0"]) {
+    for (const mh of oneZero) {
       for (const it of ltkeys) {
-        const k = `${it}-${mh}-${ar}`;
+        const k = makeSiteLicenseGroupKey({
+          always_running: ar,
+          member_hosting: mh,
+          idle_timeout: it,
+        });
         yield k;
       }
     }
@@ -389,17 +406,14 @@ function selectSiteLicenses(site_licenses: SiteLicenses): {
 
   const dedicated_vm: DedicatedVM | null = select_dedicated_vm(site_licenses);
 
+  // if there is a dedicated VM, we ignore all site licenses.
   if (dedicated_vm != null) {
     return { site_licenses: {}, dedicated_disks, dedicated_vm };
   }
 
-  // initalize all groups
-  const groups: { [key: string]: string[] } = {};
-  for (const key of siteLicenseSelectionKeys()) {
-    groups[key] = [];
-  }
-
-  // classification
+  // classification: each group is a list of licenses, and only the group
+  // with the higest priority is considered for license upgrades.
+  const groups: { [key: string]: string[] | null } = {};
   for (const [key, val] of Object.entries(site_licenses)) {
     if (val == null) continue;
 
@@ -411,23 +425,26 @@ function selectSiteLicenses(site_licenses: SiteLicenses): {
       ? val.quota.member === true
       : ((val as Upgrades).member_host ?? 0) >= 1;
 
-    // prepareSiteLicenses() takes care about always defining quota.idle_timeout
-    const idle_timeout = isSiteLicenseQuotaSetting(val)
-      ? val.quota.idle_timeout
-      : "short";
+    // prepareSiteLicenses() takes care about always defining quota.idle_timeout (still, TS needs to know)
+    const idle_timeout =
+      (isSiteLicenseQuotaSetting(val) ? val.quota.idle_timeout : "short") ??
+      "short";
 
-    const groupKey = `${idle_timeout}-${isMember ? "1" : "0"}-${
-      isAR ? "1" : "0"
-    }`;
-    groups[groupKey].push(key);
+    const groupKey = makeSiteLicenseGroupKey({
+      always_running: isAR ? "1" : "0",
+      member_hosting: isMember ? "1" : "0",
+      idle_timeout,
+    });
+
+    const curGrp = groups[groupKey];
+    groups[groupKey] = curGrp == null ? [key] : [...curGrp, key];
   }
 
   // selection -- always_running comes first, then member hosting
   const selected: string[] | undefined = (function () {
     for (const k of siteLicenseSelectionKeys()) {
-      if (groups[k].length > 0) {
-        return groups[k];
-      }
+      const grp = groups[k];
+      if (grp != null && grp.length > 0) return grp;
     }
   })();
 

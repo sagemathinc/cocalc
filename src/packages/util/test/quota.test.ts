@@ -18,8 +18,8 @@
 //const { teardown } = init;
 
 // make TS happy, despite @types/jest is installed
-declare var describe: Function;
-declare var it: Function;
+declare const describe: Function;
+declare const it: Function;
 
 import expect from "expect";
 const { quota } = require("@cocalc/util/upgrades/quota");
