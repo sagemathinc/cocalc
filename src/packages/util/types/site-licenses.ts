@@ -35,3 +35,5 @@ export interface SiteLicense {
   run_limit?: number;
   apply_limit?: number;
 }
+
+export type SiteLicenses = { [uuid: string]: SiteLicense };

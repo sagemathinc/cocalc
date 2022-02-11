@@ -25,6 +25,7 @@ import expect from "expect";
 const { quota } = require("@cocalc/util/upgrades/quota");
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { LicenseIdleTimeoutsKeysOrdered } from "@cocalc/util/consts/site-license";
+import { SiteLicense, SiteLicenses } from "../types/site-licenses";
 
 describe("default quota", () => {
   it("basics are fine", () => {
@@ -1090,8 +1091,9 @@ describe("default quota", () => {
   });
 
   it("site_license always_running do not mix incomplete 1", () => {
-    const site_license = {
+    const site_licenses: SiteLicenses = {
       a: {
+        id: "a",
         quota: {
           ram: 4,
           always_running: true,
@@ -1099,19 +1101,21 @@ describe("default quota", () => {
         },
       },
       b: {
+        id: "b",
         quota: {
           ram: 2,
           member: true,
         },
       },
       c: {
+        id: "c",
         quota: {
           ram: 1,
           always_running: false,
         },
       },
     };
-    const q = quota({}, { userX: {} }, site_license);
+    const q = quota({}, { userX: {} }, site_licenses);
     expect(q.always_running).toBe(true);
     expect(q.memory_limit).toBe(4000);
     expect(q.member_host).toBe(false);
@@ -1509,6 +1513,77 @@ describe("default quota", () => {
     expect(q0.idle_timeout).toBe(30 * 60); // short
   });
 
+  it("licensed idle timeout / priority", () => {
+    const site_licenses: SiteLicenses = {
+      a: {
+        id: "a",
+        quota: {
+          ram: 5,
+          idle_timeout: "medium",
+          always_running: false,
+        },
+      },
+      b: {
+        id: "b",
+        quota: {
+          ram: 2,
+          idle_timeout: "day",
+          always_running: false,
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_licenses);
+    expect(q.always_running).toBe(false);
+    expect(q.memory_limit).toBe(2000);
+  });
+
+  it("licensed idle timeout / priority 2", () => {
+    const site_licenses: SiteLicenses = {
+      a: {
+        id: "a",
+        quota: {
+          ram: 5,
+          idle_timeout: "short",
+          always_running: false,
+        },
+      },
+      b: {
+        id: "b",
+        quota: {
+          ram: 2,
+          idle_timeout: "medium",
+          always_running: false,
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_licenses);
+    expect(q.always_running).toBe(false);
+    expect(q.memory_limit).toBe(2000);
+  });
+
+  it("licensed idle timeout / priority 3", () => {
+    // always_running overrides idle_timeout
+    const site_license = {
+      a: {
+        quota: {
+          ram: 5,
+          idle_timeout: "medium",
+          always_running: true,
+        },
+      },
+      b: {
+        quota: {
+          ram: 2,
+          idle_timeout: "short",
+          always_running: false,
+        },
+      },
+    };
+    const q = quota({}, { userX: {} }, site_license);
+    expect(q.always_running).toBe(true);
+    expect(q.memory_limit).toBe(5000);
+  });
+
   it("licensed idle timeout / short is automatically member, unless set to false", () => {
     const q0 = quota(
       {},
@@ -1525,5 +1600,49 @@ describe("default quota", () => {
     );
     expect(q1.idle_timeout).toBe(30 * 60); // short
     expect(q1.member_host).toBe(true);
+  });
+
+  it("licensed idle timeout / mixed with user upgrades", () => {
+    // NOTE: there are no precautions against this, but it's not recommended
+    const site_license = {
+      "1234-5432-3456-7654": {
+        quota: {
+          ram: 2,
+          cpu: 1.5,
+          disk: 5,
+          idle_timeout: "short",
+          member: true,
+        },
+      },
+    };
+    const users = {
+      user1: {
+        upgrades: {
+          member_host: false,
+          network: true,
+          memory_request: 1234,
+          memory: 2345,
+          mintime: 3600,
+        },
+      },
+    };
+    const q = quota({}, users, site_license);
+    // user quota + basic upgrade
+    const ito = 3600 + 1800;
+    expect(q.idle_timeout).toBe(ito);
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 1.5, // license
+      cpu_request: 0.05, // implied by license member hosting
+      disk_quota: 5000, // license
+      idle_timeout: ito, // upgrade
+      member_host: true, // license
+      memory_limit: 2345 + 1000, // upgrade + base
+      memory_request: 1234, // upgrade
+      network: true, // both
+      privileged: false,
+      dedicated_disks: [],
+      dedicated_vm: false,
+    });
   });
 });
