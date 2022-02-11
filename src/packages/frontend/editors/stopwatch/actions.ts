@@ -31,9 +31,7 @@ interface Timer {
 
 type TimerRecord = TypedMap<Timer>;
 
-export const TimeActions = class TimeActions extends Actions<
-  StopwatchEditorState
-> {
+export class TimeActions extends Actions<StopwatchEditorState> {
   private project_id: string;
   private path: string;
   public syncdb: any;
@@ -148,4 +146,4 @@ export const TimeActions = class TimeActions extends Actions<
       this.syncdb.redo();
     }
   }
-};
+}

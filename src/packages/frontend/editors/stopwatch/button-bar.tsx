@@ -9,8 +9,6 @@ Some buttons
 
 import { Rendered } from "@cocalc/frontend/app-framework";
 import { TimeActions } from "./actions";
-type TimeActions = InstanceType<typeof TimeActions>;
-
 import { HistoryOutlined, RedoOutlined, UndoOutlined } from "@ant-design/icons";
 import { Button } from "antd";
 import { Space } from "@cocalc/frontend/components/space";
