@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "build": "npx tsc && npx coffee  -m -c -o dist/ .",
-    "tsc": "npx tsc --watch",
+    "tsc": "npx tsc --watch  --pretty --preserveWatchOutput",
     "test": "SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee"
   },
   "author": "SageMath, Inc.",

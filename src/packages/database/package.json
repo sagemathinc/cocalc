@@ -49,7 +49,7 @@
   "scripts": {
     "build": "npx tsc && coffee -c -o dist/ ./",
     "clean": "rm -rf dist",
-    "tsc": "npx tsc --watch  --pretty "
+    "tsc": "npx tsc --watch  --pretty --preserveWatchOutput"
   },
   "repository": {
     "type": "git",
