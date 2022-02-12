@@ -56,7 +56,7 @@ import { DatastoreConfig } from "./datastore-config";
 import EmptyTrash from "./empty-trash";
 import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import { EnvironmentVariablesConfig } from "./envvars-config";
-import { RESEND_INVITE_INTERVAL_DAYS } from "../student-projects/actions";
+import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
 
 const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
