@@ -32,46 +32,49 @@ export default function Stopwatch({ element, focused }: Props) {
     actions.setElementData(eltRef.current, obj);
   }
 
+  const timeStyle = getStyle(element, { fontSize: 20 });
+
   return (
-    <StopwatchEditor
-      noLabel
-      noDelete
-      compact
-      noButtons={!focused}
-      state={data?.state ?? "stopped"}
-      time={data?.time ?? 0}
-      total={data?.total ?? 0}
-      label={"Whiteboard timer has finished."}
-      countdown={
-        data?.countdown /* do not default to 0 since this determines if is a timer or stopwatch */
-      }
-      clickButton={(button: string) => {
-        const time = getTime();
-        if (button == "start") {
-          set({ state: "running", time });
-        } else if (button == "reset") {
-          set({ state: "stopped", total: 0, time });
-        } else if (button == "pause") {
-          set({
-            time,
-            total:
-              (data?.total ?? 0) +
-              (webapp_client.server_time() - (data?.time ?? 0)),
-            state: "paused",
-          });
+    <>
+      <StopwatchEditor
+        noLabel
+        noDelete
+        compact
+        noButtons={!focused}
+        state={data?.state ?? "stopped"}
+        time={data?.time ?? 0}
+        total={data?.total ?? 0}
+        label={"Whiteboard timer has finished."}
+        countdown={
+          data?.countdown /* do not default to 0 since this determines if is a timer or stopwatch */
         }
-      }}
-      timeStyle={getStyle(element, { fontSize: 20 })}
-      style={{
-        overflow: "scroll",
-        border: "1px solid lightgrey",
-        borderRadius: "5px",
-        boxShadow: "0 0 5px grey",
-      }}
-      setCountdown={(countdown) => {
-        console.log("setCountdown", countdown);
-        set({ countdown });
-      }}
-    />
+        clickButton={(button: string) => {
+          const time = getTime();
+          if (button == "start") {
+            set({ state: "running", time });
+          } else if (button == "reset") {
+            set({ state: "stopped", total: 0, time });
+          } else if (button == "pause") {
+            set({
+              time,
+              total:
+                (data?.total ?? 0) +
+                (webapp_client.server_time() - (data?.time ?? 0)),
+              state: "paused",
+            });
+          }
+        }}
+        timeStyle={timeStyle}
+        style={{
+          overflow: "scroll",
+          border: "1px solid lightgrey",
+          borderRadius: "5px",
+          boxShadow: "0 0 5px grey",
+        }}
+        setCountdown={(countdown) => {
+          set({ countdown });
+        }}
+      />
+    </>
   );
 }

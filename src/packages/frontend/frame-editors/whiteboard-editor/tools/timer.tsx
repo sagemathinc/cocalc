@@ -19,8 +19,7 @@ import { debounce } from "lodash";
 import { DEFAULT_FONT_SIZE, minFontSize, maxFontSize } from "./defaults";
 import { ResetButton } from "./common";
 import { SelectFontFamily } from "./edit-bar";
-import { TimeAmount } from "@cocalc/frontend/editors/stopwatch/stopwatch";
-import { Icon } from "@cocalc/frontend/components";
+import { TimeAmount, TimerIcon } from "@cocalc/frontend/editors/stopwatch/stopwatch";
 
 interface TimerConfig {
   fontSize?: number;
@@ -129,10 +128,6 @@ export default function TimerToolPanel() {
       )}
     </div>
   );
-}
-
-function TimerIcon({ countdown }) {
-  return <Icon name={countdown ? "hourglass-half" : "stopwatch"} />;
 }
 
 function TimerToolButton({

@@ -105,9 +105,11 @@ export default function Stopwatch(props: StopwatchProps) {
     if (setCountdown == null) return;
     return (
       <div>
-        <Button icon={<EditTwoTone />} onClick={() => setEditingTime(true)}>
-          {!props.compact ? "Edit" : undefined}
-        </Button>
+        <Tooltip title="Edit countdown timer">
+          <Button icon={<EditTwoTone />} onClick={() => setEditingTime(true)}>
+            {!props.compact ? "Edit" : undefined}
+          </Button>
+        </Tooltip>
         {editingTime && (
           <TimePicker
             open
@@ -207,6 +209,8 @@ export default function Stopwatch(props: StopwatchProps) {
           key={"time"}
           amount={amount}
           compact={props.compact}
+          showIcon={props.compact}
+          countdown={props.countdown}
           style={{
             ...props.timeStyle,
             ...(props.countdown && amount == 0
@@ -411,6 +415,8 @@ interface TimeProps {
   amount: number;
   compact?: boolean;
   style?: CSSProperties;
+  showIcon?: boolean;
+  countdown?: number;
 }
 
 export function TimeAmount(props: TimeProps) {
@@ -428,7 +434,22 @@ export function TimeAmount(props: TimeProps) {
         ...props.style,
       }}
     >
+      {props.showIcon && (
+        <TimerIcon countdown={props.countdown} style={{ marginRight: "5px" }} />
+      )}
       {zpad(hours)}:{zpad(minutes)}:{zpad(seconds)}
     </span>
+  );
+}
+
+export function TimerIcon({
+  countdown,
+  style,
+}: {
+  countdown?: number;
+  style?: CSSProperties;
+}) {
+  return (
+    <Icon name={countdown ? "hourglass-half" : "stopwatch"} style={style} />
   );
 }
