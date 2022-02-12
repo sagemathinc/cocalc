@@ -24,6 +24,7 @@ export default function Text({ element, focused, canvasScale }: Props) {
   }, [element.str]);
   useEffect(() => {
     return () => {
+      // TODO
       // unmounting, so save
       console.log("unmounting, so need to save if editing...");
       //actions.setElement({ id: element.id, str: value });

@@ -438,10 +438,9 @@ export default function Canvas({
                 h: yMax - yMin,
                 z: MAX_ELEMENTS + 1,
                 type: "frame",
-                data: { color: "black", thickness: 3 },
+                data: { color: "black", radius: 0.5 },
                 style: {
                   background: "lightgrey",
-                  opacity: 0.3,
                   borderRadius: "5px",
                 },
               },
@@ -587,10 +586,10 @@ export default function Canvas({
           transforms.windowToData(p1.x, p1.y)
         );
         if (selectedTool == "frame") {
-          // make a frame at the selection.
-          console.log("frame at ", rect);
+          // make a frame at the selection.  Note that we put
+          // it UNDER everything.
           const { id } = frame.actions.createElement(
-            { type: "frame", ...rect },
+            { type: "frame", ...rect, z: transforms.zMin - 1 },
             true
           );
           frame.actions.setSelectedTool(frame.id, "select");

@@ -275,3 +275,14 @@ export function translateRectsZ(objs: { z?: number }[], zMin: number): void {
     }
   }
 }
+
+export function getGroup(elements: Element[], group?: string): Element[] {
+  const X: Element[] = [];
+  if (!group) return X;
+  for (const element of elements) {
+    if (element?.group == group) {
+      X.push(element);
+    }
+  }
+  return X;
+}
