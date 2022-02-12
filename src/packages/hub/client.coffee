@@ -54,6 +54,8 @@ underscore = require('underscore')
 {is_paying_customer} = require('@cocalc/database/postgres/account-queries')
 {get_personal_user} = require('@cocalc/database/postgres/personal')
 
+{RESEND_INVITE_INTERVAL_DAYS} = require("@cocalc/util/consts/invites")
+
 {PW_RESET_ENDPOINT, PW_RESET_KEY} = require('./password')
 
 DEBUG2 = !!process.env.SMC_DEBUG2
@@ -1383,7 +1385,7 @@ class exports.Client extends EventEmitter
                                 cb         : (err, when_sent) =>
                                     if err
                                         cb(err)
-                                    else if when_sent >= misc.days_ago(7)   # successfully sent < one week ago -- don't again
+                                    else if when_sent >= misc.days_ago(RESEND_INVITE_INTERVAL_DAYS)   # successfully sent this long ago -- don't again
                                         locals.done = true
                                         cb()
                                     else
