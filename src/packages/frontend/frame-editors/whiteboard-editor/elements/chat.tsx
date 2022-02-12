@@ -52,18 +52,20 @@ function Conversation({ element, focused }: Props) {
         element={element}
         style={{ flex: 1, overflowY: "auto", background: "white" }}
       />
-      <div style={{ height: focused ? "125px" : "50px" }} className="nodrag">
-        <ChatInput
-          hideHelp
-          height={focused ? "123px" : "48px"}
-          input={input}
-          onChange={setInput}
-          on_send={() => {
-            actions.sendChat({ id: element.id, input });
-            setInput("");
-          }}
-        />
-      </div>
+      {focused && (
+        <div style={{ height: "125px" }} className="nodrag">
+          <ChatInput
+            hideHelp
+            height={"123px"}
+            input={input}
+            onChange={setInput}
+            on_send={() => {
+              actions.sendChat({ id: element.id, input });
+              setInput("");
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
