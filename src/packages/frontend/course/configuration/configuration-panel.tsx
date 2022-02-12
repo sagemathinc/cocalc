@@ -292,9 +292,9 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             </>
           }
         >
-          Send yet another email to all those students, who didn't sign up yet.
-          Maximum one email every {RESEND_INVITE_INTERVAL_DAYS}{" "}
-          {plural(RESEND_INVITE_INTERVAL_DAYS, "day")} is sent out.
+          Send another email to every student who didn't sign up yet. This sends
+          a maximum of one email every {RESEND_INVITE_INTERVAL_DAYS}{" "}
+          {plural(RESEND_INVITE_INTERVAL_DAYS, "day")}.
           <hr />
           <Button
             disabled={reinviting_students}
