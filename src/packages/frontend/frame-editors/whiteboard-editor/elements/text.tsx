@@ -53,6 +53,7 @@ export default function Text({ element, focused, canvasScale }: Props) {
         value={value}
         is_current={true}
         hidePath
+        hideSearch
         disableWindowing
         font_size={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
         style={{ background: undefined, backgroundColor: undefined }}

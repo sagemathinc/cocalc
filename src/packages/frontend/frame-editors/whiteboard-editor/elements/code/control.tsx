@@ -13,14 +13,16 @@ export default function CodeControlBar({ element }: Props) {
   return (
     <div
       style={{
-        marginTop: "5px",
         padding: "2px 5px",
         border: "1px solid #ccc",
         borderRadius: "3px",
         background: "white",
         display: "inline-block",
-        float: "right",
         boxShadow: "1px 5px 7px rgb(33 33 33 / 70%)",
+        position: "absolute",
+        bottom: "5px",
+        right: "5px",
+        zIndex: 2,
       }}
     >
       {/*<Checkbox

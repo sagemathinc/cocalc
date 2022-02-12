@@ -7,9 +7,10 @@ import Output from "./output";
 interface Props {
   element: Element;
   focused?: boolean;
+  canvasScale: number;
 }
 
-export default function Code({ element, focused }: Props) {
+export default function Code({ element, focused, canvasScale }: Props) {
   const style = {
     height: "100%",
     overflowY: "auto",
@@ -28,11 +29,10 @@ export default function Code({ element, focused }: Props) {
 
   return (
     <div className={focused ? "nodrag" : undefined} style={style}>
-      {!hideInput && <Input element={element} focused={focused} />}
+      {!hideInput && (
+        <Input element={element} focused={focused} canvasScale={canvasScale} />
+      )}
       {!hideOutput && element.data?.output && <Output element={element} />}
-      {/* hideInput && (hideOutput || !element.data?.output) && (
-        <Icon name="jupyter" />
-      )*/}
       {focused && <ControlBar element={element} />}
     </div>
   );

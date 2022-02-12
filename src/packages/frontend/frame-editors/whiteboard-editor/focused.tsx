@@ -113,8 +113,12 @@ export default function Focused({
   // component to get re-rendered as a result of it calling
   // setRotating internally below to update the preview.
   const RotateControl = useMemo(() => {
-    // TODO: implement a notion of rotate for multiple objects...
-    if (selectedElements.length > 1) return null;
+    if (selectedElements.length > 1 || element.type == "code") {
+      // TODO: implement a notion of rotate for multiple objects...?
+      // Regarding code, codemirror doesn't work at all when
+      // transformed...
+      return null;
+    }
     function computeAngle(data) {
       const rect = rectRef.current;
       if (!rect) return;

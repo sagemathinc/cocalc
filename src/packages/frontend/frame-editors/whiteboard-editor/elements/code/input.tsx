@@ -8,9 +8,10 @@ import { redux } from "@cocalc/frontend/app-framework";
 interface Props {
   element: Element;
   focused?: boolean;
+  canvasScale: number;
 }
 
-export default function Input({ element, focused }: Props) {
+export default function Input({ element, focused, canvasScale }: Props) {
   const frame = useFrameContext();
   const actions = {
     select_complete: (
@@ -72,7 +73,7 @@ export default function Input({ element, focused }: Props) {
     },
   };
 
-  return (
+  const cm = (
     <CodeMirrorEditor
       actions={actions}
       id={""}
@@ -106,6 +107,21 @@ export default function Input({ element, focused }: Props) {
       }}
     />
   );
+  if (focused && canvasScale != 1) {
+    return (
+      <div
+        style={{
+          transform: `scale(${1 / canvasScale})`,
+          transformOrigin: "top left",
+          fontSize: (element.data?.fontSize ?? 14) * canvasScale,
+        }}
+      >
+        {cm}
+      </div>
+    );
+  } else {
+    return cm;
+  }
 }
 
 function getCMOptions() {
