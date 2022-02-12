@@ -57,14 +57,12 @@ export const Description: React.FC<Props> = React.memo(
         return;
       }
       return (
-        <div style={{marginBottom:'5px'}}>
+        <div style={{ marginBottom: "5px" }}>
           <DescriptionEditor
             actions={actions}
             task_id={task_id}
             desc={desc}
             font_size={font_size}
-            project_id={project_id}
-            path={path}
           />
         </div>
       );
@@ -99,7 +97,7 @@ export const Description: React.FC<Props> = React.memo(
       return (
         <Button
           onClick={edit}
-          style={{ marginBottom: "5px" }}
+          style={{ margin: "5px 0" }}
           title={"Edit this task (double click or enter key)"}
         >
           <Icon name={"edit"} /> Edit

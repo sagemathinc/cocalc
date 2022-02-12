@@ -7,21 +7,21 @@
 Edit description of a single task
 */
 
-import { React, useRef } from "../../app-framework";
+import { Button } from "antd";
+import React, { useRef } from "react";
+import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
+import { Icon } from "@cocalc/frontend/components/icon";
 import { TaskActions } from "./actions";
-import { MarkdownInput } from "../markdown-input";
 
 interface Props {
   actions: TaskActions;
   task_id: string;
   desc: string;
   font_size: number; // used only to cause refresh
-  project_id: string;
-  path: string;
 }
 
 export const DescriptionEditor: React.FC<Props> = React.memo(
-  ({ actions, task_id, desc, font_size, project_id, path }) => {
+  ({ actions, task_id, desc, font_size }) => {
     const submitMentionsRef = useRef<Function>();
 
     function done() {
@@ -33,24 +33,26 @@ export const DescriptionEditor: React.FC<Props> = React.memo(
       actions.stop_editing_desc(task_id);
     }
     return (
-      <MarkdownInput
-        value={desc}
-        project_id={project_id}
-        path={path}
-        onChange={(desc) => actions.set_desc(task_id, desc)}
-        fontSize={font_size}
-        onShiftEnter={done}
-        onFocus={actions.disable_key_handler}
-        onBlur={actions.enable_key_handler}
-        enableUpload={true}
-        enableMentions={true}
-        submitMentionsRef={submitMentionsRef}
-        height={"30vH"}
-        placeholder={"Enter a description..."}
-        lineWrapping={true}
-        extraHelp={"Use #hashtags to easily label and filter your tasks."}
-        autoFocus
-      />
+      <div>
+        <MarkdownInput
+          value={desc}
+          onChange={(desc) => actions.set_desc(task_id, desc)}
+          fontSize={font_size}
+          onShiftEnter={done}
+          onFocus={actions.disable_key_handler}
+          enableUpload={true}
+          enableMentions={true}
+          submitMentionsRef={submitMentionsRef}
+          height={"30vH"}
+          placeholder={"Enter a description..."}
+          lineWrapping={true}
+          extraHelp={"Use #hashtags to easily label and filter your tasks."}
+          autoFocus
+        />
+        <Button onClick={done} style={{ marginTop: "5px" }}>
+          <Icon name="save" /> Save
+        </Button>
+      </div>
     );
   }
 );

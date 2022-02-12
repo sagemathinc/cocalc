@@ -29,7 +29,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
   note: {
     icon: "note",
     cursor: "crosshair",
-    tip: "Note",
+    tip: "Sticky Note",
     config: new Set(["fontFamily", "fontSize", "color"]),
   },
   pen: {
@@ -47,10 +47,9 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
   icon: {
     icon: "square",
     cursor: "crosshair",
-    tip: "Icon",
+    tip: "Icons",
     config: new Set(["fontSize", "color"]),
   },
-  //shape: { icon: "square", cursor: "crosshair", tip: "Shape" },
   chat: {
     icon: "comment",
     cursor: "crosshair",
@@ -69,6 +68,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     tip: "Edge",
     config: new Set(["color", "radius"]),
   },
+  //shape: { icon: "square", cursor: "crosshair", tip: "Shape" },
 };
 
 export type Tool = keyof typeof TOOLS;
