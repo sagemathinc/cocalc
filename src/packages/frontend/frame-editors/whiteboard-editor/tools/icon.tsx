@@ -201,7 +201,11 @@ function IconParams({ color, fontSize, icon, setColor, setFontSize, setIcon }) {
         margin: 0,
       }}
     >
-      <IconPreview icon={icon} fontSize={fontSize} color={color} />
+      <div style={{ textAlign: "center" }}>
+        <IconPreview icon={icon} fontSize={fontSize} color={color} />
+        <br />
+        {icon}
+      </div>
       <div style={{ width: "100%", display: "flex" }}>
         <Slider
           value={fontSize ?? DEFAULT_FONT_SIZE}
@@ -217,7 +221,6 @@ function IconParams({ color, fontSize, icon, setColor, setFontSize, setIcon }) {
       </div>
       <IconSelect
         onSelect={setIcon}
-        search={icon}
         style={{
           maxWidth: "100%",
           marginBottom: "10px",

@@ -486,7 +486,7 @@ export default function Canvas({
         }
       } else {
         // clicked on an element on the canvas; either stay selected or let
-        // it handle selecting it.
+        // it handle selecting itself.
       }
       return;
     }
@@ -550,7 +550,7 @@ export default function Canvas({
       }, [transforms, canvasScale]);
 
   const onMouseDown = (e) => {
-    if (selectedTool == "select") {
+    if (selectedTool == "select" || selectedTool == "frame") {
       if (e.target != gridDivRef.current) return;
       // draw a rectangular to select multiple items
       const point = getMousePos(e);
@@ -573,7 +573,7 @@ export default function Canvas({
     setSelectRect(null);
     if (mousePath.current == null) return;
     try {
-      if (selectedTool == "select") {
+      if (selectedTool == "select" || selectedTool == "frame") {
         if (mousePath.current.length < 2) return;
         setSelectRect(null);
         ignoreNextClick.current = true;
@@ -586,10 +586,21 @@ export default function Canvas({
           transforms.windowToData(p0.x, p0.y),
           transforms.windowToData(p1.x, p1.y)
         );
-
-        const overlapping = getOverlappingElements(elements, rect);
-        const ids = overlapping.map((element) => element.id);
-        frame.actions.setSelectionMulti(frame.id, ids, "add");
+        if (selectedTool == "frame") {
+          // make a frame at the selection.
+          console.log("frame at ", rect);
+          const { id } = frame.actions.createElement(
+            { type: "frame", ...rect },
+            true
+          );
+          frame.actions.setSelectedTool(frame.id, "select");
+          frame.actions.setSelection(frame.id, id);
+        } else {
+          // select everything in selection
+          const overlapping = getOverlappingElements(elements, rect);
+          const ids = overlapping.map((element) => element.id);
+          frame.actions.setSelectionMulti(frame.id, ids, "add");
+        }
         return;
       } else if (selectedTool == "pen") {
         const canvas = penCanvasRef.current;
@@ -674,7 +685,7 @@ export default function Canvas({
       return;
     }
     e.preventDefault?.(); // only makes sense for mouse not touch.
-    if (selectedTool == "select") {
+    if (selectedTool == "select" || selectedTool == "frame") {
       const point = getMousePos(e);
       if (point == null) return;
       mousePath.current[1] = point;

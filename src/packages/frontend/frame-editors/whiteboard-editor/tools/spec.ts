@@ -45,7 +45,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     config: new Set(["fontSize", "color", "radius"]),
   },
   icon: {
-    icon: "square",
+    icon: "store",
     cursor: "crosshair",
     tip: "Icons",
     config: new Set(["fontSize", "color"]),
@@ -66,6 +66,12 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     hideFromToolbar: true,
     icon: "network-wired", // really bad
     tip: "Edge",
+    config: new Set(["color", "radius"]),
+  },
+  frame: {
+    icon: "layout",
+    cursor: "crosshair",
+    tip: "Frame",
     config: new Set(["color", "radius"]),
   },
   //shape: { icon: "square", cursor: "crosshair", tip: "Shape" },
