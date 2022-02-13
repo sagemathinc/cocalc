@@ -26,6 +26,7 @@ import EdgeCreate, {
   Position as EdgeCreatePosition,
 } from "./focused-edge-create";
 import Position from "./position";
+import { isLocked } from "./tools/lock-button";
 
 export const SELECTED_BORDER_COLOR = "#40a9ff";
 export const SELECTED_BORDER_WIDTH = 1;
@@ -74,8 +75,10 @@ export default function Focused({
   const t = transforms.dataToWindow(pos.x, pos.y, pos.z);
   const isChanging =
     dragging || offset.x || offset.y || offset.w || offset.h || rotating;
+  const locked = isLocked(selectedElements);
 
   const dragHandles = useMemo(() => {
+    if (locked) return null;
     const v: ReactNode[] = [];
     for (const top of [true, false]) {
       for (const left of [true, false]) {
@@ -113,7 +116,7 @@ export default function Focused({
   // component to get re-rendered as a result of it calling
   // setRotating internally below to update the preview.
   const RotateControl = useMemo(() => {
-    if (selectedElements.length > 1 || element.type == "code") {
+    if (selectedElements.length > 1 || element.type == "code" || locked) {
       // TODO: implement a notion of rotate for multiple objects...?
       // Regarding code, codemirror doesn't work at all when
       // transformed...
@@ -166,7 +169,7 @@ export default function Focused({
             className="nodrag"
             style={{
               ...ICON_STYLE,
-              cursor: "grab",
+              cursor: locked ? undefined : "grab",
               position: "absolute",
               bottom: `-${OFFSET / canvasScale}px`,
               left: `-${OFFSET / canvasScale}px`,
@@ -179,13 +182,13 @@ export default function Focused({
     );
   }, [element.rotate, canvasScale, selectedElements.length]);
 
-  const moveHandle = (
+  const moveHandle = locked ? null : (
     <Tooltip key="move" title="Move">
       <Icon
         name="move"
         style={{
           ...ICON_STYLE,
-          cursor: "grab",
+          cursor: locked ? undefined : "grab",
           position: "absolute",
           top: `-${OFFSET / canvasScale}px`,
           left: `-${OFFSET / canvasScale}px`,
@@ -239,6 +242,7 @@ export default function Focused({
         </div>
       </div>
       <Draggable
+        disabled={locked}
         cancel={".nodrag"}
         position={{ x: 0, y: 0 }}
         scale={canvasScale}
@@ -284,7 +288,7 @@ export default function Focused({
         <div
           ref={rectRef}
           style={{
-            cursor: "grab",
+            cursor: locked ? undefined : "grab",
             position: "relative",
             ...(rotating
               ? {

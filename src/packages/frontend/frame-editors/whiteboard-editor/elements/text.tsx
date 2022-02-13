@@ -33,7 +33,7 @@ export default function Text({ element, focused, canvasScale }: Props) {
 
   const style = getStyle(element);
 
-  if (!focused) {
+  if (!focused || element.locked) {
     return (
       <StaticMarkdown
         value={element.str?.trim() ? element.str : "Type text"}

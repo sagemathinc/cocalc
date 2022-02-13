@@ -93,6 +93,7 @@ export interface Element extends Rect {
   str?: string; // optional str data patch/merge via diff string
   group?: string; // group id if object is part of a group
   rotate?: number; // angle in *radians*
+  locked?: boolean;
 }
 
 export type ElementMap = TypedMap<Element>;

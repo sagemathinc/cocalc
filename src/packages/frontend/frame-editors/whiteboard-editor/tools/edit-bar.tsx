@@ -16,6 +16,7 @@ import { FONT_FACES as FONT_FAMILIES } from "@cocalc/frontend/editors/editor-but
 import { getPageSpan, rectSpan } from "../math";
 import { ConfigParams, TOOLS } from "./spec";
 import { copyToClipboard, pasteFromInternalClipboard } from "./clipboard";
+import LockButton, { isLocked } from "./lock-button";
 
 import {
   DEFAULT_FONT_SIZE,
@@ -51,19 +52,23 @@ export default function EditBar({ elements, allElements }: Props) {
       }}
     >
       <div style={{ display: "flex" }}>
-        {configParams.has("fontFamily") && <FontFamily {...props} />}
-        {configParams.has("fontSize") && <FontSize {...props} />}
-        {configParams.has("radius") && <Radius {...props} />}
-        {configParams.has("color") && <ColorButton {...props} />}
-        <GroupButton {...props} />
-        <DeleteButton {...props} />
+        {!isLocked(elements) && (
+          <>
+            {configParams.has("fontFamily") && <FontFamily {...props} />}
+            {configParams.has("fontSize") && <FontSize {...props} />}
+            {configParams.has("radius") && <Radius {...props} />}
+            {configParams.has("color") && <ColorButton {...props} />}
+            <GroupButton {...props} />
+          </>
+        )}
+        <LockButton elements={elements} />
         <OtherOperations {...props} />
       </div>
     </div>
   );
 }
 
-const BUTTON_STYLE = {
+export const BUTTON_STYLE = {
   fontSize: "22px",
   color: "#666",
   height: "42px",
@@ -74,7 +79,7 @@ interface ButtonProps {
   actions: Actions;
   elements: Element[];
 }
-
+/*
 function DeleteButton({ actions, elements }: ButtonProps) {
   return (
     <Tooltip title="Delete">
@@ -89,7 +94,7 @@ function DeleteButton({ actions, elements }: ButtonProps) {
       </Button>
     </Tooltip>
   );
-}
+}*/
 
 function ColorButton({ actions, elements }: ButtonProps) {
   const [showPicker, setShowPicker] = useState<boolean>(false);
@@ -337,6 +342,8 @@ function OtherOperations({ actions, elements, allElements }) {
         } else if (key == "cut") {
           copyToClipboard(elements);
           deleteElements(actions, elements);
+        } else if (key == "delete") {
+          deleteElements(actions, elements);
         } else if (key == "paste") {
           pasteElements(actions, elements, frame.id);
         }
@@ -348,6 +355,7 @@ function OtherOperations({ actions, elements, allElements }) {
       <Menu.Item key="copy">Copy</Menu.Item>
       <Menu.Item key="paste">Paste</Menu.Item>
       <Menu.Item key="duplicate">Duplicate</Menu.Item>
+      <Menu.Item key="delete">Delete</Menu.Item>
     </Menu>
   );
 
