@@ -72,7 +72,7 @@ export default function Focused({
   const [rotating, setRotating] = useState<number | undefined>(undefined);
   const [dragging, setDragging] = useState<boolean>(false);
   const pos = getPosition(element);
-  const t = transforms.dataToWindow(pos.x, pos.y, pos.z);
+  const t = transforms.dataToWindowNoScale(pos.x, pos.y, pos.z);
   const isChanging =
     dragging || offset.x || offset.y || offset.w || offset.h || rotating;
   const locked = isLocked(selectedElements);

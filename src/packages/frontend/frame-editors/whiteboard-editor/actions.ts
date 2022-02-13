@@ -259,8 +259,8 @@ export class Actions extends BaseActions<State> {
     this._syncstring.commit();
   }
 
-  fitToScreen(id: string): void {
-    this.set_frame_tree({ id, fitToScreen: true });
+  fitToScreen(id: string, state: boolean = true): void {
+    this.set_frame_tree({ id, fitToScreen: state ? true : undefined });
   }
 
   toggleMap(id: string): void {

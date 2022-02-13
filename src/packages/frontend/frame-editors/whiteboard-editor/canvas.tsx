@@ -10,7 +10,42 @@ NOTE: This component assumes that when it is first mounted that elements
 is actually what it will be for the initial load, so that it can properly
 set the center position.  Do not create with elements=[], then the real
 elements.
+
+COORDINATES:
+
+Functions below that depend on the coordinate system should
+be named ending with either "Data", "Window" or "Viewport",
+depending on what coordinates they use.  Those coordinate
+systems are defined below.
+
+data coordinates:
+- what all the elements use in defining themselves.
+- this is an x,y infinite plane, with of course the
+  x-axis going down (computer graphics, after all)
+- objects also have an arbitrary z coordinate
+
+window coordinates:
+- this is the div we're drawing everything to the screen using
+- when we draw an element on the screen, we used position absolute
+with window coordinates.
+- also x,y with x-axis going down.  However, negative
+  coordinates can never be visible.
+- scrolling the visible window does not change these coordinates.
+- this is related to data coordinates by a translation followed
+  by scaling.
+- we also translate all z-coordinates to be in an explicit interval [0,MAX]
+  via an increasing (but not necessarily linear!) function.
+
+viewport coordinates:
+- this is the coordinate system used when clicking with the mouse
+  and getting an event e.clientX, e.clientY.  The upper left point (0,0)
+  is the upper left corner of the browser window.
+- this is related to window coordinates by translation, where the parameters
+  are the position of the canvas div and its scrollTop, scrollLeft attributes.
+  Thus the transform back and forth between window and portal coordinates
+  is extra tricky, because it can change any time at any time!
 */
+
 import {
   ClipboardEvent,
   ReactNode,
@@ -20,7 +55,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Element, ElementType, Point } from "./types";
+import { Element, ElementType, Point, Rect } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
 import RenderElement from "./elements/render";
 import Focused, {
@@ -34,14 +69,17 @@ import { useFrameContext } from "./hooks";
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import Grid from "./elements/grid";
 import {
+  compressPath,
   fontSizeToZoom,
+  ZOOM100,
   getPageSpan,
   getPosition,
+  fitRectToRect,
   getOverlappingElements,
   pointEqual,
   pointRound,
   pointsToRect,
-  compressPath,
+  rectSpan,
   MAX_ELEMENTS,
 } from "./math";
 import { throttle } from "lodash";
@@ -70,7 +108,6 @@ interface Props {
   margin?: number;
   readOnly?: boolean;
   tool?: Tool;
-  fitToScreen?: boolean; // if set, compute data then set font_size to get zoom (plus offset) to everything is visible properly on the page; also set fitToScreen back to false in frame tree data
   evtToDataRef?: MutableRefObject<Function | null>;
   isNavigator?: boolean; // is the navigator, so hide the grid, don't save window, don't scroll, don't move
 }
@@ -83,7 +120,6 @@ export default function Canvas({
   margin,
   readOnly,
   selectedTool,
-  fitToScreen,
   evtToDataRef,
   isNavigator,
 }: Props) {
@@ -128,7 +164,7 @@ export default function Canvas({
   useEffect(() => {
     if (isNavigator) return;
     if (canvasScale == lastScale) return;
-    const ctr = getCenterPosition();
+    const ctr = getCenterPositionWindow();
     if (ctr == null) return;
     const { x, y } = ctr;
     const new_x = (lastScale / canvasScale) * x;
@@ -163,14 +199,14 @@ export default function Canvas({
     if (isNavigator || restoring.current) return;
     const center = frame.desc.get("visibleWindowCenter")?.toJS();
     if (center == null) return;
-    setCenterPosition(center.x, center.y);
+    setCenterPositionData(center);
   }, [frame.desc.get("visibleWindowCenter")]);
 
   useEffect(() => {
     if (isNavigator) return;
     const center = frame.desc.get("center")?.toJS();
     if (center != null) {
-      setCenterPosition(center.x, center.y);
+      setCenterPositionData(center);
     }
     restoring.current = false;
   }, []);
@@ -178,11 +214,9 @@ export default function Canvas({
   // save center position, so can be restored later.
   const saveCenterPosition = useDebouncedCallback(() => {
     if (isNavigator || restoring.current) return;
-    const center = windowToData({
-      transforms,
-      canvasScale,
-      point: getCenterPosition(),
-    });
+    const c = getCenterPositionWindow();
+    if (c == null) return;
+    const center = windowToData(c);
     if (center != null) {
       frame.actions.saveCenter(frame.id, center);
     }
@@ -208,24 +242,25 @@ export default function Canvas({
     return timerParams(frame.desc.get("timerId") ?? 0);
   }
 
-  // gets center of visible canvas in *window* coordinates.
-  function getCenterPosition(): { x: number; y: number } | undefined {
+  // get window coordinates of what is currently displayed in the exact
+  // center of the viewport.
+  function getCenterPositionWindow(): { x: number; y: number } | undefined {
     const c = canvasRef.current;
     if (c == null) return;
     const rect = c.getBoundingClientRect();
     if (rect == null) return;
-    // the current center
+    // the current center of the viewport, but in window coordinates, i.e.,
+    // absolute coordinates into the canvas div.
     return {
       x: c.scrollLeft + rect.width / 2,
       y: c.scrollTop + rect.height / 2,
     };
   }
 
-  function setCenterPosition(x: number, y: number) {
-    const t = transforms.dataToWindow(x, y);
-    t.x *= canvasScale;
-    t.y *= canvasScale;
-    const cur = getCenterPosition();
+  // set center position in Data coordinates.
+  function setCenterPositionData({ x, y }: Point): void {
+    const t = dataToWindow({ x, y });
+    const cur = getCenterPositionWindow();
     if (cur == null) return;
     const delta_x = t.x - cur.x;
     const delta_y = t.y - cur.y;
@@ -237,16 +272,31 @@ export default function Canvas({
     c.scrollTop = scrollTopGoal;
   }
 
+  // when fitToScreen is true, compute data then set font_size to get zoom (plus offset) to
+  // everything is visible properly on the page; also set fitToScreen back to false in
+  // frame tree data
   useEffect(() => {
-    if (fitToScreen) {
-      frame.actions.set_frame_tree({ id: frame.id, fitToScreen: false });
+    if (frame.desc.get("fitToScreen") && !isNavigator) {
+      try {
+        const viewport = getViewportData();
+        if (viewport == null) return;
+        const rect = rectSpan(elements);
+        const { scale } = fitRectToRect(rect, viewport);
+        frame.actions.set_font_size(frame.id, (font_size ?? ZOOM100) * scale);
+        setCenterPositionData({
+          x: rect.x + rect.w / 2,
+          y: rect.y + rect.h / 2,
+        });
+      } finally {
+        frame.actions.fitToScreen(frame.id, false);
+      }
     }
-  }, [fitToScreen]);
+  }, [frame.desc.get("fitToScreen")]);
 
   function processElement(element, isNavRectangle = false) {
     const { id, rotate } = element;
     const { x, y, z, w, h } = getPosition(element);
-    const t = transforms.dataToWindow(x, y, z);
+    const t = transforms.dataToWindowNoScale(x, y, z);
 
     // This just shows blue boxes in the nav map, instead of actually
     // rendering something.
@@ -440,10 +490,9 @@ export default function Canvas({
                 h: yMax - yMin,
                 z: MAX_ELEMENTS + 1,
                 type: "frame",
-                data: { color: "black", radius: 0.5 },
+                data: { color: "#888", radius: 0.5 },
                 style: {
-                  background: "lightgrey",
-                  borderRadius: "5px",
+                  background: "rgb(200,200,200,0.2)",
                 },
               },
               true
@@ -454,17 +503,53 @@ export default function Canvas({
     }
   }
 
-  // convert mouse event to coordinates in data space
-  function evtToData(e): { x: number; y: number } {
-    const { clientX, clientY } = e;
+  /****************************************************/
+  // Full coordinate transforms back and forth!
+  // Note, transforms has coordinate transforms without scaling
+  // in it, since that's very useful. However, these two
+  // below are the full transforms.
+
+  function viewportToWindow({ x, y }: Point): Point {
     const c = canvasRef.current;
     if (c == null) return { x: 0, y: 0 };
     const rect = c.getBoundingClientRect();
     if (rect == null) return { x: 0, y: 0 };
-    // Coordinates inside the canvas div.
-    const divX = c.scrollLeft + clientX - rect.left;
-    const divY = c.scrollTop + clientY - rect.top;
-    return transforms.windowToData(divX / canvasScale, divY / canvasScale);
+    return {
+      x: c.scrollLeft + x - rect.left,
+      y: c.scrollTop + y - rect.top,
+    };
+  }
+
+  // window coords to data coords
+  function windowToData({ x, y }: Point): Point {
+    return transforms.windowToDataNoScale(x / canvasScale, y / canvasScale);
+  }
+  function dataToWindow({ x, y }: Point): Point {
+    const p = transforms.dataToWindowNoScale(x, y);
+    p.x *= canvasScale;
+    p.y *= canvasScale;
+    return { x: p.x, y: p.y };
+  }
+  /****************************************************/
+  // The viewport in *data* coordinates
+  function getViewportData(): Rect | undefined {
+    const v = getViewportWindow();
+    if (v == null) return;
+    const { x, y } = windowToData(v);
+    return { x, y, w: v.w / canvasScale, h: v.h / canvasScale };
+  }
+  // The viewport in *window* coordinates
+  function getViewportWindow(): Rect | undefined {
+    const c = canvasRef.current;
+    if (c == null) return;
+    const { width: w, height: h } = c.getBoundingClientRect();
+    return { x: c.scrollLeft, y: c.scrollTop, w, h };
+  }
+
+  // convert mouse event to coordinates in data space
+  function evtToData(e): Point {
+    const { clientX: x, clientY: y } = e;
+    return windowToData(viewportToWindow({ x, y }));
   }
   if (evtToDataRef != null) {
     // share with outside world
@@ -540,7 +625,7 @@ export default function Canvas({
           const { scrollLeft, scrollTop } = elt;
           // width and height of visible window
           const { width, height } = elt.getBoundingClientRect();
-          const { x: xMin, y: yMin } = transforms.windowToData(
+          const { x: xMin, y: yMin } = transforms.windowToDataNoScale(
             scrollLeft / canvasScale,
             scrollTop / canvasScale
           );
@@ -584,8 +669,8 @@ export default function Canvas({
         const p0 = mousePath.current[0];
         const p1 = mousePath.current[1];
         const rect = pointsToRect(
-          transforms.windowToData(p0.x, p0.y),
-          transforms.windowToData(p1.x, p1.y)
+          transforms.windowToDataNoScale(p0.x, p0.y),
+          transforms.windowToDataNoScale(p1.x, p1.y)
         );
         if (selectedTool == "frame") {
           // make a frame at the selection.  Note that we put
@@ -613,7 +698,8 @@ export default function Canvas({
           return;
         }
         ignoreNextClick.current = true;
-        const toData = ({ x, y }) => pointRound(transforms.windowToData(x, y));
+        const toData = ({ x, y }) =>
+          pointRound(transforms.windowToDataNoScale(x, y));
         const { x, y } = toData(mousePath.current[0]);
         let xMin = x,
           xMax = x;
@@ -775,15 +861,11 @@ export default function Canvas({
                 const pos = getMousePos(mousePos.current);
                 if (pos != null) {
                   const { x, y } = pos;
-                  target = transforms.windowToData(x, y);
+                  target = transforms.windowToDataNoScale(x, y);
                 } else {
-                  const point = getCenterPosition();
+                  const point = getCenterPositionWindow();
                   if (point != null) {
-                    target = windowToData({
-                      transforms,
-                      canvasScale,
-                      point,
-                    });
+                    target = windowToData(point);
                   }
                 }
 
@@ -869,12 +951,12 @@ function getTransforms(
   margin,
   scale
 ): {
-  dataToWindow: (
+  dataToWindowNoScale: (
     x: number,
     y: number,
     z?: number
   ) => { x: number; y: number; z: number };
-  windowToData: (x: number, y: number) => { x: number; y: number };
+  windowToDataNoScale: (x: number, y: number) => { x: number; y: number };
   width: number;
   height: number;
   xMin: number;
@@ -899,22 +981,22 @@ function getTransforms(
   let { xMin, yMin, xMax, yMax, zMin, zMax } = getPageSpan(elements, margin);
   const zMap = zIndexMap(elements);
 
-  function dataToWindow(x, y, z?) {
+  function dataToWindowNoScale(x, y, z?) {
     return {
       x: (x ?? 0) - xMin,
       y: (y ?? 0) - yMin,
       z: zMap[z ?? 0] ?? 0,
     };
   }
-  function windowToData(x, y) {
+  function windowToDataNoScale(x, y) {
     return {
       x: (x ?? 0) + xMin,
       y: (y ?? 0) + yMin,
     };
   }
   return {
-    dataToWindow,
-    windowToData,
+    dataToWindowNoScale,
+    windowToDataNoScale,
     width: xMax - xMin,
     height: yMax - yMin,
     xMin,
@@ -939,10 +1021,6 @@ function zIndexMap(elements: Element[]) {
     i += 1;
   }
   return zMap;
-}
-
-function windowToData({ transforms, canvasScale, point }) {
-  return transforms.windowToData(point.x / canvasScale, point.y / canvasScale);
 }
 
 function getSelectedElements({

@@ -286,3 +286,28 @@ export function getGroup(elements: Element[], group?: string): Element[] {
   }
   return X;
 }
+
+// compute a scale and translation, so if you first scale rect1, then translate,
+// you end up inside rect2.  Obviously, not possible in degenerate cases when
+// both don't have positive w and h...
+export function fitRectToRect(
+  rect1: Rect,
+  rect2: Rect
+): { scale: number; translate: Point } {
+  const scale_x = rect2.w / rect1.w;
+  const scale_y = rect2.h / rect1.h;
+  // choose the scale that also works for the other direction.
+  let scale: number;
+  if (scale_x * rect1.h <= rect2.h) {
+    scale = scale_x;
+  } else if (scale_y * rect1.w <= rect2.w) {
+    scale = scale_y;
+  } else {
+    // just choose one -- better than crashing.
+    scale = scale_x;
+  }
+  return {
+    scale,
+    translate: { x: rect2.x - rect1.x, y: rect2.y - rect1.y },
+  };
+}

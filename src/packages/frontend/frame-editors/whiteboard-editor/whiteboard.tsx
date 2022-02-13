@@ -80,7 +80,6 @@ export default function Whiteboard({
               : undefined
           }
           selectedTool={selectedTool}
-          fitToScreen={desc.get("fitToScreen")}
           evtToDataRef={evtToDataRef}
         />
       </Upload>
