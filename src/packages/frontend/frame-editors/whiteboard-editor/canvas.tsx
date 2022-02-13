@@ -87,7 +87,10 @@ export default function Canvas({
   evtToDataRef,
   isNavigator,
 }: Props) {
-  margin = margin ?? 1000;
+  const canvasScale = scale ?? fontSizeToZoom(font_size);
+  // We have to scale the margin as we zoom in and out,
+  // since otherwise it will look way too small.
+  margin = margin ?? 1500 / canvasScale;
 
   const gridDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
@@ -95,7 +98,6 @@ export default function Canvas({
 
   const navDrag = useRef<null | { x0: number; y0: number }>(null);
   const innerCanvasRef = useRef<any>(null);
-  const canvasScale = scale ?? fontSizeToZoom(font_size);
   const transforms = getTransforms(elements, margin, canvasScale);
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
   const ignoreNextClick = useRef<boolean>(false);

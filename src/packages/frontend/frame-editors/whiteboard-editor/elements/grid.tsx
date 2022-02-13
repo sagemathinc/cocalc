@@ -18,8 +18,8 @@ export default function Grid({ transforms, divRef }) {
     <div
       ref={divRef}
       style={{
-        width: `${transforms.width / transforms.scale}px`,
-        height: `${transforms.height / transforms.scale}px`,
+        width: `${transforms.width}px`,
+        height: `${transforms.height}px`,
         ...GRID,
       }}
     ></div>
