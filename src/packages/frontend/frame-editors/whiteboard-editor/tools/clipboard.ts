@@ -19,5 +19,9 @@ export function encodeForCopy(elements: Element[]): string {
 }
 
 export function decodeForPaste(encoded: string): Element[] {
-  return JSON.parse(decodeURIComponent(window.atob(encoded)));
+  try {
+    return JSON.parse(decodeURIComponent(window.atob(encoded)));
+  } catch (_err) {
+    return [];
+  }
 }

@@ -4,29 +4,23 @@ import { useFrameContext } from "./hooks";
 interface Props {
   children: ReactNode;
   id: string;
-  readOnly?: boolean;
   selectable?: boolean;
 }
 
-export default function NotFocused({
-  children,
-  id,
-  readOnly,
-  selectable,
-}: Props) {
+export default function NotFocused({ children, id, selectable }: Props) {
   const frame = useFrameContext();
   return (
     <div
       style={{ width: "100%", height: "100%" }}
-      onClick={(e) => onClick(readOnly, selectable, id, e, frame)}
+      onClick={(e) => onClick(selectable, id, e, frame)}
     >
       {children}
     </div>
   );
 }
 
-function onClick(readOnly, selectable, id, e, frame) {
-  if (readOnly || !selectable) return;
+function onClick(selectable, id, e, frame) {
+  if (!selectable) return;
   e.stopPropagation();
   const edgeStart = frame.desc.get("edgeStart");
   if (edgeStart) {

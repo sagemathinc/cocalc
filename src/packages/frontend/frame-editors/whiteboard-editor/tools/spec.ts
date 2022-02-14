@@ -16,10 +16,22 @@ interface ToolDescription {
   tip: ReactNode;
   config?: Set<ConfigParams>;
   hideFromToolbar?: boolean;
+  readOnly?: boolean; // if true, show this tool even in readonly view
 }
 
 export const TOOLS: { [tool: string]: ToolDescription } = {
-  select: { icon: "select-outlined", cursor: "default", tip: "Select" },
+  hand: {
+    icon: "move",
+    cursor: "grab",
+    tip: "Hand tool - move canvas",
+    readOnly: true,
+  },
+  select: {
+    icon: "select-outlined",
+    cursor: "default",
+    tip: "Select",
+    readOnly: true,
+  },
   text: {
     icon: "font",
     cursor: "text",

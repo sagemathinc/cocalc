@@ -7,7 +7,7 @@ Floating panel from which you can select a tool.
 import { CSSProperties, ReactNode } from "react";
 import { Button, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { TOOLS } from "./spec";
+import { TOOLS, Tool } from "./spec";
 import { useFrameContext } from "../hooks";
 import { MAX_ELEMENTS } from "../math";
 
@@ -21,10 +21,16 @@ export const PANEL_STYLE = {
   background: "white",
 } as CSSProperties;
 
-export default function Panel({ selectedTool }) {
+interface Props {
+  selectedTool: Tool;
+  readOnly?: boolean;
+}
+
+export default function Panel({ selectedTool, readOnly }: Props) {
   const v: ReactNode[] = [];
   for (const tool in TOOLS) {
     if (TOOLS[tool].hideFromToolbar) continue;
+    if (readOnly && !TOOLS[tool].readOnly) continue;
     v.push(
       <ToolButton key={tool} tool={tool} isSelected={tool == selectedTool} />
     );
@@ -53,11 +59,13 @@ function ToolButton({ tool, isSelected }) {
         onClick={() => {
           actions.setSelectedTool(id, tool);
         }}
+        style={
+          isSelected ? { color: "#fff", background: "#337ab7" } : undefined
+        }
       >
         <Icon
           name={icon}
           style={{
-            color: isSelected ? "blue" : undefined,
             fontSize: "16px",
           }}
         />

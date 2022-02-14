@@ -51,6 +51,7 @@ interface Props {
   selectedElements: Element[];
   allElements: Element[];
   transforms;
+  readOnly?: boolean;
 }
 
 export default function Focused({
@@ -60,6 +61,7 @@ export default function Focused({
   selectedElements,
   transforms,
   allElements,
+  readOnly,
 }: Props) {
   const frame = useFrameContext();
   const rectRef = useRef<any>(null);
@@ -78,7 +80,7 @@ export default function Focused({
   const locked = isLocked(selectedElements);
 
   const dragHandles = useMemo(() => {
-    if (locked) return null;
+    if (locked || readOnly) return null;
     const v: ReactNode[] = [];
     for (const top of [true, false]) {
       for (const left of [true, false]) {
@@ -99,7 +101,7 @@ export default function Focused({
   }, [element, canvasScale]);
 
   const edgeCreationPoints = useMemo(() => {
-    if (selectedElements.length >= 2) return null;
+    if (selectedElements.length >= 2 || readOnly) return null;
     return ["top", "bottom", "left", "right"].map(
       (position: EdgeCreatePosition) => (
         <EdgeCreate
@@ -116,7 +118,12 @@ export default function Focused({
   // component to get re-rendered as a result of it calling
   // setRotating internally below to update the preview.
   const RotateControl = useMemo(() => {
-    if (selectedElements.length > 1 || element.type == "code" || locked) {
+    if (
+      selectedElements.length > 1 ||
+      element.type == "code" ||
+      locked ||
+      readOnly
+    ) {
       // TODO: implement a notion of rotate for multiple objects...?
       // Regarding code, codemirror doesn't work at all when
       // transformed...
@@ -169,7 +176,7 @@ export default function Focused({
             className="nodrag"
             style={{
               ...ICON_STYLE,
-              cursor: locked ? undefined : "grab",
+              cursor: locked || readOnly ? undefined : "grab",
               position: "absolute",
               bottom: `-${OFFSET / canvasScale}px`,
               left: `-${OFFSET / canvasScale}px`,
@@ -182,22 +189,23 @@ export default function Focused({
     );
   }, [element.rotate, canvasScale, selectedElements.length]);
 
-  const moveHandle = locked ? null : (
-    <Tooltip key="move" title="Move">
-      <Icon
-        name="move"
-        style={{
-          ...ICON_STYLE,
-          cursor: locked ? undefined : "grab",
-          position: "absolute",
-          top: `-${OFFSET / canvasScale}px`,
-          left: `-${OFFSET / canvasScale}px`,
-          visibility: isChanging ? "hidden" : undefined,
-          transform: `scale(${1 / canvasScale})`,
-        }}
-      />
-    </Tooltip>
-  );
+  const moveHandle =
+    locked || readOnly ? null : (
+      <Tooltip key="move" title="Move">
+        <Icon
+          name="move"
+          style={{
+            ...ICON_STYLE,
+            cursor: locked ? undefined : "grab",
+            position: "absolute",
+            top: `-${OFFSET / canvasScale}px`,
+            left: `-${OFFSET / canvasScale}px`,
+            visibility: isChanging ? "hidden" : undefined,
+            transform: `scale(${1 / canvasScale})`,
+          }}
+        />
+      </Tooltip>
+    );
 
   const scale_x = element.w ? (element.w + offset.w) / element.w : 1;
   const scale_y = element.h ? (element.h + offset.h) / element.h : 1;
@@ -238,11 +246,15 @@ export default function Focused({
             transformOrigin: "top left",
           }}
         >
-          <EditBar elements={selectedElements} allElements={allElements} />
+          <EditBar
+            readOnly={readOnly}
+            elements={selectedElements}
+            allElements={allElements}
+          />
         </div>
       </div>
       <Draggable
-        disabled={locked}
+        disabled={locked || readOnly}
         cancel={".nodrag"}
         position={{ x: 0, y: 0 }}
         scale={canvasScale}

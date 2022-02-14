@@ -21,6 +21,7 @@ import {
   SELECTED_BORDER_TYPE,
   SELECTED_BORDER_WIDTH,
 } from "../focused";
+const PREVIEW_THRESH = 0.07;
 
 const TOOLS = {
   map: {
@@ -174,7 +175,7 @@ function Map({ elements, width, height, resize, setResize }) {
     >
       <Canvas
         isNavigator
-        previewMode={scale <= 0.1}
+        previewMode={scale <= PREVIEW_THRESH}
         margin={10 / scale}
         elements={elements}
         scale={scale}

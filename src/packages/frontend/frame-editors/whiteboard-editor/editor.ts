@@ -23,6 +23,8 @@ const whiteboardButtons = set([
   "time_travel",
   "undo",
   "redo",
+  "copy",
+  "paste",
 ]);
 
 export const EDITOR_SPEC = {

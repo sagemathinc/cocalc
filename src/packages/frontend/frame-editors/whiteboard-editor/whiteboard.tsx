@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
-import { Actions, State } from "./actions";
+import { Actions, State, elementsList } from "./actions";
 import Canvas from "./canvas";
 import ToolPanel from "./tools/panel";
 import PenPanel from "./tools/pen";
@@ -31,10 +31,7 @@ export default function Whiteboard({
   const useEditor = useEditorRedux<State>({ project_id, path });
 
   const is_loaded = useEditor("is_loaded");
-  const elements = useEditor("elements")
-    ?.valueSeq()
-    .filter((x) => x != null)
-    .toJS();
+  const elements = elementsList(useEditor("elements"));
   const selectedTool = desc.get("selectedTool") ?? "select";
   const evtToDataRef = useRef<Function | null>(null);
 

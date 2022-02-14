@@ -30,16 +30,17 @@ import {
 interface Props {
   elements: Element[]; // selected ones
   allElements: Element[]; // all of them
+  readOnly?: boolean;
 }
 
-export default function EditBar({ elements, allElements }: Props) {
+export default function EditBar({ elements, allElements, readOnly }: Props) {
   const { actions } = useFrameContext();
   const configParams = useMemo(() => {
     return getCommonConfigParams(elements);
   }, [elements]);
 
   if (elements.length == 0) return null;
-  const props = { actions, elements, allElements };
+  const props = { actions, elements, allElements, readOnly };
 
   return (
     <div
@@ -52,7 +53,7 @@ export default function EditBar({ elements, allElements }: Props) {
       }}
     >
       <div style={{ display: "flex" }}>
-        {!isLocked(elements) && (
+        {!(readOnly || isLocked(elements)) && (
           <>
             {configParams.has("fontFamily") && <FontFamily {...props} />}
             {configParams.has("fontSize") && <FontSize {...props} />}
@@ -61,7 +62,7 @@ export default function EditBar({ elements, allElements }: Props) {
             <GroupButton {...props} />
           </>
         )}
-        <LockButton elements={elements} />
+        {!readOnly && <LockButton elements={elements} />}
         <OtherOperations {...props} />
       </div>
     </div>
@@ -309,7 +310,7 @@ function getFontFamily(elements: Element[]): string | undefined {
   return DEFAULT_FONT_FAMILY;
 }
 
-function OtherOperations({ actions, elements, allElements }) {
+function OtherOperations({ actions, elements, allElements, readOnly }) {
   const frame = useFrameContext();
   const menu = (
     <Menu
@@ -349,13 +350,13 @@ function OtherOperations({ actions, elements, allElements }) {
         }
       }}
     >
-      <Menu.Item key="bring-to-front">Bring to front</Menu.Item>
-      <Menu.Item key="send-to-back">Send to back</Menu.Item>
-      <Menu.Item key="cut">Cut</Menu.Item>
+      {!readOnly && <Menu.Item key="bring-to-front">Bring to front</Menu.Item>}
+      {!readOnly && <Menu.Item key="send-to-back">Send to back</Menu.Item>}
+      {!readOnly && <Menu.Item key="cut">Cut</Menu.Item>}
       <Menu.Item key="copy">Copy</Menu.Item>
-      <Menu.Item key="paste">Paste</Menu.Item>
-      <Menu.Item key="duplicate">Duplicate</Menu.Item>
-      <Menu.Item key="delete">Delete</Menu.Item>
+      {!readOnly && <Menu.Item key="paste">Paste</Menu.Item>}
+      {!readOnly && <Menu.Item key="duplicate">Duplicate</Menu.Item>}
+      {!readOnly && <Menu.Item key="delete">Delete</Menu.Item>}
     </Menu>
   );
 
@@ -416,7 +417,7 @@ export function deleteElements(actions, elements: Element[]) {
   actions.syncstring_commit();
 }
 
-function pasteElements(actions, elements: Element[], frameId?: string) {
+export function pasteElements(actions, elements: Element[], frameId?: string) {
   // very limited, since you can't easily force paste
   // from javascript...
   const pastedElements = pasteFromInternalClipboard();

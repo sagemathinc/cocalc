@@ -144,6 +144,12 @@ export default function Canvas({
   const innerCanvasRef = useRef<any>(null);
   const transforms = getTransforms(elements, margin, canvasScale);
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
+  const handRef = useRef<{
+    scrollLeft: number;
+    scrollTop: number;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
   const ignoreNextClick = useRef<boolean>(false);
   // position of mouse right now not transformed in any way,
   // just in case we need it. This is clientX, clientY off
@@ -362,13 +368,6 @@ export default function Canvas({
               : undefined),
             width: "100%",
             height: "100%",
-            /*...(isNavigator
-              ? {
-                  border: "2px solid #9fc3ff",
-                  pointerEvents: "none",
-                  touchAction: "none",
-                }
-              : undefined),*/
           }}
         >
           {elt}
@@ -401,6 +400,7 @@ export default function Canvas({
           allElements={elements}
           selectedElements={[element]}
           transforms={transforms}
+          readOnly={readOnly}
         >
           {elt}
         </Focused>
@@ -415,11 +415,7 @@ export default function Canvas({
           w={w}
           h={h}
         >
-          <NotFocused
-            id={id}
-            readOnly={readOnly}
-            selectable={selectedTool == "select"}
-          >
+          <NotFocused id={id} selectable={selectedTool == "select"}>
             {elt}
           </NotFocused>
         </Position>
@@ -459,6 +455,7 @@ export default function Canvas({
         allElements={elements}
         selectedElements={selectedElements}
         transforms={transforms}
+        readOnly={readOnly}
       >
         <RenderElement element={element} canvasScale={canvasScale} focused />
       </Focused>
@@ -572,6 +569,7 @@ export default function Canvas({
       ignoreNextClick.current = false;
       return;
     }
+    if (selectedTool == "hand") return;
     if (selectedTool == "select") {
       if (e.target == gridDivRef.current) {
         // clear selection
@@ -644,6 +642,17 @@ export default function Canvas({
       ]);
 
   const onMouseDown = (e) => {
+    if (selectedTool == "hand") {
+      const c = canvasRef.current;
+      if (c == null) return;
+      handRef.current = {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        scrollLeft: c.scrollLeft,
+        scrollTop: c.scrollTop,
+      };
+      return;
+    }
     if (selectedTool == "select" || selectedTool == "frame") {
       if (e.target != gridDivRef.current) return;
       // draw a rectangular to select multiple items
@@ -664,6 +673,10 @@ export default function Canvas({
   };
 
   const onMouseUp = (e) => {
+    if (selectedTool == "hand") {
+      handRef.current = null;
+      return;
+    }
     setSelectRect(null);
     if (mousePath.current == null) return;
     try {
@@ -773,6 +786,17 @@ export default function Canvas({
   }
 
   const onMouseMove = (e, touch = false) => {
+    if (selectedTool == "hand") {
+      if (handRef.current == null) return;
+      const c = canvasRef.current;
+      if (c == null) return;
+      const { clientX, clientY, scrollLeft, scrollTop } = handRef.current;
+      const deltaX = e.clientX - clientX;
+      const deltaY = e.clientY - clientY;
+      c.scrollTop = scrollTop - deltaY;
+      c.scrollLeft = scrollLeft - deltaX;
+      return;
+    }
     mousePos.current = { clientX: e.clientX, clientY: e.clientY };
     if (mousePath.current == null) return;
     if (!touch && !e.buttons) {
@@ -816,6 +840,10 @@ export default function Canvas({
       style={{
         overflow: isNavigator ? "hidden" : "scroll",
         touchAction: selectedTool == "pen" ? "none" : undefined,
+        userSelect:
+          selectedTool == "hand" || selectedTool == "select"
+            ? "none"
+            : undefined,
         ...style,
       }}
       onClick={(evt) => {
@@ -835,27 +863,47 @@ export default function Canvas({
       onScroll={() => {
         saveViewport();
       }}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      onCopy={(event: ClipboardEvent<HTMLDivElement>) => {
-        event.preventDefault();
-        const selectedElements = getSelectedElements({ elements, selection });
-        const encoded = encodeForCopy(selectedElements);
-        event.clipboardData.setData("application/x-cocalc-whiteboard", encoded);
-      }}
-      onCut={(event: ClipboardEvent<HTMLDivElement>) => {
-        event.preventDefault();
-        const selectedElements = getSelectedElements({ elements, selection });
-        const encoded = encodeForCopy(selectedElements);
-        event.clipboardData.setData("application/x-cocalc-whiteboard", encoded);
-        deleteElements(frame.actions, selectedElements);
-      }}
+      onMouseDown={!isNavigator ? onMouseDown : undefined}
+      onMouseMove={!isNavigator ? onMouseMove : undefined}
+      onMouseUp={!isNavigator ? onMouseUp : undefined}
+      onTouchStart={!isNavigator ? onTouchStart : undefined}
+      onTouchMove={!isNavigator ? onTouchMove : undefined}
+      onTouchEnd={!isNavigator ? onTouchEnd : undefined}
+      onCopy={
+        !isNavigator
+          ? (event: ClipboardEvent<HTMLDivElement>) => {
+              event.preventDefault();
+              const selectedElements = getSelectedElements({
+                elements,
+                selection,
+              });
+              const encoded = encodeForCopy(selectedElements);
+              event.clipboardData.setData(
+                "application/x-cocalc-whiteboard",
+                encoded
+              );
+            }
+          : undefined
+      }
+      onCut={
+        isNavigator || readOnly
+          ? undefined
+          : (event: ClipboardEvent<HTMLDivElement>) => {
+              event.preventDefault();
+              const selectedElements = getSelectedElements({
+                elements,
+                selection,
+              });
+              const encoded = encodeForCopy(selectedElements);
+              event.clipboardData.setData(
+                "application/x-cocalc-whiteboard",
+                encoded
+              );
+              deleteElements(frame.actions, selectedElements);
+            }
+      }
       onPaste={
-        readOnly
+        isNavigator || readOnly
           ? undefined
           : (event: ClipboardEvent<HTMLDivElement>) => {
               const encoded = event.clipboardData.getData(

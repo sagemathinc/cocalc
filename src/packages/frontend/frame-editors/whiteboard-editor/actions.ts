@@ -29,6 +29,8 @@ import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { debounce, cloneDeep, isEqual } from "lodash";
 import runCode from "./elements/code/run";
 import { lastMessageNumber } from "./elements/chat";
+import { copyToClipboard } from "./tools/clipboard";
+import { pasteElements } from "./tools/edit-bar";
 
 export interface State extends CodeEditorState {
   elements?: Elements;
@@ -437,6 +439,28 @@ export class Actions extends BaseActions<State> {
       },
     });
   }
+
+  copy(frameId: string) {
+    const node = this._get_frame_node(frameId);
+    if (node == null) return;
+    const selection = node.get("selection");
+    if (selection == null) return;
+    const elements: Element[] = [];
+    const X = this.store.get("elements");
+    if (X == null) return;
+    for (const id of selection) {
+      const element = X.get(id)?.toJS();
+      if (element != null) {
+        elements.push(element);
+      }
+    }
+    copyToClipboard(elements);
+  }
+
+  paste(frameId: string) {
+    const elements = elementsList(this.store.get("elements")) ?? [];
+    pasteElements(this, elements, frameId);
+  }
 }
 
 function getGroup(elements, group: string): string[] {
@@ -448,4 +472,13 @@ function getGroup(elements, group: string): string[] {
     }
   }
   return ids;
+}
+
+export function elementsList(
+  elements?: Map<string, any>
+): Element[] | undefined {
+  return elements
+    ?.valueSeq()
+    .filter((x) => x != null)
+    .toJS();
 }
