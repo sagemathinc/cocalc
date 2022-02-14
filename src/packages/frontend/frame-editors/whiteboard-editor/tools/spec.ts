@@ -21,7 +21,7 @@ interface ToolDescription {
 export const TOOLS: { [tool: string]: ToolDescription } = {
   select: { icon: "select-outlined", cursor: "default", tip: "Select" },
   text: {
-    icon: "text",
+    icon: "font",
     cursor: "text",
     tip: "Text",
     config: new Set(["fontFamily", "fontSize", "color"]),

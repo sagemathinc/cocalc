@@ -15,7 +15,7 @@ import Icon from "./icon";
 import Edge from "./edge";
 import Chat from "./chat";
 
-interface Props {
+export interface Props {
   element: Element;
   focused: boolean;
   canvasScale: number;

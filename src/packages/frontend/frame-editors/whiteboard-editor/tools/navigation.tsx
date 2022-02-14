@@ -164,34 +164,20 @@ function Map({ elements, width, height, resize, setResize }) {
   const xDiff = xMax - xMin;
   const yDiff = yMax - yMin;
   const scale = Math.min(width / xDiff, height / yDiff);
-  const xRange = xDiff * scale;
-  const yRange = yDiff * scale;
-  const paddingLeft = (width - xRange) / 2;
-  const paddingTop = (height - yRange) / 2;
-
   return (
     <div
       style={{
         width: `${width}px`,
         height: `${height}px`,
-        paddingTop,
-        paddingLeft,
-        background: "#eee",
       }}
       className="smc-vfill"
     >
       <Canvas
-        margin={0}
         isNavigator
+        previewMode={scale <= 0.1}
+        margin={10 / scale}
         elements={elements}
         scale={scale}
-        style={{
-          background: "white",
-          margin: "5px",
-          border: "1px solid #ccc",
-          borderRadius: "3px",
-          boxShadow: "1px 3px 5px #ccc",
-        }}
       />
       <Draggable
         position={{ x: 0, y: 0 }}

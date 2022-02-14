@@ -101,9 +101,6 @@ import { deleteElements } from "./tools/edit-bar";
 
 const penDPIFactor = 1; // I can't get this to work! :-(
 
-// Use a faster boring blue box preview, instead of the actual elements.
-const NAV_PREVIEW_MODE = false;
-
 interface Props {
   elements: Element[];
   font_size?: number;
@@ -116,6 +113,7 @@ interface Props {
   evtToDataRef?: MutableRefObject<Function | null>;
   isNavigator?: boolean; // is the navigator, so hide the grid, don't save window, don't scroll, don't move
   style?: CSSProperties;
+  previewMode?: boolean; // Use a blue box preview, instead of the actual elements.
 }
 
 export default function Canvas({
@@ -129,6 +127,7 @@ export default function Canvas({
   evtToDataRef,
   isNavigator,
   style,
+  previewMode,
 }: Props) {
   const frame = useFrameContext();
   const canvasScale = scale ?? fontSizeToZoom(font_size);
@@ -316,7 +315,7 @@ export default function Canvas({
     const { x, y, z, w, h } = getPosition(element);
     const t = transforms.dataToWindowNoScale(x, y, z);
 
-    if (isNavigator && !isNavRectangle && NAV_PREVIEW_MODE) {
+    if (previewMode && !isNavRectangle) {
       // This just shows blue boxes in the nav map, instead of actually
       // rendering something. It's probably faster and easier,
       // but really rendering something is much more usable.

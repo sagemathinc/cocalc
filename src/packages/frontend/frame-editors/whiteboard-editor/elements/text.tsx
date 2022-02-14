@@ -12,9 +12,17 @@ interface Props {
   element: Element;
   focused?: boolean;
   canvasScale: number;
+  readOnly?: boolean;
 }
 
-export default function Text({ element, focused, canvasScale }: Props) {
+const PADDING = "10px";
+
+export default function Text({
+  element,
+  focused,
+  canvasScale,
+  readOnly,
+}: Props) {
   const [value, setValue] = useState<string>(element.str ?? "");
   const [editFocus, setEditFocus] = useState<boolean>(false);
   const { actions } = useFrameContext();
@@ -23,6 +31,7 @@ export default function Text({ element, focused, canvasScale }: Props) {
     setValue(element.str ?? "");
   }, [element.str]);
   useEffect(() => {
+    if (readOnly) return;
     return () => {
       // TODO
       // unmounting, so save
@@ -31,9 +40,9 @@ export default function Text({ element, focused, canvasScale }: Props) {
     };
   }, []);
 
-  const style = getStyle(element);
+  const style = { ...getStyle(element), padding: PADDING };
 
-  if (!focused || element.locked) {
+  if (readOnly || !focused || element.locked) {
     return (
       <StaticMarkdown
         value={element.str?.trim() ? element.str : "Type text"}
@@ -44,7 +53,7 @@ export default function Text({ element, focused, canvasScale }: Props) {
 
   return (
     <div
-      style={{ ...style, height: "100%" }}
+      style={{ ...style, height: "100%", padding: PADDING }}
       className={editFocus ? "nodrag" : undefined}
     >
       <EditableMarkdown
