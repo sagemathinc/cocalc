@@ -162,8 +162,9 @@ export default function Canvas({
     ctx.scale(penDPIFactor, penDPIFactor);
   }, []);
 
-  // Whenever the scale changes, make sure the current center of the screen
-  // is preserved.
+  // Whenever the data <--> window transform params change,
+  // ensure the current center of the viewport is preserved,
+  // to avoid major disorientation for the user.
   const lastViewport = useRef<Rect | undefined>(undefined);
   useEffect(() => {
     if (isNavigator) return;
@@ -179,7 +180,13 @@ export default function Canvas({
       c.scrollTop += ty * canvasScale;
     }
     lastViewport.current = viewport;
-  }, [canvasScale, margin]);
+  }, [
+    canvasScale,
+    transforms.xMin,
+    transforms.xMax,
+    transforms.yMin,
+    transforms.yMax,
+  ]);
 
   // maintain state about the viewport so it can be displayed
   // in the navmap, and also restored later.
@@ -278,8 +285,9 @@ export default function Canvas({
       const viewport = getViewportData();
       if (viewport == null) return;
       const rect = rectSpan(elements);
+      const offset = 50 / canvasScale; // a little breathing room for the toolbar
       setCenterPositionData({
-        x: rect.x + rect.w / 2,
+        x: rect.x + rect.w / 2 - offset,
         y: rect.y + rect.h / 2,
       });
       const { scale } = fitRectToRect(rect, viewport);
