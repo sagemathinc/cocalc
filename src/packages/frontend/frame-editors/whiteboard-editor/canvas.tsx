@@ -271,7 +271,7 @@ export default function Canvas({
   // when fitToScreen is true, compute data then set font_size to
   // get zoom (plus offset) to everything is visible properly
   // on the page; also set fitToScreen back to false in
-  // frame tree data
+  // frame tree data.
   useEffect(() => {
     if (isNavigator || !frame.desc.get("fitToScreen")) return;
     try {
@@ -288,7 +288,7 @@ export default function Canvas({
         lastViewport.current = getViewportData();
         frame.actions.set_font_size(
           frame.id,
-          Math.round((font_size ?? ZOOM100) * scale)
+          Math.floor((font_size ?? ZOOM100) * scale)
         );
       }
     } finally {

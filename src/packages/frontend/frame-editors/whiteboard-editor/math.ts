@@ -93,18 +93,16 @@ export function rectSpan(rects: Rect[]): Rect {
   if (rects.length == 0) {
     return { x: 0, y: 0, w: DEFAULT_WIDTH, h: DEFAULT_HEIGHT };
   }
-  let { x, y, w, h } = rects[0];
-  for (const rect of rects.slice(1)) {
-    if (rect.x < x) x = rect.x;
-    if (rect.x + rect.w > x + w) {
-      w = rect.x + rect.w - x;
-    }
-    if (rect.y < y) y = rect.y;
-    if (rect.y + rect.h > y + h) {
-      h = rect.y + rect.h - y;
-    }
+  let { x: xMin, y: yMin, w, h } = rects[0];
+  let xMax = xMin + w,
+    yMax = yMin + h;
+  for (const { x, y, w, h } of rects.slice(1)) {
+    if (x < xMin) xMin = x;
+    if (y < yMin) yMin = y;
+    if (x + w > xMax) xMax = x + w;
+    if (y + h > yMax) yMax = y + h;
   }
-  return { x, y, w, h };
+  return { x: xMin, y: yMin, w: xMax - xMin, h: yMax - yMin };
 }
 
 export function pointRound({ x, y }: Point): Point {
