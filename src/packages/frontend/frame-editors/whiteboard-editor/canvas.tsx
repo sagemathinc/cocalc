@@ -100,6 +100,9 @@ import { useDebouncedCallback } from "use-debounce";
 
 const penDPIFactor = 1; // I can't get this to work! :-(
 
+// Use a faster boring blue box preview, instead of the actual elements.
+const NAV_PREVIEW_MODE = false;
+
 interface Props {
   elements: Element[];
   font_size?: number;
@@ -298,10 +301,10 @@ export default function Canvas({
     const { x, y, z, w, h } = getPosition(element);
     const t = transforms.dataToWindowNoScale(x, y, z);
 
-    // This just shows blue boxes in the nav map, instead of actually
-    // rendering something.
-    /*
-    if (isNavigator && !isNavRectangle) {
+    if (isNavigator && !isNavRectangle && NAV_PREVIEW_MODE) {
+      // This just shows blue boxes in the nav map, instead of actually
+      // rendering something. It's probably faster and easier,
+      // but really rendering something is much more usable.
       return (
         <Position key={id} x={t.x} y={t.y} z={0} w={w} h={h}>
           <div
@@ -317,7 +320,6 @@ export default function Canvas({
         </Position>
       );
     }
-    */
 
     const selected = selection?.has(id);
     const focused = !!(selected && selection?.size === 1);
