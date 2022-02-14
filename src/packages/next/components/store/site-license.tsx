@@ -145,7 +145,7 @@ function CreateLicense() {
           support requests
         </A>{" "}
         much higher. All licensed projects, with or without member hosting, have
-        network access, so they can connect to the network to clone git
+        network access, so they can connect to the network to clone Git
         repositories, download data files and install software.
         {requiresMemberhosting(form.getFieldValue("uptime")) && (
           <>
@@ -155,6 +155,11 @@ function CreateLicense() {
             </Text>
           </>
         )}
+        <br />
+        <Text italic type="secondary">
+          Please be aware: licenses of different member hosting service levels
+          cannot be combined!
+        </Text>
       </>
     );
   }
