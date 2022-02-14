@@ -176,10 +176,23 @@ function Map({ elements, width, height, resize, setResize }) {
         height: `${height}px`,
         paddingTop,
         paddingLeft,
+        background: "#eee",
       }}
       className="smc-vfill"
     >
-      <Canvas margin={500} isNavigator elements={elements} scale={scale} />
+      <Canvas
+        margin={0}
+        isNavigator
+        elements={elements}
+        scale={scale}
+        style={{
+          background: "white",
+          margin: "5px",
+          border: "1px solid #ccc",
+          borderRadius: "3px",
+          boxShadow: "1px 3px 5px #ccc",
+        }}
+      />
       <Draggable
         position={{ x: 0, y: 0 }}
         bounds={{

@@ -54,6 +54,7 @@ import {
   useMemo,
   useRef,
   useState,
+  CSSProperties,
 } from "react";
 import { Element, ElementType, Point, Rect } from "./types";
 import { Tool, TOOLS } from "./tools/spec";
@@ -114,6 +115,7 @@ interface Props {
   tool?: Tool;
   evtToDataRef?: MutableRefObject<Function | null>;
   isNavigator?: boolean; // is the navigator, so hide the grid, don't save window, don't scroll, don't move
+  style?: CSSProperties;
 }
 
 export default function Canvas({
@@ -126,6 +128,7 @@ export default function Canvas({
   selectedTool,
   evtToDataRef,
   isNavigator,
+  style,
 }: Props) {
   const frame = useFrameContext();
   const canvasScale = scale ?? fontSizeToZoom(font_size);
@@ -814,6 +817,7 @@ export default function Canvas({
       style={{
         overflow: isNavigator ? "hidden" : "scroll",
         touchAction: selectedTool == "pen" ? "none" : undefined,
+        ...style,
       }}
       onClick={(evt) => {
         mousePath.current = null;
