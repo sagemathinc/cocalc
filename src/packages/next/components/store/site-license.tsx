@@ -387,7 +387,7 @@ function CreateLicense() {
         <Form.Item
           label="GB shared RAM"
           name="ram"
-          initialValue={2}
+          initialValue={1}
           extra={
             showExplanations ? (
               <>
