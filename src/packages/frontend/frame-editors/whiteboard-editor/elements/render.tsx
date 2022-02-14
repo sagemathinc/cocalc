@@ -19,6 +19,7 @@ interface Props {
   element: Element;
   focused: boolean;
   canvasScale: number;
+  readOnly?: boolean;
 }
 
 export default function Render(props: Props) {

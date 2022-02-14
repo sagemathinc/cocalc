@@ -14,7 +14,7 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 import { Tool } from "./tools/spec";
-import { Element, Elements, Point } from "./types";
+import { Element, Elements, Point, Rect } from "./types";
 import { uuid } from "@cocalc/util/misc";
 import {
   DEFAULT_WIDTH,
@@ -269,17 +269,14 @@ export class Actions extends BaseActions<State> {
     this.set_frame_tree({ id, hideMap: !node.get("hideMap") });
   }
 
-  // TODO: serious concern -- this visibleWindow stuff is getting persisted
-  // to localStorage, but doesn't need to be, which is a waste.
-  saveVisibleWindow(
-    id: string,
-    visibleWindow: { xMin: number; yMin: number; xMax: number; yMax: number }
-  ): void {
-    this.set_frame_tree({ id, visibleWindow });
+  // The viewport = exactly the part of the canvas that is VISIBLE to the user
+  // in data coordinates, of course, like everything here.
+  saveViewport(id: string, viewport: Rect): void {
+    this.set_frame_tree({ id, viewport });
   }
 
-  setVisibleWindowCenter(id: string, center: { x: number; y: number }) {
-    this.set_frame_tree({ id, visibleWindowCenter: center });
+  setViewportCenter(id: string, center: { x: number; y: number }) {
+    this.set_frame_tree({ id, viewportCenter: center });
   }
 
   saveCenter(id: string, center: { x: number; y: number }) {

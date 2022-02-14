@@ -69,6 +69,7 @@ import { useFrameContext } from "./hooks";
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import Grid from "./elements/grid";
 import {
+  centerOfRect,
   compressPath,
   fontSizeToZoom,
   ZOOM100,
@@ -160,35 +161,27 @@ export default function Canvas({
 
   // Whenever the scale changes, make sure the current center of the screen
   // is preserved.
-  const [lastScale, setLastScale] = useState<number>(canvasScale);
+  const lastViewport = useRef<Rect | undefined>(undefined);
   useEffect(() => {
     if (isNavigator) return;
-    if (canvasScale == lastScale) return;
-    const ctr = getCenterPositionWindow();
-    if (ctr == null) return;
-    const { x, y } = ctr;
-    const new_x = (lastScale / canvasScale) * x;
-    const new_y = (lastScale / canvasScale) * y;
-    const delta_x = x - new_x;
-    const delta_y = y - new_y;
-    const c = canvasRef.current;
-    if (c == null) return;
-    c.scrollLeft += delta_x;
-    c.scrollTop += delta_y;
-    setLastScale(canvasScale);
-  }, [canvasScale]);
-
-  useEffect(() => {
-    const { current } = canvasRef;
-    if (current != null) {
-      const scaledMargin = (margin ?? 0) * canvasScale;
-      current.scrollTop = scaledMargin;
-      current.scrollLeft = scaledMargin;
+    const viewport = getViewportData();
+    if (lastViewport.current != null && viewport != null) {
+      const last = centerOfRect(lastViewport.current);
+      const cur = centerOfRect(viewport);
+      const tx = last.x - cur.x;
+      const ty = last.y - cur.y;
+      const c = canvasRef.current;
+      if (c == null) return;
+      c.scrollLeft += tx * canvasScale;
+      c.scrollTop += ty * canvasScale;
     }
-  }, []);
+    lastViewport.current = viewport;
+  }, [canvasScale, margin]);
 
+  // maintain state about the viewport so it can be displayed
+  // in the navmap, and also restored later.
   useEffect(() => {
-    updateVisibleWindow();
+    updateViewport();
   }, [font_size, scale, transforms.width, transforms.height]);
 
   const frame = useFrameContext();
@@ -197,10 +190,10 @@ export default function Canvas({
   const restoring = useRef<boolean>(true);
   useEffect(() => {
     if (isNavigator || restoring.current) return;
-    const center = frame.desc.get("visibleWindowCenter")?.toJS();
+    const center = frame.desc.get("viewportCenter")?.toJS();
     if (center == null) return;
     setCenterPositionData(center);
-  }, [frame.desc.get("visibleWindowCenter")]);
+  }, [frame.desc.get("viewportCenter")]);
 
   useEffect(() => {
     if (isNavigator) return;
@@ -272,24 +265,31 @@ export default function Canvas({
     c.scrollTop = scrollTopGoal;
   }
 
-  // when fitToScreen is true, compute data then set font_size to get zoom (plus offset) to
-  // everything is visible properly on the page; also set fitToScreen back to false in
+  // when fitToScreen is true, compute data then set font_size to
+  // get zoom (plus offset) to everything is visible properly
+  // on the page; also set fitToScreen back to false in
   // frame tree data
   useEffect(() => {
-    if (frame.desc.get("fitToScreen") && !isNavigator) {
-      try {
-        const viewport = getViewportData();
-        if (viewport == null) return;
-        const rect = rectSpan(elements);
-        const { scale } = fitRectToRect(rect, viewport);
-        frame.actions.set_font_size(frame.id, (font_size ?? ZOOM100) * scale);
-        setCenterPositionData({
-          x: rect.x + rect.w / 2,
-          y: rect.y + rect.h / 2,
-        });
-      } finally {
-        frame.actions.fitToScreen(frame.id, false);
+    if (isNavigator || !frame.desc.get("fitToScreen")) return;
+    try {
+      const viewport = getViewportData();
+      if (viewport == null) return;
+      const rect = rectSpan(elements);
+      setCenterPositionData({
+        x: rect.x + rect.w / 2,
+        y: rect.y + rect.h / 2,
+      });
+      const { scale } = fitRectToRect(rect, viewport);
+      if (scale != 1) {
+        // ensure lastViewport is up to date before zooming.
+        lastViewport.current = getViewportData();
+        frame.actions.set_font_size(
+          frame.id,
+          Math.round((font_size ?? ZOOM100) * scale)
+        );
       }
+    } finally {
+      frame.actions.fitToScreen(frame.id, false);
     }
   }, [frame.desc.get("fitToScreen")]);
 
@@ -326,6 +326,7 @@ export default function Canvas({
         element={element}
         focused={focused}
         canvasScale={canvasScale}
+        readOnly={readOnly || isNavigator}
       />
     );
     if (!isNavRectangle && (element.style || selected || isNavigator)) {
@@ -450,9 +451,8 @@ export default function Canvas({
 
   if (isNavigator) {
     // The navigator rectangle
-    const visible = frame.desc.get("visibleWindow")?.toJS();
+    const visible = frame.desc.get("viewport")?.toJS();
     if (visible) {
-      const { xMin, yMin, xMax, yMax } = visible;
       v.unshift(
         <Draggable
           key="nav"
@@ -467,14 +467,11 @@ export default function Canvas({
           onStop={(data: MouseEvent) => {
             if (!navDrag.current) return;
             const { x0, y0 } = navDrag.current;
-            const visible = frame.desc.get("visibleWindow")?.toJS();
+            const visible = frame.desc.get("viewport")?.toJS();
             if (visible == null) return;
-            const ctr = {
-              x: (visible.xMax + visible.xMin) / 2,
-              y: (visible.yMax + visible.yMin) / 2,
-            };
+            const ctr = centerOfRect(visible);
             const { x, y } = data;
-            frame.actions.setVisibleWindowCenter(frame.id, {
+            frame.actions.setViewportCenter(frame.id, {
               x: ctr.x + (x - x0) / canvasScale,
               y: ctr.y + (y - y0) / canvasScale,
             });
@@ -484,10 +481,7 @@ export default function Canvas({
             {processElement(
               {
                 id: "nav-frame",
-                x: xMin,
-                y: yMin,
-                w: xMax - xMin,
-                h: yMax - yMin,
+                ...visible,
                 z: MAX_ELEMENTS + 1,
                 type: "frame",
                 data: { color: "#888", radius: 0.5 },
@@ -615,25 +609,17 @@ export default function Canvas({
     }
   }
 
-  const updateVisibleWindow = isNavigator
+  const updateViewport = isNavigator
     ? () => {}
     : useMemo(() => {
         return throttle(() => {
-          const elt = canvasRef.current;
-          if (!elt) return;
-          // upper left corner of visible window
-          const { scrollLeft, scrollTop } = elt;
-          // width and height of visible window
-          const { width, height } = elt.getBoundingClientRect();
-          const { x: xMin, y: yMin } = transforms.windowToDataNoScale(
-            scrollLeft / canvasScale,
-            scrollTop / canvasScale
-          );
-          const xMax = xMin + width / canvasScale;
-          const yMax = yMin + height / canvasScale;
-          frame.actions.saveVisibleWindow(frame.id, { xMin, yMin, xMax, yMax });
+          const viewport = getViewportData();
+          if (viewport) {
+            frame.actions.saveViewport(frame.id, viewport);
+            lastViewport.current = viewport;
+          }
         }, 50);
-      }, [transforms, canvasScale]);
+      }, [transforms, canvasScale, margin]);
 
   const onMouseDown = (e) => {
     if (selectedTool == "select" || selectedTool == "frame") {
@@ -816,7 +802,7 @@ export default function Canvas({
             navDrag.current = null;
             return;
           }
-          frame.actions.setVisibleWindowCenter(frame.id, evtToData(e));
+          frame.actions.setViewportCenter(frame.id, evtToData(e));
           return;
         }
         if (!readOnly) {
@@ -824,7 +810,7 @@ export default function Canvas({
         }
       }}
       onScroll={() => {
-        updateVisibleWindow();
+        updateViewport();
         saveCenterPosition();
       }}
       onMouseDown={onMouseDown}

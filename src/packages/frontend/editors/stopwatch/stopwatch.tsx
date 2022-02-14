@@ -44,6 +44,7 @@ interface StopwatchProps {
   total?: number; // total time accumulated before entering current state
   style?: CSSProperties;
   timeStyle?: CSSProperties;
+  readOnly?: boolean; // can't change, and won't display something when timer goes off!
 }
 
 export default function Stopwatch(props: StopwatchProps) {
@@ -223,7 +224,7 @@ export default function Stopwatch(props: StopwatchProps) {
               : undefined),
           }}
         />
-        {props.countdown && amount == 0 && (
+        {props.countdown && amount == 0 && !props.readOnly && (
           <Modal
             title={
               <>
@@ -378,7 +379,7 @@ export default function Stopwatch(props: StopwatchProps) {
             {renderLabel()}
           </Col>
         </Row>
-        {!props.noButtons && (
+        {!props.noButtons && !props.readOnly && (
           <Row style={{ marginTop: "5px" }}>
             <Col md={24}>{renderButtons()}</Col>
           </Row>
@@ -391,7 +392,7 @@ export default function Stopwatch(props: StopwatchProps) {
     return (
       <div style={{ display: "flex" }}>
         {renderTime()}
-        {!props.noButtons && (
+        {!props.noButtons && !props.readOnly && (
           <div style={{ marginTop: "3px", marginLeft: "5px" }}>
             {renderButtons()}
           </div>

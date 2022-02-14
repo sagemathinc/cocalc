@@ -17,13 +17,14 @@ import type { Element } from "../types";
 interface Props {
   element: Element;
   focused?: boolean;
+  readOnly?: boolean;
 }
 
 function getTime(): number {
   return webapp_client.server_time() - 0;
 }
 
-export default function Stopwatch({ element, focused }: Props) {
+export default function Stopwatch({ element, focused, readOnly }: Props) {
   const { actions } = useFrameContext();
   const eltRef = useRef<Element>(element);
   eltRef.current = element;
@@ -37,6 +38,7 @@ export default function Stopwatch({ element, focused }: Props) {
   return (
     <>
       <StopwatchEditor
+        readOnly={readOnly}
         noLabel
         noDelete
         compact
