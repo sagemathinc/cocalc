@@ -25,7 +25,7 @@ import expect from "expect";
 const { quota } = require("@cocalc/util/upgrades/quota");
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { LicenseIdleTimeoutsKeysOrdered } from "@cocalc/util/consts/site-license";
-import { SiteLicense, SiteLicenses } from "../types/site-licenses";
+import { SiteLicenses } from "../types/site-licenses";
 
 describe("default quota", () => {
   it("basics are fine", () => {
