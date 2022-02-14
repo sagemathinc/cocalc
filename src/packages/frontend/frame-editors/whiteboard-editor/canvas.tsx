@@ -130,7 +130,8 @@ export default function Canvas({
   const frame = useFrameContext();
   const canvasScale = scale ?? fontSizeToZoom(font_size);
   // We have to scale the margin as we zoom in and out,
-  // since otherwise it will look way too small.
+  // since otherwise it will look way too small. We don't
+  // touch margin though if it is explicitly set.
   margin = margin ?? 1500 / canvasScale;
 
   const gridDivRef = useRef<any>(null);
@@ -195,7 +196,7 @@ export default function Canvas({
   useEffect(() => {
     if (isNavigator) return;
     const viewport = frame.desc.get("viewport")?.toJS();
-    if (rectEqual(viewport, lastViewport.current)) {
+    if (viewport == null || rectEqual(viewport, lastViewport.current)) {
       return;
     }
     // request to change viewport.
@@ -631,7 +632,7 @@ export default function Canvas({
             lastViewport.current = viewport;
             frame.actions.saveViewport(frame.id, viewport);
           }
-        }, 100);
+        }, 50);
       }, [
         canvasScale,
         transforms.xMin,
