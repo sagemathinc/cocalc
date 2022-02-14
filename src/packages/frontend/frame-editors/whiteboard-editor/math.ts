@@ -116,6 +116,15 @@ export function pointEqual(p1: Point, p2: Point, eps?: number): boolean {
   return p1.x == p2.x && p1.y == p2.y;
 }
 
+export function rectEqual(rect1?: Rect, rect2?: Rect): boolean {
+  return (
+    rect1?.x === rect2?.x &&
+    rect1?.y === rect2?.y &&
+    rect1?.w === rect2?.w &&
+    rect1?.h === rect2?.h
+  );
+}
+
 export function compressPath(path: Point[]): number[] {
   const v: number[] = [];
   for (const p of path) {

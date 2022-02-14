@@ -275,8 +275,14 @@ export class Actions extends BaseActions<State> {
     this.set_frame_tree({ id, viewport });
   }
 
-  setViewportCenter(id: string, center: { x: number; y: number }) {
-    this.set_frame_tree({ id, viewportCenter: center });
+  setViewportCenter(id: string, center: Point) {
+    // translates whatever the last saved viewport is to have the given center.
+    const node = this._get_frame_node(id);
+    if (node == null) return;
+    const viewport = node.get("viewport")?.toJS();
+    if (viewport == null) return;
+    centerRectsAt([viewport], center);
+    this.saveViewport(id, viewport);
   }
 
   saveCenter(id: string, center: { x: number; y: number }) {

@@ -80,6 +80,7 @@ import {
   pointEqual,
   pointRound,
   pointsToRect,
+  rectEqual,
   rectSpan,
   MAX_ELEMENTS,
 } from "./math";
@@ -96,7 +97,6 @@ import { timerParams } from "./tools/timer";
 import { cmp } from "@cocalc/util/misc";
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { deleteElements } from "./tools/edit-bar";
-import { useDebouncedCallback } from "use-debounce";
 
 const penDPIFactor = 1; // I can't get this to work! :-(
 
@@ -127,6 +127,7 @@ export default function Canvas({
   evtToDataRef,
   isNavigator,
 }: Props) {
+  const frame = useFrameContext();
   const canvasScale = scale ?? fontSizeToZoom(font_size);
   // We have to scale the margin as we zoom in and out,
   // since otherwise it will look way too small.
@@ -188,10 +189,23 @@ export default function Canvas({
     transforms.yMax,
   ]);
 
-  // maintain state about the viewport so it can be displayed
+  // If the viewport changes, but not because we just set it,
+  // then we move our current center displayed viewport to match that.
+  // This happens, e.g., when the navmap is clicked on or dragged.
+  useEffect(() => {
+    if (isNavigator) return;
+    const viewport = frame.desc.get("viewport")?.toJS();
+    if (rectEqual(viewport, lastViewport.current)) {
+      return;
+    }
+    // request to change viewport.
+    setCenterPositionData(centerOfRect(viewport));
+  }, [frame.desc.get("viewport")]);
+
+  // Save state about the viewport so it can be displayed
   // in the navmap, and also restored later.
   useEffect(() => {
-    updateViewport();
+    saveViewport();
   }, [
     canvasScale,
     transforms.xMin,
@@ -200,11 +214,10 @@ export default function Canvas({
     transforms.yMax,
   ]);
 
-  const frame = useFrameContext();
-
-  // handle setting a center position for the visible window
-  const restoring = useRef<boolean>(true);
-  // restore viewport center on first mount
+  // Handle setting a center position for the visible window
+  // by restoring last known viewport center on first mount.
+  // The center is nice since it is meaningful even if browser
+  // viewport has changed (e.g., font size, window size, etc.)
   useEffect(() => {
     if (isNavigator) return;
     const viewport = frame.desc.get("viewport")?.toJS();
@@ -213,26 +226,7 @@ export default function Canvas({
     if (center != null) {
       setCenterPositionData(center);
     }
-    restoring.current = false;
   }, []);
-
-  useEffect(() => {
-    if (isNavigator || restoring.current) return;
-    const center = frame.desc.get("viewportCenter")?.toJS();
-    if (center == null) return;
-    setCenterPositionData(center);
-  }, [frame.desc.get("viewportCenter")]);
-
-  // save center position, so can be restored later.
-  const saveCenterPosition = useDebouncedCallback(() => {
-    if (isNavigator || restoring.current) return;
-    const c = getCenterPositionWindow();
-    if (c == null) return;
-    const center = windowToData(c);
-    if (center != null) {
-      frame.actions.saveCenter(frame.id, center);
-    }
-  }, 200);
 
   function getPenParams() {
     return penParams(frame.desc.get("penId") ?? 0);
@@ -477,19 +471,19 @@ export default function Canvas({
           key="nav"
           position={{ x: 0, y: 0 }}
           scale={canvasScale}
-          onStart={(data: MouseEvent) => {
+          onStart={(evt: MouseEvent) => {
             // dragging also causes a click and
             // the point of this is to prevent the click
             // centering the rectangle. Also, we need the delta.
-            navDrag.current = { x0: data.clientX, y0: data.clientY };
+            navDrag.current = { x0: evt.clientX, y0: evt.clientY };
           }}
-          onStop={(data: MouseEvent) => {
+          onStop={(evt: MouseEvent) => {
             if (!navDrag.current) return;
             const { x0, y0 } = navDrag.current;
             const visible = frame.desc.get("viewport")?.toJS();
             if (visible == null) return;
             const ctr = centerOfRect(visible);
-            const { x, y } = data;
+            const { x, y } = evt;
             frame.actions.setViewportCenter(frame.id, {
               x: ctr.x + (x - x0) / canvasScale,
               y: ctr.y + (y - y0) / canvasScale,
@@ -628,16 +622,16 @@ export default function Canvas({
     }
   }
 
-  const updateViewport = isNavigator
+  const saveViewport = isNavigator
     ? () => {}
     : useMemo(() => {
         return throttle(() => {
           const viewport = getViewportData();
           if (viewport) {
-            frame.actions.saveViewport(frame.id, viewport);
             lastViewport.current = viewport;
+            frame.actions.saveViewport(frame.id, viewport);
           }
-        }, 50);
+        }, 100);
       }, [
         canvasScale,
         transforms.xMin,
@@ -820,23 +814,22 @@ export default function Canvas({
         overflow: isNavigator ? "hidden" : "scroll",
         touchAction: selectedTool == "pen" ? "none" : undefined,
       }}
-      onClick={(e) => {
+      onClick={(evt) => {
         mousePath.current = null;
         if (isNavigator) {
           if (navDrag.current) {
             navDrag.current = null;
             return;
           }
-          frame.actions.setViewportCenter(frame.id, evtToData(e));
+          frame.actions.setViewportCenter(frame.id, evtToData(evt));
           return;
         }
         if (!readOnly) {
-          handleClick(e);
+          handleClick(evt);
         }
       }}
       onScroll={() => {
-        updateViewport();
-        saveCenterPosition();
+        saveViewport();
       }}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
