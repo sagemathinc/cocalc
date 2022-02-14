@@ -110,6 +110,7 @@ export default function MultiMarkdownInput({
       >
         <div
           style={{
+            fontSize: "14px",
             position: "absolute",
             right: 1,
             top: 1,
