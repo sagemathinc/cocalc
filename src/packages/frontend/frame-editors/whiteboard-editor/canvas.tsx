@@ -192,27 +192,36 @@ export default function Canvas({
   // in the navmap, and also restored later.
   useEffect(() => {
     updateViewport();
-  }, [font_size, scale, transforms.width, transforms.height]);
+  }, [
+    canvasScale,
+    transforms.xMin,
+    transforms.xMax,
+    transforms.yMin,
+    transforms.yMax,
+  ]);
 
   const frame = useFrameContext();
 
   // handle setting a center position for the visible window
   const restoring = useRef<boolean>(true);
+  // restore viewport center on first mount
+  useEffect(() => {
+    if (isNavigator) return;
+    const viewport = frame.desc.get("viewport")?.toJS();
+    if (viewport == null) return;
+    const center = centerOfRect(viewport);
+    if (center != null) {
+      setCenterPositionData(center);
+    }
+    restoring.current = false;
+  }, []);
+
   useEffect(() => {
     if (isNavigator || restoring.current) return;
     const center = frame.desc.get("viewportCenter")?.toJS();
     if (center == null) return;
     setCenterPositionData(center);
   }, [frame.desc.get("viewportCenter")]);
-
-  useEffect(() => {
-    if (isNavigator) return;
-    const center = frame.desc.get("center")?.toJS();
-    if (center != null) {
-      setCenterPositionData(center);
-    }
-    restoring.current = false;
-  }, []);
 
   // save center position, so can be restored later.
   const saveCenterPosition = useDebouncedCallback(() => {
@@ -629,7 +638,13 @@ export default function Canvas({
             lastViewport.current = viewport;
           }
         }, 50);
-      }, [transforms, canvasScale, margin]);
+      }, [
+        canvasScale,
+        transforms.xMin,
+        transforms.xMax,
+        transforms.yMin,
+        transforms.yMax,
+      ]);
 
   const onMouseDown = (e) => {
     if (selectedTool == "select" || selectedTool == "frame") {
