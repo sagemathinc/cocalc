@@ -1,16 +1,17 @@
 /*
 Edit with either plain text input **or** WYSIWYG slate-based input.
 
-Work in progress!s
+Work in progress!
 */
 
-import { Checkbox } from "antd";
+import { Popover } from "antd";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
 import { MarkdownInput } from "./component";
 import { CSSProperties, ReactNode, useRef, useState } from "react";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { FOCUSED_STYLE, BLURED_STYLE } from "./component";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 export type Mode = "markdown" | "editor";
 
@@ -37,6 +38,9 @@ interface Props {
   saveDebounceMs?: number;
   onBlur?: () => void;
   onFocus?: () => void;
+  minimal?: boolean;
+  editBarStyle?: CSSProperties;
+  markdownToggleStyle?: CSSProperties;
 }
 
 export default function MultiMarkdownInput({
@@ -60,6 +64,9 @@ export default function MultiMarkdownInput({
   hideHelp,
   onBlur,
   onFocus,
+  minimal,
+  editBarStyle,
+  markdownToggleStyle,
 }: Props) {
   const { project_id, path } = useFrameContext();
   const [mode, setMode0] = useState<Mode>(
@@ -75,12 +82,16 @@ export default function MultiMarkdownInput({
   return (
     <div
       style={{
-        background: "white",
-        color: "black",
         position: "relative",
         width: "100%",
         height: "100%",
-        ...(focused ? FOCUSED_STYLE : BLURED_STYLE),
+        ...(minimal
+          ? undefined
+          : {
+              background: "white",
+              color: "black",
+              ...(focused ? FOCUSED_STYLE : BLURED_STYLE),
+            }),
       }}
     >
       <div
@@ -97,21 +108,35 @@ export default function MultiMarkdownInput({
           setTimeout(() => (ignoreBlur.current = false), 100);
         }}
       >
-        <Checkbox
+        <div
           style={{
-            ...(mode == "editor" || !value
-              ? { position: "absolute", right: 1, top: 1, zIndex: 100 }
-              : { float: "right" }),
+            position: "absolute",
+            right: 1,
+            top: 1,
+            zIndex: 100,
+            padding: "0px 3px",
+            boxShadow: "#ccc 1px 3px 5px",
             fontWeight: 250,
             background: "white",
+            ...markdownToggleStyle,
+            cursor: "pointer",
+            color: mode == "markdown" ? "blue" : "black",
           }}
-          checked={mode == "markdown"}
-          onClick={(e: any) => {
-            setMode(e.target.checked ? "markdown" : "editor");
+          onClick={() => {
+            setMode(mode == "editor" ? "markdown" : "editor");
           }}
         >
-          Markdown
-        </Checkbox>
+          <Popover
+            title="Markdown"
+            content={
+              mode == "editor"
+                ? "This is editable text with support for LaTeX.  Toggle to edit markdown source."
+                : "Edit markdown here with support for LaTeX. Toggle to edit text directly."
+            }
+          >
+            <Icon name="markdown" />
+          </Popover>
+        </div>
       </div>
       {mode == "markdown" && (
         <MarkdownInput
@@ -160,10 +185,20 @@ export default function MultiMarkdownInput({
             is_current={true}
             hidePath
             disableWindowing
-            pageStyle={{
-              padding: "5px 15px",
-              height: height ?? "100%",
-            }}
+            style={
+              minimal
+                ? { background: undefined, backgroundColor: undefined }
+                : undefined
+            }
+            pageStyle={
+              minimal
+                ? { background: undefined, padding: 0 }
+                : {
+                    padding: "5px 15px",
+                    height: height ?? "100%",
+                  }
+            }
+            editBarStyle={editBarStyle}
             saveDebounceMs={saveDebounceMs ?? 0}
             actions={{
               set_value: (value) => {

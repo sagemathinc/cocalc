@@ -37,6 +37,7 @@ export default function Note({
         focused={focused}
         canvasScale={canvasScale}
         readOnly={readOnly}
+        noteMode
       />
     </div>
   );

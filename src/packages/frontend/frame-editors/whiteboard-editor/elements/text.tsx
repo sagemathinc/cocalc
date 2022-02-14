@@ -5,14 +5,16 @@ import { DEFAULT_FONT_SIZE } from "../tools/defaults";
 
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 // This import ensures that math rendering is loaded.
-import "@cocalc/frontend/editors/slate/elements/math/math-widget";
-import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
+// import "@cocalc/frontend/editors/slate/elements/math/math-widget";
+// import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
+import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 
 interface Props {
   element: Element;
   focused?: boolean;
   canvasScale: number;
   readOnly?: boolean;
+  noteMode?: boolean; // used for sticky note
 }
 
 const PADDING = "10px";
@@ -20,8 +22,9 @@ const PADDING = "10px";
 export default function Text({
   element,
   focused,
-  canvasScale,
   readOnly,
+  canvasScale,
+  noteMode,
 }: Props) {
   const [value, setValue] = useState<string>(element.str ?? "");
   const [editFocus, setEditFocus] = useState<boolean>(false);
@@ -56,19 +59,16 @@ export default function Text({
       style={{ ...style, height: "100%", padding: PADDING }}
       className={editFocus ? "nodrag" : undefined}
     >
-      <EditableMarkdown
+      <MultiMarkdownInput
+        minimal
+        hideHelp
         onFocus={() => setEditFocus(true)}
         onBlur={() => setEditFocus(false)}
         value={value}
-        is_current={true}
-        hidePath
-        hideSearch
-        disableWindowing
-        font_size={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
-        style={{ background: undefined, backgroundColor: undefined }}
-        pageStyle={{ background: undefined, padding: 0 }}
+        fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
+        onChange={(str) => actions.setElement({ id: element.id, str })}
         editBarStyle={{
-          top: `${-35 - 5 / canvasScale}px`,
+          top: noteMode ? "-32px" : `${-55 - 5 / canvasScale}px`,
           left: "5px",
           position: "absolute",
           border: "1px solid #ccc",
@@ -77,16 +77,13 @@ export default function Text({
           margin: "5px",
           minWidth: "500px",
           background: "white",
-          transform: `scale(${1 / canvasScale})`,
+          transform: noteMode
+            ? `scale(${Math.min(0.8, 1 / canvasScale)})`
+            : `scale(${1 / canvasScale})`,
           transformOrigin: "bottom left",
           fontFamily: "sans-serif",
-          fontSize: "14px",
         }}
-        actions={{
-          set_value: (str) => {
-            actions.setElement({ id: element.id, str });
-          },
-        }}
+        markdownToggleStyle={noteMode ? { right: "-23px" } : undefined}
       />
     </div>
   );
