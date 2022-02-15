@@ -8,11 +8,17 @@ import { join } from "path";
 interface Props {
   evtToDataRef: RefObject<Function | null>;
   children: ReactNode;
+  readOnly?: boolean; // this just completely disables it.
 }
 
-export default function Upload({ children, evtToDataRef }: Props) {
+export default function Upload({ children, evtToDataRef, readOnly }: Props) {
   const { actions, path, project_id } = useFrameContext();
   const dropzoneRef = useRef<Dropzone>(null);
+
+  if (readOnly) {
+    return children;
+  }
+
   const dest_path = aux_file(path, AUX_FILE_EXT);
 
   const updloadEventHandlers = {

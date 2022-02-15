@@ -31,6 +31,7 @@ export default function Whiteboard({
   const useEditor = useEditorRedux<State>({ project_id, path });
 
   const is_loaded = useEditor("is_loaded");
+  const readOnly = useEditor("read_only");
   const elements = elementsList(useEditor("elements"));
   const selectedTool = desc.get("selectedTool") ?? "select";
   const evtToDataRef = useRef<Function | null>(null);
@@ -54,7 +55,10 @@ export default function Whiteboard({
     <div className="smc-vfill" style={{ position: "relative" }}>
       {isFocused && (
         <>
-          <ToolPanel selectedTool={desc.get("selectedTool") ?? "select"} />
+          <ToolPanel
+            selectedTool={desc.get("selectedTool") ?? "select"}
+            readOnly={readOnly}
+          />
           {!desc.get("selectedToolHidePanel") && (
             <>
               {desc.get("selectedTool") == "pen" && <PenPanel />}
@@ -67,7 +71,7 @@ export default function Whiteboard({
           <NavigationPanel fontSize={font_size} elements={elements} />
         </>
       )}
-      <Upload evtToDataRef={evtToDataRef}>
+      <Upload evtToDataRef={evtToDataRef} readOnly={readOnly}>
         <Canvas
           elements={elements}
           font_size={font_size}
@@ -78,6 +82,7 @@ export default function Whiteboard({
           }
           selectedTool={selectedTool}
           evtToDataRef={evtToDataRef}
+          readOnly={readOnly}
         />
       </Upload>
     </div>

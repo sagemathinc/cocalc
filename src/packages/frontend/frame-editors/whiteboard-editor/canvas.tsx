@@ -232,7 +232,12 @@ export default function Canvas({
   useEffect(() => {
     if (isNavigator) return;
     const viewport = frame.desc.get("viewport")?.toJS();
-    if (viewport == null) return;
+    if (viewport == null) {
+      // document was never opened before in this browser,
+      // so fit to screen.
+      frame.actions.fitToScreen(frame.id, true);
+      return;
+    }
     const center = centerOfRect(viewport);
     if (center != null) {
       setCenterPositionData(center);
