@@ -331,10 +331,6 @@ function prepareSiteLicenses(site_licenses?: SiteLicenses): SiteLicenses {
     if (!isSiteLicenseQuotaSetting(sl)) continue;
     const slq = sl.quota;
     const validIdleTimeouts = Object.keys(LicenseIdleTimeouts);
-    // preempts are always short!
-    if (slq.member === false) {
-      slq.idle_timeout = "short";
-    }
     if (slq.idle_timeout != null) {
       // reset idle_timeouts we don't know
       if (!validIdleTimeouts.includes(slq.idle_timeout)) {
