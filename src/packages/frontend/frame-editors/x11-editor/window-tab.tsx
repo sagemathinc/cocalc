@@ -22,7 +22,11 @@ interface Props {
 }
 
 function isSame(prev, next) {
-  return prev.info.equals(next.info) && prev.is_current == next.is_current;
+  return (
+    prev.info.equals(next.info) &&
+    prev.is_current === next.is_current &&
+    prev.id === next.id
+  );
 }
 
 export const WindowTab: React.FC<Props> = React.memo((props: Props) => {

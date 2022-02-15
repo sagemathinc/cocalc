@@ -42,14 +42,21 @@ interface Props {
 
 function isSame(prev, next): boolean {
   // another other change causes re-render (e.g., of tab titles).
-  return !is_different(prev, next, [
-    "id",
-    "windows",
-    "is_current",
-    "x11_is_idle",
-    "disabled",
-    "config_unknown",
-  ]);
+  return (
+    !is_different(prev, next, [
+      "id",
+      "desc",
+      "windows",
+      "is_current",
+      "resize",
+      "reload",
+    ]) &&
+    prev.editor_settings.get("physical_keyboard") ==
+      next.editor_settings.get("physical_keyboard") &&
+    prev.editor_settings.get("keyboard_variant") ==
+      next.editor_settings.get("keyboard_variant") &&
+    prev.desc.get("font_size") == next.desc.get("font_size")
+  );
 }
 
 export const X11: React.FC<Props> = React.memo((props: Props) => {

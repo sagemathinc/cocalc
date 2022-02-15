@@ -32,7 +32,7 @@ interface Props {
 }
 
 function isSame(prev, next) {
-  return !is_different(prev, next, ["x11_apps"]);
+  return true;
 }
 
 export const Launcher: React.FC<Props> = React.memo((props: Props) => {
@@ -43,13 +43,11 @@ export const Launcher: React.FC<Props> = React.memo((props: Props) => {
     "x11_apps"
   );
 
-  const launch = debounce(_launch, 500, { leading: true, trailing: false });
+  const launch = debounce(_launch, 1000, { leading: true, trailing: false });
 
   function _launch(app: string): void {
     const desc = APPS[app];
-    if (desc == null) {
-      return;
-    }
+    if (desc == null) return;
     actions.launch(desc.command ? desc.command : app, desc.args);
   }
 
@@ -79,7 +77,7 @@ export const Launcher: React.FC<Props> = React.memo((props: Props) => {
     // i.e. wait until we know which apps exist …
     const available = x11_apps;
     if (available == null) return [];
-    // hide those apps, where certainly know they're not available
+    // hide those apps, where we know for certain they're not available
     return APP_KEYS.filter((app) => {
       const avail = available.get(app);
       return avail !== false;
