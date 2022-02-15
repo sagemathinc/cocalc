@@ -71,7 +71,7 @@ export default function TextToolPanel() {
         display: "flex",
         flexDirection: "column",
         left: "55px",
-        width: "63px",
+        width: "75px",
         paddingBottom: "10px",
       }}
     >
@@ -80,7 +80,9 @@ export default function TextToolPanel() {
           <Icon style={{ color: "blue" }} name="note" />
         </Button>
       </Tooltip>
-      <div style={{ maxHeight: "40vh", overflowY: "scroll" }}>
+      <div
+        style={{ maxHeight: "40vh", overflowY: "scroll", overflowX: "hidden" }}
+      >
         {notePresets}
       </div>
       <ResetButton

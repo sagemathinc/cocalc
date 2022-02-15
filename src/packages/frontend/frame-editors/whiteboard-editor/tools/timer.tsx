@@ -19,7 +19,10 @@ import { debounce } from "lodash";
 import { DEFAULT_FONT_SIZE, minFontSize, maxFontSize } from "./defaults";
 import { ResetButton } from "./common";
 import { SelectFontFamily } from "./edit-bar";
-import { TimeAmount, TimerIcon } from "@cocalc/frontend/editors/stopwatch/stopwatch";
+import {
+  TimeAmount,
+  TimerIcon,
+} from "@cocalc/frontend/editors/stopwatch/stopwatch";
 
 interface TimerConfig {
   fontSize?: number;
@@ -89,10 +92,12 @@ export default function TimerToolPanel() {
         display: "flex",
         flexDirection: "column",
         left: "55px",
-        width: "110px",
+        width: "120px",
       }}
     >
-      <div style={{ maxHeight: "50vh", overflowY: "scroll" }}>
+      <div
+        style={{ maxHeight: "50vh", overflowY: "auto", overflowX: "hidden" }}
+      >
         {timerPresets}
       </div>
       <ResetButton

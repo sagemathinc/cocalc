@@ -99,7 +99,7 @@ export default function Pen() {
         display: "flex",
         flexDirection: "column",
         left: "55px",
-        width: "46px",
+        width: "60px",
         paddingBottom: "10px",
       }}
     >
@@ -128,7 +128,12 @@ export default function Pen() {
         </Button>
       </Tooltip>
       <div
-        style={{ maxHeight: "40vh", overflowY: "scroll", paddingTop: "15px" }}
+        style={{
+          maxHeight: "40vh",
+          overflowY: "auto",
+          overflowX: "hidden",
+          paddingTop: "15px",
+        }}
       >
         {brushes}
       </div>

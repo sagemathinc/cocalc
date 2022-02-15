@@ -102,10 +102,12 @@ export default function IconToolPanel() {
         display: "flex",
         flexDirection: "column",
         left: "55px",
-        width: "42px",
+        width: "55px",
       }}
     >
-      <div style={{ maxHeight: "50vh", overflowY: "scroll" }}>
+      <div
+        style={{ maxHeight: "50vh", overflowY: "auto", overflowX: "hidden" }}
+      >
         {iconPresets}
       </div>
       <ResetButton

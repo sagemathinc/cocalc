@@ -296,6 +296,14 @@ export default function Canvas({
   useEffect(() => {
     if (isNavigator || !frame.desc.get("fitToScreen")) return;
     try {
+      if (elements.length == 0) {
+        // Special case -- the screen is blank; don't want to just
+        // maximal zoom in on the center!
+        setCenterPositionData({ x: 0, y: 0 });
+        lastViewport.current = getViewportData();
+        frame.actions.set_font_size(frame.id, Math.floor(ZOOM100));
+        return;
+      }
       const viewport = getViewportData();
       if (viewport == null) return;
       const rect = rectSpan(elements);

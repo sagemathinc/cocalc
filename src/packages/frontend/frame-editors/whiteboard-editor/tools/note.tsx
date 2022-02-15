@@ -89,7 +89,7 @@ export default function NoteToolPanel() {
         display: "flex",
         flexDirection: "column",
         left: "55px",
-        width: "63px",
+        width: "75px",
         paddingBottom: "10px",
       }}
     >
@@ -98,7 +98,9 @@ export default function NoteToolPanel() {
           <Icon style={{ color: "blue" }} name="note" />
         </Button>
       </Tooltip>
-      <div style={{ maxHeight: "40vh", overflowY: "scroll" }}>
+      <div
+        style={{ maxHeight: "40vh", overflowY: "auto", overflowX: "hidden" }}
+      >
         {notePresets}
       </div>
       <ResetButton
@@ -169,6 +171,7 @@ function NoteToolButton({
           fontSize: "14px",
           fontFamily,
           color: avatar_fontcolor(color),
+          overflow: "hidden",
         }}
       >
         A
@@ -189,6 +192,7 @@ function NotePreview({ fontSize, fontFamily, color }) {
         fontSize: `${fontSize ?? DEFAULT_FONT_SIZE}px`,
         fontFamily,
         color: avatar_fontcolor(color),
+        overflow: "hidden",
       }}
     >
       Note
@@ -250,7 +254,6 @@ function NoteParams({
     </div>
   );
 }
-
 
 // For now just storing these presets in localStorage.
 // TODO: move to account settings or the document.  NOT SURE?!
