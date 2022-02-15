@@ -7,7 +7,7 @@
 X11 Window frame.
 */
 
-import { React, Rendered, useRedux } from "../../app-framework";
+import { React, Rendered, TypedMap, useRedux } from "../../app-framework";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { Icon } from "../../components";
 import { APPS } from "./apps";
@@ -38,7 +38,10 @@ function isSame(prev, next) {
 export const Launcher: React.FC<Props> = React.memo((props: Props) => {
   const { actions, name } = props;
 
-  const x11_apps: Readonly<Capabilities> = useRedux(name, "x11_apps");
+  const x11_apps: TypedMap<Capabilities> | undefined = useRedux(
+    name,
+    "x11_apps"
+  );
 
   const launch = debounce(_launch, 500, { leading: true, trailing: false });
 
@@ -78,7 +81,7 @@ export const Launcher: React.FC<Props> = React.memo((props: Props) => {
     if (available == null) return [];
     // hide those apps, where certainly know they're not available
     return APP_KEYS.filter((app) => {
-      const avail = available[app];
+      const avail = available.get(app);
       return avail !== false;
     }).map(render_launcher);
   }
