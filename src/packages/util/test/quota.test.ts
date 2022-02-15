@@ -6,7 +6,7 @@
 // this tests kucalc's quota function
 //
 // after any change to quota.ts, be a good citizen and run this test or even extend it
-// ~/src/@cocalc/hub/test$ SMC_DB_RESET=true SMC_TEST=true npx jest kucalc/quota.test.ts
+// …/packages/util/test$ SMC_DB_RESET=true SMC_TEST=true npx jest quota.test.ts
 
 // import * as init from "./init";
 //let db = undefined;
@@ -1504,15 +1504,6 @@ describe("default quota", () => {
     expect(LicenseIdleTimeoutsKeysOrdered).toEqual(["short", "medium", "day"]);
   });
 
-  it("licensed idle timeout / non members are always short", () => {
-    const q0 = quota(
-      {},
-      {},
-      { l: { quota: { idle_timeout: "day", member: false } } }
-    );
-    expect(q0.idle_timeout).toBe(30 * 60); // short
-  });
-
   it("licensed idle timeout / priority", () => {
     const site_licenses: SiteLicenses = {
       a: {
@@ -1584,7 +1575,7 @@ describe("default quota", () => {
     expect(q.memory_limit).toBe(5000);
   });
 
-  it("licensed idle timeout / short is automatically member, unless set to false", () => {
+  it("licensed idle timeout / short (automatically member)", () => {
     const q0 = quota(
       {},
       {},
@@ -1593,13 +1584,19 @@ describe("default quota", () => {
     expect(q0.idle_timeout).toBe(30 * 60); // short
     expect(q0.member_host).toBe(false);
 
-    const q1 = quota(
-      {},
-      {},
-      { l: { quota: { idle_timeout: "short", member: true } } }
-    );
+    const q1 = quota({}, {}, { l: { quota: { idle_timeout: "short" } } });
     expect(q1.idle_timeout).toBe(30 * 60); // short
     expect(q1.member_host).toBe(true);
+  });
+
+  it("licensed idle timeout / non member hosting medium", () => {
+    const q0 = quota(
+      {},
+      {},
+      { l: { quota: { idle_timeout: "medium", member: false } } }
+    );
+    expect(q0.idle_timeout).toBe(2 * 60 * 60); // medium
+    expect(q0.member_host).toBe(false);
   });
 
   it("licensed idle timeout / mixed with user upgrades", () => {
