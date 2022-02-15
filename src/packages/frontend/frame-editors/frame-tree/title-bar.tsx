@@ -462,7 +462,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
 
-    const items: Rendered[] = [100, 125, 150, 200].map((zoom) => {
+    const items: Rendered[] = [85, 100, 115, 125, 150, 200].map((zoom) => {
       return <MenuItem key={zoom}>{`${zoom}%`}</MenuItem>;
     });
 
