@@ -101,6 +101,8 @@ import { deleteElements } from "./tools/edit-bar";
 
 const penDPIFactor = 1; // I can't get this to work! :-(
 
+const MIDDLE_MOUSE_BUTTON = 1;
+
 interface Props {
   elements: Element[];
   font_size?: number;
@@ -642,7 +644,7 @@ export default function Canvas({
       ]);
 
   const onMouseDown = (e) => {
-    if (selectedTool == "hand") {
+    if (selectedTool == "hand" || e.button == MIDDLE_MOUSE_BUTTON) {
       const c = canvasRef.current;
       if (c == null) return;
       handRef.current = {
@@ -673,7 +675,7 @@ export default function Canvas({
   };
 
   const onMouseUp = (e) => {
-    if (selectedTool == "hand") {
+    if (handRef.current != null) {
       handRef.current = null;
       return;
     }
@@ -786,8 +788,15 @@ export default function Canvas({
   }
 
   const onMouseMove = (e, touch = false) => {
-    if (selectedTool == "hand") {
-      if (handRef.current == null) return;
+    if (!touch && !e.buttons) {
+      // mouse button no longer down - cancel any capture.
+      // This can happen with no mouseup, due to mouseup outside
+      // of the div, i.e., drag off the edge.
+      onMouseUp(e);
+      return;
+    }
+    if (handRef.current != null) {
+      // dragging with hand tool
       const c = canvasRef.current;
       if (c == null) return;
       const { clientX, clientY, scrollLeft, scrollTop } = handRef.current;
@@ -799,10 +808,6 @@ export default function Canvas({
     }
     mousePos.current = { clientX: e.clientX, clientY: e.clientY };
     if (mousePath.current == null) return;
-    if (!touch && !e.buttons) {
-      onMouseUp(e);
-      return;
-    }
     e.preventDefault?.(); // only makes sense for mouse not touch.
     if (selectedTool == "select" || selectedTool == "frame") {
       const point = getMousePos(e);
