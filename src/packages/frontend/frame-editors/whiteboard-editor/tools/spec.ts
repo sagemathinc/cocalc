@@ -21,19 +21,19 @@ interface ToolDescription {
 
 export const TOOLS: { [tool: string]: ToolDescription } = {
   hand: {
-    icon: "move",
+    icon: "hand",
     cursor: "grab",
     tip: "Hand tool - move canvas",
     readOnly: true,
   },
   select: {
-    icon: "select-outlined",
+    icon: "mousepointer",
     cursor: "default",
     tip: "Select",
     readOnly: true,
   },
   text: {
-    icon: "font",
+    icon: "text1",
     cursor: "text",
     tip: "Text",
     config: new Set(["fontFamily", "fontSize", "color"]),
@@ -53,11 +53,11 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
   code: {
     icon: "jupyter",
     cursor: "crosshair",
-    tip: "Jupyter Code",
+    tip: "Jupyter Code Cell",
     config: new Set(["fontSize", "color", "radius"]),
   },
   icon: {
-    icon: "store",
+    icon: "icons",
     cursor: "crosshair",
     tip: "Icons",
     config: new Set(["fontSize", "color"]),
@@ -81,7 +81,7 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     config: new Set(["color", "radius"]),
   },
   frame: {
-    icon: "layout",
+    icon: "frame",
     cursor: "crosshair",
     tip: "Frame",
     config: new Set(["color", "radius"]),
