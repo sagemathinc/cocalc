@@ -989,8 +989,10 @@ export default function Canvas({
           style={{
             cursor:
               frame.isFocused && selectedTool
-                ? TOOLS[selectedTool]?.cursor
-                : "default",
+                ? selectedTool == "hand" && handRef.current
+                  ? "grabbing"
+                  : TOOLS[selectedTool]?.cursor
+                : undefined,
             position: "relative",
           }}
         >
