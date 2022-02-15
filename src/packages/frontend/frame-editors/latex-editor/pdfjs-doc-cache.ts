@@ -37,7 +37,6 @@ import type { PDFDocumentProxy } from "pdfjs-dist/webpack";
 
 import { raw_url } from "../frame-tree/util";
 import { pdf_path } from "./util";
-import { encode_path } from "@cocalc/util/misc";
 
 const options = {
   max: MAX_PAGES,
@@ -51,7 +50,7 @@ export function url_to_pdf(
   path: string,
   reload: number
 ): string {
-  const url = raw_url(project_id, encode_path(pdf_path(path)));
+  const url = raw_url(project_id, pdf_path(path));
   return `${url}?param=${reload}`;
 }
 
