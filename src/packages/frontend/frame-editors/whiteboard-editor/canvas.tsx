@@ -74,10 +74,10 @@ import {
   compressPath,
   fontSizeToZoom,
   ZOOM100,
-  getPageSpan,
   getPosition,
   fitRectToRect,
   getOverlappingElements,
+  getTransforms,
   pointEqual,
   pointRound,
   pointsToRect,
@@ -95,7 +95,6 @@ import { textParams } from "./tools/text";
 import { iconParams } from "./tools/icon";
 import { timerParams } from "./tools/timer";
 
-import { cmp } from "@cocalc/util/misc";
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { deleteElements } from "./tools/edit-bar";
 
@@ -144,7 +143,10 @@ export default function Canvas({
 
   const navDrag = useRef<null | { x0: number; y0: number }>(null);
   const innerCanvasRef = useRef<any>(null);
-  const transforms = getTransforms(elements, margin, canvasScale);
+  const transforms = useMemo(
+    () => getTransforms(elements, margin, canvasScale),
+    [elements, margin, canvasScale]
+  );
   const mousePath = useRef<{ x: number; y: number }[] | null>(null);
   const handRef = useRef<{
     scrollLeft: number;
@@ -1020,83 +1022,6 @@ export default function Canvas({
       </div>
     </div>
   );
-}
-
-function getTransforms(
-  elements,
-  margin,
-  scale
-): {
-  dataToWindowNoScale: (
-    x: number,
-    y: number,
-    z?: number
-  ) => { x: number; y: number; z: number };
-  windowToDataNoScale: (x: number, y: number) => { x: number; y: number };
-  width: number;
-  height: number;
-  xMin: number;
-  xMax: number;
-  yMin: number;
-  yMax: number;
-  zMin: number;
-  zMax: number;
-  scale: number;
-  zMap: { [z: number]: number };
-} {
-  /*
-  Consider the x and y coordinates of all elements, which could be anywhere in the "infinite canvas",
-  Then transform to a rectangle (0,0) --> (width,height), along with a health margin.
-  Returns functions to transform back and forth.
-  Just be really dumb for the first version.
-
-  We also map the zIndex z values of object to be 1,2,..., MAX_ELEMENTS,
-  so we can confidently place UI elements, etc. above MAX_ELEMENTS.
-  */
-
-  let { xMin, yMin, xMax, yMax, zMin, zMax } = getPageSpan(elements, margin);
-  const zMap = zIndexMap(elements);
-
-  function dataToWindowNoScale(x, y, z?) {
-    return {
-      x: (x ?? 0) - xMin,
-      y: (y ?? 0) - yMin,
-      z: zMap[z ?? 0] ?? 0,
-    };
-  }
-  function windowToDataNoScale(x, y) {
-    return {
-      x: (x ?? 0) + xMin,
-      y: (y ?? 0) + yMin,
-    };
-  }
-  return {
-    dataToWindowNoScale,
-    windowToDataNoScale,
-    width: xMax - xMin,
-    height: yMax - yMin,
-    xMin,
-    yMin,
-    xMax,
-    yMax,
-    zMin,
-    zMax,
-    scale,
-    zMap,
-  };
-}
-
-// this sorts elements by their z value as a side effect.
-// TODO: potentially inefficient, since we do this every time anything changes...
-function zIndexMap(elements: Element[]) {
-  elements.sort((x, y) => cmp(x.z ?? 0, y.z ?? 0));
-  const zMap: { [z: number]: number } = {};
-  let i = 1;
-  for (const { z } of elements) {
-    zMap[z ?? 0] = i;
-    i += 1;
-  }
-  return zMap;
 }
 
 function getSelectedElements({

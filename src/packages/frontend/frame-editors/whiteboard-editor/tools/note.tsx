@@ -9,31 +9,13 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { useFrameContext } from "../hooks";
 import { debounce } from "lodash";
-import { STYLE } from "../elements/note";
-import { DEFAULT_FONT_SIZE, minFontSize, maxFontSize } from "./defaults";
+import { STYLE } from "../elements/note-static";
+import { DEFAULT_FONT_SIZE, minFontSize, maxFontSize, DEFAULT_NOTE, NOTE_COLORS as COLORS } from "./defaults";
 import { SelectFontFamily } from "./edit-bar";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { ResetButton } from "./common";
 
-// see https://www.post-it.com/3M/en_US/post-it/ideas/color/
-export const COLORS = [
-  "#f5f468",
-  "#e8edfa",
-  "#f5e3ad",
-  "#7ae294",
-  "#4dd1f1",
-  "#fdaf8a",
-  "#f9b2c3",
-  "#a8cc67",
-  "#fe871c",
-  "#fdce04",
-  "#cfec6d",
-  "#fe5b60",
-  "#c1bab9",
-  "#99b1f0",
-];
 const numNoteTypes = COLORS.length;
-export const DEFAULT_NOTE = { fontSize: DEFAULT_FONT_SIZE, color: COLORS[0] };
 
 export default function NoteToolPanel() {
   const frame = useFrameContext();

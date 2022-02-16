@@ -16,7 +16,7 @@ export default function Upload({ children, evtToDataRef, readOnly }: Props) {
   const dropzoneRef = useRef<Dropzone>(null);
 
   if (readOnly) {
-    return children;
+    return <>{children}</>;
   }
 
   const dest_path = aux_file(path, AUX_FILE_EXT);

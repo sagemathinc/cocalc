@@ -2,11 +2,9 @@ import { useEffect, useState } from "react";
 import { useFrameContext } from "../hooks";
 import { Element } from "../types";
 import { DEFAULT_FONT_SIZE } from "../tools/defaults";
+import TextStatic, { getStyle, PADDING } from "./text-static";
+export { getStyle };
 
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-// This import ensures that math rendering is loaded.
-// import "@cocalc/frontend/editors/slate/elements/math/math-widget";
-// import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 
 interface Props {
@@ -16,8 +14,6 @@ interface Props {
   readOnly?: boolean;
   noteMode?: boolean; // used for sticky note
 }
-
-const PADDING = "10px";
 
 export default function Text({
   element,
@@ -43,20 +39,13 @@ export default function Text({
     };
   }, []);
 
-  const style = { ...getStyle(element), padding: PADDING };
-
   if (readOnly || !focused || element.locked) {
-    return (
-      <StaticMarkdown
-        value={element.str?.trim() ? element.str : "Type text"}
-        style={style}
-      />
-    );
+    return <TextStatic element={element} />;
   }
 
   return (
     <div
-      style={{ ...style, height: "100%", padding: PADDING }}
+      style={{ ...getStyle(element), padding: PADDING, height: "100%" }}
       className={editFocus ? "nodrag" : undefined}
     >
       <MultiMarkdownInput
@@ -87,21 +76,4 @@ export default function Text({
       />
     </div>
   );
-}
-
-export function getStyle(
-  element,
-  defaults?: {
-    color?: string;
-    fontSize?: number;
-    fontFamily?: string;
-    background?: string;
-  }
-) {
-  return {
-    color: element.data?.color ?? defaults?.color,
-    fontSize: element.data?.fontSize ?? defaults?.fontSize,
-    fontFamily: element.data?.fontFamily ?? defaults?.fontFamily,
-    background: element.data?.background ?? defaults?.background,
-  };
 }

@@ -22,7 +22,7 @@ import { SelectFontFamily } from "./edit-bar";
 import {
   TimeAmount,
   TimerIcon,
-} from "@cocalc/frontend/editors/stopwatch/stopwatch";
+} from "@cocalc/frontend/editors/stopwatch/time";
 
 interface TimerConfig {
   fontSize?: number;

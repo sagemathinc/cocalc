@@ -1,6 +1,6 @@
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Element } from "../types";
-import { getStyle } from "./text";
+import { getStyle } from "./text-static";
 
 interface Props {
   element: Element;

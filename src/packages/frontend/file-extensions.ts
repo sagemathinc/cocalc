@@ -9,11 +9,7 @@ duplicating code.  What's below may be pretty dumb though (and we should use som
 mimetype library)...
 */
 
-import {
-  file_associations,
-  VIDEO_EXTS,
-  AUDIO_EXTS,
-} from "./file-associations";
+import { file_associations, VIDEO_EXTS, AUDIO_EXTS } from "./file-associations";
 
 // see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
 const image = new Set([
@@ -47,7 +43,6 @@ export const isHTML = (ext) => html.has(ext);
 // work with rmd! One fix would use my slate renderer, which does.
 const md = new Set(["md", "rmd"]);
 export const isMarkdown = (ext) => md.has(ext);
-
 
 const codemirror = {};
 for (const ext in file_associations) {
@@ -83,9 +78,9 @@ export function hasSpecialViewer(ext: string): boolean {
   return (
     ext === "ipynb" ||
     ext === "sagews" ||
+    ext === "board" ||
     isMarkdown(ext) ||
     isCodemirror(ext) ||
     isHTML(ext)
   );
 }
-

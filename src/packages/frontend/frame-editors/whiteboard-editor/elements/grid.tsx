@@ -13,7 +13,12 @@ const GRID = {
   backgroundImage: `linear-gradient(${BIG_COLOR} 1.5px, transparent 1.5px), linear-gradient(90deg, ${BIG_COLOR} 1.5px, transparent 1.5px), linear-gradient(${SMALL_COLOR} 1px, transparent 1px), linear-gradient(90deg, ${SMALL_COLOR} 1px, transparent 1px)`,
 } as CSSProperties;
 
-export default function Grid({ transforms, divRef }) {
+interface Props {
+  transforms: { width: number; height: number };
+  divRef?: any; // todo
+}
+
+export default function Grid({ transforms, divRef }: Props) {
   return (
     <div
       ref={divRef}
