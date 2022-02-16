@@ -342,19 +342,9 @@ export const MarkdownInput: FC<Props> = ({
     ) {
       return;
     }
-    if (value == "") {
-      // Important -- we *ONLY* set our value to the value prop
-      // if it is to clear the input, which is the only case
-      // where setting the value from outside is used (e.g. for chat).
-      // This is not a realtime sync editing widget, and also
-      // setting the value on any change may lead to an infinite
-      // loop and hang (it actually won't because we test for that
-      // in the change handler).  Also, setValue will mess with the cursor
-      // (we could use my setValueNoJump plugin to get around that).
-      cm.current.setValue(value);
-      if (upload_close_preview_ref.current != null) {
-        upload_close_preview_ref.current(true);
-      }
+    cm.current.setValueNoJump(value);
+    if (upload_close_preview_ref.current != null) {
+      upload_close_preview_ref.current(true);
     }
   }, [value]);
 
