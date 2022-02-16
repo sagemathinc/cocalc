@@ -39,7 +39,7 @@ export interface State extends CodeEditorState {
 export class Actions extends BaseActions<State> {
   protected doctype: string = "syncdb";
   protected primary_keys: string[] = ["id"];
-  protected string_cols: string[] = ["strVal"];
+  protected string_cols: string[] = ["str"];
 
   _raw_default_frame_tree(): FrameTree {
     return { type: "whiteboard" };
