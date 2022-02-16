@@ -4,7 +4,7 @@
  */
 
 import { Map } from "immutable";
-import { isEqual } from "lodash";
+import { isEqual, sortBy } from "lodash";
 import { PostgreSQL } from "../types";
 import { query } from "../query";
 import { TypedMap } from "@cocalc/util/types/typed-map";
@@ -20,6 +20,8 @@ import {
   QuotaSetting,
   SiteLicenses,
   LicenseStatus,
+  siteLicenseSelectionKeys,
+  licenseToGroupKey,
 } from "@cocalc/util/upgrades/quota";
 
 import getLogger from "@cocalc/backend/logger";
@@ -172,6 +174,25 @@ class SiteLicenseHook {
   }
 
   /**
+   * We have to order the site licenses by their priority.
+   * Otherwise, the method of applying them one-by-one does lead to issues, because if a lower priority
+   * license is considered first (and applied), and then a higher priority license is considered next,
+   * the quota algorithm will only pick the higher priority license in the second iteration, causing the
+   * effective quotas to be different, and hence actually both licenses seem to be applied but they are not.
+   */
+  private orderedSiteLicenseIDs(validLicenses): string[] {
+    const ids = Object.keys(this.currentSiteLicense).filter((id) => {
+      return validLicenses[id] != null;
+    });
+    const order = Array.from(siteLicenseSelectionKeys());
+    const orderedIds = sortBy(ids, (id) => {
+      const key = licenseToGroupKey(validLicenses[id]);
+      return order.indexOf(key);
+    });
+    return orderedIds;
+  }
+
+  /**
    * Calculates the next site license situation, replacing whatever the project is currently licensed as.
    * A particular site license will only be used if it actually causes the upgrades to increase.
    */
@@ -181,7 +202,7 @@ class SiteLicenseHook {
     const nextLicense: SiteLicenses = {};
     const validLicenses = await this.getValidLicenses();
 
-    for (const license_id in this.currentSiteLicense) {
+    for (const license_id of this.orderedSiteLicenseIDs(validLicenses)) {
       if (!is_valid_uuid_string(license_id)) {
         // The site_license is supposed to be a map from uuid's to settings...
         // We could put some sort of error here in case, though I don't know what
