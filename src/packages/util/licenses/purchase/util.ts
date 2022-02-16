@@ -4,7 +4,11 @@
  */
 
 import { isEqual } from "lodash";
-import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import {
+  DedicatedDisk,
+  DedicatedDiskTypeNames,
+  DedicatedVM,
+} from "@cocalc/util/types/dedicated";
 import { ONE_MONTH_MS } from "@cocalc/util/consts/billing";
 import { dedicatedPrice } from "./dedicated";
 import {
@@ -12,6 +16,7 @@ import {
   requiresMemberhosting,
   Uptime,
 } from "../../consts/site-license";
+import { MAX_DEDICATED_DISK_SIZE, PRICES } from "../../upgrades/dedicated";
 
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "max" | "custom";
@@ -84,7 +89,7 @@ export function sanity_checks(info: PurchaseInfo) {
 
   for (const x of ["ram", "cpu", "disk", "dedicated_ram", "dedicated_cpu"]) {
     const field = "custom_" + x;
-    if (typeof info[field] != "number") {
+    if (typeof info[field] !== "number") {
       throw Error(`field "${field}" must be number`);
     }
     if (info[field] < 0 || info[field] > MAX[field]) {
@@ -92,9 +97,50 @@ export function sanity_checks(info: PurchaseInfo) {
     }
   }
 
-  for (const x of ["always_running", "member"]) {
+  if (info.dedicated_vm != null) {
+    const vmName = info.dedicated_vm;
+    if (typeof vmName !== "string")
+      throw new Error(`field dedicated_vm must be string`);
+    if (PRICES.vms[vmName] == null)
+      throw new Error(`field dedicated_vm ${vmName} not found`);
+  }
+
+  if (info.dedicated_disk != null) {
+    const dd = info.dedicated_disk;
+    if (typeof dd === "object") {
+      const { size_gb, type } = dd;
+      if (typeof size_gb !== "number") {
+        throw new Error(`field dedicated_disk.size must be number`);
+      }
+      if (size_gb < 0 || size_gb > MAX_DEDICATED_DISK_SIZE) {
+        throw new Error(`field dedicated_disk.size_gb < 0 or too big`);
+      }
+      if (typeof type !== "string" || !DedicatedDiskTypeNames.includes(type))
+        throw new Error(
+          `field dedicated_disk.type must be string and one of ${DedicatedDiskTypeNames.join(
+            ", "
+          )}`
+        );
+    }
+  }
+
+  if (info.custom_uptime != null)
+    throw new Error(`field "custom_uptime" must be set`);
+
+  if (
+    LicenseIdleTimeouts[info.custom_uptime] == null &&
+    info.custom_uptime != ("always_running" as Uptime)
+  ) {
+    throw new Error(
+      `field "custom_uptime" must be one of ${Object.keys(
+        LicenseIdleTimeouts
+      ).join(", ")} or "always_running"`
+    );
+  }
+
+  for (const x of ["member"]) {
     const field = "custom_" + x;
-    if (typeof info[field] != "boolean") {
+    if (typeof info[field] !== "boolean") {
       throw Error(`field "${field}" must be boolean`);
     }
   }

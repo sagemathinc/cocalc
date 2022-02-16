@@ -44,7 +44,7 @@ export default async function purchaseLicense(
   logger.debug("purchase_license: info", info, ", account_id=", account_id);
 
   if (!noThrottle) {
-    const now = new Date().valueOf();
+    const now = Date.now();
     if (now - (last_attempt[account_id] ?? 0) <= THROTTLE_S * 1000) {
       throw Error(
         "You must wait at least " +

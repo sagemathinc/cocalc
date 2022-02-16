@@ -43,7 +43,7 @@ const VERSION = 0;
 function getProductId(info: PurchaseInfo): string {
   /* We generate a unique identifier that represents the parameters of the purchase.
      The following parameters determine what "product" they are purchasing:
-        - custom_always_running → since 2022-02 custom_uptime
+        - custom_uptime (until 2022-02: custom_always_running)
         - custom_cpu
         - custom_dedicated_cpu
         - custom_disk
@@ -62,7 +62,7 @@ function getProductId(info: PurchaseInfo): string {
   }
 
   // this is backwards compatible: short: 0, always_running: 1, ...
-  function a(): number {
+  function idleTimeout(): number {
     switch (info.custom_uptime) {
       case "short":
         return 0;
@@ -73,15 +73,21 @@ function getProductId(info: PurchaseInfo): string {
     }
   }
 
-  return `license_a${a()}b${info.user == "business" ? 1 : 0}c${
-    info.custom_cpu
-  }d${info.custom_disk}m${info.custom_member ? 1 : 0}p${period()}r${
-    info.custom_ram
-  }${info.custom_dedicated_ram ? "y" + info.custom_dedicated_ram : ""}${
-    info.custom_dedicated_cpu
-      ? "z" + Math.round(10 * info.custom_dedicated_cpu)
-      : ""
-  }_v${VERSION}`;
+  const pid = [
+    `license_`,
+    `a${idleTimeout()}`,
+    `b${info.user == "business" ? 1 : 0}`,
+    `c${info.custom_cpu}`,
+    `d${info.custom_disk}`,
+    `m${info.custom_member ? 1 : 0}`,
+    `p${period()}`,
+    `r${info.custom_ram}`,
+  ];
+  if (info.custom_dedicated_ram) pid.push(`y${info.custom_dedicated_ram}`);
+  if (info.custom_dedicated_cpu)
+    pid.push(`z${Math.round(10 * info.custom_dedicated_cpu)}`);
+  pid.push(`_v${VERSION}`);
+  return pid.join("");
 }
 
 function getProductName(info): string {
@@ -188,7 +194,7 @@ async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
       metadata,
       statement_descriptor,
     });
-    stripeCreatePrice(info);
+    await stripeCreatePrice(info);
   }
   return product_id;
 }
