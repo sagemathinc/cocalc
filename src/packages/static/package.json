@@ -7,7 +7,7 @@
     "../frontend",
     "../util"
   ],
-  "version": "1.64.0",
+  "version": "1.65.0",
   "description": "CoCalc's static frontend Webpack-based build system and framework",
   "main": "./src/index.js",
   "babel": {
@@ -49,10 +49,10 @@
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/static",
   "devDependencies": {
     "@cocalc/assets": "^1.5.1",
-    "@cocalc/backend": "^1.10.0",
+    "@cocalc/backend": "^1.11.0",
     "@cocalc/cdn": "^1.8.2",
-    "@cocalc/frontend": "^1.31.0",
-    "@cocalc/util": "^1.26.0",
+    "@cocalc/frontend": "^1.32.0",
+    "@cocalc/util": "^1.27.0",
     "@types/enzyme": "^3.10.8",
     "@types/jest": "^26.0.24",
     "@types/jquery": "^3.5.5",
