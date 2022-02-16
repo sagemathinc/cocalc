@@ -74,6 +74,7 @@ import {
   compressPath,
   fontSizeToZoom,
   ZOOM100,
+  getPageSpan,
   getPosition,
   fitRectToRect,
   getOverlappingElements,
