@@ -580,6 +580,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
               dedicated_cpu: custom_dedicated_cpu,
               disk: custom_disk,
               always_running: custom_always_running,
+              idle_timeout: custom_idle_timeout,
               member: custom_member,
               user,
             })}`}
