@@ -124,17 +124,17 @@ export function sanity_checks(info: PurchaseInfo) {
     }
   }
 
-  if (info.custom_uptime != null)
+  if (info.custom_uptime == null || typeof info.custom_uptime !== "string") {
     throw new Error(`field "custom_uptime" must be set`);
+  }
 
   if (
     LicenseIdleTimeouts[info.custom_uptime] == null &&
     info.custom_uptime != ("always_running" as Uptime)
   ) {
+    const tos = Object.keys(LicenseIdleTimeouts).join(", ");
     throw new Error(
-      `field "custom_uptime" must be one of ${Object.keys(
-        LicenseIdleTimeouts
-      ).join(", ")} or "always_running"`
+      `field "custom_uptime" must be one of ${tos} or "always_running"`
     );
   }
 
