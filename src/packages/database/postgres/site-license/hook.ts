@@ -182,11 +182,11 @@ class SiteLicenseHook {
    */
   private orderedSiteLicenseIDs(validLicenses): string[] {
     const ids = Object.keys(this.currentSiteLicense).filter((id) => {
-      return validLicenses[id] != null;
+      return validLicenses.get(id) != null;
     });
     const order = Array.from(siteLicenseSelectionKeys());
     const orderedIds = sortBy(ids, (id) => {
-      const key = licenseToGroupKey(validLicenses[id]);
+      const key = licenseToGroupKey(validLicenses.get(id));
       return order.indexOf(key);
     });
     return orderedIds;
