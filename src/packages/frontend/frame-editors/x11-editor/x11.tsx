@@ -17,6 +17,7 @@ import {
   useIsMountedRef,
   useRef,
   useRedux,
+  useTypedRedux,
   usePrevious,
   useMemo,
 } from "../../app-framework";
@@ -77,6 +78,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
   const windowRef = useRef<HTMLDivElement>(null);
   const focusRef = useRef<HTMLTextAreaElement>(null);
 
+  const default_font_size = useTypedRedux("account", "font_size") ?? 14;
   const windows: Map<string, any> = useRedux(name, "windows");
   const x11_is_idle: boolean = useRedux(name, "x11_is_idle");
   const disabled: boolean = useRedux(name, "disabled");
@@ -243,7 +245,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     if (width == null || height == null) {
       return;
     }
-    const frame_scale = myProps.font_size / 14;
+    const frame_scale = myProps.font_size / default_font_size;
     client.resize_window(wid, width, height, frame_scale);
   }
 
