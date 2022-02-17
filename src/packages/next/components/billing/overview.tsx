@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import A from "components/misc/A";
 
 export default function Overview() {
@@ -5,9 +10,9 @@ export default function Overview() {
     <div>
       <p>
         You can see and edit your{" "}
-        <A href="/billing/payment-methods">your payment methods</A>, view or
-        cancel <A href="/billing/subscriptions">your subscriptions</A>, and see{" "}
-        <A href="/billing/invoices-and-receipts">your invoices and receipts</A>.
+        <A href="/billing/cards">your payment methods</A>, view or cancel{" "}
+        <A href="/billing/subscriptions">your subscriptions</A>, and see{" "}
+        <A href="/billing/receipts">your invoices and receipts</A>.
       </p>
       <p>
         You can also read{" "}
