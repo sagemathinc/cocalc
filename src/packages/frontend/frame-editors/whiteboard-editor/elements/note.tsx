@@ -4,12 +4,8 @@ import { DEFAULT_NOTE } from "../tools/defaults";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { Props } from "./render";
 
-export default function Note({
-  element,
-  focused,
-  canvasScale,
-  readOnly,
-}: Props) {
+export default function Note(props: Props) {
+  const { element, focused } = props;
   if (!focused) {
     return <NoteStatic element={element} />;
   }
@@ -24,13 +20,7 @@ export default function Note({
         background: element.data?.color ?? DEFAULT_NOTE.color,
       }}
     >
-      <Text
-        element={{ ...element, data }}
-        focused={focused}
-        canvasScale={canvasScale}
-        readOnly={readOnly}
-        noteMode
-      />
+      <Text {...props} element={{ ...element, data }} noteMode />
     </div>
   );
 }

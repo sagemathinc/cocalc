@@ -8,10 +8,11 @@ import { Popover } from "antd";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
 import { MarkdownInput } from "./component";
-import { CSSProperties, ReactNode, useRef, useState } from "react";
+import { CSSProperties, ReactNode, useMemo, useRef, useState } from "react";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { FOCUSED_STYLE, BLURED_STYLE } from "./component";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { fromJS, Map as ImmutableMap } from "immutable";
 
 export type Mode = "markdown" | "editor";
 
@@ -41,6 +42,16 @@ interface Props {
   minimal?: boolean;
   editBarStyle?: CSSProperties;
   markdownToggleStyle?: CSSProperties;
+
+  // onCursors is called when user cursor(s) move.  "editable" mode only supports a single
+  // cursor right now, but "markdown" mode supports multiple cursors.  An array is
+  // output in all cases.  In editable mode, the cursor is positioned where it would be
+  // in the plain text.
+  onCursors?: (cursors: { x: number; y: number }[]) => void;
+  // If cursors are given, then they get rendered in the editor.  This is a map
+  // from account_id to objects {x:number,y:number} that give the 0-based row and column
+  // in the plain markdown text, as of course output by onCursors above.
+  cursors?: ImmutableMap<string, any>;
 }
 
 export default function MultiMarkdownInput({
@@ -67,6 +78,8 @@ export default function MultiMarkdownInput({
   minimal,
   editBarStyle,
   markdownToggleStyle,
+  onCursors,
+  cursors,
 }: Props) {
   const { project_id, path } = useFrameContext();
   const [mode, setMode0] = useState<Mode>(
@@ -78,6 +91,10 @@ export default function MultiMarkdownInput({
   };
   const [focused, setFocused] = useState<boolean>(!!autoFocus);
   const ignoreBlur = useRef<boolean>(false);
+
+  const cursorsMap = useMemo(() => {
+    return cursors == null ? undefined : fromJS(cursors);
+  }, [cursors]);
 
   return (
     <div
@@ -216,7 +233,9 @@ export default function MultiMarkdownInput({
                 onChange?.(value);
                 setMode("markdown");
               },
+              set_cursor_locs: onCursors != null ? onCursors : undefined,
             }}
+            cursors={cursorsMap}
             font_size={fontSize}
             autoFocus={autoFocus}
             onFocus={() => {

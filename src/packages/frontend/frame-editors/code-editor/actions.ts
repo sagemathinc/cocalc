@@ -138,6 +138,7 @@ export class Actions<
   protected doctype: string = "syncstring";
   protected primary_keys: string[] = [];
   protected string_cols: string[] = [];
+  protected disable_cursors: boolean = false;
 
   public project_id: string;
   public path: string;
@@ -236,7 +237,7 @@ export class Actions<
       this._syncstring = <SyncString>syncstring({
         project_id: this.project_id,
         path: this.path,
-        cursors: true,
+        cursors: !this.disable_cursors,
         before_change_hook: () => this.set_syncstring_to_codemirror(),
         after_change_hook: () => this.set_codemirror_to_syncstring(),
         fake: true,
@@ -246,7 +247,7 @@ export class Actions<
       this._syncstring = syncstring2({
         project_id: this.project_id,
         path: this.path,
-        cursors: true,
+        cursors: !this.disable_cursors,
       });
     } else if (this.doctype == "syncdb") {
       if (
@@ -261,6 +262,7 @@ export class Actions<
         path: this.path,
         primary_keys: this.primary_keys,
         string_cols: this.string_cols,
+        cursors: !this.disable_cursors,
       });
     } else {
       throw Error(`invalid doctype="${this.doctype}"`);

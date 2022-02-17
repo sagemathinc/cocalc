@@ -65,6 +65,14 @@ export class Actions extends BaseActions<State> {
     });
   }
 
+  // This mutates the cursors by putting the id in them.
+  setCursors(id: string, cursors: any[]): void {
+    for (const cursor of cursors) {
+      cursor.id = id;
+    }
+    this._syncstring.set_cursor_locs(cursors);
+  }
+
   setElement(obj: Partial<Element>, commit: boolean = true): void {
     this._syncstring.set(obj);
     if (

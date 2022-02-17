@@ -16,6 +16,7 @@ interface Props {
   canvasScale: number;
   readOnly?: boolean;
   noteMode?: boolean; // used for sticky note
+  cursors?: { [account_id: string]: any[] };
 }
 
 export default function Text(props: Props) {
@@ -29,10 +30,12 @@ function EditText({
   element,
   canvasScale,
   noteMode,
+  cursors,
 }: {
   element: Element;
   canvasScale: number;
   noteMode?: boolean;
+  cursors?;
 }) {
   const isMounted = useIsMountedRef();
   const [value, setValue] = useState<string>(element.str ?? "");
@@ -112,6 +115,10 @@ function EditText({
           fontFamily: "sans-serif",
         }}
         markdownToggleStyle={noteMode ? { right: "-23px" } : undefined}
+        onCursors={(cursors) => {
+          actions.setCursors(element.id, cursors);
+        }}
+        cursors={cursors}
       />
     </div>
   );

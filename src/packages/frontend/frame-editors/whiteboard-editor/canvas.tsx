@@ -116,6 +116,7 @@ interface Props {
   isNavigator?: boolean; // is the navigator, so hide the grid, don't save window, don't scroll, don't move
   style?: CSSProperties;
   previewMode?: boolean; // Use a blue box preview, instead of the actual elements.
+  cursors?: { [id: string]: { [account_id: string]: any[] } };
 }
 
 export default function Canvas({
@@ -130,6 +131,7 @@ export default function Canvas({
   isNavigator,
   style,
   previewMode,
+  cursors,
 }: Props) {
   const frame = useFrameContext();
   const canvasScale = scale ?? fontSizeToZoom(font_size);
@@ -367,6 +369,7 @@ export default function Canvas({
         focused={focused}
         canvasScale={canvasScale}
         readOnly={readOnly || isNavigator}
+        cursors={cursors?.[id]}
       />
     );
     if (!isNavRectangle && (element.style || selected || isNavigator)) {

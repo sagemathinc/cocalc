@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { Actions, State, elementsList } from "./actions";
@@ -32,7 +32,26 @@ export default function Whiteboard({
 
   const is_loaded = useEditor("is_loaded");
   const readOnly = useEditor("read_only");
-  const elements = elementsList(useEditor("elements"));
+
+  const elementsMap = useEditor("elements");
+  const elements = useMemo(() => {
+    return elementsList(elementsMap);
+  }, [elementsMap]);
+  const cursorsMap = useEditor("cursors");
+  const cursors = useMemo(() => {
+    const cursors: { [id: string]: { [account_id: string]: any[] } } = {};
+    for (const [account_id, locs] of cursorsMap) {
+      const x = locs?.toJS();
+      const id = x?.[0]?.id;
+      if (id == null) continue;
+      if (cursors[id] == null) {
+        cursors[id] = {};
+      }
+      cursors[id] = { [account_id]: x };
+      return cursors;
+    }
+  }, [cursorsMap]);
+
   const selectedTool = desc.get("selectedTool") ?? "select";
   const evtToDataRef = useRef<Function | null>(null);
 
@@ -83,6 +102,7 @@ export default function Whiteboard({
           selectedTool={selectedTool}
           evtToDataRef={evtToDataRef}
           readOnly={readOnly}
+          cursors={cursors}
         />
       </Upload>
     </div>

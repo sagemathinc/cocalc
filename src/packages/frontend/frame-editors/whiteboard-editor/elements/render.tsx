@@ -20,6 +20,7 @@ export interface Props {
   focused: boolean;
   canvasScale: number;
   readOnly?: boolean;
+  cursors?: { [account_id: string]: any[] };
 }
 
 export default function Render(props: Props) {
