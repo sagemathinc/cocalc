@@ -385,7 +385,7 @@ function setDataField(
   obj: object
 ) {
   for (const element of elements) {
-    actions.setElementData(element, obj, false);
+    actions.setElementData({ element, obj, commit: false, cursors: [{}] });
   }
   actions.syncstring_commit();
 }

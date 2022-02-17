@@ -125,15 +125,21 @@ export default function DragHandle({
               path[i + 1] = element.data.path[i + 1] * scale_y;
             }
             frame.actions.setElement({
-              id: element.id,
-              x,
-              y,
-              w,
-              h,
-              data: { ...element.data, path },
+              obj: {
+                id: element.id,
+                x,
+                y,
+                w,
+                h,
+                data: { ...element.data, path },
+              },
+              cursors: [{}],
             });
           } else {
-            frame.actions.setElement({ id: element.id, x, y, w, h });
+            frame.actions.setElement({
+              obj: { id: element.id, x, y, w, h },
+              cursors: [{}],
+            });
           }
         }, 0);
       }}

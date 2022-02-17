@@ -25,15 +25,6 @@ export default function CodeControlBar({ element }: Props) {
         zIndex: 2,
       }}
     >
-      {/*<Checkbox
-        checked={!element.data?.hideOutput}
-        style={{ fontWeight: 250 }}
-        onChange={(e) =>
-          actions.setElementData(element, { hideOutput: !e.target.checked })
-        }
-      >
-        Output
-      </Checkbox>*/}
       <Button
         onClick={() => {
           actions.runCodeElement({ id: element.id });
@@ -45,7 +36,10 @@ export default function CodeControlBar({ element }: Props) {
         checked={!element.data?.hideInput}
         style={{ fontWeight: 250, marginLeft: "10px" }}
         onChange={(e) => {
-          actions.setElementData(element, { hideInput: !e.target.checked });
+          actions.setElementData({
+            element,
+            obj: { hideInput: !e.target.checked },
+          });
         }}
       >
         Input

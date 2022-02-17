@@ -16,7 +16,11 @@ export default function LockButton({ elements }: Props) {
       style={BUTTON_STYLE}
       onClick={() => {
         for (const element of elements) {
-          actions.setElement({ id: element.id, locked: !locked }, false);
+          actions.setElement({
+            obj: { id: element.id, locked: !locked },
+            commit: false,
+            cursors: [{}],
+          });
         }
         actions.syncstring_commit();
       }}

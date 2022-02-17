@@ -30,7 +30,7 @@ export default function Stopwatch({ element, focused, readOnly }: Props) {
   eltRef.current = element;
   const { data } = element;
   function set(obj) {
-    actions.setElementData(eltRef.current, obj);
+    actions.setElementData({ element: eltRef.current, obj, cursors: [{}] });
   }
 
   const timeStyle = getStyle(element, { fontSize: 20 });

@@ -27,6 +27,7 @@ import EdgeCreate, {
 } from "./focused-edge-create";
 import Position from "./position";
 import { isLocked } from "./tools/lock-button";
+import Cursors from "./cursors";
 
 export const SELECTED_BORDER_COLOR = "#40a9ff";
 export const SELECTED_BORDER_WIDTH = 1;
@@ -52,6 +53,7 @@ interface Props {
   allElements: Element[];
   transforms;
   readOnly?: boolean;
+  cursors?: { [account_id: string]: any[] };
 }
 
 export default function Focused({
@@ -62,6 +64,7 @@ export default function Focused({
   transforms,
   allElements,
   readOnly,
+  cursors,
 }: Props) {
   const frame = useFrameContext();
   const rectRef = useRef<any>(null);
@@ -166,7 +169,7 @@ export default function Focused({
           }
           setTimeout(() => {
             if (id == "selection") return; // todo
-            frame.actions.setElement({ id, rotate });
+            frame.actions.setElement({ obj: { id, rotate }, cursors: [{}] });
             setRotating(undefined);
           }, 0);
         }}
@@ -217,6 +220,7 @@ export default function Focused({
           visibility: isChanging ? "hidden" : undefined,
         }}
       >
+        <Cursors cursors={cursors} canvasScale={canvasScale}/>
         {RotateControl}
         <div
           style={{
@@ -268,7 +272,11 @@ export default function Focused({
             const { id } = elt;
             const x = elt.x + data.x;
             const y = elt.y + data.y;
-            frame.actions.setElement({ id, x, y }, false);
+            frame.actions.setElement({
+              obj: { id, x, y },
+              commit: false,
+              cursors: [{}],
+            });
             moved.add(id);
           }
           if (element.type == "frame") {
@@ -280,7 +288,10 @@ export default function Focused({
               if (moved.has(elt.id) || elt.type == "frame") continue;
               const x = elt.x + data.x;
               const y = elt.y + data.y;
-              frame.actions.setElement({ id: elt.id, x, y }, false);
+              frame.actions.setElement({
+                obj: { id: elt.id, x, y },
+                commit: false,
+              });
               moved.add(elt.id);
               if (elt.group) {
                 // also have to move the rest of the group
@@ -288,7 +299,10 @@ export default function Focused({
                   if (moved.has(elt2.id) || elt2.type == "frame") continue;
                   const x = elt2.x + data.x;
                   const y = elt2.y + data.y;
-                  frame.actions.setElement({ id: elt2.id, x, y }, false);
+                  frame.actions.setElement({
+                    obj: { id: elt2.id, x, y },
+                    commit: false,
+                  });
                   moved.add(elt2.id);
                 }
               }

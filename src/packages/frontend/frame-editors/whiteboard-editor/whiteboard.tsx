@@ -47,9 +47,9 @@ export default function Whiteboard({
       if (cursors[id] == null) {
         cursors[id] = {};
       }
-      cursors[id] = { [account_id]: x };
-      return cursors;
+      cursors[id][account_id] = x;
     }
+    return cursors;
   }, [cursorsMap]);
 
   const selectedTool = desc.get("selectedTool") ?? "select";

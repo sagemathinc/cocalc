@@ -66,14 +66,26 @@ export class Actions extends BaseActions<State> {
   }
 
   // This mutates the cursors by putting the id in them.
-  setCursors(id: string, cursors: any[]): void {
+  setCursors(id: string, cursors: object[]): void {
     for (const cursor of cursors) {
-      cursor.id = id;
+      cursor["id"] = id;
     }
     this._syncstring.set_cursor_locs(cursors);
   }
 
-  setElement(obj: Partial<Element>, commit: boolean = true): void {
+  setElement({
+    obj,
+    commit,
+    cursors,
+  }: {
+    obj: Partial<Element>;
+    commit?: boolean;
+    cursors?: object[];
+  }): void {
+    if (commit == null) commit = true;
+    if (obj.id == null) {
+      throw Error(`setElement -- id must be specified`);
+    }
     this._syncstring.set(obj);
     if (
       obj.type != "edge" &&
@@ -84,14 +96,29 @@ export class Actions extends BaseActions<State> {
     if (commit) {
       this.syncstring_commit();
     }
+    if (cursors != null) {
+      this.setCursors(obj.id, cursors);
+    }
   }
 
   // Merge obj into data field of element with given id.
-  setElementData(element: Element, obj: object, commit: boolean = true): void {
-    this.setElement(
-      { id: element.id, data: { ...element.data, ...obj } },
-      commit
-    );
+  setElementData({
+    element,
+    obj,
+    commit,
+    cursors,
+  }: {
+    element: Element;
+    obj: object;
+    commit?: boolean;
+    cursors?: object[];
+  }): void {
+    if (commit == null) commit = true;
+    this.setElement({
+      obj: { id: element.id, data: { ...element.data, ...obj } },
+      commit,
+      cursors,
+    });
   }
 
   private createId(): string {
@@ -123,7 +150,7 @@ export class Actions extends BaseActions<State> {
     if (obj.h == null) {
       obj.h = DEFAULT_HEIGHT;
     }
-    this.setElement(obj, commit);
+    this.setElement({ obj, commit, cursors: [{}] });
     return obj as Element;
   }
 
@@ -232,7 +259,7 @@ export class Actions extends BaseActions<State> {
     const group = this.createId();
     // TODO: check that this group id isn't already in use
     for (const id of ids) {
-      this.setElement({ id, group }, false);
+      this.setElement({ obj: { id, group }, commit: false });
     }
     this.syncstring_commit();
   }
@@ -242,7 +269,7 @@ export class Actions extends BaseActions<State> {
   public ungroupElements(ids: string[]) {
     for (const id of ids) {
       // "as any" since null is used for deleting a field.
-      this.setElement({ id, group: null as any }, false);
+      this.setElement({ obj: { id, group: null as any }, commit: false });
     }
     this.syncstring_commit();
   }
@@ -369,7 +396,7 @@ export class Actions extends BaseActions<State> {
       };
       if (!isEqual(element, element1)) {
         changed = true;
-        this.setElement(element1, false);
+        this.setElement({ obj: element1, commit: false });
       }
     }
     if (changed) {
@@ -427,7 +454,8 @@ export class Actions extends BaseActions<State> {
       path: this.path,
       input: element.str ?? "",
       id,
-      set: (obj) => this.setElementData(element, obj),
+      set: (obj) =>
+        this.setElementData({ element, obj, commit: true, cursors: [{}] }),
     });
   }
 
@@ -439,12 +467,17 @@ export class Actions extends BaseActions<State> {
       return;
     }
     const sender_id = this.redux.getStore("account").get_account_id();
-    this.setElementData(element, {
-      [lastMessageNumber(element) + 1]: {
-        input,
-        time: new Date().valueOf(),
-        sender_id,
+    this.setElementData({
+      element,
+      obj: {
+        [lastMessageNumber(element) + 1]: {
+          input,
+          time: new Date().valueOf(),
+          sender_id,
+        },
       },
+      commit: true,
+      cursors: [{}],
     });
   }
 

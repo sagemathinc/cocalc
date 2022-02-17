@@ -31,9 +31,12 @@ export default function Input({ element, focused, canvasScale }: Props) {
       locs = locs;
       side_effect = side_effect;
     },
-    set_cell_input: (id: string, input: string, save?: boolean) => {
+    set_cell_input: (id: string, input: string, commit?: boolean) => {
       id = id;
-      frame.actions.setElement({ id: element.id, str: input }, save);
+      frame.actions.setElement({
+        obj: { id: element.id, str: input },
+        commit,
+      });
     },
     undo: () => {},
     redo: () => {},
@@ -88,10 +91,10 @@ export default function Input({ element, focused, canvasScale }: Props) {
           // don't do anything else -- we handle:
           e.preventDefault();
           // ensure use latest inpute, straight from the editor (avoiding all debounce issues)
-          frame.actions.setElement(
-            { id: element.id, str: cm.getValue() },
-            false
-          );
+          frame.actions.setElement({
+            obj: { id: element.id, str: cm.getValue() },
+            commit: false,
+          });
           // evaluate in all cases
           frame.actions.runCodeElement({ id: element.id });
           // TODO: handle these cases

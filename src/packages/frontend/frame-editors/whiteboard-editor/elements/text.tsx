@@ -51,7 +51,7 @@ function EditText({
       lastRemote.current = valueRef.current;
       try {
         setting.current = true;
-        actions.setElement({ id: element.id, str: valueRef.current });
+        actions.setElement({ obj: { id: element.id, str: valueRef.current } });
       } finally {
         setting.current = false;
       }
@@ -76,7 +76,7 @@ function EditText({
 
   useEffect(() => {
     return () => {
-      actions.setElement({ id: element.id, str: valueRef.current });
+      actions.setElement({ obj: { id: element.id, str: valueRef.current } });
     };
   }, []);
 

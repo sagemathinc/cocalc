@@ -116,7 +116,7 @@ function Message({
   );
 }
 
-function getName(account_id: string) {
+export function getName(account_id: string) {
   return trunc_middle(redux.getStore("users").get_name(account_id)?.trim(), 20);
 }
 

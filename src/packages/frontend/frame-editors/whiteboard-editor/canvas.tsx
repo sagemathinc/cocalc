@@ -99,6 +99,8 @@ import { timerParams } from "./tools/timer";
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { deleteElements } from "./tools/edit-bar";
 
+import Cursors from "./cursors";
+
 const penDPIFactor = 1; // I can't get this to work! :-(
 
 const MIDDLE_MOUSE_BUTTON = 1;
@@ -422,6 +424,7 @@ export default function Canvas({
           selectedElements={[element]}
           transforms={transforms}
           readOnly={readOnly}
+          cursors={cursors?.[id]}
         >
           {elt}
         </Focused>
@@ -436,6 +439,7 @@ export default function Canvas({
           w={w}
           h={h}
         >
+          <Cursors cursors={cursors?.[id]} canvasScale={canvasScale} />
           <NotFocused id={id} selectable={selectedTool == "select"}>
             {elt}
           </NotFocused>
