@@ -198,6 +198,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   function renderStatusColor(status: LicenseStatus) {
     switch (status) {
       case "valid":
+      case "active":
         return "green";
       case "expired":
         return "darkred";
@@ -213,14 +214,17 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   }
 
   function renderStatus(rec: TableRow) {
-    const status: LicenseStatus = rec.status;
+    const status: LicenseStatus = rec.status ?? "valid";
     const color = renderStatusColor(status);
+    const info = LicenseStatusOptions[status];
     const text = status === "expired" ? status.toUpperCase() : status;
     const style = status === "expired" ? { fontSize: "110%" } : {};
     return (
-      <Tag style={style} color={color}>
-        {text}
-      </Tag>
+      <Tooltip title={info}>
+        <Tag style={style} color={color}>
+          {text}
+        </Tag>
+      </Tooltip>
     );
   }
 

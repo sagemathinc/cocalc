@@ -186,7 +186,7 @@ class SiteLicenseHook {
     });
     const order = Array.from(siteLicenseSelectionKeys());
     const orderedIds = sortBy(ids, (id) => {
-      const key = licenseToGroupKey(validLicenses.get(id));
+      const key = licenseToGroupKey(validLicenses.get(id).toJS());
       return order.indexOf(key);
     });
     return orderedIds;
@@ -202,6 +202,7 @@ class SiteLicenseHook {
     const nextLicense: SiteLicenses = {};
     const validLicenses = await this.getValidLicenses();
 
+    // it's important to start testing with decrasing priority.
     for (const license_id of this.orderedSiteLicenseIDs(validLicenses)) {
       if (!is_valid_uuid_string(license_id)) {
         // The site_license is supposed to be a map from uuid's to settings...
@@ -216,7 +217,7 @@ class SiteLicenseHook {
       if (status === "valid") {
         const upgrades: QuotaSetting = this.extractUpgrades(license);
 
-        this.dbg.verbose("computing run quotas...");
+        this.dbg.verbose(`computing run quotas by adding ${license_id}...`);
         const run_quota = compute_total_quota(
           this.project.settings,
           this.project.users,
@@ -240,7 +241,7 @@ class SiteLicenseHook {
               upgrades
             )}.`
           );
-          nextLicense[license_id] = { ...upgrades, status: "valid" };
+          nextLicense[license_id] = { ...upgrades, status: "active" };
         } else {
           this.dbg.info(
             `Found a valid license "${license_id}", but it provides nothing new so not using it.`

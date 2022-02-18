@@ -163,7 +163,8 @@ export interface SiteLicenseQuotaSetting {
 
 // all descriptions should be short sentences, expalining the user what's going on
 export const LicenseStatusOptions = {
-  valid: "License provides upgrades.",
+  valid: "License could provide upgrades.",
+  active: "License provides upgrades.",
   expired: "No longer valid.",
   exhausted: "All seats are used up.",
   future: "Not yet valid.",
