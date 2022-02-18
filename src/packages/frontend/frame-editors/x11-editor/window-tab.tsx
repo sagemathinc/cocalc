@@ -12,7 +12,6 @@ import { Map } from "immutable";
 import { React, Rendered } from "../../app-framework";
 import { Actions } from "./actions";
 import { TAB_BAR_GREY, TAB_BAR_BLUE } from "./theme";
-import { delay } from "awaiting";
 
 interface Props {
   id: string;
