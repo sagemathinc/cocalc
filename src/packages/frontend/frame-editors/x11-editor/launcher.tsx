@@ -11,7 +11,6 @@ import { React, Rendered, TypedMap, useRedux } from "../../app-framework";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { Icon } from "../../components";
 import { APPS } from "./apps";
-import { is_different } from "@cocalc/util/misc";
 import { Actions } from "./actions";
 import { Capabilities } from "../../project_configuration";
 import { debounce, keys, sortBy } from "lodash";
@@ -31,7 +30,7 @@ interface Props {
   name: string;
 }
 
-function isSame(prev, next) {
+function isSame(_prev, _next) {
   return true;
 }
 
