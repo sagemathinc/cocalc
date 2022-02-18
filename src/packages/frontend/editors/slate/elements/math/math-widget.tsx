@@ -33,6 +33,7 @@ export const SlateMath: React.FC<Props> = React.memo(
     const frameContext = useFrameContext();
 
     const { err, __html } = useMemo(() => mathToHtml(value, isInline), [value]);
+    console.log({ value, isInline, err, __html });
 
     const focused = useFocused();
     const selected = useSelected();
