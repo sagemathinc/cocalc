@@ -21,7 +21,14 @@ interface Props {
   height?: number;
 }
 
-export default function Image({ src, style, alt, width, height }: Props) {
+export default function Image({
+  src,
+  style,
+  alt,
+  width,
+  height,
+  priority = false,
+}: Props) {
   if (typeof src == "string") {
     return (
       <img
@@ -54,7 +61,13 @@ export default function Image({ src, style, alt, width, height }: Props) {
       }}
     >
       <div style={{ position: "relative", width: "100%" }}>
-        <NextImage src={src} alt={alt} layout="responsive" width={width} />
+        <NextImage
+          src={src}
+          alt={alt}
+          layout="responsive"
+          width={width}
+          priority={priority}
+        />
       </div>
     </div>
   );

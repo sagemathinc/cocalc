@@ -91,6 +91,7 @@ export default function Content({
             <>
               <Image
                 src={image}
+                priority={true}
                 style={{ padding: "15px" }}
                 alt={alt ?? `Image illustrating ${title}`}
               />
