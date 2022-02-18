@@ -31,7 +31,9 @@ export default function mathToHtml(
 export function latexMathToHtml(s: string): string {
   const { __html, err } = s.startsWith("$$")
     ? mathToHtml(s.slice(2, s.length - 2), false)
-    : mathToHtml(s.slice(1, s.length - 1), true);
+    : s.startsWith("$")
+    ? mathToHtml(s.slice(1, s.length - 1), true)
+    : mathToHtml(s, false);
   if (err) {
     return `<span style="color:#ff6666">${err}</span>`;
   } else {
