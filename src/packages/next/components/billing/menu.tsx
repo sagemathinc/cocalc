@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Menu } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useRouter } from "next/router";
@@ -20,7 +25,8 @@ export default function ConfigMenu({ main }) {
         <b style={{ color: "#666" }}>Billing</b>
       </Menu.Item>
       <Menu.Item key={"cards"}>
-        <Icon name={"credit-card"} style={{ marginRight: "5px" }} /> Credit Cards
+        <Icon name={"credit-card"} style={{ marginRight: "5px" }} /> Credit
+        Cards
       </Menu.Item>
       <Menu.Item key={"subscriptions"}>
         <Icon name={"calendar"} style={{ marginRight: "5px" }} /> Subscriptions
