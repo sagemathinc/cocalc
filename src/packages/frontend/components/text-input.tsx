@@ -15,6 +15,7 @@ interface Props {
   autoFocus?: boolean;
   onFocus?: () => void;
   onBlur?: () => void;
+  disabled?: boolean;
 }
 
 interface State {
@@ -68,6 +69,7 @@ export class TextInput extends React.Component<Props, State> {
           onFocus={this.props.onFocus}
           onBlur={this.props.onBlur}
           autoFocus={this.props.autoFocus}
+          disabled={this.props.disabled === true}
         />
       </FormGroup>
     );
