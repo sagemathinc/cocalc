@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { getServerSettings } from "./server-settings";
+import { getServerSettings, ServerSettings } from "./server-settings";
 import siteURL from "./site-url";
 import { KucalcValues } from "@cocalc/util/db-schema/site-defaults";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
@@ -46,12 +46,20 @@ const fallback = (a?: string, b?: string): string =>
 Create a Javascript object that describes properties of the server.
 This is used on the next.js server landing pages and the share server
 to customize their look and behavior.
+
+This function is cached via the parameters in ./server-settings, i.e.,
+for a few seconds.
 */
 
+let cachedSettings: ServerSettings | undefined = undefined;
+let cachedCustomize: Customize | undefined = undefined;
 export default async function getCustomize(): Promise<Customize> {
   const settings = await getServerSettings();
-
-  return {
+  if (settings === cachedSettings && cachedCustomize != null) {
+    return cachedCustomize;
+  }
+  cachedSettings = settings;
+  cachedCustomize = {
     siteName: fallback(settings.site_name, "On Premises CoCalc"),
     siteDescription: fallback(
       settings.site_description,
@@ -107,4 +115,6 @@ export default async function getCustomize(): Promise<Customize> {
 
     stripePublishableKey: settings.stripe_publishable_key,
   } as Customize;
+
+  return cachedCustomize;
 }
