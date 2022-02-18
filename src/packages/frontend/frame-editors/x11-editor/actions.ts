@@ -100,11 +100,6 @@ export class Actions extends BaseActions<X11EditorState> {
     this.setState({ disabled: !ok, config_unknown, x11_apps });
   }
 
-  /*
-  _raw_default_frame_tree(): FrameTree {
-    return { type: "x11" };
-  }
-  */
   _raw_default_frame_tree(): FrameTree {
     return {
       direction: "col",

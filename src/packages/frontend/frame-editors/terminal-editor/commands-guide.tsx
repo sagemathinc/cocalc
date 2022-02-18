@@ -85,7 +85,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
   const [cwd, set_cwd] = useState<string>(""); // default home directory
   const [hidden, set_hidden] = useState<boolean>(false); // hidden files
   // empty immutable js list
-  const [listing, set_listing] = useState<ListingImm>(List([]));
+  const [listing, set_listing] = useState<ListingImm | string>(List([]));
 
   const [listing_stats, set_listing_stats] =
     useState<typeof ListingStatsInit>(ListingStatsInit);
@@ -123,7 +123,18 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
 
   // finally, if the listing really did change – or show/hide hidden files toggled – recalculate everything
   useEffect(() => {
-    if (listing == null) return;
+    // a user reported a crash "Uncaught TypeError: listing.filter is not a function".
+    // This was because directory_listings is a map from path to either an immutable
+    // listing **or** an error, as you can see where it is set in the file frontend/project_actions.ts
+    // The typescript there just has an "any", because it's code that was partly converted from coffeescript.
+    // Fixing this by just doing listing?.filter==null instead of listing==null here, since dealing with
+    // an error isn't necessary for this command guide.
+    if (
+      listing == null ||
+      typeof listing == "string" ||
+      listing?.filter == null
+    )
+      return;
     const all_files = hidden
       ? listing
       : listing.filter((val) => !val.get("name").startsWith("."));
