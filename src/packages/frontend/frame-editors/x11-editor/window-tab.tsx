@@ -45,6 +45,24 @@ export const WindowTab: React.FC<Props> = React.memo((props: Props) => {
     return <Icon name="file" style={{ height: "20px", paddingRight: "5px" }} />;
   }
 
+  async function onClose(evt) {
+    // we have to focus on close as well, because there could be a modal dialog (e.g. asking upon closing)
+    onFocus(evt);
+
+    const wid = info.get("wid");
+    actions.close_window(id, wid);
+    evt.stopPropagation();
+  }
+
+  async function onFocus(evt) {
+    // FIRST set the active frame to the one we just clicked on!
+    actions.set_active_id(id);
+    // SECOND make this particular tab focused.
+    actions.set_focused_window_in_frame(id, info.get("wid"));
+    actions.client?.focus();
+    evt.stopPropagation();
+  }
+
   function render_close_button(): Rendered {
     const color = is_current ? TAB_BAR_GREY : TAB_BAR_BLUE;
     const backgroundColor = is_current ? TAB_BAR_BLUE : TAB_BAR_GREY;
@@ -57,19 +75,7 @@ export const WindowTab: React.FC<Props> = React.memo((props: Props) => {
           position: "relative",
           padding: "0 5px",
         }}
-        onClick={async (evt) => {
-          const wid = info.get("wid");
-          actions.close_window(id, wid);
-          evt.stopPropagation();
-
-          // focus this frame in the next event loop.
-          await delay(0);
-          try {
-            actions.focus(id);
-          } catch (e) {
-            // ignore - already closed.
-          }
-        }}
+        onClick={onClose}
       >
         <Icon name="times" />
       </div>
@@ -78,14 +84,7 @@ export const WindowTab: React.FC<Props> = React.memo((props: Props) => {
 
   return (
     <div
-      onClick={(evt) => {
-        // FIRST set the active frame to the one we just clicked on!
-        actions.set_active_id(id);
-        // SECOND make this particular tab focused.
-        actions.set_focused_window_in_frame(id, info.get("wid"));
-        actions.client?.focus();
-        evt.stopPropagation();
-      }}
+      onClick={onFocus}
       style={{
         display: "inline-block",
         width: "250px",

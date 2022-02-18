@@ -75,7 +75,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
   } = props;
 
   const is_mounted = useIsMountedRef();
-  const [is_loaded, set_is_loaded] = useState<boolean>(false);
+  const is_loaded = useRef<boolean>(false);
   const windowRef = useRef<HTMLDivElement>(null);
   const focusRef = useRef<HTMLTextAreaElement>(null);
 
@@ -86,13 +86,9 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
   const config_unknown: boolean = useRedux(name, "config_unknown");
 
   const measure_size = debounce(_measure_size, 200, {
-    leading: false,
+    leading: true,
     trailing: true,
   });
-
-  useEffect(() => {
-    measure_size();
-  }, [resize]);
 
   useEffect(() => {
     // keyboard layout change
@@ -105,6 +101,11 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     editor_settings.get("keyboard_variant"),
   ]);
 
+  // reload or font size change -- measure and resize again.
+  useEffect(() => {
+    measure_size();
+  }, [resize, desc.get("font_size"), reload]);
+
   useEffect(() => {
     if (is_current) focus_textarea();
   }, [is_current]);
@@ -112,27 +113,38 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
   // tab change (i.e. different wid) or just got loaded?
   useEffect(() => {
     insert_window_in_dom();
-  }, [desc.get("wid"), is_loaded]);
+  }, [desc.get("wid")]);
+
+  // just got loaded?
+  useEffect(() => {
+    if (!is_loaded.current && desc.get("wid") != null) {
+      insert_window_in_dom();
+    }
+  }, [windows, desc.get("wid")]);
 
   // children changed?
+  const prevWindows = usePrevious(windows);
   const children = useMemo(() => {
-    if (windows == null) return;
-    const wid: number = desc.get("wid");
-    return windows.getIn([wid, "children"], Set());
-  }, [desc.get("wid"), windows]);
-
+    const wid = desc.get("wid");
+    return windows?.getIn([wid, "children"], Set());
+  }, [windows, desc.get("wid")]);
   const prevChildren = usePrevious(children);
 
   useEffect(() => {
-    if (is_loaded && !children.equals(prevChildren)) {
+    if (windows == null) return;
+    if (prevWindows === windows) return;
+    if (!is_loaded.current) return;
+    if (!children.equals(prevChildren)) {
       insert_children_in_dom(children.subtract(prevChildren));
     }
-  }, [is_loaded, prevChildren, children]);
+  }, [windows, prevWindows, children, prevChildren]);
 
-  // reload or font size change -- measure and resize again.
   useEffect(() => {
-    measure_size(props);
-  }, [desc.get("font_size"), reload]);
+    if (windows == null) return;
+    const wid = desc.get("wid");
+    const children = windows?.getIn([wid, "children"], Set());
+    insert_children_in_dom(children);
+  }, [windows, desc.get("wid")]);
 
   useEffect(() => {
     // "wait" until window node is available
@@ -143,8 +155,11 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
           if (node == null) {
             throw new Error("x11 window node not yet available");
           } else {
-            await insert_window_in_dom(true);
             disable_browser_context_menu();
+            // earlier, when this was a Component, this was called – but it's not a good idea.
+            // this call always fails, causes an endless loop until the timeout
+            // rather, wait until the client learns about the windows and the effect with "!is_loaded" kicks in
+            //await insert_window_in_dom(true);
           }
         },
         max_time: 60000,
@@ -159,7 +174,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     );
 
     return () => {
-      set_is_loaded(false);
+      is_loaded.current = false;
     };
   }, []);
 
@@ -174,7 +189,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     });
   }
 
-  async function insert_window_in_dom(fail = false): Promise<void> {
+  async function insert_window_in_dom(): Promise<void> {
     if (!is_mounted.current) {
       return;
     }
@@ -186,23 +201,21 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     }
     const wid = desc.get("wid");
     if (wid == null) {
-      set_is_loaded(false);
+      is_loaded.current = false;
       $(node).empty();
       return;
     }
     try {
       client.insert_window_in_dom(wid, node);
+      await insert_children_in_dom(windows.getIn([wid, "children"], Set()));
     } catch (err) {
-      // upon initial loading, this might not be available yet ... just retry
-      if (fail) throw err;
       // window not available right now.
-      set_is_loaded(false);
+      is_loaded.current = false;
       $(node).empty();
       return;
     }
-    insert_children_in_dom(windows.getIn([wid, "children"], Set()));
     measure_size();
-    if (!is_loaded) set_is_loaded(true);
+    is_loaded.current = true;
     await delay(0);
     if (!is_mounted.current || wid !== desc.get("wid")) {
       return;
@@ -213,7 +226,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function insert_children_in_dom(wids: Set<number>): void {
+  async function insert_children_in_dom(wids: Set<number>): void {
     const client = actions.client;
     if (client == null) {
       // will never happen -- to satisfy typescript
@@ -222,6 +235,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     wids.forEach((wid) => {
       client.insert_child_in_dom(wid);
     });
+    await delay(0);
     measure_size();
   }
 
