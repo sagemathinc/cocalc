@@ -1,4 +1,10 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Alert, Layout } from "antd";
+import { unreachable } from "@cocalc/util/misc";
 import A from "components/misc/A";
 import { join } from "path";
 import basePath from "lib/base-path";
@@ -12,11 +18,12 @@ import PaymentMethods from "./payment-methods";
 import Subscriptions from "./subscriptions";
 import InvoicesAndReceipts from "./invoices-and-receipts";
 import Overview from "./overview";
+import { MainPagesType } from "./consts";
 
 const { Content } = Layout;
 
 interface Props {
-  page: string;
+  page: [MainPagesType | undefined]; // empty array is the overview page
 }
 
 export default function ConfigLayout({ page }: Props) {
@@ -27,7 +34,12 @@ export default function ConfigLayout({ page }: Props) {
     return (
       <Alert
         showIcon
-        style={{ margin: "30px auto", maxWidth: "400px", fontSize: "12pt",padding:'15px 30px' }}
+        style={{
+          margin: "30px auto",
+          maxWidth: "400px",
+          fontSize: "12pt",
+          padding: "15px 30px",
+        }}
         type="warning"
         message="Billing is not enabled for this server."
       />
@@ -60,9 +72,12 @@ export default function ConfigLayout({ page }: Props) {
     return <div>Please upgrade to a non-anonymous account.</div>;
   }
 
+  // page could be an empty array, then main is undefined → overview page
   const [main] = page;
 
   function body() {
+    // main must be in MainPages defined in [[..page]].tsx
+    if (main == null) return <Overview />;
     switch (main) {
       case "cards":
         return <PaymentMethods />;
@@ -70,8 +85,9 @@ export default function ConfigLayout({ page }: Props) {
         return <Subscriptions />;
       case "receipts":
         return <InvoicesAndReceipts />;
+      default:
+        unreachable(main);
     }
-    return <Overview />;
   }
 
   return (
