@@ -50,7 +50,21 @@ function process_math_tokens(tokens: Token[], math): void {
         const i = MATH_ESCAPE.length;
         const n = parseInt(content.slice(i, content.length - i));
         if (math[n] != null) {
-          token.content = math[n].slice(j, math[n].length - j);
+          if (
+            math[n].startsWith("$") ||
+            math[n].startsWith("\\(") ||
+            math[n].startsWith("\\[")
+          ) {
+            // only truncate if math is in $'s.  Math could be also
+            // be things like \begin{...} \end{...} that gets auto
+            // detected and has no delims around it.
+            token.content = math[n].slice(j, math[n].length - j);
+          } else {
+            // anything autodected, e.g., \begin{equation} ...,
+            // has to be in display mode, or it gives an error.
+            token.type = "display_math";
+            token.content = math[n];
+          }
         }
       }
     } else {
