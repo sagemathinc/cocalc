@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/next",
-  "version": "0.30.3",
+  "version": "0.31.0",
   "description": "CoCalc's nextjs server",
   "main": "lib/init.js",
   "exports": {
@@ -60,12 +60,12 @@
   "dependencies-comment": "IMPORTANT: we install typescript as a normal dependency since it may be needed at runtime due to server settings changing!!",
   "dependencies": {
     "@cocalc/assets": "^1.5.1",
-    "@cocalc/backend": "^1.10.0",
+    "@cocalc/backend": "^1.11.0",
     "@cocalc/cdn": "^1.8.2",
-    "@cocalc/database": "^0.13.0",
-    "@cocalc/frontend": "^1.30.0",
-    "@cocalc/server": "^0.12.1",
-    "@cocalc/util": "^1.25.1",
+    "@cocalc/database": "^0.14.0",
+    "@cocalc/frontend": "^1.33.0",
+    "@cocalc/server": "^0.14.0",
+    "@cocalc/util": "^1.27.0",
     "@types/express": "^4.17.13",
     "@types/react": "^17.0.33",
     "antd": "^4.18.2",
