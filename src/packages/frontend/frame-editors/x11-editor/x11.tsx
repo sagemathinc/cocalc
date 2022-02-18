@@ -15,14 +15,13 @@ import {
   React,
   useEffect,
   useIsMountedRef,
-  useState,
   useRef,
   useRedux,
   useTypedRedux,
   usePrevious,
   useMemo,
 } from "../../app-framework";
-import { debounce } from "underscore";
+import { debounce } from "lodash";
 import { cmp, is_different } from "@cocalc/util/misc";
 import { Actions } from "./actions";
 import { WindowTab } from "./window-tab";
@@ -226,7 +225,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  async function insert_children_in_dom(wids: Set<number>): void {
+  async function insert_children_in_dom(wids: Set<number>): Promise<void> {
     const client = actions.client;
     if (client == null) {
       // will never happen -- to satisfy typescript
