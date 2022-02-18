@@ -71,7 +71,6 @@ function katex_plugin(): void {
         // Try to do it with katex.
         try {
           if (renderToString == null) {
-            // important to share server that we only do this once
             ({ renderToString } = (await import("katex")).default);
             // @ts-ignore -- see https : //github.com/vaadin/flow/issues/6335
             import("katex/dist/katex.min.css");
