@@ -37,7 +37,8 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
       <Row>
         <Col span={24}>
           <Typography.Text type="secondary" italic>
-            Title and Description are controlled by the course managers.
+            Title and Description are controlled by the course managers in the
+            course configuration tab.
           </Typography.Text>
         </Col>
       </Row>
