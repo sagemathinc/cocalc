@@ -19,6 +19,7 @@ interface Props {
   alt: string;
   width?: number;
   height?: number;
+  priority?: boolean;
 }
 
 export default function Image({

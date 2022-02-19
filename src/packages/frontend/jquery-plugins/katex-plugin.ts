@@ -12,14 +12,9 @@ Also immediately falls back to mathjax if account prefs other settings katex
 is explicitly known and set to false.
 */
 
-const CACHE_SIZE = 300;
-
-import { is_share_server } from "../components/share-server";
-
 export const jQuery = $;
 declare var $: any;
 import { tex2jax } from "./tex2jax";
-import LRU from "lru-cache";
 
 import { macros } from "./math-katex";
 import { redux } from "../app-framework";
@@ -37,19 +32,6 @@ $.fn.katex = function () {
   this.each(katex_plugin);
   return this;
 };
-
-const math_cache = new LRU({ max: CACHE_SIZE });
-
-function get_key(text: string, display?: boolean): string {
-  return `${display ? "d" : "i"}${text}`;
-}
-
-function is_macro_definition(s: string): boolean {
-  for (const k of ["\\newcommand", "\\renewcommand", "\\providecommand"]) {
-    if (s.indexOf(k) != -1) return true;
-  }
-  return false;
-}
 
 function katex_plugin(): void {
   // @ts-ignore
@@ -76,67 +58,28 @@ function katex_plugin(): void {
         displayMode: (node[0] as any).type == "math/tex; mode=display",
         macros,
         trust: true,
+        globalGroup: true, // See https://github.com/sagemathinc/cocalc/issues/5750
       };
       let text = node.text();
-      const key: string = get_key(text, katex_options.displayMode);
-      const cached: any = math_cache.get(key);
-      if (cached !== undefined) {
-        node.replaceWith(cached.clone());
-        return;
-      }
       text = text.replace("\\newcommand{\\Bold}[1]{\\mathbf{#1}}", ""); // hack for sage kernel for now.
-      if (
-        (always_use_mathjax || is_macro_definition(text)) &&
-        !is_share_server()
-      ) {
-        //console.log("using mathjax for text since is a macro defn", text);
-        // Use mathjax for this.
-        // 1. clear anything in cache involving the command
-        const i = text.indexOf("{");
-        const j = text.indexOf("}");
-        if (i != -1 && j != -1) {
-          const cmd = text.slice(i + 1, j);
-          math_cache.forEach(function (_, k) {
-            if ((k as string).indexOf(cmd) != -1) {
-              math_cache.del(k);
-            }
-          });
-        }
-        // 2. Now define/display it using mathjax.
+      if (always_use_mathjax) {
         const node0: any = node;
         if (node0.mathjax !== undefined) {
-          node0.mathjax({
-            cb: () => {
-              // prev since mathjax puts the rendered content NEXT to the script node0, not inside it (of course).
-              math_cache.set(key, node0.prev().clone());
-            },
-          });
+          node0.mathjax();
         }
       } else {
         // Try to do it with katex.
         try {
           if (renderToString == null) {
-            // important to share server that we only do this once
             ({ renderToString } = (await import("katex")).default);
-            if (!is_share_server()) {
-              // @ts-ignore -- see https://github.com/vaadin/flow/issues/6335
-              import("katex/dist/katex.min.css");
-            }
+            // @ts-ignore -- see https : //github.com/vaadin/flow/issues/6335
+            import("katex/dist/katex.min.css");
           }
           const rendered = $(renderToString(text, katex_options));
           node.replaceWith(rendered);
-          math_cache.set(key, rendered.clone());
           // Only load css if not on share server (where css import doesn't make
           // sense, and the share server imports this its own way).
         } catch (err) {
-          if (is_share_server()) {
-            node.replaceWith(
-              $(
-                "<div style='text-align: center;color: red;'>(Share server only supports KaTeX; open in CoCalc to see this formula.)</div>"
-              )
-            );
-            return;
-          }
           // Failed -- use mathjax instead.
           console.log(
             "WARNING -- ",
@@ -147,12 +90,7 @@ function katex_plugin(): void {
           // Except for this, this katex pluging is synchronous and does not depend on MathJax at all.
           const node0: any = node;
           if (node0.mathjax !== undefined) {
-            node0.mathjax({
-              cb: () => {
-                // prev since mathjax puts the rendered content NEXT to the script node0, not inside it (of course).
-                math_cache.set(key, node0.prev().clone());
-              },
-            });
+            node0.mathjax();
           }
         }
       }

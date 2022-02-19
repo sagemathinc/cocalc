@@ -8,6 +8,7 @@ import {
   AllSiteSettingsCached as ServerSettings,
   AllSiteSettingsKeys,
 } from "@cocalc/util/db-schema/types";
+export type { ServerSettings };
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { site_settings_conf as CONF } from "@cocalc/util/schema";
 import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";

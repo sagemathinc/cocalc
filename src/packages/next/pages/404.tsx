@@ -3,24 +3,32 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { useEffect, useState } from "react";
 import { join } from "path";
 import Head from "next/head";
 import Footer from "components/landing/footer";
 import LandingHeader from "components/landing/header";
 import { Layout as AntdLayout } from "antd";
 import basePath from "lib/base-path";
-import getCustomize from "@cocalc/server/settings/customize";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
+import apiPost from "lib/api/post";
 
 const favicon = join(basePath, "webapp/favicon-32x32.png");
 
-export default function Custom404({ customize }) {
-  const { siteName } = customize;
+export default function Custom404() {
+  const [siteName, setSiteName] = useState<string>("");
+  useEffect(() => {
+    (async () => {
+      const customize = await apiPost("customize", { fields: ["siteName"] });
+      setSiteName(customize.siteName);
+    })();
+  }, []);
+
   return (
     <>
       <Head>
-        <title>{siteName} – 404 Page Not Found</title>
+        <title>{siteName ? `${siteName}  – ` : ""}404 Page Not Found</title>
         <meta name="description" content="404 Page Not Found" />
         <meta name="robots" content="noindex,nofollow" />
         <link rel="icon" href={favicon} />
@@ -51,7 +59,9 @@ export default function Custom404({ customize }) {
             </h1>
 
             <div>
-              <a href={`${basePath}/`}>Back to {siteName}'s main page</a>
+              <a href={`${basePath}/`}>
+                Back to {siteName ? `${siteName}'s ` : "the "} main page
+              </a>
             </div>
           </div>
         </AntdLayout.Content>
@@ -59,8 +69,4 @@ export default function Custom404({ customize }) {
       </AntdLayout>
     </>
   );
-}
-
-export async function getStaticProps() {
-  return { props: { customize: await getCustomize() } };
 }
