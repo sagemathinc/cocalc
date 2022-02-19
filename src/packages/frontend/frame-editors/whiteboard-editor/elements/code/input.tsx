@@ -25,11 +25,8 @@ export default function Input({ element, focused, canvasScale }: Props) {
   const [complete, setComplete] = useState<Map<string, any> | undefined>(
     undefined
   );
-  const [introspect, setIntrospect] = useState<Map<string, any> | undefined>(
-    undefined
-  );
   const actions = useMemo(() => {
-    return new Actions(frame, element.id, setComplete, setIntrospect);
+    return new Actions(frame, element.id, setComplete);
   }, [element.id]); // frame can't change meaningfully.
 
   const cm = (
@@ -67,7 +64,6 @@ export default function Input({ element, focused, canvasScale }: Props) {
           }
         }}
       />
-      <pre>{JSON.stringify(introspect?.toJS(),undefined,2)}</pre>
     </div>
   );
   if (focused && canvasScale != 1) {
@@ -100,7 +96,7 @@ class Actions implements EditorActions {
   private setIntrospect: (complete: Map<string, any> | undefined) => void;
   private jupyter_actions: JupyterActions | undefined = undefined;
 
-  constructor(frame, id, setComplete, setIntrospect) {
+  constructor(frame, id, setComplete) {
     this.frame = frame;
     this.id = id;
     this.setComplete = (complete) => {
@@ -109,7 +105,7 @@ class Actions implements EditorActions {
     };
     this.setIntrospect = (introspect) => {
       this.introspect = introspect;
-      setIntrospect(introspect);
+      this.frame.actions.setState({ introspect });
     };
     this.introspect = undefined;
   }
@@ -218,8 +214,11 @@ class Actions implements EditorActions {
   ): Promise<void> {
     if (code === "") return; // no-op if there is no code (should never happen)
     const actions = await this.getJupyterActions();
-    await actions.introspect(code, level, codemirror_to_jupyter_pos(code, pos));
-    const introspect = actions.store.get("introspect");
+    const introspect = await actions.introspect(
+      code,
+      level,
+      codemirror_to_jupyter_pos(code, pos)
+    );
     this.setIntrospect(introspect);
   }
 }

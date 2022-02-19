@@ -34,6 +34,7 @@ import { pasteElements } from "./tools/edit-bar";
 
 export interface State extends CodeEditorState {
   elements?: Elements;
+  introspect?: Map<string, any>;  // used for jupyter cells -- displayed in a separate frame.
 }
 
 export class Actions extends BaseActions<State> {

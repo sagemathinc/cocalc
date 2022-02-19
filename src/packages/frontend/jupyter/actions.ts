@@ -166,6 +166,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
+  // Only use this on the frontend, of course.
+  protected getFrameActions() {
+    return this.redux.getEditorActions(this.project_id, this.path);
+  }
+
   protected init_client_only(): void {
     throw Error("must define in a derived class");
   }
@@ -1730,12 +1735,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   is_introspecting(): boolean {
-    return this.store.get("introspect") != null;
+    const actions = this.getFrameActions() as any;
+    return actions?.store?.get("introspect") != null;
   }
 
   introspect_close = () => {
     if (this.is_introspecting()) {
-      this.setState({ introspect: undefined });
+      this.getFrameActions()?.setState({ introspect: undefined });
     }
   };
 
@@ -1752,7 +1758,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     code: string,
     level: 0 | 1,
     cursor_pos?: number
-  ): Promise<void> => {
+  ): Promise<immutable.Map<string, any> | undefined> => {
     const req = (this._introspect_request =
       (this._introspect_request != null ? this._introspect_request : 0) + 1);
 
@@ -1776,13 +1782,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       introspect = { error: err };
     }
     if (this._introspect_request > req) return;
-    this.setState({ introspect: immutable.fromJS(introspect) });
+    const i = immutable.fromJS(introspect);
+    this.getFrameActions()?.setState({
+      introspect: i,
+    });
+    return i; // convenient / useful, e.g., for use by whiteboard.
   };
 
   clear_introspect = (): void => {
     this._introspect_request =
       (this._introspect_request != null ? this._introspect_request : 0) + 1;
-    this.setState({ introspect: undefined });
+    this.getFrameActions()?.setState({ introspect: undefined });
   };
 
   public async signal(signal = "SIGINT"): Promise<void> {

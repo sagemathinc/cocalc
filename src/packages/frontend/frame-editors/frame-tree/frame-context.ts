@@ -14,6 +14,7 @@
 import { createContext, useContext } from "react";
 import { Actions } from "../code-editor/actions";
 import { Map } from "immutable";
+import { useRedux } from "@cocalc/frontend/app-framework/redux-hooks";
 
 export interface IFrameContext {
   id: string;
@@ -38,3 +39,8 @@ export const FrameContext = createContext<IFrameContext>(defaultFrameContext);
 export const useFrameContext: () => IFrameContext = () => {
   return useContext(FrameContext);
 };
+
+export function useFrameRedux(pathInStore: string[]) {
+  const { project_id, path } = useFrameContext();
+  return useRedux(pathInStore, project_id, path);
+}
