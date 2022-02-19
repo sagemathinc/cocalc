@@ -447,7 +447,7 @@ export class Actions extends BaseActions<State> {
   // There may be a lot of options for this...
   runCodeElement({ id }: { id: string }) {
     const element = this.store.get("elements")?.get(id)?.toJS();
-    if (element == null) {
+    if (element == null || element.type != "code") {
       // no-op no such element
       // TODO?!
       console.warn("no cell with id", id);

@@ -1,7 +1,4 @@
-import { redux } from "@cocalc/frontend/app-framework";
-import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
-import { aux_file } from "@cocalc/util/misc";
-import { once } from "@cocalc/util/async-utils";
+import { getJupyterActions } from "./actions";
 
 export default async function run({
   project_id,
@@ -16,11 +13,7 @@ export default async function run({
   id: string;
   set: (object) => void;
 }) {
-  const actions = await getJupyterEditorActions(project_id, path);
-  const { jupyter_actions } = actions;
-  if (jupyter_actions.syncdb.get_state() != "ready") {
-    await once(jupyter_actions.syncdb, "ready");
-  }
+  const jupyter_actions = await getJupyterActions(project_id, path);
   const store = jupyter_actions.store;
   let cell = store.get("cells").get(id);
   if (cell == null) {
@@ -39,26 +32,4 @@ export default async function run({
     }
   }
   store.on("change", onChange);
-}
-
-// NOTE: This is async for a good reason involving code splitting and lazy loading of editors.
-export async function getJupyterEditorActions(
-  project_id: string,
-  path: string
-): Promise<JupyterEditorActions> {
-  const aux_path = aux_file(path, "ipynb");
-  let actions = redux.getEditorActions(project_id, aux_path) as
-    | JupyterEditorActions
-    | undefined;
-  if (actions == null) {
-    const projectActions = redux.getProjectActions(project_id);
-    await projectActions.initFileRedux(aux_path);
-    actions = redux.getEditorActions(project_id, aux_path) as
-      | JupyterEditorActions
-      | undefined;
-  }
-  if (actions == null) {
-    throw Error("bug -- actions must be defined");
-  }
-  return actions;
 }

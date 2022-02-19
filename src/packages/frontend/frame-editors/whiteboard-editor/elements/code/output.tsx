@@ -3,7 +3,7 @@ import { CellOutput } from "@cocalc/frontend/jupyter/cell-output";
 import { fromJS } from "immutable";
 import { useFrameContext } from "../../hooks";
 import { path_split } from "@cocalc/util/misc";
-import { getJupyterEditorActions } from "./run";
+import { getJupyterActions } from "./actions";
 import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 
@@ -20,9 +20,9 @@ export default function Output({ element }) {
   // Initialize state needed for widgets to work.
   useEffect(() => {
     (async () => {
-      const actions = await getJupyterEditorActions(project_id, path);
+      const jupyter_actions = await getJupyterActions(project_id, path);
       if (!isMounted.current) return;
-      setJupyterActions(actions.jupyter_actions);
+      setJupyterActions(jupyter_actions);
     })();
   }, []);
 
