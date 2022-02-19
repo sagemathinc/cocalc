@@ -25,14 +25,15 @@ The name was coined in fall 2016 and changed around spring 2017.
 
 ## Contributors
 
-### Current very active contributors
+### YOU?!
+
+New -- Feb 2022:  If you want to work on something at https://github.com/sagemathinc/cocalc/issues, [contact us](email:help@cocalc.com), and we might be able to pay you!
+
+### Contributors
 
 - Harald Schilly
 - Hal Snyder
 - William Stein
-
-### Past contributors
-
 - Travis Scholl
 - John Jeng
 - Greg Bard
