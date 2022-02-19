@@ -4,7 +4,6 @@ See frontend/components/iconfont.cn/README.md for how to add anything from
 the massive https://www.iconfont.cn/?lang=us
 */
 
-import { Input } from "antd";
 import IconSelect from "@cocalc/frontend/components/icon-select";
 import Head from "components/landing/head";
 
