@@ -14,6 +14,22 @@ interface Props {
 export default function Input({ element, focused, canvasScale }: Props) {
   const frame = useFrameContext();
   const actions = {
+    set_cell_input: (id: string, input: string, commit?: boolean) => {
+      id = id;
+      frame.actions.setElement({
+        obj: { id: element.id, str: input },
+        commit,
+      });
+    },
+    undo: () => frame.actions.undo(),
+    redo: () => frame.actions.redo(),
+    in_undo_mode: () => {
+      return false;
+    },
+    save: (): Promise<void> => {
+      return (async () => {})();
+    },
+    // Everything below is related to introspection.
     select_complete: (
       id: string,
       item: string,
@@ -30,18 +46,6 @@ export default function Input({ element, focused, canvasScale }: Props) {
     set_cursor_locs: (locs: any[], side_effect?: boolean) => {
       locs = locs;
       side_effect = side_effect;
-    },
-    set_cell_input: (id: string, input: string, commit?: boolean) => {
-      id = id;
-      frame.actions.setElement({
-        obj: { id: element.id, str: input },
-        commit,
-      });
-    },
-    undo: () => {},
-    redo: () => {},
-    in_undo_mode: () => {
-      return false;
     },
     is_introspecting: () => {
       return false;
@@ -70,9 +74,6 @@ export default function Input({ element, focused, canvasScale }: Props) {
       return (async () => {
         return false;
       })();
-    },
-    save: (): Promise<void> => {
-      return (async () => {})();
     },
   };
 

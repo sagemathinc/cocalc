@@ -286,14 +286,18 @@ export class Actions extends BaseActions<State> {
     });
   }
 
-  undo(_id: string): void {
+  undo(_id?: string): void {
     this._syncstring.undo();
     this._syncstring.commit();
   }
 
-  redo(_id: string): void {
+  redo(_id?: string): void {
     this._syncstring.redo();
     this._syncstring.commit();
+  }
+
+  in_undo_mode(): boolean {
+    return this._syncstring.in_undo_mode();
   }
 
   fitToScreen(id: string, state: boolean = true): void {
