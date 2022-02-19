@@ -12,6 +12,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { getJupyterActions } from "./actions";
 import { Actions as WhiteboardActions } from "../../actions";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
 
 interface Props {
   element: Element;
@@ -66,7 +67,7 @@ export default function Input({ element, focused, canvasScale }: Props) {
           }
         }}
       />
-      <pre>{JSON.stringify(introspect?.toJS())}</pre>
+      <pre>{JSON.stringify(introspect?.toJS(),undefined,2)}</pre>
     </div>
   );
   if (focused && canvasScale != 1) {
@@ -93,16 +94,23 @@ class Actions implements EditorActions {
     actions: WhiteboardActions;
   };
   private id: string;
+  private _complete: Map<string, any> | undefined = undefined;
   private setComplete: (complete: Map<string, any> | undefined) => void;
+  private introspect: Map<string, any> | undefined = undefined;
   private setIntrospect: (complete: Map<string, any> | undefined) => void;
-  private introspect: any;
   private jupyter_actions: JupyterActions | undefined = undefined;
 
   constructor(frame, id, setComplete, setIntrospect) {
     this.frame = frame;
     this.id = id;
-    this.setComplete = setComplete;
-    this.setIntrospect = setIntrospect;
+    this.setComplete = (complete) => {
+      this._complete = complete;
+      setComplete(complete);
+    };
+    this.setIntrospect = (introspect) => {
+      this.introspect = introspect;
+      setIntrospect(introspect);
+    };
     this.introspect = undefined;
   }
 
@@ -114,6 +122,10 @@ class Actions implements EditorActions {
       this.frame.project_id,
       this.frame.path
     );
+    // patch some functions from JupyterActions to use ones defined
+    // in this object:
+    this.jupyter_actions.select_complete = this.select_complete.bind(this);
+    this.jupyter_actions.save = this.save.bind(this);
     return this.jupyter_actions;
   }
 
@@ -137,19 +149,35 @@ class Actions implements EditorActions {
   }
 
   async save(): Promise<void> {
-    return (async () => {})();
+    await this.frame.actions.save(true);
   }
 
   set_cursor_locs(locs: any[], sideEffect?: boolean) {
     this.frame.actions.setCursors(this.id, locs, sideEffect);
   }
 
-  // Everything below is related to introspection / tab completion...
-  select_complete(id: string, item: string, complete?: Map<string, any>) {
-    id = id;
-    item = item;
-    complete = complete;
+  // Everything for the rest of the class is for introspection and tab completion.
+  // It is more or less a rewrite of similar functions in
+  // @cocalc/frontend/juputer/actions.ts but to make sense for cells in a whiteboard.
+
+  // TAB COMPLETION
+  select_complete(_id: string, item: string, complete?: Map<string, any>) {
+    if (complete == null) {
+      complete = this._complete;
+    }
     this.clear_complete();
+    if (complete == null) return;
+    const input = complete.get("code");
+    if (input == null || complete.get("error")) return;
+    const starting = input.slice(0, complete.get("cursor_start"));
+    const ending = input.slice(complete.get("cursor_end"));
+    const new_input = threeWayMerge({
+      base: complete.get("base"),
+      local: starting + item + ending,
+      remote:
+        this.frame.actions.store.getIn(["elements", this.id, "str"]) ?? "",
+    });
+    this.set_cell_input(this.id, new_input);
   }
 
   complete_handle_key(_: string, keyCode: number) {
@@ -162,12 +190,24 @@ class Actions implements EditorActions {
     this.setComplete(undefined);
   }
 
+  async complete(
+    code: string,
+    pos?: { line: number; ch: number } | number,
+    id?: string,
+    offset?: any
+  ): Promise<boolean> {
+    const actions = await this.getJupyterActions();
+    const popup = await actions.complete(code, pos, id, offset);
+    this.setComplete(actions.store.get("complete"));
+    return popup;
+  }
+
+  // INTROSPECTION (shift+tab) -- shows help about what is before cursor
   is_introspecting() {
     return this.introspect != null;
   }
 
   introspect_close() {
-    this.introspect = undefined;
     this.setIntrospect(undefined);
   }
 
@@ -176,26 +216,11 @@ class Actions implements EditorActions {
     level: 0 | 1,
     pos: { ch: number; line: number }
   ): Promise<void> {
-    console.log("introspect_at_pos", { code, level, pos });
     if (code === "") return; // no-op if there is no code (should never happen)
     const actions = await this.getJupyterActions();
     await actions.introspect(code, level, codemirror_to_jupyter_pos(code, pos));
-    this.introspect = actions.store.get("introspect");
-    this.setIntrospect(this.introspect);
-    console.log("introspect = ", this.introspect?.toJS());
-  }
-
-  async complete(
-    code: string,
-    pos?: { line: number; ch: number } | number,
-    id?: string,
-    offset?: any
-  ): Promise<boolean> {
-    console.log("complete", { code, pos, id, offset });
-    const actions = await this.getJupyterActions();
-    const popup = await actions.complete(code, pos, id, offset);
-    this.setComplete(actions.store.get("complete"));
-    return popup;
+    const introspect = actions.store.get("introspect");
+    this.setIntrospect(introspect);
   }
 }
 

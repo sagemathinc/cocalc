@@ -7,7 +7,7 @@ export { getStyle };
 import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { debounce } from "lodash";
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
-import { three_way_merge as merge } from "@cocalc/sync/editor/generic/util";
+import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 interface Props {
@@ -62,7 +62,7 @@ function EditText({
     if (setting.current) return;
     const base = lastRemote.current;
     const remote = element.str ?? "";
-    const newVal = merge({
+    const newVal = threeWayMerge({
       base,
       local: valueRef.current,
       remote: element.str ?? "",
