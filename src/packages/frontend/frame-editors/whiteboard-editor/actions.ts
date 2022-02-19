@@ -66,11 +66,11 @@ export class Actions extends BaseActions<State> {
   }
 
   // This mutates the cursors by putting the id in them.
-  setCursors(id: string, cursors: object[]): void {
+  setCursors(id: string, cursors: object[], sideEffect?: boolean): void {
     for (const cursor of cursors) {
       cursor["id"] = id;
     }
-    this._syncstring.set_cursor_locs(cursors);
+    this._syncstring.set_cursor_locs(cursors, sideEffect);
   }
 
   setElement({

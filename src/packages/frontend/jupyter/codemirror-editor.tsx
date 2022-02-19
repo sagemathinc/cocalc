@@ -45,7 +45,7 @@ const FOCUSED_STYLE: React.CSSProperties = {
 // -- 'import { JupyterActions } from "./browser-actions";',
 // but anybody who wants to use this component could make
 // there own object with this interface and it should work.
-interface Actions extends CompleteActions {
+export interface Actions extends CompleteActions {
   set_cursor_locs: (locs: any[], side_effect?: boolean) => void;
   set_cell_input: (id: string, input: string, save?: boolean) => void;
   undo: () => void;
