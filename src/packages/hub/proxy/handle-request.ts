@@ -8,6 +8,7 @@ import { getTarget, invalidateTargetCache } from "./target";
 import getLogger from "../logger";
 import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
+import siteUrl from "@cocalc/server/settings/site-url";
 
 const winston = getLogger("proxy: handle-request");
 
@@ -65,8 +66,9 @@ export default function init({ projectControl, isPersonal }: Options) {
       // Not in personal mode and there is no remember me set all, so
       // definitely block access.  4xx since this is a *client* problem.
       res.writeHead(426, { "Content-Type": "text/html" });
+      const url = await siteUrl();
       res.end(
-        "Please login to <a target='_blank' href='#{DOMAIN_URL}'>#{DOMAIN_URL}</a> with cookies enabled, then refresh this page."
+        `Please login to <a target='_blank' href='${url}'>${url}</a> with cookies enabled, then refresh this page.`
       );
       return;
     }
