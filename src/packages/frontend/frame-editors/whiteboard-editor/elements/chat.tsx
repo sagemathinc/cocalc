@@ -131,7 +131,7 @@ export function lastMessageNumber(element: Element): number {
   return n;
 }
 
-export function messageNumbers(element: Element): number[] {
+function messageNumbers(element: Element): number[] {
   const v: number[] = [];
   for (const field in element.data ?? {}) {
     const k = parseInt(field);

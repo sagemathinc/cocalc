@@ -472,13 +472,40 @@ export class Actions extends BaseActions<State> {
       console.warn("no cell with id", id);
       return;
     }
+    const time = new Date().valueOf();
     const sender_id = this.redux.getStore("account").get_account_id();
+    const last = lastMessageNumber(element);
+    if (last >= 0) {
+      // Check for case of multiple messages from the same sender in a row.
+      const lastMessage = element.data?.[last];
+      if (
+        lastMessage?.sender_id == sender_id &&
+        lastMessage.time > time - 1000 * 60
+      ) {
+        // Same user is sending another message less than a minute from their
+        // previous message.  In this case, we just edit the previous message.
+        this.setElementData({
+          element,
+          obj: {
+            [last]: {
+              input: lastMessage.input + "\n\n" + input,
+              time,
+              sender_id,
+            },
+          },
+          commit: true,
+          cursors: [{}],
+        });
+        return;
+      }
+    }
+
     this.setElementData({
       element,
       obj: {
         [lastMessageNumber(element) + 1]: {
           input,
-          time: new Date().valueOf(),
+          time,
           sender_id,
         },
       },
