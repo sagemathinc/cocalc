@@ -6,23 +6,32 @@ import ToolPanel, { getPresetManager, Tool } from "./tool-panel";
 import { COLORS } from "./pen";
 import { DEFAULT_FONT_SIZE } from "./defaults";
 
-const TOOL = "text" as Tool;
+const tool = "text" as Tool;
 
 interface Params {
   color: string;
   fontSize: number;
   fontFamily?: string;
 }
-const numTextTypes = COLORS.length;
-function defaultPresets(): Params[] {
-  const presets: Params[] = [];
-  for (let id = 0; id < numTextTypes; id++) {
-    presets.push({ fontSize: DEFAULT_FONT_SIZE, color: COLORS[id] });
-  }
-  return presets;
+
+export default function TextToolPanel() {
+  return (
+    <ToolPanel
+      tool={tool}
+      presetManager={presetManager}
+      Preview={Preview}
+      ButtonPreview={ButtonPreview}
+      style={{ width: "66px" }}
+    />
+  );
 }
 
-const presetManager = getPresetManager<Params>(TOOL, defaultPresets);
+const DEFAULTS: Params[] = [];
+for (let id = 0; id < COLORS.length; id++) {
+  DEFAULTS.push({ fontSize: DEFAULT_FONT_SIZE, color: COLORS[id] });
+}
+
+const presetManager = getPresetManager<Params>(tool, DEFAULTS);
 
 function Preview({ fontSize, fontFamily, color }: Params) {
   return (
@@ -57,17 +66,3 @@ function ButtonPreview({ fontFamily, color }: Params) {
     </div>
   );
 }
-
-export default function TextToolPanel() {
-  return (
-    <ToolPanel
-      tool={TOOL}
-      presetManager={presetManager}
-      Preview={Preview}
-      ButtonPreview={ButtonPreview}
-      style={{ width: "58px" }}
-    />
-  );
-}
-
-export const textParams = presetManager.getPreset;

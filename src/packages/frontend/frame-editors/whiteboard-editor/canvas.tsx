@@ -92,9 +92,9 @@ import { clearCanvas, drawCurve } from "./elements/pen";
 
 import { penParams } from "./tools/pen";
 import { noteParams } from "./tools/note";
-import { textParams } from "./tools/text";
 import { iconParams } from "./tools/icon";
 import { timerParams } from "./tools/timer";
+import { getParams } from "./tools/tool-panel";
 
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { deleteElements } from "./tools/edit-bar";
@@ -260,7 +260,7 @@ export default function Canvas({
   }
 
   function getTextParams() {
-    return textParams(frame.desc.get("textId") ?? 0);
+    return getParams("text", frame.desc.get("textId"));
   }
 
   function getIconParams() {

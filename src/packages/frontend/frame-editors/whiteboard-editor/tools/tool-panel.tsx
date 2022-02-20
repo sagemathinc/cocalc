@@ -25,6 +25,12 @@ import { ResetButton, SELECTED } from "./common";
 import { Tool, TOOLS } from "./spec";
 export type { Tool };
 
+interface AllParams {
+  color?: string;
+  fontSize?: number;
+  fontFamily?: string;
+}
+
 interface Props<Params> {
   tool: Tool;
   presetManager: PresetManager<Params>;
@@ -198,18 +204,22 @@ function EditParams({ params, set, Preview }) {
 interface PresetManager<Params> {
   savePresets: (presets: Params) => void;
   loadPresets: () => Params[];
-  getPreset: (id: number) => Params;
   DEFAULT: Params;
   DEFAULTS: Params[];
 }
 
+const paramsMap: { [tool: Tool]: (id: number) => AllParams } = {};
+
+export function getParams(tool: Tool, id: number) {
+  return paramsMap[tool]?.(id);
+}
+
 export function getPresetManager<Params>(
   tool: Tool,
-  defaultPresets: () => Params[]
+  DEFAULTS: Params[]
 ): PresetManager<Params> {
   const key = `whiteboard-tool-presets-${tool}`;
 
-  const DEFAULTS = defaultPresets();
   let x: undefined | Params = undefined;
   for (const id in DEFAULTS) {
     x = DEFAULTS[id];
@@ -232,16 +242,14 @@ export function getPresetManager<Params>(
     } catch (_err) {
       // fine
     }
-    return defaultPresets();
+    return DEFAULTS;
   }
 
   const savePresets = debounce((presets) => {
     localStorage[key] = JSON.stringify(presets);
   }, 250);
 
-  function getPreset(id: number): Params {
-    return loadPresets()[id] ?? DEFAULT;
-  }
+  paramsMap[tool] = (id: number) => loadPresets()[id] ?? DEFAULT;
 
-  return { DEFAULTS, getPreset, loadPresets, savePresets, DEFAULT };
+  return { DEFAULT, DEFAULTS, loadPresets, savePresets };
 }
