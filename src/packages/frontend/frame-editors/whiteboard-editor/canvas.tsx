@@ -92,7 +92,6 @@ import { clearCanvas, drawCurve } from "./elements/pen";
 
 import { penParams } from "./tools/pen";
 import { noteParams } from "./tools/note";
-import { iconParams } from "./tools/icon";
 import { timerParams } from "./tools/timer";
 import { getParams } from "./tools/tool-panel";
 
@@ -251,24 +250,11 @@ export default function Canvas({
     }
   }, []);
 
-  function getPenParams() {
-    return penParams(frame.desc.get("penId") ?? 0);
-  }
-
-  function getNoteParams() {
-    return noteParams(frame.desc.get("noteId") ?? 0);
-  }
-
-  function getTextParams() {
-    return getParams("text", frame.desc.get("textId"));
-  }
-
-  function getIconParams() {
-    return iconParams(frame.desc.get("iconId") ?? 0);
-  }
-
-  function getTimerParams() {
-    return timerParams(frame.desc.get("timerId") ?? 0);
+  function getToolParams(tool) {
+    if (tool == "pen") return penParams(frame.desc.get("penId") ?? 0);
+    if (tool == "note") return noteParams(frame.desc.get("noteId") ?? 0);
+    if (tool == "timer") return timerParams(frame.desc.get("timerId") ?? 0);
+    return getParams(tool, frame.desc.get(`${tool}Id`));
   }
 
   // get window coordinates of what is currently displayed in the exact
@@ -614,13 +600,13 @@ export default function Canvas({
 
     // TODO -- move some of this to the spec?
     if (selectedTool == "note") {
-      params = { data: getNoteParams() };
+      params = { data: getToolParams("note") };
     } else if (selectedTool == "timer") {
-      params = { data: getTimerParams() };
+      params = { data: getToolParams("timer") };
     } else if (selectedTool == "icon") {
-      params = { data: getIconParams() };
+      params = { data: getToolParams("icon") };
     } else if (selectedTool == "text") {
-      params = { data: getTextParams() };
+      params = { data: getToolParams("text") };
     } else if (selectedTool == "chat") {
       data.w = 375;
       data.h = 450;
@@ -781,7 +767,7 @@ export default function Canvas({
             z: transforms.zMax + 1,
             w: xMax - xMin + 1,
             h: yMax - yMin + 1,
-            data: { path: compressPath(path), ...getPenParams() },
+            data: { path: compressPath(path), ...getToolParams("pen") },
             type: "pen",
           },
           true
@@ -851,7 +837,7 @@ export default function Canvas({
       drawCurve({
         ctx,
         path: mousePath.current.slice(mousePath.current.length - 2),
-        ...getPenParams(),
+        ...getToolParams("pen"),
       });
       return;
     }

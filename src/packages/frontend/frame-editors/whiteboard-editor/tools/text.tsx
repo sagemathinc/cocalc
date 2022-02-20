@@ -22,6 +22,7 @@ export default function TextToolPanel() {
       Preview={Preview}
       ButtonPreview={ButtonPreview}
       style={{ width: "66px" }}
+      editableParams={new Set(["fontSize", "fontFamily", "color"])}
     />
   );
 }

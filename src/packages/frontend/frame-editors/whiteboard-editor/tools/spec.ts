@@ -14,7 +14,7 @@ interface ToolDescription {
   icon: IconName;
   cursor?: string;
   tip: ReactNode;
-  config?: Set<ConfigParams>;
+  config?: Set<ConfigParams>; // what you can configure *after* you place the item.
   hideFromToolbar?: boolean;
   readOnly?: boolean; // if true, show this tool even in readonly view
 }

@@ -13,13 +13,14 @@ Panel for a particular tool.
 import { CSSProperties, ReactNode, useState } from "react";
 import { Button, Popover, Slider, Tooltip } from "antd";
 import { PANEL_STYLE } from "./panel";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "../hooks";
 import { debounce } from "lodash";
 
 import { minFontSize, maxFontSize } from "./defaults";
 import { SelectFontFamily } from "./edit-bar";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
+import IconSelect from "@cocalc/frontend/components/icon-select";
 
 import { ResetButton, SELECTED } from "./common";
 import { Tool, TOOLS } from "./spec";
@@ -29,7 +30,10 @@ interface AllParams {
   color?: string;
   fontSize?: number;
   fontFamily?: string;
+  icon?: IconName;
 }
+
+type ParamName = keyof AllParams;
 
 interface Props<Params> {
   tool: Tool;
@@ -37,6 +41,9 @@ interface Props<Params> {
   Preview: (Params) => JSX.Element;
   ButtonPreview?: (Params) => JSX.Element;
   style?: CSSProperties;
+  editParamsStyle?: CSSProperties;
+  editableParams: Set<ParamName>;
+  buttonTitle?: (Params) => string;
 }
 
 export default function ToolPanel<Params>({
@@ -45,6 +52,9 @@ export default function ToolPanel<Params>({
   Preview,
   ButtonPreview,
   style,
+  editParamsStyle,
+  editableParams,
+  buttonTitle,
 }: Props<Params>) {
   const { loadPresets, savePresets } = presetManager;
   const frame = useFrameContext();
@@ -80,7 +90,11 @@ export default function ToolPanel<Params>({
           }
         }}
       >
-        <Popover placement="right" content={<Preview {...params} />}>
+        <Popover
+          placement="right"
+          title={buttonTitle?.(params)}
+          content={<Preview {...params} />}
+        >
           <div
             style={{
               border: `3px solid ${id == selected ? SELECTED : "white"}`,
@@ -113,7 +127,6 @@ export default function ToolPanel<Params>({
         flexDirection: "column",
         left: "55px",
         width: "75px",
-        paddingBottom: "10px",
         ...style,
       }}
     >
@@ -139,19 +152,21 @@ export default function ToolPanel<Params>({
         <EditParams
           Preview={Preview}
           params={params}
+          editableParams={editableParams}
           set={(name, value) => {
             setPresets({
               ...presets,
               [selected]: { ...presets[selected], [name]: value },
             });
           }}
+          style={editParamsStyle}
         />
       )}
     </div>
   );
 }
 
-function EditParams({ params, set, Preview }) {
+function EditParams({ params, set, Preview, editableParams, style }) {
   return (
     <div
       style={{
@@ -161,39 +176,63 @@ function EditParams({ params, set, Preview }) {
         top: 0,
         padding: "10px",
         margin: 0,
+        overflowY: "auto",
+        maxHeight: "70vh",
+        ...style,
       }}
     >
       <div style={{ textAlign: "center" }}>
         <Preview {...params} />
       </div>
-      <div style={{ width: "100%", display: "flex" }}>
-        <Slider
-          value={params.fontSize}
-          min={minFontSize}
-          max={maxFontSize}
-          step={1}
-          onChange={(value) => set("fontSize", value)}
-          style={{ flex: "1" }}
-        />
-        <div style={{ marginLeft: "5px", fontSize: "9pt", paddingTop: "6px" }}>
-          Font size (px)
+      {editableParams.has("fontSize") && (
+        <div style={{ width: "100%", display: "flex" }}>
+          <Slider
+            value={params.fontSize}
+            min={minFontSize}
+            max={maxFontSize}
+            step={1}
+            onChange={(value) => set("fontSize", value)}
+            style={{ flex: "1" }}
+          />
+          <div
+            style={{ marginLeft: "5px", fontSize: "9pt", paddingTop: "6px" }}
+          >
+            Font size (px)
+          </div>
         </div>
-      </div>
-      <div style={{ width: "100%", display: "flex", marginBottom: "10px" }}>
-        <SelectFontFamily
-          onChange={(value) => set("fontFamily", value)}
-          value={params.fontFamily}
-          size="small"
-          style={{ width: "70%", flex: 1 }}
-        />
-        <div style={{ marginLeft: "5px", fontSize: "9pt", paddingTop: "6px" }}>
-          Font family
+      )}
+      {editableParams.has("fontFamily") && (
+        <div style={{ width: "100%", display: "flex", marginBottom: "10px" }}>
+          <SelectFontFamily
+            onChange={(value) => set("fontFamily", value)}
+            value={params.fontFamily}
+            size="small"
+            style={{ width: "70%", flex: 1 }}
+          />
+          <div
+            style={{ marginLeft: "5px", fontSize: "9pt", paddingTop: "6px" }}
+          >
+            Font family
+          </div>
         </div>
-      </div>
-      <ColorPicker
-        color={params.color}
-        onChange={(value) => set("color", value)}
-      />
+      )}
+      {editableParams.has("icon") && (
+        <IconSelect
+          onSelect={(value) => set("icon", value)}
+          style={{
+            maxWidth: "100%",
+            marginBottom: "10px",
+            maxHeight: "35vh",
+            overflowY: "scroll",
+          }}
+        />
+      )}
+      {editableParams.has("color") && (
+        <ColorPicker
+          color={params.color}
+          onChange={(value) => set("color", value)}
+        />
+      )}
     </div>
   );
 }
