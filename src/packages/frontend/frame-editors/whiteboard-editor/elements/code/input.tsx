@@ -213,6 +213,12 @@ class Actions implements EditorActions {
     pos: { ch: number; line: number }
   ): Promise<void> {
     if (code === "") return; // no-op if there is no code (should never happen)
+    this.frame.actions.show_recently_focused_frame_of_type(
+      "introspect",
+      "row",
+      false,
+      2 / 3
+    );
     const actions = await this.getJupyterActions();
     const introspect = await actions.introspect(
       code,
