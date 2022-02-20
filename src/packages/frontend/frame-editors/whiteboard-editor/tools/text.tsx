@@ -10,7 +10,7 @@ const tool = "text" as Tool;
 
 interface Params {
   color: string;
-  fontSize: number;
+  fontSize?: number;
   fontFamily?: string;
 }
 
@@ -29,25 +29,26 @@ export default function TextToolPanel() {
 
 const DEFAULTS: Params[] = [];
 for (let id = 0; id < COLORS.length; id++) {
-  DEFAULTS.push({ fontSize: DEFAULT_FONT_SIZE, color: COLORS[id] });
+  DEFAULTS.push({ color: COLORS[id] });
 }
 
 const presetManager = getPresetManager<Params>(tool, DEFAULTS);
 
 function Preview({ fontSize, fontFamily, color }: Params) {
+  const n = fontSize ?? DEFAULT_FONT_SIZE;
   return (
     <div
       style={{
         margin: "auto",
         width: "200px",
-        height: `${fontSize + 20}px`,
-        fontSize: `${fontSize ?? DEFAULT_FONT_SIZE}px`,
+        height: `${n + 20}px`,
+        fontSize: `${n}px`,
         fontFamily,
         color,
         textAlign: "center",
       }}
     >
-      Text
+      Note
     </div>
   );
 }

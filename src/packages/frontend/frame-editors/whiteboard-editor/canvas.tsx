@@ -91,7 +91,6 @@ import Draggable from "react-draggable";
 import { clearCanvas, drawCurve } from "./elements/pen";
 
 import { penParams } from "./tools/pen";
-import { noteParams } from "./tools/note";
 import { timerParams } from "./tools/timer";
 import { getParams } from "./tools/tool-panel";
 
@@ -252,7 +251,6 @@ export default function Canvas({
 
   function getToolParams(tool) {
     if (tool == "pen") return penParams(frame.desc.get("penId") ?? 0);
-    if (tool == "note") return noteParams(frame.desc.get("noteId") ?? 0);
     if (tool == "timer") return timerParams(frame.desc.get("timerId") ?? 0);
     return getParams(tool, frame.desc.get(`${tool}Id`));
   }

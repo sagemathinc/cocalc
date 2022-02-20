@@ -24,6 +24,5 @@ export const NOTE_COLORS = [
   "#99b1f0",
 ];
 export const DEFAULT_NOTE = {
-  fontSize: DEFAULT_FONT_SIZE,
   color: NOTE_COLORS[0],
 };
