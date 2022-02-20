@@ -10,6 +10,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { TOOLS, Tool } from "./spec";
 import { useFrameContext } from "../hooks";
 import { MAX_ELEMENTS } from "../math";
+import { SELECTED } from "./common";
 
 export const PANEL_STYLE = {
   zIndex: MAX_ELEMENTS + 1,
@@ -59,9 +60,7 @@ function ToolButton({ tool, isSelected }) {
         onClick={() => {
           actions.setSelectedTool(id, tool);
         }}
-        style={
-          isSelected ? { color: "#fff", background: "#337ab7" } : undefined
-        }
+        style={isSelected ? { color: "#fff", background: SELECTED } : undefined}
       >
         <Icon
           name={icon}

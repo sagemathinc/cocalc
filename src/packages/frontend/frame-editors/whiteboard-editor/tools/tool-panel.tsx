@@ -10,36 +10,42 @@ Panel for a particular tool.
    - countdown
 */
 
-import { ReactNode, useState } from "react";
+import { CSSProperties, ReactNode, useState } from "react";
 import { Button, Popover, Slider, Tooltip } from "antd";
 import { PANEL_STYLE } from "./panel";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "../hooks";
 import { debounce } from "lodash";
 
-import { DEFAULT_FONT_SIZE, minFontSize, maxFontSize } from "./defaults";
+import { minFontSize, maxFontSize } from "./defaults";
 import { SelectFontFamily } from "./edit-bar";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 
-import { ResetButton } from "./common";
-import type { Tool } from "./spec";
+import { ResetButton, SELECTED } from "./common";
+import { Tool, TOOLS } from "./spec";
 export type { Tool };
 
 interface Props<Params> {
   tool: Tool;
   presetManager: PresetManager<Params>;
+  Preview: (Params) => JSX.Element;
+  ButtonPreview?: (Params) => JSX.Element;
+  style?: CSSProperties;
 }
 
 export default function ToolPanel<Params>({
   presetManager,
   tool,
+  Preview,
+  ButtonPreview,
+  style,
 }: Props<Params>) {
   const { loadPresets, savePresets } = presetManager;
   const frame = useFrameContext();
   const [selected, setSelected] = useState<number>(
     frame.desc.get(`${tool}Id`) ?? 0
   );
-  const [paramControls, setParamControls] = useState<boolean>(false);
+  const [showEditParams, setShowEditParams] = useState<boolean>(false);
   const [presets, setPresets0] = useState<{ [id: number]: Params }>(
     loadPresets()
   );
@@ -48,7 +54,7 @@ export default function ToolPanel<Params>({
     setPresets0(presets);
   }
 
-  function TextButton({ id }) {
+  function PresetButton({ id }) {
     const params = presets[id] ?? presetManager.DEFAULT;
     return (
       <Button
@@ -56,8 +62,8 @@ export default function ToolPanel<Params>({
         type="text"
         onClick={() => {
           if (id == selected) {
-            // show note config selector
-            setParamControls(!paramControls);
+            // show config selector
+            setShowEditParams(!showEditParams);
           } else {
             // select this one
             setSelected(id);
@@ -68,17 +74,27 @@ export default function ToolPanel<Params>({
           }
         }}
       >
-        <TextToolButton
-          {...params}
-          borderColor={id == selected ? "blue" : "#ccc"}
-        />
+        <Popover placement="right" content={<Preview {...params} />}>
+          <div
+            style={{
+              border: `3px solid ${id == selected ? SELECTED : "white"}`,
+              borderRadius: "3px",
+            }}
+          >
+            {ButtonPreview != null ? (
+              <ButtonPreview {...params} />
+            ) : (
+              <Preview {...params} />
+            )}
+          </div>
+        </Popover>
       </Button>
     );
   }
 
-  const notePresets: ReactNode[] = [];
+  const presetButtons: ReactNode[] = [];
   for (let id = 0; id < presetManager.DEFAULTS.length; id++) {
-    notePresets.push(<TextButton key={id} id={id} />);
+    presetButtons.push(<PresetButton key={id} id={id} />);
   }
 
   const params = presets[selected] ?? presetManager.DEFAULT;
@@ -92,42 +108,35 @@ export default function ToolPanel<Params>({
         left: "55px",
         width: "75px",
         paddingBottom: "10px",
+        ...style,
       }}
     >
-      <Tooltip title="Text">
+      <Tooltip title={TOOLS[tool].tip}>
         <Button type="text">
-          <Icon style={{ color: "blue" }} name="note" />
+          <Icon
+            style={{ color: SELECTED, fontSize: "20px" }}
+            name={TOOLS[tool].icon}
+          />
         </Button>
       </Tooltip>
       <div
         style={{ maxHeight: "40vh", overflowY: "scroll", overflowX: "hidden" }}
       >
-        {notePresets}
+        {presetButtons}
       </div>
       <ResetButton
         onClick={() => {
           setPresets(presetManager.DEFAULTS);
         }}
       />
-      {paramControls && (
-        <TextParams
-          {...params}
-          setColor={(color) => {
+      {showEditParams && (
+        <EditParams
+          Preview={Preview}
+          params={params}
+          set={(name, value) => {
             setPresets({
               ...presets,
-              [selected]: { ...presets[selected], color },
-            });
-          }}
-          setFontSize={(fontSize) => {
-            setPresets({
-              ...presets,
-              [selected]: { ...presets[selected], fontSize },
-            });
-          }}
-          setFontFamily={(fontFamily) => {
-            setPresets({
-              ...presets,
-              [selected]: { ...presets[selected], fontFamily },
+              [selected]: { ...presets[selected], [name]: value },
             });
           }}
         />
@@ -136,73 +145,7 @@ export default function ToolPanel<Params>({
   );
 }
 
-function TextToolButton({
-  fontSize,
-  fontFamily,
-  color,
-  borderColor,
-}: {
-  fontSize: number;
-  fontFamily?: string;
-  color: string;
-  borderColor?: string;
-}) {
-  return (
-    <Popover
-      placement="right"
-      content={
-        <TextPreview
-          fontSize={fontSize}
-          fontFamily={fontFamily}
-          color={color}
-        />
-      }
-    >
-      <div
-        style={{
-          padding: 0,
-          margin: 0,
-          border: `2px solid ${borderColor ?? "#ccc"}`,
-          width: "50px",
-          height: "25px",
-          fontSize: "14px",
-          fontFamily,
-          fontWeight: "bold",
-          color,
-        }}
-      >
-        A
-      </div>
-    </Popover>
-  );
-}
-
-function TextPreview({ fontSize, fontFamily, color }) {
-  return (
-    <div
-      style={{
-        margin: "auto",
-        width: "200px",
-        height: `${fontSize + 20}px`,
-        fontSize: `${fontSize ?? DEFAULT_FONT_SIZE}px`,
-        fontFamily,
-        color,
-        textAlign: "center",
-      }}
-    >
-      Text
-    </div>
-  );
-}
-
-function TextParams({
-  color,
-  fontSize,
-  fontFamily,
-  setColor,
-  setFontSize,
-  setFontFamily,
-}) {
+function EditParams({ params, set, Preview }) {
   return (
     <div
       style={{
@@ -215,19 +158,15 @@ function TextParams({
       }}
     >
       <div style={{ textAlign: "center" }}>
-        <TextPreview
-          fontSize={fontSize}
-          fontFamily={fontFamily}
-          color={color}
-        />
+        <Preview {...params} />
       </div>
       <div style={{ width: "100%", display: "flex" }}>
         <Slider
-          value={fontSize}
+          value={params.fontSize}
           min={minFontSize}
           max={maxFontSize}
           step={1}
-          onChange={setFontSize}
+          onChange={(value) => set("fontSize", value)}
           style={{ flex: "1" }}
         />
         <div style={{ marginLeft: "5px", fontSize: "9pt", paddingTop: "6px" }}>
@@ -236,8 +175,8 @@ function TextParams({
       </div>
       <div style={{ width: "100%", display: "flex", marginBottom: "10px" }}>
         <SelectFontFamily
-          onChange={setFontFamily}
-          value={fontFamily}
+          onChange={(value) => set("fontFamily", value)}
+          value={params.fontFamily}
           size="small"
           style={{ width: "70%", flex: 1 }}
         />
@@ -245,7 +184,10 @@ function TextParams({
           Font family
         </div>
       </div>
-      <ColorPicker color={color} onChange={setColor} defaultPicker="swatches" />
+      <ColorPicker
+        color={params.color}
+        onChange={(value) => set("color", value)}
+      />
     </div>
   );
 }
