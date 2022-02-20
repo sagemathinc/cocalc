@@ -23,6 +23,7 @@ import {
   compressPath,
   drawEdge,
   centerRectsAt,
+  centerOfRect,
   translateRectsZ,
 } from "./math";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
@@ -34,7 +35,7 @@ import { pasteElements } from "./tools/edit-bar";
 
 export interface State extends CodeEditorState {
   elements?: Elements;
-  introspect?: Map<string, any>;  // used for jupyter cells -- displayed in a separate frame.
+  introspect?: Map<string, any>; // used for jupyter cells -- displayed in a separate frame.
 }
 
 export class Actions extends BaseActions<State> {
@@ -506,6 +507,23 @@ export class Actions extends BaseActions<State> {
   paste(frameId: string) {
     const elements = elementsList(this.store.get("elements")) ?? [];
     pasteElements(this, elements, frameId);
+  }
+
+  gotoUser(account_id: string) {
+    const locs = this._syncstring
+      .get_cursors(0)
+      ?.getIn([account_id, "locs"])
+      ?.toJS();
+    if (locs == null) return; // no info
+    for (const loc of locs) {
+      if (loc.id != null) {
+        const element = this.store.getIn(["elements", loc.id])?.toJS();
+        if (element == null) return;
+        const id = this.show_focused_frame_of_type("whiteboard");
+        this.setViewportCenter(id, centerOfRect(element));
+        return;
+      }
+    }
   }
 }
 

@@ -1499,7 +1499,7 @@ export class SyncDoc extends EventEmitter {
   /* Returns *immutable* Map from account_id to list
      of cursor positions, if cursors are enabled.
   */
-  public get_cursors(): Map<string, any> {
+  public get_cursors(oldMinutes: number = 1): Map<string, any> {
     if (!this.cursors) {
       throw Error("cursors are not enabled");
     }
@@ -1514,11 +1514,13 @@ export class SyncDoc extends EventEmitter {
     ) {
       map = map.delete(account_id);
     }
-    // Remove any old cursors, where "old" is more than 1 minute old; this is never useful.
-    const cutoff = server_minutes_ago(1);
-    for (const [a] of map as any) {
-      if (map.getIn([a, "time"]) < cutoff) {
-        map = map.delete(a);
+    if (oldMinutes) {
+      // Remove any old cursors, where "old" is by default more than 1 minute old; this is never useful.
+      const cutoff = server_minutes_ago(oldMinutes);
+      for (const [a] of map as any) {
+        if (map.getIn([a, "time"]) < cutoff) {
+          map = map.delete(a);
+        }
       }
     }
     return map;
