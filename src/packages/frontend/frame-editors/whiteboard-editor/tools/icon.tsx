@@ -8,10 +8,6 @@ Icon configuration:
 - color
 */
 
-/*
-The text config panel.
-*/
-
 import ToolPanel, { getPresetManager, Tool } from "./tool-panel";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 

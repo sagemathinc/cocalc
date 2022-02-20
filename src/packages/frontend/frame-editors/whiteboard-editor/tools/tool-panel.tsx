@@ -11,9 +11,10 @@ Panel for a particular tool.
 */
 
 import { CSSProperties, ReactNode, useState } from "react";
-import { Button, Popover, Slider, Tooltip } from "antd";
+import { Button, Popover, Slider, TimePicker, Tooltip } from "antd";
 import { PANEL_STYLE } from "./panel";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { CloseX } from "@cocalc/frontend/components/close-x";
 import { useFrameContext } from "../hooks";
 import { debounce } from "lodash";
 
@@ -21,6 +22,7 @@ import { minFontSize, maxFontSize } from "./defaults";
 import { SelectFontFamily } from "./edit-bar";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import IconSelect from "@cocalc/frontend/components/icon-select";
+import { getCountdownMoment } from "@cocalc/frontend/editors/stopwatch/stopwatch";
 
 import { ResetButton, SELECTED } from "./common";
 import { Tool, TOOLS } from "./spec";
@@ -31,6 +33,7 @@ interface AllParams {
   fontSize?: number;
   fontFamily?: string;
   icon?: IconName;
+  countdown?: number;
 }
 
 type ParamName = keyof AllParams;
@@ -160,13 +163,14 @@ export default function ToolPanel<Params>({
             });
           }}
           style={editParamsStyle}
+          onClose={() => setShowEditParams(false)}
         />
       )}
     </div>
   );
 }
 
-function EditParams({ params, set, Preview, editableParams, style }) {
+function EditParams({ params, set, Preview, editableParams, style, onClose }) {
   return (
     <div
       style={{
@@ -178,9 +182,14 @@ function EditParams({ params, set, Preview, editableParams, style }) {
         margin: 0,
         overflowY: "auto",
         maxHeight: "70vh",
+        minWidth: "300px",
         ...style,
       }}
     >
+      <CloseX
+        on_close={onClose}
+        style={{ color: "#666", fontSize: "12px", marginTop: "-5px" }}
+      />
       <div style={{ textAlign: "center" }}>
         <Preview {...params} />
       </div>
@@ -197,7 +206,7 @@ function EditParams({ params, set, Preview, editableParams, style }) {
           <div
             style={{ marginLeft: "5px", fontSize: "9pt", paddingTop: "6px" }}
           >
-            Font size (px)
+            Font Size (px)
           </div>
         </div>
       )}
@@ -212,7 +221,34 @@ function EditParams({ params, set, Preview, editableParams, style }) {
           <div
             style={{ marginLeft: "5px", fontSize: "9pt", paddingTop: "6px" }}
           >
-            Font family
+            Font Family
+          </div>
+        </div>
+      )}
+      {editableParams.has("countdown") && (
+        <div style={{ width: "100%", display: "flex", marginBottom: "10px" }}>
+          <div style={{ flex: 1 }}>
+            <TimePicker
+              defaultValue={getCountdownMoment(params.countdown)}
+              onChange={(time) => {
+                if (time != null) {
+                  set(
+                    "countdown",
+                    time.seconds() +
+                      time.minutes() * 60 +
+                      time.hours() * 60 * 60
+                  );
+                } else {
+                  set("countdown", null);
+                }
+              }}
+              showNow={false}
+            />
+          </div>
+          <div
+            style={{ marginLeft: "5px", fontSize: "9pt", paddingTop: "6px" }}
+          >
+            Countdown From
           </div>
         </div>
       )}

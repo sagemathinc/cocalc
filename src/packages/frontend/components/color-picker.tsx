@@ -57,10 +57,20 @@ export default function ColorPicker({
   }
   return (
     <div style={style}>
-      <Picker
-        color={color}
-        onChange={onChange != null ? (color) => onChange(color.hex) : undefined}
-      />
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          overflowX: "scroll",
+        }}
+      >
+        <Picker
+          color={color}
+          onChange={
+            onChange != null ? (color) => onChange(color.hex) : undefined
+          }
+        />
+      </div>
       <div>
         <div
           style={{

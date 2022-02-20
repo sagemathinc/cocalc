@@ -115,7 +115,7 @@ export default function Stopwatch(props: StopwatchProps) {
         {editingTime && (
           <TimePicker
             open
-            defaultValue={getCountdownMoment()}
+            defaultValue={getCountdownMoment(props.countdown)}
             onChange={(time) => {
               if (time != null) {
                 setCountdown(
@@ -190,17 +190,6 @@ export default function Stopwatch(props: StopwatchProps) {
       amount = Math.max(0, 1000 * props.countdown - amount);
     }
     return amount;
-  }
-
-  function getCountdownMoment() {
-    let amount = Math.round(props.countdown ?? 0);
-    const m = moment();
-    m.seconds(amount % 60);
-    amount = (amount - (amount % 60)) / 60;
-    m.minutes(amount % 60);
-    amount = (amount - (amount % 60)) / 60;
-    m.hours(amount);
-    return m;
   }
 
   function renderTime() {
@@ -403,4 +392,15 @@ export default function Stopwatch(props: StopwatchProps) {
   } else {
     return renderFullSize();
   }
+}
+
+export function getCountdownMoment(countdown: number | undefined) {
+  let amount = Math.round(countdown ?? 0);
+  const m = moment();
+  m.seconds(amount % 60);
+  amount = (amount - (amount % 60)) / 60;
+  m.minutes(amount % 60);
+  amount = (amount - (amount % 60)) / 60;
+  m.hours(amount);
+  return m;
 }
