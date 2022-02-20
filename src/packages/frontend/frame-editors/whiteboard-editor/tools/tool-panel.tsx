@@ -17,8 +17,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "../hooks";
 import { debounce } from "lodash";
 
-import { COLORS } from "./pen";
-
 import { DEFAULT_FONT_SIZE, minFontSize, maxFontSize } from "./defaults";
 import { SelectFontFamily } from "./edit-bar";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
@@ -26,8 +24,6 @@ import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { ResetButton } from "./common";
 import type { Tool } from "./spec";
 export type { Tool };
-
-const numTextTypes = COLORS.length;
 
 interface Props<Params> {
   tool: Tool;
@@ -38,8 +34,7 @@ export default function ToolPanel<Params>({
   presetManager,
   tool,
 }: Props<Params>) {
-  const { defaultPresets, defaultPreset, loadPresets, savePresets } =
-    presetManager;
+  const { loadPresets, savePresets } = presetManager;
   const frame = useFrameContext();
   const [selected, setSelected] = useState<number>(
     frame.desc.get(`${tool}Id`) ?? 0
@@ -54,7 +49,7 @@ export default function ToolPanel<Params>({
   }
 
   function TextButton({ id }) {
-    const params = presets[id] ?? defaultPreset;
+    const params = presets[id] ?? presetManager.DEFAULT;
     return (
       <Button
         style={{ padding: "5px", height: "35px" }}
@@ -82,11 +77,11 @@ export default function ToolPanel<Params>({
   }
 
   const notePresets: ReactNode[] = [];
-  for (let id = 0; id < numTextTypes; id++) {
+  for (let id = 0; id < presetManager.DEFAULTS.length; id++) {
     notePresets.push(<TextButton key={id} id={id} />);
   }
 
-  const params = presets[selected] ?? defaultPreset;
+  const params = presets[selected] ?? presetManager.DEFAULT;
 
   return (
     <div
@@ -111,7 +106,7 @@ export default function ToolPanel<Params>({
       </div>
       <ResetButton
         onClick={() => {
-          setPresets(defaultPresets());
+          setPresets(presetManager.DEFAULTS);
         }}
       />
       {paramControls && (
@@ -260,32 +255,35 @@ function TextParams({
 
 interface PresetManager<Params> {
   savePresets: (presets: Params) => void;
-  loadPresets: () => { [id: number]: Params };
+  loadPresets: () => Params[];
   getPreset: (id: number) => Params;
-  defaultPresets: () => { [id: number]: Params };
-  defaultPreset: Params;
+  DEFAULT: Params;
+  DEFAULTS: Params[];
 }
 
 export function getPresetManager<Params>(
   tool: Tool,
-  defaultPreset: Params
+  defaultPresets: () => Params[]
 ): PresetManager<Params> {
-  const key = `whiteboard-presets-${tool}`;
+  const key = `whiteboard-tool-presets-${tool}`;
 
-  function defaultPresets(): { [id: string]: Params } {
-    const presets: { [id: string]: Params } = {};
-    for (let id = 0; id < numTextTypes; id++) {
-      presets[id] = { ...defaultPreset, color: COLORS[id] };
-    }
-    return presets;
+  const DEFAULTS = defaultPresets();
+  let x: undefined | Params = undefined;
+  for (const id in DEFAULTS) {
+    x = DEFAULTS[id];
+    break;
   }
+  if (x == null) {
+    throw Error("there must be at least one default preset");
+  }
+  const DEFAULT: Params = x;
 
-  function loadPresets(): { [id: string]: Params } {
+  function loadPresets(): Params[] {
     try {
       const presets = JSON.parse(localStorage[key]);
-      for (let id = 0; id < numTextTypes; id++) {
+      for (let id = 0; id < DEFAULTS.length; id++) {
         if (presets[id] == null) {
-          presets[id] = { ...defaultPreset, color: COLORS[id] };
+          presets[id] = { ...DEFAULT };
         }
         return presets;
       }
@@ -300,8 +298,8 @@ export function getPresetManager<Params>(
   }, 250);
 
   function getPreset(id: number): Params {
-    return loadPresets()[id] ?? defaultPreset;
+    return loadPresets()[id] ?? DEFAULT;
   }
 
-  return { defaultPresets, getPreset, loadPresets, savePresets, defaultPreset };
+  return { DEFAULTS, getPreset, loadPresets, savePresets, DEFAULT };
 }

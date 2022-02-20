@@ -13,12 +13,16 @@ interface Params {
   fontSize: number;
   fontFamily?: string;
 }
-const defaultParams = {
-  fontSize: DEFAULT_FONT_SIZE,
-  color: COLORS[0],
-} as Params;
+const numTextTypes = COLORS.length;
+function defaultPresets(): Params[] {
+  const presets: Params[] = [];
+  for (let id = 0; id < numTextTypes; id++) {
+    presets.push({ fontSize: DEFAULT_FONT_SIZE, color: COLORS[id] });
+  }
+  return presets;
+}
 
-const presetManager = getPresetManager<Params>(TOOL, defaultParams);
+const presetManager = getPresetManager<Params>(TOOL, defaultPresets);
 
 export default function TextToolPanel() {
   return <ToolPanel tool={TOOL} presetManager={presetManager} />;
