@@ -52,6 +52,10 @@ interface Props<Params> {
   presetManager: PresetManager<Params>;
   Preview: (Params) => JSX.Element;
   ButtonPreview?: (Params) => JSX.Element;
+  AlternateTopButtons?: (props: {
+    setSelected: (number) => void;
+    selected: number;
+  }) => JSX.Element;
   style?: CSSProperties;
   editParamsStyle?: CSSProperties;
   presetStyle?: CSSProperties;
@@ -64,6 +68,7 @@ export default function ToolPanel<Params>({
   tool,
   Preview,
   ButtonPreview,
+  AlternateTopButtons,
   style,
   editParamsStyle,
   presetStyle,
@@ -72,9 +77,16 @@ export default function ToolPanel<Params>({
 }: Props<Params>) {
   const { loadPresets, savePresets } = presetManager;
   const frame = useFrameContext();
-  const [selected, setSelected] = useState<number>(
+  const [selected, setSelected0] = useState<number>(
     frame.desc.get(`${tool}Id`) ?? 0
   );
+  const setSelected = (id) => {
+    setSelected0(id);
+    frame.actions.set_frame_tree({
+      id: frame.id,
+      [`${tool}Id`]: id,
+    });
+  };
   const [showEditParams, setShowEditParams] = useState<boolean>(false);
   const [presets, setPresets0] = useState<{ [id: number]: Params }>(
     loadPresets()
@@ -96,15 +108,11 @@ export default function ToolPanel<Params>({
         type="text"
         onClick={() => {
           if (id == selected) {
-            // show config selector
+            // toggle config selector
             setShowEditParams(!showEditParams);
           } else {
             // select this one
             setSelected(id);
-            frame.actions.set_frame_tree({
-              id: frame.id,
-              [`${tool}Id`]: id,
-            });
           }
         }}
       >
@@ -154,14 +162,19 @@ export default function ToolPanel<Params>({
         ...style,
       }}
     >
-      <Tooltip title={TOOLS[tool].tip}>
-        <Button type="text">
-          <Icon
-            style={{ color: SELECTED, fontSize: "20px" }}
-            name={TOOLS[tool].icon}
-          />
-        </Button>
-      </Tooltip>
+      {AlternateTopButtons == null && (
+        <Tooltip title={TOOLS[tool].tip}>
+          <Button type="text">
+            <Icon
+              style={{ color: SELECTED, fontSize: "20px" }}
+              name={TOOLS[tool].icon}
+            />
+          </Button>
+        </Tooltip>
+      )}
+      {AlternateTopButtons != null && (
+        <AlternateTopButtons selected={selected} setSelected={setSelected} />
+      )}
       <div>{presetButtons}</div>
       <ResetButton
         onClick={() => {
@@ -360,7 +373,8 @@ export function getParams(tool: Tool, id: number) {
 
 export function getPresetManager<Params>(
   tool: Tool,
-  DEFAULTS: Params[]
+  DEFAULTS: Params[],
+  extraIds?: { [id: number]: Params } // typical for negative id's; hardcoded.
 ): PresetManager<Params> {
   const key = `whiteboard-tool-presets-${tool}`;
 
@@ -393,7 +407,13 @@ export function getPresetManager<Params>(
     localStorage[key] = JSON.stringify(presets);
   }, 250);
 
-  paramsMap[tool] = (id: number) => loadPresets()[id] ?? DEFAULT;
+  paramsMap[tool] = (id: number) => {
+    const a = extraIds?.[id];
+    if (a != null) {
+      return a;
+    }
+    return loadPresets()[id] ?? DEFAULT;
+  };
 
   return { DEFAULT, DEFAULTS, loadPresets, savePresets };
 }

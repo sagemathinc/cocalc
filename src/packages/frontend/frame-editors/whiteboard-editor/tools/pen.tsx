@@ -2,8 +2,11 @@
 The pen panel.
 */
 
+import { Button, Tooltip } from "antd";
+import { Icon } from "@cocalc/frontend/components/icon";
 import ToolPanel, { getPresetManager, Tool } from "./tool-panel";
 import { defaultRadius, maxRadius } from "./defaults";
+import { SELECTED } from "./common";
 
 interface Params {
   color?: string;
@@ -66,14 +69,74 @@ export default function PenToolPanel() {
       editableParams={new Set(["radius", "color", "opacity"])}
       style={{ width: "100px" }}
       presetStyle={{
-        marginTop: "-15px",
+        marginTop: "-14px",
       }}
       editParamsStyle={{ left: "108px" }}
+      AlternateTopButtons={AlternateTopButtons}
     />
   );
 }
 
-const presetManager = getPresetManager<Params>(tool, DEFAULTS);
+const presetManager = getPresetManager<Params>(tool, DEFAULTS, {
+  [HIGHLIGHTER]: { color: "#ffff00", opacity: 0.4, radius: 15 },
+  [ERASER]: { color: "#ffffff", radius: 15 },
+});
+
+function AlternateTopButtons({
+  setSelected,
+  selected,
+}: {
+  setSelected: (number) => void;
+  selected: number;
+}) {
+  const fontSize = "20px";
+  return (
+    <div style={{ margin: "5px 0 10px -8px" }}>
+      <Tooltip title="Pen">
+        <Button
+          style={{ width: "25px" }}
+          type="text"
+          onClick={() => setSelected(0)}
+        >
+          <Icon
+            style={{ fontSize, color: selected >= 0 ? SELECTED : undefined }}
+            name="pencil"
+          />
+        </Button>
+      </Tooltip>
+      <Tooltip title="Highlighter">
+        <Button
+          style={{ width: "25px" }}
+          type="text"
+          onClick={() => setSelected(HIGHLIGHTER)}
+        >
+          <Icon
+            style={{
+              fontSize,
+              color: selected == HIGHLIGHTER ? SELECTED : undefined,
+            }}
+            name="blog"
+          />
+        </Button>
+      </Tooltip>
+      <Tooltip title="Erase">
+        <Button
+          style={{ width: "25px" }}
+          type="text"
+          onClick={() => setSelected(ERASER)}
+        >
+          <Icon
+            style={{
+              fontSize,
+              color: selected == ERASER ? SELECTED : undefined,
+            }}
+            name="eraser"
+          />
+        </Button>
+      </Tooltip>
+    </div>
+  );
+}
 
 export function BrushPreview({
   radius,
