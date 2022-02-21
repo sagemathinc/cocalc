@@ -319,7 +319,7 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
           const { zMax } = getPageSpan(allElements);
           let z = zMax + 1;
           for (const element of elements) {
-            actions.setElement({ ...element, z }, false);
+            actions.setElement({ obj: { ...element, z }, save: false });
             z += 1;
           }
           actions.syncstring_commit();
@@ -329,7 +329,7 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
           const { zMin } = getPageSpan(allElements);
           let z = zMin - 1;
           for (const element of elements) {
-            actions.setElement({ ...element, z }, false);
+            actions.setElement({ obj: { id: element.id, z }, save: false });
             z -= 1;
           }
           actions.syncstring_commit();

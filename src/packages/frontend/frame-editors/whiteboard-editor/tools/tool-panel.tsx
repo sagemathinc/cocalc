@@ -18,7 +18,14 @@ import { CloseX } from "@cocalc/frontend/components/close-x";
 import { useFrameContext } from "../hooks";
 import { debounce } from "lodash";
 
-import { minFontSize, maxFontSize } from "./defaults";
+import {
+  DEFAULT_FONT_SIZE,
+  minFontSize,
+  maxFontSize,
+  minRadius,
+  maxRadius,
+  defaultRadius,
+} from "./defaults";
 import { SelectFontFamily } from "./edit-bar";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import IconSelect from "@cocalc/frontend/components/icon-select";
@@ -34,6 +41,8 @@ interface AllParams {
   fontFamily?: string;
   icon?: IconName;
   countdown?: number;
+  radius?: number;
+  opacity?: number;
 }
 
 type ParamName = keyof AllParams;
@@ -45,6 +54,7 @@ interface Props<Params> {
   ButtonPreview?: (Params) => JSX.Element;
   style?: CSSProperties;
   editParamsStyle?: CSSProperties;
+  presetStyle?: CSSProperties;
   editableParams: Set<ParamName>;
   buttonTitle?: (Params) => string;
 }
@@ -56,6 +66,7 @@ export default function ToolPanel<Params>({
   ButtonPreview,
   style,
   editParamsStyle,
+  presetStyle,
   editableParams,
   buttonTitle,
 }: Props<Params>) {
@@ -77,7 +88,11 @@ export default function ToolPanel<Params>({
     const params = presets[id] ?? presetManager.DEFAULT;
     return (
       <Button
-        style={{ padding: "5px", height: "35px" }}
+        style={{
+          padding: "5px",
+          height: "35px",
+          ...presetStyle,
+        }}
         type="text"
         onClick={() => {
           if (id == selected) {
@@ -95,8 +110,14 @@ export default function ToolPanel<Params>({
       >
         <Popover
           placement="right"
-          title={buttonTitle?.(params)}
-          content={<Preview {...params} />}
+          title={
+            <div style={{ textAlign: "center" }}>{buttonTitle?.(params)}</div>
+          }
+          content={
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <Preview {...params} />
+            </div>
+          }
         >
           <div
             style={{
@@ -141,11 +162,7 @@ export default function ToolPanel<Params>({
           />
         </Button>
       </Tooltip>
-      <div
-        style={{ maxHeight: "40vh", overflowY: "scroll", overflowX: "hidden" }}
-      >
-        {presetButtons}
-      </div>
+      <div>{presetButtons}</div>
       <ResetButton
         onClick={() => {
           setPresets(presetManager.DEFAULTS);
@@ -190,13 +207,65 @@ function EditParams({ params, set, Preview, editableParams, style, onClose }) {
         on_close={onClose}
         style={{ color: "#666", fontSize: "12px", marginTop: "-5px" }}
       />
-      <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginBottom: "10px",
+        }}
+      >
         <Preview {...params} />
       </div>
+      {editableParams.has("radius") && (
+        <div style={{ width: "100%", display: "flex" }}>
+          <Slider
+            value={params.radius ?? defaultRadius}
+            min={minRadius}
+            max={maxRadius}
+            step={0.5}
+            onChange={(value) => set("radius", value)}
+            style={{ flex: "1" }}
+          />
+          <div
+            style={{
+              color: "#666",
+              marginLeft: "5px",
+              fontSize: "9pt",
+              paddingTop: "6px",
+            }}
+          >
+            Radius ({params.radius}px)
+          </div>
+        </div>
+      )}
+      {editableParams.has("opacity") && (
+        <div style={{ width: "100%", display: "flex" }}>
+          <Slider
+            value={params.opacity ?? 1}
+            min={0}
+            max={1}
+            step={0.01}
+            onChange={(value) => set("opacity", value)}
+            style={{ flex: "1" }}
+          />
+          <Tooltip title="Opacity: 1 is solid; less than 1 is transparent">
+            <div
+              style={{
+                color: "#666",
+                marginLeft: "5px",
+                fontSize: "9pt",
+                paddingTop: "6px",
+              }}
+            >
+              Opacity ({params.opacity ?? 1})
+            </div>
+          </Tooltip>
+        </div>
+      )}
       {editableParams.has("fontSize") && (
         <div style={{ width: "100%", display: "flex" }}>
           <Slider
-            value={params.fontSize}
+            value={params.fontSize ?? DEFAULT_FONT_SIZE}
             min={minFontSize}
             max={maxFontSize}
             step={1}
@@ -206,7 +275,7 @@ function EditParams({ params, set, Preview, editableParams, style, onClose }) {
           <div
             style={{ marginLeft: "5px", fontSize: "9pt", paddingTop: "6px" }}
           >
-            Font Size (px)
+            Font Size ({params.fontSize ?? DEFAULT_FONT_SIZE} px)
           </div>
         </div>
       )}

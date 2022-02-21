@@ -85,7 +85,7 @@ export class Actions extends BaseActions<State> {
     cursors?: object[];
   }): void {
     if (commit == null) commit = true;
-    if (obj.id == null) {
+    if (obj?.id == null) {
       throw Error(`setElement -- id must be specified`);
     }
     this._syncstring.set(obj);

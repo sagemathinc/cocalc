@@ -22,7 +22,13 @@ export default function NoteToolPanel() {
       presetManager={presetManager}
       Preview={Preview}
       ButtonPreview={ButtonPreview}
-      style={{ width: "66px" }}
+      buttonTitle={({ fontSize, fontFamily, color }) =>
+        `Font size: ${fontSize}px` +
+        (fontFamily ? `; Font family: ${fontFamily}` : "") +
+        (color ? `; Color: ${color}` : "")
+      }
+      style={{ width: "138px" }}
+      editParamsStyle={{ left: "145px" }}
       editableParams={new Set(["fontSize", "fontFamily", "color"])}
     />
   );
@@ -71,7 +77,7 @@ function ButtonPreview({ fontFamily, color }: Params) {
         overflow: "hidden",
       }}
     >
-      A
+      Note
     </div>
   );
 }

@@ -21,7 +21,13 @@ export default function TextToolPanel() {
       presetManager={presetManager}
       Preview={Preview}
       ButtonPreview={ButtonPreview}
-      style={{ width: "66px" }}
+      buttonTitle={({ fontSize, fontFamily, color }) =>
+        `Font size: ${fontSize}px` +
+        (fontFamily ? `; Font family: ${fontFamily}` : "") +
+        (color ? `; Color: ${color}` : "")
+      }
+      style={{ width: "120px" }}
+      editParamsStyle={{ left: "129px" }}
       editableParams={new Set(["fontSize", "fontFamily", "color"])}
     />
   );
@@ -48,7 +54,7 @@ function Preview({ fontSize, fontFamily, color }: Params) {
         textAlign: "center",
       }}
     >
-      Note
+      Text
     </div>
   );
 }
@@ -64,7 +70,7 @@ function ButtonPreview({ fontFamily, color }: Params) {
         color,
       }}
     >
-      A
+      Text
     </div>
   );
 }

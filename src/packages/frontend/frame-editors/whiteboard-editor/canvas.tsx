@@ -90,7 +90,6 @@ import { throttle } from "lodash";
 import Draggable from "react-draggable";
 import { clearCanvas, drawCurve } from "./elements/pen";
 
-import { penParams } from "./tools/pen";
 import { getParams } from "./tools/tool-panel";
 
 import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
@@ -249,7 +248,6 @@ export default function Canvas({
   }, []);
 
   function getToolParams(tool) {
-    if (tool == "pen") return penParams(frame.desc.get("penId") ?? 0);
     return getParams(tool, frame.desc.get(`${tool}Id`));
   }
 

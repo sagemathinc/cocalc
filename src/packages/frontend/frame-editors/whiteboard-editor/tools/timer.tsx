@@ -18,7 +18,7 @@ interface Params {
   countdown?: number;
 }
 
-const COLORS = ["#252937", "#db482d", "#002bdb", "#2b6855"];
+const COLORS = ["#252937", "#db482d", "#002bdb"];
 const DEFAULTS: Params[] = [];
 for (const countdown of [null, 60]) {
   for (const color of COLORS) {

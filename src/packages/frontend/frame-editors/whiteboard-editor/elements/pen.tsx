@@ -85,8 +85,8 @@ export function drawCurve({
 }: {
   ctx;
   path: Point[];
-  color: string;
-  radius: number;
+  color?: string;
+  radius?: number;
   opacity?: number;
 }) {
   // There's some useful MIT licensed code at https://github.com/embiem/react-canvas-draw
@@ -94,12 +94,12 @@ export function drawCurve({
   if (path.length <= 1) return;
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
-  ctx.strokeStyle = color;
+  ctx.strokeStyle = color ?? "#000";
   if (opacity) {
     ctx.globalAlpha = opacity;
   }
 
-  ctx.lineWidth = 2*radius;
+  ctx.lineWidth = 2 * (radius ?? 0.5);
 
   let p1 = path[0];
   let p2 = path[1];

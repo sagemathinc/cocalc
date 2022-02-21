@@ -12,7 +12,6 @@ import ToolPanel, { getPresetManager, Tool } from "./tool-panel";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 
 const ICONS: IconName[] = [
-  "square",
   "circle",
   "jupyter",
   "sagemath",
@@ -24,10 +23,13 @@ const ICONS: IconName[] = [
   "bullhorn",
   "calculator",
   "cocalc-ring",
-  "bug",
+  "hand",
   "exchange",
   "exclamation-triangle",
   "user",
+  "square",
+  "cube",
+  "dot-circle",
 ];
 
 const DEFAULTS: Params[] = [];
@@ -54,8 +56,8 @@ export default function IconToolPanel() {
         `Name: ${icon}` + (fontSize ? `, Size: ${fontSize}px` : "")
       }
       editableParams={new Set(["icon", "fontSize", "color"])}
-      style={{ width: "55px" }}
-      editParamsStyle={{ width: "350px", left: "64px" }}
+      style={{ width: "145px" }}
+      editParamsStyle={{ width: "350px", left: "154px" }}
     />
   );
 }
