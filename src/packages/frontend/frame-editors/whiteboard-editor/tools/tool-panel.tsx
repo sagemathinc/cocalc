@@ -2,12 +2,7 @@
 Panel for a particular tool.
 
 - Allows for a bunch of presets
-- You can configure each one with a subset of spec.ConfigParams:
-   - fontSize
-   - fontFamily
-   - color
-   - radius
-   - countdown
+- You can configure many params.
 */
 
 import { CSSProperties, ReactNode, useState } from "react";
